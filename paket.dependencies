@@ -1,6 +1,7 @@
 framework:net45
 
 source https://api.nuget.org/v3/index.json
+source https://vrvis.myget.org/F/aardvark_public/api/v3/index.json
 
 // public repository
 nuget Aardvark.Base                     >= 3.0.44
