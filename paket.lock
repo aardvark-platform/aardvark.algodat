@@ -13,7 +13,7 @@ NUGET
     Newtonsoft.Json (9.0.1)
     NUnit (3.8.1)
     NUnit3TestAdapter (3.8)
-    Uncodium.SimpleStore (1.0.11)
+    Uncodium.SimpleStore (1.0.12)
 
 GROUP Build
 CONTENT: NONE
