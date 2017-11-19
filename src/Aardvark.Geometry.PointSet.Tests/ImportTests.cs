@@ -128,6 +128,7 @@ namespace Aardvark.Geometry.Tests
         public void CanImportFile_WithoutConfig_InMemory()
         {
             var filename = Path.Combine(Config.TestDataDir, "test.pts");
+            TestContext.WriteLine($"testfile is '{filename}'");
             var a = PointCloud.Import(filename);
             Assert.IsTrue(a != null);
             Assert.IsTrue(a.PointCount == 3);
@@ -137,7 +138,9 @@ namespace Aardvark.Geometry.Tests
         public void CanImportFile_WithoutConfig_OutOfCore()
         {
             var storepath = Path.Combine(Config.TempDataDir, Guid.NewGuid().ToString());
+            TestContext.WriteLine($"storepath is '{storepath}'");
             var filename = Path.Combine(Config.TestDataDir, "test.pts");
+            TestContext.WriteLine($"testfile is '{filename}'");
             var a = PointCloud.Import(filename, storepath);
             Assert.IsTrue(a != null);
             Assert.IsTrue(a.PointCount == 3);
@@ -147,7 +150,9 @@ namespace Aardvark.Geometry.Tests
         public void CanImportFileAndLoadFromStore()
         {
             var storepath = Path.Combine(Config.TempDataDir, Guid.NewGuid().ToString());
+            TestContext.WriteLine($"storepath is '{storepath}'");
             var filename = Path.Combine(Config.TestDataDir, "test.pts");
+            TestContext.WriteLine($"testfile is '{filename}'");
             var a = PointCloud.Import(filename, storepath);
             var key = a.Id;
 
@@ -164,6 +169,7 @@ namespace Aardvark.Geometry.Tests
         public void CanParsePtsFileInfo()
         {
             var filename = Path.Combine(Config.TestDataDir, "test.pts");
+            TestContext.WriteLine($"testfile is '{filename}'");
             var info = PointCloud.ParseFileInfo(filename, ImportConfig.Default);
 
             Assert.IsTrue(info.PointCount == 3);
@@ -186,6 +192,7 @@ namespace Aardvark.Geometry.Tests
         public void CanImportPtsFile()
         {
             var filename = Path.Combine(Config.TestDataDir, "test.pts");
+            TestContext.WriteLine($"testfile is '{filename}'");
             var config = new ImportConfig
             {
                 Storage = PointCloud.CreateInMemoryStore(),
@@ -200,6 +207,7 @@ namespace Aardvark.Geometry.Tests
         public void CanImportPtsFileAndLoadFromStore()
         {
             var filename = Path.Combine(Config.TestDataDir, "test.pts");
+            TestContext.WriteLine($"testfile is '{filename}'"); 
             var config = new ImportConfig
             {
                 Storage = PointCloud.CreateInMemoryStore(),
