@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/aardvark-platform/aardvark.algodat.svg?branch=master)](https://travis-ci.org/aardvark-platform/aardvark.algodat)
 [![Join the chat at https://gitter.im/aardvark-platform/Lobby](https://img.shields.io/badge/gitter-join%20chat-blue.svg)](https://gitter.im/aardvark-platform/Lobby)
 [![license](https://img.shields.io/github/license/aardvark-platform/aardvark.algodat.svg)](https://github.com/aardvark-platform/aardvark.algodat/blob/master/LICENSE)
 
