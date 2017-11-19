@@ -21,4 +21,9 @@ if NOT exist paket.lock (
 	.paket\paket.exe install
 )
 
+.paket\paket.exe restore --group Build
+if errorlevel 1 (
+  exit /b %errorlevel%
+)
+
 "%FSI_PATH%" "build.fsx" Dummy --fsiargs build.fsx %* 
