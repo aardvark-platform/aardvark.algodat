@@ -1,0 +1,12 @@
+type project
+id Aardvark.Geometry.PointSet
+authors Aardvark Platform Team
+owners Aardvark Platform Team
+projectUrl http://github.com/aardvark-platform
+licenseUrl http://www.gnu.org/licenses/agpl.txt
+description
+    A high performance out-of-core point cloud data structure.
+files
+    ..\..\bin\Release\Aardvark.Geometry.PointSet.dll ==> lib\net45
+    ..\..\bin\Release\Aardvark.Geometry.PointSet.pdb ==> lib\net45
+    ..\..\bin\Release\Aardvark.Geometry.PointSet.xml ==> lib\net45

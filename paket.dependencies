@@ -1,0 +1,22 @@
+framework:net45
+
+source https://api.nuget.org/v3/index.json
+
+// public repository
+nuget Aardvark.Base                     >= 3.0.44
+nuget Aardvark.Base.IO                  >= 3.0.44
+
+// 3rd-party
+nuget Crc32C.NET                        ~> 1.0.5
+nuget Newtonsoft.Json                   ~> 9.0.1
+nuget NUnit                             ~> 3.8.1
+nuget NUnit3TestAdapter                 ~> 3.8.0
+nuget Uncodium.SimpleStore              ~> 1.0.11
+
+group Build
+framework:net45
+content: none
+source https://api.nuget.org/v3/index.json
+
+github aardvark-platform/aardvark.fake:standalone
+

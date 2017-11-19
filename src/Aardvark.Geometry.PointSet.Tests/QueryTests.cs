@@ -1,0 +1,713 @@
+﻿/*
+    Copyright (C) 2017. Aardvark Platform Team. http://github.com/aardvark-platform.
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using Aardvark.Base;
+using Aardvark.Geometry.Points;
+using NUnit.Framework;
+
+namespace Aardvark.Geometry.Tests
+{
+    [TestFixture]
+    public class QueryTests
+    {
+        private static PointSet CreateRandomPointsInUnitCube(int n, int splitLimit)
+        {
+            var r = new Random();
+            var ps = new V3d[n];
+            for (var i = 0; i < n; i++) ps[i] = new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble());
+            var config = new ImportConfig
+            {
+                Storage = PointCloud.CreateInMemoryStore(),
+                Key = "test",
+                OctreeSplitLimit = splitLimit
+            };
+            return PointCloud.Chunks(new Chunk(ps, null), config);
+        }
+
+        private static PointSet CreateRegularPointsInUnitCube(int n, int splitLimit)
+        {
+            var ps = new List<V3d>();
+            var step = 1.0 / n;
+            var start = step * 0.5;
+            for (var x = start; x < 1.0; x += step)
+                for (var y = start; y < 1.0; y += step)
+                    for (var z = start; z < 1.0; z += step)
+                        ps.Add(new V3d(x, y, z));
+            var config = new ImportConfig
+            {
+                Storage = PointCloud.CreateInMemoryStore(),
+                Key = "test",
+                OctreeSplitLimit = splitLimit
+            };
+            return PointCloud.Chunks(new Chunk(ps, null), config);
+        }
+
+        #region Ray3d, Line3d
+
+        [Test]
+        public void CanQueryPointsAlongRay()
+        {
+            var filename = Config.TEST_FILE_NAME_PTS;
+            if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
+            
+            var config = new ImportConfig
+            {
+                Storage = PointCloud.CreateInMemoryStore(),
+                Key = "key1",
+                OctreeSplitLimit = 1000,
+                ReadBufferSizeInBytes = 64 * 1024 * 1024,
+            };
+            var pointset = PointCloud.Import(filename, config);
+
+            var ray1 = new Ray3d(new V3d(0.1, -1.0, -0.2), V3d.OIO);
+            var ray2 = new Ray3d(new V3d(0.1, -0.5, -0.2), V3d.OIO);
+
+            var count1 = 0;
+            var count2 = 0;
+
+            foreach (var x in pointset.QueryPointsNearRay(ray1, 0.1)) count1 += x.Positions.Length;
+            foreach (var x in pointset.QueryPointsNearRay(ray2, 0.1)) count2 += x.Positions.Length;
+
+            Assert.IsTrue(count1 >= count2);
+        }
+
+        #endregion
+
+        #region Plane3d
+
+        [Test]
+        public void CanQueryPointsNearPlane_1()
+        {
+            var pointset = CreateRandomPointsInUnitCube(1024, 64);
+
+            var q = new Plane3d(V3d.ZAxis, new V3d(0.5, 0.5, 0.5));
+
+            var ps = pointset.QueryPointsNearPlane(q, 0.1).SelectMany(x => x.Positions).ToList();
+            Assert.IsTrue(pointset.PointCount > ps.Count);
+
+            var bb = new Box3d(new V3d(0.0, 0.0, 0.4), new V3d(1.0, 1.0, 0.6));
+            foreach (var p in ps) Assert.IsTrue(bb.Contains(p));
+        }
+
+        [Test]
+        public void CanQueryPointsNearPlane_2()
+        {
+            var rs = CreateRegularPointsInUnitCube(4, 1)
+                .QueryPointsNearPlane(new Plane3d(V3d.ZAxis, new V3d(0, 0, 0.3)), 0.1)
+                .SelectMany(x => x.Positions)
+                .ToArray()
+                ;
+            Assert.IsTrue(rs.Length == 4 * 4);
+        }
+
+        [Test]
+        public void CanQueryPointsNearPlane_3()
+        {
+            var rs = CreateRegularPointsInUnitCube(4, 1)
+                .QueryPointsNearPlane(new Plane3d(V3d.ZAxis, new V3d(0, 0, 0.3)), 0.2)
+                .SelectMany(x => x.Positions)
+                .ToArray()
+                ;
+            Assert.IsTrue(rs.Length == 2 * 4 * 4);
+        }
+
+        [Test]
+        public void CanQueryPointsNearPlanes_1()
+        {
+            var pointset = CreateRandomPointsInUnitCube(1024, 64);
+
+            var q = new[]
+            {
+                new Plane3d(V3d.ZAxis, new V3d(0.5, 0.5, 0.5)),
+                new Plane3d(V3d.XAxis, new V3d(0.7, 0.5, 0.5))
+            };
+
+            var ps = pointset.QueryPointsNearPlanes(q, 0.1).SelectMany(x => x.Positions).ToList();
+            Assert.IsTrue(pointset.PointCount > ps.Count);
+
+            var bb1 = new Box3d(new V3d(0.0, 0.0, 0.4), new V3d(1.0, 1.0, 0.6));
+            var bb2 = new Box3d(new V3d(0.6, 0.0, 0.0), new V3d(0.8, 1.0, 1.0));
+            //var wrongs = ps.Where(p => !bb1.Contains(p) && !bb2.Contains(p)).ToArray();
+            foreach (var p in ps) Assert.IsTrue(bb1.Contains(p) || bb2.Contains(p));
+        }
+
+        [Test]
+        public void CanQueryPointsNearPlanes_2()
+        {
+            var rs = CreateRegularPointsInUnitCube(4, 1)
+                .QueryPointsNearPlanes(new[]
+                {
+                    new Plane3d(V3d.ZAxis, new V3d(0, 0, 0.3)),
+                    new Plane3d(V3d.XAxis, new V3d(0.8, 0, 0))
+                }, 0.1)
+                .SelectMany(x => x.Positions)
+                .ToArray()
+                ;
+            Assert.IsTrue(rs.Length == 4 * 4 + 4 * 4 - 4);
+        }
+        
+        [Test]
+        public void CanQueryPointsNearPlanes_3()
+        {
+            var rs = CreateRegularPointsInUnitCube(4, 1)
+                .QueryPointsNearPlanes(new[]
+                {
+                    new Plane3d(V3d.ZAxis, new V3d(0, 0, 0.3)),
+                    new Plane3d(V3d.XAxis, new V3d(0.8, 0, 0))
+                }, 0.2)
+                .SelectMany(x => x.Positions)
+                .ToArray()
+                ;
+            Assert.IsTrue(rs.Length == 32 + 32 - 16);
+        }
+        
+        [Test]
+        public void CanQueryPointsNotNearPlane_1()
+        {
+            var pointset = CreateRandomPointsInUnitCube(1024, 64);
+
+            var q = new Plane3d(V3d.ZAxis, new V3d(0.5, 0.5, 0.5));
+
+            var ps = pointset.QueryPointsNotNearPlane(q, 0.1).SelectMany(x => x.Positions).ToList();
+            Assert.IsTrue(pointset.PointCount > ps.Count);
+
+            var bb = new Box3d(new V3d(0.0, 0.0, 0.4), new V3d(1.0, 1.0, 0.6));
+            foreach (var p in ps) Assert.IsTrue(!bb.Contains(p));
+        }
+
+        [Test]
+        public void CanQueryPointsNotNearPlane_2()
+        {
+            var rs = CreateRegularPointsInUnitCube(4, 1)
+                .QueryPointsNotNearPlane(new Plane3d(V3d.ZAxis, new V3d(0, 0, 0.3)), 0.1)
+                .SelectMany(x => x.Positions)
+                .ToArray()
+                ;
+            Assert.IsTrue(rs.Length == 64 - 16);
+        }
+
+        [Test]
+        public void CanQueryPointsNotNearPlane_3()
+        {
+            var rs = CreateRegularPointsInUnitCube(4, 1)
+                .QueryPointsNotNearPlane(new Plane3d(V3d.ZAxis, new V3d(0, 0, 0.3)), 0.2)
+                .SelectMany(x => x.Positions)
+                .ToArray()
+                ;
+            Assert.IsTrue(rs.Length == 64 - 32);
+        }
+        
+        [Test]
+        public void CanQueryPointsNotNearPlanes_1()
+        {
+            var pointset = CreateRandomPointsInUnitCube(1024, 64);
+
+            var q = new[]
+            {
+                new Plane3d(V3d.ZAxis, new V3d(0.5, 0.5, 0.5)),
+                new Plane3d(V3d.XAxis, new V3d(0.7, 0.5, 0.5))
+            };
+
+            var ps = pointset.QueryPointsNotNearPlanes(q, 0.1).SelectMany(x => x.Positions).ToList();
+            Assert.IsTrue(pointset.PointCount > ps.Count);
+
+            var bb1 = new Box3d(new V3d(0.0, 0.0, 0.4), new V3d(1.0, 1.0, 0.6));
+            var bb2 = new Box3d(new V3d(0.6, 0.0, 0.0), new V3d(0.8, 1.0, 1.0));
+            foreach (var p in ps) Assert.IsTrue(!bb1.Contains(p) && !bb2.Contains(p));
+        }
+
+        [Test]
+        public void CanQueryPointsNotNearPlanes_2()
+        {
+            var rs = CreateRegularPointsInUnitCube(4, 1)
+                .QueryPointsNotNearPlanes(new[]
+                {
+                    new Plane3d(V3d.ZAxis, new V3d(0, 0, 0.3)),
+                    new Plane3d(V3d.XAxis, new V3d(0.8, 0, 0))
+                }, 0.1)
+                .SelectMany(x => x.Positions)
+                .ToArray()
+                ;
+            Assert.IsTrue(rs.Length == 64 - (16 + 16 - 4));
+        }
+
+        [Test]
+        public void CanQueryPointsNotNearPlanes_3()
+        {
+            var rs = CreateRegularPointsInUnitCube(4, 1)
+                .QueryPointsNotNearPlanes(new[]
+                {
+                    new Plane3d(V3d.ZAxis, new V3d(0, 0, 0.3)),
+                    new Plane3d(V3d.XAxis, new V3d(0.8, 0, 0))
+                }, 0.2)
+                .SelectMany(x => x.Positions)
+                .ToArray()
+                ;
+            Assert.IsTrue(rs.Length == 64 - (32 + 32 - 16));
+        }
+        
+        #endregion
+
+        #region Polygon3d
+
+        [Test]
+        public void CanQueryPointsNearPolygon_1()
+        {
+            var pointset = CreateRandomPointsInUnitCube(1024, 64);
+
+            var q = new Polygon3d(new V3d(0.4, 0.4, 0.5), new V3d(0.6, 0.4, 0.5), new V3d(0.6, 0.6, 0.5), new V3d(0.4, 0.6, 0.5));
+
+            var ps = pointset.QueryPointsNearPolygon(q, 0.1).SelectMany(x => x.Positions).ToList();
+            Assert.IsTrue(pointset.PointCount > ps.Count);
+
+            var bb = new Box3d(new V3d(0.4, 0.4, 0.4), new V3d(0.6, 0.6, 0.6));
+            foreach (var p in ps) Assert.IsTrue(bb.Contains(p));
+        }
+        
+        [Test]
+        public void CanQueryPointsNearPolygon_2()
+        {
+            var q = new Polygon3d(
+                new V3d(.0, .0, .3), new V3d(.25, .0, .3), new V3d(.5, .5, .3), new V3d(.0, .5, .3)
+                );
+
+            var rs = CreateRegularPointsInUnitCube(4, 1)
+                .QueryPointsNearPolygon(q, 0.1)
+                .SelectMany(x => x.Positions)
+                .ToArray()
+                ;
+            Assert.IsTrue(rs.Length == 3);
+        }
+
+        [Test]
+        public void CanQueryPointsNearPolygon_3()
+        {
+            var q = new Polygon3d(
+                new V3d(.0, .0, .3), new V3d(.25, .0, .3), new V3d(.5, .5, .3), new V3d(.0, .5, .3)
+                );
+
+            var rs = CreateRegularPointsInUnitCube(4, 1)
+                .QueryPointsNearPolygon(q, 0.2)
+                .SelectMany(x => x.Positions)
+                .ToArray()
+                ;
+            Assert.IsTrue(rs.Length == 2 * 3);
+        }
+
+        [Test]
+        public void CanQueryPointsNearPolygon_4()
+        {
+            var q = new Polygon3d(
+                new V3d(.0, .0, .3), new V3d(.25, .0, .3), new V3d(.5, .5, .3), new V3d(.0, .5, .3)
+                );
+
+            var rs = CreateRegularPointsInUnitCube(8, 1)
+                .QueryPointsNearPolygon(q, 0.2, -2)
+                .SelectMany(x => x.Positions)
+                .ToArray()
+                ;
+            Assert.IsTrue(rs.Length == 2 * 3);
+        }
+
+        [Test]
+        public void CanQueryPointsNearPolygons_1()
+        {
+            var pointset = CreateRandomPointsInUnitCube(1024, 64);
+
+            var q = new[]
+            {
+                new Polygon3d(new V3d(0.4, 0.4, 0.5), new V3d(0.6, 0.4, 0.5), new V3d(0.6, 0.6, 0.5), new V3d(0.4, 0.6, 0.5)),
+                new Polygon3d(new V3d(0.5, 0.4, 0.4), new V3d(0.5, 0.6, 0.4), new V3d(0.5, 0.6, 0.6), new V3d(0.5, 0.4, 0.6))
+            };
+
+            var ps = pointset.QueryPointsNearPolygons(q, 0.1).SelectMany(x => x.Positions).ToList();
+            Assert.IsTrue(pointset.PointCount > ps.Count);
+
+            var bb1 = new Box3d(new V3d(0.4, 0.4, 0.4), new V3d(0.6, 0.6, 0.6));
+            var bb2 = new Box3d(new V3d(0.4, 0.4, 0.4), new V3d(0.6, 0.6, 0.6));
+            foreach (var p in ps) Assert.IsTrue(bb1.Contains(p) || bb2.Contains(p));
+        }
+
+        [Test]
+        public void CanQueryPointsNearPolygons_2()
+        {
+            var q = new[]
+            {
+                new Polygon3d(new V3d(.0, .0, .3), new V3d(.25, .0, .3), new V3d(.5, .5, .3), new V3d(.0, .5, .3)),
+                new Polygon3d(new V3d(1, 1, .8), new V3d(1, .5, .8), new V3d(.5, .75, .8))
+            };
+
+            var rs = CreateRegularPointsInUnitCube(4, 1)
+                .QueryPointsNearPolygons(q, 0.1)
+                .SelectMany(x => x.Positions)
+                .ToArray()
+                ;
+            Assert.IsTrue(rs.Length == 3 + 2);
+        }
+
+        [Test]
+        public void CanQueryPointsNearPolygons_3()
+        {
+            var q = new[]
+            {
+                new Polygon3d(new V3d(.0, .0, .3), new V3d(.25, .0, .3), new V3d(.5, .5, .3), new V3d(.0, .5, .3)),
+                new Polygon3d(new V3d(1, 1, .8), new V3d(1, .5, .8), new V3d(.5, .75, .8))
+            };
+
+            var rs = CreateRegularPointsInUnitCube(4, 1)
+                .QueryPointsNearPolygons(q, 0.2)
+                .SelectMany(x => x.Positions)
+                .ToArray()
+                ;
+            Assert.IsTrue(rs.Length == 2 * (3 + 2));
+        }
+
+        [Test]
+        public void CanQueryPointsNotNearPolygon_1()
+        {
+            var pointset = CreateRandomPointsInUnitCube(1024, 64);
+
+            var q = new Polygon3d(new V3d(0.4, 0.4, 0.5), new V3d(0.6, 0.4, 0.5), new V3d(0.6, 0.6, 0.5), new V3d(0.4, 0.6, 0.5));
+
+            var ps = pointset.QueryPointsNotNearPolygon(q, 0.1).SelectMany(x => x.Positions).ToList();
+            Assert.IsTrue(pointset.PointCount > ps.Count);
+
+            var bb = new Box3d(new V3d(0.4, 0.4, 0.4), new V3d(0.6, 0.6, 0.6));
+            foreach (var p in ps) Assert.IsTrue(!bb.Contains(p));
+        }
+        
+        [Test]
+        public void CanQueryPointsNotNearPolygon_2()
+        {
+            var q = new Polygon3d(
+                new V3d(.0, .0, .3), new V3d(.25, .0, .3), new V3d(.5, .5, .3), new V3d(.0, .5, .3)
+                );
+
+            var rs = CreateRegularPointsInUnitCube(4, 1)
+                .QueryPointsNotNearPolygon(q, 0.1)
+                .SelectMany(x => x.Positions)
+                .ToArray()
+                ;
+            Assert.IsTrue(rs.Length == 64 - 3);
+        }
+
+        [Test]
+        public void CanQueryPointsNotNearPolygon_3()
+        {
+            var q = new Polygon3d(
+                new V3d(.0, .0, .3), new V3d(.25, .0, .3), new V3d(.5, .5, .3), new V3d(.0, .5, .3)
+                );
+
+            var rs = CreateRegularPointsInUnitCube(4, 1)
+                .QueryPointsNotNearPolygon(q, 0.2)
+                .SelectMany(x => x.Positions)
+                .ToArray()
+                ;
+            Assert.IsTrue(rs.Length == 64 - 2 * 3);
+        }
+        
+        [Test]
+        public void CanQueryPointsNotNearPolygons_1()
+        {
+            var pointset = CreateRandomPointsInUnitCube(1024, 64);
+
+            var q = new[]
+            {
+                new Polygon3d(new V3d(0.4, 0.4, 0.5), new V3d(0.6, 0.4, 0.5), new V3d(0.6, 0.6, 0.5), new V3d(0.4, 0.6, 0.5)),
+                new Polygon3d(new V3d(0.5, 0.4, 0.4), new V3d(0.5, 0.6, 0.4), new V3d(0.5, 0.6, 0.6), new V3d(0.5, 0.4, 0.6))
+            };
+
+            var ps = pointset.QueryPointsNotNearPolygons(q, 0.1).SelectMany(x => x.Positions).ToList();
+            Assert.IsTrue(pointset.PointCount > ps.Count);
+
+            var bb1 = new Box3d(new V3d(0.4, 0.4, 0.4), new V3d(0.6, 0.6, 0.6));
+            var bb2 = new Box3d(new V3d(0.4, 0.4, 0.4), new V3d(0.6, 0.6, 0.6));
+            foreach (var p in ps) Assert.IsTrue(!bb1.Contains(p) && !bb2.Contains(p));
+        }
+
+        [Test]
+        public void CanQueryPointsNotNearPolygons_2()
+        {
+            var q = new[]
+            {
+                new Polygon3d(new V3d(.0, .0, .3), new V3d(.25, .0, .3), new V3d(.5, .5, .3), new V3d(.0, .5, .3)),
+                new Polygon3d(new V3d(1, 1, .8), new V3d(1, .5, .8), new V3d(.5, .75, .8))
+            };
+
+            var rs = CreateRegularPointsInUnitCube(4, 1)
+                .QueryPointsNotNearPolygons(q, 0.1)
+                .SelectMany(x => x.Positions)
+                .ToArray()
+                ;
+            Assert.IsTrue(rs.Length == 64 - (3 + 2));
+        }
+
+        [Test]
+        public void CanQueryPointsNotNearPolygons_3()
+        {
+            var q = new[]
+            {
+                new Polygon3d(new V3d(.0, .0, .3), new V3d(.25, .0, .3), new V3d(.5, .5, .3), new V3d(.0, .5, .3)),
+                new Polygon3d(new V3d(1, 1, .8), new V3d(1, .5, .8), new V3d(.5, .75, .8))
+            };
+
+            var rs = CreateRegularPointsInUnitCube(4, 1)
+                .QueryPointsNotNearPolygons(q, 0.2)
+                .SelectMany(x => x.Positions)
+                .ToArray()
+                ;
+            Assert.IsTrue(rs.Length == 64 - (2 * (3 + 2)));
+        }
+
+        #endregion
+
+        #region Box3d
+
+        [Test]
+        public void CanQueryPointsInsideBox_1()
+        {
+            var filename = Config.TEST_FILE_NAME_PTS;
+            if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
+            
+            var config = new ImportConfig
+            {
+                Storage = PointCloud.CreateInMemoryStore(),
+                Key = "key1",
+                OctreeSplitLimit = 16 * 1024,
+                ReadBufferSizeInBytes = 128 * 1024 * 1024,
+            };
+            var pointset = PointCloud.Import(filename, config);
+
+            var box = Box3d.FromMinAndSize(new V3d(0.5, 0.5, 0.0), new V3d(0.5, 0.5, 0.5));
+            var result = new List<V3d>();
+            foreach (var x in pointset.QueryPointsInsideBox(box)) result.AddRange(x.Positions);
+            Assert.IsTrue(result.Count > 0 && result.Count < pointset.PointCount);
+
+            var resultBounds = new Box3d(result);
+            Assert.IsTrue(box.Contains(resultBounds));
+        }
+
+        [Test]
+        public void CanQueryPointsInsideBox_2()
+        {
+            var rs = CreateRegularPointsInUnitCube(4, 1)
+                .QueryPointsInsideBox(Box3d.Unit)
+                .SelectMany(x => x.Positions)
+                .ToArray()
+                ;
+            Assert.IsTrue(rs.Length == 4 * 4 * 4);
+        }
+
+        [Test]
+        public void CanQueryPointsOutsideBox_1()
+        {
+            var rs = CreateRegularPointsInUnitCube(4, 1)
+                .QueryPointsOutsideBox(Box3d.Unit)
+                .SelectMany(x => x.Positions)
+                .ToArray()
+                ;
+            Assert.IsTrue(rs.Length == 64 - 4 * 4 * 4);
+        }
+
+        #endregion
+
+        #region Octree levels
+
+        private static PointSet _CreateRandomPointSetForOctreeLevelTests()
+        {
+            var r = new Random();
+            var storage = PointSetTests.CreateStorage();
+
+            var ps = new V3d[51200].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
+            var cs = ps.Map(_ => C4b.White);
+
+            return PointSet
+                .Create(storage, "test", ps.ToList(), cs.ToList(), 100, true, CancellationToken.None)
+                .GenerateLod(null, 1, CancellationToken.None)
+                ;
+        }
+
+        [Test]
+        public void QueryOctreeLevel()
+        {
+            var pointset = _CreateRandomPointSetForOctreeLevelTests();
+
+            var depth = pointset.Root.Value.CountOctreeLevels();
+            Assert.IsTrue(depth > 0);
+
+            for (var i = 0; i < depth; i++)
+            {
+                var countNodes = 0;
+                var countPoints = 0;
+                foreach (var x in pointset.QueryPointsInOctreeLevel(i)) { countNodes++; countPoints += x.Count; }
+                Assert.IsTrue(countPoints > 0);
+                Assert.IsTrue(countNodes <= Math.Pow(8, i));
+            }
+        }
+
+        [Test]
+        public void QueryOctreeLevel_NegativeLevel()
+        {
+            var pointset = _CreateRandomPointSetForOctreeLevelTests();
+
+            var depth = pointset.Root.Value.CountOctreeLevels();
+            Assert.IsTrue(depth > 0);
+            
+            foreach (var _ in pointset.QueryPointsInOctreeLevel(-1)) Assert.Fail();
+        }
+
+        [Test]
+        public void QueryOctreeLevel_StopsAtLeafs()
+        {
+            var pointset = _CreateRandomPointSetForOctreeLevelTests();
+
+            var depth = pointset.Root.Value.CountOctreeLevels();
+            Assert.IsTrue(depth > 0);
+
+            // query octree level depth*2 -> should not crash and give number of original points
+            var countNodes = 0;
+            var countPoints = 0;
+            foreach (var x in pointset.QueryPointsInOctreeLevel(depth * 2)) { countNodes++; countPoints += x.Count; }
+            Assert.IsTrue(countPoints == 51200);
+        }
+
+        [Test]
+        public void CountPointsInOctreeLevel()
+        {
+            var pointset = _CreateRandomPointSetForOctreeLevelTests();
+
+            var depth = pointset.Root.Value.CountOctreeLevels();
+            Assert.IsTrue(depth > 0);
+
+            var countPoints = 0L;
+            for (var i = 0; i < depth; i++)
+            {
+                var c = pointset.CountPointsInOctreeLevel(i);
+                Assert.IsTrue(c > countPoints);
+                countPoints = c;
+            }
+        }
+
+        [Test]
+        public void CountPointsInOctreeLevel_StopsAtLeafs()
+        {
+            var pointset = _CreateRandomPointSetForOctreeLevelTests();
+
+            var depth = pointset.Root.Value.CountOctreeLevels();
+            Assert.IsTrue(depth > 0);
+
+            // query point count at level depth*2 -> should not crash and give number of original points
+            var countPoints = pointset.CountPointsInOctreeLevel(depth * 2);
+            Assert.IsTrue(countPoints == 51200);
+        }
+
+        [Test]
+        public void CountPointsInOctreeLevel_NegativeLevel()
+        {
+            var pointset = _CreateRandomPointSetForOctreeLevelTests();
+            
+            var countPoints = pointset.CountPointsInOctreeLevel(-1);
+            Assert.IsTrue(countPoints == 0);
+        }
+
+        [Test]
+        public void GetMaxOctreeLevelWithLessThanGivenPointCount()
+        {
+            var pointset = _CreateRandomPointSetForOctreeLevelTests();
+
+            var depth = pointset.Root.Value.CountOctreeLevels();
+            Assert.IsTrue(depth > 0);
+
+            var l0 = pointset.GetMaxOctreeLevelWithLessThanGivenPointCount(0);
+            Assert.IsTrue(l0 == -1);
+
+            var l1 = pointset.GetMaxOctreeLevelWithLessThanGivenPointCount(100);
+            Assert.IsTrue(l1 == -1);
+
+            var l2 = pointset.GetMaxOctreeLevelWithLessThanGivenPointCount(101);
+            Assert.IsTrue(l2 == 0);
+
+            var l3 = pointset.GetMaxOctreeLevelWithLessThanGivenPointCount(800);
+            Assert.IsTrue(l3 == 0);
+
+            var l4 = pointset.GetMaxOctreeLevelWithLessThanGivenPointCount(801);
+            Assert.IsTrue(l4 == 1);
+
+            var l5 = pointset.GetMaxOctreeLevelWithLessThanGivenPointCount(51200);
+            Assert.IsTrue(l5 == depth - 2);
+
+            var l6 = pointset.GetMaxOctreeLevelWithLessThanGivenPointCount(51201);
+            Assert.IsTrue(l6 == depth - 1);
+        }
+
+        #endregion
+
+        #region QueryPoints (generic query traversal, base for most other queries)
+
+        [Test]
+        public void CanQueryPointsWithEverythingInside_Single()
+        {
+            var storage = PointCloud.CreateInMemoryStore();
+            var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
+            var root = InMemoryPointSet.Build(ps, null, Cell.Unit, 1).ToPointSetCell(storage, ct: CancellationToken.None);
+
+            var rs = root.QueryPoints(cell => true, cell => false, p => true).SelectMany(x => x.Positions).ToArray();
+            Assert.IsTrue(rs.Length == 1);
+            Assert.IsTrue(rs[0] == new V3d(0.5, 0.5, 0.5));
+        }
+
+        [Test]
+        public void CanQueryPointsWithEverythingInside_Many()
+        {
+            var root = CreateRegularPointsInUnitCube(4, 1).Root.Value;
+            Assert.IsTrue(root.PointCountTree == 4 * 4 * 4);
+
+            var rs1 = root.QueryPoints(cell => true, cell => false, p => true).SelectMany(x => x.Positions).ToArray();
+            Assert.IsTrue(rs1.Length == 4 * 4 * 4);
+
+            var rs2 = root.QueryPoints(cell => false, cell => false, p => true).SelectMany(x => x.Positions).ToArray();
+            Assert.IsTrue(rs2.Length == 4 * 4 * 4);
+        }
+
+        [Test]
+        public void CanQueryPointsWithEverythingOutside_Single()
+        {
+            var storage = PointCloud.CreateInMemoryStore();
+            var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
+            var root = InMemoryPointSet.Build(ps, null, Cell.Unit, 1).ToPointSetCell(storage, ct: CancellationToken.None);
+
+            var rs = root.QueryPoints(cell => false, cell => true, p => false).SelectMany(x => x.Positions).ToArray();
+            Assert.IsTrue(rs.Length == 0);
+        }
+
+        [Test]
+        public void CanQueryPointsWithEverythingOutside_Many()
+        {
+            var root = CreateRegularPointsInUnitCube(4, 1).Root.Value;
+            Assert.IsTrue(root.PointCountTree == 4 * 4 * 4);
+
+            var rs1 = root.QueryPoints(cell => false, cell => true, p => false).SelectMany(x => x.Positions).ToArray();
+            Assert.IsTrue(rs1.Length == 0);
+
+            var rs2 = root.QueryPoints(cell => false, cell => false, p => false).SelectMany(x => x.Positions).ToArray();
+            Assert.IsTrue(rs2.Length == 0);
+        }
+
+        #endregion
+    }
+}

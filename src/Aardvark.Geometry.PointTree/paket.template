@@ -1,0 +1,11 @@
+type project
+id Aardvark.Geometry.PointTree
+authors Aardvark Platform Team
+owners Aardvark Platform Team
+projectUrl http://github.com/aardvark-platform
+licenseUrl http://www.gnu.org/licenses/agpl.txt
+description
+    A high-performance kd-tree implementation for points.
+files
+    ..\..\bin\Release\Aardvark.Geometry.PointTree.dll ==> lib\net45
+    ..\..\bin\Release\Aardvark.Geometry.PointTree.pdb ==> lib\net45
