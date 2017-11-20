@@ -85,6 +85,7 @@
   <ItemGroup>
     <None Include="packages.config" />
     <None Include="paket.references" />
+    <None Include="TestData\test.e57" />
     <None Include="TestData\test.pts" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

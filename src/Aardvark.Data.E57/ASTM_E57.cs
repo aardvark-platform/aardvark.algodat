@@ -162,15 +162,25 @@ namespace Aardvark.Data.E57
             E57ElementType E57Type { get; }
         }
 
+        /// <summary></summary>
+        public interface IBitPack
+        {
+            /// <summary></summary>
+            int NumberOfBitsForBitPack { get; }
+        }
+
         /// <summary>
         /// TABLE 2 Attributes for an Integer Type E57 Element.
         /// </summary>
-        public class E57Integer : IE57Element
+        public class E57Integer : IE57Element, IBitPack
         {
             /// <summary></summary>
             public E57ElementType E57Type => E57ElementType.Integer;
 
             #region Properties
+
+            /// <summary></summary>
+            public string Name;
 
             /// <summary>
             /// Optional. Default –2^63.
@@ -187,6 +197,9 @@ namespace Aardvark.Data.E57
             /// <summary></summary>
             public long Value;
 
+            /// <summary></summary>
+            public int NumberOfBitsForBitPack => (int)Math.Ceiling(((double)(Maximum - Minimum + 1)).Log2());
+
             #endregion
             
             internal static E57Integer Parse(XElement root)
@@ -197,19 +210,22 @@ namespace Aardvark.Data.E57
                 var min = GetOptionalLongAttribute(root, "minimum");
                 var max = GetOptionalLongAttribute(root, "maximum");
                 if (max < min) Ex("Integer.maximum", $">= minimum ({min})", $"{max}");
-                return new E57Integer { Minimum = min, Maximum = max, Value = value };
+                return new E57Integer { Name = root.Name.LocalName, Minimum = min, Maximum = max, Value = value };
             }
         }
 
         /// <summary>
         /// TABLE 3 Attributes for a ScaledInteger Type E57 Element.
         /// </summary>
-        public class E57ScaledInteger : IE57Element
+        public class E57ScaledInteger : IE57Element, IBitPack
         {
             /// <summary></summary>
             public E57ElementType E57Type => E57ElementType.ScaledInteger;
 
             #region Properties
+
+            /// <summary></summary>
+            public string Name;
 
             /// <summary>
             /// Optional. Default –2^63.
@@ -244,9 +260,12 @@ namespace Aardvark.Data.E57
             /// Value = RawValue * Scale + Offset.
             /// </summary>
             public double Value;
-
-            #endregion
             
+            /// <summary></summary>
+            public int NumberOfBitsForBitPack => (int)Math.Ceiling(((double)(Maximum - Minimum + 1)).Log2());
+            
+            #endregion
+
             internal static E57ScaledInteger Parse(XElement root)
             {
                 if (root == null) return null;
@@ -259,6 +278,7 @@ namespace Aardvark.Data.E57
                 var offset = GetOptionalFloatAttribute(root, "offset") ?? 0.0;
                 return new E57ScaledInteger
                 {
+                    Name = root.Name.LocalName,
                     Minimum = min, Maximum = max, Scale = scale, Offset = offset,
                     RawValue = raw, Value = raw * scale + offset
                 };
@@ -268,13 +288,21 @@ namespace Aardvark.Data.E57
         /// <summary>
         /// TABLE 4 Attributes for a Float Type E57 Element.
         /// </summary>
-        public class E57Float : IE57Element
+        public class E57Float : IE57Element, IBitPack
         {
             /// <summary></summary>
             public E57ElementType E57Type => E57ElementType.Float;
 
             #region Properties
-            
+
+            /// <summary></summary>
+            public string Name;
+
+            /// <summary>
+            /// True for 64 bit floating point values (IEEE 754-1985), false for 32 bit (IEEE 754-1985).
+            /// </summary>
+            public bool IsDoublePrecision;
+
             /// <summary>
             /// Optional. Default double.MinValue.
             /// The smallest value that can be encoded.
@@ -290,17 +318,25 @@ namespace Aardvark.Data.E57
             /// <summary></summary>
             public double Value;
 
-            #endregion
+            /// <summary></summary>
+            public int NumberOfBitsForBitPack => IsDoublePrecision ? 64 : 32;
             
+            #endregion
+
             internal static E57Float Parse(XElement root)
             {
                 if (root == null) return null;
                 EnsureElementType(root, "Float");
                 var value = string.IsNullOrWhiteSpace(root.Value) ? 0 : double.Parse(root.Value, CultureInfo.InvariantCulture);
+                var precision = root.Attribute("precision")?.Value;
+                var isDoublePrecision = (precision == null || precision == "double")
+                    ? true
+                    : (precision == "single" ? false : Ex<bool>("precision", "['double', 'single']", precision))
+                    ;
                 var min = GetOptionalFloatAttribute(root, "minimum");
                 var max = GetOptionalFloatAttribute(root, "maximum");
                 if (max < min) Ex("Float.maximum", $">= minimum ({min})", $"{max}");
-                return new E57Float { Minimum = min, Maximum = max, Value = value };
+                return new E57Float { Name = root.Name.LocalName, IsDoublePrecision = isDoublePrecision, Minimum = min, Maximum = max, Value = value };
             }
         }
 
@@ -314,6 +350,9 @@ namespace Aardvark.Data.E57
 
             #region Properties
 
+            /// <summary></summary>
+            public string Name;
+
             /// <summary>
             /// String value.
             /// </summary>
@@ -325,10 +364,7 @@ namespace Aardvark.Data.E57
             {
                 if (root == null) return null;
                 EnsureElementType(root, "String");
-                return new E57String
-                {
-                    Value = root.Value
-                };
+                return new E57String { Name = root.Name.LocalName, Value = root.Value };
             }
         }
 
@@ -479,15 +515,54 @@ namespace Aardvark.Data.E57
                     Prototype = E57Structure.Parse(GetElement(root, "prototype"), stream),
                     Codecs = null, // TODO
                 };
-                
-                var compressedVectorHeader = E57CompressedVectorHeader.Parse(ReadLogicalBytes(stream, v.FileOffset, 32));
 
-                var dataPacketHeader = E57DataPacketHeader.Parse(ReadLogicalBytes(stream, v.FileOffset + 32, 6));
-                var bytestreamBufferLengths = ReadLogicalUnsignedShorts(stream, v.FileOffset + 32 + 6, dataPacketHeader.ByteStreamCount);
+                v.ReadData(stream);
 
-                var foo = ReadLogicalBytes(stream, v.FileOffset, 256);
-                
                 return v;
+            }
+
+            internal void ReadData(Stream stream)
+            {
+                var compressedVectorHeader = E57CompressedVectorHeader.Parse(ReadLogicalBytes(stream, FileOffset, 32));
+
+                Console.WriteLine($"[E57CompressedVector] IndexStartOffset = {compressedVectorHeader.IndexStartOffset}");
+                Console.WriteLine($"[E57CompressedVector] DataStartOffset  = {compressedVectorHeader.DataStartOffset}");
+
+                if (compressedVectorHeader.IndexStartOffset > 0)
+                {
+                    Console.WriteLine($"[E57CompressedVector] INDEX PACKET");
+                    var indexPacketHeader = E57IndexPacketHeader.Parse(ReadLogicalBytes(stream, compressedVectorHeader.DataStartOffset, 16));
+                    Console.WriteLine($"[E57CompressedVector]   EntryCount         = {indexPacketHeader.EntryCount}");
+                    Console.WriteLine($"[E57CompressedVector]   IndexLevel         = {indexPacketHeader.IndexLevel}");
+                    Console.WriteLine($"[E57CompressedVector]   PacketLengthMinus1 = {indexPacketHeader.PacketLengthMinus1}");
+                    throw new NotImplementedException("E57CompressedVector/IndexPacket");
+                }
+
+                if (compressedVectorHeader.DataStartOffset > 0)
+                {
+                    Console.WriteLine($"[E57CompressedVector] DATA PACKET");
+                    var dataPacketHeader = E57DataPacketHeader.Parse(ReadLogicalBytes(stream, compressedVectorHeader.DataStartOffset, 6));
+                    Console.WriteLine($"[E57CompressedVector]   ByteStreamCount  = {dataPacketHeader.ByteStreamCount}");
+
+                    // read bytestream buffer lengths
+                    var offset = compressedVectorHeader.DataStartOffset + 6;
+                    var bytestreamBufferLengths = ReadLogicalUnsignedShorts(stream, offset, dataPacketHeader.ByteStreamCount);
+                    offset += dataPacketHeader.ByteStreamCount * sizeof(ushort);
+
+                    // read bytestream buffers
+                    var bytestreamBuffers = new byte[dataPacketHeader.ByteStreamCount][];
+                    for (var i = 0; i < dataPacketHeader.ByteStreamCount; i++)
+                    {
+                        var count = bytestreamBufferLengths[i];
+                        bytestreamBuffers[i] = ReadLogicalBytes(stream, offset, count);
+                        offset += count;
+
+                        var bits = ((IBitPack)Prototype.Children[i]).NumberOfBitsForBitPack;
+                        Console.WriteLine($"[E57CompressedVector]   ByteStreamBufferLengths[{i}]  = {count,8}, BitPack = {bits}");
+                    }
+                    //throw new NotImplementedException("E57CompressedVector/DataPacket");
+                }
+
             }
         }
         
@@ -611,7 +686,7 @@ namespace Aardvark.Data.E57
                     VersionMinor = GetInteger(root, "versionMinor", true).Value,
                     E57LibraryVersion = GetString(root, "e57LibraryVersion", false),
                     CreationDateTime = E57DateTime.Parse(GetElement(root, "creationDateTime")),
-                    Data3D = ASTM_E57.E57Data3D.ParseVectorChildren(GetElement(root, "data3D"), stream),
+                    Data3D = E57Data3D.ParseVectorChildren(GetElement(root, "data3D"), stream),
                     Images2D = E57Image2D.ParseVectorChildren(GetElement(root, "images2D"), stream),
                     CoordinateMetadata = GetString(root, "coordinateMetadata", false)
                 };
@@ -1737,17 +1812,17 @@ namespace Aardvark.Data.E57
         {
             internal byte SectionId;
             internal byte[] Reserved;
-            internal ulong SectionLength;
-            internal ulong DataStartOffset;
-            internal ulong IndexStartOffset;
+            internal long SectionLength;
+            internal long DataStartOffset;
+            internal long IndexStartOffset;
 
             internal static E57CompressedVectorHeader Parse(byte[] buffer) => new E57CompressedVectorHeader
             {
                 SectionId = Check("SectionId", buffer[0], x => x == 1, "1"),
                 Reserved = Check("Reserved", buffer.Copy(1, 7), xs => xs.All(x => x == 0), "(0,0,0,0,0,0,0)"),
-                SectionLength = BitConverter.ToUInt64(buffer, 8),
-                DataStartOffset = BitConverter.ToUInt64(buffer, 16),
-                IndexStartOffset = BitConverter.ToUInt64(buffer, 24),
+                SectionLength = BitConverter.ToInt64(buffer, 8),
+                DataStartOffset = BitConverter.ToInt64(buffer, 16),
+                IndexStartOffset = BitConverter.ToInt64(buffer, 24),
             };
         }
 
@@ -1801,7 +1876,9 @@ namespace Aardvark.Data.E57
             internal byte PacketFlags;
             internal ushort PacketLengthMinus1;
             internal ushort ByteStreamCount;
-
+            
+            internal bool CompressorRestart => (PacketFlags & 0b00000001) != 0;
+            
             internal static E57DataPacketHeader Parse(byte[] buffer) => new E57DataPacketHeader
             {
                 PacketType = Check("PacketType", buffer[0], x => x == 1, "1"),
@@ -1893,6 +1970,7 @@ namespace Aardvark.Data.E57
         #region XML Helpers
 
         private const string DEFAULT_NAMESPACE = "http://www.astm.org/COMMIT/E57/2010-e57-v1.0";
+        private static T Ex<T>(string s, string should, string actual) { Ex(s, should, actual); return default(T); }
         private static void Ex(string s, string should, string actual)
             => throw new Exception($"[E57][XML] Invalid element {s}. Should be \"{should}\", but is \"{actual}\".");
         private static void EnsureElementType(XElement e, string type)
