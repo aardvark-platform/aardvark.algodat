@@ -54,6 +54,7 @@
     <Compile Include="CellTests.cs" />
     <Compile Include="KdTreeTests.cs" />
     <Compile Include="MergeTests.cs" />
+    <Compile Include="E57Tests.cs" />
     <Compile Include="ProgressTests.cs" />
     <Compile Include="ParsingTests.cs" />
     <Compile Include="HashTests.cs" />

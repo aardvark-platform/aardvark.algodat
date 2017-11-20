@@ -29,6 +29,12 @@ namespace Aardvark.Data.E57
     /// </summary>
     public static class ASTM_E57
     {
+        private const int E57_BLOB_SECTION = 0;
+        private const int E57_COMPRESSED_VECTOR_SECTION = 1;
+        private const int E57_INDEX_PACKET = 0;
+        private const int E57_DATA_PACKET = 1;
+        private const int E57_IGNORED_PACKET = 2;
+
         /// <summary>
         /// E57 File Header (7. File Header Section).
         /// TABLE 1 Format of the E57 File Header Section.
@@ -167,6 +173,9 @@ namespace Aardvark.Data.E57
         {
             /// <summary></summary>
             int NumberOfBitsForBitPack { get; }
+
+            /// <summary></summary>
+            string Semantic { get; }
         }
 
         /// <summary>
@@ -200,8 +209,11 @@ namespace Aardvark.Data.E57
             /// <summary></summary>
             public int NumberOfBitsForBitPack => (int)Math.Ceiling(((double)(Maximum - Minimum + 1)).Log2());
 
+            /// <summary></summary>
+            public string Semantic => Name;
+
             #endregion
-            
+
             internal static E57Integer Parse(XElement root)
             {
                 if (root == null) return null;
@@ -264,6 +276,9 @@ namespace Aardvark.Data.E57
             /// <summary></summary>
             public int NumberOfBitsForBitPack => (int)Math.Ceiling(((double)(Maximum - Minimum + 1)).Log2());
             
+            /// <summary></summary>
+            public string Semantic => Name;
+
             #endregion
 
             internal static E57ScaledInteger Parse(XElement root)
@@ -320,7 +335,10 @@ namespace Aardvark.Data.E57
 
             /// <summary></summary>
             public int NumberOfBitsForBitPack => IsDoublePrecision ? 64 : 32;
-            
+
+            /// <summary></summary>
+            public string Semantic => Name;
+
             #endregion
 
             internal static E57Float Parse(XElement root)
@@ -525,43 +543,65 @@ namespace Aardvark.Data.E57
             {
                 var compressedVectorHeader = E57CompressedVectorHeader.Parse(ReadLogicalBytes(stream, FileOffset, 32));
 
-                Console.WriteLine($"[E57CompressedVector] IndexStartOffset = {compressedVectorHeader.IndexStartOffset}");
-                Console.WriteLine($"[E57CompressedVector] DataStartOffset  = {compressedVectorHeader.DataStartOffset}");
+                Console.WriteLine($"[E57CompressedVector] FileOffset       = {FileOffset,10}");
+                Console.WriteLine($"[E57CompressedVector] IndexStartOffset = {compressedVectorHeader.IndexStartOffset,10}");
+                Console.WriteLine($"[E57CompressedVector] DataStartOffset  = {compressedVectorHeader.DataStartOffset,10}");
+                Console.WriteLine($"[E57CompressedVector] SectionLength    = {compressedVectorHeader.SectionLength,10}");
 
-                if (compressedVectorHeader.IndexStartOffset > 0)
+                var bytesLeftToConsume = compressedVectorHeader.SectionLength - 32;
+                if (compressedVectorHeader.DataStartOffset == 0) throw new Exception($"Unexpected compressedVectorHeader.DataStartOffset (0).");
+                if (compressedVectorHeader.IndexStartOffset != 0) throw new Exception($"Unexpected compressedVectorHeader.IndexStartOffset ({compressedVectorHeader.IndexStartOffset})");
+
+                var offset = compressedVectorHeader.DataStartOffset;
+                while (bytesLeftToConsume > 0)
                 {
-                    Console.WriteLine($"[E57CompressedVector] INDEX PACKET");
-                    var indexPacketHeader = E57IndexPacketHeader.Parse(ReadLogicalBytes(stream, compressedVectorHeader.DataStartOffset, 16));
-                    Console.WriteLine($"[E57CompressedVector]   EntryCount         = {indexPacketHeader.EntryCount}");
-                    Console.WriteLine($"[E57CompressedVector]   IndexLevel         = {indexPacketHeader.IndexLevel}");
-                    Console.WriteLine($"[E57CompressedVector]   PacketLengthMinus1 = {indexPacketHeader.PacketLengthMinus1}");
-                    throw new NotImplementedException("E57CompressedVector/IndexPacket");
-                }
-
-                if (compressedVectorHeader.DataStartOffset > 0)
-                {
-                    Console.WriteLine($"[E57CompressedVector] DATA PACKET");
-                    var dataPacketHeader = E57DataPacketHeader.Parse(ReadLogicalBytes(stream, compressedVectorHeader.DataStartOffset, 6));
-                    Console.WriteLine($"[E57CompressedVector]   ByteStreamCount  = {dataPacketHeader.ByteStreamCount}");
-
-                    // read bytestream buffer lengths
-                    var offset = compressedVectorHeader.DataStartOffset + 6;
-                    var bytestreamBufferLengths = ReadLogicalUnsignedShorts(stream, offset, dataPacketHeader.ByteStreamCount);
-                    offset += dataPacketHeader.ByteStreamCount * sizeof(ushort);
-
-                    // read bytestream buffers
-                    var bytestreamBuffers = new byte[dataPacketHeader.ByteStreamCount][];
-                    for (var i = 0; i < dataPacketHeader.ByteStreamCount; i++)
+                    var sectionId = ReadLogicalBytes(stream, offset, 1)[0];
+                    if (sectionId == E57_COMPRESSED_VECTOR_SECTION)
                     {
-                        var count = bytestreamBufferLengths[i];
-                        bytestreamBuffers[i] = ReadLogicalBytes(stream, offset, count);
-                        offset += count;
+                        Console.WriteLine($"[E57CompressedVector] DATA PACKET");
+                        var dataPacketHeader = E57DataPacketHeader.Parse(ReadLogicalBytes(stream, offset, 6));
+                        Console.WriteLine($"[E57CompressedVector]   ByteStreamCount    = {dataPacketHeader.ByteStreamCount}");
+                        Console.WriteLine($"[E57CompressedVector]   PacketLengthMinus1 = {dataPacketHeader.PacketLengthMinus1}");
 
-                        var bits = ((IBitPack)Prototype.Children[i]).NumberOfBitsForBitPack;
-                        Console.WriteLine($"[E57CompressedVector]   ByteStreamBufferLengths[{i}]  = {count,8}, BitPack = {bits}");
+                        // read bytestream buffer lengths
+                        offset += 6;
+                        var bytestreamBufferLengths = ReadLogicalUnsignedShorts(stream, offset, dataPacketHeader.ByteStreamCount);
+                        offset += dataPacketHeader.ByteStreamCount * sizeof(ushort);
+
+                        // read bytestream buffers
+                        var bytestreamBuffers = new byte[dataPacketHeader.ByteStreamCount][];
+                        for (var i = 0; i < dataPacketHeader.ByteStreamCount; i++)
+                        {
+                            var count = bytestreamBufferLengths[i];
+                            bytestreamBuffers[i] = ReadLogicalBytes(stream, offset, count);
+                            offset += count;
+
+                            var bits = ((IBitPack)Prototype.Children[i]).NumberOfBitsForBitPack;
+                            var semantic = ((IBitPack)Prototype.Children[i]).Semantic;
+                            Console.WriteLine($"[E57CompressedVector]   ByteStreamBufferLengths[{i}]  = {count,8},   BitPack = {bits,2},  {semantic}");
+                        }
                     }
-                    //throw new NotImplementedException("E57CompressedVector/DataPacket");
+                    else
+                    {
+                        throw new Exception($"Unexpected sectionId ({sectionId}).");
+                    }
                 }
+
+                //if (compressedVectorHeader.IndexStartOffset > 0)
+                //{
+                //    Console.WriteLine($"[E57CompressedVector] INDEX PACKET");
+                //    var indexPacketHeader = E57IndexPacketHeader.Parse(ReadLogicalBytes(stream, compressedVectorHeader.DataStartOffset, 16));
+                //    Console.WriteLine($"[E57CompressedVector]   EntryCount         = {indexPacketHeader.EntryCount}");
+                //    Console.WriteLine($"[E57CompressedVector]   IndexLevel         = {indexPacketHeader.IndexLevel}");
+                //    Console.WriteLine($"[E57CompressedVector]   PacketLengthMinus1 = {indexPacketHeader.PacketLengthMinus1}");
+                //    throw new NotImplementedException("E57CompressedVector/IndexPacket");
+                //}
+
+                //if (compressedVectorHeader.DataStartOffset > 0)
+                //{
+                    
+                //    //throw new NotImplementedException("E57CompressedVector/DataPacket");
+                //}
 
             }
         }
@@ -1810,10 +1850,25 @@ namespace Aardvark.Data.E57
         /// </summary>
         public struct E57CompressedVectorHeader
         {
+            /// <summary>
+            /// E57_COMPRESSED_VECTOR_SECTION (value = 1).
+            /// </summary>
             internal byte SectionId;
+            /// <summary>
+            /// Reserved bytes for future versions of the standard. Shall all be 0.
+            /// </summary>
             internal byte[] Reserved;
+            /// <summary>
+            /// The logical length of the CompressedVector binary section (in bytes).
+            /// </summary>
             internal long SectionLength;
+            /// <summary>
+            /// The file offset of the first data packet in this binary section (in bytes).
+            /// </summary>
             internal long DataStartOffset;
+            /// <summary>
+            /// The file offset to the root level index packet in this binary section (in bytes).
+            /// </summary>
             internal long IndexStartOffset;
 
             internal static E57CompressedVectorHeader Parse(byte[] buffer) => new E57CompressedVectorHeader
@@ -1872,9 +1927,23 @@ namespace Aardvark.Data.E57
         /// </summary>
         public struct E57DataPacketHeader
         {
+            /// <summary>
+            /// E57_DATA_PACKET (value = 1).
+            /// </summary>
             internal byte PacketType;
+            /// <summary>
+            /// Packet flag field (described in 9.5.7).
+            /// </summary>
             internal byte PacketFlags;
+            /// <summary>
+            /// One less than the logical length of the packet (in bytes).
+            /// To maintain alignment, the packet may be padded with up to three zero-valued bytes after the last used field.
+            /// The length includes any zero padding that is present. Shall be in the interval (0,2^16).
+            /// </summary>
             internal ushort PacketLengthMinus1;
+            /// <summary>
+            /// The number of bytestreams in this packet. Shall be in the interval [0, 32763].
+            /// </summary>
             internal ushort ByteStreamCount;
             
             internal bool CompressorRestart => (PacketFlags & 0b00000001) != 0;
@@ -1928,7 +1997,7 @@ namespace Aardvark.Data.E57
         /// Read given number of logical bytes (excluding 32-bit CRC at the end of each 1024 byte page) from stream,
         /// starting at raw stream position 'startPhysical'.
         /// </summary>
-        public static byte[] ReadLogicalBytes(Stream stream, long startPhysical, int countLogical)
+        internal static byte[] ReadLogicalBytes(Stream stream, long startPhysical, int countLogical)
         {
             checked
             {
@@ -1952,7 +2021,7 @@ namespace Aardvark.Data.E57
                 return buffer;
             }
         }
-
+        
         /// <summary>
         /// Read given number of logical unsigned shorts (excluding 32-bit CRC at the end of each 1024 byte page) from stream,
         /// starting at raw stream position 'startPhysical'.
@@ -2102,5 +2171,28 @@ namespace Aardvark.Data.E57
         }
 
         #endregion
+    }
+
+    public struct PhysicalAddress
+    {
+        public readonly long Value;
+        public PhysicalAddress(long value) { Value = value; }
+
+        public static PhysicalAddress operator +(PhysicalAddress a, PhysicalAddress b) => new PhysicalAddress(a.Value + b.Value);
+        public static PhysicalAddress operator +(PhysicalAddress a, LogicalAddress b) => (PhysicalAddress)((LogicalAddress)a + b);
+        public static explicit operator LogicalAddress(PhysicalAddress a)
+        {
+            var result = a.Value - ((a.Value >> 8) & ~0b11);
+            if ((a.Value % 1024) >= 1020) result -= a.Value & 0b11;
+            return new LogicalAddress(result);
+        }
+    }
+
+    public struct LogicalAddress
+    {
+        public readonly long Value;
+        public LogicalAddress(long value) { Value = value; }
+        public static LogicalAddress operator +(LogicalAddress a, LogicalAddress b) => new LogicalAddress(a.Value + b.Value);
+        public static explicit operator PhysicalAddress(LogicalAddress a) => new PhysicalAddress(a.Value + (a.Value / 1020 * 4));
     }
 }
