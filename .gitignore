@@ -13,7 +13,7 @@
 /.paket/paket.exe
 bin/
 obj/
-**/Aardvark.log
+**/Aardvark.log*
 **/*.csproj.user
 /src/Aardvark.log
 **/teststore*

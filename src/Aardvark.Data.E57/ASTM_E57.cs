@@ -55,7 +55,7 @@ namespace Aardvark.Data.E57
             public ulong FileLength;
             /// <summary>
             /// </summary>
-            public ulong XmlOffset;
+            public PhysicalOffset XmlOffset;
             /// <summary>
             /// </summary>
             public ulong XmlLength;
@@ -83,12 +83,12 @@ namespace Aardvark.Data.E57
                     VersionMajor = Check("VersionMajor", BitConverter.ToUInt32(buffer, 8), x => x == 1, "1"),
                     VersionMinor = Check("VersionMinor", BitConverter.ToUInt32(buffer, 12), x => x == 0, "0"),
                     FileLength = BitConverter.ToUInt64(buffer, 16),
-                    XmlOffset = BitConverter.ToUInt64(buffer, 24),
+                    XmlOffset = new PhysicalOffset(BitConverter.ToInt64(buffer, 24)),
                     XmlLength = BitConverter.ToUInt64(buffer, 32),
                     PageSize = Check("PageSize", BitConverter.ToUInt64(buffer, 40), x => x == 1024, "1024"),
                 };
 
-                var xmlBuffer = ReadLogicalBytes(stream, (long)h.XmlOffset, (int)h.XmlLength);
+                var xmlBuffer = ReadLogicalBytes(stream, h.XmlOffset, (int)h.XmlLength);
                 var xmlString = Encoding.UTF8.GetString(xmlBuffer);
                 h.RawXml = XElement.Parse(xmlString, LoadOptions.SetBaseUri);
                 h.E57Root = E57Root.Parse(h.RawXml, stream);
@@ -400,7 +400,7 @@ namespace Aardvark.Data.E57
             /// Required.
             /// The physical file offset of the start of the associated binary Blob section in the E57 file. Shall be in the interval [0, 2^63).
             /// </summary>
-            public long FileOffset;
+            public PhysicalOffset FileOffset;
 
             /// <summary>
             /// Required.
@@ -416,7 +416,7 @@ namespace Aardvark.Data.E57
                 EnsureElementType(root, "Blob");
                 return new E57Blob
                 {
-                    FileOffset = GetLongAttribute(root, "fileOffset"),
+                    FileOffset = GetPhysicalOffsetAttribute(root, "fileOffset"),
                     Length = GetLongAttribute(root, "length")
                 };
             }
@@ -500,7 +500,7 @@ namespace Aardvark.Data.E57
             /// Required.
             /// The physical file offset of the start of the CompressedVector binary section in the E57 file(an integer). Shall be in the interval(0, 2^63).
             /// </summary>
-            public long FileOffset;
+            public PhysicalOffset FileOffset;
 
             /// <summary>
             /// Required.
@@ -528,7 +528,7 @@ namespace Aardvark.Data.E57
 
                 var v = new E57CompressedVector
                 {
-                    FileOffset =  GetLongAttribute(root, "fileOffset"), 
+                    FileOffset = GetPhysicalOffsetAttribute(root, "fileOffset"), 
                     RecordCount = GetLongAttribute(root, "recordCount"),
                     Prototype = E57Structure.Parse(GetElement(root, "prototype"), stream),
                     Codecs = null, // TODO
@@ -549,13 +549,17 @@ namespace Aardvark.Data.E57
                 Console.WriteLine($"[E57CompressedVector] SectionLength    = {compressedVectorHeader.SectionLength,10}");
 
                 var bytesLeftToConsume = compressedVectorHeader.SectionLength - 32;
-                if (compressedVectorHeader.DataStartOffset == 0) throw new Exception($"Unexpected compressedVectorHeader.DataStartOffset (0).");
-                if (compressedVectorHeader.IndexStartOffset != 0) throw new Exception($"Unexpected compressedVectorHeader.IndexStartOffset ({compressedVectorHeader.IndexStartOffset})");
+                if (compressedVectorHeader.DataStartOffset.Value == 0) throw new Exception($"Unexpected compressedVectorHeader.DataStartOffset (0).");
+                if (compressedVectorHeader.IndexStartOffset.Value != 0) throw new Exception($"Unexpected compressedVectorHeader.IndexStartOffset ({compressedVectorHeader.IndexStartOffset})");
 
-                var offset = compressedVectorHeader.DataStartOffset;
+                var offset = (LogicalOffset)compressedVectorHeader.DataStartOffset;
                 while (bytesLeftToConsume > 0)
                 {
+                    Console.WriteLine($"[E57CompressedVector] bytesLeftToConsume = {bytesLeftToConsume}");
+                    var packetStart = offset;
                     var sectionId = ReadLogicalBytes(stream, offset, 1)[0];
+                    Console.WriteLine($"[E57CompressedVector][OFFSET] {offset}, sectionId = {sectionId}");
+
                     if (sectionId == E57_COMPRESSED_VECTOR_SECTION)
                     {
                         Console.WriteLine($"[E57CompressedVector] DATA PACKET");
@@ -565,8 +569,12 @@ namespace Aardvark.Data.E57
 
                         // read bytestream buffer lengths
                         offset += 6;
+                        Console.WriteLine($"[E57CompressedVector][OFFSET] {offset}");
                         var bytestreamBufferLengths = ReadLogicalUnsignedShorts(stream, offset, dataPacketHeader.ByteStreamCount);
                         offset += dataPacketHeader.ByteStreamCount * sizeof(ushort);
+                        for (var i = 0; i < bytestreamBufferLengths.Length; i++)
+                            Console.WriteLine($"[E57CompressedVector]  ByteStream {i+1}/{bytestreamBufferLengths.Length}: length = {bytestreamBufferLengths[i]}");
+                        Console.WriteLine($"[E57CompressedVector][OFFSET] {offset}");
 
                         // read bytestream buffers
                         var bytestreamBuffers = new byte[dataPacketHeader.ByteStreamCount][];
@@ -574,35 +582,32 @@ namespace Aardvark.Data.E57
                         {
                             var count = bytestreamBufferLengths[i];
                             bytestreamBuffers[i] = ReadLogicalBytes(stream, offset, count);
+                            Console.WriteLine($"[E57CompressedVector][OFFSET] {offset}, reading {count} bytes for bytestream {i+1}/{dataPacketHeader.ByteStreamCount}");
                             offset += count;
 
                             var bits = ((IBitPack)Prototype.Children[i]).NumberOfBitsForBitPack;
                             var semantic = ((IBitPack)Prototype.Children[i]).Semantic;
                             Console.WriteLine($"[E57CompressedVector]   ByteStreamBufferLengths[{i}]  = {count,8},   BitPack = {bits,2},  {semantic}");
                         }
+
+                        // move to next packet
+                        offset = packetStart + dataPacketHeader.PacketLengthMinus1 + 1;
+                        bytesLeftToConsume -= dataPacketHeader.PacketLengthMinus1 + 1;
+                    }
+                    else if (sectionId == E57_INDEX_PACKET)
+                    {
+                        Console.WriteLine($"[E57CompressedVector] INDEX PACKET");
+                        var indexPacketHeader = E57IndexPacketHeader.Parse(ReadLogicalBytes(stream, offset, 16));
+                        Console.WriteLine($"[E57CompressedVector]   EntryCount         = {indexPacketHeader.EntryCount}");
+                        Console.WriteLine($"[E57CompressedVector]   IndexLevel         = {indexPacketHeader.IndexLevel}");
+                        Console.WriteLine($"[E57CompressedVector]   PacketLengthMinus1 = {indexPacketHeader.PacketLengthMinus1}");
+                        throw new NotImplementedException("E57CompressedVector/IndexPacket");
                     }
                     else
                     {
                         throw new Exception($"Unexpected sectionId ({sectionId}).");
                     }
                 }
-
-                //if (compressedVectorHeader.IndexStartOffset > 0)
-                //{
-                //    Console.WriteLine($"[E57CompressedVector] INDEX PACKET");
-                //    var indexPacketHeader = E57IndexPacketHeader.Parse(ReadLogicalBytes(stream, compressedVectorHeader.DataStartOffset, 16));
-                //    Console.WriteLine($"[E57CompressedVector]   EntryCount         = {indexPacketHeader.EntryCount}");
-                //    Console.WriteLine($"[E57CompressedVector]   IndexLevel         = {indexPacketHeader.IndexLevel}");
-                //    Console.WriteLine($"[E57CompressedVector]   PacketLengthMinus1 = {indexPacketHeader.PacketLengthMinus1}");
-                //    throw new NotImplementedException("E57CompressedVector/IndexPacket");
-                //}
-
-                //if (compressedVectorHeader.DataStartOffset > 0)
-                //{
-                    
-                //    //throw new NotImplementedException("E57CompressedVector/DataPacket");
-                //}
-
             }
         }
         
@@ -1865,19 +1870,19 @@ namespace Aardvark.Data.E57
             /// <summary>
             /// The file offset of the first data packet in this binary section (in bytes).
             /// </summary>
-            internal long DataStartOffset;
+            internal PhysicalOffset DataStartOffset;
             /// <summary>
             /// The file offset to the root level index packet in this binary section (in bytes).
             /// </summary>
-            internal long IndexStartOffset;
+            internal PhysicalOffset IndexStartOffset;
 
             internal static E57CompressedVectorHeader Parse(byte[] buffer) => new E57CompressedVectorHeader
             {
                 SectionId = Check("SectionId", buffer[0], x => x == 1, "1"),
                 Reserved = Check("Reserved", buffer.Copy(1, 7), xs => xs.All(x => x == 0), "(0,0,0,0,0,0,0)"),
                 SectionLength = BitConverter.ToInt64(buffer, 8),
-                DataStartOffset = BitConverter.ToInt64(buffer, 16),
-                IndexStartOffset = BitConverter.ToInt64(buffer, 24),
+                DataStartOffset = new PhysicalOffset(BitConverter.ToInt64(buffer, 16)),
+                IndexStartOffset = new PhysicalOffset(BitConverter.ToInt64(buffer, 24)),
             };
         }
 
@@ -1887,11 +1892,30 @@ namespace Aardvark.Data.E57
         /// </summary>
         public struct E57IndexPacketHeader
         {
+            /// <summary>
+            /// E57_INDEX_PACKET (value = 0).
+            /// </summary>
             internal byte PacketType;
+            /// <summary>
+            /// Reserved for future versions of the standard. Shall all be 0.
+            /// </summary>
             internal byte Reserved1;
+            /// <summary>
+            /// One less than the logical length of the packet (in bytes). Shall be in the interval (0, 2^16).
+            /// </summary>
             internal ushort PacketLengthMinus1;
+            /// <summary>
+            /// The number ofu sed address entries in this packet. Shall be in the interval [1, 2048].
+            /// </summary>
             internal ushort EntryCount;
+            /// <summary>
+            /// The level of this index packet in the tree if index packets.
+            /// The bottom (leaf) level is zero. Shall be in the interval [0, 5].
+            /// </summary>
             internal byte IndexLevel;
+            /// <summary>
+            /// Reserved bytes for future versions of the standard. Shall all be zero.
+            /// </summary>
             internal byte[] Reserved2;
 
             internal static E57IndexPacketHeader Parse(byte[] buffer) => new E57IndexPacketHeader
@@ -1911,13 +1935,22 @@ namespace Aardvark.Data.E57
         /// </summary>
         public struct E57IndexPacketAddressEntry
         {
-            internal ulong ChunkRecordIndex;
-            internal ulong PacketOffset;
+            /// <summary>
+            /// The index of the first record stored in this chunk (for leaf nodes),
+            /// or the index of the first record stored in any chunks within the sub-tree(for non-leaf nodes).
+            /// Shall be in the interval[0, 2^63).
+            /// </summary>
+            internal PhysicalOffset ChunkRecordIndex;
+            /// <summary>
+            /// The file offset to a data packet (for leaf nodes) or to a lower level index packet(for non-leaf nodes).
+            /// Shall be in the interval(0, 2^63).
+            /// </summary>
+            internal PhysicalOffset PacketOffset;
 
             internal static E57IndexPacketAddressEntry Parse(byte[] buffer) => new E57IndexPacketAddressEntry
             {
-                ChunkRecordIndex = BitConverter.ToUInt64(buffer, 0),
-                PacketOffset = BitConverter.ToUInt64(buffer, 8)
+                ChunkRecordIndex = new PhysicalOffset(BitConverter.ToInt64(buffer, 0)),
+                PacketOffset = new PhysicalOffset(BitConverter.ToInt64(buffer, 8))
             };
         }
 
@@ -1966,7 +1999,7 @@ namespace Aardvark.Data.E57
         }
 
         #region File Helpers
-        
+
         /// <summary>
         /// Verifies file checksums (CRC).
         /// </summary>
@@ -1995,16 +2028,15 @@ namespace Aardvark.Data.E57
 
         /// <summary>
         /// Read given number of logical bytes (excluding 32-bit CRC at the end of each 1024 byte page) from stream,
-        /// starting at raw stream position 'startPhysical'.
+        /// starting at raw stream position 'start'.
         /// </summary>
-        internal static byte[] ReadLogicalBytes(Stream stream, long startPhysical, int countLogical)
+        internal static byte[] ReadLogicalBytes(Stream stream, PhysicalOffset start, int countLogical)
         {
             checked
             {
-                if (startPhysical < 0) throw new ArgumentException(nameof(startPhysical));
                 if (countLogical < 0) throw new ArgumentException(nameof(countLogical));
 
-                stream.Position = startPhysical;
+                stream.Position = start.Value;
 
                 var buffer = new byte[countLogical];
                 var i = 0;
@@ -2021,18 +2053,32 @@ namespace Aardvark.Data.E57
                 return buffer;
             }
         }
-        
+
+        /// <summary>
+        /// Read given number of logical bytes (excluding 32-bit CRC at the end of each 1024 byte page) from stream,
+        /// starting at logical stream position 'start'.
+        /// </summary>
+        internal static byte[] ReadLogicalBytes(Stream stream, LogicalOffset start, int countLogical)
+            => ReadLogicalBytes(stream, (PhysicalOffset)start, countLogical);
+
         /// <summary>
         /// Read given number of logical unsigned shorts (excluding 32-bit CRC at the end of each 1024 byte page) from stream,
         /// starting at raw stream position 'startPhysical'.
         /// </summary>
-        public static ushort[] ReadLogicalUnsignedShorts(Stream stream, long startPhysical, int count)
+        public static ushort[] ReadLogicalUnsignedShorts(Stream stream, PhysicalOffset start, int count)
         {
-            var buffer = ReadLogicalBytes(stream, startPhysical, count * 2);
+            var buffer = ReadLogicalBytes(stream, start, count * 2);
             var xs = new ushort[count];
             for (var i = 0; i < count; i++) xs[i] = BitConverter.ToUInt16(buffer, i << 1);
             return xs;
         }
+
+        /// <summary>
+        /// Read given number of logical unsigned shorts (excluding 32-bit CRC at the end of each 1024 byte page) from stream,
+        /// starting at raw stream position 'startPhysical'.
+        /// </summary>
+        public static ushort[] ReadLogicalUnsignedShorts(Stream stream, LogicalOffset start, int count)
+            => ReadLogicalUnsignedShorts(stream, (PhysicalOffset)start, count);
 
         #endregion
 
@@ -2119,6 +2165,7 @@ namespace Aardvark.Data.E57
             return result;
         }
 
+        private static PhysicalOffset GetPhysicalOffsetAttribute(XElement root, string elementName) => new PhysicalOffset(long.Parse(root.Attribute(elementName).Value));
         private static long GetLongAttribute(XElement root, string elementName) => long.Parse(root.Attribute(elementName).Value);
         private static long? GetOptionalLongAttribute(XElement root, string elementName)
         {
@@ -2173,26 +2220,25 @@ namespace Aardvark.Data.E57
         #endregion
     }
 
-    public struct PhysicalAddress
+    public struct PhysicalOffset
     {
         public readonly long Value;
-        public PhysicalAddress(long value) { Value = value; }
+        public PhysicalOffset(long value) => Value
+            = (value % 1024 < 1020) ? value : throw new ArgumentException($"PhysicalOffset must not point to checksum bytes. ({value}).");
 
-        public static PhysicalAddress operator +(PhysicalAddress a, PhysicalAddress b) => new PhysicalAddress(a.Value + b.Value);
-        public static PhysicalAddress operator +(PhysicalAddress a, LogicalAddress b) => (PhysicalAddress)((LogicalAddress)a + b);
-        public static explicit operator LogicalAddress(PhysicalAddress a)
-        {
-            var result = a.Value - ((a.Value >> 8) & ~0b11);
-            if ((a.Value % 1024) >= 1020) result -= a.Value & 0b11;
-            return new LogicalAddress(result);
-        }
+        public static PhysicalOffset operator +(PhysicalOffset a, PhysicalOffset b) => new PhysicalOffset(a.Value + b.Value);
+        public static LogicalOffset operator +(PhysicalOffset a, LogicalOffset b) => (LogicalOffset)a + b;
+        public static explicit operator LogicalOffset(PhysicalOffset a) => new LogicalOffset(a.Value - ((a.Value >> 8) & ~0b11));
+        public override string ToString() => $"PhysicalOffset({Value})";
     }
 
-    public struct LogicalAddress
+    public struct LogicalOffset
     {
         public readonly long Value;
-        public LogicalAddress(long value) { Value = value; }
-        public static LogicalAddress operator +(LogicalAddress a, LogicalAddress b) => new LogicalAddress(a.Value + b.Value);
-        public static explicit operator PhysicalAddress(LogicalAddress a) => new PhysicalAddress(a.Value + (a.Value / 1020 * 4));
+        public LogicalOffset(long value) { Value = value; }
+        public static LogicalOffset operator +(LogicalOffset a, LogicalOffset b) => new LogicalOffset(a.Value + b.Value);
+        public static LogicalOffset operator +(LogicalOffset a, int b) => new LogicalOffset(a.Value + b);
+        public static explicit operator PhysicalOffset(LogicalOffset a) => new PhysicalOffset(a.Value + (a.Value / 1020 * 4));
+        public override string ToString() => $"LogicalOffset({Value})";
     }
 }

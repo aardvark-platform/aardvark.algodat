@@ -224,7 +224,7 @@ namespace Aardvark.Geometry.Tests
         #region E57
 
         [Test]
-        [Ignore("waiting for E57 implementation")]
+        //[Ignore("waiting for E57 implementation")]
         public void CanParseE57FileInfo()
         {
             var filename = Path.Combine(Config.TestDataDir, "test.e57");

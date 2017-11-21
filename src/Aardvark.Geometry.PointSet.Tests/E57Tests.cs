@@ -26,55 +26,69 @@ namespace Aardvark.Geometry.Tests
     public class E57Tests
     {
         [Test]
+        public void E57_Addresses_InvalidPhysicalOffsets()
+        {
+            new PhysicalOffset(1019);
+            Assert.That(() => new PhysicalOffset(1020), Throws.Exception);
+            Assert.That(() => new PhysicalOffset(1021), Throws.Exception);
+            Assert.That(() => new PhysicalOffset(1022), Throws.Exception);
+            Assert.That(() => new PhysicalOffset(1023), Throws.Exception);
+            new PhysicalOffset(1024);
+
+            new PhysicalOffset(2043);
+            Assert.That(() => new PhysicalOffset(2044), Throws.Exception);
+            Assert.That(() => new PhysicalOffset(2045), Throws.Exception);
+            Assert.That(() => new PhysicalOffset(2046), Throws.Exception);
+            Assert.That(() => new PhysicalOffset(2047), Throws.Exception);
+            new PhysicalOffset(2048);
+        }
+
+        [Test]
         public void E57_Addresses_PhysicalPlusPhysical()
         {
-            Assert.IsTrue((new PhysicalAddress(100) + new PhysicalAddress(234)).Value == 334);
-            Assert.IsTrue((new PhysicalAddress(600) + new PhysicalAddress(1000)).Value == 1600);
+            Assert.IsTrue((new PhysicalOffset(100) + new PhysicalOffset(234)).Value == 334);
+            Assert.IsTrue((new PhysicalOffset(600) + new PhysicalOffset(1000)).Value == 1600);
         }
         [Test]
         public void E57_Addresses_PhysicalPlusLogical()
         {
-            PhysicalAddress x = new PhysicalAddress(1000) + new LogicalAddress(100);
-            Assert.IsTrue(x.Value == 1104);
+            LogicalOffset x = new PhysicalOffset(1000) + new LogicalOffset(100);
+            Assert.IsTrue(x.Value == 1100);
         }
         [Test]
         public void E57_Addresses_PhysicalToLogical_1()
         {
-            Assert.IsTrue(((LogicalAddress)new PhysicalAddress(0)).Value == 0);
-            Assert.IsTrue(((LogicalAddress)new PhysicalAddress(1019)).Value == 1019);
-            Assert.IsTrue(((LogicalAddress)new PhysicalAddress(1024)).Value == 1020);
-            Assert.IsTrue(((LogicalAddress)new PhysicalAddress(2048)).Value == 2040);
-            Assert.IsTrue(((LogicalAddress)new PhysicalAddress(3072)).Value == 3060);
+            Assert.IsTrue(((LogicalOffset)new PhysicalOffset(0)).Value == 0);
+            Assert.IsTrue(((LogicalOffset)new PhysicalOffset(1019)).Value == 1019);
+            Assert.IsTrue(((LogicalOffset)new PhysicalOffset(1024)).Value == 1020);
+            Assert.IsTrue(((LogicalOffset)new PhysicalOffset(2048)).Value == 2040);
+            Assert.IsTrue(((LogicalOffset)new PhysicalOffset(3072)).Value == 3060);
 
-            Assert.IsTrue(((LogicalAddress)new PhysicalAddress(1500)).Value == 1496);
+            Assert.IsTrue(((LogicalOffset)new PhysicalOffset(1500)).Value == 1496);
         }
         [Test]
         public void E57_Addresses_PhysicalToLogical_2()
         {
-            Assert.IsTrue(((LogicalAddress)new PhysicalAddress(1019)).Value == 1019);
-            Assert.IsTrue(((LogicalAddress)new PhysicalAddress(1020)).Value == 1020);
-            Assert.IsTrue(((LogicalAddress)new PhysicalAddress(1021)).Value == 1020);
-            Assert.IsTrue(((LogicalAddress)new PhysicalAddress(1022)).Value == 1020);
-            Assert.IsTrue(((LogicalAddress)new PhysicalAddress(1023)).Value == 1020);
-            Assert.IsTrue(((LogicalAddress)new PhysicalAddress(1024)).Value == 1020);
-            Assert.IsTrue(((LogicalAddress)new PhysicalAddress(1025)).Value == 1021);
+            Assert.IsTrue(((LogicalOffset)new PhysicalOffset(1019)).Value == 1019);
+            Assert.IsTrue(((LogicalOffset)new PhysicalOffset(1024)).Value == 1020);
+            Assert.IsTrue(((LogicalOffset)new PhysicalOffset(1025)).Value == 1021);
         }
 
         [Test]
         public void E57_Addresses_LogicalPlusLogical()
         {
-            Assert.IsTrue((new LogicalAddress(100) + new LogicalAddress(234)).Value == 334);
-            Assert.IsTrue((new LogicalAddress(600) + new LogicalAddress(1000)).Value == 1600);
+            Assert.IsTrue((new LogicalOffset(100) + new LogicalOffset(234)).Value == 334);
+            Assert.IsTrue((new LogicalOffset(600) + new LogicalOffset(1000)).Value == 1600);
         }
         public void E57_Addresses_LogicalToPhysical()
         {
-            Assert.IsTrue(((PhysicalAddress)new LogicalAddress(0)).Value == 0);
-            Assert.IsTrue(((PhysicalAddress)new LogicalAddress(1019)).Value == 1019);
-            Assert.IsTrue(((PhysicalAddress)new LogicalAddress(1020)).Value == 1024);
-            Assert.IsTrue(((PhysicalAddress)new LogicalAddress(2039)).Value == 2043);
-            Assert.IsTrue(((PhysicalAddress)new LogicalAddress(2040)).Value == 2048);
-            Assert.IsTrue(((PhysicalAddress)new LogicalAddress(3059)).Value == 3067);
-            Assert.IsTrue(((PhysicalAddress)new LogicalAddress(3060)).Value == 3072);
+            Assert.IsTrue(((PhysicalOffset)new LogicalOffset(0)).Value == 0);
+            Assert.IsTrue(((PhysicalOffset)new LogicalOffset(1019)).Value == 1019);
+            Assert.IsTrue(((PhysicalOffset)new LogicalOffset(1020)).Value == 1024);
+            Assert.IsTrue(((PhysicalOffset)new LogicalOffset(2039)).Value == 2043);
+            Assert.IsTrue(((PhysicalOffset)new LogicalOffset(2040)).Value == 2048);
+            Assert.IsTrue(((PhysicalOffset)new LogicalOffset(3059)).Value == 3067);
+            Assert.IsTrue(((PhysicalOffset)new LogicalOffset(3060)).Value == 3072);
         }
     }
 }
