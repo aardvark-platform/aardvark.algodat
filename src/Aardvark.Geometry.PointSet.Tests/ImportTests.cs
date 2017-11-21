@@ -224,7 +224,6 @@ namespace Aardvark.Geometry.Tests
         #region E57
 
         [Test]
-        //[Ignore("waiting for E57 implementation")]
         public void CanParseE57FileInfo()
         {
             var filename = Path.Combine(Config.TestDataDir, "test.e57");
@@ -239,7 +238,6 @@ namespace Aardvark.Geometry.Tests
         public void CanParseE57File()
         {
             var filename = Path.Combine(Config.TestDataDir, "test.e57");
-            filename = @"T:\Vgm\Data\E57\Register360_Berlin Office_1.e57";
             var ps = PointCloud.Parse(filename, ImportConfig.Default)
                 .SelectMany(x => x.Positions)
                 .ToArray()

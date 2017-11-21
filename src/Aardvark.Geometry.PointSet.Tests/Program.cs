@@ -14,6 +14,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Uncodium.SimpleStore;
 using Aardvark.Geometry.Points;
+using Aardvark.Data.E57;
 
 namespace Aardvark.Geometry.Tests
 {
@@ -32,8 +33,27 @@ namespace Aardvark.Geometry.Tests
                 );
         }
 
+        internal static void TestE57()
+        {
+            var filename = ""; 
+            var fileSizeInBytes = new FileInfo(filename).Length;
+            var stream = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
+
+            ASTM_E57.VerifyChecksums(stream, fileSizeInBytes);
+            var header = ASTM_E57.E57FileHeader.Parse(stream);
+
+            var data = header.E57Root.Data3D.Map(x => x.Points.ReadData().Take(1).ToList());
+
+            //var ps = PointCloud.Parse(filename, ImportConfig.Default)
+            //    .SelectMany(x => x.Positions)
+            //    .ToArray()
+            //    ;
+        }
+
         public static void Main(string[] args)
         {
+            TestE57();
+
             //var ms = new MemoryStream(Encoding.ASCII.GetBytes("2123\r\n1.2 -2.3 3.4 0 255 128\r\ndfg\r\n5.2 -2.3 3.4 0 255 128\r\n13"));
 
             //var filename = @"T:\Vgm\Data\PointCloud_HiRes.yxh";

@@ -16,6 +16,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Xml.Linq;
 using Aardvark.Base;
@@ -169,7 +170,7 @@ namespace Aardvark.Data.E57
         }
 
         /// <summary></summary>
-        public interface IBitPack
+        public interface IBitPack : IE57Element
         {
             /// <summary></summary>
             int NumberOfBitsForBitPack { get; }
@@ -231,12 +232,10 @@ namespace Aardvark.Data.E57
         /// </summary>
         public class E57ScaledInteger : IE57Element, IBitPack
         {
-            /// <summary></summary>
             public E57ElementType E57Type => E57ElementType.ScaledInteger;
 
             #region Properties
-
-            /// <summary></summary>
+            
             public string Name;
 
             /// <summary>
@@ -273,11 +272,12 @@ namespace Aardvark.Data.E57
             /// </summary>
             public double Value;
             
-            /// <summary></summary>
             public int NumberOfBitsForBitPack => (int)Math.Ceiling(((double)(Maximum - Minimum + 1)).Log2());
             
-            /// <summary></summary>
             public string Semantic => Name;
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public double Compute(long rawValue) => rawValue * Scale + Offset;
 
             #endregion
 
@@ -518,35 +518,40 @@ namespace Aardvark.Data.E57
             /// Optional. Vector of Codec Structures.
             /// A heterogeneous Vector specifying the compression method to be used for fields within the CompressedVector.
             /// </summary>
-            public object Codecs;
+            public E57Codec[] Codecs;
 
             #endregion
+
+            private Stream m_stream;
 
             internal static E57CompressedVector Parse(XElement root, Stream stream)
             {
                 if (root == null) return null;
-
+                
                 var v = new E57CompressedVector
                 {
                     FileOffset = GetPhysicalOffsetAttribute(root, "fileOffset"), 
                     RecordCount = GetLongAttribute(root, "recordCount"),
                     Prototype = E57Structure.Parse(GetElement(root, "prototype"), stream),
-                    Codecs = null, // TODO
+                    Codecs = GetElement(root, "codecs").Elements().Select(x => (E57Codec)ParseE57Element(x, stream)).ToArray(),
+                    m_stream = stream
                 };
 
-                v.ReadData(stream);
-
+                //v.ReadData(stream);
                 return v;
             }
 
-            internal void ReadData(Stream stream)
+            public IEnumerable<V3d[]> ReadData(bool verbose = false)
             {
-                var compressedVectorHeader = E57CompressedVectorHeader.Parse(ReadLogicalBytes(stream, FileOffset, 32));
+                var compressedVectorHeader = E57CompressedVectorHeader.Parse(ReadLogicalBytes(m_stream, FileOffset, 32));
 
-                Console.WriteLine($"[E57CompressedVector] FileOffset       = {FileOffset,10}");
-                Console.WriteLine($"[E57CompressedVector] IndexStartOffset = {compressedVectorHeader.IndexStartOffset,10}");
-                Console.WriteLine($"[E57CompressedVector] DataStartOffset  = {compressedVectorHeader.DataStartOffset,10}");
-                Console.WriteLine($"[E57CompressedVector] SectionLength    = {compressedVectorHeader.SectionLength,10}");
+                if (verbose)
+                {
+                    Console.WriteLine($"[E57CompressedVector] FileOffset       = {FileOffset,10}");
+                    Console.WriteLine($"[E57CompressedVector] IndexStartOffset = {compressedVectorHeader.IndexStartOffset,10}");
+                    Console.WriteLine($"[E57CompressedVector] DataStartOffset  = {compressedVectorHeader.DataStartOffset,10}");
+                    Console.WriteLine($"[E57CompressedVector] SectionLength    = {compressedVectorHeader.SectionLength,10}");
+                }
 
                 var bytesLeftToConsume = compressedVectorHeader.SectionLength - 32;
                 if (compressedVectorHeader.DataStartOffset.Value == 0) throw new Exception($"Unexpected compressedVectorHeader.DataStartOffset (0).");
@@ -555,40 +560,41 @@ namespace Aardvark.Data.E57
                 var offset = (LogicalOffset)compressedVectorHeader.DataStartOffset;
                 while (bytesLeftToConsume > 0)
                 {
-                    Console.WriteLine($"[E57CompressedVector] bytesLeftToConsume = {bytesLeftToConsume}");
+                    if (verbose) Console.WriteLine($"[E57CompressedVector] bytesLeftToConsume = {bytesLeftToConsume}");
                     var packetStart = offset;
-                    var sectionId = ReadLogicalBytes(stream, offset, 1)[0];
-                    Console.WriteLine($"[E57CompressedVector][OFFSET] {offset}, sectionId = {sectionId}");
+                    var sectionId = ReadLogicalBytes(m_stream, offset, 1)[0];
+                    if (verbose) Console.WriteLine($"[E57CompressedVector][OFFSET] {offset}, sectionId = {sectionId}");
 
                     if (sectionId == E57_COMPRESSED_VECTOR_SECTION)
                     {
-                        Console.WriteLine($"[E57CompressedVector] DATA PACKET");
-                        var dataPacketHeader = E57DataPacketHeader.Parse(ReadLogicalBytes(stream, offset, 6));
-                        Console.WriteLine($"[E57CompressedVector]   ByteStreamCount    = {dataPacketHeader.ByteStreamCount}");
-                        Console.WriteLine($"[E57CompressedVector]   PacketLengthMinus1 = {dataPacketHeader.PacketLengthMinus1}");
+                        if (verbose) Console.WriteLine($"[E57CompressedVector] DATA PACKET");
+                        var dataPacketHeader = E57DataPacketHeader.Parse(ReadLogicalBytes(m_stream, offset, 6));
+                        if (verbose) Console.WriteLine($"[E57CompressedVector]   ByteStreamCount    = {dataPacketHeader.ByteStreamCount}");
+                        if (verbose) Console.WriteLine($"[E57CompressedVector]   PacketLengthMinus1 = {dataPacketHeader.PacketLengthMinus1}");
 
                         // read bytestream buffer lengths
                         offset += 6;
-                        Console.WriteLine($"[E57CompressedVector][OFFSET] {offset}");
-                        var bytestreamBufferLengths = ReadLogicalUnsignedShorts(stream, offset, dataPacketHeader.ByteStreamCount);
+                        if (verbose) Console.WriteLine($"[E57CompressedVector][OFFSET] {offset}");
+                        var bytestreamBufferLengths = ReadLogicalUnsignedShorts(m_stream, offset, dataPacketHeader.ByteStreamCount);
                         offset += dataPacketHeader.ByteStreamCount * sizeof(ushort);
-                        for (var i = 0; i < bytestreamBufferLengths.Length; i++)
-                            Console.WriteLine($"[E57CompressedVector]  ByteStream {i+1}/{bytestreamBufferLengths.Length}: length = {bytestreamBufferLengths[i]}");
-                        Console.WriteLine($"[E57CompressedVector][OFFSET] {offset}");
+                        //for (var i = 0; i < bytestreamBufferLengths.Length; i++)
+                        //    Console.WriteLine($"[E57CompressedVector]  ByteStream {i+1}/{bytestreamBufferLengths.Length}: length = {bytestreamBufferLengths[i]}");
+                        if (verbose) Console.WriteLine($"[E57CompressedVector][OFFSET] {offset}");
 
                         // read bytestream buffers
                         var bytestreamBuffers = new byte[dataPacketHeader.ByteStreamCount][];
+                        var buffers = new Array[dataPacketHeader.ByteStreamCount];
                         for (var i = 0; i < dataPacketHeader.ByteStreamCount; i++)
                         {
                             var count = bytestreamBufferLengths[i];
-                            bytestreamBuffers[i] = ReadLogicalBytes(stream, offset, count);
-                            Console.WriteLine($"[E57CompressedVector][OFFSET] {offset}, reading {count} bytes for bytestream {i+1}/{dataPacketHeader.ByteStreamCount}");
+                            bytestreamBuffers[i] = ReadLogicalBytes(m_stream, offset, count);
+                            //Console.WriteLine($"[E57CompressedVector][OFFSET] {offset}, reading {count} bytes for bytestream {i+1}/{dataPacketHeader.ByteStreamCount}");
                             offset += count;
-
-                            var bits = ((IBitPack)Prototype.Children[i]).NumberOfBitsForBitPack;
-                            var semantic = ((IBitPack)Prototype.Children[i]).Semantic;
-                            Console.WriteLine($"[E57CompressedVector]   ByteStreamBufferLengths[{i}]  = {count,8},   BitPack = {bits,2},  {semantic}");
+                            
+                            buffers[i] = UnpackByteStream(bytestreamBuffers[i], (IBitPack)Prototype.Children[i]);
                         }
+
+                        yield return new V3d[0];
 
                         // move to next packet
                         offset = packetStart + dataPacketHeader.PacketLengthMinus1 + 1;
@@ -597,7 +603,7 @@ namespace Aardvark.Data.E57
                     else if (sectionId == E57_INDEX_PACKET)
                     {
                         Console.WriteLine($"[E57CompressedVector] INDEX PACKET");
-                        var indexPacketHeader = E57IndexPacketHeader.Parse(ReadLogicalBytes(stream, offset, 16));
+                        var indexPacketHeader = E57IndexPacketHeader.Parse(ReadLogicalBytes(m_stream, offset, 16));
                         Console.WriteLine($"[E57CompressedVector]   EntryCount         = {indexPacketHeader.EntryCount}");
                         Console.WriteLine($"[E57CompressedVector]   IndexLevel         = {indexPacketHeader.IndexLevel}");
                         Console.WriteLine($"[E57CompressedVector]   PacketLengthMinus1 = {indexPacketHeader.PacketLengthMinus1}");
@@ -609,6 +615,84 @@ namespace Aardvark.Data.E57
                     }
                 }
             }
+
+            private static Array UnpackByteStream(byte[] buffer, IBitPack proto, bool verbose = false)
+            {
+                var bits = proto.NumberOfBitsForBitPack;
+                var semantic = proto.Semantic;
+                switch (proto.E57Type)
+                {
+                    case E57ElementType.Float:
+                        {
+                            var p = (E57Float)proto;
+                            return p.IsDoublePrecision ? (Array)UnpackFloat64(buffer, p) : UnpackFloat32(buffer, p);
+                        }
+                    case E57ElementType.ScaledInteger:
+                        {
+                            var p = (E57ScaledInteger)proto;
+                            return UnpackScaledInteger(buffer, p);
+                        }
+                    case E57ElementType.Integer:
+                        {
+                            try
+                            {
+                                var p = (E57Integer)proto;
+                                return UnpackIntegers(buffer, p);
+                            }
+                            catch (Exception e)
+                            {
+                                Console.WriteLine(e);
+                                return new long[0];
+                            }
+                        }
+                    default:
+                        Console.WriteLine(
+                            $"[E57CompressedVector][UnpackBuffer] UNKNOWN: buffer size {buffer.Length,8},  bits {bits,2},  {proto.E57Type,-16},  {semantic,-24}"
+                            );
+                        break;
+                }
+                
+                return new V3d[0];
+            }
+            
+            private static float[] UnpackFloat32(byte[] buffer, E57Float proto)
+            {
+                if (proto.IsDoublePrecision) throw new ArgumentException($"Expected single precision, but is double.");
+                if (proto.NumberOfBitsForBitPack != 32) throw new ArgumentException($"Expected 32 bits, but is {proto.NumberOfBitsForBitPack}.");
+                if (buffer.Length % 4 != 0) throw new ArgumentException($"Expected buffer length multiple of 4, but is {buffer.Length}.");
+                using (var br = new BinaryReader(new MemoryStream(buffer)))
+                {
+                    var xs = new float[buffer.Length / 4];
+                    for (var i = 0; i < xs.Length; i++) xs[i] = br.ReadSingle();
+                    return xs;
+                }
+            }
+            private static double[] UnpackFloat64(byte[] buffer, E57Float proto)
+            {
+                if (!proto.IsDoublePrecision) throw new ArgumentException($"Expected double precision, but is single.");
+                if (proto.NumberOfBitsForBitPack != 64) throw new ArgumentException($"Expected 64 bits, but is {proto.NumberOfBitsForBitPack}.");
+                if (buffer.Length % 8 != 0) throw new ArgumentException($"Expected buffer length multiple of 8, but is {buffer.Length}.");
+                using (var br = new BinaryReader(new MemoryStream(buffer)))
+                {
+                    var xs = new double[buffer.Length / 8];
+                    for (var i = 0; i < xs.Length; i++) xs[i] = br.ReadDouble();
+                    return xs;
+                }
+            }
+            private static double[] UnpackScaledInteger(byte[] buffer, E57ScaledInteger proto)
+            {
+                switch (proto.NumberOfBitsForBitPack)
+                {
+                    case 32:
+                        return BitPack.UnpackInt32(buffer).Map(x => proto.Compute(x));
+                    case 64:
+                        return BitPack.UnpackInt64(buffer).Map(x => proto.Compute(x));
+                    default:
+                        throw new NotImplementedException($"UnpackScaledInteger with {proto.NumberOfBitsForBitPack} bits.");
+                }
+            }
+            private static Array UnpackIntegers(byte[] buffer, E57Integer proto)
+                => BitPack.UnpackIntegers(buffer, proto.NumberOfBitsForBitPack);
         }
         
         /// <summary>
