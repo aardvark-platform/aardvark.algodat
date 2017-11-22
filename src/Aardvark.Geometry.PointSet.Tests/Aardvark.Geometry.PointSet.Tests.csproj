@@ -63,6 +63,7 @@
     <Compile Include="ChunkTests.cs" />
     <Compile Include="LodTests.cs" />
     <Compile Include="Program.cs" />
+    <Compile Include="DeleteTests.cs" />
     <Compile Include="QueryTests.cs" />
     <Compile Include="PointSetTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

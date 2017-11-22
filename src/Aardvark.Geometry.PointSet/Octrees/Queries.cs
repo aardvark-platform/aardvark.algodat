@@ -643,7 +643,7 @@ namespace Aardvark.Geometry.Points
                 {
                     var n = resampledSubcells[i];
                     if (n == null) continue;
-                    foreach (var x in QueryAllPoints(n, false)) chunks.Add(x);
+                    foreach (var x in QueryAllPoints(n)) chunks.Add(x);
                 }
 
                 var ps = Enumerable.Concat(resampledCellPoints.Item1, chunks.SelectMany(x => x.Positions.Select(p => (V3f)(p - center)))).ToArray();
@@ -690,33 +690,13 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Returns all points in pointset.
         /// </summary>
-        public static IEnumerable<Chunk> QueryAllPoints(
-            this PointSet self, bool excludeInnerCells
-            )
-            => QueryAllPoints(self.Root.Value, excludeInnerCells);
+        public static IEnumerable<Chunk> QueryAllPoints(this PointSet self) => QueryAllPoints(self.Root.Value);
 
         /// <summary>
         /// Returnd all points in tree.
         /// </summary>
-        public static IEnumerable<Chunk> QueryAllPoints(
-            this PointSetNode node, bool excludeInnerCells
-            )
-        {
-            if (!excludeInnerCells && node.PointCount > 0)
-            {
-                var chunk = new Chunk(node.PositionsAbsolute, node?.Colors?.Value);
-                yield return chunk;
-            }
-
-            if (node.Subnodes != null)
-            {
-                foreach (var n in node.Subnodes)
-                {
-                    if (n == null) continue;
-                    foreach (var x in QueryAllPoints(n.Value, excludeInnerCells)) yield return x;
-                }
-            }
-        }
+        public static IEnumerable<Chunk> QueryAllPoints(this PointSetNode node)
+            => node.QueryPoints(_ => true, _ => false, _ => true);
 
         #endregion
 

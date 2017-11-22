@@ -140,12 +140,13 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary>
+        /// Creates leaf node.
         /// </summary>
         internal PointSetNode(
             Cell cell, long pointCountTree,
             Guid? psId, Guid? csId, Guid? kdId,
-            Guid?[] subnodeIds, Storage storage
-            ) : this(Guid.NewGuid(), cell, pointCountTree, psId, csId, kdId, null, null, null, subnodeIds, storage, true)
+            Storage storage
+            ) : this(Guid.NewGuid(), cell, pointCountTree, psId, csId, kdId, null, null, null, null, storage, true)
         {
         }
 
@@ -1052,11 +1053,13 @@ namespace Aardvark.Geometry.Points
         internal PointSetNode WithLod(Guid? lodPsId, Guid? lodCsId, Guid? lodKdId, PointSetNode[] subnodes)
         {
             if (IsLeaf) throw new InvalidOperationException();
+            if (subnodes == null) throw new InvalidOperationException();
+            var pointCountTree = subnodes.Sum(n => n != null ? n.PointCountTree : 0);
             return new PointSetNode(Guid.NewGuid(),
-                Cell, PointCountTree,
+                Cell, pointCountTree,
                 null, null, null,
                 lodPsId, lodCsId, lodKdId,
-                subnodes.Map(x => x?.Id), Storage, true
+                subnodes?.Map(x => x?.Id), Storage, true
                 );
         }
 

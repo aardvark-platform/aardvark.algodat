@@ -131,11 +131,14 @@ namespace Aardvark.Geometry.Points
                 if (colorsId != null) storage.Add(colorsId.ToString(), cs, ct);
                 if (kdTreeId != null) storage.Add(kdTreeId.ToString(), kdTree.Data, ct);
 
-                return new PointSetNode(
-                    _cell, pointCountTree,
-                    positionsId, colorsId, kdTreeId,
-                    subcellIds, storage
-                    );
+                if (subcellIds == null) // leaf
+                {
+                    return new PointSetNode(_cell, pointCountTree, positionsId, colorsId, kdTreeId, storage);
+                }
+                else
+                {
+                    return new PointSetNode(_cell, pointCountTree, subcellIds, storage);
+                }
             }
 
             public Node Insert(int index)

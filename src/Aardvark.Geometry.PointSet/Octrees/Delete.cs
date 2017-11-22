@@ -14,6 +14,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Aardvark.Base;
 
 namespace Aardvark.Geometry.Points
@@ -28,10 +29,11 @@ namespace Aardvark.Geometry.Points
         public static PointSet Delete(this PointSet node,
             Func<PointSetNode, bool> isNodeFullyInside,
             Func<PointSetNode, bool> isNodeFullyOutside,
-            Func<V3d, bool> isPositionInside
+            Func<V3d, bool> isPositionInside,
+            CancellationToken ct
             )
         {
-            var root = Delete(node.Root.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside);
+            var root = Delete(node.Root.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, ct);
             var newId = Guid.NewGuid().ToString();
             var result = new PointSet(node.Storage, newId, root.Id, node.SplitLimit);
             return result;
@@ -42,11 +44,103 @@ namespace Aardvark.Geometry.Points
         public static PointSetNode Delete(this PointSetNode node,
             Func<PointSetNode, bool> isNodeFullyInside,
             Func<PointSetNode, bool> isNodeFullyOutside,
-            Func<V3d, bool> isPositionInside
+            Func<V3d, bool> isPositionInside,
+            CancellationToken ct
             )
 
         {
-            throw new NotImplementedException();
+            if (node == null) return null;
+            if (isNodeFullyInside(node)) return null;
+            if (isNodeFullyOutside(node)) return node;
+            
+            if (node.IsLeaf)
+            {
+                Guid? newPsId = null;
+                Guid? newCsId = null;
+                Guid? newKdId = null;
+
+                if (!node.HasPositions) throw new InvalidOperationException();
+
+                var ps = new List<V3f>();
+                var cs = node.HasColors ? new List<C4b>() : null;
+                var oldPsAbsolute = node.PositionsAbsolute;
+                var oldPs = node.Positions.Value;
+                var oldCs = node.Colors?.Value;
+                for (var i = 0; i < oldPsAbsolute.Length; i++)
+                {
+                    if (isPositionInside(oldPsAbsolute[i]))
+                    {
+                        ps.Add(oldPs[i]);
+                        if (oldCs != null) cs.Add(oldCs[i]);
+                    }
+                }
+
+                if (ps.Count > 0)
+                {
+                    newPsId = Guid.NewGuid();
+                    var psa = ps.ToArray();
+                    node.Storage.Add(newPsId.Value, psa, ct);
+
+                    newKdId = Guid.NewGuid();
+                    node.Storage.Add(newKdId.Value, psa.BuildKdTree().Data, ct);
+
+                    if (node.HasColors)
+                    {
+                        newCsId = Guid.NewGuid();
+                        node.Storage.Add(newCsId.Value, cs.ToArray(), ct);
+                    }
+
+                    var result = new PointSetNode(node.Cell, ps.Count, newPsId, newCsId, newKdId, node.Storage);
+                    if (node.HasLodPositions) result = result.WithLod();
+                    return result;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+            else
+            {
+                Guid? newLodPsId = null;
+                Guid? newLodCsId = null;
+                Guid? newLodKdId = null;
+
+                if (node.HasLodPositions)
+                {
+                    var ps = node.HasLodPositions ? new List<V3f>() : null;
+                    var cs = node.HasLodColors ? new List<C4b>() : null;
+                    var oldLodPsAbsolute = node.LodPositionsAbsolute;
+                    var oldLodPs = node.LodPositions.Value;
+                    var oldLodCs = node.LodColors?.Value;
+                    for (var i = 0; i < oldLodPsAbsolute.Length; i++)
+                    {
+                        if (isPositionInside(oldLodPsAbsolute[i]))
+                        {
+                            ps.Add(oldLodPs[i]);
+                            if (oldLodCs != null) cs.Add(oldLodCs[i]);
+                        }
+                    }
+
+                    if (ps.Count > 0)
+                    {
+                        newLodPsId = Guid.NewGuid();
+                        var psa = ps.ToArray();
+                        node.Storage.Add(newLodPsId.Value, psa, ct);
+
+                        newLodKdId = Guid.NewGuid();
+                        node.Storage.Add(newLodKdId.Value, psa.BuildKdTree().Data, ct);
+
+                        if (node.HasLodColors)
+                        {
+                            newLodCsId = Guid.NewGuid();
+                            node.Storage.Add(newLodCsId.Value, cs.ToArray(), ct);
+                        }
+                    }
+                }
+
+                var newSubnodes = node.Subnodes?.Map(n => n?.Value.Delete(isNodeFullyInside, isNodeFullyOutside, isPositionInside, ct));
+                return node.WithLod(newLodPsId, newLodCsId, newLodKdId, newSubnodes);
+            }
         }
     }
 }

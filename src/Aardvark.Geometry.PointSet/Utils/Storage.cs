@@ -91,8 +91,10 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public static class StorageExtensions
     {
-        /// <summary>
-        /// </summary>
+        /// <summary></summary>
+        public static void Add(this Storage storage, Guid key, V3f[] data, CancellationToken ct) => Add(storage, key.ToString(), data, ct);
+
+        /// <summary></summary>
         public static void Add(this Storage storage, string key, V3f[] data, CancellationToken ct)
         {
             storage.f_add(key, data, () =>
@@ -110,8 +112,7 @@ namespace Aardvark.Geometry.Points
             }, ct);
         }
 
-        /// <summary>
-        /// </summary>
+        /// <summary></summary>
         public static V3f[] GetV3fArray(this Storage storage, string key, CancellationToken ct)
         {
             var data = (V3f[])storage.f_tryGetFromCache(key, ct);
@@ -131,9 +132,11 @@ namespace Aardvark.Geometry.Points
             storage.f_add(key, data, null, ct);
             return data;
         }
-       
-        /// <summary>
-        /// </summary>
+
+        /// <summary></summary>
+        public static void Add(this Storage storage, Guid key, C4b[] data, CancellationToken ct) => Add(storage, key.ToString(), data, ct);
+
+        /// <summary></summary>
         public static void Add(this Storage storage, string key, C4b[] data, CancellationToken ct)
         {
             storage.f_add(key, data, () =>
@@ -150,8 +153,7 @@ namespace Aardvark.Geometry.Points
             }, ct);
         }
 
-        /// <summary>
-        /// </summary>
+        /// <summary></summary>
         public static C4b[] GetC4bArray(this Storage storage, string key, CancellationToken ct)
         {
             var data = (C4b[])storage.f_tryGetFromCache(key, ct);
@@ -168,8 +170,10 @@ namespace Aardvark.Geometry.Points
             return data;
         }
 
-        /// <summary>
-        /// </summary>
+        /// <summary></summary>
+        public static void Add(this Storage storage, Guid key, PointRkdTreeDData data, CancellationToken ct) => Add(storage, key.ToString(), data, ct);
+
+        /// <summary></summary>
         public static void Add(this Storage storage, string key, PointRkdTreeDData data, CancellationToken ct)
         {
             storage.f_add(key, data,() =>
@@ -183,8 +187,7 @@ namespace Aardvark.Geometry.Points
             }, ct);
         }
 
-        /// <summary>
-        /// </summary>
+        /// <summary></summary>
         public static PointRkdTreeDData GetPointRkdTreeDData(this Storage storage, string key, CancellationToken ct)
         {
             var data = storage.f_tryGetFromCache(key, ct);
@@ -201,8 +204,7 @@ namespace Aardvark.Geometry.Points
             return (PointRkdTreeDData)data;
         }
 
-        /// <summary>
-        /// </summary>
+        /// <summary></summary>
         public static void Add(this Storage storage, string key, PointSetNode data, CancellationToken ct)
         {
             storage.f_add(key, data, () =>
@@ -214,8 +216,7 @@ namespace Aardvark.Geometry.Points
             }, ct);
         }
 
-        /// <summary>
-        /// </summary>
+        /// <summary></summary>
         public static PointSetNode GetPointSetNode(this Storage storage, string key, CancellationToken ct)
         {
             var data = (PointSetNode)storage.f_tryGetFromCache(key, ct);
@@ -230,8 +231,7 @@ namespace Aardvark.Geometry.Points
             return data;
         }
         
-        /// <summary>
-        /// </summary>
+        /// <summary></summary>
         public static void Add(this Storage storage, string key, PointSet data, CancellationToken ct)
         {
             storage.f_add(key, data, () =>
@@ -242,8 +242,7 @@ namespace Aardvark.Geometry.Points
             }, ct);
         }
 
-        /// <summary>
-        /// </summary>
+        /// <summary></summary>
         public static PointSet GetPointSet(this Storage storage, string key, CancellationToken ct)
         {
             var data = (PointSet)storage.f_tryGetFromCache(key, ct);
@@ -257,8 +256,7 @@ namespace Aardvark.Geometry.Points
             return data;
         }
 
-        /// <summary>
-        /// </summary>
+        /// <summary></summary>
         public static bool Exists(this Storage storage, string key, CancellationToken ct)
         {
             var data = storage.f_tryGetFromCache(key, ct);
@@ -268,8 +266,7 @@ namespace Aardvark.Geometry.Points
             return false;
         }
 
-        /// <summary>
-        /// </summary>
+        /// <summary></summary>
         public static Storage ToPointCloudStore(this ISimpleStore x) => new Storage(
             (a, b, c, _) => x.Add(a, b, c), (a, _) => x.Get(a), (a, _) => x.Remove(a),
             (a, _) => x.TryGetFromCache(a), x.Dispose, x.Flush);
