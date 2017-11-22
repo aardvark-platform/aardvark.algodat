@@ -214,13 +214,13 @@ namespace Aardvark.Geometry.Tests
         private void PackUnpack(int BITS)
         {
             int N = random.Next(50, 100);
-            int MAX = 1 << BITS;
-            var data = new int[N].SetByIndex(i => random.Next(MAX));
+            int MAX = 1 << ((BITS > 30) ? 30 : BITS);
+            var data = new uint[N].SetByIndex(i => (uint)random.Next(MAX));
             var buffer = BitPack.Pack(data, BITS);
             Assert.IsTrue(buffer.Length == BitPack.BitCountInBytes(N * BITS));
 
-            var unpacked = new int[N];
-            BitPack.Unpack(buffer, BITS, (x, i) => unpacked[i] = (int)x);
+            var unpacked = new uint[N];
+            BitPack.Unpack(buffer, BITS, N, (x, i) => unpacked[i] = (uint)x);
             for (var i = 0; i < data.Length; i++) Assert.IsTrue(data[i] == unpacked[i]);
         }
 
@@ -228,13 +228,39 @@ namespace Aardvark.Geometry.Tests
         public void PackUnpack_Special_1()
         {
             int BITS = 9;
-            const int N = 5;
-            var data = new int[N] { 212, 403, 270, 95, 174 };
+            const int N = 1;
+            var data = new uint[N] { 212 };
             var buffer = BitPack.Pack(data, BITS);
             Assert.IsTrue(buffer.Length == BitPack.BitCountInBytes(N * BITS));
 
             var unpacked = new int[N];
-            BitPack.Unpack(buffer, BITS, (x, i) => unpacked[i] = (int)x);
+            BitPack.Unpack(buffer, BITS, N, (x, i) => unpacked[i] = (int)x);
+            for (var i = 0; i < data.Length; i++) Assert.IsTrue(data[i] == unpacked[i]);
+        }
+        [Test]
+        public void PackUnpack_Special_2()
+        {
+            int BITS = 9;
+            const int N = 1;
+            var data = new uint[N] { 270 };
+            var buffer = BitPack.Pack(data, BITS);
+            Assert.IsTrue(buffer.Length == BitPack.BitCountInBytes(N * BITS));
+
+            var unpacked = new int[N];
+            BitPack.Unpack(buffer, BITS, N, (x, i) => unpacked[i] = (int)x);
+            for (var i = 0; i < data.Length; i++) Assert.IsTrue(data[i] == unpacked[i]);
+        }
+        [Test]
+        public void PackUnpack_Special_3()
+        {
+            int BITS = 31;
+            const int N = 1;
+            var data = new uint[N] { 270 };
+            var buffer = BitPack.Pack(data, BITS);
+            Assert.IsTrue(buffer.Length == BitPack.BitCountInBytes(N * BITS));
+
+            var unpacked = new int[N];
+            BitPack.Unpack(buffer, BITS, N, (x, i) => unpacked[i] = (int)x);
             for (var i = 0; i < data.Length; i++) Assert.IsTrue(data[i] == unpacked[i]);
         }
 
