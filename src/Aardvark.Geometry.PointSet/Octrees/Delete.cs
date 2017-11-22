@@ -68,7 +68,7 @@ namespace Aardvark.Geometry.Points
                 var oldCs = node.Colors?.Value;
                 for (var i = 0; i < oldPsAbsolute.Length; i++)
                 {
-                    if (isPositionInside(oldPsAbsolute[i]))
+                    if (!isPositionInside(oldPsAbsolute[i]))
                     {
                         ps.Add(oldPs[i]);
                         if (oldCs != null) cs.Add(oldCs[i]);
@@ -114,7 +114,7 @@ namespace Aardvark.Geometry.Points
                     var oldLodCs = node.LodColors?.Value;
                     for (var i = 0; i < oldLodPsAbsolute.Length; i++)
                     {
-                        if (isPositionInside(oldLodPsAbsolute[i]))
+                        if (!isPositionInside(oldLodPsAbsolute[i]))
                         {
                             ps.Add(oldLodPs[i]);
                             if (oldLodCs != null) cs.Add(oldLodCs[i]);
@@ -138,7 +138,8 @@ namespace Aardvark.Geometry.Points
                     }
                 }
 
-                var newSubnodes = node.Subnodes?.Map(n => n?.Value.Delete(isNodeFullyInside, isNodeFullyOutside, isPositionInside, ct));
+                var newSubnodes = node.Subnodes.Map(n => n?.Value.Delete(isNodeFullyInside, isNodeFullyOutside, isPositionInside, ct));
+                if (newSubnodes.All(n => n == null)) return null;
                 return node.WithLod(newLodPsId, newLodCsId, newLodKdId, newSubnodes);
             }
         }
