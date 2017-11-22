@@ -30,9 +30,12 @@ namespace Aardvark.Geometry.Tests
             get
             {
                 var d = TestContext.CurrentContext.TestDirectory;
+                TestContext.WriteLine($"[TestDataDir] TestContext.CurrentContext.TestDirectory: {d}");
                 while (!Directory.EnumerateDirectories(d).Select(x => Path.GetFileName(x)).Contains(".paket"))
                     d = Path.GetDirectoryName(d);
-                return Path.GetFullPath(Path.Combine(d, "src/Aardvark.Geometry.PointSet.Tests/TestData"));
+                var result = Path.GetFullPath(Path.Combine(d, "src/Aardvark.Geometry.PointSet.Tests/TestData"));
+                TestContext.WriteLine($"[TestDataDir] result: {result}");
+                return result;
             }
         }
 
@@ -41,9 +44,12 @@ namespace Aardvark.Geometry.Tests
             get
             {
                 var d = TestContext.CurrentContext.TestDirectory;
+                TestContext.WriteLine($"[TempDataDir] TestContext.CurrentContext.TestDirectory: {d}");
                 while (!Directory.EnumerateDirectories(d).Select(x => Path.GetFileName(x)).Contains(".paket"))
                     d = Path.GetDirectoryName(d);
-                return Path.GetFullPath(Path.Combine(d, "bin/tmp"));
+                var result = Path.GetFullPath(Path.Combine(d, "bin/tmp"));
+                TestContext.WriteLine($"[TestDataDir] result: {result}");
+                return result;
             }
         }
 

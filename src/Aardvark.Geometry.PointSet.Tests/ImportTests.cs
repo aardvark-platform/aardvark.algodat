@@ -129,6 +129,7 @@ namespace Aardvark.Geometry.Tests
         {
             var filename = Path.Combine(Config.TestDataDir, "test.pts");
             TestContext.WriteLine($"testfile is '{filename}'");
+            if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
             var a = PointCloud.Import(filename);
             Assert.IsTrue(a != null);
             Assert.IsTrue(a.PointCount == 3);
@@ -140,6 +141,7 @@ namespace Aardvark.Geometry.Tests
             var storepath = Path.Combine(Config.TempDataDir, Guid.NewGuid().ToString());
             TestContext.WriteLine($"storepath is '{storepath}'");
             var filename = Path.Combine(Config.TestDataDir, "test.pts");
+            if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
             TestContext.WriteLine($"testfile is '{filename}'");
             var a = PointCloud.Import(filename, storepath);
             Assert.IsTrue(a != null);
@@ -152,6 +154,7 @@ namespace Aardvark.Geometry.Tests
             var storepath = Path.Combine(Config.TempDataDir, Guid.NewGuid().ToString());
             TestContext.WriteLine($"storepath is '{storepath}'");
             var filename = Path.Combine(Config.TestDataDir, "test.pts");
+            if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
             TestContext.WriteLine($"testfile is '{filename}'");
             var a = PointCloud.Import(filename, storepath);
             var key = a.Id;
@@ -169,6 +172,7 @@ namespace Aardvark.Geometry.Tests
         public void CanParsePtsFileInfo()
         {
             var filename = Path.Combine(Config.TestDataDir, "test.pts");
+            if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
             TestContext.WriteLine($"testfile is '{filename}'");
             var info = PointCloud.ParseFileInfo(filename, ImportConfig.Default);
 
@@ -180,6 +184,7 @@ namespace Aardvark.Geometry.Tests
         public void CanParsePtsFile()
         {
             var filename = Path.Combine(Config.TestDataDir, "test.pts");
+            if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
             var ps = PointCloud.Parse(filename, ImportConfig.Default)
                 .SelectMany(x => x.Positions)
                 .ToArray()
@@ -192,6 +197,7 @@ namespace Aardvark.Geometry.Tests
         public void CanImportPtsFile()
         {
             var filename = Path.Combine(Config.TestDataDir, "test.pts");
+            if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
             TestContext.WriteLine($"testfile is '{filename}'");
             var config = new ImportConfig
             {
@@ -207,6 +213,7 @@ namespace Aardvark.Geometry.Tests
         public void CanImportPtsFileAndLoadFromStore()
         {
             var filename = Path.Combine(Config.TestDataDir, "test.pts");
+            if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
             TestContext.WriteLine($"testfile is '{filename}'"); 
             var config = new ImportConfig
             {

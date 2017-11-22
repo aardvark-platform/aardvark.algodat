@@ -177,7 +177,7 @@ namespace Aardvark.Base
 
                 var numberOfBitsRemainingInCurrentBufferByte = 8 - _ibit;
                 var numberOfLeastSignificantBitsToTakeFromX = Math.Min(bitCount, numberOfBitsRemainingInCurrentBufferByte);
-                var a = (byte)(BitPack.GetBits(x, 0, numberOfLeastSignificantBitsToTakeFromX) << _ibit);
+                var a = (byte)(GetBits(x, 0, numberOfLeastSignificantBitsToTakeFromX) << _ibit);
                 Buffer[_i] |= a;
                 _ibit += numberOfLeastSignificantBitsToTakeFromX;
                 if (_ibit == 8) { _ibit = 0; _i++; }
@@ -185,40 +185,30 @@ namespace Aardvark.Base
                 if (numberOfLeastSignificantBitsToTakeFromX < bitCount)
                 {
                     var numberOfMostSignificantBitsToTakeFromCurrentBufferByte = bitCount - numberOfLeastSignificantBitsToTakeFromX;
-                    var b = BitPack.GetBits(x, numberOfLeastSignificantBitsToTakeFromX, numberOfMostSignificantBitsToTakeFromCurrentBufferByte);
+                    var b = GetBits(x, numberOfLeastSignificantBitsToTakeFromX, numberOfMostSignificantBitsToTakeFromCurrentBufferByte);
                     Buffer[_i] = b;
                     _ibit = numberOfMostSignificantBitsToTakeFromCurrentBufferByte;
                 }
             }
             public void PushBits(ulong x, int bitCount)
             {
-                for (var i = 0; i < 64; i += 8)
+                for (var i = 0; i < 64; i += 8, bitCount -= 8)
                 {
                     var b = (byte)(x >> i);
-                    if (bitCount > 8)
-                    {
-                        PushBits(b, 8);
-                        bitCount -= 8;
-                    }
-                    else
-                    {
-                        PushBits(b, bitCount);
-                        return;
-                    }
+                    if (bitCount <= 8) { PushBits(b, bitCount); return; }
+                    PushBits(b, 8);
                 }
             }
 
             public uint GetByte(int startBit, int bitCount)
             {
                 if (bitCount > 8) bitCount = 8;
-                var iByte = startBit / 8;
+                var i = startBit >> 3;
                 var shift = startBit % 8;
-                var a = Buffer[iByte++] >> shift;
+                var a = (uint)Buffer[i++] >> shift;
                 var shift2 = 8 - shift;
-                var b = (shift2 < bitCount) ? (Buffer[iByte] << shift2) : 0;
-                var m = (1 << bitCount) - 1;
-                var r = (a | b) & m;
-                return (uint)r;
+                var b = (shift2 < bitCount) ? ((uint)Buffer[i] << shift2) : 0;
+                return (a | b) & ((1u << bitCount) - 1);
             }
 
             public uint GetUInt(int startBit, int bitCount)
@@ -228,14 +218,11 @@ namespace Aardvark.Base
                 
                 var x = GetByte(startBit, bitCount);
                 if (bitCount < 9) return x;
-                startBit += 8; bitCount -= 8;
-                x |= GetByte(startBit, bitCount) << 8;
+                x |= GetByte(startBit += 8, bitCount -= 8) << 8;
                 if (bitCount < 9) return x;
-                startBit += 8; bitCount -= 8;
-                x |= GetByte(startBit, bitCount) << 16;
+                x |= GetByte(startBit += 8, bitCount -= 8) << 16;
                 if (bitCount < 9) return x;
-                startBit += 8; bitCount -= 8;
-                x |= GetByte(startBit, bitCount) << 24;
+                x |= GetByte(startBit += 8, bitCount -= 8) << 24;
                 return x;
             }
 
@@ -244,16 +231,9 @@ namespace Aardvark.Base
                 if (bitCount < 1 || bitCount > 64) throw new ArgumentOutOfRangeException(nameof(bitCount));
                 if (startBit + bitCount > LengthInBits) throw new InvalidOperationException();
 
-                if (bitCount > 32)
-                {
-                    var a = (ulong)GetUInt(startBit, 32);
-                    var b = (ulong)GetUInt(startBit + 32, bitCount - 32);
-                    return a | b;
-                }
-                else
-                {
-                    return GetUInt(startBit, bitCount);
-                }
+                return bitCount > 32
+                    ? GetUInt(startBit, 32) | GetUInt(startBit + 32, bitCount - 32)
+                    : GetUInt(startBit, bitCount);
             }
         }
 
