@@ -12,6 +12,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using System;
+using System.Runtime.CompilerServices;
 
 namespace Aardvark.Base
 {
@@ -128,6 +129,156 @@ namespace Aardvark.Base
             var xs = new long[buffer.Length / 8];
             for (int i = 0, j = 0; i < xs.Length; j += 8) xs[i++] = BitConverter.ToInt64(buffer, j);
             return xs;
+        }
+
+        public static byte[] Pack8(int[] data) => data.Map(x => (byte)x);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int BitCountInBytes(int n)
+        {
+            var c = n / 8;
+            if (n % 8 != 0) c++;
+            return c;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static byte GetBits(ulong x, int start, int count)
+        {
+            //if (count < 1 || count > 8) throw new ArgumentOutOfRangeException(nameof(count));
+            //if (start < 0 || start + count > 64) throw new ArgumentOutOfRangeException(nameof(start));
+            var y = (uint)(x >> start);
+            var mask = (1u << count) - 1;
+            var r = y & mask;
+            return (byte)r;
+        }
+        
+        public class BitBuffer
+        {
+            public readonly byte[] Buffer;
+            public readonly int LengthInBits;
+            private int _i;
+            private int _ibit;
+            public BitBuffer(int lengthInBits)
+            {
+                Buffer = new byte[BitCountInBytes(lengthInBits)];
+                LengthInBits = lengthInBits;
+                _i = 0; _ibit = 0;
+            }
+            public BitBuffer(byte[] buffer, int bits)
+            {
+                Buffer = buffer;
+                LengthInBits = (buffer.Length * 8 / bits) * bits;
+                _i = 0; _ibit = 0;
+            }
+            public void PushBits(byte x, int bitCount)
+            {
+                if (bitCount < 1 || bitCount > 8) throw new ArgumentOutOfRangeException(nameof(bitCount));
+                if (_i * 8 + _ibit + bitCount > LengthInBits) throw new InvalidOperationException();
+
+                var numberOfBitsRemainingInCurrentBufferByte = 8 - _ibit;
+                var numberOfLeastSignificantBitsToTakeFromX = Math.Min(bitCount, numberOfBitsRemainingInCurrentBufferByte);
+                var a = (byte)(BitPack.GetBits(x, 0, numberOfLeastSignificantBitsToTakeFromX) << _ibit);
+                Buffer[_i] |= a;
+                _ibit += numberOfLeastSignificantBitsToTakeFromX;
+                if (_ibit == 8) { _ibit = 0; _i++; }
+
+                if (numberOfLeastSignificantBitsToTakeFromX < bitCount)
+                {
+                    var numberOfMostSignificantBitsToTakeFromCurrentBufferByte = bitCount - numberOfLeastSignificantBitsToTakeFromX;
+                    var b = BitPack.GetBits(x, numberOfLeastSignificantBitsToTakeFromX, numberOfMostSignificantBitsToTakeFromCurrentBufferByte);
+                    Buffer[_i] = b;
+                    _ibit = numberOfMostSignificantBitsToTakeFromCurrentBufferByte;
+                }
+            }
+            public void PushBits(ulong x, int bitCount)
+            {
+                for (var i = 0; i < 64; i += 8)
+                {
+                    var b = (byte)(x >> i);
+                    if (bitCount > 8)
+                    {
+                        PushBits(b, 8);
+                        bitCount -= 8;
+                    }
+                    else
+                    {
+                        PushBits(b, bitCount);
+                        return;
+                    }
+                }
+            }
+
+            public uint GetByte(int startBit, int bitCount)
+            {
+                var iByte = startBit / 8;
+                var shift = startBit % 8;
+                var a = Buffer[iByte++] >> shift;
+                var shift2 = 8 - shift;
+                var b = (shift2 < bitCount) ? (Buffer[iByte] << shift2) : 0;
+                var m = (1 << bitCount) - 1;
+                var r = (a | b) & m;
+                return (uint)r;
+            }
+
+            public uint GetUInt(int startBit, int bitCount)
+            {
+                if (bitCount < 1 || bitCount > 32) throw new ArgumentOutOfRangeException(nameof(bitCount));
+                if (startBit + bitCount > LengthInBits) throw new InvalidOperationException();
+                
+                var x = GetByte(startBit, Math.Min(8, bitCount));
+                if (bitCount < 9) return x;
+                startBit += 8; bitCount -= 8;
+                x |= GetByte(startBit, Math.Min(8, bitCount));
+                if (bitCount < 9) return x;
+                startBit += 8; bitCount -= 8;
+                x |= GetByte(startBit, Math.Min(8, bitCount));
+                if (bitCount < 9) return x;
+                startBit += 8; bitCount -= 8;
+                x |= GetByte(startBit, Math.Min(8, bitCount));
+                return x;
+            }
+
+            public ulong GetULong(int startBit, int bitCount)
+            {
+                if (bitCount < 1 || bitCount > 64) throw new ArgumentOutOfRangeException(nameof(bitCount));
+                if (startBit + bitCount > LengthInBits) throw new InvalidOperationException();
+
+                if (bitCount > 32)
+                {
+                    var a = (ulong)GetUInt(startBit, 32);
+                    var b = (ulong)GetUInt(startBit + 32, bitCount - 32);
+                    return a | b;
+                }
+                else
+                {
+                    return GetUInt(startBit, bitCount);
+                }
+            }
+        }
+
+        /// <summary>
+        /// </summary>
+        public static byte[] Pack(int[] xs, int bits)
+        {
+            var buffer = new BitBuffer(xs.Length * bits);
+            for (var i = 0; i < xs.Length; i++) buffer.PushBits((uint)xs[i], bits);
+            return buffer.Buffer;
+        }
+
+        /// <summary>
+        /// </summary>
+        public static void Unpack(byte[] buffer, int bits, Action<ulong, int> nextValueAndIndex)
+        {
+            if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+            if (bits < 1 || bits > 64) throw new ArgumentException($"Argument 'bits' must be in range [1,64], but is {bits}.", nameof(bits));
+
+            var bitbuffer = new BitBuffer(buffer, bits);
+            var count = buffer.Length * 8 / bits;
+            for (int i = 0, j = 0; i < count; i++)
+            {
+                nextValueAndIndex(bitbuffer.GetULong(j, bits), i);
+                j += bits;
+            }
         }
     }
 }
