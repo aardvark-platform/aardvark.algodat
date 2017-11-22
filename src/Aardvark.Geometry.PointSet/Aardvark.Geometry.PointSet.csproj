@@ -50,6 +50,7 @@
     <Compile Include="Import\ImportStore.cs" />
     <Compile Include="Import\PointFileInfo.cs" />
     <Compile Include="Import\PointCloudFormat.cs" />
+    <Compile Include="Octrees\Delete.cs" />
     <Compile Include="Utils\EnumerableExtensions.cs" />
     <Compile Include="Import\ImportChunks.cs" />
     <Compile Include="Import\ImportAsciiLines.cs" />
