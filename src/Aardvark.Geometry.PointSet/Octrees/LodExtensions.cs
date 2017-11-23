@@ -29,7 +29,7 @@ namespace Aardvark.Geometry.Points
         {
             var nodeCount = self.Root.Value.CountNodes();
             var loddedNodesCount = 0L;
-            var result = self.GenerateLod(() =>
+            var result = self.GenerateLod(config.Key, () =>
             {
                 config.CancellationToken.ThrowIfCancellationRequested();
                 var i = Interlocked.Increment(ref loddedNodesCount);
@@ -44,19 +44,18 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        public static PointSet GenerateLod(this PointSet self, Action callback, int maxLevelOfParallelism, CancellationToken ct)
+        private static PointSet GenerateLod(this PointSet self, string key, Action callback, int maxLevelOfParallelism, CancellationToken ct)
         {
             if (self.IsEmpty) return self;
             var lod = self.Root.Value.GenerateLod(self.SplitLimit, callback, ct);
-            var id = Guid.NewGuid().ToString();
-            var result = new PointSet(self.Storage, id, lod.Id, self.SplitLimit);
-            self.Storage.Add(id, result, ct);
+            var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit);
+            self.Storage.Add(key, result, ct);
             return result;
         }
 
         /// <summary>
         /// </summary>
-        public static PointSetNode GenerateLod(this PointSetNode self, long octreeSplitLimit, Action callback, CancellationToken ct)
+        private static PointSetNode GenerateLod(this PointSetNode self, long octreeSplitLimit, Action callback, CancellationToken ct)
         {
             if (self != null) callback?.Invoke();
             if (self.IsLeaf) return self.WithLod();

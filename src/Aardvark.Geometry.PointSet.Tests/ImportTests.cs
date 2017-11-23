@@ -226,6 +226,43 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(pointset2.PointCount == 3);
         }
 
+        [Test]
+        public void CanImportPtsFileAndLoadFromStore_CheckKey()
+        {
+            var filename = Path.Combine(Config.TestDataDir, "test.pts");
+            if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
+            TestContext.WriteLine($"testfile is '{filename}'");
+            var config = new ImportConfig
+            {
+                Storage = PointCloud.CreateInMemoryStore(),
+                Key = "test"
+            };
+            var pointset = PointCloud.Import(filename, config);
+            Assert.IsTrue(pointset.Id == "test");
+            var pointset2 = config.Storage.GetPointSet("test", CancellationToken.None);
+            Assert.IsTrue(pointset2 != null);
+            Assert.IsTrue(pointset2.PointCount == 3);
+        }
+
+        [Test]
+        public void CanParsePtsChunksThenImportThenLoadFromStore()
+        {
+            var filename = Path.Combine(Config.TestDataDir, "test.pts");
+            if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
+            TestContext.WriteLine($"testfile is '{filename}'");
+            var config = new ImportConfig
+            {
+                Storage = PointCloud.CreateInMemoryStore(),
+                Key = "test"
+            };
+            var ptsChunks = PointCloud.Pts(filename, config);
+            var pointset = PointCloud.Chunks(ptsChunks, config);
+            Assert.IsTrue(pointset.Id == "test");
+            var pointset2 = config.Storage.GetPointSet("test", CancellationToken.None);
+            Assert.IsTrue(pointset2 != null);
+            Assert.IsTrue(pointset2.PointCount == 3);
+        }
+
         #endregion
 
         #region E57

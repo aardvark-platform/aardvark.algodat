@@ -40,7 +40,7 @@ namespace Aardvark.Geometry.Tests
                 Assert.IsTrue(cell.LodPointCount == 0);
             });
 
-            var lodded = pointset.GenerateLod(null, 1, CancellationToken.None);
+            var lodded = pointset.GenerateLod(new ImportConfig { Key = "Test", OctreeSplitLimit = 1 });
             lodded.Root.Value.ForEachNode(true, cell=>
             {
                 Assert.IsTrue(cell.LodPointCount > 0);
@@ -75,7 +75,7 @@ namespace Aardvark.Geometry.Tests
                 }
             });
 
-            var lodded = pointset.GenerateLod(null, 1, CancellationToken.None);
+            var lodded = pointset.GenerateLod(new ImportConfig { Key = "lod", OctreeSplitLimit = 1 });
             lodded.Root.Value.ForEachNode(true, cell =>
             {
                 if (cell.IsLeaf)
@@ -106,7 +106,7 @@ namespace Aardvark.Geometry.Tests
 
             var pointset = PointSet.Create(storage, "test", ps.ToList(), cs.ToList(), 5000, false, CancellationToken.None);
           
-            var lodded = pointset.GenerateLod(null, 1, CancellationToken.None);
+            var lodded = pointset.GenerateLod(new ImportConfig { Key = "lod", OctreeSplitLimit = 1 });
             
             var json = lodded.ToJson();
             var relodded = PointSet.Parse(json, storage);

@@ -27,6 +27,8 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static readonly ImportConfig Default = new ImportConfig();
 
+        #region Properties
+
         /// <summary>
         /// Large files should be read in chunks with this maximum size.
         /// </summary>
@@ -61,5 +63,30 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public CancellationToken CancellationToken = CancellationToken.None;
+
+        #endregion
+
+        #region Immutable updates
+
+        /// <summary></summary>
+        public ImportConfig WithKey(string newKey) => new ImportConfig
+        {
+            ReadBufferSizeInBytes = ReadBufferSizeInBytes,
+            Reproject = Reproject,
+            MinDist = MinDist,
+            Storage = Storage,
+            Key = newKey,
+            OctreeSplitLimit = OctreeSplitLimit,
+            CreateOctreeLod = CreateOctreeLod,
+            MaxLevelOfParallelism = MaxLevelOfParallelism,
+            Verbose = Verbose,
+            Progress = Progress,
+            CancellationToken = CancellationToken
+        };
+
+        /// <summary></summary>
+        public ImportConfig WithRandomKey() => WithKey(Guid.NewGuid().ToString());
+
+        #endregion
     }
 }
