@@ -22,10 +22,10 @@ using Uncodium.SimpleStore;
 
 namespace Aardvark.Geometry.Points
 {
-    /// <summary>
-    /// </summary>
     public class Storage : IDisposable
     {
+        private bool m_isDisposed = false;
+
         internal readonly Action<string, object, Func<byte[]>, CancellationToken> f_add;
 
         internal readonly Func<string, CancellationToken, byte[]> f_get;
@@ -37,9 +37,7 @@ namespace Aardvark.Geometry.Points
         internal readonly Action f_flush;
 
         internal readonly Action f_dispose;
-
-        /// <summary>
-        /// </summary>
+        
         public Storage(
             Action<string, object, Func<byte[]>, CancellationToken> add,
             Func<string, CancellationToken, byte[]> get,
@@ -56,21 +54,16 @@ namespace Aardvark.Geometry.Points
             f_dispose = dispose;
             f_flush = flush;
         }
-
-        /// <summary>
-        /// </summary>
+        
         public void Flush() => f_flush();
-
-        /// <summary>
-        /// </summary>
+        
         public void Dispose()
         {
+            m_isDisposed = true;
             Dispose(true);
             GC.SuppressFinalize(this);
         }
-
-        /// <summary>
-        /// </summary>
+        
         protected virtual void Dispose(bool disposing)
         {
             if (disposing)
@@ -78,19 +71,37 @@ namespace Aardvark.Geometry.Points
                 f_dispose();
             }
         }
-
-        /// <summary>
-        /// </summary>
+        
         ~Storage()
         {
             Dispose(false);
         }
+
+        public bool IsDisposed => m_isDisposed;
     }
 
     /// <summary>
     /// </summary>
     public static class StorageExtensions
     {
+        public static void Add(this Storage storage, Guid key, byte[] data, CancellationToken ct) => Add(storage, key.ToString(), data, ct);
+        
+        public static void Add(this Storage storage, string key, byte[] data, CancellationToken ct)
+            => storage.f_add(key, data, () => data, ct);
+        
+        public static byte[] GetByteArray(this Storage storage, string key, CancellationToken ct)
+        {
+            var data = (byte[])storage.f_tryGetFromCache(key, ct);
+            if (data != null) return data;
+
+            var buffer = storage.f_get(key, ct);
+            if (buffer == null) return null;
+            
+            storage.f_add(key, buffer, null, ct);
+            return buffer;
+        }
+
+
         /// <summary></summary>
         public static void Add(this Storage storage, Guid key, V3f[] data, CancellationToken ct) => Add(storage, key.ToString(), data, ct);
 

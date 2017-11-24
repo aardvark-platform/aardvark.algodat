@@ -69,7 +69,9 @@ namespace Aardvark.Geometry.Points
             lock (s_stores)
             {
                 if (s_stores.TryGetValue(storePath, out WeakReference<Storage> x) && x.TryGetTarget(out Storage cached))
-                    return cached;
+                {
+                    if (!cached.IsDisposed) return cached;
+                }
 
                 var store = new SimpleDiskStore(storePath).ToPointCloudStore();
                 s_stores[storePath] = new WeakReference<Storage>(store);
