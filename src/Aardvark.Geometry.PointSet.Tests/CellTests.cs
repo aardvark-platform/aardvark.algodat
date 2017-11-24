@@ -24,6 +24,75 @@ namespace Aardvark.Geometry.Tests
     [TestFixture]
     public class CellTests
     {
+        #region box inside/outside tests
+
+        [Test]
+        public void BoxInsideOutside_Equals()
+        {
+            var a = new Box3d(new V3d(1, 2, 3), new V3d(4, 5, 6));
+            var b = new Box3d(new V3d(1, 2, 3), new V3d(4, 5, 6));
+            Assert.IsTrue(a == b);
+        }
+
+        [Test]
+        public void BoxInsideOutside_ContainsEqual()
+        {
+            var a = new Box3d(new V3d(1, 2, 3), new V3d(4, 5, 6));
+            var b = new Box3d(new V3d(1, 2, 3), new V3d(4, 5, 6));
+            Assert.IsTrue(a.Contains(b));
+            Assert.IsTrue(b.Contains(a));
+        }
+
+        [Test]
+        public void BoxInsideOutside_Contains_Inside()
+        {
+            var a = new Box3d(new V3d(0, 0, 0), new V3d(4, 4, 4));
+            var b = new Box3d(new V3d(1, 1, 2), new V3d(2, 2, 3));
+            Assert.IsTrue(a.Contains(b));
+        }
+
+        [Test]
+        public void BoxInsideOutside_Contains_InsideTouching()
+        {
+            var a = new Box3d(new V3d(0, 0, 0), new V3d(4, 4, 4));
+            var b = new Box3d(new V3d(0, 0, 0), new V3d(2, 2, 2));
+            Assert.IsTrue(a.Contains(b));
+        }
+
+        [Test]
+        public void BoxInsideOutside_Contains_Outside()
+        {
+            var a = new Box3d(new V3d(0, 0, 0), new V3d(4, 4, 4));
+            var b = new Box3d(new V3d(6, 0, 0), new V3d(8, 2, 2));
+            Assert.IsTrue(!a.Contains(b));
+        }
+
+        [Test]
+        public void BoxInsideOutside_Contains_OutsideTouching()
+        {
+            var a = new Box3d(new V3d(0, 0, 0), new V3d(4, 4, 4));
+            var b = new Box3d(new V3d(4, 0, 0), new V3d(8, 4, 4));
+            Assert.IsTrue(!a.Contains(b));
+        }
+
+        [Test]
+        public void BoxnsideOutside_Intersects_OutsideTouchingMin()
+        {
+            var a = new Box3d(new V3d(4, 0, 0), new V3d(8, 4, 4));
+            var b = new Box3d(new V3d(0, 0, 0), new V3d(4, 4, 4));
+            Assert.IsTrue(!a.Intersects(b));
+        }
+
+        [Test]
+        public void BoxInsideOutside_Intersects_OutsideTouchingMax()
+        {
+            var a = new Box3d(new V3d(0, 0, 0), new V3d(4, 4, 4));
+            var b = new Box3d(new V3d(4, 0, 0), new V3d(8, 4, 4));
+            Assert.IsTrue(!a.Intersects(b));
+        }
+
+        #endregion
+
         #region json serialization
 
         [Test]
