@@ -1075,7 +1075,7 @@ namespace Aardvark.Geometry.Points
                 SubnodeIds, Storage, true
                 );
         }
-
+        
         #endregion
 
         #region Intersections, inside/outside, ...
@@ -1135,6 +1135,71 @@ namespace Aardvark.Geometry.Points
         {
             BoundingBox.GetMinMaxInDirection(-plane.Normal, out V3d min, out V3d max);
             return plane.Height(min) < 0;
+        }
+
+        #endregion
+        
+        #region ImmutableFilter
+
+        /// <summary>
+        /// Creates new tree containing only points defined by the selector.
+        /// </summary>
+        public PointSetNode ImmutableFilter(Selector selector, CancellationToken ct)
+        {
+            var s = selector.Select(this);
+            if (s.IsNodeFullyInsideSelection) return null;
+            if (s.IsNodeFullyOutsideSelection) return this;
+
+            if (!s.IsNodePartiallySelected) throw new InvalidOperationException();
+            
+            Guid? newPsId = null;
+            Guid? newKdId = null;
+            if (HasPositions)
+            {
+                newPsId = Guid.NewGuid();
+                newKdId = Guid.NewGuid();
+                var xs = Positions.Value;
+                var ps = s.SelectedPointIndices.Map(i => xs[i]);
+                var kd = ps.BuildKdTree().Data;
+                Storage.Add(newPsId.Value, ps, ct);
+                Storage.Add(newKdId.Value, kd, ct);
+            }
+
+            Guid? newCsId = null;
+            if (HasColors)
+            {
+                newCsId = Guid.NewGuid();
+                var xs = Colors.Value;
+                Storage.Add(newCsId.Value, s.SelectedPointIndices.Map(i => xs[i]), ct);
+            }
+
+            Guid? newLodPsId = null;
+            Guid? newLodKdId = null;
+            if (HasLodPositions)
+            {
+                newLodPsId = Guid.NewGuid();
+                newLodKdId = Guid.NewGuid();
+                var xs = LodPositions.Value;
+                var ps = s.SelectedPointIndices.Map(i => xs[i]);
+                var kd = ps.BuildKdTree().Data;
+                Storage.Add(newLodPsId.Value, ps, ct);
+                Storage.Add(newLodKdId.Value, kd, ct);
+            }
+
+            Guid? newLodCsId = null;
+            if (HasLodColors)
+            {
+                newLodCsId = Guid.NewGuid();
+                var xs = LodColors.Value;
+                Storage.Add(newLodCsId.Value, s.SelectedPointIndices.Map(i => xs[i]), ct);
+            }
+
+            var newSubnodeIds = Subnodes?.Map(n => n?.Value.ImmutableFilter(selector, ct).Id);
+            return new PointSetNode(
+                Guid.NewGuid(), Cell, s.SelectedPointIndices.Count,
+                newPsId, newCsId, newKdId, newLodPsId, newLodCsId, newLodKdId,
+                newSubnodeIds, Storage, true
+                );
         }
 
         #endregion
