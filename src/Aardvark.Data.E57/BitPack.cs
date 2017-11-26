@@ -22,19 +22,33 @@ namespace Aardvark.Base
         {
             switch (bits)
             {
-                case 2: return UnpackInt2(buffer);
-                case 4: return UnpackInt4(buffer);
-                case 8: return UnpackInt8(buffer);
-                case 12: return UnpackInt12(buffer);
-                case 16: return UnpackInt16(buffer);
-                case 20: return UnpackInt20(buffer);
-                case 24: return UnpackInt24(buffer);
-                case 32: return UnpackInt32(buffer);
-                case 64: return UnpackInt64(buffer);
-                default: throw new NotImplementedException($"BitPack.UnpackIntegers({bits})");
+                case 2: return OptimizedUnpackInt2(buffer);
+                case 4: return OptimizedUnpackInt4(buffer);
+                case 8: return OptimizedUnpackInt8(buffer);
+                case 12: return OptimizedUnpackInt12(buffer);
+                case 16: return OptimizedUnpackInt16(buffer);
+                case 20: return OptimizedUnpackInt20(buffer);
+                case 24: return OptimizedUnpackInt24(buffer);
+                case 32: return OptimizedUnpackInt32(buffer);
+                case 64: return OptimizedUnpackInt64(buffer);
             }
+
+            if (bits <= 32)
+            {
+                var bb = new BitBuffer(buffer, bits);
+                var count = (buffer.Length * 8) / bits;
+                var data = bb.ReadUInts(bits, count);
+                return data;
+            }
+
+            if (bits <= 64)
+            {
+                throw new NotImplementedException($"BitPack.UnpackIntegers({bits})");
+            }
+
+            throw new NotImplementedException($"BitPack.UnpackIntegers({bits})");
         }
-        public static byte[] UnpackInt2(byte[] buffer)
+        public static byte[] OptimizedUnpackInt2(byte[] buffer)
         {
             checked
             {
@@ -50,7 +64,7 @@ namespace Aardvark.Base
                 return xs;
             }
         }
-        public static byte[] UnpackInt4(byte[] buffer)
+        public static byte[] OptimizedUnpackInt4(byte[] buffer)
         {
             checked
             {
@@ -64,12 +78,11 @@ namespace Aardvark.Base
                 return xs;
             }
         }
-        public static byte[] UnpackInt8(byte[] buffer) => buffer;
-        public static short[] UnpackInt12(byte[] buffer)
+        public static byte[] OptimizedUnpackInt8(byte[] buffer) => buffer;
+        public static short[] OptimizedUnpackInt12(byte[] buffer)
         {
             checked
             {
-                if ((buffer.Length * 8) % 12 != 0) throw new ArgumentException($"Expected buffer length multiple of 12 bits, but is {buffer.Length} bytes.");
                 var xs = new short[buffer.Length / 3 * 2];
                 for (int i = 0, j = 0; i < xs.Length;)
                 {
@@ -80,14 +93,14 @@ namespace Aardvark.Base
                 return xs;
             }
         }
-        public static short[] UnpackInt16(byte[] buffer)
+        public static short[] OptimizedUnpackInt16(byte[] buffer)
         {
             if (buffer.Length % 2 != 0) throw new ArgumentException($"Expected buffer length multiple of 2 bytes, but is {buffer.Length} bytes.");
             var xs = new short[buffer.Length / 2];
             for (int i = 0, j = 0; i < xs.Length; j += 2) xs[i++] = BitConverter.ToInt16(buffer, j);
             return xs;
         }
-        public static int[] UnpackInt20(byte[] buffer)
+        public static int[] OptimizedUnpackInt20(byte[] buffer)
         {
             checked
             {
@@ -102,7 +115,7 @@ namespace Aardvark.Base
                 return xs;
             }
         }
-        public static int[] UnpackInt24(byte[] buffer)
+        public static int[] OptimizedUnpackInt24(byte[] buffer)
         {
             checked
             {
@@ -116,14 +129,14 @@ namespace Aardvark.Base
                 return xs;
             }
         }
-        public static int[] UnpackInt32(byte[] buffer)
+        public static int[] OptimizedUnpackInt32(byte[] buffer)
         {
             if (buffer.Length % 4 != 0) throw new ArgumentException($"Expected buffer length multiple of 4 bytes, but is {buffer.Length} bytes.");
             var xs = new int[buffer.Length / 4];
             for (int i = 0, j = 0; i < xs.Length; j += 4) xs[i++] = BitConverter.ToInt32(buffer, j);
             return xs;
         }
-        public static long[] UnpackInt64(byte[] buffer)
+        public static long[] OptimizedUnpackInt64(byte[] buffer)
         {
             if (buffer.Length % 8 != 0) throw new ArgumentException($"Expected buffer length multiple of 8 bytes, but is {buffer.Length} bytes.");
             var xs = new long[buffer.Length / 8];
@@ -167,7 +180,7 @@ namespace Aardvark.Base
             public BitBuffer(byte[] buffer, int bits)
             {
                 Buffer = buffer;
-                LengthInBits = (buffer.Length * 8 / bits) * bits;
+                LengthInBits = ((buffer.Length * 8) / bits) * bits;
                 _i = 0; _ibit = 0;
             }
             public void PushBits(byte x, int bitCount)
@@ -234,6 +247,13 @@ namespace Aardvark.Base
                 return bitCount > 32
                     ? GetUInt(startBit, 32) | GetUInt(startBit + 32, bitCount - 32)
                     : GetUInt(startBit, bitCount);
+            }
+
+            public uint[] ReadUInts(int bits, int count)
+            {
+                var data = new uint[count];
+                for (int i = 0, j = 0; i < count; i++, j += bits) data[i] = GetUInt(j, bits);
+                return data;
             }
         }
 

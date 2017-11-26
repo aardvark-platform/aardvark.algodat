@@ -29,7 +29,10 @@ namespace Aardvark.Geometry.Tests
             ASTM_E57.VerifyChecksums(stream, fileSizeInBytes);
             var header = ASTM_E57.E57FileHeader.Parse(stream);
 
-            var data = header.E57Root.Data3D.Map(x => x.Points.ReadData().Take(1).ToList());
+            Report.BeginTimed("parsing E57 file");
+            var take = int.MaxValue;
+            var data = header.E57Root.Data3D.Map(x => x.Points.ReadData(false).Take(take).ToList());
+            Report.EndTimed();
 
             //var ps = PointCloud.Parse(filename, ImportConfig.Default)
             //    .SelectMany(x => x.Positions)

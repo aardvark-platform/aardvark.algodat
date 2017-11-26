@@ -37,41 +37,49 @@ namespace Aardvark.Data.E57
         private const int E57_IGNORED_PACKET = 2;
 
         /// <summary>
+        /// Physical E57 file offset.
+        /// </summary>
+        public struct E57PhysicalOffset
+        {
+            public readonly long Value;
+            public E57PhysicalOffset(long value) => Value
+                = (value % 1024 < 1020) ? value : throw new ArgumentException($"E57PhysicalOffset must not point to checksum bytes. ({value}).");
+
+            public static E57PhysicalOffset operator +(E57PhysicalOffset a, E57PhysicalOffset b) => new E57PhysicalOffset(a.Value + b.Value);
+            public static E57LogicalOffset operator +(E57PhysicalOffset a, E57LogicalOffset b) => (E57LogicalOffset)a + b;
+            public static explicit operator E57LogicalOffset(E57PhysicalOffset a) => new E57LogicalOffset(a.Value - ((a.Value >> 8) & ~0b11));
+            public override string ToString() => $"E57PhysicalOffset({Value})";
+        }
+
+        /// <summary>
+        /// Logical E57 file offset.
+        /// </summary>
+        public struct E57LogicalOffset
+        {
+            public readonly long Value;
+            public E57LogicalOffset(long value) { Value = value; }
+            public static E57LogicalOffset operator +(E57LogicalOffset a, E57LogicalOffset b) => new E57LogicalOffset(a.Value + b.Value);
+            public static E57LogicalOffset operator +(E57LogicalOffset a, int b) => new E57LogicalOffset(a.Value + b);
+            public static explicit operator E57PhysicalOffset(E57LogicalOffset a) => new E57PhysicalOffset(a.Value + (a.Value / 1020 * 4));
+            public override string ToString() => $"E57LogicalOffset({Value})";
+        }
+
+        /// <summary>
         /// E57 File Header (7. File Header Section).
         /// TABLE 1 Format of the E57 File Header Section.
         /// </summary>
         public class E57FileHeader
         {
-            /// <summary>
-            /// </summary>
-            public string FileSignature;
-            /// <summary>
-            /// </summary>
-            public uint VersionMajor;
-            /// <summary>
-            /// </summary>
-            public uint VersionMinor;
-            /// <summary>
-            /// </summary>
-            public ulong FileLength;
-            /// <summary>
-            /// </summary>
-            public PhysicalOffset XmlOffset;
-            /// <summary>
-            /// </summary>
-            public ulong XmlLength;
-            /// <summary>
-            /// </summary>
-            public ulong PageSize;
-            /// <summary>
-            /// </summary>
-            public XElement RawXml;
-            /// <summary>
-            /// </summary>
-            public E57Root E57Root;
-            
-            /// <summary>
-            /// </summary>
+            public string FileSignature { get; private set; }
+            public uint VersionMajor { get; private set; }
+            public uint VersionMinor { get; private set; }
+            public ulong FileLength { get; private set; }
+            public E57PhysicalOffset XmlOffset { get; private set; }
+            public ulong XmlLength { get; private set; }
+            public ulong PageSize { get; private set; }
+            public XElement RawXml { get; private set; }
+            public E57Root E57Root { get; private set; }
+
             public static E57FileHeader Parse(Stream stream)
             {
                 stream.Position = 0;
@@ -84,7 +92,7 @@ namespace Aardvark.Data.E57
                     VersionMajor = Check("VersionMajor", BitConverter.ToUInt32(buffer, 8), x => x == 1, "1"),
                     VersionMinor = Check("VersionMinor", BitConverter.ToUInt32(buffer, 12), x => x == 0, "0"),
                     FileLength = BitConverter.ToUInt64(buffer, 16),
-                    XmlOffset = new PhysicalOffset(BitConverter.ToInt64(buffer, 24)),
+                    XmlOffset = new E57PhysicalOffset(BitConverter.ToInt64(buffer, 24)),
                     XmlLength = BitConverter.ToUInt64(buffer, 32),
                     PageSize = Check("PageSize", BitConverter.ToUInt64(buffer, 40), x => x == 1024, "1024"),
                 };
@@ -98,84 +106,47 @@ namespace Aardvark.Data.E57
             }
         }
 
-        /// <summary>
-        /// </summary>
         public enum E57ElementType
         {
-            /// <summary></summary>
             Integer,                        // Table 2
-            /// <summary></summary>
             ScaledInteger,                  // Table 3
-            /// <summary></summary>
             Float,                          // Table 4
-            /// <summary></summary>
             String,                         // Table 5
-            /// <summary></summary>
             Blob,                           // Table 6
-            /// <summary></summary>
             Structure,                      // Table 7
-            /// <summary></summary>
             Vector,                         // Table 8
-            /// <summary></summary>
             CompressedVector,               // Table 9, Table 10
-            /// <summary></summary>
             E57Codec,                       // Table 11
-            /// <summary></summary>
             E57Root,                        // Table 12
-            /// <summary></summary>
             Data3D,                         // Table 13
-            /// <summary></summary>
             PointRecord,                    // Table 14
-            /// <summary></summary>
             PointGroupingSchemes,           // Table 15
-            /// <summary></summary>
             GroupingByLine,                 // Table 16
-            /// <summary></summary>
             LineGroupRecord,                // Table 17
-            /// <summary></summary>
             RigidBodyTransform,             // Table 18
-            /// <summary></summary>
             Quaternion,                     // Table 19
-            /// <summary></summary>
             Translation,                    // Table 20
-            /// <summary></summary>
             Image2d,                        // Table 21
-            /// <summary></summary>
             VisualReferenceRepresentation,  // Table 22
-            /// <summary></summary>
             PinholeRepresentation,          // Table 23
-            /// <summary></summary>
             SphericalRepresentation,        // Table 24
-            /// <summary></summary>
             CylindricalRepresentation,      // Table 25
-            /// <summary></summary>
             CartesianBounds,                // Table 26
-            /// <summary></summary>
             SphericalBounds,                // Table 27
-            /// <summary></summary>
             IndexBounds,                    // Table 28
-            /// <summary></summary>
             IntensityLimits,                // Table 29
-            /// <summary></summary>
             ColorLimits,                    // Table 30
-            /// <summary></summary>
             E57DateTime,                    // Table 31
         }
 
-        /// <summary></summary>
         public interface IE57Element
         {
-            /// <summary></summary>
             E57ElementType E57Type { get; }
         }
-
-        /// <summary></summary>
+        
         public interface IBitPack : IE57Element
         {
-            /// <summary></summary>
             int NumberOfBitsForBitPack { get; }
-
-            /// <summary></summary>
             string Semantic { get; }
         }
 
@@ -184,12 +155,10 @@ namespace Aardvark.Data.E57
         /// </summary>
         public class E57Integer : IE57Element, IBitPack
         {
-            /// <summary></summary>
             public E57ElementType E57Type => E57ElementType.Integer;
 
             #region Properties
-
-            /// <summary></summary>
+            
             public string Name;
 
             /// <summary>
@@ -203,14 +172,11 @@ namespace Aardvark.Data.E57
             /// The largest value that can be encoded. Shall be in the interval [minimum, 2^63-1].
             /// </summary>
             public long? Maximum;
-
-            /// <summary></summary>
+            
             public long Value;
-
-            /// <summary></summary>
+            
             public int NumberOfBitsForBitPack => (int)Math.Ceiling(((double)(Maximum - Minimum + 1)).Log2());
-
-            /// <summary></summary>
+            
             public string Semantic => Name;
 
             #endregion
@@ -305,12 +271,10 @@ namespace Aardvark.Data.E57
         /// </summary>
         public class E57Float : IE57Element, IBitPack
         {
-            /// <summary></summary>
             public E57ElementType E57Type => E57ElementType.Float;
 
             #region Properties
-
-            /// <summary></summary>
+            
             public string Name;
 
             /// <summary>
@@ -329,14 +293,11 @@ namespace Aardvark.Data.E57
             /// The largest value that can be encoded.
             /// </summary>
             public double? Maximum;
-
-            /// <summary></summary>
+            
             public double Value;
-
-            /// <summary></summary>
+            
             public int NumberOfBitsForBitPack => IsDoublePrecision ? 64 : 32;
-
-            /// <summary></summary>
+            
             public string Semantic => Name;
 
             #endregion
@@ -363,17 +324,11 @@ namespace Aardvark.Data.E57
         /// </summary>
         public class E57String : IE57Element
         {
-            /// <summary></summary>
             public E57ElementType E57Type => E57ElementType.String;
 
             #region Properties
-
-            /// <summary></summary>
+            
             public string Name;
-
-            /// <summary>
-            /// String value.
-            /// </summary>
             public string Value;
 
             #endregion
@@ -391,7 +346,6 @@ namespace Aardvark.Data.E57
         /// </summary>
         public class E57Blob : IE57Element
         {
-            /// <summary></summary>
             public E57ElementType E57Type => E57ElementType.Blob;
 
             #region Properties
@@ -400,7 +354,7 @@ namespace Aardvark.Data.E57
             /// Required.
             /// The physical file offset of the start of the associated binary Blob section in the E57 file. Shall be in the interval [0, 2^63).
             /// </summary>
-            public PhysicalOffset FileOffset;
+            public E57PhysicalOffset FileOffset;
 
             /// <summary>
             /// Required.
@@ -427,14 +381,10 @@ namespace Aardvark.Data.E57
         /// </summary>
         public class E57Structure : IE57Element
         {
-            /// <summary></summary>
             public E57ElementType E57Type => E57ElementType.Structure;
 
             #region Properties
-
-            /// <summary>
-            /// 
-            /// </summary>
+            
             public IE57Element[] Children;
 
             #endregion
@@ -455,7 +405,6 @@ namespace Aardvark.Data.E57
         /// </summary>
         public class E57Vector : IE57Element
         {
-            /// <summary></summary>
             public E57ElementType E57Type => E57ElementType.Vector;
 
             #region Properties
@@ -491,7 +440,6 @@ namespace Aardvark.Data.E57
         /// </summary>
         public class E57CompressedVector : IE57Element
         {
-            /// <summary></summary>
             public E57ElementType E57Type => E57ElementType.CompressedVector;
 
             #region Properties
@@ -500,7 +448,7 @@ namespace Aardvark.Data.E57
             /// Required.
             /// The physical file offset of the start of the CompressedVector binary section in the E57 file(an integer). Shall be in the interval(0, 2^63).
             /// </summary>
-            public PhysicalOffset FileOffset;
+            public E57PhysicalOffset FileOffset;
 
             /// <summary>
             /// Required.
@@ -545,19 +493,20 @@ namespace Aardvark.Data.E57
             {
                 var compressedVectorHeader = E57CompressedVectorHeader.Parse(ReadLogicalBytes(m_stream, FileOffset, 32));
 
-                if (verbose)
+                if (true)
                 {
-                    Console.WriteLine($"[E57CompressedVector] FileOffset       = {FileOffset,10}");
-                    Console.WriteLine($"[E57CompressedVector] IndexStartOffset = {compressedVectorHeader.IndexStartOffset,10}");
-                    Console.WriteLine($"[E57CompressedVector] DataStartOffset  = {compressedVectorHeader.DataStartOffset,10}");
-                    Console.WriteLine($"[E57CompressedVector] SectionLength    = {compressedVectorHeader.SectionLength,10}");
+                    Report.Line($"[E57CompressedVector] RecordCount      = {RecordCount,10}");
+                    Report.Line($"[E57CompressedVector] FileOffset       = {FileOffset,10}");
+                    Report.Line($"[E57CompressedVector] IndexStartOffset = {compressedVectorHeader.IndexStartOffset,10}");
+                    Report.Line($"[E57CompressedVector] DataStartOffset  = {compressedVectorHeader.DataStartOffset,10}");
+                    Report.Line($"[E57CompressedVector] SectionLength    = {compressedVectorHeader.SectionLength,10}");
                 }
 
                 var bytesLeftToConsume = compressedVectorHeader.SectionLength - 32;
                 if (compressedVectorHeader.DataStartOffset.Value == 0) throw new Exception($"Unexpected compressedVectorHeader.DataStartOffset (0).");
                 if (compressedVectorHeader.IndexStartOffset.Value != 0) throw new Exception($"Unexpected compressedVectorHeader.IndexStartOffset ({compressedVectorHeader.IndexStartOffset})");
 
-                var offset = (LogicalOffset)compressedVectorHeader.DataStartOffset;
+                var offset = (E57LogicalOffset)compressedVectorHeader.DataStartOffset;
                 while (bytesLeftToConsume > 0)
                 {
                     if (verbose) Console.WriteLine($"[E57CompressedVector] bytesLeftToConsume = {bytesLeftToConsume}");
@@ -637,6 +586,7 @@ namespace Aardvark.Data.E57
                             try
                             {
                                 var p = (E57Integer)proto;
+                                if (p.Minimum < 0) throw new NotImplementedException();
                                 return UnpackIntegers(buffer, p);
                             }
                             catch (Exception e)
@@ -684,9 +634,9 @@ namespace Aardvark.Data.E57
                 switch (proto.NumberOfBitsForBitPack)
                 {
                     case 32:
-                        return BitPack.UnpackInt32(buffer).Map(x => proto.Compute(x));
+                        return BitPack.OptimizedUnpackInt32(buffer).Map(x => proto.Compute(x));
                     case 64:
-                        return BitPack.UnpackInt64(buffer).Map(x => proto.Compute(x));
+                        return BitPack.OptimizedUnpackInt64(buffer).Map(x => proto.Compute(x));
                     default:
                         throw new NotImplementedException($"UnpackScaledInteger with {proto.NumberOfBitsForBitPack} bits.");
                 }
@@ -700,7 +650,6 @@ namespace Aardvark.Data.E57
         /// </summary>
         public class E57Codec : IE57Element
         {
-            /// <summary></summary>
             public E57ElementType E57Type => E57ElementType.E57Codec;
 
             #region Properties
@@ -736,7 +685,6 @@ namespace Aardvark.Data.E57
         /// </summary>
         public class E57Root : IE57Element
         {
-            /// <summary></summary>
             public E57ElementType E57Type => E57ElementType.E57Root;
 
             #region Properties
@@ -828,7 +776,6 @@ namespace Aardvark.Data.E57
         /// </summary>
         public class E57Data3D : IE57Element
         {
-            /// <summary></summary>
             public E57ElementType E57Type => E57ElementType.Data3D;
 
             #region Properties
@@ -1023,7 +970,6 @@ namespace Aardvark.Data.E57
         /// </summary>
         public class E57PointRecord : IE57Element
         {
-            /// <summary></summary>
             public E57ElementType E57Type => E57ElementType.PointRecord;
 
             #region Properties
@@ -1051,7 +997,6 @@ namespace Aardvark.Data.E57
         /// </summary>
         public class E57PointGroupingSchemes : IE57Element
         {
-            /// <summary></summary>
             public E57ElementType E57Type => E57ElementType.PointGroupingSchemes;
 
             #region Properties
@@ -1079,7 +1024,6 @@ namespace Aardvark.Data.E57
         /// </summary>
         public class GroupingByLine : IE57Element
         {
-            /// <summary></summary>
             public E57ElementType E57Type => E57ElementType.GroupingByLine;
 
             #region Properties
@@ -1115,7 +1059,6 @@ namespace Aardvark.Data.E57
         /// </summary>
         public class E57LineGroupRecord : IE57Element
         {
-            /// <summary></summary>
             public E57ElementType E57Type => E57ElementType.LineGroupRecord;
 
             #region Properties
@@ -1171,7 +1114,6 @@ namespace Aardvark.Data.E57
         /// </summary>
         public class E57RigidBodyTransform : IE57Element
         {
-            /// <summary></summary>
             public E57ElementType E57Type => E57ElementType.RigidBodyTransform;
 
             #region Properties
@@ -1209,7 +1151,6 @@ namespace Aardvark.Data.E57
         /// </summary>
         public class E57Image2D : IE57Element
         {
-            /// <summary></summary>
             public E57ElementType E57Type => E57ElementType.Image2d;
 
             #region Properties
@@ -1329,7 +1270,6 @@ namespace Aardvark.Data.E57
         /// </summary>
         public class E57VisualReferenceRepresentation : IE57Element
         {
-            /// <summary></summary>
             public E57ElementType E57Type => E57ElementType.VisualReferenceRepresentation;
 
             #region Properties
@@ -1338,37 +1278,19 @@ namespace Aardvark.Data.E57
             /// Optional.
             /// JPEG format image data.
             /// </summary>
-            public byte[] JpegImage
-            {
-                get
-                {
-                    throw new NotImplementedException();
-                }
-            }
+            public byte[] JpegImage => throw new NotImplementedException();
 
             /// <summary>
             /// Optional.
             /// PNG format image data.
             /// </summary>
-            public byte[] PngImage
-            {
-                get
-                {
-                    throw new NotImplementedException();
-                }
-            }
+            public byte[] PngImage => throw new NotImplementedException();
 
             /// <summary>
             /// Optional.
             /// PNG format image mask.
             /// </summary>
-            public byte[] ImageMask
-            {
-                get
-                {
-                    throw new NotImplementedException();
-                }
-            }
+            public byte[] ImageMask => throw new NotImplementedException();
 
             /// <summary>
             /// Required.
@@ -1405,7 +1327,6 @@ namespace Aardvark.Data.E57
         /// </summary>
         public class E57PinholeRepresentation : IE57Element
         {
-            /// <summary></summary>
             public E57ElementType E57Type => E57ElementType.PinholeRepresentation;
 
             #region Properties
@@ -1414,37 +1335,19 @@ namespace Aardvark.Data.E57
             /// Optional.
             /// JPEG format image data.
             /// </summary>
-            public byte[] JpegImage
-            {
-                get
-                {
-                    throw new NotImplementedException();
-                }
-            }
+            public byte[] JpegImage => throw new NotImplementedException();
 
             /// <summary>
             /// Optional.
             /// PNG format image data.
             /// </summary>
-            public byte[] PngImage
-            {
-                get
-                {
-                    throw new NotImplementedException();
-                }
-            }
+            public byte[] PngImage => throw new NotImplementedException();
 
             /// <summary>
             /// Optional.
             /// PNG format image mask.
             /// </summary>
-            public byte[] ImageMask
-            {
-                get
-                {
-                    throw new NotImplementedException();
-                }
-            }
+            public byte[] ImageMask => throw new NotImplementedException();
 
             /// <summary>
             /// Required.
@@ -1527,7 +1430,6 @@ namespace Aardvark.Data.E57
         /// </summary>
         public class E57SphericalRepresentation : IE57Element
         {
-            /// <summary></summary>
             public E57ElementType E57Type => E57ElementType.SphericalRepresentation;
 
             #region Properties
@@ -1536,37 +1438,19 @@ namespace Aardvark.Data.E57
             /// Optional.
             /// JPEG format image data.
             /// </summary>
-            public byte[] JpegImage
-            {
-                get
-                {
-                    throw new NotImplementedException();
-                }
-            }
+            public byte[] JpegImage => throw new NotImplementedException();
 
             /// <summary>
             /// Optional.
             /// PNG format image data.
             /// </summary>
-            public byte[] PngImage
-            {
-                get
-                {
-                    throw new NotImplementedException();
-                }
-            }
+            public byte[] PngImage => throw new NotImplementedException();
 
             /// <summary>
             /// Optional.
             /// PNG format image mask.
             /// </summary>
-            public byte[] ImageMask
-            {
-                get
-                {
-                    throw new NotImplementedException();
-                }
-            }
+            public byte[] ImageMask => throw new NotImplementedException();
 
             /// <summary>
             /// Required.
@@ -1622,7 +1506,6 @@ namespace Aardvark.Data.E57
         /// </summary>
         public class E57CylindricalRepresentation : IE57Element
         {
-            /// <summary></summary>
             public E57ElementType E57Type => E57ElementType.CylindricalRepresentation;
 
             #region Properties
@@ -1631,37 +1514,19 @@ namespace Aardvark.Data.E57
             /// Optional.
             /// JPEG format image data.
             /// </summary>
-            public byte[] JpegImage
-            {
-                get
-                {
-                    throw new NotImplementedException();
-                }
-            }
+            public byte[] JpegImage => throw new NotImplementedException();
 
             /// <summary>
             /// Optional.
             /// PNG format image data.
             /// </summary>
-            public byte[] PngImage
-            {
-                get
-                {
-                    throw new NotImplementedException();
-                }
-            }
+            public byte[] PngImage => throw new NotImplementedException();
 
             /// <summary>
             /// Optional.
             /// PNG format image mask.
             /// </summary>
-            public byte[] ImageMask
-            {
-                get
-                {
-                    throw new NotImplementedException();
-                }
-            }
+            public byte[] ImageMask => throw new NotImplementedException();
 
             /// <summary>
             /// Required.
@@ -1732,7 +1597,6 @@ namespace Aardvark.Data.E57
         /// </summary>
         public class E57CartesianBounds : IE57Element
         {
-            /// <summary></summary>
             public E57ElementType E57Type => E57ElementType.CartesianBounds;
 
             #region Properties
@@ -1760,7 +1624,6 @@ namespace Aardvark.Data.E57
         /// </summary>
         public class E57SphericalBounds : IE57Element
         {
-            /// <summary></summary>
             public E57ElementType E57Type => E57ElementType.SphericalBounds;
 
             #region Properties
@@ -1798,7 +1661,6 @@ namespace Aardvark.Data.E57
         /// </summary>
         public class E57IndexBounds : IE57Element
         {
-            /// <summary></summary>
             public E57ElementType E57Type => E57ElementType.IndexBounds;
 
             #region Properties
@@ -1836,7 +1698,6 @@ namespace Aardvark.Data.E57
         /// </summary>
         public class E57IntensityLimits : IE57Element
         {
-            /// <summary></summary>
             public E57ElementType E57Type => E57ElementType.IntensityLimits;
 
             #region Properties
@@ -1864,7 +1725,6 @@ namespace Aardvark.Data.E57
         /// </summary>
         public class E57ColorLimits : IE57Element
         {
-            /// <summary></summary>
             public E57ElementType E57Type => E57ElementType.ColorLimits;
 
             #region Properties
@@ -1906,7 +1766,6 @@ namespace Aardvark.Data.E57
         /// </summary>
         public class E57DateTime : IE57Element
         {
-            /// <summary></summary>
             public E57ElementType E57Type => E57ElementType.E57DateTime;
 
             #region Properties
@@ -1954,19 +1813,19 @@ namespace Aardvark.Data.E57
             /// <summary>
             /// The file offset of the first data packet in this binary section (in bytes).
             /// </summary>
-            internal PhysicalOffset DataStartOffset;
+            internal E57PhysicalOffset DataStartOffset;
             /// <summary>
             /// The file offset to the root level index packet in this binary section (in bytes).
             /// </summary>
-            internal PhysicalOffset IndexStartOffset;
+            internal E57PhysicalOffset IndexStartOffset;
 
             internal static E57CompressedVectorHeader Parse(byte[] buffer) => new E57CompressedVectorHeader
             {
                 SectionId = Check("SectionId", buffer[0], x => x == 1, "1"),
                 Reserved = Check("Reserved", buffer.Copy(1, 7), xs => xs.All(x => x == 0), "(0,0,0,0,0,0,0)"),
                 SectionLength = BitConverter.ToInt64(buffer, 8),
-                DataStartOffset = new PhysicalOffset(BitConverter.ToInt64(buffer, 16)),
-                IndexStartOffset = new PhysicalOffset(BitConverter.ToInt64(buffer, 24)),
+                DataStartOffset = new E57PhysicalOffset(BitConverter.ToInt64(buffer, 16)),
+                IndexStartOffset = new E57PhysicalOffset(BitConverter.ToInt64(buffer, 24)),
             };
         }
 
@@ -2024,17 +1883,17 @@ namespace Aardvark.Data.E57
             /// or the index of the first record stored in any chunks within the sub-tree(for non-leaf nodes).
             /// Shall be in the interval[0, 2^63).
             /// </summary>
-            internal PhysicalOffset ChunkRecordIndex;
+            internal E57PhysicalOffset ChunkRecordIndex;
             /// <summary>
             /// The file offset to a data packet (for leaf nodes) or to a lower level index packet(for non-leaf nodes).
             /// Shall be in the interval(0, 2^63).
             /// </summary>
-            internal PhysicalOffset PacketOffset;
+            internal E57PhysicalOffset PacketOffset;
 
             internal static E57IndexPacketAddressEntry Parse(byte[] buffer) => new E57IndexPacketAddressEntry
             {
-                ChunkRecordIndex = new PhysicalOffset(BitConverter.ToInt64(buffer, 0)),
-                PacketOffset = new PhysicalOffset(BitConverter.ToInt64(buffer, 8))
+                ChunkRecordIndex = new E57PhysicalOffset(BitConverter.ToInt64(buffer, 0)),
+                PacketOffset = new E57PhysicalOffset(BitConverter.ToInt64(buffer, 8))
             };
         }
 
@@ -2114,7 +1973,7 @@ namespace Aardvark.Data.E57
         /// Read given number of logical bytes (excluding 32-bit CRC at the end of each 1024 byte page) from stream,
         /// starting at raw stream position 'start'.
         /// </summary>
-        internal static byte[] ReadLogicalBytes(Stream stream, PhysicalOffset start, int countLogical)
+        internal static byte[] ReadLogicalBytes(Stream stream, E57PhysicalOffset start, int countLogical)
         {
             checked
             {
@@ -2142,14 +2001,14 @@ namespace Aardvark.Data.E57
         /// Read given number of logical bytes (excluding 32-bit CRC at the end of each 1024 byte page) from stream,
         /// starting at logical stream position 'start'.
         /// </summary>
-        internal static byte[] ReadLogicalBytes(Stream stream, LogicalOffset start, int countLogical)
-            => ReadLogicalBytes(stream, (PhysicalOffset)start, countLogical);
+        internal static byte[] ReadLogicalBytes(Stream stream, E57LogicalOffset start, int countLogical)
+            => ReadLogicalBytes(stream, (E57PhysicalOffset)start, countLogical);
 
         /// <summary>
         /// Read given number of logical unsigned shorts (excluding 32-bit CRC at the end of each 1024 byte page) from stream,
         /// starting at raw stream position 'startPhysical'.
         /// </summary>
-        public static ushort[] ReadLogicalUnsignedShorts(Stream stream, PhysicalOffset start, int count)
+        public static ushort[] ReadLogicalUnsignedShorts(Stream stream, E57PhysicalOffset start, int count)
         {
             var buffer = ReadLogicalBytes(stream, start, count * 2);
             var xs = new ushort[count];
@@ -2161,8 +2020,8 @@ namespace Aardvark.Data.E57
         /// Read given number of logical unsigned shorts (excluding 32-bit CRC at the end of each 1024 byte page) from stream,
         /// starting at raw stream position 'startPhysical'.
         /// </summary>
-        public static ushort[] ReadLogicalUnsignedShorts(Stream stream, LogicalOffset start, int count)
-            => ReadLogicalUnsignedShorts(stream, (PhysicalOffset)start, count);
+        public static ushort[] ReadLogicalUnsignedShorts(Stream stream, E57LogicalOffset start, int count)
+            => ReadLogicalUnsignedShorts(stream, (E57PhysicalOffset)start, count);
 
         #endregion
 
@@ -2249,7 +2108,7 @@ namespace Aardvark.Data.E57
             return result;
         }
 
-        private static PhysicalOffset GetPhysicalOffsetAttribute(XElement root, string elementName) => new PhysicalOffset(long.Parse(root.Attribute(elementName).Value));
+        private static E57PhysicalOffset GetPhysicalOffsetAttribute(XElement root, string elementName) => new E57PhysicalOffset(long.Parse(root.Attribute(elementName).Value));
         private static long GetLongAttribute(XElement root, string elementName) => long.Parse(root.Attribute(elementName).Value);
         private static long? GetOptionalLongAttribute(XElement root, string elementName)
         {
@@ -2302,27 +2161,5 @@ namespace Aardvark.Data.E57
         }
 
         #endregion
-    }
-
-    public struct PhysicalOffset
-    {
-        public readonly long Value;
-        public PhysicalOffset(long value) => Value
-            = (value % 1024 < 1020) ? value : throw new ArgumentException($"PhysicalOffset must not point to checksum bytes. ({value}).");
-
-        public static PhysicalOffset operator +(PhysicalOffset a, PhysicalOffset b) => new PhysicalOffset(a.Value + b.Value);
-        public static LogicalOffset operator +(PhysicalOffset a, LogicalOffset b) => (LogicalOffset)a + b;
-        public static explicit operator LogicalOffset(PhysicalOffset a) => new LogicalOffset(a.Value - ((a.Value >> 8) & ~0b11));
-        public override string ToString() => $"PhysicalOffset({Value})";
-    }
-
-    public struct LogicalOffset
-    {
-        public readonly long Value;
-        public LogicalOffset(long value) { Value = value; }
-        public static LogicalOffset operator +(LogicalOffset a, LogicalOffset b) => new LogicalOffset(a.Value + b.Value);
-        public static LogicalOffset operator +(LogicalOffset a, int b) => new LogicalOffset(a.Value + b);
-        public static explicit operator PhysicalOffset(LogicalOffset a) => new PhysicalOffset(a.Value + (a.Value / 1020 * 4));
-        public override string ToString() => $"LogicalOffset({Value})";
     }
 }
