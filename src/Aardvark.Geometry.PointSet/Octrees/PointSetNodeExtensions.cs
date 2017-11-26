@@ -13,6 +13,7 @@
 */
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Aardvark.Base;
 
 namespace Aardvark.Geometry.Points
@@ -40,35 +41,20 @@ namespace Aardvark.Geometry.Points
         /// Returns true if this node intersects the positive halfspace defined by given plane.
         /// </summary>
         public static bool IntersectsPositiveHalfSpace(this PointSetNode self, Plane3d plane)
-        {
-            var corners = self.Corners;
-            for (var i = 0; i < 8; i++)
-            {
-                if (plane.Height(corners[i]) > 0) return true;
-            }
-            return false;
-        }
+            => self.Corners.Any(p => plane.Height(p) > 0);
 
         /// <summary>
         /// Returns true if this node intersects the negative halfspace defined by given plane.
         /// </summary>
         public static bool IntersectsNegativeHalfSpace(this PointSetNode self, Plane3d plane)
-        {
-            var corners = self.Corners;
-            for (var i = 0; i < 8; i++)
-            {
-                if (plane.Height(corners[i]) < 0) return true;
-            }
-            return false;
-        }
-        
+            => self.Corners.Any(p => plane.Height(p) < 0);
+
         /// <summary>
         /// Returns true if this node is fully inside the positive halfspace defined by given plane.
         /// </summary>
         public static bool InsidePositiveHalfSpace(this PointSetNode self, Plane3d plane)
         {
-            V3d min, max;
-            self.BoundingBox.GetMinMaxInDirection(plane.Normal, out min, out max);
+            self.BoundingBox.GetMinMaxInDirection(plane.Normal, out V3d min, out V3d max);
             return plane.Height(min) > 0;
         }
         
@@ -77,13 +63,12 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static bool InsideNegativeHalfSpace(this PointSetNode self, Plane3d plane)
         {
-            V3d min, max;
-            self.BoundingBox.GetMinMaxInDirection(-plane.Normal, out min, out max);
+            self.BoundingBox.GetMinMaxInDirection(-plane.Normal, out V3d min, out V3d max);
             return plane.Height(min) < 0;
         }
 
         /// <summary>
-        /// Number of nodes in tree.
+        /// Eagerly counts all nodes in tree.
         /// </summary>
         public static long CountNodes(this PointSetNode self)
         {
@@ -102,7 +87,7 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary>
-        /// Counts points in octree (without using PointCountTree property).
+        /// Eagerly counts all points in octree (without using PointCountTree property).
         /// </summary>
         public static long CountPoints(this PointSetNode self)
         {
@@ -128,7 +113,7 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary>
-        /// Gets minimum point count of all tree nodes.
+        /// Gets minimum point count of all tree nodes (eager).
         /// </summary>
         public static long GetMinimumNodePointCount(this PointSetNode self)
         {
@@ -151,7 +136,7 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary>
-        /// Gets average point count of all tree nodes.
+        /// Gets average point count of all tree nodes (eager).
         /// </summary>
         public static double GetAverageNodePointCount(this PointSetNode self)
         {
@@ -175,7 +160,7 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary>
-        /// Gets maximum point count of all tree nodes.
+        /// Gets maximum point count of all tree nodes (eager).
         /// </summary>
         public static long GetMaximumNodePointCount(this PointSetNode self)
         {
@@ -198,7 +183,7 @@ namespace Aardvark.Geometry.Points
         }
         
         /// <summary>
-        /// Depth of tree (average).
+        /// Average depth of tree (eager).
         /// </summary>
         public static double GetAverageTreeDepth(this PointSetNode self)
         {
@@ -288,73 +273,6 @@ namespace Aardvark.Geometry.Points
             {
                 var n = self.Subnodes[i];
                 var xs = ForEachNodeIntersecting(n.Value, hull, doNotTraverseSubnodesWhenFullyInside, minCellExponent);
-                foreach (var x in xs) yield return x;
-            }
-        }
-
-        /// <summary>
-        /// Calls action for each (node, fullyInside) in this tree that is intersecting the space within given distance to plane.
-        /// </summary>
-        public static IEnumerable<CellQueryResult> ForEachNodeIntersecting(this PointSetNode self,
-            Plane3d plane, double distance, bool doNotTraverseSubnodesWhenFullyInside, int minCellExponent = int.MinValue
-            )
-        {
-            if (self == null) yield break;
-
-            if (self.Cell.Exponent < minCellExponent) yield break;
-
-            var corners = self.Corners;
-            var isAbove = false;
-            var isBelow = false;
-            var isFullyInside = true;
-            for (var i = 0; i < 8; i++)
-            {
-                var d = plane.Height(corners[i]);
-
-                if (d < -distance)      // corner is BELOW plane (including offset)
-                {
-                    if (isAbove)
-                    {   // there was another corner ABOVE plane -> INTERSECTION
-                        isFullyInside = false;
-                        yield return new CellQueryResult(self, isFullyInside);
-                        break;
-                    }
-                    else
-                    {
-                        isBelow = true;
-                    }
-                }
-                else if (d > distance)  // corner is ABOVE plane (including offset)
-                {
-                    if (isBelow)
-                    {   // there was another corner BELOW plane -> INTERSECTION
-                        isFullyInside = false;
-                        yield return new CellQueryResult(self, isFullyInside);
-                        break;
-                    }
-                    else
-                    {
-                        isAbove = true;
-                    }
-                }
-                else
-                {
-                    // corner is WITHIN distance to plane
-                    if (isFullyInside == false)
-                    {
-                        throw new InvalidOperationException("expected isFullyInside to be true");
-                    }
-                }
-            }
-
-            if (isFullyInside && doNotTraverseSubnodesWhenFullyInside) yield break;
-
-            if (self.Subnodes == null) yield break;
-            for (var i = 0; i < 8; i++)
-            {
-                var n = self.Subnodes[i];
-                if (n == null) continue;
-                var xs = ForEachNodeIntersecting(n.Value, plane, distance, doNotTraverseSubnodesWhenFullyInside, minCellExponent);
                 foreach (var x in xs) yield return x;
             }
         }
