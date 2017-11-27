@@ -468,6 +468,8 @@ namespace Aardvark.Data.E57
             /// </summary>
             public E57Codec[] Codecs;
 
+            public int ByteStreamsCount => Prototype.Children.Length;
+
             #endregion
 
             private Stream m_stream;
@@ -492,16 +494,17 @@ namespace Aardvark.Data.E57
             public IEnumerable<V3d[]> ReadData(bool verbose = false)
             {
                 var compressedVectorHeader = E57CompressedVectorHeader.Parse(ReadLogicalBytes(m_stream, FileOffset, 32));
-
                 if (true)
                 {
-                    Report.Line($"[E57CompressedVector] RecordCount      = {RecordCount,10}");
                     Report.Line($"[E57CompressedVector] FileOffset       = {FileOffset,10}");
                     Report.Line($"[E57CompressedVector] IndexStartOffset = {compressedVectorHeader.IndexStartOffset,10}");
                     Report.Line($"[E57CompressedVector] DataStartOffset  = {compressedVectorHeader.DataStartOffset,10}");
                     Report.Line($"[E57CompressedVector] SectionLength    = {compressedVectorHeader.SectionLength,10}");
+                    Report.Line($"[E57CompressedVector] #records         = {RecordCount,10}");
+                    Report.Line($"[E57CompressedVector] #bytestreams     = {ByteStreamsCount,10}");
                 }
 
+                var recordsLeftToConsumePerByteStream = new long[ByteStreamsCount].Set(RecordCount);
                 var bytesLeftToConsume = compressedVectorHeader.SectionLength - 32;
                 if (compressedVectorHeader.DataStartOffset.Value == 0) throw new Exception($"Unexpected compressedVectorHeader.DataStartOffset (0).");
                 if (compressedVectorHeader.IndexStartOffset.Value != 0) throw new Exception($"Unexpected compressedVectorHeader.IndexStartOffset ({compressedVectorHeader.IndexStartOffset})");
@@ -923,14 +926,97 @@ namespace Aardvark.Data.E57
 
             #endregion
 
+            public bool HasCartesianCoordinates { get; private set; }
+            public int[] ByteStreamIndicesForCartesianCoordinates { get; private set; }
+            public bool HasSphericalCoordinates { get; private set; }
+            public int[] ByteStreamIndicesForSphericalCoordinates { get; private set; }
+            public bool HasColors { get; private set; }
+            public int[] ByteStreamIndicesForColors { get; private set; }
+            public bool HasCartesianInvalidState { get; private set; }
+            public bool HasSphericalInvalidState { get; private set; }
+
             internal static E57Data3D Parse(XElement root, Stream stream)
             {
                 EnsureElementNameAndType(root, "vectorChild", "Structure");
-                
+
+                var points = E57CompressedVector.Parse(GetElement(root, "points"), stream);
+
+                // check semantics
+                var semantics = points.Prototype.Children.Map(x => ((IBitPack)x).Semantic);
+                var hasCartesian = false;
+                var byteStreamIndicesForCartesianCoordinates = default(int[]);
+                var hasSpherical = false;
+                var byteStreamIndicesForSphericalCoordinates = default(int[]);
+                var hasColors = false;
+                var byteStreamIndicesForColors = default(int[]);
+                var hasCartesianInvalidState = false;
+                var hasSphericalInvalidState = false;
+
+                #region 8.4.4.1 (nop)
+                #endregion
+                #region 8.4.4.2
+                if (semantics.Contains("cartesianX") || semantics.Contains("cartesianY") || semantics.Contains("cartesianZ"))
+                {
+                    if (!semantics.Contains("cartesianX") || !semantics.Contains("cartesianY") || !semantics.Contains("cartesianZ"))
+                        throw new ArgumentException("[8.4.4.2] Incomplete cartesian[XYZ].");
+                    hasCartesian = true;
+                    byteStreamIndicesForCartesianCoordinates = new int[]
+                    {
+                        semantics.IndexOf("cartesianX"),
+                        semantics.IndexOf("cartesianY"),
+                        semantics.IndexOf("cartesianZ")
+                    };
+                }
+                if (semantics.Contains("sphericalRange") || semantics.Contains("sphericalAzimuth") || semantics.Contains("sphericalElevation"))
+                {
+                    if (!semantics.Contains("sphericalRange") || !semantics.Contains("sphericalAzimuth") || !semantics.Contains("sphericalElevation"))
+                        throw new ArgumentException("[8.4.4.2] Incomplete spherical[Range|Azimuth|Elevation].");
+                    hasSpherical = true;
+                    byteStreamIndicesForSphericalCoordinates = new int[]
+                    {
+                        semantics.IndexOf("sphericalRange"),
+                        semantics.IndexOf("sphericalAzimuth"),
+                        semantics.IndexOf("sphericalElevation")
+                    };
+                }
+                #endregion
+                #region 8.4.4.3 (nop)
+                #endregion
+                #region 8.4.4.4
+                if (semantics.Contains("returnIndex") || semantics.Contains("returnCount"))
+                {
+                    if (!semantics.Contains("returnIndex") || !semantics.Contains("returnCount"))
+                        throw new ArgumentException("[8.4.4.4] Incomplete return[Index|Count].");
+                    hasSpherical = true;
+                }
+                #endregion
+                #region 8.4.4.5 (nop)
+                #endregion
+                #region 8.4.4.6
+                if (semantics.Contains("colorRed") || semantics.Contains("colorGreen") || semantics.Contains("colorBlue"))
+                {
+                    if (!semantics.Contains("colorRed") || !semantics.Contains("colorGreen") || !semantics.Contains("colorBlue"))
+                        throw new ArgumentException("[8.4.4.6] Incomplete color[Red|Green|Blue].");
+                    hasColors = true;
+                    byteStreamIndicesForColors = new int[]
+                    {
+                        semantics.IndexOf("colorRed"),
+                        semantics.IndexOf("colorGreen"),
+                        semantics.IndexOf("colorBlue")
+                    };
+                }
+                #endregion
+                #region 8.4.4.7
+                if (semantics.Contains("cartesianInvalidState")) hasCartesianInvalidState = true;
+                #endregion
+                #region 8.4.4.8
+                if (semantics.Contains("sphericalInvalidState")) hasSphericalInvalidState = true;
+                #endregion
+
                 var data3d = new E57Data3D
                 {
                     Guid = GetString(root, "guid", true),
-                    Points = E57CompressedVector.Parse(GetElement(root, "points"), stream),
+                    Points = points,
                     Pose = E57RigidBodyTransform.Parse(GetElement(root, "pose")),
                     OriginalGuids = E57Vector.Parse(GetElement(root, "originalGuids"), stream),
                     PointGroupingSchemes = E57PointGroupingSchemes.Parse(GetElement(root, "pointGroupingSchemes")),
@@ -952,8 +1038,47 @@ namespace Aardvark.Data.E57
                     Temperature = Check("temperature", GetFloat(root, "temperature", false), x => !x.HasValue || x >= -273.15, ">= -273.15"),
                     RelativeHumidity = Check("relativeHumidity", GetFloat(root, "relativeHumidity", false), x => !x.HasValue || (x >= 0 && x <= 100), "[0,100]"),
                     AtmosphericPressure = Check("atmosphericPressure", GetFloat(root, "atmosphericPressure", false), x => !x.HasValue || x > 0, "positive"),
+                    HasCartesianCoordinates = hasCartesian,
+                    ByteStreamIndicesForCartesianCoordinates = byteStreamIndicesForCartesianCoordinates,
+                    HasSphericalCoordinates = hasSpherical,
+                    ByteStreamIndicesForSphericalCoordinates = byteStreamIndicesForSphericalCoordinates,
+                    HasColors = hasColors,
+                    ByteStreamIndicesForColors = byteStreamIndicesForColors,
+                    HasCartesianInvalidState = hasCartesianInvalidState,
+                    HasSphericalInvalidState = hasSphericalInvalidState
                 };
-                
+
+                #region 8.4.3.1 (nop)
+                #endregion
+                #region 8.4.3.2 (nop)
+                #endregion
+                #region 8.4.3.3 (nop)
+                #endregion
+                #region 8.4.3.4
+                if (data3d.HasCartesianCoordinates && data3d.CartesianBounds == null)
+                {
+                    Console.WriteLine("[Warning][8.4.3.4] CartesianBounds must be defined (if cartesian coordinates are defined).");
+                }
+                #endregion
+                #region 8.4.3.5
+                if (data3d.HasSphericalCoordinates && data3d.SphericalBounds == null)
+                {
+                    throw new ArgumentException("[8.4.3.5] SphericalBounds must be defined (if spherical coordinates are defined).");
+                }
+                #endregion
+                #region 8.4.3.6
+                if (semantics.Contains("rowIndex") && data3d.IndexBounds == null)
+                    throw new ArgumentException("[8.4.3.6] IndexBounds must be defined (if rowIndex is defined).");
+                if (semantics.Contains("columnIndex") && data3d.IndexBounds == null)
+                    throw new ArgumentException("[8.4.3.6] IndexBounds must be defined (if columnIndex is defined).");
+                if (semantics.Contains("returnIndex") && data3d.IndexBounds == null)
+                    throw new ArgumentException("[8.4.3.6] IndexBounds must be defined (if returnIndex is defined).");
+                #endregion
+                #region 8.4.3.7 (nop)
+                #endregion
+                #region 8.4.3.8 (nop)
+                #endregion
+
                 return data3d;
             }
 
