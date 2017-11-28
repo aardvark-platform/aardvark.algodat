@@ -43,20 +43,7 @@ namespace Aardvark.Geometry.Points
         private const int C_ATTRIBUTE_COUNT = 10;
 
         #region Construction
-
-        private PointRkdTreeD<V3f[], V3f> LoadKdTree(string key, CancellationToken ct)
-        {
-            var data = Storage.GetPointRkdTreeDData(key, ct);
-            var ps = Positions.Value;
-            return new PointRkdTreeD<V3f[], V3f>(
-                3, ps.Length, ps,
-                (xs, i) => xs[(int)i], (v, i) => (float) v[i],
-                (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
-                (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, 1e-9,
-                data
-                );
-        }
-
+        
         private PointSetNode(Guid id,
             Cell cell, long pointCountTree,
             Guid? psId, Guid? csId, Guid? kdId,
@@ -100,9 +87,11 @@ namespace Aardvark.Geometry.Points
                     if (Cell.GetOctant(i) != subNodeIndex) throw new InvalidOperationException();
                     if (!Cell.Contains(subNodeIndex)) throw new InvalidOperationException();
                     if (Cell.Exponent != subNodeIndex.Exponent + 1) throw new InvalidOperationException();
-                    if (PointCountTree != PointCount + Subnodes.Map(x => x?.Value != null ? x.Value.PointCountTree : 0).Sum()) throw new InvalidOperationException();
 #endif
                 }
+#if DEBUG && PEDANTIC
+                if (PointCountTree != PointCount + Subnodes.Map(x => x?.Value != null ? x.Value.PointCountTree : 0).Sum()) throw new InvalidOperationException();
+#endif
             }
 
             BoundingBox = Cell.BoundingBox;
@@ -128,6 +117,18 @@ namespace Aardvark.Geometry.Points
                 if (KdTreeId != null) throw new InvalidOperationException();
             }
 #endif
+            PointRkdTreeD<V3f[], V3f> LoadKdTree(string key, CancellationToken ct)
+            {
+                var data = Storage.GetPointRkdTreeDData(key, ct);
+                var ps = Positions.Value;
+                return new PointRkdTreeD<V3f[], V3f>(
+                    3, ps.Length, ps,
+                    (xs, i) => xs[(int)i], (v, i) => (float)v[i],
+                    (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
+                    (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, 1e-9,
+                    data
+                    );
+            }
         }
 
         /// <summary>
@@ -148,62 +149,6 @@ namespace Aardvark.Geometry.Points
             Storage storage
             ) : this(Guid.NewGuid(), cell, pointCountTree, psId, csId, kdId, null, null, null, null, storage, true)
         {
-        }
-
-        /// <summary>
-        /// </summary>
-        public static PointSetNode Create(
-            Cell cell, V3f[] ps, C4b[] cs, PointSetNode[] subnodes, Storage storage
-            )
-        {
-            if (ps?.Length != cs?.Length) throw new ArgumentException($"ps.Length != cs.Length ({ps?.Length} != {cs?.Length})");
-            if (ps?.Length == 0) { ps = null; cs = null; }
-
-#if DEBUG
-            if (ps != null)
-            {
-                var bb = cell.BoundingBox;
-                var center = bb.Center;
-                for (var i = 0; i < ps.Length; i++)
-                {
-                    if (!bb.Contains((V3d)ps[i] + center)) throw new Exception($"Point {ps[i]} is outside cell {cell} ({bb}).");
-                }
-            }
-#endif
-            Guid? psId = null;
-            Guid? csId = null;
-            Guid? kdId = null;
-
-            if (ps != null)
-            {
-                var kd = new PointRkdTreeD<V3f[], V3f>(
-                    3, ps.Length, ps,
-                    (xs, i) => xs[(int)i], (v, i) => (float)v[i],
-                    (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
-                    (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, 1e-9
-                    );
-
-                psId = Guid.NewGuid();
-                csId = Guid.NewGuid();
-                kdId = Guid.NewGuid();
-
-                storage.Add(psId.ToString(), ps, CancellationToken.None);
-                storage.Add(csId.ToString(), cs, CancellationToken.None);
-                storage.Add(kdId.ToString(), kd.Data, CancellationToken.None);
-            }
-
-            var pointCountTree = ps?.Length + subnodes?.Sum(x => x.PointCountTree);
-            var subnodeIds = subnodes?.Map(x => x?.Id);
-
-#if DEBUG
-            if (!pointCountTree.HasValue) throw new InvalidOperationException();
-#endif
-
-            return new PointSetNode(Guid.NewGuid(), cell, pointCountTree.Value,
-                psId, csId, kdId,
-                null, null, null,
-                subnodeIds, storage, true
-                );
         }
 
         #endregion
