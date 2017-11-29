@@ -22,17 +22,20 @@ namespace Aardvark.Geometry.Tests
     {
         internal static void TestE57()
         {
-            var filename = @"T:\Vgm\Data\E57\Register360_Berlin Office_1.e57";
+            var filename = @"T:\Vgm\Data\E57\CloudCompare_JBs_Haus.e57";
             var fileSizeInBytes = new FileInfo(filename).Length;
             var stream = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
 
             ASTM_E57.VerifyChecksums(stream, fileSizeInBytes);
             var header = ASTM_E57.E57FileHeader.Parse(stream);
 
-            Report.BeginTimed("parsing E57 file");
-            var take = int.MaxValue;
-            var data = header.E57Root.Data3D.Map(x => x.Points.ReadData(false).Take(take).ToList());
-            Report.EndTimed();
+            //Report.BeginTimed("parsing E57 file");
+            //var take = int.MaxValue;
+            //var data = header.E57Root.Data3D.SelectMany(x => x.StreamCartesianCoordinates(false)).Take(take).Chunk(1000000).ToList();
+            //Report.EndTimed();
+            //Report.Line($"#points: {data.Sum(xs => xs.Length)}");
+
+            foreach (var p in header.E57Root.Data3D.SelectMany(x => x.StreamCartesianCoordinates(false))) Console.WriteLine(p);
 
             //var ps = PointCloud.Parse(filename, ImportConfig.Default)
             //    .SelectMany(x => x.Positions)

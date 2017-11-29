@@ -491,7 +491,7 @@ namespace Aardvark.Data.E57
                 return v;
             }
 
-            public IEnumerable<V3d[]> ReadData(bool verbose = false)
+            public IEnumerable<V3d> ReadData(int[] cartesianXYZ, bool verbose = false)
             {
                 var compressedVectorHeader = E57CompressedVectorHeader.Parse(ReadLogicalBytes(m_stream, FileOffset, 32));
                 if (true)
@@ -546,7 +546,16 @@ namespace Aardvark.Data.E57
                             buffers[i] = UnpackByteStream(bytestreamBuffers[i], (IBitPack)Prototype.Children[i]);
                         }
 
-                        yield return new V3d[0];
+                        // build
+                        {
+                            var pxs = (buffers[cartesianXYZ[0]] is double[]) ? (double[])buffers[cartesianXYZ[0]] : ((float[])buffers[cartesianXYZ[0]]).Map(x => (double)x);
+                            var pys = (buffers[cartesianXYZ[1]] is double[]) ? (double[])buffers[cartesianXYZ[1]] : ((float[])buffers[cartesianXYZ[1]]).Map(x => (double)x);
+                            var pzs = (buffers[cartesianXYZ[2]] is double[]) ? (double[])buffers[cartesianXYZ[2]] : ((float[])buffers[cartesianXYZ[2]]).Map(x => (double)x);
+                            for (var i = 0; i < pxs.Length; i++)
+                            {
+                                yield return new V3d(pxs[i], pys[i], pzs[i]);
+                            }
+                        }
 
                         // move to next packet
                         offset = packetStart + dataPacketHeader.PacketLengthMinus1 + 1;
@@ -566,86 +575,90 @@ namespace Aardvark.Data.E57
                         throw new Exception($"Unexpected sectionId ({sectionId}).");
                     }
                 }
-            }
 
-            private static Array UnpackByteStream(byte[] buffer, IBitPack proto, bool verbose = false)
-            {
-                var bits = proto.NumberOfBitsForBitPack;
-                var semantic = proto.Semantic;
-                switch (proto.E57Type)
+                #region Helpers
+                Array UnpackByteStream(byte[] buffer, IBitPack proto)
                 {
-                    case E57ElementType.Float:
-                        {
-                            var p = (E57Float)proto;
-                            return p.IsDoublePrecision ? (Array)UnpackFloat64(buffer, p) : UnpackFloat32(buffer, p);
-                        }
-                    case E57ElementType.ScaledInteger:
-                        {
-                            var p = (E57ScaledInteger)proto;
-                            return UnpackScaledInteger(buffer, p);
-                        }
-                    case E57ElementType.Integer:
-                        {
-                            try
+                    var bits = proto.NumberOfBitsForBitPack;
+                    var semantic = proto.Semantic;
+                    switch (proto.E57Type)
+                    {
+                        case E57ElementType.Float:
                             {
-                                var p = (E57Integer)proto;
-                                if (p.Minimum < 0) throw new NotImplementedException();
-                                return UnpackIntegers(buffer, p);
+                                var p = (E57Float)proto;
+                                return p.IsDoublePrecision ? (Array)UnpackFloat64(buffer, p) : UnpackFloat32(buffer, p);
                             }
-                            catch (Exception e)
+                        case E57ElementType.ScaledInteger:
                             {
-                                Console.WriteLine(e);
-                                return new long[0];
+                                var p = (E57ScaledInteger)proto;
+                                return UnpackScaledInteger(buffer, p);
                             }
-                        }
-                    default:
-                        Console.WriteLine(
-                            $"[E57CompressedVector][UnpackBuffer] UNKNOWN: buffer size {buffer.Length,8},  bits {bits,2},  {proto.E57Type,-16},  {semantic,-24}"
-                            );
-                        break;
+                        case E57ElementType.Integer:
+                            {
+                                try
+                                {
+                                    var p = (E57Integer)proto;
+                                    if (p.Minimum < 0) throw new NotImplementedException();
+                                    return UnpackIntegers(buffer, p);
+                                }
+                                catch (Exception e)
+                                {
+                                    Console.WriteLine(e);
+                                    return new long[0];
+                                }
+                            }
+                        default:
+                            Console.WriteLine(
+                                $"[E57CompressedVector][UnpackBuffer] UNKNOWN: buffer size {buffer.Length,8},  bits {bits,2},  {proto.E57Type,-16},  {semantic,-24}"
+                                );
+                            break;
+                    }
+
+                    return new V3d[0];
                 }
-                
-                return new V3d[0];
-            }
-            
-            private static float[] UnpackFloat32(byte[] buffer, E57Float proto)
-            {
-                if (proto.IsDoublePrecision) throw new ArgumentException($"Expected single precision, but is double.");
-                if (proto.NumberOfBitsForBitPack != 32) throw new ArgumentException($"Expected 32 bits, but is {proto.NumberOfBitsForBitPack}.");
-                if (buffer.Length % 4 != 0) throw new ArgumentException($"Expected buffer length multiple of 4, but is {buffer.Length}.");
-                using (var br = new BinaryReader(new MemoryStream(buffer)))
+                float[] UnpackFloat32(byte[] buffer, E57Float proto)
                 {
-                    var xs = new float[buffer.Length / 4];
-                    for (var i = 0; i < xs.Length; i++) xs[i] = br.ReadSingle();
-                    return xs;
+                    if (proto.IsDoublePrecision) throw new ArgumentException($"Expected single precision, but is double.");
+                    if (proto.NumberOfBitsForBitPack != 32) throw new ArgumentException($"Expected 32 bits, but is {proto.NumberOfBitsForBitPack}.");
+                    if (buffer.Length % 4 != 0) throw new ArgumentException($"Expected buffer length multiple of 4, but is {buffer.Length}.");
+                    using (var br = new BinaryReader(new MemoryStream(buffer)))
+                    {
+                        var xs = new float[buffer.Length / 4];
+                        for (var i = 0; i < xs.Length; i++) xs[i] = br.ReadSingle();
+                        return xs;
+                    }
                 }
-            }
-            private static double[] UnpackFloat64(byte[] buffer, E57Float proto)
-            {
-                if (!proto.IsDoublePrecision) throw new ArgumentException($"Expected double precision, but is single.");
-                if (proto.NumberOfBitsForBitPack != 64) throw new ArgumentException($"Expected 64 bits, but is {proto.NumberOfBitsForBitPack}.");
-                if (buffer.Length % 8 != 0) throw new ArgumentException($"Expected buffer length multiple of 8, but is {buffer.Length}.");
-                using (var br = new BinaryReader(new MemoryStream(buffer)))
+                double[] UnpackFloat64(byte[] buffer, E57Float proto)
                 {
-                    var xs = new double[buffer.Length / 8];
-                    for (var i = 0; i < xs.Length; i++) xs[i] = br.ReadDouble();
-                    return xs;
+                    if (!proto.IsDoublePrecision) throw new ArgumentException($"Expected double precision, but is single.");
+                    if (proto.NumberOfBitsForBitPack != 64) throw new ArgumentException($"Expected 64 bits, but is {proto.NumberOfBitsForBitPack}.");
+                    if (buffer.Length % 8 != 0) throw new ArgumentException($"Expected buffer length multiple of 8, but is {buffer.Length}.");
+                    using (var br = new BinaryReader(new MemoryStream(buffer)))
+                    {
+                        var xs = new double[buffer.Length / 8];
+                        for (var i = 0; i < xs.Length; i++) xs[i] = br.ReadDouble();
+                        return xs;
+                    }
                 }
-            }
-            private static double[] UnpackScaledInteger(byte[] buffer, E57ScaledInteger proto)
-            {
-                switch (proto.NumberOfBitsForBitPack)
+                double[] UnpackScaledInteger(byte[] buffer, E57ScaledInteger proto)
                 {
-                    case 32:
-                        return BitPack.OptimizedUnpackInt32(buffer).Map(x => proto.Compute(x));
-                    case 64:
-                        return BitPack.OptimizedUnpackInt64(buffer).Map(x => proto.Compute(x));
-                    default:
-                        throw new NotImplementedException($"UnpackScaledInteger with {proto.NumberOfBitsForBitPack} bits.");
+                    switch (proto.NumberOfBitsForBitPack)
+                    {
+                        case 32:
+                            return BitPack.OptimizedUnpackInt32(buffer).Map(x => proto.Compute(x));
+                        case 64:
+                            return BitPack.OptimizedUnpackInt64(buffer).Map(x => proto.Compute(x));
+                        default:
+                            var raw = BitPack.UnpackIntegers(buffer, proto.NumberOfBitsForBitPack);
+                            if (raw is uint[]) return ((uint[])raw).Map(x => proto.Compute(x));
+                            if (raw is ulong[]) return ((ulong[])raw).Map(x => proto.Compute((uint)x));
+                            throw new NotImplementedException();
+                    }
                 }
+                Array UnpackIntegers(byte[] buffer, E57Integer proto)
+                    => BitPack.UnpackIntegers(buffer, proto.NumberOfBitsForBitPack);
+                #endregion
             }
-            private static Array UnpackIntegers(byte[] buffer, E57Integer proto)
-                => BitPack.UnpackIntegers(buffer, proto.NumberOfBitsForBitPack);
         }
         
         /// <summary>
@@ -1081,12 +1094,18 @@ namespace Aardvark.Data.E57
 
                 return data3d;
             }
-
             internal static E57Data3D[] ParseVectorChildren(XElement root, Stream stream)
             {
                 if (root == null) return null;
                 EnsureElementNameAndType(root, "data3D", "Vector");
                 return GetElements(root, "vectorChild").Select(x => Parse(x, stream)).ToArray();
+            }
+
+            public IEnumerable<V3d> StreamCartesianCoordinates(bool verbose = false)
+            {
+                var result = Points.ReadData(ByteStreamIndicesForCartesianCoordinates, verbose);
+                if (Pose != null) result = result.Select(p => Pose.Rotation.TransformPos(p) + Pose.Translation);
+                return result;
             }
         }
 
@@ -1108,13 +1127,7 @@ namespace Aardvark.Data.E57
             #endregion
 
             internal static E57PointRecord Parse(XElement root)
-            {
-                if (root == null) return null;
-                return new E57PointRecord
-                {
-                    GroupingByLine = GroupingByLine.Parse(root)
-                };
-            }
+                => root != null ? new E57PointRecord { GroupingByLine = GroupingByLine.Parse(root) } : null;
         }
 
         /// <summary>
