@@ -102,6 +102,8 @@ namespace Aardvark.Data.E57
                 h.RawXml = XElement.Parse(xmlString, LoadOptions.SetBaseUri);
                 h.E57Root = E57Root.Parse(h.RawXml, stream);
 
+                Console.WriteLine(h.RawXml);
+
                 return h;
             }
         }
@@ -491,7 +493,7 @@ namespace Aardvark.Data.E57
                 return v;
             }
 
-            public IEnumerable<V3d> ReadData(int[] cartesianXYZ, bool verbose = false)
+            public IEnumerable<Tuple<V3d,C4b>> ReadData(int[] cartesianXYZ, int[] colorRGB, bool verbose = false)
             {
                 var compressedVectorHeader = E57CompressedVectorHeader.Parse(ReadLogicalBytes(m_stream, FileOffset, 32));
                 if (true)
@@ -551,9 +553,12 @@ namespace Aardvark.Data.E57
                             var pxs = (buffers[cartesianXYZ[0]] is double[]) ? (double[])buffers[cartesianXYZ[0]] : ((float[])buffers[cartesianXYZ[0]]).Map(x => (double)x);
                             var pys = (buffers[cartesianXYZ[1]] is double[]) ? (double[])buffers[cartesianXYZ[1]] : ((float[])buffers[cartesianXYZ[1]]).Map(x => (double)x);
                             var pzs = (buffers[cartesianXYZ[2]] is double[]) ? (double[])buffers[cartesianXYZ[2]] : ((float[])buffers[cartesianXYZ[2]]).Map(x => (double)x);
+                            var crs = (byte[])buffers[colorRGB[0]];
+                            var cgs = (byte[])buffers[colorRGB[1]];
+                            var cbs = (byte[])buffers[colorRGB[2]];
                             for (var i = 0; i < pxs.Length; i++)
                             {
-                                yield return new V3d(pxs[i], pys[i], pzs[i]);
+                                yield return Tuple.Create(new V3d(pxs[i], pys[i], pzs[i]), new C4b(crs[i], cgs[i], cbs[i]));
                             }
                         }
 
@@ -1101,10 +1106,10 @@ namespace Aardvark.Data.E57
                 return GetElements(root, "vectorChild").Select(x => Parse(x, stream)).ToArray();
             }
 
-            public IEnumerable<V3d> StreamCartesianCoordinates(bool verbose = false)
+            public IEnumerable<Tuple<V3d, C4b>> StreamPoints(bool verbose = false)
             {
-                var result = Points.ReadData(ByteStreamIndicesForCartesianCoordinates, verbose);
-                if (Pose != null) result = result.Select(p => Pose.Rotation.TransformPos(p) + Pose.Translation);
+                var result = Points.ReadData(ByteStreamIndicesForCartesianCoordinates, ByteStreamIndicesForColors, verbose);
+                if (Pose != null) result = result.Select(p => Tuple.Create(Pose.Rotation.TransformPos(p.Item1) + Pose.Translation, p.Item2));
                 return result;
             }
         }

@@ -133,7 +133,11 @@ namespace Aardvark.Base
         {
             if (buffer.Length % 4 != 0) throw new ArgumentException($"Expected buffer length multiple of 4 bytes, but is {buffer.Length} bytes.");
             var xs = new int[buffer.Length / 4];
-            for (int i = 0, j = 0; i < xs.Length; j += 4) xs[i++] = BitConverter.ToInt32(buffer, j);
+            for (int i = 0, j = 0; i < xs.Length; j += 4)
+            {
+                //var foo = new[] { buffer[j + 3], buffer[j + 2], buffer[j + 1], buffer[j + 0] };
+                xs[i++] = BitConverter.ToInt32(buffer, j);
+            }
             return xs;
         }
         public static long[] OptimizedUnpackInt64(byte[] buffer)

@@ -13,6 +13,7 @@
 */
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Aardvark.Base;
 using Aardvark.Data.E57;
 using static System.Console;
@@ -161,7 +162,13 @@ namespace Aardvark.Geometry.Points
                     WriteLine();
                     //CursorTop -= 7;
                 }
-                return new Chunk[0];
+                
+                foreach (var data3d in header.E57Root.Data3D)
+                {
+                    var ps = data3d.StreamPoints().Select(p => p.Item1).ToList();
+                    var cs = data3d.StreamPoints().Select(p => p.Item2).ToList();
+                    yield return new Chunk(ps, cs);
+                }
             }
         }
     }

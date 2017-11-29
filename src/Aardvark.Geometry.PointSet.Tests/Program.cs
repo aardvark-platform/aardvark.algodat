@@ -24,8 +24,18 @@ namespace Aardvark.Geometry.Tests
         {
             var filename = @"T:\Vgm\Data\E57\CloudCompare_JBs_Haus.e57";
             var fileSizeInBytes = new FileInfo(filename).Length;
-            var stream = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
 
+            var chunks = PointCloud.E57(filename, ImportConfig.Default).ToArray();
+            foreach (var chunk in chunks)
+            {
+                for (var i = 0; i < chunk.Count; i++)
+                {
+                    Console.WriteLine($"{chunk.Positions[i]:0.000} {chunk.Colors?[i]}");
+                }
+            }
+            return;
+
+            var stream = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
             ASTM_E57.VerifyChecksums(stream, fileSizeInBytes);
             var header = ASTM_E57.E57FileHeader.Parse(stream);
 
@@ -35,7 +45,7 @@ namespace Aardvark.Geometry.Tests
             //Report.EndTimed();
             //Report.Line($"#points: {data.Sum(xs => xs.Length)}");
 
-            foreach (var p in header.E57Root.Data3D.SelectMany(x => x.StreamCartesianCoordinates(false))) Console.WriteLine(p);
+            foreach (var p in header.E57Root.Data3D.SelectMany(x => x.StreamPoints(false))) Console.WriteLine(p.Item1);
 
             //var ps = PointCloud.Parse(filename, ImportConfig.Default)
             //    .SelectMany(x => x.Positions)
