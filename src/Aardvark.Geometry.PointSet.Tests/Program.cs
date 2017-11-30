@@ -22,17 +22,25 @@ namespace Aardvark.Geometry.Tests
     {
         internal static void TestE57()
         {
-            var filename = @"T:\Vgm\Data\E57\CloudCompare_JBs_Haus.e57";
+            var filename = @"T:\Vgm\Data\E57\Register360_Berlin Office_1.e57";
             var fileSizeInBytes = new FileInfo(filename).Length;
 
-            var chunks = PointCloud.E57(filename, ImportConfig.Default).ToArray();
-            foreach (var chunk in chunks)
-            {
-                for (var i = 0; i < chunk.Count; i++)
-                {
-                    Console.WriteLine($"{chunk.Positions[i]:0.000} {chunk.Colors?[i]}");
-                }
-            }
+            var config = ImportConfig.Default.WithInMemoryStore().WithRandomKey();
+            var chunks = PointCloud.E57(filename, config);
+            var pointcloud = PointCloud.Chunks(chunks, config);
+            Console.WriteLine(pointcloud.PointCount);
+            Console.WriteLine(pointcloud.Bounds);
+            //foreach (var chunk in chunks)
+            //{
+            //    for (var i = 0; i < chunk.Count; i++)
+            //    {
+            //        Console.WriteLine($"{chunk.Positions[i]:0.000} {chunk.Colors?[i]}");
+            //    }
+            //}
+            var count = chunks.Sum(x => x.Positions.Count);
+            Console.WriteLine(count);
+            var bb = new Box3d(chunks.SelectMany(x => x.Positions));
+            Console.WriteLine(bb);
             return;
 
             var stream = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read);

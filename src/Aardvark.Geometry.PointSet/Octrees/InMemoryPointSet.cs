@@ -140,9 +140,10 @@ namespace Aardvark.Geometry.Points
                     return new PointSetNode(_cell, pointCountTree, subcellIds, storage);
                 }
             }
-
+            
             public Node Insert(int index)
             {
+                
                 if (_subnodes != null)
                 {
                     var p = _octree.m_ps[index];
@@ -186,6 +187,12 @@ namespace Aardvark.Geometry.Points
             
             private Node Split()
             {
+                if (BoundingBox.IsEmpty)
+                {
+                    Console.WriteLine($"[WARNING] cell only contains duplicate points ({_ia.Count})");
+                    _ia = _ia.Take(1).ToList();
+                    return this;
+                }
 #if DEBUG
                 var ps = _ia.Map(i => _octree.m_ps[i]).ToArray();
                 foreach (var p in ps)

@@ -15,6 +15,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Aardvark.Base;
+using Uncodium.SimpleStore;
 
 namespace Aardvark.Geometry.Points
 {
@@ -23,8 +24,6 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public class ImportConfig
     {
-        /// <summary>
-        /// </summary>
         public static readonly ImportConfig Default = new ImportConfig();
 
         #region Properties
@@ -33,42 +32,31 @@ namespace Aardvark.Geometry.Points
         /// Large files should be read in chunks with this maximum size.
         /// </summary>
         public int ReadBufferSizeInBytes = 4 * 1024 * 1024;
-
-        /// <summary></summary>
+        
         public Func<IList<V3d>, IList<V3d>> Reproject = null;
-
-        /// <summary></summary>
+        
         public double MinDist = 0.0;
-
-        /// <summary></summary>
+        
         public Storage Storage;
-
-        /// <summary></summary>
+        
         public string Key;
-
-        /// <summary></summary>
+        
         public int OctreeSplitLimit = 8192;
-
-        /// <summary></summary>
+        
         public bool CreateOctreeLod = false;
-
-        /// <summary></summary>
+        
         public int MaxLevelOfParallelism = 0;
-
-        /// <summary></summary>
+        
         public bool Verbose = false;
-
-        /// <summary></summary>
+        
         public ProgressReporter Progress = ProgressReporter.None;
-
-        /// <summary></summary>
+        
         public CancellationToken CancellationToken = CancellationToken.None;
 
         #endregion
 
         #region Immutable updates
-
-        /// <summary></summary>
+        
         public ImportConfig WithKey(string newKey) => new ImportConfig
         {
             ReadBufferSizeInBytes = ReadBufferSizeInBytes,
@@ -83,9 +71,23 @@ namespace Aardvark.Geometry.Points
             Progress = Progress,
             CancellationToken = CancellationToken
         };
-
-        /// <summary></summary>
+        
         public ImportConfig WithRandomKey() => WithKey(Guid.NewGuid().ToString());
+
+        public ImportConfig WithInMemoryStore() => new ImportConfig
+        {
+            ReadBufferSizeInBytes = ReadBufferSizeInBytes,
+            Reproject = Reproject,
+            MinDist = MinDist,
+            Storage = new SimpleMemoryStore().ToPointCloudStore(),
+            Key = Key,
+            OctreeSplitLimit = OctreeSplitLimit,
+            CreateOctreeLod = CreateOctreeLod,
+            MaxLevelOfParallelism = MaxLevelOfParallelism,
+            Verbose = Verbose,
+            Progress = Progress,
+            CancellationToken = CancellationToken
+        };
 
         #endregion
     }
