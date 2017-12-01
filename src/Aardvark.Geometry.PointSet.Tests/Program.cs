@@ -43,6 +43,7 @@ namespace Aardvark.Geometry.Tests
             Console.WriteLine(bb);
             return;
 
+            /*
             var stream = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
             ASTM_E57.VerifyChecksums(stream, fileSizeInBytes);
             var header = ASTM_E57.E57FileHeader.Parse(stream);
@@ -59,6 +60,7 @@ namespace Aardvark.Geometry.Tests
             //    .SelectMany(x => x.Positions)
             //    .ToArray()
             //    ;
+            */
         }
 
         public static void Main(string[] args)
