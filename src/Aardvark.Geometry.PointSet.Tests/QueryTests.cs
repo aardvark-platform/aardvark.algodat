@@ -39,6 +39,22 @@ namespace Aardvark.Geometry.Tests
             return PointCloud.Chunks(new Chunk(ps, null), config);
         }
 
+        private static PointSet CreateClusteredPointsInUnitCube(int n, int splitLimit)
+        {
+            var r = new Random();
+            Func<V3d> randomPos = () => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble());
+            var ps = new V3d[n];
+            for (var i = 0; i < n / 2; i++) ps[i] = randomPos();
+            for (var i = n / 2 + 1; i < n; i++) ps[i] = randomPos();
+            var config = new ImportConfig
+            {
+                Storage = PointCloud.CreateInMemoryStore(),
+                Key = "test",
+                OctreeSplitLimit = splitLimit
+            };
+            return PointCloud.Chunks(new Chunk(ps, null), config);
+        }
+
         private static PointSet CreateRegularPointsInUnitCube(int n, int splitLimit)
         {
             var ps = new List<V3d>();
@@ -522,6 +538,19 @@ namespace Aardvark.Geometry.Tests
                 .ToArray()
                 ;
             Assert.IsTrue(rs.Length == 64 - 4 * 4 * 4);
+        }
+
+        #endregion
+
+        #region ForEachNodeIntersecting
+
+        [Test]
+        public void ForEachNodeIntersecting_Works()
+        {
+            var storage = PointCloud.CreateInMemoryStore();
+            var pointcloud = CreateClusteredPointsInUnitCube(1000, 10);
+            var ns = pointcloud.Root.Value.ForEachNodeIntersecting(Hull3d.Create(Box3d.Unit), true).ToArray();
+            Assert.IsTrue(ns.Length > 0);
         }
 
         #endregion

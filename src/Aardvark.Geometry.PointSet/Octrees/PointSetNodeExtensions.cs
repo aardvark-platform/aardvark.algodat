@@ -272,6 +272,7 @@ namespace Aardvark.Geometry.Points
             for (var i = 0; i < 8; i++)
             {
                 var n = self.Subnodes[i];
+                if (n == null) continue;
                 var xs = ForEachNodeIntersecting(n.Value, hull, doNotTraverseSubnodesWhenFullyInside, minCellExponent);
                 foreach (var x in xs) yield return x;
             }
