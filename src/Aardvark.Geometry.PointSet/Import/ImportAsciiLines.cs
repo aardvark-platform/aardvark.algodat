@@ -57,7 +57,7 @@ namespace Aardvark.Geometry.Points
             return stream
                 .ChunkStreamAtNewlines(streamLengthInBytes, config.ReadBufferSizeInBytes, pr1, config.CancellationToken)
                 //.ParseBuffers(streamLengthInBytes, LegacyPtsParser.ParsePtsBuffer, minDist, maxLevelOfParallelism, verbose, pr2, ct)
-                .ParseBuffers(streamLengthInBytes, lineParser, config.MinDist, config.MaxLevelOfParallelism, config.Verbose, pr2, config.CancellationToken)
+                .ParseBuffers(streamLengthInBytes, lineParser, config.MinDist, config.MaxDegreeOfParallelism, config.Verbose, pr2, config.CancellationToken)
                 ;
         }
     }

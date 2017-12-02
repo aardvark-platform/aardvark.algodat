@@ -33,7 +33,7 @@ namespace Aardvark.Geometry.Points
         public static PointSet Chunks(IEnumerable<Chunk> chunks, ImportConfig config)
         {
             return chunks
-                .Map(config.Reproject, null, config.MaxLevelOfParallelism, config.CancellationToken)
+                .Map(config.Reproject, null, config.MaxDegreeOfParallelism, config.CancellationToken)
                 .MapReduce(config.WithRandomKey())
                 .GenerateLod(config)
                 ;

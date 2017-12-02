@@ -45,7 +45,7 @@ namespace Aardvark.Geometry.Points
         
         public bool CreateOctreeLod = false;
         
-        public int MaxLevelOfParallelism = 0;
+        public int MaxDegreeOfParallelism = 0;
         
         public bool Verbose = false;
         
@@ -66,7 +66,7 @@ namespace Aardvark.Geometry.Points
             Key = newKey,
             OctreeSplitLimit = OctreeSplitLimit,
             CreateOctreeLod = CreateOctreeLod,
-            MaxLevelOfParallelism = MaxLevelOfParallelism,
+            MaxDegreeOfParallelism = MaxDegreeOfParallelism,
             Verbose = Verbose,
             Progress = Progress,
             CancellationToken = CancellationToken
@@ -83,7 +83,7 @@ namespace Aardvark.Geometry.Points
             Key = Key,
             OctreeSplitLimit = OctreeSplitLimit,
             CreateOctreeLod = CreateOctreeLod,
-            MaxLevelOfParallelism = MaxLevelOfParallelism,
+            MaxDegreeOfParallelism = MaxDegreeOfParallelism,
             Verbose = Verbose,
             Progress = Progress,
             CancellationToken = CancellationToken

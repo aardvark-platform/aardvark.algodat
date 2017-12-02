@@ -56,7 +56,7 @@ namespace Aardvark.Geometry.Points
                     //pr1.Report(chunk.SequenceNumber, chunk.SequenceLength);
                     return pointSet;
                 },
-                config.MaxLevelOfParallelism, null, config.CancellationToken
+                config.MaxDegreeOfParallelism, null, config.CancellationToken
                 )
                 .ToList()
                 ;
@@ -87,7 +87,7 @@ namespace Aardvark.Geometry.Points
                 pr2.Report(Interlocked.Increment(ref reduceStepsCount), totalPointSetsCount);
                 return merged;
             },
-            config.MaxLevelOfParallelism
+            config.MaxDegreeOfParallelism
             );
             if (config.Verbose)
             {
