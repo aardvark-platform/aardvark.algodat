@@ -135,8 +135,17 @@ namespace Aardvark.Base
             var xs = new int[buffer.Length / 4];
             for (int i = 0, j = 0; i < xs.Length; j += 4)
             {
-                //var foo = new[] { buffer[j + 3], buffer[j + 2], buffer[j + 1], buffer[j + 0] };
                 xs[i++] = BitConverter.ToInt32(buffer, j);
+            }
+            return xs;
+        }
+        public static uint[] OptimizedUnpackUInt32(byte[] buffer)
+        {
+            if (buffer.Length % 4 != 0) throw new ArgumentException($"Expected buffer length multiple of 4 bytes, but is {buffer.Length} bytes.");
+            var xs = new uint[buffer.Length / 4];
+            for (int i = 0, j = 0; i < xs.Length; j += 4)
+            {
+                xs[i++] = BitConverter.ToUInt32(buffer, j);
             }
             return xs;
         }
@@ -145,6 +154,13 @@ namespace Aardvark.Base
             if (buffer.Length % 8 != 0) throw new ArgumentException($"Expected buffer length multiple of 8 bytes, but is {buffer.Length} bytes.");
             var xs = new long[buffer.Length / 8];
             for (int i = 0, j = 0; i < xs.Length; j += 8) xs[i++] = BitConverter.ToInt64(buffer, j);
+            return xs;
+        }
+        public static ulong[] OptimizedUnpackUInt64(byte[] buffer)
+        {
+            if (buffer.Length % 8 != 0) throw new ArgumentException($"Expected buffer length multiple of 8 bytes, but is {buffer.Length} bytes.");
+            var xs = new ulong[buffer.Length / 8];
+            for (int i = 0, j = 0; i < xs.Length; j += 8) xs[i++] = BitConverter.ToUInt64(buffer, j);
             return xs;
         }
 

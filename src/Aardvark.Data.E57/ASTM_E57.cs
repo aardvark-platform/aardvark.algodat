@@ -245,7 +245,7 @@ namespace Aardvark.Data.E57
             public string Semantic => Name;
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public double Compute(long rawValue) => rawValue * Scale + Offset;
+            public double Compute(uint rawValue) => (Minimum.HasValue ? (Minimum.Value + rawValue) : rawValue) * Scale + Offset;
 
             #endregion
 
@@ -616,10 +616,9 @@ namespace Aardvark.Data.E57
                             Console.WriteLine(
                                 $"[E57CompressedVector][UnpackBuffer] UNKNOWN: buffer size {buffer.Length,8},  bits {bits,2},  {proto.E57Type,-16},  {semantic,-24}"
                                 );
-                            break;
+                            throw new InvalidOperationException();
                     }
-
-                    return new V3d[0];
+                    
                 }
                 float[] UnpackFloat32(byte[] buffer, E57Float proto)
                 {
@@ -647,17 +646,20 @@ namespace Aardvark.Data.E57
                 }
                 double[] UnpackScaledInteger(byte[] buffer, E57ScaledInteger proto)
                 {
-                    switch (proto.NumberOfBitsForBitPack)
+                    checked
                     {
-                        case 32:
-                            return BitPack.OptimizedUnpackInt32(buffer).Map(x => proto.Compute(x));
-                        case 64:
-                            return BitPack.OptimizedUnpackInt64(buffer).Map(x => proto.Compute(x));
-                        default:
-                            var raw = BitPack.UnpackIntegers(buffer, proto.NumberOfBitsForBitPack);
-                            if (raw is uint[]) return ((uint[])raw).Map(x => proto.Compute(x));
-                            if (raw is ulong[]) return ((ulong[])raw).Map(x => proto.Compute((uint)x));
-                            throw new NotImplementedException();
+                        switch (proto.NumberOfBitsForBitPack)
+                        {
+                            case 32:
+                                return BitPack.OptimizedUnpackUInt32(buffer).Map(x => proto.Compute(x));
+                            case 64:
+                                return BitPack.OptimizedUnpackUInt64(buffer).Map(x => proto.Compute((uint)x));
+                            default:
+                                var raw = BitPack.UnpackIntegers(buffer, proto.NumberOfBitsForBitPack);
+                                if (raw is uint[]) return ((uint[])raw).Map(x => proto.Compute(x));
+                                if (raw is ulong[]) return ((ulong[])raw).Map(x => proto.Compute((uint)x));
+                                throw new NotImplementedException();
+                        }
                     }
                 }
                 Array UnpackIntegers(byte[] buffer, E57Integer proto)
