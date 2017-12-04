@@ -510,7 +510,7 @@ namespace Aardvark.Data.E57
                 var bytesLeftToConsume = compressedVectorHeader.SectionLength - 32;
                 if (compressedVectorHeader.DataStartOffset.Value == 0) throw new Exception($"Unexpected compressedVectorHeader.DataStartOffset (0).");
                 if (compressedVectorHeader.IndexStartOffset.Value != 0) throw new Exception($"Unexpected compressedVectorHeader.IndexStartOffset ({compressedVectorHeader.IndexStartOffset})");
-
+                
                 var offset = (E57LogicalOffset)compressedVectorHeader.DataStartOffset;
                 while (bytesLeftToConsume > 0)
                 {
@@ -530,6 +530,7 @@ namespace Aardvark.Data.E57
                         offset += 6;
                         if (verbose) Console.WriteLine($"[E57CompressedVector][OFFSET] {offset}");
                         var bytestreamBufferLengths = ReadLogicalUnsignedShorts(m_stream, offset, dataPacketHeader.ByteStreamCount);
+                        
                         offset += dataPacketHeader.ByteStreamCount * sizeof(ushort);
                         //for (var i = 0; i < bytestreamBufferLengths.Length; i++)
                         //    Console.WriteLine($"[E57CompressedVector]  ByteStream {i+1}/{bytestreamBufferLengths.Length}: length = {bytestreamBufferLengths[i]}");
@@ -546,7 +547,14 @@ namespace Aardvark.Data.E57
                             offset += count;
                             
                             buffers[i] = UnpackByteStream(bytestreamBuffers[i], (IBitPack)Prototype.Children[i]);
+
+                            recordsLeftToConsumePerByteStream[i] -= buffers[i].Length;
+                            
                         }
+
+                        Console.WriteLine(
+                            $"[E57CompressedVector][recordsLeftToConsumePerByteStream] {string.Join(", ", recordsLeftToConsumePerByteStream.Select(x => x.ToString()))}"
+                            );
 
                         // build
                         {
@@ -556,10 +564,15 @@ namespace Aardvark.Data.E57
                             var crs = (byte[])buffers[colorRGB[0]];
                             var cgs = (byte[])buffers[colorRGB[1]];
                             var cbs = (byte[])buffers[colorRGB[2]];
-                            for (var i = 0; i < pxs.Length; i++)
+                            var imax = Fun.Min(
+                                Fun.Min(pxs.Length, pys.Length, pzs.Length),
+                                Fun.Min(crs.Length, cgs.Length, cbs.Length)
+                                );
+                            for (var i = 0; i < imax; i++)
                             {
                                 yield return Tuple.Create(new V3d(pxs[i], pys[i], pzs[i]), new C4b(crs[i], cgs[i], cbs[i]));
                             }
+                            //yield return Tuple.Create(V3d.Zero, C4b.Black);
                         }
 
                         // move to next packet
@@ -651,6 +664,8 @@ namespace Aardvark.Data.E57
                         switch (proto.NumberOfBitsForBitPack)
                         {
                             case 32:
+                                //var bp = new BitPacker(proto.NumberOfBitsForBitPack);
+                                //return bp.UnpackUInts(buffer).Map(x => proto.Compute(x));
                                 return BitPack.OptimizedUnpackUInt32(buffer).Map(x => proto.Compute(x));
                             case 64:
                                 return BitPack.OptimizedUnpackUInt64(buffer).Map(x => proto.Compute((uint)x));

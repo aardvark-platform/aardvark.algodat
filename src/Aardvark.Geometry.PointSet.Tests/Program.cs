@@ -22,10 +22,10 @@ namespace Aardvark.Geometry.Tests
     {
         internal static void TestE57()
         {
-            var filename = @"T:\Vgm\Data\E57\Register360_Berlin Office_1.e57";
+            var filename = @"T:\Vgm\Data\E57\Agisoft_StatueSchoenbrunn.e57";
             var fileSizeInBytes = new FileInfo(filename).Length;
 
-            var config = ImportConfig.Default.WithInMemoryStore().WithRandomKey();
+            var config = ImportConfig.Default.WithInMemoryStore().WithRandomKey().WithVerbose(true);
             var chunks = PointCloud.E57(filename, config);
             var pointcloud = PointCloud.Chunks(chunks, config);
             Console.WriteLine(pointcloud.PointCount);

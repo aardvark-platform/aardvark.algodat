@@ -89,6 +89,21 @@ namespace Aardvark.Geometry.Points
             CancellationToken = CancellationToken
         };
 
+        public ImportConfig WithVerbose(bool verbose) => new ImportConfig
+        {
+            ReadBufferSizeInBytes = ReadBufferSizeInBytes,
+            Reproject = Reproject,
+            MinDist = MinDist,
+            Storage = Storage,
+            Key = Key,
+            OctreeSplitLimit = OctreeSplitLimit,
+            CreateOctreeLod = CreateOctreeLod,
+            MaxDegreeOfParallelism = MaxDegreeOfParallelism,
+            Verbose = verbose,
+            Progress = Progress,
+            CancellationToken = CancellationToken
+        };
+
         #endregion
     }
 }

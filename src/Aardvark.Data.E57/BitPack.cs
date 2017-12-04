@@ -16,6 +16,61 @@ using System.Runtime.CompilerServices;
 
 namespace Aardvark.Base
 {
+    public class BitPacker
+    {
+        private uint m_rest = 0;
+        private int m_restBitCount = 0;
+        public int BitsPerValue { get; }
+        
+        public BitPacker(int bitsPerValue)
+        {
+            if (bitsPerValue < 1 || bitsPerValue > 32) throw new ArgumentOutOfRangeException(
+                nameof(bitsPerValue), $"BitsPerValue must be [1,32] but is {bitsPerValue}");
+
+            BitsPerValue = bitsPerValue;
+        }
+
+        public uint[] UnpackUInts(byte[] buffer)
+        {
+            var count = (m_restBitCount + buffer.Length * 8) / BitsPerValue;
+            var result = new uint[count];
+            var value = 0u;
+            var valueBitIndex = 0;
+            var bufferByteIndex = 0;
+            for (var i = 0; i < count; i++)
+            {
+                if (m_restBitCount >= BitsPerValue) throw new InvalidOperationException();
+
+                // init value with m_rest
+                if (m_restBitCount > 0) { value = m_rest; valueBitIndex = m_restBitCount; m_rest = 0; m_restBitCount = 0; }
+
+                // add full byte(s) to value
+                while (valueBitIndex + 8 <= BitsPerValue)
+                {
+                    value |= (uint)buffer[bufferByteIndex++] << valueBitIndex;
+                    valueBitIndex += 8;
+                }
+
+                // finish value with less than 8 bits (of current byte) ...
+                var b = (uint)buffer[bufferByteIndex++];
+                value |= b << valueBitIndex;
+                result[i] = value;
+                // ... and save remaining bits of current byte to m_rest
+                m_restBitCount = BitsPerValue - valueBitIndex;
+                m_rest = b >> m_restBitCount;
+            }
+
+            // save trailing bytes to m_rest ...
+            while (bufferByteIndex < buffer.Length)
+            {
+                m_rest |= (uint)buffer[bufferByteIndex++] << m_restBitCount;
+                m_restBitCount += 8;
+            }
+
+            return result;
+        }
+    }
+
     public static class BitPack
     {
         public static Array UnpackIntegers(byte[] buffer, int bits)
