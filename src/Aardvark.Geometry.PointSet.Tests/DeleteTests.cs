@@ -56,7 +56,7 @@ namespace Aardvark.Geometry.Tests
             };
             return PointCloud.Chunks(new Chunk(ps, null), config);
         }
-        
+
         [Test]
         public void CanDeletePoints()
         {
@@ -70,6 +70,27 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(a.PointCount > b.PointCount);
 
             Assert.IsTrue(!b.QueryAllPoints().SelectMany(chunk => chunk.Positions).Any(p => q.Contains(p)));
+        }
+
+        [Test]
+        public void DeleteNothing()
+        {
+            var a = CreateRegularPointsInUnitCube(10, 1);
+            var b = a.Delete(n => false, n => true, p => false, CancellationToken.None);
+
+            Assert.IsTrue(a.PointCount == b.PointCount);
+            Assert.IsTrue(a.Id != b.Id);
+        }
+
+        [Test]
+        public void DeleteAll()
+        {
+            var a = CreateRegularPointsInUnitCube(10, 1);
+            var b = a.Delete(n => true, n => false, p => true, CancellationToken.None);
+
+            Assert.IsTrue(a.PointCount != b.PointCount);
+            Assert.IsTrue(b.PointCount == 0);
+            Assert.IsTrue(a.Id != b.Id);
         }
     }
 }

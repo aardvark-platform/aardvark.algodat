@@ -28,7 +28,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// The empty pointset.
         /// </summary>
-        public static readonly PointSet Empty = new PointSet(null, "Aardvark.Geometry.PointSet.Empty", Guid.Empty, 0);
+        public static readonly PointSet Empty = new PointSet(null, "PointSet.Empty");
 
         #region Construction
 
@@ -49,16 +49,25 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        internal PointSet(Storage storage, string key, Guid rootCellId, long splitLimit)
+        internal PointSet(Storage storage, string key, Guid? rootCellId, long splitLimit)
         {
-            if (key == null) throw new ArgumentNullException(nameof(key));
             Storage = storage;
-            Id = key;
+            Id = key ?? throw new ArgumentNullException(nameof(key));
             SplitLimit = splitLimit;
-            if (rootCellId != null)
+            if (rootCellId.HasValue)
             {
                 Root = new PersistentRef<PointSetNode>(rootCellId.ToString(), storage.GetPointSetNode);
             }
+        }
+
+        /// <summary>
+        /// Creates empty pointset.
+        /// </summary>
+        internal PointSet(Storage storage, string key)
+        {
+            Storage = storage;
+            Id = key ?? throw new ArgumentNullException(nameof(key));
+            SplitLimit = 0;
         }
 
         #endregion

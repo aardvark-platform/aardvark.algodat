@@ -17,6 +17,7 @@ using Aardvark.Base;
 using Aardvark.Geometry.Points;
 using NUnit.Framework;
 using Uncodium.SimpleStore;
+using System;
 
 namespace Aardvark.Geometry.Tests
 {
@@ -39,6 +40,18 @@ namespace Aardvark.Geometry.Tests
                 (a, b, c, _) => x.Add(a, b, c), (a, _) => x.Get(a), (a, _) => x.Remove(a),
                 (a, _) => x.TryGetFromCache(a), x.Dispose, x.Flush
                 );
+        }
+
+        [Test]
+        public void CanCreateEmptyPointSet()
+        {
+            var pointset = PointSet.Empty;
+            Assert.IsTrue(pointset.Bounds.IsInvalid);
+            Assert.IsTrue(pointset.Id == "PointSet.Empty");
+            Assert.IsTrue(pointset.IsEmpty == true);
+            Assert.IsTrue(pointset.PointCount == 0);
+            Assert.IsTrue(pointset.Root == null);
+            Assert.IsTrue(pointset.SplitLimit == 0);
         }
 
         [Test]
