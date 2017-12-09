@@ -34,12 +34,19 @@ namespace Aardvark.Base
         {
             var count = (m_restBitCount + buffer.Length * 8) / BitsPerValue;
             var result = new uint[count];
-            var value = 0u;
-            var valueBitIndex = 0;
             var bufferByteIndex = 0;
             for (var i = 0; i < count; i++)
             {
-                if (m_restBitCount >= BitsPerValue) throw new InvalidOperationException();
+                if (m_restBitCount >= BitsPerValue)
+                {
+                    result[i] = m_rest & ((1u << BitsPerValue) - 1);
+                    m_rest >>= BitsPerValue;
+                    m_restBitCount -= BitsPerValue;
+                    continue;
+                }
+
+                var value = 0u;
+                var valueBitIndex = 0;
 
                 // init value with m_rest
                 if (m_restBitCount > 0) { value = m_rest; valueBitIndex = m_restBitCount; m_rest = 0; m_restBitCount = 0; }
@@ -50,14 +57,21 @@ namespace Aardvark.Base
                     value |= (uint)buffer[bufferByteIndex++] << valueBitIndex;
                     valueBitIndex += 8;
                 }
+                var numberOfBitsUntilCompletion = BitsPerValue - valueBitIndex;
+#if DEBUG
+                if (numberOfBitsUntilCompletion < 0 || numberOfBitsUntilCompletion > 7) throw new InvalidOperationException();
+#endif
 
-                // finish value with less than 8 bits (of current byte) ...
+                // if value has been filled up with latest full byte, then we are done
+                if (numberOfBitsUntilCompletion == 0) { result[i] = value; continue; }
+
+                // ... else we use a part of the next byte to fill remaining bits
                 var b = (uint)buffer[bufferByteIndex++];
-                value |= b << valueBitIndex;
+                value |= (b & ((1u << numberOfBitsUntilCompletion) - 1)) << valueBitIndex;
                 result[i] = value;
                 // ... and save remaining bits of current byte to m_rest
-                m_restBitCount = BitsPerValue - valueBitIndex;
-                m_rest = b >> m_restBitCount;
+                m_restBitCount = 8 - numberOfBitsUntilCompletion;
+                m_rest = b >> numberOfBitsUntilCompletion;
             }
 
             // save trailing bytes to m_rest ...

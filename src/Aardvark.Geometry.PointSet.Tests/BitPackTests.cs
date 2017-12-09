@@ -22,6 +22,106 @@ namespace Aardvark.Geometry.Tests
     {
         private static Random random = new Random();
 
+        #region BitPacker
+
+        [Test]
+        public void BitPacker_1()
+        {
+            var buffer = new BitPacker(1);
+            var xs = buffer.UnpackUInts(new byte[] { 0b10110011 });
+            Assert.IsTrue(xs.Length == 8);
+            Assert.IsTrue(xs[0] == 1);
+            Assert.IsTrue(xs[1] == 1);
+            Assert.IsTrue(xs[2] == 0);
+            Assert.IsTrue(xs[3] == 0);
+            Assert.IsTrue(xs[4] == 1);
+            Assert.IsTrue(xs[5] == 1);
+            Assert.IsTrue(xs[6] == 0);
+            Assert.IsTrue(xs[7] == 1);
+        }
+
+        [Test]
+        public void BitPacker_2()
+        {
+            var buffer = new BitPacker(2);
+            var xs = buffer.UnpackUInts(new byte[] { 0b10110011 });
+            Assert.IsTrue(xs.Length == 4);
+            Assert.IsTrue(xs[0] == 0b11);
+            Assert.IsTrue(xs[1] == 0b00);
+            Assert.IsTrue(xs[2] == 0b11);
+            Assert.IsTrue(xs[3] == 0b10);
+        }
+
+        [Test]
+        public void BitPacker_3()
+        {
+            var buffer = new BitPacker(3);
+            var xs = buffer.UnpackUInts(new byte[] { 0b10110011 });
+            Assert.IsTrue(xs.Length == 2);
+            Assert.IsTrue(xs[0] == 0b011);
+            Assert.IsTrue(xs[1] == 0b110);
+            xs = buffer.UnpackUInts(new byte[] { 0b10110011 }); ;
+            Assert.IsTrue(xs.Length == 3);
+            Assert.IsTrue(xs[0] == 0b110);
+            Assert.IsTrue(xs[1] == 0b001);
+            Assert.IsTrue(xs[2] == 0b011);
+        }
+
+        [Test]
+        public void BitPacker_4()
+        {
+            var buffer = new BitPacker(4);
+            var xs = buffer.UnpackUInts(new byte[] { 0b10110011 });
+            Assert.IsTrue(xs.Length == 2);
+            Assert.IsTrue(xs[0] == 0b0011);
+            Assert.IsTrue(xs[1] == 0b1011);
+            xs = buffer.UnpackUInts(new byte[] { 0b01100111 }); ;
+            Assert.IsTrue(xs.Length == 2);
+            Assert.IsTrue(xs[0] == 0b0111);
+            Assert.IsTrue(xs[1] == 0b0110);
+        }
+
+        [Test]
+        public void BitPacker_8()
+        {
+            var buffer = new BitPacker(8);
+            var xs = buffer.UnpackUInts(new byte[] { 0b10110011, 0b01100111, 0b11001110 });
+            Assert.IsTrue(xs.Length == 3);
+            Assert.IsTrue(xs[0] == 0b10110011);
+            Assert.IsTrue(xs[1] == 0b01100111);
+            Assert.IsTrue(xs[2] == 0b11001110);
+            xs = buffer.UnpackUInts(new byte[] { 0b10101010 }); ;
+            Assert.IsTrue(xs.Length == 1);
+            Assert.IsTrue(xs[0] == 0b10101010);
+        }
+
+        [Test]
+        public void BitPacker_10()
+        {
+            var buffer = new BitPacker(10);
+            var xs = buffer.UnpackUInts(new byte[] { 0b10110011, 0b01100111, 0b11001110 });
+            Assert.IsTrue(xs.Length == 2);
+            Assert.IsTrue(xs[0] == 0b1110110011);
+            Assert.IsTrue(xs[1] == 0b1110011001);
+            xs = buffer.UnpackUInts(new byte[] { 0b10101010 }); ;
+            Assert.IsTrue(xs.Length == 1);
+            Assert.IsTrue(xs[0] == 0b1010101100);
+        }
+
+        [Test]
+        public void BitPacker_16()
+        {
+            var buffer = new BitPacker(16);
+            var xs = buffer.UnpackUInts(new byte[] { 0b10110011, 0b01100111, 0b11001110 });
+            Assert.IsTrue(xs.Length == 1);
+            Assert.IsTrue(xs[0] == 0b0110011110110011);
+            xs = buffer.UnpackUInts(new byte[] { 0b10101010 }); ;
+            Assert.IsTrue(xs.Length == 1);
+            Assert.IsTrue(xs[0] == 0b1010101011001110);
+        }
+
+        #endregion
+
         #region BitBuffer
 
         [Test]

@@ -552,7 +552,7 @@ namespace Aardvark.Data.E57
                             
                         }
 
-                        Console.WriteLine(
+                        if (verbose) Console.WriteLine(
                             $"[E57CompressedVector][recordsLeftToConsumePerByteStream] {string.Join(", ", recordsLeftToConsumePerByteStream.Select(x => x.ToString()))}"
                             );
 
