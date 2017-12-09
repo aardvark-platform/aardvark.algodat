@@ -509,9 +509,17 @@ namespace Aardvark.Data.E57
                 var recordsLeftToConsumePerByteStream = new long[ByteStreamsCount].Set(RecordCount);
                 var bitpackerPerByteStream = Prototype.Children.Map(x => new BitPacker(((IBitPack)x).NumberOfBitsForBitPack));
                 var bytesLeftToConsume = compressedVectorHeader.SectionLength - 32;
+                var hasColors = colorRGB != null;
                 if (compressedVectorHeader.DataStartOffset.Value == 0) throw new Exception($"Unexpected compressedVectorHeader.DataStartOffset (0).");
                 if (compressedVectorHeader.IndexStartOffset.Value != 0) throw new Exception($"Unexpected compressedVectorHeader.IndexStartOffset ({compressedVectorHeader.IndexStartOffset})");
-                
+
+                var cartesianX = new Queue<double>();
+                var cartesianY = new Queue<double>();
+                var cartesianZ = new Queue<double>();
+                var colorR = hasColors ? new Queue<byte>() : null;
+                var colorG = hasColors ? new Queue<byte>() : null;
+                var colorB = hasColors ? new Queue<byte>() : null;
+
                 var offset = (E57LogicalOffset)compressedVectorHeader.DataStartOffset;
                 while (bytesLeftToConsume > 0)
                 {
@@ -551,7 +559,6 @@ namespace Aardvark.Data.E57
                             buffers[i] = UnpackByteStream(bytestreamBuffers[i], bitpackerPerByteStream[i], (IBitPack)Prototype.Children[i]);
 
                             recordsLeftToConsumePerByteStream[i] -= buffers[i].Length;
-                            
                         }
 
                         if (verbose) Console.WriteLine(
@@ -563,17 +570,28 @@ namespace Aardvark.Data.E57
                             var pxs = (buffers[cartesianXYZ[0]] is double[]) ? (double[])buffers[cartesianXYZ[0]] : ((float[])buffers[cartesianXYZ[0]]).Map(x => (double)x);
                             var pys = (buffers[cartesianXYZ[1]] is double[]) ? (double[])buffers[cartesianXYZ[1]] : ((float[])buffers[cartesianXYZ[1]]).Map(x => (double)x);
                             var pzs = (buffers[cartesianXYZ[2]] is double[]) ? (double[])buffers[cartesianXYZ[2]] : ((float[])buffers[cartesianXYZ[2]]).Map(x => (double)x);
-                            var crs = colorRGB != null ? (byte[])buffers[colorRGB[0]] : null;
-                            var cgs = colorRGB != null ? (byte[])buffers[colorRGB[1]] : null;
-                            var cbs = colorRGB != null ? (byte[])buffers[colorRGB[2]] : null;
-                            var imax = Fun.Min(pxs.Length, pys.Length, pzs.Length);
-                            if (colorRGB != null) imax = Fun.Min(imax, Fun.Min(crs.Length, cgs.Length, cbs.Length));
+                            foreach (var x in pxs) cartesianX.Enqueue(x);
+                            foreach (var y in pys) cartesianY.Enqueue(y);
+                            foreach (var z in pzs) cartesianZ.Enqueue(z);
+
+                            if (hasColors)
+                            {
+                                var crs = (byte[])buffers[colorRGB[0]];
+                                var cgs = (byte[])buffers[colorRGB[1]];
+                                var cbs = (byte[])buffers[colorRGB[2]];
+                                foreach (var r in crs) colorR.Enqueue(r);
+                                foreach (var g in cgs) colorG.Enqueue(g);
+                                foreach (var b in cbs) colorB.Enqueue(b);
+                            }
+
+                            var imax = Fun.Min(cartesianX.Count, cartesianY.Count, cartesianZ.Count);
+                            if (hasColors) imax = Fun.Min(imax, Fun.Min(colorR.Count, colorG.Count, colorB.Count));
                             for (var i = 0; i < imax; i++)
                             {
-                                var c = colorRGB != null ? new C4b(crs[i], cgs[i], cbs[i]) : C4b.Gray;
-                                yield return Tuple.Create(new V3d(pxs[i], pys[i], pzs[i]), c);
+                                var p = new V3d(cartesianX.Dequeue(), cartesianY.Dequeue(), cartesianZ.Dequeue());
+                                var c = colorRGB != null ? new C4b(colorR.Dequeue(), colorG.Dequeue(), colorB.Dequeue()) : C4b.Gray;
+                                yield return Tuple.Create(p, c);
                             }
-                            //yield return Tuple.Create(V3d.Zero, C4b.Black);
                         }
 
                         // move to next packet
@@ -593,6 +611,16 @@ namespace Aardvark.Data.E57
                     {
                         throw new Exception($"Unexpected sectionId ({sectionId}).");
                     }
+                }
+
+                if (cartesianX.Count > 0) Report.Warn($"Cartesian x coordinates left over ({cartesianX.Count}).");
+                if (cartesianY.Count > 0) Report.Warn($"Cartesian y coordinates left over ({cartesianY.Count}).");
+                if (cartesianZ.Count > 0) Report.Warn($"Cartesian z coordinates left over ({cartesianZ.Count}).");
+                if (hasColors)
+                {
+                    if (colorR.Count > 0) Report.Warn($"Color r values left over ({colorR.Count}).");
+                    if (colorG.Count > 0) Report.Warn($"Color g values left over ({colorG.Count}).");
+                    if (colorB.Count > 0) Report.Warn($"Color b values left over ({colorB.Count}).");
                 }
 
                 #region Helpers
