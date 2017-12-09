@@ -278,7 +278,7 @@ namespace Aardvark.Geometry.Tests
         }
 
         [Test]
-        [Ignore("waiting for E57 implementation")]
+        //[Ignore("waiting for E57 implementation")]
         public void CanParseE57File()
         {
             var filename = Path.Combine(Config.TestDataDir, "test.e57");
@@ -291,7 +291,7 @@ namespace Aardvark.Geometry.Tests
         }
 
         [Test]
-        [Ignore("waiting for E57 implementation")]
+        //[Ignore("waiting for E57 implementation")]
         public void CanImportE57File()
         {
             var filename = Path.Combine(Config.TestDataDir, "test.e57");
@@ -306,7 +306,7 @@ namespace Aardvark.Geometry.Tests
         }
 
         [Test]
-        [Ignore("waiting for E57 implementation")]
+        //[Ignore("waiting for E57 implementation")]
         public void CanImportE57FileAndLoadFromStore()
         {
             var filename = Path.Combine(Config.TestDataDir, "test.e57");

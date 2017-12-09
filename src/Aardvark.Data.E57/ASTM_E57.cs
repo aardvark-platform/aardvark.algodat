@@ -507,6 +507,7 @@ namespace Aardvark.Data.E57
                 }
 
                 var recordsLeftToConsumePerByteStream = new long[ByteStreamsCount].Set(RecordCount);
+                var bitpackerPerByteStream = Prototype.Children.Map(x => new BitPacker(((IBitPack)x).NumberOfBitsForBitPack));
                 var bytesLeftToConsume = compressedVectorHeader.SectionLength - 32;
                 if (compressedVectorHeader.DataStartOffset.Value == 0) throw new Exception($"Unexpected compressedVectorHeader.DataStartOffset (0).");
                 if (compressedVectorHeader.IndexStartOffset.Value != 0) throw new Exception($"Unexpected compressedVectorHeader.IndexStartOffset ({compressedVectorHeader.IndexStartOffset})");
@@ -545,8 +546,9 @@ namespace Aardvark.Data.E57
                             bytestreamBuffers[i] = ReadLogicalBytes(m_stream, offset, count);
                             //Console.WriteLine($"[E57CompressedVector][OFFSET] {offset}, reading {count} bytes for bytestream {i+1}/{dataPacketHeader.ByteStreamCount}");
                             offset += count;
-                            
-                            buffers[i] = UnpackByteStream(bytestreamBuffers[i], (IBitPack)Prototype.Children[i]);
+
+                            //buffers[i] = bitpackerPerByteStream[i].UnpackUInts(bytestreamBuffers[i]);
+                            buffers[i] = UnpackByteStream(bytestreamBuffers[i], bitpackerPerByteStream[i], (IBitPack)Prototype.Children[i]);
 
                             recordsLeftToConsumePerByteStream[i] -= buffers[i].Length;
                             
@@ -595,7 +597,7 @@ namespace Aardvark.Data.E57
                 }
 
                 #region Helpers
-                Array UnpackByteStream(byte[] buffer, IBitPack proto)
+                Array UnpackByteStream(byte[] buffer, BitPacker packer, IBitPack proto)
                 {
                     var bits = proto.NumberOfBitsForBitPack;
                     var semantic = proto.Semantic;
@@ -609,7 +611,7 @@ namespace Aardvark.Data.E57
                         case E57ElementType.ScaledInteger:
                             {
                                 var p = (E57ScaledInteger)proto;
-                                return UnpackScaledInteger(buffer, p);
+                                return UnpackScaledInteger(buffer, packer, p);
                             }
                         case E57ElementType.Integer:
                             {
@@ -617,7 +619,7 @@ namespace Aardvark.Data.E57
                                 {
                                     var p = (E57Integer)proto;
                                     if (p.Minimum < 0) throw new NotImplementedException();
-                                    return UnpackIntegers(buffer, p);
+                                    return UnpackIntegers(buffer, packer, p);
                                 }
                                 catch (Exception e)
                                 {
@@ -657,27 +659,29 @@ namespace Aardvark.Data.E57
                         return xs;
                     }
                 }
-                double[] UnpackScaledInteger(byte[] buffer, E57ScaledInteger proto)
+                double[] UnpackScaledInteger(byte[] buffer, BitPacker packer, E57ScaledInteger proto)
                 {
                     checked
                     {
                         switch (proto.NumberOfBitsForBitPack)
                         {
-                            case 32:
-                                //var bp = new BitPacker(proto.NumberOfBitsForBitPack);
-                                //return bp.UnpackUInts(buffer).Map(x => proto.Compute(x));
-                                return BitPack.OptimizedUnpackUInt32(buffer).Map(x => proto.Compute(x));
-                            case 64:
-                                return BitPack.OptimizedUnpackUInt64(buffer).Map(x => proto.Compute((uint)x));
+                            //case 32:
+                            //    //var bp = new BitPacker(proto.NumberOfBitsForBitPack);
+                            //    //return bp.UnpackUInts(buffer).Map(x => proto.Compute(x));
+                            //    return BitPack.OptimizedUnpackUInt32(buffer).Map(x => proto.Compute(x));
+                            //case 64:
+                            //    return BitPack.OptimizedUnpackUInt64(buffer).Map(x => proto.Compute((uint)x));
                             default:
-                                var raw = BitPack.UnpackIntegers(buffer, proto.NumberOfBitsForBitPack);
-                                if (raw is uint[]) return ((uint[])raw).Map(x => proto.Compute(x));
-                                if (raw is ulong[]) return ((ulong[])raw).Map(x => proto.Compute((uint)x));
-                                throw new NotImplementedException();
+                                return packer.UnpackUInts(buffer).Map(x => proto.Compute(x));
+                                //var raw = BitPack.UnpackIntegers(buffer, proto.NumberOfBitsForBitPack);
+                                //if (raw is uint[]) return ((uint[])raw).Map(x => proto.Compute(x));
+                                //if (raw is ulong[]) return ((ulong[])raw).Map(x => proto.Compute((uint)x));
+                                //throw new NotImplementedException();
                         }
                     }
                 }
-                Array UnpackIntegers(byte[] buffer, E57Integer proto)
+                Array UnpackIntegers(byte[] buffer, BitPacker packer, E57Integer proto)
+                    //=> packer.UnpackUInts(buffer);
                     => BitPack.UnpackIntegers(buffer, proto.NumberOfBitsForBitPack);
                 #endregion
             }
@@ -1875,7 +1879,7 @@ namespace Aardvark.Data.E57
                 if (root == null) return null;
                 return new E57IntensityLimits
                 {
-                    Intensity = GetFloatRange(root, "intensityMinimum", "intensityMaximum")
+                    Intensity = GetRange(root, "intensityMinimum", "intensityMaximum")
                 };
             }
         }
@@ -2219,6 +2223,9 @@ namespace Aardvark.Data.E57
         private static int? GetInteger(XElement root, string elementName, bool required, int? mustBe = null)
             => GetValue<int?>(root, elementName, required, "Integer", x => mustBe.HasValue ? x == mustBe.Value : true,
                 x => x != null ? int.Parse(x) : 0, mustBe, null);
+        private static int? GetScaledInteger(XElement root, string elementName, bool required, int? mustBe = null)
+            => GetValue<int?>(root, elementName, required, "ScaledInteger", x => mustBe.HasValue ? x == mustBe.Value : true,
+                x => x != null ? int.Parse(x) : 0, mustBe, null);
         private static long? GetLong(XElement root, string elementName, bool required, int? mustBe = null)
             => GetValue<long?>(root, elementName, required, "Integer", x => mustBe.HasValue ? x == mustBe.Value : true,
                 x => x != null ? long.Parse(x) : 0, mustBe, null);
@@ -2232,14 +2239,16 @@ namespace Aardvark.Data.E57
             var type = GetElementType(GetElement(root, elementName));
             switch (type)
             {
-                case "Integer":
-                    return GetInteger(root, elementName, required);
                 case "Float":
                     return GetFloat(root, elementName, required);
+                case "Integer":
+                    return GetInteger(root, elementName, required);
+                case "ScaledInteger":
+                    return GetScaledInteger(root, elementName, required);
                 default:
                     throw new NotImplementedException();
             }
-            
+
         }
         private static Range1i GetIntegerRange(XElement root, string elementNameMin, string elementNameMax)
             => new Range1i(GetInteger(root, elementNameMin, true).Value, GetInteger(root, elementNameMax, true).Value);

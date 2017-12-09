@@ -97,6 +97,10 @@ namespace Aardvark.Geometry.Points
                         ct.ThrowIfCancellationRequested();
                         lock (queue) queue.Enqueue(r);
                     }
+                    catch (Exception e)
+                    {
+                        Report.Error($"{e}");
+                    }
                     finally
                     {
                         Interlocked.Decrement(ref inFlightCount);
