@@ -22,11 +22,11 @@ namespace Aardvark.Geometry.Tests
     {
         internal static void TestE57()
         {
-            var filename = @"T:\Vgm\Data\E57\Agisoft_StatueSchoenbrunn.e57";
+            var filename = @"T:\Vgm\Data\E57\Cylcone.e57";
             var fileSizeInBytes = new FileInfo(filename).Length;
 
             var config = ImportConfig.Default.WithInMemoryStore().WithRandomKey().WithVerbose(true);
-            var chunks = PointCloud.E57(filename, config);
+            var chunks = PointCloud.E57(filename, config).ToList();
             var pointcloud = PointCloud.Chunks(chunks, config);
             Console.WriteLine(pointcloud.PointCount);
             Console.WriteLine(pointcloud.Bounds);

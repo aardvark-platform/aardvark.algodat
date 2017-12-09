@@ -563,16 +563,15 @@ namespace Aardvark.Data.E57
                             var pxs = (buffers[cartesianXYZ[0]] is double[]) ? (double[])buffers[cartesianXYZ[0]] : ((float[])buffers[cartesianXYZ[0]]).Map(x => (double)x);
                             var pys = (buffers[cartesianXYZ[1]] is double[]) ? (double[])buffers[cartesianXYZ[1]] : ((float[])buffers[cartesianXYZ[1]]).Map(x => (double)x);
                             var pzs = (buffers[cartesianXYZ[2]] is double[]) ? (double[])buffers[cartesianXYZ[2]] : ((float[])buffers[cartesianXYZ[2]]).Map(x => (double)x);
-                            var crs = (byte[])buffers[colorRGB[0]];
-                            var cgs = (byte[])buffers[colorRGB[1]];
-                            var cbs = (byte[])buffers[colorRGB[2]];
-                            var imax = Fun.Min(
-                                Fun.Min(pxs.Length, pys.Length, pzs.Length),
-                                Fun.Min(crs.Length, cgs.Length, cbs.Length)
-                                );
+                            var crs = colorRGB != null ? (byte[])buffers[colorRGB[0]] : null;
+                            var cgs = colorRGB != null ? (byte[])buffers[colorRGB[1]] : null;
+                            var cbs = colorRGB != null ? (byte[])buffers[colorRGB[2]] : null;
+                            var imax = Fun.Min(pxs.Length, pys.Length, pzs.Length);
+                            if (colorRGB != null) imax = Fun.Min(imax, Fun.Min(crs.Length, cgs.Length, cbs.Length));
                             for (var i = 0; i < imax; i++)
                             {
-                                yield return Tuple.Create(new V3d(pxs[i], pys[i], pzs[i]), new C4b(crs[i], cgs[i], cbs[i]));
+                                var c = colorRGB != null ? new C4b(crs[i], cgs[i], cbs[i]) : C4b.Gray;
+                                yield return Tuple.Create(new V3d(pxs[i], pys[i], pzs[i]), c);
                             }
                             //yield return Tuple.Create(V3d.Zero, C4b.Black);
                         }
