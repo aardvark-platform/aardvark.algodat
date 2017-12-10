@@ -28,6 +28,7 @@ namespace Aardvark.Geometry.Points
         private IList<V3d> m_ps;
         private IList<C4b> m_cs;
         private Node m_root;
+        private long m_duplicatePointsCount = 0;
 
         /// <summary>
         /// </summary>
@@ -62,7 +63,15 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public PointSetNode ToPointSetCell(Storage storage, double kdTreeEps = 1e-6, CancellationToken ct = default(CancellationToken))
         {
-            return m_root.ToPointSetCell(storage, ct, kdTreeEps);
+            var result = m_root.ToPointSetCell(storage, ct, kdTreeEps);
+#if DEBUG
+            if (m_duplicatePointsCount > 0)
+            {
+                var percent = (m_duplicatePointsCount / (double)result.PointCountTree) * 100.0;
+                Report.Warn($"Removed {m_duplicatePointsCount}/{result.PointCountTree} duplicate points ({percent:0.00}%).");
+            }
+#endif
+            return result;
         }
 
         private class Node
@@ -143,7 +152,6 @@ namespace Aardvark.Geometry.Points
             
             public Node Insert(int index)
             {
-                
                 if (_subnodes != null)
                 {
                     var p = _octree.m_ps[index];
@@ -159,24 +167,12 @@ namespace Aardvark.Geometry.Points
 
                     if (_ia.Count > _octree.m_splitLimit)
                     {
-                        //var hs = new HashSet<V3d>();
-                        //var indicesWithoutDuplicates = new List<int>();
-                        //for (var i = 0; i < _ia.Count; i++)
-                        //{
-                        //    var j = _ia[i];
-                        //    var p = _octree.m_ps[j];
-                        //    if (hs.Contains(p)) continue;
-
-                        //    hs.Add(p);
-                        //    indicesWithoutDuplicates.Add(j);
-                        //}
-
-                        //if (indicesWithoutDuplicates.Count <= _octree.m_splitLimit)
-                        //{
-                        //    Report.Warn($"found duplicates ({_ia.Count - indicesWithoutDuplicates.Count})");
-                        //    _ia = indicesWithoutDuplicates;
-                            
-                        //}
+                        if (BoundingBox.IsEmpty)
+                        {
+                            Interlocked.Add(ref _octree.m_duplicatePointsCount, _ia.Count - 1);
+                            _ia = _ia.Take(1).ToList();
+                            return this;
+                        }
 
                         Split();
                     }
@@ -187,12 +183,6 @@ namespace Aardvark.Geometry.Points
             
             private Node Split()
             {
-                if (BoundingBox.IsEmpty)
-                {
-                    Console.WriteLine($"[WARNING] cell only contains duplicate points ({_ia.Count})");
-                    _ia = _ia.Take(1).ToList();
-                    return this;
-                }
 #if DEBUG
                 var ps = _ia.Map(i => _octree.m_ps[i]).ToArray();
                 foreach (var p in ps)
