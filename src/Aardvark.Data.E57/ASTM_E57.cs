@@ -613,14 +613,14 @@ namespace Aardvark.Data.E57
                     }
                 }
 
-                if (cartesianX.Count > 0) Report.Warn($"Cartesian x coordinates left over ({cartesianX.Count}).");
-                if (cartesianY.Count > 0) Report.Warn($"Cartesian y coordinates left over ({cartesianY.Count}).");
-                if (cartesianZ.Count > 0) Report.Warn($"Cartesian z coordinates left over ({cartesianZ.Count}).");
+                if (cartesianX.Count > 31 / bitpackerPerByteStream[cartesianXYZ[0]].BitsPerValue) Report.Warn($"Cartesian x coordinates left over ({cartesianX.Count}).");
+                if (cartesianY.Count > 31 / bitpackerPerByteStream[cartesianXYZ[1]].BitsPerValue) Report.Warn($"Cartesian y coordinates left over ({cartesianY.Count}).");
+                if (cartesianZ.Count > 31 / bitpackerPerByteStream[cartesianXYZ[2]].BitsPerValue) Report.Warn($"Cartesian z coordinates left over ({cartesianZ.Count}).");
                 if (hasColors)
                 {
-                    if (colorR.Count > 0) Report.Warn($"Color r values left over ({colorR.Count}).");
-                    if (colorG.Count > 0) Report.Warn($"Color g values left over ({colorG.Count}).");
-                    if (colorB.Count > 0) Report.Warn($"Color b values left over ({colorB.Count}).");
+                    if (colorR.Count > 31 / bitpackerPerByteStream[colorRGB[0]].BitsPerValue) Report.Warn($"Color r values left over ({colorR.Count}).");
+                    if (colorG.Count > 31 / bitpackerPerByteStream[colorRGB[0]].BitsPerValue) Report.Warn($"Color g values left over ({colorG.Count}).");
+                    if (colorB.Count > 31 / bitpackerPerByteStream[colorRGB[0]].BitsPerValue) Report.Warn($"Color b values left over ({colorB.Count}).");
                 }
 
                 #region Helpers

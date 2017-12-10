@@ -70,7 +70,7 @@ namespace Aardvark.Geometry.Points
             if (m_duplicatePointsCount > 0)
             {
                 var percent = (m_duplicatePointsCount / (double)m_insertedPointsCount) * 100.0;
-                Report.Line($"[INFO] Removed {m_duplicatePointsCount}/{m_insertedPointsCount} duplicate points ({percent:0.00}%).");
+                Report.Warn($"[INFO] Removed {m_duplicatePointsCount}/{m_insertedPointsCount} duplicate points ({percent:0.00}%).");
             }
 #endif
             return result;

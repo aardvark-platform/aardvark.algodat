@@ -22,14 +22,20 @@ namespace Aardvark.Geometry.Tests
     {
         internal static void TestE57()
         {
-            var filename = @"T:\Vgm\Data\E57\Cylcone.e57";
+            CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+            var filename = @"test.e57";
             var fileSizeInBytes = new FileInfo(filename).Length;
 
             var config = ImportConfig.Default.WithInMemoryStore().WithRandomKey().WithVerbose(true);
             var chunks = PointCloud.E57(filename, config).ToList();
             var pointcloud = PointCloud.Chunks(chunks, config);
-            Console.WriteLine(pointcloud.PointCount);
-            Console.WriteLine(pointcloud.Bounds);
+            Console.WriteLine($"pointcloud.PointCount: {pointcloud.PointCount}");
+            Console.WriteLine($"pointcloud.Bounds    :{pointcloud.Bounds}");
+
+            var leafLodPointCount = 0L;
+            pointcloud.Root.Value.ForEachNode(true, n => { if (n.IsLeaf) leafLodPointCount += n.LodPositionsAbsolute.Length; });
+            Console.WriteLine($"leaf lod point count :{leafLodPointCount}");
+
             //foreach (var chunk in chunks)
             //{
             //    for (var i = 0; i < chunk.Count; i++)
@@ -37,10 +43,22 @@ namespace Aardvark.Geometry.Tests
             //        Console.WriteLine($"{chunk.Positions[i]:0.000} {chunk.Colors?[i]}");
             //    }
             //}
-            var count = chunks.Sum(x => x.Positions.Count);
-            Console.WriteLine(count);
-            var bb = new Box3d(chunks.SelectMany(x => x.Positions));
-            Console.WriteLine(bb);
+
+            Console.WriteLine($"chunks point count: {chunks.Sum(x => x.Positions.Count)}");
+            Console.WriteLine($"chunks bounds     : {new Box3d(chunks.SelectMany(x => x.Positions))}");
+
+            using (var w = File.CreateText("test.txt"))
+            {
+                foreach (var chunk in chunks)
+                {
+                    for (var i = 0; i < chunk.Count; i++)
+                    {
+                        var p = chunk.Positions[i];
+                        var c = chunk.Colors[i];
+                        w.WriteLine($"{p.X} {p.Y} {p.Z} {c.R} {c.G} {c.B}");
+                    }
+                }
+            }
             return;
 
             /*
