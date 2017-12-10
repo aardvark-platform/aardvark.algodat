@@ -75,6 +75,7 @@ namespace Aardvark.Geometry.Points
             var queue = new Queue<T>(xs);
             var imax = queue.Count - 1;
             var queueSemapore = new SemaphoreSlim(maxLevelOfParallelism);
+            var exception = default(Exception);
 
             var inFlightCount = 0;
 
@@ -82,24 +83,32 @@ namespace Aardvark.Geometry.Points
 
             for (var i = 0; i < imax; i++)
             {
-                while (queue.Count < 2) { ct.ThrowIfCancellationRequested(); Task.Delay(100).Wait(); }
+                while (queue.Count < 2)
+                {
+                    CheckCancellationOrException();
+                    Task.Delay(100).Wait();
+                }
+
                 var a = queue.Dequeue();
                 var b = queue.Dequeue();
 
                 queueSemapore.Wait();
-                ct.ThrowIfCancellationRequested();
+                CheckCancellationOrException();
+
                 Interlocked.Increment(ref inFlightCount);
                 Task.Run(() =>
                 {
                     try
                     {
                         var r = reduce(a, b, ct);
-                        ct.ThrowIfCancellationRequested();
+                        CheckCancellationOrException();
                         lock (queue) queue.Enqueue(r);
                     }
                     catch (Exception e)
                     {
                         Report.Error($"{e}");
+                        exception = e;
+                        throw;
                     }
                     finally
                     {
@@ -109,14 +118,20 @@ namespace Aardvark.Geometry.Points
                 queueSemapore.Release();
             }
 
-            while (inFlightCount > 0) { ct.ThrowIfCancellationRequested(); Task.Delay(100).Wait(); }
-            if (queue.Count != 1) { ct.ThrowIfCancellationRequested(); throw new InvalidOperationException(); }
+            while (inFlightCount > 0) { CheckCancellationOrException(); Task.Delay(100).Wait(); }
+            if (queue.Count != 1) { CheckCancellationOrException(); throw new InvalidOperationException(); }
             var result = queue.Dequeue();
             
             sw.Stop();
             onFinish?.Invoke(sw.Elapsed);
 
             return result;
+
+            void CheckCancellationOrException()
+            {
+                ct.ThrowIfCancellationRequested();
+                if (exception != null) throw new Exception("MapReduceParallel failed. See inner exception.", exception);
+            }
         }
 
         internal static IEnumerable<R> MapParallel<T, R>(this IEnumerable<T> items,

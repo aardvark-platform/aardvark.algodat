@@ -28,6 +28,7 @@ namespace Aardvark.Geometry.Points
         private IList<V3d> m_ps;
         private IList<C4b> m_cs;
         private Node m_root;
+        private long m_insertedPointsCount = 0;
         private long m_duplicatePointsCount = 0;
 
         /// <summary>
@@ -56,6 +57,7 @@ namespace Aardvark.Geometry.Points
             m_splitLimit = octreeSplitLimit;
 
             m_root = new Node(this, bounds);
+            m_insertedPointsCount = ps.Count;
             for (var i = 0; i < ps.Count; i++) m_root.Insert(i);
         }
 
@@ -67,8 +69,8 @@ namespace Aardvark.Geometry.Points
 #if DEBUG
             if (m_duplicatePointsCount > 0)
             {
-                var percent = (m_duplicatePointsCount / (double)result.PointCountTree) * 100.0;
-                Report.Warn($"Removed {m_duplicatePointsCount}/{result.PointCountTree} duplicate points ({percent:0.00}%).");
+                var percent = (m_duplicatePointsCount / (double)m_insertedPointsCount) * 100.0;
+                Report.Line($"[INFO] Removed {m_duplicatePointsCount}/{m_insertedPointsCount} duplicate points ({percent:0.00}%).");
             }
 #endif
             return result;
@@ -161,19 +163,24 @@ namespace Aardvark.Geometry.Points
                 }
                 else
                 {
-                    if (_ia == null) _ia = new List<int>();
-
-                    _ia.Add(index);
-
-                    if (_ia.Count > _octree.m_splitLimit)
+                    if (_ia == null)
                     {
-                        if (BoundingBox.IsEmpty)
+                        _ia = new List<int>();
+                    }
+                    else
+                    {
+                        if (_octree.m_ps[index] == _octree.m_ps[_ia[0]])
                         {
-                            Interlocked.Add(ref _octree.m_duplicatePointsCount, _ia.Count - 1);
-                            _ia = _ia.Take(1).ToList();
+                            // duplicate -> do not add
+                            _octree.m_duplicatePointsCount++;
                             return this;
                         }
-
+                    }
+                    
+                    _ia.Add(index);
+                    
+                    if (_ia.Count > _octree.m_splitLimit)
+                    {
                         Split();
                     }
 

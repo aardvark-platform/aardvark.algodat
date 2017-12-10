@@ -93,16 +93,6 @@ namespace Aardvark.Geometry.Points
 #if DEBUG
             var debugPointCountTree = a.PointCountTree + b.PointCountTree;
 #endif
-            // if A and B do not intersect ...
-            if (!a.Cell.Intersects(b.Cell))
-            {
-                var rootCell = new Cell(new Box3d(a.BoundingBox, b.BoundingBox));
-                var result = JoinNonOverlappingTrees(rootCell, a, b, octreeSplitLimit, ct);
-#if DEBUG
-                if (result.PointCountTree != debugPointCountTree) throw new InvalidOperationException();
-#endif
-                return result;
-            }
 
             // if A and B have identical root cells, then merge ...
             if (a.Cell == b.Cell)
@@ -114,13 +104,25 @@ namespace Aardvark.Geometry.Points
                                 : MergeTreeAndTreeWithIdenticalRootCell(a, b, octreeSplitLimit, ct))
                     ;
 #if DEBUG
-                if (result.PointCountTree != debugPointCountTree) throw new InvalidOperationException(
-                    $"{result.PointCountTree} != {a.PointCountTree} + {b.PointCountTree} ({a.PointCountTree + b.PointCountTree})")
-                    ;
+                // this no longer holds, because duplicate points can be removed
+                //if (result.PointCountTree != debugPointCountTree) throw new InvalidOperationException(
+                //    $"{result.PointCountTree} != {a.PointCountTree} + {b.PointCountTree} ({a.PointCountTree + b.PointCountTree})")
+                //    ;
 #endif
                 return result;
             }
-            
+
+            // if A and B do not intersect ...
+            if (!a.Cell.Intersects(b.Cell))
+            {
+                var rootCell = new Cell(new Box3d(a.BoundingBox, b.BoundingBox));
+                var result = JoinNonOverlappingTrees(rootCell, a, b, octreeSplitLimit, ct);
+#if DEBUG
+                if (result.PointCountTree != debugPointCountTree) throw new InvalidOperationException();
+#endif
+                return result;
+            }
+
             if (a.IsCenteredAtOrigin || b.IsCenteredAtOrigin)
             {
                 // enumerate all non-IsCenteredAtOrigin (sub)cells of A and B
@@ -273,14 +275,14 @@ namespace Aardvark.Geometry.Points
         private static PointSetNode JoinNonOverlappingTrees(Cell rootCell, PointSetNode a, PointSetNode b, long octreeSplitLimit, CancellationToken ct)
         {
             #region Preconditions
-#if DEBUG
+
             // PRE: ensure that trees 'a' and 'b' do not intersect,
             // because we are joining non-overlapping trees here
-            if (a.Cell.Intersects(b.Cell)) throw new InvalidOperationException();
+            if (a.Cell == b.Cell || a.Cell.Intersects(b.Cell)) throw new InvalidOperationException();
 
             // PRE: we further assume, that both trees are non-empty
             if (a.PointCountTree == 0 && b.PointCountTree == 0) throw new InvalidOperationException();
-#endif
+
             #endregion
 
             #region Case reduction
@@ -446,7 +448,8 @@ namespace Aardvark.Geometry.Points
             var cs = Concat(a.Colors.Value, b.Colors.Value);
             var result = InMemoryPointSet.Build(ps, cs, a.Cell, octreeSplitLimit).ToPointSetCell(a.Storage, ct: ct);
 #if DEBUG
-            if (result.PointCountTree != a.PointCountTree + b.PointCountTree) throw new InvalidOperationException();
+            // this no longer holds, since InMemoryPointSet will remove duplicate points
+            //if (result.PointCountTree != a.PointCountTree + b.PointCountTree) throw new InvalidOperationException();
 #endif
             return result;
         }
@@ -461,7 +464,8 @@ namespace Aardvark.Geometry.Points
             var center = a.Center;
             var result = InjectPointsIntoTree(a.PositionsAbsolute, a.Colors.Value, b, a.Cell, octreeSplitLimit, a.Storage, ct);
 #if DEBUG
-            if (result.PointCountTree != a.PointCountTree + b.PointCountTree) throw new InvalidOperationException();
+            // this no longer holds, because duplicate points may have been removed
+            //if (result.PointCountTree != a.PointCountTree + b.PointCountTree) throw new InvalidOperationException();
 #endif
             return result;
         }
@@ -487,7 +491,8 @@ namespace Aardvark.Geometry.Points
                     {
                         subcells[i] = Merge(x, y, octreeSplitLimit, ct);
                         pointCountTree += x.PointCountTree + y.PointCountTree;
-                        if (subcells[i].PointCountTree != x.PointCountTree + y.PointCountTree) throw new InvalidOperationException();
+                        // this no longer holds, because duplicate points may have been removed
+                        // if (subcells[i].PointCountTree != x.PointCountTree + y.PointCountTree) throw new InvalidOperationException();
                     }
                     else
                     {
@@ -514,14 +519,15 @@ namespace Aardvark.Geometry.Points
 
             var result = new PointSetNode(a.Cell, pointCountTree, subcells.Map(x => x?.Id), a.Storage);
 
-            var diffPointCount = result.PointCountTree - (a.PointCountTree + b.PointCountTree);
-            if (diffPointCount != 0)
-            {
-                Report.Error(
-                    $"[MergeTreeAndTreeWithIdenticalRootCell] {a.PointCountTree} (a.PointCountTree) + {b.PointCountTree} (b.PointCountTree) == {a.PointCountTree + b.PointCountTree}, but result.PointCountTree actually is {result.PointCountTree}."
-                    );
-                throw new InvalidOperationException();
-            }
+            // this no longer holds, because duplicate points may have been removed
+            //var diffPointCount = result.PointCountTree - (a.PointCountTree + b.PointCountTree);
+            //if (diffPointCount != 0)
+            //{
+            //    Report.Error(
+            //        $"[MergeTreeAndTreeWithIdenticalRootCell] {a.PointCountTree} (a.PointCountTree) + {b.PointCountTree} (b.PointCountTree) == {a.PointCountTree + b.PointCountTree}, but result.PointCountTree actually is {result.PointCountTree}."
+            //        );
+            //    throw new InvalidOperationException();
+            //}
 
             return result;
         }
@@ -543,7 +549,8 @@ namespace Aardvark.Geometry.Points
                 var newCs = new List<C4b>(cs); newCs.AddRange(a.Colors.Value);
                 var result0 = InMemoryPointSet.Build(newPs, newCs, cell, octreeSplitLimit).ToPointSetCell(a.Storage, ct: ct);
 #if DEBUG
-                if (result0.PointCountTree != psAbsolute.Count + a.PointCountTree) throw new InvalidOperationException();
+                // this no longer holds, because duplicate points may have been removed
+                //if (result0.PointCountTree != psAbsolute.Count + a.PointCountTree) throw new InvalidOperationException();
 #endif
                 return result0;
             }
@@ -567,8 +574,9 @@ namespace Aardvark.Geometry.Points
                 {
                     subcells[j] = InjectPointsIntoTree(pss[j], css[j], x, cell.GetOctant(j), octreeSplitLimit, storage, ct);
 #if DEBUG
-                    var foo = (long)pss[j].Count; if (x != null) foo += x.PointCountTree;
-                    if (subcells[j].PointCountTree != foo) throw new InvalidOperationException();
+                    // this no longer holds, because duplicate points may have been removed
+                    //var foo = (long)pss[j].Count; if (x != null) foo += x.PointCountTree;
+                    //if (subcells[j].PointCountTree != foo) throw new InvalidOperationException();
 #endif
                 }
                 else
@@ -577,12 +585,14 @@ namespace Aardvark.Geometry.Points
                 }
             }
 #if DEBUG
-            var subcellsCountSum = subcells.Sum(x => x?.PointCountTree);
-            if (a.PointCount + subcellsCountSum != a.PointCountTree + psAbsolute.Count) throw new InvalidOperationException();
+            // this no longer holds, because duplicate points may have been removed
+            //var subcellsCountSum = subcells.Sum(x => x?.PointCountTree);
+            //if (a.PointCount + subcellsCountSum != a.PointCountTree + psAbsolute.Count) throw new InvalidOperationException();
 #endif
             var result = a.WithSubNodes(subcells);
 #if DEBUG
-            if (result.PointCountTree != a.PointCountTree + psAbsolute.Count) throw new InvalidOperationException();
+            // this no longer holds, because duplicate points may have been removed
+            //if (result.PointCountTree != a.PointCountTree + psAbsolute.Count) throw new InvalidOperationException();
 #endif
             return result;
         }
