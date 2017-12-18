@@ -1,11 +1,12 @@
 RESTRICTION: == net45
 NUGET
+  remote: https://vrvis.myget.org/F/aardvark_public/api/v3/index.json
+    Aardvark.Base (3.0.49)
+      DevILSharp (>= 0.1.1 < 0.2)
+    Aardvark.Base.IO (3.0.49)
+      Aardvark.Base (>= 3.0.49)
+      DevILSharp (>= 0.1.1 < 0.2)
   remote: https://api.nuget.org/v3/index.json
-    Aardvark.Base (3.0.44)
-      DevILSharp (>= 0.1.1 < 0.2)
-    Aardvark.Base.IO (3.0.44)
-      Aardvark.Base (>= 3.0.44)
-      DevILSharp (>= 0.1.1 < 0.2)
     Crc32C.NET (1.0.5)
     DevILSharp (0.1.2)
       FSharp.Core (>= 4.0 < 4.1)
