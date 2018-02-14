@@ -41,23 +41,10 @@ namespace Aardvark.Geometry.Points
             Stream stream, long streamLengthInBytes, ImportConfig config
             )
         {
-            // progress reporting
-            var pr1 = Progress.Reporter();
-            var pr2 = Progress.Reporter();
-
-            (
-                0.3 * pr1.Normalize() +
-                0.7 * pr2.Normalize()
-            )
-            .Normalize()
-            .Subscribe(config.Progress.Report)
-            ;
-
             // importing file
             return stream
-                .ChunkStreamAtNewlines(streamLengthInBytes, config.ReadBufferSizeInBytes, pr1, config.CancellationToken)
-                //.ParseBuffers(streamLengthInBytes, LegacyPtsParser.ParsePtsBuffer, minDist, maxLevelOfParallelism, verbose, pr2, ct)
-                .ParseBuffers(streamLengthInBytes, lineParser, config.MinDist, config.MaxDegreeOfParallelism, config.Verbose, pr2, config.CancellationToken)
+                .ChunkStreamAtNewlines(streamLengthInBytes, config.ReadBufferSizeInBytes, config.CancellationToken)
+                .ParseBuffers(streamLengthInBytes, lineParser, config.MinDist, config.MaxDegreeOfParallelism, config.Verbose, config.CancellationToken)
                 ;
         }
     }

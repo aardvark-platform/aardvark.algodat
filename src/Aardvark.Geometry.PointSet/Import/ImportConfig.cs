@@ -49,8 +49,6 @@ namespace Aardvark.Geometry.Points
         
         public bool Verbose = false;
         
-        public ProgressReporter Progress = ProgressReporter.None;
-        
         public CancellationToken CancellationToken = CancellationToken.None;
 
         #endregion
@@ -68,7 +66,6 @@ namespace Aardvark.Geometry.Points
             CreateOctreeLod = CreateOctreeLod,
             MaxDegreeOfParallelism = MaxDegreeOfParallelism,
             Verbose = Verbose,
-            Progress = Progress,
             CancellationToken = CancellationToken
         };
         
@@ -85,7 +82,6 @@ namespace Aardvark.Geometry.Points
             CreateOctreeLod = CreateOctreeLod,
             MaxDegreeOfParallelism = MaxDegreeOfParallelism,
             Verbose = Verbose,
-            Progress = Progress,
             CancellationToken = CancellationToken
         };
 
@@ -100,7 +96,6 @@ namespace Aardvark.Geometry.Points
             CreateOctreeLod = CreateOctreeLod,
             MaxDegreeOfParallelism = MaxDegreeOfParallelism,
             Verbose = verbose,
-            Progress = Progress,
             CancellationToken = CancellationToken
         };
 

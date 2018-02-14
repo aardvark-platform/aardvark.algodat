@@ -28,22 +28,10 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PointSet MapReduce(this IEnumerable<Chunk> chunks, ImportConfig config)
         {
-            var progress = config.Progress ?? ProgressReporter.None;
             var totalPointCountInChunks = 0L;
-
-            #region Setup
-            var pr1 = Progress.Reporter();
-            var pr2 = Progress.Reporter();
-            (
-                0.33 * pr1.Normalize() +
-                0.64 * pr2.Normalize() 
-            )
-            .Normalize()
-            .Subscribe(progress.Report)
-            ;
-            #endregion
-
+            
             #region MAP: create one PointSet for each chunk
+
             var pointsets = chunks
                 .MapParallel((chunk, ct2) =>
                 {
@@ -53,7 +41,6 @@ namespace Aardvark.Geometry.Points
                     var root = builder.ToPointSetCell(config.Storage, ct: ct2);
                     var id = $"Aardvark.Geometry.PointSet.{Guid.NewGuid()}.json";
                     var pointSet = new PointSet(config.Storage, id, root.Id, config.OctreeSplitLimit);
-                    //pr1.Report(chunk.SequenceNumber, chunk.SequenceLength);
                     return pointSet;
                 },
                 config.MaxDegreeOfParallelism, null, config.CancellationToken
@@ -61,21 +48,22 @@ namespace Aardvark.Geometry.Points
                 .ToList()
                 ;
             ;
-            pr1.ReportFinished();
+
             if (config.Verbose)
             {
                 Console.WriteLine($"[MapReduce] pointsets              : {pointsets.Count}");
                 Console.WriteLine($"[MapReduce] totalPointCountInChunks: {totalPointCountInChunks}");
             }
+
             #endregion
 
             #region REDUCE: pairwise octree merge until a single (final) octree remains
+
             var totalPointsToMerge = pointsets.Sum(x => x.PointCount);
             if (config.Verbose) Console.WriteLine($"[MapReduce] totalPointsToMerge: {totalPointsToMerge}");
 
             var totalPointSetsCount = pointsets.Count;
             if (totalPointSetsCount == 0) throw new Exception("woohoo");
-            var reduceStepsCount = 0;
             var final = pointsets.MapReduceParallel((first, second, ct2) =>
             {
                 var merged = first.Merge(second, ct2);
@@ -84,7 +72,6 @@ namespace Aardvark.Geometry.Points
                     + $"{first.Root.Value.Cell} + {second.Root.Value.Cell} -> {merged.Root.Value.Cell} "
                     + $"({first.Root.Value.PointCountTree} + {second.Root.Value.PointCountTree} -> {merged.Root.Value.PointCountTree})"
                     );
-                pr2.Report(Interlocked.Increment(ref reduceStepsCount), totalPointSetsCount);
                 return merged;
             },
             config.MaxDegreeOfParallelism
@@ -93,8 +80,9 @@ namespace Aardvark.Geometry.Points
             {
                 Console.WriteLine($"[MapReduce] everything merged");
             }
-            pr2.ReportFinished();
+
             config.CancellationToken.ThrowIfCancellationRequested();
+
             #endregion
 
             config.Storage.Add(config.Key, final, config.CancellationToken);

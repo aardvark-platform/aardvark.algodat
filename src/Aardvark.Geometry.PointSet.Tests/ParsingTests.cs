@@ -32,7 +32,7 @@ namespace Aardvark.Geometry.Tests
             Assert.Throws<ArgumentNullException>(() =>
             {
                 Stream stream = null;
-                stream.ChunkStreamAtNewlines(0, 0, ProgressReporter.None, CancellationToken.None).ToArray();
+                stream.ChunkStreamAtNewlines(0, 0, CancellationToken.None).ToArray();
             });
         }
 
@@ -43,14 +43,14 @@ namespace Aardvark.Geometry.Tests
             {
                 var buffer = new byte[10];
                 var ms = new MemoryStream(buffer);
-                ms.ChunkStreamAtNewlines(10, 0, ProgressReporter.None, CancellationToken.None).ToArray();
+                ms.ChunkStreamAtNewlines(10, 0, CancellationToken.None).ToArray();
             });
 
             Assert.Throws<ArgumentException>(() =>
             {
                 var buffer = new byte[10];
                 var ms = new MemoryStream(buffer);
-                ms.ChunkStreamAtNewlines(10, -1, ProgressReporter.None, CancellationToken.None).ToArray();
+                ms.ChunkStreamAtNewlines(10, -1, CancellationToken.None).ToArray();
             });
         }
 
@@ -60,7 +60,7 @@ namespace Aardvark.Geometry.Tests
             var buffer = new byte[0];
             var ms = new MemoryStream(buffer);
 
-            var xs = ms.ChunkStreamAtNewlines(10, 10, ProgressReporter.None, CancellationToken.None);
+            var xs = ms.ChunkStreamAtNewlines(10, 10, CancellationToken.None);
             Assert.IsTrue(xs.Count() == 0);
         }
 
@@ -70,7 +70,7 @@ namespace Aardvark.Geometry.Tests
             var buffer = new byte[10];
             var ms = new MemoryStream(buffer);
 
-            var xs = ms.ChunkStreamAtNewlines(10, 5, ProgressReporter.None, CancellationToken.None).ToArray();
+            var xs = ms.ChunkStreamAtNewlines(10, 5, CancellationToken.None).ToArray();
             Assert.IsTrue(xs.Length == 2);
             Assert.IsTrue(xs[0].Count == 5);
             Assert.IsTrue(xs[1].Count == 5);
@@ -82,7 +82,7 @@ namespace Aardvark.Geometry.Tests
             var buffer = new byte[10] { 0, 0, 10, 0, 0, 10, 0, 0, 10, 0 };
             var ms = new MemoryStream(buffer);
 
-            var xs = ms.ChunkStreamAtNewlines(10, 5, ProgressReporter.None, CancellationToken.None).ToArray();
+            var xs = ms.ChunkStreamAtNewlines(10, 5, CancellationToken.None).ToArray();
             Assert.IsTrue(xs.Length == 4);
             Assert.IsTrue(xs[0].Count == 3);
             Assert.IsTrue(xs[1].Count == 3);
@@ -103,8 +103,8 @@ namespace Aardvark.Geometry.Tests
             Func<byte[], int, double, Chunk?> parse = (_, __, ___) => new Chunk(new[] { V3d.Zero });
 
             var xs = ms
-                .ChunkStreamAtNewlines(10, 5, ProgressReporter.None, CancellationToken.None)
-                .ParseBuffers(buffer.LongLength, parse, 0.0, 0, true, ProgressReporter.None, CancellationToken.None)
+                .ChunkStreamAtNewlines(10, 5, CancellationToken.None)
+                .ParseBuffers(buffer.LongLength, parse, 0.0, 0, true, CancellationToken.None)
                 .ToArray();
             Assert.IsTrue(xs != null);
         }

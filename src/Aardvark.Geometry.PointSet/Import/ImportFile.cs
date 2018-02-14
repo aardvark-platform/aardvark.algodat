@@ -55,7 +55,7 @@ namespace Aardvark.Geometry.Points
                 config = new ImportConfig
                 {
                     Storage = CreateInMemoryStore(),
-                    Key = FileHelpers.ComputeMd5Hash(filename, true, ProgressReporter.None)
+                    Key = FileHelpers.ComputeMd5Hash(filename, true)
                 };
 
             }
@@ -75,7 +75,7 @@ namespace Aardvark.Geometry.Points
             var config = new ImportConfig
             {
                 Storage = OpenStore(storeDirectory),
-                Key = FileHelpers.ComputeMd5Hash(filename, true, ProgressReporter.None)
+                Key = FileHelpers.ComputeMd5Hash(filename, true)
             };
 
             var result = PointCloudFormat.FromFileName(filename).ImportFile(filename, config);
