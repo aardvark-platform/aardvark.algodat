@@ -30,7 +30,7 @@ namespace Aardvark.Geometry.Points
             var filesize = new FileInfo(filename).Length;
             var pointCount = 0L;
             var pointBounds = Box3d.Invalid;
-            foreach (var chunk in Pts(filename, new ImportConfig()))
+            foreach (var chunk in Pts(filename, ImportConfig.Default))
             {
                 pointCount += chunk.Count;
                 pointBounds.ExtendBy(chunk.BoundingBox);

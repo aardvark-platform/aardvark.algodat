@@ -30,12 +30,11 @@ namespace Aardvark.Geometry.Tests
             var r = new Random();
             var ps = new V3d[n];
             for (var i = 0; i < n; i++) ps[i] = new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble());
-            var config = new ImportConfig
-            {
-                Storage = PointCloud.CreateInMemoryStore(),
-                Key = "test",
-                OctreeSplitLimit = splitLimit
-            };
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithKey("test")
+                .WithOctreeSplitLimit(splitLimit)
+                ;
             return PointCloud.Chunks(new Chunk(ps, null), config);
         }
 
@@ -48,12 +47,11 @@ namespace Aardvark.Geometry.Tests
                 for (var y = start; y < 1.0; y += step)
                     for (var z = start; z < 1.0; z += step)
                         ps.Add(new V3d(x, y, z));
-            var config = new ImportConfig
-            {
-                Storage = PointCloud.CreateInMemoryStore(),
-                Key = "test",
-                OctreeSplitLimit = splitLimit
-            };
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithKey("test")
+                .WithOctreeSplitLimit(splitLimit)
+                ;
             return PointCloud.Chunks(new Chunk(ps, null), config);
         }
 

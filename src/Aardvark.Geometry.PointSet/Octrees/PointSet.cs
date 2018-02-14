@@ -42,7 +42,10 @@ namespace Aardvark.Geometry.Points
             var builder = InMemoryPointSet.Build(ps, cs, bounds, octreeSplitLimit);
             var root = builder.ToPointSetCell(storage, ct: ct);
             var result = new PointSet(storage, key, root.Id, octreeSplitLimit);
-            var config = new ImportConfig { Key = Guid.NewGuid().ToString(), CancellationToken = ct };
+            var config = ImportConfig.Default
+                .WithRandomKey()
+                .WithCancellationToken(ct)
+                ;
             if (buildKdTree) result = result.GenerateLod(config);
             return result;
         }
