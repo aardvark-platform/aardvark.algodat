@@ -53,6 +53,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BitPackTests.cs" />
+    <Compile Include="ProgressReportingTests.cs" />
     <Compile Include="StoreTests.cs" />
     <Compile Include="ImportTests.cs" />
     <Compile Include="CellTests.cs" />
