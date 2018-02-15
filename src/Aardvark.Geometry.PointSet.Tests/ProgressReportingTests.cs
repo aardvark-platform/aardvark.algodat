@@ -26,16 +26,24 @@ namespace Aardvark.Geometry.Tests
     public class ProgressReportingTests
     {
         [Test]
-        public void CanImportChunkWithoutColor()
+        public void ProgressCallbackWorks()
         {
+            var CHUNKSIZE = 100000;
+            var CHUNKCOUNT = 10;
+
+            var countProgressCallbacks = 0L;
+
             var config = ImportConfig.Default
                 .WithStorage(PointCloud.CreateInMemoryStore())
                 .WithKey("test")
-                .WithOctreeSplitLimit(10)
+                .WithProgressCallback(x => Interlocked.Increment(ref countProgressCallbacks));
                 ;
 
-            var pointcloud = PointCloud.Chunks(GenerateChunks(100000).Take(10), config);
-            Assert.IsTrue(pointcloud.PointCount == 100000 * 10);
+            var pointcloud = PointCloud.Chunks(GenerateChunks(CHUNKSIZE).Take(CHUNKCOUNT), config);
+            Assert.IsTrue(pointcloud.PointCount == CHUNKSIZE * CHUNKCOUNT);
+
+            Assert.IsTrue(countProgressCallbacks > 500);
+
 
             IEnumerable<Chunk> GenerateChunks(int numberOfPointsPerChunk)
             {

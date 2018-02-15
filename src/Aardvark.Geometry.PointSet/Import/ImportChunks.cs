@@ -41,8 +41,8 @@ namespace Aardvark.Geometry.Points
             return chunks
                 .Select(x => x.ImmutableFilterSequentialMinDist(config.MinDist))
                 .Map(config.Reproject, null, config.MaxDegreeOfParallelism, config.CancellationToken)
-                .MapReduce(config.WithRandomKey())
-                .GenerateLod(config)
+                .MapReduce(config.WithRandomKey().WithProgressCallback(x => config.ProgressCallback(x * 0.66)))
+                .GenerateLod(config.WithProgressCallback(x => config.ProgressCallback(0.66 + x * 0.34)))
                 ;
         }
     }

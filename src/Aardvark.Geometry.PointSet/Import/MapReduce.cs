@@ -28,19 +28,23 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PointSet MapReduce(this IEnumerable<Chunk> chunks, ImportConfig config)
         {
+            var totalChunkCount = 0;
             var totalPointCountInChunks = 0L;
+            Action<double> progress = x => config.ProgressCallback(x * 0.5);
             
             #region MAP: create one PointSet for each chunk
 
             var pointsets = chunks
                 .MapParallel((chunk, ct2) =>
                 {
-                    totalPointCountInChunks += chunk.Count;
-                    
+                    Interlocked.Add(ref totalPointCountInChunks, chunk.Count);
+                    progress(1.0 - 1.0 / Interlocked.Increment(ref totalChunkCount));
+
                     var builder = InMemoryPointSet.Build(chunk, config.OctreeSplitLimit);
                     var root = builder.ToPointSetCell(config.Storage, ct: ct2);
                     var id = $"Aardvark.Geometry.PointSet.{Guid.NewGuid()}.json";
                     var pointSet = new PointSet(config.Storage, id, root.Id, config.OctreeSplitLimit);
+                    
                     return pointSet;
                 },
                 config.MaxDegreeOfParallelism, null, config.CancellationToken
@@ -59,6 +63,9 @@ namespace Aardvark.Geometry.Points
 
             #region REDUCE: pairwise octree merge until a single (final) octree remains
 
+            progress = x => config.ProgressCallback(0.5 + x * 0.5);
+            var i = 0;
+
             var totalPointsToMerge = pointsets.Sum(x => x.PointCount);
             if (config.Verbose) Console.WriteLine($"[MapReduce] totalPointsToMerge: {totalPointsToMerge}");
 
@@ -66,6 +73,7 @@ namespace Aardvark.Geometry.Points
             if (totalPointSetsCount == 0) throw new Exception("woohoo");
             var final = pointsets.MapReduceParallel((first, second, ct2) =>
             {
+                progress(Interlocked.Increment(ref i) / (double)totalPointSetsCount);
                 var merged = first.Merge(second, ct2);
                 config.Storage.Add(merged.Id, merged, ct2);
                 if (config.Verbose) Console.WriteLine($"[MapReduce] merged "
@@ -86,6 +94,7 @@ namespace Aardvark.Geometry.Points
             #endregion
 
             config.Storage.Add(config.Key, final, config.CancellationToken);
+            config.ProgressCallback(1.0);
             return final;
         }
     }

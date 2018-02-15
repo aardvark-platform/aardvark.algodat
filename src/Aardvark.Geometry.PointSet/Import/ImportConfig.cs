@@ -40,6 +40,8 @@ namespace Aardvark.Geometry.Points
 
         public int OctreeSplitLimit { get; private set; } = 8192;
 
+        public Action<double> ProgressCallback { get; private set; } = _ => { };
+
         /// <summary>
         /// Large files should be read in chunks with this maximum size.
         /// </summary>
@@ -65,6 +67,7 @@ namespace Aardvark.Geometry.Points
             MaxDegreeOfParallelism = x.MaxDegreeOfParallelism;
             MinDist = x.MinDist;
             OctreeSplitLimit = x.OctreeSplitLimit;
+            ProgressCallback = x.ProgressCallback;
             ReadBufferSizeInBytes = x.ReadBufferSizeInBytes;
             Reproject = x.Reproject;
             Storage = x.Storage;
@@ -84,6 +87,8 @@ namespace Aardvark.Geometry.Points
         public ImportConfig WithMinDist(double x) => new ImportConfig(this) { MinDist = x };
 
         public ImportConfig WithOctreeSplitLimit(int x) => new ImportConfig(this) { OctreeSplitLimit = x };
+
+        public ImportConfig WithProgressCallback(Action<double> x) => new ImportConfig(this) { ProgressCallback = x ?? throw new ArgumentNullException() };
 
         public ImportConfig WithReadBufferSizeInBytes(int x) => new ImportConfig(this) { ReadBufferSizeInBytes = x };
 
