@@ -12,6 +12,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using System;
+using System.Linq;
 using System.Collections.Generic;
 
 namespace Aardvark.Geometry.Points
@@ -33,6 +34,7 @@ namespace Aardvark.Geometry.Points
         public static PointSet Chunks(IEnumerable<Chunk> chunks, ImportConfig config)
         {
             return chunks
+                .Select(x => x.ImmutableFilterSequentialMinDist(config.MinDist))
                 .Map(config.Reproject, null, config.MaxDegreeOfParallelism, config.CancellationToken)
                 .MapReduce(config.WithRandomKey())
                 .GenerateLod(config)
