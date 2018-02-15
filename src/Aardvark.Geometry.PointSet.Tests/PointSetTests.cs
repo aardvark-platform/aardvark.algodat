@@ -47,6 +47,7 @@ namespace Aardvark.Geometry.Tests
         {
             var pointset = PointSet.Empty;
             Assert.IsTrue(pointset.Bounds.IsInvalid);
+            Assert.IsTrue(pointset.BoundingBox.IsInvalid);
             Assert.IsTrue(pointset.Id == "PointSet.Empty");
             Assert.IsTrue(pointset.IsEmpty == true);
             Assert.IsTrue(pointset.PointCount == 0);

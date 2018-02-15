@@ -139,9 +139,14 @@ namespace Aardvark.Geometry.Points
         public long PointCount => Root?.Value?.PointCountTree ?? 0;
 
         /// <summary>
-        /// Gets bounding box of dataset.
+        /// Gets bounds of dataset root cell.
         /// </summary>
         public Box3d Bounds => Root?.Value?.BoundingBox ?? Box3d.Invalid;
+
+        /// <summary>
+        /// Gets exact bounding box of all points from coarsest LoD.
+        /// </summary>
+        public Box3d BoundingBox => Root?.Value != null ? new Box3d(Root.Value.PositionsAbsolute) : Box3d.Invalid;
 
         #endregion
 

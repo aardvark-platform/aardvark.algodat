@@ -29,8 +29,9 @@ namespace Aardvark.Geometry.Tests
             var config = ImportConfig.Default.WithInMemoryStore().WithRandomKey().WithVerbose(true);
             var chunks = PointCloud.E57(filename, config).ToList();
             var pointcloud = PointCloud.Chunks(chunks, config);
-            Console.WriteLine($"pointcloud.PointCount: {pointcloud.PointCount}");
-            Console.WriteLine($"pointcloud.Bounds    :{pointcloud.Bounds}");
+            Console.WriteLine($"pointcloud.PointCount  : {pointcloud.PointCount}");
+            Console.WriteLine($"pointcloud.Bounds      :{pointcloud.Bounds}");
+            Console.WriteLine($"pointcloud.BoundingBox :{pointcloud.BoundingBox}");
 
             var leafLodPointCount = 0L;
             pointcloud.Root.Value.ForEachNode(true, n => { if (n.IsLeaf) leafLodPointCount += n.LodPositionsAbsolute.Length; });
