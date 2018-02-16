@@ -33,11 +33,16 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PointSet Chunks(IEnumerable<Chunk> chunks, ImportConfig config)
         {
+            //var xs1 = chunks.Select(x => x.ImmutableFilterSequentialMinDist(config.MinDist)).ToArray();
+            //var xs2 = xs1.Map(config.Reproject, null, config.MaxDegreeOfParallelism, config.CancellationToken).ToArray();
+            //var xs3 = xs2.MapReduce(config.WithRandomKey());
+            //var xs4 = xs3.GenerateLod(config);
+
             return chunks
                 .Select(x => x.ImmutableFilterSequentialMinDist(config.MinDist))
                 .Map(config.Reproject, null, config.MaxDegreeOfParallelism, config.CancellationToken)
-                .MapReduce(config.WithRandomKey())
-                .GenerateLod(config)
+                .MapReduce(config.WithRandomKey().WithProgressCallback(x => config.ProgressCallback(x * 0.66)))
+                .GenerateLod(config.WithProgressCallback(x => config.ProgressCallback(0.66 + x * 0.34)))
                 ;
         }
     }

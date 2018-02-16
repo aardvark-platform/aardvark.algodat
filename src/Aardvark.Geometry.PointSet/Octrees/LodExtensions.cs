@@ -33,10 +33,10 @@ namespace Aardvark.Geometry.Points
                 config.CancellationToken.ThrowIfCancellationRequested();
                 var i = Interlocked.Increment(ref loddedNodesCount);
                 if (config.Verbose) Console.Write($"[Lod] {i}/{nodeCount}\r");
-                config.Progress?.Report(i, nodeCount);
+                config.ProgressCallback(i / (double)nodeCount);
             }, config.MaxDegreeOfParallelism, config.CancellationToken);
 
-            config.Progress?.ReportFinished();
+            config.ProgressCallback(1.0);
 
             return result;
         }

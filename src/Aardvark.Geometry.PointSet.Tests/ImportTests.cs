@@ -11,14 +11,13 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+using Aardvark.Base;
+using Aardvark.Geometry.Points;
+using NUnit.Framework;
 using System;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using Aardvark.Base;
-using Aardvark.Geometry.Points;
-using NUnit.Framework;
-using Uncodium.SimpleStore;
 
 namespace Aardvark.Geometry.Tests
 {
@@ -72,13 +71,39 @@ namespace Aardvark.Geometry.Tests
             var r = new Random();
             var ps = new V3d[n];
             for (var i = 0; i < n; i++) ps[i] = new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble());
+            var chunk = new Chunk(ps);
 
-            PointCloud.Chunks(new Chunk(ps, null), new ImportConfig
-            {
-                Storage = PointCloud.CreateInMemoryStore(),
-                Key = "test",
-                OctreeSplitLimit = 10
-            });
+            Assert.IsTrue(chunk.Count == 100);
+
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithKey("test")
+                .WithOctreeSplitLimit(10)
+                ;
+
+            var pointcloud = PointCloud.Chunks(chunk, config);
+            Assert.IsTrue(pointcloud.PointCount == 100);
+        }
+
+        [Test]
+        public void CanImportChunk_MinDist()
+        {
+            int n = 100;
+            var r = new Random();
+            var ps = new V3d[n];
+            for (var i = 0; i < n; i++) ps[i] = new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble());
+            var chunk = new Chunk(ps);
+
+            Assert.IsTrue(chunk.Count == 100);
+
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithKey("test")
+                .WithOctreeSplitLimit(10)
+                .WithMinDist(0.5)
+                ;
+            var pointcloud = PointCloud.Chunks(chunk, config);
+            Assert.IsTrue(pointcloud.PointCount < 100);
         }
 
         #endregion
@@ -192,21 +217,35 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(ps.Length == 3);
             Assert.IsTrue(ps[0].ApproxEqual(new V3d(1, 2, 9), 1e-10));
         }
-
+        
         [Test]
         public void CanImportPtsFile()
         {
             var filename = Path.Combine(Config.TestDataDir, "test.pts");
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
             TestContext.WriteLine($"testfile is '{filename}'");
-            var config = new ImportConfig
-            {
-                Storage = PointCloud.CreateInMemoryStore(),
-                Key = "test"
-            };
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithKey("test")
+                ;
             var pointset = PointCloud.Import(filename, config);
             Assert.IsTrue(pointset != null);
             Assert.IsTrue(pointset.PointCount == 3);
+        }
+
+        [Test]
+        public void CanImportPtsFile_MinDist()
+        {
+            var filename = Path.Combine(Config.TestDataDir, "test.pts");
+            if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
+            TestContext.WriteLine($"testfile is '{filename}'");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithKey("test")
+                .WithMinDist(10.0);
+                ;
+            var pointset = PointCloud.Import(filename, config);
+            Assert.IsTrue(pointset.PointCount < 3);
         }
 
         [Test]
@@ -214,12 +253,11 @@ namespace Aardvark.Geometry.Tests
         {
             var filename = Path.Combine(Config.TestDataDir, "test.pts");
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
-            TestContext.WriteLine($"testfile is '{filename}'"); 
-            var config = new ImportConfig
-            {
-                Storage = PointCloud.CreateInMemoryStore(),
-                Key = "test"
-            };
+            TestContext.WriteLine($"testfile is '{filename}'");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithKey("test")
+                ;
             var pointset = PointCloud.Import(filename, config);
             var pointset2 = config.Storage.GetPointSet("test", CancellationToken.None);
             Assert.IsTrue(pointset2 != null);
@@ -232,11 +270,10 @@ namespace Aardvark.Geometry.Tests
             var filename = Path.Combine(Config.TestDataDir, "test.pts");
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
             TestContext.WriteLine($"testfile is '{filename}'");
-            var config = new ImportConfig
-            {
-                Storage = PointCloud.CreateInMemoryStore(),
-                Key = "test"
-            };
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithKey("test")
+                ;
             var pointset = PointCloud.Import(filename, config);
             Assert.IsTrue(pointset.Id == "test");
             var pointset2 = config.Storage.GetPointSet("test", CancellationToken.None);
@@ -250,11 +287,10 @@ namespace Aardvark.Geometry.Tests
             var filename = Path.Combine(Config.TestDataDir, "test.pts");
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
             TestContext.WriteLine($"testfile is '{filename}'");
-            var config = new ImportConfig
-            {
-                Storage = PointCloud.CreateInMemoryStore(),
-                Key = "test"
-            };
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithKey("test")
+                ;
             var ptsChunks = PointCloud.Pts(filename, config);
             var pointset = PointCloud.Chunks(ptsChunks, config);
             Assert.IsTrue(pointset.Id == "test");
@@ -278,7 +314,6 @@ namespace Aardvark.Geometry.Tests
         }
 
         [Test]
-        //[Ignore("waiting for E57 implementation")]
         public void CanParseE57File()
         {
             var filename = Path.Combine(Config.TestDataDir, "test.e57");
@@ -291,30 +326,39 @@ namespace Aardvark.Geometry.Tests
         }
 
         [Test]
-        //[Ignore("waiting for E57 implementation")]
         public void CanImportE57File()
         {
             var filename = Path.Combine(Config.TestDataDir, "test.e57");
-            var config = new ImportConfig
-            {
-                Storage = PointCloud.CreateInMemoryStore(),
-                Key = "test"
-            };
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithKey("test")
+                ;
             var pointset = PointCloud.Import(filename, config);
             Assert.IsTrue(pointset != null);
             Assert.IsTrue(pointset.PointCount == 3);
         }
 
         [Test]
-        //[Ignore("waiting for E57 implementation")]
+        public void CanImportE57File_MinDist()
+        {
+            var filename = Path.Combine(Config.TestDataDir, "test.e57");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithKey("test")
+                .WithMinDist(10)
+                ;
+            var pointset = PointCloud.Import(filename, config);
+            Assert.IsTrue(pointset.PointCount < 3);
+        }
+
+        [Test]
         public void CanImportE57FileAndLoadFromStore()
         {
             var filename = Path.Combine(Config.TestDataDir, "test.e57");
-            var config = new ImportConfig
-            {
-                Storage = PointCloud.CreateInMemoryStore(),
-                Key = "test"
-            };
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithKey("test")
+                ;
             var pointset = PointCloud.Import(filename, config);
             var pointset2 = config.Storage.GetPointSet("test", CancellationToken.None);
             Assert.IsTrue(pointset2 != null);

@@ -30,12 +30,11 @@ namespace Aardvark.Geometry.Tests
             var r = new Random();
             var ps = new V3d[n];
             for (var i = 0; i < n; i++) ps[i] = new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble());
-            var config = new ImportConfig
-            {
-                Storage = PointCloud.CreateInMemoryStore(),
-                Key = "test",
-                OctreeSplitLimit = splitLimit
-            };
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithKey("test")
+                .WithOctreeSplitLimit(splitLimit)
+                ;
             return PointCloud.Chunks(new Chunk(ps, null), config);
         }
 
@@ -46,12 +45,11 @@ namespace Aardvark.Geometry.Tests
             var ps = new V3d[n];
             for (var i = 0; i < n / 2; i++) ps[i] = randomPos();
             for (var i = n / 2 + 1; i < n; i++) ps[i] = randomPos();
-            var config = new ImportConfig
-            {
-                Storage = PointCloud.CreateInMemoryStore(),
-                Key = "test",
-                OctreeSplitLimit = splitLimit
-            };
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithKey("test")
+                .WithOctreeSplitLimit(splitLimit)
+                ;
             return PointCloud.Chunks(new Chunk(ps, null), config);
         }
 
@@ -64,12 +62,11 @@ namespace Aardvark.Geometry.Tests
                 for (var y = start; y < 1.0; y += step)
                     for (var z = start; z < 1.0; z += step)
                         ps.Add(new V3d(x, y, z));
-            var config = new ImportConfig
-            {
-                Storage = PointCloud.CreateInMemoryStore(),
-                Key = "test",
-                OctreeSplitLimit = splitLimit
-            };
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithKey("test")
+                .WithOctreeSplitLimit(splitLimit)
+                ;
             return PointCloud.Chunks(new Chunk(ps, null), config);
         }
 
@@ -80,14 +77,13 @@ namespace Aardvark.Geometry.Tests
         {
             var filename = Config.TEST_FILE_NAME_PTS;
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
-            
-            var config = new ImportConfig
-            {
-                Storage = PointCloud.CreateInMemoryStore(),
-                Key = "key1",
-                OctreeSplitLimit = 1000,
-                ReadBufferSizeInBytes = 64 * 1024 * 1024,
-            };
+
+            var config = ImportConfig.Default
+                .WithInMemoryStore()
+                .WithKey("key1")
+                .WithOctreeSplitLimit(1000)
+                .WithReadBufferSizeInBytes(64 * 1024 * 1024)
+                ;
             var pointset = PointCloud.Import(filename, config);
 
             var ray1 = new Ray3d(new V3d(0.1, -1.0, -0.2), V3d.OIO);
@@ -499,14 +495,12 @@ namespace Aardvark.Geometry.Tests
         {
             var filename = Config.TEST_FILE_NAME_PTS;
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
-            
-            var config = new ImportConfig
-            {
-                Storage = PointCloud.CreateInMemoryStore(),
-                Key = "key1",
-                OctreeSplitLimit = 16 * 1024,
-                ReadBufferSizeInBytes = 128 * 1024 * 1024,
-            };
+            var config = ImportConfig.Default
+                .WithInMemoryStore()
+                .WithKey("key1")
+                .WithOctreeSplitLimit(16 * 1024)
+                .WithReadBufferSizeInBytes(128 * 1024 * 1024)
+                ;
             var pointset = PointCloud.Import(filename, config);
 
             var box = Box3d.FromMinAndSize(new V3d(0.5, 0.5, 0.0), new V3d(0.5, 0.5, 0.5));
@@ -565,9 +559,10 @@ namespace Aardvark.Geometry.Tests
             var ps = new V3d[51200].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
             var cs = ps.Map(_ => C4b.White);
 
+            var config = ImportConfig.Default.WithKey("Test").WithOctreeSplitLimit(1);
             return PointSet
                 .Create(storage, "test", ps.ToList(), cs.ToList(), null, 100, true, CancellationToken.None)
-                .GenerateLod(new ImportConfig { Key = "Test", OctreeSplitLimit = 1 })
+                .GenerateLod(config)
                 ;
         }
 

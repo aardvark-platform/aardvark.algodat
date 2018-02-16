@@ -27,10 +27,8 @@ namespace Aardvark.Geometry.Points
         /// Computes MD5 hash of file content.
         /// If fast is set to true, then only the first 1 MiB of data is used for hash.
         /// </summary>
-        public static string ComputeMd5Hash(string filename, bool fast, ProgressReporter progress = null)
+        public static string ComputeMd5Hash(string filename, bool fast)
         {
-            if (progress == null) progress = ProgressReporter.None;
-
             var MiB = 1024 * 1024;
 
             var filesize = new FileInfo(filename).Length;
@@ -41,7 +39,6 @@ namespace Aardvark.Geometry.Points
                 {
                     var buffer = File.ReadAllBytes(filename);
                     var hash = new Guid(MD5.Create().ComputeHash(buffer)).ToString();
-                    progress.ReportFinished();
                     return hash;
                 }
                 else
@@ -51,7 +48,6 @@ namespace Aardvark.Geometry.Points
                         var buffer = new byte[MiB];
                         if (fs.Read(buffer, 0, MiB) != MiB) throw new InvalidOperationException();
                         var hash = new Guid(MD5.Create().ComputeHash(buffer)).ToString();
-                        progress.ReportFinished();
                         return hash;
                     }
                 }
@@ -68,7 +64,6 @@ namespace Aardvark.Geometry.Points
                             while (!cts.IsCancellationRequested)
                             {
                                 await Task.Delay(TimeSpan.FromSeconds(1));
-                                progress.Report(Progress.Token(fs.Position, filesize));
                             }
                         }, cts.Token);
 

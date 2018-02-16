@@ -33,7 +33,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static IEnumerable<Buffer> ChunkStreamAtNewlines(
             this Stream stream, long streamLengthInBytes, int maxChunkSizeInBytes,
-            ProgressReporter progress, CancellationToken ct
+            CancellationToken ct
             )
         {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
@@ -71,7 +71,7 @@ namespace Aardvark.Geometry.Points
 
                 // copy rest of previous buffer to new buffer (if necessary)
                 var _data = data;
-                var _count = validBufferSize; // bufferSizeInBytes;
+                var _count = validBufferSize;
 
                 if (needToCopyRest)
                 {
@@ -87,11 +87,8 @@ namespace Aardvark.Geometry.Points
 
                 totalBytesRead += bufferBytesRead;
                 stats.ReportProgress(totalBytesRead);
-                progress.Report(Progress.Token(totalBytesRead, streamLengthInBytes));
                 yield return Buffer.Create(_data, 0, _count);
             }
-
-            progress.ReportFinished();
         }
 
         /// <summary>
@@ -103,14 +100,13 @@ namespace Aardvark.Geometry.Points
         /// <param name="minDist"></param>
         /// <param name="maxLevelOfParallelism"></param>
         /// <param name="verbose"></param>
-        /// <param name="progress"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
         public static IEnumerable<Chunk> ParseBuffers(
             this IEnumerable<Buffer> buffers, long sumOfAllBufferSizesInBytes,
             Func<byte[], int, double, Chunk?> parser, double minDist,
             int maxLevelOfParallelism, bool verbose,
-            ProgressReporter progress, CancellationToken ct
+            CancellationToken ct
             )
         {
             var stats = new ParsingStats(sumOfAllBufferSizesInBytes);
@@ -131,7 +127,6 @@ namespace Aardvark.Geometry.Points
                 sampleCountYielded += r.Count;
                 totalBytesRead += buffer.Count;
                 stats.ReportProgress(totalBytesRead);
-                progress.Report(Progress.Token(totalBytesRead, sumOfAllBufferSizesInBytes));
                 
                 if (verbose) Console.WriteLine(
                     $"[Parsing] processed {totalBytesRead * PER_GiB:0.000} GiB at {stats.MiBsPerSecond:0.00} MiB/s"
@@ -142,8 +137,6 @@ namespace Aardvark.Geometry.Points
             maxLevelOfParallelism,
             elapsed =>
             {
-                progress.ReportFinished();
-
                 if (verbose)
                 {
                     Console.WriteLine($"[Parsing] summary: processed {sumOfAllBufferSizesInBytes} bytes in {elapsed.TotalSeconds:0.00} secs");

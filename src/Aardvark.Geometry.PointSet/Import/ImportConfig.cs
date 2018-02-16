@@ -28,81 +28,75 @@ namespace Aardvark.Geometry.Points
 
         #region Properties
 
+        public CancellationToken CancellationToken { get; private set; } = CancellationToken.None;
+
+        public bool CreateOctreeLod { get; private set; } = false;
+
+        public string Key { get; private set; } = null;
+
+        public int MaxDegreeOfParallelism { get; private set; } = 0;
+
+        public double MinDist { get; private set; } = 0.0;
+
+        public int OctreeSplitLimit { get; private set; } = 8192;
+
+        public Action<double> ProgressCallback { get; private set; } = _ => { };
+
         /// <summary>
         /// Large files should be read in chunks with this maximum size.
         /// </summary>
-        public int ReadBufferSizeInBytes = 4 * 1024 * 1024;
+        public int ReadBufferSizeInBytes { get; private set; } = 4 * 1024 * 1024;
         
-        public Func<IList<V3d>, IList<V3d>> Reproject = null;
+        public Func<IList<V3d>, IList<V3d>> Reproject { get; private set; } =  null;
         
-        public double MinDist = 0.0;
+        public Storage Storage { get; private set; } = null;
         
-        public Storage Storage;
+        public bool Verbose { get; private set; } = false;
         
-        public string Key;
-        
-        public int OctreeSplitLimit = 8192;
-        
-        public bool CreateOctreeLod = false;
-        
-        public int MaxDegreeOfParallelism = 0;
-        
-        public bool Verbose = false;
-        
-        public ProgressReporter Progress = ProgressReporter.None;
-        
-        public CancellationToken CancellationToken = CancellationToken.None;
-
         #endregion
 
         #region Immutable updates
+
+        private ImportConfig() { }
         
-        public ImportConfig WithKey(string newKey) => new ImportConfig
+        public ImportConfig(ImportConfig x)
         {
-            ReadBufferSizeInBytes = ReadBufferSizeInBytes,
-            Reproject = Reproject,
-            MinDist = MinDist,
-            Storage = Storage,
-            Key = newKey,
-            OctreeSplitLimit = OctreeSplitLimit,
-            CreateOctreeLod = CreateOctreeLod,
-            MaxDegreeOfParallelism = MaxDegreeOfParallelism,
-            Verbose = Verbose,
-            Progress = Progress,
-            CancellationToken = CancellationToken
-        };
+            CancellationToken = x.CancellationToken;
+            CreateOctreeLod = x.CreateOctreeLod;
+            Key = x.Key;
+            MaxDegreeOfParallelism = x.MaxDegreeOfParallelism;
+            MinDist = x.MinDist;
+            OctreeSplitLimit = x.OctreeSplitLimit;
+            ProgressCallback = x.ProgressCallback;
+            ReadBufferSizeInBytes = x.ReadBufferSizeInBytes;
+            Reproject = x.Reproject;
+            Storage = x.Storage;
+            Verbose = x.Verbose;
+        }
+
+        public ImportConfig WithCancellationToken(CancellationToken x) => new ImportConfig(this) { CancellationToken = x };
+
+        public ImportConfig WithCreateOctreeLod(bool x) => new ImportConfig(this) { CreateOctreeLod = x };
+
+        public ImportConfig WithKey(string x) => new ImportConfig(this) { Key = x };
         
         public ImportConfig WithRandomKey() => WithKey(Guid.NewGuid().ToString());
 
-        public ImportConfig WithInMemoryStore() => new ImportConfig
-        {
-            ReadBufferSizeInBytes = ReadBufferSizeInBytes,
-            Reproject = Reproject,
-            MinDist = MinDist,
-            Storage = new SimpleMemoryStore().ToPointCloudStore(),
-            Key = Key,
-            OctreeSplitLimit = OctreeSplitLimit,
-            CreateOctreeLod = CreateOctreeLod,
-            MaxDegreeOfParallelism = MaxDegreeOfParallelism,
-            Verbose = Verbose,
-            Progress = Progress,
-            CancellationToken = CancellationToken
-        };
+        public ImportConfig WithMaxDegreeOfParallelism(int x) => new ImportConfig(this) { MaxDegreeOfParallelism = x };
 
-        public ImportConfig WithVerbose(bool verbose) => new ImportConfig
-        {
-            ReadBufferSizeInBytes = ReadBufferSizeInBytes,
-            Reproject = Reproject,
-            MinDist = MinDist,
-            Storage = Storage,
-            Key = Key,
-            OctreeSplitLimit = OctreeSplitLimit,
-            CreateOctreeLod = CreateOctreeLod,
-            MaxDegreeOfParallelism = MaxDegreeOfParallelism,
-            Verbose = verbose,
-            Progress = Progress,
-            CancellationToken = CancellationToken
-        };
+        public ImportConfig WithMinDist(double x) => new ImportConfig(this) { MinDist = x };
+
+        public ImportConfig WithOctreeSplitLimit(int x) => new ImportConfig(this) { OctreeSplitLimit = x };
+
+        public ImportConfig WithProgressCallback(Action<double> x) => new ImportConfig(this) { ProgressCallback = x ?? throw new ArgumentNullException() };
+
+        public ImportConfig WithReadBufferSizeInBytes(int x) => new ImportConfig(this) { ReadBufferSizeInBytes = x };
+
+        public ImportConfig WithStorage(Storage x) => new ImportConfig(this) { Storage = x };
+
+        public ImportConfig WithInMemoryStore() => new ImportConfig(this) { Storage = new SimpleMemoryStore().ToPointCloudStore() };
+
+        public ImportConfig WithVerbose(bool x) => new ImportConfig(this) { Verbose = x };
 
         #endregion
     }

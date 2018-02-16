@@ -42,7 +42,10 @@ namespace Aardvark.Geometry.Points
             var builder = InMemoryPointSet.Build(ps, cs, ns, bounds, octreeSplitLimit);
             var root = builder.ToPointSetCell(storage, ct: ct);
             var result = new PointSet(storage, key, root.Id, octreeSplitLimit);
-            var config = new ImportConfig { Key = Guid.NewGuid().ToString(), CancellationToken = ct };
+            var config = ImportConfig.Default
+                .WithRandomKey()
+                .WithCancellationToken(ct)
+                ;
             if (buildKdTree) result = result.GenerateLod(config);
             return result;
         }
@@ -136,9 +139,14 @@ namespace Aardvark.Geometry.Points
         public long PointCount => Root?.Value?.PointCountTree ?? 0;
 
         /// <summary>
-        /// Gets bounding box of dataset.
+        /// Gets bounds of dataset root cell.
         /// </summary>
         public Box3d Bounds => Root?.Value?.BoundingBox ?? Box3d.Invalid;
+
+        /// <summary>
+        /// Gets exact bounding box of all points from coarsest LoD.
+        /// </summary>
+        public Box3d BoundingBox => Root?.Value != null ? new Box3d(Root.Value.PositionsAbsolute) : Box3d.Invalid;
 
         #endregion
 

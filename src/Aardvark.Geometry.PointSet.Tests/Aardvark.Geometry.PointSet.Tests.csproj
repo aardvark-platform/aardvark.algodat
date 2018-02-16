@@ -53,13 +53,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BitPackTests.cs" />
+    <Compile Include="ProgressReportingTests.cs" />
     <Compile Include="StoreTests.cs" />
     <Compile Include="ImportTests.cs" />
     <Compile Include="CellTests.cs" />
     <Compile Include="KdTreeTests.cs" />
     <Compile Include="MergeTests.cs" />
     <Compile Include="E57Tests.cs" />
-    <Compile Include="ProgressTests.cs" />
     <Compile Include="ParsingTests.cs" />
     <Compile Include="HashTests.cs" />
     <Compile Include="Config.cs" />

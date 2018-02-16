@@ -40,8 +40,12 @@ namespace Aardvark.Geometry.Tests
                 Assert.IsTrue(cell.LodPointCount == 0);
             });
 
-            var lodded = pointset.GenerateLod(new ImportConfig { Key = "Test", OctreeSplitLimit = 1 });
-            lodded.Root.Value.ForEachNode(true, cell=>
+            var config = ImportConfig.Default
+                .WithKey("Test")
+                .WithOctreeSplitLimit(1)
+                ;
+            var lodded = pointset.GenerateLod(config);
+            lodded.Root.Value.ForEachNode(true, cell =>
             {
                 Assert.IsTrue(cell.LodPointCount > 0);
             });
@@ -75,7 +79,11 @@ namespace Aardvark.Geometry.Tests
                 }
             });
 
-            var lodded = pointset.GenerateLod(new ImportConfig { Key = "lod", OctreeSplitLimit = 1 });
+            var config = ImportConfig.Default
+                .WithKey("lod")
+                .WithOctreeSplitLimit(1)
+                ;
+            var lodded = pointset.GenerateLod(config);
             lodded.Root.Value.ForEachNode(true, cell =>
             {
                 if (cell.IsLeaf)
@@ -105,8 +113,12 @@ namespace Aardvark.Geometry.Tests
             var cs = ps.Map(_ => C4b.White);
 
             var pointset = PointSet.Create(storage, "test", ps.ToList(), cs.ToList(), null, 5000, false, CancellationToken.None);
-          
-            var lodded = pointset.GenerateLod(new ImportConfig { Key = "lod", OctreeSplitLimit = 1 });
+
+            var config = ImportConfig.Default
+                  .WithKey("lod")
+                  .WithOctreeSplitLimit(1)
+                  ;
+            var lodded = pointset.GenerateLod(config);
             
             var json = lodded.ToJson();
             var relodded = PointSet.Parse(json, storage);
@@ -129,13 +141,13 @@ namespace Aardvark.Geometry.Tests
         {
             var filename = Config.TEST_FILE_NAME_PTS;
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
-            
-            var pointset = PointCloud.Import(filename, new ImportConfig
-            {
-                Storage = PointSetTests.CreateStorage(),
-                Key = "test",
-                OctreeSplitLimit = 5000
-            });
+
+            var config = ImportConfig.Default
+                .WithStorage(PointSetTests.CreateStorage())
+                .WithKey("test")
+                .WithOctreeSplitLimit(5000)
+                ;
+            var pointset = PointCloud.Import(filename, config);
 
             pointset.Root.Value.ForEachNode(true, cell =>
             {
@@ -149,12 +161,11 @@ namespace Aardvark.Geometry.Tests
             var filename = Config.TEST_FILE_NAME_PTS;
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
 
-            var config = new ImportConfig
-            {
-                Storage = PointSetTests.CreateStorage(),
-                Key = "test",
-                OctreeSplitLimit = 5000
-            };
+            var config = ImportConfig.Default
+                .WithStorage(PointSetTests.CreateStorage())
+                .WithKey("test")
+                .WithOctreeSplitLimit(5000)
+                ;
             var pointset = PointCloud.Import(filename, config);
 
             var json = pointset.ToJson();
@@ -185,12 +196,12 @@ namespace Aardvark.Geometry.Tests
             var dbDiskLocation = Path.Combine(Path.GetTempPath(), "teststore_" + Guid.NewGuid());
             using (var storageA = PointSetTests.CreateDiskStorage(dbDiskLocation))
             {
-                var pointset = PointCloud.Import(filename, new ImportConfig
-                {
-                    Storage = storageA,
-                    Key = "test",
-                    OctreeSplitLimit = 5000
-                });
+                var config = ImportConfig.Default
+                   .WithStorage(storageA)
+                   .WithKey("test")
+                   .WithOctreeSplitLimit(5000)
+                   ;
+                var pointset = PointCloud.Import(filename, config);
                 pointset.Root.Value.ForEachNode(true, cell =>
                 {
                     if (cell.IsLeaf)

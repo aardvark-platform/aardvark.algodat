@@ -153,14 +153,9 @@ namespace Aardvark.Geometry.Points
                             WriteLine($"[E57]   atmospheric pressure .. {data3d.AtmosphericPressure}");
                     }
                     //WriteLine(header.RawXml.ToString(SaveOptions.OmitDuplicateNamespaces));
-                }
-
-                // cleanup
-                if (config.Verbose)
-                {
+               
                     WriteLine();
                     WriteLine();
-                    //CursorTop -= 7;
                 }
                 
                 foreach (var data3d in header.E57Root.Data3D)

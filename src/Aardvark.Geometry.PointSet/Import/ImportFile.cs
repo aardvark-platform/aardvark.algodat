@@ -52,11 +52,10 @@ namespace Aardvark.Geometry.Points
 
             if (config == null)
             {
-                config = new ImportConfig
-                {
-                    Storage = CreateInMemoryStore(),
-                    Key = FileHelpers.ComputeMd5Hash(filename, true, ProgressReporter.None)
-                };
+                config = ImportConfig.Default
+                    .WithInMemoryStore()
+                    .WithKey(FileHelpers.ComputeMd5Hash(filename, true))
+                    ;
 
             }
 
@@ -71,12 +70,11 @@ namespace Aardvark.Geometry.Points
         {
             if (filename == null) throw new ArgumentNullException(nameof(filename));
             if (!File.Exists(filename)) throw new FileNotFoundException("File does not exit.", filename);
-            
-            var config = new ImportConfig
-            {
-                Storage = OpenStore(storeDirectory),
-                Key = FileHelpers.ComputeMd5Hash(filename, true, ProgressReporter.None)
-            };
+
+            var config = ImportConfig.Default
+                .WithStorage(OpenStore(storeDirectory))
+                .WithKey(FileHelpers.ComputeMd5Hash(filename, true))
+                ;
 
             var result = PointCloudFormat.FromFileName(filename).ImportFile(filename, config);
             config.Storage.Flush();
