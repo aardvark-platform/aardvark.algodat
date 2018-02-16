@@ -241,8 +241,6 @@ namespace Aardvark.Geometry.Points
         {
             storage.f_add(key, data, () =>
             {
-                //var json = data.ToJson().ToString();
-                //var buffer = Encoding.UTF8.GetBytes(json);
                 var buffer = data.ToBinary();
                 return buffer;
             }, ct);
@@ -256,8 +254,6 @@ namespace Aardvark.Geometry.Points
 
             var buffer = storage.f_get(key, ct);
             if (buffer == null) return null;
-            //var json = JObject.Parse(Encoding.UTF8.GetString(buffer));
-            //data = PointSetCell.Parse(json, storage);
             data = PointSetNode.ParseBinary(buffer, storage);
             storage.f_add(key, data, null, ct);
             return data;

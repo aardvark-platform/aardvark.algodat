@@ -96,9 +96,9 @@ namespace Aardvark.Geometry.Points
         {
             return JObject.FromObject(new
             {
-                Id = Id,
+                Id,
                 RootCellId = Root?.Id,
-                SplitLimit = SplitLimit
+                SplitLimit
             });
         }
 

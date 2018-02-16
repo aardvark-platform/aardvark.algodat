@@ -11,11 +11,10 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+using Aardvark.Base;
 using System;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-using Aardvark.Base;
 
 namespace Aardvark.Geometry.Points
 {
@@ -79,10 +78,7 @@ namespace Aardvark.Geometry.Points
                 return n;
             });
             var e = octreeSplitLimit - counts.Sum();
-
-            // there are forced splits below the split limit now, so this no longer holds ... 
-            //if (counts.Sum() != octreeSplitLimit) throw new InvalidOperationException($"{counts.Sum()} != {octreeSplitLimit}");
-
+            
             // generate LoD data ...
             var lodPs = new V3f[octreeSplitLimit];
             var lodCs = new C4b[octreeSplitLimit];
@@ -106,7 +102,6 @@ namespace Aardvark.Geometry.Points
                     if (subcs != null) lodCs[i] = subcs[jj];
                     i++;
                 }
-                //Report.Line($"{i - oldI} from {counts[ci]} (dj = {dj}, subps.Length = {subps.Length})");
             }
             var lodKd = lodPs.BuildKdTree();
 
