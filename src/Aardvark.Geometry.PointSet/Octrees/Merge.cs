@@ -35,9 +35,11 @@ namespace Aardvark.Geometry.Points
 
             var subnodesPoints = new List<V3d>[8];
             var subnodesColors = new List<C4b>[8];
+            var subnodesNormals = new List<V3f>[8];
 
             var pa = cell.PositionsAbsolute;
             var ca = cell.Colors.Value;
+            var na = cell.Normals.Value;
             var imax = cell.PointCount;
             if (pa.Length != imax) throw new InvalidOperationException();
 
@@ -48,9 +50,11 @@ namespace Aardvark.Geometry.Points
                 {
                     subnodesPoints[si] = new List<V3d>();
                     subnodesColors[si] = new List<C4b>();
+                    subnodesNormals[si] = new List<V3f>();
                 }
                 subnodesPoints[si].Add(pa[i]);
                 subnodesColors[si].Add(ca[i]);
+                subnodesNormals[si].Add(na[i]);
             }
 
             var subnodes = new PointSetNode[8];
@@ -62,7 +66,7 @@ namespace Aardvark.Geometry.Points
                 if (!cell.Cell.Contains(subCellIndex)) throw new InvalidOperationException();
                 if (cell.Cell.Exponent != subCellIndex.Exponent + 1) throw new InvalidOperationException();
 
-                var builder = InMemoryPointSet.Build(subnodesPoints[i], subnodesColors[i], subCellIndex, int.MaxValue);
+                var builder = InMemoryPointSet.Build(subnodesPoints[i], subnodesColors[i], subnodesNormals[i], subCellIndex, int.MaxValue);
                 var subnode = builder.ToPointSetCell(cell.Storage, ct: ct);
                 if (subnodesPoints[i].Count != subnode.PointCountTree) throw new InvalidOperationException();
                 if (!cell.Cell.Contains(subnode.Cell)) throw new InvalidOperationException();
@@ -252,7 +256,7 @@ namespace Aardvark.Geometry.Points
             if (a.IsLeaf)
             {
                 result2 = a.ToInnerNode(subcells);
-                result2 = InjectPointsIntoTree(a.PositionsAbsolute, a.Colors.Value, result2, result2.Cell, octreeSplitLimit, a.Storage, ct);
+                result2 = InjectPointsIntoTree(a.PositionsAbsolute, a.Colors.Value, a.Normals?.Value, result2, result2.Cell, octreeSplitLimit, a.Storage, ct);
             }
             else
             {
@@ -266,6 +270,8 @@ namespace Aardvark.Geometry.Points
         
         private static T[] Concat<T>(T[] xs, T[] ys)
         {
+            if (xs == null && ys == null) return null;
+            if ((xs == null) != (ys == null)) throw new InvalidOperationException();
             var rs = new T[xs.Length + ys.Length];
             Array.Copy(xs, 0, rs, 0, xs.Length);
             Array.Copy(ys, 0, rs, xs.Length, ys.Length);
@@ -442,11 +448,13 @@ namespace Aardvark.Geometry.Points
             if (a.IsNotLeaf || b.IsNotLeaf) throw new InvalidOperationException();
             if (a.Cell != b.Cell) throw new InvalidOperationException();
             if (b.PositionsAbsolute == null) throw new InvalidOperationException();
-            if (b.Colors.Value == null) throw new InvalidOperationException();
+            if (a.HasColors != b.HasColors) throw new InvalidOperationException();
+            if (a.HasNormals != b.HasNormals) throw new InvalidOperationException();
 
             var ps = Concat(a.PositionsAbsolute, b.PositionsAbsolute);
-            var cs = Concat(a.Colors.Value, b.Colors.Value);
-            var result = InMemoryPointSet.Build(ps, cs, a.Cell, octreeSplitLimit).ToPointSetCell(a.Storage, ct: ct);
+            var cs = Concat(a.Colors?.Value, b.Colors?.Value);
+            var ns = Concat(a.Normals?.Value, b.Normals?.Value);
+            var result = InMemoryPointSet.Build(ps, cs, ns, a.Cell, octreeSplitLimit).ToPointSetCell(a.Storage, ct: ct);
 #if DEBUG
             // this no longer holds, since InMemoryPointSet will remove duplicate points
             //if (result.PointCountTree != a.PointCountTree + b.PointCountTree) throw new InvalidOperationException();
@@ -462,7 +470,7 @@ namespace Aardvark.Geometry.Points
             if (a.Cell != b.Cell) throw new InvalidOperationException();
 
             var center = a.Center;
-            var result = InjectPointsIntoTree(a.PositionsAbsolute, a.Colors.Value, b, a.Cell, octreeSplitLimit, a.Storage, ct);
+            var result = InjectPointsIntoTree(a.PositionsAbsolute, a.Colors?.Value, a.Normals?.Value, b, a.Cell, octreeSplitLimit, a.Storage, ct);
 #if DEBUG
             // this no longer holds, because duplicate points may have been removed
             //if (result.PointCountTree != a.PointCountTree + b.PointCountTree) throw new InvalidOperationException();
@@ -532,11 +540,11 @@ namespace Aardvark.Geometry.Points
             return result;
         }
 
-        private static PointSetNode InjectPointsIntoTree(IList<V3d> psAbsolute, IList<C4b> cs, PointSetNode a, Cell cell, long octreeSplitLimit, Storage storage, CancellationToken ct)
+        private static PointSetNode InjectPointsIntoTree(IList<V3d> psAbsolute, IList<C4b> cs, IList<V3f> ns, PointSetNode a, Cell cell, long octreeSplitLimit, Storage storage, CancellationToken ct)
         {
             if (a == null)
             {
-                var result0 = InMemoryPointSet.Build(psAbsolute, cs, cell, octreeSplitLimit).ToPointSetCell(storage, ct: ct);
+                var result0 = InMemoryPointSet.Build(psAbsolute, cs, ns, cell, octreeSplitLimit).ToPointSetCell(storage, ct: ct);
                 if (result0.PointCountTree != psAbsolute.Count) throw new InvalidOperationException();
                 return result0;
             }
@@ -545,9 +553,15 @@ namespace Aardvark.Geometry.Points
 
             if (a.IsLeaf)
             {
+                if (cs != null && !a.HasColors) throw new InvalidOperationException();
+                if (cs == null && a.HasColors) throw new InvalidOperationException();
+                if (ns != null && !a.HasNormals) throw new InvalidOperationException();
+                if (ns == null && a.HasNormals) throw new InvalidOperationException();
+
                 var newPs = new List<V3d>(psAbsolute); newPs.AddRange(a.PositionsAbsolute);
-                var newCs = new List<C4b>(cs); newCs.AddRange(a.Colors.Value);
-                var result0 = InMemoryPointSet.Build(newPs, newCs, cell, octreeSplitLimit).ToPointSetCell(a.Storage, ct: ct);
+                var newCs = cs != null ? new List<C4b>(cs) : null; newCs?.AddRange(a.Colors.Value);
+                var newNs = ns != null ? new List<V3f>(ns) : null; newNs?.AddRange(a.Normals.Value);
+                var result0 = InMemoryPointSet.Build(newPs, newCs, newNs, cell, octreeSplitLimit).ToPointSetCell(a.Storage, ct: ct);
 #if DEBUG
                 // this no longer holds, because duplicate points may have been removed
                 //if (result0.PointCountTree != psAbsolute.Count + a.PointCountTree) throw new InvalidOperationException();
@@ -556,12 +570,20 @@ namespace Aardvark.Geometry.Points
             }
 
             var pss = new List<V3d>[8];
-            var css = new List<C4b>[8];
+            var css = cs != null ? new List<C4b>[8] : null;
+            var nss = ns != null ? new List<V3f>[8] : null;
             for (var i = 0; i < psAbsolute.Count; i++)
             {
                 var j = a.GetSubIndex(psAbsolute[i]);
-                if (pss[j] == null) { pss[j] = new List<V3d>(); css[j] = new List<C4b>(); }
-                pss[j].Add(psAbsolute[i]); css[j].Add(cs[i]);
+                if (pss[j] == null)
+                {
+                    pss[j] = new List<V3d>();
+                    if (cs != null) css[j] = new List<C4b>();
+                    if (ns != null) nss[j] = new List<V3f>();
+                }
+                pss[j].Add(psAbsolute[i]);
+                if (cs != null) css[j].Add(cs[i]);
+                if (ns != null) nss[j].Add(ns[i]);
             }
 
             if (pss.Sum(x => x?.Count) != psAbsolute.Count) throw new InvalidOperationException();
@@ -572,7 +594,7 @@ namespace Aardvark.Geometry.Points
                 var x = a.Subnodes[j]?.Value;
                 if (pss[j] != null)
                 {
-                    subcells[j] = InjectPointsIntoTree(pss[j], css[j], x, cell.GetOctant(j), octreeSplitLimit, storage, ct);
+                    subcells[j] = InjectPointsIntoTree(pss[j], css?[j], nss?[j], x, cell.GetOctant(j), octreeSplitLimit, storage, ct);
 #if DEBUG
                     // this no longer holds, because duplicate points may have been removed
                     //var foo = (long)pss[j].Count; if (x != null) foo += x.PointCountTree;

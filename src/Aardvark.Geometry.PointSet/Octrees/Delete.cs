@@ -58,21 +58,25 @@ namespace Aardvark.Geometry.Points
             {
                 Guid? newPsId = null;
                 Guid? newCsId = null;
+                Guid? newNsId = null;
                 Guid? newKdId = null;
 
                 if (!node.HasPositions) throw new InvalidOperationException();
 
                 var ps = new List<V3f>();
                 var cs = node.HasColors ? new List<C4b>() : null;
+                var ns = node.HasNormals ? new List<V3f>() : null;
                 var oldPsAbsolute = node.PositionsAbsolute;
                 var oldPs = node.Positions.Value;
                 var oldCs = node.Colors?.Value;
+                var oldNs = node.Normals?.Value;
                 for (var i = 0; i < oldPsAbsolute.Length; i++)
                 {
                     if (!isPositionInside(oldPsAbsolute[i]))
                     {
                         ps.Add(oldPs[i]);
                         if (oldCs != null) cs.Add(oldCs[i]);
+                        if (oldNs != null) ns.Add(oldNs[i]);
                     }
                 }
 
@@ -91,7 +95,13 @@ namespace Aardvark.Geometry.Points
                         node.Storage.Add(newCsId.Value, cs.ToArray(), ct);
                     }
 
-                    var result = new PointSetNode(node.Cell, ps.Count, newPsId, newCsId, newKdId, node.Storage);
+                    if (node.HasNormals)
+                    {
+                        newNsId = Guid.NewGuid();
+                        node.Storage.Add(newNsId.Value, ns.ToArray(), ct);
+                    }
+
+                    var result = new PointSetNode(node.Cell, ps.Count, newPsId, newCsId, newKdId, newNsId, node.Storage);
                     if (node.HasLodPositions) result = result.WithLod();
                     return result;
                 }

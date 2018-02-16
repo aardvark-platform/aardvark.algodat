@@ -60,7 +60,7 @@ namespace Aardvark.Geometry.Tests
             var store = CreateStorage();
             var ps = new List<V3d> { new V3d(0.1, 0.2, 0.3) };
             var cs = new List<C4b> { C4b.White };
-            var pointset = PointSet.Create(store, "id", ps, cs, 1000, true, CancellationToken.None);
+            var pointset = PointSet.Create(store, "id", ps, cs, null, 1000, true, CancellationToken.None);
             Assert.IsTrue(pointset.PointCount == 1);
             Assert.IsTrue(pointset.Root.Value.IsLeaf);
             Assert.IsTrue(pointset.Root.Value.PointCount == 1);
@@ -72,14 +72,24 @@ namespace Aardvark.Geometry.Tests
         {
             var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
             var cs = new List<C4b> { C4b.White };
-            var imps = InMemoryPointSet.Build(ps, cs, Cell.Unit, 1);
+            var ns = new List<V3f> { V3f.ZAxis };
+            var imps = InMemoryPointSet.Build(ps, cs, ns, Cell.Unit, 1);
         }
 
         [Test]
         public void CanCreateInMemoryPointSetWithoutColors()
         {
             var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
-            var imps = InMemoryPointSet.Build(ps, null, Cell.Unit, 1);
+            var ns = new List<V3f> { V3f.ZAxis };
+            var imps = InMemoryPointSet.Build(ps, null, ns, Cell.Unit, 1);
+        }
+
+        [Test]
+        public void CanCreateInMemoryPointSetWithoutNormals()
+        {
+            var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
+            var cs = new List<C4b> { C4b.White };
+            var imps = InMemoryPointSet.Build(ps, cs, null, Cell.Unit, 1);
         }
 
         [Test]
@@ -87,14 +97,18 @@ namespace Aardvark.Geometry.Tests
         {
             var storage = PointCloud.CreateInMemoryStore();
             var ps = new List<V3d>();
+            var ns = new List<V3f>();
             for (var x = 0.125; x < 1.0; x += 0.25)
                 for (var y = 0.125; y < 1.0; y += 0.25)
                     for (var z = 0.125; z < 1.0; z += 0.25)
+                    {
                         ps.Add(new V3d(x, y, z));
+                        ns.Add(V3f.ZAxis);
+                    }
 
             Assert.IsTrue(ps.Count == 4 * 4 * 4);
 
-            var imps = InMemoryPointSet.Build(ps, null, new Cell(0, 0, 0, 0), 1);
+            var imps = InMemoryPointSet.Build(ps, null, ns, new Cell(0, 0, 0, 0), 1);
             var root = imps.ToPointSetCell(storage, ct: CancellationToken.None);
             Assert.IsTrue(root.PointCountTree == 4 * 4 * 4);
             var countNodes = root.CountLeafNodes(true);

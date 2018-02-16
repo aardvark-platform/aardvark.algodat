@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -46,8 +47,8 @@ namespace Aardvark.Geometry.Points
         
         private PointSetNode(Guid id,
             Cell cell, long pointCountTree,
-            Guid? psId, Guid? csId, Guid? kdId,
-            Guid? lodPsId, Guid? lodCsId, Guid? lodKdId,
+            Guid? psId, Guid? csId, Guid? kdId, Guid? nsId, Guid? isId,
+            Guid? lodPsId, Guid? lodCsId, Guid? lodKdId, Guid? lodNsId, Guid? lodIsId,
             Guid?[] subnodeIds, Storage storage, bool writeToStore
             )
         {
@@ -60,18 +61,26 @@ namespace Aardvark.Geometry.Points
             if (psId.HasValue) Attributes[C_POSITIONS] = psId.Value;
             if (csId.HasValue) Attributes[C_COLORS] = csId.Value;
             if (kdId.HasValue) Attributes[C_KDTREE] = kdId.Value;
+            if (nsId.HasValue) Attributes[C_NORMALS] = nsId.Value;
+            if (isId.HasValue) Attributes[C_INTENSITIES] = isId.Value;
             if (lodPsId.HasValue) Attributes[C_LOD_POSITIONS] = lodPsId.Value;
             if (lodCsId.HasValue) Attributes[C_LOD_COLORS] = lodCsId.Value;
             if (lodKdId.HasValue) Attributes[C_LOD_KDTREE] = lodKdId.Value;
+            if (lodNsId.HasValue) Attributes[C_LOD_NORMALS] = lodNsId.Value;
+            if (lodIsId.HasValue) Attributes[C_LOD_INTENSITIES] = lodIsId.Value;
 
             if (IsLeaf && PointCount != PointCountTree) throw new InvalidOperationException();
 
             if (psId != null) Positions = new PersistentRef<V3f[]>(psId.ToString(), storage.GetV3fArray);
             if (csId != null) Colors = new PersistentRef<C4b[]>(csId.ToString(), storage.GetC4bArray);
             if (kdId != null) KdTree = new PersistentRef<PointRkdTreeD<V3f[], V3f>>(kdId.ToString(), LoadKdTree);
+            if (nsId != null) Normals = new PersistentRef<V3f[]>(nsId.ToString(), storage.GetV3fArray);
+            if (isId != null) Intensities = new PersistentRef<int[]>(isId.ToString(), storage.GetIntArray);
             if (lodPsId != null) LodPositions = new PersistentRef<V3f[]>(lodPsId.ToString(), storage.GetV3fArray);
             if (lodCsId != null) LodColors = new PersistentRef<C4b[]>(lodCsId.ToString(), storage.GetC4bArray);
             if (lodKdId != null) LodKdTree = new PersistentRef<PointRkdTreeD<V3f[], V3f>>(lodKdId.ToString(), LoadKdTree);
+            if (lodNsId != null) LodNormals = new PersistentRef<V3f[]>(lodNsId.ToString(), storage.GetV3fArray);
+            if (lodIsId != null) LodIntensities = new PersistentRef<int[]>(lodIsId.ToString(), storage.GetIntArray);
 
             if (subnodeIds != null)
             {
@@ -115,6 +124,8 @@ namespace Aardvark.Geometry.Points
                 if (PositionsId != null) throw new InvalidOperationException();
                 if (ColorsId != null) throw new InvalidOperationException();
                 if (KdTreeId != null) throw new InvalidOperationException();
+                if (NormalsId != null) throw new InvalidOperationException();
+                if (IntensitiesId != null) throw new InvalidOperationException();
             }
 #endif
             PointRkdTreeD<V3f[], V3f> LoadKdTree(string key, CancellationToken ct)
@@ -136,7 +147,7 @@ namespace Aardvark.Geometry.Points
         internal PointSetNode(
             Cell cell, long pointCountTree,
             Guid?[] subnodeIds, Storage storage
-            ) : this(Guid.NewGuid(), cell, pointCountTree, null, null, null, null, null, null, subnodeIds, storage, true)
+            ) : this(Guid.NewGuid(), cell, pointCountTree, null, null, null, null, null, null, null, null, null, null, subnodeIds, storage, true)
         {
         }
 
@@ -145,9 +156,9 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         internal PointSetNode(
             Cell cell, long pointCountTree,
-            Guid? psId, Guid? csId, Guid? kdId,
+            Guid? psId, Guid? csId, Guid? kdId, Guid? nsId,
             Storage storage
-            ) : this(Guid.NewGuid(), cell, pointCountTree, psId, csId, kdId, null, null, null, null, storage, true)
+            ) : this(Guid.NewGuid(), cell, pointCountTree, psId, csId, kdId, nsId, null, null, null, null, null, null, null, storage, true)
         {
         }
 
@@ -267,8 +278,8 @@ namespace Aardvark.Geometry.Points
             
             return new PointSetNode(
                 id, cellIndex, pointCountTree,
-                psId, csId, kdId,
-                lodPsId, lodCsId, lodKdId,
+                psId, csId, kdId, null, null,
+                lodPsId, lodCsId, lodKdId, null, null,
                 subcellIds,
                 storage, false
                 );
@@ -340,7 +351,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public readonly PersistentRef<C3f[]> Normals;
+        public readonly PersistentRef<V3f[]> Normals;
 
         /// <summary></summary>
         [JsonIgnore]
@@ -971,8 +982,8 @@ namespace Aardvark.Geometry.Points
 
             var pointCountTree = subnodes.Sum(x => x?.PointCountTree);
             return new PointSetNode(Guid.NewGuid(), Cell, pointCountTree.Value,
-                null, null, null,
-                LodPositionsId, LodColorsId, LodKdTreeId,
+                null, null, null, null, null,
+                LodPositionsId, LodColorsId, LodKdTreeId, null, null,
                 subnodes.Map(x => x?.Id), Storage, true
                 );
         }
@@ -987,7 +998,8 @@ namespace Aardvark.Geometry.Points
 
             var pointCountTree = subnodes.Sum(x => x?.PointCountTree);
             return new PointSetNode(Guid.NewGuid(), Cell, pointCountTree.Value,
-                null, null, null, LodPositionsId, LodColorsId, LodKdTreeId,
+                null, null, null, null, null,
+                LodPositionsId, LodColorsId, LodKdTreeId, null, null,
                 subnodes.Map(x => x?.Id), Storage, true
                 );
         }
@@ -1002,8 +1014,8 @@ namespace Aardvark.Geometry.Points
             var pointCountTree = subnodes.Sum(n => n != null ? n.PointCountTree : 0);
             return new PointSetNode(Guid.NewGuid(),
                 Cell, pointCountTree,
-                null, null, null,
-                lodPsId, lodCsId, lodKdId,
+                null, null, null, null, null,
+                lodPsId, lodCsId, lodKdId, null, null,
                 subnodes?.Map(x => x?.Id), Storage, true
                 );
         }
@@ -1015,8 +1027,8 @@ namespace Aardvark.Geometry.Points
         {
             if (IsNotLeaf) throw new InvalidOperationException();
             return new PointSetNode(Guid.NewGuid(), Cell, PointCountTree,
-                PositionsId, ColorsId, KdTreeId,
-                PositionsId, ColorsId, KdTreeId,
+                PositionsId, ColorsId, KdTreeId, null, null,
+                PositionsId, ColorsId, KdTreeId, null, null,
                 SubnodeIds, Storage, true
                 );
         }

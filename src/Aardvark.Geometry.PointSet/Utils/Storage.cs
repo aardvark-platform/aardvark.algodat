@@ -145,6 +145,27 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
+        public static int[] GetIntArray(this Storage storage, string key, CancellationToken ct)
+        {
+            var data = (int[])storage.f_tryGetFromCache(key, ct);
+            if (data != null) return data;
+
+            var buffer = storage.f_get(key, ct);
+            if (buffer == null) return null;
+            data = new int[buffer.Length / 4];
+            using (var ms = new MemoryStream(buffer))
+            using (var br = new BinaryReader(ms))
+            {
+                for (var i = 0; i < data.Length; i++)
+                {
+                    data[i] = br.ReadInt32();
+                }
+            }
+            storage.f_add(key, data, null, ct);
+            return data;
+        }
+
+        /// <summary></summary>
         public static void Add(this Storage storage, Guid key, C4b[] data, CancellationToken ct) => Add(storage, key.ToString(), data, ct);
 
         /// <summary></summary>
