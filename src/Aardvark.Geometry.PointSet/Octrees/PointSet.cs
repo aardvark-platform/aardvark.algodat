@@ -146,7 +146,23 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Gets exact bounding box of all points from coarsest LoD.
         /// </summary>
-        public Box3d BoundingBox => Root?.Value != null ? new Box3d(Root.Value.PositionsAbsolute) : Box3d.Invalid;
+        public Box3d BoundingBox
+        {
+            get
+            {
+                try
+                {
+                    return Root.Value.HasPositions
+                        ? new Box3d(Root.Value.PositionsAbsolute)
+                        : new Box3d(Root.Value.LodPositionsAbsolute)
+                        ;
+                }
+                catch (NullReferenceException)
+                {
+                    return Box3d.Invalid;
+                }
+            }
+        }
 
         #endregion
 
