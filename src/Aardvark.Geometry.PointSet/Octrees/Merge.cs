@@ -160,6 +160,7 @@ namespace Aardvark.Geometry.Points
                 }
 
                 // special case: there is only 1 part -> finished
+                parts = parts.Where(x => x != null).ToList();
                 if (parts.Count == 0) throw new InvalidOperationException();
                 if (parts.Count == 1) return parts.Single();
 
@@ -172,7 +173,7 @@ namespace Aardvark.Geometry.Points
                     if (x.IsCenteredAtOrigin) throw new InvalidOperationException();
                     return (x.X >= 0 ? 1 : 0) + (x.Y >= 0 ? 2 : 0) + (x.Z >= 0 ? 4 : 0);
                 };
-                foreach (var x in parts.Where(x => x != null))
+                foreach (var x in parts)
                 {
                     var oi = octant(x.Cell);
                     var oct = rootCell.GetOctant(oi);
@@ -195,9 +196,9 @@ namespace Aardvark.Geometry.Points
 
                     if (oct != roots[oi].Cell) throw new InvalidOperationException();
                 }
-                
-                var result = new PointSetNode(rootCell, 0, roots.Map(n => n?.Id), a.Storage);
-                return result;
+
+                var pointCountTree = roots.Where(x => x != null).Sum(x => x.PointCountTree);
+                return new PointSetNode(rootCell, pointCountTree, roots.Map(n => n?.Id), a.Storage);
             }
 #if DEBUG
             if (a.Cell.Exponent == b.Cell.Exponent)

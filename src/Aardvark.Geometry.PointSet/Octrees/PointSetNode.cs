@@ -52,6 +52,8 @@ namespace Aardvark.Geometry.Points
             Guid?[] subnodeIds, Storage storage, bool writeToStore
             )
         {
+            if (subnodeIds != null && subnodeIds.Count(x => x.HasValue) > 0 && pointCountTree == 0) throw new ArgumentException(nameof(pointCountTree), "Must not be 0 for inner nodes.");
+
             Storage = storage;
             Id = id;
             Cell = cell;

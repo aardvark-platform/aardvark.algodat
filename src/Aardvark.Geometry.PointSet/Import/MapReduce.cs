@@ -80,6 +80,9 @@ namespace Aardvark.Geometry.Points
                     + $"{first.Root.Value.Cell} + {second.Root.Value.Cell} -> {merged.Root.Value.Cell} "
                     + $"({first.Root.Value.PointCountTree} + {second.Root.Value.PointCountTree} -> {merged.Root.Value.PointCountTree})"
                     );
+
+                if (merged.Root.Value.PointCountTree == 0) throw new InvalidOperationException();
+
                 return merged;
             },
             config.MaxDegreeOfParallelism
