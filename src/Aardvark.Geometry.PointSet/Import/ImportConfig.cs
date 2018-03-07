@@ -46,6 +46,8 @@ namespace Aardvark.Geometry.Points
         /// Large files should be read in chunks with this maximum size.
         /// </summary>
         public int ReadBufferSizeInBytes { get; private set; } = 4 * 1024 * 1024;
+
+        public int MaxChunkPointCount { get; private set; } = 1024 * 1024;
         
         public Func<IList<V3d>, IList<V3d>> Reproject { get; private set; } =  null;
         
@@ -69,6 +71,7 @@ namespace Aardvark.Geometry.Points
             OctreeSplitLimit = x.OctreeSplitLimit;
             ProgressCallback = x.ProgressCallback;
             ReadBufferSizeInBytes = x.ReadBufferSizeInBytes;
+            MaxChunkPointCount = x.MaxChunkPointCount;
             Reproject = x.Reproject;
             Storage = x.Storage;
             Verbose = x.Verbose;
@@ -91,6 +94,8 @@ namespace Aardvark.Geometry.Points
         public ImportConfig WithProgressCallback(Action<double> x) => new ImportConfig(this) { ProgressCallback = x ?? throw new ArgumentNullException() };
 
         public ImportConfig WithReadBufferSizeInBytes(int x) => new ImportConfig(this) { ReadBufferSizeInBytes = x };
+
+        public ImportConfig WithMaxChunkPointCount(int x) => new ImportConfig(this) { MaxChunkPointCount = Math.Max(x, 1) };
 
         public ImportConfig WithStorage(Storage x) => new ImportConfig(this) { Storage = x };
 

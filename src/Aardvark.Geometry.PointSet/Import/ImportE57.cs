@@ -157,13 +157,34 @@ namespace Aardvark.Geometry.Points
                     WriteLine();
                     WriteLine();
                 }
-                
+
+                var totalRecordCount = header.E57Root.Data3D.Sum(x => x.Points.RecordCount);
+                var yieldedRecordCount = 0L;
+                var ps = new List<V3d>(); var cs = new List<C4b>();
+                Chunk PrepareChunk()
+                {
+                    var chunk = new Chunk(ps, cs);
+                    yieldedRecordCount += ps.Count;
+                    ps = new List<V3d>(); cs = new List<C4b>();
+                    if (config.Verbose)
+                    {
+                        var progress = yieldedRecordCount / (double)totalRecordCount;
+                        Write($"\r[E57] yielded {yieldedRecordCount,13:N0}/{totalRecordCount:N0} points [{progress * 100,6:0.00}%]");
+                    }
+                    return chunk;
+                }
+
                 foreach (var data3d in header.E57Root.Data3D)
                 {
-                    var ps = data3d.StreamPoints().Select(p => p.Item1).ToList();
-                    var cs = data3d.StreamPoints().Select(p => p.Item2).ToList();
-                    yield return new Chunk(ps, cs);
+                    foreach (var x in data3d.StreamPoints())
+                    {
+                        ps.Add(x.Item1); cs.Add(x.Item2);
+                        if (ps.Count == config.MaxChunkPointCount) yield return PrepareChunk();
+                    }
+                    if (ps.Count > 0) yield return PrepareChunk();
                 }
+
+                if (config.Verbose) WriteLine();
             }
         }
     }
