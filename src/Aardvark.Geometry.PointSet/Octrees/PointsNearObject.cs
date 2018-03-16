@@ -52,7 +52,7 @@ namespace Aardvark.Geometry.Points
     {
         /// <summary>
         /// </summary>
-        public static PointsNearObject<T> Empty = new PointsNearObject<T>(default(T), 0.0, new V3d[0], new C4b[0], new double[0]);
+        public static PointsNearObject<T> Empty = new PointsNearObject<T>(default(T), 0.0, new V3d[0], new C4b[0], new V3f[0], new double[0]);
 
         /// <summary>
         /// </summary>
@@ -72,18 +72,22 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
+        public V3f[] Normals { get; }
+
+        /// <summary>
+        /// </summary>
         public double[] Distances { get; }
 
         /// <summary>
         /// </summary>
-        public PointsNearObject(T obj, double maxDistance, V3d[] positions, C4b[] colors, double[] distances)
+        public PointsNearObject(T obj, double maxDistance, V3d[] positions, C4b[] colors, V3f[] normals, double[] distances)
         {
             if (maxDistance < 0.0) throw new ArgumentOutOfRangeException(nameof(maxDistance), $"Parameter 'maxDistance' must not be less than 0.0, but is {maxDistance}.");
-            if (positions == null) throw new ArgumentNullException(nameof(positions));
-            
+
             Object = obj;
             MaxDistance = maxDistance;
-            Positions = positions;
+            Positions = positions ?? throw new ArgumentNullException(nameof(positions));
+            Normals = normals;
             Colors = colors;
             Distances = distances;
         }
@@ -100,7 +104,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public PointsNearObject<U> WithObject<U>(U other)
         {
-            return new PointsNearObject<U>(other, MaxDistance, Positions, Colors, Distances);
+            return new PointsNearObject<U>(other, MaxDistance, Positions, Colors, Normals, Distances);
         }
     }
 }
