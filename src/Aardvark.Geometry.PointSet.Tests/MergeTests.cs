@@ -34,12 +34,12 @@ namespace Aardvark.Geometry.Tests
             var ps1 = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
             var cs1 = ps1.Map(_ => C4b.White);
             var ns1 = ps1.Map(_ => V3f.XAxis);
-            var pointset1 = PointSet.Create(storage, "test1", ps1, cs1, ns1, 1000, false, CancellationToken.None);
+            var pointset1 = PointSet.Create(storage, "test1", ps1, cs1, ns1, 1000, CancellationToken.None);
 
             var ps2 = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble() + 0.3, r.NextDouble() + 0.3, r.NextDouble() + 0.3));
             var cs2 = ps2.Map(_ => C4b.White);
             var ns2 = ps2.Map(_ => V3f.XAxis);
-            var pointset2 = PointSet.Create(storage, "test2", ps2, cs2, ns2, 1000, false, CancellationToken.None);
+            var pointset2 = PointSet.Create(storage, "test2", ps2, cs2, ns2, 1000, CancellationToken.None);
 
             var merged = pointset1.Merge(pointset2, CancellationToken.None);
             Assert.IsTrue(merged.PointCount == 84000);
@@ -55,11 +55,11 @@ namespace Aardvark.Geometry.Tests
 
             var ps1 = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
             var ns1 = ps1.Map(_ => V3f.XAxis);
-            var pointset1 = PointSet.Create(storage, "test1", ps1, null, ns1, 1000, false, CancellationToken.None);
+            var pointset1 = PointSet.Create(storage, "test1", ps1, null, ns1, 1000, CancellationToken.None);
 
             var ps2 = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble() + 0.3, r.NextDouble() + 0.3, r.NextDouble() + 0.3));
             var ns2 = ps2.Map(_ => V3f.XAxis);
-            var pointset2 = PointSet.Create(storage, "test2", ps2, null, ns2, 1000, false, CancellationToken.None);
+            var pointset2 = PointSet.Create(storage, "test2", ps2, null, ns2, 1000, CancellationToken.None);
 
             var merged = pointset1.Merge(pointset2, CancellationToken.None);
             Assert.IsTrue(merged.PointCount == 84000);
@@ -75,11 +75,11 @@ namespace Aardvark.Geometry.Tests
 
             var ps1 = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
             var cs1 = ps1.Map(_ => C4b.White);
-            var pointset1 = PointSet.Create(storage, "test1", ps1, cs1, null, 1000, false, CancellationToken.None);
+            var pointset1 = PointSet.Create(storage, "test1", ps1, cs1, null, 1000, CancellationToken.None);
 
             var ps2 = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble() + 0.3, r.NextDouble() + 0.3, r.NextDouble() + 0.3));
             var cs2 = ps2.Map(_ => C4b.White);
-            var pointset2 = PointSet.Create(storage, "test2", ps2, cs2, null, 1000, false, CancellationToken.None);
+            var pointset2 = PointSet.Create(storage, "test2", ps2, cs2, null, 1000, CancellationToken.None);
 
             var merged = pointset1.Merge(pointset2, CancellationToken.None);
             Assert.IsTrue(merged.PointCount == 84000);

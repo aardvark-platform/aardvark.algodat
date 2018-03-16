@@ -82,9 +82,28 @@ namespace Aardvark.Geometry.Tests
             */
         }
 
+        internal static void TestImport()
+        {
+            CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+            var filename = @"T:\Vgm\Data\Schottenring_2018_02_23\Laserscans\2018-02-27_BankAustria\export\sitzungssaal\Punktwolke\P40\P40_gesamt.e57";
+
+            var store = new SimpleDiskStore(@"T:\Vgm\Stores\Sitzungssaal").ToPointCloudStore();
+
+            var config = ImportConfig.Default
+                .WithStorage(store)
+                .WithKey("sitzungssaal")
+                .WithVerbose(true)
+                ;
+
+            Report.BeginTimed("importing");
+            var pointcloud = PointCloud.Import(filename, config);
+            Report.EndTimed();
+            store.Flush();
+        }
+
         public static void Main(string[] args)
         {
-            TestE57();
+            TestImport();
         }
     }
 }

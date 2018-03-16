@@ -114,21 +114,25 @@ namespace Aardvark.Geometry.Points
             {
                 Guid? newLodPsId = null;
                 Guid? newLodCsId = null;
+                Guid? newLodNsId = null;
                 Guid? newLodKdId = null;
 
                 if (node.HasLodPositions)
                 {
                     var ps = node.HasLodPositions ? new List<V3f>() : null;
                     var cs = node.HasLodColors ? new List<C4b>() : null;
+                    var ns = node.HasLodNormals ? new List<V3f>() : null;
                     var oldLodPsAbsolute = node.LodPositionsAbsolute;
                     var oldLodPs = node.LodPositions.Value;
                     var oldLodCs = node.LodColors?.Value;
+                    var oldLodNs = node.LodNormals?.Value;
                     for (var i = 0; i < oldLodPsAbsolute.Length; i++)
                     {
                         if (!isPositionInside(oldLodPsAbsolute[i]))
                         {
                             ps.Add(oldLodPs[i]);
                             if (oldLodCs != null) cs.Add(oldLodCs[i]);
+                            if (oldLodNs != null) ns.Add(oldLodNs[i]);
                         }
                     }
 
@@ -146,12 +150,18 @@ namespace Aardvark.Geometry.Points
                             newLodCsId = Guid.NewGuid();
                             node.Storage.Add(newLodCsId.Value, cs.ToArray(), ct);
                         }
+
+                        if (node.HasLodNormals)
+                        {
+                            newLodNsId = Guid.NewGuid();
+                            node.Storage.Add(newLodNsId.Value, ns.ToArray(), ct);
+                        }
                     }
                 }
 
                 var newSubnodes = node.Subnodes.Map(n => n?.Value.Delete(isNodeFullyInside, isNodeFullyOutside, isPositionInside, ct));
                 if (newSubnodes.All(n => n == null)) return null;
-                return node.WithLod(newLodPsId, newLodCsId, newLodKdId, newSubnodes);
+                return node.WithLod(newLodPsId, newLodCsId, newLodNsId, newLodKdId, newSubnodes);
             }
         }
     }

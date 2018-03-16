@@ -35,7 +35,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// </summary>
         public static InMemoryPointSet Build(Chunk chunk, long octreeSplitLimit)
-            => Build(chunk.Positions, chunk.Colors, null, chunk.BoundingBox, octreeSplitLimit);
+            => Build(chunk.Positions, chunk.Colors, chunk.Normals, chunk.BoundingBox, octreeSplitLimit);
 
         /// <summary>
         /// </summary>

@@ -280,8 +280,8 @@ namespace Aardvark.Geometry.Points
             
             return new PointSetNode(
                 id, cellIndex, pointCountTree,
-                psId, csId, kdId, null, null,
-                lodPsId, lodCsId, lodKdId, null, null,
+                psId, csId, kdId, nsId, isId,
+                lodPsId, lodCsId, lodKdId, lodNsId, lodNsId,
                 subcellIds,
                 storage, false
                 );
@@ -985,7 +985,7 @@ namespace Aardvark.Geometry.Points
             var pointCountTree = subnodes.Sum(x => x?.PointCountTree);
             return new PointSetNode(Guid.NewGuid(), Cell, pointCountTree.Value,
                 null, null, null, null, null,
-                LodPositionsId, LodColorsId, LodKdTreeId, null, null,
+                LodPositionsId, LodColorsId, LodKdTreeId, LodNormalsId, LodIntensitiesId,
                 subnodes.Map(x => x?.Id), Storage, true
                 );
         }
@@ -1001,7 +1001,7 @@ namespace Aardvark.Geometry.Points
             var pointCountTree = subnodes.Sum(x => x?.PointCountTree);
             return new PointSetNode(Guid.NewGuid(), Cell, pointCountTree.Value,
                 null, null, null, null, null,
-                LodPositionsId, LodColorsId, LodKdTreeId, null, null,
+                LodPositionsId, LodColorsId, LodKdTreeId, LodNormalsId, LodIntensitiesId,
                 subnodes.Map(x => x?.Id), Storage, true
                 );
         }
@@ -1009,7 +1009,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Makes node with LoD data from inner node.
         /// </summary>
-        internal PointSetNode WithLod(Guid? lodPsId, Guid? lodCsId, Guid? lodKdId, PointSetNode[] subnodes)
+        internal PointSetNode WithLod(Guid? lodPsId, Guid? lodCsId, Guid? lodNsId, Guid? lodKdId, PointSetNode[] subnodes)
         {
             if (IsLeaf) throw new InvalidOperationException();
             if (subnodes == null) throw new InvalidOperationException();
@@ -1017,7 +1017,7 @@ namespace Aardvark.Geometry.Points
             return new PointSetNode(Guid.NewGuid(),
                 Cell, pointCountTree,
                 null, null, null, null, null,
-                lodPsId, lodCsId, lodKdId, null, null,
+                lodPsId, lodCsId, lodKdId, LodNormalsId, LodIntensitiesId,
                 subnodes?.Map(x => x?.Id), Storage, true
                 );
         }
@@ -1029,8 +1029,8 @@ namespace Aardvark.Geometry.Points
         {
             if (IsNotLeaf) throw new InvalidOperationException();
             return new PointSetNode(Guid.NewGuid(), Cell, PointCountTree,
-                PositionsId, ColorsId, KdTreeId, null, null,
-                PositionsId, ColorsId, KdTreeId, null, null,
+                PositionsId, ColorsId, KdTreeId, NormalsId, IntensitiesId,
+                PositionsId, ColorsId, KdTreeId, NormalsId, IntensitiesId,
                 SubnodeIds, Storage, true
                 );
         }

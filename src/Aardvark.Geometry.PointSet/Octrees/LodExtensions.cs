@@ -82,6 +82,7 @@ namespace Aardvark.Geometry.Points
             // generate LoD data ...
             var lodPs = new V3f[octreeSplitLimit];
             var lodCs = new C4b[octreeSplitLimit];
+            var lodNs = new V3f[octreeSplitLimit];
             var i = 0;
             for (var ci = 0; ci < 8; ci++)
             {
@@ -91,6 +92,7 @@ namespace Aardvark.Geometry.Points
                 
                 var subps = subcell.IsLeaf ? subcell.Positions.Value : subcell.LodPositions.Value;
                 var subcs = subcell.IsLeaf ? subcell.Colors?.Value : subcell.LodColors?.Value;
+                var subns = subcell.IsLeaf ? subcell.Normals?.Value : subcell.LodNormals?.Value;
 
                 var jmax = subps.Length;
                 var dj = (jmax + 0.49) / counts[ci];
@@ -100,6 +102,7 @@ namespace Aardvark.Geometry.Points
                     var jj = (int)j;
                     lodPs[i] = (V3f)(((V3d)subps[jj] + subcell.Center) - self.Center);
                     if (subcs != null) lodCs[i] = subcs[jj];
+                    if (subns != null) lodNs[i] = subns[jj];
                     i++;
                 }
             }
@@ -115,7 +118,10 @@ namespace Aardvark.Geometry.Points
             var lodCsId = lodCs != null ? (Guid?)Guid.NewGuid() : null;
             if (lodCs != null) self.Storage.Add(lodCsId.ToString(), lodCs, ct);
 
-            var result = self.WithLod(lodPsId, lodCsId, lodKdId, subcells);
+            var lodNsId = lodNs != null ? (Guid?)Guid.NewGuid() : null;
+            if (lodNs != null) self.Storage.Add(lodNsId.ToString(), lodNs, ct);
+
+            var result = self.WithLod(lodPsId, lodCsId, lodNsId, lodKdId, subcells);
             return result;
         }
     }
