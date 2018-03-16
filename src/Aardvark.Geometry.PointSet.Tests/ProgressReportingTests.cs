@@ -28,7 +28,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void ProgressCallbackWorks()
         {
-            var CHUNKSIZE = 100000;
+            var CHUNKSIZE = 10000;
             var CHUNKCOUNT = 10;
 
             var countProgressCallbacks = 0L;
@@ -42,7 +42,7 @@ namespace Aardvark.Geometry.Tests
             var pointcloud = PointCloud.Chunks(GenerateChunks(CHUNKSIZE).Take(CHUNKCOUNT), config);
             Assert.IsTrue(pointcloud.PointCount == CHUNKSIZE * CHUNKCOUNT);
 
-            Assert.IsTrue(countProgressCallbacks > 500);
+            Assert.IsTrue(countProgressCallbacks > 50);
 
 
             IEnumerable<Chunk> GenerateChunks(int numberOfPointsPerChunk)

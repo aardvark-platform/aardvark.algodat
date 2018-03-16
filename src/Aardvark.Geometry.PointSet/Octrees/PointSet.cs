@@ -35,7 +35,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Creates PointSet from given points and colors.
         /// </summary>
-        public static PointSet Create(Storage storage, string key, IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, int octreeSplitLimit, CancellationToken ct)
+        public static PointSet Create(Storage storage, string key, IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, int octreeSplitLimit, bool generateLod, CancellationToken ct)
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
             var bounds = new Box3d(ps);
@@ -46,7 +46,7 @@ namespace Aardvark.Geometry.Points
                 .WithRandomKey()
                 .WithCancellationToken(ct)
                 ;
-            result = result.GenerateLod(config);
+            if (generateLod) result = result.GenerateLod(config);
             return result;
         }
 

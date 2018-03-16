@@ -61,7 +61,7 @@ namespace Aardvark.Geometry.Tests
             var store = CreateStorage();
             var ps = new List<V3d> { new V3d(0.1, 0.2, 0.3) };
             var cs = new List<C4b> { C4b.White };
-            var pointset = PointSet.Create(store, "id", ps, cs, null, 1000, CancellationToken.None);
+            var pointset = PointSet.Create(store, "id", ps, cs, null, 1000, true, CancellationToken.None);
             Assert.IsTrue(pointset.PointCount == 1);
             Assert.IsTrue(pointset.Root.Value.IsLeaf);
             Assert.IsTrue(pointset.Root.Value.PointCount == 1);
