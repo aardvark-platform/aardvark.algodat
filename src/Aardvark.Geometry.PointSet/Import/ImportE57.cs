@@ -11,11 +11,12 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+using Aardvark.Base;
+using Aardvark.Data.E57;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Aardvark.Base;
-using Aardvark.Data.E57;
+using System.Xml.Linq;
 using static System.Console;
 
 namespace Aardvark.Geometry.Points
@@ -152,7 +153,8 @@ namespace Aardvark.Geometry.Points
                         if (data3d.AtmosphericPressure != null)
                             WriteLine($"[E57]   atmospheric pressure .. {data3d.AtmosphericPressure}");
                     }
-                    //WriteLine(header.RawXml.ToString(SaveOptions.OmitDuplicateNamespaces));
+
+                    WriteLine(header.RawXml.ToString(SaveOptions.OmitDuplicateNamespaces));
                
                     WriteLine();
                     WriteLine();

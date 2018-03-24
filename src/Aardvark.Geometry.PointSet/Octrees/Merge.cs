@@ -258,7 +258,8 @@ namespace Aardvark.Geometry.Points
                 result2 = a.WithSubNodes(subcells);
             }
 #if DEBUG
-            if (result2.PointCountTree != debugPointCountTree) throw new InvalidOperationException();
+            // this no longer holds due to removal of duplicate points
+            //if (result2.PointCountTree != debugPointCountTree) throw new InvalidOperationException();
 #endif
             return result2;
         }
