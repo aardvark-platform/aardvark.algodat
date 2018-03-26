@@ -29,17 +29,18 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PointSetNode ForceSplitLeaf(this PointSetNode cell, CancellationToken ct)
         {
+            if (cell == null) throw new ArgumentNullException(nameof(cell));
             if (cell.IsNotLeaf) throw new InvalidOperationException();
             if (cell.PointCount == 0) throw new InvalidOperationException();
             if (cell.PointCountTree != cell.PointCount) throw new InvalidOperationException();
 
             var subnodesPoints = new List<V3d>[8];
-            var subnodesColors = new List<C4b>[8];
-            var subnodesNormals = new List<V3f>[8];
+            var subnodesColors = cell.HasColors ? new List<C4b>[8] : null;
+            var subnodesNormals = cell.HasNormals ? new List<V3f>[8] : null;
 
             var pa = cell.PositionsAbsolute;
-            var ca = cell.Colors.Value;
-            var na = cell.Normals.Value;
+            var ca = cell.Colors?.Value;
+            var na = cell.Normals?.Value;
             var imax = cell.PointCount;
             if (pa.Length != imax) throw new InvalidOperationException();
 
@@ -49,12 +50,12 @@ namespace Aardvark.Geometry.Points
                 if (subnodesPoints[si] == null)
                 {
                     subnodesPoints[si] = new List<V3d>();
-                    subnodesColors[si] = new List<C4b>();
-                    subnodesNormals[si] = new List<V3f>();
+                    if (subnodesColors != null) subnodesColors[si] = new List<C4b>();
+                    if (subnodesNormals != null) subnodesNormals[si] = new List<V3f>();
                 }
                 subnodesPoints[si].Add(pa[i]);
-                subnodesColors[si].Add(ca[i]);
-                subnodesNormals[si].Add(na[i]);
+                if (subnodesColors != null) subnodesColors[si].Add(ca[i]);
+                if (subnodesNormals != null) subnodesNormals[si].Add(na[i]);
             }
 
             var subnodes = new PointSetNode[8];
@@ -66,9 +67,9 @@ namespace Aardvark.Geometry.Points
                 if (!cell.Cell.Contains(subCellIndex)) throw new InvalidOperationException();
                 if (cell.Cell.Exponent != subCellIndex.Exponent + 1) throw new InvalidOperationException();
 
-                var builder = InMemoryPointSet.Build(subnodesPoints[i], subnodesColors[i], subnodesNormals[i], subCellIndex, int.MaxValue);
+                var builder = InMemoryPointSet.Build(subnodesPoints[i], subnodesColors?[i], subnodesNormals?[i], subCellIndex, int.MaxValue);
                 var subnode = builder.ToPointSetCell(cell.Storage, ct: ct);
-                if (subnodesPoints[i].Count != subnode.PointCountTree) throw new InvalidOperationException();
+                if (subnode.PointCountTree > subnodesPoints[i].Count) throw new InvalidOperationException();
                 if (!cell.Cell.Contains(subnode.Cell)) throw new InvalidOperationException();
                 if (cell.Cell.Exponent != subnode.Cell.Exponent + 1) throw new InvalidOperationException();
                 
@@ -81,7 +82,7 @@ namespace Aardvark.Geometry.Points
             if (result.IsLeaf) throw new InvalidOperationException();
             if (result.PointCountTree != cell.PointCountTree) throw new InvalidOperationException();
             if (result.PointCount != 0) throw new InvalidOperationException();
-            if (result.Subnodes.Sum(x => x?.Value?.PointCountTree) != cell.PointCountTree) throw new InvalidOperationException();
+            if (result.Subnodes.Sum(x => x?.Value?.PointCountTree) > cell.PointCountTree) throw new InvalidOperationException();
 
             return result;
         }
