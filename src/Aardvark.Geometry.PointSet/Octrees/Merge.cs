@@ -521,7 +521,7 @@ namespace Aardvark.Geometry.Points
             if (a == null)
             {
                 var result0 = InMemoryPointSet.Build(psAbsolute, cs, ns, cell, octreeSplitLimit).ToPointSetCell(storage, ct: ct);
-                if (result0.PointCountTree != psAbsolute.Count) throw new InvalidOperationException();
+                if (result0.PointCountTree > psAbsolute.Count) throw new InvalidOperationException();
                 return result0;
             }
 
