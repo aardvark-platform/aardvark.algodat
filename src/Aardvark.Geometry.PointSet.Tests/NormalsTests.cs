@@ -11,15 +11,12 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Runtime.Serialization;
-using System.Threading;
 using Aardvark.Base;
 using Aardvark.Geometry.Points;
-using Newtonsoft.Json.Linq;
 using NUnit.Framework;
+using System;
+using System.Linq;
+using System.Threading;
 using Uncodium.SimpleStore;
 
 namespace Aardvark.Geometry.Tests
@@ -65,6 +62,67 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(root.PointCount == 1);
             Assert.IsTrue(root.HasNormals);
             Assert.IsTrue(root.Normals.Value[0] == V3f.OIO);
+        }
+
+        [Test]
+        public void CanAddNormals()
+        {
+            var r = new Random();
+            var storage = PointSetTests.CreateStorage();
+
+            var ps = new V3d[10000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
+
+            var pointset = PointSet
+                .Create(storage, "test", ps.ToList(), null, null, 5000, false, CancellationToken.None)
+                .GenerateLod(ImportConfig.Default.WithKey("lod").WithOctreeSplitLimit(5000))
+                ;
+            storage.Add("pss", pointset, CancellationToken.None);
+
+            var withNormals = WithRandomNormals(pointset.Root.Value);
+            storage.Add("psWithNormals", withNormals, CancellationToken.None);
+
+            withNormals.ForEachNode(true, node =>
+            {
+                if (node.IsLeaf)
+                {
+                    Assert.IsTrue(node.HasNormals);
+                    Assert.IsTrue(!node.HasLodNormals);
+                    Assert.IsTrue(node.Normals.Value.Length == node.PointCount);
+                }
+                else
+                {
+                    Assert.IsTrue(!node.HasNormals);
+                    Assert.IsTrue(node.HasLodNormals);
+                    Assert.IsTrue(node.LodNormals.Value.Length == node.LodPointCount);
+                }
+
+                //
+                var binary = node.ToBinary();
+                var node2 = PointSetNode.ParseBinary(binary, storage);
+                Assert.IsTrue(node.HasNormals == node2.HasNormals);
+                Assert.IsTrue(node.HasLodNormals == node2.HasLodNormals);
+                Assert.IsTrue(node.Normals?.Value?.Length == node2.Normals?.Value?.Length);
+                Assert.IsTrue(node.LodNormals?.Value?.Length == node2.LodNormals?.Value?.Length);
+            });
+
+            PointSetNode WithRandomNormals(PointSetNode n)
+            {
+                var id = Guid.NewGuid();
+                var ns = new V3f[n.IsLeaf ? n.PointCount : n.LodPointCount].Set(V3f.OOI);
+                storage.Add(id, ns, CancellationToken.None);
+
+                if (n.IsLeaf)
+                {
+                    var m = n.WithNormals(id);
+                    return m;
+                }
+                else
+                {
+                    var subnodes = n.Subnodes.Map(x => x != null ? WithRandomNormals(x.Value) : null);
+                    var m = n.WithLodNormals(id, subnodes);
+                    return m;
+                }
+            }
         }
     }
 }

@@ -23,10 +23,11 @@ namespace Aardvark.Geometry.Tests
         internal static void TestE57()
         {
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
-            var filename = @"test.e57";
+            var filename = @"T:\Vgm\Data\E57\Leica_BLK360_rmDataTest.e57";
+            //var filename = @"T:\Vgm\Data\Schottenring_2018_02_23\Laserscans\2018-02-27_BankAustria\export\sitzungssaal\Punktwolke\BLK\BLK_S1.e57";
             var fileSizeInBytes = new FileInfo(filename).Length;
 
-            var config = ImportConfig.Default.WithInMemoryStore().WithRandomKey().WithVerbose(true);
+            var config = ImportConfig.Default.WithInMemoryStore().WithRandomKey().WithVerbose(true).WithMaxDegreeOfParallelism(1).WithMinDist(0.005);
             var chunks = PointCloud.E57(filename, config).ToList();
             var pointcloud = PointCloud.Chunks(chunks, config);
             Console.WriteLine($"pointcloud.PointCount  : {pointcloud.PointCount}");
