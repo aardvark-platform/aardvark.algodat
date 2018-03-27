@@ -280,8 +280,8 @@ namespace Aardvark.Geometry.Points
             
             return new PointSetNode(
                 id, cellIndex, pointCountTree,
-                psId, csId, kdId, null, null,
-                lodPsId, lodCsId, lodKdId, null, null,
+                psId, csId, kdId, nsId, isId,
+                lodPsId, lodCsId, lodKdId, lodNsId, lodIsId,
                 subcellIds,
                 storage, false
                 );
@@ -1034,7 +1034,35 @@ namespace Aardvark.Geometry.Points
                 SubnodeIds, Storage, true
                 );
         }
-        
+
+        /// <summary>
+        /// Returns new leaf node with Normals data added.
+        /// </summary>
+        public PointSetNode WithNormals(Guid? nsId)
+        {
+            if (IsNotLeaf) throw new InvalidOperationException("Only leaf nodes can have Normals. Try WithLodNormals instead.");
+            return new PointSetNode(Guid.NewGuid(),
+                Cell, PointCountTree,
+                PositionsId, ColorsId, KdTreeId, nsId, IntensitiesId,
+                LodPositionsId, LodColorsId, LodKdTreeId, LodNormalsId, LodIntensitiesId,
+                SubnodeIds, Storage, true
+                );
+        }
+
+        /// <summary>
+        /// Returns new inner node with LodNormals data added.
+        /// </summary>
+        public PointSetNode WithLodNormals(Guid? lodNsId, PointSetNode[] subnodes)
+        {
+            if (IsLeaf) throw new InvalidOperationException("Only inner nodes can have LodNormals. Try WithNormals instead.");
+            return new PointSetNode(Guid.NewGuid(),
+                Cell, PointCountTree,
+                PositionsId, ColorsId, KdTreeId, NormalsId, IntensitiesId,
+                LodPositionsId, LodColorsId, LodKdTreeId, lodNsId, LodIntensitiesId,
+                subnodes.Map(x => x?.Id), Storage, true
+                );
+        }
+
         #endregion
 
         #region Intersections, inside/outside, ...

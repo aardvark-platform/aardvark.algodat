@@ -240,6 +240,8 @@ namespace Aardvark.Geometry.Tests
                     }
                 });
             }
+
+            Directory.Delete(dbDiskLocation, true);
         }
     }
 }
