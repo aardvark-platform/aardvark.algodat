@@ -78,6 +78,7 @@ namespace Aardvark.Geometry.Points
             ReadBufferSizeInBytes = x.ReadBufferSizeInBytes;
             MaxChunkPointCount = x.MaxChunkPointCount;
             Reproject = x.Reproject;
+            EstimateNormals = x.EstimateNormals;
             Storage = x.Storage;
             Verbose = x.Verbose;
         }
@@ -101,6 +102,10 @@ namespace Aardvark.Geometry.Points
         public ImportConfig WithReadBufferSizeInBytes(int x) => new ImportConfig(this) { ReadBufferSizeInBytes = x };
 
         public ImportConfig WithMaxChunkPointCount(int x) => new ImportConfig(this) { MaxChunkPointCount = Math.Max(x, 1) };
+
+        public ImportConfig WithReproject(Func<IList<V3d>, IList<V3d>> x) => new ImportConfig(this) { Reproject = x };
+
+        public ImportConfig WithEstimateNormals(Func<IList<V3d>, IList<V3f>> x) => new ImportConfig(this) { EstimateNormals = x };
 
         public ImportConfig WithStorage(Storage x) => new ImportConfig(this) { Storage = x };
 

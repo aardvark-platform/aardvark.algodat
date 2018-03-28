@@ -106,6 +106,62 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(pointcloud.PointCount < 100);
         }
 
+        [Test]
+        public void CanImportChunk_Reproject()
+        {
+            int n = 10;
+            var ps = new V3d[n];
+            for (var i = 0; i < n; i++) ps[i] = new V3d(i, 0, 0);
+            var bb = new Box3d(ps);
+
+            var chunk = new Chunk(ps);
+            Assert.IsTrue(chunk.Count == 10);
+            Assert.IsTrue(chunk.BoundingBox == bb);
+
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithKey("test")
+                .WithOctreeSplitLimit(10)
+                .WithReproject(xs => xs.Select(x => x += V3d.OIO).ToArray())
+                ;
+            var pointcloud = PointCloud.Chunks(chunk, config);
+            Assert.IsTrue(pointcloud.BoundingBox == bb + V3d.OIO);
+        }
+
+        [Test]
+        public void CanImportChunk_EstimateNormals()
+        {
+            int n = 10;
+            var ps = new V3d[n];
+            for (var i = 0; i < n; i++) ps[i] = new V3d(i, 0, 0);
+
+            var chunk = new Chunk(ps);
+            Assert.IsTrue(chunk.Count == 10);
+
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithKey("test")
+                .WithOctreeSplitLimit(10)
+                ;
+            var pointcloud = PointCloud.Chunks(chunk, config);
+            var node = pointcloud.Root.Value;
+            Assert.IsTrue(node.IsLeaf);
+            Assert.IsTrue(node.HasNormals == false);
+
+
+            config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithKey("test")
+                .WithOctreeSplitLimit(10)
+                .WithEstimateNormals(xs => xs.Select(x => V3f.OOI).ToArray())
+                ;
+            pointcloud = PointCloud.Chunks(chunk, config);
+            node = pointcloud.Root.Value;
+            Assert.IsTrue(node.IsLeaf);
+            Assert.IsTrue(node.HasNormals == true);
+            Assert.IsTrue(node.Normals.Value.All(x => x == V3f.OOI));
+        }
+
         #endregion
 
         #region General
