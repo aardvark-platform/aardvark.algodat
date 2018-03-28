@@ -26,6 +26,8 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PointSet GenerateLod(this PointSet self, ImportConfig config)
         {
+            if (config.CreateOctreeLod == false) return self;
+
             var nodeCount = self.Root.Value.CountNodes();
             var loddedNodesCount = 0L;
             var result = self.GenerateLod(config.Key, () =>

@@ -143,6 +143,7 @@ namespace Aardvark.Geometry.Points
             CancellationToken ct = default(CancellationToken)
             )
         {
+            if (map == null) throw new ArgumentNullException(nameof(map));
             if (maxLevelOfParallelism < 1) maxLevelOfParallelism = Environment.ProcessorCount;
 
             var queue = new Queue<R>();
@@ -185,42 +186,6 @@ namespace Aardvark.Geometry.Points
 
             sw.Stop();
             onFinish?.Invoke(sw.Elapsed);
-        }
-
-        internal static IEnumerable<Chunk> Map(this IEnumerable<Chunk> xs,
-            Func<IList<V3d>, IList<V3d>> mapPositions, Func<IList<C4b>, IList<C4b>> mapColors,
-            int maxLevelOfParallelism, CancellationToken ct
-            )
-        {
-            if (mapPositions == null && mapColors == null) return xs;
-
-            Func<Chunk, CancellationToken, Chunk> map = (x, _ct) =>
-            {
-                var ps = mapPositions?.Invoke(x.Positions) ?? x.Positions;
-                var cs = mapColors?.Invoke(x.Colors) ?? x.Colors;
-                var chunk = new Chunk(ps, cs);
-                return chunk;
-            };
-
-            return xs.MapParallel(map, maxLevelOfParallelism, null, ct);
-        }
-
-        internal static IEnumerable<Chunk> Map(this IEnumerable<Chunk> xs,
-            Func<V3d, V3d> mapPosition, Func<C4b, C4b> mapColor,
-            int maxLevelOfParallelism, CancellationToken ct
-            )
-        {
-            if (mapPosition == null && mapColor == null) return xs;
-
-            Func<Chunk, CancellationToken, Chunk> map = (x, _ct) =>
-            {
-                var ps = mapPosition != null ? x.Positions.Map(mapPosition) : x.Positions;
-                var cs = mapColor != null ? x.Colors.Map(mapColor) : x.Colors;
-                var chunk = new Chunk(ps, cs);
-                return chunk;
-            };
-
-            return xs.MapParallel(map, maxLevelOfParallelism, null, ct);
         }
     }
 }

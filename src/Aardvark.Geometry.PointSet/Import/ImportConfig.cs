@@ -30,7 +30,7 @@ namespace Aardvark.Geometry.Points
 
         public CancellationToken CancellationToken { get; private set; } = CancellationToken.None;
 
-        public bool CreateOctreeLod { get; private set; } = false;
+        public bool CreateOctreeLod { get; private set; } = true;
 
         public string Key { get; private set; } = null;
 
@@ -49,8 +49,13 @@ namespace Aardvark.Geometry.Points
 
         public int MaxChunkPointCount { get; private set; } = 1024 * 1024;
         
-        public Func<IList<V3d>, IList<V3d>> Reproject { get; private set; } =  null;
-        
+        public Func<IList<V3d>, IList<V3d>> Reproject { get; private set; } = null;
+
+        /// <summary>
+        /// Positions -> Normals.
+        /// </summary>
+        public Func<IList<V3d>, IList<V3f>> EstimateNormals { get; private set; } = null;
+
         public Storage Storage { get; private set; } = null;
         
         public bool Verbose { get; private set; } = false;

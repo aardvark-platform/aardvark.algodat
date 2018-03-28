@@ -33,16 +33,24 @@ namespace Aardvark.Geometry.Points
         public readonly IList<V3f> Normals;
         /// <summary></summary>
         public readonly IList<int> Intensities;
+
         /// <summary></summary>
         public readonly Box3d BoundingBox;
+
         /// <summary></summary>
         public int Count => Positions != null ? Positions.Count : 0;
+
         /// <summary></summary>
         public bool IsEmpty => Count == 0;
+
         /// <summary></summary>
         public bool HasPositions => Positions != null && Positions.Count > 0;
         /// <summary></summary>
         public bool HasColors => Colors != null && Colors.Count > 0;
+        /// <summary></summary>
+        public bool HasNormals => Normals != null && Normals.Count > 0;
+        /// <summary></summary>
+        public bool HasIntensities => Intensities != null && Intensities.Count > 0;
 
         /// <summary>
         /// </summary>
@@ -63,6 +71,26 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary>
+        /// Immutable update of positions.
+        /// </summary>
+        public Chunk WithPositions(IList<V3d> newPositions) => new Chunk(newPositions, Colors, Normals, Intensities);
+        
+        /// <summary>
+        /// Immutable update of colors.
+        /// </summary>
+        public Chunk WithColors(IList<C4b> newColors) => new Chunk(Positions, newColors, Normals, Intensities, BoundingBox);
+
+        /// <summary>
+        /// Immutable update of normals.
+        /// </summary>
+        public Chunk WithNormals(IList<V3f> newNormals) => new Chunk(Positions, Colors, newNormals, Intensities, BoundingBox);
+        
+        /// <summary>
+        /// Immutable update of normals.
+        /// </summary>
+        public Chunk WithIntensities(IList<int> newIntensities) => new Chunk(Positions, Colors, Normals, newIntensities, BoundingBox);
+
+        /// <summary>
         /// Removes points which are less than minDist from previous point.
         /// </summary>
         public Chunk ImmutableFilterSequentialMinDist(double minDist)
@@ -72,6 +100,9 @@ namespace Aardvark.Geometry.Points
 
             var ps = new List<V3d>();
             var cs = Colors != null ? new List<C4b>() : null;
+            var ns = Normals != null ? new List<V3f>() : null;
+            var js = Intensities != null ? new List<int>() : null;
+
             var last = V3d.MinValue;
             for (var i = 0; i < Positions.Count; i++)
             {
@@ -81,15 +112,17 @@ namespace Aardvark.Geometry.Points
                     last = p;
                     ps.Add(p);
                     if (cs != null) cs.Add(Colors[i]);
+                    if (ns != null) ns.Add(Normals[i]);
+                    if (js != null) js.Add(Intensities[i]);
                 }
             }
-            return new Chunk(ps, cs);
+            return new Chunk(ps, cs, ns, js);
         }
 
         /// <summary>
         /// Removes points which are less than minDist from previous point.
         /// </summary>
         public Chunk ImmutableMapPositions(Func<V3d, V3d> mapping)
-            => new Chunk(Positions.Map(mapping), Colors);
+            => new Chunk(Positions.Map(mapping), Colors, Normals, Intensities);
     }
 }

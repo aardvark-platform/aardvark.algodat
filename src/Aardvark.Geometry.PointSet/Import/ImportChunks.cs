@@ -14,6 +14,7 @@
 using System;
 using System.Linq;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace Aardvark.Geometry.Points
 {
@@ -33,17 +34,47 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PointSet Chunks(IEnumerable<Chunk> chunks, ImportConfig config)
         {
-            //var xs1 = chunks.Select(x => x.ImmutableFilterSequentialMinDist(config.MinDist)).ToArray();
-            //var xs2 = xs1.Map(config.Reproject, null, config.MaxDegreeOfParallelism, config.CancellationToken).ToArray();
-            //var xs3 = xs2.MapReduce(config.WithRandomKey());
-            //var xs4 = xs3.GenerateLod(config);
+            // optionally filter minDist
+            if (config.MinDist > 0.0)
+            {
+                chunks = chunks.Select(x => x.ImmutableFilterSequentialMinDist(config.MinDist));
+            }
 
-            return chunks
-                .Select(x => x.ImmutableFilterSequentialMinDist(config.MinDist))
-                .Map(config.Reproject, null, config.MaxDegreeOfParallelism, config.CancellationToken)
+            // optionally reproject positions and/or estimate normals
+            if (config.Reproject != null || config.EstimateNormals != null)
+            {
+                Chunk map(Chunk x, CancellationToken ct)
+                {
+                    if (config.Reproject != null)
+                    {
+                        var ps = config.Reproject(x.Positions);
+                        x = x.WithPositions(ps);
+                    }
+
+                    if (config.EstimateNormals != null)
+                    {
+                        var ns = config.EstimateNormals(x.Positions);
+                        x = x.WithNormals(ns);
+                    }
+
+                    return x;
+                }
+
+                chunks = chunks.MapParallel(map, config.MaxDegreeOfParallelism, null, config.CancellationToken);
+            }
+
+            // reduce all chunks to single PointSet
+            var final = chunks
                 .MapReduce(config.WithRandomKey().WithProgressCallback(x => config.ProgressCallback(x * 0.66)))
-                .GenerateLod(config.WithProgressCallback(x => config.ProgressCallback(0.66 + x * 0.34)))
                 ;
+
+            // optionally create LOD data
+            if (config.CreateOctreeLod)
+            {
+                final = final.GenerateLod(config.WithProgressCallback(x => config.ProgressCallback(0.66 + x * 0.34)));
+            }
+
+            return final;
         }
     }
 }
