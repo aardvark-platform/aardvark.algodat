@@ -42,7 +42,7 @@ namespace Aardvark.Geometry.Tests
             var pointcloud = PointCloud.Chunks(GenerateChunks(CHUNKSIZE).Take(CHUNKCOUNT), config);
             Assert.IsTrue(pointcloud.PointCount == CHUNKSIZE * CHUNKCOUNT);
 
-            Assert.IsTrue(countProgressCallbacks > 50);
+            Assert.IsTrue(countProgressCallbacks > 10);
 
 
             IEnumerable<Chunk> GenerateChunks(int numberOfPointsPerChunk)

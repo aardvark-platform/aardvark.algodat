@@ -158,9 +158,9 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         internal PointSetNode(
             Cell cell, long pointCountTree,
-            Guid? psId, Guid? csId, Guid? kdId, Guid? nsId,
+            Guid? psId, Guid? csId, Guid? kdId, Guid? nsId, Guid? isId,
             Storage storage
-            ) : this(Guid.NewGuid(), cell, pointCountTree, psId, csId, kdId, nsId, null, null, null, null, null, null, null, storage, true)
+            ) : this(Guid.NewGuid(), cell, pointCountTree, psId, csId, kdId, nsId, isId, null, null, null, null, null, null, storage, true)
         {
         }
 
@@ -1009,7 +1009,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Makes node with LoD data from inner node.
         /// </summary>
-        internal PointSetNode WithLod(Guid? lodPsId, Guid? lodCsId, Guid? lodNsId, Guid? lodKdId, PointSetNode[] subnodes)
+        internal PointSetNode WithLod(Guid? lodPsId, Guid? lodCsId, Guid? lodNsId, Guid? lodIsId, Guid? lodKdId, PointSetNode[] subnodes)
         {
             if (IsLeaf) throw new InvalidOperationException();
             if (subnodes == null) throw new InvalidOperationException();
@@ -1017,7 +1017,7 @@ namespace Aardvark.Geometry.Points
             return new PointSetNode(Guid.NewGuid(),
                 Cell, pointCountTree,
                 null, null, null, null, null,
-                lodPsId, lodCsId, lodKdId, LodNormalsId, LodIntensitiesId,
+                lodPsId, lodCsId, lodKdId, lodNsId, lodIsId,
                 subnodes?.Map(x => x?.Id), Storage, true
                 );
         }

@@ -32,6 +32,8 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public readonly IList<V3f> Normals;
         /// <summary></summary>
+        public readonly IList<int> Intensities;
+        /// <summary></summary>
         public readonly Box3d BoundingBox;
         /// <summary></summary>
         public int Count => Positions != null ? Positions.Count : 0;
@@ -47,14 +49,16 @@ namespace Aardvark.Geometry.Points
         /// <param name="positions">Optional.</param>
         /// <param name="colors">Optional. Either null or same number of elements as positions.</param>
         /// <param name="normals">Optional. Either null or same number of elements as positions.</param>
+        /// <param name="intensities">Optional. Either null or same number of elements as positions.</param>
         /// <param name="bbox">Optional. If null, then bbox will be constructed from positions.</param>
-        public Chunk(IList<V3d> positions, IList<C4b> colors = null, IList<V3f> normals = null, Box3d? bbox = null)
+        public Chunk(IList<V3d> positions, IList<C4b> colors = null, IList<V3f> normals = null, IList<int> intensities = null, Box3d? bbox = null)
         {
             if (colors != null && colors.Count != positions?.Count) throw new ArgumentException(nameof(colors));
 
             Positions = positions;
             Colors = colors;
             Normals = normals;
+            Intensities = intensities;
             BoundingBox = bbox ?? new Box3d(positions);
         }
 

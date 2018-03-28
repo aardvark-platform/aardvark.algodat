@@ -37,10 +37,12 @@ namespace Aardvark.Geometry.Points
             var subnodesPoints = new List<V3d>[8];
             var subnodesColors = cell.HasColors ? new List<C4b>[8] : null;
             var subnodesNormals = cell.HasNormals ? new List<V3f>[8] : null;
+            var subnodesIntensities = cell.HasIntensities ? new List<int>[8] : null;
 
             var pa = cell.PositionsAbsolute;
             var ca = cell.Colors?.Value;
             var na = cell.Normals?.Value;
+            var ia = cell.Intensities?.Value;
             var imax = cell.PointCount;
             if (pa.Length != imax) throw new InvalidOperationException();
 
@@ -52,10 +54,12 @@ namespace Aardvark.Geometry.Points
                     subnodesPoints[si] = new List<V3d>();
                     if (subnodesColors != null) subnodesColors[si] = new List<C4b>();
                     if (subnodesNormals != null) subnodesNormals[si] = new List<V3f>();
+                    if (subnodesIntensities != null) subnodesIntensities[si] = new List<int>();
                 }
                 subnodesPoints[si].Add(pa[i]);
                 if (subnodesColors != null) subnodesColors[si].Add(ca[i]);
                 if (subnodesNormals != null) subnodesNormals[si].Add(na[i]);
+                if (subnodesIntensities != null) subnodesIntensities[si].Add(ia[i]);
             }
 
             var subnodes = new PointSetNode[8];
@@ -67,7 +71,7 @@ namespace Aardvark.Geometry.Points
                 if (!cell.Cell.Contains(subCellIndex)) throw new InvalidOperationException();
                 if (cell.Cell.Exponent != subCellIndex.Exponent + 1) throw new InvalidOperationException();
 
-                var builder = InMemoryPointSet.Build(subnodesPoints[i], subnodesColors?[i], subnodesNormals?[i], subCellIndex, int.MaxValue);
+                var builder = InMemoryPointSet.Build(subnodesPoints[i], subnodesColors?[i], subnodesNormals?[i], subnodesIntensities?[i], subCellIndex, int.MaxValue);
                 var subnode = builder.ToPointSetCell(cell.Storage, ct: ct);
                 if (subnode.PointCountTree > subnodesPoints[i].Count) throw new InvalidOperationException();
                 if (!cell.Cell.Contains(subnode.Cell)) throw new InvalidOperationException();
@@ -252,7 +256,7 @@ namespace Aardvark.Geometry.Points
             if (a.IsLeaf)
             {
                 result2 = a.ToInnerNode(subcells);
-                result2 = InjectPointsIntoTree(a.PositionsAbsolute, a.Colors.Value, a.Normals?.Value, result2, result2.Cell, octreeSplitLimit, a.Storage, ct);
+                result2 = InjectPointsIntoTree(a.PositionsAbsolute, a.Colors?.Value, a.Normals?.Value, a.Intensities?.Value, result2, result2.Cell, octreeSplitLimit, a.Storage, ct);
             }
             else
             {
@@ -447,11 +451,13 @@ namespace Aardvark.Geometry.Points
             if (b.PositionsAbsolute == null) throw new InvalidOperationException();
             if (a.HasColors != b.HasColors) throw new InvalidOperationException();
             if (a.HasNormals != b.HasNormals) throw new InvalidOperationException();
+            if (a.HasIntensities != b.HasIntensities) throw new InvalidOperationException();
 
             var ps = Concat(a.PositionsAbsolute, b.PositionsAbsolute);
             var cs = Concat(a.Colors?.Value, b.Colors?.Value);
             var ns = Concat(a.Normals?.Value, b.Normals?.Value);
-            var result = InMemoryPointSet.Build(ps, cs, ns, a.Cell, octreeSplitLimit).ToPointSetCell(a.Storage, ct: ct);
+            var js = Concat(a.Intensities?.Value, b.Intensities?.Value);
+            var result = InMemoryPointSet.Build(ps, cs, ns, js, a.Cell, octreeSplitLimit).ToPointSetCell(a.Storage, ct: ct);
             return result;
         }
 
@@ -463,7 +469,7 @@ namespace Aardvark.Geometry.Points
             if (a.Cell != b.Cell) throw new InvalidOperationException();
 
             var center = a.Center;
-            var result = InjectPointsIntoTree(a.PositionsAbsolute, a.Colors?.Value, a.Normals?.Value, b, a.Cell, octreeSplitLimit, a.Storage, ct);
+            var result = InjectPointsIntoTree(a.PositionsAbsolute, a.Colors?.Value, a.Normals?.Value, a.Intensities?.Value, b, a.Cell, octreeSplitLimit, a.Storage, ct);
             return result;
         }
 
@@ -516,11 +522,11 @@ namespace Aardvark.Geometry.Points
             return result;
         }
 
-        private static PointSetNode InjectPointsIntoTree(IList<V3d> psAbsolute, IList<C4b> cs, IList<V3f> ns, PointSetNode a, Cell cell, long octreeSplitLimit, Storage storage, CancellationToken ct)
+        private static PointSetNode InjectPointsIntoTree(IList<V3d> psAbsolute, IList<C4b> cs, IList<V3f> ns, IList<int> js, PointSetNode a, Cell cell, long octreeSplitLimit, Storage storage, CancellationToken ct)
         {
             if (a == null)
             {
-                var result0 = InMemoryPointSet.Build(psAbsolute, cs, ns, cell, octreeSplitLimit).ToPointSetCell(storage, ct: ct);
+                var result0 = InMemoryPointSet.Build(psAbsolute, cs, ns, js, cell, octreeSplitLimit).ToPointSetCell(storage, ct: ct);
                 if (result0.PointCountTree > psAbsolute.Count) throw new InvalidOperationException();
                 return result0;
             }
@@ -537,13 +543,15 @@ namespace Aardvark.Geometry.Points
                 var newPs = new List<V3d>(psAbsolute); newPs.AddRange(a.PositionsAbsolute);
                 var newCs = cs != null ? new List<C4b>(cs) : null; newCs?.AddRange(a.Colors.Value);
                 var newNs = ns != null ? new List<V3f>(ns) : null; newNs?.AddRange(a.Normals.Value);
-                var result0 = InMemoryPointSet.Build(newPs, newCs, newNs, cell, octreeSplitLimit).ToPointSetCell(a.Storage, ct: ct);
+                var newIs = js != null ? new List<int>(js) : null; newIs?.AddRange(a.Intensities.Value);
+                var result0 = InMemoryPointSet.Build(newPs, newCs, newNs, newIs, cell, octreeSplitLimit).ToPointSetCell(a.Storage, ct: ct);
                 return result0;
             }
 
             var pss = new List<V3d>[8];
             var css = cs != null ? new List<C4b>[8] : null;
             var nss = ns != null ? new List<V3f>[8] : null;
+            var iss = js != null ? new List<int>[8] : null;
             for (var i = 0; i < psAbsolute.Count; i++)
             {
                 var j = a.GetSubIndex(psAbsolute[i]);
@@ -552,10 +560,12 @@ namespace Aardvark.Geometry.Points
                     pss[j] = new List<V3d>();
                     if (cs != null) css[j] = new List<C4b>();
                     if (ns != null) nss[j] = new List<V3f>();
+                    if (js != null) iss[j] = new List<int>();
                 }
                 pss[j].Add(psAbsolute[i]);
                 if (cs != null) css[j].Add(cs[i]);
                 if (ns != null) nss[j].Add(ns[i]);
+                if (js != null) iss[j].Add(js[i]);
             }
 
             if (pss.Sum(x => x?.Count) != psAbsolute.Count) throw new InvalidOperationException();
@@ -566,7 +576,7 @@ namespace Aardvark.Geometry.Points
                 var x = a.Subnodes[j]?.Value;
                 if (pss[j] != null)
                 {
-                    subcells[j] = InjectPointsIntoTree(pss[j], css?[j], nss?[j], x, cell.GetOctant(j), octreeSplitLimit, storage, ct);
+                    subcells[j] = InjectPointsIntoTree(pss[j], css?[j], nss?[j], iss?[j], x, cell.GetOctant(j), octreeSplitLimit, storage, ct);
                 }
                 else
                 {

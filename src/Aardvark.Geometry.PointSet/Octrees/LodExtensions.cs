@@ -65,7 +65,11 @@ namespace Aardvark.Geometry.Points
 
             var subcells = self.Subnodes.Map(x => x?.Value.GenerateLod(octreeSplitLimit, callback, ct));
             var subcellsTotalCount = (long)subcells.Sum(x => x?.PointCountTree);
-            
+
+            var needsCs = subcells.Any(x => x != null ? (x.HasColors || x.HasLodColors) : false);
+            var needsNs = subcells.Any(x => x != null ? (x.HasNormals || x.HasLodNormals) : false);
+            var needsIs = subcells.Any(x => x != null ? (x.HasIntensities || x.HasLodIntensities) : false);
+
             var fractions = new double[8].SetByIndex(
                 ci => subcells[ci] != null ? (subcells[ci].PointCountTree / (double)subcellsTotalCount) : 0.0
                 );
@@ -78,11 +82,12 @@ namespace Aardvark.Geometry.Points
                 return n;
             });
             var e = octreeSplitLimit - counts.Sum();
-            
+
             // generate LoD data ...
             var lodPs = new V3f[octreeSplitLimit];
-            var lodCs = new C4b[octreeSplitLimit];
-            var lodNs = new V3f[octreeSplitLimit];
+            var lodCs = needsCs ? new C4b[octreeSplitLimit] : null;
+            var lodNs = needsNs ? new V3f[octreeSplitLimit] : null;
+            var lodIs = needsIs ? new int[octreeSplitLimit] : null;
             var i = 0;
             for (var ci = 0; ci < 8; ci++)
             {
@@ -91,8 +96,9 @@ namespace Aardvark.Geometry.Points
                 if (subcell == null) continue;
                 
                 var subps = subcell.IsLeaf ? subcell.Positions.Value : subcell.LodPositions.Value;
-                var subcs = subcell.IsLeaf ? subcell.Colors?.Value : subcell.LodColors?.Value;
-                var subns = subcell.IsLeaf ? subcell.Normals?.Value : subcell.LodNormals?.Value;
+                var subcs = needsCs ? (subcell.IsLeaf ? subcell.Colors.Value : subcell.LodColors.Value) : null;
+                var subns = needsNs ? (subcell.IsLeaf ? subcell.Normals.Value : subcell.LodNormals.Value) : null;
+                var subis = needsIs ? (subcell.IsLeaf ? subcell.Intensities.Value : subcell.LodIntensities.Value) : null;
 
                 var jmax = subps.Length;
                 var dj = (jmax + 0.49) / counts[ci];
@@ -101,8 +107,9 @@ namespace Aardvark.Geometry.Points
                 {
                     var jj = (int)j;
                     lodPs[i] = (V3f)(((V3d)subps[jj] + subcell.Center) - self.Center);
-                    if (subcs != null) lodCs[i] = subcs[jj];
-                    if (subns != null) lodNs[i] = subns[jj];
+                    if (needsCs) lodCs[i] = subcs[jj];
+                    if (needsNs) lodNs[i] = subns[jj];
+                    if (needsIs) lodIs[i] = subis[jj];
                     i++;
                 }
             }
@@ -110,18 +117,21 @@ namespace Aardvark.Geometry.Points
 
             // store LoD data ...
             var lodPsId = Guid.NewGuid();
-            self.Storage.Add(lodPsId.ToString(), lodPs, ct);
+            self.Storage.Add(lodPsId, lodPs, ct);
 
             var lodKdId = Guid.NewGuid();
-            self.Storage.Add(lodKdId.ToString(), lodKd.Data, ct);
+            self.Storage.Add(lodKdId, lodKd.Data, ct);
+            
+            var lodCsId = needsCs ? (Guid?)Guid.NewGuid() : null;
+            if (needsCs) self.Storage.Add(lodCsId.Value, lodCs, ct);
 
-            var lodCsId = lodCs != null ? (Guid?)Guid.NewGuid() : null;
-            if (lodCs != null) self.Storage.Add(lodCsId.ToString(), lodCs, ct);
+            var lodNsId = needsNs ? (Guid?)Guid.NewGuid() : null;
+            if (needsNs) self.Storage.Add(lodNsId.Value, lodNs, ct);
 
-            var lodNsId = lodNs != null ? (Guid?)Guid.NewGuid() : null;
-            if (lodNs != null) self.Storage.Add(lodNsId.ToString(), lodNs, ct);
+            var lodIsId = needsIs ? (Guid?)Guid.NewGuid() : null;
+            if (needsIs) self.Storage.Add(lodIsId.Value, lodIs, ct);
 
-            var result = self.WithLod(lodPsId, lodCsId, lodNsId, lodKdId, subcells);
+            var result = self.WithLod(lodPsId, lodCsId, lodNsId, lodIsId, lodKdId, subcells);
             return result;
         }
     }

@@ -52,7 +52,7 @@ namespace Aardvark.Geometry.Tests
         public void CanCreatePointSetWithNormals()
         {
             var ps = PointSet.Create(CreateInMemoryStore(), Guid.NewGuid().ToString(),
-                new[] { V3d.IOO }, new[] { C4b.White }, new[] { V3f.OIO }, 8192, true,
+                new[] { V3d.IOO }, new[] { C4b.White }, new[] { V3f.OIO }, null, 8192, true,
                 CancellationToken.None
                 );
 
@@ -73,7 +73,7 @@ namespace Aardvark.Geometry.Tests
             var ps = new V3d[10000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
 
             var pointset = PointSet
-                .Create(storage, "test", ps.ToList(), null, null, 5000, false, CancellationToken.None)
+                .Create(storage, "test", ps.ToList(), null, null, null, 5000, false, CancellationToken.None)
                 .GenerateLod(ImportConfig.Default.WithKey("lod").WithOctreeSplitLimit(5000))
                 ;
             storage.Add("pss", pointset, CancellationToken.None);

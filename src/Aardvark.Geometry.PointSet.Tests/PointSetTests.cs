@@ -61,7 +61,7 @@ namespace Aardvark.Geometry.Tests
             var store = CreateStorage();
             var ps = new List<V3d> { new V3d(0.1, 0.2, 0.3) };
             var cs = new List<C4b> { C4b.White };
-            var pointset = PointSet.Create(store, "id", ps, cs, null, 1000, true, CancellationToken.None);
+            var pointset = PointSet.Create(store, "id", ps, cs, null, null, 1000, true, CancellationToken.None);
             Assert.IsTrue(pointset.PointCount == 1);
             Assert.IsTrue(pointset.Root.Value.IsLeaf);
             Assert.IsTrue(pointset.Root.Value.PointCount == 1);
@@ -74,7 +74,8 @@ namespace Aardvark.Geometry.Tests
             var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
             var cs = new List<C4b> { C4b.White };
             var ns = new List<V3f> { V3f.ZAxis };
-            var imps = InMemoryPointSet.Build(ps, cs, ns, Cell.Unit, 1);
+            var js = new List<int> { 123 };
+            var imps = InMemoryPointSet.Build(ps, cs, ns, js, Cell.Unit, 1);
         }
 
         [Test]
@@ -82,7 +83,8 @@ namespace Aardvark.Geometry.Tests
         {
             var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
             var ns = new List<V3f> { V3f.ZAxis };
-            var imps = InMemoryPointSet.Build(ps, null, ns, Cell.Unit, 1);
+            var js = new List<int> { 123 };
+            var imps = InMemoryPointSet.Build(ps, null, ns, js, Cell.Unit, 1);
         }
 
         [Test]
@@ -90,7 +92,17 @@ namespace Aardvark.Geometry.Tests
         {
             var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
             var cs = new List<C4b> { C4b.White };
-            var imps = InMemoryPointSet.Build(ps, cs, null, Cell.Unit, 1);
+            var js = new List<int> { 123 };
+            var imps = InMemoryPointSet.Build(ps, cs, null, js, Cell.Unit, 1);
+        }
+
+        [Test]
+        public void CanCreateInMemoryPointSetWithoutIntensities()
+        {
+            var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
+            var cs = new List<C4b> { C4b.White };
+            var ns = new List<V3f> { V3f.ZAxis };
+            var imps = InMemoryPointSet.Build(ps, cs, ns, null, Cell.Unit, 1);
         }
 
         [Test]
@@ -109,7 +121,7 @@ namespace Aardvark.Geometry.Tests
 
             Assert.IsTrue(ps.Count == 4 * 4 * 4);
 
-            var imps = InMemoryPointSet.Build(ps, null, ns, new Cell(0, 0, 0, 0), 1);
+            var imps = InMemoryPointSet.Build(ps, null, ns, null, new Cell(0, 0, 0, 0), 1);
             var root = imps.ToPointSetCell(storage, ct: CancellationToken.None);
             Assert.IsTrue(root.PointCountTree == 4 * 4 * 4);
             var countNodes = root.CountLeafNodes(true);

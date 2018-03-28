@@ -59,6 +59,7 @@ namespace Aardvark.Geometry.Points
                 Guid? newPsId = null;
                 Guid? newCsId = null;
                 Guid? newNsId = null;
+                Guid? newIsId = null;
                 Guid? newKdId = null;
 
                 if (!node.HasPositions) throw new InvalidOperationException();
@@ -66,10 +67,12 @@ namespace Aardvark.Geometry.Points
                 var ps = new List<V3f>();
                 var cs = node.HasColors ? new List<C4b>() : null;
                 var ns = node.HasNormals ? new List<V3f>() : null;
+                var js = node.HasIntensities ? new List<int>() : null;
                 var oldPsAbsolute = node.PositionsAbsolute;
                 var oldPs = node.Positions.Value;
                 var oldCs = node.Colors?.Value;
                 var oldNs = node.Normals?.Value;
+                var oldIs = node.Intensities?.Value;
                 for (var i = 0; i < oldPsAbsolute.Length; i++)
                 {
                     if (!isPositionInside(oldPsAbsolute[i]))
@@ -77,6 +80,7 @@ namespace Aardvark.Geometry.Points
                         ps.Add(oldPs[i]);
                         if (oldCs != null) cs.Add(oldCs[i]);
                         if (oldNs != null) ns.Add(oldNs[i]);
+                        if (oldIs != null) js.Add(oldIs[i]);
                     }
                 }
 
@@ -101,7 +105,13 @@ namespace Aardvark.Geometry.Points
                         node.Storage.Add(newNsId.Value, ns.ToArray(), ct);
                     }
 
-                    var result = new PointSetNode(node.Cell, ps.Count, newPsId, newCsId, newKdId, newNsId, node.Storage);
+                    if (node.HasIntensities)
+                    {
+                        newIsId = Guid.NewGuid();
+                        node.Storage.Add(newIsId.Value, js.ToArray(), ct);
+                    }
+                    
+                    var result = new PointSetNode(node.Cell, ps.Count, newPsId, newCsId, newKdId, newNsId, newIsId, node.Storage);
                     if (node.HasLodPositions) result = result.WithLod();
                     return result;
                 }
@@ -115,6 +125,7 @@ namespace Aardvark.Geometry.Points
                 Guid? newLodPsId = null;
                 Guid? newLodCsId = null;
                 Guid? newLodNsId = null;
+                Guid? newLodIsId = null;
                 Guid? newLodKdId = null;
 
                 if (node.HasLodPositions)
@@ -122,10 +133,12 @@ namespace Aardvark.Geometry.Points
                     var ps = node.HasLodPositions ? new List<V3f>() : null;
                     var cs = node.HasLodColors ? new List<C4b>() : null;
                     var ns = node.HasLodNormals ? new List<V3f>() : null;
+                    var js = node.HasLodIntensities ? new List<int>() : null;
                     var oldLodPsAbsolute = node.LodPositionsAbsolute;
                     var oldLodPs = node.LodPositions.Value;
                     var oldLodCs = node.LodColors?.Value;
                     var oldLodNs = node.LodNormals?.Value;
+                    var oldLodIs = node.LodIntensities?.Value;
                     for (var i = 0; i < oldLodPsAbsolute.Length; i++)
                     {
                         if (!isPositionInside(oldLodPsAbsolute[i]))
@@ -133,6 +146,7 @@ namespace Aardvark.Geometry.Points
                             ps.Add(oldLodPs[i]);
                             if (oldLodCs != null) cs.Add(oldLodCs[i]);
                             if (oldLodNs != null) ns.Add(oldLodNs[i]);
+                            if (oldLodIs != null) js.Add(oldLodIs[i]);
                         }
                     }
 
@@ -156,12 +170,18 @@ namespace Aardvark.Geometry.Points
                             newLodNsId = Guid.NewGuid();
                             node.Storage.Add(newLodNsId.Value, ns.ToArray(), ct);
                         }
+
+                        if (node.HasLodIntensities)
+                        {
+                            newLodIsId = Guid.NewGuid();
+                            node.Storage.Add(newLodIsId.Value, js.ToArray(), ct);
+                        }
                     }
                 }
 
                 var newSubnodes = node.Subnodes.Map(n => n?.Value.Delete(isNodeFullyInside, isNodeFullyOutside, isPositionInside, ct));
                 if (newSubnodes.All(n => n == null)) return null;
-                return node.WithLod(newLodPsId, newLodCsId, newLodNsId, newLodKdId, newSubnodes);
+                return node.WithLod(newLodPsId, newLodCsId, newLodNsId, newLodIsId, newLodKdId, newSubnodes);
             }
         }
     }

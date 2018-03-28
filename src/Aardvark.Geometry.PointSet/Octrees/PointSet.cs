@@ -35,11 +35,11 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Creates PointSet from given points and colors.
         /// </summary>
-        public static PointSet Create(Storage storage, string key, IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, int octreeSplitLimit, bool generateLod, CancellationToken ct)
+        public static PointSet Create(Storage storage, string key, IList<V3d> positions, IList<C4b> colors, IList<V3f> normals, IList<int> intensities, int octreeSplitLimit, bool generateLod, CancellationToken ct)
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
-            var bounds = new Box3d(ps);
-            var builder = InMemoryPointSet.Build(ps, cs, ns, bounds, octreeSplitLimit);
+            var bounds = new Box3d(positions);
+            var builder = InMemoryPointSet.Build(positions, colors, normals, intensities, bounds, octreeSplitLimit);
             var root = builder.ToPointSetCell(storage, ct: ct);
             var result = new PointSet(storage, key, root.Id, octreeSplitLimit);
             var config = ImportConfig.Default

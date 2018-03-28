@@ -65,7 +65,7 @@ namespace Aardvark.Geometry.Points
             }
 
             if (ps.Count == 0) return null;
-            return new Chunk(ps, cs, null, new Box3d(ps));
+            return new Chunk(ps, cs, null, null, new Box3d(ps));
         }
 
         /// <summary>
@@ -116,7 +116,7 @@ namespace Aardvark.Geometry.Points
             }
 
             if (ps.Count == 0) return null;
-            return new Chunk(ps, cs, null, new Box3d(ps));
+            return new Chunk(ps, cs, null, null, new Box3d(ps));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
