@@ -29,7 +29,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Gets general info for .e57 file.
         /// </summary>
-        public static PointFileInfo E57Info(string filename, ImportConfig config)
+        public static PointFileInfo<ASTM_E57.E57FileHeader> E57Info(string filename, ImportConfig config)
         {
             var filesize = new FileInfo(filename).Length;
             var stream = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -39,9 +39,12 @@ namespace Aardvark.Geometry.Points
             foreach (var data3d in header.E57Root.Data3D)
             {
                 pointCount += data3d.Points.RecordCount;
-                pointBounds.ExtendBy(data3d.CartesianBounds.Bounds);
+                if (data3d.CartesianBounds != null)
+                {
+                    pointBounds.ExtendBy(data3d.CartesianBounds.Bounds);
+                }
             }
-            return new PointFileInfo(filename, PointCloudFormat.E57Format, filesize, pointCount, pointBounds);
+            return new PointFileInfo<ASTM_E57.E57FileHeader>(filename, PointCloudFormat.E57Format, filesize, pointCount, pointBounds, header);
         }
 
         /// <summary>

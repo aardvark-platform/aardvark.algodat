@@ -23,11 +23,25 @@ namespace Aardvark.Geometry.Tests
         internal static void TestE57()
         {
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
-            var filename = @"T:\Vgm\Data\E57\Leica_BLK360_rmDataTest.e57";
-            //var filename = @"T:\Vgm\Data\Schottenring_2018_02_23\Laserscans\2018-02-27_BankAustria\export\sitzungssaal\Punktwolke\BLK\BLK_S1.e57";
+            var filename = @"test.e57";
             var fileSizeInBytes = new FileInfo(filename).Length;
 
-            var config = ImportConfig.Default.WithInMemoryStore().WithRandomKey().WithVerbose(true).WithMaxDegreeOfParallelism(1).WithMinDist(0.005);
+            var config = ImportConfig.Default
+                .WithInMemoryStore()
+                .WithRandomKey()
+                .WithVerbose(true)
+                .WithMaxDegreeOfParallelism(1)
+                .WithMinDist(0.005)
+                ;
+            var info = PointCloud.E57Info(filename, config);
+
+            foreach (var data3d in info.Metadata.E57Root.Data3D)
+            {
+                Console.WriteLine($"[{data3d.Name}]");
+                Console.WriteLine($"    {data3d.Pose.RigidBodyTransform.Forward.TransformPos(V3d.Zero)}");
+                Console.WriteLine($"    {data3d.Pose.Rotation.TransformPos(V3d.Zero) + data3d.Pose.Translation}");
+            }
+
             var chunks = PointCloud.E57(filename, config).ToList();
             var pointcloud = PointCloud.Chunks(chunks, config);
             Console.WriteLine($"pointcloud.PointCount  : {pointcloud.PointCount}");
@@ -86,13 +100,13 @@ namespace Aardvark.Geometry.Tests
         internal static void TestImport()
         {
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
-            var filename = @"T:\Vgm\Data\Schottenring_2018_02_23\Laserscans\2018-02-27_BankAustria\export\sitzungssaal\Punktwolke\P40\P40_gesamt.e57";
+            var filename = @"test.e57";
 
-            var store = new SimpleDiskStore(@"T:\Vgm\Stores\Sitzungssaal").ToPointCloudStore();
+            var store = new SimpleDiskStore(@"./store").ToPointCloudStore();
 
             var config = ImportConfig.Default
                 .WithStorage(store)
-                .WithKey("sitzungssaal")
+                .WithKey("mykey")
                 .WithVerbose(true)
                 ;
 
@@ -104,7 +118,7 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
-            TestImport();
+            TestE57();
         }
     }
 }

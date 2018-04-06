@@ -45,7 +45,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Large files should be read in chunks with this maximum size.
         /// </summary>
-        public int ReadBufferSizeInBytes { get; private set; } = 4 * 1024 * 1024;
+        public int ReadBufferSizeInBytes { get; private set; } = 256 * 1024 * 1024;
 
         public int MaxChunkPointCount { get; private set; } = 1024 * 1024;
         
