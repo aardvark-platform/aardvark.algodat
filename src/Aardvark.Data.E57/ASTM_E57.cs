@@ -1349,32 +1349,42 @@ namespace Aardvark.Data.E57
         {
             public E57ElementType E57Type => E57ElementType.RigidBodyTransform;
 
-#region Properties
+            #region Properties
 
             /// <summary>
             /// Required.
             /// A unit quaternion representing the rotation, R, of the transform.
             /// </summary>
-            public Rot3d Rotation;
+            public Rot3d Rotation { get; }
 
             /// <summary>
             /// Required.
             /// The translation, t, of the transform.
             /// </summary>
-            public V3d Translation;
+            public V3d Translation { get; }
 
-#endregion
+            #endregion
+
+            /// <summary>
+            /// A 3D point is transformed from the source coordinate system to the
+            /// destination coordinate system by first applying the rotation and
+            /// then the translation: p' = Rp + t
+            /// </summary>
+            public Trafo3d RigidBodyTransform { get; }
+            
+            private E57RigidBodyTransform(Rot3d rotation, V3d translation)
+            {
+                Rotation = rotation;
+                Translation = translation;
+                RigidBodyTransform = new Trafo3d(rotation) * Trafo3d.Translation(translation);
+            }
 
             internal static E57RigidBodyTransform Parse(XElement root)
             {
                 if (root == null) return null;
-                var r = GetElement(root, "rotation");
-                var t = GetElement(root, "translation");
-                return new E57RigidBodyTransform
-                {
-                    Rotation = r != null ? GetQuaternion(GetElement(root, "rotation")) : Rot3d.Identity,
-                    Translation = t != null ? GetTranslation(GetElement(root, "translation")) : V3d.Zero
-                };
+                var r = GetElement(root, "rotation") != null ? GetQuaternion(GetElement(root, "rotation")) : Rot3d.Identity;
+                var t = GetElement(root, "translation") != null ? GetTranslation(GetElement(root, "translation")) : V3d.Zero;
+                return new E57RigidBodyTransform(r, t);
             }
         }
         
@@ -2005,18 +2015,25 @@ namespace Aardvark.Data.E57
 
             /// <summary>
             /// Required.
-            /// The time, in seconds, since GPS start epoch. This time specification may include fractions of a second
+            /// The time, in seconds, since GPS start epoch. This time specification may include fractions of a second.
+            /// The GPS start epoch occured at 0 h UTC (12:00 midnight) on January 6, 1980.
             /// </summary>
             public double DateTimeValue;
-
+            
             /// <summary>
             /// Required.
             /// This element shall be present, and its value set to 1 if, and only if, the time stored in the dateTimeValue element is obtained from an atomic clock time source.
             /// Shall be either 0 or 1.
             /// </summary>
             public bool IsAtomicClockReferenced;
+            
+            /// <summary>
+            /// The time.
+            /// </summary>
+            public DateTimeOffset DateTime => GpsStartEpoch + TimeSpan.FromSeconds(DateTimeValue);
+            private static readonly DateTimeOffset GpsStartEpoch = new DateTimeOffset(1980, 01, 06, 0, 0, 0, TimeSpan.Zero);
 
-#endregion
+            #endregion
 
             internal static E57DateTime Parse(XElement root) => (root == null) ? null : new E57DateTime
             {
