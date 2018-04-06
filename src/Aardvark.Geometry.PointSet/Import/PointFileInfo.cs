@@ -55,4 +55,16 @@ namespace Aardvark.Geometry.Points
             Bounds = bounds;
         }
     }
+
+    public class PointFileInfo<T> : PointFileInfo
+    {
+        public T Metadata { get; }
+
+        /// <summary></summary>
+        public PointFileInfo(string fileName, PointCloudFormat format, long fileSizeInBytes, long pointCount, Box3d bounds, T metadata)
+            : base(fileName, format, fileSizeInBytes, pointCount, bounds)
+        {
+            Metadata = metadata;
+        }
+    }
 }
