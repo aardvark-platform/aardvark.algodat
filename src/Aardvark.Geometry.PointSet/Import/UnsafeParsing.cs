@@ -92,7 +92,7 @@ namespace Aardvark.Geometry.Points
                         var y = ParseDouble(ref p, end);
                         var z = ParseDouble(ref p, end);
 
-                        ParseInt(ref p, end); // ignore intensity
+                        ParseDouble(ref p, end); // ignore intensity
 
                         var r = ParseInt(ref p, end);
                         var g = ParseInt(ref p, end);
@@ -214,6 +214,7 @@ namespace Aardvark.Geometry.Points
                     case '8': x = x * 10 + 8; break;
                     case '9': x = x * 10 + 9; break;
                     case '\r':
+                    case '\n':
                     case ' ': return minus ? -x : x;
                     default: return null;
                 }

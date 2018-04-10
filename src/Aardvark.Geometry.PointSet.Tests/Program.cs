@@ -116,9 +116,20 @@ namespace Aardvark.Geometry.Tests
             store.Flush();
         }
 
+        internal static void TestImportPts()
+        {
+            CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+            var filename = @"test.pts";
+            var chunks = PointCloud.Pts(filename, ImportConfig.Default);
+            foreach (var chunk in chunks)
+            {
+                Console.WriteLine($"{chunk.Count}, {chunk.BoundingBox}");
+            }
+        }
+
         public static void Main(string[] args)
         {
-            TestE57();
+            TestImportPts();
         }
     }
 }
