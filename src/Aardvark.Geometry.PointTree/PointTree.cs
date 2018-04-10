@@ -188,20 +188,20 @@ namespace Aardvark.Geometry
         /// Return points closest to a sequence of lines.
         /// </summary>
         public List<IndexDist<double>> GetClosest(
-                IEnumerable<Pair<TPoint>> lines,
+                IEnumerable<(TPoint, TPoint)> lines,
                 double maxDistance, int maxCount)
         {
             var q = CreateClosestToLineQuery(maxDistance, maxCount);
             foreach (var line in lines)
-                GetClosest(q, line.E0, line.E1);
+                GetClosest(q, line.Item1, line.Item2);
             return q.List;
         }
 
         public List<IndexDist<double>> GetClosest(
-                Pair<TPoint> line, double maxDistance, int maxCount)
+                (TPoint, TPoint) line, double maxDistance, int maxCount)
         {
             return GetClosestToLine(
-                        line.E0, line.E1, maxDistance, maxCount);
+                        line.Item1, line.Item2, maxDistance, maxCount);
         }
 
         /// <summary>
