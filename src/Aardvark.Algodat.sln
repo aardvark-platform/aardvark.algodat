@@ -2,13 +2,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27004.2008
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aardvark.Geometry.PointSet", "Aardvark.Geometry.PointSet\Aardvark.Geometry.PointSet.csproj", "{1B47413B-A2E4-41A7-9992-DE64C8908231}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aardvark.Geometry.PointSet.Tests", "Aardvark.Geometry.PointSet.Tests\Aardvark.Geometry.PointSet.Tests.csproj", "{615830C5-5D54-41D4-A845-9B39973A4636}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aardvark.Geometry.PointTree", "Aardvark.Geometry.PointTree\Aardvark.Geometry.PointTree.csproj", "{2E934AE2-A52E-475B-8F12-F77503788D4F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aardvark.Geometry.PointTree", "Aardvark.Geometry.PointTree\Aardvark.Geometry.PointTree.csproj", "{765878C0-43E4-4E7F-BEEB-B32E7E0DD01A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aardvark.Data.E57", "Aardvark.Data.E57\Aardvark.Data.E57.csproj", "{452E7679-F66B-4163-B5EE-98B4D0D6EB63}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aardvark.Geometry.PointSet", "Aardvark.Geometry.PointSet\Aardvark.Geometry.PointSet.csproj", "{9976754A-07B4-489B-9C2C-0C3B848C1DF9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aardvark.Data.E57", "Aardvark.Data.E57\Aardvark.Data.E57.csproj", "{A7247D3B-7CB6-428A-BFCC-97FEF89E55B6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -16,28 +16,28 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{1B47413B-A2E4-41A7-9992-DE64C8908231}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1B47413B-A2E4-41A7-9992-DE64C8908231}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1B47413B-A2E4-41A7-9992-DE64C8908231}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1B47413B-A2E4-41A7-9992-DE64C8908231}.Release|Any CPU.Build.0 = Release|Any CPU
 		{615830C5-5D54-41D4-A845-9B39973A4636}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{615830C5-5D54-41D4-A845-9B39973A4636}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{615830C5-5D54-41D4-A845-9B39973A4636}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{615830C5-5D54-41D4-A845-9B39973A4636}.Release|Any CPU.Build.0 = Release|Any CPU
-		{2E934AE2-A52E-475B-8F12-F77503788D4F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{2E934AE2-A52E-475B-8F12-F77503788D4F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{2E934AE2-A52E-475B-8F12-F77503788D4F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{2E934AE2-A52E-475B-8F12-F77503788D4F}.Release|Any CPU.Build.0 = Release|Any CPU
-		{452E7679-F66B-4163-B5EE-98B4D0D6EB63}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{452E7679-F66B-4163-B5EE-98B4D0D6EB63}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{452E7679-F66B-4163-B5EE-98B4D0D6EB63}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{452E7679-F66B-4163-B5EE-98B4D0D6EB63}.Release|Any CPU.Build.0 = Release|Any CPU
+		{765878C0-43E4-4E7F-BEEB-B32E7E0DD01A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{765878C0-43E4-4E7F-BEEB-B32E7E0DD01A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{765878C0-43E4-4E7F-BEEB-B32E7E0DD01A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{765878C0-43E4-4E7F-BEEB-B32E7E0DD01A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9976754A-07B4-489B-9C2C-0C3B848C1DF9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9976754A-07B4-489B-9C2C-0C3B848C1DF9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9976754A-07B4-489B-9C2C-0C3B848C1DF9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9976754A-07B4-489B-9C2C-0C3B848C1DF9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A7247D3B-7CB6-428A-BFCC-97FEF89E55B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A7247D3B-7CB6-428A-BFCC-97FEF89E55B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A7247D3B-7CB6-428A-BFCC-97FEF89E55B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A7247D3B-7CB6-428A-BFCC-97FEF89E55B6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		EnterpriseLibraryConfigurationToolBinariesPathV6 = packages\EnterpriseLibrary.TransientFaultHandling.6.0.1304.0\lib\portable-net45+win+wp8;packages\EnterpriseLibrary.TransientFaultHandling.Data.6.0.1304.1\lib\NET45
 		SolutionGuid = {E996B5E6-49B2-4479-9DDE-455A40509F43}
+		EnterpriseLibraryConfigurationToolBinariesPathV6 = packages\EnterpriseLibrary.TransientFaultHandling.6.0.1304.0\lib\portable-net45+win+wp8;packages\EnterpriseLibrary.TransientFaultHandling.Data.6.0.1304.1\lib\NET45
 	EndGlobalSection
 EndGlobal

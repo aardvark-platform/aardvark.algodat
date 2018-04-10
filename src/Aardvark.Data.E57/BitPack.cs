@@ -16,12 +16,15 @@ using System.Runtime.CompilerServices;
 
 namespace Aardvark.Base
 {
+    /// <summary></summary>
     public class BitPacker
     {
         private uint m_rest = 0;
         private int m_restBitCount = 0;
+        /// <summary></summary>
         public int BitsPerValue { get; }
-        
+
+        /// <summary></summary>
         public BitPacker(int bitsPerValue)
         {
             if (bitsPerValue < 1 || bitsPerValue > 32) throw new ArgumentOutOfRangeException(
@@ -30,6 +33,7 @@ namespace Aardvark.Base
             BitsPerValue = bitsPerValue;
         }
 
+        /// <summary></summary>
         public uint[] UnpackUInts(byte[] buffer)
         {
             var count = (m_restBitCount + buffer.Length * 8) / BitsPerValue;
@@ -85,8 +89,10 @@ namespace Aardvark.Base
         }
     }
 
+    /// <summary></summary>
     public static class BitPack
     {
+        /// <summary></summary>
         public static Array UnpackIntegers(byte[] buffer, int bits)
         {
             switch (bits)
@@ -117,6 +123,7 @@ namespace Aardvark.Base
 
             throw new NotImplementedException($"BitPack.UnpackIntegers({bits})");
         }
+        /// <summary></summary>
         public static byte[] OptimizedUnpackInt2(byte[] buffer)
         {
             checked
@@ -133,6 +140,7 @@ namespace Aardvark.Base
                 return xs;
             }
         }
+        /// <summary></summary>
         public static byte[] OptimizedUnpackInt4(byte[] buffer)
         {
             checked
@@ -147,7 +155,9 @@ namespace Aardvark.Base
                 return xs;
             }
         }
+        /// <summary></summary>
         public static byte[] OptimizedUnpackInt8(byte[] buffer) => buffer;
+        /// <summary></summary>
         public static short[] OptimizedUnpackInt12(byte[] buffer)
         {
             checked
@@ -162,6 +172,7 @@ namespace Aardvark.Base
                 return xs;
             }
         }
+        /// <summary></summary>
         public static short[] OptimizedUnpackInt16(byte[] buffer)
         {
             if (buffer.Length % 2 != 0) throw new ArgumentException($"Expected buffer length multiple of 2 bytes, but is {buffer.Length} bytes.");
@@ -169,6 +180,7 @@ namespace Aardvark.Base
             for (int i = 0, j = 0; i < xs.Length; j += 2) xs[i++] = BitConverter.ToInt16(buffer, j);
             return xs;
         }
+        /// <summary></summary>
         public static int[] OptimizedUnpackInt20(byte[] buffer)
         {
             checked
@@ -184,6 +196,7 @@ namespace Aardvark.Base
                 return xs;
             }
         }
+        /// <summary></summary>
         public static int[] OptimizedUnpackInt24(byte[] buffer)
         {
             checked
@@ -198,6 +211,7 @@ namespace Aardvark.Base
                 return xs;
             }
         }
+        /// <summary></summary>
         public static int[] OptimizedUnpackInt32(byte[] buffer)
         {
             if (buffer.Length % 4 != 0) throw new ArgumentException($"Expected buffer length multiple of 4 bytes, but is {buffer.Length} bytes.");
@@ -208,6 +222,7 @@ namespace Aardvark.Base
             }
             return xs;
         }
+        /// <summary></summary>
         public static uint[] OptimizedUnpackUInt32(byte[] buffer)
         {
             if (buffer.Length % 4 != 0) throw new ArgumentException($"Expected buffer length multiple of 4 bytes, but is {buffer.Length} bytes.");
@@ -218,6 +233,7 @@ namespace Aardvark.Base
             }
             return xs;
         }
+        /// <summary></summary>
         public static long[] OptimizedUnpackInt64(byte[] buffer)
         {
             if (buffer.Length % 8 != 0) throw new ArgumentException($"Expected buffer length multiple of 8 bytes, but is {buffer.Length} bytes.");
@@ -225,6 +241,7 @@ namespace Aardvark.Base
             for (int i = 0, j = 0; i < xs.Length; j += 8) xs[i++] = BitConverter.ToInt64(buffer, j);
             return xs;
         }
+        /// <summary></summary>
         public static ulong[] OptimizedUnpackUInt64(byte[] buffer)
         {
             if (buffer.Length % 8 != 0) throw new ArgumentException($"Expected buffer length multiple of 8 bytes, but is {buffer.Length} bytes.");
@@ -233,8 +250,10 @@ namespace Aardvark.Base
             return xs;
         }
 
+        /// <summary></summary>
         public static byte[] Pack8(int[] data) => data.Map(x => (byte)x);
 
+        /// <summary></summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int BitCountInBytes(int n)
         {
@@ -243,6 +262,7 @@ namespace Aardvark.Base
             return c;
         }
 
+        /// <summary></summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static byte GetBits(ulong x, int start, int count)
         {
@@ -253,25 +273,31 @@ namespace Aardvark.Base
             var r = y & mask;
             return (byte)r;
         }
-        
+
+        /// <summary></summary>
         public class BitBuffer
         {
+            /// <summary></summary>
             public readonly byte[] Buffer;
+            /// <summary></summary>
             public readonly int LengthInBits;
             private int _i;
             private int _ibit;
+            /// <summary></summary>
             public BitBuffer(int lengthInBits)
             {
                 Buffer = new byte[BitCountInBytes(lengthInBits)];
                 LengthInBits = lengthInBits;
                 _i = 0; _ibit = 0;
             }
+            /// <summary></summary>
             public BitBuffer(byte[] buffer, int bits)
             {
                 Buffer = buffer;
                 LengthInBits = ((buffer.Length * 8) / bits) * bits;
                 _i = 0; _ibit = 0;
             }
+            /// <summary></summary>
             public void PushBits(byte x, int bitCount)
             {
                 if (bitCount < 1 || bitCount > 8) throw new ArgumentOutOfRangeException(nameof(bitCount));
@@ -292,6 +318,7 @@ namespace Aardvark.Base
                     _ibit = numberOfMostSignificantBitsToTakeFromCurrentBufferByte;
                 }
             }
+            /// <summary></summary>
             public void PushBits(ulong x, int bitCount)
             {
                 for (var i = 0; i < 64; i += 8, bitCount -= 8)
@@ -302,6 +329,7 @@ namespace Aardvark.Base
                 }
             }
 
+            /// <summary></summary>
             public uint GetByte(int startBit, int bitCount)
             {
                 if (bitCount > 8) bitCount = 8;
@@ -313,6 +341,7 @@ namespace Aardvark.Base
                 return (a | b) & ((1u << bitCount) - 1);
             }
 
+            /// <summary></summary>
             public uint GetUInt(int startBit, int bitCount)
             {
                 if (bitCount < 1 || bitCount > 32) throw new ArgumentOutOfRangeException(nameof(bitCount));
@@ -328,6 +357,7 @@ namespace Aardvark.Base
                 return x;
             }
 
+            /// <summary></summary>
             public ulong GetULong(int startBit, int bitCount)
             {
                 if (bitCount < 1 || bitCount > 64) throw new ArgumentOutOfRangeException(nameof(bitCount));
@@ -338,6 +368,7 @@ namespace Aardvark.Base
                     : GetUInt(startBit, bitCount);
             }
 
+            /// <summary></summary>
             public uint[] ReadUInts(int bits, int count)
             {
                 var data = new uint[count];
@@ -345,18 +376,16 @@ namespace Aardvark.Base
                 return data;
             }
         }
-
-        /// <summary>
-        /// </summary>
+        
+        /// <summary></summary>
         public static byte[] Pack(uint[] xs, int bits)
         {
             var buffer = new BitBuffer(xs.Length * bits);
             for (var i = 0; i < xs.Length; i++) buffer.PushBits(xs[i], bits);
             return buffer.Buffer;
         }
-
-        /// <summary>
-        /// </summary>
+        
+        /// <summary></summary>
         public static void Unpack(byte[] buffer, int bits, int count, Action<ulong, int> nextValueAndIndex)
         {
             if (buffer == null) throw new ArgumentNullException(nameof(buffer));

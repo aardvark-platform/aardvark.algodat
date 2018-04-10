@@ -23,6 +23,8 @@ using Aardvark.Base;
 
 namespace Aardvark.Data.E57
 {
+    #pragma warning disable 1591
+
     /// <summary>
     /// E57 (ASTM E2807-11)
     /// Standard Specification for 3D Imaging Data Exchange, Version 1.0.
@@ -2212,10 +2214,13 @@ namespace Aardvark.Data.E57
 
                 // checksum is big endian unsigned 32-bit int
                 var crcStored = (uint)((buffer[1020] << 24) + (buffer[1021] << 16) + (buffer[1022] << 8) + buffer[1023]);
+                
+#if false // Crc32C.NET 1.0.5 is not compatible with netstandard2.0
                 var crcComputed = Crc32C.Crc32CAlgorithm.Compute(buffer, 0, 1020);
                 if (crcStored != crcComputed) throw new Exception(
                     $"[E57] Bad file. Checksum at file offset 0x{stream.Position - 4:X} should be 0x{crcComputed:X} (instead of 0x{crcStored:X})."
                     );
+#endif
             }
         }
 
@@ -2417,4 +2422,6 @@ namespace Aardvark.Data.E57
 
 #endregion
     }
+    
+#pragma warning restore 1591
 }

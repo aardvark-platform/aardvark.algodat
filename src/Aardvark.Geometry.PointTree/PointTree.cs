@@ -154,7 +154,6 @@ namespace Aardvark.Geometry
         /// Create a closest to line query object for a sequence of line
         /// queries that contribute to a single result. The parameters
         /// max distance and max count work the same way as in the
-        /// call <see cref="GetClosestToLine"/>.
         /// </summary>
         public ClosestToLineQuery CreateClosestToLineQuery(
                 double maxDistance, int maxCount)

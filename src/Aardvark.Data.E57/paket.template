@@ -6,7 +6,4 @@ projectUrl http://github.com/aardvark-platform
 licenseUrl http://www.gnu.org/licenses/agpl.txt
 description
     E57 (ASTM E2807-11) Standard for 3D Imaging Data Exchange, Version 1.0.
-files
-    ..\..\bin\Release\Aardvark.Data.E57.dll ==> lib\net45
-    ..\..\bin\Release\Aardvark.Data.E57.pdb ==> lib\net45
-    ..\..\bin\Release\Aardvark.Data.E57.xml ==> lib\net45
+include-pdbs true

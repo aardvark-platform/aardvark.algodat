@@ -18,6 +18,7 @@ using Aardvark.Base;
 
 namespace Aardvark.Geometry.Points
 {
+    /// <summary></summary>
     public class Selector
     {
         /// <summary>
@@ -30,6 +31,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static readonly Selector None = new Selector(Selection.None);
 
+        /// <summary></summary>
         public static Selector Custom(
             Func<PointSetNode, bool> isFullyInsideSelection,
             Func<PointSetNode, bool> isFullyOutsideSelection,
@@ -43,6 +45,7 @@ namespace Aardvark.Geometry.Points
                 return (ia == null || ia.Count == 0) ? Selection.None(n) : Selection.Partial(n, ia);
             });
 
+        /// <summary></summary>
         public static Selector GlobalPositions(
             Func<PointSetNode, bool> isFullyInsideSelection,
             Func<PointSetNode, bool> isFullyOutsideSelection,
@@ -60,6 +63,7 @@ namespace Aardvark.Geometry.Points
                 return ia;
             });
 
+        /// <summary></summary>
         public static Selector LocalPositions(
             Func<PointSetNode, bool> isFullyInsideSelection,
             Func<PointSetNode, bool> isFullyOutsideSelection,
@@ -77,6 +81,7 @@ namespace Aardvark.Geometry.Points
                     return ia;
                 });
 
+        /// <summary></summary>
         public static Selector GlobalLodPositions(
             Func<PointSetNode, bool> isFullyInsideSelection,
             Func<PointSetNode, bool> isFullyOutsideSelection,
@@ -94,6 +99,7 @@ namespace Aardvark.Geometry.Points
                     return ia;
                 });
 
+        /// <summary></summary>
         public static Selector LocalLodPositions(
             Func<PointSetNode, bool> isFullyInsideSelection,
             Func<PointSetNode, bool> isFullyOutsideSelection,
@@ -111,6 +117,7 @@ namespace Aardvark.Geometry.Points
                     return ia;
                 });
 
+        /// <summary></summary>
         public static Selector Colors(
             Func<PointSetNode, bool> isFullyInsideSelection,
             Func<PointSetNode, bool> isFullyOutsideSelection,
@@ -128,6 +135,7 @@ namespace Aardvark.Geometry.Points
                     return ia;
                 });
 
+        /// <summary></summary>
         public static Selector LodColors(
             Func<PointSetNode, bool> isFullyInsideSelection,
             Func<PointSetNode, bool> isFullyOutsideSelection,
@@ -145,14 +153,21 @@ namespace Aardvark.Geometry.Points
                     return ia;
                 });
 
+        /// <summary></summary>
         public struct Selection
         {
+            /// <summary></summary>
             public readonly PointSetNode Node;
+            /// <summary></summary>
             public readonly IList<int> SelectedPointIndices;
+            /// <summary></summary>
             public readonly bool IsNodeFullyInsideSelection;
+            /// <summary></summary>
             public readonly bool IsNodeFullyOutsideSelection;
+            /// <summary></summary>
             public bool IsNodePartiallySelected => SelectedPointIndices != null;
 
+            /// <summary></summary>
             public Selection(PointSetNode node, IList<int> selectedPointIndices, bool isNodeFullyInsideSelection, bool isNodeFullyOutsideSelection)
             {
                 Node = node ?? throw new NullReferenceException(nameof(node));
@@ -166,13 +181,18 @@ namespace Aardvark.Geometry.Points
                 IsNodeFullyOutsideSelection = isNodeFullyOutsideSelection;
             }
 
+            /// <summary></summary>
             public static Selection All(PointSetNode node) => new Selection(node, null, true, false);
+            /// <summary></summary>
             public static Selection None(PointSetNode node) => new Selection(node, null, false, true);
+            /// <summary></summary>
             public static Selection Partial(PointSetNode node, IList<int> selectedPointIndices) => new Selection(node, selectedPointIndices, false, false);
         }
-        
+
+        /// <summary></summary>
         public readonly Func<PointSetNode, Selection> Select;
-        
+
+        /// <summary></summary>
         public Selector(Func<PointSetNode, Selection> select)
         {
             Select = select ?? throw new ArgumentNullException(nameof(select));

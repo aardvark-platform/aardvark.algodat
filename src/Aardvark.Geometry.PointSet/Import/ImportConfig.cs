@@ -24,22 +24,38 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public class ImportConfig
     {
+        /// <summary>
+        /// Default configuration.
+        /// </summary>
         public static readonly ImportConfig Default = new ImportConfig();
 
         #region Properties
 
+        /// <summary></summary>
         public CancellationToken CancellationToken { get; private set; } = CancellationToken.None;
 
+        /// <summary></summary>
         public bool CreateOctreeLod { get; private set; } = true;
 
+        /// <summary>
+        /// Store imported pointcloud with this key.
+        /// </summary>
         public string Key { get; private set; } = null;
 
+        /// <summary></summary>
         public int MaxDegreeOfParallelism { get; private set; } = 0;
 
+        /// <summary>
+        /// Remove points on import with less than this distance to previous point.
+        /// </summary>
         public double MinDist { get; private set; } = 0.0;
 
+        /// <summary>
+        /// Max number of points in octree cell.
+        /// </summary>
         public int OctreeSplitLimit { get; private set; } = 8192;
 
+        /// <summary></summary>
         public Action<double> ProgressCallback { get; private set; } = _ => { };
 
         /// <summary>
@@ -47,8 +63,10 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public int ReadBufferSizeInBytes { get; private set; } = 256 * 1024 * 1024;
 
+        /// <summary></summary>
         public int MaxChunkPointCount { get; private set; } = 1024 * 1024;
-        
+
+        /// <summary></summary>
         public Func<IList<V3d>, IList<V3d>> Reproject { get; private set; } = null;
 
         /// <summary>
@@ -56,8 +74,10 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public Func<IList<V3d>, IList<V3f>> EstimateNormals { get; private set; } = null;
 
+        /// <summary></summary>
         public Storage Storage { get; private set; } = null;
-        
+
+        /// <summary></summary>
         public bool Verbose { get; private set; } = false;
         
         #endregion
@@ -66,6 +86,7 @@ namespace Aardvark.Geometry.Points
 
         private ImportConfig() { }
         
+        /// <summary></summary>
         public ImportConfig(ImportConfig x)
         {
             CancellationToken = x.CancellationToken;
@@ -83,34 +104,49 @@ namespace Aardvark.Geometry.Points
             Verbose = x.Verbose;
         }
 
+        /// <summary></summary>
         public ImportConfig WithCancellationToken(CancellationToken x) => new ImportConfig(this) { CancellationToken = x };
 
+        /// <summary></summary>
         public ImportConfig WithCreateOctreeLod(bool x) => new ImportConfig(this) { CreateOctreeLod = x };
 
+        /// <summary></summary>
         public ImportConfig WithKey(string x) => new ImportConfig(this) { Key = x };
-        
+
+        /// <summary></summary>
         public ImportConfig WithRandomKey() => WithKey(Guid.NewGuid().ToString());
 
+        /// <summary></summary>
         public ImportConfig WithMaxDegreeOfParallelism(int x) => new ImportConfig(this) { MaxDegreeOfParallelism = x };
 
+        /// <summary></summary>
         public ImportConfig WithMinDist(double x) => new ImportConfig(this) { MinDist = x };
 
+        /// <summary></summary>
         public ImportConfig WithOctreeSplitLimit(int x) => new ImportConfig(this) { OctreeSplitLimit = x };
 
+        /// <summary></summary>
         public ImportConfig WithProgressCallback(Action<double> x) => new ImportConfig(this) { ProgressCallback = x ?? throw new ArgumentNullException() };
 
+        /// <summary></summary>
         public ImportConfig WithReadBufferSizeInBytes(int x) => new ImportConfig(this) { ReadBufferSizeInBytes = x };
 
+        /// <summary></summary>
         public ImportConfig WithMaxChunkPointCount(int x) => new ImportConfig(this) { MaxChunkPointCount = Math.Max(x, 1) };
 
+        /// <summary></summary>
         public ImportConfig WithReproject(Func<IList<V3d>, IList<V3d>> x) => new ImportConfig(this) { Reproject = x };
 
+        /// <summary></summary>
         public ImportConfig WithEstimateNormals(Func<IList<V3d>, IList<V3f>> x) => new ImportConfig(this) { EstimateNormals = x };
 
+        /// <summary></summary>
         public ImportConfig WithStorage(Storage x) => new ImportConfig(this) { Storage = x };
 
+        /// <summary></summary>
         public ImportConfig WithInMemoryStore() => new ImportConfig(this) { Storage = new SimpleMemoryStore().ToPointCloudStore() };
 
+        /// <summary></summary>
         public ImportConfig WithVerbose(bool x) => new ImportConfig(this) { Verbose = x };
 
         #endregion
