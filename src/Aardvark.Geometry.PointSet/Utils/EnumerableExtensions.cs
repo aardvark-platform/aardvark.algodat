@@ -171,9 +171,9 @@ namespace Aardvark.Geometry.Points
                     finally
                     {
                         Interlocked.Decrement(ref inFlightCount);
+                        queueSemapore.Release();
                     }
                 });
-                queueSemapore.Release();
 
                 while (queue.TryDequeue(out R r)) { ct.ThrowIfCancellationRequested(); yield return r; }
             }
