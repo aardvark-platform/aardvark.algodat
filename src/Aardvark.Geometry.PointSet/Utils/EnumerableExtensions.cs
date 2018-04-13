@@ -90,8 +90,13 @@ namespace Aardvark.Geometry.Points
                     Task.Delay(100).Wait();
                 }
 
-                var a = queue.Dequeue();
-                var b = queue.Dequeue();
+                T a, b;
+                lock (queue)
+                {
+                    a = queue.Dequeue();
+                    b = queue.Dequeue();
+                    if (a == null || b == null) throw new InvalidOperationException();
+                }
 
                 queueSemapore.Wait();
                 CheckCancellationOrException();
