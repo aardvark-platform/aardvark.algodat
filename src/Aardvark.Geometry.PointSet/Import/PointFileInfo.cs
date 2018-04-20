@@ -56,8 +56,10 @@ namespace Aardvark.Geometry.Points
         }
     }
 
+    /// <summary></summary>
     public class PointFileInfo<T> : PointFileInfo
     {
+        /// <summary></summary>
         public T Metadata { get; }
 
         /// <summary></summary>

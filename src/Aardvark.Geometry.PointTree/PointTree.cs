@@ -154,7 +154,6 @@ namespace Aardvark.Geometry
         /// Create a closest to line query object for a sequence of line
         /// queries that contribute to a single result. The parameters
         /// max distance and max count work the same way as in the
-        /// call <see cref="GetClosestToLine"/>.
         /// </summary>
         public ClosestToLineQuery CreateClosestToLineQuery(
                 double maxDistance, int maxCount)
@@ -188,20 +187,20 @@ namespace Aardvark.Geometry
         /// Return points closest to a sequence of lines.
         /// </summary>
         public List<IndexDist<double>> GetClosest(
-                IEnumerable<Pair<TPoint>> lines,
+                IEnumerable<(TPoint, TPoint)> lines,
                 double maxDistance, int maxCount)
         {
             var q = CreateClosestToLineQuery(maxDistance, maxCount);
             foreach (var line in lines)
-                GetClosest(q, line.E0, line.E1);
+                GetClosest(q, line.Item1, line.Item2);
             return q.List;
         }
 
         public List<IndexDist<double>> GetClosest(
-                Pair<TPoint> line, double maxDistance, int maxCount)
+                (TPoint, TPoint) line, double maxDistance, int maxCount)
         {
             return GetClosestToLine(
-                        line.E0, line.E1, maxDistance, maxCount);
+                        line.Item1, line.Item2, maxDistance, maxCount);
         }
 
         /// <summary>

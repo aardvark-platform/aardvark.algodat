@@ -1,177 +1,21 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{1B47413B-A2E4-41A7-9992-DE64C8908231}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Aardvark.Geometry.Points</RootNamespace>
-    <AssemblyName>Aardvark.Geometry.PointSet</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
+    <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>..\..\bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <WarningLevel>4</WarningLevel>
-    <DocumentationFile>..\..\bin\Debug\Aardvark.Geometry.PointSet.xml</DocumentationFile>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <OutputPath>..\..\bin\Debug</OutputPath>
+    <DocumentationFile>..\..\bin\Debug\netstandard2.0\Aardvark.Geometry.PointSet.xml</DocumentationFile>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <NoWarn>1591</NoWarn>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>..\..\bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <WarningLevel>4</WarningLevel>
-    <DocumentationFile>..\..\bin\Release\Aardvark.Geometry.PointSet.xml</DocumentationFile>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <OutputPath>..\..\bin\Release</OutputPath>
+    <DocumentationFile>..\..\bin\Release\netstandard2.0\Aardvark.Geometry.PointSet.xml</DocumentationFile>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <NoWarn>1591</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Net.Http" />
-    <Reference Include="System.Xml" />
+    <ProjectReference Include="..\Aardvark.Data.E57\Aardvark.Data.E57.csproj" />
+    <ProjectReference Include="..\Aardvark.Geometry.PointTree\Aardvark.Geometry.PointTree.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Import\ImportConfig.cs" />
-    <Compile Include="Import\ImportStore.cs" />
-    <Compile Include="Import\PointFileInfo.cs" />
-    <Compile Include="Import\PointCloudFormat.cs" />
-    <Compile Include="Octrees\Selector.cs" />
-    <Compile Include="Octrees\Delete.cs" />
-    <Compile Include="Utils\EnumerableExtensions.cs" />
-    <Compile Include="Import\ImportChunks.cs" />
-    <Compile Include="Import\ImportAsciiLines.cs" />
-    <Compile Include="Import\ImportE57.cs" />
-    <Compile Include="Import\ImportYxh.cs" />
-    <Compile Include="Import\ImportPts.cs" />
-    <Compile Include="Import\MapReduce.cs" />
-    <Compile Include="Utils\FileHelpers.cs" />
-    <Compile Include="Utils\KdTreeExtensions.cs" />
-    <Compile Include="Utils\Box3dExtensions.cs" />
-    <Compile Include="Import\UnsafeParsing.cs" />
-    <Compile Include="Octrees\InMemoryPointSet.cs" />
-    <Compile Include="Utils\Buffer.cs" />
-    <Compile Include="Utils\HashExtensions.cs" />
-    <Compile Include="Editing\IMask2d.cs" />
-    <Compile Include="Import\Chunk.cs" />
-    <Compile Include="Import\ImportFile.cs" />
-    <Compile Include="Import\Parsing.cs" />
-    <Compile Include="Import\ParsingStats.cs" />
-    <Compile Include="Octrees\LodExtensions.cs" />
-    <Compile Include="Editing\Mask3d.cs" />
-    <Compile Include="Octrees\Merge.cs" />
-    <Compile Include="Utils\PersistentRef.cs" />
-    <Compile Include="Octrees\PointSet.cs" />
-    <Compile Include="Octrees\PointSetNode.cs" />
-    <Compile Include="Octrees\PointSetNodeExtensions.cs" />
-    <Compile Include="Octrees\PointsNearObject.cs" />
-    <Compile Include="Utils\Disposable.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Octrees\Queries.cs" />
-    <Compile Include="Utils\Storage.cs" />
-    <Compile Include="Utils\Timing.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="paket.references" />
-    <None Include="paket.template" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Aardvark.Data.E57\Aardvark.Data.E57.csproj">
-      <Project>{452e7679-f66b-4163-b5ee-98b4d0d6eb63}</Project>
-      <Name>Aardvark.Data.E57</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Aardvark.Geometry.PointTree\Aardvark.Geometry.PointTree.csproj">
-      <Project>{2e934ae2-a52e-475b-8f12-f77503788d4f}</Project>
-      <Name>Aardvark.Geometry.PointTree</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Choose>
-    <When Condition="$(TargetFrameworkIdentifier) == '.NETFramework' And $(TargetFrameworkVersion) == 'v4.5'">
-      <ItemGroup>
-        <Reference Include="System.Drawing">
-          <Paket>True</Paket>
-        </Reference>
-        <Reference Include="System.Runtime.Serialization">
-          <Paket>True</Paket>
-        </Reference>
-        <Reference Include="Aardvark.Base">
-          <HintPath>..\..\packages\Aardvark.Base\lib\net45\Aardvark.Base.dll</HintPath>
-          <Private>True</Private>
-          <Paket>True</Paket>
-        </Reference>
-      </ItemGroup>
-    </When>
-  </Choose>
-  <Choose>
-    <When Condition="$(TargetFrameworkIdentifier) == '.NETFramework' And $(TargetFrameworkVersion) == 'v4.5'">
-      <ItemGroup>
-        <Reference Include="Aardvark.Base.IO">
-          <HintPath>..\..\packages\Aardvark.Base.IO\lib\net45\Aardvark.Base.IO.dll</HintPath>
-          <Private>True</Private>
-          <Paket>True</Paket>
-        </Reference>
-      </ItemGroup>
-    </When>
-  </Choose>
-  <Choose>
-    <When Condition="$(TargetFrameworkIdentifier) == '.NETFramework' And $(TargetFrameworkVersion) == 'v4.5'">
-      <ItemGroup>
-        <Reference Include="DevILSharp">
-          <HintPath>..\..\packages\DevILSharp\lib\net45\DevILSharp.dll</HintPath>
-          <Private>True</Private>
-          <Paket>True</Paket>
-        </Reference>
-      </ItemGroup>
-    </When>
-  </Choose>
-  <Choose>
-    <When Condition="$(TargetFrameworkIdentifier) == '.NETFramework' And $(TargetFrameworkVersion) == 'v4.5'">
-      <ItemGroup>
-        <Reference Include="FSharp.Core">
-          <HintPath>..\..\packages\FSharp.Core\lib\net40\FSharp.Core.dll</HintPath>
-          <Private>True</Private>
-          <Paket>True</Paket>
-        </Reference>
-      </ItemGroup>
-    </When>
-  </Choose>
-  <Choose>
-    <When Condition="$(TargetFrameworkIdentifier) == '.NETFramework' And $(TargetFrameworkVersion) == 'v4.5'">
-      <ItemGroup>
-        <Reference Include="Newtonsoft.Json">
-          <HintPath>..\..\packages\Newtonsoft.Json\lib\net45\Newtonsoft.Json.dll</HintPath>
-          <Private>True</Private>
-          <Paket>True</Paket>
-        </Reference>
-      </ItemGroup>
-    </When>
-  </Choose>
-  <Choose>
-    <When Condition="$(TargetFrameworkIdentifier) == '.NETFramework' And $(TargetFrameworkVersion) == 'v4.5'">
-      <ItemGroup>
-        <Reference Include="Uncodium.SimpleStore">
-          <HintPath>..\..\packages\Uncodium.SimpleStore\lib\net45\Uncodium.SimpleStore.dll</HintPath>
-          <Private>True</Private>
-          <Paket>True</Paket>
-        </Reference>
-      </ItemGroup>
-    </When>
-  </Choose>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

@@ -15,7 +15,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
-using Aardvark.VRVis;
+using Aardvark.Base.Coder;
+using Aardvark.Base.Sorting;
 using System;
 using System.Collections.Generic;
 

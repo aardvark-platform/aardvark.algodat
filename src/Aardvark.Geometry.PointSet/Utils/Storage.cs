@@ -22,6 +22,7 @@ using Uncodium.SimpleStore;
 
 namespace Aardvark.Geometry.Points
 {
+    /// <summary></summary>
     public class Storage : IDisposable
     {
         private bool m_isDisposed = false;
@@ -37,7 +38,8 @@ namespace Aardvark.Geometry.Points
         internal readonly Action f_flush;
 
         internal readonly Action f_dispose;
-        
+
+        /// <summary></summary>
         public Storage(
             Action<string, object, Func<byte[]>, CancellationToken> add,
             Func<string, CancellationToken, byte[]> get,
@@ -55,15 +57,20 @@ namespace Aardvark.Geometry.Points
             f_flush = flush;
         }
         
+        /// <summary>
+        /// Writes all pending changes to store.
+        /// </summary>
         public void Flush() => f_flush();
-        
+
+        /// <summary></summary>
         public void Dispose()
         {
             m_isDisposed = true;
             Dispose(true);
             GC.SuppressFinalize(this);
         }
-        
+
+        /// <summary></summary>
         protected virtual void Dispose(bool disposing)
         {
             if (disposing)
@@ -71,12 +78,14 @@ namespace Aardvark.Geometry.Points
                 f_dispose();
             }
         }
-        
+
+        /// <summary></summary>
         ~Storage()
         {
             Dispose(false);
         }
 
+        /// <summary></summary>
         public bool IsDisposed => m_isDisposed;
     }
 
@@ -114,11 +123,14 @@ namespace Aardvark.Geometry.Points
 
         #region byte[]
 
+        /// <summary></summary>
         public static void Add(this Storage storage, Guid key, byte[] data, CancellationToken ct) => Add(storage, key.ToString(), data, ct);
-        
+
+        /// <summary></summary>
         public static void Add(this Storage storage, string key, byte[] data, CancellationToken ct)
             => storage.f_add(key, data, () => data, ct);
-        
+
+        /// <summary></summary>
         public static byte[] GetByteArray(this Storage storage, string key, CancellationToken ct)
         {
             var data = (byte[])storage.f_tryGetFromCache(key, ct);
