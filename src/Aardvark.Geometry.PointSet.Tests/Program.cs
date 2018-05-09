@@ -31,7 +31,8 @@ namespace Aardvark.Geometry.Tests
                 .WithRandomKey()
                 .WithVerbose(true)
                 .WithMaxDegreeOfParallelism(1)
-                .WithMinDist(0.005)
+                //.WithMinDist(0.005)
+                //.WithDeduplicateChunks(false)
                 ;
             var info = PointCloud.E57Info(filename, config);
 
@@ -65,8 +66,20 @@ namespace Aardvark.Geometry.Tests
 
             using (var w = File.CreateText("test.txt"))
             {
-                foreach (var chunk in chunks)
+                var hsGlobal = new HashSet<V3d>();
+                var perChunkDedupTotalCount = 0L;
+                foreach (var chunk in pointcloud.QueryAllPoints())
                 {
+                    var hs = new HashSet<V3d>(chunk.Positions);
+                    perChunkDedupTotalCount += hs.Count;
+                    foreach (var p in chunk.Positions) hsGlobal.Add(p);
+                    w.WriteLine($"[chunk] {chunk.Count} (hashset {hs.Count})");
+                    if (chunk.Count != hs.Count)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        Console.WriteLine($"[chunk] {chunk.Count} (hashset {hs.Count})");
+                        Console.ResetColor();
+                    }
                     for (var i = 0; i < chunk.Count; i++)
                     {
                         var p = chunk.Positions[i];
@@ -74,7 +87,14 @@ namespace Aardvark.Geometry.Tests
                         w.WriteLine($"{p.X} {p.Y} {p.Z} {c.R} {c.G} {c.B}");
                     }
                 }
+
+                Console.WriteLine($"global point count:");
+                Console.WriteLine($"  octree        : {pointcloud.PointCount,20:N0}");
+                Console.WriteLine($"  dedup         : {hsGlobal.Count,20:N0}");
+                Console.WriteLine($"  chunks        : {pointcloud.QueryAllPoints().Sum(x => x.Positions.Count),20:N0}");
+                Console.WriteLine($"  chunks, dedup : {pointcloud.QueryAllPoints().Sum(x => x.Positions.Count),20:N0}");
             }
+
             return;
 
             /*
@@ -129,7 +149,7 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
-            TestImportPts();
+            TestE57();
         }
     }
 }
