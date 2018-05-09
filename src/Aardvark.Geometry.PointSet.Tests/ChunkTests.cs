@@ -145,5 +145,27 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(b.Positions[0] == new V3d(11, 22, 33));
             Assert.IsTrue(b.Positions[1] == new V3d(14, 25, 36));
         }
+
+        [Test]
+        public void Chunk_ImmutableDeduplicate_1()
+        {
+            var a = new Chunk(new[] { new V3d(1, 2, 3), new V3d(4, 5, 6), new V3d(1, 2, 3), new V3d(4, 5, 6) }, null);
+            var b = a.ImmutableDeduplicate();
+
+            Assert.IsTrue(a.Positions.Count == 4);
+            Assert.IsTrue(b.Positions.Count == 2);
+            Assert.IsTrue(b.Positions[0] == new V3d(1, 2, 3));
+            Assert.IsTrue(b.Positions[1] == new V3d(4, 5, 6));
+        }
+
+        [Test]
+        public void Chunk_ImmutableDeduplicate_2()
+        {
+            var a = new Chunk(new[] { new V3d(1, 2, 3), new V3d(4, 5, 6), new V3d(4, 5, 7), new V3d(4, 5, 8) }, null);
+            var b = a.ImmutableDeduplicate();
+
+            Assert.IsTrue(a.Positions.Count == 4);
+            Assert.IsTrue(b.Positions.Count == 4);
+        }
     }
 }

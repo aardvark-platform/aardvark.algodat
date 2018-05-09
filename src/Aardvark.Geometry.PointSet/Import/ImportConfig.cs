@@ -50,6 +50,9 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public double MinDist { get; private set; } = 0.0;
 
+        /// <summary>Removes duplicate points in chunk after MinDist filtering and before Reproject and EstimateNormals.</summary>
+        public bool DeduplicateChunks { get; private set; } = true;
+
         /// <summary>
         /// Max number of points in octree cell.
         /// </summary>
@@ -94,6 +97,7 @@ namespace Aardvark.Geometry.Points
             Key = x.Key;
             MaxDegreeOfParallelism = x.MaxDegreeOfParallelism;
             MinDist = x.MinDist;
+            DeduplicateChunks = x.DeduplicateChunks;
             OctreeSplitLimit = x.OctreeSplitLimit;
             ProgressCallback = x.ProgressCallback;
             ReadBufferSizeInBytes = x.ReadBufferSizeInBytes;
@@ -121,6 +125,9 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public ImportConfig WithMinDist(double x) => new ImportConfig(this) { MinDist = x };
+
+        /// <summary></summary>
+        public ImportConfig WithDeduplicateChunks(bool x) => new ImportConfig(this) { DeduplicateChunks = x };
 
         /// <summary></summary>
         public ImportConfig WithOctreeSplitLimit(int x) => new ImportConfig(this) { OctreeSplitLimit = x };

@@ -40,6 +40,12 @@ namespace Aardvark.Geometry.Points
                 chunks = chunks.Select(x => x.ImmutableFilterSequentialMinDist(config.MinDist));
             }
 
+            // optionally deduplicate points
+            if (config.DeduplicateChunks)
+            {
+                chunks = chunks.Select(x => x.ImmutableDeduplicate());
+            }
+
             // optionally reproject positions and/or estimate normals
             if (config.Reproject != null || config.EstimateNormals != null)
             {
