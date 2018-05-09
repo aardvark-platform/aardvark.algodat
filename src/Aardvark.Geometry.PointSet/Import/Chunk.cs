@@ -62,6 +62,8 @@ namespace Aardvark.Geometry.Points
         public Chunk(IList<V3d> positions, IList<C4b> colors = null, IList<V3f> normals = null, IList<int> intensities = null, Box3d? bbox = null)
         {
             if (colors != null && colors.Count != positions?.Count) throw new ArgumentException(nameof(colors));
+            if (normals != null && normals.Count != positions?.Count) throw new ArgumentException(nameof(colors));
+            if (intensities != null && intensities.Count != positions?.Count) throw new ArgumentException(nameof(colors));
 
             Positions = positions;
             Colors = colors;
@@ -117,6 +119,36 @@ namespace Aardvark.Geometry.Points
                 }
             }
             return new Chunk(ps, cs, ns, js);
+        }
+
+        /// <summary>
+        /// Returns chunk with duplicate point positions removed.
+        /// </summary>
+        public Chunk ImmutableDeduplicate()
+        {
+            if (!HasPositions) return this;
+
+            var dedup = new HashSet<V3d>();
+            var ia = new List<int>();
+            for (var i = 0; i < Count; i++)
+            {
+                if (dedup.Add(Positions[i])) ia.Add(i);
+            }
+            var hasDuplicates = ia.Count < Count;
+
+            if (hasDuplicates)
+            {
+                var self = this;
+                var ps = HasPositions ? ia.Map(i => self.Positions[i]) : null;
+                var cs = HasColors ? ia.Map(i => self.Colors[i]) : null;
+                var ns = HasNormals ? ia.Map(i => self.Normals[i]) : null;
+                var js = HasIntensities ? ia.Map(i => self.Intensities[i]) : null;
+                return new Chunk(ps, cs, ns, js);
+            }
+            else
+            {
+                return this;
+            }
         }
 
         /// <summary>

@@ -38,6 +38,9 @@ namespace Aardvark.Geometry.Points
 
         public double MinDist { get; private set; } = 0.0;
 
+        /// <summary>Removes duplicate points in chunk after MinDist filtering and before Reproject and EstimateNormals.</summary>
+        public bool DeduplicateChunks { get; private set; } = true;
+
         public int OctreeSplitLimit { get; private set; } = 8192;
 
         public Action<double> ProgressCallback { get; private set; } = _ => { };
@@ -51,15 +54,13 @@ namespace Aardvark.Geometry.Points
         
         public Func<IList<V3d>, IList<V3d>> Reproject { get; private set; } = null;
 
-        /// <summary>
-        /// Positions -> Normals.
-        /// </summary>
+        /// <summary> Positions -> Normals.</summary>
         public Func<IList<V3d>, IList<V3f>> EstimateNormals { get; private set; } = null;
 
         public Storage Storage { get; private set; } = null;
         
         public bool Verbose { get; private set; } = false;
-        
+
         #endregion
 
         #region Immutable updates
@@ -73,6 +74,7 @@ namespace Aardvark.Geometry.Points
             Key = x.Key;
             MaxDegreeOfParallelism = x.MaxDegreeOfParallelism;
             MinDist = x.MinDist;
+            DeduplicateChunks = x.DeduplicateChunks;
             OctreeSplitLimit = x.OctreeSplitLimit;
             ProgressCallback = x.ProgressCallback;
             ReadBufferSizeInBytes = x.ReadBufferSizeInBytes;
@@ -94,6 +96,8 @@ namespace Aardvark.Geometry.Points
         public ImportConfig WithMaxDegreeOfParallelism(int x) => new ImportConfig(this) { MaxDegreeOfParallelism = x };
 
         public ImportConfig WithMinDist(double x) => new ImportConfig(this) { MinDist = x };
+
+        public ImportConfig WithDeduplicateChunks(bool x) => new ImportConfig(this) { DeduplicateChunks = x };
 
         public ImportConfig WithOctreeSplitLimit(int x) => new ImportConfig(this) { OctreeSplitLimit = x };
 
