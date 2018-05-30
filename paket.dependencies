@@ -4,8 +4,8 @@ source https://api.nuget.org/v3/index.json
 source https://vrvis.myget.org/F/aardvark_public/api/v3/index.json
 
 // public repository
-nuget Aardvark.Base                     >= 4.0.10
-nuget Aardvark.Base.IO                  >= 4.0.10
+nuget Aardvark.Base                     >= 4.0.13
+nuget Aardvark.Base.IO                  >= 4.0.13
 
 // 3rd-party
 #nuget Crc32C.NET                        ~> 1.0.5
