@@ -7,11 +7,13 @@
     <OutputPath>..\..\bin\Debug</OutputPath>
     <DocumentationFile>..\..\bin\Debug\netstandard2.0\Aardvark.Geometry.PointSet.xml</DocumentationFile>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>7.1</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <OutputPath>..\..\bin\Release</OutputPath>
     <DocumentationFile>..\..\bin\Release\netstandard2.0\Aardvark.Geometry.PointSet.xml</DocumentationFile>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>7.1</LangVersion>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Aardvark.Data.E57\Aardvark.Data.E57.csproj" />

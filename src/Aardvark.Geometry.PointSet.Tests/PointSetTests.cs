@@ -127,5 +127,83 @@ namespace Aardvark.Geometry.Tests
             var countNodes = root.CountLeafNodes(true);
             Assert.IsTrue(countNodes == 4 * 4 * 4);
         }
+
+
+        [Test]
+        public void PointSetAttributes_EmptyPointSet()
+        {
+            var pointset = PointSet.Empty;
+            Assert.IsTrue(pointset.HasColors == false);
+            Assert.IsTrue(pointset.HasIntensities == false);
+            Assert.IsTrue(pointset.HasKdTree == false);
+            Assert.IsTrue(pointset.HasLodColors == false);
+            Assert.IsTrue(pointset.HasLodIntensities == false);
+            Assert.IsTrue(pointset.HasLodKdTree == false);
+            Assert.IsTrue(pointset.HasLodNormals == false);
+            Assert.IsTrue(pointset.HasLodPositions == false);
+            Assert.IsTrue(pointset.HasNormals == false);
+            Assert.IsTrue(pointset.HasPositions == false);
+        }
+
+        [Test]
+        public void PointsetAttributes_All()
+        {
+            var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
+            var cs = new List<C4b> { C4b.White };
+            var ns = new List<V3f> { V3f.ZAxis };
+            var js = new List<int> { 123 };
+            var storage = PointCloud.CreateInMemoryStore();
+            var pointset = PointSet.Create(storage, "test", ps, cs, ns, js, 1, true, default);
+            Assert.IsTrue(pointset.HasColors == true);
+            Assert.IsTrue(pointset.HasIntensities == true);
+            Assert.IsTrue(pointset.HasKdTree == true);
+            Assert.IsTrue(pointset.HasLodColors == true);
+            Assert.IsTrue(pointset.HasLodIntensities == true);
+            Assert.IsTrue(pointset.HasLodKdTree == true);
+            Assert.IsTrue(pointset.HasLodNormals == true);
+            Assert.IsTrue(pointset.HasLodPositions == true);
+            Assert.IsTrue(pointset.HasNormals == true);
+            Assert.IsTrue(pointset.HasPositions == true);
+        }
+
+        [Test]
+        public void PointsetAttributes_NoLod()
+        {
+            var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
+            var cs = new List<C4b> { C4b.White };
+            var ns = new List<V3f> { V3f.ZAxis };
+            var js = new List<int> { 123 };
+            var storage = PointCloud.CreateInMemoryStore();
+            var pointset = PointSet.Create(storage, "test", ps, cs, ns, js, 1, false, default);
+            Assert.IsTrue(pointset.HasColors == true);
+            Assert.IsTrue(pointset.HasIntensities == true);
+            Assert.IsTrue(pointset.HasKdTree == true);
+            Assert.IsTrue(pointset.HasLodColors == false);
+            Assert.IsTrue(pointset.HasLodIntensities == false);
+            Assert.IsTrue(pointset.HasLodKdTree == false);
+            Assert.IsTrue(pointset.HasLodNormals == false);
+            Assert.IsTrue(pointset.HasLodPositions == false);
+            Assert.IsTrue(pointset.HasNormals == true);
+            Assert.IsTrue(pointset.HasPositions == true);
+        }
+
+        [Test]
+        public void PointsetAttributes_PositionsAndColors()
+        {
+            var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
+            var cs = new List<C4b> { C4b.White };
+            var storage = PointCloud.CreateInMemoryStore();
+            var pointset = PointSet.Create(storage, "test", ps, cs, null, null, 1, true, default);
+            Assert.IsTrue(pointset.HasColors == true);
+            Assert.IsTrue(pointset.HasIntensities == false);
+            Assert.IsTrue(pointset.HasKdTree == true);
+            Assert.IsTrue(pointset.HasLodColors == true);
+            Assert.IsTrue(pointset.HasLodIntensities == false);
+            Assert.IsTrue(pointset.HasLodKdTree == true);
+            Assert.IsTrue(pointset.HasLodNormals == false);
+            Assert.IsTrue(pointset.HasLodPositions == true);
+            Assert.IsTrue(pointset.HasNormals == false);
+            Assert.IsTrue(pointset.HasPositions == true);
+        }
     }
 }

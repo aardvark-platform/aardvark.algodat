@@ -164,6 +164,36 @@ namespace Aardvark.Geometry.Points
             }
         }
 
+        /// <summary></summary>
+        public bool HasColors => Root != null ? Root.GetValue(default).HasColors : false;
+
+        /// <summary></summary>
+        public bool HasIntensities => Root != null ? Root.GetValue(default).HasIntensities : false;
+
+        /// <summary></summary>
+        public bool HasKdTree => Root != null ? Root.GetValue(default).HasKdTree : false;
+        
+        /// <summary></summary>
+        public bool HasLodColors => Root != null ? Root.GetValue(default).HasLodColors : false;
+
+        /// <summary></summary>
+        public bool HasLodIntensities => Root != null ? Root.GetValue(default).HasLodIntensities : false;
+
+        /// <summary></summary>
+        public bool HasLodKdTree => Root != null ? Root.GetValue(default).HasLodKdTree : false;
+
+        /// <summary></summary>
+        public bool HasLodNormals => Root != null ? Root.GetValue(default).HasLodNormals : false;
+
+        /// <summary></summary>
+        public bool HasLodPositions => Root != null ? Root.GetValue(default).HasLodPositions : false;
+
+        /// <summary></summary>
+        public bool HasNormals => Root != null ? Root.GetValue(default).HasNormals : false;
+
+        /// <summary></summary>
+        public bool HasPositions => Root != null ? Root.GetValue(default).HasPositions : false;
+
         #endregion
 
         #region Immutable operations
