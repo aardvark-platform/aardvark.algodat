@@ -13,6 +13,7 @@
 */
 using Aardvark.Base;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
@@ -22,6 +23,110 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public static class LodExtensions
     {
+        #region RegenerateNormals
+
+        /// <summary>
+        /// Returns new PointSet with regenerated normals using given estimateNormals function.
+        /// </summary>
+        public static PointSet RegenerateNormals(this PointSet self,
+            Func<IList<V3d>, IList<V3f>> estimateNormals,
+            Action callback, CancellationToken ct
+            )
+        {
+            if (self.IsEmpty) return self;
+            var lod = self.Root.Value.RegenerateNormals(estimateNormals, callback, ct);
+            var key = Guid.NewGuid().ToString();
+            var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit);
+            self.Storage.Add(key, result, ct);
+            return result;
+        }
+
+        /// <summary>
+        /// Returns new tree with regenerated normals using given estimateNormals function.
+        /// </summary>
+        private static PointSetNode RegenerateNormals(this PointSetNode self,
+            Func<IList<V3d>, IList<V3f>> estimateNormals,
+            Action callback, CancellationToken ct
+            )
+        {
+            if (self == null) throw new ArgumentNullException(nameof(self));
+
+            ct.ThrowIfCancellationRequested();
+
+            callback?.Invoke();
+
+            if (self.IsLeaf)
+            {
+                // generate and store normals
+                var ns = estimateNormals(self.PositionsAbsolute).ToArray();
+                var nsId = Guid.NewGuid();
+                self.Storage.Add(nsId, ns, ct);
+
+                // create node with new normals (immutable)
+                var r = self.WithNormals(nsId);
+
+                // if original node has LodNormals then also use new normals as LodNormals
+                if (self.HasLodNormals) r = r.WithLod();
+
+                return r;
+            }
+
+            if (self.Subnodes == null || self.Subnodes.Length != 8) throw new InvalidOperationException();
+
+            if (!self.HasLodNormals) return self;
+
+            var subcells = self.Subnodes.Map(x => x?.Value.RegenerateNormals(estimateNormals, callback, ct));
+            var subcellsTotalCount = (long)subcells.Sum(x => x?.PointCountTree);
+            var octreeSplitLimit = self.LodNormals.Value.Length;
+            
+            var fractions = new double[8].SetByIndex(
+                ci => subcells[ci] != null ? (subcells[ci].PointCountTree / (double)subcellsTotalCount) : 0.0
+                );
+            var remainder = 0.1;
+            var counts = fractions.Map(x =>
+            {
+                var fn = octreeSplitLimit * x + remainder;
+                var n = (int)fn;
+                remainder = fn - n;
+                return n;
+            });
+            var e = octreeSplitLimit - counts.Sum();
+            if (e != 0) throw new InvalidOperationException();
+
+            // generate LodNormals ...
+            var lodNs = new V3f[octreeSplitLimit];
+            var i = 0;
+            for (var ci = 0; ci < 8; ci++)
+            {
+                if (counts[ci] == 0) continue;
+                var subcell = subcells[ci];
+                if (subcell == null) continue;
+                
+                var subns = subcell.LodNormals.Value;
+
+                var jmax = subns.Length;
+                var dj = (jmax + 0.49) / counts[ci];
+                var oldI = i;
+                for (var j = 0.0; j < jmax; j += dj)
+                {
+                    var jj = (int)j;
+                    lodNs[i] = subns[jj];
+                    i++;
+                }
+            }
+
+            // store LoD data ...
+            var lodNsId = Guid.NewGuid();
+            self.Storage.Add(lodNsId, lodNs, ct);
+            
+            var result = self.WithLod(self.LodPositionsId, self.LodColorsId, lodNsId, self.LodIntensitiesId, self.LodKdTreeId, subcells);
+            return result;
+        }
+
+        #endregion
+
+        #region GenerateLod
+
         /// <summary>
         /// </summary>
         public static PointSet GenerateLod(this PointSet self, ImportConfig config)
@@ -58,12 +163,15 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         private static PointSetNode GenerateLod(this PointSetNode self, long octreeSplitLimit, Action callback, CancellationToken ct)
         {
-            if (self != null) callback?.Invoke();
+            if (self == null) throw new ArgumentNullException(nameof(self));
+
+            ct.ThrowIfCancellationRequested();
+
+            callback?.Invoke();
+
             if (self.IsLeaf) return self.WithLod();
 
             if (self.Subnodes == null || self.Subnodes.Length != 8) throw new InvalidOperationException();
-
-            ct.ThrowIfCancellationRequested();
 
             var subcells = self.Subnodes.Map(x => x?.Value.GenerateLod(octreeSplitLimit, callback, ct));
             var subcellsTotalCount = (long)subcells.Sum(x => x?.PointCountTree);
@@ -84,6 +192,7 @@ namespace Aardvark.Geometry.Points
                 return n;
             });
             var e = octreeSplitLimit - counts.Sum();
+            if (e != 0) throw new InvalidOperationException();
 
             // generate LoD data ...
             var lodPs = new V3f[octreeSplitLimit];
@@ -136,5 +245,7 @@ namespace Aardvark.Geometry.Points
             var result = self.WithLod(lodPsId, lodCsId, lodNsId, lodIsId, lodKdId, subcells);
             return result;
         }
+
+        #endregion
     }
 }

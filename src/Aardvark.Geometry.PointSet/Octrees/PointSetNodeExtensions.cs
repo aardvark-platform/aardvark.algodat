@@ -208,7 +208,7 @@ namespace Aardvark.Geometry.Points
                 if (n != null) _GetAverageTreeDepth(n.Value, depth, ref sum, ref count);
             }
         }
-        
+
         /// <summary>
         /// Calls action for each node in this tree.
         /// </summary>
