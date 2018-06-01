@@ -62,22 +62,17 @@ namespace Aardvark.Geometry.Points
                 var nsId = Guid.NewGuid();
                 self.Storage.Add(nsId, ns, ct);
 
-                // create node with new normals (immutable)
-                var r = self.WithNormals(nsId);
-
-                // if original node has LodNormals then also use new normals as LodNormals
-                if (self.HasLodNormals) r = r.WithLod();
+                // create node with new normals and LoD normals
+                var r = self.WithNormals(nsId).WithLod();
 
                 return r;
             }
 
             if (self.Subnodes == null || self.Subnodes.Length != 8) throw new InvalidOperationException();
-
-            if (!self.HasLodNormals) return self;
-
+            
             var subcells = self.Subnodes.Map(x => x?.Value.RegenerateNormals(estimateNormals, callback, ct));
             var subcellsTotalCount = (long)subcells.Sum(x => x?.PointCountTree);
-            var octreeSplitLimit = self.LodNormals.Value.Length;
+            var octreeSplitLimit = self.LodPositions.Value.Length;
             
             var fractions = new double[8].SetByIndex(
                 ci => subcells[ci] != null ? (subcells[ci].PointCountTree / (double)subcellsTotalCount) : 0.0
