@@ -77,8 +77,13 @@ namespace Aardvark.Geometry.Points
             // optionally create LOD data
             if (config.CreateOctreeLod)
             {
-                final = final.GenerateLod(config.WithProgressCallback(x => config.ProgressCallback(0.66 + x * 0.34)));
+                final = final.GenerateLod(config.WithRandomKey().WithProgressCallback(x => config.ProgressCallback(0.66 + x * 0.34)));
             }
+
+            // create final point set with specified key (or random key when no key is specified)
+            var key = config.Key ?? Guid.NewGuid().ToString();
+            final = new PointSet(config.Storage, key, final.Root.Value.Id, config.OctreeSplitLimit);
+            config.Storage.Add(key, final, config.CancellationToken);
 
             return final;
         }

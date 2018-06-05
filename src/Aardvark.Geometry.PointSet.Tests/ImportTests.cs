@@ -162,6 +162,54 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(node.Normals.Value.All(x => x == V3f.OOI));
         }
 
+        [Test]
+        public void CanImport_WithKey()
+        {
+            int n = 10;
+            var ps = new V3d[n];
+            for (var i = 0; i < n; i++) ps[i] = new V3d(i, 0, 0);
+
+            var chunk = new Chunk(ps);
+            Assert.IsTrue(chunk.Count == 10);
+
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithKey("test")
+                .WithOctreeSplitLimit(10)
+                .WithCreateOctreeLod(false)
+                .WithDeduplicateChunks(false)
+                .WithMinDist(0.0)
+                .WithReproject(null)
+                .WithEstimateNormals(null)
+                ;
+            var pointcloud = PointCloud.Chunks(chunk, config);
+            Assert.IsTrue(pointcloud.Id == "test");
+        }
+
+        [Test]
+        public void CanImport_WithoutKey()
+        {
+            int n = 10;
+            var ps = new V3d[n];
+            for (var i = 0; i < n; i++) ps[i] = new V3d(i, 0, 0);
+
+            var chunk = new Chunk(ps);
+            Assert.IsTrue(chunk.Count == 10);
+
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithKey(null)
+                .WithOctreeSplitLimit(10)
+                .WithCreateOctreeLod(false)
+                .WithDeduplicateChunks(false)
+                .WithMinDist(0.0)
+                .WithReproject(null)
+                .WithEstimateNormals(null)
+                ;
+            var pointcloud = PointCloud.Chunks(chunk, config);
+            Assert.IsTrue(pointcloud.Id != null);
+        }
+
         #endregion
 
         #region General
