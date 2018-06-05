@@ -70,7 +70,12 @@ namespace Aardvark.Geometry.Points
             if (config.Verbose) Console.WriteLine($"[MapReduce] totalPointsToMerge: {totalPointsToMerge}");
 
             var totalPointSetsCount = pointsets.Count;
-            if (totalPointSetsCount == 0) throw new Exception("woohoo");
+            if (totalPointSetsCount == 0)
+            {
+                var empty = new PointSet(config.Storage, config.Key ?? Guid.NewGuid().ToString());
+                config.Storage.Add(config.Key, empty, config.CancellationToken);
+                return empty;
+            }
             var final = pointsets.MapReduceParallel((first, second, ct2) =>
             {
                 progress(Interlocked.Increment(ref i) / (double)totalPointSetsCount);
