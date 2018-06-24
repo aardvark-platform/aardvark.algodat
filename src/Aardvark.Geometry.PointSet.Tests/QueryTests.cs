@@ -41,7 +41,7 @@ namespace Aardvark.Geometry.Tests
         private static PointSet CreateClusteredPointsInUnitCube(int n, int splitLimit)
         {
             var r = new Random();
-            Func<V3d> randomPos = () => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble());
+            V3d randomPos() => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble());
             var ps = new V3d[n];
             for (var i = 0; i < n / 2; i++) ps[i] = randomPos();
             for (var i = n / 2 + 1; i < n; i++) ps[i] = randomPos();
@@ -96,6 +96,78 @@ namespace Aardvark.Geometry.Tests
             foreach (var x in pointset.QueryPointsNearRay(ray2, 0.1)) count2 += x.Positions.Length;
 
             Assert.IsTrue(count1 >= count2);
+        }
+
+        #endregion
+
+        #region V3d
+
+        [Test]
+        public void CanQueryPointsNearPoint_1()
+        {
+            var pointset = CreateRandomPointsInUnitCube(1024, 1024);
+            Assert.IsTrue(pointset.Root.Value.IsLeaf);
+
+            var ps = pointset.QueryPointsNearPoint(new V3d(0.5, 0.5, 0.5), 1.0, 10000);
+            Assert.IsTrue(ps.Count == 1024);
+        }
+
+        [Test]
+        public void CanQueryPointsNearPoint_2()
+        {
+            var pointset = CreateRandomPointsInUnitCube(1024, 32);
+            Assert.IsTrue(pointset.Root.Value.IsNotLeaf);
+
+            var ps = pointset.QueryPointsNearPoint(new V3d(0.5, 0.5, 0.5), 1.0, 10000);
+            Assert.IsTrue(ps.Count == 1024);
+        }
+
+        [Test]
+        public void CanQueryPointsNearPoint_3()
+        {
+            var pointset = CreateRandomPointsInUnitCube(1024, 32);
+            var ps = pointset.QueryPointsNearPoint(new V3d(2.5, 0.5, 0.5), 1.0, 10000);
+            Assert.IsTrue(ps.Count == 0);
+        }
+
+        [Test]
+        public void CanQueryPointsNearPoint_4()
+        {
+            var pointset = CreateRandomPointsInUnitCube(1024, 32);
+            var ps = pointset.QueryPointsNearPoint(new V3d(0.75, 0.5, 0.25), 0.25, 10000);
+            Assert.IsTrue(ps.Count < 1024);
+        }
+
+        [Test]
+        public void CanQueryPointsNearPoint_5()
+        {
+            var pointset = CreateClusteredPointsInUnitCube(1024, 32);
+            var xs = pointset.QueryAllPoints().SelectMany(x => x.Positions).ToArray();
+
+            var nonEmtpyResultCount = 0;
+            var rand = new Random();
+            for (var round = 0; round < 1000; round++)
+            {
+                var query = new V3d(rand.NextDouble() * 3 - 1, rand.NextDouble() * 3 - 1, rand.NextDouble() * 3 - 1);
+                var maxDistanceToPoint = rand.NextDouble();
+                var maxCount = rand.Next(1024 + 1);
+
+                var correctResult = new HashSet<V3d>(xs
+                    .Where(x => (x - query).Length <= maxDistanceToPoint)
+                    .OrderBy(x => (x - query).Length)
+                    .Take(maxCount)
+                    );
+
+                var ps = pointset.QueryPointsNearPoint(query, maxDistanceToPoint, maxCount);
+                var queryResult = new HashSet<V3d>(ps.Positions);
+
+                Assert.IsTrue(queryResult.Count == correctResult.Count);
+                foreach (var x in correctResult) Assert.IsTrue(queryResult.Contains(x));
+
+                if (queryResult.Count > 0) nonEmtpyResultCount++;
+            }
+
+            if (nonEmtpyResultCount == 0) Assert.Inconclusive();
         }
 
         #endregion

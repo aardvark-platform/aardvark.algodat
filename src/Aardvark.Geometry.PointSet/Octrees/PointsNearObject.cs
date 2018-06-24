@@ -103,7 +103,8 @@ namespace Aardvark.Geometry.Points
         public PointsNearObject<T> Merge(PointsNearObject<T> other, int maxCount)
         {
             if (maxCount < 0) throw new ArgumentOutOfRangeException(nameof(maxCount));
-            if (other == null || other.IsEmpty || maxCount == 0) return Empty;
+            if (maxCount == 0) return PointsNearObject<T>.Empty;
+            if (other == null || other.IsEmpty) return this;
 
             var merged = new PointsNearObject<T>(Object,
                 Math.Max(MaxDistance, other.MaxDistance),
@@ -138,7 +139,11 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public PointsNearObject<T> Reordered(int[] ia) => new PointsNearObject<T>(
             Object, MaxDistance,
-            Positions.Reordered(ia), Colors.Reordered(ia), Normals.Reordered(ia), Intensities.Reordered(ia), Distances.Reordered(ia)
+            Positions.Reordered(ia),
+            Colors.Length > 0 ? Colors.Reordered(ia) : Colors,
+            Normals.Length > 0 ? Normals.Reordered(ia) : Normals,
+            Intensities.Length > 0 ? Intensities.Reordered(ia) : Intensities, 
+            Distances.Reordered(ia)
             );
 
         /// <summary>

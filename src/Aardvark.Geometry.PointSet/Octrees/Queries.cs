@@ -28,9 +28,9 @@ namespace Aardvark.Geometry.Points
         /// Points within given distance of a point.
         /// </summary>
         public static PointsNearObject<V3d> QueryPointsNearPoint(
-            this PointSet self, V3d point, double maxDistanceToPoint, int maxCount
+            this PointSet self, V3d query, double maxDistanceToPoint, int maxCount
             )
-            => QueryPointsNearPoint(self.Root.Value, point, maxDistanceToPoint, maxCount);
+            => QueryPointsNearPoint(self.Root.Value, query, maxDistanceToPoint, maxCount);
 
         /// <summary>
         /// Points within given distance of a point.
