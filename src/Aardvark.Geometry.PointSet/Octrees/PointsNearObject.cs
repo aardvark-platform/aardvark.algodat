@@ -13,6 +13,7 @@
 */
 using System;
 using Aardvark.Base;
+using Aardvark.Base.Sorting;
 
 namespace Aardvark.Geometry.Points
 {
@@ -50,45 +51,41 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public class PointsNearObject<T>
     {
-        /// <summary>
-        /// </summary>
-        public static PointsNearObject<T> Empty = new PointsNearObject<T>(default(T), 0.0, new V3d[0], new C4b[0], new V3f[0], new double[0]);
+        /// <summary></summary>
+        public static PointsNearObject<T> Empty = new PointsNearObject<T>(default, 0.0, new V3d[0], new C4b[0], new V3f[0], new int[0], new double[0]);
 
-        /// <summary>
-        /// </summary>
+        /// <summary></summary>
         public T Object { get; }
 
-        /// <summary>
-        /// </summary>
+        /// <summary></summary>
         public double MaxDistance { get; }
 
-        /// <summary>
-        /// </summary>
+        /// <summary></summary>
         public V3d[] Positions { get; }
 
-        /// <summary>
-        /// </summary>
+        /// <summary></summary>
         public C4b[] Colors { get; }
 
-        /// <summary>
-        /// </summary>
+        /// <summary></summary>
         public V3f[] Normals { get; }
 
-        /// <summary>
-        /// </summary>
+        /// <summary></summary>
+        public int[] Intensities { get; }
+        
+        /// <summary></summary>
         public double[] Distances { get; }
 
-        /// <summary>
-        /// </summary>
-        public PointsNearObject(T obj, double maxDistance, V3d[] positions, C4b[] colors, V3f[] normals, double[] distances)
+        /// <summary></summary>
+        public PointsNearObject(T obj, double maxDistance, V3d[] positions, C4b[] colors, V3f[] normals,int[] intensities, double[] distances)
         {
             if (maxDistance < 0.0) throw new ArgumentOutOfRangeException(nameof(maxDistance), $"Parameter 'maxDistance' must not be less than 0.0, but is {maxDistance}.");
 
             Object = obj;
             MaxDistance = maxDistance;
             Positions = positions ?? throw new ArgumentNullException(nameof(positions));
-            Normals = normals;
             Colors = colors;
+            Normals = normals;
+            Intensities = intensities;
             Distances = distances;
         }
 
@@ -101,10 +98,64 @@ namespace Aardvark.Geometry.Points
         public bool IsEmpty => Positions.Length == 0;
 
         /// <summary>
+        /// Returns this PointsNearObject merged with other PointsNearObject.
+        /// </summary>
+        public PointsNearObject<T> Merge(PointsNearObject<T> other, int maxCount)
+        {
+            if (maxCount < 0) throw new ArgumentOutOfRangeException(nameof(maxCount));
+            if (other == null || other.IsEmpty || maxCount == 0) return Empty;
+
+            var merged = new PointsNearObject<T>(Object,
+                Math.Max(MaxDistance, other.MaxDistance),
+                Positions.Append(other.Positions),
+                Colors.Append(other.Colors),
+                Normals.Append(other.Normals),
+                Intensities.Append(other.Intensities),
+                Distances.Append(other.Distances)
+                );
+
+            if (Count + other.Count > maxCount)
+            {
+                // take 'maxCount' nearest items
+                merged = merged.OrderedByDistanceAscending().Take(maxCount); 
+            }
+
+            return merged;
+        }
+
+        /// <summary>
+        /// Returns PointsNearObject ordered by ascending distance.
+        /// </summary>
+        public PointsNearObject<T> OrderedByDistanceAscending() => Reordered(Distances.CreatePermutationQuickSortAscending());
+
+        /// <summary>
+        /// Returns PointsNearObject ordered by descending distance.
+        /// </summary>
+        public PointsNearObject<T> OrderedByDistanceDescending() => Reordered(Distances.CreatePermutationQuickSortDescending());
+
+        /// <summary>
+        /// Returns PointsNearObject ordered by descending distance.
+        /// </summary>
+        public PointsNearObject<T> Reordered(int[] ia) => new PointsNearObject<T>(
+            Object, MaxDistance,
+            Positions.Reordered(ia), Colors.Reordered(ia), Normals.Reordered(ia), Intensities.Reordered(ia), Distances.Reordered(ia)
+            );
+
+        /// <summary>
+        /// Takes first 'count' items. 
+        /// </summary>
+        public PointsNearObject<T> Take(int count)
+        {
+            if (count >= Count) return this;
+            var ds = Distances.Take(count);
+            return new PointsNearObject<T>(Object, ds.Max(),
+                Positions.Take(count), Colors.Take(count), Normals.Take(count), Intensities.Take(count), ds
+                );
+        }
+
+        /// <summary>
         /// </summary>
         public PointsNearObject<U> WithObject<U>(U other)
-        {
-            return new PointsNearObject<U>(other, MaxDistance, Positions, Colors, Normals, Distances);
-        }
+            => new PointsNearObject<U>(other, MaxDistance, Positions, Colors, Normals, Intensities, Distances);
     }
 }

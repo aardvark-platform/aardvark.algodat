@@ -62,13 +62,46 @@ namespace Aardvark.Geometry.Points
             return rs;
         }
 
+        internal static T[] Append<T>(this T[] self, T[] other)
+        {
+            if (self == null || self.Length == 0) return other ?? new T[0];
+            if (other == null || other.Length == 0) return self;
+
+            var xs = new T[self.Length + other.Length];
+            for (var i = 0; i < self.Length; i++) xs[i] = self[i];
+            for (var j = 0; j < other.Length; j++) xs[self.Length + j] = other[j];
+            return xs;
+        }
+
+        internal static T[] Take<T>(this T[] self, int count)
+        {
+            if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
+            if (self == null || count == 0) return new T[0];
+            if (self.Length <= count) return self;
+
+            var xs = new T[count];
+            for (var i = 0; i < count; i++) xs[i] = self[i];
+            return xs;
+        }
+
+        internal static T[] Reordered<T>(this T[] self, int[] ia)
+        {
+            if (self == null) throw new ArgumentNullException(nameof(self));
+            if (ia == null) throw new ArgumentNullException(nameof(self));
+            if (self.Length != ia.Length) throw new ArgumentException(nameof(ia));
+
+            var xs = new T[ia.Length];
+            for (var i = 0; i < ia.Length; i++) xs[i] = self[ia[i]];
+            return xs;
+        }
+
         /// <summary>
         /// </summary>
         public static T MapReduceParallel<T>(this IEnumerable<T> xs,
             Func<T, T, CancellationToken, T> reduce,
             int maxLevelOfParallelism,
             Action<TimeSpan> onFinish = null,
-            CancellationToken ct = default(CancellationToken)
+            CancellationToken ct = default
             )
         {
             if (maxLevelOfParallelism < 1) maxLevelOfParallelism = Environment.ProcessorCount;
@@ -145,7 +178,7 @@ namespace Aardvark.Geometry.Points
             Func<T, CancellationToken, R> map,
             int maxLevelOfParallelism,
             Action<TimeSpan> onFinish = null,
-            CancellationToken ct = default(CancellationToken)
+            CancellationToken ct = default
             )
         {
             if (map == null) throw new ArgumentNullException(nameof(map));
