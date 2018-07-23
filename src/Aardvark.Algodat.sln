@@ -10,7 +10,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aardvark.Geometry.PointSet"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aardvark.Data.E57", "Aardvark.Data.E57\Aardvark.Data.E57.csproj", "{A7247D3B-7CB6-428A-BFCC-97FEF89E55B6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aardvark.Geometry.PointChunk", "Aardvark.Geometry.PointChunk\Aardvark.Geometry.PointChunk.csproj", "{BA90A157-419C-4324-B5B0-853C4B97B046}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aardvark.Geometry.PointChunk", "Aardvark.Geometry.PointChunk\Aardvark.Geometry.PointChunk.csproj", "{BA90A157-419C-4324-B5B0-853C4B97B046}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aardvark.Data.Points.Ascii", "Aardvark.Data.Points.Ascii\Aardvark.Data.Points.Ascii.csproj", "{D0A7BCDA-EAFD-4369-B904-E654FCF6E28F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aardvark.Data.Points.Import", "Aardvark.Data.Points.Import\Aardvark.Data.Points.Import.csproj", "{ED56D68D-7032-4913-AE15-215309D17E38}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -38,6 +42,14 @@ Global
 		{BA90A157-419C-4324-B5B0-853C4B97B046}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BA90A157-419C-4324-B5B0-853C4B97B046}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BA90A157-419C-4324-B5B0-853C4B97B046}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D0A7BCDA-EAFD-4369-B904-E654FCF6E28F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D0A7BCDA-EAFD-4369-B904-E654FCF6E28F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D0A7BCDA-EAFD-4369-B904-E654FCF6E28F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D0A7BCDA-EAFD-4369-B904-E654FCF6E28F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ED56D68D-7032-4913-AE15-215309D17E38}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ED56D68D-7032-4913-AE15-215309D17E38}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ED56D68D-7032-4913-AE15-215309D17E38}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ED56D68D-7032-4913-AE15-215309D17E38}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

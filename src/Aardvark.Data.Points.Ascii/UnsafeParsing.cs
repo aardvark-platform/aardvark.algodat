@@ -11,19 +11,23 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+using Aardvark.Base;
+using Aardvark.Geometry.Points;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using Aardvark.Base;
 
-namespace Aardvark.Geometry.Points
+namespace Aardvark.Data.Points
 {
-    internal static unsafe class HighPerformanceParsing
+    /// <summary>
+    /// Various line parsers.
+    /// </summary>
+    public static unsafe class HighPerformanceParsing
     {
         /// <summary>
         /// Buffer is expected to contain ASCII. Lines separated by '\n'.
         /// Expected line format: [double X] [double Y] [double Z] [byte R] [byte G] [byte B] \n
         /// </summary>
-        internal static Chunk? ParseLinesXYZRGB(
+        public static Chunk? ParseLinesXYZRGB(
             byte[] buffer, int count, double filterDist
             )
         {
@@ -72,7 +76,7 @@ namespace Aardvark.Geometry.Points
         /// Buffer is expected to contain ASCII. Lines separated by '\n'.
         /// Expected line format: [double X] [double Y] [double Z] [int INTENSITY] [byte R] [byte G] [byte B] \n
         /// </summary>
-        internal static Chunk? ParseLinesXYZIRGB(
+        public static Chunk? ParseLinesXYZIRGB(
             byte[] buffer, int count, double filterDist
             )
         {

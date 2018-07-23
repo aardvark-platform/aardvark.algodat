@@ -1,0 +1,9 @@
+type project
+id Aardvark.Data.Points.Ascii
+authors Aardvark Platform Team
+owners Aardvark Platform Team
+projectUrl http://github.com/aardvark-platform
+licenseUrl http://www.gnu.org/licenses/agpl.txt
+description
+    High-performance parsing of ASCII point data.
+include-pdbs true

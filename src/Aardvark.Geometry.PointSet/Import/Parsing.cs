@@ -31,7 +31,7 @@ namespace Aardvark.Geometry.Points
         /// Splits will only occur at newlines, therefore each buffer
         /// will be sized less or equal than maxChunkSizeInBytes.
         /// </summary>
-        public static IEnumerable<Buffer> ChunkStreamAtNewlines(
+        public static IEnumerable<Data.Points.Buffer> ChunkStreamAtNewlines(
             this Stream stream, long streamLengthInBytes, int maxChunkSizeInBytes,
             CancellationToken ct
             )
@@ -87,7 +87,7 @@ namespace Aardvark.Geometry.Points
 
                 totalBytesRead += bufferBytesRead;
                 stats.ReportProgress(totalBytesRead);
-                yield return Buffer.Create(_data, 0, _count);
+                yield return Data.Points.Buffer.Create(_data, 0, _count);
             }
         }
 
@@ -103,7 +103,7 @@ namespace Aardvark.Geometry.Points
         /// <param name="ct"></param>
         /// <returns></returns>
         public static IEnumerable<Chunk> ParseBuffers(
-            this IEnumerable<Buffer> buffers, long sumOfAllBufferSizesInBytes,
+            this IEnumerable<Data.Points.Buffer> buffers, long sumOfAllBufferSizesInBytes,
             Func<byte[], int, double, Chunk?> parser, double minDist,
             int maxLevelOfParallelism, bool verbose,
             CancellationToken ct

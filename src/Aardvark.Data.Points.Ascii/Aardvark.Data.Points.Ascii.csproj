@@ -4,22 +4,17 @@
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <OutputPath>..\..\bin\Debug</OutputPath>
-    <DocumentationFile>..\..\bin\Debug\netstandard2.0\Aardvark.Geometry.PointSet.xml</DocumentationFile>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <LangVersion>7.1</LangVersion>
+    <OutputPath>..\..\bin\Debug</OutputPath>
+    <DocumentationFile>..\..\bin\Debug\netstandard2.0\Aardvark.Data.Points.Ascii.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <OutputPath>..\..\bin\Release</OutputPath>
-    <DocumentationFile>..\..\bin\Release\netstandard2.0\Aardvark.Geometry.PointSet.xml</DocumentationFile>
+    <DocumentationFile>..\..\bin\Release\netstandard2.0\Aardvark.Data.Points.Ascii.xml</DocumentationFile>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <LangVersion>7.1</LangVersion>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Aardvark.Data.E57\Aardvark.Data.E57.csproj" />
-    <ProjectReference Include="..\Aardvark.Data.Points.Ascii\Aardvark.Data.Points.Ascii.csproj" />
     <ProjectReference Include="..\Aardvark.Geometry.PointChunk\Aardvark.Geometry.PointChunk.csproj" />
-    <ProjectReference Include="..\Aardvark.Geometry.PointTree\Aardvark.Geometry.PointTree.csproj" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>
