@@ -82,6 +82,10 @@
       <Project>{a7247d3b-7cb6-428a-bfcc-97fef89e55b6}</Project>
       <Name>Aardvark.Data.E57</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Aardvark.Geometry.PointChunk\Aardvark.Geometry.PointChunk.csproj">
+      <Project>{ba90a157-419c-4324-b5b0-853c4b97b046}</Project>
+      <Name>Aardvark.Geometry.PointChunk</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Aardvark.Geometry.PointSet\Aardvark.Geometry.PointSet.csproj">
       <Project>{9976754a-07b4-489b-9c2c-0c3b848c1df9}</Project>
       <Name>Aardvark.Geometry.PointSet</Name>

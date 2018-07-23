@@ -18,7 +18,7 @@ using System.Collections.Generic;
 namespace Aardvark.Geometry.Points
 {
     /// <summary>
-    /// Parsers emit a sequence of chunks of points with optional colors.
+    /// Parsers emit a sequence of chunks of points with optional colors, normals, and intensities.
     /// </summary>
     public struct Chunk
     {
