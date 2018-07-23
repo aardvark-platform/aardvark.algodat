@@ -13,6 +13,7 @@
 */
 using Aardvark.Base;
 using Aardvark.Data.E57;
+using Aardvark.Data.Points;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;

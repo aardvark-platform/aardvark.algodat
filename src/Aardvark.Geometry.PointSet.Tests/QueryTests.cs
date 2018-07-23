@@ -11,14 +11,15 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+using Aardvark.Base;
+using Aardvark.Data.Points;
+using Aardvark.Geometry.Points;
+using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using Aardvark.Base;
-using Aardvark.Geometry.Points;
-using NUnit.Framework;
 
 namespace Aardvark.Geometry.Tests
 {

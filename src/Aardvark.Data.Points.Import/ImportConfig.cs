@@ -17,7 +17,7 @@ using System.Threading;
 using Aardvark.Base;
 using Uncodium.SimpleStore;
 
-namespace Aardvark.Geometry.Points
+namespace Aardvark.Data.Points
 {
     /// <summary>
     /// General info for a point cloud data file.
@@ -82,13 +82,13 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public bool Verbose { get; private set; } = false;
-        
+
         #endregion
 
         #region Immutable updates
 
         private ImportConfig() { }
-        
+
         /// <summary></summary>
         public ImportConfig(ImportConfig x)
         {
@@ -149,9 +149,6 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public ImportConfig WithStorage(Storage x) => new ImportConfig(this) { Storage = x };
-
-        /// <summary></summary>
-        public ImportConfig WithInMemoryStore() => new ImportConfig(this) { Storage = new SimpleMemoryStore().ToPointCloudStore() };
 
         /// <summary></summary>
         public ImportConfig WithVerbose(bool x) => new ImportConfig(this) { Verbose = x };

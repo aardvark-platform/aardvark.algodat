@@ -12,6 +12,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
+using Aardvark.Data.Points;
 using Aardvark.Geometry.Points;
 using NUnit.Framework;
 using System;

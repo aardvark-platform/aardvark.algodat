@@ -1,20 +1,11 @@
 ﻿using Aardvark.Base;
-using Newtonsoft.Json.Linq;
+using Aardvark.Data.Points;
+using Aardvark.Geometry.Points;
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.Serialization;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Uncodium.SimpleStore;
-using Aardvark.Geometry.Points;
-using Aardvark.Data.E57;
 
 namespace Aardvark.Geometry.Tests
 {

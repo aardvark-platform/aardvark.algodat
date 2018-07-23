@@ -14,15 +14,15 @@
 
 //#define PEDANTIC
 
+using Aardvark.Base;
+using Aardvark.Data.Points;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using Aardvark.Base;
-using Newtonsoft.Json;
 
 namespace Aardvark.Geometry.Points
 {

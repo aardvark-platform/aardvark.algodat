@@ -11,12 +11,13 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+using Aardvark.Base;
+using Aardvark.Data.Points;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using Aardvark.Base;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Aardvark.Geometry.Points
 {

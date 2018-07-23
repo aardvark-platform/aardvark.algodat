@@ -11,88 +11,25 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+using Aardvark.Base;
+using Aardvark.Base.Coder;
+using Aardvark.Data.Points;
+using Newtonsoft.Json.Linq;
 using System;
 using System.IO;
 using System.Text;
 using System.Threading;
-using Aardvark.Base;
-using Aardvark.Base.Coder;
-using Newtonsoft.Json.Linq;
 using Uncodium.SimpleStore;
 
 namespace Aardvark.Geometry.Points
 {
-    /// <summary></summary>
-    public class Storage : IDisposable
-    {
-        private bool m_isDisposed = false;
-
-        internal readonly Action<string, object, Func<byte[]>, CancellationToken> f_add;
-
-        internal readonly Func<string, CancellationToken, byte[]> f_get;
-
-        internal readonly Action<string, CancellationToken> f_remove;
-
-        internal readonly Func<string, CancellationToken, object> f_tryGetFromCache;
-
-        internal readonly Action f_flush;
-
-        internal readonly Action f_dispose;
-
-        /// <summary></summary>
-        public Storage(
-            Action<string, object, Func<byte[]>, CancellationToken> add,
-            Func<string, CancellationToken, byte[]> get,
-            Action<string, CancellationToken> remove,
-            Func<string, CancellationToken, object> tryGetFromCache,
-            Action dispose,
-            Action flush
-            )
-        {
-            f_add = add;
-            f_get = get;
-            f_remove = remove;
-            f_tryGetFromCache = tryGetFromCache;
-            f_dispose = dispose;
-            f_flush = flush;
-        }
-        
-        /// <summary>
-        /// Writes all pending changes to store.
-        /// </summary>
-        public void Flush() => f_flush();
-
-        /// <summary></summary>
-        public void Dispose()
-        {
-            m_isDisposed = true;
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        /// <summary></summary>
-        protected virtual void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                f_dispose();
-            }
-        }
-
-        /// <summary></summary>
-        ~Storage()
-        {
-            Dispose(false);
-        }
-
-        /// <summary></summary>
-        public bool IsDisposed => m_isDisposed;
-    }
-
     /// <summary>
     /// </summary>
     public static class StorageExtensions
     {
+        /// <summary></summary>
+        public static ImportConfig WithInMemoryStore(this ImportConfig self) => self.WithStorage(new SimpleMemoryStore().ToPointCloudStore());
+        
         /// <summary>
         /// Wraps Uncodium.ISimpleStore into Storage.
         /// </summary>
@@ -369,5 +306,4 @@ namespace Aardvark.Geometry.Points
 
         #endregion
     }
-
 }

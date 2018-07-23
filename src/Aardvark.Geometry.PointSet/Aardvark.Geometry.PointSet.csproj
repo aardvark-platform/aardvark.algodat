@@ -18,6 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Aardvark.Data.E57\Aardvark.Data.E57.csproj" />
     <ProjectReference Include="..\Aardvark.Data.Points.Ascii\Aardvark.Data.Points.Ascii.csproj" />
+    <ProjectReference Include="..\Aardvark.Data.Points.Import\Aardvark.Data.Points.Import.csproj" />
     <ProjectReference Include="..\Aardvark.Geometry.PointChunk\Aardvark.Geometry.PointChunk.csproj" />
     <ProjectReference Include="..\Aardvark.Geometry.PointTree\Aardvark.Geometry.PointTree.csproj" />
   </ItemGroup>

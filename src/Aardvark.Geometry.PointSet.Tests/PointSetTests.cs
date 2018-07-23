@@ -11,13 +11,13 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-using System.Collections.Generic;
-using System.Threading;
 using Aardvark.Base;
+using Aardvark.Data.Points;
 using Aardvark.Geometry.Points;
 using NUnit.Framework;
+using System.Collections.Generic;
+using System.Threading;
 using Uncodium.SimpleStore;
-using System;
 
 namespace Aardvark.Geometry.Tests
 {
