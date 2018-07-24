@@ -1,9 +1,9 @@
 type project
-id Aardvark.Geometry.PointChunk
+id Aardvark.Data.Points.Base
 authors Aardvark Platform Team
 owners Aardvark Platform Team
 projectUrl http://github.com/aardvark-platform
 licenseUrl http://www.gnu.org/licenses/agpl.txt
 description
-    An unstructured chunk of points.
+    Point data base types.
 include-pdbs true

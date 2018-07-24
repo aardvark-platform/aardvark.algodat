@@ -1,9 +1,0 @@
-type project
-id Aardvark.Data.Points.Import
-authors Aardvark Platform Team
-owners Aardvark Platform Team
-projectUrl http://github.com/aardvark-platform
-licenseUrl http://www.gnu.org/licenses/agpl.txt
-description
-    Point data import infrastructure.
-include-pdbs true

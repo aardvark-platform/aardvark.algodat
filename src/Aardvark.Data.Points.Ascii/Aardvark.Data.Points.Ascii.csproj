@@ -13,8 +13,8 @@
     <DocumentationFile>..\..\bin\Release\netstandard2.0\Aardvark.Data.Points.Ascii.xml</DocumentationFile>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Aardvark.Geometry.PointChunk\Aardvark.Geometry.PointChunk.csproj" />
-  </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
+  <ItemGroup>
+    <ProjectReference Include="..\Aardvark.Data.Points.Base\Aardvark.Data.Points.Base.csproj" />
+  </ItemGroup>
 </Project>
