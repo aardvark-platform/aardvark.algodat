@@ -11,32 +11,27 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-using Aardvark.Base;
-using Aardvark.Data.Points;
+using Aardvark.Geometry.Points;
 using System.Collections.Generic;
 using System.IO;
 
-namespace Aardvark.Geometry.Points
+namespace Aardvark.Data.Points.Import
 {
     /// <summary>
     /// Importers for various formats.
     /// </summary>
-    public static partial class PointCloud
+    public static partial class Yxh
     {
         /// <summary>
-        /// Gets general info for .pts file.
+        /// Parses .yxh file.
         /// </summary>
-        public static PointFileInfo PtsInfo(string filename, ImportConfig config)
-        {
-            var filesize = new FileInfo(filename).Length;
-            var pointCount = 0L;
-            var pointBounds = Box3d.Invalid;
-            foreach (var chunk in Data.Points.Import.Pts.Chunks(filename, ImportConfig.Default))
-            {
-                pointCount += chunk.Count;
-                pointBounds.ExtendBy(chunk.BoundingBox);
-            }
-            return new PointFileInfo(filename, PointCloudFormat.E57Format, filesize, pointCount, pointBounds);
-        }
+        public static IEnumerable<Chunk> Chunks(string filename, ImportConfig config)
+            => Ascii.AsciiLines(HighPerformanceParsing.ParseLinesXYZRGB, filename, config);
+
+        /// <summary>
+        /// Parses .yxh stream.
+        /// </summary>
+        public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, ImportConfig config)
+            => Ascii.AsciiLines(HighPerformanceParsing.ParseLinesXYZRGB, stream, streamLengthInBytes, config);
     }
 }

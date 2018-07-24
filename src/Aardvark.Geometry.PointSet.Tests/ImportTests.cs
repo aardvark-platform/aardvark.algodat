@@ -456,7 +456,7 @@ namespace Aardvark.Geometry.Tests
                 .WithStorage(PointCloud.CreateInMemoryStore())
                 .WithKey("test")
                 ;
-            var ptsChunks = PointCloud.Pts(filename, config);
+            var ptsChunks = Data.Points.Import.Pts.Chunks(filename, config);
             var pointset = PointCloud.Chunks(ptsChunks, config);
             Assert.IsTrue(pointset.Id == "test");
             var pointset2 = config.Storage.GetPointSet("test", CancellationToken.None);

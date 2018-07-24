@@ -11,27 +11,27 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-using Aardvark.Data.Points;
+using Aardvark.Geometry.Points;
 using System.Collections.Generic;
 using System.IO;
 
-namespace Aardvark.Geometry.Points
+namespace Aardvark.Data.Points.Import
 {
     /// <summary>
     /// Importers for various formats.
     /// </summary>
-    public static partial class PointCloud
+    public static partial class Pts
     {
         /// <summary>
-        /// Parses .yxh file.
+        /// Parses .pts file.
         /// </summary>
-        public static IEnumerable<Chunk> Yxh(string filename, ImportConfig config)
-            => AsciiLines(HighPerformanceParsing.ParseLinesXYZRGB, filename, config);
+        public static IEnumerable<Chunk> Chunks(string filename, ImportConfig config)
+            => Ascii.AsciiLines(HighPerformanceParsing.ParseLinesXYZIRGB, filename, config);
 
         /// <summary>
-        /// Parses .yxh stream.
+        /// Parses .pts stream.
         /// </summary>
-        public static IEnumerable<Chunk> Yxh(this Stream stream, long streamLengthInBytes, ImportConfig config)
-            => AsciiLines(HighPerformanceParsing.ParseLinesXYZRGB, stream, streamLengthInBytes, config);
+        public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, ImportConfig config)
+            => Ascii.AsciiLines(HighPerformanceParsing.ParseLinesXYZIRGB, stream, streamLengthInBytes, config);
     }
 }

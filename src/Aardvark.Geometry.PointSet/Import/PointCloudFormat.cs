@@ -78,7 +78,7 @@ namespace Aardvark.Geometry.Points
 
         static PointCloudFormat()
         {
-            PtsFormat = new PointCloudFormat("pts", new[] { ".pts" }, PointCloud.PtsInfo, PointCloud.Pts);
+            PtsFormat = new PointCloudFormat("pts", new[] { ".pts" }, PointCloud.PtsInfo, Data.Points.Import.Pts.Chunks);
             Register(PtsFormat);
 
             E57Format = new PointCloudFormat("e57", new[] { ".e57" }, PointCloud.E57Info, PointCloud.E57);

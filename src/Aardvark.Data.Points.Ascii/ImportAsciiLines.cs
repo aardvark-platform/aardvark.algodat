@@ -11,17 +11,17 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-using Aardvark.Data.Points;
+using Aardvark.Geometry.Points;
 using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace Aardvark.Geometry.Points
+namespace Aardvark.Data.Points.Import
 {
     /// <summary>
     /// Importers for various formats.
     /// </summary>
-    public static partial class PointCloud
+    public static partial class Ascii
     {
         /// <summary>
         /// Parses ASCII lines file.

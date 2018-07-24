@@ -111,7 +111,7 @@ namespace Aardvark.Geometry.Tests
         {
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
             var filename = @"test.pts";
-            var chunks = PointCloud.Pts(filename, ImportConfig.Default);
+            var chunks = Data.Points.Import.Pts.Chunks(filename, ImportConfig.Default);
             foreach (var chunk in chunks)
             {
                 Console.WriteLine($"{chunk.Count}, {chunk.BoundingBox}");
