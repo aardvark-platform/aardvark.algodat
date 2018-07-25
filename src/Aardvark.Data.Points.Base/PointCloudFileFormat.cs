@@ -25,32 +25,32 @@ namespace Aardvark.Data.Points
     /// static Foo()
     /// {
     ///     ...
-    ///     PointCloudFormat.Register(FooFormat);
+    ///     PointCloudFileFormat.Register(FooFormat);
     /// }
     /// </summary>
     [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
-    public sealed class PointCloudFormatAttribute : Attribute
+    public sealed class PointCloudFileFormatAttributeAttribute : Attribute
     {
     }
 
     /// <summary></summary>
-    public class PointCloudFormat
+    public class PointCloudFileFormat
     {
-        static PointCloudFormat()
+        static PointCloudFileFormat()
         {
-            var xs = Introspection.GetAllTypesWithAttribute<PointCloudFormatAttribute>().ToArray();
+            var xs = Introspection.GetAllTypesWithAttribute<PointCloudFileFormatAttributeAttribute>().ToArray();
             foreach (var x in xs)
             {
                 try
                 {
                     var t = x.Item1;
                     RuntimeHelpers.RunClassConstructor(t.TypeHandle);
-                    Console.WriteLine($"[PointCloudFormat] registered {x.Item1.FullName}");
+                    Console.WriteLine($"[PointCloudFileFormat] registered {x.Item1.FullName}");
                 }
                 catch (Exception e)
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"[PointCloudFormat] registered {x.Item1.FullName} [failed]");
+                    Console.WriteLine($"[PointCloudFileFormat] registered {x.Item1.FullName} [failed]");
                     Console.WriteLine(e.Message);
                     Console.ResetColor();
                 }
@@ -70,7 +70,7 @@ namespace Aardvark.Data.Points
         public IEnumerable<Chunk> ParseFile(string filename, ImportConfig config) => f_parseFile(filename, config);
 
         /// <summary></summary>
-        public PointCloudFormat(
+        public PointCloudFileFormat(
             string description,
             string[] fileExtensions,
             Func<string, ImportConfig, PointFileInfo> parseFileInfo,
@@ -91,21 +91,21 @@ namespace Aardvark.Data.Points
         /// <summary>
         /// Unknown file format.
         /// </summary>
-        public static readonly PointCloudFormat Unknown = new PointCloudFormat("unknown", new string[0], null, null);
+        public static readonly PointCloudFileFormat Unknown = new PointCloudFileFormat("unknown", new string[0], null, null);
 
         /// <summary>
         /// Unknown file format.
         /// </summary>
-        public static readonly PointCloudFormat Store = new PointCloudFormat("store", new string[0], null, null);
+        public static readonly PointCloudFileFormat Store = new PointCloudFileFormat("store", new string[0], null, null);
 
         /// <summary>
         /// </summary>
-        public static PointCloudFormat Register(PointCloudFormat format)
+        public static PointCloudFileFormat Register(PointCloudFileFormat format)
         {
             lock (s_registry)
             {
                 if (s_registry.ContainsKey(format.Description))
-                    throw new InvalidOperationException($"PointCloudFormat '{format.Description}' is already registered.");
+                    throw new InvalidOperationException($"PointCloudFileFormat '{format.Description}' is already registered.");
                 
                 s_registry[format.Description] = format;
                 return format;
@@ -114,7 +114,7 @@ namespace Aardvark.Data.Points
 
         /// <summary>
         /// </summary>
-        public static PointCloudFormat FromFileName(string filename)
+        public static PointCloudFileFormat FromFileName(string filename)
         {
             lock (s_registry)
             {
@@ -131,7 +131,7 @@ namespace Aardvark.Data.Points
         }
 
         private static string GetExt(string filename) => Path.GetExtension(filename).ToLowerInvariant();
-        private static Dictionary<string, PointCloudFormat> s_registry = new Dictionary<string, PointCloudFormat>();
+        private static Dictionary<string, PointCloudFileFormat> s_registry = new Dictionary<string, PointCloudFileFormat>();
 
         #endregion
     }

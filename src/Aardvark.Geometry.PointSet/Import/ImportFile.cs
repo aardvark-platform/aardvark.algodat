@@ -28,7 +28,7 @@ namespace Aardvark.Geometry.Points
         /// Gets general info for given point cloud file.
         /// </summary>
         public static PointFileInfo ParseFileInfo(string filename, ImportConfig config)
-            => PointCloudFormat.FromFileName(filename).ParseFileInfo(filename, config);
+            => PointCloudFileFormat.FromFileName(filename).ParseFileInfo(filename, config);
         
         /// <summary>
         /// Parses file.
@@ -38,7 +38,7 @@ namespace Aardvark.Geometry.Points
         {
             if (filename == null) throw new ArgumentNullException(nameof(filename));
             if (!File.Exists(filename)) throw new FileNotFoundException($"File does not exit ({filename}).", filename);
-            return PointCloudFormat.FromFileName(filename).ParseFile(filename, config);
+            return PointCloudFileFormat.FromFileName(filename).ParseFile(filename, config);
         }
 
         /// <summary>
@@ -59,7 +59,7 @@ namespace Aardvark.Geometry.Points
 
             }
 
-            return PointCloudFormat.FromFileName(filename).ImportFile(filename, config);
+            return PointCloudFileFormat.FromFileName(filename).ImportFile(filename, config);
         }
 
         /// <summary>
@@ -76,7 +76,7 @@ namespace Aardvark.Geometry.Points
                 .WithKey(FileHelpers.ComputeMd5Hash(filename, true))
                 ;
 
-            var result = PointCloudFormat.FromFileName(filename).ImportFile(filename, config);
+            var result = PointCloudFileFormat.FromFileName(filename).ImportFile(filename, config);
             config.Storage.Flush();
             return result;
         }

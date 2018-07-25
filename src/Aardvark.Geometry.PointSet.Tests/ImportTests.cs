@@ -30,15 +30,15 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CanRegisterFileFormat()
         {
-            PointCloudFormat.Register(new PointCloudFormat("Test Description 1", new[] { ".test1" }, null, null));
+            PointCloudFileFormat.Register(new PointCloudFileFormat("Test Description 1", new[] { ".test1" }, null, null));
         }
 
         [Test]
         public void CanRetrieveFileFormat()
         {
-            PointCloudFormat.Register(new PointCloudFormat("Test Description 2", new[] { ".test2" }, null, null));
+            PointCloudFileFormat.Register(new PointCloudFileFormat("Test Description 2", new[] { ".test2" }, null, null));
 
-            var format = PointCloudFormat.FromFileName(@"C:\Data\pointcloud.test2");
+            var format = PointCloudFileFormat.FromFileName(@"C:\Data\pointcloud.test2");
             Assert.IsTrue(format != null);
             Assert.IsTrue(format.Description == "Test Description 2");
         }
@@ -46,10 +46,10 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CanRetrieveFileFormat2()
         {
-            PointCloudFormat.Register(new PointCloudFormat("Test Description 3", new[] { ".test3", ".tst3" }, null, null));
+            PointCloudFileFormat.Register(new PointCloudFileFormat("Test Description 3", new[] { ".test3", ".tst3" }, null, null));
 
-            var format1 = PointCloudFormat.FromFileName(@"C:\Data\pointcloud.test3");
-            var format2 = PointCloudFormat.FromFileName(@"C:\Data\pointcloud.tst3");
+            var format1 = PointCloudFileFormat.FromFileName(@"C:\Data\pointcloud.test3");
+            var format2 = PointCloudFileFormat.FromFileName(@"C:\Data\pointcloud.tst3");
             Assert.IsTrue(format1 != null && format1.Description == "Test Description 3");
             Assert.IsTrue(format2 != null && format2.Description == "Test Description 3");
         }
@@ -57,8 +57,8 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void UnknownFileFormatGivesUnknown()
         {
-            var format = PointCloudFormat.FromFileName(@"C:\Data\pointcloud.foo");
-            Assert.IsTrue(format == PointCloudFormat.Unknown);
+            var format = PointCloudFileFormat.FromFileName(@"C:\Data\pointcloud.foo");
+            Assert.IsTrue(format == PointCloudFileFormat.Unknown);
         }
 
         #endregion

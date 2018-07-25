@@ -24,18 +24,18 @@ namespace Aardvark.Data.Points.Import
     /// <summary>
     /// Importer for E57 format.
     /// </summary>
-    [PointCloudFormat]
+    [PointCloudFileFormatAttribute]
     public static class E57
     {
         /// <summary>
         /// E57 file format.
         /// </summary>
-        public static readonly PointCloudFormat E57Format;
+        public static readonly PointCloudFileFormat E57Format;
 
         static E57()
         {
-            E57Format = new PointCloudFormat("e57", new[] { ".e57" }, E57Info, Chunks);
-            PointCloudFormat.Register(E57Format);
+            E57Format = new PointCloudFileFormat("e57", new[] { ".e57" }, E57Info, Chunks);
+            PointCloudFileFormat.Register(E57Format);
         }
         
         /// <summary>

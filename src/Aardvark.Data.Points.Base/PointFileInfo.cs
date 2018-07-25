@@ -28,7 +28,7 @@ namespace Aardvark.Data.Points
         /// <summary>
         /// Format of point cloud file.
         /// </summary>
-        public PointCloudFormat Format { get; }
+        public PointCloudFileFormat Format { get; }
 
         /// <summary>
         /// File size in bytes.
@@ -46,7 +46,7 @@ namespace Aardvark.Data.Points
         public Box3d Bounds { get; }
 
         /// <summary></summary>
-        public PointFileInfo(string fileName, PointCloudFormat format, long fileSizeInBytes, long pointCount, Box3d bounds)
+        public PointFileInfo(string fileName, PointCloudFileFormat format, long fileSizeInBytes, long pointCount, Box3d bounds)
         {
             FileName = fileName;
             Format = format;
@@ -63,7 +63,7 @@ namespace Aardvark.Data.Points
         public T Metadata { get; }
 
         /// <summary></summary>
-        public PointFileInfo(string fileName, PointCloudFormat format, long fileSizeInBytes, long pointCount, Box3d bounds, T metadata)
+        public PointFileInfo(string fileName, PointCloudFileFormat format, long fileSizeInBytes, long pointCount, Box3d bounds, T metadata)
             : base(fileName, format, fileSizeInBytes, pointCount, bounds)
         {
             Metadata = metadata;

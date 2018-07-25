@@ -31,11 +31,11 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PointFileInfo StoreInfo(string storePath, string key)
         {
-            if (!Directory.Exists(storePath)) return new PointFileInfo(storePath, PointCloudFormat.Unknown, 0, 0, Box3d.Invalid);
+            if (!Directory.Exists(storePath)) return new PointFileInfo(storePath, PointCloudFileFormat.Unknown, 0, 0, Box3d.Invalid);
 
             var store = OpenStore(storePath);
             var pointset = store.GetPointSet(key, CancellationToken.None);
-            return new PointFileInfo(storePath, PointCloudFormat.Store, 0L, pointset.PointCount, pointset.Bounds);
+            return new PointFileInfo(storePath, PointCloudFileFormat.Store, 0L, pointset.PointCount, pointset.Bounds);
         }
 
         /// <summary>

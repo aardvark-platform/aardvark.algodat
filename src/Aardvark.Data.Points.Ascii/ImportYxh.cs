@@ -20,18 +20,18 @@ namespace Aardvark.Data.Points.Import
     /// <summary>
     /// Importer for YXH format.
     /// </summary>
-    [PointCloudFormat]
+    [PointCloudFileFormatAttribute]
     public static class Yxh
     {
         /// <summary>
         /// E57 file format.
         /// </summary>
-        public static readonly PointCloudFormat YxhFormat;
+        public static readonly PointCloudFileFormat YxhFormat;
 
         static Yxh()
         {
-            YxhFormat = new PointCloudFormat("yxh", new[] { ".yxh" }, YxhInfo, Chunks);
-            PointCloudFormat.Register(YxhFormat);
+            YxhFormat = new PointCloudFileFormat("yxh", new[] { ".yxh" }, YxhInfo, Chunks);
+            PointCloudFileFormat.Register(YxhFormat);
         }
 
         /// <summary>

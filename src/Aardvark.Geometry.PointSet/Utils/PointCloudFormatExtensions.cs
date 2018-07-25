@@ -19,7 +19,7 @@ namespace Aardvark.Geometry.Points
     public static class PointCloudFormatExtensions
     {
         /// <summary></summary>
-        public static PointSet ImportFile(this PointCloudFormat self, string filename, ImportConfig config)
+        public static PointSet ImportFile(this PointCloudFileFormat self, string filename, ImportConfig config)
             => PointCloud.Chunks(self.ParseFile(filename, config), config);
         
         

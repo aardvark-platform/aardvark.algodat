@@ -20,18 +20,18 @@ namespace Aardvark.Data.Points.Import
     /// <summary>
     /// Importer for PTS format.
     /// </summary>
-    [PointCloudFormat]
+    [PointCloudFileFormatAttribute]
     public static class Pts
     {
         /// <summary>
         /// Pts file format.
         /// </summary>
-        public static readonly PointCloudFormat PtsFormat;
+        public static readonly PointCloudFileFormat PtsFormat;
 
         static Pts()
         {
-            PtsFormat = new PointCloudFormat("pts", new[] { ".pts" }, PtsInfo, Chunks);
-            PointCloudFormat.Register(PtsFormat);
+            PtsFormat = new PointCloudFileFormat("pts", new[] { ".pts" }, PtsInfo, Chunks);
+            PointCloudFileFormat.Register(PtsFormat);
         }
 
         /// <summary>
