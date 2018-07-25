@@ -15,7 +15,7 @@ using Aardvark.Base;
 using System;
 using System.Collections.Generic;
 
-namespace Aardvark.Geometry.Points
+namespace Aardvark.Data.Points
 {
     /// <summary>
     /// Parsers emit a sequence of chunks of points with optional colors, normals, and intensities.

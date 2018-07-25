@@ -36,7 +36,7 @@ namespace Aardvark.Geometry.Points
                 pointCount += chunk.Count;
                 pointBounds.ExtendBy(chunk.BoundingBox);
             }
-            return new PointFileInfo(filename, PointCloudFormat.E57Format, filesize, pointCount, pointBounds);
+            return new PointFileInfo(filename, PointCloudFormatExtensions.E57Format, filesize, pointCount, pointBounds);
         }
     }
 }

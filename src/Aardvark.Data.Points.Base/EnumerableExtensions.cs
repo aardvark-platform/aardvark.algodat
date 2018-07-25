@@ -11,26 +11,25 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+using System;
 using System.Collections.Generic;
-using System.IO;
+using System.Diagnostics;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Aardvark.Base;
 
-namespace Aardvark.Data.Points.Import
+namespace Aardvark.Data.Points
 {
     /// <summary>
-    /// Importers for various formats.
     /// </summary>
-    public static partial class Yxh
+    public static class EnumerableExtensions
     {
-        /// <summary>
-        /// Parses .yxh file.
-        /// </summary>
-        public static IEnumerable<Chunk> Chunks(string filename, ImportConfig config)
-            => Ascii.AsciiLines(HighPerformanceParsing.ParseLinesXYZRGB, filename, config);
-
-        /// <summary>
-        /// Parses .yxh stream.
-        /// </summary>
-        public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, ImportConfig config)
-            => Ascii.AsciiLines(HighPerformanceParsing.ParseLinesXYZRGB, stream, streamLengthInBytes, config);
+        internal static R[] Map<T, R>(this IList<T> xs, Func<T, R> map)
+        {
+            var rs = new R[xs.Count];
+            for (var i = 0; i < rs.Length; i++) rs[i] = map(xs[i]);
+            return rs;
+        }
     }
 }

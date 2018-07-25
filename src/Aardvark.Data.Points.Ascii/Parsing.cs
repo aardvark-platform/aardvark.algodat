@@ -12,7 +12,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
-using Aardvark.Geometry.Points;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;

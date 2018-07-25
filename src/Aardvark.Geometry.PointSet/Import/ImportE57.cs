@@ -45,7 +45,7 @@ namespace Aardvark.Geometry.Points
                     pointBounds.ExtendBy(data3d.CartesianBounds.Bounds);
                 }
             }
-            return new PointFileInfo<ASTM_E57.E57FileHeader>(filename, PointCloudFormat.E57Format, filesize, pointCount, pointBounds, header);
+            return new PointFileInfo<ASTM_E57.E57FileHeader>(filename, PointCloudFormatExtensions.E57Format, filesize, pointCount, pointBounds, header);
         }
 
         /// <summary>

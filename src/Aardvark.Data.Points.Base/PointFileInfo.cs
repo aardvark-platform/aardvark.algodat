@@ -13,7 +13,7 @@
 */
 using Aardvark.Base;
 
-namespace Aardvark.Geometry.Points
+namespace Aardvark.Data.Points
 {
     /// <summary>
     /// General info for a point cloud data file.

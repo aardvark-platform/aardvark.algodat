@@ -38,13 +38,6 @@ namespace Aardvark.Geometry.Points
             return false;
         }
 
-        internal static R[] Map<T, R>(this IList<T> xs, Func<T, R> map)
-        {
-            var rs = new R[xs.Count];
-            for (var i = 0; i < rs.Length; i++) rs[i] = map(xs[i]);
-            return rs;
-        }
-
         internal static T[] Append<T>(this T[] self, T[] other)
         {
             if (self == null || self.Length == 0) return other ?? new T[0];

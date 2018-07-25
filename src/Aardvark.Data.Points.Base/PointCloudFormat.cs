@@ -11,13 +11,12 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace Aardvark.Geometry.Points
+namespace Aardvark.Data.Points
 {
     /// <summary></summary>
     public class PointCloudFormat
@@ -35,9 +34,6 @@ namespace Aardvark.Geometry.Points
         public IEnumerable<Chunk> ParseFile(string filename, ImportConfig config) => f_parseFile(filename, config);
 
         /// <summary></summary>
-        public PointSet ImportFile(string filename, ImportConfig config) => PointCloud.Chunks(f_parseFile(filename, config), config);
-
-        /// <summary></summary>
         public PointCloudFormat(
             string description,
             string[] fileExtensions,
@@ -51,8 +47,8 @@ namespace Aardvark.Geometry.Points
             f_parseFile = parseFile;
         }
 
-        private Func<string, ImportConfig, PointFileInfo> f_parseFileInfo;
-        private Func<string, ImportConfig, IEnumerable<Chunk>> f_parseFile;
+        private readonly Func<string, ImportConfig, PointFileInfo> f_parseFileInfo;
+        private readonly Func<string, ImportConfig, IEnumerable<Chunk>> f_parseFile;
 
         #region Registry
 
@@ -65,25 +61,6 @@ namespace Aardvark.Geometry.Points
         /// Unknown file format.
         /// </summary>
         public static readonly PointCloudFormat Store = new PointCloudFormat("store", new string[0], null, null);
-
-        /// <summary>
-        /// Pts file format.
-        /// </summary>
-        public static readonly PointCloudFormat PtsFormat;
-
-        /// <summary>
-        /// E57 file format.
-        /// </summary>
-        public static readonly PointCloudFormat E57Format;
-
-        static PointCloudFormat()
-        {
-            PtsFormat = new PointCloudFormat("pts", new[] { ".pts" }, PointCloud.PtsInfo, Data.Points.Import.Pts.Chunks);
-            Register(PtsFormat);
-
-            E57Format = new PointCloudFormat("e57", new[] { ".e57" }, PointCloud.E57Info, PointCloud.E57);
-            Register(E57Format);
-        }
 
         /// <summary>
         /// </summary>
