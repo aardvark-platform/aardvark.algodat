@@ -22,23 +22,6 @@ namespace Aardvark.Geometry.Points
         public static PointSet ImportFile(this PointCloudFormat self, string filename, ImportConfig config)
             => PointCloud.Chunks(self.ParseFile(filename, config), config);
         
-        /// <summary>
-        /// Pts file format.
-        /// </summary>
-        public static readonly PointCloudFormat PtsFormat;
-
-        /// <summary>
-        /// E57 file format.
-        /// </summary>
-        public static readonly PointCloudFormat E57Format;
-
-        static PointCloudFormatExtensions()
-        {
-            PtsFormat = new PointCloudFormat("pts", new[] { ".pts" }, PointCloud.PtsInfo, Data.Points.Import.Pts.Chunks);
-            PointCloudFormat.Register(PtsFormat);
-
-            E57Format = new PointCloudFormat("e57", new[] { ".e57" }, PointCloud.E57Info, PointCloud.E57);
-            PointCloudFormat.Register(E57Format);
-        }
+        
     }
 }

@@ -20,7 +20,7 @@ namespace Aardvark.Data.Points.Import
     /// <summary>
     /// Importers for various formats.
     /// </summary>
-    public static partial class Ascii
+    public static class Ascii
     {
         /// <summary>
         /// Parses ASCII lines file.

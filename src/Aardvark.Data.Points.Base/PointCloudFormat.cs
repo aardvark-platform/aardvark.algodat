@@ -11,16 +11,52 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+using Aardvark.Base;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace Aardvark.Data.Points
 {
+    /// <summary>
+    /// Class must have static constructor which registers file format, e.g.
+    /// static Foo()
+    /// {
+    ///     ...
+    ///     PointCloudFormat.Register(FooFormat);
+    /// }
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
+    public sealed class PointCloudFormatAttribute : Attribute
+    {
+    }
+
     /// <summary></summary>
     public class PointCloudFormat
     {
+        static PointCloudFormat()
+        {
+            var xs = Introspection.GetAllTypesWithAttribute<PointCloudFormatAttribute>().ToArray();
+            foreach (var x in xs)
+            {
+                try
+                {
+                    var t = x.Item1;
+                    RuntimeHelpers.RunClassConstructor(t.TypeHandle);
+                    Console.WriteLine($"[PointCloudFormat] registered {x.Item1.FullName}");
+                }
+                catch (Exception e)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine($"[PointCloudFormat] registered {x.Item1.FullName} [failed]");
+                    Console.WriteLine(e.Message);
+                    Console.ResetColor();
+                }
+            }
+        }
+
         /// <summary></summary>
         public string Description { get; }
 

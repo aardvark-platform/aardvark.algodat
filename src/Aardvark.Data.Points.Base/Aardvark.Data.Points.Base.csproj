@@ -6,10 +6,12 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <OutputPath>..\..\bin\Release</OutputPath>
     <DocumentationFile>..\..\bin\Release\netstandard2.0\Aardvark.Data.Points.Import.xml</DocumentationFile>
+    <LangVersion>7.1</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <OutputPath>..\..\bin\Debug</OutputPath>
     <DocumentationFile>..\..\bin\Debug\netstandard2.0\Aardvark.Data.Points.Import.xml</DocumentationFile>
+    <LangVersion>7.1</LangVersion>
   </PropertyGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

@@ -13,55 +13,45 @@
 */
 using Aardvark.Base;
 using Aardvark.Data.E57;
-using Aardvark.Data.Points;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
 using static System.Console;
 
-namespace Aardvark.Geometry.Points
+namespace Aardvark.Data.Points.Import
 {
     /// <summary>
-    /// Importers for various formats.
+    /// Importer for E57 format.
     /// </summary>
-    public static partial class PointCloud
+    [PointCloudFormat]
+    public static class E57
     {
         /// <summary>
-        /// Gets general info for .e57 file.
+        /// E57 file format.
         /// </summary>
-        public static PointFileInfo<ASTM_E57.E57FileHeader> E57Info(string filename, ImportConfig config)
-        {
-            var filesize = new FileInfo(filename).Length;
-            var stream = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
-            var header = ASTM_E57.E57FileHeader.Parse(stream);
-            var pointCount = 0L;
-            var pointBounds = Box3d.Invalid;
-            foreach (var data3d in header.E57Root.Data3D)
-            {
-                pointCount += data3d.Points.RecordCount;
-                if (data3d.CartesianBounds != null)
-                {
-                    pointBounds.ExtendBy(data3d.CartesianBounds.Bounds);
-                }
-            }
-            return new PointFileInfo<ASTM_E57.E57FileHeader>(filename, PointCloudFormatExtensions.E57Format, filesize, pointCount, pointBounds, header);
-        }
+        public static readonly PointCloudFormat E57Format;
 
+        static E57()
+        {
+            E57Format = new PointCloudFormat("e57", new[] { ".e57" }, E57Info, Chunks);
+            PointCloudFormat.Register(E57Format);
+        }
+        
         /// <summary>
         /// Parses .e57 file.
         /// </summary>
-        public static IEnumerable<Chunk> E57(string filename, ImportConfig config)
+        public static IEnumerable<Chunk> Chunks(string filename, ImportConfig config)
         {
             var fileSizeInBytes = new FileInfo(filename).Length;
             var stream = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
-            return E57(stream, fileSizeInBytes, config);
+            return Chunks(stream, fileSizeInBytes, config);
         }
 
         /// <summary>
         /// Parses .e57 stream.
         /// </summary>
-        public static IEnumerable<Chunk> E57(this Stream stream, long streamLengthInBytes, ImportConfig config)
+        public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, ImportConfig config)
         {
             checked
             {
@@ -159,7 +149,7 @@ namespace Aardvark.Geometry.Points
                     }
 
                     WriteLine(header.RawXml.ToString(SaveOptions.OmitDuplicateNamespaces));
-               
+
                     WriteLine();
                     WriteLine();
                 }
@@ -192,6 +182,27 @@ namespace Aardvark.Geometry.Points
 
                 if (config.Verbose) WriteLine();
             }
+        }
+
+        /// <summary>
+        /// Gets general info for .e57 file.
+        /// </summary>
+        public static PointFileInfo<ASTM_E57.E57FileHeader> E57Info(string filename, ImportConfig config)
+        {
+            var filesize = new FileInfo(filename).Length;
+            var stream = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
+            var header = ASTM_E57.E57FileHeader.Parse(stream);
+            var pointCount = 0L;
+            var pointBounds = Box3d.Invalid;
+            foreach (var data3d in header.E57Root.Data3D)
+            {
+                pointCount += data3d.Points.RecordCount;
+                if (data3d.CartesianBounds != null)
+                {
+                    pointBounds.ExtendBy(data3d.CartesianBounds.Bounds);
+                }
+            }
+            return new PointFileInfo<ASTM_E57.E57FileHeader>(filename, E57Format, filesize, pointCount, pointBounds, header);
         }
     }
 }

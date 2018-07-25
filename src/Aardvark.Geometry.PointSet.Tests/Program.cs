@@ -1,5 +1,6 @@
 ﻿using Aardvark.Base;
 using Aardvark.Data.Points;
+using Aardvark.Data.Points.Import;
 using Aardvark.Geometry.Points;
 using System;
 using System.Globalization;
@@ -24,7 +25,7 @@ namespace Aardvark.Geometry.Tests
                 .WithMaxDegreeOfParallelism(1)
                 .WithMinDist(0.005)
                 ;
-            var info = PointCloud.E57Info(filename, config);
+            var info = E57.E57Info(filename, config);
 
             foreach (var data3d in info.Metadata.E57Root.Data3D)
             {
@@ -33,7 +34,7 @@ namespace Aardvark.Geometry.Tests
                 Console.WriteLine($"    {data3d.Pose.Rotation.TransformPos(V3d.Zero) + data3d.Pose.Translation}");
             }
 
-            var chunks = PointCloud.E57(filename, config).ToList();
+            var chunks = E57.Chunks(filename, config).ToList();
             var pointcloud = PointCloud.Chunks(chunks, config);
             Console.WriteLine($"pointcloud.PointCount  : {pointcloud.PointCount}");
             Console.WriteLine($"pointcloud.Bounds      :{pointcloud.Bounds}");

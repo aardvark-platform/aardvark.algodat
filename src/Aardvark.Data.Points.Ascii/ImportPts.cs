@@ -11,16 +11,29 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+using Aardvark.Base;
 using System.Collections.Generic;
 using System.IO;
 
 namespace Aardvark.Data.Points.Import
 {
     /// <summary>
-    /// Importers for various formats.
+    /// Importer for PTS format.
     /// </summary>
-    public static partial class Pts
+    [PointCloudFormat]
+    public static class Pts
     {
+        /// <summary>
+        /// Pts file format.
+        /// </summary>
+        public static readonly PointCloudFormat PtsFormat;
+
+        static Pts()
+        {
+            PtsFormat = new PointCloudFormat("pts", new[] { ".pts" }, PtsInfo, Chunks);
+            PointCloudFormat.Register(PtsFormat);
+        }
+
         /// <summary>
         /// Parses .pts file.
         /// </summary>
@@ -32,5 +45,21 @@ namespace Aardvark.Data.Points.Import
         /// </summary>
         public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, ImportConfig config)
             => Ascii.AsciiLines(HighPerformanceParsing.ParseLinesXYZIRGB, stream, streamLengthInBytes, config);
+
+        /// <summary>
+        /// Gets general info for .pts file.
+        /// </summary>
+        public static PointFileInfo PtsInfo(string filename, ImportConfig config)
+        {
+            var filesize = new FileInfo(filename).Length;
+            var pointCount = 0L;
+            var pointBounds = Box3d.Invalid;
+            foreach (var chunk in Chunks(filename, ImportConfig.Default))
+            {
+                pointCount += chunk.Count;
+                pointBounds.ExtendBy(chunk.BoundingBox);
+            }
+            return new PointFileInfo(filename, PtsFormat, filesize, pointCount, pointBounds);
+        }
     }
 }

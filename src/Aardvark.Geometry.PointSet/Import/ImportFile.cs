@@ -11,6 +11,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+using Aardvark.Base;
 using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
@@ -37,7 +38,6 @@ namespace Aardvark.Geometry.Points
         {
             if (filename == null) throw new ArgumentNullException(nameof(filename));
             if (!File.Exists(filename)) throw new FileNotFoundException($"File does not exit ({filename}).", filename);
-
             return PointCloudFormat.FromFileName(filename).ParseFile(filename, config);
         }
 

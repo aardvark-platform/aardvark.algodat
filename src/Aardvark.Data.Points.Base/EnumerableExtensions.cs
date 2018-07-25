@@ -14,10 +14,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Aardvark.Base;
 
 namespace Aardvark.Data.Points
 {
@@ -30,6 +28,77 @@ namespace Aardvark.Data.Points
             var rs = new R[xs.Count];
             for (var i = 0; i < rs.Length; i++) rs[i] = map(xs[i]);
             return rs;
+        }
+
+        /// <summary>
+        /// </summary>
+        public static IEnumerable<R> MapParallel<T, R>(this IEnumerable<T> items,
+            Func<T, CancellationToken, R> map,
+            int maxLevelOfParallelism,
+            Action<TimeSpan> onFinish = null,
+            CancellationToken ct = default
+            )
+        {
+            if (map == null) throw new ArgumentNullException(nameof(map));
+            if (maxLevelOfParallelism < 1) maxLevelOfParallelism = Environment.ProcessorCount;
+
+            var queue = new Queue<R>();
+            var queueSemapore = new SemaphoreSlim(maxLevelOfParallelism);
+
+            var inFlightCount = 0;
+
+            var sw = new Stopwatch(); sw.Start();
+
+            foreach (var item in items)
+            {
+                ct.ThrowIfCancellationRequested();
+
+                queueSemapore.Wait();
+                ct.ThrowIfCancellationRequested();
+                Interlocked.Increment(ref inFlightCount);
+                Task.Run(() =>
+                {
+                    try
+                    {
+                        var r = map(item, ct);
+                        ct.ThrowIfCancellationRequested();
+                        lock (queue) queue.Enqueue(r);
+                    }
+                    finally
+                    {
+                        Interlocked.Decrement(ref inFlightCount);
+                        queueSemapore.Release();
+                    }
+                });
+
+                while (queue.TryDequeue(out R r)) { ct.ThrowIfCancellationRequested(); yield return r; }
+            }
+
+            while (inFlightCount > 0 || queue.Count > 0)
+            {
+                while (queue.TryDequeue(out R r)) { ct.ThrowIfCancellationRequested(); yield return r; }
+                Task.Delay(100).Wait();
+            }
+
+            sw.Stop();
+            onFinish?.Invoke(sw.Elapsed);
+        }
+
+        private static bool TryDequeue<T>(this Queue<T> queue, out T item)
+        {
+            lock (queue)
+            {
+                if (queue.Count > 0)
+                {
+                    item = queue.Dequeue();
+                    return true;
+                }
+                else
+                {
+                    item = default(T);
+                    return false;
+                }
+            }
         }
     }
 }
