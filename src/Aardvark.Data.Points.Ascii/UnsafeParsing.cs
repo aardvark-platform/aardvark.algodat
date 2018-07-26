@@ -225,5 +225,38 @@ namespace Aardvark.Data.Points
             }
             return minus ? -x : x;
         }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static V3d ParseV3d(ref byte* p, byte* end)
+        {
+            V3d pos;
+            pos.X = ParseDouble(ref p, end);
+            pos.Y = ParseDouble(ref p, end);
+            pos.Z = ParseDouble(ref p, end);
+            return pos;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool ParseC4b(ref byte* p, byte* end, ref C4b result)
+        {
+            var r = ParseInt(ref p, end);
+            if (r.HasValue)
+            {
+                result.R = (byte)r.Value;
+                var g = ParseInt(ref p, end);
+                if (g.HasValue)
+                {
+                    result.G = (byte)g.Value;
+                    var b = ParseInt(ref p, end);
+                    if (b.HasValue)
+                    {
+                        result.B = (byte)b.Value;
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
     }
 }

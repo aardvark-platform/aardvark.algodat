@@ -23,17 +23,43 @@ namespace Aardvark.Data.Points
 {
     /// <summary>
     /// </summary>
-    public static partial class ImportExtensions
+    public static class Parsing
     {
         private const double PER_MiB = 1.0 / (1024 * 1024);
         private const double PER_GiB = 1.0 / (1024 * 1024 * 1024);
+
+        /// <summary>
+        /// Parses ASCII lines file.
+        /// </summary>
+        internal static IEnumerable<Chunk> AsciiLines(Func<byte[], int, double, Chunk?> lineParser,
+            string filename, ImportConfig config
+            )
+        {
+            var fileSizeInBytes = new FileInfo(filename).Length;
+            var stream = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
+            return AsciiLines(lineParser, stream, fileSizeInBytes, config);
+        }
+
+        /// <summary>
+        /// Parses ASCII lines stream.
+        /// </summary>
+        internal static IEnumerable<Chunk> AsciiLines(Func<byte[], int, double, Chunk?> lineParser,
+            Stream stream, long streamLengthInBytes, ImportConfig config
+            )
+        {
+            // importing file
+            return stream
+                .ChunkStreamAtNewlines(streamLengthInBytes, config.ReadBufferSizeInBytes, config.CancellationToken)
+                .ParseBuffers(streamLengthInBytes, lineParser, config.MinDist, config.MaxDegreeOfParallelism, config.Verbose, config.CancellationToken)
+                ;
+        }
 
         /// <summary>
         /// Splits a stream into buffers of approximately the given size.
         /// Splits will only occur at newlines, therefore each buffer
         /// will be sized less or equal than maxChunkSizeInBytes.
         /// </summary>
-        public static IEnumerable<Data.Points.Buffer> ChunkStreamAtNewlines(
+        public static IEnumerable<Buffer> ChunkStreamAtNewlines(
             this Stream stream, long streamLengthInBytes, int maxChunkSizeInBytes,
             CancellationToken ct
             )
@@ -89,7 +115,7 @@ namespace Aardvark.Data.Points
 
                 totalBytesRead += bufferBytesRead;
                 stats.ReportProgress(totalBytesRead);
-                yield return Data.Points.Buffer.Create(_data, 0, _count);
+                yield return Buffer.Create(_data, 0, _count);
             }
         }
 

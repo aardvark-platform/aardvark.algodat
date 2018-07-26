@@ -38,13 +38,13 @@ namespace Aardvark.Data.Points.Import
         /// Parses .pts file.
         /// </summary>
         public static IEnumerable<Chunk> Chunks(string filename, ImportConfig config)
-            => Ascii.AsciiLines(HighPerformanceParsing.ParseLinesXYZIRGB, filename, config);
+            => Parsing.AsciiLines(HighPerformanceParsing.ParseLinesXYZIRGB, filename, config);
 
         /// <summary>
         /// Parses .pts stream.
         /// </summary>
         public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, ImportConfig config)
-            => Ascii.AsciiLines(HighPerformanceParsing.ParseLinesXYZIRGB, stream, streamLengthInBytes, config);
+            => Parsing.AsciiLines(HighPerformanceParsing.ParseLinesXYZIRGB, stream, streamLengthInBytes, config);
 
         /// <summary>
         /// Gets general info for .pts file.
