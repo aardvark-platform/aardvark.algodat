@@ -657,6 +657,28 @@ namespace Aardvark.Geometry.Tests
         }
 
         [Test]
+        public void QueryOctreeLevelWithBounds()
+        {
+            var pointset = _CreateRandomPointSetForOctreeLevelTests();
+            var bounds = Box3d.FromMinAndSize(new V3d(0.2, 0.4, 0.8), new V3d(0.2, 0.15, 0.1));
+
+            var depth = pointset.Root.Value.CountOctreeLevels();
+            Assert.IsTrue(depth > 0);
+
+            for (var i = 1; i < depth; i++)
+            {
+                var countNodes0 = 0;
+                var countPoints0 = 0;
+                var countNodes1 = 0;
+                var countPoints1 = 0;
+                foreach (var x in pointset.QueryPointsInOctreeLevel(i)) { countNodes0++; countPoints0 += x.Count; }
+                foreach (var x in pointset.QueryPointsInOctreeLevel(i, bounds)) { countNodes1++; countPoints1 += x.Count; }
+                Assert.IsTrue(countPoints0 > countPoints1);
+                Assert.IsTrue(countNodes0 > countNodes1);
+            }
+        }
+
+        [Test]
         public void QueryOctreeLevel_NegativeLevel()
         {
             var pointset = _CreateRandomPointSetForOctreeLevelTests();
@@ -696,6 +718,23 @@ namespace Aardvark.Geometry.Tests
                 var c = pointset.CountPointsInOctreeLevel(i);
                 Assert.IsTrue(c > countPoints);
                 countPoints = c;
+            }
+        }
+
+        [Test]
+        public void CountPointsInOctreeLevelWithBounds()
+        {
+            var pointset = _CreateRandomPointSetForOctreeLevelTests();
+            var bounds = Box3d.FromMinAndSize(new V3d(0.2, 0.4, 0.8), new V3d(0.2, 0.15, 0.1));
+
+            var depth = pointset.Root.Value.CountOctreeLevels();
+            Assert.IsTrue(depth > 0);
+            
+            for (var i = 1; i < depth; i++)
+            {
+                var c0 = pointset.CountPointsInOctreeLevel(i);
+                var c1 = pointset.CountPointsInOctreeLevel(i, bounds);
+                Assert.IsTrue(c0 > c1);
             }
         }
 
