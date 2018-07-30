@@ -12,6 +12,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
+using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
@@ -33,6 +34,12 @@ namespace Aardvark.Data.Points
             var ps = new List<V3d>();
             var cs = new List<C4b>();
             var prev = V3d.PositiveInfinity;
+            var filterDistM = -filterDist;
+            var doFilterDist = filterDist > 0.0;
+            var d = 0.0;
+
+            var position = V3d.Zero;
+            var color = C4b.Black;
 
             unsafe
             {
@@ -42,27 +49,21 @@ namespace Aardvark.Data.Points
                     var end = p + count;
                     while (p < end)
                     {
-                        var x = ParseDouble(ref p, end);
-                        var y = ParseDouble(ref p, end);
-                        var z = ParseDouble(ref p, end);
-
-                        var r = ParseInt(ref p, end);
-                        var g = ParseInt(ref p, end);
-                        var b = ParseInt(ref p, end);
+                        if (!ParseV3d(ref p, end, ref position)) { SkipToNextLine(ref p, end); continue; }
+                        if (!ParseC3bAsC4b(ref p, end, ref color)) { SkipToNextLine(ref p, end); continue; }
 
                         SkipToNextLine(ref p, end);
 
-                        if (double.IsNaN(z)) continue;
-
-                        var dx = x - prev.X; if (dx < 0) dx = -dx;
-                        var dy = y - prev.Y; if (dy < 0) dy = -dy;
-                        var dz = z - prev.Z; if (dz < 0) dz = -dz;
-                        if (dx > filterDist || dy > filterDist || dz > filterDist)
+                        if (doFilterDist)
                         {
-                            ps.Add(new V3d(x, y, z));
-                            cs.Add(new C4b(r.Value, g.Value, b.Value));
-                            prev.X = x; prev.Y = y; prev.Z = z;
+                            d = position.X - prev.X; if (d < 0) d = -d; if (d < filterDist) continue;
+                            d = position.Y - prev.Y; if (d < 0) d = -d; if (d < filterDist) continue;
+                            d = position.Z - prev.Z; if (d < 0) d = -d; if (d < filterDist) continue;
+                            prev = position;
                         }
+
+                        ps.Add(position);
+                        cs.Add(color);
                     }
                 }
             }
@@ -81,8 +82,16 @@ namespace Aardvark.Data.Points
         {
             var ps = new List<V3d>();
             var cs = new List<C4b>();
+            var js = new List<int>();
             var prev = V3d.PositiveInfinity;
+            var filterDistM = -filterDist;
+            var doFilterDist = filterDist > 0.0;
+            var d = 0.0;
 
+            var position = V3d.Zero;
+            var color = C4b.Black;
+            var intensity = 0;
+            
             unsafe
             {
                 fixed (byte* begin = buffer)
@@ -91,36 +100,32 @@ namespace Aardvark.Data.Points
                     var end = p + count;
                     while (p < end)
                     {
-                        var x = ParseDouble(ref p, end);
-                        var y = ParseDouble(ref p, end);
-                        var z = ParseDouble(ref p, end);
-
-                        ParseDouble(ref p, end); // ignore intensity
-
-                        var r = ParseInt(ref p, end);
-                        var g = ParseInt(ref p, end);
-                        var b = ParseInt(ref p, end);
+                        if (!ParseV3d(ref p, end, ref position)) { SkipToNextLine(ref p, end); continue; }
+                        if (!ParseInt(ref p, end, ref intensity)) { SkipToNextLine(ref p, end); continue; }
+                        if (!ParseC3bAsC4b(ref p, end, ref color)) { SkipToNextLine(ref p, end); continue; }
 
                         SkipToNextLine(ref p, end);
 
-                        if (double.IsNaN(z) || !b.HasValue) continue;
-
-                        var dx = x - prev.X; if (dx < 0) dx = -dx;
-                        var dy = y - prev.Y; if (dy < 0) dy = -dy;
-                        var dz = z - prev.Z; if (dz < 0) dz = -dz;
-                        if (dx > filterDist || dy > filterDist || dz > filterDist)
+                        if (doFilterDist)
                         {
-                            ps.Add(new V3d(x, y, z));
-                            cs.Add(new C4b(r.Value, g.Value, b.Value));
-                            prev.X = x; prev.Y = y; prev.Z = z;
+                            d = position.X - prev.X; if (d < 0) d = -d; if (d < filterDist) continue;
+                            d = position.Y - prev.Y; if (d < 0) d = -d; if (d < filterDist) continue;
+                            d = position.Z - prev.Z; if (d < 0) d = -d; if (d < filterDist) continue;
+                            prev = position;
                         }
+
+                        ps.Add(position);
+                        cs.Add(color);
+                        js.Add(intensity);
                     }
                 }
             }
 
             if (ps.Count == 0) return null;
-            return new Chunk(ps, cs, null, null, new Box3d(ps));
+            return new Chunk(ps, cs, null, js, new Box3d(ps));
         }
+
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool SkipToNextLine(ref byte* p, byte* end)
@@ -129,14 +134,14 @@ namespace Aardvark.Data.Points
             p++;
             return p < end;
         }
-
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static double ParseDouble(ref byte* p, byte* end)
+        private static bool ParseFloat64(ref byte* p, byte* end, ref double result)
         {
-            if (p >= end) return double.NaN;
+            if (p >= end) return false;
 
             while (*p == ' ' || p >= end) p++;
-            if (p >= end) return double.NaN;
+            if (p >= end) return false;
 
             var minus = *p == ((byte)'-');
             if (minus) p++;
@@ -158,12 +163,12 @@ namespace Aardvark.Data.Points
                     case '8': x = x * 10.0 + 8.0; break;
                     case '9': x = x * 10.0 + 9.0; break;
                     case '.': parse = false; break;
-                    case ' ': return minus ? -x : x;
-                    default: return double.NaN;
+                    case ' ': result = minus ? -x : x; return true;
+                    default: return false;
                 }
                 p++;
             }
-            if (p >= end) return minus ? -x : x;
+            if (p >= end) { result = minus ? -x : x; return true; }
 
             var y = 0.0;
             var r = 0.1;
@@ -181,22 +186,83 @@ namespace Aardvark.Data.Points
                     case '7': y = y + r * 7; break;
                     case '8': y = y + r * 8; break;
                     case '9': y = y + r * 9; break;
-                    case ' ': return minus ? -x - y : x + y;
-                    default: return double.NaN;
+                    case ' ': result = minus ? -x - y : x + y; return true;
+                    default: return false;
                 }
                 r *= 0.1;
                 p++;
             }
-            return minus ? -x - y : x + y;
+            result = minus ? -x - y : x + y;
+            return false;
         }
-
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int? ParseInt(ref byte* p, byte* end)
+        private static bool ParseFloat32(ref byte* p, byte* end, ref float result)
         {
-            if (p >= end) return null;
+            if (p >= end) return false;
 
             while (*p == ' ' || p >= end) p++;
-            if (p >= end) return null;
+            if (p >= end) return false;
+
+            var minus = *p == ((byte)'-');
+            if (minus) p++;
+
+            var x = 0.0f;
+            var parse = true;
+            while (parse && p < end)
+            {
+                switch ((char)*p)
+                {
+                    case '0': x = x * 10.0f; break;
+                    case '1': x = x * 10.0f + 1.0f; break;
+                    case '2': x = x * 10.0f + 2.0f; break;
+                    case '3': x = x * 10.0f + 3.0f; break;
+                    case '4': x = x * 10.0f + 4.0f; break;
+                    case '5': x = x * 10.0f + 5.0f; break;
+                    case '6': x = x * 10.0f + 6.0f; break;
+                    case '7': x = x * 10.0f + 7.0f; break;
+                    case '8': x = x * 10.0f + 8.0f; break;
+                    case '9': x = x * 10.0f + 9.0f; break;
+                    case '.': parse = false; break;
+                    case ' ': result = minus ? -x : x; return true;
+                    default: return false;
+                }
+                p++;
+            }
+            if (p >= end) { result = minus ? -x : x; return true; }
+
+            var y = 0.0f;
+            var r = 0.1f;
+            while (p < end)
+            {
+                switch ((char)*p)
+                {
+                    case '0': break;
+                    case '1': y = y + r; break;
+                    case '2': y = y + r * 2; break;
+                    case '3': y = y + r * 3; break;
+                    case '4': y = y + r * 4; break;
+                    case '5': y = y + r * 5; break;
+                    case '6': y = y + r * 6; break;
+                    case '7': y = y + r * 7; break;
+                    case '8': y = y + r * 8; break;
+                    case '9': y = y + r * 9; break;
+                    case ' ': result = minus ? -x - y : x + y; return true;
+                    default: return false;
+                }
+                r *= 0.1f;
+                p++;
+            }
+            result = minus ? -x - y : x + y; return true;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool ParseInt(ref byte* p, byte* end, ref int result)
+        {
+            if (p >= end) return false;
+
+            while (*p == ' ' || p >= end) p++;
+            if (p >= end) return false;
 
             var minus = *p == ((byte)'-');
             if (minus) p++;
@@ -218,40 +284,46 @@ namespace Aardvark.Data.Points
                     case '9': x = x * 10 + 9; break;
                     case '\r':
                     case '\n':
-                    case ' ': return minus ? -x : x;
-                    default: return null;
+                    case ' ': result = minus ? -x : x; return true;
+                    default: return false;
                 }
                 p++;
             }
-            return minus ? -x : x;
+            result = minus ? -x : x;
+            return true;
         }
-
-
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static V3d ParseV3d(ref byte* p, byte* end)
+        private static bool ParseV3d(ref byte* p, byte* end, ref V3d result)
         {
-            V3d pos;
-            pos.X = ParseDouble(ref p, end);
-            pos.Y = ParseDouble(ref p, end);
-            pos.Z = ParseDouble(ref p, end);
-            return pos;
+            if (!ParseFloat64(ref p, end, ref result.X)) return false;
+            if (!ParseFloat64(ref p, end, ref result.Y)) return false;
+            if (!ParseFloat64(ref p, end, ref result.Z)) return false;
+            return true;
         }
-
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool ParseC4b(ref byte* p, byte* end, ref C4b result)
+        private static bool ParseV3f(ref byte* p, byte* end, ref V3f result)
         {
-            var r = ParseInt(ref p, end);
-            if (r.HasValue)
+            if (!ParseFloat32(ref p, end, ref result.X)) return false;
+            if (!ParseFloat32(ref p, end, ref result.Y)) return false;
+            if (!ParseFloat32(ref p, end, ref result.Z)) return false;
+            return true;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool ParseC3bAsC4b(ref byte* p, byte* end, ref C4b result)
+        {
+            var r = 0; var g = 0; var b = 0;
+            if (ParseInt(ref p, end, ref r))
             {
-                result.R = (byte)r.Value;
-                var g = ParseInt(ref p, end);
-                if (g.HasValue)
+                if (ParseInt(ref p, end, ref g))
                 {
-                    result.G = (byte)g.Value;
-                    var b = ParseInt(ref p, end);
-                    if (b.HasValue)
+                    if (ParseInt(ref p, end, ref b))
                     {
-                        result.B = (byte)b.Value;
+                        result.R = (byte)r;
+                        result.G = (byte)g;
+                        result.B = (byte)b;
                         return true;
                     }
                 }

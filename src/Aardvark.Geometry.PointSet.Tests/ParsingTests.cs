@@ -18,6 +18,7 @@ using NUnit.Framework;
 using System;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 
 namespace Aardvark.Geometry.Tests
@@ -108,6 +109,132 @@ namespace Aardvark.Geometry.Tests
                 .ParseBuffers(buffer.LongLength, parse, 0.0, 0, true, CancellationToken.None)
                 .ToArray();
             Assert.IsTrue(xs != null);
+        }
+
+        #endregion
+
+        #region ASCII Parsing
+        
+        [Test]
+        public void ParseAscii_XYZRGB_0()
+        {
+            var txt =
+                "1.2 3.4 5.6 8 254 97\n"
+                ;
+
+            var buffer = Encoding.ASCII.GetBytes(txt);
+            var data = HighPerformanceParsing.ParseLinesXYZRGB(buffer, buffer.Length, 0.0);
+            Assert.IsTrue(data.HasValue && data.Value.Count == 1);
+
+            Assert.IsTrue(data.Value.Positions[0] == new V3d(1.2, 3.4, 5.6));
+            Assert.IsTrue(data.Value.Colors[0] == new C4b(8, 254, 97));
+        }
+
+        [Test]
+        public void ParseAscii_XYZRGB_XYZRG()
+        {
+            var txt =
+                "1.2 3.4 5.6 8 254\n"
+                ;
+
+            var buffer = Encoding.ASCII.GetBytes(txt);
+            var data = HighPerformanceParsing.ParseLinesXYZRGB(buffer, buffer.Length, 0.0);
+            Assert.IsTrue(data.HasValue && data.Value.Count == 1);
+
+            Assert.IsTrue(data.Value.Positions[0] == new V3d(1.2, 3.4, 5.6));
+            Assert.IsTrue(data.Value.Colors[0] == new C4b(8, 254, 0));
+        }
+
+        [Test]
+        public void ParseAscii_XYZRGB_XYZR()
+        {
+            var txt =
+                "1.2 3.4 5.6 8\n"
+                ;
+
+            var buffer = Encoding.ASCII.GetBytes(txt);
+            var data = HighPerformanceParsing.ParseLinesXYZRGB(buffer, buffer.Length, 0.0);
+            Assert.IsTrue(data.HasValue && data.Value.Count == 1);
+
+            Assert.IsTrue(data.Value.Positions[0] == new V3d(1.2, 3.4, 5.6));
+            Assert.IsTrue(data.Value.Colors[0] == new C4b(8, 0, 0));
+        }
+
+        [Test]
+        public void ParseAscii_XYZRGB_XYZ()
+        {
+            var txt =
+                "1.2 3.4 5.6\n" +
+                "1.2 3.4 5.6 10 20 30\n" +
+                "1.2 3.4 5.6\n"
+                ;
+
+            var buffer = Encoding.ASCII.GetBytes(txt);
+            var data = HighPerformanceParsing.ParseLinesXYZRGB(buffer, buffer.Length, 0.0);
+            Assert.IsTrue(data.HasValue && data.Value.Count == 1);
+        }
+
+
+        [Test]
+        public void ParseAscii_XYZIRGB_0()
+        {
+            var txt =
+                "1.2 3.4 5.6 8765 8 254 97\n"
+                ;
+
+            var buffer = Encoding.ASCII.GetBytes(txt);
+            var data = HighPerformanceParsing.ParseLinesXYZIRGB(buffer, buffer.Length, 0.0);
+            Assert.IsTrue(data.HasValue && data.Value.Count == 1);
+
+            Assert.IsTrue(data.Value.Positions[0] == new V3d(1.2, 3.4, 5.6));
+            Assert.IsTrue(data.Value.Colors[0] == new C4b(8, 254, 97));
+            Assert.IsTrue(data.Value.Intensities[0] == 8765);
+        }
+
+        [Test]
+        public void ParseAscii_XYZIRGB_XYZRG()
+        {
+            var txt =
+                "1.2 3.4 5.6 8765 8 254\n"
+                ;
+
+            var buffer = Encoding.ASCII.GetBytes(txt);
+            var data = HighPerformanceParsing.ParseLinesXYZIRGB(buffer, buffer.Length, 0.0);
+            Assert.IsTrue(data.HasValue && data.Value.Count == 1);
+
+            Assert.IsTrue(data.Value.Positions[0] == new V3d(1.2, 3.4, 5.6));
+            Assert.IsTrue(data.Value.Colors[0] == new C4b(8, 254, 0));
+            Assert.IsTrue(data.Value.Intensities[0] == 8765);
+        }
+
+        [Test]
+        public void ParseAscii_XYZIRGB_XYZR()
+        {
+            var txt =
+                "1.2 3.4 5.6 8765 8\n"
+                ;
+
+            var buffer = Encoding.ASCII.GetBytes(txt);
+            var data = HighPerformanceParsing.ParseLinesXYZIRGB(buffer, buffer.Length, 0.0);
+            Assert.IsTrue(data.HasValue && data.Value.Count == 1);
+
+            Assert.IsTrue(data.Value.Positions[0] == new V3d(1.2, 3.4, 5.6));
+            Assert.IsTrue(data.Value.Colors[0] == new C4b(8, 0, 0));
+            Assert.IsTrue(data.Value.Intensities[0] == 8765);
+        }
+
+        [Test]
+        public void ParseAscii_XYZIRGB_XYZ()
+        {
+            var txt =
+                "1.2 3.4 5.6 8765 \n" +
+                "1.2 3.4 5.6 8765 10 20 30\n" +
+                "1.2 3.4 5.6\n"
+                ;
+
+            var buffer = Encoding.ASCII.GetBytes(txt);
+            var data = HighPerformanceParsing.ParseLinesXYZIRGB(buffer, buffer.Length, 0.0);
+            Assert.IsTrue(data.HasValue && data.Value.Count == 2);
         }
 
         #endregion
