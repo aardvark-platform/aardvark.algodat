@@ -57,7 +57,7 @@ namespace Aardvark.Data.Points.Import
         /// <summary>
         /// </summary>
         public static PointCloudFileFormat CreateFormat(string description, Func<byte[], int, double, Chunk?> lineParser)
-            => new PointCloudFileFormat(description, new[] { ".pts" },
+            => new PointCloudFileFormat(description, new string[0],
                 (filename, config) => CustomAsciiInfo(filename, lineParser, config),
                 (filename, config) => Chunks(filename, lineParser, config)
                 );
@@ -74,7 +74,7 @@ namespace Aardvark.Data.Points.Import
         /// </summary>
         public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes,
             Func<byte[], int, double, Chunk?> lineParser, ImportConfig config)
-            => Parsing.AsciiLines(HighPerformanceParsing.ParseLinesXYZIRGB, stream, streamLengthInBytes, config);
+            => Parsing.AsciiLines(LineParsers.XYZIRGB, stream, streamLengthInBytes, config);
 
         /// <summary>
         /// Gets general info for custom ASCII file.
