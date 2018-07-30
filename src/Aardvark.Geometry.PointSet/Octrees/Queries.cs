@@ -300,12 +300,13 @@ namespace Aardvark.Geometry.Points
             this PointSetNode node, Polygon3d polygon, double maxDistance, int minCellExponent = int.MinValue
             )
         {
+            var bounds = polygon.BoundingBox3d(maxDistance);
             var plane = polygon.GetPlane3d();
             var w2p = plane.GetWorldToPlane();
             var poly2d = new Polygon2d(polygon.GetPointArray().Map(p => w2p.TransformPos(p).XY));
             return QueryPoints(node,
-                n => plane.Contains(maxDistance, node.BoundingBox),
-                n => !node.BoundingBox.Intersects(plane, maxDistance),
+                n => false,
+                n => !n.BoundingBox.Intersects(bounds),
                 p => polygon.Contains(plane, w2p, poly2d, maxDistance, p, out double d),
                 minCellExponent
                 );
@@ -326,12 +327,13 @@ namespace Aardvark.Geometry.Points
             this PointSetNode node, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
             )
         {
+            var bounds = polygons.Map(x => x.BoundingBox3d(maxDistance));
             var planes = polygons.Map(x => x.GetPlane3d());
             var w2p = planes.Map(x => x.GetWorldToPlane());
             var poly2d = polygons.Map((x, i) => new Polygon2d(x.GetPointArray().Map(p => w2p[i].TransformPos(p).XY)));
             return QueryPoints(node,
-                n => !planes.Any(plane => !plane.Contains(maxDistance, node.BoundingBox)),
-                n => !planes.Any(plane => node.BoundingBox.Intersects(plane, maxDistance)),
+                n => false,
+                n => !bounds.Any(b => n.BoundingBox.Intersects(b)),
                 p => planes.Any((plane, i) => polygons[i].Contains(plane, w2p[i], poly2d[i], maxDistance, p, out double d)),
                 minCellExponent
                 );
@@ -352,12 +354,13 @@ namespace Aardvark.Geometry.Points
             this PointSetNode node, Polygon3d polygon, double maxDistance, int minCellExponent = int.MinValue
             )
         {
+            var bounds = polygon.BoundingBox3d(maxDistance);
             var plane = polygon.GetPlane3d();
             var w2p = plane.GetWorldToPlane();
             var poly2d = new Polygon2d(polygon.GetPointArray().Map(p => w2p.TransformPos(p).XY));
             return QueryPoints(node,
-                n => !node.BoundingBox.Intersects(plane, maxDistance),
-                n => plane.Contains(maxDistance, node.BoundingBox),
+                n => !n.BoundingBox.Intersects(bounds),
+                n => false,
                 p => !polygon.Contains(plane, w2p, poly2d, maxDistance, p, out double d),
                 minCellExponent
                 );
@@ -378,12 +381,13 @@ namespace Aardvark.Geometry.Points
             this PointSetNode node, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
             )
         {
+            var bounds = polygons.Map(x => x.BoundingBox3d(maxDistance));
             var planes = polygons.Map(x => x.GetPlane3d());
             var w2p = planes.Map(x => x.GetWorldToPlane());
             var poly2d = polygons.Map((x, i) => new Polygon2d(x.GetPointArray().Map(p => w2p[i].TransformPos(p).XY)));
             return QueryPoints(node,
-                n => !planes.Any(plane => node.BoundingBox.Intersects(plane, maxDistance)),
-                n => !planes.Any(plane => !plane.Contains(maxDistance, node.BoundingBox)),
+                n => !bounds.Any(b => n.BoundingBox.Intersects(b)),
+                n => false,
                 p => !planes.Any((plane, i) => polygons[i].Contains(plane, w2p[i], poly2d[i], maxDistance, p, out double d)),
                 minCellExponent
                 );

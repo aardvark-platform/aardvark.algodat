@@ -13,6 +13,7 @@
 */
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -344,10 +345,20 @@ namespace Aardvark.Geometry.Tests
                 ;
             Assert.IsTrue(rs.Length == 64 - (32 + 32 - 16));
         }
-        
+
         #endregion
 
         #region Polygon3d
+
+        [Test]
+        public void Polygon3dBoundingBox()
+        {
+            var poly = new Polygon3d(V3d.OOO, V3d.IOO, V3d.IIO);
+            var bb = poly.BoundingBox3d(0.5);
+
+            Assert.IsTrue(bb.Min == new V3d(0.0, 0.0, -0.5));
+            Assert.IsTrue(bb.Max == new V3d(1.0, 1.0, 0.5));
+        }
 
         [Test]
         public void CanQueryPointsNearPolygon_1()
@@ -385,7 +396,8 @@ namespace Aardvark.Geometry.Tests
                 new V3d(.0, .0, .3), new V3d(.25, .0, .3), new V3d(.5, .5, .3), new V3d(.0, .5, .3)
                 );
 
-            var rs = CreateRegularPointsInUnitCube(4, 1)
+            var pc = CreateRegularPointsInUnitCube(4, 1);
+            var rs = pc
                 .QueryPointsNearPolygon(q, 0.2)
                 .SelectMany(x => x.Positions)
                 .ToArray()
@@ -406,6 +418,26 @@ namespace Aardvark.Geometry.Tests
                 .ToArray()
                 ;
             Assert.IsTrue(rs.Length == 2 * 3);
+        }
+
+        [Test]
+        public void CanQueryPointsNearPolygon_Performance()
+        {
+            var sw = new Stopwatch();
+            var pointset = CreateRandomPointsInUnitCube(1024 * 1024, 32);
+
+            var q = new Polygon3d(new V3d(0.4, 0.4, 0.5), new V3d(0.41, 0.4, 0.5), new V3d(0.41, 0.41, 0.5), new V3d(0.4, 0.41, 0.5));
+            var plane = new Plane3d(new V3d(0.4, 0.4, 0.5), new V3d(0.41, 0.4, 0.5), new V3d(0.41, 0.41, 0.5));
+
+            sw.Restart();
+            var ps0 = pointset.QueryPointsNearPolygon(q, 0.01).SelectMany(x => x.Positions).ToList();
+            var t0 = sw.Elapsed.TotalSeconds;
+
+            sw.Restart();
+            var ps1 = pointset.QueryPointsNearPlane(plane, 0.01).ToList();
+            var t1 = sw.Elapsed.TotalSeconds;
+
+            Assert.IsTrue(t0 * 10 < t1);
         }
 
         [Test]
