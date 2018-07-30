@@ -56,7 +56,7 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary>
-        /// Returns true if the plane with a supplied epsilon tolerance fully contains the box.
+        /// Returns true if the plane with a supplied epsilon tolerance intersects or fully contains the box.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IntersectsOrContains(
@@ -64,6 +64,23 @@ namespace Aardvark.Geometry.Points
         {
             var signs = box.GetIntersectionSignsWithPlane(plane, eps);
             return (signs != Signs.Negative && signs != Signs.Positive) || signs == Signs.Zero;
+        }
+
+        /// <summary>
+        /// Bounding box of polygon with additional epsilon tolerance with respect to polygon normal.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Box3d BoundingBox3d(
+            this Polygon3d self, double eps)
+        {
+            var bb = Box3d.Invalid;
+            var v = self.ComputeNormal() * eps;
+            foreach (var p in self.Points)
+            {
+                bb.ExtendBy(p + v);
+                bb.ExtendBy(p - v);
+            }
+            return bb;
         }
     }
 }
