@@ -23,188 +23,38 @@ namespace Aardvark.Data.Points
     /// </summary>
     public static class LineParsers
     {
-        /// <summary>
-        /// Buffer is expected to contain ASCII. Lines separated by '\n'.
-        /// Expected line format: [double X] [double Y] [double Z] [byte R] [byte G] [byte B] \n
-        /// </summary>
-        public static Chunk? XYZRGB(byte[] buffer, int count, double filterDist)
+        /// <summary></summary>
+        private unsafe class LineParserState
         {
-            var ps = new List<V3d>(); var cs = new List<C4b>();
-            var position = V3d.Zero; var color = C4b.Black;
+            public byte* p;
+            public byte* end;
 
-            var prev = V3d.PositiveInfinity;
-            var filterDistM = -filterDist;
-            var doFilterDist = filterDist > 0.0;
-            
-            unsafe
+            public bool IsInvalid = false;
+
+            public V3d Position = V3d.NaN;
+            public C4b Color = C4b.Black;
+            public V3f Normal = V3f.NaN;
+            public int Intensity = 0;
+
+            public void Reset()
             {
-                fixed (byte* begin = buffer)
-                {
-                    var p = begin;
-                    var end = p + count;
-                    while (p < end)
-                    {
-                        // parse single line
-                        if (!ParseV3d(ref p, end, ref position)) { SkipToNextLine(ref p, end); continue; }
-                        if (!ParseC4bFromByteRGB(ref p, end, ref color)) { SkipToNextLine(ref p, end); continue; }
-                        SkipToNextLine(ref p, end);
-
-                        // min dist filtering
-                        if (doFilterDist)
-                        {
-                            if (SkipBecauseOfMinDist(ref position, ref prev, filterDist)) continue;
-                            prev = position;
-                        }
-
-                        // add point to chunk
-                        ps.Add(position); cs.Add(color);
-                    }
-                }
+                IsInvalid = false;
+                Position = V3d.NaN;
+                Color = C4b.Black;
+                Normal = V3f.NaN;
+                Intensity = 0;
             }
-
-            if (ps.Count == 0) return null;
-            return new Chunk(ps, cs, null, null);
         }
 
         /// <summary>
         /// Buffer is expected to contain ASCII. Lines separated by '\n'.
-        /// Expected line format: [double X] [double Y] [double Z] [byte R] [byte G] [byte B] [byte A] \n
-        /// </summary>
-        public static Chunk? XYZRGBA(byte[] buffer, int count, double filterDist)
-        {
-            var ps = new List<V3d>(); var cs = new List<C4b>();
-            var position = V3d.Zero; var color = C4b.Black;
-
-            var prev = V3d.PositiveInfinity;
-            var filterDistM = -filterDist;
-            var doFilterDist = filterDist > 0.0;
-
-            unsafe
-            {
-                fixed (byte* begin = buffer)
-                {
-                    var p = begin;
-                    var end = p + count;
-                    while (p < end)
-                    {
-                        // parse single line
-                        if (!ParseV3d(ref p, end, ref position)) { SkipToNextLine(ref p, end); continue; }
-                        if (!ParseC4bFromByteRGBA(ref p, end, ref color)) { SkipToNextLine(ref p, end); continue; }
-                        SkipToNextLine(ref p, end);
-
-                        // min dist filtering
-                        if (doFilterDist)
-                        {
-                            if (SkipBecauseOfMinDist(ref position, ref prev, filterDist)) continue;
-                            prev = position;
-                        }
-
-                        // add point to chunk
-                        ps.Add(position); cs.Add(color);
-                    }
-                }
-            }
-
-            if (ps.Count == 0) return null;
-            return new Chunk(ps, cs, null, null);
-        }
-
-        /// <summary>
-        /// Buffer is expected to contain ASCII. Lines separated by '\n'.
-        /// Expected line format: [double X] [double Y] [double Z] [float R] [float G] [float B] \n
-        /// </summary>
-        public static Chunk? XYZRGBf(byte[] buffer, int count, double filterDist)
-        {
-            var ps = new List<V3d>(); var cs = new List<C4b>();
-            var position = V3d.Zero; var color = C4b.Black;
-
-            var prev = V3d.PositiveInfinity;
-            var filterDistM = -filterDist;
-            var doFilterDist = filterDist > 0.0;
-
-            unsafe
-            {
-                fixed (byte* begin = buffer)
-                {
-                    var p = begin;
-                    var end = p + count;
-                    while (p < end)
-                    {
-                        // parse single line
-                        if (!ParseV3d(ref p, end, ref position)) { SkipToNextLine(ref p, end); continue; }
-                        if (!ParseC4bFromFloatRGB(ref p, end, ref color)) { SkipToNextLine(ref p, end); continue; }
-                        SkipToNextLine(ref p, end);
-
-                        // min dist filtering
-                        if (doFilterDist)
-                        {
-                            if (SkipBecauseOfMinDist(ref position, ref prev, filterDist)) continue;
-                            prev = position;
-                        }
-
-                        // add point to chunk
-                        ps.Add(position); cs.Add(color);
-                    }
-                }
-            }
-
-            if (ps.Count == 0) return null;
-            return new Chunk(ps, cs, null, null);
-        }
-
-        /// <summary>
-        /// Buffer is expected to contain ASCII. Lines separated by '\n'.
-        /// Expected line format: [double X] [double Y] [double Z] [float R] [float G] [float B] [float A] \n
-        /// </summary>
-        public static Chunk? XYZRGBAf(byte[] buffer, int count, double filterDist)
-        {
-            var ps = new List<V3d>(); var cs = new List<C4b>();
-            var position = V3d.Zero; var color = C4b.Black;
-
-            var prev = V3d.PositiveInfinity;
-            var filterDistM = -filterDist;
-            var doFilterDist = filterDist > 0.0;
-
-            unsafe
-            {
-                fixed (byte* begin = buffer)
-                {
-                    var p = begin;
-                    var end = p + count;
-                    while (p < end)
-                    {
-                        // parse single line
-                        if (!ParseV3d(ref p, end, ref position)) { SkipToNextLine(ref p, end); continue; }
-                        if (!ParseC4bFromFloatRGBA(ref p, end, ref color)) { SkipToNextLine(ref p, end); continue; }
-                        SkipToNextLine(ref p, end);
-
-                        // min dist filtering
-                        if (doFilterDist)
-                        {
-                            if (SkipBecauseOfMinDist(ref position, ref prev, filterDist)) continue;
-                            prev = position;
-                        }
-
-                        // add point to chunk
-                        ps.Add(position); cs.Add(color);
-                    }
-                }
-            }
-
-            if (ps.Count == 0) return null;
-            return new Chunk(ps, cs, null, null);
-        }
-
-
-
-        /// <summary>
-        /// Buffer is expected to contain ASCII. Lines separated by '\n'.
-        /// Expected line format: [double X] [double Y] [double Z] [int INTENSITY] [byte R] [byte G] [byte B] \n
+        /// Expected line format: [double X] [double Y] [double Z] [int I] [byte R] [byte G] [byte B] \n
         /// </summary>
         public static Chunk? XYZIRGB(byte[] buffer, int count, double filterDist)
         {
-            var ps = new List<V3d>(); var cs = new List<C4b>(); var js = new List<int>();
-            var position = V3d.Zero; var color = C4b.Black; var intensity = 0;
+            var ps = new List<V3d>();
+            var cs = new List<C4b>(); 
+            var js = new List<int>();
 
             var prev = V3d.PositiveInfinity;
             var filterDistM = -filterDist;
@@ -214,25 +64,31 @@ namespace Aardvark.Data.Points
             {
                 fixed (byte* begin = buffer)
                 {
-                    var p = begin;
-                    var end = p + count;
-                    while (p < end)
+                    var state = new LineParserState
+                    {
+                        p = begin,
+                        end = begin + count
+                    };
+                    while (state.p < state.end)
                     {
                         // parse single line
-                        if (!ParseV3d(ref p, end, ref position)) { SkipToNextLine(ref p, end); continue; }
-                        if (!ParseInt(ref p, end, ref intensity)) { SkipToNextLine(ref p, end); continue; }
-                        if (!ParseC4bFromByteRGB(ref p, end, ref color)) { SkipToNextLine(ref p, end); continue; }
-                        SkipToNextLine(ref p, end);
+                        state.Reset();
+                        if (!ParsePositionV3d(state, ref state.Position)) { SkipToNextLine(state); continue; }
+                        ParseInt(state, x => state.Intensity = x); if (state.IsInvalid) { SkipToNextLine(state); continue; }
+                        if (!ParseC4bFromByteRGB(state, ref state.Color)) { SkipToNextLine(state); continue; }
+                        SkipToNextLine(state);
 
                         // min dist filtering
                         if (doFilterDist)
                         {
-                            if (SkipBecauseOfMinDist(ref position, ref prev, filterDist)) continue;
-                            prev = position;
+                            if (SkipBecauseOfMinDist(ref state.Position, ref prev, filterDist)) continue;
+                            prev = state.Position;
                         }
 
                         // add point to chunk
-                        ps.Add(position); cs.Add(color); js.Add(intensity);
+                        ps.Add(state.Position);
+                        cs.Add(state.Color);
+                        js.Add(state.Intensity);
                     }
                 }
             }
@@ -240,322 +96,12 @@ namespace Aardvark.Data.Points
             if (ps.Count == 0) return null;
             return new Chunk(ps, cs, null, js);
         }
-
-        /// <summary>
-        /// Buffer is expected to contain ASCII. Lines separated by '\n'.
-        /// Expected line format: [double X] [double Y] [double Z] [int INTENSITY] [byte R] [byte G] [byte B] [byte A] \n
-        /// </summary>
-        public static Chunk? XYZIRGBA(byte[] buffer, int count, double filterDist)
-        {
-            var ps = new List<V3d>(); var cs = new List<C4b>(); var js = new List<int>();
-            var position = V3d.Zero; var color = C4b.Black; var intensity = 0;
-
-            var prev = V3d.PositiveInfinity;
-            var filterDistM = -filterDist;
-            var doFilterDist = filterDist > 0.0;
-
-            unsafe
-            {
-                fixed (byte* begin = buffer)
-                {
-                    var p = begin;
-                    var end = p + count;
-                    while (p < end)
-                    {
-                        // parse single line
-                        if (!ParseV3d(ref p, end, ref position)) { SkipToNextLine(ref p, end); continue; }
-                        if (!ParseInt(ref p, end, ref intensity)) { SkipToNextLine(ref p, end); continue; }
-                        if (!ParseC4bFromByteRGBA(ref p, end, ref color)) { SkipToNextLine(ref p, end); continue; }
-                        SkipToNextLine(ref p, end);
-
-                        // min dist filtering
-                        if (doFilterDist)
-                        {
-                            if (SkipBecauseOfMinDist(ref position, ref prev, filterDist)) continue;
-                            prev = position;
-                        }
-
-                        // add point to chunk
-                        ps.Add(position); cs.Add(color); js.Add(intensity);
-                    }
-                }
-            }
-
-            if (ps.Count == 0) return null;
-            return new Chunk(ps, cs, null, js);
-        }
-
-        /// <summary>
-        /// Buffer is expected to contain ASCII. Lines separated by '\n'.
-        /// Expected line format: [double X] [double Y] [double Z] [int INTENSITY] [float R] [float G] [float B] \n
-        /// </summary>
-        public static Chunk? XYZIRGBf(byte[] buffer, int count, double filterDist)
-        {
-            var ps = new List<V3d>(); var cs = new List<C4b>(); var js = new List<int>();
-            var position = V3d.Zero; var color = C4b.Black; var intensity = 0;
-
-            var prev = V3d.PositiveInfinity;
-            var filterDistM = -filterDist;
-            var doFilterDist = filterDist > 0.0;
-
-            unsafe
-            {
-                fixed (byte* begin = buffer)
-                {
-                    var p = begin;
-                    var end = p + count;
-                    while (p < end)
-                    {
-                        // parse single line
-                        if (!ParseV3d(ref p, end, ref position)) { SkipToNextLine(ref p, end); continue; }
-                        if (!ParseInt(ref p, end, ref intensity)) { SkipToNextLine(ref p, end); continue; }
-                        if (!ParseC4bFromFloatRGB(ref p, end, ref color)) { SkipToNextLine(ref p, end); continue; }
-                        SkipToNextLine(ref p, end);
-
-                        // min dist filtering
-                        if (doFilterDist)
-                        {
-                            if (SkipBecauseOfMinDist(ref position, ref prev, filterDist)) continue;
-                            prev = position;
-                        }
-
-                        // add point to chunk
-                        ps.Add(position); cs.Add(color); js.Add(intensity);
-                    }
-                }
-            }
-
-            if (ps.Count == 0) return null;
-            return new Chunk(ps, cs, null, js);
-        }
-
-        /// <summary>
-        /// Buffer is expected to contain ASCII. Lines separated by '\n'.
-        /// Expected line format: [double X] [double Y] [double Z] [int INTENSITY] [float R] [float G] [float B] [float A] \n
-        /// </summary>
-        public static Chunk? XYZIRGBAf(byte[] buffer, int count, double filterDist)
-        {
-            var ps = new List<V3d>(); var cs = new List<C4b>(); var js = new List<int>();
-            var position = V3d.Zero; var color = C4b.Black; var intensity = 0;
-
-            var prev = V3d.PositiveInfinity;
-            var filterDistM = -filterDist;
-            var doFilterDist = filterDist > 0.0;
-
-            unsafe
-            {
-                fixed (byte* begin = buffer)
-                {
-                    var p = begin;
-                    var end = p + count;
-                    while (p < end)
-                    {
-                        // parse single line
-                        if (!ParseV3d(ref p, end, ref position)) { SkipToNextLine(ref p, end); continue; }
-                        if (!ParseInt(ref p, end, ref intensity)) { SkipToNextLine(ref p, end); continue; }
-                        if (!ParseC4bFromFloatRGBA(ref p, end, ref color)) { SkipToNextLine(ref p, end); continue; }
-                        SkipToNextLine(ref p, end);
-
-                        // min dist filtering
-                        if (doFilterDist)
-                        {
-                            if (SkipBecauseOfMinDist(ref position, ref prev, filterDist)) continue;
-                            prev = position;
-                        }
-
-                        // add point to chunk
-                        ps.Add(position); cs.Add(color); js.Add(intensity);
-                    }
-                }
-            }
-
-            if (ps.Count == 0) return null;
-            return new Chunk(ps, cs, null, js);
-        }
-
-
-
-        /// <summary>
-        /// Buffer is expected to contain ASCII. Lines separated by '\n'.
-        /// Expected line format: [double X] [double Y] [double Z] [byte R] [byte G] [byte B] [int INTENSITY] \n
-        /// </summary>
-        public static Chunk? XYZRGBI(byte[] buffer, int count, double filterDist)
-        {
-            var ps = new List<V3d>(); var cs = new List<C4b>(); var js = new List<int>();
-            var position = V3d.Zero; var color = C4b.Black; var intensity = 0;
-
-            var prev = V3d.PositiveInfinity;
-            var filterDistM = -filterDist;
-            var doFilterDist = filterDist > 0.0;
-
-            unsafe
-            {
-                fixed (byte* begin = buffer)
-                {
-                    var p = begin;
-                    var end = p + count;
-                    while (p < end)
-                    {
-                        // parse single line
-                        if (!ParseV3d(ref p, end, ref position)) { SkipToNextLine(ref p, end); continue; }
-                        if (!ParseC4bFromByteRGB(ref p, end, ref color)) { SkipToNextLine(ref p, end); continue; }
-                        if (!ParseInt(ref p, end, ref intensity)) { SkipToNextLine(ref p, end); continue; }
-                        SkipToNextLine(ref p, end);
-
-                        // min dist filtering
-                        if (doFilterDist)
-                        {
-                            if (SkipBecauseOfMinDist(ref position, ref prev, filterDist)) continue;
-                            prev = position;
-                        }
-
-                        // add point to chunk
-                        ps.Add(position); cs.Add(color); js.Add(intensity);
-                    }
-                }
-            }
-
-            if (ps.Count == 0) return null;
-            return new Chunk(ps, cs, null, js);
-        }
-
-        /// <summary>
-        /// Buffer is expected to contain ASCII. Lines separated by '\n'.
-        /// Expected line format: [double X] [double Y] [double Z] [byte R] [byte G] [byte B] [byte A] [int INTENSITY] \n
-        /// </summary>
-        public static Chunk? XYZRGBAI(byte[] buffer, int count, double filterDist)
-        {
-            var ps = new List<V3d>(); var cs = new List<C4b>(); var js = new List<int>();
-            var position = V3d.Zero; var color = C4b.Black; var intensity = 0;
-
-            var prev = V3d.PositiveInfinity;
-            var filterDistM = -filterDist;
-            var doFilterDist = filterDist > 0.0;
-
-            unsafe
-            {
-                fixed (byte* begin = buffer)
-                {
-                    var p = begin;
-                    var end = p + count;
-                    while (p < end)
-                    {
-                        // parse single line
-                        if (!ParseV3d(ref p, end, ref position)) { SkipToNextLine(ref p, end); continue; }
-                        if (!ParseC4bFromByteRGBA(ref p, end, ref color)) { SkipToNextLine(ref p, end); continue; }
-                        if (!ParseInt(ref p, end, ref intensity)) { SkipToNextLine(ref p, end); continue; }
-                        SkipToNextLine(ref p, end);
-
-                        // min dist filtering
-                        if (doFilterDist)
-                        {
-                            if (SkipBecauseOfMinDist(ref position, ref prev, filterDist)) continue;
-                            prev = position;
-                        }
-
-                        // add point to chunk
-                        ps.Add(position); cs.Add(color); js.Add(intensity);
-                    }
-                }
-            }
-
-            if (ps.Count == 0) return null;
-            return new Chunk(ps, cs, null, js);
-        }
-
-        /// <summary>
-        /// Buffer is expected to contain ASCII. Lines separated by '\n'.
-        /// Expected line format: [double X] [double Y] [double Z] [float R] [float G] [float B] [int INTENSITY] \n
-        /// </summary>
-        public static Chunk? XYZRGBfI(byte[] buffer, int count, double filterDist)
-        {
-            var ps = new List<V3d>(); var cs = new List<C4b>(); var js = new List<int>();
-            var position = V3d.Zero; var color = C4b.Black; var intensity = 0;
-
-            var prev = V3d.PositiveInfinity;
-            var filterDistM = -filterDist;
-            var doFilterDist = filterDist > 0.0;
-
-            unsafe
-            {
-                fixed (byte* begin = buffer)
-                {
-                    var p = begin;
-                    var end = p + count;
-                    while (p < end)
-                    {
-                        // parse single line
-                        if (!ParseV3d(ref p, end, ref position)) { SkipToNextLine(ref p, end); continue; }
-                        if (!ParseC4bFromFloatRGB(ref p, end, ref color)) { SkipToNextLine(ref p, end); continue; }
-                        if (!ParseInt(ref p, end, ref intensity)) { SkipToNextLine(ref p, end); continue; }
-                        SkipToNextLine(ref p, end);
-
-                        // min dist filtering
-                        if (doFilterDist)
-                        {
-                            if (SkipBecauseOfMinDist(ref position, ref prev, filterDist)) continue;
-                            prev = position;
-                        }
-
-                        // add point to chunk
-                        ps.Add(position); cs.Add(color); js.Add(intensity);
-                    }
-                }
-            }
-
-            if (ps.Count == 0) return null;
-            return new Chunk(ps, cs, null, js);
-        }
-
-        /// <summary>
-        /// Buffer is expected to contain ASCII. Lines separated by '\n'.
-        /// Expected line format: [double X] [double Y] [double Z] [float R] [float G] [float B] [float A] [int INTENSITY] \n
-        /// </summary>
-        public static Chunk? XYZRGBAfI(byte[] buffer, int count, double filterDist)
-        {
-            var ps = new List<V3d>(); var cs = new List<C4b>(); var js = new List<int>();
-            var position = V3d.Zero; var color = C4b.Black; var intensity = 0;
-
-            var prev = V3d.PositiveInfinity;
-            var filterDistM = -filterDist;
-            var doFilterDist = filterDist > 0.0;
-
-            unsafe
-            {
-                fixed (byte* begin = buffer)
-                {
-                    var p = begin;
-                    var end = p + count;
-                    while (p < end)
-                    {
-                        // parse single line
-                        if (!ParseV3d(ref p, end, ref position)) { SkipToNextLine(ref p, end); continue; }
-                        if (!ParseC4bFromFloatRGBA(ref p, end, ref color)) { SkipToNextLine(ref p, end); continue; }
-                        if (!ParseInt(ref p, end, ref intensity)) { SkipToNextLine(ref p, end); continue; }
-                        SkipToNextLine(ref p, end);
-
-                        // min dist filtering
-                        if (doFilterDist)
-                        {
-                            if (SkipBecauseOfMinDist(ref position, ref prev, filterDist)) continue;
-                            prev = position;
-                        }
-
-                        // add point to chunk
-                        ps.Add(position); cs.Add(color); js.Add(intensity);
-                    }
-                }
-            }
-
-            if (ps.Count == 0) return null;
-            return new Chunk(ps, cs, null, js);
-        }
-
-
+        
         #region Private
 
+        /// <summary></summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool SkipBecauseOfMinDist(ref V3d position, ref V3d prev, double filterDist)
+        public static bool SkipBecauseOfMinDist(ref V3d position, ref V3d prev, double filterDist)
         {
             var
             d = position.X - prev.X; if (d < 0) d = -d; if (d < filterDist) return true;
@@ -564,30 +110,32 @@ namespace Aardvark.Data.Points
             return false;
         }
 
+        /// <summary></summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe bool SkipToNextLine(ref byte* p, byte* end)
+        private static unsafe bool SkipToNextLine(LineParserState state)
         {
-            while (p < end && *p != '\n') p++;
-            p++;
-            return p < end;
+            while (state.p < state.end && *state.p != '\n') state.p++;
+            state.p++;
+            return state.p < state.end;
         }
-        
+
+        /// <summary></summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe bool ParseFloat64(ref byte* p, byte* end, ref double result)
+        private static unsafe void ParseFloat64(LineParserState state, Action<double> setResult)
         {
-            if (p >= end) return false;
+            if (state.p >= state.end) { state.IsInvalid = true; return; }
 
-            while (*p == ' ' || p >= end) p++;
-            if (p >= end) return false;
+            while (*state.p == ' ' || state.p >= state.end) state.p++;
+            if (state.p >= state.end) { state.IsInvalid = true; return; }
 
-            var minus = *p == ((byte)'-');
-            if (minus) p++;
+            var minus = *state.p == ((byte)'-');
+            if (minus) state.p++;
 
             var x = 0.0;
             var parse = true;
-            while (parse && p < end)
+            while (parse && state.p < state.end)
             {
-                switch ((char)*p)
+                switch ((char)*state.p)
                 {
                     case '0': x = x * 10.0; break;
                     case '1': x = x * 10.0 + 1.0; break;
@@ -600,18 +148,18 @@ namespace Aardvark.Data.Points
                     case '8': x = x * 10.0 + 8.0; break;
                     case '9': x = x * 10.0 + 9.0; break;
                     case '.': parse = false; break;
-                    case ' ': result = minus ? -x : x; return true;
-                    default: return false;
+                    case ' ': setResult(minus ? -x : x); return;
+                    default: { state.IsInvalid = true; return; }
                 }
-                p++;
+                state.p++;
             }
-            if (p >= end) { result = minus ? -x : x; return true; }
+            if (state.p >= state.end) { setResult(minus ? -x : x); return; }
 
             var y = 0.0;
             var r = 0.1;
-            while (p < end)
+            while (state.p < state.end)
             {
-                switch ((char)*p)
+                switch ((char)*state.p)
                 {
                     case '0': break;
                     case '1': y = y + r; break;
@@ -623,32 +171,32 @@ namespace Aardvark.Data.Points
                     case '7': y = y + r * 7; break;
                     case '8': y = y + r * 8; break;
                     case '9': y = y + r * 9; break;
-                    case ' ': result = minus ? -x - y : x + y; return true;
-                    default: return false;
+                    case ' ': setResult(minus ? -x - y : x + y); return;
+                    default: { state.IsInvalid = true; return; };
                 }
                 r *= 0.1;
-                p++;
+                state.p++;
             }
-            result = minus ? -x - y : x + y;
-            return false;
+            setResult(minus ? -x - y : x + y);
         }
-        
+
+        /// <summary></summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe bool ParseFloat32(ref byte* p, byte* end, ref float result)
+        private static unsafe void ParseFloat32(LineParserState state, Action<float> setResult)
         {
-            if (p >= end) return false;
+            if (state.p >= state.end) { state.IsInvalid = true; return; }
 
-            while (*p == ' ' || p >= end) p++;
-            if (p >= end) return false;
+            while (*state.p == ' ' || state.p >= state.end) state.p++;
+            if (state.p >= state.end) { state.IsInvalid = true; return; }
 
-            var minus = *p == ((byte)'-');
-            if (minus) p++;
+            var minus = *state.p == ((byte)'-');
+            if (minus) state.p++;
 
             var x = 0.0f;
             var parse = true;
-            while (parse && p < end)
+            while (parse && state.p < state.end)
             {
-                switch ((char)*p)
+                switch ((char)*state.p)
                 {
                     case '0': x = x * 10.0f; break;
                     case '1': x = x * 10.0f + 1.0f; break;
@@ -661,18 +209,18 @@ namespace Aardvark.Data.Points
                     case '8': x = x * 10.0f + 8.0f; break;
                     case '9': x = x * 10.0f + 9.0f; break;
                     case '.': parse = false; break;
-                    case ' ': result = minus ? -x : x; return true;
-                    default: return false;
+                    case ' ': setResult(minus ? -x : x); return;
+                    default: { state.IsInvalid = true; return; }
                 }
-                p++;
+                state.p++;
             }
-            if (p >= end) { result = minus ? -x : x; return true; }
+            if (state.p >= state.end) { setResult(minus ? -x : x); return; }
 
             var y = 0.0f;
             var r = 0.1f;
-            while (p < end)
+            while (state.p < state.end)
             {
-                switch ((char)*p)
+                switch ((char)*state.p)
                 {
                     case '0': break;
                     case '1': y = y + r; break;
@@ -684,30 +232,31 @@ namespace Aardvark.Data.Points
                     case '7': y = y + r * 7; break;
                     case '8': y = y + r * 8; break;
                     case '9': y = y + r * 9; break;
-                    case ' ': result = minus ? -x - y : x + y; return true;
-                    default: return false;
+                    case ' ': setResult(minus ? -x - y : x + y); return;
+                    default: { state.IsInvalid = true; return; }
                 }
                 r *= 0.1f;
-                p++;
+                state.p++;
             }
-            result = minus ? -x - y : x + y; return true;
+            setResult(minus ? -x - y : x + y);
         }
-        
+
+        /// <summary></summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe bool ParseInt(ref byte* p, byte* end, ref int result)
+        private static unsafe void ParseInt(LineParserState state, Action<int> setResult)
         {
-            if (p >= end) return false;
+            if (state.p >= state.end) { state.IsInvalid = true; return; }
 
-            while (*p == ' ' || p >= end) p++;
-            if (p >= end) return false;
+            while (*state.p == ' ' || state.p >= state.end) state.p++;
+            if (state.p >= state.end) { state.IsInvalid = true; return; }
 
-            var minus = *p == ((byte)'-');
-            if (minus) p++;
+            var minus = *state.p == ((byte)'-');
+            if (minus) state.p++;
 
             var x = 0;
-            while (p < end)
+            while (state.p < state.end)
             {
-                switch ((char)*p)
+                switch ((char)*state.p)
                 {
                     case '0': x = x * 10; break;
                     case '1': x = x * 10 + 1; break;
@@ -721,120 +270,94 @@ namespace Aardvark.Data.Points
                     case '9': x = x * 10 + 9; break;
                     case '\r':
                     case '\n':
-                    case ' ': result = minus ? -x : x; return true;
-                    default: return false;
+                    case ' ': setResult(minus ? -x : x); return;
+                    default: { state.IsInvalid = true; return; }
                 }
-                p++;
+                state.p++;
             }
-            result = minus ? -x : x;
-            return true;
+            setResult(minus ? -x : x);
         }
-        
-        
+
+
+
+        /// <summary></summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe bool ParseV3d(ref byte* p, byte* end, ref V3d result)
+        private static unsafe bool ParsePositionV3d(LineParserState state, ref V3d result)
         {
-            if (!ParseFloat64(ref p, end, ref result.X)) return false;
-            if (!ParseFloat64(ref p, end, ref result.Y)) return false;
-            if (!ParseFloat64(ref p, end, ref result.Z)) return false;
+            ParseFloat64(state, x => state.Position.X = x); if (state.IsInvalid) return false;
+            ParseFloat64(state, x => state.Position.Y = x); if (state.IsInvalid) return false;
+            ParseFloat64(state, x => state.Position.Z = x); if (state.IsInvalid) return false;
             return true;
         }
 
+        /// <summary></summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe bool ParseV3f(ref byte* p, byte* end, ref V3f result)
+        private static unsafe bool ParseNormalV3f(LineParserState state, ref V3f result)
         {
-            if (!ParseFloat32(ref p, end, ref result.X)) return false;
-            if (!ParseFloat32(ref p, end, ref result.Y)) return false;
-            if (!ParseFloat32(ref p, end, ref result.Z)) return false;
+            ParseFloat32(state, x => state.Normal.X = x); if (state.IsInvalid) return false;
+            ParseFloat32(state, x => state.Normal.Y = x); if (state.IsInvalid) return false;
+            ParseFloat32(state, x => state.Normal.Z = x); if (state.IsInvalid) return false;
             return true;
         }
-        
+
+        /// <summary></summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe bool ParseC4bFromByteRGB(ref byte* p, byte* end, ref C4b result)
+        private static unsafe bool ParseC4bFromByteRGB(LineParserState state, ref C4b result)
         {
             var r = 0; var g = 0; var b = 0;
-            if (ParseInt(ref p, end, ref r))
-            {
-                if (ParseInt(ref p, end, ref g))
-                {
-                    if (ParseInt(ref p, end, ref b))
-                    {
-                        result.R = (byte)r;
-                        result.G = (byte)g;
-                        result.B = (byte)b;
-                        return true;
-                    }
-                }
-            }
-            return false;
+            ParseInt(state, x => r = x); if (state.IsInvalid) return false;
+            ParseInt(state, x => g = x); if (state.IsInvalid) return false;
+            ParseInt(state, x => b = x); if (state.IsInvalid) return false;
+            result.R = (byte)r;
+            result.G = (byte)g;
+            result.B = (byte)b;
+            return true;
         }
 
+        /// <summary></summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe bool ParseC4bFromByteRGBA(ref byte* p, byte* end, ref C4b result)
+        private static unsafe bool ParseC4bFromByteRGBA(LineParserState state, ref C4b result)
         {
             var r = 0; var g = 0; var b = 0; var a = 0;
-            if (ParseInt(ref p, end, ref r))
-            {
-                if (ParseInt(ref p, end, ref g))
-                {
-                    if (ParseInt(ref p, end, ref b))
-                    {
-                        if (ParseInt(ref p, end, ref a))
-                        {
-                            result.R = (byte)r;
-                            result.G = (byte)g;
-                            result.B = (byte)b;
-                            result.A = (byte)a;
-                            return true;
-                        }
-                    }
-                }
-            }
-            return false;
+            ParseInt(state, x => r = x); if (state.IsInvalid) return false;
+            ParseInt(state, x => g = x); if (state.IsInvalid) return false;
+            ParseInt(state, x => b = x); if (state.IsInvalid) return false;
+            ParseInt(state, x => a = x); if (state.IsInvalid) return false;
+            result.R = (byte)r;
+            result.G = (byte)g;
+            result.B = (byte)b;
+            result.A = (byte)a;
+            return true;
         }
 
+        /// <summary></summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe bool ParseC4bFromFloatRGB(ref byte* p, byte* end, ref C4b result)
+        private static unsafe bool ParseC4bFromFloatRGB(LineParserState state, ref C4b result)
         {
-            var r = 0.0f; var g = 0.0f; var b = 0.0f;
-            if (ParseFloat32(ref p, end, ref r))
-            {
-                if (ParseFloat32(ref p, end, ref g))
-                {
-                    if (ParseFloat32(ref p, end, ref b))
-                    {
-                        result.R = (byte)(255 * r);
-                        result.G = (byte)(255 * g);
-                        result.B = (byte)(255 * b);
-                        return true;
-                    }
-                }
-            }
-            return false;
+            var r = 0; var g = 0; var b = 0;
+            ParseInt(state, x => r = x); if (state.IsInvalid) return false;
+            ParseInt(state, x => g = x); if (state.IsInvalid) return false;
+            ParseInt(state, x => b = x); if (state.IsInvalid) return false;
+            result.R = (byte)(255 * r);
+            result.G = (byte)(255 * g);
+            result.B = (byte)(255 * b);
+            return true;
         }
 
+        /// <summary></summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe bool ParseC4bFromFloatRGBA(ref byte* p, byte* end, ref C4b result)
+        private static unsafe bool ParseC4bFromFloatRGBA(LineParserState state, ref C4b result)
         {
-            var r = 0.0f; var g = 0.0f; var b = 0.0f; var a = 0.0f;
-            if (ParseFloat32(ref p, end, ref r))
-            {
-                if (ParseFloat32(ref p, end, ref g))
-                {
-                    if (ParseFloat32(ref p, end, ref b))
-                    {
-                        if (ParseFloat32(ref p, end, ref b))
-                        {
-                            result.R = (byte)(255 * r);
-                            result.G = (byte)(255 * g);
-                            result.B = (byte)(255 * b);
-                            result.A = (byte)(255 * a);
-                            return true;
-                        }
-                    }
-                }
-            }
-            return false;
+            var r = 0; var g = 0; var b = 0; var a = 0;
+            ParseInt(state, x => r = x); if (state.IsInvalid) return false;
+            ParseInt(state, x => g = x); if (state.IsInvalid) return false;
+            ParseInt(state, x => b = x); if (state.IsInvalid) return false;
+            ParseInt(state, x => a = x); if (state.IsInvalid) return false;
+            result.R = (byte)(255 * r);
+            result.G = (byte)(255 * g);
+            result.B = (byte)(255 * b);
+            result.A = (byte)(255 * a);
+            return true;
         }
 
         #endregion

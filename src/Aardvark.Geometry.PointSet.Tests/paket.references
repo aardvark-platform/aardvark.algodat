@@ -1,6 +1,9 @@
 Aardvark.Base
 Aardvark.Base.IO
+Microsoft.CodeAnalysis
+Microsoft.CodeAnalysis.CSharp
 Newtonsoft.Json
+NETStandard.Library
 NUnit
 NUnit3TestAdapter
 Uncodium.SimpleStore

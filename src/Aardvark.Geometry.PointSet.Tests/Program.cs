@@ -121,7 +121,8 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
-            TestImportPts();
+            CustomAscii.Foo();
+            //TestImportPts();
         }
     }
 }
