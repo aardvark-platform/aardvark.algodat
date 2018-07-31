@@ -116,6 +116,28 @@ namespace Aardvark.Data.Points.Import
             Intensity,
         }
 
+
+        internal static bool HasColorTokens(this Token[] layout)
+            => layout.Contains(Token.ColorR) ||
+               layout.Contains(Token.ColorRf) ||
+               layout.Contains(Token.ColorG) ||
+               layout.Contains(Token.ColorGf) ||
+               layout.Contains(Token.ColorB) ||
+               layout.Contains(Token.ColorBf) ||
+               layout.Contains(Token.ColorA) ||
+               layout.Contains(Token.ColorAf)
+               ;
+
+        internal static bool HasNormalTokens(this Token[] layout)
+            => layout.Contains(Token.NormalX) ||
+               layout.Contains(Token.NormalY) ||
+               layout.Contains(Token.NormalZ)
+               ;
+
+        internal static bool HasIntensityTokens(this Token[] layout)
+            => layout.Contains(Token.Intensity)
+               ;
+
         /// <summary>
         /// </summary>
         public static PointCloudFileFormat CreateFormat(string description, Token[] lineDefinition)
@@ -160,129 +182,5 @@ namespace Aardvark.Data.Points.Import
             var format = CreateFormat("Custom ASCII", lineDefinition);
             return new PointFileInfo(filename, format, filesize, pointCount, pointBounds);
         }
-
-
-
-
-        /// <summary>
-        /// https://msdn.microsoft.com/en-us/magazine/mt808499.aspx
-        /// </summary>
-        public static void Foo()
-        {
-            const string src =
-                @"
-                using Aardvark.Base;
-                using Aardvark.Data.Points;
-                using System;
-                using System.Collections.Generic;
-                using System.Runtime.CompilerServices;
-                using static Aardvark.Data.Points.LineParsers;
-
-                namespace Aardvark.Data.Points.Import
-                {
-                    public static class CustomAsciiParser
-                    {
-                        public static void Test()
-                        {
-                            Console.WriteLine(""Hello World!"");
-                        }
-
-                        public static Chunk Foo(byte[] buffer, int count, double filterDist)
-                        {
-                            var ps = new List<V3d>();
-                            var position = V3d.Zero;
-                            
-                            var cs = new List<C4b>();
-                            var color = C4b.Black;
-                            
-                            var prev = V3d.PositiveInfinity;
-                            var filterDistM = -filterDist;
-                            var doFilterDist = filterDist > 0.0;
-                            
-                            unsafe
-                            {
-                                fixed (byte* begin = buffer)
-                                {
-                                    var p = begin;
-                                    var end = p + count;
-                                    while (p < end)
-                                    {
-                                        // parse single line
-                                        if (!ParseV3d(ref p, end, ref position)) { SkipToNextLine(ref p, end); continue; }
-                                        if (!ParseC4bFromByteRGB(ref p, end, ref color)) { SkipToNextLine(ref p, end); continue; }
-                                        SkipToNextLine(ref p, end);
-                            
-                                        // min dist filtering
-                                        if (doFilterDist)
-                                        {
-                                            if (SkipBecauseOfMinDist(ref position, ref prev, filterDist)) continue;
-                                            prev = position;
-                                        }
-                            
-                                        // add point to chunk
-                                        ps.Add(position); cs.Add(color);
-                                    }
-                                }
-                            }
-                            
-                            if (ps.Count == 0) return Chunk.Empty;
-                            return new Chunk(ps, cs, null, null);
-                        }
-                    }
-                }
-                ";
-
-            //var node = CSharpSyntaxTree.ParseText(src).GetRoot();
-            //Console.WriteLine(node);
-
-            var tree = SyntaxFactory.ParseSyntaxTree(src);
-            var fileName = "CustomAsciiParser.dll";
-
-            var refs = new[]
-            {
-                typeof(object),
-                typeof(V3d),
-                typeof(Chunk),
-                typeof(LineParsers)
-            }
-            .Map(t => MetadataReference.CreateFromFile(t.GetTypeInfo().Assembly.Location))
-            ;
-            var compilation = CSharpCompilation
-                .Create(fileName)
-                .WithOptions(new CSharpCompilationOptions(
-                    OutputKind.DynamicallyLinkedLibrary,
-                    optimizationLevel: OptimizationLevel.Release,
-                    allowUnsafe: true
-                    ))
-                .AddReferences(refs)
-                .AddSyntaxTrees(tree)
-                ;
-            //var path = Path.Combine(Directory.GetCurrentDirectory(), fileName);
-
-            using (var ms = new MemoryStream())
-            {
-                var compilationResult = compilation.Emit(ms);
-
-                if (compilationResult.Success)
-                {
-                    //var asm = System.Runtime.Loader.AssemblyLoadContext.Default.LoadFromStream(ms);
-                    var asm = Assembly.Load(ms.ToArray());
-                    var result = asm
-                        .GetType("Aardvark.Data.Points.Import.CustomAsciiParser")
-                        .GetMethod("Test")
-                        .Invoke(null, new object[] { })
-                        ;
-                }
-                else
-                {
-                    foreach (var codeIssue in compilationResult.Diagnostics)
-                    {
-                        var issue = $"ID: {codeIssue.Id}, Message: {codeIssue.GetMessage()}, Location: { codeIssue.Location.GetLineSpan()}, Severity: { codeIssue.Severity}";
-                        Console.WriteLine(issue);
-                    }
-                }
-            }
-        }
-
     }
 }

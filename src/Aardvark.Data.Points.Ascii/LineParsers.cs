@@ -12,7 +12,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
-using Aardvark.Data.Points.Import;
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
@@ -69,17 +68,23 @@ namespace Aardvark.Data.Points
         /// <summary>
         /// Buffer is expected to contain ASCII. Lines separated by '\n'.
         /// </summary>
-        public static Chunk? Custom(byte[] buffer, int count, double filterDist, Token[] tokens)
+        public static Chunk? Custom(byte[] buffer, int count, double filterDist, Token[] layout)
         {
+            
+            var hasColor = layout.HasColorTokens();
+            var hasNormal = layout.HasNormalTokens();
+            var hasIntensity = layout.HasIntensityTokens();
+
             var ps = new List<V3d>();
-            var cs = new List<C4b>();
-            var js = new List<int>();
+            var cs = hasColor ? new List<C4b>() : null;
+            var ns = hasNormal ? new List<V3f>() : null;
+            var js = hasIntensity ? new List<int>() : null;
 
             var prev = V3d.PositiveInfinity;
             var filterDistM = -filterDist;
             var doFilterDist = filterDist > 0.0;
 
-            var tokenParsers = tokens.Map(x => s_parsers[x]);
+            var tokenParsers = layout.Map(x => s_parsers[x]);
 
             unsafe
             {
@@ -113,14 +118,15 @@ namespace Aardvark.Data.Points
 
                         // add point to chunk
                         ps.Add(state.Position);
-                        cs.Add(state.Color);
-                        js.Add(state.Intensity);
+                        if (hasColor) cs.Add(state.Color);
+                        if (hasNormal) ns.Add(state.Normal);
+                        if (hasIntensity) js.Add(state.Intensity);
                     }
                 }
             }
 
             if (ps.Count == 0) return null;
-            return new Chunk(ps, cs, null, js);
+            return new Chunk(ps, cs, ns, js);
         }
 
         /// <summary>
@@ -354,83 +360,7 @@ namespace Aardvark.Data.Points
             }
             if (x < 256) setResult((byte)x); else state.IsInvalid = true;
         }
-
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe bool ParsePositionV3d(LineParserState state, ref V3d result)
-        {
-            ParseFloat64(state, x => state.Position.X = x); if (state.IsInvalid) return false;
-            ParseFloat64(state, x => state.Position.Y = x); if (state.IsInvalid) return false;
-            ParseFloat64(state, x => state.Position.Z = x); if (state.IsInvalid) return false;
-            return true;
-        }
         
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe bool ParseNormalV3f(LineParserState state, ref V3f result)
-        {
-            ParseFloat32(state, x => state.Normal.X = x); if (state.IsInvalid) return false;
-            ParseFloat32(state, x => state.Normal.Y = x); if (state.IsInvalid) return false;
-            ParseFloat32(state, x => state.Normal.Z = x); if (state.IsInvalid) return false;
-            return true;
-        }
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe bool ParseC4bFromByteRGB(LineParserState state, ref C4b result)
-        {
-            var r = 0; var g = 0; var b = 0;
-            ParseInt(state, x => r = x); if (state.IsInvalid) return false;
-            ParseInt(state, x => g = x); if (state.IsInvalid) return false;
-            ParseInt(state, x => b = x); if (state.IsInvalid) return false;
-            result.R = (byte)r;
-            result.G = (byte)g;
-            result.B = (byte)b;
-            return true;
-        }
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe bool ParseC4bFromByteRGBA(LineParserState state, ref C4b result)
-        {
-            var r = 0; var g = 0; var b = 0; var a = 0;
-            ParseInt(state, x => r = x); if (state.IsInvalid) return false;
-            ParseInt(state, x => g = x); if (state.IsInvalid) return false;
-            ParseInt(state, x => b = x); if (state.IsInvalid) return false;
-            ParseInt(state, x => a = x); if (state.IsInvalid) return false;
-            result.R = (byte)r;
-            result.G = (byte)g;
-            result.B = (byte)b;
-            result.A = (byte)a;
-            return true;
-        }
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe bool ParseC4bFromFloatRGB(LineParserState state, ref C4b result)
-        {
-            var r = 0; var g = 0; var b = 0;
-            ParseInt(state, x => r = x); if (state.IsInvalid) return false;
-            ParseInt(state, x => g = x); if (state.IsInvalid) return false;
-            ParseInt(state, x => b = x); if (state.IsInvalid) return false;
-            result.R = (byte)(255 * r);
-            result.G = (byte)(255 * g);
-            result.B = (byte)(255 * b);
-            return true;
-        }
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe bool ParseC4bFromFloatRGBA(LineParserState state, ref C4b result)
-        {
-            var r = 0; var g = 0; var b = 0; var a = 0;
-            ParseInt(state, x => r = x); if (state.IsInvalid) return false;
-            ParseInt(state, x => g = x); if (state.IsInvalid) return false;
-            ParseInt(state, x => b = x); if (state.IsInvalid) return false;
-            ParseInt(state, x => a = x); if (state.IsInvalid) return false;
-            result.R = (byte)(255 * r);
-            result.G = (byte)(255 * g);
-            result.B = (byte)(255 * b);
-            result.A = (byte)(255 * a);
-            return true;
-        }
-
         #endregion
     }
 }
