@@ -12,54 +12,75 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
+using Aardvark.Data.Points.Import;
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using static Aardvark.Data.Points.Import.CustomAscii;
 
 namespace Aardvark.Data.Points
 {
+    /// <summary></summary>
+    internal unsafe class LineParserState
+    {
+        public byte* p;
+        public byte* end;
+
+        public bool IsInvalid = false;
+
+        public V3d Position;
+        public C4b Color = C4b.Black;
+        public V3f Normal;
+        public int Intensity;
+    }
+    
     /// <summary>
     /// Various line parsers.
     /// </summary>
     public static class LineParsers
     {
-        /// <summary></summary>
-        private unsafe class LineParserState
+        internal static Dictionary<Token, Action<LineParserState>> s_parsers = new Dictionary<Token, Action<LineParserState>>
         {
-            public byte* p;
-            public byte* end;
+            // Position
+            { Token.PositionX, state => ParseFloat64(state, x => state.Position.X = x) },
+            { Token.PositionY, state => ParseFloat64(state, y => state.Position.Y = y) },
+            { Token.PositionZ, state => ParseFloat64(state, z => state.Position.Z = z) },
 
-            public bool IsInvalid = false;
+            // Normal
+            { Token.NormalX, state => ParseFloat32(state, x => state.Normal.X = x) },
+            { Token.NormalY, state => ParseFloat32(state, y => state.Normal.Y = y) },
+            { Token.NormalZ, state => ParseFloat32(state, z => state.Normal.Z = z) },
 
-            public V3d Position = V3d.NaN;
-            public C4b Color = C4b.Black;
-            public V3f Normal = V3f.NaN;
-            public int Intensity = 0;
+            // Color
+            { Token.ColorR, state => ParseByte(state, r => state.Color.R = r) },
+            { Token.ColorG, state => ParseByte(state, g => state.Color.G = g) },
+            { Token.ColorB, state => ParseByte(state, b => state.Color.B = b) },
+            { Token.ColorA, state => ParseByte(state, a => state.Color.A = a) },
 
-            public void Reset()
-            {
-                IsInvalid = false;
-                Position = V3d.NaN;
-                Color = C4b.Black;
-                Normal = V3f.NaN;
-                Intensity = 0;
-            }
-        }
+            { Token.ColorRf, state => ParseFloat32(state, r => { if (r >= 0.0 && r <= 1.0) state.Color.R = (byte)(255 * r); else state.IsInvalid = true; }) },
+            { Token.ColorGf, state => ParseFloat32(state, g => { if (g >= 0.0 && g <= 1.0) state.Color.G = (byte)(255 * g); else state.IsInvalid = true; }) },
+            { Token.ColorBf, state => ParseFloat32(state, b => { if (b >= 0.0 && b <= 1.0) state.Color.B = (byte)(255 * b); else state.IsInvalid = true; }) },
+            { Token.ColorAf, state => ParseFloat32(state, a => { if (a >= 0.0 && a <= 1.0) state.Color.A = (byte)(255 * a); else state.IsInvalid = true; }) },
+
+            // Intensity
+            { Token.Intensity, state => ParseInt(state, i => state.Intensity = i) },
+        };
 
         /// <summary>
         /// Buffer is expected to contain ASCII. Lines separated by '\n'.
-        /// Expected line format: [double X] [double Y] [double Z] [int I] [byte R] [byte G] [byte B] \n
         /// </summary>
-        public static Chunk? XYZIRGB(byte[] buffer, int count, double filterDist)
+        public static Chunk? Custom(byte[] buffer, int count, double filterDist, Token[] tokens)
         {
             var ps = new List<V3d>();
-            var cs = new List<C4b>(); 
+            var cs = new List<C4b>();
             var js = new List<int>();
 
             var prev = V3d.PositiveInfinity;
             var filterDistM = -filterDist;
             var doFilterDist = filterDist > 0.0;
-            
+
+            var tokenParsers = tokens.Map(x => s_parsers[x]);
+
             unsafe
             {
                 fixed (byte* begin = buffer)
@@ -72,11 +93,16 @@ namespace Aardvark.Data.Points
                     while (state.p < state.end)
                     {
                         // parse single line
-                        state.Reset();
-                        if (!ParsePositionV3d(state, ref state.Position)) { SkipToNextLine(state); continue; }
-                        ParseInt(state, x => state.Intensity = x); if (state.IsInvalid) { SkipToNextLine(state); continue; }
-                        if (!ParseC4bFromByteRGB(state, ref state.Color)) { SkipToNextLine(state); continue; }
+                        state.IsInvalid = false;
+
+                        for (var i = 0; i < tokenParsers.Length; i++)
+                        {
+                            tokenParsers[i](state);
+                            if (state.IsInvalid) continue;
+                        }
+
                         SkipToNextLine(state);
+                        if (state.IsInvalid) continue;
 
                         // min dist filtering
                         if (doFilterDist)
@@ -96,12 +122,34 @@ namespace Aardvark.Data.Points
             if (ps.Count == 0) return null;
             return new Chunk(ps, cs, null, js);
         }
-        
+
+        /// <summary>
+        /// Buffer is expected to contain ASCII. Lines separated by '\n'.
+        /// Expected line format: [double X] [double Y] [double Z] [int I] [byte R] [byte G] [byte B] \n
+        /// </summary>
+        public static Chunk? XYZIRGB(byte[] buffer, int count, double filterDist)
+            => Custom(buffer, count, filterDist, new[]
+            {
+                Token.PositionX, Token.PositionY, Token.PositionZ,
+                Token.Intensity,
+                Token.ColorR, Token.ColorG, Token.ColorB
+            });
+
+        /// <summary>
+        /// Buffer is expected to contain ASCII. Lines separated by '\n'.
+        /// Expected line format: [double X] [double Y] [double Z] [byte R] [byte G] [byte B] \n
+        /// </summary>
+        public static Chunk? XYZRGB(byte[] buffer, int count, double filterDist)
+            => Custom(buffer, count, filterDist, new[]
+            {
+                Token.PositionX, Token.PositionY, Token.PositionZ,
+                Token.ColorR, Token.ColorG, Token.ColorB
+            });
+
         #region Private
 
-        /// <summary></summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool SkipBecauseOfMinDist(ref V3d position, ref V3d prev, double filterDist)
+        internal static bool SkipBecauseOfMinDist(ref V3d position, ref V3d prev, double filterDist)
         {
             var
             d = position.X - prev.X; if (d < 0) d = -d; if (d < filterDist) return true;
@@ -109,19 +157,17 @@ namespace Aardvark.Data.Points
             d = position.Z - prev.Z; if (d < 0) d = -d; if (d < filterDist) return true;
             return false;
         }
-
-        /// <summary></summary>
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe bool SkipToNextLine(LineParserState state)
+        internal static unsafe bool SkipToNextLine(LineParserState state)
         {
             while (state.p < state.end && *state.p != '\n') state.p++;
             state.p++;
             return state.p < state.end;
         }
-
-        /// <summary></summary>
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe void ParseFloat64(LineParserState state, Action<double> setResult)
+        internal static unsafe void ParseFloat64(LineParserState state, Action<double> setResult)
         {
             if (state.p >= state.end) { state.IsInvalid = true; return; }
 
@@ -179,10 +225,9 @@ namespace Aardvark.Data.Points
             }
             setResult(minus ? -x - y : x + y);
         }
-
-        /// <summary></summary>
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe void ParseFloat32(LineParserState state, Action<float> setResult)
+        internal static unsafe void ParseFloat32(LineParserState state, Action<float> setResult)
         {
             if (state.p >= state.end) { state.IsInvalid = true; return; }
 
@@ -240,10 +285,9 @@ namespace Aardvark.Data.Points
             }
             setResult(minus ? -x - y : x + y);
         }
-
-        /// <summary></summary>
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe void ParseInt(LineParserState state, Action<int> setResult)
+        internal static unsafe void ParseInt(LineParserState state, Action<int> setResult)
         {
             if (state.p >= state.end) { state.IsInvalid = true; return; }
 
@@ -278,9 +322,41 @@ namespace Aardvark.Data.Points
             setResult(minus ? -x : x);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static unsafe void ParseByte(LineParserState state, Action<byte> setResult)
+        {
+            if (state.p >= state.end) { state.IsInvalid = true; return; }
+
+            while (*state.p == ' ' || state.p >= state.end) state.p++;
+            if (state.p >= state.end) { state.IsInvalid = true; return; }
+            
+            var x = 0;
+            while (state.p < state.end)
+            {
+                switch ((char)*state.p)
+                {
+                    case '0': x = x * 10; break;
+                    case '1': x = x * 10 + 1; break;
+                    case '2': x = x * 10 + 2; break;
+                    case '3': x = x * 10 + 3; break;
+                    case '4': x = x * 10 + 4; break;
+                    case '5': x = x * 10 + 5; break;
+                    case '6': x = x * 10 + 6; break;
+                    case '7': x = x * 10 + 7; break;
+                    case '8': x = x * 10 + 8; break;
+                    case '9': x = x * 10 + 9; break;
+                    case '\r':
+                    case '\n':
+                    case ' ': if (x < 256) setResult((byte)x); else state.IsInvalid = true; return;
+                    default: { state.IsInvalid = true; return; }
+                }
+                state.p++;
+            }
+            if (x < 256) setResult((byte)x); else state.IsInvalid = true;
+        }
 
 
-        /// <summary></summary>
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static unsafe bool ParsePositionV3d(LineParserState state, ref V3d result)
         {
@@ -289,8 +365,7 @@ namespace Aardvark.Data.Points
             ParseFloat64(state, x => state.Position.Z = x); if (state.IsInvalid) return false;
             return true;
         }
-
-        /// <summary></summary>
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static unsafe bool ParseNormalV3f(LineParserState state, ref V3f result)
         {
@@ -299,8 +374,7 @@ namespace Aardvark.Data.Points
             ParseFloat32(state, x => state.Normal.Z = x); if (state.IsInvalid) return false;
             return true;
         }
-
-        /// <summary></summary>
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static unsafe bool ParseC4bFromByteRGB(LineParserState state, ref C4b result)
         {
@@ -313,8 +387,7 @@ namespace Aardvark.Data.Points
             result.B = (byte)b;
             return true;
         }
-
-        /// <summary></summary>
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static unsafe bool ParseC4bFromByteRGBA(LineParserState state, ref C4b result)
         {
@@ -329,8 +402,7 @@ namespace Aardvark.Data.Points
             result.A = (byte)a;
             return true;
         }
-
-        /// <summary></summary>
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static unsafe bool ParseC4bFromFloatRGB(LineParserState state, ref C4b result)
         {
@@ -343,8 +415,7 @@ namespace Aardvark.Data.Points
             result.B = (byte)(255 * b);
             return true;
         }
-
-        /// <summary></summary>
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static unsafe bool ParseC4bFromFloatRGBA(LineParserState state, ref C4b result)
         {

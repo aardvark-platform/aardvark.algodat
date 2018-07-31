@@ -28,6 +28,143 @@ namespace Aardvark.Data.Points.Import
     public static class CustomAscii
     {
         /// <summary>
+        /// Custom ASCII parser tokens.
+        /// </summary>
+        public enum Token
+        {
+            /// <summary>
+            /// Parses Position.X from double value.
+            /// </summary>
+            PositionX,
+
+            /// <summary>
+            /// Parses Position.Y from double value.
+            /// </summary>
+            PositionY,
+
+            /// <summary>
+            /// Parses Position.Z from double value.
+            /// </summary>
+            PositionZ,
+
+
+
+            /// <summary>
+            /// Parses Normal.X from float value.
+            /// </summary>
+            NormalX,
+
+            /// <summary>
+            /// Parses Normal.Y from float value.
+            /// </summary>
+            NormalY,
+
+            /// <summary>
+            /// Parses Normal.Z from float value.
+            /// </summary>
+            NormalZ,
+
+
+
+            /// <summary>
+            /// Parses Color.R from byte value [0, 255].
+            /// </summary>
+            ColorR,
+
+            /// <summary>
+            /// Parses Color.G from byte value [0, 255].
+            /// </summary>
+            ColorG,
+
+            /// <summary>
+            /// Parses Color.B from byte value [0, 255].
+            /// </summary>
+            ColorB,
+
+            /// <summary>
+            /// Parses Color.A from byte value [0, 255].
+            /// </summary>
+            ColorA,
+
+
+
+            /// <summary>
+            /// Parses Color.R from float value [0.0, 1.0].
+            /// </summary>
+            ColorRf,
+
+            /// <summary>
+            /// Parses Color.G from float value [0.0, 1.0].
+            /// </summary>
+            ColorGf,
+
+            /// <summary>
+            /// Parses Color.B from float value [0.0, 1.0].
+            /// </summary>
+            ColorBf,
+
+            /// <summary>
+            /// Parses Color.A from float value [0.0, 1.0].
+            /// </summary>
+            ColorAf,
+
+
+
+            /// <summary>
+            /// Parses Intensity from int value.
+            /// </summary>
+            Intensity,
+        }
+
+        /// <summary>
+        /// </summary>
+        public static PointCloudFileFormat CreateFormat(string description, Token[] lineDefinition)
+            => new PointCloudFileFormat(description, new string[0],
+                (filename, config) => CustomAsciiInfo(filename, lineDefinition, config),
+                (filename, config) => Chunks(filename, lineDefinition, config)
+                );
+
+        /// <summary>
+        /// Parses ASCII file.
+        /// </summary>
+        public static IEnumerable<Chunk> Chunks(string filename, Token[] lineDefinition, ImportConfig config)
+        {
+            Chunk? lineParser(byte[] buffer, int count, double filterDist)
+                => LineParsers.Custom(buffer, count, filterDist, lineDefinition);
+            return Parsing.AsciiLines(lineParser, filename, config);
+        }
+
+        /// <summary>
+        /// Parses ASCII stream.
+        /// </summary>
+        public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, Token[] lineDefinition, ImportConfig config)
+        {
+            Chunk? lineParser(byte[] buffer, int count, double filterDist)
+                => LineParsers.Custom(buffer, count, filterDist, lineDefinition);
+            return Parsing.AsciiLines(lineParser, stream, streamLengthInBytes, config);
+        }
+
+        /// <summary>
+        /// Gets general info for custom ASCII file.
+        /// </summary>
+        public static PointFileInfo CustomAsciiInfo(string filename, Token[] lineDefinition, ImportConfig config)
+        {
+            var filesize = new FileInfo(filename).Length;
+            var pointCount = 0L;
+            var pointBounds = Box3d.Invalid;
+            foreach (var chunk in Chunks(filename, lineDefinition, ImportConfig.Default))
+            {
+                pointCount += chunk.Count;
+                pointBounds.ExtendBy(chunk.BoundingBox);
+            }
+            var format = CreateFormat("Custom ASCII", lineDefinition);
+            return new PointFileInfo(filename, format, filesize, pointCount, pointBounds);
+        }
+
+
+
+
+        /// <summary>
         /// https://msdn.microsoft.com/en-us/magazine/mt808499.aspx
         /// </summary>
         public static void Foo()
@@ -100,7 +237,7 @@ namespace Aardvark.Data.Points.Import
 
             var tree = SyntaxFactory.ParseSyntaxTree(src);
             var fileName = "CustomAsciiParser.dll";
-            
+
             var refs = new[]
             {
                 typeof(object),
@@ -147,43 +284,5 @@ namespace Aardvark.Data.Points.Import
             }
         }
 
-        /// <summary>
-        /// </summary>
-        public static PointCloudFileFormat CreateFormat(string description, Func<byte[], int, double, Chunk?> lineParser)
-            => new PointCloudFileFormat(description, new string[0],
-                (filename, config) => CustomAsciiInfo(filename, lineParser, config),
-                (filename, config) => Chunks(filename, lineParser, config)
-                );
-
-        /// <summary>
-        /// Parses .pts file.
-        /// </summary>
-        public static IEnumerable<Chunk> Chunks(string filename,
-            Func<byte[], int, double, Chunk?> lineParser, ImportConfig config)
-            => Parsing.AsciiLines(lineParser, filename, config);
-
-        /// <summary>
-        /// Parses .pts stream.
-        /// </summary>
-        public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes,
-            Func<byte[], int, double, Chunk?> lineParser, ImportConfig config)
-            => Parsing.AsciiLines(LineParsers.XYZIRGB, stream, streamLengthInBytes, config);
-
-        /// <summary>
-        /// Gets general info for custom ASCII file.
-        /// </summary>
-        public static PointFileInfo CustomAsciiInfo(string filename, Func<byte[], int, double, Chunk?> lineParse, ImportConfig config)
-        {
-            var filesize = new FileInfo(filename).Length;
-            var pointCount = 0L;
-            var pointBounds = Box3d.Invalid;
-            foreach (var chunk in Chunks(filename, lineParse, ImportConfig.Default))
-            {
-                pointCount += chunk.Count;
-                pointBounds.ExtendBy(chunk.BoundingBox);
-            }
-            var format = CreateFormat("Custom ASCII", lineParse);
-            return new PointFileInfo(filename, format, filesize, pointCount, pointBounds);
-        }
     }
 }
