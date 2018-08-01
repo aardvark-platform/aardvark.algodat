@@ -462,6 +462,46 @@ namespace Aardvark.Geometry.Points
             this PointSetNode self, Hull3d convexHull, int minCellExponent = int.MinValue
             )
             => QueryPointsInsideConvexHull(self, convexHull.Reversed(), minCellExponent);
+        
+        #region Count
+
+        /// <summary>
+        /// Counts points inside convex hull (approximately).
+        /// Result is always equal or greater than exact number.
+        /// </summary>
+        internal static long CountPointsInsideConvexHull(
+            this PointSet self, Hull3d convexHull, int minCellExponent = int.MinValue
+            )
+            => CountPointsInsideConvexHull(self.Root.Value, convexHull, minCellExponent);
+
+        /// <summary>
+        /// Counts points inside convex hull (approximately).
+        /// Result is always equal or greater than exact number.
+        /// </summary>
+        internal static long CountPointsInsideConvexHull(
+            this PointSetNode self, Hull3d convexHull, int minCellExponent = int.MinValue
+            )
+            => self.ForEachNodeIntersecting(convexHull, false, minCellExponent).Sum(x => x.Cell.LodPointCount);
+
+        /// <summary>
+        /// Counts points outside convex hull (approximately).
+        /// Result is always equal or greater than exact number.
+        /// </summary>
+        internal static long CountPointsOutsideConvexHull(
+            this PointSet self, Hull3d convexHull, int minCellExponent = int.MinValue
+            )
+            => CountPointsOutsideConvexHull(self.Root.Value, convexHull, minCellExponent);
+
+        /// <summary>
+        /// Counts points outside convex hull (approximately).
+        /// Result is always equal or greater than exact number.
+        /// </summary>
+        internal static long CountPointsOutsideConvexHull(
+            this PointSetNode self, Hull3d convexHull, int minCellExponent = int.MinValue
+            )
+            => CountPointsOutsideConvexHull(self, convexHull.Reversed(), minCellExponent);
+
+        #endregion
 
         #endregion
 
@@ -498,6 +538,46 @@ namespace Aardvark.Geometry.Points
             this PointSetNode self, Box3d boundingBox, int minCellExponent = int.MinValue
             )
             => QueryPointsOutsideConvexHull(self, Hull3d.Create(boundingBox), minCellExponent);
+        
+        #region Count
+
+        /// <summary>
+        /// Counts points inside axis-aligned box (approximately).
+        /// Result is always equal or greater than exact number.
+        /// </summary>
+        internal static long CountPointsInsideBox(
+            this PointSet self, Box3d boundingBox, int minCellExponent = int.MinValue
+            )
+            => CountPointsInsideConvexHull(self, Hull3d.Create(boundingBox), minCellExponent);
+
+        /// <summary>
+        /// Counts points inside axis-aligned box (approximately).
+        /// Result is always equal or greater than exact number.
+        /// </summary>
+        internal static long CountPointsInsideBox(
+            this PointSetNode self, Box3d boundingBox, int minCellExponent = int.MinValue
+            )
+            => CountPointsInsideConvexHull(self, Hull3d.Create(boundingBox), minCellExponent);
+
+        /// <summary>
+        /// Counts points outside axis-aligned box (approximately).
+        /// Result is always equal or greater than exact number.
+        /// </summary>
+        internal static long CountPointsOutsideBox(
+            this PointSet self, Box3d boundingBox, int minCellExponent = int.MinValue
+            )
+            => CountPointsOutsideConvexHull(self, Hull3d.Create(boundingBox), minCellExponent);
+
+        /// <summary>
+        /// Counts points outside axis-aligned box (approximately).
+        /// Result is always equal or greater than exact number.
+        /// </summary>
+        internal static long CountPointsOutsideBox(
+            this PointSetNode self, Box3d boundingBox, int minCellExponent = int.MinValue
+            )
+            => CountPointsOutsideConvexHull(self, Hull3d.Create(boundingBox), minCellExponent);
+
+        #endregion
 
         #endregion
 
