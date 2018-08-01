@@ -21,7 +21,7 @@ namespace Aardvark.Data.Points.Import
     /// <summary>
     /// Importer for custom ASCII format.
     /// </summary>
-    public static class CustomAscii
+    public static class Ascii
     {
         /// <summary>
         /// Custom ASCII parser tokens.

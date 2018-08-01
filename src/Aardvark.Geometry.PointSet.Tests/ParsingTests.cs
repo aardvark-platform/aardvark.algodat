@@ -19,7 +19,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using static Aardvark.Data.Points.Import.CustomAscii;
+using static Aardvark.Data.Points.Import.Ascii;
 
 namespace Aardvark.Geometry.Tests
 {

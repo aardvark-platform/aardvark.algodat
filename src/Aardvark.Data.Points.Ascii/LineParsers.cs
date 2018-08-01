@@ -15,7 +15,7 @@ using Aardvark.Base;
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using static Aardvark.Data.Points.Import.CustomAscii;
+using static Aardvark.Data.Points.Import.Ascii;
 
 namespace Aardvark.Data.Points
 {

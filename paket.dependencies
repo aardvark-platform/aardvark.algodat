@@ -4,15 +4,12 @@ source https://api.nuget.org/v3/index.json
 source https://vrvis.myget.org/F/aardvark_public/api/v3/index.json
 
 // public repository
-nuget Aardvark.Base                     >= 4.1.0
-nuget Aardvark.Base.IO                  >= 4.1.0
+nuget Aardvark.Base                     ~> 4.0.18
+nuget Aardvark.Base.IO                  ~> 4.0.18
 
 // 3rd-party
 #nuget Crc32C.NET                        ~> 1.0.5
-nuget Microsoft.CodeAnalysis            ~> 2.8.2
-nuget Microsoft.CodeAnalysis.CSharp     ~> 2.8.2
 nuget Newtonsoft.Json                   ~> 11.0.2
-nuget NETStandard.Library               ~> 2.0.3
 nuget NUnit                             ~> 3.10.0
 nuget NUnit3TestAdapter                 ~> 3.10.0
 nuget Uncodium.SimpleStore              ~> 2.0.0
