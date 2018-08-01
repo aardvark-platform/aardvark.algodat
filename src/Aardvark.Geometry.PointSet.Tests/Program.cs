@@ -3,6 +3,7 @@ using Aardvark.Data.Points;
 using Aardvark.Data.Points.Import;
 using Aardvark.Geometry.Points;
 using System;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -108,20 +109,30 @@ namespace Aardvark.Geometry.Tests
             store.Flush();
         }
 
-        internal static void TestImportPts()
+        internal static void TestImportPts(string filename)
         {
-            CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
-            var filename = @"test.pts";
-            var chunks = Data.Points.Import.Pts.Chunks(filename, ImportConfig.Default);
+            var chunks = Pts.Chunks(filename, ImportConfig.Default);
+
+            Console.WriteLine(filename);
+            var sw = new Stopwatch();
+            var count = 0L;
+            sw.Start();
             foreach (var chunk in chunks)
             {
-                Console.WriteLine($"{chunk.Count}, {chunk.BoundingBox}");
+                Console.WriteLine($"    {chunk.Count}, {chunk.BoundingBox}");
+                count += chunk.Count;
             }
+            sw.Stop();
+            Console.WriteLine($"    {count:N0} points");
+            Console.WriteLine($"    {sw.Elapsed} ({(int)(count / sw.Elapsed.TotalSeconds):N0} points/s)");
         }
 
         public static void Main(string[] args)
         {
-            //TestImportPts();
+            foreach (var filename in Directory.EnumerateFiles(@"C:\", "*.pts", SearchOption.AllDirectories))
+            {
+                TestImportPts(filename);
+            }
         }
     }
 }

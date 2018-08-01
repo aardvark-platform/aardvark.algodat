@@ -63,6 +63,9 @@ namespace Aardvark.Data.Points
 
             // Intensity
             { Token.Intensity, state => ParseInt(state, i => state.Intensity = i) },
+
+            // Skip
+            { Token.Skip, state => ParseSkip(state) },
         };
 
         /// <summary>
@@ -137,6 +140,18 @@ namespace Aardvark.Data.Points
             {
                 Token.PositionX, Token.PositionY, Token.PositionZ,
                 Token.Intensity,
+                Token.ColorR, Token.ColorG, Token.ColorB
+            });
+
+        /// <summary>
+        /// Buffer is expected to contain ASCII. Lines separated by '\n'.
+        /// Expected line format: [double X] [double Y] [double Z] [SKIP] [byte R] [byte G] [byte B] \n
+        /// </summary>
+        public static Chunk? XYZSRGB(byte[] buffer, int count, double filterDist)
+            => Custom(buffer, count, filterDist, new[]
+            {
+                Token.PositionX, Token.PositionY, Token.PositionZ,
+                Token.Skip,
                 Token.ColorR, Token.ColorG, Token.ColorB
             });
 
@@ -363,7 +378,27 @@ namespace Aardvark.Data.Points
             }
             if (x < 256) setResult((byte)x); else state.IsInvalid = true;
         }
-        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static unsafe void ParseSkip(LineParserState state)
+        {
+            if (state.p >= state.end) { state.IsInvalid = true; return; }
+
+            while (*state.p == ' ' && state.p < state.end) state.p++;
+            if (state.p >= state.end || *state.p == '\n' || *state.p == '\r') { state.IsInvalid = true; return; }
+            
+            while (state.p < state.end)
+            {
+                switch ((char)*state.p)
+                {
+                    case '\r':
+                    case '\n':
+                    case ' ': return;
+                }
+                state.p++;
+            }
+        }
+
         #endregion
     }
 }

@@ -352,6 +352,20 @@ namespace Aardvark.Geometry.Tests
         }
 
         [Test]
+        public void ParseAscii_SingleLine_WithSkip()
+        {
+            var txt = @"1.2 3.4 5.6 8 254 97 6543 0.1 0.2 0.3";
+
+            var buffer = Encoding.ASCII.GetBytes(txt);
+            var layout = new[] { Token.PositionX, Token.PositionY, Token.PositionZ, Token.ColorR, Token.ColorG, Token.ColorB, Token.Skip, Token.NormalX, Token.NormalY, Token.NormalZ };
+            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout);
+            Assert.IsTrue(data.HasValue && data.Value.Count == 1);
+            Assert.IsTrue(data.Value.Positions[0] == new V3d(1.2, 3.4, 5.6));
+            Assert.IsTrue(data.Value.Colors[0] == new C4b(8, 254, 97));
+            Assert.IsTrue(data.Value.Normals[0] == new V3f(0.1, 0.2, 0.3));
+        }
+
+        [Test]
         public void ParseAscii_EmptyLinesPre()
         {
             var txt = @"

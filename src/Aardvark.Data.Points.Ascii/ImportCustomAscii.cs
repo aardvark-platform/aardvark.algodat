@@ -110,6 +110,14 @@ namespace Aardvark.Data.Points.Import
             /// Parses Intensity from int value.
             /// </summary>
             Intensity,
+
+
+
+
+            /// <summary>
+            /// Skips value. 
+            /// </summary>
+            Skip,
         }
 
 
