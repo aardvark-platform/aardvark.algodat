@@ -347,7 +347,7 @@ NUGET
       System.Runtime (>= 4.3)
 GITHUB
   remote: aardvark-platform/aardvark.fake
-    FULLPROJECT (cb65d88da922ed4d3500a4c0d419ee5512dca674)
+    FULLPROJECT (7bebbfdb07cbf4ec6426be3f813dc367a0614e6a)
       FAKE (>= 4.63 < 4.64)
       Mono.Cecil (>= 0.10.0-beta6 < 0.11)
       SourceLink.Fake (>= 1.1 < 1.2)
