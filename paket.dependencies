@@ -22,5 +22,5 @@ framework: netstandard2.0
 content: none
 source https://api.nuget.org/v3/index.json
 
-github aardvark-platform/aardvark.fake:v4
+github aardvark-platform/aardvark.fake:v4-temp
 

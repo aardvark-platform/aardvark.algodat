@@ -118,7 +118,7 @@
   </Choose>
   <Import Project="..\..\packages\NUnit3TestAdapter\build\$(__paket__NUnit3TestAdapter_props).props" Condition="Exists('..\..\packages\NUnit3TestAdapter\build\$(__paket__NUnit3TestAdapter_props).props')" Label="Paket" />
   <Choose>
-    <When Condition="$(TargetFrameworkIdentifier) == '.NETStandard' And $(TargetFrameworkVersion) == 'v2.0'">
+    <When Condition="($(TargetFrameworkIdentifier) == '.NETFramework' And $(TargetFrameworkVersion) == 'v4.7.1') Or ($(TargetFrameworkIdentifier) == '.NETStandard' And $(TargetFrameworkVersion) == 'v2.0')">
       <PropertyGroup>
         <__paket__NETStandard_Library_targets>netstandard2.0\NETStandard.Library</__paket__NETStandard_Library_targets>
       </PropertyGroup>
