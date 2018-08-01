@@ -70,7 +70,6 @@ namespace Aardvark.Data.Points
         /// </summary>
         public static Chunk? Custom(byte[] buffer, int count, double filterDist, Token[] layout)
         {
-            
             var hasColor = layout.HasColorTokens();
             var hasNormal = layout.HasNormalTokens();
             var hasIntensity = layout.HasIntensityTokens();
@@ -103,12 +102,12 @@ namespace Aardvark.Data.Points
                         for (var i = 0; i < tokenParsers.Length; i++)
                         {
                             tokenParsers[i](state);
-                            if (state.IsInvalid) continue;
+                            if (state.IsInvalid) break;
                         }
 
                         SkipToNextLine(state);
                         if (state.IsInvalid) continue;
-
+                        
                         // min dist filtering
                         if (doFilterDist)
                         {
@@ -177,8 +176,8 @@ namespace Aardvark.Data.Points
         {
             if (state.p >= state.end) { state.IsInvalid = true; return; }
 
-            while (*state.p == ' ' || state.p >= state.end) state.p++;
-            if (state.p >= state.end) { state.IsInvalid = true; return; }
+            while (*state.p == ' ' && state.p < state.end) state.p++;
+            if (state.p >= state.end || *state.p == '\n' || *state.p == '\r') { state.IsInvalid = true; return; }
 
             var minus = *state.p == ((byte)'-');
             if (minus) state.p++;
@@ -200,6 +199,8 @@ namespace Aardvark.Data.Points
                     case '8': x = x * 10.0 + 8.0; break;
                     case '9': x = x * 10.0 + 9.0; break;
                     case '.': parse = false; break;
+                    case '\n':
+                    case '\r':
                     case ' ': setResult(minus ? -x : x); return;
                     default: { state.IsInvalid = true; return; }
                 }
@@ -223,6 +224,8 @@ namespace Aardvark.Data.Points
                     case '7': y = y + r * 7; break;
                     case '8': y = y + r * 8; break;
                     case '9': y = y + r * 9; break;
+                    case '\n':
+                    case '\r':
                     case ' ': setResult(minus ? -x - y : x + y); return;
                     default: { state.IsInvalid = true; return; };
                 }
@@ -237,8 +240,8 @@ namespace Aardvark.Data.Points
         {
             if (state.p >= state.end) { state.IsInvalid = true; return; }
 
-            while (*state.p == ' ' || state.p >= state.end) state.p++;
-            if (state.p >= state.end) { state.IsInvalid = true; return; }
+            while (*state.p == ' ' && state.p < state.end) state.p++;
+            if (state.p >= state.end || *state.p == '\n' || *state.p == '\r') { state.IsInvalid = true; return; }
 
             var minus = *state.p == ((byte)'-');
             if (minus) state.p++;
@@ -297,8 +300,8 @@ namespace Aardvark.Data.Points
         {
             if (state.p >= state.end) { state.IsInvalid = true; return; }
 
-            while (*state.p == ' ' || state.p >= state.end) state.p++;
-            if (state.p >= state.end) { state.IsInvalid = true; return; }
+            while (*state.p == ' ' && state.p < state.end) state.p++;
+            if (state.p >= state.end || *state.p == '\n' || *state.p == '\r') { state.IsInvalid = true; return; }
 
             var minus = *state.p == ((byte)'-');
             if (minus) state.p++;
@@ -333,8 +336,8 @@ namespace Aardvark.Data.Points
         {
             if (state.p >= state.end) { state.IsInvalid = true; return; }
 
-            while (*state.p == ' ' || state.p >= state.end) state.p++;
-            if (state.p >= state.end) { state.IsInvalid = true; return; }
+            while (*state.p == ' ' && state.p < state.end) state.p++;
+            if (state.p >= state.end || *state.p == '\n' || *state.p == '\r') { state.IsInvalid = true; return; }
             
             var x = 0;
             while (state.p < state.end)
