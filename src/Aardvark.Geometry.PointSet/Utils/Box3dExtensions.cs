@@ -11,6 +11,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+using System;
 using System.Runtime.CompilerServices;
 using Aardvark.Base;
 
@@ -81,6 +82,26 @@ namespace Aardvark.Geometry.Points
                 bb.ExtendBy(p - v);
             }
             return bb;
+        }
+
+        /// <summary>
+        /// Returns true if the Hull3d completely contains the box.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool Contains(
+            this Hull3d self, Box3d box)
+        {
+            var planes = self.PlaneArray;
+            var imax = self.PlaneCount;
+            for (var i = 0; i < imax; i++) if (planes[i].Height(box.Min) > 0) return false;
+            for (var i = 0; i < imax; i++) if (planes[i].Height(box.Max) > 0) return false;
+            for (var i = 0; i < imax; i++) if (planes[i].Height(new V3d(box.Max.X, box.Min.Y, box.Min.Z)) > 0) return false;
+            for (var i = 0; i < imax; i++) if (planes[i].Height(new V3d(box.Max.X, box.Max.Y, box.Min.Z)) > 0) return false;
+            for (var i = 0; i < imax; i++) if (planes[i].Height(new V3d(box.Min.X, box.Max.Y, box.Min.Z)) > 0) return false;
+            for (var i = 0; i < imax; i++) if (planes[i].Height(new V3d(box.Min.X, box.Min.Y, box.Max.Z)) > 0) return false;
+            for (var i = 0; i < imax; i++) if (planes[i].Height(new V3d(box.Max.X, box.Min.Y, box.Max.Z)) > 0) return false;
+            for (var i = 0; i < imax; i++) if (planes[i].Height(new V3d(box.Min.X, box.Max.Y, box.Max.Z)) > 0) return false;
+            return true;
         }
     }
 }

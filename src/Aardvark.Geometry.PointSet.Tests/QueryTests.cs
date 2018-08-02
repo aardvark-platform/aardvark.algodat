@@ -639,6 +639,84 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(rs.Length == 64 - 4 * 4 * 4);
         }
 
+        [Test]
+        public void CanCountPointsApproximatelyInsideBox()
+        {
+            var cloud = CreateRandomPointsInUnitCube(1000, 16);
+            Assert.IsTrue(cloud.CountPointsApproximatelyInsideBox(Box3d.Unit) == 1000);
+        }
+
+        [Test]
+        public void CanCountPointsInsideBox()
+        {
+            var cloud = CreateRandomPointsInUnitCube(1000, 16);
+            Assert.IsTrue(cloud.CountPointsInsideBox(Box3d.Unit) == 1000);
+        }
+
+
+        private static void PointsInsideBox_CountAndQueryAreConsistent(Box3d query)
+        {
+            var cloud = CreateRandomPointsInUnitCube(1000, 16);
+            for (var e = -5; e < 1; e++)
+            {
+                var countA = cloud.CountPointsInsideBox(query, e);
+                var countB = cloud.QueryPointsInsideBox(query, e).Sum(chunk => chunk.Count);
+                Assert.IsTrue(countA == countB);
+            }
+        }
+        [Test]
+        public void PointsInsideBox_CountAndQueryAreConsistent_1()
+        {
+            PointsInsideBox_CountAndQueryAreConsistent(Box3d.Unit);
+        }
+        [Test]
+        public void PointsInsideBox_CountAndQueryAreConsistent_2()
+        {
+            PointsInsideBox_CountAndQueryAreConsistent(new Box3d(new V3d(0.0, 0.0, 0.5), new V3d(0.5, 0.5, 1.0)));
+        }
+        [Test]
+        public void PointsInsideBox_CountAndQueryAreConsistent_3()
+        {
+            PointsInsideBox_CountAndQueryAreConsistent(new Box3d(new V3d(0.1, 0.2, 0.3), new V3d(0.4, 0.4, 0.4)));
+        }
+        [Test]
+        public void PointsInsideBox_CountAndQueryAreConsistent_4()
+        {
+            PointsInsideBox_CountAndQueryAreConsistent(new Box3d(new V3d(1.1, 0.2, 0.3), new V3d(1.4, 0.4, 0.4)));
+        }
+
+
+        private static void PointsOutsideBox_CountAndQueryAreConsistent(Box3d query)
+        {
+            var cloud = CreateRandomPointsInUnitCube(1000, 16);
+            for (var e = -5; e < 1; e++)
+            {
+                var countA = cloud.CountPointsOutsideBox(query, e);
+                var countB = cloud.QueryPointsOutsideBox(query, e).Sum(chunk => chunk.Count);
+                Assert.IsTrue(countA == countB);
+            }
+        }
+        [Test]
+        public void PointsOutsideBox_CountAndQueryAreConsistent_1()
+        {
+            PointsOutsideBox_CountAndQueryAreConsistent(Box3d.Unit);
+        }
+        [Test]
+        public void PointsOutsideBox_CountAndQueryAreConsistent_2()
+        {
+            PointsOutsideBox_CountAndQueryAreConsistent(new Box3d(new V3d(0.0, 0.0, 0.5), new V3d(0.5, 0.5, 1.0)));
+        }
+        [Test]
+        public void PointsOutsideBox_CountAndQueryAreConsistent_3()
+        {
+            PointsOutsideBox_CountAndQueryAreConsistent(new Box3d(new V3d(0.1, 0.2, 0.3), new V3d(0.4, 0.4, 0.4)));
+        }
+        [Test]
+        public void PointsOutsideBox_CountAndQueryAreConsistent_4()
+        {
+            PointsOutsideBox_CountAndQueryAreConsistent(new Box3d(new V3d(1.1, 0.2, 0.3), new V3d(1.4, 0.4, 0.4)));
+        }
+
         #endregion
 
         #region ForEachNodeIntersecting
