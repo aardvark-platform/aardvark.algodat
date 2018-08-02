@@ -113,8 +113,9 @@ namespace Aardvark.Geometry.Points
         #region Count approximately
 
         /// <summary>
-        /// Counts points inside axis-aligned box (approximately).
+        /// Counts points approximately inside axis-aligned box (cell granularity).
         /// Result is always equal or greater than exact number.
+        /// Faster than CountPointsInsideBox.
         /// </summary>
         public static long CountPointsApproximatelyInsideBox(
             this PointSet self, Box3d query, int minCellExponent = int.MinValue
@@ -122,8 +123,9 @@ namespace Aardvark.Geometry.Points
             => CountPointsApproximatelyInsideBox(self.Root.Value, query, minCellExponent);
 
         /// <summary>
-        /// Counts points inside axis-aligned box (approximately).
+        /// Counts points approximately inside axis-aligned box (cell granularity).
         /// Result is always equal or greater than exact number.
+        /// Faster than CountPointsInsideBox.
         /// </summary>
         public static long CountPointsApproximatelyInsideBox(
             this PointSetNode self, Box3d query, int minCellExponent = int.MinValue
@@ -134,8 +136,9 @@ namespace Aardvark.Geometry.Points
                 minCellExponent);
 
         /// <summary>
-        /// Counts points outside axis-aligned box (approximately).
+        /// Counts points approximately outside axis-aligned box (cell granularity).
         /// Result is always equal or greater than exact number.
+        /// Faster than CountPointsOutsideBox.
         /// </summary>
         public static long CountPointsApproximatelyOutsideBox(
             this PointSet self, Box3d query, int minCellExponent = int.MinValue
@@ -143,8 +146,9 @@ namespace Aardvark.Geometry.Points
             => CountPointsApproximatelyOutsideBox(self.Root.Value, query, minCellExponent);
 
         /// <summary>
-        /// Counts points outside axis-aligned box (approximately).
+        /// Counts points approximately outside axis-aligned box (cell granularity).
         /// Result is always equal or greater than exact number.
+        /// Faster than CountPointsOutsideBox.
         /// </summary>
         public static long CountPointsApproximatelyOutsideBox(
             this PointSetNode self, Box3d query, int minCellExponent = int.MinValue
