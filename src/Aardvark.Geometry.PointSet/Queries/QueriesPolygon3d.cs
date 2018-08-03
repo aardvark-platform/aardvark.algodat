@@ -22,6 +22,8 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public static partial class Queries
     {
+        #region Query points
+
         /// <summary>
         /// All points within maxDistance of given polygon.
         /// </summary>
@@ -129,5 +131,243 @@ namespace Aardvark.Geometry.Points
                 minCellExponent
                 );
         }
+
+        #endregion
+        
+        #region Count exact
+
+        /// <summary>
+        /// Count points within maxDistance of given polygon.
+        /// </summary>
+        public static long CountPointsNearPolygon(
+            this PointSet self, Polygon3d polygon, double maxDistance, int minCellExponent = int.MinValue
+            )
+            => CountPointsNearPolygon(self.Root.Value, polygon, maxDistance, minCellExponent);
+
+        /// <summary>
+        /// Count points within maxDistance of given polygon.
+        /// </summary>
+        public static long CountPointsNearPolygon(
+            this PointSetNode node, Polygon3d polygon, double maxDistance, int minCellExponent = int.MinValue
+            )
+        {
+            var bounds = polygon.BoundingBox3d(maxDistance);
+            var plane = polygon.GetPlane3d();
+            var w2p = plane.GetWorldToPlane();
+            var poly2d = new Polygon2d(polygon.GetPointArray().Map(p => w2p.TransformPos(p).XY));
+            return CountPoints(node,
+                n => false,
+                n => !n.BoundingBox.Intersects(bounds),
+                p => polygon.Contains(plane, w2p, poly2d, maxDistance, p, out double d),
+                minCellExponent
+                );
+        }
+
+        /// <summary>
+        /// Count points within maxDistance of ANY of the given polygons.
+        /// </summary>
+        public static long CountPointsNearPolygons(
+            this PointSet self, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
+            )
+            => CountPointsNearPolygons(self.Root.Value, polygons, maxDistance, minCellExponent);
+
+        /// <summary>
+        /// Count points within maxDistance of ANY of the given polygons.
+        /// </summary>
+        public static long CountPointsNearPolygons(
+            this PointSetNode node, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
+            )
+        {
+            var bounds = polygons.Map(x => x.BoundingBox3d(maxDistance));
+            var planes = polygons.Map(x => x.GetPlane3d());
+            var w2p = planes.Map(x => x.GetWorldToPlane());
+            var poly2d = polygons.Map((x, i) => new Polygon2d(x.GetPointArray().Map(p => w2p[i].TransformPos(p).XY)));
+            return CountPoints(node,
+                n => false,
+                n => !bounds.Any(b => n.BoundingBox.Intersects(b)),
+                p => planes.Any((plane, i) => polygons[i].Contains(plane, w2p[i], poly2d[i], maxDistance, p, out double d)),
+                minCellExponent
+                );
+        }
+
+        /// <summary>
+        /// Count points NOT within maxDistance of given polygon.
+        /// </summary>
+        public static long CountPointsNotNearPolygon(
+            this PointSet self, Polygon3d polygon, double maxDistance, int minCellExponent = int.MinValue
+            )
+            => CountPointsNotNearPolygon(self.Root.Value, polygon, maxDistance, minCellExponent);
+
+        /// <summary>
+        /// Count points NOT within maxDistance of given polygon.
+        /// </summary>
+        public static long CountPointsNotNearPolygon(
+            this PointSetNode node, Polygon3d polygon, double maxDistance, int minCellExponent = int.MinValue
+            )
+        {
+            var bounds = polygon.BoundingBox3d(maxDistance);
+            var plane = polygon.GetPlane3d();
+            var w2p = plane.GetWorldToPlane();
+            var poly2d = new Polygon2d(polygon.GetPointArray().Map(p => w2p.TransformPos(p).XY));
+            return CountPoints(node,
+                n => !n.BoundingBox.Intersects(bounds),
+                n => false,
+                p => !polygon.Contains(plane, w2p, poly2d, maxDistance, p, out double d),
+                minCellExponent
+                );
+        }
+
+        /// <summary>
+        /// Count points NOT within maxDistance of ALL the given polygons.
+        /// </summary>
+        public static long CountPointsNotNearPolygons(
+            this PointSet self, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
+            )
+            => CountPointsNotNearPolygons(self.Root.Value, polygons, maxDistance, minCellExponent);
+
+        /// <summary>
+        /// Count points NOT within maxDistance of ALL the given polygons.
+        /// </summary>
+        public static long CountPointsNotNearPolygons(
+            this PointSetNode node, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
+            )
+        {
+            var bounds = polygons.Map(x => x.BoundingBox3d(maxDistance));
+            var planes = polygons.Map(x => x.GetPlane3d());
+            var w2p = planes.Map(x => x.GetWorldToPlane());
+            var poly2d = polygons.Map((x, i) => new Polygon2d(x.GetPointArray().Map(p => w2p[i].TransformPos(p).XY)));
+            return CountPoints(node,
+                n => !bounds.Any(b => n.BoundingBox.Intersects(b)),
+                n => false,
+                p => !planes.Any((plane, i) => polygons[i].Contains(plane, w2p[i], poly2d[i], maxDistance, p, out double d)),
+                minCellExponent
+                );
+        }
+
+        #endregion
+
+        #region Count approximately
+
+        /// <summary>
+        /// Count points approximately within maxDistance of given polygon.
+        /// Result is always equal or greater than exact number.
+        /// Faster than CountPointsNearPolygon.
+        /// </summary>
+        public static long CountPointsApproximatelyNearPolygon(
+            this PointSet self, Polygon3d polygon, double maxDistance, int minCellExponent = int.MinValue
+            )
+            => CountPointsApproximatelyNearPolygon(self.Root.Value, polygon, maxDistance, minCellExponent);
+
+        /// <summary>
+        /// Count points approximately within maxDistance of given polygon.
+        /// Result is always equal or greater than exact number.
+        /// Faster than CountPointsNearPolygon.
+        /// </summary>
+        public static long CountPointsApproximatelyNearPolygon(
+            this PointSetNode node, Polygon3d polygon, double maxDistance, int minCellExponent = int.MinValue
+            )
+        {
+            var bounds = polygon.BoundingBox3d(maxDistance);
+            var plane = polygon.GetPlane3d();
+            var w2p = plane.GetWorldToPlane();
+            var poly2d = new Polygon2d(polygon.GetPointArray().Map(p => w2p.TransformPos(p).XY));
+            return CountPointsApproximately(node,
+                n => false,
+                n => !n.BoundingBox.Intersects(bounds),
+                minCellExponent
+                );
+        }
+
+        /// <summary>
+        /// Count points approximately within maxDistance of ANY of the given polygons.
+        /// Result is always equal or greater than exact number.
+        /// Faster than CountPointsNearPolygons.
+        /// </summary>
+        public static long CountPointsApproximatelyNearPolygons(
+            this PointSet self, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
+            )
+            => CountPointsApproximatelyNearPolygons(self.Root.Value, polygons, maxDistance, minCellExponent);
+
+        /// <summary>
+        /// Count points approximately within maxDistance of ANY of the given polygons.
+        /// Result is always equal or greater than exact number.
+        /// Faster than CountPointsNearPolygons.
+        /// </summary>
+        public static long CountPointsApproximatelyNearPolygons(
+            this PointSetNode node, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
+            )
+        {
+            var bounds = polygons.Map(x => x.BoundingBox3d(maxDistance));
+            var planes = polygons.Map(x => x.GetPlane3d());
+            var w2p = planes.Map(x => x.GetWorldToPlane());
+            var poly2d = polygons.Map((x, i) => new Polygon2d(x.GetPointArray().Map(p => w2p[i].TransformPos(p).XY)));
+            return CountPointsApproximately(node,
+                n => false,
+                n => !bounds.Any(b => n.BoundingBox.Intersects(b)),
+                minCellExponent
+                );
+        }
+
+        /// <summary>
+        /// Count points approximately NOT within maxDistance of given polygon.
+        /// Result is always equal or greater than exact number.
+        /// Faster than CountPointsNotNearPolygon.
+        /// </summary>
+        public static long CountPointsApproximatelyNotNearPolygon(
+            this PointSet self, Polygon3d polygon, double maxDistance, int minCellExponent = int.MinValue
+            )
+            => CountPointsApproximatelyNotNearPolygon(self.Root.Value, polygon, maxDistance, minCellExponent);
+
+        /// <summary>
+        /// Count points approximately NOT within maxDistance of given polygon.
+        /// Result is always equal or greater than exact number.
+        /// Faster than CountPointsNotNearPolygon.
+        /// </summary>
+        public static long CountPointsApproximatelyNotNearPolygon(
+            this PointSetNode node, Polygon3d polygon, double maxDistance, int minCellExponent = int.MinValue
+            )
+        {
+            var bounds = polygon.BoundingBox3d(maxDistance);
+            var plane = polygon.GetPlane3d();
+            var w2p = plane.GetWorldToPlane();
+            var poly2d = new Polygon2d(polygon.GetPointArray().Map(p => w2p.TransformPos(p).XY));
+            return CountPointsApproximately(node,
+                n => !n.BoundingBox.Intersects(bounds),
+                n => false,
+                minCellExponent
+                );
+        }
+
+        /// <summary>
+        /// Count points approximately NOT within maxDistance of ALL the given polygons.
+        /// Result is always equal or greater than exact number.
+        /// Faster than CountPointsNotNearPolygons.
+        /// </summary>
+        public static long CountPointsApproximatelyNotNearPolygons(
+            this PointSet self, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
+            )
+            => CountPointsApproximatelyNotNearPolygons(self.Root.Value, polygons, maxDistance, minCellExponent);
+
+        /// <summary>
+        /// Count points approximately NOT within maxDistance of ALL the given polygons.
+        /// Result is always equal or greater than exact number.
+        /// Faster than CountPointsNotNearPolygons.
+        /// </summary>
+        public static long CountPointsApproximatelyNotNearPolygons(
+            this PointSetNode node, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
+            )
+        {
+            var bounds = polygons.Map(x => x.BoundingBox3d(maxDistance));
+            var planes = polygons.Map(x => x.GetPlane3d());
+            var w2p = planes.Map(x => x.GetWorldToPlane());
+            var poly2d = polygons.Map((x, i) => new Polygon2d(x.GetPointArray().Map(p => w2p[i].TransformPos(p).XY)));
+            return CountPointsApproximately(node,
+                n => !bounds.Any(b => n.BoundingBox.Intersects(b)),
+                n => false,
+                minCellExponent
+                );
+        }
+
+        #endregion
     }
 }

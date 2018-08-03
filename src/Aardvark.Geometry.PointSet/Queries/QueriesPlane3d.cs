@@ -23,6 +23,8 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public static partial class Queries
     {
+        #region Query points
+
         /// <summary>
         /// All points within maxDistance of given plane.
         /// </summary>
@@ -106,5 +108,195 @@ namespace Aardvark.Geometry.Points
                 p => !planes.Any(plane => Math.Abs(plane.Height(p)) <= maxDistance),
                 minCellExponent
                 );
+
+        #endregion
+
+        #region Count exact
+
+        /// <summary>
+        /// Count points within maxDistance of given plane.
+        /// </summary>
+        public static long CountPointsNearPlane(
+            this PointSet self, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
+            )
+            => CountPointsNearPlane(self.Root.Value, plane, maxDistance, minCellExponent);
+
+        /// <summary>
+        /// Count points within maxDistance of given plane.
+        /// </summary>
+        public static long CountPointsNearPlane(
+            this PointSetNode node, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
+            )
+            => CountPoints(node,
+                n => plane.Contains(maxDistance, node.BoundingBox),
+                n => !node.BoundingBox.Intersects(plane, maxDistance),
+                p => Math.Abs(plane.Height(p)) <= maxDistance,
+                minCellExponent
+                );
+
+        /// <summary>
+        /// Count points within maxDistance of ANY of the given planes.
+        /// </summary>
+        public static long CountPointsNearPlanes(
+            this PointSet self, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
+            )
+            => CountPointsNearPlanes(self.Root.Value, planes, maxDistance, minCellExponent);
+
+        /// <summary>
+        /// Count points within maxDistance of ANY of the given planes.
+        /// </summary>
+        public static long CountPointsNearPlanes(
+            this PointSetNode node, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
+            )
+            => CountPoints(node,
+                n => planes.Any(plane => plane.Contains(maxDistance, node.BoundingBox)),
+                n => !planes.Any(plane => node.BoundingBox.Intersects(plane, maxDistance)),
+                p => planes.Any(plane => Math.Abs(plane.Height(p)) <= maxDistance),
+                minCellExponent
+                );
+
+        /// <summary>
+        /// Count points NOT within maxDistance of given plane.
+        /// </summary>
+        public static long CountPointsNotNearPlane(
+            this PointSet self, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
+            )
+            => CountPointsNotNearPlane(self.Root.Value, plane, maxDistance, minCellExponent);
+
+        /// <summary>
+        /// Count points NOT within maxDistance of given plane.
+        /// </summary>
+        public static long CountPointsNotNearPlane(
+            this PointSetNode node, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
+            )
+            => CountPoints(node,
+                n => !node.BoundingBox.Intersects(plane, maxDistance),
+                n => plane.Contains(maxDistance, node.BoundingBox),
+                p => Math.Abs(plane.Height(p)) > maxDistance,
+                minCellExponent
+                );
+
+        /// <summary>
+        /// Count points NOT within maxDistance of ALL the given planes.
+        /// </summary>
+        public static long CountPointsNotNearPlanes(
+            this PointSet self, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
+            )
+            => CountPointsNotNearPlanes(self.Root.Value, planes, maxDistance, minCellExponent);
+
+        /// <summary>
+        /// Count points NOT within maxDistance of ALL the given planes.
+        /// </summary>
+        public static long CountPointsNotNearPlanes(
+            this PointSetNode node, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
+            )
+            => CountPoints(node,
+                n => !planes.Any(plane => node.BoundingBox.Intersects(plane, maxDistance)),
+                n => planes.Any(plane => plane.Contains(maxDistance, node.BoundingBox)),
+                p => !planes.Any(plane => Math.Abs(plane.Height(p)) <= maxDistance),
+                minCellExponent
+                );
+
+        #endregion
+
+        #region Count approximately
+
+        /// <summary>
+        /// Count points approximately within maxDistance of given plane.
+        /// Result is always equal or greater than exact number.
+        /// Faster than CountPointsNearPlane.
+        /// </summary>
+        public static long CountPointsApproximatelyNearPlane(
+            this PointSet self, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
+            )
+            => CountPointsApproximatelyNearPlane(self.Root.Value, plane, maxDistance, minCellExponent);
+
+        /// <summary>
+        /// Count points approximately within maxDistance of given plane.
+        /// Result is always equal or greater than exact number.
+        /// Faster than CountPointsNearPlane.
+        /// </summary>
+        public static long CountPointsApproximatelyNearPlane(
+            this PointSetNode node, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
+            )
+            => CountPointsApproximately(node,
+                n => plane.Contains(maxDistance, node.BoundingBox),
+                n => !node.BoundingBox.Intersects(plane, maxDistance),
+                minCellExponent
+                );
+
+        /// <summary>
+        /// Count points approximately within maxDistance of ANY of the given planes.
+        /// Result is always equal or greater than exact number.
+        /// Faster than CountPointsNearPlanes.
+        /// </summary>
+        public static long CountPointsApproximatelyNearPlanes(
+            this PointSet self, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
+            )
+            => CountPointsApproximatelyNearPlanes(self.Root.Value, planes, maxDistance, minCellExponent);
+
+        /// <summary>
+        /// Count points approximately within maxDistance of ANY of the given planes.
+        /// Result is always equal or greater than exact number.
+        /// Faster than CountPointsNearPlanes.
+        /// </summary>
+        public static long CountPointsApproximatelyNearPlanes(
+            this PointSetNode node, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
+            )
+            => CountPointsApproximately(node,
+                n => planes.Any(plane => plane.Contains(maxDistance, node.BoundingBox)),
+                n => !planes.Any(plane => node.BoundingBox.Intersects(plane, maxDistance)),
+                minCellExponent
+                );
+
+        /// <summary>
+        /// Count points approximately NOT within maxDistance of given plane.
+        /// Result is always equal or greater than exact number.
+        /// Faster than CountPointsNotNearPlane.
+        /// </summary>
+        public static long CountPointsApproximatelyNotNearPlane(
+            this PointSet self, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
+            )
+            => CountPointsApproximatelyNotNearPlane(self.Root.Value, plane, maxDistance, minCellExponent);
+
+        /// <summary>
+        /// Count points approximately NOT within maxDistance of given plane.
+        /// Result is always equal or greater than exact number.
+        /// Faster than CountPointsNotNearPlane.
+        /// </summary>
+        public static long CountPointsApproximatelyNotNearPlane(
+            this PointSetNode node, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
+            )
+            => CountPointsApproximately(node,
+                n => !node.BoundingBox.Intersects(plane, maxDistance),
+                n => plane.Contains(maxDistance, node.BoundingBox),
+                minCellExponent
+                );
+
+        /// <summary>
+        /// Count points approximately NOT within maxDistance of ALL the given planes.
+        /// Result is always equal or greater than exact number.
+        /// Faster than CountPointsNotNearPlanes.
+        /// </summary>
+        public static long CountPointsApproximatelyNotNearPlanes(
+            this PointSet self, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
+            )
+            => CountPointsApproximatelyNotNearPlanes(self.Root.Value, planes, maxDistance, minCellExponent);
+
+        /// <summary>
+        /// Count points approximately NOT within maxDistance of ALL the given planes.
+        /// Result is always equal or greater than exact number.
+        /// Faster than CountPointsNotNearPlanes.
+        /// </summary>
+        public static long CountPointsApproximatelyNotNearPlanes(
+            this PointSetNode node, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
+            )
+            => CountPointsApproximately(node,
+                n => !planes.Any(plane => node.BoundingBox.Intersects(plane, maxDistance)),
+                n => planes.Any(plane => plane.Contains(maxDistance, node.BoundingBox)),
+                minCellExponent
+                );
+        
+        #endregion
     }
 }

@@ -11,6 +11,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+#define PARANOID
 using Aardvark.Base;
 using System;
 
@@ -20,6 +21,8 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public static partial class Queries
     {
+        #region Query points
+
         /// <summary>
         /// Points within given distance of a point.
         /// </summary>
@@ -44,9 +47,9 @@ namespace Aardvark.Geometry.Points
 
             if (node.IsLeaf)
             {
-                #region paranoid
+                #if PARANOID
                 if (node.PointCount <= 0) throw new InvalidOperationException();
-                #endregion
+                #endif
 
                 var center = node.Center;
 
@@ -97,5 +100,7 @@ namespace Aardvark.Geometry.Points
                 return result;
             }
         }
+
+        #endregion
     }
 }
