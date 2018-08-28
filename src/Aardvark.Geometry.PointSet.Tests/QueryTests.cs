@@ -139,11 +139,27 @@ namespace Aardvark.Geometry.Tests
             var ps = pointset.QueryPointsNearPoint(new V3d(0.75, 0.5, 0.25), 0.25, 10000);
             Assert.IsTrue(ps.Count < 1024);
         }
-
+        
         [Test]
         public void CanQueryPointsNearPoint_5()
         {
-            var pointset = CreateClusteredPointsInUnitCube(1024, 32);
+            var pointset = CreateRandomPointsInUnitCube(1024, 32);
+
+            var ps100 = pointset.QueryPointsNearPoint(new V3d(0.75, 0.5, 0.25), 0.50, 100);
+            Assert.IsTrue(ps100.Count == 100);
+
+            var ps10 = pointset.QueryPointsNearPoint(new V3d(0.75, 0.5, 0.25), 0.25, 10);
+            Assert.IsTrue(ps10.Count == 10);
+
+            var ps1 = pointset.QueryPointsNearPoint(new V3d(0.75, 0.5, 0.25), 0.25, 1);
+            Assert.IsTrue(ps1.Count == 1);
+        }
+
+
+        [Test]
+        public void CanQueryPointsNearPoint_6()
+        {
+            var pointset = CreateClusteredPointsInUnitCube(1000000, 32);
             var xs = pointset.QueryAllPoints().SelectMany(x => x.Positions).ToArray();
 
             var nonEmtpyResultCount = 0;

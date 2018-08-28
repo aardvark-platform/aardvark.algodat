@@ -3,6 +3,7 @@ using Aardvark.Data.Points;
 using Aardvark.Data.Points.Import;
 using Aardvark.Geometry.Points;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -127,12 +128,48 @@ namespace Aardvark.Geometry.Tests
             Console.WriteLine($"    {sw.Elapsed} ({(int)(count / sw.Elapsed.TotalSeconds):N0} points/s)");
         }
 
+        internal static void TestKNearest()
+        {
+            var sw = new Stopwatch();
+            var rand = new Random();
+
+            Report.BeginTimed("generating point clouds");
+            var cloud0 = CreateRandomPointsInUnitCube(1000000, 8192);
+            var cloud1 = CreateRandomPointsInUnitCube(1000000, 8192);
+            Report.EndTimed();
+
+            var ps0 = cloud0.QueryAllPoints().SelectMany(chunk => chunk.Positions).ToArray();
+            
+            sw.Restart();
+            for (var i = 0; i < ps0.Length; i++)
+            {
+                var p = cloud1.QueryPointsNearPoint(ps0[i], 0.1, 1);
+                if (i % 100000 == 0) Console.WriteLine($"{i,20:N0}     {sw.Elapsed}");
+            }
+            sw.Stop();
+            Console.WriteLine($"{ps0.Length,20:N0}     {sw.Elapsed}");
+
+            PointSet CreateRandomPointsInUnitCube(int n, int splitLimit)
+            {
+                var r = new Random();
+                var ps = new V3d[n];
+                for (var i = 0; i < n; i++) ps[i] = new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble());
+                var config = ImportConfig.Default
+                    .WithStorage(PointCloud.CreateInMemoryStore())
+                    .WithKey("test")
+                    .WithOctreeSplitLimit(splitLimit)
+                    ;
+                return PointCloud.Chunks(new Chunk(ps, null), config);
+            }
+        }
+
         public static void Main(string[] args)
         {
-            foreach (var filename in Directory.EnumerateFiles(@"C:\", "*.pts", SearchOption.AllDirectories))
-            {
-                TestImportPts(filename);
-            }
+            TestKNearest();
+            //foreach (var filename in Directory.EnumerateFiles(@"C:\", "*.pts", SearchOption.AllDirectories))
+            //{
+            //    TestImportPts(filename);
+            //}
         }
     }
 }
