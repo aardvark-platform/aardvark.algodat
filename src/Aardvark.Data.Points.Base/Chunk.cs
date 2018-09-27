@@ -91,7 +91,7 @@ namespace Aardvark.Data.Points
         /// Immutable update of normals.
         /// </summary>
         public Chunk WithIntensities(IList<int> newIntensities) => new Chunk(Positions, Colors, Normals, newIntensities, BoundingBox);
-
+        
         /// <summary>
         /// Removes points which are less than minDist from previous point.
         /// </summary>
@@ -156,5 +156,109 @@ namespace Aardvark.Data.Points
         /// </summary>
         public Chunk ImmutableMapPositions(Func<V3d, V3d> mapping)
             => new Chunk(Positions.Map(mapping), Colors, Normals, Intensities);
+
+        #region ImmutableFilterBy...
+
+        /// <summary>
+        /// Returns chunk with points for which given predicate is true.
+        /// </summary>
+        public Chunk ImmutableFilterByPosition(Func<V3d, bool> predicate)
+        {
+            if (!HasPositions) return this;
+
+            var ps = new List<V3d>();
+            var cs = Colors != null ? new List<C4b>() : null;
+            var ns = Normals != null ? new List<V3f>() : null;
+            var js = Intensities != null ? new List<int>() : null;
+
+            for (var i = 0; i < Positions.Count; i++)
+            {
+                if (predicate(Positions[i]))
+                {
+                    ps.Add(Positions[i]);
+                    if (cs != null) cs.Add(Colors[i]);
+                    if (ns != null) ns.Add(Normals[i]);
+                    if (js != null) js.Add(Intensities[i]);
+                }
+            }
+            return new Chunk(ps, cs, ns, js);
+        }
+
+        /// <summary>
+        /// Returns chunk with points for which given predicate is true.
+        /// </summary>
+        public Chunk ImmutableFilterByColor(Func<C4b, bool> predicate)
+        {
+            if (!HasColors) return this;
+
+            var ps = Positions != null ? new List<V3d>() : null;
+            var cs = new List<C4b>();
+            var ns = Normals != null ? new List<V3f>() : null;
+            var js = Intensities != null ? new List<int>() : null;
+
+            for (var i = 0; i < Colors.Count; i++)
+            {
+                if (predicate(Colors[i]))
+                {
+                    if (ps != null) ps.Add(Positions[i]);
+                    cs.Add(Colors[i]);
+                    if (ns != null) ns.Add(Normals[i]);
+                    if (js != null) js.Add(Intensities[i]);
+                }
+            }
+            return new Chunk(ps, cs, ns, js);
+        }
+
+        /// <summary>
+        /// Returns chunk with points for which given predicate is true.
+        /// </summary>
+        public Chunk ImmutableFilterByNormal(Func<V3f, bool> predicate)
+        {
+            if (!HasNormals) return this;
+
+            var ps = Positions != null ? new List<V3d>() : null;
+            var cs = Colors != null ? new List<C4b>() : null;
+            var ns = new List<V3f>();
+            var js = Intensities != null ? new List<int>() : null;
+
+            for (var i = 0; i < Normals.Count; i++)
+            {
+                if (predicate(Normals[i]))
+                {
+                    if (ps != null) ps.Add(Positions[i]);
+                    if (cs != null) cs.Add(Colors[i]);
+                    ns.Add(Normals[i]);
+                    if (js != null) js.Add(Intensities[i]);
+                }
+            }
+            return new Chunk(ps, cs, ns, js);
+        }
+
+        /// <summary>
+        /// Returns chunk with points for which given predicate is true.
+        /// </summary>
+        public Chunk ImmutableFilterByIntensity(Func<int, bool> predicate)
+        {
+            if (!HasNormals) return this;
+
+            var ps = Positions != null ? new List<V3d>() : null;
+            var cs = Colors != null ? new List<C4b>() : null;
+            var ns = Normals != null ? new List<V3f>() : null;
+            var js = new List<int>();
+
+            for (var i = 0; i < Intensities.Count; i++)
+            {
+                if (predicate(Intensities[i]))
+                {
+                    if (ps != null) ps.Add(Positions[i]);
+                    if (cs != null) cs.Add(Colors[i]);
+                    if (ns != null) ns.Add(Normals[i]);
+                    js.Add(Intensities[i]);
+                }
+            }
+            return new Chunk(ps, cs, ns, js);
+        }
+
+        #endregion
     }
 }
