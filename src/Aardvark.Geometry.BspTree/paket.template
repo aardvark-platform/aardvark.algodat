@@ -1,0 +1,9 @@
+type project
+id Aardvark.Geometry.BspTree
+authors Aardvark Platform Team
+owners Aardvark Platform Team
+projectUrl http://github.com/aardvark-platform
+licenseUrl http://www.gnu.org/licenses/agpl.txt
+description
+    A high-performance BSP-tree implementation.
+include-pdbs true

@@ -14,6 +14,14 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aardvark.Data.Points.Ascii"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aardvark.Data.Points.Base", "Aardvark.Data.Points.Base\Aardvark.Data.Points.Base.csproj", "{ED56D68D-7032-4913-AE15-215309D17E38}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aardvark.Geometry.BspTree", "Aardvark.Geometry.BspTree\Aardvark.Geometry.BspTree.csproj", "{283E406E-5598-4619-958E-214AEB13EB08}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aardvark.Geometry.Clustering", "Aardvark.Geometry.Clustering\Aardvark.Geometry.Clustering.csproj", "{EFD58A9E-0E33-47A8-84AB-429F9AA9B413}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aardvark.Geometry.Intersection", "Aardvark.Geometry.Intersection\Aardvark.Geometry.Intersection.csproj", "{A334BA00-4568-4454-BFB2-33148E7326B6}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aardvark.Geometry.PolyMesh", "Aardvark.Geometry.PolyMesh\Aardvark.Geometry.PolyMesh.csproj", "{1641094B-854E-499A-A5DB-3AB5C0D83747}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -44,12 +52,28 @@ Global
 		{ED56D68D-7032-4913-AE15-215309D17E38}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ED56D68D-7032-4913-AE15-215309D17E38}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ED56D68D-7032-4913-AE15-215309D17E38}.Release|Any CPU.Build.0 = Release|Any CPU
+		{283E406E-5598-4619-958E-214AEB13EB08}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{283E406E-5598-4619-958E-214AEB13EB08}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{283E406E-5598-4619-958E-214AEB13EB08}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{283E406E-5598-4619-958E-214AEB13EB08}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EFD58A9E-0E33-47A8-84AB-429F9AA9B413}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EFD58A9E-0E33-47A8-84AB-429F9AA9B413}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EFD58A9E-0E33-47A8-84AB-429F9AA9B413}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EFD58A9E-0E33-47A8-84AB-429F9AA9B413}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A334BA00-4568-4454-BFB2-33148E7326B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A334BA00-4568-4454-BFB2-33148E7326B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A334BA00-4568-4454-BFB2-33148E7326B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A334BA00-4568-4454-BFB2-33148E7326B6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1641094B-854E-499A-A5DB-3AB5C0D83747}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1641094B-854E-499A-A5DB-3AB5C0D83747}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1641094B-854E-499A-A5DB-3AB5C0D83747}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1641094B-854E-499A-A5DB-3AB5C0D83747}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {E996B5E6-49B2-4479-9DDE-455A40509F43}
 		EnterpriseLibraryConfigurationToolBinariesPathV6 = packages\EnterpriseLibrary.TransientFaultHandling.6.0.1304.0\lib\portable-net45+win+wp8;packages\EnterpriseLibrary.TransientFaultHandling.Data.6.0.1304.1\lib\NET45
+		SolutionGuid = {E996B5E6-49B2-4479-9DDE-455A40509F43}
 	EndGlobalSection
 EndGlobal

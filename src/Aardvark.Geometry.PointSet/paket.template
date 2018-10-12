@@ -5,5 +5,5 @@ owners Aardvark Platform Team
 projectUrl http://github.com/aardvark-platform
 licenseUrl http://www.gnu.org/licenses/agpl.txt
 description
-    A high performance out-of-core point cloud data structure.
+    A high-performance out-of-core point cloud data structure.
 include-pdbs true

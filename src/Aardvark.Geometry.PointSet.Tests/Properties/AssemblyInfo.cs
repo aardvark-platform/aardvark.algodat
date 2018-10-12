@@ -8,10 +8,10 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("Aardvark.Geometry.PointSet.Tests")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("Aardvark Platform Team")]
 [assembly: AssemblyProduct("Aardvark.Geometry.PointSet.Tests")]
-[assembly: AssemblyCopyright("Copyright © 2017")]
-[assembly: AssemblyTrademark("")]
+[assembly: AssemblyCopyright("Copyright © 2006-2018")]
+[assembly: AssemblyTrademark("Aardvark Platform Team")]
 [assembly: AssemblyCulture("")]
 
 // Setting ComVisible to false makes the types in this assembly not visible

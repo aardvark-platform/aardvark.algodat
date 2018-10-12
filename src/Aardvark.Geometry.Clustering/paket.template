@@ -1,0 +1,9 @@
+type project
+id Aardvark.Geometry.Clustering
+authors Aardvark Platform Team
+owners Aardvark Platform Team
+projectUrl http://github.com/aardvark-platform
+licenseUrl http://www.gnu.org/licenses/agpl.txt
+description
+    Clustering of points, normals and planes.
+include-pdbs true
