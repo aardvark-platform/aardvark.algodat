@@ -19,6 +19,11 @@ This repository contains high-performance, production-quality data structures an
 * **Aardvark.Geometry.PointTree** - fast n-closest points queries for in-memory point clouds
 * **Aardvark.Geometry.PolyMesh** - compact in-memory polygonal mesh data structure, based on [A Mesh Data Structure for Rendering and Subdivision](https://www.researchgate.net/publication/254451624_A_Mesh_Data_Structure_for_Rendering_and_Subdivision)
 
+Furthermore, there are some importers for file formats.
+
+* **Aardvark.Data.E57** - importer for [E57 (ASTM E2807-11)](https://www.astm.org/Standards/E2807.htm) laserscan files (compatible with `Aardvark.Geometry.PointSet`)
+* **Aardvark.Data.Ascii** - fast and parameterizable importer for text-based laserscan formats, like for example *.pts* (compatible with `Aardvark.Geometry.PointSet`)
+
 This software repository is made available under the terms of the [GNU Affero General Public License (AGPL)](LICENSE).
 
 [Point Clouds Documentation](https://github.com/aardvark-platform/aardvark.docs/wiki/Point-Clouds)
