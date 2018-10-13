@@ -12,8 +12,12 @@ Aardvark.Algodat is part of the open-source [Aardvark platform](https://github.c
 
 This repository contains high-performance, production-quality data structures and algorithms. 
 
+* **Aardvark.Geometry.BspTree** - in-memory BSP-tree
+* **Aardvark.Geometry.Clustering** - efficient clustering of geometric primitives
+* **Aardvark.Geometry.Intersection** - in-memory kd-tree for polygon meshes
 * **Aardvark.Geometry.PointSet** - out-of-core point cloud data management
 * **Aardvark.Geometry.PointTree** - fast n-closest points queries for in-memory point clouds
+* **Aardvark.Geometry.PolyMesh** - compact in-memory polygonal mesh data structure, based on [A Mesh Data Structure for Rendering and Subdivision](https://www.researchgate.net/publication/254451624_A_Mesh_Data_Structure_for_Rendering_and_Subdivision)
 
 This software repository is made available under the terms of the [GNU Affero General Public License (AGPL)](LICENSE).
 
