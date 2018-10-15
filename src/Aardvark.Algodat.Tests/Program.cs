@@ -165,7 +165,12 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
-            TestKNearest();
+            var store = PointCloud.OpenStore(@"G:\cells\3280_5503_0_10\pointcloud");
+            var pc = store.GetPointSet("3280_5503_0_10", default);
+            Console.WriteLine(pc.Id);
+            Console.WriteLine(pc.PointCount);
+
+            //TestKNearest();
             //foreach (var filename in Directory.EnumerateFiles(@"C:\", "*.pts", SearchOption.AllDirectories))
             //{
             //    TestImportPts(filename);

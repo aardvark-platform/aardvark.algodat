@@ -12,6 +12,7 @@ nuget Aardvark.Base.Rendering           ~> 4.4.2
 nuget Newtonsoft.Json                   ~> 11.0.2
 nuget NUnit                             ~> 3.10.0
 nuget NUnit3TestAdapter                 ~> 3.10.0
+nuget Uncodium.Eigensystems             ~> 1.0.1
 nuget Uncodium.SimpleStore              ~> 2.0.0
 
 group Build
