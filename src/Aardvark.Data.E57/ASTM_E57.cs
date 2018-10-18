@@ -82,7 +82,7 @@ namespace Aardvark.Data.E57
             public XElement RawXml { get; private set; }
             public E57Root E57Root { get; private set; }
 
-            public static E57FileHeader Parse(Stream stream)
+            public static E57FileHeader Parse(Stream stream, long actualFileSizeInBytes)
             {
                 stream.Position = 0;
                 var buffer = new byte[48];
@@ -98,6 +98,9 @@ namespace Aardvark.Data.E57
                     XmlLength = BitConverter.ToUInt64(buffer, 32),
                     PageSize = Check("PageSize", BitConverter.ToUInt64(buffer, 40), x => x == 1024, "1024"),
                 };
+
+                if (h.FileLength != (ulong)actualFileSizeInBytes) throw new Exception(
+                    $"[E57] According to the E57 file header, file size should be {h.FileLength:N0} bytes, but it is {actualFileSizeInBytes:N0} bytes.");
 
                 var xmlBuffer = ReadLogicalBytes(stream, h.XmlOffset, (int)h.XmlLength);
                 var xmlString = Encoding.UTF8.GetString(xmlBuffer);
@@ -2242,7 +2245,8 @@ namespace Aardvark.Data.E57
                 {
                     var bytesLeftInPage = 1020 - (int)(stream.Position % 1024);
                     if (bytesLeftInPage > countLogical) bytesLeftInPage = countLogical;
-                    if (stream.Read(buffer, i, bytesLeftInPage) != bytesLeftInPage) throw new InvalidOperationException();
+                    var bytesRead = stream.Read(buffer, i, bytesLeftInPage);
+                    if (bytesRead != bytesLeftInPage) throw new InvalidOperationException();
                     stream.Position += 4; // skip CRC
                     i += bytesLeftInPage;
                     countLogical -= bytesLeftInPage;
