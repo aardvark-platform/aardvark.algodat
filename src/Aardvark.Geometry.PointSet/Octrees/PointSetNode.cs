@@ -1054,12 +1054,12 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public PointSetNode WithLodNormals(Guid? lodNsId, PointSetNode[] subnodes)
         {
-            if (IsLeaf) throw new InvalidOperationException("Only inner nodes can have LodNormals. Try WithNormals instead.");
+            //if (IsLeaf) throw new InvalidOperationException("Only inner nodes can have LodNormals. Try WithNormals instead.");
             return new PointSetNode(Guid.NewGuid(),
                 Cell, PointCountTree,
                 PositionsId, ColorsId, KdTreeId, NormalsId, IntensitiesId,
                 LodPositionsId, LodColorsId, LodKdTreeId, lodNsId, LodIntensitiesId,
-                subnodes.Map(x => x?.Id), Storage, true
+                subnodes?.Map(x => x?.Id), Storage, true
                 );
         }
 

@@ -16,6 +16,7 @@ using Aardvark.Base.Coder;
 using Aardvark.Data.Points;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -86,6 +87,9 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public static void Add(this Storage storage, Guid key, V3f[] data, CancellationToken ct) => Add(storage, key.ToString(), data, ct);
+        
+        /// <summary></summary>
+        public static void Add(this Storage storage, Guid key, IList<V3f> data, CancellationToken ct) => Add(storage, key.ToString(), data, ct);
 
         /// <summary></summary>
         public static void Add(this Storage storage, string key, V3f[] data, CancellationToken ct)
@@ -97,6 +101,24 @@ namespace Aardvark.Geometry.Points
                 using (var bw = new BinaryWriter(ms))
                 {
                     for (var i = 0; i < data.Length; i++)
+                    {
+                        bw.Write(data[i].X); bw.Write(data[i].Y); bw.Write(data[i].Z);
+                    }
+                }
+                return buffer;
+            }, ct);
+        }
+
+        /// <summary></summary>
+        public static void Add(this Storage storage, string key, IList<V3f> data, CancellationToken ct)
+        {
+            storage.f_add(key, data, () =>
+            {
+                var buffer = new byte[data.Count * 12];
+                using (var ms = new MemoryStream(buffer))
+                using (var bw = new BinaryWriter(ms))
+                {
+                    for (var i = 0; i < data.Count; i++)
                     {
                         bw.Write(data[i].X); bw.Write(data[i].Y); bw.Write(data[i].Z);
                     }

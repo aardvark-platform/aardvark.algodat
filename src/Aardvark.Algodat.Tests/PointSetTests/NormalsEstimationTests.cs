@@ -19,7 +19,7 @@ using System.Linq;
 namespace Aardvark.Geometry.Tests
 {
     [TestFixture]
-    public class NormalsGenerationTests
+    public class NormalsEstimationTests
     {
         [Test]
         public void Plane()

@@ -57,9 +57,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BitPackTests.cs" />
-    <Compile Include="NormalsGenerationTests.cs" />
-    <Compile Include="RegenerateNormalsTests.cs" />
-    <Compile Include="NormalsTests.cs" />
+    <Compile Include="PointSetTests\NormalsEstimationTests.cs" />
+    <Compile Include="PointSetTests\NormalsGenerationTests.cs" />
+    <Compile Include="PointSetTests\RegenerateNormalsTests.cs" />
+    <Compile Include="PointSetTests\NormalsTests.cs" />
     <Compile Include="ProgressReportingTests.cs" />
     <Compile Include="StoreTests.cs" />
     <Compile Include="ImportTests.cs" />

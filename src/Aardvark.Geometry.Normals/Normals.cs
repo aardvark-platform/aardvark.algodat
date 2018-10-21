@@ -13,6 +13,7 @@
 */
 using Aardvark.Base;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Uncodium;
 
@@ -28,7 +29,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static V3f[] EstimateNormals(this V3d[] points, int k)
             => EstimateNormals(points, points.CreateRkdTree(Metric.Euclidean, 0.0), k);
-
+        
         /// <summary>
         /// Estimates a normal vector for each point by least-squares-fitting a plane through its k nearest neighbours.
         /// </summary>
@@ -47,23 +48,23 @@ namespace Aardvark.Geometry.Points
         /// Estimates a normal vector for each point by least-squares-fitting a plane through its k nearest neighbours.
         /// Requires that the supplied kdtree is built from given points. 
         /// </summary>
-        public static V3f[] EstimateNormals(this V3d[] points, PointRkdTreeD<V3d[], V3d> kdtree, int k)
+        public static V3f[] EstimateNormals(this IList<V3d> points, PointRkdTreeD<V3d[], V3d> kdtree, int k)
             => points.Map((p, i) =>
             {
-                if (k > points.Length) k = points.Length;
+                if (k > points.Count) k = points.Count;
 
                 // find k closest points
                 var closest = kdtree.GetClosest(p, double.MaxValue, k);
                 if (closest.Count == 0) return V3f.Zero;
 
                 // compute centroid of k closest points
-                var c = points[closest[0].Index];
-                for (var j = 1; j < k; j++) c += points[closest[j].Index];
+                var c = points[(int)closest[0].Index];
+                for (var j = 1; j < k; j++) c += points[(int)closest[j].Index];
                 c /= k;
                 
                 // compute covariance matrix of k closest points relative to centroid
                 var cvm = M33d.Zero;
-                for (var j = 0; j < k; j++) cvm.AddOuterProduct(points[closest[j].Index] - c);
+                for (var j = 0; j < k; j++) cvm.AddOuterProduct(points[(int)closest[j].Index] - c);
                 cvm /= k;
 
                 // solve eigensystem -> eigenvector for smallest eigenvalue gives normal 
