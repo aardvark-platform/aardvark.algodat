@@ -52,8 +52,9 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary>
+        /// Creates pointset from given root cell.
         /// </summary>
-        internal PointSet(Storage storage, string key, Guid? rootCellId, long splitLimit)
+        public PointSet(Storage storage, string key, Guid? rootCellId, long splitLimit)
         {
             Storage = storage;
             Id = key ?? throw new ArgumentNullException(nameof(key));
@@ -67,7 +68,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Creates empty pointset.
         /// </summary>
-        internal PointSet(Storage storage, string key)
+        public PointSet(Storage storage, string key)
         {
             Storage = storage;
             Id = key ?? throw new ArgumentNullException(nameof(key));
