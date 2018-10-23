@@ -5,7 +5,7 @@ source https://api.nuget.org/v3/index.json
 // public repository
 nuget Aardvark.Base                     ~> 4.2.3
 nuget Aardvark.Base.IO                  ~> 4.2.3
-nuget Aardvark.Base.Rendering           ~> 4.4.2
+nuget Aardvark.Base.Rendering           ~> 4.5.1
 
 // 3rd-party
 #nuget Crc32C.NET                        ~> 1.0.5
