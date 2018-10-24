@@ -58,7 +58,7 @@ namespace Aardvark.Data.Points.Import
                 // file integrity check
                 ASTM_E57.VerifyChecksums(stream, streamLengthInBytes);
 
-                var header = ASTM_E57.E57FileHeader.Parse(stream);
+                var header = ASTM_E57.E57FileHeader.Parse(stream, streamLengthInBytes);
                 if (config.Verbose)
                 {
                     WriteLine($"[E57] ========================================================================");
@@ -191,7 +191,7 @@ namespace Aardvark.Data.Points.Import
         {
             var filesize = new FileInfo(filename).Length;
             var stream = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
-            var header = ASTM_E57.E57FileHeader.Parse(stream);
+            var header = ASTM_E57.E57FileHeader.Parse(stream, filesize);
             var pointCount = 0L;
             var pointBounds = Box3d.Invalid;
             foreach (var data3d in header.E57Root.Data3D)

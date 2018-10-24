@@ -3,4 +3,5 @@ Aardvark.Base.IO
 Newtonsoft.Json
 NUnit
 NUnit3TestAdapter
+Uncodium.Eigensystems
 Uncodium.SimpleStore

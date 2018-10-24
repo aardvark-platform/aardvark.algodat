@@ -33,7 +33,7 @@ namespace Aardvark.Geometry.Tests
                 TestContext.WriteLine($"[TestDataDir] TestContext.CurrentContext.TestDirectory: {d}");
                 while (!Directory.EnumerateDirectories(d).Select(x => Path.GetFileName(x)).Contains(".paket"))
                     d = Path.GetDirectoryName(d);
-                var result = Path.GetFullPath(Path.Combine(d, "src/Aardvark.Geometry.PointSet.Tests/TestData"));
+                var result = Path.GetFullPath(Path.Combine(d, "src/Aardvark.Algodat.Tests/TestData"));
                 TestContext.WriteLine($"[TestDataDir] result: {result}");
                 return result;
             }

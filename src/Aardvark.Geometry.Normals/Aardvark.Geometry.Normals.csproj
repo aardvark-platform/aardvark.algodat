@@ -6,13 +6,15 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <OutputPath>..\..\bin\Debug</OutputPath>
-    <DocumentationFile>..\..\bin\Debug\netstandard2.0\Aardvark.Geometry.Intersection.xml</DocumentationFile>
-    <NoWarn>1701;1702;1705;1591</NoWarn>
+    <DocumentationFile>..\..\bin\Debug\Aardvark.Geometry.Normals.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <OutputPath>..\..\bin\Release</OutputPath>
-    <DocumentationFile>..\..\bin\Release\netstandard2.0\Aardvark.Geometry.Intersection.xml</DocumentationFile>
-    <NoWarn>1701;1702;1705;1591</NoWarn>
+    <DocumentationFile>..\..\bin\Release\Aardvark.Geometry.Normals.xml</DocumentationFile>
   </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Aardvark.Geometry.PointSet\Aardvark.Geometry.PointSet.csproj" />
+    <ProjectReference Include="..\Aardvark.Geometry.PointTree\Aardvark.Geometry.PointTree.csproj" />
+  </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>
