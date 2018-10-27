@@ -93,9 +93,9 @@ namespace Aardvark.Data.Points
         public Chunk WithIntensities(IList<int> newIntensities) => new Chunk(Positions, Colors, Normals, newIntensities, BoundingBox);
         
         /// <summary>
-        /// Removes points which are less than minDist from previous point.
+        /// Removes points which are less than minDist from previous point (L2, Euclidean).
         /// </summary>
-        public Chunk ImmutableFilterSequentialMinDist(double minDist)
+        public Chunk ImmutableFilterSequentialMinDistL2(double minDist)
         {
             if (minDist <= 0.0) return this;
             var minDistSquared = minDist * minDist;
@@ -117,6 +117,37 @@ namespace Aardvark.Data.Points
                     if (ns != null) ns.Add(Normals[i]);
                     if (js != null) js.Add(Intensities[i]);
                 }
+            }
+            return new Chunk(ps, cs, ns, js);
+        }
+
+        /// <summary>
+        /// Removes points which are less than minDist from previous point (L1, Manhattan).
+        /// </summary>
+        public Chunk ImmutableFilterSequentialMinDistL1(double minDist)
+        {
+            if (minDist <= 0.0) return this;
+
+            var ps = new List<V3d>();
+            var cs = Colors != null ? new List<C4b>() : null;
+            var ns = Normals != null ? new List<V3f>() : null;
+            var js = Intensities != null ? new List<int>() : null;
+
+            var prev = V3d.MinValue;
+            for (var i = 0; i < Positions.Count; i++)
+            {
+                var p = Positions[i];
+
+                var
+                d = p.X - prev.X; if (d < 0) d = -d; if (d < minDist) continue;
+                d = p.Y - prev.Y; if (d < 0) d = -d; if (d < minDist) continue;
+                d = p.Z - prev.Z; if (d < 0) d = -d; if (d < minDist) continue;
+
+                prev = p;
+                ps.Add(p);
+                if (cs != null) cs.Add(Colors[i]);
+                if (ns != null) ns.Add(Normals[i]);
+                if (js != null) js.Add(Intensities[i]);
             }
             return new Chunk(ps, cs, ns, js);
         }

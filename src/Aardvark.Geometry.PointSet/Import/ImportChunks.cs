@@ -38,7 +38,7 @@ namespace Aardvark.Geometry.Points
             // optionally filter minDist
             if (config.MinDist > 0.0)
             {
-                chunks = chunks.Select(x => x.ImmutableFilterSequentialMinDist(config.MinDist));
+                chunks = chunks.Select(x => x.ImmutableFilterSequentialMinDistL1(config.MinDist));
             }
 
             // optionally deduplicate points

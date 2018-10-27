@@ -119,11 +119,11 @@ namespace Aardvark.Geometry.Tests
         }
 
         [Test]
-        public void Chunk_ImmutableFilterSequentialMinDist()
+        public void Chunk_ImmutableFilterSequentialMinDistL2()
         {
             var ps = new[] { new V3d(1, 2, 3), new V3d(1.5, 2, 3), new V3d(2, 2, 3), new V3d(2.5, 2, 3) };
             var a = new Chunk(ps.Copy(), null);
-            var b = a.ImmutableFilterSequentialMinDist(0.75);
+            var b = a.ImmutableFilterSequentialMinDistL2(0.75);
 
             for (var i = 0; i < ps.Length; i++)
                 Assert.IsTrue(a.Positions[i] == ps[i]);
