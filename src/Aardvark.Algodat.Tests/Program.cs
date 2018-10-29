@@ -17,26 +17,18 @@ namespace Aardvark.Geometry.Tests
         internal static void TestE57()
         {
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
-            var filename = @"test.e57";
+            var filename = @"test.pts";
             var fileSizeInBytes = new FileInfo(filename).Length;
 
             var config = ImportConfig.Default
                 .WithInMemoryStore()
                 .WithRandomKey()
                 .WithVerbose(true)
-                .WithMaxDegreeOfParallelism(1)
+                .WithMaxDegreeOfParallelism(0)
                 .WithMinDist(0.005)
                 ;
-            var info = E57.E57Info(filename, config);
 
-            foreach (var data3d in info.Metadata.E57Root.Data3D)
-            {
-                Console.WriteLine($"[{data3d.Name}]");
-                Console.WriteLine($"    {data3d.Pose.RigidBodyTransform.Forward.TransformPos(V3d.Zero)}");
-                Console.WriteLine($"    {data3d.Pose.Rotation.TransformPos(V3d.Zero) + data3d.Pose.Translation}");
-            }
-
-            var chunks = E57.Chunks(filename, config).ToList();
+            var chunks = Pts.Chunks(filename, config).ToList();
             var pointcloud = PointCloud.Chunks(chunks, config);
             Console.WriteLine($"pointcloud.PointCount  : {pointcloud.PointCount}");
             Console.WriteLine($"pointcloud.Bounds      :{pointcloud.Bounds}");
@@ -57,19 +49,19 @@ namespace Aardvark.Geometry.Tests
             Console.WriteLine($"chunks point count: {chunks.Sum(x => x.Positions.Count)}");
             Console.WriteLine($"chunks bounds     : {new Box3d(chunks.SelectMany(x => x.Positions))}");
 
-            using (var w = File.CreateText("test.txt"))
-            {
-                foreach (var chunk in chunks)
-                {
-                    for (var i = 0; i < chunk.Count; i++)
-                    {
-                        var p = chunk.Positions[i];
-                        var c = chunk.Colors[i];
-                        w.WriteLine($"{p.X} {p.Y} {p.Z} {c.R} {c.G} {c.B}");
-                    }
-                }
-            }
-            return;
+            //using (var w = File.CreateText("test.txt"))
+            //{
+            //    foreach (var chunk in chunks)
+            //    {
+            //        for (var i = 0; i < chunk.Count; i++)
+            //        {
+            //            var p = chunk.Positions[i];
+            //            var c = chunk.Colors[i];
+            //            w.WriteLine($"{p.X} {p.Y} {p.Z} {c.R} {c.G} {c.B}");
+            //        }
+            //    }
+            //}
+            //return;
 
             /*
             var stream = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -165,10 +157,12 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
-            var store = PointCloud.OpenStore(@"G:\cells\3280_5503_0_10\pointcloud");
-            var pc = store.GetPointSet("3280_5503_0_10", default);
-            Console.WriteLine(pc.Id);
-            Console.WriteLine(pc.PointCount);
+            TestE57();
+
+            //var store = PointCloud.OpenStore(@"G:\cells\3280_5503_0_10\pointcloud");
+            //var pc = store.GetPointSet("3280_5503_0_10", default);
+            //Console.WriteLine(pc.Id);
+            //Console.WriteLine(pc.PointCount);
 
             //TestKNearest();
             //foreach (var filename in Directory.EnumerateFiles(@"C:\", "*.pts", SearchOption.AllDirectories))

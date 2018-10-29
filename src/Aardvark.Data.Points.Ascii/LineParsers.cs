@@ -114,7 +114,7 @@ namespace Aardvark.Data.Points
                         // min dist filtering
                         if (doFilterDist)
                         {
-                            if (SkipBecauseOfMinDist(ref state.Position, ref prev, filterDist)) continue;
+                            if (Utils.DistLessThanL1(ref state.Position, ref prev, filterDist)) continue;
                             prev = state.Position;
                         }
 
@@ -167,16 +167,6 @@ namespace Aardvark.Data.Points
             });
 
         #region Private
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static bool SkipBecauseOfMinDist(ref V3d position, ref V3d prev, double filterDist)
-        {
-            var
-            d = position.X - prev.X; if (d < 0) d = -d; if (d < filterDist) return true;
-            d = position.Y - prev.Y; if (d < 0) d = -d; if (d < filterDist) return true;
-            d = position.Z - prev.Z; if (d < 0) d = -d; if (d < filterDist) return true;
-            return false;
-        }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static unsafe bool SkipToNextLine(LineParserState state)

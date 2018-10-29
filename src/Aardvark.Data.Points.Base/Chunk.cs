@@ -14,6 +14,7 @@
 using Aardvark.Base;
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace Aardvark.Data.Points
 {
@@ -109,14 +110,14 @@ namespace Aardvark.Data.Points
             for (var i = 0; i < Positions.Count; i++)
             {
                 var p = Positions[i];
-                if (V3d.DistanceSquared(p, last) >= minDistSquared)
-                {
-                    last = p;
-                    ps.Add(p);
-                    if (cs != null) cs.Add(Colors[i]);
-                    if (ns != null) ns.Add(Normals[i]);
-                    if (js != null) js.Add(Intensities[i]);
-                }
+
+                if (Utils.DistLessThanL2(ref p, ref last, minDistSquared)) continue;
+                
+                last = p;
+                ps.Add(p);
+                if (cs != null) cs.Add(Colors[i]);
+                if (ns != null) ns.Add(Normals[i]);
+                if (js != null) js.Add(Intensities[i]);
             }
             return new Chunk(ps, cs, ns, js);
         }
@@ -138,10 +139,7 @@ namespace Aardvark.Data.Points
             {
                 var p = Positions[i];
 
-                var
-                d = p.X - prev.X; if (d < 0) d = -d; if (d < minDist) continue;
-                d = p.Y - prev.Y; if (d < 0) d = -d; if (d < minDist) continue;
-                d = p.Z - prev.Z; if (d < 0) d = -d; if (d < minDist) continue;
+                if (Utils.DistLessThanL1(ref p, ref prev, minDist)) continue;
 
                 prev = p;
                 ps.Add(p);
