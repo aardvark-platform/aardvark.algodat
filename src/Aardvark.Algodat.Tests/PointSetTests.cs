@@ -61,7 +61,7 @@ namespace Aardvark.Geometry.Tests
             var store = CreateStorage();
             var ps = new List<V3d> { new V3d(0.1, 0.2, 0.3) };
             var cs = new List<C4b> { C4b.White };
-            var pointset = PointSet.Create(store, "id", ps, cs, null, null, 1000, true, CancellationToken.None);
+            var pointset = PointSet.Create(store, "id", ps, cs, null, null, null, 1000, true, CancellationToken.None);
             Assert.IsTrue(pointset.PointCount == 1);
             Assert.IsTrue(pointset.Root.Value.IsLeaf);
             Assert.IsTrue(pointset.Root.Value.PointCount == 1);
@@ -75,7 +75,8 @@ namespace Aardvark.Geometry.Tests
             var cs = new List<C4b> { C4b.White };
             var ns = new List<V3f> { V3f.ZAxis };
             var js = new List<int> { 123 };
-            var imps = InMemoryPointSet.Build(ps, cs, ns, js, Cell.Unit, 1);
+            var ks = new List<byte> { 42 };
+            var imps = InMemoryPointSet.Build(ps, cs, ns, js, ks, Cell.Unit, 1);
         }
 
         [Test]
@@ -84,7 +85,8 @@ namespace Aardvark.Geometry.Tests
             var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
             var ns = new List<V3f> { V3f.ZAxis };
             var js = new List<int> { 123 };
-            var imps = InMemoryPointSet.Build(ps, null, ns, js, Cell.Unit, 1);
+            var ks = new List<byte> { 42 };
+            var imps = InMemoryPointSet.Build(ps, null, ns, js, ks, Cell.Unit, 1);
         }
 
         [Test]
@@ -93,7 +95,8 @@ namespace Aardvark.Geometry.Tests
             var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
             var cs = new List<C4b> { C4b.White };
             var js = new List<int> { 123 };
-            var imps = InMemoryPointSet.Build(ps, cs, null, js, Cell.Unit, 1);
+            var ks = new List<byte> { 42 };
+            var imps = InMemoryPointSet.Build(ps, cs, null, js, ks, Cell.Unit, 1);
         }
 
         [Test]
@@ -102,7 +105,18 @@ namespace Aardvark.Geometry.Tests
             var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
             var cs = new List<C4b> { C4b.White };
             var ns = new List<V3f> { V3f.ZAxis };
-            var imps = InMemoryPointSet.Build(ps, cs, ns, null, Cell.Unit, 1);
+            var ks = new List<byte> { 42 };
+            var imps = InMemoryPointSet.Build(ps, cs, ns, null, ks, Cell.Unit, 1);
+        }
+
+        [Test]
+        public void CanCreateInMemoryPointSetWithoutClassifications()
+        {
+            var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
+            var cs = new List<C4b> { C4b.White };
+            var ns = new List<V3f> { V3f.ZAxis };
+            var js = new List<int> { 123 };
+            var imps = InMemoryPointSet.Build(ps, cs, ns, js, null, Cell.Unit, 1);
         }
 
         [Test]
@@ -121,7 +135,7 @@ namespace Aardvark.Geometry.Tests
 
             Assert.IsTrue(ps.Count == 4 * 4 * 4);
 
-            var imps = InMemoryPointSet.Build(ps, null, ns, null, new Cell(0, 0, 0, 0), 1);
+            var imps = InMemoryPointSet.Build(ps, null, ns, null, null, new Cell(0, 0, 0, 0), 1);
             var root = imps.ToPointSetCell(storage, ct: CancellationToken.None);
             Assert.IsTrue(root.PointCountTree == 4 * 4 * 4);
             var countNodes = root.CountLeafNodes(true);
@@ -152,13 +166,16 @@ namespace Aardvark.Geometry.Tests
             var cs = new List<C4b> { C4b.White };
             var ns = new List<V3f> { V3f.ZAxis };
             var js = new List<int> { 123 };
+            var ks = new List<byte> { 42 };
             var storage = PointCloud.CreateInMemoryStore();
-            var pointset = PointSet.Create(storage, "test", ps, cs, ns, js, 1, true, default);
+            var pointset = PointSet.Create(storage, "test", ps, cs, ns, js, ks, 1, true, default);
             Assert.IsTrue(pointset.HasColors == true);
             Assert.IsTrue(pointset.HasIntensities == true);
+            Assert.IsTrue(pointset.HasClassifications == true);
             Assert.IsTrue(pointset.HasKdTree == true);
             Assert.IsTrue(pointset.HasLodColors == true);
             Assert.IsTrue(pointset.HasLodIntensities == true);
+            Assert.IsTrue(pointset.HasLodClassifications == true);
             Assert.IsTrue(pointset.HasLodKdTree == true);
             Assert.IsTrue(pointset.HasLodNormals == true);
             Assert.IsTrue(pointset.HasLodPositions == true);
@@ -173,13 +190,16 @@ namespace Aardvark.Geometry.Tests
             var cs = new List<C4b> { C4b.White };
             var ns = new List<V3f> { V3f.ZAxis };
             var js = new List<int> { 123 };
+            var ks = new List<byte> { 42 };
             var storage = PointCloud.CreateInMemoryStore();
-            var pointset = PointSet.Create(storage, "test", ps, cs, ns, js, 1, false, default);
+            var pointset = PointSet.Create(storage, "test", ps, cs, ns, js, ks, 1, false, default);
             Assert.IsTrue(pointset.HasColors == true);
             Assert.IsTrue(pointset.HasIntensities == true);
+            Assert.IsTrue(pointset.HasClassifications == true);
             Assert.IsTrue(pointset.HasKdTree == true);
             Assert.IsTrue(pointset.HasLodColors == false);
             Assert.IsTrue(pointset.HasLodIntensities == false);
+            Assert.IsTrue(pointset.HasLodClassifications == false);
             Assert.IsTrue(pointset.HasLodKdTree == false);
             Assert.IsTrue(pointset.HasLodNormals == false);
             Assert.IsTrue(pointset.HasLodPositions == false);
@@ -193,7 +213,7 @@ namespace Aardvark.Geometry.Tests
             var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
             var cs = new List<C4b> { C4b.White };
             var storage = PointCloud.CreateInMemoryStore();
-            var pointset = PointSet.Create(storage, "test", ps, cs, null, null, 1, true, default);
+            var pointset = PointSet.Create(storage, "test", ps, cs, null, null, null, 1, true, default);
             Assert.IsTrue(pointset.HasColors == true);
             Assert.IsTrue(pointset.HasIntensities == false);
             Assert.IsTrue(pointset.HasKdTree == true);

@@ -32,7 +32,7 @@ namespace Aardvark.Geometry.Tests
             var r = new Random();
             var storage = PointSetTests.CreateStorage();
             var ps = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
-            var pointset0 = PointSet.Create(storage, "test", ps.ToList(), null, null, null, 5000, true, CancellationToken.None);
+            var pointset0 = PointSet.Create(storage, "test", ps.ToList(), null, null, null, null, 5000, true, CancellationToken.None);
             Assert.IsTrue(!(pointset0.HasNormals || pointset0.HasLodNormals));
 
             // create new pointset with regenerated normals
@@ -75,7 +75,7 @@ namespace Aardvark.Geometry.Tests
             var storage = PointSetTests.CreateStorage();
             var ps = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
             var ns = ps.Map(_ => V3f.ZAxis);
-            var pointset0 = PointSet.Create(storage, "test", ps.ToList(), null, ns.ToList(), null, 5000, true, CancellationToken.None);
+            var pointset0 = PointSet.Create(storage, "test", ps.ToList(), null, ns.ToList(), null, null, 5000, true, CancellationToken.None);
             Assert.IsTrue(pointset0.HasNormals || pointset0.HasLodNormals);
 
             // create new pointset with regenerated normals

@@ -30,6 +30,7 @@ namespace Aardvark.Geometry.Points
         private IList<C4b> m_cs;
         private IList<V3f> m_ns;
         private IList<int> m_is;
+        private IList<byte> m_ks;
         private Node m_root;
         private long m_insertedPointsCount = 0;
         private long m_duplicatePointsCount = 0;
@@ -37,28 +38,29 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// </summary>
         public static InMemoryPointSet Build(Chunk chunk, long octreeSplitLimit)
-            => Build(chunk.Positions, chunk.Colors, chunk.Normals, chunk.Intensities, chunk.BoundingBox, octreeSplitLimit);
+            => Build(chunk.Positions, chunk.Colors, chunk.Normals, chunk.Intensities, chunk.Classifications, chunk.BoundingBox, octreeSplitLimit);
 
         /// <summary>
         /// </summary>
-        public static InMemoryPointSet Build(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, Box3d bounds, long octreeSplitLimit)
-            => new InMemoryPointSet(ps, cs, ns, js, bounds, octreeSplitLimit);
+        public static InMemoryPointSet Build(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, Box3d bounds, long octreeSplitLimit)
+            => new InMemoryPointSet(ps, cs, ns, js, ks, bounds, octreeSplitLimit);
 
         /// <summary>
         /// </summary>
-        public static InMemoryPointSet Build(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, Cell bounds, long octreeSplitLimit)
-            => new InMemoryPointSet(ps, cs, ns, js, bounds, octreeSplitLimit);
+        public static InMemoryPointSet Build(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, Cell bounds, long octreeSplitLimit)
+            => new InMemoryPointSet(ps, cs, ns, js, ks, bounds, octreeSplitLimit);
 
-        private InMemoryPointSet(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, Box3d bounds, long octreeSplitLimit)
-         : this(ps, cs, ns, js, new Cell(bounds), octreeSplitLimit)
-        { }
+        private InMemoryPointSet(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, Box3d bounds, long octreeSplitLimit)
+            : this(ps, cs, ns, js, ks, new Cell(bounds), octreeSplitLimit)
+            { }
 
-        private InMemoryPointSet(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, Cell bounds, long octreeSplitLimit)
+        private InMemoryPointSet(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, Cell bounds, long octreeSplitLimit)
         {
             m_ps = ps;
             m_cs = cs;
             m_ns = ns;
             m_is = js;
+            m_ks = ks;
             m_splitLimit = octreeSplitLimit;
 
             m_root = new Node(this, bounds);
@@ -68,7 +70,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        public PointSetNode ToPointSetCell(Storage storage, double kdTreeEps = 1e-6, CancellationToken ct = default(CancellationToken))
+        public PointSetNode ToPointSetCell(Storage storage, double kdTreeEps = 1e-6, CancellationToken ct = default)
         {
             var result = m_root.ToPointSetCell(storage, ct, kdTreeEps);
 #if DEBUG
@@ -105,6 +107,7 @@ namespace Aardvark.Geometry.Points
                 C4b[] cs = null;
                 V3f[] ns = null;
                 int[] js = null;
+                byte[] ks = null;
                 PointRkdTreeD<V3f[], V3f> kdTree = null;
 
                 if (_ia != null)
@@ -136,6 +139,13 @@ namespace Aardvark.Geometry.Points
                         for (var i = 0; i < count; i++) js[i] = allIs[_ia[i]];
                     }
 
+                    if (_octree.m_ks != null)
+                    {
+                        var allKs = _octree.m_ks;
+                        ks = new byte[count];
+                        for (var i = 0; i < count; i++) ks[i] = allKs[_ia[i]];
+                    }
+
                     kdTree = new PointRkdTreeD<V3f[], V3f>(
                         3, ps.Length, ps,
                         (xs, i) => xs[(int)i], (v, i) => (float)v[i],
@@ -148,6 +158,7 @@ namespace Aardvark.Geometry.Points
                 Guid? csId = cs != null ? (Guid?)Guid.NewGuid() : null;
                 Guid? nsId = ns != null ? (Guid?)Guid.NewGuid() : null;
                 Guid? isId = js != null ? (Guid?)Guid.NewGuid() : null;
+                Guid? ksId = ks != null ? (Guid?)Guid.NewGuid() : null;
                 Guid? kdId = kdTree != null ? (Guid?)Guid.NewGuid() : null;
                 
                 var subcells = _subnodes?.Map(x => x?.ToPointSetCell(storage, ct, kdTreeEps));
@@ -165,11 +176,12 @@ namespace Aardvark.Geometry.Points
                 if (csId != null) storage.Add(csId.ToString(), cs, ct);
                 if (nsId != null) storage.Add(nsId.ToString(), ns, ct);
                 if (isId != null) storage.Add(isId.ToString(), js, ct);
+                if (ksId != null) storage.Add(ksId.ToString(), ks, ct);
                 if (kdId != null) storage.Add(kdId.ToString(), kdTree.Data, ct);
 
                 if (subcellIds == null) // leaf
                 {
-                    return new PointSetNode(_cell, pointCountTree, psId, csId, kdId, nsId, isId, storage);
+                    return new PointSetNode(_cell, pointCountTree, psId, csId, kdId, nsId, isId, ksId, storage);
                 }
                 else
                 {

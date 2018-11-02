@@ -129,7 +129,10 @@ namespace Aardvark.Geometry.Points
             var lodNsId = Guid.NewGuid();
             self.Storage.Add(lodNsId, lodNs, ct);
             
-            var result = self.WithLod(self.LodPositionsId, self.LodColorsId, lodNsId, self.LodIntensitiesId, self.LodKdTreeId, subcells);
+            var result = self.WithLod(
+                self.LodPositionsId, self.LodColorsId, lodNsId, self.LodIntensitiesId, self.LodKdTreeId, self.LodClassificationsId,
+                subcells
+                );
             return result;
         }
 
@@ -206,7 +209,10 @@ namespace Aardvark.Geometry.Points
             var lodNsId = Guid.NewGuid();
             self.Storage.Add(lodNsId, lodNs, ct);
 
-            var result = self.WithLod(self.LodPositionsId, self.LodColorsId, lodNsId, self.LodIntensitiesId, self.LodKdTreeId, subcells);
+            var result = self.WithLod(
+                self.LodPositionsId, self.LodColorsId, lodNsId, self.LodIntensitiesId, self.LodKdTreeId, self.LodClassificationsId,
+                subcells
+                );
             return result;
         }
     }

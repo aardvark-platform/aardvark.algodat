@@ -48,7 +48,6 @@ namespace Aardvark.Geometry.Points
             Func<V3d, bool> isPositionInside,
             CancellationToken ct
             )
-
         {
             if (node == null) return null;
             if (isNodeFullyInside(node)) return null;
@@ -60,6 +59,7 @@ namespace Aardvark.Geometry.Points
                 Guid? newCsId = null;
                 Guid? newNsId = null;
                 Guid? newIsId = null;
+                Guid? newKsId = null;
                 Guid? newKdId = null;
 
                 if (!node.HasPositions) throw new InvalidOperationException();
@@ -68,11 +68,13 @@ namespace Aardvark.Geometry.Points
                 var cs = node.HasColors ? new List<C4b>() : null;
                 var ns = node.HasNormals ? new List<V3f>() : null;
                 var js = node.HasIntensities ? new List<int>() : null;
+                var ks = node.HasClassifications ? new List<byte>() : null;
                 var oldPsAbsolute = node.PositionsAbsolute;
                 var oldPs = node.Positions.Value;
                 var oldCs = node.Colors?.Value;
                 var oldNs = node.Normals?.Value;
                 var oldIs = node.Intensities?.Value;
+                var oldKs = node.Classifications?.Value;
                 for (var i = 0; i < oldPsAbsolute.Length; i++)
                 {
                     if (!isPositionInside(oldPsAbsolute[i]))
@@ -81,6 +83,7 @@ namespace Aardvark.Geometry.Points
                         if (oldCs != null) cs.Add(oldCs[i]);
                         if (oldNs != null) ns.Add(oldNs[i]);
                         if (oldIs != null) js.Add(oldIs[i]);
+                        if (oldKs != null) ks.Add(oldKs[i]);
                     }
                 }
 
@@ -110,8 +113,14 @@ namespace Aardvark.Geometry.Points
                         newIsId = Guid.NewGuid();
                         node.Storage.Add(newIsId.Value, js.ToArray(), ct);
                     }
-                    
-                    var result = new PointSetNode(node.Cell, ps.Count, newPsId, newCsId, newKdId, newNsId, newIsId, node.Storage);
+
+                    if (node.HasClassifications)
+                    {
+                        newKsId = Guid.NewGuid();
+                        node.Storage.Add(newKsId.Value, ks.ToArray(), ct);
+                    }
+
+                    var result = new PointSetNode(node.Cell, ps.Count, newPsId, newCsId, newKdId, newNsId, newIsId, newKsId, node.Storage);
                     if (node.HasLodPositions) result = result.WithLod();
                     return result;
                 }
@@ -126,6 +135,7 @@ namespace Aardvark.Geometry.Points
                 Guid? newLodCsId = null;
                 Guid? newLodNsId = null;
                 Guid? newLodIsId = null;
+                Guid? newLodKsId = null;
                 Guid? newLodKdId = null;
 
                 if (node.HasLodPositions)
@@ -134,11 +144,13 @@ namespace Aardvark.Geometry.Points
                     var cs = node.HasLodColors ? new List<C4b>() : null;
                     var ns = node.HasLodNormals ? new List<V3f>() : null;
                     var js = node.HasLodIntensities ? new List<int>() : null;
+                    var ks = node.HasLodClassifications ? new List<byte>() : null;
                     var oldLodPsAbsolute = node.LodPositionsAbsolute;
                     var oldLodPs = node.LodPositions.Value;
                     var oldLodCs = node.LodColors?.Value;
                     var oldLodNs = node.LodNormals?.Value;
                     var oldLodIs = node.LodIntensities?.Value;
+                    var oldLodKs = node.LodClassifications?.Value;
                     for (var i = 0; i < oldLodPsAbsolute.Length; i++)
                     {
                         if (!isPositionInside(oldLodPsAbsolute[i]))
@@ -147,6 +159,7 @@ namespace Aardvark.Geometry.Points
                             if (oldLodCs != null) cs.Add(oldLodCs[i]);
                             if (oldLodNs != null) ns.Add(oldLodNs[i]);
                             if (oldLodIs != null) js.Add(oldLodIs[i]);
+                            if (oldLodKs != null) ks.Add(oldLodKs[i]);
                         }
                     }
 
@@ -176,12 +189,18 @@ namespace Aardvark.Geometry.Points
                             newLodIsId = Guid.NewGuid();
                             node.Storage.Add(newLodIsId.Value, js.ToArray(), ct);
                         }
+
+                        if (node.HasLodClassifications)
+                        {
+                            newLodKsId = Guid.NewGuid();
+                            node.Storage.Add(newLodKsId.Value, ks.ToArray(), ct);
+                        }
                     }
                 }
 
                 var newSubnodes = node.Subnodes.Map(n => n?.Value.Delete(isNodeFullyInside, isNodeFullyOutside, isPositionInside, ct));
                 if (newSubnodes.All(n => n == null)) return null;
-                return node.WithLod(newLodPsId, newLodCsId, newLodNsId, newLodIsId, newLodKdId, newSubnodes);
+                return node.WithLod(newLodPsId, newLodCsId, newLodNsId, newLodIsId, newLodKdId, newLodKsId, newSubnodes);
             }
         }
     }

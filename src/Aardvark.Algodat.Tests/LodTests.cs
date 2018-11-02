@@ -35,7 +35,7 @@ namespace Aardvark.Geometry.Tests
             var ps = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
             var cs = ps.Map(_ => C4b.White);
 
-            var pointset = PointSet.Create(storage, "test", ps.ToList(), cs.ToList(), null, null, 5000, false, CancellationToken.None);
+            var pointset = PointSet.Create(storage, "test", ps.ToList(), cs.ToList(), null, null, null, 5000, false, CancellationToken.None);
             pointset.Root.Value.ForEachNode(true, cell =>
             {
                 Assert.IsTrue(cell.LodPointCount == 0);
@@ -61,7 +61,7 @@ namespace Aardvark.Geometry.Tests
             var ps = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
             var cs = ps.Map(_ => C4b.White);
 
-            var pointset = PointSet.Create(storage, "test", ps.ToList(), cs.ToList(), null, null, 5000, false, CancellationToken.None);
+            var pointset = PointSet.Create(storage, "test", ps.ToList(), cs.ToList(), null, null, null, 5000, false, CancellationToken.None);
             pointset.Root.Value.ForEachNode(true, cell =>
             {
                 Assert.IsTrue(cell.LodPointCount == 0);
@@ -89,7 +89,7 @@ namespace Aardvark.Geometry.Tests
             var ps = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
             var cs = ps.Map(_ => C4b.White);
 
-            var pointset = PointSet.Create(storage, "test", ps.ToList(), cs.ToList(), null, null, 5000, false, CancellationToken.None);
+            var pointset = PointSet.Create(storage, "test", ps.ToList(), cs.ToList(), null, null, null, 5000, false, CancellationToken.None);
             pointset.Root.Value.ForEachNode(true, cell =>
             {
                 if (cell.IsLeaf)
@@ -141,7 +141,7 @@ namespace Aardvark.Geometry.Tests
             var ps = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
             var cs = ps.Map(_ => C4b.White);
 
-            var pointset = PointSet.Create(storage, "test", ps.ToList(), cs.ToList(), null, null, 5000, false, CancellationToken.None);
+            var pointset = PointSet.Create(storage, "test", ps.ToList(), cs.ToList(), null, null, null, 5000, false, CancellationToken.None);
 
             var config = ImportConfig.Default
                   .WithKey("lod")

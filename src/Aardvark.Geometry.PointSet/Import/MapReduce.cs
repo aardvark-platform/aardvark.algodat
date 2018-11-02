@@ -83,8 +83,8 @@ namespace Aardvark.Geometry.Points
                 var merged = first.Merge(second, ct2);
                 config.Storage.Add(merged.Id, merged, ct2);
                 if (config.Verbose) Console.WriteLine($"[MapReduce] merged "
-                    + $"{first.Root.Value.Cell} + {second.Root.Value.Cell} -> {merged.Root.Value.Cell} "
-                    + $"({first.Root.Value.PointCountTree} + {second.Root.Value.PointCountTree} -> {merged.Root.Value.PointCountTree})"
+                    + $"{formatCell(first.Root.Value.Cell)} + {formatCell(second.Root.Value.Cell)} -> {formatCell(merged.Root.Value.Cell)} "
+                    + $"({first.Root.Value.PointCountTree:N0} + {second.Root.Value.PointCountTree:N0} -> {merged.Root.Value.PointCountTree:N0})"
                     );
 
                 if (merged.Root.Value.PointCountTree == 0) throw new InvalidOperationException();
@@ -105,6 +105,8 @@ namespace Aardvark.Geometry.Points
             config.Storage.Add(config.Key, final, config.CancellationToken);
             config.ProgressCallback(1.0);
             return final;
+
+            string formatCell(Cell c) => c.IsCenteredAtOrigin ? $"[centered, {c.Exponent}]" : c.ToString();
         }
     }
 }

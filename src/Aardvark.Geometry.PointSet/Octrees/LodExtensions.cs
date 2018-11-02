@@ -75,6 +75,7 @@ namespace Aardvark.Geometry.Points
             var needsCs = subcells.Any(x => x != null ? (x.HasColors || x.HasLodColors) : false);
             var needsNs = subcells.Any(x => x != null ? (x.HasNormals || x.HasLodNormals) : false);
             var needsIs = subcells.Any(x => x != null ? (x.HasIntensities || x.HasLodIntensities) : false);
+            var needsKs = subcells.Any(x => x != null ? (x.HasClassifications || x.HasLodClassifications) : false);
 
             var fractions = new double[8].SetByIndex(
                 ci => subcells[ci] != null ? (subcells[ci].PointCountTree / (double)subcellsTotalCount) : 0.0
@@ -95,6 +96,7 @@ namespace Aardvark.Geometry.Points
             var lodCs = needsCs ? new C4b[octreeSplitLimit] : null;
             var lodNs = needsNs ? new V3f[octreeSplitLimit] : null;
             var lodIs = needsIs ? new int[octreeSplitLimit] : null;
+            var lodKs = needsKs ? new byte[octreeSplitLimit] : null;
             var i = 0;
             for (var ci = 0; ci < 8; ci++)
             {
@@ -106,6 +108,7 @@ namespace Aardvark.Geometry.Points
                 var subcs = needsCs ? (subcell.IsLeaf ? subcell.Colors.Value : subcell.LodColors.Value) : null;
                 var subns = needsNs ? (subcell.IsLeaf ? subcell.Normals.Value : subcell.LodNormals.Value) : null;
                 var subis = needsIs ? (subcell.IsLeaf ? subcell.Intensities.Value : subcell.LodIntensities.Value) : null;
+                var subks = needsKs ? (subcell.IsLeaf ? subcell.Classifications.Value : subcell.LodClassifications.Value) : null;
 
                 var jmax = subps.Length;
                 var dj = (jmax + 0.49) / counts[ci];
@@ -117,6 +120,7 @@ namespace Aardvark.Geometry.Points
                     if (needsCs) lodCs[i] = subcs[jj];
                     if (needsNs) lodNs[i] = subns[jj];
                     if (needsIs) lodIs[i] = subis[jj];
+                    if (needsKs) lodKs[i] = subks[jj];
                     i++;
                 }
             }
@@ -138,7 +142,10 @@ namespace Aardvark.Geometry.Points
             var lodIsId = needsIs ? (Guid?)Guid.NewGuid() : null;
             if (needsIs) self.Storage.Add(lodIsId.Value, lodIs, ct);
 
-            var result = self.WithLod(lodPsId, lodCsId, lodNsId, lodIsId, lodKdId, subcells);
+            var lodKsId = needsKs ? (Guid?)Guid.NewGuid() : null;
+            if (needsKs) self.Storage.Add(lodKsId.Value, lodKs, ct);
+
+            var result = self.WithLod(lodPsId, lodCsId, lodNsId, lodIsId, lodKdId, lodKsId, subcells);
             return result;
         }
     }

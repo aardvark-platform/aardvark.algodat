@@ -41,18 +41,21 @@ namespace Aardvark.Geometry.Points
         private const uint C_LOD_NORMALS = 128;
         private const uint C_LOD_INTENSITIES = 256;
         private const uint C_LOD_KDTREE = 512;
-        private const int C_ATTRIBUTE_COUNT = 10;
+        private const uint C_CLASSIFICATIONS = 1024;
+        private const uint C_LOD_CLASSIFICATIONS = 2048;
+        private const int C_ATTRIBUTE_COUNT = 12;
 
         #region Construction
         
         private PointSetNode(Guid id,
             Cell cell, long pointCountTree,
-            Guid? psId, Guid? csId, Guid? kdId, Guid? nsId, Guid? isId,
-            Guid? lodPsId, Guid? lodCsId, Guid? lodKdId, Guid? lodNsId, Guid? lodIsId,
+            Guid? psId, Guid? csId, Guid? kdId, Guid? nsId, Guid? isId, Guid? ksId,
+            Guid? lodPsId, Guid? lodCsId, Guid? lodKdId, Guid? lodNsId, Guid? lodIsId, Guid? lodKsId,
             Guid?[] subnodeIds, Storage storage, bool writeToStore
             )
         {
-            if (subnodeIds != null && subnodeIds.Count(x => x.HasValue) > 0 && pointCountTree == 0) throw new ArgumentException(nameof(pointCountTree), "Must not be 0 for inner nodes.");
+            if (subnodeIds != null && subnodeIds.Count(x => x.HasValue) > 0 && pointCountTree == 0)
+                throw new ArgumentException(nameof(pointCountTree), "Must not be 0 for inner nodes.");
 
             Storage = storage;
             Id = id;
@@ -65,11 +68,13 @@ namespace Aardvark.Geometry.Points
             if (kdId.HasValue) Attributes[C_KDTREE] = kdId.Value;
             if (nsId.HasValue) Attributes[C_NORMALS] = nsId.Value;
             if (isId.HasValue) Attributes[C_INTENSITIES] = isId.Value;
+            if (ksId.HasValue) Attributes[C_CLASSIFICATIONS] = ksId.Value;
             if (lodPsId.HasValue) Attributes[C_LOD_POSITIONS] = lodPsId.Value;
             if (lodCsId.HasValue) Attributes[C_LOD_COLORS] = lodCsId.Value;
             if (lodKdId.HasValue) Attributes[C_LOD_KDTREE] = lodKdId.Value;
             if (lodNsId.HasValue) Attributes[C_LOD_NORMALS] = lodNsId.Value;
             if (lodIsId.HasValue) Attributes[C_LOD_INTENSITIES] = lodIsId.Value;
+            if (lodKsId.HasValue) Attributes[C_LOD_CLASSIFICATIONS] = lodKsId.Value;
 
             if (IsLeaf && PointCount != PointCountTree) throw new InvalidOperationException();
 
@@ -78,11 +83,13 @@ namespace Aardvark.Geometry.Points
             if (kdId != null) KdTree = new PersistentRef<PointRkdTreeD<V3f[], V3f>>(kdId.ToString(), LoadKdTree);
             if (nsId != null) Normals = new PersistentRef<V3f[]>(nsId.ToString(), storage.GetV3fArray);
             if (isId != null) Intensities = new PersistentRef<int[]>(isId.ToString(), storage.GetIntArray);
+            if (ksId != null) Classifications = new PersistentRef<byte[]>(ksId.ToString(), storage.GetByteArray);
             if (lodPsId != null) LodPositions = new PersistentRef<V3f[]>(lodPsId.ToString(), storage.GetV3fArray);
             if (lodCsId != null) LodColors = new PersistentRef<C4b[]>(lodCsId.ToString(), storage.GetC4bArray);
             if (lodKdId != null) LodKdTree = new PersistentRef<PointRkdTreeD<V3f[], V3f>>(lodKdId.ToString(), LoadKdTree);
             if (lodNsId != null) LodNormals = new PersistentRef<V3f[]>(lodNsId.ToString(), storage.GetV3fArray);
             if (lodIsId != null) LodIntensities = new PersistentRef<int[]>(lodIsId.ToString(), storage.GetIntArray);
+            if (lodKsId != null) LodClassifications = new PersistentRef<byte[]>(lodKsId.ToString(), storage.GetByteArray);
 
             if (subnodeIds != null)
             {
@@ -128,6 +135,7 @@ namespace Aardvark.Geometry.Points
                 if (KdTreeId != null) throw new InvalidOperationException();
                 if (NormalsId != null) throw new InvalidOperationException();
                 if (IntensitiesId != null) throw new InvalidOperationException();
+                if (ClassificationsId != null) throw new InvalidOperationException();
             }
 #endif
             PointRkdTreeD<V3f[], V3f> LoadKdTree(string key, CancellationToken ct)
@@ -149,7 +157,7 @@ namespace Aardvark.Geometry.Points
         internal PointSetNode(
             Cell cell, long pointCountTree,
             Guid?[] subnodeIds, Storage storage
-            ) : this(Guid.NewGuid(), cell, pointCountTree, null, null, null, null, null, null, null, null, null, null, subnodeIds, storage, true)
+            ) : this(Guid.NewGuid(), cell, pointCountTree, null, null, null, null, null, null, null, null, null, null, null, null, subnodeIds, storage, true)
         {
         }
 
@@ -158,9 +166,9 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         internal PointSetNode(
             Cell cell, long pointCountTree,
-            Guid? psId, Guid? csId, Guid? kdId, Guid? nsId, Guid? isId,
+            Guid? psId, Guid? csId, Guid? kdId, Guid? nsId, Guid? isId, Guid? ksId,
             Storage storage
-            ) : this(Guid.NewGuid(), cell, pointCountTree, psId, csId, kdId, nsId, isId, null, null, null, null, null, null, storage, true)
+            ) : this(Guid.NewGuid(), cell, pointCountTree, psId, csId, kdId, nsId, isId, ksId, null, null, null, null, null, null, null, storage, true)
         {
         }
 
@@ -272,16 +280,18 @@ namespace Aardvark.Geometry.Points
             var nsId = (attributemask & C_NORMALS) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
             var isId = (attributemask & C_INTENSITIES) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
             var kdId = (attributemask & C_KDTREE) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
+            var ksId = (attributemask & C_CLASSIFICATIONS) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
             var lodPsId = (attributemask & C_LOD_POSITIONS) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
             var lodCsId = (attributemask & C_LOD_COLORS) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
             var lodNsId = (attributemask & C_LOD_NORMALS) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
             var lodIsId = (attributemask & C_LOD_INTENSITIES) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
             var lodKdId = (attributemask & C_LOD_KDTREE) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
-            
+            var lodKsId = (attributemask & C_LOD_CLASSIFICATIONS) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
+
             return new PointSetNode(
                 id, cellIndex, pointCountTree,
-                psId, csId, kdId, nsId, isId,
-                lodPsId, lodCsId, lodKdId, lodNsId, lodIsId,
+                psId, csId, kdId, nsId, isId, ksId,
+                lodPsId, lodCsId, lodKdId, lodNsId, lodIsId, lodKsId,
                 subcellIds,
                 storage, false
                 );
@@ -377,6 +387,22 @@ namespace Aardvark.Geometry.Points
 
         #endregion
 
+        #region Classifications
+
+        /// <summary></summary>
+        [JsonIgnore]
+        public Guid? ClassificationsId => Attributes.TryGetValue(C_CLASSIFICATIONS, out Guid id) ? (Guid?)id : null;
+
+        /// <summary></summary>
+        [JsonIgnore]
+        public readonly PersistentRef<byte[]> Classifications;
+
+        /// <summary></summary>
+        [JsonIgnore]
+        public bool HasClassifications => Classifications != null;
+
+        #endregion
+
         #region KdTree
 
         /// <summary></summary>
@@ -464,7 +490,23 @@ namespace Aardvark.Geometry.Points
         public bool HasLodIntensities => LodIntensities != null;
 
         #endregion
+        
+        #region LodClassifications
 
+        /// <summary></summary>
+        [JsonIgnore]
+        public Guid? LodClassificationsId => Attributes.TryGetValue(C_LOD_CLASSIFICATIONS, out Guid id) ? (Guid?)id : null;
+
+        /// <summary></summary>
+        [JsonIgnore]
+        public readonly PersistentRef<byte[]> LodClassifications;
+
+        /// <summary></summary>
+        [JsonIgnore]
+        public bool HasLodClassifications => LodClassifications != null;
+
+        #endregion
+        
         #region LodKdTree
 
         /// <summary></summary>
@@ -984,8 +1026,8 @@ namespace Aardvark.Geometry.Points
 
             var pointCountTree = subnodes.Sum(x => x?.PointCountTree);
             return new PointSetNode(Guid.NewGuid(), Cell, pointCountTree.Value,
-                null, null, null, null, null,
-                LodPositionsId, LodColorsId, LodKdTreeId, LodNormalsId, LodIntensitiesId,
+                null, null, null, null, null, null,
+                LodPositionsId, LodColorsId, LodKdTreeId, LodNormalsId, LodIntensitiesId, LodClassificationsId,
                 subnodes.Map(x => x?.Id), Storage, true
                 );
         }
@@ -1000,8 +1042,8 @@ namespace Aardvark.Geometry.Points
 
             var pointCountTree = subnodes.Sum(x => x?.PointCountTree);
             return new PointSetNode(Guid.NewGuid(), Cell, pointCountTree.Value,
-                null, null, null, null, null,
-                LodPositionsId, LodColorsId, LodKdTreeId, LodNormalsId, LodIntensitiesId,
+                null, null, null, null, null, null,
+                LodPositionsId, LodColorsId, LodKdTreeId, LodNormalsId, LodIntensitiesId, LodClassificationsId,
                 subnodes.Map(x => x?.Id), Storage, true
                 );
         }
@@ -1009,15 +1051,15 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Makes node with LoD data from inner node.
         /// </summary>
-        internal PointSetNode WithLod(Guid? lodPsId, Guid? lodCsId, Guid? lodNsId, Guid? lodIsId, Guid? lodKdId, PointSetNode[] subnodes)
+        internal PointSetNode WithLod(Guid? lodPsId, Guid? lodCsId, Guid? lodNsId, Guid? lodIsId, Guid? lodKdId, Guid? lodKsId, PointSetNode[] subnodes)
         {
             if (IsLeaf) throw new InvalidOperationException();
             if (subnodes == null) throw new InvalidOperationException();
             var pointCountTree = subnodes.Sum(n => n != null ? n.PointCountTree : 0);
             return new PointSetNode(Guid.NewGuid(),
                 Cell, pointCountTree,
-                null, null, null, null, null,
-                lodPsId, lodCsId, lodKdId, lodNsId, lodIsId,
+                null, null, null, null, null, null,
+                lodPsId, lodCsId, lodKdId, lodNsId, lodIsId, lodKsId,
                 subnodes?.Map(x => x?.Id), Storage, true
                 );
         }
@@ -1029,8 +1071,8 @@ namespace Aardvark.Geometry.Points
         {
             if (IsNotLeaf) throw new InvalidOperationException();
             return new PointSetNode(Guid.NewGuid(), Cell, PointCountTree,
-                PositionsId, ColorsId, KdTreeId, NormalsId, IntensitiesId,
-                PositionsId, ColorsId, KdTreeId, NormalsId, IntensitiesId,
+                PositionsId, ColorsId, KdTreeId, NormalsId, IntensitiesId, ClassificationsId,
+                PositionsId, ColorsId, KdTreeId, NormalsId, IntensitiesId, ClassificationsId,
                 SubnodeIds, Storage, true
                 );
         }
@@ -1043,8 +1085,8 @@ namespace Aardvark.Geometry.Points
             if (IsNotLeaf) throw new InvalidOperationException("Only leaf nodes can have Normals. Try WithLodNormals instead.");
             return new PointSetNode(Guid.NewGuid(),
                 Cell, PointCountTree,
-                PositionsId, ColorsId, KdTreeId, nsId, IntensitiesId,
-                LodPositionsId, LodColorsId, LodKdTreeId, LodNormalsId, LodIntensitiesId,
+                PositionsId, ColorsId, KdTreeId, nsId, IntensitiesId, ClassificationsId,
+                LodPositionsId, LodColorsId, LodKdTreeId, LodNormalsId, LodIntensitiesId, LodClassificationsId,
                 SubnodeIds, Storage, true
                 );
         }
@@ -1057,8 +1099,8 @@ namespace Aardvark.Geometry.Points
             //if (IsLeaf) throw new InvalidOperationException("Only inner nodes can have LodNormals. Try WithNormals instead.");
             return new PointSetNode(Guid.NewGuid(),
                 Cell, PointCountTree,
-                PositionsId, ColorsId, KdTreeId, NormalsId, IntensitiesId,
-                LodPositionsId, LodColorsId, LodKdTreeId, lodNsId, LodIntensitiesId,
+                PositionsId, ColorsId, KdTreeId, NormalsId, IntensitiesId, ClassificationsId,
+                LodPositionsId, LodColorsId, LodKdTreeId, lodNsId, LodIntensitiesId, LodClassificationsId,
                 subnodes?.Map(x => x?.Id), Storage, true
                 );
         }
