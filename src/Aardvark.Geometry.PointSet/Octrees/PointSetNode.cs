@@ -31,19 +31,20 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public class PointSetNode
     {
-        private const uint C_POSITIONS = 1;
-        private const uint C_COLORS = 2;
-        private const uint C_NORMALS = 4;
-        private const uint C_INTENSITIES = 8;
-        private const uint C_KDTREE = 16;
-        private const uint C_LOD_POSITIONS = 32;
-        private const uint C_LOD_COLORS = 64;
-        private const uint C_LOD_NORMALS = 128;
-        private const uint C_LOD_INTENSITIES = 256;
-        private const uint C_LOD_KDTREE = 512;
-        private const uint C_CLASSIFICATIONS = 1024;
-        private const uint C_LOD_CLASSIFICATIONS = 2048;
-        private const int C_ATTRIBUTE_COUNT = 12;
+        private const uint C_POSITIONS              = 1 <<  0;
+        private const uint C_COLORS                 = 1 <<  1;
+        private const uint C_NORMALS                = 1 <<  2;
+        private const uint C_INTENSITIES            = 1 <<  3;
+        private const uint C_KDTREE                 = 1 <<  4;
+        private const uint C_LOD_POSITIONS          = 1 <<  5;
+        private const uint C_LOD_COLORS             = 1 <<  6;
+        private const uint C_LOD_NORMALS            = 1 <<  7;
+        private const uint C_LOD_INTENSITIES        = 1 <<  8;
+        private const uint C_LOD_KDTREE             = 1 <<  9;
+        private const uint C_CLASSIFICATIONS        = 1 << 10;
+        private const uint C_LOD_CLASSIFICATIONS    = 1 << 11;
+
+        private const int  C_ATTRIBUTE_COUNT        =      12;
 
         #region Construction
         
@@ -550,19 +551,19 @@ namespace Aardvark.Geometry.Points
         public readonly PersistentRef<PointSetNode>[] Subnodes;
 
         /// <summary>
-        /// Bounding box of this node.
+        /// Bounding box of this node's cell.
         /// </summary>
         [JsonIgnore]
         public readonly Box3d BoundingBox;
 
         /// <summary>
-        /// Center of this node's bounding box.
+        /// Center of this node's cell.
         /// </summary>
         [JsonIgnore]
         public readonly V3d Center;
 
         /// <summary>
-        /// Corners of this node's bounding box.
+        /// Corners of this node's cell.
         /// </summary>
         [JsonIgnore]
         public readonly V3d[] Corners;
