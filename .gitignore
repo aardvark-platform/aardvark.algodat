@@ -20,3 +20,4 @@ obj/
 /test.pts
 /src/packages
 /src/pointcloud/Aardvark.log
+/.paket/Paket.Restore.targets
