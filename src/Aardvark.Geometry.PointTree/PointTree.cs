@@ -53,8 +53,6 @@ namespace Aardvark.Geometry
 
     public partial class PointRkdTreeD<TArray, TPoint>
     {
-
-
         private void GetClosestFlat(ClosestToPointQuery q, long top, long count) // count = 2,4,8
         {
             for (long end = Fun.Min(m_size, top + count);
@@ -444,6 +442,142 @@ namespace Aardvark.Geometry
             var array = new V3d[count];
             for (int i = 0; i < count; i++) array[i] = va[indexDistList[i].Index];
             return array;
+        }
+
+        #endregion
+
+        #region ComputeCovarianceMatrix
+
+        /// <summary>
+        /// Computes covariance matrix for points given by indices into points array.
+        /// </summary>
+        public static M33f ComputeCovarianceMatrix<T>(this V3f[] points, List<IndexDist<T>> indices)
+            where T : IComparable<T>
+        {
+            var cvm = M33f.Zero;
+            for (var i = 0; i < indices.Count; i++) cvm.AddOuterProduct(points[indices[i].Index]);
+            return cvm / indices.Count;
+        }
+
+        /// <summary>
+        /// Computes covariance matrix for points given by indices into points array.
+        /// </summary>
+        public static M33d ComputeCovarianceMatrix<T>(this V3d[] points, List<IndexDist<T>> indices)
+            where T : IComparable<T>
+        {
+            var cvm = M33d.Zero;
+            for (var i = 0; i < indices.Count; i++) cvm.AddOuterProduct(points[indices[i].Index]);
+            return cvm / indices.Count;
+        }
+
+        /// <summary>
+        /// Computes covariance matrix for points given by indices into points array, relative to given center.
+        /// </summary>
+        public static M33f ComputeCovarianceMatrix<T>(this V3f[] points, List<IndexDist<T>> indices, V3f center)
+            where T : IComparable<T>
+        {
+            var cvm = M33f.Zero;
+            for (var i = 0; i < indices.Count; i++) cvm.AddOuterProduct(points[indices[i].Index] - center);
+            return cvm / indices.Count;
+        }
+
+        /// <summary>
+        /// Computes covariance matrix for points given by indices into points array, relative to given center.
+        /// </summary>
+        public static M33d ComputeCovarianceMatrix<T>(this V3d[] points, List<IndexDist<T>> indices, V3d center)
+            where T : IComparable<T>
+        {
+            var cvm = M33d.Zero;
+            for (var i = 0; i < indices.Count; i++) cvm.AddOuterProduct(points[indices[i].Index] - center);
+            return cvm / indices.Count;
+        }
+
+        #endregion
+
+        #region ComputeCentroid
+
+        /// <summary>
+        /// Calculates the centroid for a given set of points.
+        /// </summary>
+        public static V2f ComputeCentroid<T>(this V2f[] vectors, List<IndexDist<T>> indices)
+            where T : IComparable<T>
+        {
+            var sum = vectors[indices[0].Index];
+            for (var i = 1; i < indices.Count; i++)
+            {
+                sum += vectors[indices[i].Index];
+            }
+            return sum / indices.Count;
+        }
+
+        /// <summary>
+        /// Calculates the centroid for a given set of points.
+        /// </summary>
+        public static V2d ComputeCentroid<T>(this V2d[] vectors, List<IndexDist<T>> indices)
+            where T : IComparable<T>
+        {
+            var sum = vectors[indices[0].Index];
+            for (var i = 1; i < indices.Count; i++)
+            {
+                sum += vectors[indices[i].Index];
+            }
+            return sum / indices.Count;
+        }
+
+        /// <summary>
+        /// Calculates the centroid for a given set of points.
+        /// </summary>
+        public static V3f ComputeCentroid<T>(this V3f[] vectors, List<IndexDist<T>> indices)
+            where T : IComparable<T>
+        {
+            var sum = vectors[indices[0].Index];
+            for (var i = 1; i < indices.Count; i++)
+            {
+                sum += vectors[indices[i].Index];
+            }
+            return sum / indices.Count;
+        }
+
+        /// <summary>
+        /// Calculates the centroid for a given set of points.
+        /// </summary>
+        public static V3d ComputeCentroid<T>(this V3d[] vectors, List<IndexDist<T>> indices)
+            where T : IComparable<T>
+        {
+            var sum = vectors[indices[0].Index];
+            for (var i = 1; i < indices.Count; i++)
+            {
+                sum += vectors[indices[i].Index];
+            }
+            return sum / indices.Count;
+        }
+
+        /// <summary>
+        /// Calculates the centroid for a given set of points.
+        /// </summary>
+        public static V4f ComputeCentroid<T>(this V4f[] vectors, List<IndexDist<T>> indices)
+            where T : IComparable<T>
+        {
+            var sum = vectors[indices[0].Index];
+            for (var i = 1; i < indices.Count; i++)
+            {
+                sum += vectors[indices[i].Index];
+            }
+            return sum / indices.Count;
+        }
+
+        /// <summary>
+        /// Calculates the centroid for a given set of points.
+        /// </summary>
+        public static V4d ComputeCentroid<T>(this V4d[] vectors, List<IndexDist<T>> indices)
+            where T : IComparable<T>
+        {
+            var sum = vectors[indices[0].Index];
+            for (var i = 1; i < indices.Count; i++)
+            {
+                sum += vectors[indices[i].Index];
+            }
+            return sum / indices.Count;
         }
 
         #endregion
