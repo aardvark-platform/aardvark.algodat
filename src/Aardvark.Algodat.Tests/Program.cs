@@ -157,7 +157,8 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
-            TestE57();
+            MasterLisa.Perform();
+            //TestE57();
 
             //var store = PointCloud.OpenStore(@"G:\cells\3280_5503_0_10\pointcloud");
             //var pc = store.GetPointSet("3280_5503_0_10", default);
