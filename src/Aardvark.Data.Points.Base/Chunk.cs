@@ -107,6 +107,11 @@ namespace Aardvark.Data.Points
         public Chunk WithIntensities(IList<int> newIntensities) => new Chunk(Positions, Colors, Normals, newIntensities, Classifications, BoundingBox);
         
         /// <summary>
+        /// Immutable update of classifications.
+        /// </summary>
+        public Chunk WithClassifications(IList<byte> newClassifications) => new Chunk(Positions, Colors, Normals, Intensities, newClassifications, BoundingBox);
+        
+        /// <summary>
         /// Removes points which are less than minDist from previous point (L2, Euclidean).
         /// </summary>
         public Chunk ImmutableFilterSequentialMinDistL2(double minDist)
