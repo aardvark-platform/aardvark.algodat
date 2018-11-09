@@ -18,7 +18,7 @@ namespace Aardvark.Geometry.Tests
             // import point-cloud with labels from different file
             var labels = File.ReadAllLines(@"C:\Users\kellner\Desktop\Diplomarbeit\Semantic3d\sem8_labels_training\bildstein_station5_xyz_intensity_rgb.labels")
                 .Map(l => (byte)int.Parse(l, CultureInfo.InvariantCulture));
-           
+
             var data = File.ReadAllLines(@"C:\Users\kellner\Desktop\Diplomarbeit\Semantic3d\bildstein_station5_xyz_intensity_rgb.txt");
 
             if (labels.Length != data.Length)
@@ -28,22 +28,21 @@ namespace Aardvark.Geometry.Tests
             var colors = new C4b[data.Length];
 
             Report.BeginTimed("reading files");
-            data.ForEach( (l,i) => 
-            {
-                var s = l.Split(' ');
+            data.ForEach((l, i) =>
+           {
+               var s = l.Split(' ');
 
-                var pos = new V3d(double.Parse(s[0],CultureInfo.InvariantCulture),
-                    double.Parse(s[1], CultureInfo.InvariantCulture),
-                    double.Parse(s[2], CultureInfo.InvariantCulture));
+               var pos = new V3d(double.Parse(s[0], CultureInfo.InvariantCulture),
+                   double.Parse(s[1], CultureInfo.InvariantCulture),
+                   double.Parse(s[2], CultureInfo.InvariantCulture));
 
-                var col = new C4b((byte)int.Parse(s[4], CultureInfo.InvariantCulture),
-                    (byte)int.Parse(s[5], CultureInfo.InvariantCulture),
-                    (byte)int.Parse(s[6], CultureInfo.InvariantCulture), 
-                    (byte)1);
+               var col = new C4b((byte)int.Parse(s[4], CultureInfo.InvariantCulture),
+                   (byte)int.Parse(s[5], CultureInfo.InvariantCulture),
+                   (byte)int.Parse(s[6], CultureInfo.InvariantCulture));
 
-                positions[i] = pos;
-                colors[i] = col;
-            });
+               positions[i] = pos;
+               colors[i] = col;
+           });
             Report.End();
 
             var bb = new Box3d(positions);
@@ -57,14 +56,15 @@ namespace Aardvark.Geometry.Tests
             var config = ImportConfig.Default
                 .WithStorage(store)
                 .WithKey(key)
+                .WithMaxChunkPointCount(positions.Length+1)
                 .WithVerbose(true);
 
             Report.BeginTimed("importing data");
             var pointset = PointCloud.Chunks(chunk, config);
-            store.Add(key, pointset, CancellationToken.None);
             Report.End();
 
-            
+            var info = PointCloud.StoreInfo(@"C:\Users\kellner\Desktop\Diplomarbeit\Store", key);
+            store.Dispose();
         }
     }
 }
