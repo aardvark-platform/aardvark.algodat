@@ -27,25 +27,10 @@ using System.Threading;
 namespace Aardvark.Geometry.Points
 {
     /// <summary>
-    /// An immutable point octree node.
+    /// An immutable point cloud node.
     /// </summary>
-    public class PointSetNode
+    public class PointSetNode : IPointCloudNode
     {
-        private const uint C_POSITIONS              = 1 <<  0;
-        private const uint C_COLORS                 = 1 <<  1;
-        private const uint C_NORMALS                = 1 <<  2;
-        private const uint C_INTENSITIES            = 1 <<  3;
-        private const uint C_KDTREE                 = 1 <<  4;
-        private const uint C_LOD_POSITIONS          = 1 <<  5;
-        private const uint C_LOD_COLORS             = 1 <<  6;
-        private const uint C_LOD_NORMALS            = 1 <<  7;
-        private const uint C_LOD_INTENSITIES        = 1 <<  8;
-        private const uint C_LOD_KDTREE             = 1 <<  9;
-        private const uint C_CLASSIFICATIONS        = 1 << 10;
-        private const uint C_LOD_CLASSIFICATIONS    = 1 << 11;
-
-        private const int  C_ATTRIBUTE_COUNT        =      12;
-
         #region Construction
         
         private PointSetNode(Guid id,
@@ -64,18 +49,18 @@ namespace Aardvark.Geometry.Points
             PointCountTree = pointCountTree;
             SubnodeIds = subnodeIds;
 
-            if (psId.HasValue) Attributes[C_POSITIONS] = psId.Value;
-            if (csId.HasValue) Attributes[C_COLORS] = csId.Value;
-            if (kdId.HasValue) Attributes[C_KDTREE] = kdId.Value;
-            if (nsId.HasValue) Attributes[C_NORMALS] = nsId.Value;
-            if (isId.HasValue) Attributes[C_INTENSITIES] = isId.Value;
-            if (ksId.HasValue) Attributes[C_CLASSIFICATIONS] = ksId.Value;
-            if (lodPsId.HasValue) Attributes[C_LOD_POSITIONS] = lodPsId.Value;
-            if (lodCsId.HasValue) Attributes[C_LOD_COLORS] = lodCsId.Value;
-            if (lodKdId.HasValue) Attributes[C_LOD_KDTREE] = lodKdId.Value;
-            if (lodNsId.HasValue) Attributes[C_LOD_NORMALS] = lodNsId.Value;
-            if (lodIsId.HasValue) Attributes[C_LOD_INTENSITIES] = lodIsId.Value;
-            if (lodKsId.HasValue) Attributes[C_LOD_CLASSIFICATIONS] = lodKsId.Value;
+            if (psId.HasValue) Attributes[PointSetProperties.Positions] = psId.Value;
+            if (csId.HasValue) Attributes[PointSetProperties.Colors] = csId.Value;
+            if (kdId.HasValue) Attributes[PointSetProperties.KdTree] = kdId.Value;
+            if (nsId.HasValue) Attributes[PointSetProperties.Normals] = nsId.Value;
+            if (isId.HasValue) Attributes[PointSetProperties.Intensities] = isId.Value;
+            if (ksId.HasValue) Attributes[PointSetProperties.Classifications] = ksId.Value;
+            if (lodPsId.HasValue) Attributes[PointSetProperties.LodPositions] = lodPsId.Value;
+            if (lodCsId.HasValue) Attributes[PointSetProperties.LodColors] = lodCsId.Value;
+            if (lodKdId.HasValue) Attributes[PointSetProperties.LodKdTree] = lodKdId.Value;
+            if (lodNsId.HasValue) Attributes[PointSetProperties.LodNormals] = lodNsId.Value;
+            if (lodIsId.HasValue) Attributes[PointSetProperties.LodIntensities] = lodIsId.Value;
+            if (lodKsId.HasValue) Attributes[PointSetProperties.LodClassifications] = lodKsId.Value;
 
             if (IsLeaf && PointCount != PointCountTree) throw new InvalidOperationException();
 
@@ -179,7 +164,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        public readonly Dictionary<uint, Guid> Attributes = new Dictionary<uint, Guid>();
+        public readonly Dictionary<PointSetProperties, Guid> Attributes = new Dictionary<PointSetProperties, Guid>();
 
         /// <summary>
         /// This node's unique id (16 bytes).
@@ -221,7 +206,7 @@ namespace Aardvark.Geometry.Points
             using (var ms = new MemoryStream(buffer))
             using (var bw = new BinaryWriter(ms))
             {
-                var attributemask = AttributeMask;
+                var attributemask = (uint)AttributeMask;
                 bw.Write(attributemask | ((uint)SubnodeMask << 24));
                 bw.Write(Id.ToByteArray());
                 bw.Write(Cell.X); bw.Write(Cell.Y); bw.Write(Cell.Z); bw.Write(Cell.Exponent);
@@ -231,10 +216,10 @@ namespace Aardvark.Geometry.Points
                     foreach (var x in SubnodeIds) if (x.HasValue) bw.Write(x.Value.ToByteArray());
                 }
                 var a = 1u;
-                for (var i = 0; i < C_ATTRIBUTE_COUNT; i++, a <<= 1)
+                for (var i = 0; i < 32; i++, a <<= 1)
                 {
                     if ((attributemask & a) == 0) continue;
-                    bw.Write(Attributes[a].ToByteArray());
+                    bw.Write(Attributes[(PointSetProperties)a].ToByteArray());
                 }
             }
             return buffer;
@@ -276,18 +261,18 @@ namespace Aardvark.Geometry.Points
                 if ((subcellmask & 0x80) != 0) subcellIds[7] = ParseGuid(buffer, ref offset);
             }
 
-            var psId = (attributemask & C_POSITIONS) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
-            var csId = (attributemask & C_COLORS) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
-            var nsId = (attributemask & C_NORMALS) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
-            var isId = (attributemask & C_INTENSITIES) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
-            var kdId = (attributemask & C_KDTREE) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
-            var ksId = (attributemask & C_CLASSIFICATIONS) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
-            var lodPsId = (attributemask & C_LOD_POSITIONS) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
-            var lodCsId = (attributemask & C_LOD_COLORS) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
-            var lodNsId = (attributemask & C_LOD_NORMALS) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
-            var lodIsId = (attributemask & C_LOD_INTENSITIES) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
-            var lodKdId = (attributemask & C_LOD_KDTREE) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
-            var lodKsId = (attributemask & C_LOD_CLASSIFICATIONS) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
+            var psId = (attributemask & (uint)PointSetProperties.Positions) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
+            var csId = (attributemask & (uint)PointSetProperties.Colors) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
+            var nsId = (attributemask & (uint)PointSetProperties.Normals) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
+            var isId = (attributemask & (uint)PointSetProperties.Intensities) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
+            var kdId = (attributemask & (uint)PointSetProperties.KdTree) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
+            var lodPsId = (attributemask & (uint)PointSetProperties.LodPositions) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
+            var lodCsId = (attributemask & (uint)PointSetProperties.LodColors) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
+            var lodNsId = (attributemask & (uint)PointSetProperties.LodNormals) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
+            var lodIsId = (attributemask & (uint)PointSetProperties.LodIntensities) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
+            var lodKdId = (attributemask & (uint)PointSetProperties.LodKdTree) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
+            var ksId = (attributemask & (uint)PointSetProperties.Classifications) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
+            var lodKsId = (attributemask & (uint)PointSetProperties.LodClassifications) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
 
             return new PointSetNode(
                 id, cellIndex, pointCountTree,
@@ -319,7 +304,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public Guid? PositionsId => Attributes.TryGetValue(C_POSITIONS, out Guid id) ? (Guid?)id : null;
+        public Guid? PositionsId => Attributes.TryGetValue(PointSetProperties.Positions, out Guid id) ? (Guid?)id : null;
 
         /// <summary>
         /// Point positions relative to cell's center, or null if no positions.
@@ -343,7 +328,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public Guid? ColorsId => Attributes.TryGetValue(C_COLORS, out Guid id) ? (Guid?)id : null;
+        public Guid? ColorsId => Attributes.TryGetValue(PointSetProperties.Colors, out Guid id) ? (Guid?)id : null;
 
         /// <summary>Point colors, or null if no points.
         /// </summary>
@@ -360,7 +345,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public Guid? NormalsId => Attributes.TryGetValue(C_NORMALS, out Guid id) ? (Guid?)id : null;
+        public Guid? NormalsId => Attributes.TryGetValue(PointSetProperties.Normals, out Guid id) ? (Guid?)id : null;
 
         /// <summary></summary>
         [JsonIgnore]
@@ -376,7 +361,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public Guid? IntensitiesId => Attributes.TryGetValue(C_INTENSITIES, out Guid id) ? (Guid?)id : null;
+        public Guid? IntensitiesId => Attributes.TryGetValue(PointSetProperties.Intensities, out Guid id) ? (Guid?)id : null;
 
         /// <summary></summary>
         [JsonIgnore]
@@ -392,7 +377,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public Guid? ClassificationsId => Attributes.TryGetValue(C_CLASSIFICATIONS, out Guid id) ? (Guid?)id : null;
+        public Guid? ClassificationsId => Attributes.TryGetValue(PointSetProperties.Classifications, out Guid id) ? (Guid?)id : null;
 
         /// <summary></summary>
         [JsonIgnore]
@@ -408,7 +393,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public Guid? KdTreeId => Attributes.TryGetValue(C_KDTREE, out Guid id) ? (Guid?)id : null;
+        public Guid? KdTreeId => Attributes.TryGetValue(PointSetProperties.KdTree, out Guid id) ? (Guid?)id : null;
 
         /// <summary></summary>
         [JsonIgnore]
@@ -424,7 +409,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public Guid? LodPositionsId => Attributes.TryGetValue(C_LOD_POSITIONS, out Guid id) ? (Guid?)id : null;
+        public Guid? LodPositionsId => Attributes.TryGetValue(PointSetProperties.LodPositions, out Guid id) ? (Guid?)id : null;
 
         /// <summary>
         /// LoD-Positions relative to cell's center, or null if no positions.
@@ -448,7 +433,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public Guid? LodColorsId => Attributes.TryGetValue(C_LOD_COLORS, out Guid id) ? (Guid?)id : null;
+        public Guid? LodColorsId => Attributes.TryGetValue(PointSetProperties.LodColors, out Guid id) ? (Guid?)id : null;
 
         /// <summary></summary>
         [JsonIgnore]
@@ -464,7 +449,7 @@ namespace Aardvark.Geometry.Points
         
         /// <summary></summary>
         [JsonIgnore]
-        public Guid? LodNormalsId => Attributes.TryGetValue(C_LOD_NORMALS, out Guid id) ? (Guid?)id : null;
+        public Guid? LodNormalsId => Attributes.TryGetValue(PointSetProperties.LodNormals, out Guid id) ? (Guid?)id : null;
 
         /// <summary></summary>
         [JsonIgnore]
@@ -480,7 +465,7 @@ namespace Aardvark.Geometry.Points
         
         /// <summary></summary>
         [JsonIgnore]
-        public Guid? LodIntensitiesId => Attributes.TryGetValue(C_LOD_INTENSITIES, out Guid id) ? (Guid?)id : null;
+        public Guid? LodIntensitiesId => Attributes.TryGetValue(PointSetProperties.LodIntensities, out Guid id) ? (Guid?)id : null;
 
         /// <summary></summary>
         [JsonIgnore]
@@ -496,7 +481,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public Guid? LodClassificationsId => Attributes.TryGetValue(C_LOD_CLASSIFICATIONS, out Guid id) ? (Guid?)id : null;
+        public Guid? LodClassificationsId => Attributes.TryGetValue(PointSetProperties.LodClassifications, out Guid id) ? (Guid?)id : null;
 
         /// <summary></summary>
         [JsonIgnore]
@@ -512,7 +497,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public Guid? LodKdTreeId => Attributes.TryGetValue(C_LOD_KDTREE, out Guid id) ? (Guid?)id : null;
+        public Guid? LodKdTreeId => Attributes.TryGetValue(PointSetProperties.LodKdTree, out Guid id) ? (Guid?)id : null;
 
         /// <summary>
         /// LoD-Point kd-tree, or null if no LoD data.
@@ -613,11 +598,11 @@ namespace Aardvark.Geometry.Points
         /// Bitmask indicating which attributes exist (attribute flags or'ed together).
         /// </summary>
         [JsonIgnore]
-        public uint AttributeMask
+        public PointSetProperties AttributeMask
         {
             get
             {
-                var mask = 0u;
+                PointSetProperties mask = 0u;
                 foreach (var key in Attributes.Keys) mask |= key;
                 return mask;
             }
@@ -1166,6 +1151,43 @@ namespace Aardvark.Geometry.Points
             BoundingBox.GetMinMaxInDirection(-plane.Normal, out V3d min, out V3d max);
             return plane.Height(min) < 0;
         }
+
+        #endregion
+
+        #region IPointCloudNode
+
+        Cell IPointCloudNode.Cell => Cell;
+
+        V3d IPointCloudNode.Center => Center;
+
+        long IPointCloudNode.PointCountTree => PointCountTree;
+
+        PersistentRef<IPointCloudNode>[] IPointCloudNode.Subnodes
+        {
+            get
+            {
+                if (Subnodes == null) return null;
+                return new[]
+                {
+                    Subnodes[0] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[0].Id, (_, ct) => Subnodes[0].GetValue(ct)),
+                    Subnodes[1] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[1].Id, (_, ct) => Subnodes[1].GetValue(ct)),
+                    Subnodes[2] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[2].Id, (_, ct) => Subnodes[2].GetValue(ct)),
+                    Subnodes[3] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[3].Id, (_, ct) => Subnodes[3].GetValue(ct)),
+                    Subnodes[4] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[4].Id, (_, ct) => Subnodes[4].GetValue(ct)),
+                    Subnodes[5] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[5].Id, (_, ct) => Subnodes[5].GetValue(ct)),
+                    Subnodes[6] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[6].Id, (_, ct) => Subnodes[6].GetValue(ct)),
+                    Subnodes[7] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[7].Id, (_, ct) => Subnodes[7].GetValue(ct)),
+                };
+            }
+        }
+
+        /// <summary>
+        /// </summary>
+        public bool TryGetProperty(PointSetProperties p, out Guid guid) => Attributes.TryGetValue(p, out guid);
+        
+        PersistentRef<V3f[]> IPointCloudNode.Positions => Positions;
+
+        PersistentRef<V3f[]> IPointCloudNode.LodPositions => LodPositions;
 
         #endregion
     }

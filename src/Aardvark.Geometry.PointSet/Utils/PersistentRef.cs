@@ -20,7 +20,7 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public class PersistentRef<T> where T : class
     {
-        private Func<string, CancellationToken, T> f_get;
+        private readonly Func<string, CancellationToken, T> f_get;
         private WeakReference<T> m_value;
 
         /// <summary>

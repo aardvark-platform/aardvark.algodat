@@ -11,55 +11,75 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-using Aardvark.Base;
 using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace Aardvark.Geometry.Points
 {
     /// <summary>
-    /// An immutable point cloud octree node.
     /// </summary>
-    public interface IPointCloudNode
+    [Flags]
+    public enum PointSetProperties : uint
     {
         /// <summary>
-        /// This node's index/bounds.
+        /// V3f[] relative to Center.
         /// </summary>
-        Cell Cell { get; }
+        Positions           = 1 <<  0,
 
         /// <summary>
-        /// Center of this node's cell.
+        /// C4b[].
         /// </summary>
-        V3d Center { get; }
+        Colors              = 1 <<  1,
 
         /// <summary>
-        /// Number of points in this tree (sum of leaves).
+        /// V3f[].
         /// </summary>
-        long PointCountTree { get; }
-        
-        /// <summary>
-        /// Subnodes (8), or null if leaf.
-        /// Entries are null if there is no subnode.
-        /// There is at least 1 non-null entry.
-        /// </summary>
-        PersistentRef<IPointCloudNode>[] Subnodes { get; }
+        Normals             = 1 <<  2,
 
         /// <summary>
+        /// int[].
         /// </summary>
-        bool TryGetProperty(PointSetProperties p, out Guid pRef);
-        
-        /// <summary>
-        /// </summary>
-        bool HasPositions { get; }
-        /// <summary>
-        /// </summary>
-        PersistentRef<V3f[]> Positions { get; }
+        Intensities         = 1 <<  3,
 
         /// <summary>
+        /// PointRkdTreeD&lt;V3f[], V3f&gt;.
         /// </summary>
-        bool HasLodPositions { get; }
+        KdTree              = 1 <<  4,
+
         /// <summary>
+        /// V3f[] relative to Center.
         /// </summary>
-        PersistentRef<V3f[]> LodPositions { get; }
+        LodPositions        = 1 <<  5,
+
+        /// <summary>
+        /// C4b[].
+        /// </summary>
+        LodColors           = 1 <<  6,
+
+        /// <summary>
+        /// V3f[].
+        /// </summary>
+        LodNormals          = 1 <<  7,
+
+        /// <summary>
+        /// int[].
+        /// </summary>
+        LodIntensities      = 1 <<  8,
+
+        /// <summary>
+        /// PointRkdTreeD&lt;V3f[], V3f&gt;.
+        /// </summary>
+        LodKdTree           = 1 <<  9,
+
+        /// <summary>
+        /// byte[].
+        /// </summary>
+        Classifications     = 1 << 10,
+
+        /// <summary>
+        /// byte[].
+        /// </summary>
+        LodClassifications  = 1 << 11,
     }
 }
