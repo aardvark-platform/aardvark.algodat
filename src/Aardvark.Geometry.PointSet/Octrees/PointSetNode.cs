@@ -64,18 +64,18 @@ namespace Aardvark.Geometry.Points
 
             if (IsLeaf && PointCount != PointCountTree) throw new InvalidOperationException();
 
-            if (psId != null) Positions = new PersistentRef<V3f[]>(psId.ToString(), storage.GetV3fArray);
-            if (csId != null) Colors = new PersistentRef<C4b[]>(csId.ToString(), storage.GetC4bArray);
-            if (kdId != null) KdTree = new PersistentRef<PointRkdTreeD<V3f[], V3f>>(kdId.ToString(), LoadKdTree);
-            if (nsId != null) Normals = new PersistentRef<V3f[]>(nsId.ToString(), storage.GetV3fArray);
-            if (isId != null) Intensities = new PersistentRef<int[]>(isId.ToString(), storage.GetIntArray);
-            if (ksId != null) Classifications = new PersistentRef<byte[]>(ksId.ToString(), storage.GetByteArray);
-            if (lodPsId != null) LodPositions = new PersistentRef<V3f[]>(lodPsId.ToString(), storage.GetV3fArray);
-            if (lodCsId != null) LodColors = new PersistentRef<C4b[]>(lodCsId.ToString(), storage.GetC4bArray);
-            if (lodKdId != null) LodKdTree = new PersistentRef<PointRkdTreeD<V3f[], V3f>>(lodKdId.ToString(), LoadKdTree);
-            if (lodNsId != null) LodNormals = new PersistentRef<V3f[]>(lodNsId.ToString(), storage.GetV3fArray);
-            if (lodIsId != null) LodIntensities = new PersistentRef<int[]>(lodIsId.ToString(), storage.GetIntArray);
-            if (lodKsId != null) LodClassifications = new PersistentRef<byte[]>(lodKsId.ToString(), storage.GetByteArray);
+            if (psId != null) PersistentRefs[PointSetProperties.Positions] = new PersistentRef<V3f[]>(psId.ToString(), storage.GetV3fArray);
+            if (csId != null) PersistentRefs[PointSetProperties.Colors] = new PersistentRef<C4b[]>(csId.ToString(), storage.GetC4bArray);
+            if (kdId != null) PersistentRefs[PointSetProperties.KdTree] = new PersistentRef<PointRkdTreeD<V3f[], V3f>>(kdId.ToString(), LoadKdTree);
+            if (nsId != null) PersistentRefs[PointSetProperties.Normals] = new PersistentRef<V3f[]>(nsId.ToString(), storage.GetV3fArray);
+            if (isId != null) PersistentRefs[PointSetProperties.Intensities] = new PersistentRef<int[]>(isId.ToString(), storage.GetIntArray);
+            if (ksId != null) PersistentRefs[PointSetProperties.Classifications]  = new PersistentRef<byte[]>(ksId.ToString(), storage.GetByteArray);
+            if (lodPsId != null) PersistentRefs[PointSetProperties.LodPositions] = new PersistentRef<V3f[]>(lodPsId.ToString(), storage.GetV3fArray);
+            if (lodCsId != null) PersistentRefs[PointSetProperties.LodColors] = new PersistentRef<C4b[]>(lodCsId.ToString(), storage.GetC4bArray);
+            if (lodKdId != null) PersistentRefs[PointSetProperties.LodKdTree] = new PersistentRef<PointRkdTreeD<V3f[], V3f>>(lodKdId.ToString(), LoadKdTree);
+            if (lodNsId != null) PersistentRefs[PointSetProperties.LodNormals] = new PersistentRef<V3f[]>(lodNsId.ToString(), storage.GetV3fArray);
+            if (lodIsId != null) PersistentRefs[PointSetProperties.LodIntensities] = new PersistentRef<int[]>(lodIsId.ToString(), storage.GetIntArray);
+            if (lodKsId != null) PersistentRefs[PointSetProperties.LodClassifications] = new PersistentRef<byte[]>(lodKsId.ToString(), storage.GetByteArray);
 
             if (subnodeIds != null)
             {
@@ -299,7 +299,9 @@ namespace Aardvark.Geometry.Points
         #endregion
 
         #region Properties (derived/runtime, non-serialized)
-        
+
+        private Dictionary<PointSetProperties, object> PersistentRefs = new Dictionary<PointSetProperties, object>();
+
         #region Positions
 
         /// <summary></summary>
@@ -310,11 +312,11 @@ namespace Aardvark.Geometry.Points
         /// Point positions relative to cell's center, or null if no positions.
         /// </summary>
         [JsonIgnore]
-        public readonly PersistentRef<V3f[]> Positions;
-        
+        public PersistentRef<V3f[]> Positions => PersistentRefs.TryGetValue(PointSetProperties.Positions, out object x) ? (PersistentRef<V3f[]>)x : null;
+
         /// <summary></summary>
         [JsonIgnore]
-        public bool HasPositions => Positions != null;
+        public bool HasPositions => PersistentRefs.ContainsKey(PointSetProperties.Positions);
 
         /// <summary>
         /// Point positions (absolute), or null if no positions.
@@ -330,14 +332,15 @@ namespace Aardvark.Geometry.Points
         [JsonIgnore]
         public Guid? ColorsId => Attributes.TryGetValue(PointSetProperties.Colors, out Guid id) ? (Guid?)id : null;
 
-        /// <summary>Point colors, or null if no points.
+        /// <summary>
+        /// Point colors, or null if no points.
         /// </summary>
         [JsonIgnore]
-        public readonly PersistentRef<C4b[]> Colors;
+        public PersistentRef<C4b[]> Colors => PersistentRefs.TryGetValue(PointSetProperties.Colors, out object x) ? (PersistentRef<C4b[]>)x : null;
 
         /// <summary></summary>
         [JsonIgnore]
-        public bool HasColors => Colors != null;
+        public bool HasColors => PersistentRefs.ContainsKey(PointSetProperties.Colors);
 
         #endregion
 
@@ -349,11 +352,11 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public readonly PersistentRef<V3f[]> Normals;
+        public PersistentRef<V3f[]> Normals => PersistentRefs.TryGetValue(PointSetProperties.Normals, out object x) ? (PersistentRef<V3f[]>)x : null;
 
         /// <summary></summary>
         [JsonIgnore]
-        public bool HasNormals => Normals != null;
+        public bool HasNormals => PersistentRefs.ContainsKey(PointSetProperties.Normals);
 
         #endregion
 
@@ -365,11 +368,11 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public readonly PersistentRef<int[]> Intensities;
+        public PersistentRef<int[]> Intensities => PersistentRefs.TryGetValue(PointSetProperties.Intensities, out object x) ? (PersistentRef<int[]>)x : null;
 
         /// <summary></summary>
         [JsonIgnore]
-        public bool HasIntensities => Intensities != null;
+        public bool HasIntensities => PersistentRefs.ContainsKey(PointSetProperties.Intensities);
 
         #endregion
 
@@ -381,11 +384,11 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public readonly PersistentRef<byte[]> Classifications;
+        public PersistentRef<byte[]> Classifications => PersistentRefs.TryGetValue(PointSetProperties.Classifications, out object x) ? (PersistentRef<byte[]>) x : null;
 
         /// <summary></summary>
         [JsonIgnore]
-        public bool HasClassifications => Classifications != null;
+        public bool HasClassifications => PersistentRefs.ContainsKey(PointSetProperties.Classifications);
 
         #endregion
 
@@ -397,11 +400,11 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public readonly PersistentRef<PointRkdTreeD<V3f[], V3f>> KdTree;
-        
+        public PersistentRef<PointRkdTreeD<V3f[], V3f>> KdTree => PersistentRefs.TryGetValue(PointSetProperties.KdTree, out object x) ? (PersistentRef<PointRkdTreeD<V3f[], V3f>>)x : null;
+
         /// <summary></summary>
         [JsonIgnore]
-        public bool HasKdTree => KdTree != null;
+        public bool HasKdTree => PersistentRefs.ContainsKey(PointSetProperties.KdTree);
 
         #endregion
 
@@ -415,11 +418,11 @@ namespace Aardvark.Geometry.Points
         /// LoD-Positions relative to cell's center, or null if no positions.
         /// </summary>
         [JsonIgnore]
-        public readonly PersistentRef<V3f[]> LodPositions;
+        public PersistentRef<V3f[]> LodPositions => PersistentRefs.TryGetValue(PointSetProperties.LodPositions, out object x) ? (PersistentRef<V3f[]>) x : null;
 
         /// <summary></summary>
         [JsonIgnore]
-        public bool HasLodPositions => LodPositions != null;
+        public bool HasLodPositions => PersistentRefs.ContainsKey(PointSetProperties.LodPositions);
 
         /// <summary>
         /// Lod-Positions (absolute), or null if no positions.
@@ -437,46 +440,46 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public readonly PersistentRef<C4b[]> LodColors;
+        public PersistentRef<C4b[]> LodColors => PersistentRefs.TryGetValue(PointSetProperties.LodColors, out object x) ? (PersistentRef<C4b[]>)x : null;
 
         /// <summary></summary>
         [JsonIgnore]
-        public bool HasLodColors => LodColors != null;
+        public bool HasLodColors => PersistentRefs.ContainsKey(PointSetProperties.LodColors);
 
         #endregion
 
         #region LodNormals
-        
+
         /// <summary></summary>
         [JsonIgnore]
         public Guid? LodNormalsId => Attributes.TryGetValue(PointSetProperties.LodNormals, out Guid id) ? (Guid?)id : null;
 
         /// <summary></summary>
         [JsonIgnore]
-        public readonly PersistentRef<V3f[]> LodNormals;
+        public PersistentRef<V3f[]> LodNormals => PersistentRefs.TryGetValue(PointSetProperties.LodNormals, out object x) ? (PersistentRef<V3f[]>)x : null;
 
         /// <summary></summary>
         [JsonIgnore]
-        public bool HasLodNormals => LodNormals != null;
+        public bool HasLodNormals => PersistentRefs.ContainsKey(PointSetProperties.LodNormals);
 
         #endregion
 
         #region LodIntensities
-        
+
         /// <summary></summary>
         [JsonIgnore]
         public Guid? LodIntensitiesId => Attributes.TryGetValue(PointSetProperties.LodIntensities, out Guid id) ? (Guid?)id : null;
 
         /// <summary></summary>
         [JsonIgnore]
-        public readonly PersistentRef<int[]> LodIntensities;
+        public PersistentRef<int[]> LodIntensities => PersistentRefs.TryGetValue(PointSetProperties.LodIntensities, out object x) ? (PersistentRef<int[]>) x : null;
 
         /// <summary></summary>
         [JsonIgnore]
-        public bool HasLodIntensities => LodIntensities != null;
+        public bool HasLodIntensities => PersistentRefs.ContainsKey(PointSetProperties.LodIntensities);
 
         #endregion
-        
+
         #region LodClassifications
 
         /// <summary></summary>
@@ -485,14 +488,14 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public readonly PersistentRef<byte[]> LodClassifications;
+        public PersistentRef<byte[]> LodClassifications => PersistentRefs.TryGetValue(PointSetProperties.LodClassifications, out object x) ? (PersistentRef<byte[]>)x : null;
 
         /// <summary></summary>
         [JsonIgnore]
-        public bool HasLodClassifications => LodClassifications != null;
+        public bool HasLodClassifications => PersistentRefs.ContainsKey(PointSetProperties.LodClassifications);
 
         #endregion
-        
+
         #region LodKdTree
 
         /// <summary></summary>
@@ -503,11 +506,11 @@ namespace Aardvark.Geometry.Points
         /// LoD-Point kd-tree, or null if no LoD data.
         /// </summary>
         [JsonIgnore]
-        public readonly PersistentRef<PointRkdTreeD<V3f[], V3f>> LodKdTree;
+        public PersistentRef<PointRkdTreeD<V3f[], V3f>> LodKdTree => PersistentRefs.TryGetValue(PointSetProperties.LodKdTree, out object x) ? (PersistentRef<PointRkdTreeD<V3f[], V3f>>)x : null;
 
         /// <summary></summary>
         [JsonIgnore]
-        public bool HasLodKdTree => LodKdTree != null;
+        public bool HasLodKdTree => PersistentRefs.ContainsKey(PointSetProperties.LodKdTree);
 
         #endregion
 
@@ -1185,10 +1188,6 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public bool TryGetProperty(PointSetProperties p, out Guid guid) => Attributes.TryGetValue(p, out guid);
         
-        PersistentRef<V3f[]> IPointCloudNode.Positions => Positions;
-
-        PersistentRef<V3f[]> IPointCloudNode.LodPositions => LodPositions;
-
         #endregion
     }
 }
