@@ -12,6 +12,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
+using Aardvark.Data.Points;
 using System;
 
 namespace Aardvark.Geometry.Points
@@ -19,8 +20,18 @@ namespace Aardvark.Geometry.Points
     /// <summary>
     /// An immutable point cloud octree node.
     /// </summary>
-    public interface IPointCloudNode
+    public interface IPointCloudNode : IDisposable
     {
+        /// <summary>
+        /// Backing store, or null.
+        /// </summary>
+        Storage Storage { get; }
+
+        /// <summary>
+        /// Key.
+        /// </summary>
+        string Id { get; }
+
         /// <summary>
         /// This node's index/bounds.
         /// </summary>

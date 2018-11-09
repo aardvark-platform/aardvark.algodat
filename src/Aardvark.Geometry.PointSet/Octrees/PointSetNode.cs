@@ -1159,6 +1159,8 @@ namespace Aardvark.Geometry.Points
 
         #region IPointCloudNode
 
+        string IPointCloudNode.Id => Id.ToString();
+
         Cell IPointCloudNode.Cell => Cell;
 
         V3d IPointCloudNode.Center => Center;
@@ -1184,10 +1186,15 @@ namespace Aardvark.Geometry.Points
             }
         }
 
+        Storage IPointCloudNode.Storage => Storage;
+
         /// <summary>
         /// </summary>
         public bool TryGetProperty(PointSetProperties p, out Guid guid) => Attributes.TryGetValue(p, out guid);
-        
+
+        /// <summary></summary>
+        public void Dispose() { }
+
         #endregion
     }
 }

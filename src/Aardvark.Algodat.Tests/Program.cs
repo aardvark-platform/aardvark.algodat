@@ -14,6 +14,43 @@ namespace Aardvark.Geometry.Tests
 {
     public unsafe class Program
     {
+        internal static void LinkedStores()
+        {
+            var links = Directory
+                .EnumerateDirectories(@"Y:\cells", "pointcloud", SearchOption.AllDirectories)
+                .Select(x => (storePath: x, key: Path.GetFileName(Path.GetDirectoryName(x))))
+                .ToArray();
+
+            var sw = new Stopwatch(); sw.Restart();
+            var totalCount = 0L;
+            var ls = links
+                .Select(x =>
+                {
+                    try
+                    {
+                        var store = new LinkedStore(x.storePath, x.key);
+                        Console.WriteLine($"{store.PointCountTree,20:N0}");
+                        totalCount += store.PointCountTree;
+                        return store;
+                    }
+                    catch
+                    {
+                        Console.WriteLine($"[ERROR] could not read {x.key}@{x.storePath}");
+                        return null;
+                    }
+                })
+                .Where(x => x != null)
+                .ToArray();
+
+            sw.Stop();
+            Console.WriteLine($"{totalCount,20:N0} total");
+            Console.WriteLine(sw.Elapsed);
+
+            //var a = new LinkedStore(@"Y:\cells\3274_5507_0_10\pointcloud", "3274_5507_0_10");
+            //Console.WriteLine($"{a.PointCountTree:N0}");
+            Environment.Exit(0);
+        }
+
         internal static void TestE57()
         {
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
@@ -157,6 +194,8 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
+            LinkedStores();
+
             MasterLisa.Perform();
             //TestE57();
 
