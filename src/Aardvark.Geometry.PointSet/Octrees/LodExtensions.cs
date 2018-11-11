@@ -67,6 +67,8 @@ namespace Aardvark.Geometry.Points
 
             if (self.IsLeaf) return self.WithLod();
 
+            if (self.HasLodPositions) return self; // cell already has lod data -> done
+
             if (self.Subnodes == null || self.Subnodes.Length != 8) throw new InvalidOperationException();
 
             var subcells = self.Subnodes.Map(x => x?.Value.GenerateLod(octreeSplitLimit, callback, ct));

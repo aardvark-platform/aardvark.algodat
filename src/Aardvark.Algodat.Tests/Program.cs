@@ -16,6 +16,8 @@ namespace Aardvark.Geometry.Tests
     {
         internal static void LinkedStores()
         {
+            var resolver = new IdentityResolver();
+
             var links = Directory
                 .EnumerateDirectories(@"Y:\cells", "pointcloud", SearchOption.AllDirectories)
                 .Select(x => (storePath: x, key: Path.GetFileName(Path.GetDirectoryName(x))))
@@ -28,7 +30,7 @@ namespace Aardvark.Geometry.Tests
                 {
                     try
                     {
-                        var store = new LinkedStore(x.storePath, x.key);
+                        var store = new LinkedStore(resolver, x.storePath, x.key);
                         Console.WriteLine($"{store.PointCountTree,20:N0}");
                         totalCount += store.PointCountTree;
                         return store;

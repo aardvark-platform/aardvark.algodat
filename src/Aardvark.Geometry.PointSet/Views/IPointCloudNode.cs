@@ -43,6 +43,11 @@ namespace Aardvark.Geometry.Points
         V3d Center { get; }
 
         /// <summary>
+        /// Exact bounding box of all points in this tree.
+        /// </summary>
+        Box3d BoundingBoxExact { get; }
+
+        /// <summary>
         /// Number of points in this tree (sum of leaves).
         /// </summary>
         long PointCountTree { get; }
@@ -55,108 +60,13 @@ namespace Aardvark.Geometry.Points
         PersistentRef<IPointCloudNode>[] Subnodes { get; }
 
         /// <summary>
+        /// Gets storage key of given property.
         /// </summary>
-        bool TryGetProperty(PointSetProperties p, out Guid pRef);
-        
-
-        /// <summary> </summary>
-        bool HasPositions { get; }
-
-        /// <summary></summary>
-        bool HasColors { get; }
-
-        /// <summary></summary>
-        bool HasNormals { get; }
-        
-        /// <summary></summary>
-        bool HasIntensities { get; }
-
-        /// <summary></summary>
-        bool HasKdTree { get; }
-
-        /// <summary></summary>
-        bool HasLodPositions { get; }
-
-        /// <summary></summary>
-        bool HasLodColors { get; }
-
-        /// <summary></summary>
-        bool HasLodNormals { get; }
-
-        /// <summary></summary>
-        bool HasLodIntensities { get; }
-
-        /// <summary></summary>
-        bool HasLodKdTree { get; }
-
-        /// <summary></summary>
-        bool HasClassifications { get; }
-
-        /// <summary></summary>
-        bool HasLodClassifications { get; }
-
-
+        bool TryGetPropertyKey(string property, out string key);
 
         /// <summary>
-        /// Point positions relative to cell's center, or null if no positions.
+        /// Gets value of given property.
         /// </summary>
-        PersistentRef<V3f[]> Positions { get; }
-
-        /// <summary>
-        /// Point positions (absolute), or null if no positions.
-        /// </summary>
-        V3d[] PositionsAbsolute { get; }
-        
-        /// <summary>
-        /// Point colors, or null if no points.
-        /// </summary>
-        PersistentRef<C4b[]> Colors { get; }
-        
-        /// <summary>
-        /// </summary>
-        PersistentRef<V3f[]> Normals { get; }
-
-        /// <summary>
-        /// </summary>
-        PersistentRef<int[]> Intensities { get; }
-
-        /// <summary>
-        /// </summary>
-        PersistentRef<PointRkdTreeD<V3f[], V3f>> KdTree { get; }
-
-        /// <summary>
-        /// LoD-Positions relative to cell's center, or null if no positions.
-        /// </summary>
-        PersistentRef<V3f[]> LodPositions { get; }
-
-        /// <summary>
-        /// Lod-Positions (absolute), or null if no positions.
-        /// </summary>
-        V3d[] LodPositionsAbsolute { get; }
-        
-        /// <summary>
-        /// Point colors, or null if no points.
-        /// </summary>
-        PersistentRef<C4b[]> LodColors { get; }
-
-        /// <summary>
-        /// </summary>
-        PersistentRef<V3f[]> LodNormals { get; }
-
-        /// <summary>
-        /// </summary>
-        PersistentRef<int[]> LodIntensities { get; }
-
-        /// <summary>
-        /// </summary>
-        PersistentRef<PointRkdTreeD<V3f[], V3f>> LodKdTree { get; }
-
-        /// <summary>
-        /// </summary>
-        PersistentRef<byte[]> Classifications { get; }
-        
-        /// <summary>
-        /// </summary>
-        PersistentRef<byte[]> LodClassifications { get; }
+        bool TryGetPropertyValue(string property, out object value);
     }
 }
