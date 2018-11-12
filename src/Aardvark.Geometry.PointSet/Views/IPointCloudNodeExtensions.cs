@@ -12,6 +12,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
+using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
 
@@ -144,6 +145,17 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PersistentRef<byte[]> GetLodClassifications(this IPointCloudNode self)
             => self.TryGetPropertyValue(PointCloudAttribute.LodClassifications, out object value) ? (PersistentRef<byte[]>)value : null;
+
+        #endregion
+
+        #region Storage
+
+        /// <summary>
+        /// </summary>
+        public static IPointCloudNode GetPointCloudNode(this Storage storage, string id)
+        {
+            throw new NotImplementedException();
+        }
 
         #endregion
 

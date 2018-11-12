@@ -23,11 +23,11 @@ namespace Aardvark.Geometry.Points
     /// <summary>
     /// A view onto a set of non-overlapping point cloud nodes.
     /// </summary>
-    public class ViewMerged : IPointCloudNode
+    public class MergedView : IPointCloudNode
     {
         /// <summary>
         /// </summary>
-        public static IPointCloudNode Create(Storage storage, IEnumerable<IPointCloudNode> nodes)
+        public static IPointCloudNode Create(Storage storage, IStoreResolver resolver, IEnumerable<IPointCloudNode> nodes, ImportConfig config)
         {
             if (nodes == null) throw new ArgumentNullException(nameof(nodes));
 
@@ -36,7 +36,7 @@ namespace Aardvark.Geometry.Points
             {
                 case 0 : throw new ArgumentOutOfRangeException(nameof(nodes), "Need at least 1 node (0 given).");
                 case 1 : return ns[0];
-                default: return new ViewMerged(storage, ns);
+                default: return new MergedView(storage, resolver, ns, config);
             }
         }
 
@@ -53,25 +53,85 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Property name -> key.
         /// </summary>
-        public Dictionary<string, string> Properties { get; }
-        
+        public Dictionary<string, string> PropertyKeys { get; } = new Dictionary<string, string>();
+
+        /// <summary>
+        /// Property name -> value.
+        /// </summary>
+        public Dictionary<string, object> PropertyValues { get; } = new Dictionary<string, object>();
+
         /// <summary>
         /// </summary>
-        private ViewMerged(Storage storage, IPointCloudNode[] nodes)
+        private MergedView(Storage storage, IStoreResolver resolver, IPointCloudNode[] nodes, ImportConfig config)
         {
             Storage = storage;
-            Nodes = nodes.ToArray();
-
-            Id = Guid.NewGuid().ToString();
+            Nodes = nodes;
+            Id = Nodes.Select(x => x.Id).ToGuid().ToString();
             Cell = new Cell(new Box3d(Nodes.Select(x => x.Cell.BoundingBox)));
             Center = Cell.GetCenter();
-            PointCountTree = nodes.Sum(x => x.PointCountTree);
+            PointCountTree = Nodes.Sum(x => x.PointCountTree);
+            BoundingBoxExact = new Box3d(Nodes.Select(x => x.BoundingBoxExact));
             
             var test = containedIn(Cell, Nodes);
             if (test.Length != Nodes.Length) throw new InvalidOperationException();
-
             IPointCloudNode[] containedIn(Cell c, IEnumerable<IPointCloudNode> ns)
                 => ns.Where(x => c.Contains(x.Cell)).ToArray();
+
+            // sort nodes into subcells
+            var buckets = new List<IPointCloudNode>[8].SetByIndex(_ => new List<IPointCloudNode>());
+            var subcells = Cell.Children;
+            foreach (var n in Nodes)
+            {
+                var notInserted = true;
+                for (var i = 0; i < 8; i++)
+                {
+                    if (subcells[i].Contains(n.Cell))
+                    {
+                        buckets[i].Add(n);
+                        notInserted = false;
+                        break;
+                    }
+                }
+                if (notInserted) throw new InvalidOperationException();
+            }
+
+            // set subcells
+            Subnodes = new PersistentRef<IPointCloudNode>[8];
+            for (var i = 0; i < 8; i++)
+            {
+                var bucket = buckets[i];
+
+                if (bucket.Count == 0)
+                {
+                    Subnodes[i] = null;
+                    continue;
+                }
+
+                if (bucket.Count == 1)
+                {
+                    if (bucket[0].Cell == subcells[i])
+                    {
+                        Subnodes[i] = new PersistentRef<IPointCloudNode>(bucket[0].Id, (id, ct) => storage.GetPointCloudNode(id));
+                        bucket.Clear();
+                        continue;
+                    }
+                }
+
+                var subnode = new MergedView(storage, resolver, bucket.ToArray(), config);
+                Subnodes[i] = new PersistentRef<IPointCloudNode>(subnode.Id, (id, ct) => storage.GetPointCloudNode(id));
+            }
+
+            // lod
+            if (config.CreateOctreeLod)
+            {
+                throw new NotImplementedException();
+            }
+
+            // normals
+            if (config.EstimateNormals != null)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         /// <summary>
@@ -102,14 +162,11 @@ namespace Aardvark.Geometry.Points
         
         /// <summary></summary>
         public bool TryGetPropertyKey(string property, out string key)
-            => Properties.TryGetValue(property, out key);
+            => PropertyKeys.TryGetValue(property, out key);
 
-        /// <summary>
-        /// </summary>
+        /// <summary></summary>
         public bool TryGetPropertyValue(string property, out object value)
-        {
-            throw new NotImplementedException();
-        }
+            => PropertyValues.TryGetValue(property, out value);
 
         /// <summary></summary>
         public void Dispose()
