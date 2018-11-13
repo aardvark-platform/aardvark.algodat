@@ -270,6 +270,17 @@ namespace Aardvark.Geometry.Points
             return (PointRkdTreeDData)data;
         }
 
+        /// <summary>
+        /// </summary>
+        public static PointRkdTreeD<V3f[], V3f> GetKdTree(this Storage storage, string key, V3f[] positions, CancellationToken ct)
+            => new PointRkdTreeD<V3f[], V3f>(
+                3, positions.Length, positions,
+                (xs, i) => xs[(int)i], (v, i) => (float)v[i],
+                (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
+                (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, 1e-9,
+                storage.GetPointRkdTreeDData(key, ct)
+                );
+
         #endregion
 
         #region PointSetNode

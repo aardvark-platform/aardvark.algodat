@@ -11,6 +11,8 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+using Aardvark.Base;
+using Aardvark.Data.Points;
 using System;
 
 namespace Aardvark.Geometry.Points
@@ -91,6 +93,30 @@ namespace Aardvark.Geometry.Points
                 default: throw new InvalidOperationException($"Cannot convert '{self}' to property.");
             }
         }
+
+        /// <summary>
+        /// </summary>
+        public static object CreatePersistentRef(this Storage storage, string attributeName, string key)
+        {
+            switch (attributeName)
+            {
+                case Classifications:       return new PersistentRef<byte[]>(key, (id, ct) => storage.GetByteArray(id, ct));
+                case Colors:                return new PersistentRef<C4b[]>(key, (id, ct) => storage.GetC4bArray(id, ct));
+                case Intensities:           return new PersistentRef<int[]>(key, (id, ct) => storage.GetIntArray(id, ct));
+                case KdTree:                return new PersistentRef<PointRkdTreeDData>(key, (id, ct) => storage.GetPointRkdTreeDData(id, ct));
+                case LodClassifications:    return new PersistentRef<byte[]>(key, (id, ct) => storage.GetByteArray(id, ct));
+                case LodColors:             return new PersistentRef<C4b[]>(key, (id, ct) => storage.GetC4bArray(id, ct));
+                case LodIntensities:        return new PersistentRef<byte[]>(key, (id, ct) => storage.GetByteArray(id, ct));
+                case LodKdTree:             return new PersistentRef<PointRkdTreeDData>(key, (id, ct) => storage.GetPointRkdTreeDData(id, ct));
+                case LodNormals:            return new PersistentRef<V3f[]>(key, (id, ct) => storage.GetV3fArray(id, ct));
+                case LodPositions:          return new PersistentRef<V3f[]>(key, (id, ct) => storage.GetV3fArray(id, ct));
+                case Normals:               return new PersistentRef<V3f[]>(key, (id, ct) => storage.GetV3fArray(id, ct));
+                case Positions:             return new PersistentRef<V3f[]>(key, (id, ct) => storage.GetV3fArray(id, ct));
+
+                default: throw new InvalidOperationException($"Cannot convert '{attributeName}' to property.");
+            }
+        }
+
     }
 
     /// <summary>
