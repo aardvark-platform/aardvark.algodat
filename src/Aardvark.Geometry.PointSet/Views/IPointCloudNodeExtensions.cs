@@ -76,7 +76,8 @@ namespace Aardvark.Geometry.Points
         public static V3d[] GetPositionsAbsolute(this IPointCloudNode self)
         {
             var c = self.Center;
-            return GetPositions(self).Value.Map(p => c + (V3d)p);
+            var ps = GetPositions(self);
+            return ps.Value.Map(p => c + (V3d)p);
         }
 
         /// <summary>

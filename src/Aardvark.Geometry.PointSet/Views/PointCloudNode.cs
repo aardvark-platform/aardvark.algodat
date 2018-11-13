@@ -37,10 +37,13 @@ namespace Aardvark.Geometry.Points
             PointCountTree = pointCountTree;
             Subnodes = subnodes;
 
-            foreach (var (propertyName, propertyId, pRef) in properties)
+            if (properties != null)
             {
-                m_pIds[propertyName] = propertyId;
-                m_pRefs[propertyName] = pRef;
+                foreach (var (propertyName, propertyId, pRef) in properties)
+                {
+                    m_pIds[propertyName] = propertyId;
+                    m_pRefs[propertyName] = pRef;
+                }
             }
         }
 

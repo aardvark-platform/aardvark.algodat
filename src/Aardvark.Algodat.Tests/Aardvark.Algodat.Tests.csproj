@@ -80,6 +80,7 @@
     <Compile Include="QueryTests.cs" />
     <Compile Include="PointSetTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ViewsTests\PointCloudNodeTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Aardvark.Data.E57\Aardvark.Data.E57.csproj">
