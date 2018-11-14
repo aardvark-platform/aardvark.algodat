@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using Aardvark.Base;
 using Newtonsoft.Json;
@@ -27,13 +28,33 @@ namespace Aardvark.Geometry.Points
         public bool IsFullyOutside(IPointCloudNode node) => !Box.Intersects(node.BoundingBoxExact);
 
         /// <summary></summary>
-        public bool IsPositionInside(V3d p) => Box.Contains(p);
+        public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int> selected = null)
+        {
+            if (selected != null)
+            {
+                var c = node.Center;
+                var ps = node.GetPositions().Value;
+                return new HashSet<int>(selected.Where(i => Box.Contains(c + (V3d)ps[i])));
+            }
+            else
+            {
+                var c = node.Center;
+                var ps = node.GetPositions().Value;
+                var result = new HashSet<int>();
+                for (var i = 0; i < ps.Length; i++)
+                {
+                    if (Box.Contains(c + (V3d)ps[i])) result.Add(i);
+                }
+                return result;
+            }
+        }
 
         /// <summary></summary>
         public JObject Serialize() => new JObject(new { Type, Box = Box.ToString() });
 
         /// <summary></summary>
         public static FilterInsideBox3d Deserialize(JObject json) => new FilterInsideBox3d(Box3d.Parse((string)json["Box"]));
+
     }
 
     /// <summary>
@@ -56,7 +77,25 @@ namespace Aardvark.Geometry.Points
         public bool IsFullyOutside(IPointCloudNode node) => Box.Contains(node.BoundingBoxExact);
 
         /// <summary></summary>
-        public bool IsPositionInside(V3d p) => !Box.Contains(p);
+        public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int> selected = null)
+        {
+            var c = node.Center;
+            var xs = node.GetPositions().Value;
+
+            if (selected != null)
+            {
+                return new HashSet<int>(selected.Where(i => Box.Contains(c + (V3d)xs[i])));
+            }
+            else
+            {
+                var result = new HashSet<int>();
+                for (var i = 0; i < xs.Length; i++)
+                {
+                    if (Box.Contains(c + (V3d)xs[i])) result.Add(i);
+                }
+                return result;
+            }
+        }
 
         /// <summary></summary>
         public JObject Serialize() => new JObject(new { Type, Box = Box.ToString() });

@@ -29,8 +29,11 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         bool IsFullyOutside(IPointCloudNode node);
 
-        /// <summary></summary>
-        bool IsPositionInside(V3d p);
+        /// <summary>
+        /// Computes indices of selected/visible points, starting from already selected points.
+        /// If 'selected' is null, then ALL points are selected to begin with.
+        /// </summary>
+        HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int> selected = default);
 
         /// <summary></summary>
         JObject Serialize();
