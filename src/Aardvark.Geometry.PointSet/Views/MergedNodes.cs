@@ -23,7 +23,7 @@ namespace Aardvark.Geometry.Points
     /// <summary>
     /// A view onto a set of non-overlapping point cloud nodes.
     /// </summary>
-    public class MergedView : IPointCloudNode
+    public class MergedNodes : IPointCloudNode
     {
         /// <summary>
         /// </summary>
@@ -36,7 +36,7 @@ namespace Aardvark.Geometry.Points
             {
                 case 0 : throw new ArgumentOutOfRangeException(nameof(nodes), "Need at least 1 node (0 given).");
                 case 1 : return ns[0];
-                default: return new MergedView(storage, resolver, ns, config);
+                default: return new MergedNodes(storage, resolver, ns, config);
             }
         }
 
@@ -62,7 +62,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        private MergedView(Storage storage, IStoreResolver resolver, IPointCloudNode[] nodes, ImportConfig config)
+        private MergedNodes(Storage storage, IStoreResolver resolver, IPointCloudNode[] nodes, ImportConfig config)
         {
             Storage = storage;
             Nodes = nodes;
@@ -117,7 +117,7 @@ namespace Aardvark.Geometry.Points
                     }
                 }
 
-                var subnode = new MergedView(storage, resolver, bucket.ToArray(), config);
+                var subnode = new MergedNodes(storage, resolver, bucket.ToArray(), config);
                 Subnodes[i] = new PersistentRef<IPointCloudNode>(subnode.Id, (id, ct) => storage.GetPointCloudNode(id));
             }
 

@@ -18,9 +18,9 @@ using System;
 namespace Aardvark.Geometry.Points
 {
     /// <summary>
-    /// A linked store exposed as an immutable point cloud octree node.
+    /// A link to another octree node (possibly in another store).
     /// </summary>
-    public class LinkedStore : IPointCloudNode
+    public class LinkedNode : IPointCloudNode
     {
         private readonly IStoreResolver m_storeResolver;
 
@@ -37,7 +37,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Links to different octree.
         /// </summary>
-        public LinkedStore(IStoreResolver storeResolver, string storePath, string pointCloudKey)
+        public LinkedNode(IStoreResolver storeResolver, string storePath, string pointCloudKey)
         {
             m_storeResolver = storeResolver;
             LinkedStorePath = storePath;

@@ -30,7 +30,7 @@ namespace Aardvark.Geometry.Tests
                 {
                     try
                     {
-                        var store = new LinkedStore(resolver, x.storePath, x.key);
+                        var store = new LinkedNode(resolver, x.storePath, x.key);
                         Console.WriteLine($"{store.PointCountTree,20:N0}");
                         totalCount += store.PointCountTree;
                         return store;
