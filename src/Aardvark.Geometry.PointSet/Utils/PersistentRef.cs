@@ -25,10 +25,11 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        public PersistentRef(string id, Func<string, CancellationToken, T> get)
+        public PersistentRef(string id, Func<string, CancellationToken, T> get, T cachedValue = null)
         {
             Id = id ?? throw new ArgumentNullException(nameof(id));
             f_get = get ?? throw new ArgumentNullException(nameof(get));
+            if (cachedValue != null) m_value = new WeakReference<T>(cachedValue);
         }
 
         /// <summary>

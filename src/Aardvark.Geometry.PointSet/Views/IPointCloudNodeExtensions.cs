@@ -77,7 +77,7 @@ namespace Aardvark.Geometry.Points
         {
             var c = self.Center;
             var ps = GetPositions(self);
-            return ps.Value.Map(p => c + (V3d)p);
+            return ps.Value.Map(p => new V3d(p.X + c.X, p.Y + c.Y, p.Z + c.Z));
         }
 
         /// <summary>

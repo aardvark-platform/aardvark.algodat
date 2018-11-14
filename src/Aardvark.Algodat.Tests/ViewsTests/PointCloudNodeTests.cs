@@ -23,12 +23,20 @@ namespace Aardvark.Geometry.Tests
     {
         private static readonly Random r = new Random();
         private static V3d RandomPosition() => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble());
-
+        
         [Test]
         public void Create_Empty()
         {
             var storage = PointCloud.CreateInMemoryStore();
-            var a = new PointCloudNode(storage, "a", Cell.Unit, Box3d.Unit, 0, null, null);
+
+            var a = new PointCloudNode(storage,
+                id              : "a",
+                cell            : Cell.Unit,
+                boundingBoxExact: Box3d.Unit,
+                pointCountTree  : 0,
+                subnodes        : null
+                );
+
             Assert.IsTrue(a.Id == "a");
             Assert.IsTrue(a.Cell == Cell.Unit);
             Assert.IsTrue(a.BoundingBoxExact == Box3d.Unit);
@@ -39,22 +47,46 @@ namespace Aardvark.Geometry.Tests
         {
             var storage = PointCloud.CreateInMemoryStore();
             var ps0 = new V3d[100].SetByIndex(_ => RandomPosition());
-            var ps0Id = Guid.NewGuid();
-            var cell = new Cell(ps0);
-            var c = cell.GetCenter();
-            var ps0f = ps0.Map(p => new V3f(p - c));
-            storage.Add(ps0Id, ps0f, default);
-            var a = new PointCloudNode(storage, "a", cell, new Box3d(ps0), ps0.Length, null, new[]
-            {
-                (PointCloudAttribute.Positions, ps0Id.ToString(), (object)new PersistentRef<V3f[]>(ps0Id.ToString(), storage.GetV3fArray))
-            });
+            var ps0Id = "a.positions";
+
+            var a = new PointCloudNode(storage,
+                id              : "a",
+                cell            : new Cell(ps0),
+                boundingBoxExact: new Box3d(ps0),
+                pointCountTree  : ps0.Length,
+                subnodes        : null,
+                (PointCloudAttribute.PositionsAbsolute, ps0Id, ps0)
+                );
+
             Assert.IsTrue(a.Id == "a");
             Assert.IsTrue(a.Cell == new Cell(ps0));
             Assert.IsTrue(a.BoundingBoxExact == new Box3d(ps0));
             Assert.IsTrue(a.HasPositions());
-            var ps1 = a.GetPositions();
-            for (var i = 0; i < ps0.Length; i++)
-                Assert.IsTrue(ps0f[i] == ps1.Value[i]);
+        }
+
+        [Test]
+        public void Create_KdTree()
+        {
+            var storage = PointCloud.CreateInMemoryStore();
+            var ps0 = new V3d[100].SetByIndex(_ => RandomPosition()).Map(p => new V3f(p - new V3d(0.5, 0.5, 0.5)));
+            var ps0Id = "a.positions";
+            var kd0Id = "a.kd";
+            var bb = (Box3d)new Box3f(ps0);
+
+            var a = new PointCloudNode(storage,
+                id: "a",
+                cell: new Cell(ps0),
+                boundingBoxExact: bb,
+                pointCountTree: ps0.Length,
+                subnodes: null,
+                (PointCloudAttribute.Positions, ps0Id, ps0),
+                (PointCloudAttribute.KdTree, kd0Id, ps0)
+                );
+
+            Assert.IsTrue(a.Id == "a");
+            Assert.IsTrue(a.Cell == new Cell(ps0));
+            Assert.IsTrue(a.BoundingBoxExact == bb);
+            Assert.IsTrue(a.HasPositions());
         }
     }
 }

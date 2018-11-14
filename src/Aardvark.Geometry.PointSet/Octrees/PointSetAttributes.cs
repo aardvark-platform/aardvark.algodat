@@ -21,30 +21,34 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public static class PointCloudAttribute
     {
-        /// <summary></summary>
+        /// <summary>byte[].</summary>
         public const string Classifications = "Classifications";
-        /// <summary></summary>
+        /// <summary>C4b[].</summary>
         public const string Colors = "Colors";
-        /// <summary></summary>
+        /// <summary>int[].</summary>
         public const string Intensities = "Intensities";
-        /// <summary></summary>
+        /// <summary>PointRkdTreeDData.</summary>
         public const string KdTree = "KdTree";
-        /// <summary></summary>
+        /// <summary>byte[].</summary>
         public const string LodClassifications = "LodClassifications";
-        /// <summary></summary>
+        /// <summary>C4b[].</summary>
         public const string LodColors = "LodColors";
-        /// <summary></summary>
+        /// <summary>int[].</summary>
         public const string LodIntensities = "LodIntensities";
-        /// <summary></summary>
+        /// <summary>PointRkdTreeDData.</summary>
         public const string LodKdTree = "LodKdTree";
-        /// <summary></summary>
+        /// <summary>V3f[].</summary>
         public const string LodNormals = "LodNormals";
-        /// <summary></summary>
+        /// <summary>V3f[] relative to center.</summary>
         public const string LodPositions = "LodPositions";
-        /// <summary></summary>
+        /// <summary>V3d[] absolute.</summary>
+        public const string LodPositionsAbsolute = "LodPositionsAbsolute";
+        /// <summary>V3f[].</summary>
         public const string Normals = "Normals";
-        /// <summary></summary>
+        /// <summary>V3f[] relative to center.</summary>
         public const string Positions = "Positions";
+        /// <summary>V3d[] absolute.</summary>
+        public const string PositionsAbsolute = "PositionsAbsolute";
 
         /// <summary>
         /// Gets name of attribute.
@@ -96,27 +100,49 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        public static object CreatePersistentRef(this Storage storage, string attributeName, string key)
+        public static object CreatePersistentRef(this Storage storage, string attributeName, string key, object value)
         {
             switch (attributeName)
             {
-                case Classifications:       return new PersistentRef<byte[]>(key, (id, ct) => storage.GetByteArray(id, ct));
-                case Colors:                return new PersistentRef<C4b[]>(key, (id, ct) => storage.GetC4bArray(id, ct));
-                case Intensities:           return new PersistentRef<int[]>(key, (id, ct) => storage.GetIntArray(id, ct));
-                case KdTree:                return new PersistentRef<PointRkdTreeDData>(key, (id, ct) => storage.GetPointRkdTreeDData(id, ct));
-                case LodClassifications:    return new PersistentRef<byte[]>(key, (id, ct) => storage.GetByteArray(id, ct));
-                case LodColors:             return new PersistentRef<C4b[]>(key, (id, ct) => storage.GetC4bArray(id, ct));
-                case LodIntensities:        return new PersistentRef<byte[]>(key, (id, ct) => storage.GetByteArray(id, ct));
-                case LodKdTree:             return new PersistentRef<PointRkdTreeDData>(key, (id, ct) => storage.GetPointRkdTreeDData(id, ct));
-                case LodNormals:            return new PersistentRef<V3f[]>(key, (id, ct) => storage.GetV3fArray(id, ct));
-                case LodPositions:          return new PersistentRef<V3f[]>(key, (id, ct) => storage.GetV3fArray(id, ct));
-                case Normals:               return new PersistentRef<V3f[]>(key, (id, ct) => storage.GetV3fArray(id, ct));
-                case Positions:             return new PersistentRef<V3f[]>(key, (id, ct) => storage.GetV3fArray(id, ct));
+                case Classifications:       return new PersistentRef<byte[]>(key, (id, ct) => storage.GetByteArray(id, ct), (byte[])value);
+                case Colors:                return new PersistentRef<C4b[]>(key, (id, ct) => storage.GetC4bArray(id, ct), (C4b[])value);
+                case Intensities:           return new PersistentRef<int[]>(key, (id, ct) => storage.GetIntArray(id, ct), (int[])value);
+                case KdTree:                return new PersistentRef<PointRkdTreeDData>(key, (id, ct) => storage.GetPointRkdTreeDData(id, ct), (PointRkdTreeDData)value);
+                case LodClassifications:    return new PersistentRef<byte[]>(key, (id, ct) => storage.GetByteArray(id, ct), (byte[])value);
+                case LodColors:             return new PersistentRef<C4b[]>(key, (id, ct) => storage.GetC4bArray(id, ct), (C4b[])value);
+                case LodIntensities:        return new PersistentRef<int[]>(key, (id, ct) => storage.GetIntArray(id, ct), (int[])value);
+                case LodKdTree:             return new PersistentRef<PointRkdTreeDData>(key, (id, ct) => storage.GetPointRkdTreeDData(id, ct), (PointRkdTreeDData)value);
+                case LodNormals:            return new PersistentRef<V3f[]>(key, (id, ct) => storage.GetV3fArray(id, ct), (V3f[])value);
+                case LodPositions:          return new PersistentRef<V3f[]>(key, (id, ct) => storage.GetV3fArray(id, ct), (V3f[])value);
+                case Normals:               return new PersistentRef<V3f[]>(key, (id, ct) => storage.GetV3fArray(id, ct), (V3f[])value);
+                case Positions:             return new PersistentRef<V3f[]>(key, (id, ct) => storage.GetV3fArray(id, ct), (V3f[])value);
 
                 default: throw new InvalidOperationException($"Cannot convert '{attributeName}' to property.");
             }
         }
 
+        /// <summary>
+        /// </summary>
+        public static void StoreAttribute(this Storage storage, string attributeName, string key, object value)
+        {
+            switch (attributeName)
+            {
+                case Classifications:       storage.Add(key, (byte[])value, default); break;
+                case Colors:                storage.Add(key, (C4b[])value, default); break;
+                case Intensities:           storage.Add(key, (int[])value, default); break;
+                case KdTree:                storage.Add(key, (PointRkdTreeDData)value, default); break;
+                case LodClassifications:    storage.Add(key, (byte[])value, default); break;
+                case LodColors:             storage.Add(key, (C4b[])value, default); break;
+                case LodIntensities:        storage.Add(key, (int[])value, default); break;
+                case LodKdTree:             storage.Add(key, (PointRkdTreeDData)value, default); break;
+                case LodNormals:            storage.Add(key, (V3f[])value, default); break;
+                case LodPositions:          storage.Add(key, (V3f[])value, default); break;
+                case Normals:               storage.Add(key, (V3f[])value, default); break;
+                case Positions:             storage.Add(key, (V3f[])value, default); break;
+
+                default: throw new InvalidOperationException($"Cannot store '{attributeName}'.");
+            }
+        }
     }
 
     /// <summary>

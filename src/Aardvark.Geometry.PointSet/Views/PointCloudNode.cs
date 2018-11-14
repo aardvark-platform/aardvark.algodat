@@ -27,22 +27,82 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public PointCloudNode(Storage storage,
             string id, Cell cell, Box3d boundingBoxExact, long pointCountTree, PersistentRef<IPointCloudNode>[] subnodes,
-            IEnumerable<(string propertyName, string propertyId, object pRef)> properties
+            params (string attributeName, string attributeKey, object attributeValue)[] attributes
             )
         {
             Storage = storage;
             Id = id;
             Cell = cell;
+            Center = cell.GetCenter();
             BoundingBoxExact = boundingBoxExact;
             PointCountTree = pointCountTree;
             Subnodes = subnodes;
 
-            if (properties != null)
+            if (attributes != null)
             {
-                foreach (var (propertyName, propertyId, pRef) in properties)
+                foreach (var (attributeName, attributeKey, attributeValue) in attributes)
                 {
-                    m_pIds[propertyName] = propertyId;
-                    m_pRefs[propertyName] = pRef;
+                    var name = attributeName;
+                    var value = attributeValue;
+
+                    switch (name)
+                    {
+                        case PointCloudAttribute.PositionsAbsolute:
+                            {
+                                var c = Center;
+                                name = PointCloudAttribute.Positions;
+                                value = ((V3d[])value).Map(p => new V3f(p - c));
+                                break;
+                            }
+
+                        case PointCloudAttribute.LodPositionsAbsolute:
+                            {
+                                var c = Center;
+                                name = PointCloudAttribute.LodPositions;
+                                value = ((V3d[])value).Map(p => new V3f(p - c));
+                                break;
+                            }
+
+                        case PointCloudAttribute.KdTree:
+                        case PointCloudAttribute.LodKdTree:
+                            {
+                                if (value is PointRkdTreeD<V3f[], V3f>)
+                                {
+                                    value = ((PointRkdTreeD<V3f[], V3f>)value).Data;
+                                }
+                                else if (value is PointRkdTreeDData)
+                                {
+                                    // OK
+                                }
+                                else if (value is V3d[])
+                                {
+                                    var c = Center;
+                                    value = ((V3d[])value).Map(p => new V3f(p - c)).BuildKdTree();
+                                }
+                                else if (value is V3f[])
+                                {
+                                    value = ((V3f[])value).BuildKdTree().Data;
+                                }
+                                else
+                                {
+                                    throw new InvalidOperationException();
+                                }
+                                break;
+                            }
+                    }
+
+                    if (value is Array || value is PointRkdTreeDData)
+                    {
+                        storage.StoreAttribute(name, attributeKey, value);
+                        m_pRefs[name] = storage.CreatePersistentRef(name, attributeKey, value);
+                    }
+                    else
+                    {
+                        if (value is PointRkdTreeD<V3f[], V3f>) throw new InvalidOperationException();
+                        m_pRefs[name] = value;
+                    }
+                    
+                    m_pIds[name] = attributeKey;
                 }
             }
         }
@@ -60,7 +120,7 @@ namespace Aardvark.Geometry.Points
         public Cell Cell { get; }
 
         /// <summary></summary>
-        public V3d Center => Cell.GetCenter();
+        public V3d Center { get; }
 
         /// <summary></summary>
         public Box3d BoundingBoxExact { get; }
@@ -79,15 +139,5 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public void Dispose() { }
-
-
-
-        /// <summary>
-        /// The empty point cloud node.
-        /// </summary>
-        public static readonly PointCloudNode Empty = new PointCloudNode(null,
-            "Aardvark.Geometry.Points.PointCloudNode.Empty",
-            new Cell(int.MinValue), Box3d.Invalid, 0, null, null
-            );
     }
 }
