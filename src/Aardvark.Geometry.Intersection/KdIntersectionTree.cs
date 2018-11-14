@@ -905,6 +905,9 @@ namespace Aardvark.Geometry
             //if (parameters.m_buildTrials == 1) progressPass *= 2.5;
             //double progressStep = 256.0 * progressPass / (double)objectIndexArray.Length;
 
+            bool[] lfa = null;
+            bool[] rfa = null;
+
             for (byte dim = 0; dim < 3; dim++)
             {
                 var smin = double.MaxValue; // empty space
@@ -931,9 +934,11 @@ namespace Aardvark.Geometry
                     var rObjBox = Box3d.Invalid;
 
                     int count = objectIndexArray.Length;
-
-                    var lfa = new bool[count];
-                    var rfa = new bool[count];
+                    if (lfa == null)
+                    {
+                        lfa = new bool[count];
+                        rfa = new bool[count];
+                    }
 
                     for (int k = 0; k < count; k++)
                     {
@@ -965,11 +970,10 @@ namespace Aardvark.Geometry
                     //    Report.Progress(3, parameters.m_progress);
                     //}
 
-                    List<double> sList;
+                    double sl = double.NaN, sr = double.NaN;
 
                     if (inParams.BoxArray != null)
                     {
-                        sList = new List<double>(2);
                         lObjBox = Box3d.Intersection(lObjBox, lBox);
                         rObjBox = Box3d.Intersection(rObjBox, rBox);
 
@@ -982,40 +986,45 @@ namespace Aardvark.Geometry
 
                                 if (lMax + 2 * inParams.Eps < rMin)
                                 {
-                                    var sl = lMax + inParams.Eps;
-                                    var sr = rMin - inParams.Eps;
-                                    smin = Fun.Min(smin, sl); sList.Add(sl);
-                                    smax = Fun.Max(smax, sr); sList.Add(sr);
+                                    sl = lMax + inParams.Eps;
+                                    sr = rMin - inParams.Eps;
+                                    smin = Fun.Min(smin, sl);
+                                    smax = Fun.Max(smax, sr);
                                 }
                                 else
-                                    sList.Add(split);
+                                    sl = split;
                             }
                             else
                             {
-                                var sl = lObjBox.Max[dim] + inParams.Eps;
-                                smin = Fun.Min(smin, sl); sList.Add(sl);
+                                sl = lObjBox.Max[dim] + inParams.Eps;
+                                smin = Fun.Min(smin, sl);
                             }
                         }
                         else
                         {
                             if (rObjBox.IsValid)
                             {
-                                var sr = rObjBox.Min[dim] - inParams.Eps;
-                                smax = Fun.Max(smax, sr); sList.Add(sr);
+                                sr = rObjBox.Min[dim] - inParams.Eps;
+                                smax = Fun.Max(smax, sr);
                             }
                             else
-                                sList.Add(split); // should never happen
+                                sr = split; // should never happen
                         }
 
                     }
                     else
-                        sList = split.IntoList();
+                        sl = split;
 
-                    foreach (var s in sList)
+                    var lastLeft = leftFlags;
+                    var lastRight = rightFlags;
+                    for (var si = 0; si < 2; si++)
                     {
+                        var s = si == 0 ? sl : sr;
+                        if (s.IsNaN()) continue;
+
                         double cost;
                         var t = s - delta;
-                        if (objectIndexArray.Length > c_costThreshold)
+                        if (count > c_costThreshold)
                         {
                             /* ---------------------------------------------------
                                 For large leafs cost can be approximated to be
@@ -1061,6 +1070,13 @@ namespace Aardvark.Geometry
                             leftFlags = lfa;
                             rightFlags = rfa;
                         }
+                    }
+
+                    // re-use last flag arrays (might be null -> second working array will be allocated)
+                    if (lfa == leftFlags)
+                    {
+                        lfa = lastLeft;
+                        rfa = lastRight;
                     }
                 }
             }
