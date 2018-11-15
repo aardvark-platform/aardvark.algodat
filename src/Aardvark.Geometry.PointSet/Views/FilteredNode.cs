@@ -31,14 +31,27 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public IFilter Filter { get; }
 
+        /// <summary></summary>
+        public FilterState State { get; }
+        
+        private readonly HashSet<int> m_activePoints;
+        private PersistentRef<IPointCloudNode>[] m_subnodes_cache;
+
         #region Construction
 
         /// <summary></summary>
-        public FilteredNode(string id, IPointCloudNode node, IFilter filter)
+        public FilteredNode(string id, IPointCloudNode node, IFilter filter, HashSet<int> activePoints = null)
         {
             Id = id ?? throw new ArgumentNullException(nameof(id));
             Node = node ?? throw new ArgumentNullException(nameof(node));
             Filter = filter ?? throw new ArgumentNullException(nameof(filter));
+            State = Node.GetFilterState(Filter);
+
+            m_activePoints = activePoints;
+            if (State == FilterState.Partial)
+            {
+                m_activePoints = Filter.FilterPoints(Node, m_activePoints);
+            }
         }
 
         /// <summary></summary>
@@ -55,36 +68,98 @@ namespace Aardvark.Geometry.Points
         public string Id { get; }
 
         /// <summary></summary>
-        public Cell Cell => throw new NotImplementedException();
+        public Cell Cell => Node.Cell;
 
         /// <summary></summary>
-        public V3d Center => throw new NotImplementedException();
+        public V3d Center => Node.Center;
 
         /// <summary></summary>
-        public Box3d BoundingBoxExact => throw new NotImplementedException();
+        public Box3d BoundingBoxExact => Node.BoundingBoxExact;
 
         /// <summary></summary>
-        public long PointCountTree => throw new NotImplementedException();
+        public long PointCountTree => Node.PointCountTree;
 
         /// <summary></summary>
-        public PersistentRef<IPointCloudNode>[] Subnodes => throw new NotImplementedException();
-
-        /// <summary></summary>
-        public void Dispose()
+        public PersistentRef<IPointCloudNode>[] Subnodes
         {
-            throw new NotImplementedException();
+            get
+            {
+                if (Node.Subnodes == null) return null;
+
+                if (m_subnodes_cache == null)
+                {
+                    m_subnodes_cache = new PersistentRef<IPointCloudNode>[8];
+                    for (var i = 0; i < 8; i++)
+                    {
+                        var id = (Id + "." + i).ToGuid().ToString();
+                        var n0 = Node.Subnodes[i]?.Value;
+                        var n = n0 != null ? new FilteredNode(id, n0, Filter) : null;
+                        m_subnodes_cache[i] = new PersistentRef<IPointCloudNode>(id, (_, __) => n, n);
+                    }
+                }
+                return m_subnodes_cache;
+            }
         }
+
+        /// <summary></summary>
+        public void Dispose() => Node.Dispose();
 
         /// <summary></summary>
         public bool TryGetPropertyKey(string property, out string key)
         {
-            throw new NotImplementedException();
+            if (Node.TryGetPropertyKey(property, out string originalKey))
+            {
+                key = (Id + originalKey).ToGuid().ToString();
+                return true;
+            }
+            else
+            {
+                key = null;
+                return false;
+            }
         }
 
+        private PersistentRef<T[]> GetSubArray<T>(object originalValue)
+        {
+            var pref = ((PersistentRef<T[]>)originalValue);
+            var key = (Id + pref.Id).ToGuid().ToString();
+            var xs = pref.Value.Where((_, i) => m_activePoints.Contains(i)).ToArray();
+            return new PersistentRef<T[]>(key, (_, __) => xs, xs);
+        }
         /// <summary></summary>
         public bool TryGetPropertyValue(string property, out object value)
         {
-            throw new NotImplementedException();
+            if (Node.TryGetPropertyValue(property, out object originalValue))
+            {
+                
+                switch (property)
+                {
+                    case PointCloudAttribute.Classifications:
+                    case PointCloudAttribute.LodClassifications:    value = GetSubArray<byte>(originalValue); break;
+
+                    case PointCloudAttribute.Colors:
+                    case PointCloudAttribute.LodColors:             value = GetSubArray<C4b>(originalValue); break;
+
+                    case PointCloudAttribute.Intensities:
+                    case PointCloudAttribute.LodIntensities:        value = GetSubArray<int>(originalValue); break;
+
+                    case PointCloudAttribute.LodNormals:
+                    case PointCloudAttribute.LodPositions:
+                    case PointCloudAttribute.Normals:
+                    case PointCloudAttribute.Positions:             value = GetSubArray<V3f>(originalValue); break;
+                        
+                    case PointCloudAttribute.KdTree:                throw new NotImplementedException();
+                    case PointCloudAttribute.LodKdTree:             throw new NotImplementedException();
+
+                    default: throw new InvalidOperationException($"Cannot convert '{property}' to property.");
+                }
+                return true;
+            }
+            else
+            {
+                value = null;
+                return false;
+            }
         }
     }
 }

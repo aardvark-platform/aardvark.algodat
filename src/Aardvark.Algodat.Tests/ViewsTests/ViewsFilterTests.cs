@@ -23,25 +23,26 @@ namespace Aardvark.Geometry.Tests
     {
         private static readonly Random r = new Random();
         private static V3d RandomPosition() => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble());
-        
+        private static V3d[] RandomPositions(int n) => new V3d[n].SetByIndex(_ => RandomPosition());
+
         [Test]
-        public void Create_Empty()
+        public void FilterInsideBox3d()
         {
             var storage = PointCloud.CreateInMemoryStore();
+            var ps0 = RandomPositions(100);
 
             var a = new PointCloudNode(storage,
-                id              : "a",
-                cell            : Cell.Unit,
-                boundingBoxExact: Box3d.Unit,
-                pointCountTree  : 0,
-                subnodes        : null
+                id: "a",
+                cell: new Cell(ps0),
+                boundingBoxExact: new Box3d(ps0),
+                pointCountTree: ps0.Length,
+                subnodes: null,
+                (PointCloudAttribute.PositionsAbsolute, "a.positions", ps0)
                 );
 
-            Assert.IsTrue(a.Id == "a");
-            Assert.IsTrue(a.Cell == Cell.Unit);
-            Assert.IsTrue(a.BoundingBoxExact == Box3d.Unit);
+            var f = new FilteredNode(a, new FilterInsideBox3d(new Box3d(new V3d(0, 0, 0), new V3d(1, 1, 0.5))));
+            var ps1 = f.GetPositionsAbsolute();
+            Assert.IsTrue(ps1.Length < 100);
         }
-
-       
     }
 }

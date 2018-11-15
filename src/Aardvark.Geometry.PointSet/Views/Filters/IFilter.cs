@@ -38,4 +38,37 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         JObject Serialize();
     }
+
+    /// <summary>
+    /// </summary>
+    public enum FilterState
+    {
+        /// <summary>
+        /// Node is fully included by filter.
+        /// </summary>
+        FullyInside,
+
+        /// <summary>
+        /// Node is fully excluded by filter.
+        /// </summary>
+        FullyOutside,
+
+        /// <summary>
+        /// Node is partially selected by filter.
+        /// </summary>
+        Partial
+    }
+
+    /// <summary>
+    /// </summary>
+    public static class FilterExtensions
+    {
+        /// <summary></summary>
+        public static FilterState GetFilterState(this IPointCloudNode node, IFilter filter)
+        {
+            if (filter.IsFullyOutside(node)) return FilterState.FullyOutside;
+            if (filter.IsFullyInside(node)) return FilterState.FullyInside;
+            return FilterState.Partial;
+        }
+    }
 }
