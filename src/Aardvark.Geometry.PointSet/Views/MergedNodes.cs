@@ -14,9 +14,11 @@
 using Aardvark.Base;
 using Aardvark.Data.Points;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace Aardvark.Geometry.Points
 {
@@ -111,14 +113,14 @@ namespace Aardvark.Geometry.Points
                 {
                     if (bucket[0].Cell == subcells[i])
                     {
-                        Subnodes[i] = new PersistentRef<IPointCloudNode>(bucket[0].Id, (id, ct) => storage.GetPointCloudNode(id));
+                        Subnodes[i] = new PersistentRef<IPointCloudNode>(bucket[0].Id, storage.GetPointCloudNode);
                         bucket.Clear();
                         continue;
                     }
                 }
 
                 var subnode = new MergedNodes(storage, resolver, bucket.ToArray(), config);
-                Subnodes[i] = new PersistentRef<IPointCloudNode>(subnode.Id, (id, ct) => storage.GetPointCloudNode(id));
+                Subnodes[i] = new PersistentRef<IPointCloudNode>(subnode.Id, storage.GetPointCloudNode);
             }
 
             // lod
@@ -170,6 +172,13 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public FilterState FilterState => FilterState.FullyInside;
+
+        /// <summary>
+        /// </summary>
+        public JObject Serialize()
+        {
+            throw new NotImplementedException();
+        }
 
         /// <summary></summary>
         public void Dispose()

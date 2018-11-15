@@ -33,9 +33,9 @@ namespace Aardvark.Geometry.Points
             )
         {
             if (self.IsEmpty) return self;
-            var lod = self.Root.Value.RegenerateNormals(estimateNormals, callback, ct);
+            var lod = self.OldRoot.Value.RegenerateNormals(estimateNormals, callback, ct);
             var key = Guid.NewGuid().ToString();
-            var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit);
+            var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit, typeof(PointSetNode).Name);
             self.Storage.Add(key, result, ct);
             return result;
         }
@@ -49,9 +49,9 @@ namespace Aardvark.Geometry.Points
             )
         {
             if (self.IsEmpty) return self;
-            var lod = self.Root.Value.RegenerateNormals(estimateNormals, callback, ct);
+            var lod = self.OldRoot.Value.RegenerateNormals(estimateNormals, callback, ct);
             var key = Guid.NewGuid().ToString();
-            var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit);
+            var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit, typeof(PointSetNode).Name);
             self.Storage.Add(key, result, ct);
             return result;
         }

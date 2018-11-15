@@ -108,7 +108,7 @@ namespace Aardvark.Geometry.Tests
         public void CanQueryPointsNearPoint_1()
         {
             var pointset = CreateRandomPointsInUnitCube(1024, 1024);
-            Assert.IsTrue(pointset.Root.Value.IsLeaf);
+            Assert.IsTrue(pointset.OldRoot.Value.IsLeaf);
 
             var ps = pointset.QueryPointsNearPoint(new V3d(0.5, 0.5, 0.5), 1.0, 10000);
             Assert.IsTrue(ps.Count == 1024);
@@ -118,7 +118,7 @@ namespace Aardvark.Geometry.Tests
         public void CanQueryPointsNearPoint_2()
         {
             var pointset = CreateRandomPointsInUnitCube(1024, 32);
-            Assert.IsTrue(pointset.Root.Value.IsNotLeaf);
+            Assert.IsTrue(pointset.OldRoot.Value.IsNotLeaf);
 
             var ps = pointset.QueryPointsNearPoint(new V3d(0.5, 0.5, 0.5), 1.0, 10000);
             Assert.IsTrue(ps.Count == 1024);
@@ -742,7 +742,7 @@ namespace Aardvark.Geometry.Tests
         {
             var storage = PointCloud.CreateInMemoryStore();
             var pointcloud = CreateClusteredPointsInUnitCube(1000, 10);
-            var ns = pointcloud.Root.Value.ForEachNodeIntersecting(Hull3d.Create(Box3d.Unit), true).ToArray();
+            var ns = pointcloud.OldRoot.Value.ForEachNodeIntersecting(Hull3d.Create(Box3d.Unit), true).ToArray();
             Assert.IsTrue(ns.Length > 0);
         }
 
@@ -770,7 +770,7 @@ namespace Aardvark.Geometry.Tests
         {
             var pointset = _CreateRandomPointSetForOctreeLevelTests();
 
-            var depth = pointset.Root.Value.CountOctreeLevels();
+            var depth = pointset.OldRoot.Value.CountOctreeLevels();
             Assert.IsTrue(depth > 0);
 
             for (var i = 0; i < depth; i++)
@@ -789,7 +789,7 @@ namespace Aardvark.Geometry.Tests
             var pointset = _CreateRandomPointSetForOctreeLevelTests();
             var bounds = Box3d.FromMinAndSize(new V3d(0.2, 0.4, 0.8), new V3d(0.2, 0.15, 0.1));
 
-            var depth = pointset.Root.Value.CountOctreeLevels();
+            var depth = pointset.OldRoot.Value.CountOctreeLevels();
             Assert.IsTrue(depth > 0);
 
             for (var i = 1; i < depth; i++)
@@ -810,7 +810,7 @@ namespace Aardvark.Geometry.Tests
         {
             var pointset = _CreateRandomPointSetForOctreeLevelTests();
 
-            var depth = pointset.Root.Value.CountOctreeLevels();
+            var depth = pointset.OldRoot.Value.CountOctreeLevels();
             Assert.IsTrue(depth > 0);
             
             foreach (var _ in pointset.QueryPointsInOctreeLevel(-1)) Assert.Fail();
@@ -821,7 +821,7 @@ namespace Aardvark.Geometry.Tests
         {
             var pointset = _CreateRandomPointSetForOctreeLevelTests();
 
-            var depth = pointset.Root.Value.CountOctreeLevels();
+            var depth = pointset.OldRoot.Value.CountOctreeLevels();
             Assert.IsTrue(depth > 0);
 
             // query octree level depth*2 -> should not crash and give number of original points
@@ -836,7 +836,7 @@ namespace Aardvark.Geometry.Tests
         {
             var pointset = _CreateRandomPointSetForOctreeLevelTests();
 
-            var depth = pointset.Root.Value.CountOctreeLevels();
+            var depth = pointset.OldRoot.Value.CountOctreeLevels();
             Assert.IsTrue(depth > 0);
 
             var countPoints = 0L;
@@ -854,7 +854,7 @@ namespace Aardvark.Geometry.Tests
             var pointset = _CreateRandomPointSetForOctreeLevelTests();
             var bounds = Box3d.FromMinAndSize(new V3d(0.2, 0.4, 0.8), new V3d(0.2, 0.15, 0.1));
 
-            var depth = pointset.Root.Value.CountOctreeLevels();
+            var depth = pointset.OldRoot.Value.CountOctreeLevels();
             Assert.IsTrue(depth > 0);
             
             for (var i = 1; i < depth; i++)
@@ -870,7 +870,7 @@ namespace Aardvark.Geometry.Tests
         {
             var pointset = _CreateRandomPointSetForOctreeLevelTests();
 
-            var depth = pointset.Root.Value.CountOctreeLevels();
+            var depth = pointset.OldRoot.Value.CountOctreeLevels();
             Assert.IsTrue(depth > 0);
 
             // query point count at level depth*2 -> should not crash and give number of original points
@@ -892,7 +892,7 @@ namespace Aardvark.Geometry.Tests
         {
             var pointset = _CreateRandomPointSetForOctreeLevelTests();
 
-            var depth = pointset.Root.Value.CountOctreeLevels();
+            var depth = pointset.OldRoot.Value.CountOctreeLevels();
             Assert.IsTrue(depth > 0);
 
             var l0 = pointset.GetMaxOctreeLevelWithLessThanGivenPointCount(0);
@@ -936,7 +936,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CanQueryPointsWithEverythingInside_Many()
         {
-            var root = CreateRegularPointsInUnitCube(4, 1).Root.Value;
+            var root = CreateRegularPointsInUnitCube(4, 1).OldRoot.Value;
             Assert.IsTrue(root.PointCountTree == 4 * 4 * 4);
 
             var rs1 = root.QueryPoints(cell => true, cell => false, p => true).SelectMany(x => x.Positions).ToArray();
@@ -960,7 +960,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CanQueryPointsWithEverythingOutside_Many()
         {
-            var root = CreateRegularPointsInUnitCube(4, 1).Root.Value;
+            var root = CreateRegularPointsInUnitCube(4, 1).OldRoot.Value;
             Assert.IsTrue(root.PointCountTree == 4 * 4 * 4);
 
             var rs1 = root.QueryPoints(cell => false, cell => true, p => false).SelectMany(x => x.Positions).ToArray();

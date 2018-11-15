@@ -32,7 +32,7 @@ namespace Aardvark.Geometry.Points
             Func<V3d, bool> isPositionInside,
             int minCellExponent = int.MinValue
             )
-            => QueryPoints(node.Root.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, minCellExponent);
+            => QueryPoints(node.OldRoot.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, minCellExponent);
 
         /// <summary>
         /// </summary>
@@ -116,7 +116,7 @@ namespace Aardvark.Geometry.Points
             Func<V3d, bool> isPositionInside,
             int minCellExponent = int.MinValue
             )
-            => CountPoints(node.Root.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, minCellExponent);
+            => CountPoints(node.OldRoot.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, minCellExponent);
 
         /// <summary>
         /// Exact count.
@@ -184,7 +184,7 @@ namespace Aardvark.Geometry.Points
             Func<PointSetNode, bool> isNodeFullyOutside,
             int minCellExponent = int.MinValue
             )
-            => CountPointsApproximately(node.Root.Value, isNodeFullyInside, isNodeFullyOutside, minCellExponent);
+            => CountPointsApproximately(node.OldRoot.Value, isNodeFullyInside, isNodeFullyOutside, minCellExponent);
 
         /// <summary>
         /// Approximate count (cell granularity).

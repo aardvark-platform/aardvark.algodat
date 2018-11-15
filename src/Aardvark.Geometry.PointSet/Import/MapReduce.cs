@@ -44,7 +44,7 @@ namespace Aardvark.Geometry.Points
                     var builder = InMemoryPointSet.Build(chunk, config.OctreeSplitLimit);
                     var root = builder.ToPointSetCell(config.Storage, ct: ct2);
                     var id = $"Aardvark.Geometry.PointSet.{Guid.NewGuid()}.json";
-                    var pointSet = new PointSet(config.Storage, id, root.Id, config.OctreeSplitLimit);
+                    var pointSet = new PointSet(config.Storage, id, root.Id, config.OctreeSplitLimit, typeof(PointSetNode).Name);
                     
                     return pointSet;
                 },

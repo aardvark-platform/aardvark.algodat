@@ -13,6 +13,7 @@
 */
 using Aardvark.Base;
 using Aardvark.Data.Points;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 
@@ -139,6 +140,13 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public FilterState FilterState => FilterState.FullyInside;
+
+        /// <summary>
+        /// </summary>
+        public JObject Serialize()
+        {
+            throw new NotImplementedException();
+        }
 
         /// <summary></summary>
         public void Dispose() { }

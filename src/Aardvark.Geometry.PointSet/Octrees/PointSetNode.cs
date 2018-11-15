@@ -17,6 +17,7 @@
 using Aardvark.Base;
 using Aardvark.Data.Points;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -295,7 +296,7 @@ namespace Aardvark.Geometry.Points
             offset += 16;
             return guid;
         }
-
+        
         #endregion
 
         #region Properties (derived/runtime, non-serialized)
@@ -1237,6 +1238,12 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public FilterState FilterState => FilterState.FullyInside;
+        
+        /// <summary></summary>
+        public JObject Serialize()
+        {
+            throw new NotImplementedException();
+        }
 
         /// <summary></summary>
         public void Dispose() { }

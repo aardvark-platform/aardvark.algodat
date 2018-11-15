@@ -49,8 +49,8 @@ namespace Aardvark.Geometry.Points
         private static PointSet GenerateLod(this PointSet self, string key, Action callback, int maxLevelOfParallelism, CancellationToken ct)
         {
             if (self.IsEmpty) return self;
-            var lod = self.Root.Value.GenerateLod(self.SplitLimit, callback, ct);
-            var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit);
+            var lod = self.OldRoot.Value.GenerateLod(self.SplitLimit, callback, ct);
+            var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit, typeof(PointSetNode).Name);
             self.Storage.Add(key, result, ct);
             return result;
         }

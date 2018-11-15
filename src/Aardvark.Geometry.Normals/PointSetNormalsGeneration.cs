@@ -49,8 +49,8 @@ namespace Aardvark.Geometry.Points
         private static PointSet GenerateNormals(this PointSet self, Action callback, ImportConfig config)
         {
             if (self.IsEmpty) return self;
-            var normals = self.Root.Value.GenerateNormals(callback, config);
-            var result = new PointSet(self.Storage, config.Key, normals.Id, self.SplitLimit);
+            var normals = self.OldRoot.Value.GenerateNormals(callback, config);
+            var result = new PointSet(self.Storage, config.Key, normals.Id, self.SplitLimit, typeof(PointSetNode).Name);
             self.Storage.Add(config.Key, result, config.CancellationToken);
             return result;
         }

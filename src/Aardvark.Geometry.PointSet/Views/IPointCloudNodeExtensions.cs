@@ -15,6 +15,7 @@ using Aardvark.Base;
 using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace Aardvark.Geometry.Points
 {
@@ -168,8 +169,9 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        public static IPointCloudNode GetPointCloudNode(this Storage storage, string id)
+        public static IPointCloudNode GetPointCloudNode(this Storage storage, string id, CancellationToken ct)
         {
+            ct.ThrowIfCancellationRequested();
             throw new NotImplementedException();
         }
 

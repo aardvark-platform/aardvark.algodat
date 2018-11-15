@@ -26,7 +26,7 @@ namespace Aardvark.Geometry.Points
         /// Max tree depth.
         /// </summary>
         public static int CountOctreeLevels(this PointSet self)
-            => CountOctreeLevels(self.Root.Value);
+            => CountOctreeLevels(self.OldRoot.Value);
 
         /// <summary>
         /// Max tree depth.
@@ -46,7 +46,7 @@ namespace Aardvark.Geometry.Points
         public static int GetMaxOctreeLevelWithLessThanGivenPointCount(
             this PointSet self, long maxPointCount
             )
-            => GetMaxOctreeLevelWithLessThanGivenPointCount(self.Root.Value, maxPointCount);
+            => GetMaxOctreeLevelWithLessThanGivenPointCount(self.OldRoot.Value, maxPointCount);
 
         /// <summary>
         /// Finds deepest octree level which still contains less than given number of points. 
@@ -73,7 +73,7 @@ namespace Aardvark.Geometry.Points
         public static int GetMaxOctreeLevelWithLessThanGivenPointCount(
             this PointSet self, long maxPointCount, Box3d bounds
             )
-            => GetMaxOctreeLevelWithLessThanGivenPointCount(self.Root.Value, maxPointCount, bounds);
+            => GetMaxOctreeLevelWithLessThanGivenPointCount(self.OldRoot.Value, maxPointCount, bounds);
 
         /// <summary>
         /// Finds deepest octree level which still contains less than given number of points within given bounds. 
@@ -100,7 +100,7 @@ namespace Aardvark.Geometry.Points
         public static long CountPointsInOctreeLevel(
             this PointSet self, int level
             )
-            => CountPointsInOctreeLevel(self.Root.Value, level);
+            => CountPointsInOctreeLevel(self.OldRoot.Value, level);
 
         /// <summary>
         /// Gets total number of lod-points in all cells at given octree level.
@@ -139,7 +139,7 @@ namespace Aardvark.Geometry.Points
         public static long CountPointsInOctreeLevel(
             this PointSet self, int level, Box3d bounds
             )
-            => CountPointsInOctreeLevel(self.Root.Value, level, bounds);
+            => CountPointsInOctreeLevel(self.OldRoot.Value, level, bounds);
 
         /// <summary>
         /// Gets approximate number of points at given octree level within given bounds.
@@ -179,7 +179,7 @@ namespace Aardvark.Geometry.Points
         public static IEnumerable<Chunk> QueryPointsInOctreeLevel(
             this PointSet self, int level
             )
-            => QueryPointsInOctreeLevel(self.Root.Value, level);
+            => QueryPointsInOctreeLevel(self.OldRoot.Value, level);
 
         /// <summary>
         /// Returns lod points for given octree depth/front, where level 0 is the root node.
@@ -221,7 +221,7 @@ namespace Aardvark.Geometry.Points
         public static IEnumerable<Chunk> QueryPointsInOctreeLevel(
             this PointSet self, int level, Box3d bounds
             )
-            => QueryPointsInOctreeLevel(self.Root.Value, level, bounds);
+            => QueryPointsInOctreeLevel(self.OldRoot.Value, level, bounds);
 
         /// <summary>
         /// Returns lod points for given octree depth/front of cells intersecting given bounds, where level 0 is the root node.

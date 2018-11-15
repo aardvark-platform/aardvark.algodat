@@ -13,6 +13,7 @@
 */
 using Aardvark.Base;
 using Aardvark.Data.Points;
+using Newtonsoft.Json.Linq;
 using System;
 
 namespace Aardvark.Geometry.Points
@@ -72,5 +73,9 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// </summary>
         FilterState FilterState { get; }
+
+        /// <summary>
+        /// </summary>
+        JObject Serialize();
     }
 }

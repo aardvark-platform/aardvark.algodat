@@ -41,10 +41,10 @@ namespace Aardvark.Geometry.Tests
 
 
             // compare original and regenerated
-            Assert.IsTrue(pointset0.Root.Value.CountPoints() == pointset1.Root.Value.CountPoints());
+            Assert.IsTrue(pointset0.OldRoot.Value.CountPoints() == pointset1.OldRoot.Value.CountPoints());
 
-            var nodes0 = pointset0.Root.Value.ForEachNode().ToArray();
-            var nodes1 = pointset1.Root.Value.ForEachNode().ToArray();
+            var nodes0 = pointset0.OldRoot.Value.ForEachNode().ToArray();
+            var nodes1 = pointset1.OldRoot.Value.ForEachNode().ToArray();
             Assert.IsTrue(nodes0.Length == nodes1.Length);
 
             for (var ni = 0; ni < nodes0.Length; ni++)
@@ -84,10 +84,10 @@ namespace Aardvark.Geometry.Tests
 
 
             // compare original and regenerated
-            Assert.IsTrue(pointset0.Root.Value.CountPoints() == pointset1.Root.Value.CountPoints());
+            Assert.IsTrue(pointset0.OldRoot.Value.CountPoints() == pointset1.OldRoot.Value.CountPoints());
             
-            var nodes0 = pointset0.Root.Value.ForEachNode().ToArray();
-            var nodes1 = pointset1.Root.Value.ForEachNode().ToArray();
+            var nodes0 = pointset0.OldRoot.Value.ForEachNode().ToArray();
+            var nodes1 = pointset1.OldRoot.Value.ForEachNode().ToArray();
             Assert.IsTrue(nodes0.Length == nodes1.Length);
 
             for (var ni = 0; ni < nodes0.Length; ni++)

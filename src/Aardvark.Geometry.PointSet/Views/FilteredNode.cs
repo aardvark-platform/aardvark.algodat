@@ -14,6 +14,7 @@
 using Aardvark.Base;
 using Aardvark.Data.Points;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -169,6 +170,13 @@ namespace Aardvark.Geometry.Points
                 value = null;
                 return false;
             }
+        }
+
+        /// <summary>
+        /// </summary>
+        public JObject Serialize()
+        {
+            throw new NotImplementedException();
         }
     }
 }

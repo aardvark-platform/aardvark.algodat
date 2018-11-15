@@ -30,7 +30,7 @@ namespace Aardvark.Geometry.Points
         public static IEnumerable<Chunk> QueryPointsInsideBox(
             this PointSet self, Box3d query, int minCellExponent = int.MinValue
             )
-            => QueryPointsInsideBox(self.Root.Value, query, minCellExponent);
+            => QueryPointsInsideBox(self.OldRoot.Value, query, minCellExponent);
 
         /// <summary>
         /// All points inside axis-aligned box (including boundary).
@@ -50,7 +50,7 @@ namespace Aardvark.Geometry.Points
         public static IEnumerable<Chunk> QueryPointsOutsideBox(
             this PointSet self, Box3d query, int minCellExponent = int.MinValue
             )
-            => QueryPointsOutsideBox(self.Root.Value, query, minCellExponent);
+            => QueryPointsOutsideBox(self.OldRoot.Value, query, minCellExponent);
 
         /// <summary>
         /// All points outside axis-aligned box (excluding boundary).
@@ -74,7 +74,7 @@ namespace Aardvark.Geometry.Points
         public static long CountPointsInsideBox(
             this PointSet self, Box3d query, int minCellExponent = int.MinValue
             )
-            => CountPointsInsideBox(self.Root.Value, query, minCellExponent);
+            => CountPointsInsideBox(self.OldRoot.Value, query, minCellExponent);
 
         /// <summary>
         /// Counts points inside axis-aligned box.
@@ -94,7 +94,7 @@ namespace Aardvark.Geometry.Points
         public static long CountPointsOutsideBox(
             this PointSet self, Box3d query, int minCellExponent = int.MinValue
             )
-            => CountPointsOutsideBox(self.Root.Value, query, minCellExponent);
+            => CountPointsOutsideBox(self.OldRoot.Value, query, minCellExponent);
 
         /// <summary>
         /// Counts points outside axis-aligned box.
@@ -120,7 +120,7 @@ namespace Aardvark.Geometry.Points
         public static long CountPointsApproximatelyInsideBox(
             this PointSet self, Box3d query, int minCellExponent = int.MinValue
             )
-            => CountPointsApproximatelyInsideBox(self.Root.Value, query, minCellExponent);
+            => CountPointsApproximatelyInsideBox(self.OldRoot.Value, query, minCellExponent);
 
         /// <summary>
         /// Counts points approximately inside axis-aligned box (cell granularity).
@@ -143,7 +143,7 @@ namespace Aardvark.Geometry.Points
         public static long CountPointsApproximatelyOutsideBox(
             this PointSet self, Box3d query, int minCellExponent = int.MinValue
             )
-            => CountPointsApproximatelyOutsideBox(self.Root.Value, query, minCellExponent);
+            => CountPointsApproximatelyOutsideBox(self.OldRoot.Value, query, minCellExponent);
 
         /// <summary>
         /// Counts points approximately outside axis-aligned box (cell granularity).
