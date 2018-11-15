@@ -158,5 +158,75 @@ namespace Aardvark.Geometry.Tests
         }
 
         #endregion
+
+        #region FilterIntensity
+
+        [Test]
+        public void FilterIntensity_AllInside()
+        {
+            var storage = PointCloud.CreateInMemoryStore();
+            var ps0 = RandomPositions(10);
+
+            var a = new PointCloudNode(storage,
+                id: "a",
+                cell: new Cell(ps0),
+                boundingBoxExact: new Box3d(ps0),
+                pointCountTree: ps0.Length,
+                subnodes: null,
+                (PointCloudAttribute.PositionsAbsolute, "a.positions", ps0),
+                (PointCloudAttribute.Intensities, "a.intensities", new[] { -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 })
+                );
+
+            var f = new FilteredNode(a, new FilterIntensity(new Range1i(-100, +100)));
+            Assert.IsTrue(f.HasIntensities());
+            var js1 = f.GetIntensities().Value;
+            Assert.IsTrue(js1.Length == 10);
+        }
+        
+        [Test]
+        public void FilterIntensity_AllOutside()
+        {
+            var storage = PointCloud.CreateInMemoryStore();
+            var ps0 = RandomPositions(10);
+
+            var a = new PointCloudNode(storage,
+                id: "a",
+                cell: new Cell(ps0),
+                boundingBoxExact: new Box3d(ps0),
+                pointCountTree: ps0.Length,
+                subnodes: null,
+                (PointCloudAttribute.PositionsAbsolute, "a.positions", ps0),
+                (PointCloudAttribute.Intensities, "a.intensities", new[] { -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 })
+                );
+
+            var f = new FilteredNode(a, new FilterIntensity(new Range1i(6, 10000)));
+            Assert.IsTrue(!f.HasIntensities());
+            var js1 = f.GetIntensities();
+            Assert.IsTrue(js1 == null);
+        }
+
+        [Test]
+        public void FilterIntensity_Partial()
+        {
+            var storage = PointCloud.CreateInMemoryStore();
+            var ps0 = RandomPositions(10);
+
+            var a = new PointCloudNode(storage,
+                id: "a",
+                cell: new Cell(ps0),
+                boundingBoxExact: new Box3d(ps0),
+                pointCountTree: ps0.Length,
+                subnodes: null,
+                (PointCloudAttribute.PositionsAbsolute, "a.positions", ps0),
+                (PointCloudAttribute.Intensities, "a.intensities", new[] { -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 })
+                );
+
+            var f = new FilteredNode(a, new FilterIntensity(new Range1i(-2, +2)));
+            Assert.IsTrue(f.HasIntensities());
+            var js1 = f.GetIntensities().Value;
+            Assert.IsTrue(js1.Length == 5);
+        }
+
+        #endregion
     }
 }

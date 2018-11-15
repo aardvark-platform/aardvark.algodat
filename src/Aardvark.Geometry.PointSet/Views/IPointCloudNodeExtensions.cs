@@ -32,7 +32,7 @@ namespace Aardvark.Geometry.Points
                     return false;
                 case FilterState.FullyInside:
                 case FilterState.Partial:
-                    return n.TryGetPropertyKey(PointCloudAttribute.Positions, out string _);
+                    return n.TryGetPropertyKey(attributeName, out string _);
                 default:
                     throw new InvalidOperationException($"Unknown FilterState {n.FilterState}.");
             }
@@ -42,37 +42,37 @@ namespace Aardvark.Geometry.Points
         public static bool HasPositions(this IPointCloudNode self) => Has(self, PointCloudAttribute.Positions);
 
         /// <summary></summary>
-        public static bool HasColors(this IPointCloudNode self) => Has(self, PointCloudAttribute.Positions);
+        public static bool HasColors(this IPointCloudNode self) => Has(self, PointCloudAttribute.Colors);
 
         /// <summary></summary>
-        public static bool HasNormals(this IPointCloudNode self) => Has(self, PointCloudAttribute.Positions);
+        public static bool HasNormals(this IPointCloudNode self) => Has(self, PointCloudAttribute.Normals);
 
         /// <summary></summary>
-        public static bool HasIntensities(this IPointCloudNode self) => Has(self, PointCloudAttribute.Positions);
+        public static bool HasIntensities(this IPointCloudNode self) => Has(self, PointCloudAttribute.Intensities);
 
         /// <summary></summary>
-        public static bool HasKdTree(this IPointCloudNode self) => Has(self, PointCloudAttribute.Positions);
+        public static bool HasKdTree(this IPointCloudNode self) => Has(self, PointCloudAttribute.KdTree);
 
         /// <summary></summary>
-        public static bool HasLodPositions(this IPointCloudNode self) => Has(self, PointCloudAttribute.Positions);
+        public static bool HasLodPositions(this IPointCloudNode self) => Has(self, PointCloudAttribute.LodPositions);
 
         /// <summary></summary>
-        public static bool HasLodColors(this IPointCloudNode self) => Has(self, PointCloudAttribute.Positions);
+        public static bool HasLodColors(this IPointCloudNode self) => Has(self, PointCloudAttribute.LodColors);
 
         /// <summary></summary>
-        public static bool HasLodNormals(this IPointCloudNode self) => Has(self, PointCloudAttribute.Positions);
+        public static bool HasLodNormals(this IPointCloudNode self) => Has(self, PointCloudAttribute.LodNormals);
 
         /// <summary></summary>
-        public static bool HasLodIntensities(this IPointCloudNode self) => Has(self, PointCloudAttribute.Positions);
+        public static bool HasLodIntensities(this IPointCloudNode self) => Has(self, PointCloudAttribute.LodIntensities);
 
         /// <summary></summary>
-        public static bool HasLodKdTree(this IPointCloudNode self) => Has(self, PointCloudAttribute.Positions);
+        public static bool HasLodKdTree(this IPointCloudNode self) => Has(self, PointCloudAttribute.LodKdTree);
 
         /// <summary></summary>
-        public static bool HasClassifications(this IPointCloudNode self) => Has(self, PointCloudAttribute.Positions);
+        public static bool HasClassifications(this IPointCloudNode self) => Has(self, PointCloudAttribute.Classifications);
 
         /// <summary></summary>
-        public static bool HasLodClassifications(this IPointCloudNode self) => Has(self, PointCloudAttribute.Positions);
+        public static bool HasLodClassifications(this IPointCloudNode self) => Has(self, PointCloudAttribute.LodClassifications);
 
         #endregion
 
