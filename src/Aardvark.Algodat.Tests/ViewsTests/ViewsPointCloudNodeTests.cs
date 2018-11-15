@@ -19,7 +19,7 @@ using System;
 namespace Aardvark.Geometry.Tests
 {
     [TestFixture]
-    public class PointCloudNodeTests
+    public class ViewsPointCloudNodeTests
     {
         private static readonly Random r = new Random();
         private static V3d RandomPosition() => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble());
