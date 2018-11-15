@@ -138,6 +138,9 @@ namespace Aardvark.Geometry.Points
         public bool TryGetPropertyValue(string property, out object value) => m_pRefs.TryGetValue(property, out value);
 
         /// <summary></summary>
+        public FilterState FilterState => FilterState.FullyInside;
+
+        /// <summary></summary>
         public void Dispose() { }
     }
 }

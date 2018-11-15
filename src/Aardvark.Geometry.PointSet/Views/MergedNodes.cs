@@ -169,6 +169,9 @@ namespace Aardvark.Geometry.Points
             => PropertyValues.TryGetValue(property, out value);
 
         /// <summary></summary>
+        public FilterState FilterState => FilterState.FullyInside;
+
+        /// <summary></summary>
         public void Dispose()
         {
             foreach (var x in Nodes) x.Dispose();

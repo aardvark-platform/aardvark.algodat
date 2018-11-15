@@ -24,41 +24,55 @@ namespace Aardvark.Geometry.Points
     {
         #region Has*
 
+        private static bool Has(IPointCloudNode n, string attributeName)
+        {
+            switch (n.FilterState)
+            {
+                case FilterState.FullyOutside:
+                    return false;
+                case FilterState.FullyInside:
+                case FilterState.Partial:
+                    return n.TryGetPropertyKey(PointCloudAttribute.Positions, out string _);
+                default:
+                    throw new InvalidOperationException($"Unknown FilterState {n.FilterState}.");
+            }
+        }
+
         /// <summary> </summary>
-        public static bool HasPositions(this IPointCloudNode self) => self.TryGetPropertyKey(PointCloudAttribute.Positions, out string _);
+        public static bool HasPositions(this IPointCloudNode self) => Has(self, PointCloudAttribute.Positions);
 
         /// <summary></summary>
-        public static bool HasColors(this IPointCloudNode self) => self.TryGetPropertyKey(PointCloudAttribute.Positions, out string _);
+        public static bool HasColors(this IPointCloudNode self) => Has(self, PointCloudAttribute.Positions);
 
         /// <summary></summary>
-        public static bool HasNormals(this IPointCloudNode self) => self.TryGetPropertyKey(PointCloudAttribute.Positions, out string _);
+        public static bool HasNormals(this IPointCloudNode self) => Has(self, PointCloudAttribute.Positions);
 
         /// <summary></summary>
-        public static bool HasIntensities(this IPointCloudNode self) => self.TryGetPropertyKey(PointCloudAttribute.Positions, out string _);
+        public static bool HasIntensities(this IPointCloudNode self) => Has(self, PointCloudAttribute.Positions);
 
         /// <summary></summary>
-        public static bool HasKdTree(this IPointCloudNode self) => self.TryGetPropertyKey(PointCloudAttribute.Positions, out string _);
+        public static bool HasKdTree(this IPointCloudNode self) => Has(self, PointCloudAttribute.Positions);
 
         /// <summary></summary>
-        public static bool HasLodPositions(this IPointCloudNode self) => self.TryGetPropertyKey(PointCloudAttribute.Positions, out string _);
+        public static bool HasLodPositions(this IPointCloudNode self) => Has(self, PointCloudAttribute.Positions);
 
         /// <summary></summary>
-        public static bool HasLodColors(this IPointCloudNode self) => self.TryGetPropertyKey(PointCloudAttribute.Positions, out string _);
+        public static bool HasLodColors(this IPointCloudNode self) => Has(self, PointCloudAttribute.Positions);
 
         /// <summary></summary>
-        public static bool HasLodNormals(this IPointCloudNode self) => self.TryGetPropertyKey(PointCloudAttribute.Positions, out string _);
+        public static bool HasLodNormals(this IPointCloudNode self) => Has(self, PointCloudAttribute.Positions);
 
         /// <summary></summary>
-        public static bool HasLodIntensities(this IPointCloudNode self) => self.TryGetPropertyKey(PointCloudAttribute.Positions, out string _);
+        public static bool HasLodIntensities(this IPointCloudNode self) => Has(self, PointCloudAttribute.Positions);
 
         /// <summary></summary>
-        public static bool HasLodKdTree(this IPointCloudNode self) => self.TryGetPropertyKey(PointCloudAttribute.Positions, out string _);
+        public static bool HasLodKdTree(this IPointCloudNode self) => Has(self, PointCloudAttribute.Positions);
 
         /// <summary></summary>
-        public static bool HasClassifications(this IPointCloudNode self) => self.TryGetPropertyKey(PointCloudAttribute.Positions, out string _);
+        public static bool HasClassifications(this IPointCloudNode self) => Has(self, PointCloudAttribute.Positions);
 
         /// <summary></summary>
-        public static bool HasLodClassifications(this IPointCloudNode self) => self.TryGetPropertyKey(PointCloudAttribute.Positions, out string _);
+        public static bool HasLodClassifications(this IPointCloudNode self) => Has(self, PointCloudAttribute.Positions);
 
         #endregion
 
@@ -77,6 +91,7 @@ namespace Aardvark.Geometry.Points
         {
             var c = self.Center;
             var ps = GetPositions(self);
+            if (ps == null) return null;
             return ps.Value.Map(p => new V3d(p.X + c.X, p.Y + c.Y, p.Z + c.Z));
         }
 

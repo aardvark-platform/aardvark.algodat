@@ -32,7 +32,7 @@ namespace Aardvark.Geometry.Points
         public IFilter Filter { get; }
 
         /// <summary></summary>
-        public FilterState State { get; }
+        public FilterState FilterState { get; }
         
         private readonly HashSet<int> m_activePoints;
         private PersistentRef<IPointCloudNode>[] m_subnodes_cache;
@@ -45,10 +45,10 @@ namespace Aardvark.Geometry.Points
             Id = id ?? throw new ArgumentNullException(nameof(id));
             Node = node ?? throw new ArgumentNullException(nameof(node));
             Filter = filter ?? throw new ArgumentNullException(nameof(filter));
-            State = Node.GetFilterState(Filter);
+            FilterState = Node.GetFilterState(Filter);
 
             m_activePoints = activePoints;
-            if (State == FilterState.Partial)
+            if (FilterState == FilterState.Partial)
             {
                 m_activePoints = Filter.FilterPoints(Node, m_activePoints);
             }
@@ -122,9 +122,18 @@ namespace Aardvark.Geometry.Points
         private PersistentRef<T[]> GetSubArray<T>(object originalValue)
         {
             var pref = ((PersistentRef<T[]>)originalValue);
-            var key = (Id + pref.Id).ToGuid().ToString();
-            var xs = pref.Value.Where((_, i) => m_activePoints.Contains(i)).ToArray();
-            return new PersistentRef<T[]>(key, (_, __) => xs, xs);
+            switch (FilterState)
+            {
+                case FilterState.FullyInside: return pref;
+                case FilterState.FullyOutside: return null;
+                case FilterState.Partial:
+                    var key = (Id + pref.Id).ToGuid().ToString();
+                    var xs = pref.Value.Where((_, i) => m_activePoints.Contains(i)).ToArray();
+                    return new PersistentRef<T[]>(key, (_, __) => xs, xs);
+                default:
+                    throw new InvalidOperationException($"Unknown FilterState {FilterState}.");
+            }
+            
         }
         /// <summary></summary>
         public bool TryGetPropertyValue(string property, out object value)

@@ -1236,6 +1236,9 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
+        public FilterState FilterState => FilterState.FullyInside;
+
+        /// <summary></summary>
         public void Dispose() { }
         
         #endregion

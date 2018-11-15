@@ -68,5 +68,9 @@ namespace Aardvark.Geometry.Points
         /// Gets value of given property.
         /// </summary>
         bool TryGetPropertyValue(string property, out object value);
+
+        /// <summary>
+        /// </summary>
+        FilterState FilterState { get; }
     }
 }
