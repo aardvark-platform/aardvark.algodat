@@ -35,7 +35,7 @@ namespace Aardvark.Geometry.Points
         {
             var root = Delete((PointSetNode)node.Root.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, ct);
             var newId = Guid.NewGuid().ToString();
-            var result = new PointSet(node.Storage, newId, root?.Id, node.SplitLimit, typeof(PointSetNode).Name);
+            var result = new PointSet(node.Storage, newId, root?.Id, node.SplitLimit);
             node.Storage.Add(newId, result, ct);
             return result;
         }

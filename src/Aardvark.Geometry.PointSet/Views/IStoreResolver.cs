@@ -62,7 +62,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        public MapResolver(IEnumerable<(string storePath, Storage store)> mapping)
+        public MapResolver(params (string storePath, Storage store)[] mapping)
         {
             foreach (var (storePath, store) in mapping)
             {

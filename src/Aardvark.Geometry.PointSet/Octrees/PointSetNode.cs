@@ -1240,10 +1240,13 @@ namespace Aardvark.Geometry.Points
         public FilterState FilterState => FilterState.FullyInside;
         
         /// <summary></summary>
-        public JObject Serialize()
+        public JObject ToJson()
         {
             throw new NotImplementedException();
         }
+
+        /// <summary></summary>
+        public string NodeType => "PointSetNode";
 
         /// <summary></summary>
         public void Dispose() { }

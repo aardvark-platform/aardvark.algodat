@@ -141,12 +141,14 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public FilterState FilterState => FilterState.FullyInside;
 
-        /// <summary>
-        /// </summary>
-        public JObject Serialize()
+        /// <summary></summary>
+        public JObject ToJson()
         {
             throw new NotImplementedException();
         }
+
+        /// <summary></summary>
+        public string NodeType => "PointCloudNode";
 
         /// <summary></summary>
         public void Dispose() { }

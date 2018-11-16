@@ -44,8 +44,8 @@ namespace Aardvark.Geometry.Points
             if (key == null) throw new ArgumentNullException(nameof(key));
             var bounds = new Box3d(positions);
             var builder = InMemoryPointSet.Build(positions, colors, normals, intensities, classifications, bounds, octreeSplitLimit);
-            var root = builder.ToPointSetCell(storage, ct: ct);
-            var result = new PointSet(storage, key, root.Id, octreeSplitLimit, typeof(PointSetNode).Name);
+            var root = builder.ToPointSetNode(storage, ct: ct);
+            var result = new PointSet(storage, key, root.Id, octreeSplitLimit);
             var config = ImportConfig.Default
                 .WithRandomKey()
                 .WithCancellationToken(ct)
@@ -57,26 +57,35 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Creates pointset from given root cell.
         /// </summary>
-        public PointSet(Storage storage, string key, Guid? rootCellId, long splitLimit, string rootType)
+        public PointSet(Storage storage, string key, Guid? rootCellId, long splitLimit)
         {
             Storage = storage;
             Id = key ?? throw new ArgumentNullException(nameof(key));
             SplitLimit = splitLimit;
-            RootType = rootType ?? throw new ArgumentNullException(nameof(rootType));
+            RootNodeType = typeof(PointSetNode).Name;
 
             if (rootCellId.HasValue)
             {
-                if (rootType == typeof(PointSetNode).Name)
-                {
-                    Root = new PersistentRef<IPointCloudNode>(rootCellId.ToString(), storage.GetPointSetNode);
-                    OldRoot = new PersistentRef<PointSetNode>(rootCellId.ToString(), storage.GetPointSetNode);
-                }
-                else
-                {
-                    Root = new PersistentRef<IPointCloudNode>(rootCellId.ToString(), storage.GetPointCloudNode);
-                    OldRoot = new PersistentRef<PointSetNode>(rootCellId.ToString(), (_, __) => throw new InvalidOperationException());
-                }
+                Root = new PersistentRef<IPointCloudNode>(rootCellId.ToString(), storage.GetPointSetNode);
+                OldRoot = new PersistentRef<PointSetNode>(rootCellId.ToString(), storage.GetPointSetNode);
             }
+        }
+
+        /// <summary>
+        /// Creates pointset from given root cell.
+        /// </summary>
+        public PointSet(Storage storage, IStoreResolver resolver, string key, IPointCloudNode root, int splitLimit)
+        {
+            if (root == null) throw new ArgumentNullException(nameof(root));
+            if (root is PointSetNode) throw new InvalidOperationException("Use PointSet(Storage, string, Guid?, long) instead.");
+
+            Storage = storage;
+            Id = key ?? throw new ArgumentNullException(nameof(key));
+            SplitLimit = splitLimit;
+            RootNodeType = root.NodeType;
+
+            Root = new PersistentRef<IPointCloudNode>(root.Id, (id, ct) => storage.GetPointCloudNode(resolver, id, ct));
+            OldRoot = new PersistentRef<PointSetNode>(root.Id, (_, __) => throw new InvalidOperationException());
         }
 
         /// <summary>
@@ -107,7 +116,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        public string RootType { get; }
+        public string RootNodeType { get; }
 
         /// <summary>
         /// </summary>
@@ -126,7 +135,7 @@ namespace Aardvark.Geometry.Points
                 Id,
                 RootCellId = OldRoot?.Id,
                 SplitLimit,
-                RootType
+                RootNodeType
             });
         }
 
@@ -144,7 +153,7 @@ namespace Aardvark.Geometry.Points
             //
             var rootType = (string)json["RootType"] ?? typeof(PointSetNode).ToString();
 
-            return new PointSet(storage, (string)json["Id"], Guid.Parse(rootCellId), splitLimit, typeof(PointSetNode).Name);
+            return new PointSet(storage, (string)json["Id"], Guid.Parse(rootCellId), splitLimit);
         }
 
         #endregion
@@ -245,7 +254,7 @@ namespace Aardvark.Geometry.Points
             {
                 var merged = root.Merge(otherRoot, SplitLimit, ct);
                 var id = $"{Guid.NewGuid()}.json";
-                return new PointSet(Storage, id, merged.Id, SplitLimit, typeof(PointSetNode).Name);
+                return new PointSet(Storage, id, merged.Id, SplitLimit);
             }
             else
             {

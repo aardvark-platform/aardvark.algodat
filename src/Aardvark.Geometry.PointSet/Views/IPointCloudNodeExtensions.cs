@@ -13,8 +13,10 @@
 */
 using Aardvark.Base;
 using Aardvark.Data.Points;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Threading;
 
 namespace Aardvark.Geometry.Points
@@ -167,12 +169,39 @@ namespace Aardvark.Geometry.Points
 
         #region Storage
 
-        /// <summary>
-        /// </summary>
-        public static IPointCloudNode GetPointCloudNode(this Storage storage, string id, CancellationToken ct)
+        /// <summary></summary>
+        public static void Add(this Storage storage, string key, IPointCloudNode data, CancellationToken ct = default)
         {
-            ct.ThrowIfCancellationRequested();
-            throw new NotImplementedException();
+            storage.f_add(key, data, () =>
+            {
+                var json = data.ToJson().ToString();
+                var buffer = Encoding.UTF8.GetBytes(json);
+                return buffer;
+            }, ct);
+        }
+
+        /// <summary></summary>
+        public static IPointCloudNode GetPointCloudNode(this Storage storage, IStoreResolver resolver, string key, CancellationToken ct = default)
+        {
+            var data = (IPointCloudNode)storage.f_tryGetFromCache(key, ct);
+            if (data != null) return data;
+
+            var buffer = storage.f_get(key, ct);
+            if (buffer == null) return null;
+            var json = JObject.Parse(Encoding.UTF8.GetString(buffer));
+
+            var nodeType = (string)json["NodeType"];
+            switch (nodeType)
+            {
+                case LinkedNode.Type:
+                    data = LinkedNode.Parse(json, resolver);
+                    break;
+                default:
+                    throw new InvalidOperationException($"Unknown node type '{nodeType}'.");
+            }
+
+            storage.f_add(key, data, null, ct);
+            return data;
         }
 
         #endregion

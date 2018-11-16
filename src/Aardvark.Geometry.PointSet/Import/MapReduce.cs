@@ -42,9 +42,9 @@ namespace Aardvark.Geometry.Points
                     progress(1.0 - 1.0 / Interlocked.Increment(ref totalChunkCount));
 
                     var builder = InMemoryPointSet.Build(chunk, config.OctreeSplitLimit);
-                    var root = builder.ToPointSetCell(config.Storage, ct: ct2);
+                    var root = builder.ToPointSetNode(config.Storage, ct: ct2);
                     var id = $"Aardvark.Geometry.PointSet.{Guid.NewGuid()}.json";
-                    var pointSet = new PointSet(config.Storage, id, root.Id, config.OctreeSplitLimit, typeof(PointSetNode).Name);
+                    var pointSet = new PointSet(config.Storage, id, root.Id, config.OctreeSplitLimit);
                     
                     return pointSet;
                 },

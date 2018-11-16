@@ -113,14 +113,14 @@ namespace Aardvark.Geometry.Points
                 {
                     if (bucket[0].Cell == subcells[i])
                     {
-                        Subnodes[i] = new PersistentRef<IPointCloudNode>(bucket[0].Id, storage.GetPointCloudNode);
+                        Subnodes[i] = new PersistentRef<IPointCloudNode>(bucket[0].Id, (_id, _ct) => storage.GetPointCloudNode(resolver, _id, _ct));
                         bucket.Clear();
                         continue;
                     }
                 }
 
                 var subnode = new MergedNodes(storage, resolver, bucket.ToArray(), config);
-                Subnodes[i] = new PersistentRef<IPointCloudNode>(subnode.Id, storage.GetPointCloudNode);
+                Subnodes[i] = new PersistentRef<IPointCloudNode>(subnode.Id, (_id, _ct) => storage.GetPointCloudNode(resolver, _id, _ct));
             }
 
             // lod
@@ -173,12 +173,14 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public FilterState FilterState => FilterState.FullyInside;
 
-        /// <summary>
-        /// </summary>
-        public JObject Serialize()
+        /// <summary></summary>
+        public JObject ToJson()
         {
             throw new NotImplementedException();
         }
+
+        /// <summary></summary>
+        public string NodeType => "MergedNodes";
 
         /// <summary></summary>
         public void Dispose()

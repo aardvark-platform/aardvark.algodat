@@ -68,9 +68,13 @@ namespace Aardvark.Geometry.Points
             for (var i = 0; i < ps.Count; i++) m_root.Insert(i);
         }
 
-        /// <summary>
-        /// </summary>
+        /// <summary></summary>
+        [Obsolete("Use ToPointSetNode instead.")]
         public PointSetNode ToPointSetCell(Storage storage, double kdTreeEps = 1e-6, CancellationToken ct = default)
+            => ToPointSetNode(storage, kdTreeEps, ct);
+
+        /// <summary></summary>
+        public PointSetNode ToPointSetNode(Storage storage, double kdTreeEps = 1e-6, CancellationToken ct = default)
         {
             var result = m_root.ToPointSetCell(storage, ct, kdTreeEps);
 #if DEBUG

@@ -76,6 +76,10 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        JObject Serialize();
+        JObject ToJson();
+
+        /// <summary>
+        /// </summary>
+        string NodeType { get; }
     }
 }

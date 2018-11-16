@@ -81,6 +81,7 @@
     <Compile Include="PointSetTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ViewsTests\ViewsFilterTests.cs" />
+    <Compile Include="ViewsTests\ViewsSerializationTests.cs" />
     <Compile Include="ViewsTests\ViewsPointCloudNodeTests.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -50,7 +50,7 @@ namespace Aardvark.Geometry.Points
         {
             if (self.IsEmpty) return self;
             var normals = self.OldRoot.Value.GenerateNormals(callback, config);
-            var result = new PointSet(self.Storage, config.Key, normals.Id, self.SplitLimit, typeof(PointSetNode).Name);
+            var result = new PointSet(self.Storage, config.Key, normals.Id, self.SplitLimit);
             self.Storage.Add(config.Key, result, config.CancellationToken);
             return result;
         }

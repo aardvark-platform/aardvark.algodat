@@ -80,7 +80,7 @@ namespace Aardvark.Geometry.Points
                     subnodesPoints[i], subnodesColors?[i], subnodesNormals?[i], subnodesIntensities?[i], subnodesClassifications?[i],
                     subCellIndex, int.MaxValue
                     );
-                var subnode = builder.ToPointSetCell(cell.Storage, ct: ct);
+                var subnode = builder.ToPointSetNode(cell.Storage, ct: ct);
                 if (subnode.PointCountTree > subnodesPoints[i].Count) throw new InvalidOperationException();
                 if (!cell.Cell.Contains(subnode.Cell)) throw new InvalidOperationException();
                 if (cell.Cell.Exponent != subnode.Cell.Exponent + 1) throw new InvalidOperationException();
@@ -470,7 +470,7 @@ namespace Aardvark.Geometry.Points
             var ns = Concat(a.Normals?.Value, b.Normals?.Value);
             var js = Concat(a.Intensities?.Value, b.Intensities?.Value);
             var ks = Concat(a.Classifications?.Value, b.Classifications?.Value);
-            var result = InMemoryPointSet.Build(ps, cs, ns, js, ks, a.Cell, octreeSplitLimit).ToPointSetCell(a.Storage, ct: ct);
+            var result = InMemoryPointSet.Build(ps, cs, ns, js, ks, a.Cell, octreeSplitLimit).ToPointSetNode(a.Storage, ct: ct);
             return result;
         }
 
@@ -546,7 +546,7 @@ namespace Aardvark.Geometry.Points
         {
             if (a == null)
             {
-                var result0 = InMemoryPointSet.Build(psAbsolute, cs, ns, js, ks, cell, octreeSplitLimit).ToPointSetCell(storage, ct: ct);
+                var result0 = InMemoryPointSet.Build(psAbsolute, cs, ns, js, ks, cell, octreeSplitLimit).ToPointSetNode(storage, ct: ct);
                 if (result0.PointCountTree > psAbsolute.Count) throw new InvalidOperationException();
                 return result0;
             }
@@ -565,7 +565,7 @@ namespace Aardvark.Geometry.Points
                 var newNs = ns != null ? new List<V3f>(ns) : null; newNs?.AddRange(a.Normals.Value);
                 var newIs = js != null ? new List<int>(js) : null; newIs?.AddRange(a.Intensities.Value);
                 var newKs = ks != null ? new List<byte>(ks) : null; newKs?.AddRange(a.Classifications.Value);
-                var result0 = InMemoryPointSet.Build(newPs, newCs, newNs, newIs, newKs, cell, octreeSplitLimit).ToPointSetCell(a.Storage, ct: ct);
+                var result0 = InMemoryPointSet.Build(newPs, newCs, newNs, newIs, newKs, cell, octreeSplitLimit).ToPointSetNode(a.Storage, ct: ct);
                 return result0;
             }
 

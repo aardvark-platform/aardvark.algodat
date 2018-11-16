@@ -50,7 +50,7 @@ namespace Aardvark.Geometry.Points
         {
             if (self.IsEmpty) return self;
             var lod = self.OldRoot.Value.GenerateLod(self.SplitLimit, callback, ct);
-            var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit, typeof(PointSetNode).Name);
+            var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit);
             self.Storage.Add(key, result, ct);
             return result;
         }

@@ -23,13 +23,16 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public class LinkedNode : IPointCloudNode
     {
+        /// <summary></summary>
+        public const string Type = "LinkedNode";
+
         private readonly IStoreResolver m_storeResolver;
 
         private WeakReference<IPointCloudNode> m_root;
 
         /// <summary>
         /// </summary>
-        public string LinkedStorePath { get; }
+        public string LinkedStoreName { get; }
 
         /// <summary>
         /// </summary>
@@ -38,11 +41,20 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Links to different octree.
         /// </summary>
-        public LinkedNode(IStoreResolver storeResolver, string storePath, string pointCloudKey)
+        public LinkedNode(string linkedStoreName, string linkedPointCloudKey, IStoreResolver storeResolver)
+            : this(Guid.NewGuid().ToString(), linkedStoreName, linkedPointCloudKey, storeResolver) { }
+
+        /// <summary>
+        /// Links to different octree.
+        /// </summary>
+        public LinkedNode(string id, string linkedStoreName, string linkedPointCloudKey, IStoreResolver storeResolver)
         {
+            if (string.IsNullOrWhiteSpace(id)) throw new ArgumentNullException(nameof(id));
+
             m_storeResolver = storeResolver;
-            LinkedStorePath = storePath;
-            LinkedPointCloudKey = pointCloudKey;
+            Id = id;
+            LinkedStoreName = linkedStoreName;
+            LinkedPointCloudKey = linkedPointCloudKey;
         }
         
         /// <summary></summary>
@@ -55,7 +67,7 @@ namespace Aardvark.Geometry.Points
                     return r;
                 }
 
-                var storage = PointCloud.OpenStore(LinkedStorePath);
+                var storage = m_storeResolver.Resolve(LinkedStoreName);
                 r = storage.GetPointSet(LinkedPointCloudKey, default).Root.Value;
                 m_root = new WeakReference<IPointCloudNode>(r);
                 return r;
@@ -63,7 +75,7 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public string Id => Root.Id;
+        public string Id { get; }
 
         /// <summary></summary>
         public Cell Cell => Root.Cell;
@@ -74,11 +86,11 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Exact bounding box of all points in this tree.
         /// </summary>
-        public Box3d BoundingBoxExact => throw new NotImplementedException();
+        public Box3d BoundingBoxExact => Root.BoundingBoxExact;
 
         /// <summary></summary>
         public long PointCountTree => Root.PointCountTree;
-
+        
         /// <summary></summary>
         public PersistentRef<IPointCloudNode>[] Subnodes => Root.Subnodes;
         
@@ -108,13 +120,23 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public FilterState FilterState => FilterState.FullyInside;
-        
-        /// <summary>
-        /// </summary>
-        public JObject Serialize()
+
+        /// <summary></summary>
+        public JObject ToJson() => JObject.FromObject(new
         {
-            throw new NotImplementedException();
-        }
+            NodeType,
+            Id,
+            LinkedStoreName,
+            LinkedPointCloudKey
+        });
+
+        /// <summary></summary>
+        public static LinkedNode Parse(JObject json, IStoreResolver resolver)
+            => new LinkedNode((string)json["Id"], (string)json["LinkedStoreName"], (string)json["LinkedPointCloudKey"], resolver)
+            ;
+
+        /// <summary></summary>
+        public string NodeType => Type;
 
         /// <summary></summary>
         public void Dispose() => Storage?.Dispose();
