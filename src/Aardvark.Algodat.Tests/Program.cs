@@ -196,9 +196,9 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
-            LinkedStores();
+            //LinkedStores();
 
-            //MasterLisa.Perform();
+            MasterLisa.Perform();
             //TestE57();
 
             //var store = PointCloud.OpenStore(@"G:\cells\3280_5503_0_10\pointcloud");
