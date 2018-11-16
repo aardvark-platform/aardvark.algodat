@@ -59,11 +59,13 @@ namespace Aardvark.Geometry.Points
                 {
                     if (node.HasPositions)
                     {
-                        yield return new Chunk(node.PositionsAbsolute, node.Colors?.Value, node.Normals?.Value);
+                        yield return new Chunk(node.PositionsAbsolute, node.Colors?.Value, node.Normals?.Value, 
+                            node.Intensities?.Value, node.Classifications?.Value);
                     }
                     else if (node.HasLodPositions)
                     {
-                        yield return new Chunk(node.LodPositionsAbsolute, node.LodColors?.Value, node.LodNormals?.Value);
+                        yield return new Chunk(node.LodPositionsAbsolute, node.LodColors?.Value, 
+                            node.LodNormals?.Value, node.LodIntensities?.Value, node.LodClassifications?.Value);
                     }
                     yield break;
                 }
@@ -72,9 +74,15 @@ namespace Aardvark.Geometry.Points
                     var psRaw = node.HasPositions ? node.PositionsAbsolute : node.LodPositionsAbsolute;
                     var csRaw = node.HasColors ? node.Colors?.Value : node.LodColors?.Value;
                     var nsRaw = node.HasNormals ? node.Normals?.Value : node.LodNormals?.Value;
+                    var intsRaw = node.HasIntensities ? node.Intensities?.Value : node.LodIntensities?.Value;
+                    var clasRaw = node.HasClassifications ? node.Classifications?.Value : node.LodClassifications?.Value;
+
                     var ps = new List<V3d>();
                     var cs = csRaw != null ? new List<C4b>() : null;
                     var ns = nsRaw != null ? new List<V3f>() : null;
+                    var ints = intsRaw != null ? new List<int>() : null;
+                    var clas = clasRaw != null ? new List<byte>() : null;
+
                     for (var i = 0; i < psRaw.Length; i++)
                     {
                         var p = psRaw[i];
@@ -83,11 +91,13 @@ namespace Aardvark.Geometry.Points
                             ps.Add(p);
                             if (csRaw != null) cs.Add(csRaw[i]);
                             if (nsRaw != null) ns.Add(nsRaw[i]);
+                            if (intsRaw != null) ints.Add(intsRaw[i]);
+                            if (clasRaw != null) clas.Add(clasRaw[i]);
                         }
                     }
                     if (ps.Count > 0)
                     {
-                        yield return new Chunk(ps, cs, ns);
+                        yield return new Chunk(ps, cs, ns, ints, clas);
                     }
                 }
             }
