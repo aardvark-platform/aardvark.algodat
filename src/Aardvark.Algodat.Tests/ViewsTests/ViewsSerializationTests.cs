@@ -29,10 +29,11 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void LinkedNode_ToJson_Parse()
         {
+            var store = PointCloud.CreateInMemoryStore();
             var resolver = new MapResolver();
-            var link0 = new LinkedNode("teststore", "pointcloud", resolver);
+            var link0 = new LinkedNode(store, "teststore", "pointcloud", resolver);
             var json = link0.ToJson();
-            var link1 = LinkedNode.Parse(json, resolver);
+            var link1 = LinkedNode.Parse(json, store, resolver);
 
             Assert.IsTrue(link1.Id == link0.Id);
             Assert.IsTrue(link1.LinkedStoreName == link0.LinkedStoreName);
@@ -54,14 +55,14 @@ namespace Aardvark.Geometry.Tests
             var resolver = new MapResolver(
                 ("teststore", store)
                 );
-            var link0 = new LinkedNode("teststore", "pointcloud", resolver);
+            var link0 = new LinkedNode(store, "teststore", "pointcloud", resolver);
 
             store.Add("link", link0, default);
 
             store.Flush();
             GC.Collect();
 
-            var link1 = store.GetPointCloudNode(resolver, "link");
+            var link1 = store.GetPointCloudNode("link", resolver);
 
             Assert.IsTrue(link1.Cell == new Cell(ps0));
             Assert.IsTrue(link1.BoundingBoxExact == pointcloud.BoundingBox);

@@ -16,39 +16,77 @@ namespace Aardvark.Geometry.Tests
     {
         internal static void LinkedStores()
         {
-            var resolver = new IdentityResolver();
-
+            var tmpStorePath = "tmpStore";
+            var resolver = new PatternResolver(@"Y:\cells\%KEY%\pointcloud");
+            
             var links = Directory
                 .EnumerateDirectories(@"Y:\cells", "pointcloud", SearchOption.AllDirectories)
                 .Select(x => (storePath: x, key: Path.GetFileName(Path.GetDirectoryName(x))))
+                .Take(2)
                 .ToArray();
-
+            
             var sw = new Stopwatch(); sw.Restart();
             var totalCount = 0L;
-            var ls = links
-                .Select(x =>
-                {
-                    try
+            using (var storage = PointCloud.OpenStore(tmpStorePath))
+            {
+                var ls = links
+                    .Select(x =>
                     {
-                        var store = new LinkedNode(x.key, x.storePath, resolver);
-                        Console.WriteLine($"{store.PointCountTree,20:N0}");
-                        totalCount += store.PointCountTree;
-                        return store;
-                    }
-                    catch
-                    {
-                        Console.WriteLine($"[ERROR] could not read {x.key}@{x.storePath}");
-                        return null;
-                    }
-                })
-                .Where(x => x != null)
-                .ToArray();
+                        try
+                        {
+                            var node = new LinkedNode(storage, x.key, x.key, resolver);
+                            //Console.WriteLine($"{node.PointCountTree,20:N0}");
+                            //totalCount += node.PointCountTree;
+                            return node;
+                        }
+                        catch
+                        {
+                            Console.WriteLine($"[ERROR] could not read {x.key}@{x.storePath}");
+                            return null;
+                        }
+                    })
+                    .Where(x => x != null)
+                    .ToArray();
 
-            sw.Stop();
-            Console.WriteLine($"{totalCount,20:N0} total");
-            Console.WriteLine(sw.Elapsed);
+                    sw.Stop();
+                    Console.WriteLine($"{totalCount,20:N0} total");
+                    Console.WriteLine(sw.Elapsed);
 
-            //var a = new LinkedStore(@"Y:\cells\3274_5507_0_10\pointcloud", "3274_5507_0_10");
+
+                foreach (var x in ls) Console.WriteLine($"x.CountNodes() -> {x.CountNodes()}");
+
+                var config = ImportConfig.Default
+                    .WithCreateOctreeLod(false)
+                    ;
+
+                var merged = MergedNodes.Create(storage, resolver, ls, config);
+                Console.WriteLine(merged.CountNodes());
+                storage.Add("merged", merged);
+                storage.Flush();
+            }
+
+            using (var tmp = PointCloud.OpenStore(tmpStorePath))
+            {
+                var merged = tmp.GetPointCloudNode("merged", resolver);
+                Console.WriteLine(merged.CountNodes());
+            }
+
+            /*
+            var key = @"3274_5507_0_10";
+            using (var tmp = PointCloud.OpenStore(tmpStorePath))
+            {
+                var a = new LinkedNode(key, key, resolver);
+                Console.WriteLine(a.CountNodes());
+                tmp.Add("link", a);
+                tmp.Flush();
+            }
+            using (var tmp = PointCloud.OpenStore(tmpStorePath))
+            {
+                var a = tmp.GetPointCloudNode("link", resolver);
+                Console.WriteLine(a.CountNodes());
+            }
+            */
+
             //Console.WriteLine($"{a.PointCountTree:N0}");
             Environment.Exit(0);
         }

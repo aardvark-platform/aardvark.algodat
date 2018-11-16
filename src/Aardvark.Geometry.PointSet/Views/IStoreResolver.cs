@@ -53,8 +53,7 @@ namespace Aardvark.Geometry.Points
     }
 
     /// <summary>
-    /// An IStoreResolver using a simple custom mapping from path to store.
-    /// This means, that given paths are used as keys and not literal paths.
+    /// Custom mapping from 'storePath' to real store.
     /// </summary>
     public class MapResolver : IStoreResolver
     {
@@ -73,5 +72,43 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// </summary>
         public Storage Resolve(string storePath) => m_mapping[storePath];
+    }
+
+    /// <summary>
+    /// Resolves 'storePath' via custom pattern to real store.
+    /// </summary>
+    public class PatternResolver : IStoreResolver
+    {
+        private readonly Dictionary<string, WeakReference<Storage>> m_pathToStore = new Dictionary<string, WeakReference<Storage>>();
+
+        /// <summary></summary>
+        public string PatternStorePath { get; }
+        
+        /// <summary>
+        /// </summary>
+        public PatternResolver(string patternStorePath)
+        {
+            PatternStorePath = patternStorePath ?? throw new ArgumentNullException(nameof(patternStorePath));
+
+            if (!PatternStorePath.Contains("%KEY%")) throw new ArgumentException("PatternStorePath must contain %KEY%.", nameof(patternStorePath));
+        }
+
+        /// <summary></summary>
+        public Storage Resolve(string storePath)
+        {
+            lock (m_pathToStore)
+            {
+                Storage storage = null;
+
+                if (!m_pathToStore.TryGetValue(storePath, out WeakReference<Storage> weakRef) || !weakRef.TryGetTarget(out storage))
+                {
+                    var realStorePath = PatternStorePath.Replace("%KEY%", storePath);
+                    storage = PointCloud.OpenStore(realStorePath);
+                    m_pathToStore[storePath] = new WeakReference<Storage>(storage);
+                }
+
+                return storage;
+            }
+        }
     }
 }

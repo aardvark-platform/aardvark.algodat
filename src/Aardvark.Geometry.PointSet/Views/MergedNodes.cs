@@ -27,6 +27,9 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public class MergedNodes : IPointCloudNode
     {
+        /// <summary></summary>
+        public const string Type = "MergedNodes";
+
         /// <summary>
         /// </summary>
         public static IPointCloudNode Create(Storage storage, IStoreResolver resolver, IEnumerable<IPointCloudNode> nodes, ImportConfig config)
@@ -46,12 +49,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         [JsonIgnore]
         public Storage Storage { get; }
-
-        /// <summary>
-        /// Original (non-overlapping) nodes.
-        /// </summary>
-        public IPointCloudNode[] Nodes { get; }
-
+        
         /// <summary>
         /// Property name -> key.
         /// </summary>
@@ -62,27 +60,48 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public Dictionary<string, object> PropertyValues { get; } = new Dictionary<string, object>();
 
+
+        private MergedNodes(Storage storage, IStoreResolver resolver, string id, Cell cell, Box3d boundingBoxExact, long pointCountTree, string[] subnodeIds)
+        {
+            Storage = storage;
+            Id = id;
+            Cell = cell;
+            Center = Cell.GetCenter();
+            BoundingBoxExact = boundingBoxExact;
+            PointCountTree = pointCountTree;
+
+            if (subnodeIds != null)
+            {
+                SubNodes = new PersistentRef<IPointCloudNode>[8];
+                for (var i = 0; i < 8; i++)
+                {
+                    var sid = subnodeIds[i];
+                    if (sid == null) continue;
+                    SubNodes[i] = new PersistentRef<IPointCloudNode>(sid, (_, ct) => storage.GetPointCloudNode(sid, resolver, ct));
+                }
+            }
+        }
+
         /// <summary>
         /// </summary>
         private MergedNodes(Storage storage, IStoreResolver resolver, IPointCloudNode[] nodes, ImportConfig config)
         {
             Storage = storage;
-            Nodes = nodes;
-            Id = Nodes.Select(x => x.Id).ToGuid().ToString();
-            Cell = new Cell(new Box3d(Nodes.Select(x => x.Cell.BoundingBox)));
+            Id = Guid.NewGuid().ToString();
+            Cell = new Cell(new Box3d(nodes.Select(x => x.Cell.BoundingBox)));
             Center = Cell.GetCenter();
-            PointCountTree = Nodes.Sum(x => x.PointCountTree);
-            BoundingBoxExact = new Box3d(Nodes.Select(x => x.BoundingBoxExact));
+            BoundingBoxExact = new Box3d(nodes.Select(x => x.BoundingBoxExact));
+            PointCountTree = nodes.Sum(x => x.PointCountTree);
             
-            var test = containedIn(Cell, Nodes);
-            if (test.Length != Nodes.Length) throw new InvalidOperationException();
+            var test = containedIn(Cell, nodes);
+            if (test.Length != nodes.Length) throw new InvalidOperationException();
             IPointCloudNode[] containedIn(Cell c, IEnumerable<IPointCloudNode> ns)
                 => ns.Where(x => c.Contains(x.Cell)).ToArray();
 
             // sort nodes into subcells
             var buckets = new List<IPointCloudNode>[8].SetByIndex(_ => new List<IPointCloudNode>());
             var subcells = Cell.Children;
-            foreach (var n in Nodes)
+            foreach (var n in nodes)
             {
                 var notInserted = true;
                 for (var i = 0; i < 8; i++)
@@ -98,14 +117,14 @@ namespace Aardvark.Geometry.Points
             }
 
             // set subcells
-            Subnodes = new PersistentRef<IPointCloudNode>[8];
+            SubNodes = new PersistentRef<IPointCloudNode>[8];
             for (var i = 0; i < 8; i++)
             {
                 var bucket = buckets[i];
 
                 if (bucket.Count == 0)
                 {
-                    Subnodes[i] = null;
+                    SubNodes[i] = null;
                     continue;
                 }
 
@@ -113,14 +132,16 @@ namespace Aardvark.Geometry.Points
                 {
                     if (bucket[0].Cell == subcells[i])
                     {
-                        Subnodes[i] = new PersistentRef<IPointCloudNode>(bucket[0].Id, (_id, _ct) => storage.GetPointCloudNode(resolver, _id, _ct));
+                        Console.WriteLine($"FOO -> {bucket[0].CountNodes()}");
+                        var localId = bucket[0].Id;
+                        SubNodes[i] = new PersistentRef<IPointCloudNode>(localId, (_id, _ct) => storage.GetPointCloudNode(localId, resolver, _ct));
                         bucket.Clear();
                         continue;
                     }
                 }
 
-                var subnode = new MergedNodes(storage, resolver, bucket.ToArray(), config);
-                Subnodes[i] = new PersistentRef<IPointCloudNode>(subnode.Id, (_id, _ct) => storage.GetPointCloudNode(resolver, _id, _ct));
+                var subnode = Create(storage, resolver, bucket.ToArray(), config);
+                SubNodes[i] = new PersistentRef<IPointCloudNode>(subnode.Id, (_id, _ct) => storage.GetPointCloudNode(_id, resolver, _ct));
             }
 
             // lod
@@ -160,7 +181,7 @@ namespace Aardvark.Geometry.Points
         public long PointCountTree { get; }
 
         /// <summary></summary>
-        public PersistentRef<IPointCloudNode>[] Subnodes { get; }
+        public PersistentRef<IPointCloudNode>[] SubNodes { get; }
         
         /// <summary></summary>
         public bool TryGetPropertyKey(string property, out string key)
@@ -174,18 +195,38 @@ namespace Aardvark.Geometry.Points
         public FilterState FilterState => FilterState.FullyInside;
 
         /// <summary></summary>
-        public JObject ToJson()
+        public JObject ToJson() => JObject.FromObject(new
         {
-            throw new NotImplementedException();
-        }
+            NodeType,
+            Id,
+            Cell,
+            BoundingBoxExact = BoundingBoxExact.ToString(),
+            PointCountTree,
+            SubNodeIds = SubNodes?.Select(x => x?.Id).ToArray()
+        });
 
         /// <summary></summary>
-        public string NodeType => "MergedNodes";
+        public static MergedNodes Parse(JObject json, Storage storage, IStoreResolver resolver)
+            => new MergedNodes(storage, resolver,
+                (string)json["Id"],
+                json["Cell"].ToObject<Cell>(),
+                Box3d.Parse((string)json["BoundingBoxExact"]),
+                (long)json["PointCountTree"],
+                json["SubNodeIds"].ToObject<string[]>()
+                )
+            ;
+
+        /// <summary></summary>
+        public string NodeType => Type;
 
         /// <summary></summary>
         public void Dispose()
         {
-            foreach (var x in Nodes) x.Dispose();
+            foreach (var n in SubNodes)
+            {
+                if (n == null) continue;
+                if (n.TryGetValue(out IPointCloudNode value)) value.Dispose();
+            }
         }
     }
 }

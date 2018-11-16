@@ -84,7 +84,7 @@ namespace Aardvark.Geometry.Points
             SplitLimit = splitLimit;
             RootNodeType = root.NodeType;
 
-            Root = new PersistentRef<IPointCloudNode>(root.Id, (id, ct) => storage.GetPointCloudNode(resolver, id, ct));
+            Root = new PersistentRef<IPointCloudNode>(root.Id, (id, ct) => storage.GetPointCloudNode(id, resolver, ct));
             OldRoot = new PersistentRef<PointSetNode>(root.Id, (_, __) => throw new InvalidOperationException());
         }
 

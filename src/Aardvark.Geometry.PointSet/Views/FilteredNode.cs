@@ -84,11 +84,11 @@ namespace Aardvark.Geometry.Points
         public long PointCountTree => Node.PointCountTree;
 
         /// <summary></summary>
-        public PersistentRef<IPointCloudNode>[] Subnodes
+        public PersistentRef<IPointCloudNode>[] SubNodes
         {
             get
             {
-                if (Node.Subnodes == null) return null;
+                if (Node.SubNodes == null) return null;
 
                 if (m_subnodes_cache == null)
                 {
@@ -96,7 +96,7 @@ namespace Aardvark.Geometry.Points
                     for (var i = 0; i < 8; i++)
                     {
                         var id = (Id + "." + i).ToGuid().ToString();
-                        var n0 = Node.Subnodes[i]?.Value;
+                        var n0 = Node.SubNodes[i]?.Value;
                         var n = n0 != null ? new FilteredNode(id, n0, Filter) : null;
                         m_subnodes_cache[i] = new PersistentRef<IPointCloudNode>(id, (_, __) => n, n);
                     }

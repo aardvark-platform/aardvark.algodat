@@ -58,7 +58,7 @@ namespace Aardvark.Geometry.Points
         /// Entries are null if there is no subnode.
         /// There is at least 1 non-null entry.
         /// </summary>
-        PersistentRef<IPointCloudNode>[] Subnodes { get; }
+        PersistentRef<IPointCloudNode>[] SubNodes { get; }
 
         /// <summary>
         /// Gets storage key of given property.

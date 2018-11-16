@@ -13,6 +13,7 @@
 */
 using Aardvark.Base;
 using Aardvark.Data.Points;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 
@@ -41,17 +42,18 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Links to different octree.
         /// </summary>
-        public LinkedNode(string linkedStoreName, string linkedPointCloudKey, IStoreResolver storeResolver)
-            : this(Guid.NewGuid().ToString(), linkedStoreName, linkedPointCloudKey, storeResolver) { }
+        public LinkedNode(Storage storage, string linkedStoreName, string linkedPointCloudKey, IStoreResolver storeResolver)
+            : this(storage, Guid.NewGuid().ToString(), linkedStoreName, linkedPointCloudKey, storeResolver) { }
 
         /// <summary>
         /// Links to different octree.
         /// </summary>
-        public LinkedNode(string id, string linkedStoreName, string linkedPointCloudKey, IStoreResolver storeResolver)
+        public LinkedNode(Storage storage, string id, string linkedStoreName, string linkedPointCloudKey, IStoreResolver storeResolver)
         {
             if (string.IsNullOrWhiteSpace(id)) throw new ArgumentNullException(nameof(id));
 
             m_storeResolver = storeResolver;
+            Storage = storage;
             Id = id;
             LinkedStoreName = linkedStoreName;
             LinkedPointCloudKey = linkedPointCloudKey;
@@ -92,23 +94,11 @@ namespace Aardvark.Geometry.Points
         public long PointCountTree => Root.PointCountTree;
         
         /// <summary></summary>
-        public PersistentRef<IPointCloudNode>[] Subnodes => Root.Subnodes;
+        public PersistentRef<IPointCloudNode>[] SubNodes => Root.SubNodes;
         
         /// <summary></summary>
-        public Storage Storage
-        {
-            get
-            {
-                if (m_root != null && m_root.TryGetTarget(out IPointCloudNode r))
-                {
-                    return r.Storage;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-        }
+        [JsonIgnore]
+        public Storage Storage { get; }
 
         /// <summary></summary>
         public bool TryGetPropertyKey(string property, out string key)
@@ -131,8 +121,8 @@ namespace Aardvark.Geometry.Points
         });
 
         /// <summary></summary>
-        public static LinkedNode Parse(JObject json, IStoreResolver resolver)
-            => new LinkedNode((string)json["Id"], (string)json["LinkedStoreName"], (string)json["LinkedPointCloudKey"], resolver)
+        public static LinkedNode Parse(JObject json, Storage storage, IStoreResolver resolver)
+            => new LinkedNode(storage, (string)json["Id"], (string)json["LinkedStoreName"], (string)json["LinkedPointCloudKey"], resolver)
             ;
 
         /// <summary></summary>

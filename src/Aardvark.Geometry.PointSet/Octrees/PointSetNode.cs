@@ -1168,7 +1168,7 @@ namespace Aardvark.Geometry.Points
 
         long IPointCloudNode.PointCountTree => PointCountTree;
 
-        PersistentRef<IPointCloudNode>[] IPointCloudNode.Subnodes
+        PersistentRef<IPointCloudNode>[] IPointCloudNode.SubNodes
         {
             get
             {

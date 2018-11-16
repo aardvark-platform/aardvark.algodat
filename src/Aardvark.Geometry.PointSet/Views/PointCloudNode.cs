@@ -37,7 +37,7 @@ namespace Aardvark.Geometry.Points
             Center = cell.GetCenter();
             BoundingBoxExact = boundingBoxExact;
             PointCountTree = pointCountTree;
-            Subnodes = subnodes;
+            SubNodes = subnodes;
 
             if (attributes != null)
             {
@@ -130,7 +130,7 @@ namespace Aardvark.Geometry.Points
         public long PointCountTree { get; }
 
         /// <summary></summary>
-        public PersistentRef<IPointCloudNode>[] Subnodes { get; }
+        public PersistentRef<IPointCloudNode>[] SubNodes { get; }
 
         /// <summary></summary>
         public bool TryGetPropertyKey(string property, out string key) => m_pIds.TryGetValue(property, out key);

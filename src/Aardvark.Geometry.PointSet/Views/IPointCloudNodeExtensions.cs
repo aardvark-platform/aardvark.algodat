@@ -181,7 +181,7 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public static IPointCloudNode GetPointCloudNode(this Storage storage, IStoreResolver resolver, string key, CancellationToken ct = default)
+        public static IPointCloudNode GetPointCloudNode(this Storage storage, string key, IStoreResolver resolver, CancellationToken ct = default)
         {
             var data = (IPointCloudNode)storage.f_tryGetFromCache(key, ct);
             if (data != null) return data;
@@ -194,7 +194,10 @@ namespace Aardvark.Geometry.Points
             switch (nodeType)
             {
                 case LinkedNode.Type:
-                    data = LinkedNode.Parse(json, resolver);
+                    data = LinkedNode.Parse(json, storage, resolver);
+                    break;
+                case MergedNodes.Type:
+                    data = MergedNodes.Parse(json, storage, resolver);
                     break;
                 default:
                     throw new InvalidOperationException($"Unknown node type '{nodeType}'.");
@@ -207,10 +210,10 @@ namespace Aardvark.Geometry.Points
         #endregion
 
         /// <summary></summary>
-        public static bool IsLeaf(this IPointCloudNode self) => self.Subnodes == null;
+        public static bool IsLeaf(this IPointCloudNode self) => self.SubNodes == null;
 
         /// <summary></summary>
-        public static bool IsNotLeaf(this IPointCloudNode self) => self.Subnodes != null;
+        public static bool IsNotLeaf(this IPointCloudNode self) => self.SubNodes != null;
 
         /// <summary>
         /// Counts ALL nodes of this tree by traversing over all persistent refs.
@@ -219,7 +222,7 @@ namespace Aardvark.Geometry.Points
         {
             if (self == null) return 0;
 
-            var subnodes = self.Subnodes;
+            var subnodes = self.SubNodes;
             if (subnodes == null) return 1;
             
             var count = 1L;
