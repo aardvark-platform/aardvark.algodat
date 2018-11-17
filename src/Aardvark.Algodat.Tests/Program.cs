@@ -17,10 +17,10 @@ namespace Aardvark.Geometry.Tests
         internal static void LinkedStores()
         {
             var tmpStorePath = "tmpStore";
-            var resolver = new PatternResolver(@"Y:\cells\%KEY%\pointcloud");
+            var resolver = new PatternResolver(@"G:\cells\%KEY%\pointcloud");
             
             var links = Directory
-                .EnumerateDirectories(@"Y:\cells", "pointcloud", SearchOption.AllDirectories)
+                .EnumerateDirectories(@"G:\cells", "pointcloud", SearchOption.AllDirectories)
                 .Select(x => (storePath: x, key: Path.GetFileName(Path.GetDirectoryName(x))))
                 .Take(2)
                 .ToArray();
@@ -53,22 +53,26 @@ namespace Aardvark.Geometry.Tests
                     Console.WriteLine(sw.Elapsed);
 
 
-                foreach (var x in ls) Console.WriteLine($"x.CountNodes() -> {x.CountNodes()}");
+                foreach (var x in ls)
+                {
+                    storage.Add(x.Id, x);
+                    Console.WriteLine($"x.CountNodes() -> {x.CountNodes()}");
+                }
 
                 var config = ImportConfig.Default
                     .WithCreateOctreeLod(false)
                     ;
 
-                var merged = MergedNodes.Create(storage, resolver, ls, config);
-                Console.WriteLine(merged.CountNodes());
+                var merged = Merge.NonOverlapping(storage, resolver, ls, config);
+                Console.WriteLine($"merged.CountNodes()   -> {merged.CountNodes()}");
                 storage.Add("merged", merged);
                 storage.Flush();
             }
 
-            using (var tmp = PointCloud.OpenStore(tmpStorePath))
+            using (var storage = PointCloud.OpenStore(tmpStorePath))
             {
-                var merged = tmp.GetPointCloudNode("merged", resolver);
-                Console.WriteLine(merged.CountNodes());
+                var reloaded = storage.GetPointCloudNode("merged", resolver);
+                Console.WriteLine($"reloaded.CountNodes() -> {reloaded.CountNodes()}");
             }
 
             /*

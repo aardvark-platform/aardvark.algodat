@@ -79,7 +79,7 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public class PatternResolver : IStoreResolver
     {
-        private readonly Dictionary<string, WeakReference<Storage>> m_pathToStore = new Dictionary<string, WeakReference<Storage>>();
+        private readonly Dictionary<string, Storage> m_pathToStore = new Dictionary<string, Storage>();
 
         /// <summary></summary>
         public string PatternStorePath { get; }
@@ -98,13 +98,11 @@ namespace Aardvark.Geometry.Points
         {
             lock (m_pathToStore)
             {
-                Storage storage = null;
-
-                if (!m_pathToStore.TryGetValue(storePath, out WeakReference<Storage> weakRef) || !weakRef.TryGetTarget(out storage))
+                if (!m_pathToStore.TryGetValue(storePath, out Storage storage))
                 {
                     var realStorePath = PatternStorePath.Replace("%KEY%", storePath);
                     storage = PointCloud.OpenStore(realStorePath);
-                    m_pathToStore[storePath] = new WeakReference<Storage>(storage);
+                    m_pathToStore[storePath] = storage;
                 }
 
                 return storage;

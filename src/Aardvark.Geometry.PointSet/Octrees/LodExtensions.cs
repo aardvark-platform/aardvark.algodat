@@ -25,6 +25,13 @@ namespace Aardvark.Geometry.Points
     {
         /// <summary>
         /// </summary>
+        public static PointCloudNode GenerateLod(this PointCloudNode self, ImportConfig config)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// </summary>
         public static PointSet GenerateLod(this PointSet self, ImportConfig config)
         {
             if (config.CreateOctreeLod == false) return self;

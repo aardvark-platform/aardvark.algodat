@@ -25,6 +25,17 @@ namespace Aardvark.Geometry.Points
     public static class NormalsExtensions
     {
         /// <summary>
+        /// </summary>
+        public static PointCloudNode RegenerateNormals(this PointCloudNode self,
+            Func<IList<V3d>, IList<V3f>> estimateNormals,
+            Action<double> callback, CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+            callback?.Invoke(1.0);
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
         /// Returns new PointSet with regenerated normals using given estimateNormals function.
         /// </summary>
         public static PointSet RegenerateNormals(this PointSet self,

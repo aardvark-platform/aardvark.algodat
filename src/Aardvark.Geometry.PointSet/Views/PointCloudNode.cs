@@ -16,6 +16,7 @@ using Aardvark.Data.Points;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Aardvark.Geometry.Points
 {
@@ -24,6 +25,9 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public class PointCloudNode : IPointCloudNode
     {
+        /// <summary></summary>
+        public const string Type = "PointCloudNode";
+
         /// <summary>
         /// </summary>
         public PointCloudNode(Storage storage,
@@ -144,11 +148,40 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public JObject ToJson()
         {
-            throw new NotImplementedException();
+            return JObject.FromObject(new
+            {
+                NodeType,
+                Id,
+                Cell,
+                BoundingBoxExact = BoundingBoxExact.ToString(),
+                PointCountTree,
+                SubNodes = SubNodes.Map(x => x?.Id),
+                Properties = m_pIds.Select(kv => new[] { kv.Key, kv.Value }).ToArray(),
+                FilterState
+            });
         }
 
         /// <summary></summary>
-        public string NodeType => "PointCloudNode";
+        public static PointCloudNode Parse(JObject json, Storage storage, IStoreResolver resolver)
+        {
+            var nodetype = (string)json["NodeType"];
+            if (nodetype != Type) throw new InvalidOperationException($"Expected node type '{Type}', but was '{nodetype}'.");
+
+            var id = (string)json["Id"];
+            var cell = json["Cell"].ToObject<Cell>();
+            var boundingBoxExact = Box3d.Parse((string)json["BoundingBoxExact"]);
+            var pointCountTree = (long)json["PointCountTree"];
+            var subnodeIds = json["SubNodes"].ToObject<string[]>();
+            var propertyIds = json["Properties"].ToObject<string[][]>();
+            var filterState = Enum.Parse(typeof(FilterState), (string)json["FilterState"]);
+
+            var subnodes = subnodeIds.Map(x => x != null ? new PersistentRef<IPointCloudNode>(x, (_id, _ct) => storage.GetPointCloudNode(x, resolver, _ct)) : null);
+
+            return new PointCloudNode(storage, id, cell, boundingBoxExact, pointCountTree, subnodes);
+        }
+
+        /// <summary></summary>
+        public string NodeType => Type;
 
         /// <summary></summary>
         public void Dispose() { }

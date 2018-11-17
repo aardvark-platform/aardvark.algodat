@@ -196,8 +196,8 @@ namespace Aardvark.Geometry.Points
                 case LinkedNode.Type:
                     data = LinkedNode.Parse(json, storage, resolver);
                     break;
-                case MergedNodes.Type:
-                    data = MergedNodes.Parse(json, storage, resolver);
+                case PointCloudNode.Type:
+                    data = PointCloudNode.Parse(json, storage, resolver);
                     break;
                 default:
                     throw new InvalidOperationException($"Unknown node type '{nodeType}'.");
