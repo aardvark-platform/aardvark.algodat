@@ -31,7 +31,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// </summary>
         public PointCloudNode(Storage storage,
-            string id, Cell cell, Box3d boundingBoxExact, long pointCountTree, PersistentRef<IPointCloudNode>[] subnodes,
+            string id, Cell cell, Box3d boundingBoxExact, long pointCountTree, PersistentRef<IPointCloudNode>[] subnodes, bool storeOnCreation,
             params (string attributeName, string attributeKey, object attributeValue)[] attributes
             )
         {
@@ -98,7 +98,7 @@ namespace Aardvark.Geometry.Points
 
                     if (value is Array || value is PointRkdTreeDData)
                     {
-                        storage.StoreAttribute(name, attributeKey, value);
+                        if (storeOnCreation) storage.StoreAttribute(name, attributeKey, value);
                         m_pRefs[name] = storage.CreatePersistentRef(name, attributeKey, value);
                     }
                     else
@@ -108,6 +108,33 @@ namespace Aardvark.Geometry.Points
                     }
                     
                     m_pIds[name] = attributeKey;
+                }
+            }
+
+            if (storeOnCreation) storage.Add(Id, this);
+        }
+
+        /// <summary>
+        /// </summary>
+        private PointCloudNode(Storage storage,
+            string id, Cell cell, Box3d boundingBoxExact, long pointCountTree, PersistentRef<IPointCloudNode>[] subnodes,
+            params (string attributeName, string attributeKey)[] attributes
+            )
+        {
+            Storage = storage;
+            Id = id;
+            Cell = cell;
+            Center = cell.GetCenter();
+            BoundingBoxExact = boundingBoxExact;
+            PointCountTree = pointCountTree;
+            SubNodes = subnodes;
+
+            if (attributes != null)
+            {
+                foreach (var (attributeName, attributeKey) in attributes)
+                {
+                    m_pRefs[attributeName] = storage.CreatePersistentRef(attributeName, attributeKey, default);
+                    m_pIds[attributeName] = attributeKey;
                 }
             }
         }
@@ -155,7 +182,7 @@ namespace Aardvark.Geometry.Points
                 Cell,
                 BoundingBoxExact = BoundingBoxExact.ToString(),
                 PointCountTree,
-                SubNodes = SubNodes.Map(x => x?.Id),
+                SubNodes = SubNodes?.Map(x => x?.Id),
                 Properties = m_pIds.Select(kv => new[] { kv.Key, kv.Value }).ToArray(),
                 FilterState
             });
@@ -172,12 +199,12 @@ namespace Aardvark.Geometry.Points
             var boundingBoxExact = Box3d.Parse((string)json["BoundingBoxExact"]);
             var pointCountTree = (long)json["PointCountTree"];
             var subnodeIds = json["SubNodes"].ToObject<string[]>();
-            var propertyIds = json["Properties"].ToObject<string[][]>();
+            var attributes = json["Properties"].ToObject<string[][]>().Map(x => (x[0], x[1]));
             var filterState = Enum.Parse(typeof(FilterState), (string)json["FilterState"]);
 
-            var subnodes = subnodeIds.Map(x => x != null ? new PersistentRef<IPointCloudNode>(x, (_id, _ct) => storage.GetPointCloudNode(x, resolver, _ct)) : null);
+            var subnodes = subnodeIds?.Map(x => x != null ? new PersistentRef<IPointCloudNode>(x, (_id, _ct) => storage.GetPointCloudNode(x, resolver, _ct)) : null);
 
-            return new PointCloudNode(storage, id, cell, boundingBoxExact, pointCountTree, subnodes);
+            return new PointCloudNode(storage, id, cell, boundingBoxExact, pointCountTree, subnodes, attributes);
         }
 
         /// <summary></summary>

@@ -61,6 +61,7 @@ namespace Aardvark.Geometry.Tests
 
                 var config = ImportConfig.Default
                     .WithCreateOctreeLod(false)
+                    //.WithEstimateNormals(ps => Normals.EstimateNormals((V3d[])ps, 8))
                     ;
 
                 var merged = Merge.NonOverlapping(storage, resolver, ls, config);

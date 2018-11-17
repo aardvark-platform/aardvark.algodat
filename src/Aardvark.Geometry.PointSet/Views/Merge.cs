@@ -98,7 +98,7 @@ namespace Aardvark.Geometry.Points
             }
 
             // create node
-            var result = new PointCloudNode(storage, id, cell, boundingBoxExact, pointCountTree, subnodes);
+            var result = new PointCloudNode(storage, id, cell, boundingBoxExact, pointCountTree, subnodes, storeOnCreation: true);
 
             // generate lod
             if (config.CreateOctreeLod)

@@ -25,6 +25,9 @@ namespace Aardvark.Geometry.Tests
     {
         private static readonly Random r = new Random();
         private static V3d RandomPosition() => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble());
+        private static V3d[] RandomPositions(int n) => new V3d[n].Map(_ => RandomPosition());
+
+        #region LinkedNode
 
         [Test]
         public void LinkedNode_ToJson_Parse()
@@ -69,5 +72,42 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(link1.HasPositions());
             Assert.IsTrue(link1.GetPositionsAbsolute().Length == 100);
         }
+
+        #endregion
+
+        #region PointCloudNode
+
+        [Test]
+        public void PointCloudNode_RoundtripStore()
+        {
+            var storepath = Path.Combine(Config.TempDataDir, Guid.NewGuid().ToString());
+            using (var store = PointCloud.OpenStore(storepath))
+            {
+                var resolver = new MapResolver();
+
+                var cell = new Cell(1, 2, 3, 0);
+                var aPs = RandomPositions(100).Map(p => (V3f)(p - new V3d(0.5, 0.5, 0.5)));
+                store.Add("a.positions", aPs, default);
+
+                var bb = (Box3d)new Box3f(aPs);
+                var a = new PointCloudNode(store, "a", cell, bb, aPs.Length, null, storeOnCreation: true,
+                    (PointCloudAttribute.Positions, "a.positions", aPs)
+                    );
+                store.Add("a", a);
+
+
+                var json = a.ToJson();
+
+                var b = PointCloudNode.Parse(json, store, resolver);
+                Assert.IsTrue(b.Id == "a");
+                Assert.IsTrue(b.Cell == cell);
+                Assert.IsTrue(b.BoundingBoxExact.Min.ApproxEqual(bb.Min, 0.000000001) && b.BoundingBoxExact.Max.ApproxEqual(bb.Max, 0.000000001));
+                Assert.IsTrue(b.PointCountTree == 100);
+                Assert.IsTrue(b.HasPositions());
+                Assert.IsTrue(b.GetPositionsAbsolute().Length == 100);
+            }
+        }
+
+        #endregion
     }
 }

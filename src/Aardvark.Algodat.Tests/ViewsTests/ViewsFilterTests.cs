@@ -39,6 +39,7 @@ namespace Aardvark.Geometry.Tests
                 boundingBoxExact: new Box3d(ps0),
                 pointCountTree: ps0.Length,
                 subnodes: null,
+                storeOnCreation: true,
                 (PointCloudAttribute.PositionsAbsolute, "a.positions", ps0)
                 );
 
@@ -60,6 +61,7 @@ namespace Aardvark.Geometry.Tests
                 boundingBoxExact: new Box3d(ps0),
                 pointCountTree: ps0.Length,
                 subnodes: null,
+                storeOnCreation: true,
                 (PointCloudAttribute.PositionsAbsolute, "a.positions", ps0)
                 );
 
@@ -81,6 +83,7 @@ namespace Aardvark.Geometry.Tests
                 boundingBoxExact: new Box3d(ps0),
                 pointCountTree: ps0.Length,
                 subnodes: null,
+                storeOnCreation: true,
                 (PointCloudAttribute.PositionsAbsolute, "a.positions", ps0)
                 );
 
@@ -106,6 +109,7 @@ namespace Aardvark.Geometry.Tests
                 boundingBoxExact: new Box3d(ps0),
                 pointCountTree: ps0.Length,
                 subnodes: null,
+                storeOnCreation: true,
                 (PointCloudAttribute.PositionsAbsolute, "a.positions", ps0)
                 );
 
@@ -127,6 +131,7 @@ namespace Aardvark.Geometry.Tests
                 boundingBoxExact: new Box3d(ps0),
                 pointCountTree: ps0.Length,
                 subnodes: null,
+                storeOnCreation: true,
                 (PointCloudAttribute.PositionsAbsolute, "a.positions", ps0)
                 );
 
@@ -148,6 +153,7 @@ namespace Aardvark.Geometry.Tests
                 boundingBoxExact: new Box3d(ps0),
                 pointCountTree: ps0.Length,
                 subnodes: null,
+                storeOnCreation: true,
                 (PointCloudAttribute.PositionsAbsolute, "a.positions", ps0)
                 );
 
@@ -173,6 +179,7 @@ namespace Aardvark.Geometry.Tests
                 boundingBoxExact: new Box3d(ps0),
                 pointCountTree: ps0.Length,
                 subnodes: null,
+                storeOnCreation: true,
                 (PointCloudAttribute.PositionsAbsolute, "a.positions", ps0),
                 (PointCloudAttribute.Intensities, "a.intensities", new[] { -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 })
                 );
@@ -195,6 +202,7 @@ namespace Aardvark.Geometry.Tests
                 boundingBoxExact: new Box3d(ps0),
                 pointCountTree: ps0.Length,
                 subnodes: null,
+                storeOnCreation: true,
                 (PointCloudAttribute.PositionsAbsolute, "a.positions", ps0),
                 (PointCloudAttribute.Intensities, "a.intensities", new[] { -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 })
                 );
@@ -217,6 +225,7 @@ namespace Aardvark.Geometry.Tests
                 boundingBoxExact: new Box3d(ps0),
                 pointCountTree: ps0.Length,
                 subnodes: null,
+                storeOnCreation: true,
                 (PointCloudAttribute.PositionsAbsolute, "a.positions", ps0),
                 (PointCloudAttribute.Intensities, "a.intensities", new[] { -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 })
                 );

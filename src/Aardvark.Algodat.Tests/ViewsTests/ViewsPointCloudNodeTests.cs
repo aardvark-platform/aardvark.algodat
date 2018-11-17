@@ -34,7 +34,8 @@ namespace Aardvark.Geometry.Tests
                 cell            : Cell.Unit,
                 boundingBoxExact: Box3d.Unit,
                 pointCountTree  : 0,
-                subnodes        : null
+                subnodes        : null,
+                storeOnCreation : true
                 );
 
             Assert.IsTrue(a.Id == "a");
@@ -55,6 +56,7 @@ namespace Aardvark.Geometry.Tests
                 boundingBoxExact: new Box3d(ps0),
                 pointCountTree  : ps0.Length,
                 subnodes        : null,
+                storeOnCreation : true,
                 (PointCloudAttribute.PositionsAbsolute, ps0Id, ps0)
                 );
 
@@ -74,11 +76,12 @@ namespace Aardvark.Geometry.Tests
             var bb = (Box3d)new Box3f(ps0);
 
             var a = new PointCloudNode(storage,
-                id: "a",
-                cell: new Cell(ps0),
+                id              : "a",
+                cell            : new Cell(ps0),
                 boundingBoxExact: bb,
-                pointCountTree: ps0.Length,
-                subnodes: null,
+                pointCountTree  : ps0.Length,
+                subnodes        : null,
+                storeOnCreation : true,
                 (PointCloudAttribute.Positions, ps0Id, ps0),
                 (PointCloudAttribute.KdTree, kd0Id, ps0)
                 );
