@@ -69,7 +69,13 @@ namespace Aardvark.Geometry.Points
                         break;
                     }
                 }
-                if (notInserted) throw new InvalidOperationException();
+                if (notInserted)
+                {
+                    Report.Warn($"Skipped cell {n.Cell} because it overlaps.");
+                    Report.Warn($"Current cell {cell} has following nodes to insert:");
+                    foreach (var x in nodes) Report.Warn($"  {x.Cell}");
+                    //throw new InvalidOperationException();
+                }
             }
 
             // create subcells
