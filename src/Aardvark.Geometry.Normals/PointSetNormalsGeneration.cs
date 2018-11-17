@@ -31,7 +31,7 @@ namespace Aardvark.Geometry.Points
         {
             if (config.EstimateNormals == null) return self;
 
-            var nodeCount = self.Root.Value.CountNodes();
+            var nodeCount = self.Octree.Value.CountNodes();
             var processedNodesCount = 0L;
             var result = self.GenerateNormals(() =>
             {
@@ -49,7 +49,7 @@ namespace Aardvark.Geometry.Points
         private static PointSet GenerateNormals(this PointSet self, Action callback, ImportConfig config)
         {
             if (self.IsEmpty) return self;
-            var normals = self.OldRoot.Value.GenerateNormals(callback, config);
+            var normals = self.Root.Value.GenerateNormals(callback, config);
             var result = new PointSet(self.Storage, config.Key, normals.Id, self.SplitLimit);
             self.Storage.Add(config.Key, result, config.CancellationToken);
             return result;

@@ -62,12 +62,12 @@ namespace Aardvark.Geometry.Points
             Storage = storage;
             Id = key ?? throw new ArgumentNullException(nameof(key));
             SplitLimit = splitLimit;
-            RootNodeType = typeof(PointSetNode).Name;
+            OctreeRootType = typeof(PointSetNode).Name;
 
             if (rootCellId.HasValue)
             {
-                Root = new PersistentRef<IPointCloudNode>(rootCellId.ToString(), storage.GetPointSetNode);
-                OldRoot = new PersistentRef<PointSetNode>(rootCellId.ToString(), storage.GetPointSetNode);
+                Octree = new PersistentRef<IPointCloudNode>(rootCellId.ToString(), storage.GetPointSetNode);
+                Root = new PersistentRef<PointSetNode>(rootCellId.ToString(), storage.GetPointSetNode);
             }
         }
 
@@ -77,15 +77,21 @@ namespace Aardvark.Geometry.Points
         public PointSet(Storage storage, IStoreResolver resolver, string key, IPointCloudNode root, int splitLimit)
         {
             if (root == null) throw new ArgumentNullException(nameof(root));
-            if (root is PointSetNode) throw new InvalidOperationException("Use PointSet(Storage, string, Guid?, long) instead.");
 
             Storage = storage;
             Id = key ?? throw new ArgumentNullException(nameof(key));
             SplitLimit = splitLimit;
-            RootNodeType = root.NodeType;
+            OctreeRootType = root.NodeType;
 
-            Root = new PersistentRef<IPointCloudNode>(root.Id, (id, ct) => storage.GetPointCloudNode(id, resolver, ct));
-            OldRoot = new PersistentRef<PointSetNode>(root.Id, (_, __) => throw new InvalidOperationException());
+            var oldSchool = root as PointSetNode;
+
+            if (key != null)
+            {
+                Octree = new PersistentRef<IPointCloudNode>(root.Id, (id, ct) => storage.GetPointCloudNode(id, resolver, ct));
+                Root = oldSchool != null
+                    ? new PersistentRef<PointSetNode>(oldSchool.Id.ToString(), storage.GetPointSetNode)
+                    : new PersistentRef<PointSetNode>(root.Id, (_, __) => throw new InvalidOperationException());
+            }
         }
 
         /// <summary>
@@ -112,15 +118,16 @@ namespace Aardvark.Geometry.Points
         
         /// <summary>
         /// </summary>
-        public PersistentRef<PointSetNode> OldRoot { get; }
+        [Obsolete("Use Octree instead.")]
+        public PersistentRef<PointSetNode> Root { get; }
 
         /// <summary>
         /// </summary>
-        public string RootNodeType { get; }
+        public string OctreeRootType { get; }
 
         /// <summary>
         /// </summary>
-        public PersistentRef<IPointCloudNode> Root { get; }
+        public PersistentRef<IPointCloudNode> Octree { get; }
 
         #endregion
 
@@ -133,27 +140,34 @@ namespace Aardvark.Geometry.Points
             return JObject.FromObject(new
             {
                 Id,
-                RootCellId = OldRoot?.Id,
+                RootCellId = Octree?.Id,
+                OctreeId = Octree?.Id,
                 SplitLimit,
-                RootNodeType
+                OctreeRootType
             });
         }
 
         /// <summary>
         /// </summary>
-        public static PointSet Parse(JObject json, Storage storage)
+        public static PointSet Parse(JObject json, Storage storage, IStoreResolver resolver)
         {
-            var rootCellId = (string)json["RootCellId"];
-            var root = rootCellId != null ? new PersistentRef<PointSetNode>(rootCellId, storage.GetPointSetNode) : null;
+            var octreeId = (string)json["OctreeId"];
+            if (octreeId == null) octreeId = (string)json["RootCellId"]; // backwards compatibility
+            var octree = octreeId != null ? new PersistentRef<IPointCloudNode>(octreeId, storage.GetPointSetNode) : null;
             
             // backwards compatibility: if split limit is not set, guess as number of points in root cell
             var splitLimitRaw = (string)json["SplitLimit"];
-            var splitLimit = splitLimitRaw != null ? long.Parse(splitLimitRaw) : root.Value.PointCount;
+            var splitLimit = splitLimitRaw != null ? int.Parse(splitLimitRaw) : 8192;
+
+            // id
+            var id = (string)json["Id"];
 
             //
             var rootType = (string)json["RootType"] ?? typeof(PointSetNode).ToString();
-
-            return new PointSet(storage, (string)json["Id"], Guid.Parse(rootCellId), splitLimit);
+            if (rootType == "PointSetNode")
+                return new PointSet(storage, id, Guid.Parse(octreeId), splitLimit); // backwards compatibility
+            else
+                return new PointSet(storage, resolver, id, octree.Value, splitLimit);
         }
 
         #endregion
@@ -168,17 +182,17 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Returns true if pointset is empty.
         /// </summary>
-        public bool IsEmpty => OldRoot == null;
+        public bool IsEmpty => Root == null;
 
         /// <summary>
         /// Gets total number of points in dataset.
         /// </summary>
-        public long PointCount => OldRoot?.Value?.PointCountTree ?? 0;
+        public long PointCount => Root?.Value?.PointCountTree ?? 0;
 
         /// <summary>
         /// Gets bounds of dataset root cell.
         /// </summary>
-        public Box3d Bounds => OldRoot?.Value?.BoundingBoxExact ?? Box3d.Invalid;
+        public Box3d Bounds => Root?.Value?.BoundingBoxExact ?? Box3d.Invalid;
 
         /// <summary>
         /// Gets exact bounding box of all points from coarsest LoD.
@@ -189,9 +203,9 @@ namespace Aardvark.Geometry.Points
             {
                 try
                 {
-                    return OldRoot.Value.HasPositions()
-                        ? new Box3d(OldRoot.Value.GetPositionsAbsolute())
-                        : new Box3d(OldRoot.Value.GetLodPositionsAbsolute())
+                    return Root.Value.HasPositions()
+                        ? new Box3d(Root.Value.GetPositionsAbsolute())
+                        : new Box3d(Root.Value.GetLodPositionsAbsolute())
                         ;
                 }
                 catch (NullReferenceException)
@@ -202,40 +216,40 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public bool HasColors => OldRoot != null ? OldRoot.GetValue(default).HasColors() : false;
+        public bool HasColors => Root != null ? Root.GetValue(default).HasColors() : false;
 
         /// <summary></summary>
-        public bool HasIntensities => OldRoot != null ? OldRoot.GetValue(default).HasIntensities() : false;
+        public bool HasIntensities => Root != null ? Root.GetValue(default).HasIntensities() : false;
         
         /// <summary></summary>
-        public bool HasClassifications => OldRoot != null ? OldRoot.GetValue(default).HasClassifications() : false;
+        public bool HasClassifications => Root != null ? Root.GetValue(default).HasClassifications() : false;
 
         /// <summary></summary>
-        public bool HasKdTree => OldRoot != null ? OldRoot.GetValue(default).HasKdTree() : false;
+        public bool HasKdTree => Root != null ? Root.GetValue(default).HasKdTree() : false;
         
         /// <summary></summary>
-        public bool HasLodColors => OldRoot != null ? OldRoot.GetValue(default).HasLodColors() : false;
+        public bool HasLodColors => Root != null ? Root.GetValue(default).HasLodColors() : false;
 
         /// <summary></summary>
-        public bool HasLodIntensities => OldRoot != null ? OldRoot.GetValue(default).HasLodIntensities() : false;
+        public bool HasLodIntensities => Root != null ? Root.GetValue(default).HasLodIntensities() : false;
         
         /// <summary></summary>
-        public bool HasLodClassifications => OldRoot != null ? OldRoot.GetValue(default).HasLodClassifications() : false;
+        public bool HasLodClassifications => Root != null ? Root.GetValue(default).HasLodClassifications() : false;
 
         /// <summary></summary>
-        public bool HasLodKdTree => OldRoot != null ? OldRoot.GetValue(default).HasLodKdTree() : false;
+        public bool HasLodKdTree => Root != null ? Root.GetValue(default).HasLodKdTree() : false;
 
         /// <summary></summary>
-        public bool HasLodNormals => OldRoot != null ? OldRoot.GetValue(default).HasLodNormals() : false;
+        public bool HasLodNormals => Root != null ? Root.GetValue(default).HasLodNormals() : false;
 
         /// <summary></summary>
-        public bool HasLodPositions => OldRoot != null ? OldRoot.GetValue(default).HasLodPositions() : false;
+        public bool HasLodPositions => Root != null ? Root.GetValue(default).HasLodPositions() : false;
 
         /// <summary></summary>
-        public bool HasNormals => OldRoot != null ? OldRoot.GetValue(default).HasNormals() : false;
+        public bool HasNormals => Root != null ? Root.GetValue(default).HasNormals() : false;
 
         /// <summary></summary>
-        public bool HasPositions => OldRoot != null ? OldRoot.GetValue(default).HasPositions() : false;
+        public bool HasPositions => Root != null ? Root.GetValue(default).HasPositions() : false;
 
         #endregion
 
@@ -250,7 +264,7 @@ namespace Aardvark.Geometry.Points
             if (this.Storage != other.Storage) throw new InvalidOperationException();
 
 
-            if (OldRoot.Value is PointSetNode root && other.OldRoot.Value is PointSetNode otherRoot)
+            if (Root.Value is PointSetNode root && other.Root.Value is PointSetNode otherRoot)
             {
                 var merged = root.Merge(otherRoot, SplitLimit, ct);
                 var id = $"{Guid.NewGuid()}.json";
@@ -258,7 +272,7 @@ namespace Aardvark.Geometry.Points
             }
             else
             {
-                throw new InvalidOperationException($"Cannot merge {OldRoot.Value.GetType()} with {other.OldRoot.Value.GetType()}.");
+                throw new InvalidOperationException($"Cannot merge {Root.Value.GetType()} with {other.Root.Value.GetType()}.");
             }
         }
 

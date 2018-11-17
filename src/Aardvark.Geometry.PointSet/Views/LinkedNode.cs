@@ -54,7 +54,7 @@ namespace Aardvark.Geometry.Points
 
             m_storeResolver = storeResolver;
             var foo = m_storeResolver.Resolve(linkedStoreName).GetPointSet(linkedPointCloudKey, default);
-            var root = foo.Root.Value;
+            var root = foo.Octree.Value;
 
             Storage = storage;
             Id = id;
@@ -91,7 +91,7 @@ namespace Aardvark.Geometry.Points
                 }
 
                 var storage = m_storeResolver.Resolve(LinkedStoreName);
-                r = storage.GetPointSet(LinkedPointCloudKey, default).Root.Value;
+                r = storage.GetPointSet(LinkedPointCloudKey, default).Octree.Value;
                 m_root = new WeakReference<IPointCloudNode>(r);
                 return r;
             }

@@ -24,7 +24,7 @@ namespace Aardvark.Geometry.Points
         /// Enumerates (chunked) all points in pointset.
         /// </summary>
         public static IEnumerable<Chunk> QueryAllPoints(this PointSet self)
-            => QueryAllPoints(self.OldRoot.Value);
+            => QueryAllPoints(self.Root.Value);
 
         /// <summary>
         /// Enumerates (chunked) all points in tree.

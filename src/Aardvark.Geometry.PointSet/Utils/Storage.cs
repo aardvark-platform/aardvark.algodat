@@ -332,7 +332,7 @@ namespace Aardvark.Geometry.Points
             var buffer = storage.f_get(key, ct);
             if (buffer == null) return null;
             var json = JObject.Parse(Encoding.UTF8.GetString(buffer));
-            data = PointSet.Parse(json, storage);
+            data = PointSet.Parse(json, storage, IdentityResolver.Default);
             storage.f_add(key, data, null, ct);
             return data;
         }

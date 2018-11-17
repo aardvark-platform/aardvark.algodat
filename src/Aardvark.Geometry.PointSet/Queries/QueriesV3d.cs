@@ -29,7 +29,7 @@ namespace Aardvark.Geometry.Points
         public static PointsNearObject<V3d> QueryPointsNearPoint(
             this PointSet self, V3d query, double maxDistanceToPoint, int maxCount
             )
-            => QueryPointsNearPoint(self.OldRoot.Value, query, maxDistanceToPoint, maxCount);
+            => QueryPointsNearPoint(self.Root.Value, query, maxDistanceToPoint, maxCount);
 
         /// <summary>
         /// Points within given distance of a point.

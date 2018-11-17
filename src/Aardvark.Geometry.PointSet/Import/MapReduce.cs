@@ -83,11 +83,11 @@ namespace Aardvark.Geometry.Points
                 var merged = first.Merge(second, ct2);
                 config.Storage.Add(merged.Id, merged, ct2);
                 if (config.Verbose) Console.WriteLine($"[MapReduce] merged "
-                    + $"{formatCell(first.Root.Value.Cell)} + {formatCell(second.Root.Value.Cell)} -> {formatCell(merged.Root.Value.Cell)} "
-                    + $"({first.Root.Value.PointCountTree:N0} + {second.Root.Value.PointCountTree:N0} -> {merged.Root.Value.PointCountTree:N0})"
+                    + $"{formatCell(first.Octree.Value.Cell)} + {formatCell(second.Octree.Value.Cell)} -> {formatCell(merged.Octree.Value.Cell)} "
+                    + $"({first.Octree.Value.PointCountTree:N0} + {second.Octree.Value.PointCountTree:N0} -> {merged.Octree.Value.PointCountTree:N0})"
                     );
 
-                if (merged.Root.Value.PointCountTree == 0) throw new InvalidOperationException();
+                if (merged.Octree.Value.PointCountTree == 0) throw new InvalidOperationException();
 
                 return merged;
             },

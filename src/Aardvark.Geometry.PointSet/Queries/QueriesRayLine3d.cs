@@ -30,7 +30,7 @@ namespace Aardvark.Geometry.Points
             )
         {
             ray.Direction = ray.Direction.Normalized;
-            var data = self.OldRoot.Value;
+            var data = self.Root.Value;
             var bbox = data.BoundingBox;
 
             var line = Clip(bbox, ray);
@@ -45,7 +45,7 @@ namespace Aardvark.Geometry.Points
         public static IEnumerable<PointsNearObject<Line3d>> QueryPointsNearLineSegment(
             this PointSet self, Line3d lineSegment, double maxDistanceToRay
             )
-            => QueryPointsNearLineSegment(self.OldRoot.Value, lineSegment, maxDistanceToRay);
+            => QueryPointsNearLineSegment(self.Root.Value, lineSegment, maxDistanceToRay);
 
         /// <summary>
         /// Points within given distance of a line segment (at most 1000).

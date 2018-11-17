@@ -36,7 +36,7 @@ namespace Aardvark.Geometry.Points
         {
             if (config.CreateOctreeLod == false) return self;
 
-            var nodeCount = self.Root.Value.CountNodes();
+            var nodeCount = self.Octree.Value.CountNodes();
             var loddedNodesCount = 0L;
             var result = self.GenerateLod(config.Key, () =>
             {
@@ -56,7 +56,7 @@ namespace Aardvark.Geometry.Points
         private static PointSet GenerateLod(this PointSet self, string key, Action callback, int maxLevelOfParallelism, CancellationToken ct)
         {
             if (self.IsEmpty) return self;
-            var lod = self.OldRoot.Value.GenerateLod(self.SplitLimit, callback, ct);
+            var lod = self.Root.Value.GenerateLod(self.SplitLimit, callback, ct);
             var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit);
             self.Storage.Add(key, result, ct);
             return result;

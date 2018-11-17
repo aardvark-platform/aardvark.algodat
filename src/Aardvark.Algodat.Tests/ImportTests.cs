@@ -145,7 +145,7 @@ namespace Aardvark.Geometry.Tests
                 .WithOctreeSplitLimit(10)
                 ;
             var pointcloud = PointCloud.Chunks(chunk, config);
-            var node = pointcloud.OldRoot.Value;
+            var node = pointcloud.Root.Value;
             Assert.IsTrue(node.IsLeaf);
             Assert.IsTrue(node.HasNormals == false);
 
@@ -157,7 +157,7 @@ namespace Aardvark.Geometry.Tests
                 .WithEstimateNormals(xs => xs.Select(x => V3f.OOI).ToArray())
                 ;
             pointcloud = PointCloud.Chunks(chunk, config);
-            node = pointcloud.OldRoot.Value;
+            node = pointcloud.Root.Value;
             Assert.IsTrue(node.IsLeaf);
             Assert.IsTrue(node.HasNormals == true);
             Assert.IsTrue(node.Normals.Value.All(x => x == V3f.OOI));

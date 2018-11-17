@@ -32,6 +32,10 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public class IdentityResolver : IStoreResolver
     {
+        /// <summary>
+        /// </summary>
+        public static readonly IdentityResolver Default = new IdentityResolver();
+
         private readonly Dictionary<string, WeakReference<Storage>> m_cache = new Dictionary<string, WeakReference<Storage>>();
         
         /// <summary>
@@ -50,6 +54,8 @@ namespace Aardvark.Geometry.Points
                 return storage;
             }
         }
+
+        private IdentityResolver() { }
     }
 
     /// <summary>

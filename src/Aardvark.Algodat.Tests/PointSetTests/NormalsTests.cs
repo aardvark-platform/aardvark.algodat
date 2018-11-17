@@ -58,7 +58,7 @@ namespace Aardvark.Geometry.Tests
                 );
 
             Assert.IsTrue(!ps.IsEmpty);
-            var root = ps.OldRoot.Value;
+            var root = ps.Root.Value;
             Assert.IsTrue(root.IsLeaf);
             Assert.IsTrue(root.PointCount == 1);
             Assert.IsTrue(root.HasNormals);
@@ -79,7 +79,7 @@ namespace Aardvark.Geometry.Tests
                 ;
             storage.Add("pss", pointset, CancellationToken.None);
 
-            var withNormals = WithRandomNormals(pointset.OldRoot.Value);
+            var withNormals = WithRandomNormals(pointset.Root.Value);
             storage.Add("psWithNormals", withNormals, CancellationToken.None);
 
             withNormals.ForEachNode(true, node =>
