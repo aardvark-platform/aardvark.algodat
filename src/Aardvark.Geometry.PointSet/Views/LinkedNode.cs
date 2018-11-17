@@ -53,12 +53,33 @@ namespace Aardvark.Geometry.Points
             if (string.IsNullOrWhiteSpace(id)) throw new ArgumentNullException(nameof(id));
 
             m_storeResolver = storeResolver;
+            var foo = m_storeResolver.Resolve(linkedStoreName).GetPointSet(linkedPointCloudKey, default);
+            var root = foo.Root.Value;
+
             Storage = storage;
             Id = id;
+            Cell = root.Cell;
+            Center = Cell.GetCenter();
+            BoundingBoxExact = root.BoundingBoxExact;
+            PointCountTree = root.PointCountTree;
             LinkedStoreName = linkedStoreName;
             LinkedPointCloudKey = linkedPointCloudKey;
         }
-        
+
+        private LinkedNode(Storage storage, string id, Cell cell, Box3d boundingBoxExact, long pointCountTree, string linkedStoreName, string linkedPointCloudKey, IStoreResolver storeResolver)
+        {
+            if (string.IsNullOrWhiteSpace(id)) throw new ArgumentNullException(nameof(id));
+            
+            Storage = storage;
+            Id = id;
+            Cell = cell;
+            Center = Cell.GetCenter();
+            BoundingBoxExact = boundingBoxExact;
+            PointCountTree = pointCountTree;
+            LinkedStoreName = linkedStoreName;
+            LinkedPointCloudKey = linkedPointCloudKey;
+        }
+
         /// <summary></summary>
         public IPointCloudNode Root
         {
@@ -80,18 +101,18 @@ namespace Aardvark.Geometry.Points
         public string Id { get; }
 
         /// <summary></summary>
-        public Cell Cell => Root.Cell;
+        public Cell Cell { get; }
 
         /// <summary></summary>
-        public V3d Center => Root.Center;
+        public V3d Center { get; }
 
         /// <summary>
         /// Exact bounding box of all points in this tree.
         /// </summary>
-        public Box3d BoundingBoxExact => Root.BoundingBoxExact;
+        public Box3d BoundingBoxExact { get; }
 
         /// <summary></summary>
-        public long PointCountTree => Root.PointCountTree;
+        public long PointCountTree { get; }
         
         /// <summary></summary>
         public PersistentRef<IPointCloudNode>[] SubNodes => Root.SubNodes;
@@ -116,14 +137,23 @@ namespace Aardvark.Geometry.Points
         {
             NodeType,
             Id,
+            Cell,
+            BoundingBoxExact = BoundingBoxExact.ToString(),
+            PointCountTree,
             LinkedStoreName,
             LinkedPointCloudKey
         });
 
         /// <summary></summary>
         public static LinkedNode Parse(JObject json, Storage storage, IStoreResolver resolver)
-            => new LinkedNode(storage, (string)json["Id"], (string)json["LinkedStoreName"], (string)json["LinkedPointCloudKey"], resolver)
-            ;
+            => new LinkedNode(storage, (string)json["Id"],
+                json["Cell"].ToObject<Cell>(),
+                Box3d.Parse((string)json["BoundingBoxExact"]),
+                (long)json["PointCountTree"],
+                (string)json["LinkedStoreName"],
+                (string)json["LinkedPointCloudKey"],
+                resolver
+                );
 
         /// <summary></summary>
         public string NodeType => Type;

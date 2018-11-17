@@ -32,8 +32,13 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void LinkedNode_ToJson_Parse()
         {
+            var teststore = PointCloud.CreateInMemoryStore();
+            PointCloud.Chunks(new Chunk(RandomPositions(100)), ImportConfig.Default.WithStorage(teststore).WithKey("pointcloud"));
+
             var store = PointCloud.CreateInMemoryStore();
-            var resolver = new MapResolver();
+            var resolver = new MapResolver(
+                ("teststore", teststore)
+                );
             var link0 = new LinkedNode(store, "teststore", "pointcloud", resolver);
             var json = link0.ToJson();
             var link1 = LinkedNode.Parse(json, store, resolver);

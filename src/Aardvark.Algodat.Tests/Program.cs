@@ -16,18 +16,20 @@ namespace Aardvark.Geometry.Tests
     {
         internal static void LinkedStores()
         {
-            var tmpStorePath = "tmpStore";
+            var tmpStorePath = @"G:\allStore";
             var resolver = new PatternResolver(@"G:\cells\%KEY%\pointcloud");
             
             var links = Directory
                 .EnumerateDirectories(@"G:\cells", "pointcloud", SearchOption.AllDirectories)
                 .Select(x => (storePath: x, key: Path.GetFileName(Path.GetDirectoryName(x))))
                 //.Skip(6)
-                //.Take(3)
+                //.Take(2)
                 .ToArray();
             
             var sw = new Stopwatch(); sw.Restart();
             var totalCount = 0L;
+
+            if (false)
             using (var storage = PointCloud.OpenStore(tmpStorePath))
             {
                 var ls = links
@@ -36,8 +38,8 @@ namespace Aardvark.Geometry.Tests
                         try
                         {
                             var node = new LinkedNode(storage, x.key, x.key, resolver);
-                            //Console.WriteLine($"{node.PointCountTree,20:N0}");
-                            //totalCount += node.PointCountTree;
+                            Console.WriteLine($"{node.PointCountTree,20:N0}");
+                            totalCount += node.PointCountTree;
                             return node;
                         }
                         catch
@@ -69,7 +71,12 @@ namespace Aardvark.Geometry.Tests
                 var merged = Merge.NonOverlapping(storage, resolver, ls, config);
                 //Console.WriteLine($"merged.CountNodes()   -> {merged.CountNodes()}");
                 Console.WriteLine($"merged.PointCountTree -> {merged.PointCountTree,20:N0}");
+                storage.Add(merged.Id, merged);
                 storage.Add("merged", merged);
+
+                //var cloud = new PointSet(storage, resolver, "merged", merged, 8192);
+                //storage.Add("merged", cloud, default);
+
                 storage.Flush();
             }
 
@@ -78,6 +85,23 @@ namespace Aardvark.Geometry.Tests
                 var reloaded = storage.GetPointCloudNode("merged", resolver);
                 //Console.WriteLine($"reloaded.CountNodes() -> {reloaded.CountNodes()}");
                 Console.WriteLine($"reloaded.PointCountTree -> {reloaded.PointCountTree,20:N0}");
+                printLinks(reloaded);
+
+                void printLinks(IPointCloudNode n)
+                {
+                    if (n == null) return;
+                    if (n is LinkedNode x)
+                    {
+                        Console.WriteLine($"LinkedNode: {x.Cell}  {x.LinkedStoreName}  {x.LinkedPointCloudKey}");
+                        return;
+                    }
+                    if (n.SubNodes == null) return;
+                    foreach (var y in n.SubNodes)
+                    {
+                        if (y == null) continue;
+                        printLinks(y.Value);
+                    }
+                }
             }
 
             /*
