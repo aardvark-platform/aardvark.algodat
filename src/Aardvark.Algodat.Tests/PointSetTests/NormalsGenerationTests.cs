@@ -49,9 +49,9 @@ namespace Aardvark.Geometry.Tests
                 ;
             var cloud2 = cloud.GenerateNormals(config);
             Assert.IsTrue(cloud2.HasNormals == true);
-            Assert.IsTrue(cloud2.Root.Value.Normals.Value.All(n => n == V3f.OOI));
+            Assert.IsTrue(cloud2.Octree.Value.GetNormals().Value.All(n => n == V3f.OOI));
             Assert.IsTrue(cloud2.HasLodNormals == true);
-            Assert.IsTrue(cloud2.Root.Value.LodNormals.Value.All(n => n == V3f.OOI));
+            Assert.IsTrue(cloud2.Octree.Value.GetLodNormals().Value.All(n => n == V3f.OOI));
         }
 
         [Test]
@@ -81,7 +81,7 @@ namespace Aardvark.Geometry.Tests
                 ;
             var cloud2 = cloud.GenerateNormals(config);
             Assert.IsTrue(cloud2.HasNormals == true);
-            Assert.IsTrue(cloud2.Root.Value.Normals.Value.All(n => n == V3f.OOI));
+            Assert.IsTrue(cloud2.Octree.Value.GetNormals().Value.All(n => n == V3f.OOI));
             Assert.IsTrue(cloud2.HasLodNormals == false);
         }
     }

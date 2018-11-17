@@ -47,8 +47,8 @@ namespace Aardvark.Geometry.Tests
 
             var merged = pointset1.Merge(pointset2, CancellationToken.None);
             Assert.IsTrue(merged.PointCount == 84000);
-            Assert.IsTrue(merged.Root.Value.PointCountTree == 84000);
-            Assert.IsTrue(merged.Root.Value.CountPoints() == 84000);
+            Assert.IsTrue(merged.Octree.Value.PointCountTree == 84000);
+            Assert.IsTrue(merged.Octree.Value.CountPoints() == 84000);
         }
 
         [Test]
@@ -71,8 +71,8 @@ namespace Aardvark.Geometry.Tests
 
             var merged = pointset1.Merge(pointset2, CancellationToken.None);
             Assert.IsTrue(merged.PointCount == 84000);
-            Assert.IsTrue(merged.Root.Value.PointCountTree == 84000);
-            Assert.IsTrue(merged.Root.Value.CountPoints() == 84000);
+            Assert.IsTrue(merged.Octree.Value.PointCountTree == 84000);
+            Assert.IsTrue(merged.Octree.Value.CountPoints() == 84000);
         }
 
         [Test]
@@ -95,8 +95,8 @@ namespace Aardvark.Geometry.Tests
 
             var merged = pointset1.Merge(pointset2, CancellationToken.None);
             Assert.IsTrue(merged.PointCount == 84000);
-            Assert.IsTrue(merged.Root.Value.PointCountTree == 84000);
-            Assert.IsTrue(merged.Root.Value.CountPoints() == 84000);
+            Assert.IsTrue(merged.Octree.Value.PointCountTree == 84000);
+            Assert.IsTrue(merged.Octree.Value.CountPoints() == 84000);
         }
     }
 }

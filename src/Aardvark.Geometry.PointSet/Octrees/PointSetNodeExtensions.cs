@@ -113,6 +113,32 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary>
+        /// Eagerly counts all points in octree (without using PointCountTree property).
+        /// </summary>
+        public static long CountPoints(this IPointCloudNode self)
+        {
+            if (self == null) return 0;
+
+            if (self.IsLeaf())
+            {
+                return self.GetPositions().Value.Length;
+            }
+            else
+            {
+                var count = 0L;
+                if (self.SubNodes != null)
+                {
+                    for (var i = 0; i < 8; i++)
+                    {
+                        var n = self.SubNodes[i];
+                        if (n != null) count += CountPoints(n.Value);
+                    }
+                }
+                return count;
+            }
+        }
+
+        /// <summary>
         /// Gets minimum point count of all tree nodes (eager).
         /// </summary>
         public static long GetMinimumNodePointCount(this PointSetNode self)

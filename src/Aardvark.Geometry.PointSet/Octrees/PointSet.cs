@@ -67,7 +67,9 @@ namespace Aardvark.Geometry.Points
             if (rootCellId.HasValue)
             {
                 Octree = new PersistentRef<IPointCloudNode>(rootCellId.ToString(), storage.GetPointSetNode);
+#pragma warning disable CS0618 // Type or member is obsolete
                 Root = new PersistentRef<PointSetNode>(rootCellId.ToString(), storage.GetPointSetNode);
+#pragma warning restore CS0618 // Type or member is obsolete
             }
         }
 
@@ -88,9 +90,11 @@ namespace Aardvark.Geometry.Points
             if (key != null)
             {
                 Octree = new PersistentRef<IPointCloudNode>(root.Id, (id, ct) => storage.GetPointCloudNode(id, resolver, ct));
+#pragma warning disable CS0618 // Type or member is obsolete
                 Root = oldSchool != null
                     ? new PersistentRef<PointSetNode>(oldSchool.Id.ToString(), storage.GetPointSetNode)
                     : new PersistentRef<PointSetNode>(root.Id, (_, __) => throw new InvalidOperationException());
+#pragma warning restore CS0618 // Type or member is obsolete
             }
         }
 
@@ -182,17 +186,17 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Returns true if pointset is empty.
         /// </summary>
-        public bool IsEmpty => Root == null;
+        public bool IsEmpty => Octree == null;
 
         /// <summary>
         /// Gets total number of points in dataset.
         /// </summary>
-        public long PointCount => Root?.Value?.PointCountTree ?? 0;
+        public long PointCount => Octree?.Value?.PointCountTree ?? 0;
 
         /// <summary>
         /// Gets bounds of dataset root cell.
         /// </summary>
-        public Box3d Bounds => Root?.Value?.BoundingBoxExact ?? Box3d.Invalid;
+        public Box3d Bounds => Octree?.Value?.BoundingBoxExact ?? Box3d.Invalid;
 
         /// <summary>
         /// Gets exact bounding box of all points from coarsest LoD.
@@ -203,9 +207,9 @@ namespace Aardvark.Geometry.Points
             {
                 try
                 {
-                    return Root.Value.HasPositions()
-                        ? new Box3d(Root.Value.GetPositionsAbsolute())
-                        : new Box3d(Root.Value.GetLodPositionsAbsolute())
+                    return Octree.Value.HasPositions()
+                        ? new Box3d(Octree.Value.GetPositionsAbsolute())
+                        : new Box3d(Octree.Value.GetLodPositionsAbsolute())
                         ;
                 }
                 catch (NullReferenceException)
@@ -216,40 +220,40 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public bool HasColors => Root != null ? Root.GetValue(default).HasColors() : false;
+        public bool HasColors => Octree != null ? Octree.GetValue(default).HasColors() : false;
 
         /// <summary></summary>
-        public bool HasIntensities => Root != null ? Root.GetValue(default).HasIntensities() : false;
+        public bool HasIntensities => Octree != null ? Octree.GetValue(default).HasIntensities() : false;
         
         /// <summary></summary>
-        public bool HasClassifications => Root != null ? Root.GetValue(default).HasClassifications() : false;
+        public bool HasClassifications => Octree != null ? Octree.GetValue(default).HasClassifications() : false;
 
         /// <summary></summary>
-        public bool HasKdTree => Root != null ? Root.GetValue(default).HasKdTree() : false;
+        public bool HasKdTree => Octree != null ? Octree.GetValue(default).HasKdTree() : false;
         
         /// <summary></summary>
-        public bool HasLodColors => Root != null ? Root.GetValue(default).HasLodColors() : false;
+        public bool HasLodColors => Octree != null ? Octree.GetValue(default).HasLodColors() : false;
 
         /// <summary></summary>
-        public bool HasLodIntensities => Root != null ? Root.GetValue(default).HasLodIntensities() : false;
+        public bool HasLodIntensities => Octree != null ? Octree.GetValue(default).HasLodIntensities() : false;
         
         /// <summary></summary>
-        public bool HasLodClassifications => Root != null ? Root.GetValue(default).HasLodClassifications() : false;
+        public bool HasLodClassifications => Octree != null ? Octree.GetValue(default).HasLodClassifications() : false;
 
         /// <summary></summary>
-        public bool HasLodKdTree => Root != null ? Root.GetValue(default).HasLodKdTree() : false;
+        public bool HasLodKdTree => Octree != null ? Octree.GetValue(default).HasLodKdTree() : false;
 
         /// <summary></summary>
-        public bool HasLodNormals => Root != null ? Root.GetValue(default).HasLodNormals() : false;
+        public bool HasLodNormals => Octree != null ? Octree.GetValue(default).HasLodNormals() : false;
 
         /// <summary></summary>
-        public bool HasLodPositions => Root != null ? Root.GetValue(default).HasLodPositions() : false;
+        public bool HasLodPositions => Octree != null ? Octree.GetValue(default).HasLodPositions() : false;
 
         /// <summary></summary>
-        public bool HasNormals => Root != null ? Root.GetValue(default).HasNormals() : false;
+        public bool HasNormals => Octree != null ? Octree.GetValue(default).HasNormals() : false;
 
         /// <summary></summary>
-        public bool HasPositions => Root != null ? Root.GetValue(default).HasPositions() : false;
+        public bool HasPositions => Octree != null ? Octree.GetValue(default).HasPositions() : false;
 
         #endregion
 
@@ -264,7 +268,7 @@ namespace Aardvark.Geometry.Points
             if (this.Storage != other.Storage) throw new InvalidOperationException();
 
 
-            if (Root.Value is PointSetNode root && other.Root.Value is PointSetNode otherRoot)
+            if (Octree.Value is PointSetNode root && other.Octree.Value is PointSetNode otherRoot)
             {
                 var merged = root.Merge(otherRoot, SplitLimit, ct);
                 var id = $"{Guid.NewGuid()}.json";
@@ -272,7 +276,7 @@ namespace Aardvark.Geometry.Points
             }
             else
             {
-                throw new InvalidOperationException($"Cannot merge {Root.Value.GetType()} with {other.Root.Value.GetType()}.");
+                throw new InvalidOperationException($"Cannot merge {Octree.Value.GetType()} with {other.Octree.Value.GetType()}.");
             }
         }
 

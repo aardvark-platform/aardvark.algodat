@@ -41,7 +41,7 @@ namespace Aardvark.Geometry.Tests
 
 
             // compare original and regenerated
-            Assert.IsTrue(pointset0.Root.Value.CountPoints() == pointset1.Root.Value.CountPoints());
+            Assert.IsTrue(pointset0.Octree.Value.CountPoints() == pointset1.Root.Value.CountPoints());
 
             var nodes0 = pointset0.Root.Value.ForEachNode().ToArray();
             var nodes1 = pointset1.Root.Value.ForEachNode().ToArray();
@@ -84,7 +84,7 @@ namespace Aardvark.Geometry.Tests
 
 
             // compare original and regenerated
-            Assert.IsTrue(pointset0.Root.Value.CountPoints() == pointset1.Root.Value.CountPoints());
+            Assert.IsTrue(pointset0.Octree.Value.CountPoints() == pointset1.Octree.Value.CountPoints());
             
             var nodes0 = pointset0.Root.Value.ForEachNode().ToArray();
             var nodes1 = pointset1.Root.Value.ForEachNode().ToArray();

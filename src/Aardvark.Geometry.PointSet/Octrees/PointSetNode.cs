@@ -944,7 +944,7 @@ namespace Aardvark.Geometry.Points
                 }
             }
         }
-
+        
         /// <summary>
         /// Calls action for each (node, fullyInside) in this pointset, that is intersecting the given hull.
         /// </summary>
