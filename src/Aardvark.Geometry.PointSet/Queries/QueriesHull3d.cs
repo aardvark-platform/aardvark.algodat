@@ -39,8 +39,8 @@ namespace Aardvark.Geometry.Points
             this PointSetNode self, Hull3d query, int minCellExponent = int.MinValue
             )
             => QueryPoints(self,
-                n => query.Contains(n.BoundingBox),
-                n => !query.Intersects(n.BoundingBox),
+                n => query.Contains(n.BoundingBoxExact),
+                n => !query.Intersects(n.BoundingBoxExact),
                 p => query.Contains(p),
                 minCellExponent);
 
@@ -79,8 +79,8 @@ namespace Aardvark.Geometry.Points
             this PointSetNode self, Hull3d query, int minCellExponent = int.MinValue
             )
             => CountPoints(self,
-                n => query.Contains(n.BoundingBox),
-                n => !query.Intersects(n.BoundingBox),
+                n => query.Contains(n.BoundingBoxExact),
+                n => !query.Intersects(n.BoundingBoxExact),
                 p => query.Contains(p),
                 minCellExponent);
 

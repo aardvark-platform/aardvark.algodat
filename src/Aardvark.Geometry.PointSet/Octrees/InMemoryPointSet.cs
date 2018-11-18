@@ -108,6 +108,7 @@ namespace Aardvark.Geometry.Points
             {
                 var center = new V3d(_centerX, _centerY, _centerZ);
                 V3f[] ps = null;
+                Box3f? ebb = null;
                 C4b[] cs = null;
                 V3f[] ns = null;
                 int[] js = null;
@@ -121,6 +122,7 @@ namespace Aardvark.Geometry.Points
 
                     ps = new V3f[count];
                     for (var i = 0; i < count; i++) ps[i] = (V3f)(allPs[_ia[i]] - center);
+                    ebb = new Box3f(ps);
 
                     if (_octree.m_cs != null)
                     {
@@ -168,6 +170,12 @@ namespace Aardvark.Geometry.Points
                 var subcells = _subnodes?.Map(x => x?.ToPointSetCell(storage, ct, kdTreeEps));
                 var subcellIds = subcells?.Map(x => x?.Id);
 
+                if (subcells != null)
+                {
+                    var ebbGlobal = new Box3d(subcells.Where(x => x != null).Select(x => ((IPointCloudNode)x).BoundingBoxExact));
+                    ebb = new Box3f(new V3f(ebbGlobal.Min - center), new V3f(ebbGlobal.Max - center));
+                }
+
 #if DEBUG
                 if (ps != null && _subnodes != null) throw new InvalidOperationException();
 #endif
@@ -185,11 +193,11 @@ namespace Aardvark.Geometry.Points
 
                 if (subcellIds == null) // leaf
                 {
-                    return new PointSetNode(_cell, pointCountTree, psId, csId, kdId, nsId, isId, ksId, storage);
+                    return new PointSetNode(_cell, pointCountTree, ebb, null, psId, csId, kdId, nsId, isId, ksId, storage);
                 }
                 else
                 {
-                    return new PointSetNode(_cell, pointCountTree, subcellIds, storage);
+                    return new PointSetNode(_cell, pointCountTree, ebb, null, subcellIds, storage);
                 }
             }
             

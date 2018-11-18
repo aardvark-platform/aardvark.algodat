@@ -61,6 +61,7 @@ namespace Aardvark.Geometry.Points
                 Guid? newIsId = null;
                 Guid? newKsId = null;
                 Guid? newKdId = null;
+                Box3f? ebb = null;
 
                 if (!node.HasPositions) throw new InvalidOperationException();
 
@@ -93,6 +94,8 @@ namespace Aardvark.Geometry.Points
                     var psa = ps.ToArray();
                     node.Storage.Add(newPsId.Value, psa, ct);
 
+                    ebb = new Box3f(psa);
+
                     newKdId = Guid.NewGuid();
                     node.Storage.Add(newKdId.Value, psa.BuildKdTree().Data, ct);
 
@@ -120,7 +123,7 @@ namespace Aardvark.Geometry.Points
                         node.Storage.Add(newKsId.Value, ks.ToArray(), ct);
                     }
 
-                    var result = new PointSetNode(node.Cell, ps.Count, newPsId, newCsId, newKdId, newNsId, newIsId, newKsId, node.Storage);
+                    var result = new PointSetNode(node.Cell, ps.Count, ebb, null, newPsId, newCsId, newKdId, newNsId, newIsId, newKsId, node.Storage);
                     if (node.HasLodPositions) result = result.WithLod();
                     return result;
                 }

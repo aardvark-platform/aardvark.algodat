@@ -30,17 +30,17 @@ namespace Aardvark.Geometry.Points
         public static IEnumerable<Chunk> QueryPointsInsideBox(
             this PointSet self, Box3d query, int minCellExponent = int.MinValue
             )
-            => QueryPointsInsideBox(self.Root.Value, query, minCellExponent);
+            => QueryPointsInsideBox(self.Octree.Value, query, minCellExponent);
 
         /// <summary>
         /// All points inside axis-aligned box (including boundary).
         /// </summary>
         public static IEnumerable<Chunk> QueryPointsInsideBox(
-            this PointSetNode self, Box3d query, int minCellExponent = int.MinValue
+            this IPointCloudNode self, Box3d query, int minCellExponent = int.MinValue
             )
             => QueryPoints(self,
-                n => query.Contains(n.BoundingBox),
-                n => !query.Intersects(n.BoundingBox),
+                n => query.Contains(n.BoundingBoxExact),
+                n => !query.Intersects(n.BoundingBoxExact),
                 p => query.Contains(p),
                 minCellExponent);
 
@@ -50,17 +50,17 @@ namespace Aardvark.Geometry.Points
         public static IEnumerable<Chunk> QueryPointsOutsideBox(
             this PointSet self, Box3d query, int minCellExponent = int.MinValue
             )
-            => QueryPointsOutsideBox(self.Root.Value, query, minCellExponent);
+            => QueryPointsOutsideBox(self.Octree.Value, query, minCellExponent);
 
         /// <summary>
         /// All points outside axis-aligned box (excluding boundary).
         /// </summary>
         public static IEnumerable<Chunk> QueryPointsOutsideBox(
-            this PointSetNode self, Box3d query, int minCellExponent = int.MinValue
+            this IPointCloudNode self, Box3d query, int minCellExponent = int.MinValue
             )
             => QueryPoints(self,
-                n => !query.Intersects(n.BoundingBox),
-                n => query.Contains(n.BoundingBox),
+                n => !query.Intersects(n.BoundingBoxExact),
+                n => query.Contains(n.BoundingBoxExact),
                 p => !query.Contains(p),
                 minCellExponent);
 
@@ -74,17 +74,17 @@ namespace Aardvark.Geometry.Points
         public static long CountPointsInsideBox(
             this PointSet self, Box3d query, int minCellExponent = int.MinValue
             )
-            => CountPointsInsideBox(self.Root.Value, query, minCellExponent);
+            => CountPointsInsideBox(self.Octree.Value, query, minCellExponent);
 
         /// <summary>
         /// Counts points inside axis-aligned box.
         /// </summary>
         public static long CountPointsInsideBox(
-            this PointSetNode self, Box3d query, int minCellExponent = int.MinValue
+            this IPointCloudNode self, Box3d query, int minCellExponent = int.MinValue
             )
             => CountPoints(self,
-                n => query.Contains(n.BoundingBox),
-                n => !query.Intersects(n.BoundingBox),
+                n => query.Contains(n.BoundingBoxExact),
+                n => !query.Intersects(n.BoundingBoxExact),
                 p => query.Contains(p),
                 minCellExponent);
 
@@ -94,17 +94,17 @@ namespace Aardvark.Geometry.Points
         public static long CountPointsOutsideBox(
             this PointSet self, Box3d query, int minCellExponent = int.MinValue
             )
-            => CountPointsOutsideBox(self.Root.Value, query, minCellExponent);
+            => CountPointsOutsideBox(self.Octree.Value, query, minCellExponent);
 
         /// <summary>
         /// Counts points outside axis-aligned box.
         /// </summary>
         public static long CountPointsOutsideBox(
-            this PointSetNode self, Box3d query, int minCellExponent = int.MinValue
+            this IPointCloudNode self, Box3d query, int minCellExponent = int.MinValue
             )
             => CountPoints(self,
-                n => !query.Intersects(n.BoundingBox),
-                n => query.Contains(n.BoundingBox),
+                n => !query.Intersects(n.BoundingBoxExact),
+                n => query.Contains(n.BoundingBoxExact),
                 p => !query.Contains(p),
                 minCellExponent);
 

@@ -69,7 +69,8 @@ namespace Aardvark.Geometry.Tests
                 .WithKey("test")
                 .WithOctreeSplitLimit(splitLimit)
                 ;
-            return PointCloud.Chunks(new Chunk(ps, null), config);
+            var pc = PointCloud.Chunks(new Chunk(ps, null), config);
+            return pc;
         }
 
         #region Ray3d, Line3d

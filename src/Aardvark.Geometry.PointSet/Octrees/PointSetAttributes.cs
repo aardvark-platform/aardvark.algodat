@@ -209,5 +209,26 @@ namespace Aardvark.Geometry.Points
         /// byte[].
         /// </summary>
         LodClassifications  = 1 << 11,
+
+        /// <summary>
+        /// Cell attributes.
+        /// </summary>
+        HasCellAttributes   = 1 << 23,
+    }
+
+    /// <summary>
+    /// </summary>
+    [Flags]
+    public enum CellAttributes : uint
+    {
+        /// <summary>
+        /// Box3f.
+        /// </summary>
+        BoundingBoxExactLocal = 1 <<  0,
+
+        /// <summary>
+        /// float.
+        /// </summary>
+        AveragePointDistance  = 1 <<  1,
     }
 }

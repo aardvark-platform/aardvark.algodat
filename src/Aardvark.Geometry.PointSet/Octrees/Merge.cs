@@ -88,7 +88,7 @@ namespace Aardvark.Geometry.Points
                 subnodes[i] = subnode;
             }
 
-            var result = new PointSetNode(cell.Cell, imax, subnodes.Map(x => x?.Id), cell.Storage);
+            var result = new PointSetNode(cell.Cell, imax, cell.BoundingBoxExactLocal, cell.AveragePointDistance, subnodes.Map(x => x?.Id), cell.Storage);
 
             // POST
             if (result.IsLeaf) throw new InvalidOperationException();
@@ -211,7 +211,8 @@ namespace Aardvark.Geometry.Points
                 }
 
                 var pointCountTree = roots.Where(x => x != null).Sum(x => x.PointCountTree);
-                return new PointSetNode(rootCell, pointCountTree, roots.Map(n => n?.Id), a.Storage);
+                var ebb = new Box3f(roots.Where(x => x != null).Select(x => x.BoundingBoxExactLocal));
+                return new PointSetNode(rootCell, pointCountTree, ebb, null, roots.Map(n => n?.Id), a.Storage);
             }
 #if DEBUG
             if (a.Cell.Exponent == b.Cell.Exponent)
@@ -376,7 +377,8 @@ namespace Aardvark.Geometry.Points
                         }
                     }
                 }
-                var result = new PointSetNode(rootCell, a.PointCountTree + b.PointCountTree, subcells.Map(x => x?.Id), a.Storage);
+                var ebb = new Box3f(subcells.Where(x => x != null).Select(x => x.BoundingBoxExactLocal));
+                var result = new PointSetNode(rootCell, a.PointCountTree + b.PointCountTree, ebb, null, subcells.Map(x => x?.Id), a.Storage);
 #if DEBUG
                 if (result.PointCountTree != a.PointCountTree + b.PointCountTree) throw new InvalidOperationException();
                 if (result.PointCountTree != result.Subnodes.Sum(x => x?.Value?.PointCountTree)) throw new InvalidOperationException();
@@ -421,7 +423,8 @@ namespace Aardvark.Geometry.Points
                         doneB = true;
                     }
                 }
-                var result = new PointSetNode(rootCell, a.PointCountTree + b.PointCountTree, subcells.Map(x => x?.Id), a.Storage);
+                var ebb = new Box3f(subcells.Where(x => x != null).Select(x => x.BoundingBoxExactLocal));
+                var result = new PointSetNode(rootCell, a.PointCountTree + b.PointCountTree, ebb, null, subcells.Map(x => x?.Id), a.Storage);
 #if DEBUG
                 if (result.PointCountTree != a.PointCountTree + b.PointCountTree) throw new InvalidOperationException();
                 if (result.PointCountTree != result.Subnodes.Sum(x => x?.Value?.PointCountTree)) throw new InvalidOperationException();
@@ -448,7 +451,8 @@ namespace Aardvark.Geometry.Points
                 if (subcell == a.Cell) { subcells[i] = a; break; }
                 if (subcell.Contains(a.Cell)) { subcells[i] = JoinTreeToRootCell(subcell, a); break; }
             }
-            var result = new PointSetNode(rootCell, a.PointCountTree, subcells.Map(x => x?.Id), a.Storage);
+            var ebb = new Box3f(subcells.Where(x => x != null).Select(x => x.BoundingBoxExactLocal));
+            var result = new PointSetNode(rootCell, a.PointCountTree, ebb, null, subcells.Map(x => x?.Id), a.Storage);
 #if DEBUG
             if (result.PointCountTree != a.PointCountTree) throw new InvalidOperationException();
 #endif
@@ -534,7 +538,8 @@ namespace Aardvark.Geometry.Points
                 }
             }
 
-            var result = new PointSetNode(a.Cell, pointCountTree, subcells.Map(x => x?.Id), a.Storage);
+            var ebb = new Box3f(subcells.Where(x => x != null).Select(x => x.BoundingBoxExactLocal));
+            var result = new PointSetNode(a.Cell, pointCountTree, ebb, null, subcells.Map(x => x?.Id), a.Storage);
             return result;
         }
 
