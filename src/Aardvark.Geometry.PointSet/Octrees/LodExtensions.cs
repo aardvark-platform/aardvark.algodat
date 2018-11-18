@@ -21,15 +21,95 @@ namespace Aardvark.Geometry.Points
 {
     /// <summary>
     /// </summary>
-    public static class LodExtensions
+    public static class Lod
     {
-        /// <summary>
-        /// </summary>
-        public static PointCloudNode GenerateLod(this PointCloudNode self, ImportConfig config)
+        /// <summary></summary>
+        public static double[] ComputeLodFractions(long[] counts)
         {
-            throw new NotImplementedException();
+            if (counts == null) return null;
+            if (counts.Length != 8) throw new ArgumentOutOfRangeException();
+
+            var sum = 0L;
+            for (var i = 0; i < 8; i++) sum += counts[i];
+
+            var fractions = new double[8];
+            for (var i = 0; i < 8; i++) fractions[i] = counts[i] / (double)sum;
+
+            return fractions;
         }
 
+        /// <summary></summary>
+        public static double[] ComputeLodFractions(IPointCloudNode[] subnodes)
+        {
+            if (subnodes == null) return null;
+            if (subnodes.Length != 8) throw new ArgumentOutOfRangeException();
+
+            var counts = new long[8];
+            for (var i = 0; i < 8; i++) counts[i] = subnodes[i] != null ? subnodes[i].PointCountTree : 0;
+            return ComputeLodFractions(counts);
+        }
+
+        /// <summary></summary>
+        public static double[] ComputeLodFractions(PersistentRef<IPointCloudNode>[] subnodes)
+        {
+            if (subnodes == null) return null;
+            if (subnodes.Length != 8) throw new ArgumentOutOfRangeException();
+
+            var unpacked = new IPointCloudNode[8];
+            for (var i = 0; i < 8; i++) unpacked[i] = subnodes[i]?.Value;
+            return ComputeLodFractions(unpacked);
+        }
+        
+        /// <summary></summary>
+        public static int[] ComputeLodCounts(int splitLimit, double[] fractions)
+        {
+            if (fractions == null) return null;
+            if (fractions.Length != 8) throw new ArgumentOutOfRangeException();
+
+            var remainder = 0.1;
+            var counts = new int[8];
+            for (var i = 0; i < 8; i++)
+            {
+                var fn = splitLimit * fractions[i] + remainder;
+                var n = (int)fn;
+                remainder = fn - n;
+                counts[i] = n;
+            };
+
+            var e = splitLimit - counts.Sum();
+            if (e != 0) throw new InvalidOperationException();
+
+            return counts;
+        }
+
+        ///// <summary></summary>
+        //public static T[] Foo<T>(int[] counts, int splitLimit, T[][] xss)
+        //{
+        //    var i = 0;
+        //    for (var ci = 0; ci < 8; ci++)
+        //    {
+        //        if (counts[ci] == 0) continue;
+        //        var subcell = xss[ci];
+        //        if (subcell == null) continue;
+
+        //        var rs = new T[splitLimit];
+        //        var jmax = subcell.Length;
+        //        var dj = (jmax + 0.49) / counts[ci];
+        //        var oldI = i;
+        //        for (var j = 0.0; j < jmax; j += dj)
+        //        {
+        //            var jj = (int)j;
+        //            rs[i] = (V3f)(((V3d)subcell[jj] + subcell.Center) - self.Center);
+        //            i++;
+        //        }
+        //    }
+        //}
+    }
+
+    /// <summary>
+    /// </summary>
+    public static class LodExtensions
+    {
         /// <summary>
         /// </summary>
         public static PointSet GenerateLod(this PointSet self, ImportConfig config)
@@ -56,7 +136,9 @@ namespace Aardvark.Geometry.Points
         private static PointSet GenerateLod(this PointSet self, string key, Action callback, int maxLevelOfParallelism, CancellationToken ct)
         {
             if (self.IsEmpty) return self;
-            var lod = self.Root.Value.GenerateLod(self.SplitLimit, callback, ct);
+#pragma warning disable CS0618 // Type or member is obsolete
+            var lod = self.Root.Value.GenerateLod((int)self.SplitLimit, callback, ct);
+#pragma warning restore CS0618 // Type or member is obsolete
             var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit);
             self.Storage.Add(key, result, ct);
             return result;
@@ -64,7 +146,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        private static PointSetNode GenerateLod(this PointSetNode self, long octreeSplitLimit, Action callback, CancellationToken ct)
+        private static PointSetNode GenerateLod(this PointSetNode self, int octreeSplitLimit, Action callback, CancellationToken ct)
         {
             if (self == null) throw new ArgumentNullException(nameof(self));
 
@@ -86,19 +168,8 @@ namespace Aardvark.Geometry.Points
             var needsIs = subcells.Any(x => x != null ? (x.HasIntensities || x.HasLodIntensities) : false);
             var needsKs = subcells.Any(x => x != null ? (x.HasClassifications || x.HasLodClassifications) : false);
 
-            var fractions = new double[8].SetByIndex(
-                ci => subcells[ci] != null ? (subcells[ci].PointCountTree / (double)subcellsTotalCount) : 0.0
-                );
-            var remainder = 0.1;
-            var counts = fractions.Map(x =>
-            {
-                var fn = octreeSplitLimit * x + remainder;
-                var n = (int)fn;
-                remainder = fn - n;
-                return n;
-            });
-            var e = octreeSplitLimit - counts.Sum();
-            if (e != 0) throw new InvalidOperationException();
+            var fractions = Lod.ComputeLodFractions(subcells);
+            var counts = Lod.ComputeLodCounts(octreeSplitLimit, fractions);
 
             // generate LoD data ...
             var lodPs = new V3f[octreeSplitLimit];

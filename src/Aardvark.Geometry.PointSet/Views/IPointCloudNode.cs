@@ -24,7 +24,7 @@ namespace Aardvark.Geometry.Points
     public interface IPointCloudNode : IDisposable
     {
         /// <summary>
-        /// Backing store, or null.
+        /// Backing store.
         /// </summary>
         Storage Storage { get; }
 

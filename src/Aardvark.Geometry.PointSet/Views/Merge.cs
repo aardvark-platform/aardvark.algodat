@@ -109,7 +109,8 @@ namespace Aardvark.Geometry.Points
             // generate lod
             if (config.CreateOctreeLod)
             {
-                result = result.GenerateLod(config);
+                throw new NotImplementedException();
+                //result = result.GenerateLod(config);
             }
 
             // normals
