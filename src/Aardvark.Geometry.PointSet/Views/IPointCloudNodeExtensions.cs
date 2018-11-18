@@ -234,5 +234,38 @@ namespace Aardvark.Geometry.Points
             }
             return count;
         }
+
+        #region ForEach (optionally traversing out-of-core nodes) 
+
+        /// <summary>
+        /// Calls action for each node in this tree.
+        /// </summary>
+        public static void ForEachNode(this IPointCloudNode self, bool outOfCore, Action<IPointCloudNode> action)
+        {
+            action(self);
+
+            if (self.SubNodes == null) return;
+
+            if (outOfCore)
+            {
+                for (var i = 0; i < 8; i++)
+                {
+                    self.SubNodes[i]?.Value.ForEachNode(outOfCore, action);
+                }
+            }
+            else
+            {
+                for (var i = 0; i < 8; i++)
+                {
+                    var n = self.SubNodes[i];
+                    if (n != null)
+                    {
+                        if (n.TryGetValue(out IPointCloudNode node)) node.ForEachNode(outOfCore, action);
+                    }
+                }
+            }
+        }
+
+        #endregion
     }
 }

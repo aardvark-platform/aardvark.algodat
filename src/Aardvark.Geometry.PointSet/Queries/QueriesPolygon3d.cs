@@ -57,13 +57,13 @@ namespace Aardvark.Geometry.Points
         public static IEnumerable<Chunk> QueryPointsNearPolygons(
             this PointSet self, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
             )
-            => QueryPointsNearPolygons(self.Root.Value, polygons, maxDistance, minCellExponent);
+            => QueryPointsNearPolygons(self.Octree.Value, polygons, maxDistance, minCellExponent);
 
         /// <summary>
         /// All points within maxDistance of ANY of the given polygons.
         /// </summary>
         public static IEnumerable<Chunk> QueryPointsNearPolygons(
-            this PointSetNode node, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
+            this IPointCloudNode node, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
             )
         {
             var bounds = polygons.Map(x => x.BoundingBox3d(maxDistance));
@@ -84,13 +84,13 @@ namespace Aardvark.Geometry.Points
         public static IEnumerable<Chunk> QueryPointsNotNearPolygon(
             this PointSet self, Polygon3d polygon, double maxDistance, int minCellExponent = int.MinValue
             )
-            => QueryPointsNotNearPolygon(self.Root.Value, polygon, maxDistance, minCellExponent);
+            => QueryPointsNotNearPolygon(self.Octree.Value, polygon, maxDistance, minCellExponent);
 
         /// <summary>
         /// All points NOT within maxDistance of given polygon.
         /// </summary>
         public static IEnumerable<Chunk> QueryPointsNotNearPolygon(
-            this PointSetNode node, Polygon3d polygon, double maxDistance, int minCellExponent = int.MinValue
+            this IPointCloudNode node, Polygon3d polygon, double maxDistance, int minCellExponent = int.MinValue
             )
         {
             var bounds = polygon.BoundingBox3d(maxDistance);
@@ -111,13 +111,13 @@ namespace Aardvark.Geometry.Points
         public static IEnumerable<Chunk> QueryPointsNotNearPolygons(
             this PointSet self, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
             )
-            => QueryPointsNotNearPolygons(self.Root.Value, polygons, maxDistance, minCellExponent);
+            => QueryPointsNotNearPolygons(self.Octree.Value, polygons, maxDistance, minCellExponent);
 
         /// <summary>
         /// All points NOT within maxDistance of ALL the given polygons.
         /// </summary>
         public static IEnumerable<Chunk> QueryPointsNotNearPolygons(
-            this PointSetNode node, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
+            this IPointCloudNode node, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
             )
         {
             var bounds = polygons.Map(x => x.BoundingBox3d(maxDistance));
@@ -142,13 +142,13 @@ namespace Aardvark.Geometry.Points
         public static long CountPointsNearPolygon(
             this PointSet self, Polygon3d polygon, double maxDistance, int minCellExponent = int.MinValue
             )
-            => CountPointsNearPolygon(self.Root.Value, polygon, maxDistance, minCellExponent);
+            => CountPointsNearPolygon(self.Octree.Value, polygon, maxDistance, minCellExponent);
 
         /// <summary>
         /// Count points within maxDistance of given polygon.
         /// </summary>
         public static long CountPointsNearPolygon(
-            this PointSetNode node, Polygon3d polygon, double maxDistance, int minCellExponent = int.MinValue
+            this IPointCloudNode node, Polygon3d polygon, double maxDistance, int minCellExponent = int.MinValue
             )
         {
             var bounds = polygon.BoundingBox3d(maxDistance);
@@ -169,13 +169,13 @@ namespace Aardvark.Geometry.Points
         public static long CountPointsNearPolygons(
             this PointSet self, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
             )
-            => CountPointsNearPolygons(self.Root.Value, polygons, maxDistance, minCellExponent);
+            => CountPointsNearPolygons(self.Octree.Value, polygons, maxDistance, minCellExponent);
 
         /// <summary>
         /// Count points within maxDistance of ANY of the given polygons.
         /// </summary>
         public static long CountPointsNearPolygons(
-            this PointSetNode node, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
+            this IPointCloudNode node, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
             )
         {
             var bounds = polygons.Map(x => x.BoundingBox3d(maxDistance));
@@ -196,13 +196,13 @@ namespace Aardvark.Geometry.Points
         public static long CountPointsNotNearPolygon(
             this PointSet self, Polygon3d polygon, double maxDistance, int minCellExponent = int.MinValue
             )
-            => CountPointsNotNearPolygon(self.Root.Value, polygon, maxDistance, minCellExponent);
+            => CountPointsNotNearPolygon(self.Octree.Value, polygon, maxDistance, minCellExponent);
 
         /// <summary>
         /// Count points NOT within maxDistance of given polygon.
         /// </summary>
         public static long CountPointsNotNearPolygon(
-            this PointSetNode node, Polygon3d polygon, double maxDistance, int minCellExponent = int.MinValue
+            this IPointCloudNode node, Polygon3d polygon, double maxDistance, int minCellExponent = int.MinValue
             )
         {
             var bounds = polygon.BoundingBox3d(maxDistance);
@@ -223,13 +223,13 @@ namespace Aardvark.Geometry.Points
         public static long CountPointsNotNearPolygons(
             this PointSet self, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
             )
-            => CountPointsNotNearPolygons(self.Root.Value, polygons, maxDistance, minCellExponent);
+            => CountPointsNotNearPolygons(self.Octree.Value, polygons, maxDistance, minCellExponent);
 
         /// <summary>
         /// Count points NOT within maxDistance of ALL the given polygons.
         /// </summary>
         public static long CountPointsNotNearPolygons(
-            this PointSetNode node, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
+            this IPointCloudNode node, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
             )
         {
             var bounds = polygons.Map(x => x.BoundingBox3d(maxDistance));
@@ -256,7 +256,7 @@ namespace Aardvark.Geometry.Points
         public static long CountPointsApproximatelyNearPolygon(
             this PointSet self, Polygon3d polygon, double maxDistance, int minCellExponent = int.MinValue
             )
-            => CountPointsApproximatelyNearPolygon(self.Root.Value, polygon, maxDistance, minCellExponent);
+            => CountPointsApproximatelyNearPolygon(self.Octree.Value, polygon, maxDistance, minCellExponent);
 
         /// <summary>
         /// Count points approximately within maxDistance of given polygon.
@@ -264,7 +264,7 @@ namespace Aardvark.Geometry.Points
         /// Faster than CountPointsNearPolygon.
         /// </summary>
         public static long CountPointsApproximatelyNearPolygon(
-            this PointSetNode node, Polygon3d polygon, double maxDistance, int minCellExponent = int.MinValue
+            this IPointCloudNode node, Polygon3d polygon, double maxDistance, int minCellExponent = int.MinValue
             )
         {
             var bounds = polygon.BoundingBox3d(maxDistance);
@@ -273,7 +273,7 @@ namespace Aardvark.Geometry.Points
             var poly2d = new Polygon2d(polygon.GetPointArray().Map(p => w2p.TransformPos(p).XY));
             return CountPointsApproximately(node,
                 n => false,
-                n => !n.BoundingBox.Intersects(bounds),
+                n => !n.BoundingBoxExact.Intersects(bounds),
                 minCellExponent
                 );
         }
@@ -286,7 +286,7 @@ namespace Aardvark.Geometry.Points
         public static long CountPointsApproximatelyNearPolygons(
             this PointSet self, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
             )
-            => CountPointsApproximatelyNearPolygons(self.Root.Value, polygons, maxDistance, minCellExponent);
+            => CountPointsApproximatelyNearPolygons(self.Octree.Value, polygons, maxDistance, minCellExponent);
 
         /// <summary>
         /// Count points approximately within maxDistance of ANY of the given polygons.
@@ -294,7 +294,7 @@ namespace Aardvark.Geometry.Points
         /// Faster than CountPointsNearPolygons.
         /// </summary>
         public static long CountPointsApproximatelyNearPolygons(
-            this PointSetNode node, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
+            this IPointCloudNode node, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
             )
         {
             var bounds = polygons.Map(x => x.BoundingBox3d(maxDistance));
@@ -303,7 +303,7 @@ namespace Aardvark.Geometry.Points
             var poly2d = polygons.Map((x, i) => new Polygon2d(x.GetPointArray().Map(p => w2p[i].TransformPos(p).XY)));
             return CountPointsApproximately(node,
                 n => false,
-                n => !bounds.Any(b => n.BoundingBox.Intersects(b)),
+                n => !bounds.Any(b => n.BoundingBoxExact.Intersects(b)),
                 minCellExponent
                 );
         }
@@ -316,7 +316,7 @@ namespace Aardvark.Geometry.Points
         public static long CountPointsApproximatelyNotNearPolygon(
             this PointSet self, Polygon3d polygon, double maxDistance, int minCellExponent = int.MinValue
             )
-            => CountPointsApproximatelyNotNearPolygon(self.Root.Value, polygon, maxDistance, minCellExponent);
+            => CountPointsApproximatelyNotNearPolygon(self.Octree.Value, polygon, maxDistance, minCellExponent);
 
         /// <summary>
         /// Count points approximately NOT within maxDistance of given polygon.
@@ -324,7 +324,7 @@ namespace Aardvark.Geometry.Points
         /// Faster than CountPointsNotNearPolygon.
         /// </summary>
         public static long CountPointsApproximatelyNotNearPolygon(
-            this PointSetNode node, Polygon3d polygon, double maxDistance, int minCellExponent = int.MinValue
+            this IPointCloudNode node, Polygon3d polygon, double maxDistance, int minCellExponent = int.MinValue
             )
         {
             var bounds = polygon.BoundingBox3d(maxDistance);
@@ -332,7 +332,7 @@ namespace Aardvark.Geometry.Points
             var w2p = plane.GetWorldToPlane();
             var poly2d = new Polygon2d(polygon.GetPointArray().Map(p => w2p.TransformPos(p).XY));
             return CountPointsApproximately(node,
-                n => !n.BoundingBox.Intersects(bounds),
+                n => !n.BoundingBoxExact.Intersects(bounds),
                 n => false,
                 minCellExponent
                 );
@@ -346,7 +346,7 @@ namespace Aardvark.Geometry.Points
         public static long CountPointsApproximatelyNotNearPolygons(
             this PointSet self, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
             )
-            => CountPointsApproximatelyNotNearPolygons(self.Root.Value, polygons, maxDistance, minCellExponent);
+            => CountPointsApproximatelyNotNearPolygons(self.Octree.Value, polygons, maxDistance, minCellExponent);
 
         /// <summary>
         /// Count points approximately NOT within maxDistance of ALL the given polygons.
@@ -354,7 +354,7 @@ namespace Aardvark.Geometry.Points
         /// Faster than CountPointsNotNearPolygons.
         /// </summary>
         public static long CountPointsApproximatelyNotNearPolygons(
-            this PointSetNode node, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
+            this IPointCloudNode node, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
             )
         {
             var bounds = polygons.Map(x => x.BoundingBox3d(maxDistance));
@@ -362,7 +362,7 @@ namespace Aardvark.Geometry.Points
             var w2p = planes.Map(x => x.GetWorldToPlane());
             var poly2d = polygons.Map((x, i) => new Polygon2d(x.GetPointArray().Map(p => w2p[i].TransformPos(p).XY)));
             return CountPointsApproximately(node,
-                n => !bounds.Any(b => n.BoundingBox.Intersects(b)),
+                n => !bounds.Any(b => n.BoundingBoxExact.Intersects(b)),
                 n => false,
                 minCellExponent
                 );

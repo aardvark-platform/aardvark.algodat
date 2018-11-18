@@ -83,7 +83,9 @@ namespace Aardvark.Geometry.Points
 
             // create final point set with specified key (or random key when no key is specified)
             var key = config.Key ?? Guid.NewGuid().ToString();
+#pragma warning disable CS0618 // Type or member is obsolete
             final = new PointSet(config.Storage, key, final?.Root?.Value?.Id, config.OctreeSplitLimit);
+#pragma warning restore CS0618 // Type or member is obsolete
             config.Storage.Add(key, final, config.CancellationToken);
 
             return final;

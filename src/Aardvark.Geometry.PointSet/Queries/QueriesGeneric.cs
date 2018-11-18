@@ -184,19 +184,19 @@ namespace Aardvark.Geometry.Points
         /// Result is always equal or greater than exact number.
         /// </summary>
         public static long CountPointsApproximately(this PointSet node,
-            Func<PointSetNode, bool> isNodeFullyInside,
-            Func<PointSetNode, bool> isNodeFullyOutside,
+            Func<IPointCloudNode, bool> isNodeFullyInside,
+            Func<IPointCloudNode, bool> isNodeFullyOutside,
             int minCellExponent = int.MinValue
             )
-            => CountPointsApproximately(node.Root.Value, isNodeFullyInside, isNodeFullyOutside, minCellExponent);
+            => CountPointsApproximately(node.Octree.Value, isNodeFullyInside, isNodeFullyOutside, minCellExponent);
 
         /// <summary>
         /// Approximate count (cell granularity).
         /// Result is always equal or greater than exact number.
         /// </summary>
-        public static long CountPointsApproximately(this PointSetNode node,
-            Func<PointSetNode, bool> isNodeFullyInside,
-            Func<PointSetNode, bool> isNodeFullyOutside,
+        public static long CountPointsApproximately(this IPointCloudNode node,
+            Func<IPointCloudNode, bool> isNodeFullyInside,
+            Func<IPointCloudNode, bool> isNodeFullyOutside,
             int minCellExponent = int.MinValue
             )
         {
@@ -204,10 +204,10 @@ namespace Aardvark.Geometry.Points
 
             if (isNodeFullyOutside(node)) return 0L;
 
-            if (node.IsLeaf || node.Cell.Exponent == minCellExponent)
+            if (node.IsLeaf() || node.Cell.Exponent == minCellExponent)
             {
-                if (node.HasPositions) return node.PointCount;
-                else if (node.HasLodPositions) return node.LodPointCount;
+                if (node.HasPositions()) return node.GetPositions().Value.Length;
+                else if (node.HasLodPositions()) return node.GetLodPositions().Value.Length;
                 return 0L;
             }
             else
@@ -215,7 +215,7 @@ namespace Aardvark.Geometry.Points
                 var sum = 0L;
                 for (var i = 0; i < 8; i++)
                 {
-                    var n = node.Subnodes[i];
+                    var n = node.SubNodes[i];
                     if (n == null) continue;
                     sum += CountPointsApproximately(n.Value, isNodeFullyInside, isNodeFullyOutside, minCellExponent);
                 }

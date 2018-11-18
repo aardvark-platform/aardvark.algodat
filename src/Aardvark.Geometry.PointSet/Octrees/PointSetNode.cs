@@ -35,7 +35,7 @@ namespace Aardvark.Geometry.Points
         #region Construction
         
         private PointSetNode(Guid id,
-            Cell cell, long pointCountTree, Box3f? boundingBoxExactLocal, float? averagePointDistance,
+            Cell cell, long pointCountTree, Box3f boundingBoxExactLocal, float averagePointDistance,
             Guid? psId, Guid? csId, Guid? kdId, Guid? nsId, Guid? isId, Guid? ksId,
             Guid? lodPsId, Guid? lodCsId, Guid? lodKdId, Guid? lodNsId, Guid? lodIsId, Guid? lodKsId,
             Guid?[] subnodeIds, Storage storage, bool writeToStore
@@ -49,7 +49,7 @@ namespace Aardvark.Geometry.Points
             Cell = cell;
             PointCountTree = pointCountTree;
             SubnodeIds = subnodeIds;
-            AveragePointDistance = averagePointDistance ?? 0.0f;
+            AveragePointDistance = averagePointDistance;
 
             if (psId.HasValue) Attributes[PointSetAttributes.Positions] = psId.Value;
             if (csId.HasValue) Attributes[PointSetAttributes.Colors] = csId.Value;
@@ -104,7 +104,7 @@ namespace Aardvark.Geometry.Points
             Center = BoundingBox.Center;
             Corners = BoundingBox.ComputeCorners();
             
-            BoundingBoxExactLocal = boundingBoxExactLocal ?? new Box3f(new V3f(BoundingBox.Min - Center), new V3f(BoundingBox.Max - Center));
+            BoundingBoxExactLocal = boundingBoxExactLocal;
 
             if (writeToStore) storage.Add(Id.ToString(), this, CancellationToken.None);
 
@@ -146,7 +146,7 @@ namespace Aardvark.Geometry.Points
         /// Creates inner node.
         /// </summary>
         internal PointSetNode(
-            Cell cell, long pointCountTree, Box3f? boundingBoxExactLocal, float? averagePointDistance,
+            Cell cell, long pointCountTree, Box3f boundingBoxExactLocal, float averagePointDistance,
             Guid?[] subnodeIds, Storage storage
             ) : this(Guid.NewGuid(), cell, pointCountTree, boundingBoxExactLocal, averagePointDistance, null, null, null, null, null, null, null, null, null, null, null, null, subnodeIds, storage, true)
         {
@@ -156,7 +156,7 @@ namespace Aardvark.Geometry.Points
         /// Creates leaf node.
         /// </summary>
         internal PointSetNode(
-            Cell cell, long pointCountTree, Box3f? boundingBoxExactLocal, float? averagePointDistance,
+            Cell cell, long pointCountTree, Box3f boundingBoxExactLocal, float averagePointDistance,
             Guid? psId, Guid? csId, Guid? kdId, Guid? nsId, Guid? isId, Guid? ksId,
             Storage storage
             ) : this(Guid.NewGuid(), cell, pointCountTree, boundingBoxExactLocal, averagePointDistance, psId, csId, kdId, nsId, isId, ksId, null, null, null, null, null, null, null, storage, true)
@@ -272,7 +272,7 @@ namespace Aardvark.Geometry.Points
             var offset = 4;
             var id = ParseGuid(buffer, ref offset);
             
-            var cellIndex = new Cell(
+            var cell = new Cell(
                 BitConverter.ToInt64(buffer, 20),
                 BitConverter.ToInt64(buffer, 28),
                 BitConverter.ToInt64(buffer, 36),
@@ -310,7 +310,7 @@ namespace Aardvark.Geometry.Points
             var ksId = (attributemask & (uint)PointSetAttributes.Classifications) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
             var lodKsId = (attributemask & (uint)PointSetAttributes.LodClassifications) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
 
-            Box3f? exactBoundingBox = null;
+            Box3f? exactBoundingBoxLocal = null;
             float? averagePointDistance = null;
             if ((attributemask & (uint)PointSetAttributes.HasCellAttributes) != 0)
             {
@@ -326,7 +326,7 @@ namespace Aardvark.Geometry.Points
                     max.X = BitConverter.ToSingle(buffer, offset); offset += sizeof(float);
                     max.Y = BitConverter.ToSingle(buffer, offset); offset += sizeof(float);
                     max.Z = BitConverter.ToSingle(buffer, offset); offset += sizeof(float);
-                    exactBoundingBox = ebb;
+                    exactBoundingBoxLocal = ebb;
                 }
 
                 if ((cellAttributeMask & (uint)CellAttributes.AveragePointDistance) != 0)
@@ -335,8 +335,15 @@ namespace Aardvark.Geometry.Points
                 }
             }
 
+            if (!exactBoundingBoxLocal.HasValue)
+            {
+                var bb = cell.BoundingBox;
+                var c = bb.Center;
+                exactBoundingBoxLocal = new Box3f(new V3f(bb.Min - c), new V3f(bb.Max - c));
+            }
+
             return new PointSetNode(
-                id, cellIndex, pointCountTree, exactBoundingBox, averagePointDistance,
+                id, cell, pointCountTree, exactBoundingBoxLocal.Value, averagePointDistance ?? 0.0f,
                 psId, csId, kdId, nsId, isId, ksId,
                 lodPsId, lodCsId, lodKdId, lodNsId, lodIsId, lodKsId,
                 subcellIds,

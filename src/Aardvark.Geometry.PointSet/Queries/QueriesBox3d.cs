@@ -120,7 +120,7 @@ namespace Aardvark.Geometry.Points
         public static long CountPointsApproximatelyInsideBox(
             this PointSet self, Box3d query, int minCellExponent = int.MinValue
             )
-            => CountPointsApproximatelyInsideBox(self.Root.Value, query, minCellExponent);
+            => CountPointsApproximatelyInsideBox(self.Octree.Value, query, minCellExponent);
 
         /// <summary>
         /// Counts points approximately inside axis-aligned box (cell granularity).
@@ -128,11 +128,11 @@ namespace Aardvark.Geometry.Points
         /// Faster than CountPointsInsideBox.
         /// </summary>
         public static long CountPointsApproximatelyInsideBox(
-            this PointSetNode self, Box3d query, int minCellExponent = int.MinValue
+            this IPointCloudNode self, Box3d query, int minCellExponent = int.MinValue
             )
             => CountPointsApproximately(self,
-                n => query.Contains(n.BoundingBox),
-                n => !query.Intersects(n.BoundingBox),
+                n => query.Contains(n.BoundingBoxExact),
+                n => !query.Intersects(n.BoundingBoxExact),
                 minCellExponent);
 
         /// <summary>
@@ -143,7 +143,7 @@ namespace Aardvark.Geometry.Points
         public static long CountPointsApproximatelyOutsideBox(
             this PointSet self, Box3d query, int minCellExponent = int.MinValue
             )
-            => CountPointsApproximatelyOutsideBox(self.Root.Value, query, minCellExponent);
+            => CountPointsApproximatelyOutsideBox(self.Octree.Value, query, minCellExponent);
 
         /// <summary>
         /// Counts points approximately outside axis-aligned box (cell granularity).
@@ -151,11 +151,11 @@ namespace Aardvark.Geometry.Points
         /// Faster than CountPointsOutsideBox.
         /// </summary>
         public static long CountPointsApproximatelyOutsideBox(
-            this PointSetNode self, Box3d query, int minCellExponent = int.MinValue
+            this IPointCloudNode self, Box3d query, int minCellExponent = int.MinValue
             )
             => CountPointsApproximately(self,
-                n => !query.Intersects(n.BoundingBox),
-                n => query.Contains(n.BoundingBox),
+                n => !query.Intersects(n.BoundingBoxExact),
+                n => query.Contains(n.BoundingBoxExact),
                 minCellExponent);
 
         #endregion

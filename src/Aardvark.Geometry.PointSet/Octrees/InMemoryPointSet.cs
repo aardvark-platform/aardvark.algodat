@@ -15,6 +15,7 @@ using Aardvark.Base;
 using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -108,12 +109,14 @@ namespace Aardvark.Geometry.Points
             {
                 var center = new V3d(_centerX, _centerY, _centerZ);
                 V3f[] ps = null;
-                Box3f? ebb = null;
                 C4b[] cs = null;
                 V3f[] ns = null;
                 int[] js = null;
                 byte[] ks = null;
                 PointRkdTreeD<V3f[], V3f> kdTree = null;
+                
+                Box3f? bbel = null;
+                float? averagePointDistance = null;
 
                 if (_ia != null)
                 {
@@ -122,7 +125,7 @@ namespace Aardvark.Geometry.Points
 
                     ps = new V3f[count];
                     for (var i = 0; i < count; i++) ps[i] = (V3f)(allPs[_ia[i]] - center);
-                    ebb = new Box3f(ps);
+                    bbel = new Box3f(ps);
 
                     if (_octree.m_cs != null)
                     {
@@ -158,6 +161,15 @@ namespace Aardvark.Geometry.Points
                         (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
                         (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, kdTreeEps
                         );
+
+                    var halfDiagonal = bbel.Value.Size.Length / 2.0f;
+                    var sum = 0.0f;
+                    for (var i = 0; i < ps.Length; i++)
+                    {
+                        var closest = kdTree.GetClosest(ps[i], halfDiagonal, 2);
+                        sum += (float)closest[0].Dist;
+                    }
+                    averagePointDistance = sum / ps.Length;
                 }
 
                 Guid? psId = ps != null ? (Guid?)Guid.NewGuid() : null;
@@ -173,7 +185,7 @@ namespace Aardvark.Geometry.Points
                 if (subcells != null)
                 {
                     var ebbGlobal = new Box3d(subcells.Where(x => x != null).Select(x => ((IPointCloudNode)x).BoundingBoxExact));
-                    ebb = new Box3f(new V3f(ebbGlobal.Min - center), new V3f(ebbGlobal.Max - center));
+                    bbel = new Box3f(new V3f(ebbGlobal.Min - center), new V3f(ebbGlobal.Max - center));
                 }
 
 #if DEBUG
@@ -193,11 +205,11 @@ namespace Aardvark.Geometry.Points
 
                 if (subcellIds == null) // leaf
                 {
-                    return new PointSetNode(_cell, pointCountTree, ebb, null, psId, csId, kdId, nsId, isId, ksId, storage);
+                    return new PointSetNode(_cell, pointCountTree, bbel.Value, averagePointDistance.Value, psId, csId, kdId, nsId, isId, ksId, storage);
                 }
                 else
                 {
-                    return new PointSetNode(_cell, pointCountTree, ebb, null, subcellIds, storage);
+                    return new PointSetNode(_cell, pointCountTree, bbel.Value, 0.0f, subcellIds, storage);
                 }
             }
             
