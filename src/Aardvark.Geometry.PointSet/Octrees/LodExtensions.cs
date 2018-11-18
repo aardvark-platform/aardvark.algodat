@@ -82,28 +82,46 @@ namespace Aardvark.Geometry.Points
             return counts;
         }
 
-        ///// <summary></summary>
-        //public static T[] Foo<T>(int[] counts, int splitLimit, T[][] xss)
-        //{
-        //    var i = 0;
-        //    for (var ci = 0; ci < 8; ci++)
-        //    {
-        //        if (counts[ci] == 0) continue;
-        //        var subcell = xss[ci];
-        //        if (subcell == null) continue;
+        /// <summary></summary>
+        public static V3f[] AggregateSubPositions(int[] counts, int splitLimit, V3d center, V3d?[] subCenters, V3f[][] xss)
+        {
+            var rs = new V3f[splitLimit];
+            var i = 0;
+            for (var ci = 0; ci < 8; ci++)
+            {
+                if (counts[ci] == 0) continue;
+                var xs = xss[ci];
+                var c = subCenters[ci].Value;
 
-        //        var rs = new T[splitLimit];
-        //        var jmax = subcell.Length;
-        //        var dj = (jmax + 0.49) / counts[ci];
-        //        var oldI = i;
-        //        for (var j = 0.0; j < jmax; j += dj)
-        //        {
-        //            var jj = (int)j;
-        //            rs[i] = (V3f)(((V3d)subcell[jj] + subcell.Center) - self.Center);
-        //            i++;
-        //        }
-        //    }
-        //}
+                var jmax = xs.Length;
+                var dj = (jmax + 0.49) / counts[ci];
+                for (var j = 0.0; j < jmax; j += dj)
+                {
+                    rs[i++] = new V3f((V3d)xs[(int)j] + c - center);
+                }
+            }
+            return rs;
+        }
+
+        /// <summary></summary>
+        public static T[] AggregateSubArrays<T>(int[] counts, int splitLimit, T[][] xss)
+        {
+            var rs = new T[splitLimit];
+            var i = 0;
+            for (var ci = 0; ci < 8; ci++)
+            {
+                if (counts[ci] == 0) continue;
+                var xs = xss[ci];
+
+                var jmax = xs.Length;
+                var dj = (jmax + 0.49) / counts[ci];
+                for (var j = 0.0; j < jmax; j += dj)
+                {
+                    rs[i++] = xs[(int)j];
+                }
+            }
+            return rs;
+        }
     }
 
     /// <summary>
@@ -146,7 +164,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        private static PointSetNode GenerateLod(this PointSetNode self, int octreeSplitLimit, Action callback, CancellationToken ct)
+        private static PointSetNode GenerateLod(this PointSetNode self, int splitLimit, Action callback, CancellationToken ct)
         {
             if (self == null) throw new ArgumentNullException(nameof(self));
 
@@ -160,7 +178,8 @@ namespace Aardvark.Geometry.Points
 
             if (self.Subnodes == null || self.Subnodes.Length != 8) throw new InvalidOperationException();
 
-            var subcells = self.Subnodes.Map(x => x?.Value.GenerateLod(octreeSplitLimit, callback, ct));
+            var subcells = self.Subnodes.Map(x => x?.Value.GenerateLod(splitLimit, callback, ct));
+            var subcenters = subcells.Map(x => x?.Center);
             var subcellsTotalCount = (long)subcells.Sum(x => x?.PointCountTree);
 
             var needsCs = subcells.Any(x => x != null ? (x.HasColors || x.HasLodColors) : false);
@@ -169,41 +188,14 @@ namespace Aardvark.Geometry.Points
             var needsKs = subcells.Any(x => x != null ? (x.HasClassifications || x.HasLodClassifications) : false);
 
             var fractions = Lod.ComputeLodFractions(subcells);
-            var counts = Lod.ComputeLodCounts(octreeSplitLimit, fractions);
+            var counts = Lod.ComputeLodCounts(splitLimit, fractions);
 
             // generate LoD data ...
-            var lodPs = new V3f[octreeSplitLimit];
-            var lodCs = needsCs ? new C4b[octreeSplitLimit] : null;
-            var lodNs = needsNs ? new V3f[octreeSplitLimit] : null;
-            var lodIs = needsIs ? new int[octreeSplitLimit] : null;
-            var lodKs = needsKs ? new byte[octreeSplitLimit] : null;
-            var i = 0;
-            for (var ci = 0; ci < 8; ci++)
-            {
-                if (counts[ci] == 0) continue;
-                var subcell = subcells[ci];
-                if (subcell == null) continue;
-                
-                var subps = subcell.IsLeaf ? subcell.Positions.Value : subcell.LodPositions.Value;
-                var subcs = needsCs ? (subcell.IsLeaf ? subcell.Colors.Value : subcell.LodColors.Value) : null;
-                var subns = needsNs ? (subcell.IsLeaf ? subcell.Normals.Value : subcell.LodNormals.Value) : null;
-                var subis = needsIs ? (subcell.IsLeaf ? subcell.Intensities.Value : subcell.LodIntensities.Value) : null;
-                var subks = needsKs ? (subcell.IsLeaf ? subcell.Classifications.Value : subcell.LodClassifications.Value) : null;
-
-                var jmax = subps.Length;
-                var dj = (jmax + 0.49) / counts[ci];
-                var oldI = i;
-                for (var j = 0.0; j < jmax; j += dj)
-                {
-                    var jj = (int)j;
-                    lodPs[i] = (V3f)(((V3d)subps[jj] + subcell.Center) - self.Center);
-                    if (needsCs) lodCs[i] = subcs[jj];
-                    if (needsNs) lodNs[i] = subns[jj];
-                    if (needsIs) lodIs[i] = subis[jj];
-                    if (needsKs) lodKs[i] = subks[jj];
-                    i++;
-                }
-            }
+            var lodPs = Lod.AggregateSubPositions(counts, splitLimit, self.Center, subcenters, subcells.Map(x => x?.GetLodPositions()?.Value));
+            var lodCs = needsCs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetLodColors()?.Value)) : null;
+            var lodNs = needsNs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetLodNormals()?.Value)) : null;
+            var lodIs = needsIs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetLodIntensities()?.Value)) : null;
+            var lodKs = needsKs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetLodClassifications()?.Value)) : null;
             var lodKd = lodPs.BuildKdTree();
 
             // store LoD data ...
