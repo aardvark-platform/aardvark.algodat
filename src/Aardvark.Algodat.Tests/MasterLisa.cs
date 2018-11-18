@@ -14,73 +14,127 @@ namespace Aardvark.Geometry.Tests
     {
         public static void Perform()
         {
-            var path2store = @"C:\Users\kellner\Desktop\Diplomarbeit\Store";
+            var path2store = @"C:\Users\kellner\Desktop\Diplomarbeit\Store2";
 
-            var dirLabels = @"C:\Users\kellner\Desktop\Diplomarbeit\Semantic3d\sem8_labels_training";
-            var dirData = @"C:\Users\kellner\Desktop\Diplomarbeit\Semantic3d\sem8_data_training";
+            //var dirLabels = @"C:\Users\kellner\Desktop\Diplomarbeit\Semantic3d\sem8_labels_training";
+            //var dirData = @"C:\Users\kellner\Desktop\Diplomarbeit\Semantic3d\sem8_data_training";
 
-            var key = "sg27_station2";
-            var fn = "sg27_station2_intensity_rgb";
+            var key = "bildstein_5_labelled";
+            //var fn = "bildstein_station5_xyz_intensity_rgb";
 
-            Report.Line("importing pointcloud");
-            Import(
-                Path.Combine(dirData, fn+".txt"),
-                Path.Combine(dirLabels, fn+".labels"),
-                path2store, key);
+            //Report.Line("importing pointcloud");
+            //Import(
+            //    Path.Combine(dirData, fn + ".txt"),
+            //    Path.Combine(dirLabels, fn + ".labels"),
+            //    path2store, key);
 
             //Report.Line("estimating normals");
             //AddNormals(path2store, key);
+
+            //FilterPoints(path2store, key, 0); // filter all unlabelled points
+
+            // -----------------------------------
+            var store = PointCloud.OpenStore(path2store);
+            var pointset = store.GetPointSet(key, CancellationToken.None);
+            
+            var nodes = traverse(pointset.Root.Value, 3, 0);
+
+            PointSetNode[] traverse(PointSetNode n, int maxLevel, int currLevel)
+            {
+                if (n.IsLeaf())
+                    return new PointSetNode[] { };
+
+                if (currLevel < maxLevel)
+                {
+                    currLevel = currLevel + 1;
+                    return n.Subnodes.
+                        Where( sn => sn != null).
+                        SelectMany(sn => 
+                        traverse(sn.Value, maxLevel, currLevel)).ToArray();
+                }
+
+                if (currLevel == maxLevel)
+                    return new PointSetNode[] { n };
+
+                return new PointSetNode[] { };
+            }
         }
 
         /// <summary>
-        /// Filters pointcloud.
+        /// Removes all points with given label from the pointcloud.
         /// </summary>
-        private static void FilterPoints(string path2store, string key)
+        private static void FilterPoints(string path2store, string key, int label2filter)
         {
             var store = PointCloud.OpenStore(path2store);
             var pointset = store.GetPointSet(key, CancellationToken.None);
 
             var chunks = pointset.QueryAllPoints().ToArray();
+            
+            var positions = new List<V3d>();
+            var colors = new List<C4b>();
+            var normals = new List<V3f>();
+            var intensities = new List<int>();
+            var classifications = new List<byte>();
 
-            var label2filter = 0;
-
-            var filteredChunks = chunks.Map(chunk => 
+            // filter chunks
+            var amountFilteredPoints = 0;
+            chunks.ForEach((chunk, k) =>
             {
-                var indices = new List<int>();
-                chunk.Classifications.ForEach((c, i) => 
-                {
-                    if ((int)c == label2filter)
-                        indices.Add(i);
-                });
+               Report.Line($"filtering chunk #{k}");
 
-                var pos = new List<V3d>();
-                var col = new List<C4b>();
-                var normals = new List<V3f>();
-                var intensities = new List<int>();
-                var classifications = new List<byte>();
+               var indices = new List<int>();
+               chunk.Classifications.ForEach((c, i) =>
+               {
+                   if ((int)c != label2filter)
+                       indices.Add(i);
+               });
+               amountFilteredPoints += indices.Count();
 
-                indices.ForEach(idx => 
-                {
-                    if (chunk.HasPositions)
-                        pos.Add(chunk.Positions[idx]);
+               indices.ForEach(idx =>
+               {
+                   if (chunk.HasPositions)
+                       positions.Add(chunk.Positions[idx]);
 
-                    if (chunk.HasColors)
-                        col.Add(chunk.Colors[idx]);
+                   if (chunk.HasColors)
+                       colors.Add(chunk.Colors[idx]);
 
-                    if (chunk.HasNormals)
-                        normals.Add(chunk.Normals[idx]);
+                   if (chunk.HasNormals)
+                       normals.Add(chunk.Normals[idx]);
 
-                    if (chunk.HasIntensities)
-                        intensities.Add(chunk.Intensities[idx]);
+                   if (chunk.HasIntensities)
+                       intensities.Add(chunk.Intensities[idx]);
 
-                    if (chunk.HasClassifications)
-                        classifications.Add(chunk.Classifications[idx]);
-                });
-
-                var bb = new Box3d(pos);
-                // TODO: aufpassen auf werte die vorher null waren!!!!
-                return new Chunk(pos, col, normals, intensities, classifications, bb); 
+                   if (chunk.HasClassifications)
+                       classifications.Add(chunk.Classifications[idx]);
+               });
             });
+            Report.Line($"filtered {amountFilteredPoints} points");
+
+            // create new chunks of filtered data
+            var maxChunkSize = 1024 * 1024;
+
+            var posChunks = positions.Chunk(maxChunkSize).ToArray(); 
+            var colChunks = colors.IsEmptyOrNull() ? null : colors.Chunk(maxChunkSize).ToArray();
+            var normChunks = normals.IsEmptyOrNull() ? null : normals.Chunk(maxChunkSize).ToArray();
+            var intChunks = intensities.IsEmptyOrNull() ? null : intensities.Chunk(maxChunkSize).ToArray();
+            var classChunks = classifications.IsEmptyOrNull() ? null :classifications.Chunk(maxChunkSize).ToArray();
+
+            var newChunks = posChunks.Select((pos, i) => 
+            {
+                Report.Line($"creating new chunk #{i}");
+                var bbChunk = new Box3d(pos);
+                return new Chunk(pos, colChunks?[i], normChunks?[i], intChunks?[i], classChunks?[i], bbChunk);
+            });
+            
+            var config = ImportConfig.Default
+               .WithStorage(store)
+               .WithKey(key + "_filtered")
+               .WithMaxChunkPointCount(maxChunkSize)
+               .WithVerbose(true);
+
+            // add point-cloud to store
+            PointCloud.Chunks(newChunks, config);
+            store.Dispose();
         }
 
         /// <summary>
@@ -94,20 +148,11 @@ namespace Aardvark.Geometry.Tests
 
             var data = File.ReadLines(path2data);
 
-            var chunkedData = data.Chunk(maxChunkSize).ToArray();
-            var chunkedLabels = labels.Chunk(maxChunkSize).ToArray();
-
-            var amountLabels = chunkedData.Map(c => c.Length).Sum();
-            var amountData = chunkedLabels.Map(c => c.Length).Sum();
-
-            if (amountLabels != amountData)
-                throw new ArgumentException("Files don't have same amount of rows.");
-
-            var positions = new IList<V3d>[chunkedData.Length];
-            var colors = new IList<C4b>[chunkedData.Length];
-
+            var chunkedData = data.Chunk(maxChunkSize);
+            var chunkedLabels = labels.Chunk(maxChunkSize);
+            
             // parsing files
-            chunkedData.ForEach((ch, i) =>
+            var parsedChunks = chunkedData.Select( (ch, i) =>
             {
                 var chunkPos = new V3d[ch.Length];
                 var chunkCol = new C4b[ch.Length];
@@ -127,15 +172,14 @@ namespace Aardvark.Geometry.Tests
                     chunkPos[j] = pos;
                     chunkCol[j] = col;
                 });
-
-                positions[i] = chunkPos;
-                colors[i] = chunkCol;
+                return (chunkPos,chunkCol);
             });
             
-            var chunks = positions.Map((p, i) =>
+            var chunks = parsedChunks.Select( (chunk, i) =>
             {
-                var bbChunk = new Box3d(p);
-                return new Chunk(p, colors[i], null, null, chunkedLabels[i], bbChunk);
+                Report.Line($"creating chunk #{i}");
+                var bbChunk = new Box3d(chunk.chunkPos);
+                return new Chunk(chunk.chunkPos, chunk.chunkCol, null, null, chunkedLabels.ToArray()[i], bbChunk);
             });
 
             //var chunk = new Chunk(positions, colors, null, null, labels, bb);
