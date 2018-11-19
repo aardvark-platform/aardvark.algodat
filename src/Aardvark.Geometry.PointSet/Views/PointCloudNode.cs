@@ -212,5 +212,62 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public void Dispose() { }
+
+        #region With...
+
+        /// <summary>
+        /// Duplicates positions, normals, ... to LodPositions, LodColors, ....
+        /// </summary>
+        internal PointCloudNode WithLod()
+        {
+            if (SubNodes != null) throw new InvalidOperationException("Only allowed for leaf nodes.");
+
+            var attributes = m_pIds.Select(kv => (kv.Key, kv.Value)).ToList();
+
+            TryClone(PointCloudAttribute.Classifications,   PointCloudAttribute.LodClassifications  );
+            TryClone(PointCloudAttribute.Colors,            PointCloudAttribute.LodColors           );
+            TryClone(PointCloudAttribute.Intensities,       PointCloudAttribute.LodIntensities      );
+            TryClone(PointCloudAttribute.KdTree,            PointCloudAttribute.LodKdTree           );
+            TryClone(PointCloudAttribute.Normals,           PointCloudAttribute.LodNormals          );
+            TryClone(PointCloudAttribute.Positions,         PointCloudAttribute.LodPositions        );
+
+            return new PointCloudNode(Storage, Id, Cell, BoundingBoxExact, PointCountTree, null, attributes.ToArray());
+            
+            void TryClone(string attributeName, string lodAttributeName)
+            {
+                if (m_pIds.TryGetValue(attributeName, out string id) && !m_pIds.ContainsKey(lodAttributeName))
+                {
+                    attributes.Add((lodAttributeName, id));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets node with added lod attributes.
+        /// </summary>
+        internal PointCloudNode WithLod(
+            string lodPositionsId, string lodKdTreeId, string lodColorsId, string lodNormalsId, string lodIntensitiesId, string lodClassificationsId
+            )
+        {
+            var attributes = m_pIds.Select(kv => (kv.Key, kv.Value)).ToList();
+            
+            TryAdd(PointCloudAttribute.LodClassifications, lodClassificationsId);
+            TryAdd(PointCloudAttribute.LodColors, lodColorsId);
+            TryAdd(PointCloudAttribute.LodIntensities, lodIntensitiesId);
+            TryAdd(PointCloudAttribute.LodKdTree, lodKdTreeId);
+            TryAdd(PointCloudAttribute.LodNormals, lodNormalsId);
+            TryAdd(PointCloudAttribute.LodPositions, lodPositionsId);
+
+            return new PointCloudNode(Storage, Id, Cell, BoundingBoxExact, PointCountTree, SubNodes, attributes.ToArray());
+
+            void TryAdd(string attributeName, string id)
+            {
+                if (id == null) return;
+                if (m_pIds.ContainsKey(attributeName)) throw new InvalidOperationException();
+                attributes.Add((attributeName, id));
+            }
+        }
+
+        #endregion
     }
 }

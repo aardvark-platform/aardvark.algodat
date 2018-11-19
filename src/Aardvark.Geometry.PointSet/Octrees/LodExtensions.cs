@@ -155,7 +155,7 @@ namespace Aardvark.Geometry.Points
         {
             if (self.IsEmpty) return self;
 #pragma warning disable CS0618 // Type or member is obsolete
-            var lod = self.Root.Value.GenerateLod((int)self.SplitLimit, callback, ct);
+            var lod = self.Root.Value.GenerateLod(self.SplitLimit, callback, ct);
 #pragma warning restore CS0618 // Type or member is obsolete
             var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit);
             self.Storage.Add(key, result, ct);
@@ -218,6 +218,63 @@ namespace Aardvark.Geometry.Points
             if (needsKs) self.Storage.Add(lodKsId.Value, lodKs, ct);
 
             var result = self.WithLod(lodPsId, lodCsId, lodNsId, lodIsId, lodKdId, lodKsId, subcells);
+            return result;
+        }
+
+        /// <summary>
+        /// </summary>
+        private static PointCloudNode GenerateLod(this PointCloudNode self, int splitLimit, CancellationToken ct)
+        {
+            if (self == null) throw new ArgumentNullException(nameof(self));
+
+            ct.ThrowIfCancellationRequested();
+            
+            if (self.IsLeaf()) return self.WithLod();
+
+            if (self.HasLodPositions()) return self; // cell already has lod data -> done
+
+            if (self.SubNodes == null || self.SubNodes.Length != 8) throw new InvalidOperationException();
+
+            var subcells = self.SubNodes.Map(x => x?.Value);
+            var subcenters = subcells.Map(x => x?.Center);
+            var subcellsTotalCount = (long)subcells.Sum(x => x?.PointCountTree);
+
+            var needsCs = subcells.Any(x => x != null ? (x.HasLodColors()) : false);
+            var needsNs = subcells.Any(x => x != null ? (x.HasLodNormals()) : false);
+            var needsIs = subcells.Any(x => x != null ? (x.HasLodIntensities()) : false);
+            var needsKs = subcells.Any(x => x != null ? (x.HasLodClassifications()) : false);
+
+            var fractions = Lod.ComputeLodFractions(subcells);
+            var counts = Lod.ComputeLodCounts(splitLimit, fractions);
+
+            // generate LoD data ...
+            var lodPs = Lod.AggregateSubPositions(counts, splitLimit, self.Center, subcenters, subcells.Map(x => x?.GetLodPositions()?.Value));
+            var lodCs = needsCs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetLodColors()?.Value)) : null;
+            var lodNs = needsNs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetLodNormals()?.Value)) : null;
+            var lodIs = needsIs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetLodIntensities()?.Value)) : null;
+            var lodKs = needsKs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetLodClassifications()?.Value)) : null;
+            var lodKd = lodPs.BuildKdTree();
+
+            // store LoD data ...
+            var lodPsId = Guid.NewGuid().ToString();
+            self.Storage.Add(lodPsId, lodPs, ct);
+
+            var lodKdId = Guid.NewGuid().ToString();
+            self.Storage.Add(lodKdId, lodKd.Data, ct);
+
+            var lodCsId = needsCs ? Guid.NewGuid().ToString() : null;
+            if (needsCs) self.Storage.Add(lodCsId, lodCs, ct);
+
+            var lodNsId = needsNs ? Guid.NewGuid().ToString() : null;
+            if (needsNs) self.Storage.Add(lodNsId, lodNs, ct);
+
+            var lodIsId = needsIs ? Guid.NewGuid().ToString() : null;
+            if (needsIs) self.Storage.Add(lodIsId, lodIs, ct);
+
+            var lodKsId = needsKs ? Guid.NewGuid().ToString() : null;
+            if (needsKs) self.Storage.Add(lodKsId, lodKs, ct);
+
+            var result = self.WithLod(lodPsId, lodKdId, lodCsId, lodNsId, lodIsId, lodKsId);
             return result;
         }
     }
