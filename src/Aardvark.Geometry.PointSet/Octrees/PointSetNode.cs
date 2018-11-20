@@ -1287,7 +1287,7 @@ namespace Aardvark.Geometry.Points
             {
                 case PointCloudAttribute.Classifications: value = Classifications; return value != null;
 
-                case PointCloudAttribute.Colors:                value = Classifications;    return value != null;
+                case PointCloudAttribute.Colors:                value = Colors;             return value != null;
                 case PointCloudAttribute.Intensities:           value = Intensities;        return value != null;
                 case PointCloudAttribute.KdTree:                value = KdTree;             return value != null;
                 case PointCloudAttribute.LodClassifications:    value = LodClassifications; return value != null;

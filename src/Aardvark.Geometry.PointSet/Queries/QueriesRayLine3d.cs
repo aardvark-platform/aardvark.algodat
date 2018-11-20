@@ -58,7 +58,7 @@ namespace Aardvark.Geometry.Points
             {
                 yield break;
             }
-            else if (node.GetPositions().Value.Length > 0)
+            else if ((node.GetPositions()?.Value.Length ?? 0) > 0)
             {
                 var center = node.Center;
                 var ia = node.GetKdTree().Value.GetClosestToLine((V3f)(lineSegment.P0 - center), (V3f)(lineSegment.P1 - center), (float)maxDistanceToRay, 1000);
