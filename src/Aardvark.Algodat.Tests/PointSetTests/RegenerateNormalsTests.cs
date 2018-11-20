@@ -43,8 +43,10 @@ namespace Aardvark.Geometry.Tests
             // compare original and regenerated
             Assert.IsTrue(pointset0.Octree.Value.CountPoints() == pointset1.Octree.Value.CountPoints());
 
+#pragma warning disable CS0618 // Type or member is obsolete
             var nodes0 = pointset0.Root.Value.ForEachNode().ToArray();
             var nodes1 = pointset1.Root.Value.ForEachNode().ToArray();
+#pragma warning restore CS0618 // Type or member is obsolete
             Assert.IsTrue(nodes0.Length == nodes1.Length);
 
             for (var ni = 0; ni < nodes0.Length; ni++)
@@ -85,9 +87,11 @@ namespace Aardvark.Geometry.Tests
 
             // compare original and regenerated
             Assert.IsTrue(pointset0.Octree.Value.CountPoints() == pointset1.Octree.Value.CountPoints());
-            
+
+#pragma warning disable CS0618 // Type or member is obsolete
             var nodes0 = pointset0.Root.Value.ForEachNode().ToArray();
             var nodes1 = pointset1.Root.Value.ForEachNode().ToArray();
+#pragma warning restore CS0618 // Type or member is obsolete
             Assert.IsTrue(nodes0.Length == nodes1.Length);
 
             for (var ni = 0; ni < nodes0.Length; ni++)

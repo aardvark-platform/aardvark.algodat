@@ -27,9 +27,9 @@ namespace Aardvark.Geometry.Tests
                 .ToArray();
             
             var sw = new Stopwatch(); sw.Restart();
+            
+#if false // not now
             var totalCount = 0L;
-
-            if (false)
             using (var storage = PointCloud.OpenStore(tmpStorePath))
             {
                 var ls = links
@@ -79,6 +79,7 @@ namespace Aardvark.Geometry.Tests
 
                 storage.Flush();
             }
+#endif
 
             using (var storage = PointCloud.OpenStore(tmpStorePath))
             {

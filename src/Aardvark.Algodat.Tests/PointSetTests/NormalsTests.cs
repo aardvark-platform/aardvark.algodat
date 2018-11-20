@@ -78,7 +78,9 @@ namespace Aardvark.Geometry.Tests
                 ;
             storage.Add("pss", pointset, CancellationToken.None);
 
+#pragma warning disable CS0618 // Type or member is obsolete
             var withNormals = WithRandomNormals(pointset.Root.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
             storage.Add("psWithNormals", withNormals, CancellationToken.None);
 
             withNormals.ForEachNode(true, node =>

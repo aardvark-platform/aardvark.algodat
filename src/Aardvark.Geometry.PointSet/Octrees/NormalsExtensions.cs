@@ -44,7 +44,9 @@ namespace Aardvark.Geometry.Points
             )
         {
             if (self.IsEmpty) return self;
+#pragma warning disable CS0618 // Type or member is obsolete
             var lod = self.Root.Value.RegenerateNormals(estimateNormals, callback, ct);
+#pragma warning restore CS0618 // Type or member is obsolete
             var key = Guid.NewGuid().ToString();
             var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit);
             self.Storage.Add(key, result, ct);
@@ -60,7 +62,9 @@ namespace Aardvark.Geometry.Points
             )
         {
             if (self.IsEmpty) return self;
+#pragma warning disable CS0618 // Type or member is obsolete
             var lod = self.Root.Value.RegenerateNormals(estimateNormals, callback, ct);
+#pragma warning restore CS0618 // Type or member is obsolete
             var key = Guid.NewGuid().ToString();
             var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit);
             self.Storage.Add(key, result, ct);

@@ -49,7 +49,9 @@ namespace Aardvark.Geometry.Points
         private static PointSet GenerateNormals(this PointSet self, Action callback, ImportConfig config)
         {
             if (self.IsEmpty) return self;
+#pragma warning disable CS0618 // Type or member is obsolete
             var normals = self.Root.Value.GenerateNormals(callback, config);
+#pragma warning restore CS0618 // Type or member is obsolete
             var result = new PointSet(self.Storage, config.Key, normals.Id, self.SplitLimit);
             self.Storage.Add(config.Key, result, config.CancellationToken);
             return result;
