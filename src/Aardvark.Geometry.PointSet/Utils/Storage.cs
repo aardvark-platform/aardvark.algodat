@@ -64,7 +64,7 @@ namespace Aardvark.Geometry.Points
 
         #endregion
 
-        private const bool CACHE_ENABLED = false;
+        private const bool CACHE_ENABLED = true;
 
         #region byte[]
 
@@ -87,9 +87,10 @@ namespace Aardvark.Geometry.Points
 
             var buffer = storage.f_get(key, ct);
             if (buffer == null) return null;
-            if (CACHE_ENABLED) KeepAliveCache.Default.Value.Add(buffer, buffer.Length);
 
             storage.f_add(key, buffer, null, ct);
+            
+            if (CACHE_ENABLED) KeepAliveCache.Default.Value.Add(buffer, buffer.Length);
             return buffer;
         }
 
@@ -151,7 +152,6 @@ namespace Aardvark.Geometry.Points
 
             var buffer = storage.f_get(key, ct);
             if (buffer == null) return null;
-            if (CACHE_ENABLED) KeepAliveCache.Default.Value.Add(buffer, buffer.Length);
             data = new V3f[buffer.Length / 12];
             using (var ms = new MemoryStream(buffer))
             using (var br = new BinaryReader(ms))
@@ -162,6 +162,8 @@ namespace Aardvark.Geometry.Points
                 }
             }
             storage.f_add(key, data, null, ct);
+            
+            if (CACHE_ENABLED) KeepAliveCache.Default.Value.Add(data, buffer.Length);
             return data;
         }
 
@@ -199,7 +201,6 @@ namespace Aardvark.Geometry.Points
 
             var buffer = storage.f_get(key, ct);
             if (buffer == null) return null;
-            if (CACHE_ENABLED) KeepAliveCache.Default.Value.Add(buffer, buffer.Length);
             data = new int[buffer.Length / 4];
             using (var ms = new MemoryStream(buffer))
             using (var br = new BinaryReader(ms))
@@ -210,6 +211,8 @@ namespace Aardvark.Geometry.Points
                 }
             }
             storage.f_add(key, data, null, ct);
+            
+            if (CACHE_ENABLED) KeepAliveCache.Default.Value.Add(buffer, buffer.Length);
             return data;
         }
 
@@ -249,13 +252,14 @@ namespace Aardvark.Geometry.Points
 
             var buffer = storage.f_get(key, ct);
             if (buffer == null) return null;
-            if (CACHE_ENABLED) KeepAliveCache.Default.Value.Add(buffer, buffer.Length);
             data = new C4b[buffer.Length / 4];
             for (int i = 0, j = 0; i < data.Length; i++)
             {
                 data[i] = new C4b(buffer[j++], buffer[j++], buffer[j++], buffer[j++]);
             }
             storage.f_add(key, data, null, ct);
+
+            if (CACHE_ENABLED) KeepAliveCache.Default.Value.Add(data, buffer.Length);
             return data;
         }
 
@@ -287,7 +291,7 @@ namespace Aardvark.Geometry.Points
             if (data != null)
             {
                 var data2 = (PointRkdTreeDData)data;
-                if (CACHE_ENABLED) KeepAliveCache.Default.Value.Add(data, data2.AxisArray.Length * 4 + data2.PermArray.Length * 8 + data2.RadiusArray.Length * 8);
+                if (CACHE_ENABLED) KeepAliveCache.Default.Value.Add(data2, data2.AxisArray.Length * 4 + data2.PermArray.Length * 8 + data2.RadiusArray.Length * 8);
                 return data2;
             }
 
@@ -299,7 +303,10 @@ namespace Aardvark.Geometry.Points
                 coder.Code(ref data);
             }
             storage.f_add(key, data, null, ct);
-            return (PointRkdTreeDData)data;
+
+            var data3 = (PointRkdTreeDData)data;
+            if (CACHE_ENABLED) KeepAliveCache.Default.Value.Add(data3, data3.AxisArray.Length * 4 + data3.PermArray.Length * 8 + data3.RadiusArray.Length * 8);
+            return data3;
         }
 
         /// <summary>
@@ -339,9 +346,10 @@ namespace Aardvark.Geometry.Points
 
             var buffer = storage.f_get(key, ct);
             if (buffer == null) return null;
-            if (CACHE_ENABLED) KeepAliveCache.Default.Value.Add(buffer, buffer.Length * 2);
             data = PointSetNode.ParseBinary(buffer, storage);
             storage.f_add(key, data, null, ct);
+            
+            if (CACHE_ENABLED) KeepAliveCache.Default.Value.Add(data, buffer.Length * 2);
             return data;
         }
 

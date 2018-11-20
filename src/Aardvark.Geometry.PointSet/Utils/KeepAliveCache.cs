@@ -27,7 +27,7 @@ namespace Aardvark.Base
         /// <summary>
         /// Default cache with 4 GB and verbosity enabled.
         /// </summary>
-        public static readonly Lazy<KeepAliveCache> Default = new Lazy<KeepAliveCache>(() => new KeepAliveCache(4L * 1024 * 1024, true), true);
+        public static readonly Lazy<KeepAliveCache> Default = new Lazy<KeepAliveCache>(() => new KeepAliveCache(4L * 1024 * 1024 * 1024, true), true);
 
         /// <summary>
         /// If queue is longer, then clients will be delayed on Add, Remove and Flush calls.
