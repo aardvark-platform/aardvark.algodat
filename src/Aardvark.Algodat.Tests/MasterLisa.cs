@@ -36,27 +36,44 @@ namespace Aardvark.Geometry.Tests
             // -----------------------------------
             var store = PointCloud.OpenStore(path2store);
             var pointset = store.GetPointSet(key, CancellationToken.None);
-            
-            var nodes = traverse(pointset.Root.Value, 3, 0);
 
-            PointSetNode[] traverse(PointSetNode n, int maxLevel, int currLevel)
+            printTree(pointset.Root.Value, 0, 1);
+
+            void printTree(PointSetNode n, int level, int maxLevel)
             {
-                if (n.IsLeaf())
-                    return new PointSetNode[] { };
+                if(level == 0)
+                    Console.WriteLine($"level 0: root {n.BoundingBoxExact.ToString()}");
+                    
 
-                if (currLevel < maxLevel)
+                level++;
+
+                if (level > maxLevel)
+                    return;
+                
+                var tabs = "";
+                for (int i = 0; i < level - 1; ++i)
+                    tabs += "\t";
+
+                if(n.IsLeaf())
                 {
-                    currLevel = currLevel + 1;
-                    return n.Subnodes.
-                        Where( sn => sn != null).
-                        SelectMany(sn => 
-                        traverse(sn.Value, maxLevel, currLevel)).ToArray();
+                    Console.WriteLine(tabs + $"|--- level {level}: leaf {n.BoundingBoxExact.ToString()}");
+                    return;
                 }
 
-                if (currLevel == maxLevel)
-                    return new PointSetNode[] { n };
-
-                return new PointSetNode[] { };
+                n.Subnodes.ForEach(sn => 
+                {
+                    if (sn == null)
+                    {
+                        Console.ForegroundColor = ConsoleColor.DarkGray;
+                        Console.WriteLine(tabs + $"|--- level {level}: null");
+                        Console.ForegroundColor = ConsoleColor.White;
+                    }
+                    else
+                    {
+                        Console.WriteLine(tabs + $"|--- level {level}: node {sn.Value.BoundingBoxExact.ToString()}");
+                        printTree(sn.Value, level, maxLevel);
+                    }
+                });
             }
         }
 
