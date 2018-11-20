@@ -1176,7 +1176,7 @@ namespace Aardvark.Geometry.Points
         /// Index of subnode for given point.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int GetSubIndex(V3d p)
+        public int GetSubIndex(in V3d p)
         {
             var i = 0;
             if (p.X > Center.X) i = 1;
@@ -1188,7 +1188,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Returns true if this node intersects the positive halfspace defined by given plane.
         /// </summary>
-        public bool IntersectsPositiveHalfSpace(Plane3d plane)
+        public bool IntersectsPositiveHalfSpace(in Plane3d plane)
         {
             for (var i = 0; i < 8; i++)
             {
@@ -1200,7 +1200,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Returns true if this node intersects the negative halfspace defined by given plane.
         /// </summary>
-        public bool IntersectsNegativeHalfSpace(Plane3d plane)
+        public bool IntersectsNegativeHalfSpace(in Plane3d plane)
         {
             for (var i = 0; i < 8; i++)
             {
@@ -1213,7 +1213,7 @@ namespace Aardvark.Geometry.Points
         /// Returns true if this node is fully inside the positive halfspace defined by given plane.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool InsidePositiveHalfSpace(Plane3d plane)
+        public bool InsidePositiveHalfSpace(in Plane3d plane)
         {
             BoundingBox.GetMinMaxInDirection(plane.Normal, out V3d min, out V3d max);
             return plane.Height(min) > 0;
@@ -1223,7 +1223,7 @@ namespace Aardvark.Geometry.Points
         /// Returns true if this node is fully inside the negative halfspace defined by given plane.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool InsideNegativeHalfSpace(Plane3d plane)
+        public bool InsideNegativeHalfSpace(in Plane3d plane)
         {
             BoundingBox.GetMinMaxInDirection(-plane.Normal, out V3d min, out V3d max);
             return plane.Height(min) < 0;

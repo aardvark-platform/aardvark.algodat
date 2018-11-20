@@ -37,26 +37,26 @@ namespace Aardvark.Geometry.Tests
             var store = PointCloud.OpenStore(path2store);
             var pointset = store.GetPointSet(key, CancellationToken.None);
             
-            var nodes = traverse(pointset.Root.Value, 3, 0);
+            var nodes = traverse(pointset.Octree.Value, 3, 0);
 
-            PointSetNode[] traverse(PointSetNode n, int maxLevel, int currLevel)
+            IPointCloudNode[] traverse(IPointCloudNode n, int maxLevel, int currLevel)
             {
                 if (n.IsLeaf())
-                    return new PointSetNode[] { };
+                    return new IPointCloudNode[] { };
 
                 if (currLevel < maxLevel)
                 {
                     currLevel = currLevel + 1;
-                    return n.Subnodes.
-                        Where( sn => sn != null).
+                    return n.SubNodes.
+                        Where(sn => sn != null).
                         SelectMany(sn => 
                         traverse(sn.Value, maxLevel, currLevel)).ToArray();
                 }
 
                 if (currLevel == maxLevel)
-                    return new PointSetNode[] { n };
+                    return new IPointCloudNode[] { n };
 
-                return new PointSetNode[] { };
+                return new IPointCloudNode[] { };
             }
         }
 

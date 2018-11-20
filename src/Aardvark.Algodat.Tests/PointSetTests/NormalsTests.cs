@@ -59,7 +59,7 @@ namespace Aardvark.Geometry.Tests
 
             Assert.IsTrue(!ps.IsEmpty);
             Assert.IsTrue(ps.Octree.Value.IsLeaf());
-            Assert.IsTrue(ps.Root.Value.PointCount == 1);
+            Assert.IsTrue(ps.Octree.Value.GetPositions().Value.Length == 1);
             Assert.IsTrue(ps.Octree.Value.HasNormals());
             Assert.IsTrue(ps.Octree.Value.GetNormals().Value[0] == V3f.OIO);
         }

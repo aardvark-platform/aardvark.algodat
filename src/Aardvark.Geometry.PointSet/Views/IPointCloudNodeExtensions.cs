@@ -16,6 +16,7 @@ using Aardvark.Data.Points;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 
@@ -234,6 +235,70 @@ namespace Aardvark.Geometry.Points
             }
             return count;
         }
+
+        #region Intersections, inside/outside, ...
+
+        /// <summary>
+        /// Index of subnode for given point.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int GetSubIndex(this IPointCloudNode self, in V3d p)
+        {
+            var i = 0;
+            if (p.X > self.Center.X) i = 1;
+            if (p.Y > self.Center.Y) i += 2;
+            if (p.Z > self.Center.Z) i += 4;
+            return i;
+        }
+
+        /// <summary>
+        /// Returns true if this node intersects the positive halfspace defined by given plane.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IntersectsPositiveHalfSpace(this IPointCloudNode self, in Plane3d plane)
+        {
+            var corners = self.BoundingBoxExact.ComputeCorners();
+            for (var i = 0; i < 8; i++)
+            {
+                if (plane.Height(corners[i]) > 0) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Returns true if this node intersects the negative halfspace defined by given plane.
+        /// </summary>
+        public static bool IntersectsNegativeHalfSpace(this IPointCloudNode self, in Plane3d plane)
+        {
+            var corners = self.BoundingBoxExact.ComputeCorners();
+            for (var i = 0; i < 8; i++)
+            {
+                if (plane.Height(corners[i]) < 0) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Returns true if this node is fully inside the positive halfspace defined by given plane.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool InsidePositiveHalfSpace(this IPointCloudNode self, in Plane3d plane)
+        {
+            self.BoundingBoxExact.GetMinMaxInDirection(plane.Normal, out V3d min, out V3d max);
+            return plane.Height(min) > 0;
+        }
+
+        /// <summary>
+        /// Returns true if this node is fully inside the negative halfspace defined by given plane.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool InsideNegativeHalfSpace(this IPointCloudNode self, in Plane3d plane)
+        {
+            self.BoundingBoxExact.GetMinMaxInDirection(-plane.Normal, out V3d min, out V3d max);
+            return plane.Height(min) < 0;
+        }
+
+        #endregion
 
         #region ForEach (optionally traversing out-of-core nodes) 
 

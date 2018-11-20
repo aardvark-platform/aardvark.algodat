@@ -30,8 +30,8 @@ namespace Aardvark.Geometry.Points
             )
         {
             ray.Direction = ray.Direction.Normalized;
-            var data = self.Root.Value;
-            var bbox = data.BoundingBox;
+            var data = self.Octree.Value;
+            var bbox = data.BoundingBoxExact;
 
             var line = Clip(bbox, ray);
             if (!line.HasValue) return Enumerable.Empty<PointsNearObject<Line3d>>();
@@ -45,47 +45,50 @@ namespace Aardvark.Geometry.Points
         public static IEnumerable<PointsNearObject<Line3d>> QueryPointsNearLineSegment(
             this PointSet self, Line3d lineSegment, double maxDistanceToRay
             )
-            => QueryPointsNearLineSegment(self.Root.Value, lineSegment, maxDistanceToRay);
+            => QueryPointsNearLineSegment(self.Octree.Value, lineSegment, maxDistanceToRay);
 
         /// <summary>
         /// Points within given distance of a line segment (at most 1000).
         /// </summary>
         public static IEnumerable<PointsNearObject<Line3d>> QueryPointsNearLineSegment(
-            this PointSetNode node, Line3d lineSegment, double maxDistanceToRay
+            this IPointCloudNode node, Line3d lineSegment, double maxDistanceToRay
             )
         {
-            if (!node.BoundingBox.Intersects(lineSegment))
+            if (!node.BoundingBoxExact.Intersects(lineSegment))
             {
                 yield break;
             }
-            else if (node.PointCount > 0)
+            else if (node.GetPositions().Value.Length > 0)
             {
                 var center = node.Center;
-                var ia = node.KdTree.Value.GetClosestToLine((V3f)(lineSegment.P0 - center), (V3f)(lineSegment.P1 - center), (float)maxDistanceToRay, 1000);
+                var ia = node.GetKdTree().Value.GetClosestToLine((V3f)(lineSegment.P0 - center), (V3f)(lineSegment.P1 - center), (float)maxDistanceToRay, 1000);
                 if (ia.Count > 0)
                 {
                     var ps = new V3d[ia.Count];
-                    var cs = node.HasColors ? new C4b[ia.Count] : null;
-                    var ns = node.HasNormals ? new V3f[ia.Count] : null;
-                    var js = node.HasIntensities ? new int[ia.Count] : null;
+                    var cs = node.HasColors() ? new C4b[ia.Count] : null;
+                    var ns = node.HasNormals() ? new V3f[ia.Count] : null;
+                    var js = node.HasIntensities() ? new int[ia.Count] : null;
+                    var ks = node.HasClassifications() ? new byte[ia.Count] : null;
                     var ds = new double[ia.Count];
                     for (var i = 0; i < ia.Count; i++)
                     {
                         var index = (int)ia[i].Index;
-                        ps[i] = center + (V3d)node.Positions.Value[index];
-                        if (node.HasColors) cs[i] = node.Colors.Value[index];
-                        if (node.HasNormals) ns[i] = node.Normals.Value[index];
+                        ps[i] = center + (V3d)node.GetPositions().Value[index];
+                        if (node.HasColors()) cs[i] = node.GetColors().Value[index];
+                        if (node.HasNormals()) ns[i] = node.GetNormals().Value[index];
+                        if (node.HasIntensities()) js[i] = node.GetIntensities().Value[index];
+                        if (node.HasClassifications()) ks[i] = node.GetClassifications().Value[index];
                         ds[i] = ia[i].Dist;
                     }
-                    var chunk = new PointsNearObject<Line3d>(lineSegment, maxDistanceToRay, ps, cs, ns, js, ds);
+                    var chunk = new PointsNearObject<Line3d>(lineSegment, maxDistanceToRay, ps, cs, ns, js, ks, ds);
                     yield return chunk;
                 }
             }
-            else if (node.Subnodes != null)
+            else if (node.SubNodes != null)
             {
                 for (var i = 0; i < 8; i++)
                 {
-                    var n = node.Subnodes[i];
+                    var n = node.SubNodes[i];
                     if (n == null) continue;
                     foreach (var x in QueryPointsNearLineSegment(n.Value, lineSegment, maxDistanceToRay)) yield return x;
                 }

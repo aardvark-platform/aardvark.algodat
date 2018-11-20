@@ -24,12 +24,12 @@ namespace Aardvark.Geometry.Points
         /// Enumerates (chunked) all points in pointset.
         /// </summary>
         public static IEnumerable<Chunk> QueryAllPoints(this PointSet self)
-            => QueryAllPoints(self.Root.Value);
+            => QueryAllPoints(self.Octree.Value);
 
         /// <summary>
         /// Enumerates (chunked) all points in tree.
         /// </summary>
-        public static IEnumerable<Chunk> QueryAllPoints(this PointSetNode node)
+        public static IEnumerable<Chunk> QueryAllPoints(this IPointCloudNode node)
             => node.QueryPoints(_ => true, _ => false, _ => true);
     }
 }

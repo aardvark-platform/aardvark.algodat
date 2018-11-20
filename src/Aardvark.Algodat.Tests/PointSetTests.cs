@@ -64,7 +64,7 @@ namespace Aardvark.Geometry.Tests
             var pointset = PointSet.Create(store, "id", ps, cs, null, null, null, 1000, true, CancellationToken.None);
             Assert.IsTrue(pointset.PointCount == 1);
             Assert.IsTrue(pointset.Octree.Value.IsLeaf());
-            Assert.IsTrue(pointset.Root.Value.PointCount == 1);
+            Assert.IsTrue(pointset.Octree.Value.GetPositions().Value.Length == 1);
             Assert.IsTrue(pointset.Octree.Value.PointCountTree == 1);
         }
 
