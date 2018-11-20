@@ -190,18 +190,21 @@ namespace Aardvark.Geometry.Points
 
         #region Serialization
         
+        /// <summary></summary>
+        public int SerializedSizeInBytes =>
+            1 + 3 +                 // subcellmask (8bit), attribute mask (24bit)
+            16 +                    // Guid
+            (3 * 8 + 4) +           // Bounds (Cell)
+            8 +                     // PointCountTree
+            SubnodeCount * 16 +     // subcell keys
+            Attributes.Count * 16   // attribute keys
+            ;
+
         /// <summary>
         /// </summary>
         public byte[] ToBinary()
         {
-            var count =
-                1 + 3 +                 // subcellmask (8bit), attribute mask (24bit)
-                16 +                    // Guid
-                (3 * 8 + 4) +           // Bounds (Cell)
-                8 +                     // PointCountTree
-                SubnodeCount * 16 +     // subcell keys
-                Attributes.Count * 16   // attribute keys
-                ;
+            var count = SerializedSizeInBytes;
             var buffer = new byte[count];
             using (var ms = new MemoryStream(buffer))
             using (var bw = new BinaryWriter(ms))

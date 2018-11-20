@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using Uncodium.SimpleStore;
 
 namespace Aardvark.Geometry.Tests
@@ -19,7 +20,7 @@ namespace Aardvark.Geometry.Tests
             var resolver = new IdentityResolver();
 
             var links = Directory
-                .EnumerateDirectories(@"Y:\cells", "pointcloud", SearchOption.AllDirectories)
+                .EnumerateDirectories(@"G:\cells", "pointcloud", SearchOption.AllDirectories)
                 .Select(x => (storePath: x, key: Path.GetFileName(Path.GetDirectoryName(x))))
                 .ToArray();
 
@@ -31,6 +32,15 @@ namespace Aardvark.Geometry.Tests
                     try
                     {
                         var store = new LinkedNode(resolver, x.storePath, x.key);
+
+                        var _sw = new Stopwatch(); _sw.Restart();
+                        var foo = store.ForEachNode().Sum(n => n.GetPositions()?.Value.Length);
+                        _sw.Stop(); Console.WriteLine(_sw.Elapsed);
+                        _sw.Restart();
+                        var bar = store.ForEachNode().Sum(n => n.GetPositions()?.Value.Length);
+                        _sw.Stop(); Console.WriteLine(_sw.Elapsed);
+                        if (foo != bar) Report.Error("foo != bar");
+
                         Console.WriteLine($"{store.PointCountTree,20:N0}");
                         totalCount += store.PointCountTree;
                         return store;
@@ -194,11 +204,36 @@ namespace Aardvark.Geometry.Tests
             }
         }
 
+        internal static void TestKeepAliveCache()
+        {
+            var r = new Random();
+
+            using (var cache = new KeepAliveCache(1024 * 1024 * 1024, true))
+            {
+                var foo = new Queue<object>();
+
+                while (true)
+                {
+                    //Thread.Sleep(1);
+
+                    var o = new object();
+                    //if (r.NextDouble() > 0.9) foo.Enqueue(o);
+                    //if (foo.Count > 0 && r.NextDouble() > 0.85) cache.Remove(foo.Dequeue());
+                    //if (r.NextDouble() > 0.99999) { Console.WriteLine("sleep"); Thread.Sleep(2000); }
+                    cache.Add(o, r.Next(10 * 1024 * 1024));
+
+                    if (cache.ProcessedCount > 1000000) break;
+                }
+            }
+        }
+
         public static void Main(string[] args)
         {
-            //LinkedStores();
+            //TestKeepAliveCache();
 
-            MasterLisa.Perform();
+            LinkedStores();
+
+            //MasterLisa.Perform();
             //TestE57();
 
             //var store = PointCloud.OpenStore(@"G:\cells\3280_5503_0_10\pointcloud");

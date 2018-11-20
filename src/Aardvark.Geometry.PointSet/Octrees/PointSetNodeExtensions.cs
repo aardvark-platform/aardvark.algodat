@@ -239,6 +239,29 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary>
+        /// </summary>
+        public static IEnumerable<IPointCloudNode> ForEachNode(
+           this IPointCloudNode self, int minCellExponent = int.MinValue
+           )
+        {
+            if (self == null) yield break;
+
+            if (self.Cell.Exponent < minCellExponent) yield break;
+
+            yield return self;
+
+            if (self.Subnodes != null)
+            {
+                for (var i = 0; i < 8; i++)
+                {
+                    var n = self.Subnodes[i];
+                    if (n == null) continue;
+                    foreach (var x in ForEachNode(n.Value, minCellExponent)) yield return x;
+                }
+            }
+        }
+
+        /// <summary>
         /// Calls action for each (node, fullyInside) in this tree that is intersecting the given hull.
         /// </summary>
         public static IEnumerable<CellQueryResult> ForEachNodeIntersecting(this PointSetNode self,
