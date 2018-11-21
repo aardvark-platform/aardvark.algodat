@@ -37,14 +37,44 @@ namespace Aardvark.Geometry.Tests
             var store = PointCloud.OpenStore(path2store);
             var pointset = store.GetPointSet(key, CancellationToken.None);
 
-            printTree(pointset.Root.Value, 0, 1);
+            var root = pointset.Root.Value;
+            var ml = 3;
+
+            //printTree(root, 0, ml);
+           
+            var nodesFromLvl = getNodesFromLevel(root, 0, ml, new List<PointSetNode>());
+            Report.Line($"amount nodes on level {ml}: {nodesFromLvl.Count()}");
+
+            var amountPoints = root.CountPoints();
+            Report.Line($"overall amount of points: {amountPoints}");
+
+            var logs = nodesFromLvl.Select(n => Math.Log10(n.PointCountTree));
+            var logSum = logs.Select(l => Math.Abs(l)).Sum();
+
+            var orderedNodes = nodesFromLvl.OrderBy(n => n.PointCountTree);
+
+            orderedNodes.ForEach(n => 
+            {
+                var pc = n.PointCountTree;
+                Report.Line($"point count: {pc}");
+                Report.Line($"point fraction: {pc/(double)amountPoints}");
+
+                var l = Math.Log10(pc);
+                Report.Line($"log(point count): {l}");
+
+                var x = l / logSum;
+                Report.Line($"normalized log: {x}\n");
+
+            });
+            
+
+            // ---------
 
             void printTree(PointSetNode n, int level, int maxLevel)
             {
                 if(level == 0)
-                    Console.WriteLine($"level 0: root {n.BoundingBoxExact.ToString()}");
+                    Console.WriteLine($"level 0: root");
                     
-
                 level++;
 
                 if (level > maxLevel)
@@ -56,7 +86,7 @@ namespace Aardvark.Geometry.Tests
 
                 if(n.IsLeaf())
                 {
-                    Console.WriteLine(tabs + $"|--- level {level}: leaf {n.BoundingBoxExact.ToString()}");
+                    Console.WriteLine(tabs + $"|--- level {level}: leaf");
                     return;
                 }
 
@@ -70,10 +100,28 @@ namespace Aardvark.Geometry.Tests
                     }
                     else
                     {
-                        Console.WriteLine(tabs + $"|--- level {level}: node {sn.Value.BoundingBoxExact.ToString()}");
+                        Console.WriteLine(tabs + $"|--- level {level}: node");
                         printTree(sn.Value, level, maxLevel);
                     }
                 });
+            }
+
+            List<PointSetNode> getNodesFromLevel(PointSetNode n, int currentLevel, int maxLevel, 
+                List<PointSetNode> nodes)
+            {
+                if (currentLevel > maxLevel)
+                    return nodes;
+
+                if (currentLevel == maxLevel)
+                    nodes.Add(n);
+                
+                if (n.IsLeaf())
+                    return nodes;
+
+                n.Subnodes.Where(sn => sn != null).ForEach(sn =>
+                    getNodesFromLevel(sn.Value, currentLevel + 1, maxLevel, nodes));
+
+                return nodes;
             }
         }
 
