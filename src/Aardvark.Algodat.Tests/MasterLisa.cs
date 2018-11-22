@@ -14,12 +14,12 @@ namespace Aardvark.Geometry.Tests
     {
         public static void Perform()
         {
-            var path2store = @"C:\Users\kellner\Desktop\Diplomarbeit\Store2";
+            var path2store = @"C:\Users\kellner\Desktop\Diplomarbeit\Store";
 
             //var dirLabels = @"C:\Users\kellner\Desktop\Diplomarbeit\Semantic3d\sem8_labels_training";
             //var dirData = @"C:\Users\kellner\Desktop\Diplomarbeit\Semantic3d\sem8_data_training";
 
-            var key = "bildstein_5_labelled";
+            var key = "sg27_station2";
             //var fn = "bildstein_station5_xyz_intensity_rgb";
 
             //Report.Line("importing pointcloud");
@@ -38,37 +38,53 @@ namespace Aardvark.Geometry.Tests
             var pointset = store.GetPointSet(key, CancellationToken.None);
 
             var root = pointset.Root.Value;
-            var ml = 3;
+            var ml = 12;
 
             //printTree(root, 0, ml);
            
             var nodesFromLvl = getNodesFromLevel(root, 0, ml, new List<PointSetNode>());
             Report.Line($"amount nodes on level {ml}: {nodesFromLvl.Count()}");
-
+            
             var amountPoints = root.CountPoints();
-            Report.Line($"overall amount of points: {amountPoints}");
+            Report.Line($"overall amount of points: {amountPoints}\n");
 
             var logs = nodesFromLvl.Select(n => Math.Log10(n.PointCountTree));
             var logSum = logs.Select(l => Math.Abs(l)).Sum();
 
             var orderedNodes = nodesFromLvl.OrderBy(n => n.PointCountTree);
-
+            
             orderedNodes.ForEach(n => 
             {
                 var pc = n.PointCountTree;
                 Report.Line($"point count: {pc}");
-                Report.Line($"point fraction: {pc/(double)amountPoints}");
+                //Report.Line($"point fraction: {pc/(double)amountPoints}");
 
                 var l = Math.Log10(pc);
-                Report.Line($"log(point count): {l}");
+                //Report.Line($"log(point count): {l}");
 
                 var x = l / logSum;
-                Report.Line($"normalized log: {x}\n");
+                //Report.Line($"normalized log: {x}\n");
 
+                var classes = ClassificationsOfTree(n, new List<byte>()).ToArray();
+                Report.Line($"amount classifications: {classes.Length}");
             });
-            
 
             // ---------
+
+            List<byte> ClassificationsOfTree (PointSetNode n, List<byte> classifications)
+            {
+                if (n.HasClassifications)
+                    classifications.AddRange(n.Classifications.Value);
+
+                if (n.IsLeaf())
+                    return classifications;
+
+                n.Subnodes.Where(sn => sn != null).ForEach(sn =>
+                    ClassificationsOfTree(sn.Value, classifications)
+                );
+
+                return classifications;
+            }
 
             void printTree(PointSetNode n, int level, int maxLevel)
             {
