@@ -27,7 +27,7 @@ namespace Aardvark.Base
         /// <summary></summary>
         public BitPacker(int bitsPerValue)
         {
-            if (bitsPerValue < 1 || bitsPerValue > 32) throw new ArgumentOutOfRangeException(
+            if (bitsPerValue < 1 || (bitsPerValue > 32 && bitsPerValue != 64)) throw new ArgumentOutOfRangeException(
                 nameof(bitsPerValue), $"BitsPerValue must be [1,32] but is {bitsPerValue}");
 
             BitsPerValue = bitsPerValue;
