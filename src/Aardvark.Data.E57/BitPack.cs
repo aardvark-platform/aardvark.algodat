@@ -27,7 +27,7 @@ namespace Aardvark.Base
         /// <summary></summary>
         public BitPacker(int bitsPerValue)
         {
-            if (bitsPerValue < 1 || (bitsPerValue > 32 && bitsPerValue != 64)) throw new ArgumentOutOfRangeException(
+            if (bitsPerValue < 0 || (bitsPerValue > 32 && bitsPerValue != 64)) throw new ArgumentOutOfRangeException(
                 nameof(bitsPerValue), $"BitsPerValue must be [1,32] but is {bitsPerValue}");
 
             BitsPerValue = bitsPerValue;
@@ -111,7 +111,7 @@ namespace Aardvark.Base
             if (bits <= 32)
             {
                 var bb = new BitBuffer(buffer, bits);
-                var count = (buffer.Length * 8) / bits;
+                var count = bits > 0 ? ((buffer.Length * 8) / bits) : 0;
                 var data = bb.ReadUInts(bits, count);
                 return data;
             }
@@ -294,7 +294,7 @@ namespace Aardvark.Base
             public BitBuffer(byte[] buffer, int bits)
             {
                 Buffer = buffer;
-                LengthInBits = ((buffer.Length * 8) / bits) * bits;
+                LengthInBits = bits > 0 ? (((buffer.Length * 8) / bits) * bits) : 0;
                 _i = 0; _ibit = 0;
             }
             /// <summary></summary>
