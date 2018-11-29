@@ -14,12 +14,12 @@ namespace Aardvark.Geometry.Tests
     {
         public static void Perform()
         {
-            var path2store = @"C:\Users\kellner\Desktop\Diplomarbeit\Store2";
+            var path2store = @"C:\Users\kellner\Desktop\Diplomarbeit\Store";
 
             //var dirLabels = @"C:\Users\kellner\Desktop\Diplomarbeit\Semantic3d\sem8_labels_training";
             //var dirData = @"C:\Users\kellner\Desktop\Diplomarbeit\Semantic3d\sem8_data_training";
 
-            var key = "bildstein_5_labelled";
+            var key = "sg27_station2";
             //var fn = "bildstein_station5_xyz_intensity_rgb";
 
             //Report.Line("importing pointcloud");
@@ -36,27 +36,108 @@ namespace Aardvark.Geometry.Tests
             // -----------------------------------
             var store = PointCloud.OpenStore(path2store);
             var pointset = store.GetPointSet(key, CancellationToken.None);
+
+            var root = pointset.Root.Value;
+            var ml = 12;
+
+            //printTree(root, 0, ml);
+           
+            var nodesFromLvl = getNodesFromLevel(root, 0, ml, new List<PointSetNode>());
+            Report.Line($"amount nodes on level {ml}: {nodesFromLvl.Count()}");
             
-            var nodes = traverse(pointset.Octree.Value, 3, 0);
+            var amountPoints = root.CountPoints();
+            Report.Line($"overall amount of points: {amountPoints}\n");
 
-            IPointCloudNode[] traverse(IPointCloudNode n, int maxLevel, int currLevel)
+            var logs = nodesFromLvl.Select(n => Math.Log10(n.PointCountTree));
+            var logSum = logs.Select(l => Math.Abs(l)).Sum();
+
+            var orderedNodes = nodesFromLvl.OrderBy(n => n.PointCountTree);
+            
+            orderedNodes.ForEach(n => 
             {
-                if (n.IsLeaf())
-                    return new IPointCloudNode[] { };
+                var pc = n.PointCountTree;
+                Report.Line($"point count: {pc}");
+                //Report.Line($"point fraction: {pc/(double)amountPoints}");
 
-                if (currLevel < maxLevel)
+                var l = Math.Log10(pc);
+                //Report.Line($"log(point count): {l}");
+
+                var x = l / logSum;
+                //Report.Line($"normalized log: {x}\n");
+
+                var classes = ClassificationsOfTree(n, new List<byte>()).ToArray();
+                Report.Line($"amount classifications: {classes.Length}");
+            });
+
+            // ---------
+
+            List<byte> ClassificationsOfTree (PointSetNode n, List<byte> classifications)
+            {
+                if (n.HasClassifications)
+                    classifications.AddRange(n.Classifications.Value);
+
+                if (n.IsLeaf())
+                    return classifications;
+
+                n.Subnodes.Where(sn => sn != null).ForEach(sn =>
+                    ClassificationsOfTree(sn.Value, classifications)
+                );
+
+                return classifications;
+            }
+
+            void printTree(PointSetNode n, int level, int maxLevel)
+            {
+                if(level == 0)
+                    Console.WriteLine($"level 0: root");
+                    
+                level++;
+
+                if (level > maxLevel)
+                    return;
+                
+                var tabs = "";
+                for (int i = 0; i < level - 1; ++i)
+                    tabs += "\t";
+
+                if(n.IsLeaf())
                 {
-                    currLevel = currLevel + 1;
-                    return n.SubNodes.
-                        Where(sn => sn != null).
-                        SelectMany(sn => 
-                        traverse(sn.Value, maxLevel, currLevel)).ToArray();
+                    Console.WriteLine(tabs + $"|--- level {level}: leaf");
+                    return;
                 }
 
-                if (currLevel == maxLevel)
-                    return new IPointCloudNode[] { n };
+                n.Subnodes.ForEach(sn => 
+                {
+                    if (sn == null)
+                    {
+                        Console.ForegroundColor = ConsoleColor.DarkGray;
+                        Console.WriteLine(tabs + $"|--- level {level}: null");
+                        Console.ForegroundColor = ConsoleColor.White;
+                    }
+                    else
+                    {
+                        Console.WriteLine(tabs + $"|--- level {level}: node");
+                        printTree(sn.Value, level, maxLevel);
+                    }
+                });
+            }
 
-                return new IPointCloudNode[] { };
+            List<PointSetNode> getNodesFromLevel(PointSetNode n, int currentLevel, int maxLevel, 
+                List<PointSetNode> nodes)
+            {
+                if (currentLevel > maxLevel)
+                    return nodes;
+
+                if (currentLevel == maxLevel)
+                    nodes.Add(n);
+                
+                if (n.IsLeaf())
+                    return nodes;
+
+                n.Subnodes.Where(sn => sn != null).ForEach(sn =>
+                    getNodesFromLevel(sn.Value, currentLevel + 1, maxLevel, nodes));
+
+                return nodes;
             }
         }
 

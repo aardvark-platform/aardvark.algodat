@@ -11,7 +11,11 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
+//#define BREAK_ON_RELOAD
+
 using System;
+using System.Diagnostics;
 using System.Threading;
 
 namespace Aardvark.Geometry.Points
@@ -22,7 +26,9 @@ namespace Aardvark.Geometry.Points
     {
         private readonly Func<string, CancellationToken, T> f_get;
         private WeakReference<T> m_value;
-
+#if BREAK_ON_RELOAD
+        private bool m_loadedOnce = false;
+#endif
         /// <summary>
         /// </summary>
         public PersistentRef(string id, Func<string, CancellationToken, T> get, T cachedValue = null)
@@ -41,6 +47,10 @@ namespace Aardvark.Geometry.Points
         public T GetValue(CancellationToken ct)
         {
             if (m_value != null && m_value.TryGetTarget(out T result)) return result;
+#if BREAK_ON_RELOAD
+            if (m_loadedOnce) Debugger.Break();
+            m_loadedOnce = true;
+#endif
             result = f_get(Id, ct);
             m_value = new WeakReference<T>(result);
             return result;
