@@ -128,7 +128,7 @@ namespace Aardvark.Geometry.Tests
         internal static void TestE57()
         {
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
-            var filename = @"test.pts";
+            var filename = @"test.e57";
             var fileSizeInBytes = new FileInfo(filename).Length;
 
             var config = ImportConfig.Default
@@ -139,7 +139,7 @@ namespace Aardvark.Geometry.Tests
                 .WithMinDist(0.005)
                 ;
 
-            var chunks = Pts.Chunks(filename, config).ToList();
+            var chunks = E57.Chunks(filename, config).ToList();
             var pointcloud = PointCloud.Chunks(chunks, config);
             Console.WriteLine($"pointcloud.PointCount  : {pointcloud.PointCount}");
             Console.WriteLine($"pointcloud.Bounds      :{pointcloud.Bounds}");
