@@ -27,7 +27,7 @@ namespace Aardvark.Base
         /// <summary>
         /// Default cache with 4 GB and verbosity enabled.
         /// </summary>
-        public static readonly Lazy<KeepAliveCache> Default = new Lazy<KeepAliveCache>(() => new KeepAliveCache(4L * 1024 * 1024 * 1024, true), true);
+        public static readonly Lazy<KeepAliveCache> Default = new Lazy<KeepAliveCache>(() => new KeepAliveCache(1L * 1024 * 1024 * 1024, true), true);
 
         /// <summary>
         /// If queue is longer, then clients will be delayed on Add, Remove and Flush calls.
@@ -152,7 +152,9 @@ namespace Aardvark.Base
                 while (m_active)
                 {
                     // wait for command(s) to arrive
-                    if (!m_mre.Wait(1000)) continue;
+                    if (!m_mre.Wait(10)) continue;
+                    Thread.Sleep(10);
+
                     if (m_clientQueue.Count == 0) throw new InvalidOperationException();
 
                     // swap client queue with internal queue,
@@ -196,18 +198,22 @@ namespace Aardvark.Base
                             default:
                                 throw new NotImplementedException($"Command not implemented: {cmd.Type}");
                         }
-
-                        if (CurrentSize > MaxSize)
-                        {
-                            foreach (var kv in m_entries.OrderBy(kv => kv.Value.Timestamp))
-                            {
-                                CurrentSize -= kv.Value.SizeInBytes;
-                                m_entries.Remove(kv.Key);
-
-                                if (CurrentSize <= MaxSize) break;
-                            }
-                        }
                     }
+
+                    if (CurrentSize > MaxSize)
+                    {
+                        //Report.BeginTimed("[KeepAliveCache] collect");
+                        var ordered = m_entries.OrderBy(kv => kv.Value.Timestamp).ToArray();
+                        foreach (var kv in ordered)
+                        {
+                            CurrentSize -= kv.Value.SizeInBytes;
+                            m_entries.Remove(kv.Key);
+
+                            if (CurrentSize <= MaxSize) break;
+                        }
+                        //Report.EndTimed();
+                    }
+
                     m_internalQueue.Clear();
                 }
             }
@@ -221,19 +227,24 @@ namespace Aardvark.Base
         {
             try
             {
-                var t0 = DateTimeOffset.UtcNow;
+                var opsPerSecond = 0.0;
+                var tPrev = DateTimeOffset.UtcNow;
                 var prevNextTimestamp = 0L;
                 while (m_active)
                 {
-                    Thread.Sleep(1000);
+                    Thread.Sleep(5000);
                     if (!m_active) break;
 
                     if (m_nextTimestamp == prevNextTimestamp) continue;
+
+                    var tNow = DateTimeOffset.UtcNow;
+                    opsPerSecond = 0.9 * opsPerSecond + 0.1 * (m_nextTimestamp - prevNextTimestamp) / (tNow - tPrev).TotalSeconds;
                     prevNextTimestamp = m_nextTimestamp;
+                    tPrev = tNow;
 
                     var fillrate = MaxSize > 0 ? CurrentSize / (double)MaxSize : 0.0;
-                    var cps = m_nextTimestamp / (DateTimeOffset.UtcNow - t0).TotalSeconds;
-                    Report.Line($"[KeepAliveCache] {fillrate,7:0.000}% | {m_entries.Count,8:N0} entries | {m_clientQueue.Count,8:N0} pending | {cps,10:N1} cmd/s | {m_nextTimestamp,14:N0} processed");
+
+                    Report.Line($"[KeepAliveCache] {fillrate * 100,7:0.00}% | {m_entries.Count,8:N0} entries | {m_clientQueue.Count,8:N0} pending | {opsPerSecond,10:N1} ops/s | {m_nextTimestamp,14:N0} processed");
                 }
             }
             catch (Exception e)
