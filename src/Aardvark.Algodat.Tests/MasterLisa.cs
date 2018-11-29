@@ -37,7 +37,9 @@ namespace Aardvark.Geometry.Tests
             var store = PointCloud.OpenStore(path2store);
             var pointset = store.GetPointSet(key, CancellationToken.None);
 
+#pragma warning disable CS0618 // Type or member is obsolete
             var root = pointset.Root.Value;
+#pragma warning restore CS0618 // Type or member is obsolete
             var ml = 12;
 
             //printTree(root, 0, ml);
