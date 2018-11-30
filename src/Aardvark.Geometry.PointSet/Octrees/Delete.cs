@@ -123,7 +123,9 @@ namespace Aardvark.Geometry.Points
                         node.Storage.Add(newKsId.Value, ks.ToArray(), ct);
                     }
 
-                    var result = new PointSetNode(node.Cell, ps.Count, ebb.Value, node.AveragePointDistance, newPsId, newCsId, newKdId, newNsId, newIsId, newKsId, node.Storage);
+                    var result = new PointSetNode(node.Cell, ps.Count, ebb.Value,
+                        node.PointDistanceAverage, node.PointDistanceStandardDeviation,
+                        newPsId, newCsId, newKdId, newNsId, newIsId, newKsId, node.Storage);
                     if (node.HasLodPositions) result = result.WithLod();
                     return result;
                 }

@@ -116,7 +116,8 @@ namespace Aardvark.Geometry.Points
                 PointRkdTreeD<V3f[], V3f> kdTree = null;
                 
                 Box3f? bbel = null;
-                float? averagePointDistance = null;
+                float? pointDistanceAverage = null;
+                float? pointDistanceStandardDeviation = null;
 
                 if (_ia != null)
                 {
@@ -163,13 +164,23 @@ namespace Aardvark.Geometry.Points
                         );
 
                     var halfDiagonal = bbel.Value.Size.Length / 2.0f;
+                    var dists = new float[ps.Length];
                     var sum = 0.0f;
                     for (var i = 0; i < ps.Length; i++)
                     {
                         var closest = kdTree.GetClosest(ps[i], halfDiagonal, 2);
-                        sum += (float)closest[0].Dist;
+                        var d = (float)closest[0].Dist;
+                        dists[i] = d;
+                        sum += d;
                     }
-                    averagePointDistance = sum / ps.Length;
+                    pointDistanceAverage = sum / ps.Length;
+                    sum = 0.0f;
+                    for (var i = 0; i < ps.Length; i++)
+                    {
+                        var d = dists[i] - pointDistanceAverage.Value;
+                        sum += d * d;
+                    }
+                    pointDistanceStandardDeviation = (float)Math.Sqrt(sum);
                 }
 
                 Guid? psId = ps != null ? (Guid?)Guid.NewGuid() : null;
@@ -205,11 +216,13 @@ namespace Aardvark.Geometry.Points
 
                 if (subcellIds == null) // leaf
                 {
-                    return new PointSetNode(_cell, pointCountTree, bbel.Value, averagePointDistance.Value, psId, csId, kdId, nsId, isId, ksId, storage);
+                    return new PointSetNode(_cell, pointCountTree, bbel.Value,
+                        pointDistanceAverage.Value, pointDistanceStandardDeviation.Value,
+                        psId, csId, kdId, nsId, isId, ksId, storage);
                 }
                 else
                 {
-                    return new PointSetNode(_cell, pointCountTree, bbel.Value, 0.0f, subcellIds, storage);
+                    return new PointSetNode(_cell, pointCountTree, bbel.Value, 0.0f, 0.0f, subcellIds, storage);
                 }
             }
             

@@ -229,6 +229,11 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// float.
         /// </summary>
-        AveragePointDistance  = 1 <<  1,
+        PointDistanceAverage  = 1 <<  1,
+
+        /// <summary>
+        /// float.
+        /// </summary>
+        PointDistanceStandardDeviation = 1 << 2,
     }
 }

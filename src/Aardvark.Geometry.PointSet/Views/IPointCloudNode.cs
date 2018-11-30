@@ -52,6 +52,16 @@ namespace Aardvark.Geometry.Points
         /// Number of points in this tree (sum of leaves).
         /// </summary>
         long PointCountTree { get; }
+
+        /// <summary>
+        /// Average distance of points in this cell.
+        /// </summary>
+        float PointDistanceAverage { get; }
+
+        /// <summary>
+        /// Standard deviation of distance of points in this cell.
+        /// </summary>
+        float PointDistanceStandardDeviation { get; }
         
         /// <summary>
         /// Subnodes (8), or null if leaf.

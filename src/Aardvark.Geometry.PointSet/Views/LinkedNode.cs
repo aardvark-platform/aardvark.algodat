@@ -113,7 +113,13 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public long PointCountTree { get; }
-        
+
+        /// <summary></summary>
+        public float PointDistanceAverage => Root.PointDistanceAverage;
+
+        /// <summary></summary>
+        public float PointDistanceStandardDeviation => Root.PointDistanceStandardDeviation;
+
         /// <summary></summary>
         public PersistentRef<IPointCloudNode>[] SubNodes => Root.SubNodes;
         

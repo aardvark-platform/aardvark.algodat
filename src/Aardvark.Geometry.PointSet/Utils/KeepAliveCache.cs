@@ -227,12 +227,16 @@ namespace Aardvark.Base
         {
             try
             {
+                var nextLogLine = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(5);
                 var opsPerSecond = 0.0;
                 var tPrev = DateTimeOffset.UtcNow;
                 var prevNextTimestamp = 0L;
                 while (m_active)
                 {
-                    Thread.Sleep(5000);
+                    Thread.Sleep(100);
+                    if (DateTimeOffset.UtcNow < nextLogLine) continue;
+                    nextLogLine = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(5);
+
                     if (!m_active) break;
 
                     if (m_nextTimestamp == prevNextTimestamp) continue;
