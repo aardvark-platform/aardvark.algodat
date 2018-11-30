@@ -75,7 +75,7 @@ namespace Aardvark.Geometry.Tests
             var lodded = pointset.GenerateLod(config);
             lodded.Octree.Value.ForEachNode(true, cell =>
             {
-                Assert.IsTrue(cell.HasLodPositions() == false);
+                Assert.IsTrue(cell.HasPositions() == true);
             });
         }
 

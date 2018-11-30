@@ -41,7 +41,6 @@ namespace Aardvark.Geometry.Tests
             var cloud = PointCloud.Chunks(chunk, config);
 
             Assert.IsTrue(cloud.HasNormals == false);
-            Assert.IsTrue(cloud.HasLodNormals == false);
 
             config = config
                 .WithRandomKey()
@@ -71,7 +70,6 @@ namespace Aardvark.Geometry.Tests
             var cloud = PointCloud.Chunks(chunk, config);
 
             Assert.IsTrue(cloud.HasNormals == false);
-            Assert.IsTrue(cloud.HasLodNormals == false);
 
             config = config
                 .WithRandomKey()
@@ -80,7 +78,6 @@ namespace Aardvark.Geometry.Tests
             var cloud2 = cloud.GenerateNormals(config);
             Assert.IsTrue(cloud2.HasNormals == true);
             Assert.IsTrue(cloud2.Octree.Value.GetNormals().Value.All(n => n == V3f.OOI));
-            Assert.IsTrue(cloud2.HasLodNormals == false);
         }
     }
 }

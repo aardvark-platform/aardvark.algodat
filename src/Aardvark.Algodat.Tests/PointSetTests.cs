@@ -150,11 +150,6 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(pointset.HasColors == false);
             Assert.IsTrue(pointset.HasIntensities == false);
             Assert.IsTrue(pointset.HasKdTree == false);
-            Assert.IsTrue(pointset.HasLodColors == false);
-            Assert.IsTrue(pointset.HasLodIntensities == false);
-            Assert.IsTrue(pointset.HasLodKdTree == false);
-            Assert.IsTrue(pointset.HasLodNormals == false);
-            Assert.IsTrue(pointset.HasLodPositions == false);
             Assert.IsTrue(pointset.HasNormals == false);
             Assert.IsTrue(pointset.HasPositions == false);
         }
@@ -173,12 +168,6 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(pointset.HasIntensities == true);
             Assert.IsTrue(pointset.HasClassifications == true);
             Assert.IsTrue(pointset.HasKdTree == true);
-            Assert.IsTrue(pointset.HasLodColors == true);
-            Assert.IsTrue(pointset.HasLodIntensities == true);
-            Assert.IsTrue(pointset.HasLodClassifications == true);
-            Assert.IsTrue(pointset.HasLodKdTree == true);
-            Assert.IsTrue(pointset.HasLodNormals == true);
-            Assert.IsTrue(pointset.HasLodPositions == true);
             Assert.IsTrue(pointset.HasNormals == true);
             Assert.IsTrue(pointset.HasPositions == true);
         }
@@ -197,12 +186,6 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(pointset.HasIntensities == true);
             Assert.IsTrue(pointset.HasClassifications == true);
             Assert.IsTrue(pointset.HasKdTree == true);
-            Assert.IsTrue(pointset.HasLodColors == false);
-            Assert.IsTrue(pointset.HasLodIntensities == false);
-            Assert.IsTrue(pointset.HasLodClassifications == false);
-            Assert.IsTrue(pointset.HasLodKdTree == false);
-            Assert.IsTrue(pointset.HasLodNormals == false);
-            Assert.IsTrue(pointset.HasLodPositions == false);
             Assert.IsTrue(pointset.HasNormals == true);
             Assert.IsTrue(pointset.HasPositions == true);
         }
@@ -217,11 +200,6 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(pointset.HasColors == true);
             Assert.IsTrue(pointset.HasIntensities == false);
             Assert.IsTrue(pointset.HasKdTree == true);
-            Assert.IsTrue(pointset.HasLodColors == true);
-            Assert.IsTrue(pointset.HasLodIntensities == false);
-            Assert.IsTrue(pointset.HasLodKdTree == true);
-            Assert.IsTrue(pointset.HasLodNormals == false);
-            Assert.IsTrue(pointset.HasLodPositions == true);
             Assert.IsTrue(pointset.HasNormals == false);
             Assert.IsTrue(pointset.HasPositions == true);
         }

@@ -117,9 +117,9 @@ namespace Aardvark.Geometry.Points
                 }
             }
 
-            var newSubnodes = node.Subnodes.Map(n => n?.Value.Delete(isNodeFullyInside, isNodeFullyOutside, isPositionInside, ct));
-            if (newSubnodes.All(n => n == null)) return null;
-            return node.WithData(newPsId, newCsId, newNsId, newIsId, newKdId, newKsId, newSubnodes);
+            var newSubnodes = node.Subnodes?.Map(n => n?.Value.Delete(isNodeFullyInside, isNodeFullyOutside, isPositionInside, ct));
+            if (newSubnodes?.All(n => n == null) == true) return null;
+            return node.WithData(ps.Count, newPsId, newCsId, newNsId, newIsId, newKdId, newKsId, newSubnodes);
         }
     }
 }

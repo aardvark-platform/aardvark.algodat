@@ -229,24 +229,6 @@ namespace Aardvark.Geometry.Points
         public bool HasKdTree => Octree != null ? Octree.GetValue(default).HasKdTree() : false;
         
         /// <summary></summary>
-        public bool HasLodColors => Octree != null ? Octree.GetValue(default).HasLodColors() : false;
-
-        /// <summary></summary>
-        public bool HasLodIntensities => Octree != null ? Octree.GetValue(default).HasLodIntensities() : false;
-        
-        /// <summary></summary>
-        public bool HasLodClassifications => Octree != null ? Octree.GetValue(default).HasLodClassifications() : false;
-
-        /// <summary></summary>
-        public bool HasLodKdTree => Octree != null ? Octree.GetValue(default).HasLodKdTree() : false;
-
-        /// <summary></summary>
-        public bool HasLodNormals => Octree != null ? Octree.GetValue(default).HasLodNormals() : false;
-
-        /// <summary></summary>
-        public bool HasLodPositions => Octree != null ? Octree.GetValue(default).HasLodPositions() : false;
-
-        /// <summary></summary>
         public bool HasNormals => Octree != null ? Octree.GetValue(default).HasNormals() : false;
 
         /// <summary></summary>

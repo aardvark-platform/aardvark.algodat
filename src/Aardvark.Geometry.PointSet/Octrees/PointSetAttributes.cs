@@ -30,18 +30,25 @@ namespace Aardvark.Geometry.Points
         /// <summary>PointRkdTreeDData.</summary>
         public const string KdTree = "KdTree";
         /// <summary>byte[].</summary>
+        [Obsolete]
         public const string LodClassifications = "LodClassifications";
         /// <summary>C4b[].</summary>
+        [Obsolete]
         public const string LodColors = "LodColors";
         /// <summary>int[].</summary>
+        [Obsolete]
         public const string LodIntensities = "LodIntensities";
         /// <summary>PointRkdTreeDData.</summary>
+        [Obsolete]
         public const string LodKdTree = "LodKdTree";
         /// <summary>V3f[].</summary>
+        [Obsolete]
         public const string LodNormals = "LodNormals";
         /// <summary>V3f[] relative to center.</summary>
+        [Obsolete]
         public const string LodPositions = "LodPositions";
         /// <summary>V3d[] absolute.</summary>
+        [Obsolete]
         public const string LodPositionsAbsolute = "LodPositionsAbsolute";
         /// <summary>V3f[].</summary>
         public const string Normals = "Normals";

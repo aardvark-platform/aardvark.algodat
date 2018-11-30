@@ -33,11 +33,11 @@ namespace Aardvark.Geometry.Tests
             var storage = PointSetTests.CreateStorage();
             var ps = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
             var pointset0 = PointSet.Create(storage, "test", ps.ToList(), null, null, null, null, 5000, true, CancellationToken.None);
-            Assert.IsTrue(!(pointset0.HasNormals || pointset0.HasLodNormals));
+            Assert.IsTrue(!pointset0.HasNormals);
 
             // create new pointset with regenerated normals
             var pointset1 = pointset0.RegenerateNormals(xs => xs.Map(_ => V3f.XAxis), default, default);
-            Assert.IsTrue(pointset1.HasNormals || pointset1.HasLodNormals);
+            Assert.IsTrue(pointset1.HasNormals);
 
 
             // compare original and regenerated
@@ -72,11 +72,11 @@ namespace Aardvark.Geometry.Tests
             var ps = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
             var ns = ps.Map(_ => V3f.ZAxis);
             var pointset0 = PointSet.Create(storage, "test", ps.ToList(), null, ns.ToList(), null, null, 5000, true, CancellationToken.None);
-            Assert.IsTrue(pointset0.HasNormals || pointset0.HasLodNormals);
+            Assert.IsTrue(pointset0.HasNormals);
 
             // create new pointset with regenerated normals
             var pointset1 = pointset0.RegenerateNormals(xs => xs.Map(_ => V3f.XAxis), default, default);
-            Assert.IsTrue(pointset1.HasNormals || pointset1.HasLodNormals);
+            Assert.IsTrue(pointset1.HasNormals);
 
 
             // compare original and regenerated

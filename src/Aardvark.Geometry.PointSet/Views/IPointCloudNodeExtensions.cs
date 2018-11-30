@@ -56,28 +56,10 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public static bool HasKdTree(this IPointCloudNode self) => Has(self, PointCloudAttribute.KdTree);
-
-        /// <summary></summary>
-        public static bool HasLodPositions(this IPointCloudNode self) => Has(self, PointCloudAttribute.LodPositions);
-
-        /// <summary></summary>
-        public static bool HasLodColors(this IPointCloudNode self) => Has(self, PointCloudAttribute.LodColors);
-
-        /// <summary></summary>
-        public static bool HasLodNormals(this IPointCloudNode self) => Has(self, PointCloudAttribute.LodNormals);
-
-        /// <summary></summary>
-        public static bool HasLodIntensities(this IPointCloudNode self) => Has(self, PointCloudAttribute.LodIntensities);
-
-        /// <summary></summary>
-        public static bool HasLodKdTree(this IPointCloudNode self) => Has(self, PointCloudAttribute.LodKdTree);
-
+        
         /// <summary></summary>
         public static bool HasClassifications(this IPointCloudNode self) => Has(self, PointCloudAttribute.Classifications);
-
-        /// <summary></summary>
-        public static bool HasLodClassifications(this IPointCloudNode self) => Has(self, PointCloudAttribute.LodClassifications);
-
+        
         #endregion
 
         #region Get*

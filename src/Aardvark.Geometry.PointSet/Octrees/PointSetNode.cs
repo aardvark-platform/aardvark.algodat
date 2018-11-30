@@ -40,9 +40,6 @@ namespace Aardvark.Geometry.Points
             Guid?[] subnodeIds, Storage storage, bool writeToStore
             )
         {
-            if (subnodeIds != null && subnodeIds.Count(x => x.HasValue) > 0 && pointCountTree == 0)
-                throw new ArgumentException(nameof(pointCountTree), "Must not be 0 for inner nodes.");
-
             Storage = storage;
             Id = id;
             Cell = cell;
@@ -105,15 +102,6 @@ namespace Aardvark.Geometry.Points
             {
                 if (PositionsId == null) throw new InvalidOperationException();
                 if (KdTreeId == null) throw new InvalidOperationException();
-            }
-            else
-            {
-                if (PositionsId != null) throw new InvalidOperationException();
-                if (ColorsId != null) throw new InvalidOperationException();
-                if (KdTreeId != null) throw new InvalidOperationException();
-                if (NormalsId != null) throw new InvalidOperationException();
-                if (IntensitiesId != null) throw new InvalidOperationException();
-                if (ClassificationsId != null) throw new InvalidOperationException();
             }
 #endif
             PointRkdTreeD<V3f[], V3f> LoadKdTree(string key, CancellationToken ct)
@@ -1034,13 +1022,11 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Makes node with LoD data from inner node.
         /// </summary>
-        internal PointSetNode WithData(Guid? psId, Guid? csId, Guid? nsId, Guid? isId, Guid? kdId, Guid? ksId, PointSetNode[] subnodes)
+        internal PointSetNode WithData(long? pointCountTree, Guid? psId, Guid? csId, Guid? nsId, Guid? isId, Guid? kdId, Guid? ksId, PointSetNode[] subnodes)
         {
-            if (IsLeaf) throw new InvalidOperationException();
-            if (subnodes == null) throw new InvalidOperationException();
-            var pointCountTree = subnodes.Sum(n => n != null ? n.PointCountTree : 0);
+            pointCountTree = pointCountTree ?? subnodes?.Sum(n => n != null ? n.PointCountTree : 0);
             return new PointSetNode(Guid.NewGuid(),
-                Cell, pointCountTree, BoundingBoxExactLocal,
+                Cell, pointCountTree.Value, BoundingBoxExactLocal,
                 PointDistanceAverage, PointDistanceStandardDeviation,
                 psId, csId, kdId, nsId, isId, ksId,
                 subnodes?.Map(x => x?.Id), Storage, true

@@ -217,7 +217,7 @@ namespace Aardvark.Geometry.Points
             var lodKsId = needsKs ? (Guid?)Guid.NewGuid() : null;
             if (needsKs) self.Storage.Add(lodKsId.Value, lodKs, ct);
 
-            var result = self.WithData(lodPsId, lodCsId, lodNsId, lodIsId, lodKdId, lodKsId, subcells);
+            var result = self.WithData(lodPs.Length, lodPsId, lodCsId, lodNsId, lodIsId, lodKdId, lodKsId, subcells);
             return result;
         }
 
@@ -231,7 +231,7 @@ namespace Aardvark.Geometry.Points
             
             if (self.IsLeaf()) return self.WithLod();
 
-            if (self.HasLodPositions()) return self; // cell already has lod data -> done
+            if (self.HasPositions()) return self; // cell already has lod data -> done
 
             if (self.SubNodes == null || self.SubNodes.Length != 8) throw new InvalidOperationException();
 
@@ -239,10 +239,10 @@ namespace Aardvark.Geometry.Points
             var subcenters = subcells.Map(x => x?.Center);
             var subcellsTotalCount = (long)subcells.Sum(x => x?.PointCountTree);
 
-            var needsCs = subcells.Any(x => x != null ? (x.HasLodColors()) : false);
-            var needsNs = subcells.Any(x => x != null ? (x.HasLodNormals()) : false);
-            var needsIs = subcells.Any(x => x != null ? (x.HasLodIntensities()) : false);
-            var needsKs = subcells.Any(x => x != null ? (x.HasLodClassifications()) : false);
+            var needsCs = subcells.Any(x => x != null ? (x.HasColors()) : false);
+            var needsNs = subcells.Any(x => x != null ? (x.HasNormals()) : false);
+            var needsIs = subcells.Any(x => x != null ? (x.HasIntensities()) : false);
+            var needsKs = subcells.Any(x => x != null ? (x.HasClassifications()) : false);
 
             var fractions = Lod.ComputeLodFractions(subcells);
             var counts = Lod.ComputeLodCounts(splitLimit, fractions);
