@@ -146,7 +146,7 @@ namespace Aardvark.Geometry.Tests
             Console.WriteLine($"pointcloud.BoundingBox :{pointcloud.BoundingBox}");
 
             var leafLodPointCount = 0L;
-            pointcloud.Octree.Value.ForEachNode(true, n => { if (n.IsLeaf()) leafLodPointCount += n.GetLodPositionsAbsolute().Length; });
+            pointcloud.Octree.Value.ForEachNode(true, n => { if (n.IsLeaf()) leafLodPointCount += n.GetPositions().Value.Length; });
             Console.WriteLine($"leaf lod point count :{leafLodPointCount}");
 
             //foreach (var chunk in chunks)
