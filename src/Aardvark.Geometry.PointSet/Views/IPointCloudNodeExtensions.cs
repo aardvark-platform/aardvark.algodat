@@ -124,48 +124,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PersistentRef<byte[]> GetClassifications(this IPointCloudNode self)
             => self.TryGetPropertyValue(PointCloudAttribute.Classifications, out object value) ? (PersistentRef<byte[]>)value : null;
-
-        /// <summary>
-        /// LoD-Positions relative to cell's center, or null if no positions.
-        /// </summary>
-        public static PersistentRef<V3f[]> GetLodPositions(this IPointCloudNode self)
-            => self.TryGetPropertyValue(PointCloudAttribute.LodPositions, out object value) ? (PersistentRef<V3f[]>)value : null;
-
-        /// <summary>
-        /// Lod-Positions (absolute), or null if no positions.
-        /// </summary>
-        public static V3d[] GetLodPositionsAbsolute(this IPointCloudNode self)
-        {
-            var c = self.Center;
-            return GetLodPositions(self).Value.Map(p => c + (V3d)p);
-        }
-
-        /// <summary>
-        /// </summary>
-        public static PersistentRef<PointRkdTreeD<V3f[], V3f>> GetLodKdTree(this IPointCloudNode self)
-            => self.TryGetPropertyValue(PointCloudAttribute.LodKdTree, out object value) ? (PersistentRef<PointRkdTreeD<V3f[], V3f>>)value : null;
-
-        /// <summary>
-        /// Point colors, or null if no points.
-        /// </summary>
-        public static PersistentRef<C4b[]> GetLodColors(this IPointCloudNode self)
-            => self.TryGetPropertyValue(PointCloudAttribute.LodColors, out object value) ? (PersistentRef<C4b[]>)value : null;
-
-        /// <summary>
-        /// </summary>
-        public static PersistentRef<V3f[]> GetLodNormals(this IPointCloudNode self)
-            => self.TryGetPropertyValue(PointCloudAttribute.LodNormals, out object value) ? (PersistentRef<V3f[]>)value : null;
-
-        /// <summary>
-        /// </summary>
-        public static PersistentRef<int[]> GetLodIntensities(this IPointCloudNode self)
-            => self.TryGetPropertyValue(PointCloudAttribute.LodIntensities, out object value) ? (PersistentRef<int[]>)value : null;
-
-        /// <summary>
-        /// </summary>
-        public static PersistentRef<byte[]> GetLodClassifications(this IPointCloudNode self)
-            => self.TryGetPropertyValue(PointCloudAttribute.LodClassifications, out object value) ? (PersistentRef<byte[]>)value : null;
-
+        
         #endregion
 
         #region Storage

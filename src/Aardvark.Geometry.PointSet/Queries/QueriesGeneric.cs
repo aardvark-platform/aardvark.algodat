@@ -51,25 +51,16 @@ namespace Aardvark.Geometry.Points
             {
                 if (isNodeFullyInside(node))
                 {
-                    if (node.HasPositions())
-                    {
-                        yield return new Chunk(node.GetPositionsAbsolute(), node.GetColors()?.Value, node.GetNormals()?.Value, 
+                    yield return new Chunk(node.GetPositionsAbsolute(), node.GetColors()?.Value, node.GetNormals()?.Value,
                             node.GetIntensities()?.Value, node.GetClassifications()?.Value);
-                    }
-                    else if (node.HasLodPositions())
-                    {
-                        yield return new Chunk(node.GetLodPositionsAbsolute(), node.GetLodColors()?.Value, 
-                            node.GetLodNormals()?.Value, node.GetLodIntensities()?.Value, node.GetLodClassifications()?.Value);
-                    }
-                    yield break;
                 }
                 else // partially inside
                 {
-                    var psRaw = node.HasPositions() ? node.GetPositionsAbsolute() : node.GetLodPositionsAbsolute();
-                    var csRaw = node.HasColors() ? node.GetColors()?.Value : node.GetLodColors()?.Value;
-                    var nsRaw = node.HasNormals() ? node.GetNormals()?.Value : node.GetLodNormals()?.Value;
-                    var jsRaw = node.HasIntensities() ? node.GetIntensities()?.Value : node.GetLodIntensities()?.Value;
-                    var ksRaw = node.HasClassifications() ? node.GetClassifications()?.Value : node.GetLodClassifications()?.Value;
+                    var psRaw = node.GetPositionsAbsolute();
+                    var csRaw = node.GetColors()?.Value;
+                    var nsRaw = node.GetNormals()?.Value;
+                    var jsRaw = node.GetIntensities()?.Value;
+                    var ksRaw = node.GetClassifications()?.Value;
 
                     var ps = new List<V3d>();
                     var cs = csRaw != null ? new List<C4b>() : null;
@@ -140,20 +131,12 @@ namespace Aardvark.Geometry.Points
             {
                 if (isNodeFullyInside(node))
                 {
-                    if (node.HasPositions())
-                    {
-                        return node.GetPositions().Value.Length;
-                    }
-                    else if (node.HasLodPositions())
-                    {
-                        return node.GetLodPositions().Value.Length;
-                    }
-                    return 0L;
+                    return node.GetPositions().Value.Length;
                 }
                 else // partially inside
                 {
                     var count = 0L;
-                    var psRaw = node.HasPositions() ? node.GetPositionsAbsolute() : node.GetLodPositionsAbsolute();
+                    var psRaw = node.GetPositionsAbsolute();
                     for (var i = 0; i < psRaw.Length; i++)
                     {
                         var p = psRaw[i];
@@ -206,9 +189,7 @@ namespace Aardvark.Geometry.Points
 
             if (node.IsLeaf() || node.Cell.Exponent == minCellExponent)
             {
-                if (node.HasPositions()) return node.GetPositions().Value.Length;
-                else if (node.HasLodPositions()) return node.GetLodPositions().Value.Length;
-                return 0L;
+                return node.GetPositions().Value.Length;
             }
             else
             {

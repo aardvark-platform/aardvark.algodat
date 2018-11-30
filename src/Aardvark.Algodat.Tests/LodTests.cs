@@ -38,7 +38,7 @@ namespace Aardvark.Geometry.Tests
             var pointset = PointSet.Create(storage, "test", ps.ToList(), cs.ToList(), null, null, null, 5000, false, CancellationToken.None);
             pointset.Octree.Value.ForEachNode(true, cell =>
             {
-                Assert.IsTrue(cell.GetLodPositions() == null);
+                Assert.IsTrue(cell.GetPositions() == null);
             });
 
             var config = ImportConfig.Default
@@ -48,7 +48,7 @@ namespace Aardvark.Geometry.Tests
             var lodded = pointset.GenerateLod(config);
             lodded.Octree.Value.ForEachNode(true, cell =>
             {
-                Assert.IsTrue(cell.GetLodPositions().Value.Length > 0);
+                Assert.IsTrue(cell.GetPositions().Value.Length > 0);
             });
         }
 
@@ -64,7 +64,7 @@ namespace Aardvark.Geometry.Tests
             var pointset = PointSet.Create(storage, "test", ps.ToList(), cs.ToList(), null, null, null, 5000, false, CancellationToken.None);
             pointset.Octree.Value.ForEachNode(true, cell =>
             {
-                Assert.IsTrue(cell.GetLodPositions() == null);
+                Assert.IsTrue(cell.GetPositions() == null);
             });
 
             var config = ImportConfig.Default
@@ -96,12 +96,10 @@ namespace Aardvark.Geometry.Tests
                     var pointcount = cell.GetPositions().Value.Length;
                     Assert.IsTrue(pointcount > 0);
                     Assert.IsTrue(cell.GetPositions().Value.Length == pointcount);
-                    Assert.IsTrue(cell.GetLodPositions() == null);
                 }
                 else
                 {
                     Assert.IsTrue(cell.GetPositions() == null);
-                    Assert.IsTrue(cell.GetLodPositions() == null);
                 }
             });
 
@@ -117,12 +115,10 @@ namespace Aardvark.Geometry.Tests
                     var pointcount = cell.GetPositions().Value.Length;
                     Assert.IsTrue(pointcount > 0);
                     Assert.IsTrue(cell.GetPositions().Value.Length == pointcount);
-                    Assert.IsTrue(cell.GetLodPositions().Value.Length == pointcount);
                 }
                 else
                 {
-                    Assert.IsTrue(cell.GetPositions() == null);
-                    Assert.IsTrue(cell.GetLodPositions().Value.Length > 0);
+                    Assert.IsTrue(cell.GetPositions().Value.Length > 0);
                 }
             });
         }
@@ -175,7 +171,7 @@ namespace Aardvark.Geometry.Tests
 
             pointset.Octree.Value.ForEachNode(true, cell =>
             {
-                Assert.IsTrue(cell.GetLodPositions().Value.Length > 0);
+                Assert.IsTrue(cell.GetPositions().Value.Length > 0);
             });
         }
 
@@ -229,18 +225,8 @@ namespace Aardvark.Geometry.Tests
                 pointset.Octree.Value.ForEachNode(true, cell =>
                 {
                     var pointcount = cell.GetPositions()?.Value.Length ?? 0;
-                    if (cell.IsLeaf())
-                    {
-                        Assert.IsTrue(pointcount > 0);
-                        Assert.IsTrue(cell.GetPositions().Value.Length == pointcount);
-                        Assert.IsTrue(cell.GetLodPositions().Value.Length == pointcount);
-                    }
-                    else
-                    {
-                        Assert.IsTrue(pointcount == 0);
-                        Assert.IsTrue(cell.GetPositions() == null);
-                        Assert.IsTrue(cell.GetLodPositions().Value.Length > 0);
-                    }
+                    Assert.IsTrue(pointcount > 0);
+                    Assert.IsTrue(cell.GetPositions().Value.Length == pointcount);
                 });
 
                 id = pointset.Id;
@@ -252,18 +238,8 @@ namespace Aardvark.Geometry.Tests
                 pointset.Octree.Value.ForEachNode(true, cell =>
                 {
                     var pointcount = cell.GetPositions()?.Value.Length ?? 0;
-                    if (cell.IsLeaf())
-                    {
-                        Assert.IsTrue(pointcount > 0);
-                        Assert.IsTrue(cell.GetPositions().Value.Length == pointcount);
-                        Assert.IsTrue(cell.GetLodPositions().Value.Length == pointcount);
-                    }
-                    else
-                    {
-                        Assert.IsTrue(pointcount == 0);
-                        Assert.IsTrue(cell.GetPositions() == null);
-                        Assert.IsTrue(cell.GetLodPositions().Value.Length > 0);
-                    }
+                    Assert.IsTrue(pointcount > 0);
+                    Assert.IsTrue(cell.GetPositions().Value.Length == pointcount);
                 });
             }
 

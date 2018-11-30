@@ -113,7 +113,7 @@ namespace Aardvark.Geometry.Points
 
             if (level == 0 || node.IsLeaf())
             {
-                return node.GetLodPositions().Value.Count();
+                return node.GetPositions().Value.Count();
             }
             else
             {
@@ -155,7 +155,7 @@ namespace Aardvark.Geometry.Points
 
             if (level == 0 || node.IsLeaf())
             {
-                return node.GetLodPositions().Value.Length;
+                return node.GetPositions().Value.Length;
             }
             else
             {
@@ -193,11 +193,11 @@ namespace Aardvark.Geometry.Points
 
             if (level == 0 || node.IsLeaf())
             {
-                var ps = node.GetLodPositionsAbsolute();
-                var cs = node?.GetLodColors()?.Value;
-                var ns = node?.GetLodNormals()?.Value;
-                var js = node?.GetLodIntensities()?.Value;
-                var ks = node?.GetLodClassifications()?.Value;
+                var ps = node.GetPositionsAbsolute();
+                var cs = node?.GetColors()?.Value;
+                var ns = node?.GetNormals()?.Value;
+                var js = node?.GetIntensities()?.Value;
+                var ks = node?.GetClassifications()?.Value;
                 var chunk = new Chunk(ps, cs, ns, js, ks);
                 yield return chunk;
             }
@@ -238,11 +238,11 @@ namespace Aardvark.Geometry.Points
 
             if (level == 0 || node.IsLeaf())
             {
-                var ps = node.GetLodPositionsAbsolute();
-                var cs = node?.GetLodColors()?.Value;
-                var ns = node?.GetLodNormals()?.Value;
-                var js = node?.GetLodIntensities()?.Value;
-                var ks = node?.GetLodClassifications()?.Value;
+                var ps = node.GetPositionsAbsolute();
+                var cs = node?.GetColors()?.Value;
+                var ns = node?.GetNormals()?.Value;
+                var js = node?.GetIntensities()?.Value;
+                var ks = node?.GetClassifications()?.Value;
                 var chunk = new Chunk(ps, cs, ns, js, ks);
                 yield return chunk;
             }

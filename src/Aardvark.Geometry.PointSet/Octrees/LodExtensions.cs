@@ -191,11 +191,11 @@ namespace Aardvark.Geometry.Points
             var counts = Lod.ComputeLodCounts(splitLimit, fractions);
 
             // generate LoD data ...
-            var lodPs = Lod.AggregateSubPositions(counts, splitLimit, self.Center, subcenters, subcells.Map(x => x?.GetLodPositions()?.Value));
-            var lodCs = needsCs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetLodColors()?.Value)) : null;
-            var lodNs = needsNs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetLodNormals()?.Value)) : null;
-            var lodIs = needsIs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetLodIntensities()?.Value)) : null;
-            var lodKs = needsKs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetLodClassifications()?.Value)) : null;
+            var lodPs = Lod.AggregateSubPositions(counts, splitLimit, self.Center, subcenters, subcells.Map(x => x?.GetPositions()?.Value));
+            var lodCs = needsCs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetColors()?.Value)) : null;
+            var lodNs = needsNs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetNormals()?.Value)) : null;
+            var lodIs = needsIs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetIntensities()?.Value)) : null;
+            var lodKs = needsKs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetClassifications()?.Value)) : null;
             var lodKd = lodPs.BuildKdTree();
 
             // store LoD data ...
@@ -248,11 +248,11 @@ namespace Aardvark.Geometry.Points
             var counts = Lod.ComputeLodCounts(splitLimit, fractions);
 
             // generate LoD data ...
-            var lodPs = Lod.AggregateSubPositions(counts, splitLimit, self.Center, subcenters, subcells.Map(x => x?.GetLodPositions()?.Value));
-            var lodCs = needsCs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetLodColors()?.Value)) : null;
-            var lodNs = needsNs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetLodNormals()?.Value)) : null;
-            var lodIs = needsIs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetLodIntensities()?.Value)) : null;
-            var lodKs = needsKs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetLodClassifications()?.Value)) : null;
+            var lodPs = Lod.AggregateSubPositions(counts, splitLimit, self.Center, subcenters, subcells.Map(x => x?.GetPositions()?.Value));
+            var lodCs = needsCs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetColors()?.Value)) : null;
+            var lodNs = needsNs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetNormals()?.Value)) : null;
+            var lodIs = needsIs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetIntensities()?.Value)) : null;
+            var lodKs = needsKs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetClassifications()?.Value)) : null;
             var lodKd = lodPs.BuildKdTree();
 
             // store LoD data ...

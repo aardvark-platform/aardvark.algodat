@@ -308,6 +308,7 @@ namespace Aardvark.Geometry.Points
             var nsId = (attributemask & (uint)PointSetAttributes.Normals) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
             var isId = (attributemask & (uint)PointSetAttributes.Intensities) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
             var kdId = (attributemask & (uint)PointSetAttributes.KdTree) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
+#pragma warning disable CS0612 // Type or member is obsolete
             var lodPsId = (attributemask & (uint)PointSetAttributes.LodPositions) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
             var lodCsId = (attributemask & (uint)PointSetAttributes.LodColors) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
             var lodNsId = (attributemask & (uint)PointSetAttributes.LodNormals) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
@@ -315,8 +316,42 @@ namespace Aardvark.Geometry.Points
             var lodKdId = (attributemask & (uint)PointSetAttributes.LodKdTree) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
             var ksId = (attributemask & (uint)PointSetAttributes.Classifications) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
             var lodKsId = (attributemask & (uint)PointSetAttributes.LodClassifications) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
+#pragma warning restore CS0612 // Type or member is obsolete
 
-            throw new NotImplementedException("backwards compatibility LOD");
+            #region backwards compatibility with obsolete lod entries
+
+            if (lodPsId.HasValue)
+            {
+                if (psId.HasValue) throw new InvalidOperationException();
+                psId = lodPsId;
+            }
+            if (lodCsId.HasValue)
+            {
+                if (csId.HasValue) throw new InvalidOperationException();
+                csId = lodCsId;
+            }
+            if (lodNsId.HasValue)
+            {
+                if (nsId.HasValue) throw new InvalidOperationException();
+                nsId = lodNsId;
+            }
+            if (lodIsId.HasValue)
+            {
+                if (isId.HasValue) throw new InvalidOperationException();
+                isId = lodIsId;
+            }
+            if (lodKdId.HasValue)
+            {
+                if (kdId.HasValue) throw new InvalidOperationException();
+                kdId = lodKdId;
+            }
+            if (lodKsId.HasValue)
+            {
+                if (ksId.HasValue) throw new InvalidOperationException();
+                ksId = lodKsId;
+            }
+
+            #endregion
 
             Box3f? exactBoundingBoxLocal = null;
             float? pointDistanceAverage = null;

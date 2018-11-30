@@ -40,10 +40,7 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public FilterClassification(HashSet<byte> filter) { Filter = filter; }
 
-        private byte[] GetValues(IPointCloudNode node) => node.HasLodClassifications()
-            ? node.GetLodClassifications().Value
-            : (node.HasClassifications() ? node.GetClassifications().Value : null)
-            ;
+        private byte[] GetValues(IPointCloudNode node) => node.HasClassifications() ? node.GetClassifications().Value : null;
 
         /// <summary></summary>
         public bool IsFullyInside(IPointCloudNode node)

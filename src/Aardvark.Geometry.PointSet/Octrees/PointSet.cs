@@ -207,10 +207,7 @@ namespace Aardvark.Geometry.Points
             {
                 try
                 {
-                    return Octree.Value.HasPositions()
-                        ? new Box3d(Octree.Value.GetPositionsAbsolute())
-                        : new Box3d(Octree.Value.GetLodPositionsAbsolute())
-                        ;
+                    return new Box3d(Octree.Value.GetPositionsAbsolute());
                 }
                 catch (NullReferenceException)
                 {
