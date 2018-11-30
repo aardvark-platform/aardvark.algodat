@@ -36,15 +36,15 @@ namespace Aardvark.Geometry.Tests
             // -----------------------------------
             var ids = new string[]
                {
-                    "bildstein_5_labelled",
-                    "neugasse_station1",
+                    //"bildstein_5_labelled",
+                    //"neugasse_station1",
                     "sg27_station2",
-                    "bildstein_station1"
+                    //"bildstein_station1"
                };
 
             var store = PointCloud.OpenStore(path2store);
             ids.ForEach(id => FilterPoints(path2store, id, 0));
-           
+            
             var p = @"C:\Users\kellner\Desktop\Diplomarbeit\data.csv";
             if (File.Exists(p)) File.Delete(p);
             
@@ -216,67 +216,56 @@ namespace Aardvark.Geometry.Tests
             var pointset = store.GetPointSet(key, CancellationToken.None);
 
             var chunks = pointset.QueryAllPoints();
-
-            var positions = new List<V3d>();
-            var colors = new List<C4b>();
-            var normals = new List<V3f>();
-            var intensities = new List<int>();
-            var classifications = new List<byte>();
-
+            var newChunks = new List<Chunk>();
+            
             // filter chunks
-            //var amountFilteredPoints = 0;
             chunks.ForEach((chunk, k) =>
             {
-                Report.Line($"filtering chunk #{k}");
-
+                if( (k % 100) == 0)
+                    Report.Line($"filtering chunk #{k}");
+                
                 var indices = new List<int>();
                 chunk.Classifications.ForEach((c, i) =>
-                    {
-                        if ((int)c != label2filter)
-                            indices.Add(i);
-                    });
-                //amountFilteredPoints += indices.Count();
+                {
+                    if ((int)c != label2filter)
+                        indices.Add(i);
+                });
+
+                var positions = new List<V3d>();
+                var colors = new List<C4b>();
+                var normals = new List<V3f>();
+                var intensities = new List<int>();
+                var classifications = new List<byte>();
 
                 indices.ForEach(idx =>
-                    {
-                        if (chunk.HasPositions)
-                            positions.Add(chunk.Positions[idx]);
+                {
+                    if (chunk.HasPositions)
+                        positions.Add(chunk.Positions[idx]);
 
-                        if (chunk.HasColors)
-                            colors.Add(chunk.Colors[idx]);
+                    if (chunk.HasColors)
+                        colors.Add(chunk.Colors[idx]);
 
-                        if (chunk.HasNormals)
-                            normals.Add(chunk.Normals[idx]);
+                    if (chunk.HasNormals)
+                        normals.Add(chunk.Normals[idx]);
 
-                        if (chunk.HasIntensities)
-                            intensities.Add(chunk.Intensities[idx]);
+                    if (chunk.HasIntensities)
+                        intensities.Add(chunk.Intensities[idx]);
 
-                        if (chunk.HasClassifications)
-                            classifications.Add(chunk.Classifications[idx]);
-                    });
+                    if (chunk.HasClassifications)
+                        classifications.Add(chunk.Classifications[idx]);
+                });
+
+                // create new chunks of filtered data
+                var bbChunk = new Box3d(positions);
+                newChunks.Add(new Chunk(positions, colors.IsEmpty() ? null : colors, 
+                    normals.IsEmpty() ? null : normals, intensities.IsEmpty() ? null : intensities,
+                    classifications.IsEmpty() ? null : classifications, bbChunk));
             });
-            //Report.Line($"filtered {amountFilteredPoints} points");
-
-            // create new chunks of filtered data
-            var maxChunkSize = 1024 * 1024;
-
-            var posChunks = positions.Chunk(maxChunkSize).ToArray();
-            var colChunks = colors.IsEmptyOrNull() ? null : colors.Chunk(maxChunkSize).ToArray();
-            var normChunks = normals.IsEmptyOrNull() ? null : normals.Chunk(maxChunkSize).ToArray();
-            var intChunks = intensities.IsEmptyOrNull() ? null : intensities.Chunk(maxChunkSize).ToArray();
-            var classChunks = classifications.IsEmptyOrNull() ? null : classifications.Chunk(maxChunkSize).ToArray();
-
-            var newChunks = posChunks.Select((pos, i) =>
-            {
-                Report.Line($"creating new chunk #{i}");
-                var bbChunk = new Box3d(pos);
-                return new Chunk(pos, colChunks?[i], normChunks?[i], intChunks?[i], classChunks?[i], bbChunk);
-            });
-
+            
             var config = ImportConfig.Default
                .WithStorage(store)
                .WithKey(key + "_filtered")
-               .WithMaxChunkPointCount(maxChunkSize)
+               .WithMaxChunkPointCount(1024 * 1024)
                .WithVerbose(true);
 
             // add point-cloud to store
