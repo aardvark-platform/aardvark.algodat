@@ -197,9 +197,9 @@ namespace Aardvark.Geometry.Tests
         internal static void TestImport()
         {
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
-            var filename = @"test.e57";
+            var filename = @"T:\Vgm\Data\E57\Cylcone.e57";
 
-            var store = new SimpleDiskStore(@"./store").ToPointCloudStore();
+            var store = new SimpleDiskStore(@"c:\temp\teststore").ToPointCloudStore();
 
             var config = ImportConfig.Default
                 .WithStorage(store)
@@ -211,6 +211,8 @@ namespace Aardvark.Geometry.Tests
             var pointcloud = PointCloud.Import(filename, config);
             Report.EndTimed();
             store.Flush();
+
+            if (KeepAliveCache.Default.IsValueCreated) KeepAliveCache.Default.Value.Dispose();
         }
 
         internal static void TestImportPts(string filename)
@@ -268,9 +270,10 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
+            TestImport();
             //LinkedStores();
 
-            MasterLisa.Perform();
+            //MasterLisa.Perform();
             //TestE57();
 
             //var store = PointCloud.OpenStore(@"G:\cells\3280_5503_0_10\pointcloud");

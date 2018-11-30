@@ -60,13 +60,7 @@ namespace Aardvark.Geometry.Points
                 case PointSetAttributes.Classifications:    return Classifications;
                 case PointSetAttributes.Colors:             return Colors;            
                 case PointSetAttributes.Intensities:        return Intensities;       
-                case PointSetAttributes.KdTree:             return KdTree;            
-                case PointSetAttributes.LodClassifications: return LodClassifications;
-                case PointSetAttributes.LodColors:          return LodColors;         
-                case PointSetAttributes.LodIntensities:     return LodIntensities;    
-                case PointSetAttributes.LodKdTree:          return LodKdTree;         
-                case PointSetAttributes.LodNormals:         return LodNormals;        
-                case PointSetAttributes.LodPositions:       return LodPositions;      
+                case PointSetAttributes.KdTree:             return KdTree;  
                 case PointSetAttributes.Normals:            return Normals;           
                 case PointSetAttributes.Positions:          return Positions;         
 
@@ -85,12 +79,6 @@ namespace Aardvark.Geometry.Points
                 case Colors:                return PointSetAttributes.Colors;
                 case Intensities:           return PointSetAttributes.Intensities;
                 case KdTree:                return PointSetAttributes.KdTree;
-                case LodClassifications:    return PointSetAttributes.LodClassifications;
-                case LodColors:             return PointSetAttributes.LodColors;
-                case LodIntensities:        return PointSetAttributes.LodIntensities;
-                case LodKdTree:             return PointSetAttributes.LodKdTree;
-                case LodNormals:            return PointSetAttributes.LodNormals;
-                case LodPositions:          return PointSetAttributes.LodPositions;
                 case Normals:               return PointSetAttributes.Normals;
                 case Positions:             return PointSetAttributes.Positions;
 
@@ -108,12 +96,6 @@ namespace Aardvark.Geometry.Points
                 case Colors:                return new PersistentRef<C4b[]>(key, (id, ct) => storage.GetC4bArray(id, ct), (C4b[])value);
                 case Intensities:           return new PersistentRef<int[]>(key, (id, ct) => storage.GetIntArray(id, ct), (int[])value);
                 case KdTree:                return new PersistentRef<PointRkdTreeDData>(key, (id, ct) => storage.GetPointRkdTreeDData(id, ct), (PointRkdTreeDData)value);
-                case LodClassifications:    return new PersistentRef<byte[]>(key, (id, ct) => storage.GetByteArray(id, ct), (byte[])value);
-                case LodColors:             return new PersistentRef<C4b[]>(key, (id, ct) => storage.GetC4bArray(id, ct), (C4b[])value);
-                case LodIntensities:        return new PersistentRef<int[]>(key, (id, ct) => storage.GetIntArray(id, ct), (int[])value);
-                case LodKdTree:             return new PersistentRef<PointRkdTreeDData>(key, (id, ct) => storage.GetPointRkdTreeDData(id, ct), (PointRkdTreeDData)value);
-                case LodNormals:            return new PersistentRef<V3f[]>(key, (id, ct) => storage.GetV3fArray(id, ct), (V3f[])value);
-                case LodPositions:          return new PersistentRef<V3f[]>(key, (id, ct) => storage.GetV3fArray(id, ct), (V3f[])value);
                 case Normals:               return new PersistentRef<V3f[]>(key, (id, ct) => storage.GetV3fArray(id, ct), (V3f[])value);
                 case Positions:             return new PersistentRef<V3f[]>(key, (id, ct) => storage.GetV3fArray(id, ct), (V3f[])value);
 
@@ -131,12 +113,6 @@ namespace Aardvark.Geometry.Points
                 case Colors:                storage.Add(key, (C4b[])value, default); break;
                 case Intensities:           storage.Add(key, (int[])value, default); break;
                 case KdTree:                storage.Add(key, (PointRkdTreeDData)value, default); break;
-                case LodClassifications:    storage.Add(key, (byte[])value, default); break;
-                case LodColors:             storage.Add(key, (C4b[])value, default); break;
-                case LodIntensities:        storage.Add(key, (int[])value, default); break;
-                case LodKdTree:             storage.Add(key, (PointRkdTreeDData)value, default); break;
-                case LodNormals:            storage.Add(key, (V3f[])value, default); break;
-                case LodPositions:          storage.Add(key, (V3f[])value, default); break;
                 case Normals:               storage.Add(key, (V3f[])value, default); break;
                 case Positions:             storage.Add(key, (V3f[])value, default); break;
 
@@ -178,26 +154,31 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// V3f[] relative to Center.
         /// </summary>
+        [Obsolete]
         LodPositions        = 1 <<  5,
 
         /// <summary>
         /// C4b[].
         /// </summary>
+        [Obsolete]
         LodColors           = 1 <<  6,
 
         /// <summary>
         /// V3f[].
         /// </summary>
+        [Obsolete]
         LodNormals          = 1 <<  7,
 
         /// <summary>
         /// int[].
         /// </summary>
+        [Obsolete]
         LodIntensities      = 1 <<  8,
 
         /// <summary>
         /// PointRkdTreeD&lt;V3f[], V3f&gt;.
         /// </summary>
+        [Obsolete]
         LodKdTree           = 1 <<  9,
 
         /// <summary>
@@ -208,6 +189,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// byte[].
         /// </summary>
+        [Obsolete]
         LodClassifications  = 1 << 11,
 
         /// <summary>

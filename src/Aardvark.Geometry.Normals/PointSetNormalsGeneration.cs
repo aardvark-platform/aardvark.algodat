@@ -70,25 +70,15 @@ namespace Aardvark.Geometry.Points
             // generate normals ...
             var needsNormals = self.HasPositions && !self.HasNormals;
             var ns = needsNormals ? config.EstimateNormals(self.PositionsAbsolute) : null;
-
-            var needsLodNormals = self.HasLodPositions && !self.HasLodNormals;
-            var lodNs = needsLodNormals ? config.EstimateNormals(self.LodPositionsAbsolute) : null;
-
+            
             // store data ...
             var result = self;
 
             if (needsNormals)
             {
                 var nsId = Guid.NewGuid();
-                self.Storage.Add(nsId, (V3f[])ns, config.CancellationToken);
-                result = result.WithNormals(nsId);
-            }
-
-            if (needsLodNormals)
-            {
-                var lodNsId = Guid.NewGuid();
-                self.Storage.Add(lodNsId, lodNs, config.CancellationToken);
-                result = result.WithLodNormals(lodNsId, subcells);
+                self.Storage.Add(nsId, ns, config.CancellationToken);
+                result = result.WithNormals(nsId, subcells);
             }
             
             return result;

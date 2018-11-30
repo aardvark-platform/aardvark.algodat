@@ -82,42 +82,6 @@ namespace Aardvark.Geometry.Points
                 });
 
         /// <summary></summary>
-        public static Selector GlobalLodPositions(
-            Func<PointSetNode, bool> isFullyInsideSelection,
-            Func<PointSetNode, bool> isFullyOutsideSelection,
-            Func<V3d, bool> isGlobalLodPositionSelected
-            )
-            => Custom(
-                isFullyInsideSelection,
-                isFullyOutsideSelection,
-                n =>
-                {
-                    if (!n.HasLodPositions) return null;
-                    var xs = n.LodPositionsAbsolute;
-                    var ia = new List<int>();
-                    for (var i = 0; i < xs.Length; i++) if (isGlobalLodPositionSelected(xs[i])) ia.Add(i);
-                    return ia;
-                });
-
-        /// <summary></summary>
-        public static Selector LocalLodPositions(
-            Func<PointSetNode, bool> isFullyInsideSelection,
-            Func<PointSetNode, bool> isFullyOutsideSelection,
-            Func<V3f, bool> isLocalLodPositionSelected
-            )
-            => Custom(
-                isFullyInsideSelection,
-                isFullyOutsideSelection,
-                n =>
-                {
-                    if (!n.HasLodPositions) return null;
-                    var xs = n.LodPositions.Value;
-                    var ia = new List<int>();
-                    for (var i = 0; i < xs.Length; i++) if (isLocalLodPositionSelected(xs[i])) ia.Add(i);
-                    return ia;
-                });
-
-        /// <summary></summary>
         public static Selector Colors(
             Func<PointSetNode, bool> isFullyInsideSelection,
             Func<PointSetNode, bool> isFullyOutsideSelection,
@@ -134,25 +98,7 @@ namespace Aardvark.Geometry.Points
                     for (var i = 0; i < xs.Length; i++) if (isColorSelected(xs[i])) ia.Add(i);
                     return ia;
                 });
-
-        /// <summary></summary>
-        public static Selector LodColors(
-            Func<PointSetNode, bool> isFullyInsideSelection,
-            Func<PointSetNode, bool> isFullyOutsideSelection,
-            Func<C4b, bool> isLodColorSelected
-            )
-            => Custom(
-                isFullyInsideSelection,
-                isFullyOutsideSelection,
-                n =>
-                {
-                    if (!n.HasLodColors) return null;
-                    var xs = n.LodColors.Value;
-                    var ia = new List<int>();
-                    for (var i = 0; i < xs.Length; i++) if (isLodColorSelected(xs[i])) ia.Add(i);
-                    return ia;
-                });
-
+        
         /// <summary></summary>
         public struct Selection
         {

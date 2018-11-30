@@ -92,8 +92,8 @@ namespace Aardvark.Geometry.Points
                 var nsId = Guid.NewGuid();
                 self.Storage.Add(nsId, ns, ct);
 
-                // create node with new normals and LoD normals
-                var r = self.WithNormals(nsId).WithLod();
+                // create node with new normals
+                var r = self.WithNormals(nsId);
 
                 return r;
             }
@@ -102,7 +102,7 @@ namespace Aardvark.Geometry.Points
             
             var subcells = self.Subnodes.Map(x => x?.Value.RegenerateNormals(estimateNormals, callback, ct));
             var subcellsTotalCount = (long)subcells.Sum(x => x?.PointCountTree);
-            var octreeSplitLimit = self.LodPositions.Value.Length;
+            var octreeSplitLimit = self.Positions.Value.Length;
             
             var fractions = new double[8].SetByIndex(
                 ci => subcells[ci] != null ? (subcells[ci].PointCountTree / (double)subcellsTotalCount) : 0.0
@@ -118,7 +118,7 @@ namespace Aardvark.Geometry.Points
             var e = octreeSplitLimit - counts.Sum();
             if (e != 0) throw new InvalidOperationException();
 
-            // generate LodNormals ...
+            // generate Normals ...
             var lodNs = new V3f[octreeSplitLimit];
             var i = 0;
             for (var ci = 0; ci < 8; ci++)
@@ -127,7 +127,7 @@ namespace Aardvark.Geometry.Points
                 var subcell = subcells[ci];
                 if (subcell == null) continue;
                 
-                var subns = subcell.LodNormals.Value;
+                var subns = subcell.Normals.Value;
 
                 var jmax = subns.Length;
                 var dj = (jmax + 0.49) / counts[ci];
@@ -144,10 +144,7 @@ namespace Aardvark.Geometry.Points
             var lodNsId = Guid.NewGuid();
             self.Storage.Add(lodNsId, lodNs, ct);
             
-            var result = self.WithLod(
-                self.LodPositionsId, self.LodColorsId, lodNsId, self.LodIntensitiesId, self.LodKdTreeId, self.LodClassificationsId,
-                subcells
-                );
+            var result = self.WithSubNodes(subcells);
             return result;
         }
 
@@ -173,7 +170,7 @@ namespace Aardvark.Geometry.Points
                 self.Storage.Add(nsId, ns, ct);
 
                 // create node with new normals and LoD normals
-                var r = self.WithNormals(nsId).WithLod();
+                var r = self.WithNormals(nsId);
 
                 return r;
             }
@@ -182,7 +179,7 @@ namespace Aardvark.Geometry.Points
 
             var subcells = self.Subnodes.Map(x => x?.Value.RegenerateNormals(estimateNormals, callback, ct));
             var subcellsTotalCount = (long)subcells.Sum(x => x?.PointCountTree);
-            var octreeSplitLimit = self.LodPositions.Value.Length;
+            var octreeSplitLimit = self.Positions.Value.Length;
 
             var fractions = new double[8].SetByIndex(
                 ci => subcells[ci] != null ? (subcells[ci].PointCountTree / (double)subcellsTotalCount) : 0.0
@@ -207,7 +204,7 @@ namespace Aardvark.Geometry.Points
                 var subcell = subcells[ci];
                 if (subcell == null) continue;
 
-                var subns = subcell.LodNormals.Value;
+                var subns = subcell.Normals.Value;
 
                 var jmax = subns.Length;
                 var dj = (jmax + 0.49) / counts[ci];
@@ -224,10 +221,7 @@ namespace Aardvark.Geometry.Points
             var lodNsId = Guid.NewGuid();
             self.Storage.Add(lodNsId, lodNs, ct);
 
-            var result = self.WithLod(
-                self.LodPositionsId, self.LodColorsId, lodNsId, self.LodIntensitiesId, self.LodKdTreeId, self.LodClassificationsId,
-                subcells
-                );
+            var result = self.WithSubNodes(subcells);
             return result;
         }
     }

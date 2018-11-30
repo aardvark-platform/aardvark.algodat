@@ -183,11 +183,11 @@ namespace Aardvark.Geometry.Points
                 var rootCellBounds = new Box3d(a.Cell.BoundingBox, b.Cell.BoundingBox);
                 var rootCell = new Cell(rootCellBounds);
                 var roots = new PointSetNode[8];
-                Func<Cell, int> octant = x =>
+                int octant(Cell x)
                 {
                     if (x.IsCenteredAtOrigin) throw new InvalidOperationException();
                     return (x.X >= 0 ? 1 : 0) + (x.Y >= 0 ? 2 : 0) + (x.Z >= 0 ? 4 : 0);
-                };
+                }
                 foreach (var x in parts)
                 {
                     var oi = octant(x.Cell);
@@ -266,7 +266,7 @@ namespace Aardvark.Geometry.Points
             PointSetNode result2 = null;
             if (a.IsLeaf)
             {
-                result2 = a.ToInnerNode(subcells);
+                result2 = a.WithSubNodes(subcells);
                 result2 = InjectPointsIntoTree(
                     a.PositionsAbsolute, a.Colors?.Value, a.Normals?.Value, a.Intensities?.Value, a.Classifications?.Value,
                     result2, result2.Cell, octreeSplitLimit, a.Storage, ct

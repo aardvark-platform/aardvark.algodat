@@ -57,15 +57,9 @@ namespace Aardvark.Geometry.Tests
 
                 var ps0 = node0.Positions?.Value; var ps1 = node1.Positions?.Value;
                 for (var i = 0; i < ps0?.Length; i++) Assert.IsTrue(ps0[i] == ps1[i]);
-
-                var lps0 = node0.LodPositions.Value; var lps1 = node1.LodPositions.Value;
-                for (var i = 0; i < lps0.Length; i++) Assert.IsTrue(lps0[i] == lps1[i]);
-
+                
                 var ns0 = node0.Normals?.Value; var ns1 = node1.Normals?.Value;
                 for (var i = 0; i < ns0?.Length; i++) Assert.IsTrue(ns0[i] + ns1[i] == V3f.ZAxis + V3f.XAxis);
-
-                var lns0 = node0.LodNormals?.Value; var lns1 = node1.LodNormals?.Value;
-                for (var i = 0; i < lns0?.Length; i++) Assert.IsTrue(lns0[i] + lns1[i] == V3f.ZAxis + V3f.XAxis);
             }
         }
 
@@ -102,15 +96,9 @@ namespace Aardvark.Geometry.Tests
 
                 var ps0 = node0.Positions?.Value; var ps1 = node1.Positions?.Value;
                 for (var i = 0; i < ps0?.Length; i++) Assert.IsTrue(ps0[i] == ps1[i]);
-
-                var lps0 = node0.LodPositions.Value; var lps1 = node1.LodPositions.Value;
-                for (var i = 0; i < lps0.Length; i++) Assert.IsTrue(lps0[i] == lps1[i]);
-
+                
                 var ns0 = node0.Normals?.Value; var ns1 = node1.Normals?.Value;
                 for (var i = 0; i < ns0?.Length; i++) Assert.IsTrue(ns0[i] + ns1[i] == V3f.ZAxis + V3f.XAxis);
-
-                var lns0 = node0.LodNormals?.Value; var lns1 = node1.LodNormals?.Value;
-                for (var i = 0; i < lns0?.Length; i++) Assert.IsTrue(lns0[i] + lns1[i] == V3f.ZAxis + V3f.XAxis);
             }
         }
     }

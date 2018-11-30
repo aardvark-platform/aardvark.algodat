@@ -37,7 +37,6 @@ namespace Aardvark.Geometry.Points
         private PointSetNode(Guid id,
             Cell cell, long pointCountTree, Box3f boundingBoxExactLocal, float pointDistanceAverage, float pointDistanceStandardDeviation,
             Guid? psId, Guid? csId, Guid? kdId, Guid? nsId, Guid? isId, Guid? ksId,
-            Guid? lodPsId, Guid? lodCsId, Guid? lodKdId, Guid? lodNsId, Guid? lodIsId, Guid? lodKsId,
             Guid?[] subnodeIds, Storage storage, bool writeToStore
             )
         {
@@ -58,12 +57,6 @@ namespace Aardvark.Geometry.Points
             if (nsId.HasValue) Attributes[PointSetAttributes.Normals] = nsId.Value;
             if (isId.HasValue) Attributes[PointSetAttributes.Intensities] = isId.Value;
             if (ksId.HasValue) Attributes[PointSetAttributes.Classifications] = ksId.Value;
-            if (lodPsId.HasValue) Attributes[PointSetAttributes.LodPositions] = lodPsId.Value;
-            if (lodCsId.HasValue) Attributes[PointSetAttributes.LodColors] = lodCsId.Value;
-            if (lodKdId.HasValue) Attributes[PointSetAttributes.LodKdTree] = lodKdId.Value;
-            if (lodNsId.HasValue) Attributes[PointSetAttributes.LodNormals] = lodNsId.Value;
-            if (lodIsId.HasValue) Attributes[PointSetAttributes.LodIntensities] = lodIsId.Value;
-            if (lodKsId.HasValue) Attributes[PointSetAttributes.LodClassifications] = lodKsId.Value;
 
             if (IsLeaf && PointCount != PointCountTree) throw new InvalidOperationException();
 
@@ -73,12 +66,6 @@ namespace Aardvark.Geometry.Points
             if (nsId != null) PersistentRefs[PointSetAttributes.Normals] = new PersistentRef<V3f[]>(nsId.ToString(), storage.GetV3fArray);
             if (isId != null) PersistentRefs[PointSetAttributes.Intensities] = new PersistentRef<int[]>(isId.ToString(), storage.GetIntArray);
             if (ksId != null) PersistentRefs[PointSetAttributes.Classifications]  = new PersistentRef<byte[]>(ksId.ToString(), storage.GetByteArray);
-            if (lodPsId != null) PersistentRefs[PointSetAttributes.LodPositions] = new PersistentRef<V3f[]>(lodPsId.ToString(), storage.GetV3fArray);
-            if (lodCsId != null) PersistentRefs[PointSetAttributes.LodColors] = new PersistentRef<C4b[]>(lodCsId.ToString(), storage.GetC4bArray);
-            if (lodKdId != null) PersistentRefs[PointSetAttributes.LodKdTree] = new PersistentRef<PointRkdTreeD<V3f[], V3f>>(lodKdId.ToString(), LoadKdTree);
-            if (lodNsId != null) PersistentRefs[PointSetAttributes.LodNormals] = new PersistentRef<V3f[]>(lodNsId.ToString(), storage.GetV3fArray);
-            if (lodIsId != null) PersistentRefs[PointSetAttributes.LodIntensities] = new PersistentRef<int[]>(lodIsId.ToString(), storage.GetIntArray);
-            if (lodKsId != null) PersistentRefs[PointSetAttributes.LodClassifications] = new PersistentRef<byte[]>(lodKsId.ToString(), storage.GetByteArray);
 
             if (subnodeIds != null)
             {
@@ -150,7 +137,7 @@ namespace Aardvark.Geometry.Points
             Cell cell, long pointCountTree, Box3f boundingBoxExactLocal, float pointDistanceAverage, float pointDistanceStandardDeviation,
             Guid?[] subnodeIds, Storage storage
             ) : this(Guid.NewGuid(), cell, pointCountTree, boundingBoxExactLocal, pointDistanceAverage, pointDistanceStandardDeviation, 
-                null, null, null, null, null, null, null, null, null, null, null, null, subnodeIds, storage, true
+                null, null, null, null, null, null, subnodeIds, storage, true
                 )
         {
         }
@@ -163,7 +150,7 @@ namespace Aardvark.Geometry.Points
             Guid? psId, Guid? csId, Guid? kdId, Guid? nsId, Guid? isId, Guid? ksId,
             Storage storage
             ) : this(Guid.NewGuid(), cell, pointCountTree, boundingBoxExactLocal, pointDistanceAverage, pointDistanceStandardDeviation,
-                psId, csId, kdId, nsId, isId, ksId, null, null, null, null, null, null, null, storage, true
+                psId, csId, kdId, nsId, isId, ksId, null, storage, true
                 )
         {
         }
@@ -329,6 +316,8 @@ namespace Aardvark.Geometry.Points
             var ksId = (attributemask & (uint)PointSetAttributes.Classifications) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
             var lodKsId = (attributemask & (uint)PointSetAttributes.LodClassifications) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
 
+            throw new NotImplementedException("backwards compatibility LOD");
+
             Box3f? exactBoundingBoxLocal = null;
             float? pointDistanceAverage = null;
             float? pointDistanceStandardDeviation = null;
@@ -371,7 +360,6 @@ namespace Aardvark.Geometry.Points
                 id, cell, pointCountTree, exactBoundingBoxLocal.Value,
                 pointDistanceAverage ?? 0.0f, pointDistanceStandardDeviation ?? 0.0f,
                 psId, csId, kdId, nsId, isId, ksId,
-                lodPsId, lodCsId, lodKdId, lodNsId, lodIsId, lodKsId,
                 subcellIds,
                 storage, false
                 );
@@ -502,112 +490,6 @@ namespace Aardvark.Geometry.Points
 
         #endregion
 
-        #region LodPositions
-
-        /// <summary></summary>
-        [JsonIgnore]
-        public Guid? LodPositionsId => Attributes.TryGetValue(PointSetAttributes.LodPositions, out Guid id) ? (Guid?)id : null;
-
-        /// <summary>
-        /// LoD-Positions relative to cell's center, or null if no positions.
-        /// </summary>
-        [JsonIgnore]
-        public PersistentRef<V3f[]> LodPositions => PersistentRefs.TryGetValue(PointSetAttributes.LodPositions, out object x) ? (PersistentRef<V3f[]>) x : null;
-
-        /// <summary></summary>
-        [JsonIgnore]
-        public bool HasLodPositions => PersistentRefs.ContainsKey(PointSetAttributes.LodPositions);
-
-        /// <summary>
-        /// Lod-Positions (absolute), or null if no positions.
-        /// </summary>
-        [JsonIgnore]
-        public V3d[] LodPositionsAbsolute => LodPositions?.Value.Map(p => new V3d(Center.X + p.X, Center.Y + p.Y, Center.Z + p.Z));
-
-        #endregion
-
-        #region LodColors
-
-        /// <summary></summary>
-        [JsonIgnore]
-        public Guid? LodColorsId => Attributes.TryGetValue(PointSetAttributes.LodColors, out Guid id) ? (Guid?)id : null;
-
-        /// <summary></summary>
-        [JsonIgnore]
-        public PersistentRef<C4b[]> LodColors => PersistentRefs.TryGetValue(PointSetAttributes.LodColors, out object x) ? (PersistentRef<C4b[]>)x : null;
-
-        /// <summary></summary>
-        [JsonIgnore]
-        public bool HasLodColors => PersistentRefs.ContainsKey(PointSetAttributes.LodColors);
-
-        #endregion
-
-        #region LodNormals
-
-        /// <summary></summary>
-        [JsonIgnore]
-        public Guid? LodNormalsId => Attributes.TryGetValue(PointSetAttributes.LodNormals, out Guid id) ? (Guid?)id : null;
-
-        /// <summary></summary>
-        [JsonIgnore]
-        public PersistentRef<V3f[]> LodNormals => PersistentRefs.TryGetValue(PointSetAttributes.LodNormals, out object x) ? (PersistentRef<V3f[]>)x : null;
-
-        /// <summary></summary>
-        [JsonIgnore]
-        public bool HasLodNormals => PersistentRefs.ContainsKey(PointSetAttributes.LodNormals);
-
-        #endregion
-
-        #region LodIntensities
-
-        /// <summary></summary>
-        [JsonIgnore]
-        public Guid? LodIntensitiesId => Attributes.TryGetValue(PointSetAttributes.LodIntensities, out Guid id) ? (Guid?)id : null;
-
-        /// <summary></summary>
-        [JsonIgnore]
-        public PersistentRef<int[]> LodIntensities => PersistentRefs.TryGetValue(PointSetAttributes.LodIntensities, out object x) ? (PersistentRef<int[]>) x : null;
-
-        /// <summary></summary>
-        [JsonIgnore]
-        public bool HasLodIntensities => PersistentRefs.ContainsKey(PointSetAttributes.LodIntensities);
-
-        #endregion
-
-        #region LodClassifications
-
-        /// <summary></summary>
-        [JsonIgnore]
-        public Guid? LodClassificationsId => Attributes.TryGetValue(PointSetAttributes.LodClassifications, out Guid id) ? (Guid?)id : null;
-
-        /// <summary></summary>
-        [JsonIgnore]
-        public PersistentRef<byte[]> LodClassifications => PersistentRefs.TryGetValue(PointSetAttributes.LodClassifications, out object x) ? (PersistentRef<byte[]>)x : null;
-
-        /// <summary></summary>
-        [JsonIgnore]
-        public bool HasLodClassifications => PersistentRefs.ContainsKey(PointSetAttributes.LodClassifications);
-
-        #endregion
-
-        #region LodKdTree
-
-        /// <summary></summary>
-        [JsonIgnore]
-        public Guid? LodKdTreeId => Attributes.TryGetValue(PointSetAttributes.LodKdTree, out Guid id) ? (Guid?)id : null;
-
-        /// <summary>
-        /// LoD-Point kd-tree, or null if no LoD data.
-        /// </summary>
-        [JsonIgnore]
-        public PersistentRef<PointRkdTreeD<V3f[], V3f>> LodKdTree => PersistentRefs.TryGetValue(PointSetAttributes.LodKdTree, out object x) ? (PersistentRef<PointRkdTreeD<V3f[], V3f>>)x : null;
-
-        /// <summary></summary>
-        [JsonIgnore]
-        public bool HasLodKdTree => PersistentRefs.ContainsKey(PointSetAttributes.LodKdTree);
-
-        #endregion
-
         /// <summary>
         /// </summary>
         [JsonIgnore]
@@ -619,13 +501,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         [JsonIgnore]
         public long PointCount => IsLeaf ? PointCountTree : 0;
-
-        /// <summary>
-        /// Number of lod points in this node (without subnodes).
-        /// </summary>
-        [JsonIgnore]
-        public long LodPointCount => (LodPositions != null) ? LodPositions.Value.Length : 0;
-
+        
         /// <summary>
         /// Subnodes (8), or null if leaf.
         /// </summary>
@@ -1103,25 +979,7 @@ namespace Aardvark.Geometry.Points
         #endregion
 
         #region Immutable updates (With...)
-
-        /// <summary>
-        /// Makes inner node from leaf node.
-        /// Removes local points and attaches given subnodes.
-        /// </summary>
-        internal PointSetNode ToInnerNode(PointSetNode[] subnodes)
-        {
-            if (subnodes == null) throw new ArgumentNullException(nameof(subnodes));
-            if (IsNotLeaf) throw new InvalidOperationException();
-
-            var pointCountTree = subnodes.Sum(x => x?.PointCountTree);
-            return new PointSetNode(Guid.NewGuid(), Cell, pointCountTree.Value, BoundingBoxExactLocal,
-                PointDistanceAverage, PointDistanceStandardDeviation,
-                null, null, null, null, null, null,
-                LodPositionsId, LodColorsId, LodKdTreeId, LodNormalsId, LodIntensitiesId, LodClassificationsId,
-                subnodes.Map(x => x?.Id), Storage, true
-                );
-        }
-
+        
         /// <summary>
         /// Replaces subnodes.
         /// </summary>
@@ -1133,8 +991,7 @@ namespace Aardvark.Geometry.Points
             var pointCountTree = subnodes.Sum(x => x?.PointCountTree);
             return new PointSetNode(Guid.NewGuid(), Cell, pointCountTree.Value, BoundingBoxExactLocal,
                 PointDistanceAverage, PointDistanceStandardDeviation,
-                null, null, null, null, null, null,
-                LodPositionsId, LodColorsId, LodKdTreeId, LodNormalsId, LodIntensitiesId, LodClassificationsId,
+                PositionsId, ColorsId, KdTreeId, NormalsId, IntensitiesId, ClassificationsId,
                 subnodes.Map(x => x?.Id), Storage, true
                 );
         }
@@ -1142,7 +999,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Makes node with LoD data from inner node.
         /// </summary>
-        internal PointSetNode WithLod(Guid? lodPsId, Guid? lodCsId, Guid? lodNsId, Guid? lodIsId, Guid? lodKdId, Guid? lodKsId, PointSetNode[] subnodes)
+        internal PointSetNode WithData(Guid? psId, Guid? csId, Guid? nsId, Guid? isId, Guid? kdId, Guid? ksId, PointSetNode[] subnodes)
         {
             if (IsLeaf) throw new InvalidOperationException();
             if (subnodes == null) throw new InvalidOperationException();
@@ -1150,53 +1007,47 @@ namespace Aardvark.Geometry.Points
             return new PointSetNode(Guid.NewGuid(),
                 Cell, pointCountTree, BoundingBoxExactLocal,
                 PointDistanceAverage, PointDistanceStandardDeviation,
-                null, null, null, null, null, null,
-                lodPsId, lodCsId, lodKdId, lodNsId, lodIsId, lodKsId,
+                psId, csId, kdId, nsId, isId, ksId,
                 subnodes?.Map(x => x?.Id), Storage, true
                 );
         }
 
         /// <summary>
-        /// Makes node with LoD data from leaf node.
+        /// Returns node with normals and subnodes replaced.
         /// </summary>
-        internal PointSetNode WithLod()
+        public PointSetNode WithNormals(Guid? nsId, Guid?[] subnodeIds)
         {
-            if (IsNotLeaf) throw new InvalidOperationException();
-            return new PointSetNode(Guid.NewGuid(), Cell, PointCountTree, BoundingBoxExactLocal,
-                PointDistanceAverage, PointDistanceStandardDeviation,
-                PositionsId, ColorsId, KdTreeId, NormalsId, IntensitiesId, ClassificationsId,
-                PositionsId, ColorsId, KdTreeId, NormalsId, IntensitiesId, ClassificationsId,
-                SubnodeIds, Storage, true
-                );
-        }
-
-        /// <summary>
-        /// Returns new leaf node with Normals data added.
-        /// </summary>
-        public PointSetNode WithNormals(Guid? nsId)
-        {
-            if (IsNotLeaf) throw new InvalidOperationException("Only leaf nodes can have Normals. Try WithLodNormals instead.");
             return new PointSetNode(Guid.NewGuid(),
                 Cell, PointCountTree, BoundingBoxExactLocal,
                 PointDistanceAverage, PointDistanceStandardDeviation,
                 PositionsId, ColorsId, KdTreeId, nsId, IntensitiesId, ClassificationsId,
-                LodPositionsId, LodColorsId, LodKdTreeId, LodNormalsId, LodIntensitiesId, LodClassificationsId,
-                SubnodeIds, Storage, true
+                subnodeIds, Storage, true
                 );
         }
 
         /// <summary>
-        /// Returns new inner node with LodNormals data added.
+        /// Returns node with normals and subnodes replaced.
         /// </summary>
-        public PointSetNode WithLodNormals(Guid? lodNsId, PointSetNode[] subnodes)
+        public PointSetNode WithNormals(Guid? nsId, PointSetNode[] subnodes)
         {
-            //if (IsLeaf) throw new InvalidOperationException("Only inner nodes can have LodNormals. Try WithNormals instead.");
             return new PointSetNode(Guid.NewGuid(),
                 Cell, PointCountTree, BoundingBoxExactLocal,
                 PointDistanceAverage, PointDistanceStandardDeviation,
-                PositionsId, ColorsId, KdTreeId, NormalsId, IntensitiesId, ClassificationsId,
-                LodPositionsId, LodColorsId, LodKdTreeId, lodNsId, LodIntensitiesId, LodClassificationsId,
-                subnodes?.Map(x => x?.Id), Storage, true
+                PositionsId, ColorsId, KdTreeId, nsId, IntensitiesId, ClassificationsId,
+                subnodes.Map(n => (Guid?)n.Id), Storage, true
+                );
+        }
+
+        /// <summary>
+        /// Returns node with normals replaced.
+        /// </summary>
+        public PointSetNode WithNormals(Guid? nsId)
+        {
+            return new PointSetNode(Guid.NewGuid(),
+                Cell, PointCountTree, BoundingBoxExactLocal,
+                PointDistanceAverage, PointDistanceStandardDeviation,
+                PositionsId, ColorsId, KdTreeId, nsId, IntensitiesId, ClassificationsId,
+                SubnodeIds, Storage, true
                 );
         }
 
@@ -1328,12 +1179,6 @@ namespace Aardvark.Geometry.Points
                 case PointCloudAttribute.Colors:                value = Colors;             return value != null;
                 case PointCloudAttribute.Intensities:           value = Intensities;        return value != null;
                 case PointCloudAttribute.KdTree:                value = KdTree;             return value != null;
-                case PointCloudAttribute.LodClassifications:    value = LodClassifications; return value != null;
-                case PointCloudAttribute.LodColors:             value = LodColors;          return value != null;
-                case PointCloudAttribute.LodIntensities:        value = LodIntensities;     return value != null;
-                case PointCloudAttribute.LodKdTree:             value = LodKdTree;          return value != null;
-                case PointCloudAttribute.LodNormals:            value = LodNormals;         return value != null;
-                case PointCloudAttribute.LodPositions:          value = LodPositions;       return value != null;
                 case PointCloudAttribute.Normals:               value = Normals;            return value != null;
                 case PointCloudAttribute.Positions:             value = Positions;          return value != null;
 

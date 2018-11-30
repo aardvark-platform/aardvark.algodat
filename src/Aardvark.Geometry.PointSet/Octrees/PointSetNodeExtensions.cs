@@ -26,10 +26,7 @@ namespace Aardvark.Geometry.Points
         /// Computes centroid of absolute (LoD) positions in this node, or null if no (LoD) positions.
         /// </summary>
         public static V3d? ComputeCentroid(this PointSetNode self)
-            => self.HasPositions
-                ? self.PositionsAbsolute.Average()
-                : (self.HasLodPositions ? self.LodPositionsAbsolute.Average() : (V3d?)null)
-                ;
+            => self.HasPositions ? self.PositionsAbsolute.Average() : (V3d?)null;
 
         /// <summary>
         /// Returns true if this node intersects the space within a given distance to a plane.
