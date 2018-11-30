@@ -85,15 +85,8 @@ namespace Aardvark.Geometry.Tests
 
             withNormals.ForEachNode(true, node =>
             {
-                if (node.IsLeaf)
-                {
-                    Assert.IsTrue(node.HasNormals);
-                    Assert.IsTrue(node.Normals.Value.Length == node.PointCount);
-                }
-                else
-                {
-                    Assert.IsTrue(!node.HasNormals);
-                }
+                Assert.IsTrue(node.HasNormals);
+                Assert.IsTrue(node.Normals.Value.Length == node.PointCount);
 
                 //
                 var binary = node.ToBinary();

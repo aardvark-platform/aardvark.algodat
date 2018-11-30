@@ -132,7 +132,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PointSet GenerateLod(this PointSet self, ImportConfig config)
         {
-            var nodeCount = self.Octree.Value.CountNodes();
+            var nodeCount = self.Octree?.Value?.CountNodes() ?? 0;
             var loddedNodesCount = 0L;
             var result = self.GenerateLod(config.Key, () =>
             {

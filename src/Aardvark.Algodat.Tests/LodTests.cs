@@ -38,7 +38,7 @@ namespace Aardvark.Geometry.Tests
             var pointset = PointSet.Create(storage, "test", ps.ToList(), cs.ToList(), null, null, null, 5000, false, CancellationToken.None);
             pointset.Octree.Value.ForEachNode(true, cell =>
             {
-                Assert.IsTrue(cell.GetPositions() != null);
+                Assert.IsTrue(cell.IsNotLeaf() || cell.GetPositions() != null);
             });
 
             var config = ImportConfig.Default

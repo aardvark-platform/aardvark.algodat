@@ -1054,7 +1054,7 @@ namespace Aardvark.Geometry.Points
                 Cell, PointCountTree, BoundingBoxExactLocal,
                 PointDistanceAverage, PointDistanceStandardDeviation,
                 PositionsId, ColorsId, KdTreeId, nsId, IntensitiesId, ClassificationsId,
-                subnodes.Map(n => (Guid?)n.Id), Storage, true
+                subnodes?.Map(n => (Guid?)n.Id), Storage, true
                 );
         }
 
