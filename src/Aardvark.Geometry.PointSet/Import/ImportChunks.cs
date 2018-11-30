@@ -75,11 +75,8 @@ namespace Aardvark.Geometry.Points
                 .MapReduce(config.WithRandomKey().WithProgressCallback(x => config.ProgressCallback(x * 0.66)))
                 ;
 
-            // optionally create LOD data
-            if (config.CreateOctreeLod)
-            {
-                final = final.GenerateLod(config.WithRandomKey().WithProgressCallback(x => config.ProgressCallback(0.66 + x * 0.34)));
-            }
+            // create LOD data
+            final = final.GenerateLod(config.WithRandomKey().WithProgressCallback(x => config.ProgressCallback(0.66 + x * 0.34)));
 
             // create final point set with specified key (or random key when no key is specified)
             var key = config.Key ?? Guid.NewGuid().ToString();

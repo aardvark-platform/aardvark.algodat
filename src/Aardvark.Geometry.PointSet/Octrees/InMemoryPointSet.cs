@@ -202,9 +202,9 @@ namespace Aardvark.Geometry.Points
 #if DEBUG
                 if (ps != null && _subnodes != null) throw new InvalidOperationException();
 #endif
-                var pointCountTree = ps != null
-                    ? ps.Length
-                    : subcells.Sum(n => n != null ? n.PointCountTree : 0)
+                var pointCountTree = subcells != null
+                    ? subcells.Sum(n => n != null ? n.PointCountTree : 0)
+                    : ps.Length
                     ;
 
                 if (psId != null) storage.Add(psId.ToString(), ps, ct);

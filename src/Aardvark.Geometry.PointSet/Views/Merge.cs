@@ -107,11 +107,8 @@ namespace Aardvark.Geometry.Points
             var result = new PointCloudNode(storage, id, cell, boundingBoxExact, pointCountTree, subnodes, storeOnCreation: true);
 
             // generate lod
-            if (config.CreateOctreeLod)
-            {
-                throw new NotImplementedException();
-                //result = result.GenerateLod(config);
-            }
+            throw new NotImplementedException();
+            //result = result.GenerateLod(config);
 
             // normals
             if (config.EstimateNormals != null)

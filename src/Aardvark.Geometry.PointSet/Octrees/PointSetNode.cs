@@ -1009,7 +1009,6 @@ namespace Aardvark.Geometry.Points
         internal PointSetNode WithSubNodes(PointSetNode[] subnodes)
         {
             if (subnodes == null) throw new ArgumentNullException(nameof(subnodes));
-            if (IsLeaf) throw new InvalidOperationException();
 
             var pointCountTree = subnodes.Sum(x => x?.PointCountTree);
             return new PointSetNode(Guid.NewGuid(), Cell, pointCountTree.Value, BoundingBoxExactLocal,

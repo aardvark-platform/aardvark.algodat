@@ -132,8 +132,6 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PointSet GenerateLod(this PointSet self, ImportConfig config)
         {
-            if (config.CreateOctreeLod == false) return self;
-
             var nodeCount = self.Octree.Value.CountNodes();
             var loddedNodesCount = 0L;
             var result = self.GenerateLod(config.Key, () =>
@@ -217,7 +215,7 @@ namespace Aardvark.Geometry.Points
             var lodKsId = needsKs ? (Guid?)Guid.NewGuid() : null;
             if (needsKs) self.Storage.Add(lodKsId.Value, lodKs, ct);
 
-            var result = self.WithData(lodPs.Length, lodPsId, lodCsId, lodNsId, lodIsId, lodKdId, lodKsId, subcells);
+            var result = self.WithData(subcellsTotalCount, lodPsId, lodCsId, lodNsId, lodIsId, lodKdId, lodKsId, subcells);
             return result;
         }
 

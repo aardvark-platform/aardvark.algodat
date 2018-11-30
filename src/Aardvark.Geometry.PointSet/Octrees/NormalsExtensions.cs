@@ -85,11 +85,13 @@ namespace Aardvark.Geometry.Points
 
             callback?.Invoke();
 
+            var nsId = Guid.NewGuid();
+            var ns = default(V3f[]);
+
             if (self.IsLeaf)
             {
                 // generate and store normals
-                var ns = estimateNormals(self.PositionsAbsolute).ToArray();
-                var nsId = Guid.NewGuid();
+                ns = estimateNormals(self.PositionsAbsolute).ToArray();
                 self.Storage.Add(nsId, ns, ct);
 
                 // create node with new normals
@@ -119,7 +121,7 @@ namespace Aardvark.Geometry.Points
             if (e != 0) throw new InvalidOperationException();
 
             // generate Normals ...
-            var lodNs = new V3f[octreeSplitLimit];
+            ns = new V3f[octreeSplitLimit];
             var i = 0;
             for (var ci = 0; ci < 8; ci++)
             {
@@ -135,16 +137,15 @@ namespace Aardvark.Geometry.Points
                 for (var j = 0.0; j < jmax; j += dj)
                 {
                     var jj = (int)j;
-                    lodNs[i] = subns[jj];
+                    ns[i] = subns[jj];
                     i++;
                 }
             }
 
             // store LoD data ...
-            var lodNsId = Guid.NewGuid();
-            self.Storage.Add(lodNsId, lodNs, ct);
+            self.Storage.Add(nsId, ns, ct);
             
-            var result = self.WithSubNodes(subcells);
+            var result = self.WithNormals(nsId, subcells);
             return result;
         }
 

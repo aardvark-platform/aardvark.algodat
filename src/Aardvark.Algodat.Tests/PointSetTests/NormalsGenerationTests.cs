@@ -36,36 +36,6 @@ namespace Aardvark.Geometry.Tests
             var config = ImportConfig.Default
                 .WithInMemoryStore()
                 .WithRandomKey()
-                .WithCreateOctreeLod(true)
-                ;
-            var cloud = PointCloud.Chunks(chunk, config);
-
-            Assert.IsTrue(cloud.HasNormals == false);
-
-            config = config
-                .WithRandomKey()
-                .WithEstimateNormals(ps => Normals.EstimateNormals((V3d[])ps, 5))
-                ;
-            var cloud2 = cloud.GenerateNormals(config);
-            Assert.IsTrue(cloud2.HasNormals == true);
-            Assert.IsTrue(cloud2.Octree.Value.GetNormals().Value.All(n => n == V3f.OOI));
-        }
-
-        [Test]
-        public void NoLod()
-        {
-            var chunk = new Chunk(new[]
-            {
-                new V3d(0, 0, 0),
-                new V3d(1, 0, 0),
-                new V3d(1, 1, 0),
-                new V3d(0, 1, 0)
-            });
-
-            var config = ImportConfig.Default
-                .WithInMemoryStore()
-                .WithRandomKey()
-                .WithCreateOctreeLod(false)
                 ;
             var cloud = PointCloud.Chunks(chunk, config);
 
