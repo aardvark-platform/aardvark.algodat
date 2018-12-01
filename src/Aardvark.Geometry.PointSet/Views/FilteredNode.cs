@@ -153,22 +153,16 @@ namespace Aardvark.Geometry.Points
 
                 switch (property)
                 {
-                    case PointCloudAttribute.Classifications:
-                    case PointCloudAttribute.LodClassifications: value = GetSubArray<byte>(originalValue); break;
+                    case PointCloudAttribute.Classifications: value = GetSubArray<byte>(originalValue); break;
 
-                    case PointCloudAttribute.Colors:
-                    case PointCloudAttribute.LodColors: value = GetSubArray<C4b>(originalValue); break;
+                    case PointCloudAttribute.Colors: value = GetSubArray<C4b>(originalValue); break;
 
-                    case PointCloudAttribute.Intensities:
-                    case PointCloudAttribute.LodIntensities: value = GetSubArray<int>(originalValue); break;
-
-                    case PointCloudAttribute.LodNormals:
-                    case PointCloudAttribute.LodPositions:
+                    case PointCloudAttribute.Intensities: value = GetSubArray<int>(originalValue); break;
+                        
                     case PointCloudAttribute.Normals:
                     case PointCloudAttribute.Positions: value = GetSubArray<V3f>(originalValue); break;
 
                     case PointCloudAttribute.KdTree: throw new NotImplementedException();
-                    case PointCloudAttribute.LodKdTree: throw new NotImplementedException();
 
                     default: throw new InvalidOperationException($"Cannot convert '{property}' to property.");
                 }

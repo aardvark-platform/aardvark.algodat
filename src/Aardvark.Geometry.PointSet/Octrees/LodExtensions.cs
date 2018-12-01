@@ -227,7 +227,7 @@ namespace Aardvark.Geometry.Points
 
             ct.ThrowIfCancellationRequested();
             
-            if (self.IsLeaf()) return self.WithLod();
+            if (self.IsLeaf()) return self;
 
             if (self.HasPositions()) return self; // cell already has lod data -> done
 
@@ -272,7 +272,7 @@ namespace Aardvark.Geometry.Points
             var lodKsId = needsKs ? Guid.NewGuid().ToString() : null;
             if (needsKs) self.Storage.Add(lodKsId, lodKs, ct);
 
-            var result = self.WithLod(lodPsId, lodKdId, lodCsId, lodNsId, lodIsId, lodKsId);
+            var result = self.WithData(lodPsId, lodKdId, lodCsId, lodNsId, lodIsId, lodKsId);
             return result;
         }
     }

@@ -107,18 +107,18 @@ namespace Aardvark.Geometry.Points
             var result = new PointCloudNode(storage, id, cell, boundingBoxExact, pointCountTree, subnodes, storeOnCreation: true);
 
             // generate lod
-            throw new NotImplementedException();
             //result = result.GenerateLod(config);
+            throw new NotImplementedException();
 
-            // normals
-            if (config.EstimateNormals != null)
-            {
-                result = result.RegenerateNormals(config.EstimateNormals, config.ProgressCallback, config.CancellationToken);
-            }
+            //// normals
+            //if (config.EstimateNormals != null)
+            //{
+            //    result = result.RegenerateNormals(config.EstimateNormals, config.ProgressCallback, config.CancellationToken);
+            //}
 
-            storage.Add(id, result);
+            //storage.Add(id, result);
 
-            return result;
+            //return result;
         }
     }
 }
