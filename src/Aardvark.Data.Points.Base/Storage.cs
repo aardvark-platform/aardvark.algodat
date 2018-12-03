@@ -11,7 +11,9 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+using Aardvark.Base;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 
 namespace Aardvark.Data.Points
@@ -56,6 +58,8 @@ namespace Aardvark.Data.Points
             f_tryGetFromCache = tryGetFromCache;
             f_dispose = dispose;
             f_flush = flush;
+
+            Register(this);
         }
 
         /// <summary>
@@ -77,6 +81,7 @@ namespace Aardvark.Data.Points
             if (disposing)
             {
                 f_dispose();
+                Unregister(this);
             }
         }
 
@@ -88,5 +93,56 @@ namespace Aardvark.Data.Points
 
         /// <summary></summary>
         public bool IsDisposed => m_isDisposed;
+
+
+
+        /// <summary></summary>
+        public const bool CACHE_ENABLED = true;
+        /// <summary></summary>
+        public static KeepAliveCache CACHE { get; private set; }
+
+        private static void Register(Storage storage)
+        {
+#pragma warning disable CS0162 // Unreachable code detected
+            if (!CACHE_ENABLED) return;
+#pragma warning restore CS0162 // Unreachable code detected
+
+            lock (s_storages)
+            {
+                if (s_storages.Contains(storage)) throw new InvalidOperationException();
+
+                if (s_storages.Count == 0)
+                {
+                    if (CACHE != null) throw new InvalidOperationException();
+                    CACHE = new KeepAliveCache("StorageCache", 1L * 1024 * 1024 * 1024);
+                    Report.Warn("[Storage] created storage cache");
+                }
+
+                s_storages.Add(storage);
+                Report.Warn($"[Storage] registered store (total {s_storages.Count})");
+            }
+        }
+
+        private static void Unregister(Storage storage)
+        {
+            lock (s_storages)
+            {
+                if (!s_storages.Contains(storage)) throw new InvalidOperationException();
+                
+                s_storages.Remove(storage);
+                Report.Warn($"[Storage] unregistered store ({s_storages.Count} left)");
+
+                if (s_storages.Count == 0)
+                {
+                    if (CACHE == null) throw new InvalidOperationException();
+                    CACHE.Dispose();
+                    CACHE = null;
+                    Report.Warn("[Storage] disposed storage cache");
+                }
+            }
+        }
+
+        private static readonly HashSet<Storage> s_storages = CACHE_ENABLED ? new HashSet<Storage>() : null;
+
     }
 }

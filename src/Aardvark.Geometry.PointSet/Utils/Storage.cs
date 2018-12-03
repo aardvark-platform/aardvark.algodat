@@ -64,13 +64,11 @@ namespace Aardvark.Geometry.Points
 
         #endregion
 
-        private const bool CACHE_ENABLED = true;
-        private static readonly KeepAliveCache CACHE = CACHE_ENABLED ? new KeepAliveCache("StoreCache", 1L * 1024 * 1024 * 1024) : null;
-
         #region byte[]
 
         /// <summary></summary>
-        public static void Add(this Storage storage, Guid key, byte[] data, CancellationToken ct) => Add(storage, key.ToString(), data, ct);
+        public static void Add(this Storage storage, Guid key, byte[] data, CancellationToken ct)
+            => Add(storage, key.ToString(), data, ct);
 
         /// <summary></summary>
         public static void Add(this Storage storage, string key, byte[] data, CancellationToken ct)
@@ -82,7 +80,7 @@ namespace Aardvark.Geometry.Points
             var data = (byte[])storage.f_tryGetFromCache(key, ct);
             if (data != null)
             {
-                if (CACHE_ENABLED) CACHE.Add(data, data.Length);
+                if (Storage.CACHE_ENABLED) Storage.CACHE.Add(data, data.Length);
                 return data;
             }
 
@@ -91,7 +89,7 @@ namespace Aardvark.Geometry.Points
 
             storage.f_add(key, buffer, null, ct);
             
-            if (CACHE_ENABLED) CACHE.Add(buffer, buffer.Length);
+            if (Storage.CACHE_ENABLED) Storage.CACHE.Add(buffer, buffer.Length);
             return buffer;
         }
 
@@ -147,7 +145,7 @@ namespace Aardvark.Geometry.Points
             var data = (V3f[])storage.f_tryGetFromCache(key, ct);
             if (data != null)
             {
-                if (CACHE_ENABLED) CACHE.Add(data, data.Length * 12);
+                if (Storage.CACHE_ENABLED) Storage.CACHE.Add(data, data.Length * 12);
                 return data;
             }
 
@@ -164,7 +162,7 @@ namespace Aardvark.Geometry.Points
             }
             storage.f_add(key, data, null, ct);
             
-            if (CACHE_ENABLED) CACHE.Add(data, buffer.Length);
+            if (Storage.CACHE_ENABLED) Storage.CACHE.Add(data, buffer.Length);
             return data;
         }
 
@@ -196,7 +194,7 @@ namespace Aardvark.Geometry.Points
             var data = (int[])storage.f_tryGetFromCache(key, ct);
             if (data != null)
             {
-                if (CACHE_ENABLED) CACHE.Add(data, data.Length * 4);
+                if (Storage.CACHE_ENABLED) Storage.CACHE.Add(data, data.Length * 4);
                 return data;
             }
 
@@ -213,7 +211,7 @@ namespace Aardvark.Geometry.Points
             }
             storage.f_add(key, data, null, ct);
             
-            if (CACHE_ENABLED) CACHE.Add(buffer, buffer.Length);
+            if (Storage.CACHE_ENABLED) Storage.CACHE.Add(buffer, buffer.Length);
             return data;
         }
 
@@ -247,7 +245,7 @@ namespace Aardvark.Geometry.Points
             var data = (C4b[])storage.f_tryGetFromCache(key, ct);
             if (data != null)
             {
-                if (CACHE_ENABLED) CACHE.Add(data, data.Length * 4);
+                if (Storage.CACHE_ENABLED) Storage.CACHE.Add(data, data.Length * 4);
                 return data;
             }
 
@@ -260,7 +258,7 @@ namespace Aardvark.Geometry.Points
             }
             storage.f_add(key, data, null, ct);
 
-            if (CACHE_ENABLED) CACHE.Add(data, buffer.Length);
+            if (Storage.CACHE_ENABLED) Storage.CACHE.Add(data, buffer.Length);
             return data;
         }
 
@@ -292,7 +290,7 @@ namespace Aardvark.Geometry.Points
             if (data != null)
             {
                 var data2 = (PointRkdTreeDData)data;
-                if (CACHE_ENABLED) CACHE.Add(data2, data2.AxisArray.Length * 4 + data2.PermArray.Length * 8 + data2.RadiusArray.Length * 8);
+                if (Storage.CACHE_ENABLED) Storage.CACHE.Add(data2, data2.AxisArray.Length * 4 + data2.PermArray.Length * 8 + data2.RadiusArray.Length * 8);
                 return data2;
             }
 
@@ -306,7 +304,7 @@ namespace Aardvark.Geometry.Points
             storage.f_add(key, data, null, ct);
 
             var data3 = (PointRkdTreeDData)data;
-            if (CACHE_ENABLED) CACHE.Add(data3, data3.AxisArray.Length * 4 + data3.PermArray.Length * 8 + data3.RadiusArray.Length * 8);
+            if (Storage.CACHE_ENABLED) Storage.CACHE.Add(data3, data3.AxisArray.Length * 4 + data3.PermArray.Length * 8 + data3.RadiusArray.Length * 8);
             return data3;
         }
 
@@ -341,7 +339,7 @@ namespace Aardvark.Geometry.Points
             var data = (PointSetNode)storage.f_tryGetFromCache(key, ct);
             if (data != null)
             {
-                if (CACHE_ENABLED) CACHE.Add(data, data.SerializedSizeInBytes * 2);
+                if (Storage.CACHE_ENABLED) Storage.CACHE.Add(data, data.SerializedSizeInBytes * 2);
                 return data;
             }
 
@@ -350,7 +348,7 @@ namespace Aardvark.Geometry.Points
             data = PointSetNode.ParseBinary(buffer, storage);
             storage.f_add(key, data, null, ct);
             
-            if (CACHE_ENABLED) CACHE.Add(data, buffer.Length * 2);
+            if (Storage.CACHE_ENABLED) Storage.CACHE.Add(data, buffer.Length * 2);
             return data;
         }
 

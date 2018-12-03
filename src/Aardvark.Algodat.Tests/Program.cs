@@ -276,26 +276,37 @@ namespace Aardvark.Geometry.Tests
             new Thread(() => { while (run0) { cache0.Add("foo", 100); Thread.Sleep(10); } }).Start();
 
             Console.ReadLine();
-            var cache1 = new KeepAliveCache("bar cache", 1024 * 1024, false);
-            var run1 = true;
-            new Thread(() => { while (run1) { cache1.Add("bar", 100); Thread.Sleep(5); } }).Start();
+            var store0 = PointCloud.OpenStore("teststore0");
+            var runstore0 = true;
+            new Thread(() => { while (runstore0) { store0.Add("foo", new byte[10], default); store0.GetByteArray("foo", default); Thread.Sleep(1000); } }).Start();
+
+
+            Console.ReadLine();
+            var store1 = PointCloud.OpenStore("teststore1");
+            var runstore1 = true;
+            new Thread(() => { while (runstore1) { store1.Add("foo", new byte[10], default); store1.GetByteArray("foo", default); Thread.Sleep(1000); } }).Start();
+
+
+            Console.ReadLine();
+            runstore1 = false; Thread.Sleep(10);
+            store1.Dispose();
 
             Console.ReadLine();
             run0 = false; Thread.Sleep(10);
             cache0.Dispose();
 
             Console.ReadLine();
-            run1 = false; Thread.Sleep(10);
-            cache1.Dispose();
+            runstore0 = false; Thread.Sleep(10);
+            store0.Dispose();
 
             Console.ReadLine();
-            var cache2 = new KeepAliveCache("woo cache", 1024 * 1024, false);
+            var store2 = PointCloud.OpenStore("teststore2");
             var run2 = true;
-            new Thread(() => { while (run2) { cache2.Add("woo", 100); Thread.Sleep(1); } }).Start();
+            new Thread(() => { while (run2) { store2.Add("foo", new byte[10], default); store2.GetByteArray("foo", default); Thread.Sleep(100); } }).Start();
 
             Console.ReadLine();
             run2 = false; Thread.Sleep(10);
-            cache2.Dispose();
+            store2.Dispose();
         }
 
         public static void Main(string[] args)

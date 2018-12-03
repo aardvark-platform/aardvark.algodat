@@ -321,7 +321,7 @@ namespace Aardvark.Base
                 {
                     Thread.Sleep(100);
                     if (DateTimeOffset.UtcNow < nextLogLine) continue;
-                    nextLogLine = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(2);
+                    nextLogLine = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(5);
 
                     lock (s_allCaches)
                     {
