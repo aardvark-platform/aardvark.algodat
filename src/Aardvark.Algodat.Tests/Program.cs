@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using Uncodium.SimpleStore;
 
 namespace Aardvark.Geometry.Tests
@@ -212,7 +213,7 @@ namespace Aardvark.Geometry.Tests
             Report.EndTimed();
             store.Flush();
 
-            if (KeepAliveCache.Default.IsValueCreated) KeepAliveCache.Default.Value.Dispose();
+            //if (KeepAliveCache.Default.IsValueCreated) KeepAliveCache.Default.Value.Dispose();
         }
 
         internal static void TestImportPts(string filename)
@@ -268,9 +269,39 @@ namespace Aardvark.Geometry.Tests
             }
         }
 
+        internal static void KeepAliveCacheTest()
+        {
+            var cache0 = new KeepAliveCache("foo cache", 1024 * 1024, false);
+            var run0 = true;
+            new Thread(() => { while (run0) { cache0.Add("foo", 100); Thread.Sleep(10); } }).Start();
+
+            Console.ReadLine();
+            var cache1 = new KeepAliveCache("bar cache", 1024 * 1024, false);
+            var run1 = true;
+            new Thread(() => { while (run1) { cache1.Add("bar", 100); Thread.Sleep(5); } }).Start();
+
+            Console.ReadLine();
+            run0 = false; Thread.Sleep(10);
+            cache0.Dispose();
+
+            Console.ReadLine();
+            run1 = false; Thread.Sleep(10);
+            cache1.Dispose();
+
+            Console.ReadLine();
+            var cache2 = new KeepAliveCache("woo cache", 1024 * 1024, false);
+            var run2 = true;
+            new Thread(() => { while (run2) { cache2.Add("woo", 100); Thread.Sleep(1); } }).Start();
+
+            Console.ReadLine();
+            run2 = false; Thread.Sleep(10);
+            cache2.Dispose();
+        }
+
         public static void Main(string[] args)
         {
-            TestImport();
+            KeepAliveCacheTest();
+            //TestImport();
             //LinkedStores();
 
             //MasterLisa.Perform();
