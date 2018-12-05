@@ -1,6 +1,7 @@
 ﻿using Aardvark.Base;
 using Aardvark.Data.Points;
 using Aardvark.Geometry.Points;
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -19,70 +20,68 @@ namespace Aardvark.Geometry.Tests
             //var dirLabels = @"C:\Users\kellner\Desktop\Diplomarbeit\Semantic3d\sem8_labels_training";
             //var dirData = @"C:\Users\kellner\Desktop\Diplomarbeit\Semantic3d\sem8_data_training";
 
-            //var key = "bildstein_station1";
-            //var fn = "bildstein_station5_xyz_intensity_rgb";
-
-            //Report.Line("importing pointcloud");
-            //Import(
+            //Import( // import new pointcloud
             //    Path.Combine(dirData, fn + ".txt"),
             //    Path.Combine(dirLabels, fn + ".labels"),
-            //    path2store, key);
-
-            //Report.Line("estimating normals");
-            //AddNormals(path2store, key);
-
+            //    path2store, "bildstein_station1");
+            //AddNormals(path2store, key); // add normals
             //FilterPoints(path2store, key, 0); // filter all unlabelled points
 
             // -----------------------------------
-            var ids = new string[]
-               {
-                    //"bildstein_5_labelled",
-                    //"neugasse_station1",
-                    "sg27_station2",
-                    //"bildstein_station1"
-               };
-
+            
             var store = PointCloud.OpenStore(path2store);
-            ids.ForEach(id => FilterPoints(path2store, id, 0));
+            //FilterPoints(path2store, id, 0); // TODO: fix it!
+
+            var key = "bildstein_station1_filtered";
+            var pointset = store.GetPointSet(key, CancellationToken.None);
+
+            var root = pointset.Root.Value;
+            var exponent = -3;
+
+            var nodes = GetNodesWithExponent(root, exponent);
+
+            var positions = nodes.Select(n => (n.Cell.X, n.Cell.Y, n.Cell.Z));
+
+            var Xs = positions.Select(p => p.X).GroupBy(x => x).
+                Select(g => g.Key).OrderByDescending(x => x);
+
+            var Ys = positions.Select(p => p.Y).GroupBy(x => x).
+                Select(g => g.Key).OrderBy(x => x);
+
+            var Zs = positions.Select(p => p.Z).GroupBy(x => x).
+                Select(g => g.Key).OrderBy(x => x);
+
+            var rangeX = Math.Abs(Xs.Min()) + Math.Abs(Xs.Max());
+            var rangeY = Math.Abs(Ys.Min()) + Math.Abs(Ys.Max());
+            var rangeZ = Math.Abs(Zs.Min()) + Math.Abs(Zs.Max());
+
+            var d = Math.Max(rangeX, rangeY);
+
+         
+            var currentZ = Zs.RandomOrder().First();
+
+            var currentPositions = positions.Where(x => x.Z == currentZ);
             
-            var p = @"C:\Users\kellner\Desktop\Diplomarbeit\data.csv";
-            if (File.Exists(p)) File.Delete(p);
-            
-            ids.ForEach(id =>
+            var minVal = Math.Min(Xs.Min(), Ys.Min());
+            var maxVal = Math.Max(Xs.Max(), Ys.Max());
+
+            long mapY(long y) => y + Math.Abs(minVal);
+            long mapX(long x) => Math.Abs(x - Math.Abs(maxVal));
+
+            var mappedPositions = new double[d*d];
+            for (int i = 0; i < d * d; ++i)
+                mappedPositions[i] = 0;
+
+            currentPositions.ForEach(p =>
             {
-                Report.Line(id);
-                var key = id + "_filtered";
-
-                var pointset = store.GetPointSet(key, CancellationToken.None);
-
-                var root = pointset.Root.Value;
-                var ml = 1;
-                var exponent = 0;
-
-                //printTree(root, 0, ml);
-
-                var nodesFromLvl = getNodesFromLevel(root, 0, ml, new List<PointSetNode>());
-                Report.Line($"amount nodes: {nodesFromLvl.Count()}");
-                var grids = nodesFromLvl.Map(node => FlattenOctree(node, exponent));
-                
-                var maxLength = (int)Math.Pow(7,3);
-                
-                var lines = grids.Map(g =>
-                {
-                    var k = g.Item1.ToString();
-                    var v = new string[maxLength];
-
-                    for(int j = 0; j < maxLength; ++j)
-                    {
-                        if (j < g.Item2.Length)
-                            v[j] = g.Item2[j].ToString(CultureInfo.InvariantCulture);
-                        else
-                            v[j] = "0";
-                    }
-                    return k + ";" + v.Join(";");
-                });
-                File.AppendAllLines(p, lines);
+                var idx = mapY(p.Y) + (mapX(p.X) * d);
+                mappedPositions[idx] = 1;
             });
+
+            var ones = mappedPositions.Sum();
+
+
+            Report.Line();
             // ---------
 
             List<byte> ClassificationsOfTree(PointSetNode n, List<byte> classifications)
@@ -100,23 +99,23 @@ namespace Aardvark.Geometry.Tests
                 return classifications;
             }
 
-            void printTree(PointSetNode n, int level, int maxLevel)
+            void printTree(PointSetNode n, int lvl, int maxLvl)
             {
-                if (level == 0)
+                if (lvl == 0)
                     Console.WriteLine($"level 0: root");
 
-                level++;
+                lvl++;
 
-                if (level > maxLevel)
+                if (lvl > maxLvl)
                     return;
 
                 var tabs = "";
-                for (int i = 0; i < level - 1; ++i)
+                for (int i = 0; i < lvl - 1; ++i)
                     tabs += "\t";
 
                 if (n.IsLeaf())
                 {
-                    Console.WriteLine(tabs + $"|--- level {level}: leaf");
+                    Console.WriteLine(tabs + $"|--- level {lvl}: leaf");
                     return;
                 }
 
@@ -125,37 +124,22 @@ namespace Aardvark.Geometry.Tests
                     if (sn == null)
                     {
                         Console.ForegroundColor = ConsoleColor.DarkGray;
-                        Console.WriteLine(tabs + $"|--- level {level}: null");
+                        Console.WriteLine(tabs + $"|--- level {lvl}: null");
                         Console.ForegroundColor = ConsoleColor.White;
                     }
                     else
                     {
-                        Console.WriteLine(tabs + $"|--- level {level}: node");
-                        printTree(sn.Value, level, maxLevel);
+                        Console.WriteLine(tabs + $"|--- level {lvl}: node");
+                        printTree(sn.Value, lvl, maxLvl);
                     }
                 });
             }
-
-            List<PointSetNode> getNodesFromLevel(PointSetNode n, int currentLevel, int maxLevel,
-                List<PointSetNode> nodes)
-            {
-                if (currentLevel > maxLevel)
-                    return nodes;
-
-                if (currentLevel == maxLevel)
-                    nodes.Add(n);
-
-                if (n.IsLeaf())
-                    return nodes;
-
-                n.Subnodes.Where(sn => sn != null).ForEach(sn =>
-                    getNodesFromLevel(sn.Value, currentLevel + 1, maxLevel, nodes));
-
-                return nodes;
-            }
         }
 
-        private static (int, double[]) FlattenOctree(PointSetNode root, int exponent)
+        /// <summary>
+        /// Returns all nodes from given tree with given exponent.
+        /// </summary>
+        private static IEnumerable<PointSetNode> GetNodesWithExponent(PointSetNode root, int exponent)
         {
             var nodes = new List<PointSetNode>();
 
@@ -171,40 +155,7 @@ namespace Aardvark.Geometry.Tests
                     n.Subnodes.Where(sn => sn != null).
                     ForEach(sn => traverse(sn.Value, nodeList));
             }
-
-            var amountNodes = nodes.Count();
-            var gridSize = (int)Math.Pow(nodes.Count(), 1.0 / 3.0);
-            Report.Line($"amount of nodes: {nodes.Count()}, grid size: {gridSize}");
-
-            var maxPointsInCell = 8192.0;
-            var occupancyValues = nodes.Map(node => node.PointCount / maxPointsInCell);
-
-            var dict = new Dictionary<int, int>(); // (labels, count)
-            if (root.HasLodClassifications)
-            {
-                var cls = root.LodClassifications.Value;
-                cls.ForEach(c =>
-                {
-                    var cl = (int)c;
-                    if (dict.ContainsKey(cl))
-                        dict[cl] = dict[cl] + 1;
-                    else
-                        dict.Add(cl, 1);
-                });
-            }
-
-            var classification = 0;
-            var counter = 0;
-            dict.Keys.ForEach(k =>
-            {
-                if (dict[k] > counter)
-                {
-                    counter = dict[k];
-                    classification = k;
-                }
-            });
-
-            return (classification, occupancyValues.ToArray());
+            return nodes;
         }
 
         /// <summary>
