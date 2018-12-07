@@ -16,6 +16,9 @@ namespace Aardvark.Geometry.Tests
         public static void Perform()
         {
             var path2store = @"C:\Users\kellner\Desktop\Diplomarbeit\Store";
+            var pData = @"C:\Users\kellner\Desktop\Diplomarbeit\networks\data.csv";
+
+            if (File.Exists(pData)) File.Delete(pData);
 
             //var dirLabels = @"C:\Users\kellner\Desktop\Diplomarbeit\Semantic3d\sem8_labels_training";
             //var dirData = @"C:\Users\kellner\Desktop\Diplomarbeit\Semantic3d\sem8_data_training";
@@ -28,59 +31,141 @@ namespace Aardvark.Geometry.Tests
             //FilterPoints(path2store, key, 0); // filter all unlabelled points
 
             // -----------------------------------
-            
+
             var store = PointCloud.OpenStore(path2store);
             //FilterPoints(path2store, id, 0); // TODO: fix it!
 
-            var key = "bildstein_station1_filtered";
-            var pointset = store.GetPointSet(key, CancellationToken.None);
-
-            var root = pointset.Root.Value;
-            var exponent = -3;
-
-            var nodes = GetNodesWithExponent(root, exponent);
-
-            var positions = nodes.Select(n => (n.Cell.X, n.Cell.Y, n.Cell.Z));
-
-            var Xs = positions.Select(p => p.X).GroupBy(x => x).
-                Select(g => g.Key).OrderByDescending(x => x);
-
-            var Ys = positions.Select(p => p.Y).GroupBy(x => x).
-                Select(g => g.Key).OrderBy(x => x);
-
-            var Zs = positions.Select(p => p.Z).GroupBy(x => x).
-                Select(g => g.Key).OrderBy(x => x);
-
-            var rangeX = Math.Abs(Xs.Min()) + Math.Abs(Xs.Max());
-            var rangeY = Math.Abs(Ys.Min()) + Math.Abs(Ys.Max());
-            var rangeZ = Math.Abs(Zs.Min()) + Math.Abs(Zs.Max());
-
-            var d = Math.Max(rangeX, rangeY);
-
-         
-            var currentZ = Zs.RandomOrder().First();
-
-            var currentPositions = positions.Where(x => x.Z == currentZ);
-            
-            var minVal = Math.Min(Xs.Min(), Ys.Min());
-            var maxVal = Math.Max(Xs.Max(), Ys.Max());
-
-            long mapY(long y) => y + Math.Abs(minVal);
-            long mapX(long x) => Math.Abs(x - Math.Abs(maxVal));
-
-            var mappedPositions = new double[d*d];
-            for (int i = 0; i < d * d; ++i)
-                mappedPositions[i] = 0;
-
-            currentPositions.ForEach(p =>
+            var ids = new string[]
             {
-                var idx = mapY(p.Y) + (mapX(p.X) * d);
-                mappedPositions[idx] = 1;
+                "bildstein_5_labelled_filtered",
+                "neugasse_station1_filtered",
+                "bildstein_station1_filtered"
+            };
+
+            ids.ForEach(key =>
+            {
+                var pointset = store.GetPointSet(key, CancellationToken.None);
+
+                var root = pointset.Root.Value;
+                var exponent = 0;
+                
+                var subnodes = root.Subnodes.Where(sn => sn != null).Select(sn => sn.Value);
+
+                var nodes = subnodes.Select(sn => GetNodesWithExponent(sn, exponent)).
+                    Where(x => x.Count() != 0);
+
+                var truths = nodes.Select(ns =>
+                {
+                    var cl = ns.SelectMany(n =>
+                    {
+                        if (n.HasLodClassifications)
+                            return n.LodClassifications.Value.Map(x => (int)x);
+                        return new int[0];
+                    });
+
+                    var t = 0;
+
+                    var classes = cl.Distinct();
+
+                    var maxCount = (0, 0); // class,count
+                    classes.ForEach(c =>
+                        {
+                            var count = cl.Where(x => x == c).Count();
+                            if (count > maxCount.Item2)
+                                maxCount = (c, count);
+                        });
+                    t = maxCount.Item1;
+
+                    return t;
+                }).ToArray();
+
+                var maxRange = 40;
+
+                nodes.ForEach((ns, k) =>
+                {
+                    var positions = ns.Select((n, i) => (n.Cell.X, n.Cell.Y, n.Cell.Z));
+                    
+                    var Xs = positions.Select(p => p.X).GroupBy(x => x).
+                        Select(g => g.Key).OrderBy(x => x);
+
+                    var Ys = positions.Select(p => p.Y).GroupBy(x => x).
+                        Select(g => g.Key).OrderBy(x => x);
+
+                    var Zs = positions.Select(p => p.Z).GroupBy(x => x).
+                        Select(g => g.Key).OrderBy(x => x).OrderByDescending(x => x);
+
+                    var rangeX = (new Range1d(Xs.Min(), Xs.Max())).Elements.Count();
+                    var rangeY = (new Range1d(Ys.Min(), Ys.Max())).Elements.Count();
+                    var rangeZ = (new Range1d(Zs.Min(), Zs.Max())).Elements.Count();
+
+                    var minVal_XZ = (new long[] { Xs.Min(), Zs.Min() }).Min();
+                    var maxVal_XZ = (new long[] { Xs.Max(), Zs.Max() }).Max();
+                    var rangeXZ = (new Range1d(minVal_XZ, maxVal_XZ)).Elements.Count();
+
+                    var minVal_XY = (new long[] { Xs.Min(), Ys.Min() }).Min();
+                    var maxVal_XY = (new long[] { Xs.Max(), Ys.Max() }).Max();
+                    var rangeXY = (new Range1d(minVal_XY, maxVal_XY)).Elements.Count();
+
+                    var minVal_ZY = (new long[] { Ys.Min(), Zs.Min() }).Min();
+                    var maxVal_ZY = (new long[] { Ys.Max(), Zs.Max() }).Max();
+                    var rangeZY = (new Range1d(minVal_ZY, maxVal_ZY)).Elements.Count();
+
+                    var d = (new long[] { rangeXZ, rangeXY, rangeZY }).Max();
+
+                    if (d > maxRange)
+                        return;
+
+                    Report.Line($"range: {d}");
+
+                    var overallDim = maxRange * maxRange * maxRange;
+                    var mappedPositions = new double[overallDim];
+                    for (int i = 0; i < overallDim; ++i)
+                        mappedPositions[i] = 0;
+                    
+                    var grid = Ys.Select( (currentY, iy) =>
+                    {
+                         var currentPositions = positions.Where(x => x.Y == currentY);
+
+                         var currentXs = currentPositions.Select(x => x.X);
+                         var currentZs = currentPositions.Select(x => x.Z);
+
+                         var minVal = (new long[] { currentXs.Min(), currentZs.Min() }).Min();
+                         var maxVal = (new long[] { currentXs.Max(), currentZs.Max() }).Max();
+                         
+                         var idcs_X = new Range1d(minVal, maxVal).Elements;
+                         var idcs_Z = idcs_X.Reverse();
+
+                         int getIdx(IEnumerable<double> range, long v)
+                         {
+                             var idx = -1;
+                             range.ForEach((elem, i) =>
+                             {
+                                 if (elem == v)
+                                     idx = i;
+                             });
+                             return idx;
+                         }
+
+                         currentPositions.ForEach(pos =>
+                         {
+                             var xIdx = getIdx(idcs_X, pos.X);
+                             var zIdx = getIdx(idcs_Z, pos.Z);
+
+                             var mappedIdx = xIdx + zIdx * maxRange;
+                             mappedPositions[mappedIdx + iy] = 1;
+                         });
+                         
+                         Report.Line($"amount nodes: {currentPositions.Count()}");
+                         
+                         return mappedPositions;
+                     }).ToArray();
+
+                    File.AppendAllText(pData, $"{truths[k]},");
+
+                    var line = mappedPositions.Map(mp => mp.ToString()).Join(",");
+                    File.AppendAllText(pData, line + "\n");
+                });
             });
-
-            var ones = mappedPositions.Sum();
-
-
             Report.Line();
             // ---------
 
@@ -99,23 +184,24 @@ namespace Aardvark.Geometry.Tests
                 return classifications;
             }
 
-            void printTree(PointSetNode n, int lvl, int maxLvl)
+            void printTree(PointSetNode n, int counter, int wantedExp)
             {
-                if (lvl == 0)
-                    Console.WriteLine($"level 0: root");
-
-                lvl++;
-
-                if (lvl > maxLvl)
-                    return;
+                ++counter;
+                var exp = n.Cell.Exponent;
 
                 var tabs = "";
-                for (int i = 0; i < lvl - 1; ++i)
+                for (int i = 0; i < counter - 1; ++i)
                     tabs += "\t";
+
+                if (exp == wantedExp)
+                {
+                    Console.WriteLine(tabs + $"|--- exponent {exp}: node");
+                    return;
+                }
 
                 if (n.IsLeaf())
                 {
-                    Console.WriteLine(tabs + $"|--- level {lvl}: leaf");
+                    Console.WriteLine(tabs + $"|--- exponent {exp}: leaf");
                     return;
                 }
 
@@ -124,13 +210,13 @@ namespace Aardvark.Geometry.Tests
                     if (sn == null)
                     {
                         Console.ForegroundColor = ConsoleColor.DarkGray;
-                        Console.WriteLine(tabs + $"|--- level {lvl}: null");
+                        Console.WriteLine(tabs + $"|--- exponent {exp}: null");
                         Console.ForegroundColor = ConsoleColor.White;
                     }
                     else
                     {
-                        Console.WriteLine(tabs + $"|--- level {lvl}: node");
-                        printTree(sn.Value, lvl, maxLvl);
+                        Console.WriteLine(tabs + $"|--- exponent {exp}: node");
+                        printTree(sn.Value, counter, wantedExp);
                     }
                 });
             }
@@ -168,13 +254,13 @@ namespace Aardvark.Geometry.Tests
 
             var chunks = pointset.QueryAllPoints();
             var newChunks = new List<Chunk>();
-            
+
             // filter chunks
             chunks.ForEach((chunk, k) =>
             {
-                if( (k % 100) == 0)
+                if ((k % 100) == 0)
                     Report.Line($"filtering chunk #{k}");
-                
+
                 var indices = new List<int>();
                 chunk.Classifications.ForEach((c, i) =>
                 {
@@ -208,11 +294,11 @@ namespace Aardvark.Geometry.Tests
 
                 // create new chunks of filtered data
                 var bbChunk = new Box3d(positions);
-                newChunks.Add(new Chunk(positions, colors.IsEmpty() ? null : colors, 
+                newChunks.Add(new Chunk(positions, colors.IsEmpty() ? null : colors,
                     normals.IsEmpty() ? null : normals, intensities.IsEmpty() ? null : intensities,
                     classifications.IsEmpty() ? null : classifications, bbChunk));
             });
-            
+
             var config = ImportConfig.Default
                .WithStorage(store)
                .WithKey(key + "_filtered")
