@@ -16,7 +16,7 @@ namespace Aardvark.Geometry.Tests
         public static void Perform()
         {
             var path2store = @"C:\Users\kellner\Desktop\Diplomarbeit\Store";
-            var pData = @"C:\Users\kellner\Desktop\Diplomarbeit\networks\data.csv";
+            var pData = @"C:\Users\kellner\Desktop\Diplomarbeit\networks";
 
             if (File.Exists(pData)) File.Delete(pData);
 
@@ -35,191 +35,77 @@ namespace Aardvark.Geometry.Tests
             var store = PointCloud.OpenStore(path2store);
             //FilterPoints(path2store, id, 0); // TODO: fix it!
 
-            var ids = new string[]
+            var keys = new string[]
             {
                 "bildstein_5_labelled_filtered",
                 "neugasse_station1_filtered",
                 "bildstein_station1_filtered"
             };
 
-            ids.ForEach(key =>
+            var pointset = store.GetPointSet(keys[0], CancellationToken.None);
+            var subnodes = pointset.Root.Value.Subnodes.
+                Where(sn => sn != null).Select(sn => sn.Value);
+
+            var modes = new string[] { "binary", "count", "fraction" };
+            var sizes = new double[] { 16.0, 24.0, 32.0 };
+
+            var mode = "count";
+            var size = 16.0;
+
+            subnodes.ForEach( (subnode,j) =>
             {
-                var pointset = store.GetPointSet(key, CancellationToken.None);
+                Report.Warn($"processing subnode # {j}");
 
-                var root = pointset.Root.Value;
-                var exponent = 0;
-                
-                var subnodes = root.Subnodes.Where(sn => sn != null).Select(sn => sn.Value);
+                var min = subnode.BoundingBoxExact.Min;
+                var max = subnode.BoundingBoxExact.Max;
 
-                var nodes = subnodes.Select(sn => GetNodesWithExponent(sn, exponent)).
-                    Where(x => x.Count() != 0);
+                var boxSize = 2.0;
+                var boxes = new List<Box3d>();
 
-                var truths = nodes.Select(ns =>
+                // subdivide the subnode into 2x2x2 sized boxes
+                for (double x = min.X; x < max.X; x += boxSize)
+                    for (double y = min.Y; y < max.Y; y += boxSize)
+                        for (double z = min.Z; z < max.Z; z += boxSize)
+                            boxes.Add(new Box3d(x, y, z, x + boxSize, y + boxSize, z + boxSize));
+
+                // only use boxes with any points inside
+                var boxesWithPoints = boxes.Where(box => subnode.CountPointsInsideBox(box) > 0);
+
+                // convert the boxes into a grid with occupancy values
+                var gridSize = boxSize / size;
+                var data = boxesWithPoints.Select((box, i) =>
                 {
-                    var cl = ns.SelectMany(n =>
-                    {
-                        if (n.HasLodClassifications)
-                            return n.LodClassifications.Value.Map(x => (int)x);
-                        return new int[0];
-                    });
+                   Report.Line($"processing box #{i}");
 
-                    var t = 0;
+                   var bmin = box.Min;
+                   var bmax = box.Max;
 
-                    var classes = cl.Distinct();
+                   var cl = subnode.QueryPointsInsideBox(box).SelectMany(c => c.Classifications);
+                   var truth = cl.GroupBy(c => c).OrderByDescending(g => g.ToArray().Length).First().Key;
 
-                    var maxCount = (0, 0); // class,count
-                    classes.ForEach(c =>
-                        {
-                            var count = cl.Where(x => x == c).Count();
-                            if (count > maxCount.Item2)
-                                maxCount = (c, count);
-                        });
-                    t = maxCount.Item1;
+                   var occupancies = new List<string>();
 
-                    return t;
+                   for (double y = bmin.Y; y < bmax.Y; y += gridSize)
+                       for (double z = bmax.Z; z > bmin.Z; z -= gridSize)
+                           for (double x = bmin.X; x < bmax.X; x += gridSize)
+                           {
+                               var b = new Box3d(x, y, z, x + gridSize, y + gridSize, z + gridSize);
+                               var pc = subnode.CountPointsInsideBox(b);
+
+                                // calculate the occupancy value of the inner cube
+                                //var occ = pc > 0 ? 1 : 0; // binary 
+                                //var occ = pc; // point count
+                                //var occ = pc / 8192.0; // fraction of max points
+
+                                var occ = mode == "binary" ? (pc > 0 ? 1 : 0) :
+                                    mode == "count" ? pc : pc / 8192.0;
+
+                               occupancies.Add(occ.ToString(CultureInfo.InvariantCulture));
+                           }
+                   return ($"{truth};{occupancies.Join(";")}");
                 }).ToArray();
-
-                var maxRange = 40;
-
-                nodes.ForEach((ns, k) =>
-                {
-                    var positions = ns.Select((n, i) => (n.Cell.X, n.Cell.Y, n.Cell.Z));
-                    
-                    var Xs = positions.Select(p => p.X).GroupBy(x => x).
-                        Select(g => g.Key).OrderBy(x => x);
-
-                    var Ys = positions.Select(p => p.Y).GroupBy(x => x).
-                        Select(g => g.Key).OrderBy(x => x);
-
-                    var Zs = positions.Select(p => p.Z).GroupBy(x => x).
-                        Select(g => g.Key).OrderBy(x => x).OrderByDescending(x => x);
-
-                    var rangeX = (new Range1d(Xs.Min(), Xs.Max())).Elements.Count();
-                    var rangeY = (new Range1d(Ys.Min(), Ys.Max())).Elements.Count();
-                    var rangeZ = (new Range1d(Zs.Min(), Zs.Max())).Elements.Count();
-
-                    var minVal_XZ = (new long[] { Xs.Min(), Zs.Min() }).Min();
-                    var maxVal_XZ = (new long[] { Xs.Max(), Zs.Max() }).Max();
-                    var rangeXZ = (new Range1d(minVal_XZ, maxVal_XZ)).Elements.Count();
-
-                    var minVal_XY = (new long[] { Xs.Min(), Ys.Min() }).Min();
-                    var maxVal_XY = (new long[] { Xs.Max(), Ys.Max() }).Max();
-                    var rangeXY = (new Range1d(minVal_XY, maxVal_XY)).Elements.Count();
-
-                    var minVal_ZY = (new long[] { Ys.Min(), Zs.Min() }).Min();
-                    var maxVal_ZY = (new long[] { Ys.Max(), Zs.Max() }).Max();
-                    var rangeZY = (new Range1d(minVal_ZY, maxVal_ZY)).Elements.Count();
-
-                    var d = (new long[] { rangeXZ, rangeXY, rangeZY }).Max();
-
-                    if (d > maxRange)
-                        return;
-
-                    Report.Line($"range: {d}");
-
-                    var overallDim = maxRange * maxRange * maxRange;
-                    var mappedPositions = new double[overallDim];
-                    for (int i = 0; i < overallDim; ++i)
-                        mappedPositions[i] = 0;
-                    
-                    var grid = Ys.Select( (currentY, iy) =>
-                    {
-                         var currentPositions = positions.Where(x => x.Y == currentY);
-
-                         var currentXs = currentPositions.Select(x => x.X);
-                         var currentZs = currentPositions.Select(x => x.Z);
-
-                         var minVal = (new long[] { currentXs.Min(), currentZs.Min() }).Min();
-                         var maxVal = (new long[] { currentXs.Max(), currentZs.Max() }).Max();
-                         
-                         var idcs_X = new Range1d(minVal, maxVal).Elements;
-                         var idcs_Z = idcs_X.Reverse();
-
-                         int getIdx(IEnumerable<double> range, long v)
-                         {
-                             var idx = -1;
-                             range.ForEach((elem, i) =>
-                             {
-                                 if (elem == v)
-                                     idx = i;
-                             });
-                             return idx;
-                         }
-
-                         currentPositions.ForEach(pos =>
-                         {
-                             var xIdx = getIdx(idcs_X, pos.X);
-                             var zIdx = getIdx(idcs_Z, pos.Z);
-
-                             var mappedIdx = xIdx + zIdx * maxRange;
-                             mappedPositions[mappedIdx + iy] = 1;
-                         });
-                         
-                         Report.Line($"amount nodes: {currentPositions.Count()}");
-                         
-                         return mappedPositions;
-                     }).ToArray();
-
-                    File.AppendAllText(pData, $"{truths[k]},");
-
-                    var line = mappedPositions.Map(mp => mp.ToString()).Join(",");
-                    File.AppendAllText(pData, line + "\n");
-                });
+                File.AppendAllLines(Path.Combine(pData, "data_" + mode + "_gs=" + size + "csv"), data);
             });
-            Report.Line();
-            // ---------
-
-            List<byte> ClassificationsOfTree(PointSetNode n, List<byte> classifications)
-            {
-                if (n.HasClassifications)
-                    classifications.AddRange(n.Classifications.Value);
-
-                if (n.IsLeaf())
-                    return classifications;
-
-                n.Subnodes.Where(sn => sn != null).ForEach(sn =>
-                    ClassificationsOfTree(sn.Value, classifications)
-                );
-
-                return classifications;
-            }
-
-            void printTree(PointSetNode n, int counter, int wantedExp)
-            {
-                ++counter;
-                var exp = n.Cell.Exponent;
-
-                var tabs = "";
-                for (int i = 0; i < counter - 1; ++i)
-                    tabs += "\t";
-
-                if (exp == wantedExp)
-                {
-                    Console.WriteLine(tabs + $"|--- exponent {exp}: node");
-                    return;
-                }
-
-                if (n.IsLeaf())
-                {
-                    Console.WriteLine(tabs + $"|--- exponent {exp}: leaf");
-                    return;
-                }
-
-                n.Subnodes.ForEach(sn =>
-                {
-                    if (sn == null)
-                    {
-                        Console.ForegroundColor = ConsoleColor.DarkGray;
-                        Console.WriteLine(tabs + $"|--- exponent {exp}: null");
-                        Console.ForegroundColor = ConsoleColor.White;
-                    }
-                    else
-                    {
-                        Console.WriteLine(tabs + $"|--- exponent {exp}: node");
-                        printTree(sn.Value, counter, wantedExp);
-                    }
-                });
-            }
         }
 
         /// <summary>
