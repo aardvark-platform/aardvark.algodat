@@ -65,20 +65,31 @@ namespace Aardvark.Base
         /// <summary>
         /// Adds or refreshes value.
         /// </summary>
-        public void Add(object value, long sizeInBytes, Action<object> onRemoved = default)
+        public void Add(object key, object value, long sizeInBytes, Action<object, object> onRemovedKeyValue = default)
         {
             if (sizeInBytes > MaxSizeInBytes) throw new ArgumentOutOfRangeException(nameof(sizeInBytes));
 
-            var x = new Command(CommandType.Add, value, sizeInBytes, onRemoved);
+            var x = new Command(CommandType.Add, key, value, sizeInBytes, onRemovedKeyValue);
+            lock (m_lock) { m_clientQueue.Add(x); }
+        }
+
+        /// <summary>
+        /// Adds or refreshes value.
+        /// </summary>
+        public void Add(object value, long sizeInBytes, Action<object, object> onRemovedKeyValue = default)
+        {
+            if (sizeInBytes > MaxSizeInBytes) throw new ArgumentOutOfRangeException(nameof(sizeInBytes));
+
+            var x = new Command(CommandType.Add, key: value, value: value, sizeInBytes, onRemovedKeyValue);
             lock (m_lock) { m_clientQueue.Add(x); }
         }
 
         /// <summary>
         /// Removes value from cache.
         /// </summary>
-        public void Remove(object value)
+        public void Remove(object key)
         {
-            var x = new Command(CommandType.Remove, value, default, default);
+            var x = new Command(CommandType.Remove, key: key, value: default, sizeInBytes: default, onRemovedKeyValue: default);
             lock (m_lock) { m_clientQueue.Add(x); }
         }
 
@@ -87,7 +98,7 @@ namespace Aardvark.Base
         /// </summary>
         public void Flush()
         {
-            var x = new Command(CommandType.Flush, default, default, default);
+            var x = new Command(CommandType.Flush, key: default, value: default, sizeInBytes: default, onRemovedKeyValue: default);
             lock (m_lock) { m_clientQueue.Add(x); }
         }
 
@@ -101,30 +112,34 @@ namespace Aardvark.Base
         private struct Command
         {
             public readonly CommandType Type;
+            public readonly object Key;
             public readonly object Value;
             public readonly long SizeInBytes;
-            public readonly Action<object> OnRemoved;
-            public Command(CommandType type, object value, long sizeInBytes, Action<object> onRemoved)
+            public readonly Action<object, object> OnRemovedKeyValue;
+            public Command(CommandType type, object key, object value, long sizeInBytes, Action<object, object> onRemovedKeyValue)
             {
                 if (sizeInBytes < 0) throw new ArgumentOutOfRangeException(nameof(sizeInBytes));
+                Key = key ?? throw new ArgumentNullException(nameof(key));
                 Type = type;
                 Value = value;
                 SizeInBytes = sizeInBytes;
-                OnRemoved = onRemoved;
+                OnRemovedKeyValue = onRemovedKeyValue;
             }
         }
 
         private struct Entry
         {
+            public readonly object Value;
             public readonly long SizeInBytes;
             public readonly long Timestamp;
-            public readonly Action<object> OnRemoved;
+            public readonly Action<object, object> OnRemovedKeyValue;
 
-            public Entry(long sizeInBytes, long timestamp, Action<object> onRemoved)
+            public Entry(object value, long sizeInBytes, long timestamp, Action<object, object> onRemovedKeyValue)
             {
+                Value = value;
                 SizeInBytes = sizeInBytes;
                 Timestamp = timestamp;
-                OnRemoved = onRemoved;
+                OnRemovedKeyValue = onRemovedKeyValue;
             }
         }
 
@@ -295,20 +310,20 @@ namespace Aardvark.Base
                                 {
                                     case CommandType.Add:
                                         {
-                                            if (cache.m_entries.TryGetValue(cmd.Value, out Entry existing))
+                                            if (cache.m_entries.TryGetValue(cmd.Key, out Entry existing))
                                                 cache.CurrentSizeInBytes -= existing.SizeInBytes;
                                             cache.CurrentSizeInBytes += cmd.SizeInBytes;
-                                            cache.m_entries[cmd.Value] = new Entry(cmd.SizeInBytes, cache.m_nextTimestamp++, cmd.OnRemoved);
+                                            cache.m_entries[cmd.Key] = new Entry(cmd.Value, cmd.SizeInBytes, cache.m_nextTimestamp++, cmd.OnRemovedKeyValue);
                                         }
                                         break;
 
                                     case CommandType.Remove:
                                         {
-                                            if (cache.m_entries.TryGetValue(cmd.Value, out Entry existing))
+                                            if (cache.m_entries.TryGetValue(cmd.Key, out Entry existing))
                                             {
                                                 cache.CurrentSizeInBytes -= existing.SizeInBytes;
-                                                cache.m_entries.Remove(cmd.Value);
-                                                cmd.OnRemoved?.Invoke(cmd.Value);
+                                                cache.m_entries.Remove(cmd.Key);
+                                                cmd.OnRemovedKeyValue?.Invoke(cmd.Key, cmd.Value);
                                             }
                                         }
                                         break;
@@ -333,7 +348,7 @@ namespace Aardvark.Base
                                 {
                                     cache.CurrentSizeInBytes -= kv.Value.SizeInBytes;
                                     cache.m_entries.Remove(kv.Key);
-                                    kv.Value.OnRemoved?.Invoke(kv.Key);
+                                    kv.Value.OnRemovedKeyValue?.Invoke(kv.Key, kv.Value);
 
                                     if (cache.CurrentSizeInBytes <= cache.MaxSizeInBytes) break;
                                 }
