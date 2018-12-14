@@ -127,7 +127,7 @@ namespace Aardvark.Geometry.Points
             PointRkdTreeD<V3f[], V3f> LoadKdTree(string key, CancellationToken ct)
             {
                 var data = Storage.GetPointRkdTreeDData(key, ct);
-                var ps = Positions.Value;
+                var ps = HasPositions ? Positions.Value : LodPositions.Value;
                 return new PointRkdTreeD<V3f[], V3f>(
                     3, ps.Length, ps,
                     (xs, i) => xs[(int)i], (v, i) => (float)v[i],

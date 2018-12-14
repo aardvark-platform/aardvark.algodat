@@ -231,15 +231,20 @@ namespace Aardvark.Geometry.Tests
         {
             //TestKeepAliveCache();
 
-            LinkedStores();
+            //LinkedStores();
 
             //MasterLisa.Perform();
             //TestE57();
 
-            //var store = PointCloud.OpenStore(@"G:\cells\3280_5503_0_10\pointcloud");
-            //var pc = store.GetPointSet("3280_5503_0_10", default);
-            //Console.WriteLine(pc.Id);
-            //Console.WriteLine(pc.PointCount);
+            //using (var store = PointCloud.OpenStore(@"G:\cells\3267_5514_0_10\pointcloud"))
+            //{
+            //    var pc = store.GetPointSet("3267_5514_0_10", default);
+            //    Console.WriteLine(pc.Id);
+            //    Console.WriteLine(pc.PointCount);
+
+            //    var root = pc.Root.Value;
+            //    var kd = root.LodKdTree.Value;
+            //}
 
             //TestKNearest();
             //foreach (var filename in Directory.EnumerateFiles(@"C:\", "*.pts", SearchOption.AllDirectories))

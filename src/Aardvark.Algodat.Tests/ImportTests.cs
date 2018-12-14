@@ -528,6 +528,8 @@ namespace Aardvark.Geometry.Tests
             var pointset2 = config.Storage.GetPointSet("test", CancellationToken.None);
             Assert.IsTrue(pointset2 != null);
             Assert.IsTrue(pointset2.PointCount == 3);
+
+            Assert.IsTrue(pointset2.Root.Value.KdTree.Value != null);
         }
 
         #endregion
