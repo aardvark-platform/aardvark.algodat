@@ -18,21 +18,23 @@ namespace Aardvark.Geometry.Tests
             var path2store = @"C:\Users\kellner\Desktop\Diplomarbeit\Store";
             var pData = @"C:\Users\kellner\Desktop\Diplomarbeit\networks";
 
-            if (File.Exists(pData)) File.Delete(pData);
+            //var dirLabels = @"C:\Users\kellner\Desktop\Diplomarbeit\data\Semantic3d\sem8_labels_training";
+            //var dirData = @"C:\Users\kellner\Desktop\Diplomarbeit\data\Semantic3d\sem8_data_training";
 
-            //var dirLabels = @"C:\Users\kellner\Desktop\Diplomarbeit\Semantic3d\sem8_labels_training";
-            //var dirData = @"C:\Users\kellner\Desktop\Diplomarbeit\Semantic3d\sem8_data_training";
+            //var fn = "untermaederbrunnen_station1_xyz_intensity_rgb";
+            //var k = "untermaederbrunnen_station1";
 
             //Import( // import new pointcloud
             //    Path.Combine(dirData, fn + ".txt"),
             //    Path.Combine(dirLabels, fn + ".labels"),
-            //    path2store, "bildstein_station1");
-            //AddNormals(path2store, key); // add normals
-            //FilterPoints(path2store, key, 0); // filter all unlabelled points
+            //    path2store, k);
+            //AddNormals(path2store, k); // add normals
+            //FilterPoints(path2store, k, 0); // filter all unlabelled points
+
+            var store = PointCloud.OpenStore(path2store);
 
             // -----------------------------------
 
-            var store = PointCloud.OpenStore(path2store);
             //FilterPoints(path2store, id, 0); // TODO: fix it!
 
             var keys = new string[]
@@ -42,55 +44,47 @@ namespace Aardvark.Geometry.Tests
                 "bildstein_station1_filtered"
             };
 
-            var pointset = store.GetPointSet(keys[0], CancellationToken.None);
-            var subnodes = pointset.Root.Value.Subnodes.
-                Where(sn => sn != null).Select(sn => sn.Value);
-
-            var modes = new string[] { "binary", "count", "fraction" };
-            var sizes = new double[] { 16.0, 24.0, 32.0 };
-
-            var mode = "count";
-            var size = 16.0;
-
-            subnodes.ForEach( (subnode,j) =>
+            keys.ForEach(key =>
             {
-                Report.Warn($"processing subnode # {j}");
+                Report.Warn($"processing pointcloud: {key}");
 
-                var min = subnode.BoundingBoxExact.Min;
-                var max = subnode.BoundingBoxExact.Max;
+                var pointset = store.GetPointSet(key, CancellationToken.None);
+                //var subnodes = pointset.Root.Value.Subnodes.
+                //    Where(sn => sn != null).Select(sn => sn.Value);
 
-                var boxSize = 2.0;
-                var boxes = new List<Box3d>();
+                var subnodes = GetNodesWithExponent(pointset.Root.Value, -3);
 
-                // subdivide the subnode into 2x2x2 sized boxes
-                for (double x = min.X; x < max.X; x += boxSize)
-                    for (double y = min.Y; y < max.Y; y += boxSize)
-                        for (double z = min.Z; z < max.Z; z += boxSize)
-                            boxes.Add(new Box3d(x, y, z, x + boxSize, y + boxSize, z + boxSize));
+                //var modes = new string[] { "binary", "count", "fraction" };
+                //var sizes = new double[] { 16.0, 24.0, 32.0 };
 
-                // only use boxes with any points inside
-                var boxesWithPoints = boxes.Where(box => subnode.CountPointsInsideBox(box) > 0);
+                var mode = "binary";
+                var size = 8.0;
 
-                // convert the boxes into a grid with occupancy values
-                var gridSize = boxSize / size;
-                var data = boxesWithPoints.Select((box, i) =>
+                subnodes.ForEach((subnode, j) =>
                 {
-                   Report.Line($"processing box #{i}");
+                    if ((j % 100) == 0)
+                        Report.Line($"processing subnode # {j}");
 
-                   var bmin = box.Min;
-                   var bmax = box.Max;
+                    // converts the boxes into a grid with occupancy values
+                    var box = subnode.BoundingBox;
 
-                   var cl = subnode.QueryPointsInsideBox(box).SelectMany(c => c.Classifications);
-                   var truth = cl.GroupBy(c => c).OrderByDescending(g => g.ToArray().Length).First().Key;
+                    var min = box.Min;
+                    var max = box.Max;
 
-                   var occupancies = new List<string>();
+                    var boxSize = Math.Abs(max.X - min.X);
+                    var gridSize = boxSize / size;
 
-                   for (double y = bmin.Y; y < bmax.Y; y += gridSize)
-                       for (double z = bmax.Z; z > bmin.Z; z -= gridSize)
-                           for (double x = bmin.X; x < bmax.X; x += gridSize)
-                           {
-                               var b = new Box3d(x, y, z, x + gridSize, y + gridSize, z + gridSize);
-                               var pc = subnode.CountPointsInsideBox(b);
+                    var cl = subnode.QueryPointsInsideBox(box).SelectMany(c => c.Classifications);
+                    var truth = cl.GroupBy(c => c).OrderByDescending(g => g.ToArray().Length).First().Key;
+
+                    var occupancies = new List<string>();
+
+                    for (double y = min.Y; y < max.Y; y += gridSize)
+                        for (double z = max.Z; z > min.Z; z -= gridSize)
+                            for (double x = min.X; x < max.X; x += gridSize)
+                            {
+                                var b = new Box3d(x, y, z, x + gridSize, y + gridSize, z + gridSize);
+                                var pc = subnode.CountPointsInsideBox(b);
 
                                 // calculate the occupancy value of the inner cube
                                 //var occ = pc > 0 ? 1 : 0; // binary 
@@ -98,14 +92,61 @@ namespace Aardvark.Geometry.Tests
                                 //var occ = pc / 8192.0; // fraction of max points
 
                                 var occ = mode == "binary" ? (pc > 0 ? 1 : 0) :
-                                    mode == "count" ? pc : pc / 8192.0;
+                                       mode == "count" ? pc : pc / 8192.0;
 
-                               occupancies.Add(occ.ToString(CultureInfo.InvariantCulture));
-                           }
-                   return ($"{truth};{occupancies.Join(";")}");
-                }).ToArray();
-                File.AppendAllLines(Path.Combine(pData, "data_" + mode + "_gs=" + size + "csv"), data);
+                                occupancies.Add(occ.ToString(CultureInfo.InvariantCulture));
+                            }
+                    var data = ($"{truth};{occupancies.Join(";")}\n");
+                    File.AppendAllText(Path.Combine(pData, "data_" + mode + "_gs=" + size + "-all.csv"), data);
+                });
             });
+        }
+
+        /// <summary>
+        /// PointCloudNode attributes for machine learning.
+        /// </summary>
+        private static class PointCloudAttributes4ML
+        {
+            public const string Predictions = "Predictions";
+        }
+
+        /// <summary>
+        /// Extension functions for ML-attributes
+        /// </summary>
+        private static class IPointCloudNodeExtensions4ML
+        {
+            private static bool Has(IPointCloudNode n, string attributeName)
+            {
+                switch (n.FilterState)
+                {
+                    case FilterState.FullyOutside:
+                        return false;
+                    case FilterState.FullyInside:
+                    case FilterState.Partial:
+                        return n.TryGetPropertyKey(attributeName, out string _);
+                    default:
+                        throw new InvalidOperationException($"Unknown FilterState {n.FilterState}.");
+                }
+            }
+
+            // predictions
+            public static bool HasPredictions(IPointCloudNode self) =>
+                Has(self, PointCloudAttributes4ML.Predictions);
+
+            public static PersistentRef<byte[]> GetPredictions(IPointCloudNode self)
+            {
+                var key = ComputeKey4Predictions(self);
+                var predictions = self.Storage.GetByteArray(key, default);
+
+                return new PersistentRef<byte[]>(key, (id, ct) =>
+                    self.Storage.GetByteArray(id, ct), predictions);
+            }
+
+            public static void AddPredictions(IPointCloudNode self, byte[] predictions) =>
+                self.Storage.Add(ComputeKey4Predictions(self), predictions, default);
+
+            private static string ComputeKey4Predictions(IPointCloudNode self) =>
+                "predictions_123";
         }
 
         /// <summary>
@@ -277,7 +318,7 @@ namespace Aardvark.Geometry.Tests
             var config = ImportConfig.Default
                 .WithStorage(store)
                 .WithKey(key)
-                .WithMaxChunkPointCount((int)info.PointCount + 1)
+                .WithMaxChunkPointCount(1024 * 1024)
                 .WithEstimateNormals(estimateNormals)
                 .WithVerbose(true);
 
