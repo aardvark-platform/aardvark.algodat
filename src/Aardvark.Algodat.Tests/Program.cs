@@ -204,32 +204,49 @@ namespace Aardvark.Geometry.Tests
             }
         }
 
-        internal static void TestKeepAliveCache()
+        internal static void KeepAliveCacheTest()
         {
-            var r = new Random();
+            var cache0 = new KeepAliveCache("foo cache", 1024 * 1024, false);
+            var run0 = true;
+            new Thread(() => { while (run0) { cache0.Add("foo", 100); Thread.Sleep(10); } }).Start();
 
-            using (var cache = new KeepAliveCache(1024 * 1024 * 1024, true))
-            {
-                var foo = new Queue<object>();
+            Console.ReadLine();
+            var store0 = PointCloud.OpenStore("teststore0");
+            var runstore0 = true;
+            new Thread(() => { while (runstore0) { store0.Add("foo", new byte[10], default); store0.GetByteArray("foo", default); Thread.Sleep(1000); } }).Start();
 
-                while (true)
-                {
-                    //Thread.Sleep(1);
 
-                    var o = new object();
-                    //if (r.NextDouble() > 0.9) foo.Enqueue(o);
-                    //if (foo.Count > 0 && r.NextDouble() > 0.85) cache.Remove(foo.Dequeue());
-                    //if (r.NextDouble() > 0.99999) { Console.WriteLine("sleep"); Thread.Sleep(2000); }
-                    cache.Add(o, r.Next(10 * 1024 * 1024));
+            Console.ReadLine();
+            var store1 = PointCloud.OpenStore("teststore1");
+            var runstore1 = true;
+            new Thread(() => { while (runstore1) { store1.Add("foo", new byte[10], default); store1.GetByteArray("foo", default); Thread.Sleep(1000); } }).Start();
 
-                    if (cache.ProcessedCount > 1000000) break;
-                }
-            }
+
+            Console.ReadLine();
+            runstore1 = false; Thread.Sleep(10);
+            store1.Dispose();
+
+            Console.ReadLine();
+            run0 = false; Thread.Sleep(10);
+            cache0.Dispose();
+
+            Console.ReadLine();
+            runstore0 = false; Thread.Sleep(10);
+            store0.Dispose();
+
+            Console.ReadLine();
+            var store2 = PointCloud.OpenStore("teststore2");
+            var run2 = true;
+            new Thread(() => { while (run2) { store2.Add("foo", new byte[10], default); store2.GetByteArray("foo", default); Thread.Sleep(100); } }).Start();
+
+            Console.ReadLine();
+            run2 = false; Thread.Sleep(10);
+            store2.Dispose();
         }
 
         public static void Main(string[] args)
         {
-            //TestKeepAliveCache();
+            KeepAliveCacheTest();
 
             //LinkedStores();
 
