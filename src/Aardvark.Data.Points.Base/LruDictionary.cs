@@ -40,9 +40,18 @@ namespace Aardvark.Base
         {
             public Entry Prev;
             public Entry Next;
-            public long Size;
+            public K Key;
             public V Value;
+            public long Size;
             public Action<K, V, long> OnRemove;
+
+            public Entry(K key, V value, long size, Action<K, V, long> onRemove)
+            {
+                Key = key;
+                Value = value;
+                Size = size;
+                OnRemove = onRemove;
+            }
         }
         private Entry m_first = null;
         private Entry m_last = null;
@@ -57,6 +66,7 @@ namespace Aardvark.Base
         {
             if (m_first != null)
             {
+                m_first.Prev = e;
                 e.Prev = null;
                 e.Next = m_first;
                 m_first = e;
@@ -69,12 +79,18 @@ namespace Aardvark.Base
         }
         private void RemoveLast()
         {
+            Entry removed = null;
             lock (m_k2e)
             {
                 if (m_last == null) return;
+                removed = m_last;
+                m_k2e.Remove(removed.Key);
+                CurrentSize -= m_last.Size;
                 m_last = m_last.Prev;
                 m_last.Next = null;
             }
+
+            removed.OnRemove?.Invoke(removed.Key, removed.Value, removed.Size);
         }
         private List<Entry> GetEntriesInOrder()
         {
@@ -101,7 +117,7 @@ namespace Aardvark.Base
         /// </summary>
         public bool Add(K key, V value, long size, Action<K, V, long> onRemove = null)
         {
-            if (size > MaxSize) throw new ArgumentOutOfRangeException(nameof(size));
+            if (size > MaxSize || size < 0) throw new ArgumentOutOfRangeException(nameof(size));
 
             Entry e = null;
             lock (m_k2e)
@@ -113,7 +129,7 @@ namespace Aardvark.Base
                 }
                 else
                 {
-                    e = new Entry { Value = value, Size = size, OnRemove = onRemove };
+                    e = new Entry(key, value, size, onRemove);
                     m_k2e[key] = e;
                 }
             }
@@ -212,15 +228,16 @@ namespace Aardvark.Base
                 m_k2e.Clear();
                 m_first = null;
                 m_last = null;
+                CurrentSize = 0;
             }
         }
 
         #region IDictionary<K, V>
 
         /// <summary>
-        /// Gets keys. No specific order.
+        /// Gets keys from most recently used to least recently used.
         /// </summary>
-        public ICollection<K> Keys => m_k2e.Keys.ToArray();
+        public ICollection<K> Keys => GetEntriesInOrder().Map(e => e.Key);
 
         /// <summary>
         /// Gets values from most recently used to least recently used.
@@ -231,13 +248,17 @@ namespace Aardvark.Base
         public bool IsReadOnly => false;
 
         /// <summary></summary>
-        public V this[K key] { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public V this[K key]
+        {
+            get => TryGetValue(key, out V value) ? value : throw new KeyNotFoundException($"Key '{key}' not found. Use TryGetValue instead.");
+            set => throw new InvalidOperationException("Item size is required. Use Add(key, value, size) instead.");
+        }
 
         /// <summary></summary>
-        public void Add(K key, V value) => throw new InvalidOperationException("Item size is required.");
+        public void Add(K key, V value) => throw new InvalidOperationException("Item size is required. Use Add(key, value, size) instead.");
 
         /// <summary></summary>
-        public void Add(KeyValuePair<K, V> item) => throw new InvalidOperationException("Item size is required.");
+        public void Add(KeyValuePair<K, V> item) => throw new InvalidOperationException("Item size is required. Use Add(key, value, size) instead.");
 
         /// <summary></summary>
         public bool Remove(K key) => Remove(key, true);

@@ -21,6 +21,8 @@ namespace Aardvark.Geometry.Tests
     [TestFixture]
     public class LruDictionaryTests
     {
+        #region Create
+
         [Test]
         public void Create()
         {
@@ -29,6 +31,58 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(a.CurrentSize == 0);
             Assert.IsTrue(a.Count == 0);
         }
+
+        #endregion
+
+        #region Clear
+
+        [Test]
+        public void Clear0()
+        {
+            var a = new LruDictionary<int, string>(10);
+            
+            Assert.IsTrue(a.CurrentSize == 0);
+            Assert.IsTrue(a.Count == 0);
+
+            a.Clear();
+            Assert.IsTrue(a.CurrentSize == 0);
+            Assert.IsTrue(a.Count == 0);
+        }
+
+        [Test]
+        public void Clear2()
+        {
+            var a = new LruDictionary<int, string>(10);
+
+            a.Add(1, "one", 3, onRemove: default);
+            a.Add(2, "two", 4, onRemove: default);
+            Assert.IsTrue(a.CurrentSize == 7);
+            Assert.IsTrue(a.Count == 2);
+
+            a.Clear();
+            Assert.IsTrue(a.CurrentSize == 0);
+            Assert.IsTrue(a.Count == 0);
+        }
+
+        [Test]
+        public void Clear3()
+        {
+            var a = new LruDictionary<int, string>(20);
+
+            a.Add(1, "one", 3, onRemove: default);
+            a.Add(2, "two", 4, onRemove: default);
+            a.Add(3, "three", 5, onRemove: default);
+            Assert.IsTrue(a.CurrentSize == 12);
+            Assert.IsTrue(a.Count == 3);
+
+            a.Clear();
+            Assert.IsTrue(a.CurrentSize == 0);
+            Assert.IsTrue(a.Count == 0);
+        }
+
+        #endregion
+
+        #region Add
 
         [Test]
         public void Add1()
@@ -54,7 +108,7 @@ namespace Aardvark.Geometry.Tests
         }
 
         [Test]
-        public void Add_Replace()
+        public void Add1_Replace()
         {
             var a = new LruDictionary<int, string>(10);
 
@@ -68,7 +122,7 @@ namespace Aardvark.Geometry.Tests
         }
 
         [Test]
-        public void Add_Replace2()
+        public void Add2_ReplaceFirst()
         {
             var a = new LruDictionary<int, string>(10);
 
@@ -81,5 +135,116 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(a.CurrentSize == 9);
             Assert.IsTrue(a.Count == 2);
         }
+
+        [Test]
+        public void Add2_ReplaceLast()
+        {
+            var a = new LruDictionary<int, string>(10);
+
+            a.Add(1, "one", 3, onRemove: default);
+            a.Add(2, "two", 4, onRemove: default);
+            Assert.IsTrue(a.CurrentSize == 7);
+            Assert.IsTrue(a.Count == 2);
+
+            a.Add(2, "two", 5, onRemove: default);
+            Assert.IsTrue(a.CurrentSize == 8);
+            Assert.IsTrue(a.Count == 2);
+        }
+
+        [Test]
+        public void Add3_Replace_First()
+        {
+            var a = new LruDictionary<int, string>(20);
+
+            a.Add(1, "one", 3, onRemove: default);
+            a.Add(2, "two", 4, onRemove: default);
+            a.Add(3, "three", 5, onRemove: default);
+            Assert.IsTrue(a.CurrentSize == 12);
+            Assert.IsTrue(a.Count == 3);
+
+            a.Add(1, "one", 5, onRemove: default);
+            Assert.IsTrue(a.CurrentSize == 14);
+            Assert.IsTrue(a.Count == 3);
+        }
+
+        [Test]
+        public void Add3_Replace_Last()
+        {
+            var a = new LruDictionary<int, string>(20);
+
+            a.Add(1, "one", 3, onRemove: default);
+            a.Add(2, "two", 4, onRemove: default);
+            a.Add(3, "three", 5, onRemove: default);
+            Assert.IsTrue(a.CurrentSize == 12);
+            Assert.IsTrue(a.Count == 3);
+
+            a.Add(3, "three", 6, onRemove: default);
+            Assert.IsTrue(a.CurrentSize == 13);
+            Assert.IsTrue(a.Count == 3);
+        }
+
+        [Test]
+        public void Add3_Replace_Middle()
+        {
+            var a = new LruDictionary<int, string>(20);
+
+            a.Add(1, "one", 3, onRemove: default);
+            a.Add(2, "two", 4, onRemove: default);
+            a.Add(3, "three", 5, onRemove: default);
+            Assert.IsTrue(a.CurrentSize == 12);
+            Assert.IsTrue(a.Count == 3);
+
+            a.Add(2, "two", 6, onRemove: default);
+            Assert.IsTrue(a.CurrentSize == 14);
+            Assert.IsTrue(a.Count == 3);
+        }
+
+        [Test]
+        public void Add_SizeTooBig()
+        {
+            var a = new LruDictionary<int, string>(10);
+
+            Assert.Catch(() =>
+            {
+                a.Add(1, "one", 11, onRemove: default);
+            });
+        }
+
+        [Test]
+        public void Add_Size0()
+        {
+            var a = new LruDictionary<int, string>(10);
+            a.Add(1, "one", 0, onRemove: default);
+            Assert.IsTrue(a.CurrentSize == 0);
+        }
+
+        [Test]
+        public void Add_NegativeSize()
+        {
+            var a = new LruDictionary<int, string>(10);
+
+            Assert.Catch(() =>
+            {
+                a.Add(1, "one", -1, onRemove: default);
+            });
+        }
+        
+        [Test]
+        public void Add3_Overshoot()
+        {
+            var a = new LruDictionary<int, string>(15);
+
+            a.Add(1, "one", 3, onRemove: default);
+            a.Add(2, "two", 4, onRemove: default);
+            a.Add(3, "three", 5, onRemove: default);
+            Assert.IsTrue(a.CurrentSize == 12);
+            Assert.IsTrue(a.Count == 3);
+
+            a.Add(4, "four", 10, onRemove: default);
+            Assert.IsTrue(a.CurrentSize == 15);
+            Assert.IsTrue(a.Count == 2);
+        }
+        
+        #endregion
     }
 }
