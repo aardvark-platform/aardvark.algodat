@@ -57,6 +57,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BitPackTests.cs" />
+    <Compile Include="LruDictionaryTests.cs" />
     <Compile Include="MasterLisa.cs" />
     <Compile Include="UtilsTests.cs" />
     <Compile Include="PointSetTests\NormalsEstimationTests.cs" />
