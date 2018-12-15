@@ -82,6 +82,7 @@ namespace Aardvark.Base
             Entry removed = null;
             lock (m_k2e)
             {
+                if (CurrentSize <= MaxSize) return;
                 if (m_last == null) return;
                 removed = m_last;
                 m_k2e.Remove(removed.Key);
@@ -132,11 +133,11 @@ namespace Aardvark.Base
                     e = new Entry(key, value, size, onRemove);
                     m_k2e[key] = e;
                 }
+                
+                InsertAtFront(e);
+                CurrentSize += e.Size;
             }
-
-            InsertAtFront(e);
-            CurrentSize += e.Size;
-
+            
             while (CurrentSize > MaxSize)
             {
                 RemoveLast();

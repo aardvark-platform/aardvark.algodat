@@ -12,6 +12,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using System;
+using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
 using Aardvark.Base;
 using Aardvark.Geometry.Points;
 using NUnit.Framework;
@@ -244,7 +247,55 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(a.CurrentSize == 15);
             Assert.IsTrue(a.Count == 2);
         }
-        
+
+        #endregion
+
+        #region Stress
+
+        [Test]
+        public void RandomInserts_1M_SingleThreaded()
+        {
+            var a = new LruDictionary<int, string>(1024 * 1024 * 1024);
+
+            var r = new Random();
+            var sw = new Stopwatch(); sw.Start();
+            for (var i = 0; i < 1_000_000; i++)
+            {
+                a.Add(r.Next(), "foo", r.Next(1, 10 * 1024 * 1024), onRemove: default);
+            }
+            sw.Stop();
+            Console.WriteLine(sw.Elapsed);
+        }
+
+        [Test]
+        public void RandomInserts_1M_MultiThreaded()
+        {
+            var a = new LruDictionary<int, string>(1024 * 1024 * 1024);
+
+            var start = new ManualResetEventSlim(false);
+            var ts = new Task[4];
+            for (var i = 0; i < ts.Length; i++)
+            {
+                ts[i] = new Task(Do, TaskCreationOptions.LongRunning);
+                ts[i].Start();
+            }
+            var sw = new Stopwatch(); sw.Start();
+            start.Set();
+            Task.WhenAll(ts).Wait();
+            sw.Stop();
+            Console.WriteLine(sw.Elapsed);
+
+            void Do()
+            {
+                start.Wait();
+                var r = new Random();
+                for (var i = 0; i < 1_000_000; i++)
+                {
+                    a.Add(r.Next(), "foo", r.Next(1, 10 * 1024 * 1024), onRemove: default);
+                }
+            }
+        }
+
         #endregion
     }
 }
