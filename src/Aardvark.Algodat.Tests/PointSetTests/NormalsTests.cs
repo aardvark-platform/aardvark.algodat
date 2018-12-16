@@ -25,7 +25,7 @@ namespace Aardvark.Geometry.Tests
     [TestFixture]
     public class NormalsTests
     {
-        private Storage CreateInMemoryStore() => new SimpleMemoryStore().ToPointCloudStore();
+        private Storage CreateInMemoryStore() => new SimpleMemoryStore().ToPointCloudStore(cache: default);
 
         [Test]
         public void CanCreateChunkWithNormals()

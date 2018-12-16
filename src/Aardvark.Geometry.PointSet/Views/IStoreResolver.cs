@@ -11,6 +11,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+using Aardvark.Base;
 using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
@@ -24,7 +25,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Gets store for given storePath.
         /// </summary>
-        Storage Resolve(string storePath);
+        Storage Resolve(string storePath, LruDictionary<string, object> cache);
     }
 
     /// <summary>
@@ -36,7 +37,7 @@ namespace Aardvark.Geometry.Points
         
         /// <summary>
         /// </summary>
-        public Storage Resolve(string storePath)
+        public Storage Resolve(string storePath, LruDictionary<string, object> cache)
         {
             lock (m_cache)
             {
@@ -45,7 +46,7 @@ namespace Aardvark.Geometry.Points
                     if (weakRefStorage.TryGetTarget(out Storage result)) return result;
                 }
 
-                var storage = PointCloud.OpenStore(storePath);
+                var storage = PointCloud.OpenStore(storePath, cache);
                 m_cache[storePath] = new WeakReference<Storage>(storage);
                 return storage;
             }
@@ -72,6 +73,6 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        public Storage Resolve(string storePath) => m_mapping[storePath];
+        public Storage Resolve(string storePath, LruDictionary<string, object> _) => m_mapping[storePath];
     }
 }

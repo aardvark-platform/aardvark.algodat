@@ -24,18 +24,15 @@ namespace Aardvark.Data.Points
     {
         private bool m_isDisposed = false;
 
-        /// <summary></summary>
-        public readonly Action<string, object, Func<byte[]>, CancellationToken> f_add;
+        /// <summary>add(key, value, create)</summary>
+        public readonly Action<string, object, Func<byte[]>> f_add;
 
         /// <summary></summary>
-        public readonly Func<string, CancellationToken, byte[]> f_get;
+        public readonly Func<string, byte[]> f_get;
 
         /// <summary></summary>
-        public readonly Action<string, CancellationToken> f_remove;
-
-        /// <summary></summary>
-        public readonly Func<string, CancellationToken, object> f_tryGetFromCache;
-
+        public readonly Action<string> f_remove;
+        
         /// <summary></summary>
         public readonly Action f_flush;
 
@@ -43,24 +40,30 @@ namespace Aardvark.Data.Points
         public readonly Action f_dispose;
 
         /// <summary></summary>
+        public readonly LruDictionary<string, object> Cache;
+
+        /// <summary></summary>
         public Storage(
-            Action<string, object, Func<byte[]>, CancellationToken> add,
-            Func<string, CancellationToken, byte[]> get,
-            Action<string, CancellationToken> remove,
-            Func<string, CancellationToken, object> tryGetFromCache,
+            Action<string, object, Func<byte[]>> add,
+            Func<string, byte[]> get,
+            Action<string> remove,
             Action dispose,
-            Action flush
+            Action flush,
+            LruDictionary<string, object> cache
             )
         {
             f_add = add;
             f_get = get;
             f_remove = remove;
-            f_tryGetFromCache = tryGetFromCache;
             f_dispose = dispose;
             f_flush = flush;
+            Cache = cache;
 
             Register(this);
         }
+
+        /// <summary></summary>
+        public bool HasCache => Cache != null;
 
         /// <summary>
         /// Writes all pending changes to store.
@@ -93,28 +96,15 @@ namespace Aardvark.Data.Points
 
         /// <summary></summary>
         public bool IsDisposed => m_isDisposed;
-
-
-
-        /// <summary></summary>
-        public const bool CACHE_ENABLED = true;
-        /// <summary></summary>
-        public static KeepAliveCache CACHE { get; private set; }
-
+        
         private static void Register(Storage storage)
         {
-#pragma warning disable CS0162 // Unreachable code detected
-            if (!CACHE_ENABLED) return;
-#pragma warning restore CS0162 // Unreachable code detected
-
             lock (s_storages)
             {
                 if (s_storages.Contains(storage)) throw new InvalidOperationException();
 
                 if (s_storages.Count == 0)
                 {
-                    if (CACHE != null) throw new InvalidOperationException();
-                    CACHE = new KeepAliveCache("StorageCache", 1L * 1024 * 1024 * 1024);
                     Report.Warn("[Storage] created storage cache");
                 }
 
@@ -134,15 +124,12 @@ namespace Aardvark.Data.Points
 
                 if (s_storages.Count == 0)
                 {
-                    if (CACHE == null) throw new InvalidOperationException();
-                    CACHE.Dispose();
-                    CACHE = null;
                     Report.Warn("[Storage] disposed storage cache");
                 }
             }
         }
 
-        private static readonly HashSet<Storage> s_storages = CACHE_ENABLED ? new HashSet<Storage>() : null;
+        private static readonly HashSet<Storage> s_storages = new HashSet<Storage>();
 
     }
 }

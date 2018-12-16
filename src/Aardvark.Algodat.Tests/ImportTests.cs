@@ -77,7 +77,7 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(chunk.Count == 100);
 
             var config = ImportConfig.Default
-                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 .WithOctreeSplitLimit(10)
                 ;
@@ -98,7 +98,7 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(chunk.Count == 100);
 
             var config = ImportConfig.Default
-                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 .WithOctreeSplitLimit(10)
                 .WithMinDist(0.5)
@@ -120,7 +120,7 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(chunk.BoundingBox == bb);
 
             var config = ImportConfig.Default
-                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 .WithOctreeSplitLimit(10)
                 .WithReproject(xs => xs.Select(x => x += V3d.OIO).ToArray())
@@ -140,7 +140,7 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(chunk.Count == 10);
 
             var config = ImportConfig.Default
-                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 .WithOctreeSplitLimit(10)
                 ;
@@ -151,7 +151,7 @@ namespace Aardvark.Geometry.Tests
 
 
             config = ImportConfig.Default
-                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 .WithOctreeSplitLimit(10)
                 .WithEstimateNormals(xs => xs.Select(x => V3f.OOI).ToArray())
@@ -174,7 +174,7 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(chunk.Count == 10);
 
             var config = ImportConfig.Default
-                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 .WithOctreeSplitLimit(10)
                 .WithCreateOctreeLod(false)
@@ -198,7 +198,7 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(chunk.Count == 10);
 
             var config = ImportConfig.Default
-                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey(null)
                 .WithOctreeSplitLimit(10)
                 .WithCreateOctreeLod(false)
@@ -222,7 +222,7 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(chunk.Count == 10);
 
             var config = ImportConfig.Default
-                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 .WithOctreeSplitLimit(10)
                 .WithCreateOctreeLod(false)
@@ -251,7 +251,7 @@ namespace Aardvark.Geometry.Tests
         public void CanImport_Empty()
         {
             var config = ImportConfig.Default
-                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 .WithOctreeSplitLimit(10)
                 .WithCreateOctreeLod(false)
@@ -278,7 +278,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CanCreateInMemoryStore()
         {
-            var store = PointCloud.CreateInMemoryStore();
+            var store = PointCloud.CreateInMemoryStore(cache: default);
             Assert.IsTrue(store != null);
         }
 
@@ -286,7 +286,7 @@ namespace Aardvark.Geometry.Tests
         public void CanCreateOutOfCoreStore()
         {
             var storepath = Path.Combine(Config.TempDataDir, Guid.NewGuid().ToString());
-            var store = PointCloud.OpenStore(storepath);
+            var store = PointCloud.OpenStore(storepath, cache: default);
             Assert.IsTrue(store != null);
         }
 
@@ -296,7 +296,7 @@ namespace Aardvark.Geometry.Tests
             Assert.Throws<ArgumentNullException>(() =>
             {
                 var storepath = (string)null;
-                var store = PointCloud.OpenStore(storepath);
+                var store = PointCloud.OpenStore(storepath, cache: default);
                 Assert.IsTrue(store != null);
             });
         }
@@ -307,7 +307,7 @@ namespace Aardvark.Geometry.Tests
             Assert.That(() =>
             {
                 var storepath = @"some invalid path C:\";
-                var store = PointCloud.OpenStore(storepath);
+                var store = PointCloud.OpenStore(storepath, cache: default);
                 Assert.IsTrue(store != null);
             },
             Throws.Exception
@@ -333,7 +333,7 @@ namespace Aardvark.Geometry.Tests
             var filename = Path.Combine(Config.TestDataDir, "test.pts");
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
             TestContext.WriteLine($"testfile is '{filename}'");
-            var a = PointCloud.Import(filename, storepath);
+            var a = PointCloud.Import(filename, storepath, cache: default);
             Assert.IsTrue(a != null);
             Assert.IsTrue(a.PointCount == 3);
         }
@@ -346,10 +346,10 @@ namespace Aardvark.Geometry.Tests
             var filename = Path.Combine(Config.TestDataDir, "test.pts");
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
             TestContext.WriteLine($"testfile is '{filename}'");
-            var a = PointCloud.Import(filename, storepath);
+            var a = PointCloud.Import(filename, storepath, cache: default);
             var key = a.Id;
 
-            var b = PointCloud.Load(key, storepath);
+            var b = PointCloud.Load(key, storepath, cache: default);
             Assert.IsTrue(b != null);
             Assert.IsTrue(b.PointCount == 3);
         }
@@ -390,7 +390,7 @@ namespace Aardvark.Geometry.Tests
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
             TestContext.WriteLine($"testfile is '{filename}'");
             var config = ImportConfig.Default
-                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 ;
             var pointset = PointCloud.Import(filename, config);
@@ -405,7 +405,7 @@ namespace Aardvark.Geometry.Tests
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
             TestContext.WriteLine($"testfile is '{filename}'");
             var config = ImportConfig.Default
-                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 .WithMinDist(10.0);
                 ;
@@ -420,7 +420,7 @@ namespace Aardvark.Geometry.Tests
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
             TestContext.WriteLine($"testfile is '{filename}'");
             var config = ImportConfig.Default
-                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 ;
             var pointset = PointCloud.Import(filename, config);
@@ -436,7 +436,7 @@ namespace Aardvark.Geometry.Tests
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
             TestContext.WriteLine($"testfile is '{filename}'");
             var config = ImportConfig.Default
-                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 ;
             var pointset = PointCloud.Import(filename, config);
@@ -453,7 +453,7 @@ namespace Aardvark.Geometry.Tests
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
             TestContext.WriteLine($"testfile is '{filename}'");
             var config = ImportConfig.Default
-                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 ;
             var ptsChunks = Data.Points.Import.Pts.Chunks(filename, config);
@@ -495,7 +495,7 @@ namespace Aardvark.Geometry.Tests
         {
             var filename = Path.Combine(Config.TestDataDir, "test.e57");
             var config = ImportConfig.Default
-                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 ;
             var pointset = PointCloud.Import(filename, config);
@@ -508,7 +508,7 @@ namespace Aardvark.Geometry.Tests
         {
             var filename = Path.Combine(Config.TestDataDir, "test.e57");
             var config = ImportConfig.Default
-                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 .WithMinDist(10)
                 ;
@@ -521,7 +521,7 @@ namespace Aardvark.Geometry.Tests
         {
             var filename = Path.Combine(Config.TestDataDir, "test.e57");
             var config = ImportConfig.Default
-                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 ;
             var pointset = PointCloud.Import(filename, config);

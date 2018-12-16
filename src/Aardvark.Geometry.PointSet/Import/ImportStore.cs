@@ -33,7 +33,7 @@ namespace Aardvark.Geometry.Points
         {
             if (!Directory.Exists(storePath)) return new PointFileInfo(storePath, PointCloudFileFormat.Unknown, 0, 0, Box3d.Invalid);
 
-            var store = OpenStore(storePath);
+            var store = OpenStore(storePath, cache: default);
             var pointset = store.GetPointSet(key);
             return new PointFileInfo(storePath, PointCloudFileFormat.Store, 0L, pointset.PointCount, pointset.Bounds);
         }
@@ -41,11 +41,11 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Loads point cloud from store.
         /// </summary>
-        public static PointSet Load(string key, string storePath)
+        public static PointSet Load(string key, string storePath, LruDictionary<string, object> cache)
         {
             if (!Directory.Exists(storePath)) throw new InvalidOperationException($"Not a store ({storePath}).");
 
-            var store = OpenStore(storePath);
+            var store = OpenStore(storePath, cache);
             var result = store.GetPointSet(key);
             if (result == null) throw new InvalidOperationException($"Key {key} not found in {storePath}.");
             return result;
@@ -65,7 +65,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Opens or creates a store at the specified location.
         /// </summary>
-        public static Storage OpenStore(string storePath)
+        public static Storage OpenStore(string storePath, LruDictionary<string, object> cache)
         {
             lock (s_stores)
             {
@@ -74,7 +74,7 @@ namespace Aardvark.Geometry.Points
                     if (!cached.IsDisposed) return cached;
                 }
 
-                var store = new SimpleDiskStore(storePath).ToPointCloudStore();
+                var store = new SimpleDiskStore(storePath).ToPointCloudStore(cache);
                 s_stores[storePath] = new WeakReference<Storage>(store);
                 return store;
             }
@@ -84,6 +84,6 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Creates an in-memory store.
         /// </summary>
-        public static Storage CreateInMemoryStore() => new SimpleMemoryStore().ToPointCloudStore();
+        public static Storage CreateInMemoryStore(LruDictionary<string, object> cache) => new SimpleMemoryStore().ToPointCloudStore(cache);
     }
 }

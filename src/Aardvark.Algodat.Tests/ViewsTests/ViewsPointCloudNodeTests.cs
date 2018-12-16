@@ -27,7 +27,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void Create_Empty()
         {
-            var storage = PointCloud.CreateInMemoryStore();
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
 
             var a = new PointCloudNode(storage,
                 id              : "a",
@@ -45,7 +45,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void Create_Positions()
         {
-            var storage = PointCloud.CreateInMemoryStore();
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps0 = new V3d[100].SetByIndex(_ => RandomPosition());
             var ps0Id = "a.positions";
 
@@ -67,7 +67,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void Create_KdTree()
         {
-            var storage = PointCloud.CreateInMemoryStore();
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps0 = new V3d[100].SetByIndex(_ => RandomPosition()).Map(p => new V3f(p - new V3d(0.5, 0.5, 0.5)));
             var ps0Id = "a.positions";
             var kd0Id = "a.kd";

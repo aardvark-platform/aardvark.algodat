@@ -31,7 +31,7 @@ namespace Aardvark.Geometry.Tests
             //AddNormals(path2store, k); // add normals
             //FilterPoints(path2store, k, 0); // filter all unlabelled points
 
-            var store = PointCloud.OpenStore(path2store);
+            var store = PointCloud.OpenStore(path2store, cache: null);
 
             // -----------------------------------
 
@@ -175,7 +175,7 @@ namespace Aardvark.Geometry.Tests
         /// </summary>
         private static void FilterPoints(string path2store, string key, int label2filter)
         {
-            var store = PointCloud.OpenStore(path2store);
+            var store = PointCloud.OpenStore(path2store, cache: default);
             var pointset = store.GetPointSet(key);
 
             var chunks = pointset.QueryAllPoints();
@@ -283,7 +283,7 @@ namespace Aardvark.Geometry.Tests
 
             //var chunk = new Chunk(positions, colors, null, null, labels, bb);
 
-            var store = PointCloud.OpenStore(path2store);
+            var store = PointCloud.OpenStore(path2store, cache: default);
 
             var config = ImportConfig.Default
                .WithStorage(store)
@@ -303,7 +303,7 @@ namespace Aardvark.Geometry.Tests
         private static void AddNormals(string path2store, string key, int k = 16)
         {
             // compute normals
-            var store = PointCloud.OpenStore(path2store);
+            var store = PointCloud.OpenStore(path2store, cache: default);
             var pointset = store.GetPointSet(key);
             var info = PointCloud.StoreInfo(path2store, key);
 

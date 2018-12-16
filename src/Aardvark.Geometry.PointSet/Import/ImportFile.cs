@@ -66,13 +66,13 @@ namespace Aardvark.Geometry.Points
         /// Imports file into out-of-core store.
         /// Format is guessed based on file extension.
         /// </summary>
-        public static PointSet Import(string filename, string storeDirectory)
+        public static PointSet Import(string filename, string storeDirectory, LruDictionary<string, object> cache)
         {
             if (filename == null) throw new ArgumentNullException(nameof(filename));
             if (!File.Exists(filename)) throw new FileNotFoundException("File does not exit.", filename);
 
             var config = ImportConfig.Default
-                .WithStorage(OpenStore(storeDirectory))
+                .WithStorage(OpenStore(storeDirectory, cache))
                 .WithKey(FileHelpers.ComputeMd5Hash(filename, true))
                 ;
 

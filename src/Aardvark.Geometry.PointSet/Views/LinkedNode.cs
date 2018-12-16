@@ -23,8 +23,8 @@ namespace Aardvark.Geometry.Points
     public class LinkedNode : IPointCloudNode
     {
         private readonly IStoreResolver m_storeResolver;
-
         private WeakReference<IPointCloudNode> m_root;
+        private LruDictionary<string, object> m_cache;
 
         /// <summary>
         /// </summary>
@@ -37,9 +37,10 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Links to different octree.
         /// </summary>
-        public LinkedNode(IStoreResolver storeResolver, string storePath, string pointCloudKey)
+        public LinkedNode(IStoreResolver storeResolver, string storePath, string pointCloudKey, LruDictionary<string, object> cache)
         {
             m_storeResolver = storeResolver;
+            m_cache = cache;
             LinkedStorePath = storePath;
             LinkedPointCloudKey = pointCloudKey;
         }
@@ -54,7 +55,7 @@ namespace Aardvark.Geometry.Points
                     return r;
                 }
 
-                var storage = PointCloud.OpenStore(LinkedStorePath);
+                var storage = PointCloud.OpenStore(LinkedStorePath, m_cache);
                 r = storage.GetPointSet(LinkedPointCloudKey).Root.Value;
                 m_root = new WeakReference<IPointCloudNode>(r);
                 return r;

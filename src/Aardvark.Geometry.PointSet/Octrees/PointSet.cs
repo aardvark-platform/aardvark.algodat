@@ -121,7 +121,8 @@ namespace Aardvark.Geometry.Points
             var splitLimitRaw = (string)json["SplitLimit"];
             var splitLimit = splitLimitRaw != null ? long.Parse(splitLimitRaw) : root.Value.PointCount;
 
-            return new PointSet(storage, (string)json["Id"], Guid.Parse(rootCellId), splitLimit);
+            var rootCellIdGuid = rootCellId != null ? (Guid?)Guid.Parse(rootCellId) : null;
+            return new PointSet(storage, (string)json["Id"], rootCellIdGuid, splitLimit);
         }
 
         #endregion

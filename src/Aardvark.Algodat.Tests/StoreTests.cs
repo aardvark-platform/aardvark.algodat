@@ -29,7 +29,7 @@ namespace Aardvark.Geometry.Tests
         public void Store_CanReopenDisposedStore()
         {
             var storepath = Path.Combine(Config.TempDataDir, Guid.NewGuid().ToString());
-            var store = PointCloud.OpenStore(storepath);
+            var store = PointCloud.OpenStore(storepath, cache: default);
             store.Add("key", new byte[] { 1, 2, 3 });
             var xs = store.GetByteArray("key");
             Assert.IsTrue(xs[0] == 1 && xs[1] == 2 && xs[2] == 3);
@@ -37,7 +37,7 @@ namespace Aardvark.Geometry.Tests
             store.Flush();
             store.Dispose();
 
-            store = PointCloud.OpenStore(storepath);
+            store = PointCloud.OpenStore(storepath, cache: default);
             xs = store.GetByteArray("key");
             Assert.IsTrue(xs[0] == 1 && xs[1] == 2 && xs[2] == 3);
         }
