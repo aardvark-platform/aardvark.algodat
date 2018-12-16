@@ -35,7 +35,9 @@ namespace Aardvark.Base
             if (maxSize < 1) throw new ArgumentOutOfRangeException(nameof(maxSize));
             MaxSize = maxSize;
         }
-        
+
+        #region Private state
+
         private class Entry
         {
             public Entry Prev;
@@ -107,6 +109,8 @@ namespace Aardvark.Base
                 return es;
             }
         }
+
+        #endregion
 
         /// <summary>
         /// </summary>

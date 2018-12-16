@@ -246,7 +246,8 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
-            KeepAliveCacheTest();
+            new LruDictionaryTests().RandomInserts_1M_MultiThreaded();
+            //KeepAliveCacheTest();
 
             //LinkedStores();
 
