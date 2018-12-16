@@ -140,6 +140,35 @@ namespace Aardvark.Geometry.Points
         }
 
         #endregion
+
+        #region PointRkdTreeDData
+
+        /// <summary>PointRkdTreeDData -> byte[]</summary>
+        public static byte[] PointRkdTreeDDataToBuffer(PointRkdTreeDData data)
+        {
+            if (data == null) return null;
+            var ms = new MemoryStream();
+            using (var coder = new BinaryWritingCoder(ms))
+            {
+                object x = data; coder.Code(ref x);
+            }
+            return ms.ToArray();
+        }
+
+        /// <summary>byte[] -> PointRkdTreeDData</summary>
+        public static PointRkdTreeDData BufferToPointRkdTreeDData(byte[] buffer)
+        {
+            if (buffer == null) return null;
+            using (var ms = new MemoryStream(buffer))
+            using (var coder = new BinaryReadingCoder(ms))
+            {
+                object o = null;
+                coder.Code(ref o);
+                return (PointRkdTreeDData)o;
+            }
+        }
+
+        #endregion
     }
 
     /// <summary>
@@ -319,17 +348,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public static void Add(this Storage storage, string key, PointRkdTreeDData data)
-        {
-            storage.f_add(key, data,() =>
-            {
-                var ms = new MemoryStream();
-                using (var coder = new BinaryWritingCoder(ms))
-                {
-                    object x = data; coder.Code(ref x);
-                }
-                return ms.ToArray();
-            });
-        }
+            => storage.f_add(key, data, () => Codec.PointRkdTreeDDataToBuffer(data));
 
         /// <summary></summary>
         public static PointRkdTreeDData GetPointRkdTreeDData(this Storage storage, string key)
@@ -338,17 +357,8 @@ namespace Aardvark.Geometry.Points
             
             var buffer = storage.f_get(key);
             if (buffer == null) return default;
-            using (var ms = new MemoryStream(buffer))
-            using (var coder = new BinaryReadingCoder(ms))
-            {
-                o = null;
-                coder.Code(ref o);
-            }
-
-            var data = (PointRkdTreeDData)o;
-            if (storage.HasCache) storage.Cache.Add(
-                key, data, data.AxisArray.Length * 4 + data.PermArray.Length * 8 + data.RadiusArray.Length * 8, onRemove: default
-                );
+            var data = Codec.BufferToPointRkdTreeDData(buffer);
+            if (storage.HasCache) storage.Cache.Add(key, data, buffer.Length, onRemove: default);
             return data;
         }
 
