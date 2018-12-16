@@ -48,7 +48,7 @@ namespace Aardvark.Geometry.Tests
             {
                 Report.Warn($"processing pointcloud: {key}");
 
-                var pointset = store.GetPointSet(key, CancellationToken.None);
+                var pointset = store.GetPointSet(key);
                 //var subnodes = pointset.Root.Value.Subnodes.
                 //    Where(sn => sn != null).Select(sn => sn.Value);
 
@@ -136,14 +136,13 @@ namespace Aardvark.Geometry.Tests
             public static PersistentRef<byte[]> GetPredictions(IPointCloudNode self)
             {
                 var key = ComputeKey4Predictions(self);
-                var predictions = self.Storage.GetByteArray(key, default);
+                var predictions = self.Storage.GetByteArray(key);
 
-                return new PersistentRef<byte[]>(key, (id, ct) =>
-                    self.Storage.GetByteArray(id, ct), predictions);
+                return new PersistentRef<byte[]>(key, self.Storage.GetByteArray, self.Storage.TryGetByteArray);
             }
 
             public static void AddPredictions(IPointCloudNode self, byte[] predictions) =>
-                self.Storage.Add(ComputeKey4Predictions(self), predictions, default);
+                self.Storage.Add(ComputeKey4Predictions(self), predictions);
 
             private static string ComputeKey4Predictions(IPointCloudNode self) =>
                 "predictions_123";
@@ -177,7 +176,7 @@ namespace Aardvark.Geometry.Tests
         private static void FilterPoints(string path2store, string key, int label2filter)
         {
             var store = PointCloud.OpenStore(path2store);
-            var pointset = store.GetPointSet(key, CancellationToken.None);
+            var pointset = store.GetPointSet(key);
 
             var chunks = pointset.QueryAllPoints();
             var newChunks = new List<Chunk>();
@@ -305,7 +304,7 @@ namespace Aardvark.Geometry.Tests
         {
             // compute normals
             var store = PointCloud.OpenStore(path2store);
-            var pointset = store.GetPointSet(key, CancellationToken.None);
+            var pointset = store.GetPointSet(key);
             var info = PointCloud.StoreInfo(path2store, key);
 
             Func<IList<V3d>, IList<V3f>> estimateNormals = (points) =>

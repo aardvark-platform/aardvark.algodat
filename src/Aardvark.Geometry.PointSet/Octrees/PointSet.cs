@@ -64,7 +64,7 @@ namespace Aardvark.Geometry.Points
             SplitLimit = splitLimit;
             if (rootCellId.HasValue)
             {
-                Root = new PersistentRef<PointSetNode>(rootCellId.ToString(), storage.GetPointSetNode);
+                Root = new PersistentRef<PointSetNode>(rootCellId.ToString(), storage.GetPointSetNode, storage.TryGetPointSetNode);
             }
         }
 
@@ -115,7 +115,7 @@ namespace Aardvark.Geometry.Points
         public static PointSet Parse(JObject json, Storage storage)
         {
             var rootCellId = (string)json["RootCellId"];
-            var root = rootCellId != null ? new PersistentRef<PointSetNode>(rootCellId, storage.GetPointSetNode) : null;
+            var root = rootCellId != null ? new PersistentRef<PointSetNode>(rootCellId, storage.GetPointSetNode, storage.TryGetPointSetNode) : null;
             
             // backwards compatibility: if split limit is not set, guess as number of points in root cell
             var splitLimitRaw = (string)json["SplitLimit"];
@@ -170,40 +170,40 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public bool HasColors => Root != null ? Root.GetValue(default).HasColors : false;
+        public bool HasColors => Root != null ? Root.Value.HasColors : false;
 
         /// <summary></summary>
-        public bool HasIntensities => Root != null ? Root.GetValue(default).HasIntensities : false;
+        public bool HasIntensities => Root != null ? Root.Value.HasIntensities : false;
         
         /// <summary></summary>
-        public bool HasClassifications => Root != null ? Root.GetValue(default).HasClassifications : false;
+        public bool HasClassifications => Root != null ? Root.Value.HasClassifications : false;
 
         /// <summary></summary>
-        public bool HasKdTree => Root != null ? Root.GetValue(default).HasKdTree : false;
+        public bool HasKdTree => Root != null ? Root.Value.HasKdTree : false;
         
         /// <summary></summary>
-        public bool HasLodColors => Root != null ? Root.GetValue(default).HasLodColors : false;
+        public bool HasLodColors => Root != null ? Root.Value.HasLodColors : false;
 
         /// <summary></summary>
-        public bool HasLodIntensities => Root != null ? Root.GetValue(default).HasLodIntensities : false;
+        public bool HasLodIntensities => Root != null ? Root.Value.HasLodIntensities : false;
         
         /// <summary></summary>
-        public bool HasLodClassifications => Root != null ? Root.GetValue(default).HasLodClassifications : false;
+        public bool HasLodClassifications => Root != null ? Root.Value.HasLodClassifications : false;
 
         /// <summary></summary>
-        public bool HasLodKdTree => Root != null ? Root.GetValue(default).HasLodKdTree : false;
+        public bool HasLodKdTree => Root != null ? Root.Value.HasLodKdTree : false;
 
         /// <summary></summary>
-        public bool HasLodNormals => Root != null ? Root.GetValue(default).HasLodNormals : false;
+        public bool HasLodNormals => Root != null ? Root.Value.HasLodNormals : false;
 
         /// <summary></summary>
-        public bool HasLodPositions => Root != null ? Root.GetValue(default).HasLodPositions : false;
+        public bool HasLodPositions => Root != null ? Root.Value.HasLodPositions : false;
 
         /// <summary></summary>
-        public bool HasNormals => Root != null ? Root.GetValue(default).HasNormals : false;
+        public bool HasNormals => Root != null ? Root.Value.HasNormals : false;
 
         /// <summary></summary>
-        public bool HasPositions => Root != null ? Root.GetValue(default).HasPositions : false;
+        public bool HasPositions => Root != null ? Root.Value.HasPositions : false;
 
         #endregion
 

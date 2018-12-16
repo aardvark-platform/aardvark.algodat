@@ -111,14 +111,14 @@ namespace Aardvark.Geometry.Points
                 {
                     if (bucket[0].Cell == subcells[i])
                     {
-                        Subnodes[i] = new PersistentRef<IPointCloudNode>(bucket[0].Id, (id, ct) => storage.GetPointCloudNode(id));
+                        Subnodes[i] = new PersistentRef<IPointCloudNode>(bucket[0].Id, storage.GetPointCloudNode, storage.TryGetPointCloudNode);
                         bucket.Clear();
                         continue;
                     }
                 }
 
                 var subnode = new MergedNodes(storage, resolver, bucket.ToArray(), config);
-                Subnodes[i] = new PersistentRef<IPointCloudNode>(subnode.Id, (id, ct) => storage.GetPointCloudNode(id));
+                Subnodes[i] = new PersistentRef<IPointCloudNode>(subnode.Id, storage.GetPointCloudNode, storage.TryGetPointCloudNode);
             }
 
             // lod

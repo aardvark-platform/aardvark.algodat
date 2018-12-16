@@ -77,10 +77,10 @@ namespace Aardvark.Geometry.Tests
                 .Create(storage, "test", ps.ToList(), null, null, null, null, 5000, false, CancellationToken.None)
                 .GenerateLod(ImportConfig.Default.WithKey("lod").WithOctreeSplitLimit(5000))
                 ;
-            storage.Add("pss", pointset, CancellationToken.None);
+            storage.Add("pss", pointset);
 
             var withNormals = WithRandomNormals(pointset.Root.Value);
-            storage.Add("psWithNormals", withNormals, CancellationToken.None);
+            storage.Add("psWithNormals", withNormals);
 
             withNormals.ForEachNode(true, node =>
             {
@@ -110,7 +110,7 @@ namespace Aardvark.Geometry.Tests
             {
                 var id = Guid.NewGuid();
                 var ns = new V3f[n.IsLeaf ? n.PointCount : n.LodPointCount].Set(V3f.OOI);
-                storage.Add(id, ns, CancellationToken.None);
+                storage.Add(id, ns);
 
                 if (n.IsLeaf)
                 {

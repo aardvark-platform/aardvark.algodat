@@ -51,7 +51,7 @@ namespace Aardvark.Geometry.Points
             if (self.IsEmpty) return self;
             var normals = self.Root.Value.GenerateNormals(callback, config);
             var result = new PointSet(self.Storage, config.Key, normals.Id, self.SplitLimit);
-            self.Storage.Add(config.Key, result, config.CancellationToken);
+            self.Storage.Add(config.Key, result);
             return result;
         }
         
@@ -78,14 +78,14 @@ namespace Aardvark.Geometry.Points
             if (needsNormals)
             {
                 var nsId = Guid.NewGuid();
-                self.Storage.Add(nsId, (V3f[])ns, config.CancellationToken);
+                self.Storage.Add(nsId, (V3f[])ns);
                 result = result.WithNormals(nsId);
             }
 
             if (needsLodNormals)
             {
                 var lodNsId = Guid.NewGuid();
-                self.Storage.Add(lodNsId, lodNs, config.CancellationToken);
+                self.Storage.Add(lodNsId, lodNs);
                 result = result.WithLodNormals(lodNsId, subcells);
             }
             

@@ -55,7 +55,7 @@ namespace Aardvark.Geometry.Points
                 }
 
                 var storage = PointCloud.OpenStore(LinkedStorePath);
-                r = storage.GetPointSet(LinkedPointCloudKey, default).Root.Value;
+                r = storage.GetPointSet(LinkedPointCloudKey).Root.Value;
                 m_root = new WeakReference<IPointCloudNode>(r);
                 return r;
             }

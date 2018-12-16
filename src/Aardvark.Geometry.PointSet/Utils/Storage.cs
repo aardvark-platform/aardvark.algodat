@@ -67,29 +67,44 @@ namespace Aardvark.Geometry.Points
         #region byte[]
 
         /// <summary></summary>
-        public static void Add(this Storage storage, Guid key, byte[] data, CancellationToken ct) => Add(storage, key.ToString(), data, ct);
+        public static void Add(this Storage storage, Guid key, byte[] data) => Add(storage, key.ToString(), data);
 
         /// <summary></summary>
-        public static void Add(this Storage storage, string key, byte[] data, CancellationToken ct)
-            => storage.f_add(key, data, () => data, ct);
+        public static void Add(this Storage storage, string key, byte[] data)
+            => storage.f_add(key, data, () => data, default);
 
         /// <summary></summary>
-        public static byte[] GetByteArray(this Storage storage, string key, CancellationToken ct)
+        public static byte[] GetByteArray(this Storage storage, string key)
         {
-            var data = (byte[])storage.f_tryGetFromCache(key, ct);
+            var data = (byte[])storage.f_tryGetFromCache(key, default);
             if (data != null)
             {
                 if (Storage.CACHE_ENABLED) Storage.CACHE.Add(data, data.Length);
                 return data;
             }
 
-            var buffer = storage.f_get(key, ct);
+            var buffer = storage.f_get(key, default);
             if (buffer == null) return null;
 
-            storage.f_add(key, buffer, null, ct);
+            storage.f_add(key, buffer, null, default);
             
             if (Storage.CACHE_ENABLED) Storage.CACHE.Add(buffer, buffer.Length);
             return buffer;
+        }
+
+        /// <summary></summary>
+        public static (bool, byte[]) TryGetByteArray(this Storage storage, string key)
+        {
+            var data = (byte[])storage.f_tryGetFromCache(key, default);
+            if (data != null)
+            {
+                if (Storage.CACHE_ENABLED) Storage.CACHE.Add(data, data.Length);
+                return (true, data);
+            }
+            else
+            {
+                return (false, default);
+            }
         }
 
         #endregion
@@ -97,13 +112,13 @@ namespace Aardvark.Geometry.Points
         #region V3f[]
 
         /// <summary></summary>
-        public static void Add(this Storage storage, Guid key, V3f[] data, CancellationToken ct) => Add(storage, key.ToString(), data, ct);
+        public static void Add(this Storage storage, Guid key, V3f[] data) => Add(storage, key.ToString(), data);
         
         /// <summary></summary>
-        public static void Add(this Storage storage, Guid key, IList<V3f> data, CancellationToken ct) => Add(storage, key.ToString(), data, ct);
+        public static void Add(this Storage storage, Guid key, IList<V3f> data) => Add(storage, key.ToString(), data);
 
         /// <summary></summary>
-        public static void Add(this Storage storage, string key, V3f[] data, CancellationToken ct)
+        public static void Add(this Storage storage, string key, V3f[] data)
         {
             storage.f_add(key, data, () =>
             {
@@ -117,11 +132,11 @@ namespace Aardvark.Geometry.Points
                     }
                 }
                 return buffer;
-            }, ct);
+            }, default);
         }
 
         /// <summary></summary>
-        public static void Add(this Storage storage, string key, IList<V3f> data, CancellationToken ct)
+        public static void Add(this Storage storage, string key, IList<V3f> data)
         {
             storage.f_add(key, data, () =>
             {
@@ -135,20 +150,20 @@ namespace Aardvark.Geometry.Points
                     }
                 }
                 return buffer;
-            }, ct);
+            }, default);
         }
 
         /// <summary></summary>
-        public static V3f[] GetV3fArray(this Storage storage, string key, CancellationToken ct)
+        public static V3f[] GetV3fArray(this Storage storage, string key)
         {
-            var data = (V3f[])storage.f_tryGetFromCache(key, ct);
+            var data = (V3f[])storage.f_tryGetFromCache(key, default);
             if (data != null)
             {
                 if (Storage.CACHE_ENABLED) Storage.CACHE.Add(data, data.Length * 12);
                 return data;
             }
 
-            var buffer = storage.f_get(key, ct);
+            var buffer = storage.f_get(key, default);
             if (buffer == null) return null;
             data = new V3f[buffer.Length / 12];
             using (var ms = new MemoryStream(buffer))
@@ -159,10 +174,25 @@ namespace Aardvark.Geometry.Points
                     data[i] = new V3f(br.ReadSingle(), br.ReadSingle(), br.ReadSingle());
                 }
             }
-            storage.f_add(key, data, null, ct);
+            storage.f_add(key, data, null, default);
             
             if (Storage.CACHE_ENABLED) Storage.CACHE.Add(data, buffer.Length);
             return data;
+        }
+
+        /// <summary></summary>
+        public static (bool, V3f[]) TryGetV3fArray(this Storage storage, string key)
+        {
+            var data = (V3f[])storage.f_tryGetFromCache(key, default);
+            if (data != null)
+            {
+                if (Storage.CACHE_ENABLED) Storage.CACHE.Add(data, data.Length * 12);
+                return (true, data);
+            }
+            else
+            {
+                return (false, default);
+            }
         }
 
         #endregion
@@ -170,10 +200,10 @@ namespace Aardvark.Geometry.Points
         #region int[]
 
         /// <summary></summary>
-        public static void Add(this Storage storage, Guid key, int[] data, CancellationToken ct) => Add(storage, key.ToString(), data, ct);
+        public static void Add(this Storage storage, Guid key, int[] data, CancellationToken ct = default) => Add(storage, key.ToString(), data, ct);
 
         /// <summary></summary>
-        public static void Add(this Storage storage, string key, int[] data, CancellationToken ct)
+        public static void Add(this Storage storage, string key, int[] data, CancellationToken ct = default)
         {
             storage.f_add(key, data, () =>
             {
@@ -188,17 +218,17 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public static int[] GetIntArray(this Storage storage, string key, CancellationToken ct)
+        public static int[] GetIntArray(this Storage storage, string key)
         {
-            var data = (int[])storage.f_tryGetFromCache(key, ct);
+            var data = (int[])storage.f_tryGetFromCache(key, default);
             if (data != null)
             {
                 if (Storage.CACHE_ENABLED) Storage.CACHE.Add(data, data.Length * 4);
                 return data;
             }
 
-            var buffer = storage.f_get(key, ct);
-            if (buffer == null) return null;
+            var buffer = storage.f_get(key, default);
+            if (buffer == null) return default;
             data = new int[buffer.Length / 4];
             using (var ms = new MemoryStream(buffer))
             using (var br = new BinaryReader(ms))
@@ -208,10 +238,25 @@ namespace Aardvark.Geometry.Points
                     data[i] = br.ReadInt32();
                 }
             }
-            storage.f_add(key, data, null, ct);
+            storage.f_add(key, data, null, default);
             
             if (Storage.CACHE_ENABLED) Storage.CACHE.Add(buffer, buffer.Length);
             return data;
+        }
+
+        /// <summary></summary>
+        public static (bool, int[]) TryGetIntArray(this Storage storage, string key)
+        {
+            var data = (int[])storage.f_tryGetFromCache(key, default);
+            if (data != null)
+            {
+                if (Storage.CACHE_ENABLED) Storage.CACHE.Add(data, data.Length * 4);
+                return (true, data);
+            }
+            else
+            {
+                return (false, default);
+            }
         }
 
         #endregion
@@ -219,10 +264,10 @@ namespace Aardvark.Geometry.Points
         #region C4b[]
 
         /// <summary></summary>
-        public static void Add(this Storage storage, Guid key, C4b[] data, CancellationToken ct) => Add(storage, key.ToString(), data, ct);
+        public static void Add(this Storage storage, Guid key, C4b[] data) => Add(storage, key.ToString(), data);
 
         /// <summary></summary>
-        public static void Add(this Storage storage, string key, C4b[] data, CancellationToken ct)
+        public static void Add(this Storage storage, string key, C4b[] data)
         {
             storage.f_add(key, data, () =>
             {
@@ -235,30 +280,45 @@ namespace Aardvark.Geometry.Points
                     }
                 }
                 return buffer;
-            }, ct);
+            }, default);
         }
 
         /// <summary></summary>
-        public static C4b[] GetC4bArray(this Storage storage, string key, CancellationToken ct)
+        public static C4b[] GetC4bArray(this Storage storage, string key)
         {
-            var data = (C4b[])storage.f_tryGetFromCache(key, ct);
+            var data = (C4b[])storage.f_tryGetFromCache(key, default);
             if (data != null)
             {
                 if (Storage.CACHE_ENABLED) Storage.CACHE.Add(data, data.Length * 4);
                 return data;
             }
 
-            var buffer = storage.f_get(key, ct);
-            if (buffer == null) return null;
+            var buffer = storage.f_get(key, default);
+            if (buffer == null) return default;
             data = new C4b[buffer.Length / 4];
             for (int i = 0, j = 0; i < data.Length; i++)
             {
                 data[i] = new C4b(buffer[j++], buffer[j++], buffer[j++], buffer[j++]);
             }
-            storage.f_add(key, data, null, ct);
+            storage.f_add(key, data, null, default);
 
             if (Storage.CACHE_ENABLED) Storage.CACHE.Add(data, buffer.Length);
             return data;
+        }
+
+        /// <summary></summary>
+        public static (bool, C4b[]) TryGetC4bArray(this Storage storage, string key)
+        {
+            var data = (C4b[])storage.f_tryGetFromCache(key, default);
+            if (data != null)
+            {
+                if (Storage.CACHE_ENABLED) Storage.CACHE.Add(data, data.Length * 4);
+                return (true, data);
+            }
+            else
+            {
+                return (false, default);
+            }
         }
 
         #endregion
@@ -266,10 +326,10 @@ namespace Aardvark.Geometry.Points
         #region PointRkdTreeDData
 
         /// <summary></summary>
-        public static void Add(this Storage storage, Guid key, PointRkdTreeDData data, CancellationToken ct) => Add(storage, key.ToString(), data, ct);
+        public static void Add(this Storage storage, Guid key, PointRkdTreeDData data) => Add(storage, key.ToString(), data);
 
         /// <summary></summary>
-        public static void Add(this Storage storage, string key, PointRkdTreeDData data, CancellationToken ct)
+        public static void Add(this Storage storage, string key, PointRkdTreeDData data)
         {
             storage.f_add(key, data,() =>
             {
@@ -279,13 +339,13 @@ namespace Aardvark.Geometry.Points
                     object x = data; coder.Code(ref x);
                 }
                 return ms.ToArray();
-            }, ct);
+            }, default);
         }
 
         /// <summary></summary>
-        public static PointRkdTreeDData GetPointRkdTreeDData(this Storage storage, string key, CancellationToken ct)
+        public static PointRkdTreeDData GetPointRkdTreeDData(this Storage storage, string key)
         {
-            var data = storage.f_tryGetFromCache(key, ct);
+            var data = storage.f_tryGetFromCache(key, default);
             if (data != null)
             {
                 var data2 = (PointRkdTreeDData)data;
@@ -293,29 +353,45 @@ namespace Aardvark.Geometry.Points
                 return data2;
             }
 
-            var buffer = storage.f_get(key, ct);
-            if (buffer == null) return null;
+            var buffer = storage.f_get(key, default);
+            if (buffer == null) return default;
             using (var ms = new MemoryStream(buffer))
             using (var coder = new BinaryReadingCoder(ms))
             {
                 coder.Code(ref data);
             }
-            storage.f_add(key, data, null, ct);
+            storage.f_add(key, data, null, default);
 
             var data3 = (PointRkdTreeDData)data;
             if (Storage.CACHE_ENABLED) Storage.CACHE.Add(data3, data3.AxisArray.Length * 4 + data3.PermArray.Length * 8 + data3.RadiusArray.Length * 8);
             return data3;
         }
 
+        /// <summary></summary>
+        public static (bool, PointRkdTreeDData) TryGetPointRkdTreeDData(this Storage storage, string key)
+        {
+            var data = storage.f_tryGetFromCache(key, default);
+            if (data != null)
+            {
+                var data2 = (PointRkdTreeDData)data;
+                if (Storage.CACHE_ENABLED) Storage.CACHE.Add(data2, data2.AxisArray.Length * 4 + data2.PermArray.Length * 8 + data2.RadiusArray.Length * 8);
+                return (true, data2);
+            }
+            else
+            {
+                return (false, default);
+            }
+        }
+
         /// <summary>
         /// </summary>
-        public static PointRkdTreeD<V3f[], V3f> GetKdTree(this Storage storage, string key, V3f[] positions, CancellationToken ct)
+        public static PointRkdTreeD<V3f[], V3f> GetKdTree(this Storage storage, string key, V3f[] positions)
             => new PointRkdTreeD<V3f[], V3f>(
                 3, positions.Length, positions,
                 (xs, i) => xs[(int)i], (v, i) => (float)v[i],
                 (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
                 (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, 1e-9,
-                storage.GetPointRkdTreeDData(key, ct)
+                storage.GetPointRkdTreeDData(key)
                 );
 
         #endregion
@@ -323,32 +399,47 @@ namespace Aardvark.Geometry.Points
         #region PointSetNode
 
         /// <summary></summary>
-        public static void Add(this Storage storage, string key, PointSetNode data, CancellationToken ct)
+        public static void Add(this Storage storage, string key, PointSetNode data)
         {
             storage.f_add(key, data, () =>
             {
                 var buffer = data.ToBinary();
                 return buffer;
-            }, ct);
+            }, default);
         }
 
         /// <summary></summary>
-        public static PointSetNode GetPointSetNode(this Storage storage, string key, CancellationToken ct)
+        public static PointSetNode GetPointSetNode(this Storage storage, string key)
         {
-            var data = (PointSetNode)storage.f_tryGetFromCache(key, ct);
+            var data = (PointSetNode)storage.f_tryGetFromCache(key, default);
             if (data != null)
             {
                 if (Storage.CACHE_ENABLED) Storage.CACHE.Add(data, data.SerializedSizeInBytes * 2);
                 return data;
             }
 
-            var buffer = storage.f_get(key, ct);
+            var buffer = storage.f_get(key, default);
             if (buffer == null) return null;
             data = PointSetNode.ParseBinary(buffer, storage);
-            storage.f_add(key, data, null, ct);
+            storage.f_add(key, data, null, default);
             
             if (Storage.CACHE_ENABLED) Storage.CACHE.Add(data, buffer.Length * 2);
             return data;
+        }
+
+        /// <summary></summary>
+        public static (bool, PointSetNode) TryGetPointSetNode(this Storage storage, string key)
+        {
+            var data = (PointSetNode)storage.f_tryGetFromCache(key, default);
+            if (data != null)
+            {
+                if (Storage.CACHE_ENABLED) Storage.CACHE.Add(data, data.SerializedSizeInBytes * 2);
+                return (true, data);
+            }
+            else
+            {
+                return (false, default);
+            }
         }
 
         #endregion
@@ -356,28 +447,35 @@ namespace Aardvark.Geometry.Points
         #region PointSet
 
         /// <summary></summary>
-        public static void Add(this Storage storage, string key, PointSet data, CancellationToken ct)
+        public static void Add(this Storage storage, string key, PointSet data)
         {
             storage.f_add(key, data, () =>
             {
                 var json = data.ToJson().ToString();
                 var buffer = Encoding.UTF8.GetBytes(json);
                 return buffer;
-            }, ct);
+            }, default);
         }
 
         /// <summary></summary>
-        public static PointSet GetPointSet(this Storage storage, string key, CancellationToken ct)
+        public static PointSet GetPointSet(this Storage storage, string key)
         {
-            var data = (PointSet)storage.f_tryGetFromCache(key, ct);
+            var data = (PointSet)storage.f_tryGetFromCache(key, default);
             if (data != null) return data;
 
-            var buffer = storage.f_get(key, ct);
+            var buffer = storage.f_get(key, default);
             if (buffer == null) return null;
             var json = JObject.Parse(Encoding.UTF8.GetString(buffer));
             data = PointSet.Parse(json, storage);
-            storage.f_add(key, data, null, ct);
+            storage.f_add(key, data, null, default);
             return data;
+        }
+
+        /// <summary></summary>
+        public static (bool, PointSet) TryGetPointSet(this Storage storage, string key)
+        {
+            var data = (PointSet)storage.f_tryGetFromCache(key, default);
+            return (data != null, data);
         }
 
         #endregion

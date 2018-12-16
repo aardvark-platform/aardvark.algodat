@@ -94,7 +94,7 @@ namespace Aardvark.Geometry.Points
                         var id = (Id + "." + i).ToGuid().ToString();
                         var n0 = Node.Subnodes[i]?.Value;
                         var n = n0 != null ? new FilteredNode(id, n0, Filter) : null;
-                        m_subnodes_cache[i] = new PersistentRef<IPointCloudNode>(id, (_, __) => n, n);
+                        m_subnodes_cache[i] = new PersistentRef<IPointCloudNode>(id, _ => n, _ => (true, n));
                     }
                 }
                 return m_subnodes_cache;
@@ -129,7 +129,7 @@ namespace Aardvark.Geometry.Points
                 case FilterState.Partial:
                     var key = (Id + pref.Id).ToGuid().ToString();
                     var xs = pref.Value.Where((_, i) => m_activePoints.Contains(i)).ToArray();
-                    return new PersistentRef<T[]>(key, (_, __) => xs, xs);
+                    return new PersistentRef<T[]>(key, _ => xs, _ => (true, xs));
                 default:
                     throw new InvalidOperationException($"Unknown FilterState {FilterState}.");
             }

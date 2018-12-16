@@ -243,7 +243,7 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(pointcloud2.PointCount == 10);
 
 
-            var reloaded = config.Storage.GetPointSet("test", CancellationToken.None);
+            var reloaded = config.Storage.GetPointSet("test");
             Assert.IsTrue(reloaded.PointCount == 10);
         }
 
@@ -266,7 +266,7 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(pointcloud.Id == "test");
             Assert.IsTrue(pointcloud.PointCount == 0);
             
-            var reloaded = config.Storage.GetPointSet("test", CancellationToken.None);
+            var reloaded = config.Storage.GetPointSet("test");
             Assert.IsTrue(reloaded.Id == "test");
             Assert.IsTrue(reloaded.PointCount == 0);
         }
@@ -424,7 +424,7 @@ namespace Aardvark.Geometry.Tests
                 .WithKey("test")
                 ;
             var pointset = PointCloud.Import(filename, config);
-            var pointset2 = config.Storage.GetPointSet("test", CancellationToken.None);
+            var pointset2 = config.Storage.GetPointSet("test");
             Assert.IsTrue(pointset2 != null);
             Assert.IsTrue(pointset2.PointCount == 3);
         }
@@ -441,7 +441,7 @@ namespace Aardvark.Geometry.Tests
                 ;
             var pointset = PointCloud.Import(filename, config);
             Assert.IsTrue(pointset.Id == "test");
-            var pointset2 = config.Storage.GetPointSet("test", CancellationToken.None);
+            var pointset2 = config.Storage.GetPointSet("test");
             Assert.IsTrue(pointset2 != null);
             Assert.IsTrue(pointset2.PointCount == 3);
         }
@@ -459,7 +459,7 @@ namespace Aardvark.Geometry.Tests
             var ptsChunks = Data.Points.Import.Pts.Chunks(filename, config);
             var pointset = PointCloud.Chunks(ptsChunks, config);
             Assert.IsTrue(pointset.Id == "test");
-            var pointset2 = config.Storage.GetPointSet("test", CancellationToken.None);
+            var pointset2 = config.Storage.GetPointSet("test");
             Assert.IsTrue(pointset2 != null);
             Assert.IsTrue(pointset2.PointCount == 3);
         }
@@ -525,7 +525,7 @@ namespace Aardvark.Geometry.Tests
                 .WithKey("test")
                 ;
             var pointset = PointCloud.Import(filename, config);
-            var pointset2 = config.Storage.GetPointSet("test", CancellationToken.None);
+            var pointset2 = config.Storage.GetPointSet("test");
             Assert.IsTrue(pointset2 != null);
             Assert.IsTrue(pointset2.PointCount == 3);
 

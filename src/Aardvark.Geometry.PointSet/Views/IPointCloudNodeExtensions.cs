@@ -173,6 +173,13 @@ namespace Aardvark.Geometry.Points
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// </summary>
+        public static (bool, IPointCloudNode) TryGetPointCloudNode(this Storage storage, string id)
+        {
+            throw new NotImplementedException();
+        }
+
         #endregion
 
         /// <summary></summary>

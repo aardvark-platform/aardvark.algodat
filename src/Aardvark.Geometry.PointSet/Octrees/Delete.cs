@@ -36,7 +36,7 @@ namespace Aardvark.Geometry.Points
             var root = Delete(node.Root.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, ct);
             var newId = Guid.NewGuid().ToString();
             var result = new PointSet(node.Storage, newId, root?.Id, node.SplitLimit);
-            node.Storage.Add(newId, result, ct);
+            node.Storage.Add(newId, result);
             return result;
         }
 
@@ -91,33 +91,33 @@ namespace Aardvark.Geometry.Points
                 {
                     newPsId = Guid.NewGuid();
                     var psa = ps.ToArray();
-                    node.Storage.Add(newPsId.Value, psa, ct);
+                    node.Storage.Add(newPsId.Value, psa);
 
                     newKdId = Guid.NewGuid();
-                    node.Storage.Add(newKdId.Value, psa.BuildKdTree().Data, ct);
+                    node.Storage.Add(newKdId.Value, psa.BuildKdTree().Data);
 
                     if (node.HasColors)
                     {
                         newCsId = Guid.NewGuid();
-                        node.Storage.Add(newCsId.Value, cs.ToArray(), ct);
+                        node.Storage.Add(newCsId.Value, cs.ToArray());
                     }
 
                     if (node.HasNormals)
                     {
                         newNsId = Guid.NewGuid();
-                        node.Storage.Add(newNsId.Value, ns.ToArray(), ct);
+                        node.Storage.Add(newNsId.Value, ns.ToArray());
                     }
 
                     if (node.HasIntensities)
                     {
                         newIsId = Guid.NewGuid();
-                        node.Storage.Add(newIsId.Value, js.ToArray(), ct);
+                        node.Storage.Add(newIsId.Value, js.ToArray());
                     }
 
                     if (node.HasClassifications)
                     {
                         newKsId = Guid.NewGuid();
-                        node.Storage.Add(newKsId.Value, ks.ToArray(), ct);
+                        node.Storage.Add(newKsId.Value, ks.ToArray());
                     }
 
                     var result = new PointSetNode(node.Cell, ps.Count, newPsId, newCsId, newKdId, newNsId, newIsId, newKsId, node.Storage);
@@ -167,33 +167,33 @@ namespace Aardvark.Geometry.Points
                     {
                         newLodPsId = Guid.NewGuid();
                         var psa = ps.ToArray();
-                        node.Storage.Add(newLodPsId.Value, psa, ct);
+                        node.Storage.Add(newLodPsId.Value, psa);
 
                         newLodKdId = Guid.NewGuid();
-                        node.Storage.Add(newLodKdId.Value, psa.BuildKdTree().Data, ct);
+                        node.Storage.Add(newLodKdId.Value, psa.BuildKdTree().Data);
 
                         if (node.HasLodColors)
                         {
                             newLodCsId = Guid.NewGuid();
-                            node.Storage.Add(newLodCsId.Value, cs.ToArray(), ct);
+                            node.Storage.Add(newLodCsId.Value, cs.ToArray());
                         }
 
                         if (node.HasLodNormals)
                         {
                             newLodNsId = Guid.NewGuid();
-                            node.Storage.Add(newLodNsId.Value, ns.ToArray(), ct);
+                            node.Storage.Add(newLodNsId.Value, ns.ToArray());
                         }
 
                         if (node.HasLodIntensities)
                         {
                             newLodIsId = Guid.NewGuid();
-                            node.Storage.Add(newLodIsId.Value, js.ToArray(), ct);
+                            node.Storage.Add(newLodIsId.Value, js.ToArray());
                         }
 
                         if (node.HasLodClassifications)
                         {
                             newLodKsId = Guid.NewGuid();
-                            node.Storage.Add(newLodKsId.Value, ks.ToArray(), ct);
+                            node.Storage.Add(newLodKsId.Value, ks.ToArray());
                         }
                     }
                 }

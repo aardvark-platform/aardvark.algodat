@@ -51,7 +51,7 @@ namespace Aardvark.Geometry.Points
             if (self.IsEmpty) return self;
             var lod = self.Root.Value.GenerateLod(self.SplitLimit, callback, ct);
             var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit);
-            self.Storage.Add(key, result, ct);
+            self.Storage.Add(key, result);
             return result;
         }
 
@@ -130,22 +130,22 @@ namespace Aardvark.Geometry.Points
 
             // store LoD data ...
             var lodPsId = Guid.NewGuid();
-            self.Storage.Add(lodPsId, lodPs, ct);
+            self.Storage.Add(lodPsId, lodPs);
 
             var lodKdId = Guid.NewGuid();
-            self.Storage.Add(lodKdId, lodKd.Data, ct);
+            self.Storage.Add(lodKdId, lodKd.Data);
             
             var lodCsId = needsCs ? (Guid?)Guid.NewGuid() : null;
-            if (needsCs) self.Storage.Add(lodCsId.Value, lodCs, ct);
+            if (needsCs) self.Storage.Add(lodCsId.Value, lodCs);
 
             var lodNsId = needsNs ? (Guid?)Guid.NewGuid() : null;
-            if (needsNs) self.Storage.Add(lodNsId.Value, lodNs, ct);
+            if (needsNs) self.Storage.Add(lodNsId.Value, lodNs);
 
             var lodIsId = needsIs ? (Guid?)Guid.NewGuid() : null;
-            if (needsIs) self.Storage.Add(lodIsId.Value, lodIs, ct);
+            if (needsIs) self.Storage.Add(lodIsId.Value, lodIs);
 
             var lodKsId = needsKs ? (Guid?)Guid.NewGuid() : null;
-            if (needsKs) self.Storage.Add(lodKsId.Value, lodKs, ct);
+            if (needsKs) self.Storage.Add(lodKsId.Value, lodKs);
 
             var result = self.WithLod(lodPsId, lodCsId, lodNsId, lodIsId, lodKdId, lodKsId, subcells);
             return result;

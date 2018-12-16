@@ -252,7 +252,7 @@ namespace Aardvark.Geometry.Tests
 
             using (var storageB = PointSetTests.CreateDiskStorage(dbDiskLocation))
             {
-                var pointset = storageB.GetPointSet(id, CancellationToken.None);
+                var pointset = storageB.GetPointSet(id);
                 pointset.Root.Value.ForEachNode(true, cell =>
                 {
                     if (cell.IsLeaf)

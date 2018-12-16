@@ -36,7 +36,7 @@ namespace Aardvark.Geometry.Points
             var lod = self.Root.Value.RegenerateNormals(estimateNormals, callback, ct);
             var key = Guid.NewGuid().ToString();
             var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit);
-            self.Storage.Add(key, result, ct);
+            self.Storage.Add(key, result);
             return result;
         }
 
@@ -52,7 +52,7 @@ namespace Aardvark.Geometry.Points
             var lod = self.Root.Value.RegenerateNormals(estimateNormals, callback, ct);
             var key = Guid.NewGuid().ToString();
             var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit);
-            self.Storage.Add(key, result, ct);
+            self.Storage.Add(key, result);
             return result;
         }
 
@@ -75,7 +75,7 @@ namespace Aardvark.Geometry.Points
                 // generate and store normals
                 var ns = estimateNormals(self.PositionsAbsolute).ToArray();
                 var nsId = Guid.NewGuid();
-                self.Storage.Add(nsId, ns, ct);
+                self.Storage.Add(nsId, ns);
 
                 // create node with new normals and LoD normals
                 var r = self.WithNormals(nsId).WithLod();
@@ -127,7 +127,7 @@ namespace Aardvark.Geometry.Points
 
             // store LoD data ...
             var lodNsId = Guid.NewGuid();
-            self.Storage.Add(lodNsId, lodNs, ct);
+            self.Storage.Add(lodNsId, lodNs);
             
             var result = self.WithLod(
                 self.LodPositionsId, self.LodColorsId, lodNsId, self.LodIntensitiesId, self.LodKdTreeId, self.LodClassificationsId,
@@ -155,7 +155,7 @@ namespace Aardvark.Geometry.Points
                 // generate and store normals
                 var ns = estimateNormals(self.Positions.Value, self.KdTree.Value).ToArray();
                 var nsId = Guid.NewGuid();
-                self.Storage.Add(nsId, ns, ct);
+                self.Storage.Add(nsId, ns);
 
                 // create node with new normals and LoD normals
                 var r = self.WithNormals(nsId).WithLod();
@@ -207,7 +207,7 @@ namespace Aardvark.Geometry.Points
 
             // store LoD data ...
             var lodNsId = Guid.NewGuid();
-            self.Storage.Add(lodNsId, lodNs, ct);
+            self.Storage.Add(lodNsId, lodNs);
 
             var result = self.WithLod(
                 self.LodPositionsId, self.LodColorsId, lodNsId, self.LodIntensitiesId, self.LodKdTreeId, self.LodClassificationsId,

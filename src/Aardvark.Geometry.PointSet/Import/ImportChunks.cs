@@ -84,7 +84,7 @@ namespace Aardvark.Geometry.Points
             // create final point set with specified key (or random key when no key is specified)
             var key = config.Key ?? Guid.NewGuid().ToString();
             final = new PointSet(config.Storage, key, final?.Root?.Value?.Id, config.OctreeSplitLimit);
-            config.Storage.Add(key, final, config.CancellationToken);
+            config.Storage.Add(key, final);
 
             return final;
         }
