@@ -225,5 +225,27 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(pointset.HasNormals == false);
             Assert.IsTrue(pointset.HasPositions == true);
         }
+
+        [Test]
+        public void CanCreatePointsetFromChunksWithSinglePoint()
+        {
+            var r = new System.Random();
+            var storage = PointSetTests.CreateStorage();
+
+            var ps = new V3d[42].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
+
+            var chunk1 = new Chunk(ps);
+            var chunk2 = new Chunk(new V3d[] { V3d.III });
+
+            var config = ImportConfig.Default
+               .WithStorage(storage)
+               .WithKey("test");
+
+            var pointset = PointCloud.Chunks(new Chunk[] { chunk1, chunk2 }, config);
+
+            Assert.IsTrue(pointset.PointCount == 43);
+            Assert.IsTrue(pointset.Root.Value.PointCountTree == 43);
+            Assert.IsTrue(pointset.Root.Value.CountPoints() == 43);
+        }
     }
 }
