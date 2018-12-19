@@ -16,13 +16,13 @@ namespace Aardvark.Geometry.Tests
         public static void Perform()
         {
             var path2store = @"C:\Users\kellner\Desktop\Diplomarbeit\Store";
-            var pData = @"C:\Users\kellner\Desktop\Diplomarbeit\networks";
+            //var pData = @"C:\Users\kellner\Desktop\Diplomarbeit\networks";
 
-            //var dirLabels = @"C:\Users\kellner\Desktop\Diplomarbeit\data\Semantic3d\sem8_labels_training";
             //var dirData = @"C:\Users\kellner\Desktop\Diplomarbeit\data\Semantic3d\sem8_data_training";
+            //var dirLabels = @"C:\Users\kellner\Desktop\Diplomarbeit\data\Semantic3d\sem8_labels_training";
 
-            //var fn = "untermaederbrunnen_station1_xyz_intensity_rgb";
-            //var k = "untermaederbrunnen_station1";
+            //var fn = "bildstein_station3_xyz_intensity_rgb";
+            //var k = "sg27_station2";
 
             //Import( // import new pointcloud
             //    Path.Combine(dirData, fn + ".txt"),
@@ -30,36 +30,167 @@ namespace Aardvark.Geometry.Tests
             //    path2store, k);
             //AddNormals(path2store, k); // add normals
             //FilterPoints(path2store, k, 0); // filter all unlabelled points
+            
+            // -----------------------------------
 
             var store = PointCloud.OpenStore(path2store);
+            
+            var keys = new string[]
+            {
+                "bildstein_station1_filtered",
+                "bildstein_station3_filtered",
+                "bildstein_5_labelled_filtered",
+                "neugasse_station1_filtered",
+                "sg27_station2_filtered",
+            };
 
             // -----------------------------------
 
-            //FilterPoints(path2store, id, 0); // TODO: fix it!
+            var pp = @"C:\Users\kellner\Desktop\Diplomarbeit\networks\predictions.txt";
+            var lines = File.ReadLines(pp);
 
-            var keys = new string[]
+            var predictions = new Dictionary<string, List<(V3d, V3d, byte)>>();
+
+            var classes = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 };
+            var mappings = new Dictionary<byte, string>
             {
-                "bildstein_5_labelled_filtered",
-                "neugasse_station1_filtered",
-                "bildstein_station1_filtered"
+                { 1, "man-made"},
+                { 2, "natural"},
+                { 3, "high veg"},
+                { 4, "low veg"},
+                { 5, "buildings"},
+                { 6, "hard scape"},
+                { 7, "artefacts"},
+                { 8, "cars"},
             };
+
+            var cm = new NxN_ConfusionMatrix<byte>(classes);
+
+            lines.ForEach(line => 
+            {
+                var splits = line.Split(';');
+
+                var key = splits[0];
+                var min = V3d.Parse(splits[1]);
+                var max = V3d.Parse(splits[2]);
+                var p = byte.Parse(splits[3]);
+
+                if (!predictions.ContainsKey(key))
+                    predictions.Add(key, new List<(V3d, V3d, byte)>());
+                predictions[key].Add((min,max,p));
+            });
+            
+            predictions.Keys.ForEach(key => 
+            {
+                var boxes = predictions[key];
+
+                Report.Line($"processing pointcloud: {key}");
+                var pointset = store.GetPointSet(key, CancellationToken.None);
+                
+                boxes.ForEach(vs => 
+                {
+                    var prediction = vs.Item3;
+
+                    var truths = pointset.QueryPointsInsideBox(new Box3d(vs.Item1, vs.Item2)).
+                        SelectMany(ch => ch.Classifications);
+
+                    truths.ForEach(truth => cm.AddPrediction(truth,prediction));
+                });
+            });
+
+            Report.Line($"ACC = {cm.Accuracy()}");
+            Report.Line("\n" + cm.ToString());
+        }
+
+        private class NxN_ConfusionMatrix<T>
+        {
+            private Dictionary<T, Dictionary<T, int>> m_cm;
+            private Dictionary<T, string> m_classes2string; 
+
+            public NxN_ConfusionMatrix(IEnumerable<T> classes,
+                Dictionary<T, string> classes2string = null)
+            {
+                m_cm = new Dictionary<T, Dictionary<T, int>>();
+
+                m_classes2string = classes2string ?? new Dictionary<T, string>();
+
+                classes.ForEach(truth => 
+                {
+                    m_cm.Add(truth, new Dictionary<T, int>());
+
+                    classes.ForEach(prediction => 
+                        m_cm[truth].Add(prediction, 0));
+
+                    if (classes2string == null)
+                        m_classes2string.Add(truth, truth.ToString());
+                });
+            }
+
+            public void AddPrediction(T truth, T prediction) =>
+                m_cm[truth][prediction] += 1;
+            
+            public double Accuracy()
+            {
+                var classes = m_cm.Keys;
+
+                var correct = 0.0;
+                var wrong = 0.0;
+                
+                classes.ForEach(truth => 
+                {
+                    classes.ForEach(prediction =>
+                    {
+                        if (truth.Equals(prediction))
+                            correct += m_cm[truth][prediction];
+                        else
+                            wrong += m_cm[truth][prediction];
+                    });
+                });
+
+                return correct / (correct + wrong);
+            }
+
+            public void PerClassAccuracy()
+            {
+                throw new NotImplementedException();
+            }
+            
+            override public string ToString()
+            {
+                var classes = m_cm.Keys;
+                var s = $"\t{classes.Select(c => m_classes2string[c]).Join("\t")}\n";
+
+                classes.ForEach(truth =>
+                {
+                    s += $"{m_classes2string[truth]}\t";
+                    classes.ForEach(prediction =>
+                    {
+                        s += $"{m_cm[truth][prediction]}\t";
+                    });
+                    s += "\n";
+                });
+                return s;
+            }
+        }
+
+        /// <summary>
+        /// Exports occupancy values (flattend cubes with given gridsize and mode)
+        /// of pointclouds to csv-file.
+        /// </summary>
+        /// <param name="mode">binary, count, fraction</param>
+        /// <param name="grids">gridsize of cube</param>
+        private static void ExportPointclouds(string path2store, string[] keys, string outPath,
+            string mode = "binary", double grids = 8.0, int exponent = -3)
+        {
+            var store = PointCloud.OpenStore(path2store);
 
             keys.ForEach(key =>
             {
                 Report.Warn($"processing pointcloud: {key}");
 
                 var pointset = store.GetPointSet(key, CancellationToken.None);
-                //var subnodes = pointset.Root.Value.Subnodes.
-                //    Where(sn => sn != null).Select(sn => sn.Value);
-
-                var subnodes = GetNodesWithExponent(pointset.Root.Value, -3);
-
-                //var modes = new string[] { "binary", "count", "fraction" };
-                //var sizes = new double[] { 16.0, 24.0, 32.0 };
-
-                var mode = "binary";
-                var size = 8.0;
-
+                var subnodes = GetNodesWithExponent(pointset.Root.Value, exponent);
+                
                 subnodes.ForEach((subnode, j) =>
                 {
                     if ((j % 100) == 0)
@@ -72,7 +203,7 @@ namespace Aardvark.Geometry.Tests
                     var max = box.Max;
 
                     var boxSize = Math.Abs(max.X - min.X);
-                    var gridSize = boxSize / size;
+                    var gridSize = boxSize / grids;
 
                     var cl = subnode.QueryPointsInsideBox(box).SelectMany(c => c.Classifications);
                     var truth = cl.GroupBy(c => c).OrderByDescending(g => g.ToArray().Length).First().Key;
@@ -96,16 +227,17 @@ namespace Aardvark.Geometry.Tests
 
                                 occupancies.Add(occ.ToString(CultureInfo.InvariantCulture));
                             }
-                    var data = ($"{truth};{occupancies.Join(";")}\n");
-                    File.AppendAllText(Path.Combine(pData, "data_" + mode + "_gs=" + size + "-all.csv"), data);
+                    var data = ($"{key};{min};{max};{truth};{occupancies.Join(";")}\n");
+                    File.AppendAllText(outPath, data);
                 });
             });
         }
 
+        
         /// <summary>
         /// PointCloudNode attributes for machine learning.
         /// </summary>
-        private static class PointCloudAttributes4ML
+        private static class AttributesML
         {
             public const string Predictions = "Predictions";
         }
@@ -113,26 +245,8 @@ namespace Aardvark.Geometry.Tests
         /// <summary>
         /// Extension functions for ML-attributes
         /// </summary>
-        private static class IPointCloudNodeExtensions4ML
+        private static class FutureExtensions
         {
-            private static bool Has(IPointCloudNode n, string attributeName)
-            {
-                switch (n.FilterState)
-                {
-                    case FilterState.FullyOutside:
-                        return false;
-                    case FilterState.FullyInside:
-                    case FilterState.Partial:
-                        return n.TryGetPropertyKey(attributeName, out string _);
-                    default:
-                        throw new InvalidOperationException($"Unknown FilterState {n.FilterState}.");
-                }
-            }
-
-            // predictions
-            public static bool HasPredictions(IPointCloudNode self) =>
-                Has(self, PointCloudAttributes4ML.Predictions);
-
             public static PersistentRef<byte[]> GetPredictions(IPointCloudNode self)
             {
                 var key = ComputeKey4Predictions(self);
@@ -146,7 +260,7 @@ namespace Aardvark.Geometry.Tests
                 self.Storage.Add(ComputeKey4Predictions(self), predictions, default);
 
             private static string ComputeKey4Predictions(IPointCloudNode self) =>
-                "predictions_123";
+                "predictions_" + self.GetHashCode().ToString();
         }
 
         /// <summary>
@@ -178,12 +292,12 @@ namespace Aardvark.Geometry.Tests
         {
             var store = PointCloud.OpenStore(path2store);
             var pointset = store.GetPointSet(key, CancellationToken.None);
-
             var chunks = pointset.QueryAllPoints();
-            var newChunks = new List<Chunk>();
+
+            var singlePointCounter = 0;
 
             // filter chunks
-            chunks.ForEach((chunk, k) =>
+            var newChunks = chunks.Select((chunk, k) =>
             {
                 if ((k % 100) == 0)
                     Report.Line($"filtering chunk #{k}");
@@ -219,12 +333,17 @@ namespace Aardvark.Geometry.Tests
                         classifications.Add(chunk.Classifications[idx]);
                 });
 
+                if(positions.Count == 1)
+                    Report.Warn($"chunks with single point: {++singlePointCounter}");
+               
                 // create new chunks of filtered data
                 var bbChunk = new Box3d(positions);
-                newChunks.Add(new Chunk(positions, colors.IsEmpty() ? null : colors,
+                return new Chunk(positions, colors.IsEmpty() ? null : colors,
                     normals.IsEmpty() ? null : normals, intensities.IsEmpty() ? null : intensities,
-                    classifications.IsEmpty() ? null : classifications, bbChunk));
-            });
+                    classifications.IsEmpty() ? null : classifications, bbChunk);
+
+            }).//Where(chunk => !chunk.Positions.IsEmptyOrNull());
+            Where(chunk => chunk.Positions.Count > 1);
 
             var config = ImportConfig.Default
                .WithStorage(store)
@@ -235,6 +354,8 @@ namespace Aardvark.Geometry.Tests
             // add point-cloud to store
             PointCloud.Chunks(newChunks, config);
             store.Dispose();
+
+            Report.Warn($"chunks with single point: {++singlePointCounter}");
         }
 
         /// <summary>
