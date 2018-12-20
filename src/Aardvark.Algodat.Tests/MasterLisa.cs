@@ -16,25 +16,26 @@ namespace Aardvark.Geometry.Tests
         public static void Perform()
         {
             var path2store = @"C:\Users\kellner\Desktop\Diplomarbeit\Store";
+
             //var pData = @"C:\Users\kellner\Desktop\Diplomarbeit\networks";
 
-            //var dirData = @"C:\Users\kellner\Desktop\Diplomarbeit\data\Semantic3d\sem8_data_training";
-            //var dirLabels = @"C:\Users\kellner\Desktop\Diplomarbeit\data\Semantic3d\sem8_labels_training";
+            var dirData = @"C:\Users\kellner\Desktop\Diplomarbeit\data\Semantic3d\sem8_data_training";
+            var dirLabels = @"C:\Users\kellner\Desktop\Diplomarbeit\data\Semantic3d\sem8_labels_training";
 
-            //var fn = "bildstein_station3_xyz_intensity_rgb";
-            //var k = "sg27_station2";
+            var fn = "bildstein_station1_xyz_intensity_rgb";
+            var k = "bildstein_station1_2";
 
-            //Import( // import new pointcloud
-            //    Path.Combine(dirData, fn + ".txt"),
-            //    Path.Combine(dirLabels, fn + ".labels"),
-            //    path2store, k);
-            //AddNormals(path2store, k); // add normals
-            //FilterPoints(path2store, k, 0); // filter all unlabelled points
+            Import( // import new pointcloud
+                Path.Combine(dirData, fn + ".txt"),
+                Path.Combine(dirLabels, fn + ".labels"),
+                path2store, k);
+            AddNormals(path2store, k); // add normals
+            FilterPoints(path2store, k, 0); // filter all unlabelled points
             
             // -----------------------------------
 
             var store = PointCloud.OpenStore(path2store);
-            
+
             var keys = new string[]
             {
                 "bildstein_station1_filtered",
@@ -46,11 +47,93 @@ namespace Aardvark.Geometry.Tests
 
             // -----------------------------------
 
-            var pp = @"C:\Users\kellner\Desktop\Diplomarbeit\networks\predictions.txt";
-            var lines = File.ReadLines(pp);
+            var dumpStore = PointSetTests.CreateDiskStorage(
+                @"C:\Users\kellner\Desktop\Diplomarbeit\dumpStore");
+
+            var exponent = -3;
+
+            var pointset = store.GetPointSet("neugasse_station1_filtered", CancellationToken.None);
+            var (nodes, leafs) = GetNodesWithExponent(pointset.Root.Value, exponent);
+
+            var foo = nodes.Select(n =>AmountClassesInNode(n)).GroupBy(x => x);
+            var asdf = leafs.Select(n => AmountClassesInNode(n)).GroupBy(x => x);
+
+            Report.Line("nodes:");
+            foo.ForEach(g => Report.Line($"{g.Key} = {g.Count()}"));
+
+            Report.Line("leafs:");
+            asdf.ForEach(g => Report.Line($"{g.Key} = {g.Count()}"));
+
+            //var pointsInNodes = nodes.Select(l => l.PointCount).GroupBy(x => x);
+            //Report.Line("points in nodes:");
+            //pointsInNodes.ForEach(g => Report.Line($"{g.Key} = {g.Count()}"));
+
+            var i = 0;
+            var nextIteration = leafs.RandomOrder().Take(1000).Select( n => 
+            {
+                ++i;
+
+                if ((i % 250) == 0)
+                {
+                    Report.Line($"processed {i}/{leafs.Count()} leafs");
+                    dumpStore.Flush();
+                }
+
+                var chunks = n.QueryAllPoints();
+
+                var ps = chunks.SelectMany(ch => ch.Positions).ToList();
+
+                var hasCs = chunks.All(ch => ch.HasColors);
+                var cs = hasCs ? chunks.SelectMany(ch => ch.Colors).ToList() : null;
+
+                var hasNs = chunks.All(ch => ch.HasNormals);
+                var ns = hasNs ? chunks.SelectMany(ch => ch.Normals).ToList() : null;
+
+                var hasJs = chunks.All(ch => ch.HasIntensities);
+                var js = hasJs ? chunks.SelectMany(ch => ch.Intensities).ToList() : null;
+
+                var hasKs = chunks.All(ch => ch.HasClassifications);
+                var ks = hasKs ? chunks.SelectMany(ch => ch.Classifications).ToList() : null;
+
+                var bb = new Box3d(ps);
+
+                var pts = InMemoryPointSet.Build(ps, cs, ns, js, ks, bb, 2);
+                var rootNode = pts.ToPointSetCell(dumpStore);
+
+                return GetNodesWithExponent(rootNode, exponent);
+            }).ToArray();
+
+            var nextNodes = nextIteration.Map(x => x.Item1);
+            var nextLeafs = nextIteration.Map(x => x.Item2);
+
+            var pointsInRemainingLeafs = nextLeafs.SelectMany(l => l.Select(x => x.PointCount)).
+                GroupBy(x => x);
+            var pointsInRemainingNodes = nextNodes.SelectMany(l => l.Select(x => x.PointCount)).
+                GroupBy(x => x);
+
+            Report.Line("points in leafs:");
+            pointsInRemainingLeafs.ForEach(g => Report.Line($"{g.Key} = {g.Count()}"));
+
+            Report.Line("points in nodes:");
+            pointsInRemainingNodes.ForEach(g => Report.Line($"{g.Key} = {g.Count()}"));
+
+            dumpStore.Dispose();
+            //var pp = @"C:\Users\kellner\Desktop\Diplomarbeit\networks\predictions.txt";
+            //PerPointValidation(store, pp);
+        }
+
+        private static int AmountClassesInNode(PointSetNode n)
+        {
+            if(n.HasClassifications)
+                return n.Classifications.Value.Distinct().Count();
+            return -1;
+        }
+
+        private static void PerPointValidation(Storage store, string pResults)
+        {
+            var lines = File.ReadLines(pResults);
 
             var predictions = new Dictionary<string, List<(V3d, V3d, byte)>>();
-
             var classes = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 };
             var mappings = new Dictionary<byte, string>
             {
@@ -64,9 +147,9 @@ namespace Aardvark.Geometry.Tests
                 { 8, "cars"},
             };
 
-            var cm = new NxN_ConfusionMatrix<byte>(classes);
+            var cm = new NxN_ConfusionMatrix<byte>(classes, mappings);
 
-            lines.ForEach(line => 
+            lines.ForEach(line =>
             {
                 var splits = line.Split(';');
 
@@ -77,35 +160,36 @@ namespace Aardvark.Geometry.Tests
 
                 if (!predictions.ContainsKey(key))
                     predictions.Add(key, new List<(V3d, V3d, byte)>());
-                predictions[key].Add((min,max,p));
+                predictions[key].Add((min, max, p));
             });
-            
-            predictions.Keys.ForEach(key => 
+
+            predictions.Keys.ForEach(key =>
             {
                 var boxes = predictions[key];
 
                 Report.Line($"processing pointcloud: {key}");
                 var pointset = store.GetPointSet(key, CancellationToken.None);
-                
-                boxes.ForEach(vs => 
+
+                boxes.ForEach(vs =>
                 {
                     var prediction = vs.Item3;
 
                     var truths = pointset.QueryPointsInsideBox(new Box3d(vs.Item1, vs.Item2)).
                         SelectMany(ch => ch.Classifications);
 
-                    truths.ForEach(truth => cm.AddPrediction(truth,prediction));
+                    truths.ForEach(truth => cm.AddPrediction(truth, prediction));
                 });
             });
 
             Report.Line($"ACC = {cm.Accuracy()}");
-            Report.Line("\n" + cm.ToString());
+            cm.Print();
+            cm.PrintPerClassAccuracy();
         }
 
         private class NxN_ConfusionMatrix<T>
         {
             private Dictionary<T, Dictionary<T, int>> m_cm;
-            private Dictionary<T, string> m_classes2string; 
+            private Dictionary<T, string> m_classes2string;
 
             public NxN_ConfusionMatrix(IEnumerable<T> classes,
                 Dictionary<T, string> classes2string = null)
@@ -114,11 +198,11 @@ namespace Aardvark.Geometry.Tests
 
                 m_classes2string = classes2string ?? new Dictionary<T, string>();
 
-                classes.ForEach(truth => 
+                classes.ForEach(truth =>
                 {
                     m_cm.Add(truth, new Dictionary<T, int>());
 
-                    classes.ForEach(prediction => 
+                    classes.ForEach(prediction =>
                         m_cm[truth].Add(prediction, 0));
 
                     if (classes2string == null)
@@ -128,15 +212,15 @@ namespace Aardvark.Geometry.Tests
 
             public void AddPrediction(T truth, T prediction) =>
                 m_cm[truth][prediction] += 1;
-            
+
             public double Accuracy()
             {
                 var classes = m_cm.Keys;
 
                 var correct = 0.0;
                 var wrong = 0.0;
-                
-                classes.ForEach(truth => 
+
+                classes.ForEach(truth =>
                 {
                     classes.ForEach(prediction =>
                     {
@@ -146,30 +230,52 @@ namespace Aardvark.Geometry.Tests
                             wrong += m_cm[truth][prediction];
                     });
                 });
-
                 return correct / (correct + wrong);
             }
 
-            public void PerClassAccuracy()
-            {
-                throw new NotImplementedException();
-            }
-            
-            override public string ToString()
+            public Dictionary<T, double> PerClassAccuracy()
             {
                 var classes = m_cm.Keys;
-                var s = $"\t{classes.Select(c => m_classes2string[c]).Join("\t")}\n";
+                var acc = new Dictionary<T, double>();
 
                 classes.ForEach(truth =>
                 {
-                    s += $"{m_classes2string[truth]}\t";
+                    var correct = 0.0;
+                    var wrong = 0.0;
+
                     classes.ForEach(prediction =>
                     {
-                        s += $"{m_cm[truth][prediction]}\t";
+                        if (truth.Equals(prediction))
+                            correct += m_cm[truth][prediction];
+                        else
+                            wrong += m_cm[truth][prediction];
                     });
-                    s += "\n";
+                    acc.Add(truth, correct / (correct + wrong));
                 });
-                return s;
+                return acc;
+            }
+
+            public void PrintPerClassAccuracy()
+            {
+                var dict = PerClassAccuracy();
+                dict.Keys.ForEach(c => Report.Line($"{m_classes2string[c]} = {dict[c]:0.0000}"));
+            }
+
+            public void Print()
+            {
+                var classes = m_cm.Keys;
+                var cs = classes.Select(c => m_classes2string[c]).ToArray();
+
+                Console.Write("{0,-15}", "");
+                cs.ForEach(c => Console.Write("{0,-15}", c));
+                Console.WriteLine();
+
+                classes.ForEach(truth =>
+                {
+                    Console.Write("{0,-15}", m_classes2string[truth]);
+                    classes.ForEach(prediction => Console.Write("{0,-15}", m_cm[truth][prediction]));
+                    Console.WriteLine();
+                });
             }
         }
 
@@ -189,9 +295,9 @@ namespace Aardvark.Geometry.Tests
                 Report.Warn($"processing pointcloud: {key}");
 
                 var pointset = store.GetPointSet(key, CancellationToken.None);
-                var subnodes = GetNodesWithExponent(pointset.Root.Value, exponent);
-                
-                subnodes.ForEach((subnode, j) =>
+                var (nodes, leafs) = GetNodesWithExponent(pointset.Root.Value, exponent);
+
+                nodes.ForEach((subnode, j) =>
                 {
                     if ((j % 100) == 0)
                         Report.Line($"processing subnode # {j}");
@@ -233,7 +339,6 @@ namespace Aardvark.Geometry.Tests
             });
         }
 
-        
         /// <summary>
         /// PointCloudNode attributes for machine learning.
         /// </summary>
@@ -266,9 +371,11 @@ namespace Aardvark.Geometry.Tests
         /// <summary>
         /// Returns all nodes from given tree with given exponent.
         /// </summary>
-        private static IEnumerable<PointSetNode> GetNodesWithExponent(PointSetNode root, int exponent)
+        private static (IEnumerable<PointSetNode>, IEnumerable<PointSetNode>) GetNodesWithExponent(
+            PointSetNode root, int exponent)
         {
             var nodes = new List<PointSetNode>();
+            var leafs = new List<PointSetNode>();
 
             traverse(root, nodes);
 
@@ -278,11 +385,15 @@ namespace Aardvark.Geometry.Tests
                 if (exp == exponent)
                     nodeList.Add(n);
                 else
+                {
                     if (n.IsNotLeaf())
-                    n.Subnodes.Where(sn => sn != null).
-                    ForEach(sn => traverse(sn.Value, nodeList));
+                        n.Subnodes.Where(sn => sn != null).
+                        ForEach(sn => traverse(sn.Value, nodeList));
+                    else
+                        leafs.Add(n);
+                }
             }
-            return nodes;
+            return (nodes,leafs);
         }
 
         /// <summary>
@@ -333,11 +444,11 @@ namespace Aardvark.Geometry.Tests
                         classifications.Add(chunk.Classifications[idx]);
                 });
 
-                if(positions.Count == 1)
+                if (positions.Count == 1)
                     Report.Warn($"chunks with single point: {++singlePointCounter}");
-               
-                // create new chunks of filtered data
-                var bbChunk = new Box3d(positions);
+
+                    // create new chunks of filtered data
+                    var bbChunk = new Box3d(positions);
                 return new Chunk(positions, colors.IsEmpty() ? null : colors,
                     normals.IsEmpty() ? null : normals, intensities.IsEmpty() ? null : intensities,
                     classifications.IsEmpty() ? null : classifications, bbChunk);
@@ -410,6 +521,7 @@ namespace Aardvark.Geometry.Tests
             var config = ImportConfig.Default
                .WithStorage(store)
                .WithKey(key)
+               .WithOctreeSplitLimit(500)
                .WithMaxChunkPointCount(maxChunkSize)
                .WithVerbose(true);
 
