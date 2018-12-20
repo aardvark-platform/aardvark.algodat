@@ -83,7 +83,7 @@ namespace Aardvark.Geometry.Points
 #pragma warning disable CS0618 // Type or member is obsolete
             final = new PointSet(config.Storage, key, final?.Root?.Value?.Id, config.OctreeSplitLimit);
 #pragma warning restore CS0618 // Type or member is obsolete
-            config.Storage.Add(key, final, config.CancellationToken);
+            config.Storage.Add(key, final);
 
             return final;
         }

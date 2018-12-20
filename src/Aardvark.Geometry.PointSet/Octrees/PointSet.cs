@@ -66,9 +66,12 @@ namespace Aardvark.Geometry.Points
 
             if (rootCellId.HasValue)
             {
-                Octree = new PersistentRef<IPointCloudNode>(rootCellId.ToString(), storage.GetPointSetNode);
+                Octree = new PersistentRef<IPointCloudNode>(rootCellId.ToString(), storage.GetPointSetNode,
+                    k => { var (a, b) = storage.TryGetPointSetNode(k); return (a, b); }
+                    );
 #pragma warning disable CS0618 // Type or member is obsolete
-                Root = new PersistentRef<PointSetNode>(rootCellId.ToString(), storage.GetPointSetNode);
+                Root = new PersistentRef<PointSetNode>(rootCellId.ToString(), storage.GetPointSetNode, storage.TryGetPointSetNode
+                    );
 #pragma warning restore CS0618 // Type or member is obsolete
             }
         }
@@ -89,11 +92,11 @@ namespace Aardvark.Geometry.Points
 
             if (key != null)
             {
-                Octree = new PersistentRef<IPointCloudNode>(root.Id, (id, ct) => storage.GetPointCloudNode(id, resolver, ct));
+                Octree = new PersistentRef<IPointCloudNode>(root.Id, id => storage.GetPointCloudNode(id, resolver), id => storage.TryGetPointCloudNode(id));
 #pragma warning disable CS0618 // Type or member is obsolete
                 Root = oldSchool != null
-                    ? new PersistentRef<PointSetNode>(oldSchool.Id.ToString(), storage.GetPointSetNode)
-                    : new PersistentRef<PointSetNode>(root.Id, (_, __) => throw new InvalidOperationException());
+                    ? new PersistentRef<PointSetNode>(oldSchool.Id.ToString(), storage.GetPointSetNode, storage.TryGetPointSetNode)
+                    : new PersistentRef<PointSetNode>(root.Id, _ => throw new InvalidOperationException(), _ => throw new InvalidOperationException());
 #pragma warning restore CS0618 // Type or member is obsolete
             }
         }
@@ -157,7 +160,10 @@ namespace Aardvark.Geometry.Points
         {
             var octreeId = (string)json["OctreeId"];
             if (octreeId == null) octreeId = (string)json["RootCellId"]; // backwards compatibility
-            var octree = octreeId != null ? new PersistentRef<IPointCloudNode>(octreeId, storage.GetPointSetNode) : null;
+            var octree = octreeId != null
+                ? new PersistentRef<IPointCloudNode>(octreeId, storage.GetPointSetNode, k => storage.TryGetPointSetNode(k))
+                : null
+                ;
             
             // backwards compatibility: if split limit is not set, guess as number of points in root cell
             var splitLimitRaw = (string)json["SplitLimit"];
@@ -171,7 +177,9 @@ namespace Aardvark.Geometry.Points
             if (rootType == "PointSetNode")
                 return new PointSet(storage, id, Guid.Parse(octreeId), splitLimit); // backwards compatibility
             else
+            {
                 return new PointSet(storage, resolver, id, octree.Value, splitLimit);
+            }
         }
 
         #endregion
@@ -217,22 +225,22 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public bool HasColors => Octree != null ? Octree.GetValue(default).HasColors() : false;
+        public bool HasColors => Octree != null ? Octree.Value.HasColors() : false;
 
         /// <summary></summary>
-        public bool HasIntensities => Octree != null ? Octree.GetValue(default).HasIntensities() : false;
+        public bool HasIntensities => Octree != null ? Octree.Value.HasIntensities() : false;
         
         /// <summary></summary>
-        public bool HasClassifications => Octree != null ? Octree.GetValue(default).HasClassifications() : false;
+        public bool HasClassifications => Octree != null ? Octree.Value.HasClassifications() : false;
 
         /// <summary></summary>
-        public bool HasKdTree => Octree != null ? Octree.GetValue(default).HasKdTree() : false;
+        public bool HasKdTree => Octree != null ? Octree.Value.HasKdTree() : false;
         
         /// <summary></summary>
-        public bool HasNormals => Octree != null ? Octree.GetValue(default).HasNormals() : false;
+        public bool HasNormals => Octree != null ? Octree.Value.HasNormals() : false;
 
         /// <summary></summary>
-        public bool HasPositions => Octree != null ? Octree.GetValue(default).HasPositions() : false;
+        public bool HasPositions => Octree != null ? Octree.Value.HasPositions() : false;
 
         #endregion
 

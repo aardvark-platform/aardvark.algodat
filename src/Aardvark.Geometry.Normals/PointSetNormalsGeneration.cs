@@ -53,7 +53,7 @@ namespace Aardvark.Geometry.Points
             var normals = self.Root.Value.GenerateNormals(callback, config);
 #pragma warning restore CS0618 // Type or member is obsolete
             var result = new PointSet(self.Storage, config.Key, normals.Id, self.SplitLimit);
-            self.Storage.Add(config.Key, result, config.CancellationToken);
+            self.Storage.Add(config.Key, result);
             return result;
         }
         
@@ -77,7 +77,7 @@ namespace Aardvark.Geometry.Points
             if (needsNormals)
             {
                 var nsId = Guid.NewGuid();
-                self.Storage.Add(nsId, ns, config.CancellationToken);
+                self.Storage.Add(nsId, ns);
                 result = result.WithNormals(nsId, subcells);
             }
             

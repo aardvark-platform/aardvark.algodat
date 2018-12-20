@@ -31,7 +31,7 @@ namespace Aardvark.Geometry.Tests
             var ps = new V3d[n];
             for (var i = 0; i < n; i++) ps[i] = new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble());
             var config = ImportConfig.Default
-                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 .WithOctreeSplitLimit(splitLimit)
                 ;
@@ -48,7 +48,7 @@ namespace Aardvark.Geometry.Tests
                     for (var z = start; z < 1.0; z += step)
                         ps.Add(new V3d(x, y, z));
             var config = ImportConfig.Default
-                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 .WithOctreeSplitLimit(splitLimit)
                 ;

@@ -207,12 +207,12 @@ namespace Aardvark.Geometry.Points
                     : ps.Length
                     ;
 
-                if (psId != null) storage.Add(psId.ToString(), ps, ct);
-                if (csId != null) storage.Add(csId.ToString(), cs, ct);
-                if (nsId != null) storage.Add(nsId.ToString(), ns, ct);
-                if (isId != null) storage.Add(isId.ToString(), js, ct);
-                if (ksId != null) storage.Add(ksId.ToString(), ks, ct);
-                if (kdId != null) storage.Add(kdId.ToString(), kdTree.Data, ct);
+                if (psId != null) storage.Add(psId.ToString(), ps);
+                if (csId != null) storage.Add(csId.ToString(), cs);
+                if (nsId != null) storage.Add(nsId.ToString(), ns);
+                if (isId != null) storage.Add(isId.ToString(), js);
+                if (ksId != null) storage.Add(ksId.ToString(), ks);
+                if (kdId != null) storage.Add(kdId.ToString(), kdTree.Data);
 
                 if (subcellIds == null) // leaf
                 {

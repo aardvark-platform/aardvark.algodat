@@ -82,7 +82,7 @@ namespace Aardvark.Geometry.Tests
             }
 #endif
 
-            using (var storage = PointCloud.OpenStore(tmpStorePath))
+            using (var storage = PointCloud.OpenStore(tmpStorePath, cache: default))
             {
                 var reloaded = storage.GetPointCloudNode("merged", resolver);
                 //Console.WriteLine($"reloaded.CountNodes() -> {reloaded.CountNodes()}");
@@ -200,7 +200,7 @@ namespace Aardvark.Geometry.Tests
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
             var filename = @"T:\Vgm\Data\E57\Cylcone.e57";
 
-            var store = new SimpleDiskStore(@"c:\temp\teststore").ToPointCloudStore();
+            var store = new SimpleDiskStore(@"c:\temp\teststore").ToPointCloudStore(cache: default);
 
             var config = ImportConfig.Default
                 .WithStorage(store)
@@ -261,7 +261,7 @@ namespace Aardvark.Geometry.Tests
                 var ps = new V3d[n];
                 for (var i = 0; i < n; i++) ps[i] = new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble());
                 var config = ImportConfig.Default
-                    .WithStorage(PointCloud.CreateInMemoryStore())
+                    .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                     .WithKey("test")
                     .WithOctreeSplitLimit(splitLimit)
                     ;
@@ -269,59 +269,66 @@ namespace Aardvark.Geometry.Tests
             }
         }
 
-        internal static void KeepAliveCacheTest()
-        {
-            var cache0 = new KeepAliveCache("foo cache", 1024 * 1024, false);
-            var run0 = true;
-            new Thread(() => { while (run0) { cache0.Add("foo", 100); Thread.Sleep(10); } }).Start();
+        //internal static void KeepAliveCacheTest()
+        //{
+        //    var cache0 = new KeepAliveCache("foo cache", 1024 * 1024, false);
+        //    var run0 = true;
+        //    new Thread(() => { while (run0) { cache0.Add("foo", 100); Thread.Sleep(10); } }).Start();
 
-            Console.ReadLine();
-            var store0 = PointCloud.OpenStore("teststore0");
-            var runstore0 = true;
-            new Thread(() => { while (runstore0) { store0.Add("foo", new byte[10], default); store0.GetByteArray("foo", default); Thread.Sleep(1000); } }).Start();
-
-
-            Console.ReadLine();
-            var store1 = PointCloud.OpenStore("teststore1");
-            var runstore1 = true;
-            new Thread(() => { while (runstore1) { store1.Add("foo", new byte[10], default); store1.GetByteArray("foo", default); Thread.Sleep(1000); } }).Start();
+        //    Console.ReadLine();
+        //    var store0 = PointCloud.OpenStore("teststore0");
+        //    var runstore0 = true;
+        //    new Thread(() => { while (runstore0) { store0.Add("foo", new byte[10]); store0.GetByteArray("foo"); Thread.Sleep(1000); } }).Start();
 
 
-            Console.ReadLine();
-            runstore1 = false; Thread.Sleep(10);
-            store1.Dispose();
+        //    Console.ReadLine();
+        //    var store1 = PointCloud.OpenStore("teststore1");
+        //    var runstore1 = true;
+        //    new Thread(() => { while (runstore1) { store1.Add("foo", new byte[10]); store1.GetByteArray("foo"); Thread.Sleep(1000); } }).Start();
 
-            Console.ReadLine();
-            run0 = false; Thread.Sleep(10);
-            cache0.Dispose();
 
-            Console.ReadLine();
-            runstore0 = false; Thread.Sleep(10);
-            store0.Dispose();
+        //    Console.ReadLine();
+        //    runstore1 = false; Thread.Sleep(10);
+        //    store1.Dispose();
 
-            Console.ReadLine();
-            var store2 = PointCloud.OpenStore("teststore2");
-            var run2 = true;
-            new Thread(() => { while (run2) { store2.Add("foo", new byte[10], default); store2.GetByteArray("foo", default); Thread.Sleep(100); } }).Start();
+        //    Console.ReadLine();
+        //    run0 = false; Thread.Sleep(10);
+        //    cache0.Dispose();
 
-            Console.ReadLine();
-            run2 = false; Thread.Sleep(10);
-            store2.Dispose();
-        }
+        //    Console.ReadLine();
+        //    runstore0 = false; Thread.Sleep(10);
+        //    store0.Dispose();
+
+        //    Console.ReadLine();
+        //    var store2 = PointCloud.OpenStore("teststore2");
+        //    var run2 = true;
+        //    new Thread(() => { while (run2) { store2.Add("foo", new byte[10]); store2.GetByteArray("foo"); Thread.Sleep(100); } }).Start();
+
+        //    Console.ReadLine();
+        //    run2 = false; Thread.Sleep(10);
+        //    store2.Dispose();
+        //}
 
         public static void Main(string[] args)
         {
-            KeepAliveCacheTest();
-            //TestImport();
+            Console.WriteLine(File.ReadLines(@"T:\Vgm\Data\kindergarten.pts").Count());
+            //new LruDictionaryTests().RandomInserts_1M_MultiThreaded();
+            //KeepAliveCacheTest();
+
             //LinkedStores();
 
             //MasterLisa.Perform();
             //TestE57();
 
-            //var store = PointCloud.OpenStore(@"G:\cells\3280_5503_0_10\pointcloud");
-            //var pc = store.GetPointSet("3280_5503_0_10", default);
-            //Console.WriteLine(pc.Id);
-            //Console.WriteLine(pc.PointCount);
+            //using (var store = PointCloud.OpenStore(@"G:\cells\3267_5514_0_10\pointcloud"))
+            //{
+            //    var pc = store.GetPointSet("3267_5514_0_10", default);
+            //    Console.WriteLine(pc.Id);
+            //    Console.WriteLine(pc.PointCount);
+
+            //    var root = pc.Root.Value;
+            //    var kd = root.LodKdTree.Value;
+            //}
 
             //TestKNearest();
             //foreach (var filename in Directory.EnumerateFiles(@"C:\", "*.pts", SearchOption.AllDirectories))

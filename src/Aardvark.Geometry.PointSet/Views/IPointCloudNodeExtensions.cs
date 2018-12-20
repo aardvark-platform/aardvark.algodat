@@ -112,26 +112,26 @@ namespace Aardvark.Geometry.Points
         #region Storage
 
         /// <summary></summary>
-        public static void Add(this Storage storage, string key, IPointCloudNode data, CancellationToken ct = default)
+        public static void Add(this Storage storage, string key, IPointCloudNode data)
         {
             storage.f_add(key, data, () =>
             {
                 var json = data.ToJson().ToString();
                 var buffer = Encoding.UTF8.GetBytes(json);
                 return buffer;
-            }, ct);
+            });
         }
 
         /// <summary></summary>
-        public static IPointCloudNode GetPointCloudNode(this Storage storage, string key, IStoreResolver resolver, CancellationToken ct = default)
+        public static IPointCloudNode GetPointCloudNode(this Storage storage, string key, IStoreResolver resolver)
         {
-            var data = (IPointCloudNode)storage.f_tryGetFromCache(key, ct);
-            if (data != null) return data;
-
-            var buffer = storage.f_get(key, ct);
+            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (IPointCloudNode)o;
+            
+            var buffer = storage.f_get(key);
             if (buffer == null) return null;
             var json = JObject.Parse(Encoding.UTF8.GetString(buffer));
 
+            IPointCloudNode data = null;
             var nodeType = (string)json["NodeType"];
             switch (nodeType)
             {
@@ -144,8 +144,7 @@ namespace Aardvark.Geometry.Points
                 default:
                     throw new InvalidOperationException($"Unknown node type '{nodeType}'.");
             }
-
-            storage.f_add(key, data, null, ct);
+            
             return data;
         }
 
@@ -237,6 +236,13 @@ namespace Aardvark.Geometry.Points
         {
             self.BoundingBoxExact.GetMinMaxInDirection(-plane.Normal, out V3d min, out V3d max);
             return plane.Height(min) < 0;
+        }
+
+        /// <summary>
+        /// </summary>
+        public static (bool, IPointCloudNode) TryGetPointCloudNode(this Storage storage, string id)
+        {
+            throw new NotImplementedException();
         }
 
         #endregion

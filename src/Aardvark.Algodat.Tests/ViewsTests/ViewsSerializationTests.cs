@@ -32,10 +32,10 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void LinkedNode_ToJson_Parse()
         {
-            var teststore = PointCloud.CreateInMemoryStore();
+            var teststore = PointCloud.CreateInMemoryStore(cache: default);
             PointCloud.Chunks(new Chunk(RandomPositions(100)), ImportConfig.Default.WithStorage(teststore).WithKey("pointcloud"));
 
-            var store = PointCloud.CreateInMemoryStore();
+            var store = PointCloud.CreateInMemoryStore(cache: default);
             var resolver = new MapResolver(
                 ("teststore", teststore)
                 );
@@ -52,20 +52,20 @@ namespace Aardvark.Geometry.Tests
         public void LinkedNode_LinkToOldPointSetNode()
         {
             var storepath = Path.Combine(Config.TempDataDir, Guid.NewGuid().ToString());
-            var store = PointCloud.OpenStore(storepath);
+            var store = PointCloud.OpenStore(storepath, cache: default);
 
             var ps0 = new V3d[100].SetByIndex(_ => RandomPosition());
             var a = InMemoryPointSet.Build(new Chunk(ps0), 8192).ToPointSetNode(store);
             
             var pointcloud = new PointSet(store, "pointcloud", a.Id, 8192);
-            store.Add(pointcloud.Id, pointcloud, default);
+            store.Add(pointcloud.Id, pointcloud);
 
             var resolver = new MapResolver(
                 ("teststore", store)
                 );
             var link0 = new LinkedNode(store, "teststore", "pointcloud", resolver);
 
-            store.Add("link", link0, default);
+            store.Add("link", link0);
 
             store.Flush();
             GC.Collect();
@@ -86,13 +86,13 @@ namespace Aardvark.Geometry.Tests
         public void PointCloudNode_RoundtripStore()
         {
             var storepath = Path.Combine(Config.TempDataDir, Guid.NewGuid().ToString());
-            using (var store = PointCloud.OpenStore(storepath))
+            using (var store = PointCloud.OpenStore(storepath, cache: default))
             {
                 var resolver = new MapResolver();
 
                 var cell = new Cell(1, 2, 3, 0);
                 var aPs = RandomPositions(100).Map(p => (V3f)(p - new V3d(0.5, 0.5, 0.5)));
-                store.Add("a.positions", aPs, default);
+                store.Add("a.positions", aPs);
 
                 var bb = (Box3d)new Box3f(aPs);
                 var a = new PointCloudNode(store, "a", cell, bb, aPs.Length, null, storeOnCreation: true,

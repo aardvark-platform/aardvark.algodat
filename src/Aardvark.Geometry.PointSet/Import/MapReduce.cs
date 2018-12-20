@@ -74,14 +74,14 @@ namespace Aardvark.Geometry.Points
             if (totalPointSetsCount == 0)
             {
                 var empty = new PointSet(config.Storage, config.Key ?? Guid.NewGuid().ToString());
-                config.Storage.Add(config.Key, empty, config.CancellationToken);
+                config.Storage.Add(config.Key, empty);
                 return empty;
             }
             var final = pointsets.MapReduceParallel((first, second, ct2) =>
             {
                 progress(Interlocked.Increment(ref i) / (double)totalPointSetsCount);
                 var merged = first.Merge(second, ct2);
-                config.Storage.Add(merged.Id, merged, ct2);
+                config.Storage.Add(merged.Id, merged);
                 if (config.Verbose) Console.WriteLine($"[MapReduce] merged "
                     + $"{formatCell(first.Octree.Value.Cell)} + {formatCell(second.Octree.Value.Cell)} -> {formatCell(merged.Octree.Value.Cell)} "
                     + $"({first.Octree.Value.PointCountTree:N0} + {second.Octree.Value.PointCountTree:N0} -> {merged.Octree.Value.PointCountTree:N0})"
@@ -102,7 +102,7 @@ namespace Aardvark.Geometry.Points
 
             #endregion
 
-            config.Storage.Add(config.Key, final, config.CancellationToken);
+            config.Storage.Add(config.Key, final);
             config.ProgressCallback(1.0);
             return final;
 

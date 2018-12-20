@@ -28,8 +28,8 @@ namespace Aardvark.Geometry.Points
         public const string Type = "LinkedNode";
 
         private readonly IStoreResolver m_storeResolver;
-
         private WeakReference<IPointCloudNode> m_root;
+        private LruDictionary<string, object> m_cache;
 
         /// <summary>
         /// </summary>
@@ -53,7 +53,7 @@ namespace Aardvark.Geometry.Points
             if (string.IsNullOrWhiteSpace(id)) throw new ArgumentNullException(nameof(id));
 
             m_storeResolver = storeResolver;
-            var foo = m_storeResolver.Resolve(linkedStoreName).GetPointSet(linkedPointCloudKey, default);
+            var foo = m_storeResolver.Resolve(linkedStoreName, cache: default).GetPointSet(linkedPointCloudKey, default);
             var root = foo.Octree.Value;
 
             Storage = storage;
@@ -90,7 +90,7 @@ namespace Aardvark.Geometry.Points
                     return r;
                 }
 
-                var storage = m_storeResolver.Resolve(LinkedStoreName);
+                var storage = m_storeResolver.Resolve(LinkedStoreName, cache: default);
                 r = storage.GetPointSet(LinkedPointCloudKey, default).Octree.Value;
                 m_root = new WeakReference<IPointCloudNode>(r);
                 return r;

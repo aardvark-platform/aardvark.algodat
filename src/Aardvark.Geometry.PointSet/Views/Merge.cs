@@ -94,13 +94,13 @@ namespace Aardvark.Geometry.Points
                 {
                     Console.WriteLine($"FOO -> {bucket[0].CountNodes()}");
                     var localId = bucket[0].Id;
-                    subnodes[i] = new PersistentRef<IPointCloudNode>(localId, (_id, _ct) => storage.GetPointCloudNode(localId, resolver, _ct));
+                    subnodes[i] = new PersistentRef<IPointCloudNode>(localId, _id => storage.GetPointCloudNode(localId, resolver), _id => storage.TryGetPointCloudNode(localId));
                     bucket.Clear();
                     continue;
                 }
 
                 var subnode = NonOverlapping(storage, resolver, bucket.ToArray(), config);
-                subnodes[i] = new PersistentRef<IPointCloudNode>(subnode.Id, (_id, _ct) => storage.GetPointCloudNode(_id, resolver, _ct));
+                subnodes[i] = new PersistentRef<IPointCloudNode>(subnode.Id, _id => storage.GetPointCloudNode(_id, resolver), _id => storage.TryGetPointCloudNode(_id));
             }
 
             // create node

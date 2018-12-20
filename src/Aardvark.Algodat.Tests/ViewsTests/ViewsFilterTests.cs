@@ -30,7 +30,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void FilterInsideBox3d_AllInside()
         {
-            var storage = PointCloud.CreateInMemoryStore();
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps0 = RandomPositions(100);
 
             var a = new PointCloudNode(storage,
@@ -52,7 +52,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void FilterInsideBox3d_AllOutside()
         {
-            var storage = PointCloud.CreateInMemoryStore();
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps0 = RandomPositions(100);
 
             var a = new PointCloudNode(storage,
@@ -74,7 +74,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void FilterInsideBox3d_Partial()
         {
-            var storage = PointCloud.CreateInMemoryStore();
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps0 = RandomPositions(100);
 
             var a = new PointCloudNode(storage,
@@ -100,7 +100,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void FilterOutsideBox3d_AllInside()
         {
-            var storage = PointCloud.CreateInMemoryStore();
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps0 = RandomPositions(100);
 
             var a = new PointCloudNode(storage,
@@ -122,7 +122,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void FilterOutsideBox3d_AllOutside()
         {
-            var storage = PointCloud.CreateInMemoryStore();
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps0 = RandomPositions(100);
 
             var a = new PointCloudNode(storage,
@@ -144,7 +144,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void FilterOutsideBox3d_Partial()
         {
-            var storage = PointCloud.CreateInMemoryStore();
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps0 = RandomPositions(100);
 
             var a = new PointCloudNode(storage,
@@ -170,7 +170,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void FilterIntensity_AllInside()
         {
-            var storage = PointCloud.CreateInMemoryStore();
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps0 = RandomPositions(10);
 
             var a = new PointCloudNode(storage,
@@ -193,7 +193,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void FilterIntensity_AllOutside()
         {
-            var storage = PointCloud.CreateInMemoryStore();
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps0 = RandomPositions(10);
 
             var a = new PointCloudNode(storage,
@@ -216,7 +216,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void FilterIntensity_Partial()
         {
-            var storage = PointCloud.CreateInMemoryStore();
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps0 = RandomPositions(10);
 
             var a = new PointCloudNode(storage,

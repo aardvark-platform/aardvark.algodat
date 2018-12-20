@@ -1,6 +1,7 @@
 ﻿using Aardvark.Base;
 using Aardvark.Data.Points;
 using Aardvark.Geometry.Points;
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -15,132 +16,163 @@ namespace Aardvark.Geometry.Tests
         public static void Perform()
         {
             var path2store = @"C:\Users\kellner\Desktop\Diplomarbeit\Store";
+            var pData = @"C:\Users\kellner\Desktop\Diplomarbeit\networks";
 
-            //var dirLabels = @"C:\Users\kellner\Desktop\Diplomarbeit\Semantic3d\sem8_labels_training";
-            //var dirData = @"C:\Users\kellner\Desktop\Diplomarbeit\Semantic3d\sem8_data_training";
+            //var dirLabels = @"C:\Users\kellner\Desktop\Diplomarbeit\data\Semantic3d\sem8_labels_training";
+            //var dirData = @"C:\Users\kellner\Desktop\Diplomarbeit\data\Semantic3d\sem8_data_training";
 
-            var key = "sg27_station2";
-            //var fn = "bildstein_station5_xyz_intensity_rgb";
+            //var fn = "untermaederbrunnen_station1_xyz_intensity_rgb";
+            //var k = "untermaederbrunnen_station1";
 
-            //Report.Line("importing pointcloud");
-            //Import(
+            //Import( // import new pointcloud
             //    Path.Combine(dirData, fn + ".txt"),
             //    Path.Combine(dirLabels, fn + ".labels"),
-            //    path2store, key);
+            //    path2store, k);
+            //AddNormals(path2store, k); // add normals
+            //FilterPoints(path2store, k, 0); // filter all unlabelled points
 
-            //Report.Line("estimating normals");
-            //AddNormals(path2store, key);
-
-            //FilterPoints(path2store, key, 0); // filter all unlabelled points
+            var store = PointCloud.OpenStore(path2store, cache: null);
 
             // -----------------------------------
-            var store = PointCloud.OpenStore(path2store);
-            var pointset = store.GetPointSet(key, CancellationToken.None);
+
+//#pragma warning disable CS0618 // Type or member is obsolete
+//            var root = pointset.Root.Value;
+//#pragma warning restore CS0618 // Type or member is obsolete
+//            var ml = 12;
+
+            var keys = new string[]
+            {
+                "bildstein_5_labelled_filtered",
+                "neugasse_station1_filtered",
+                "bildstein_station1_filtered"
+            };
+
+            keys.ForEach(key =>
+            {
+                Report.Warn($"processing pointcloud: {key}");
+
+                var pointset = store.GetPointSet(key, IdentityResolver.Default);
+                //var subnodes = pointset.Root.Value.Subnodes.
+                //    Where(sn => sn != null).Select(sn => sn.Value);
 
 #pragma warning disable CS0618 // Type or member is obsolete
-            var root = pointset.Root.Value;
+                var subnodes = GetNodesWithExponent(pointset.Root.Value, -3);
 #pragma warning restore CS0618 // Type or member is obsolete
-            var ml = 12;
 
-            //printTree(root, 0, ml);
-           
-            var nodesFromLvl = getNodesFromLevel(root, 0, ml, new List<PointSetNode>());
-            Report.Line($"amount nodes on level {ml}: {nodesFromLvl.Count()}");
-            
-            var amountPoints = root.CountPoints();
-            Report.Line($"overall amount of points: {amountPoints}\n");
+                //var modes = new string[] { "binary", "count", "fraction" };
+                //var sizes = new double[] { 16.0, 24.0, 32.0 };
 
-            var logs = nodesFromLvl.Select(n => Math.Log10(n.PointCountTree));
-            var logSum = logs.Select(l => Math.Abs(l)).Sum();
+                var mode = "binary";
+                var size = 8.0;
 
-            var orderedNodes = nodesFromLvl.OrderBy(n => n.PointCountTree);
-            
-            orderedNodes.ForEach(n => 
-            {
-                var pc = n.PointCountTree;
-                Report.Line($"point count: {pc}");
-                //Report.Line($"point fraction: {pc/(double)amountPoints}");
-
-                var l = Math.Log10(pc);
-                //Report.Line($"log(point count): {l}");
-
-                var x = l / logSum;
-                //Report.Line($"normalized log: {x}\n");
-
-                var classes = ClassificationsOfTree(n, new List<byte>()).ToArray();
-                Report.Line($"amount classifications: {classes.Length}");
-            });
-
-            // ---------
-
-            List<byte> ClassificationsOfTree (PointSetNode n, List<byte> classifications)
-            {
-                if (n.HasClassifications)
-                    classifications.AddRange(n.Classifications.Value);
-
-                if (n.IsLeaf())
-                    return classifications;
-
-                n.Subnodes.Where(sn => sn != null).ForEach(sn =>
-                    ClassificationsOfTree(sn.Value, classifications)
-                );
-
-                return classifications;
-            }
-
-            void printTree(PointSetNode n, int level, int maxLevel)
-            {
-                if(level == 0)
-                    Console.WriteLine($"level 0: root");
-                    
-                level++;
-
-                if (level > maxLevel)
-                    return;
-                
-                var tabs = "";
-                for (int i = 0; i < level - 1; ++i)
-                    tabs += "\t";
-
-                if(n.IsLeaf())
+                subnodes.ForEach((subnode, j) =>
                 {
-                    Console.WriteLine(tabs + $"|--- level {level}: leaf");
-                    return;
-                }
+                    if ((j % 100) == 0)
+                        Report.Line($"processing subnode # {j}");
 
-                n.Subnodes.ForEach(sn => 
-                {
-                    if (sn == null)
-                    {
-                        Console.ForegroundColor = ConsoleColor.DarkGray;
-                        Console.WriteLine(tabs + $"|--- level {level}: null");
-                        Console.ForegroundColor = ConsoleColor.White;
-                    }
-                    else
-                    {
-                        Console.WriteLine(tabs + $"|--- level {level}: node");
-                        printTree(sn.Value, level, maxLevel);
-                    }
+                    // converts the boxes into a grid with occupancy values
+                    var box = subnode.BoundingBox;
+
+                    var min = box.Min;
+                    var max = box.Max;
+
+                    var boxSize = Math.Abs(max.X - min.X);
+                    var gridSize = boxSize / size;
+
+                    var cl = subnode.QueryPointsInsideBox(box).SelectMany(c => c.Classifications);
+                    var truth = cl.GroupBy(c => c).OrderByDescending(g => g.ToArray().Length).First().Key;
+
+                    var occupancies = new List<string>();
+
+                    for (double y = min.Y; y < max.Y; y += gridSize)
+                        for (double z = max.Z; z > min.Z; z -= gridSize)
+                            for (double x = min.X; x < max.X; x += gridSize)
+                            {
+                                var b = new Box3d(x, y, z, x + gridSize, y + gridSize, z + gridSize);
+                                var pc = subnode.CountPointsInsideBox(b);
+
+                                // calculate the occupancy value of the inner cube
+                                //var occ = pc > 0 ? 1 : 0; // binary 
+                                //var occ = pc; // point count
+                                //var occ = pc / 8192.0; // fraction of max points
+
+                                var occ = mode == "binary" ? (pc > 0 ? 1 : 0) :
+                                       mode == "count" ? pc : pc / 8192.0;
+
+                                occupancies.Add(occ.ToString(CultureInfo.InvariantCulture));
+                            }
+                    var data = ($"{truth};{occupancies.Join(";")}\n");
+                    File.AppendAllText(Path.Combine(pData, "data_" + mode + "_gs=" + size + "-all.csv"), data);
                 });
-            }
+            });
+        }
 
-            List<PointSetNode> getNodesFromLevel(PointSetNode n, int currentLevel, int maxLevel, 
-                List<PointSetNode> nodes)
+        /// <summary>
+        /// PointCloudNode attributes for machine learning.
+        /// </summary>
+        private static class PointCloudAttributes4ML
+        {
+            public const string Predictions = "Predictions";
+        }
+
+        /// <summary>
+        /// Extension functions for ML-attributes
+        /// </summary>
+        private static class IPointCloudNodeExtensions4ML
+        {
+            private static bool Has(IPointCloudNode n, string attributeName)
             {
-                if (currentLevel > maxLevel)
-                    return nodes;
-
-                if (currentLevel == maxLevel)
-                    nodes.Add(n);
-                
-                if (n.IsLeaf())
-                    return nodes;
-
-                n.Subnodes.Where(sn => sn != null).ForEach(sn =>
-                    getNodesFromLevel(sn.Value, currentLevel + 1, maxLevel, nodes));
-
-                return nodes;
+                switch (n.FilterState)
+                {
+                    case FilterState.FullyOutside:
+                        return false;
+                    case FilterState.FullyInside:
+                    case FilterState.Partial:
+                        return n.TryGetPropertyKey(attributeName, out string _);
+                    default:
+                        throw new InvalidOperationException($"Unknown FilterState {n.FilterState}.");
+                }
             }
+
+            // predictions
+            public static bool HasPredictions(IPointCloudNode self) =>
+                Has(self, PointCloudAttributes4ML.Predictions);
+
+            public static PersistentRef<byte[]> GetPredictions(IPointCloudNode self)
+            {
+                var key = ComputeKey4Predictions(self);
+                var predictions = self.Storage.GetByteArray(key);
+
+                return new PersistentRef<byte[]>(key, self.Storage.GetByteArray, self.Storage.TryGetByteArray);
+            }
+
+            public static void AddPredictions(IPointCloudNode self, byte[] predictions) =>
+                self.Storage.Add(ComputeKey4Predictions(self), predictions);
+
+            private static string ComputeKey4Predictions(IPointCloudNode self) =>
+                "predictions_123";
+        }
+
+        /// <summary>
+        /// Returns all nodes from given tree with given exponent.
+        /// </summary>
+        private static IEnumerable<PointSetNode> GetNodesWithExponent(PointSetNode root, int exponent)
+        {
+            var nodes = new List<PointSetNode>();
+
+            traverse(root, nodes);
+
+            void traverse(PointSetNode n, List<PointSetNode> nodeList)
+            {
+                var exp = n.Cell.Exponent;
+                if (exp == exponent)
+                    nodeList.Add(n);
+                else
+                    if (n.IsNotLeaf())
+                    n.Subnodes.Where(sn => sn != null).
+                    ForEach(sn => traverse(sn.Value, nodeList));
+            }
+            return nodes;
         }
 
         /// <summary>
@@ -148,71 +180,60 @@ namespace Aardvark.Geometry.Tests
         /// </summary>
         private static void FilterPoints(string path2store, string key, int label2filter)
         {
-            var store = PointCloud.OpenStore(path2store);
-            var pointset = store.GetPointSet(key, CancellationToken.None);
+            var store = PointCloud.OpenStore(path2store, cache: default);
+            var pointset = store.GetPointSet(key, IdentityResolver.Default);
 
-            var chunks = pointset.QueryAllPoints().ToArray();
-            
-            var positions = new List<V3d>();
-            var colors = new List<C4b>();
-            var normals = new List<V3f>();
-            var intensities = new List<int>();
-            var classifications = new List<byte>();
+            var chunks = pointset.QueryAllPoints();
+            var newChunks = new List<Chunk>();
 
             // filter chunks
-            var amountFilteredPoints = 0;
             chunks.ForEach((chunk, k) =>
             {
-               Report.Line($"filtering chunk #{k}");
+                if ((k % 100) == 0)
+                    Report.Line($"filtering chunk #{k}");
 
-               var indices = new List<int>();
-               chunk.Classifications.ForEach((c, i) =>
-               {
-                   if ((int)c != label2filter)
-                       indices.Add(i);
-               });
-               amountFilteredPoints += indices.Count();
+                var indices = new List<int>();
+                chunk.Classifications.ForEach((c, i) =>
+                {
+                    if ((int)c != label2filter)
+                        indices.Add(i);
+                });
 
-               indices.ForEach(idx =>
-               {
-                   if (chunk.HasPositions)
-                       positions.Add(chunk.Positions[idx]);
+                var positions = new List<V3d>();
+                var colors = new List<C4b>();
+                var normals = new List<V3f>();
+                var intensities = new List<int>();
+                var classifications = new List<byte>();
 
-                   if (chunk.HasColors)
-                       colors.Add(chunk.Colors[idx]);
+                indices.ForEach(idx =>
+                {
+                    if (chunk.HasPositions)
+                        positions.Add(chunk.Positions[idx]);
 
-                   if (chunk.HasNormals)
-                       normals.Add(chunk.Normals[idx]);
+                    if (chunk.HasColors)
+                        colors.Add(chunk.Colors[idx]);
 
-                   if (chunk.HasIntensities)
-                       intensities.Add(chunk.Intensities[idx]);
+                    if (chunk.HasNormals)
+                        normals.Add(chunk.Normals[idx]);
 
-                   if (chunk.HasClassifications)
-                       classifications.Add(chunk.Classifications[idx]);
-               });
+                    if (chunk.HasIntensities)
+                        intensities.Add(chunk.Intensities[idx]);
+
+                    if (chunk.HasClassifications)
+                        classifications.Add(chunk.Classifications[idx]);
+                });
+
+                // create new chunks of filtered data
+                var bbChunk = new Box3d(positions);
+                newChunks.Add(new Chunk(positions, colors.IsEmpty() ? null : colors,
+                    normals.IsEmpty() ? null : normals, intensities.IsEmpty() ? null : intensities,
+                    classifications.IsEmpty() ? null : classifications, bbChunk));
             });
-            Report.Line($"filtered {amountFilteredPoints} points");
 
-            // create new chunks of filtered data
-            var maxChunkSize = 1024 * 1024;
-
-            var posChunks = positions.Chunk(maxChunkSize).ToArray(); 
-            var colChunks = colors.IsEmptyOrNull() ? null : colors.Chunk(maxChunkSize).ToArray();
-            var normChunks = normals.IsEmptyOrNull() ? null : normals.Chunk(maxChunkSize).ToArray();
-            var intChunks = intensities.IsEmptyOrNull() ? null : intensities.Chunk(maxChunkSize).ToArray();
-            var classChunks = classifications.IsEmptyOrNull() ? null :classifications.Chunk(maxChunkSize).ToArray();
-
-            var newChunks = posChunks.Select((pos, i) => 
-            {
-                Report.Line($"creating new chunk #{i}");
-                var bbChunk = new Box3d(pos);
-                return new Chunk(pos, colChunks?[i], normChunks?[i], intChunks?[i], classChunks?[i], bbChunk);
-            });
-            
             var config = ImportConfig.Default
                .WithStorage(store)
                .WithKey(key + "_filtered")
-               .WithMaxChunkPointCount(maxChunkSize)
+               .WithMaxChunkPointCount(1024 * 1024)
                .WithVerbose(true);
 
             // add point-cloud to store
@@ -233,41 +254,41 @@ namespace Aardvark.Geometry.Tests
 
             var chunkedData = data.Chunk(maxChunkSize);
             var chunkedLabels = labels.Chunk(maxChunkSize);
-            
+
             // parsing files
-            var parsedChunks = chunkedData.Select( (ch, i) =>
-            {
-                var chunkPos = new V3d[ch.Length];
-                var chunkCol = new C4b[ch.Length];
+            var parsedChunks = chunkedData.Select((ch, i) =>
+           {
+               var chunkPos = new V3d[ch.Length];
+               var chunkCol = new C4b[ch.Length];
 
-                ch.ForEach( (l,j) => 
-                {
-                    var s = l.Split(' ');
+               ch.ForEach((l, j) =>
+                   {
+                       var s = l.Split(' ');
 
-                    var pos = new V3d(double.Parse(s[0], CultureInfo.InvariantCulture),
-                        double.Parse(s[1], CultureInfo.InvariantCulture),
-                        double.Parse(s[2], CultureInfo.InvariantCulture));
+                       var pos = new V3d(double.Parse(s[0], CultureInfo.InvariantCulture),
+                       double.Parse(s[1], CultureInfo.InvariantCulture),
+                       double.Parse(s[2], CultureInfo.InvariantCulture));
 
-                    var col = new C4b((byte)int.Parse(s[4], CultureInfo.InvariantCulture),
-                        (byte)int.Parse(s[5], CultureInfo.InvariantCulture),
-                        (byte)int.Parse(s[6], CultureInfo.InvariantCulture));
+                       var col = new C4b((byte)int.Parse(s[4], CultureInfo.InvariantCulture),
+                       (byte)int.Parse(s[5], CultureInfo.InvariantCulture),
+                       (byte)int.Parse(s[6], CultureInfo.InvariantCulture));
 
-                    chunkPos[j] = pos;
-                    chunkCol[j] = col;
-                });
-                return (chunkPos,chunkCol);
-            });
-            
-            var chunks = parsedChunks.Select( (chunk, i) =>
-            {
-                Report.Line($"creating chunk #{i}");
-                var bbChunk = new Box3d(chunk.chunkPos);
-                return new Chunk(chunk.chunkPos, chunk.chunkCol, null, null, chunkedLabels.ToArray()[i], bbChunk);
-            });
+                       chunkPos[j] = pos;
+                       chunkCol[j] = col;
+                   });
+               return (chunkPos, chunkCol);
+           });
+
+            var chunks = parsedChunks.Select((chunk, i) =>
+           {
+               Report.Line($"creating chunk #{i}");
+               var bbChunk = new Box3d(chunk.chunkPos);
+               return new Chunk(chunk.chunkPos, chunk.chunkCol, null, null, chunkedLabels.ToArray()[i], bbChunk);
+           });
 
             //var chunk = new Chunk(positions, colors, null, null, labels, bb);
 
-            var store = PointCloud.OpenStore(path2store);
+            var store = PointCloud.OpenStore(path2store, cache: default);
 
             var config = ImportConfig.Default
                .WithStorage(store)
@@ -287,21 +308,21 @@ namespace Aardvark.Geometry.Tests
         private static void AddNormals(string path2store, string key, int k = 16)
         {
             // compute normals
-            var store = PointCloud.OpenStore(path2store);
-            var pointset = store.GetPointSet(key, CancellationToken.None);
-            var info = PointCloud.StoreInfo(path2store, key);
+            var store = PointCloud.OpenStore(path2store, cache: default);
+            var pointset = store.GetPointSet(key, IdentityResolver.Default);
+            var info = PointCloud.StoreInfo(path2store, key, IdentityResolver.Default);
 
-            Func<IList<V3d>, IList<V3f>> estimateNormals = (points) =>
+            IList<V3f> estimateNormals(IList<V3d> points)
             {
                 var p = (V3d[])points;
                 var n = p.EstimateNormals(k);
                 return (IList<V3f>)n;
-            };
+            }
 
             var config = ImportConfig.Default
                 .WithStorage(store)
                 .WithKey(key)
-                .WithMaxChunkPointCount((int)info.PointCount + 1)
+                .WithMaxChunkPointCount(1024 * 1024)
                 .WithEstimateNormals(estimateNormals)
                 .WithVerbose(true);
 

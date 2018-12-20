@@ -49,7 +49,7 @@ namespace Aardvark.Geometry.Points
 #pragma warning restore CS0618 // Type or member is obsolete
             var key = Guid.NewGuid().ToString();
             var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit);
-            self.Storage.Add(key, result, ct);
+            self.Storage.Add(key, result);
             return result;
         }
 
@@ -67,7 +67,7 @@ namespace Aardvark.Geometry.Points
 #pragma warning restore CS0618 // Type or member is obsolete
             var key = Guid.NewGuid().ToString();
             var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit);
-            self.Storage.Add(key, result, ct);
+            self.Storage.Add(key, result);
             return result;
         }
 
@@ -92,7 +92,7 @@ namespace Aardvark.Geometry.Points
             {
                 // generate and store normals
                 ns = estimateNormals(self.PositionsAbsolute).ToArray();
-                self.Storage.Add(nsId, ns, ct);
+                self.Storage.Add(nsId, ns);
 
                 // create node with new normals
                 var r = self.WithNormals(nsId);
@@ -143,7 +143,7 @@ namespace Aardvark.Geometry.Points
             }
 
             // store LoD data ...
-            self.Storage.Add(nsId, ns, ct);
+            self.Storage.Add(nsId, ns);
             
             var result = self.WithNormals(nsId, subcells);
             return result;
@@ -168,7 +168,7 @@ namespace Aardvark.Geometry.Points
                 // generate and store normals
                 var ns = estimateNormals(self.Positions.Value, self.KdTree.Value).ToArray();
                 var nsId = Guid.NewGuid();
-                self.Storage.Add(nsId, ns, ct);
+                self.Storage.Add(nsId, ns);
 
                 // create node with new normals and LoD normals
                 var r = self.WithNormals(nsId);
@@ -220,7 +220,7 @@ namespace Aardvark.Geometry.Points
 
             // store LoD data ...
             var lodNsId = Guid.NewGuid();
-            self.Storage.Add(lodNsId, lodNs, ct);
+            self.Storage.Add(lodNsId, lodNs);
 
             var result = self.WithSubNodes(subcells);
             return result;

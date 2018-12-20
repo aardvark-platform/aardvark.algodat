@@ -27,19 +27,13 @@ namespace Aardvark.Geometry.Tests
         internal static Storage CreateStorage()
         {
             var x = new SimpleMemoryStore();
-            return new Storage(
-                (a, b, c, _) => x.Add(a, b, c), (a, _) => x.Get(a), (a, _) => x.Remove(a),
-                (a, _) => x.TryGetFromCache(a), x.Dispose, x.Flush
-                );
+            return new Storage(x.Add, x.Get, x.Remove, x.Dispose, x.Flush, cache: default);
         }
 
         internal static Storage CreateDiskStorage(string dbDiskLocation)
         {
             var x = new SimpleDiskStore(dbDiskLocation);
-            return new Storage(
-                (a, b, c, _) => x.Add(a, b, c), (a, _) => x.Get(a), (a, _) => x.Remove(a),
-                (a, _) => x.TryGetFromCache(a), x.Dispose, x.Flush
-                );
+            return new Storage(x.Add, x.Get, x.Remove, x.Dispose, x.Flush, cache: default);
         }
 
         [Test]
@@ -122,7 +116,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CanCreateInMemoryPointSet_Many()
         {
-            var storage = PointCloud.CreateInMemoryStore();
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps = new List<V3d>();
             var ns = new List<V3f>();
             for (var x = 0.125; x < 1.0; x += 0.25)
@@ -162,7 +156,7 @@ namespace Aardvark.Geometry.Tests
             var ns = new List<V3f> { V3f.ZAxis };
             var js = new List<int> { 123 };
             var ks = new List<byte> { 42 };
-            var storage = PointCloud.CreateInMemoryStore();
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
             var pointset = PointSet.Create(storage, "test", ps, cs, ns, js, ks, 1, true, default);
             Assert.IsTrue(pointset.HasColors == true);
             Assert.IsTrue(pointset.HasIntensities == true);
@@ -180,7 +174,7 @@ namespace Aardvark.Geometry.Tests
             var ns = new List<V3f> { V3f.ZAxis };
             var js = new List<int> { 123 };
             var ks = new List<byte> { 42 };
-            var storage = PointCloud.CreateInMemoryStore();
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
             var pointset = PointSet.Create(storage, "test", ps, cs, ns, js, ks, 1, false, default);
             Assert.IsTrue(pointset.HasColors == true);
             Assert.IsTrue(pointset.HasIntensities == true);
@@ -195,7 +189,7 @@ namespace Aardvark.Geometry.Tests
         {
             var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
             var cs = new List<C4b> { C4b.White };
-            var storage = PointCloud.CreateInMemoryStore();
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
             var pointset = PointSet.Create(storage, "test", ps, cs, null, null, null, 1, true, default);
             Assert.IsTrue(pointset.HasColors == true);
             Assert.IsTrue(pointset.HasIntensities == false);

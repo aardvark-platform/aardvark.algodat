@@ -25,7 +25,7 @@ namespace Aardvark.Geometry.Tests
     [TestFixture]
     public class NormalsTests
     {
-        private Storage CreateInMemoryStore() => new SimpleMemoryStore().ToPointCloudStore();
+        private Storage CreateInMemoryStore() => new SimpleMemoryStore().ToPointCloudStore(cache: default);
 
         [Test]
         public void CanCreateChunkWithNormals()
@@ -76,12 +76,11 @@ namespace Aardvark.Geometry.Tests
                 .Create(storage, "test", ps.ToList(), null, null, null, null, 5000, false, CancellationToken.None)
                 .GenerateLod(ImportConfig.Default.WithKey("lod").WithOctreeSplitLimit(5000))
                 ;
-            storage.Add("pss", pointset, CancellationToken.None);
+            storage.Add("pss", pointset);
 
 #pragma warning disable CS0618 // Type or member is obsolete
             var withNormals = WithRandomNormals(pointset.Root.Value);
-#pragma warning restore CS0618 // Type or member is obsolete
-            storage.Add("psWithNormals", withNormals, CancellationToken.None);
+            storage.Add("psWithNormals", withNormals);
 
             withNormals.ForEachNode(true, node =>
             {
@@ -99,7 +98,7 @@ namespace Aardvark.Geometry.Tests
             {
                 var id = Guid.NewGuid();
                 var ns = new V3f[n.PointCount].Set(V3f.OOI);
-                storage.Add(id, ns, CancellationToken.None);
+                storage.Add(id, ns);
 
                 if (n.IsLeaf)
                 {

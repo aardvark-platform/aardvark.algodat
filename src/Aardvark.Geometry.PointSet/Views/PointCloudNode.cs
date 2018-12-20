@@ -199,7 +199,10 @@ namespace Aardvark.Geometry.Points
             var attributes = json["Properties"].ToObject<string[][]>().Map(x => (x[0], x[1]));
             var filterState = Enum.Parse(typeof(FilterState), (string)json["FilterState"]);
 
-            var subnodes = subnodeIds?.Map(x => x != null ? new PersistentRef<IPointCloudNode>(x, (_id, _ct) => storage.GetPointCloudNode(x, resolver, _ct)) : null);
+            var subnodes = subnodeIds?.Map(x => x != null
+                ? new PersistentRef<IPointCloudNode>(x, _ => storage.GetPointCloudNode(x, resolver), _ => storage.TryGetPointCloudNode(x)) 
+                : null
+                );
 
             return new PointCloudNode(storage, id, cell, boundingBoxExact, pointCountTree, subnodes, attributes);
         }

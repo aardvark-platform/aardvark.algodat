@@ -156,7 +156,7 @@ namespace Aardvark.Geometry.Points
             var lod = self.Root.Value.GenerateLod(self.SplitLimit, callback, ct);
 #pragma warning restore CS0618 // Type or member is obsolete
             var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit);
-            self.Storage.Add(key, result, ct);
+            self.Storage.Add(key, result);
             return result;
         }
 
@@ -198,22 +198,22 @@ namespace Aardvark.Geometry.Points
 
             // store LoD data ...
             var lodPsId = Guid.NewGuid();
-            self.Storage.Add(lodPsId, lodPs, ct);
+            self.Storage.Add(lodPsId, lodPs);
 
             var lodKdId = Guid.NewGuid();
-            self.Storage.Add(lodKdId, lodKd.Data, ct);
+            self.Storage.Add(lodKdId, lodKd.Data);
             
             var lodCsId = needsCs ? (Guid?)Guid.NewGuid() : null;
-            if (needsCs) self.Storage.Add(lodCsId.Value, lodCs, ct);
+            if (needsCs) self.Storage.Add(lodCsId.Value, lodCs);
 
             var lodNsId = needsNs ? (Guid?)Guid.NewGuid() : null;
-            if (needsNs) self.Storage.Add(lodNsId.Value, lodNs, ct);
+            if (needsNs) self.Storage.Add(lodNsId.Value, lodNs);
 
             var lodIsId = needsIs ? (Guid?)Guid.NewGuid() : null;
-            if (needsIs) self.Storage.Add(lodIsId.Value, lodIs, ct);
+            if (needsIs) self.Storage.Add(lodIsId.Value, lodIs);
 
             var lodKsId = needsKs ? (Guid?)Guid.NewGuid() : null;
-            if (needsKs) self.Storage.Add(lodKsId.Value, lodKs, ct);
+            if (needsKs) self.Storage.Add(lodKsId.Value, lodKs);
 
             var result = self.WithData(subcellsTotalCount, lodPsId, lodCsId, lodNsId, lodIsId, lodKdId, lodKsId, subcells);
             return result;
@@ -255,22 +255,22 @@ namespace Aardvark.Geometry.Points
 
             // store LoD data ...
             var lodPsId = Guid.NewGuid().ToString();
-            self.Storage.Add(lodPsId, lodPs, ct);
+            self.Storage.Add(lodPsId, lodPs);
 
             var lodKdId = Guid.NewGuid().ToString();
-            self.Storage.Add(lodKdId, lodKd.Data, ct);
+            self.Storage.Add(lodKdId, lodKd.Data);
 
             var lodCsId = needsCs ? Guid.NewGuid().ToString() : null;
-            if (needsCs) self.Storage.Add(lodCsId, lodCs, ct);
+            if (needsCs) self.Storage.Add(lodCsId, lodCs);
 
             var lodNsId = needsNs ? Guid.NewGuid().ToString() : null;
-            if (needsNs) self.Storage.Add(lodNsId, lodNs, ct);
+            if (needsNs) self.Storage.Add(lodNsId, lodNs);
 
             var lodIsId = needsIs ? Guid.NewGuid().ToString() : null;
-            if (needsIs) self.Storage.Add(lodIsId, lodIs, ct);
+            if (needsIs) self.Storage.Add(lodIsId, lodIs);
 
             var lodKsId = needsKs ? Guid.NewGuid().ToString() : null;
-            if (needsKs) self.Storage.Add(lodKsId, lodKs, ct);
+            if (needsKs) self.Storage.Add(lodKsId, lodKs);
 
             var result = self.WithData(lodPsId, lodKdId, lodCsId, lodNsId, lodIsId, lodKsId);
             return result;

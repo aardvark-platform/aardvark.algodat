@@ -12,10 +12,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-//#define BREAK_ON_RELOAD
-
 using System;
-using System.Diagnostics;
 using System.Threading;
 
 namespace Aardvark.Geometry.Points
@@ -24,55 +21,39 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public class PersistentRef<T> where T : class
     {
-        private readonly Func<string, CancellationToken, T> f_get;
-        private WeakReference<T> m_value;
-#if BREAK_ON_RELOAD
-        private bool m_loadedOnce = false;
-#endif
+        private readonly Func<string, T> f_get;
+        private readonly Func<string, (bool, T)> f_tryGet;
+
         /// <summary>
         /// </summary>
-        public PersistentRef(string id, Func<string, CancellationToken, T> get, T cachedValue = null)
+        public PersistentRef(string id, Func<string, T> get, Func<string, (bool, T)> tryGet)
         {
             Id = id ?? throw new ArgumentNullException(nameof(id));
             f_get = get ?? throw new ArgumentNullException(nameof(get));
-            if (cachedValue != null) m_value = new WeakReference<T>(cachedValue);
+            f_tryGet = tryGet ?? throw new ArgumentNullException(nameof(tryGet));
         }
 
         /// <summary>
         /// </summary>
         public string Id { get; }
-
-        /// <summary>
-        /// </summary>
-        public T GetValue(CancellationToken ct)
-        {
-            if (m_value != null && m_value.TryGetTarget(out T result)) return result;
-#if BREAK_ON_RELOAD
-            if (m_loadedOnce) Debugger.Break();
-            m_loadedOnce = true;
-#endif
-            result = f_get(Id, ct);
-            m_value = new WeakReference<T>(result);
-            return result;
-        }
-
+        
         /// <summary>
         /// </summary>
         public bool TryGetValue(out T value)
         {
-            if (m_value != null)
-            {
-                return m_value.TryGetTarget(out value);
-            }
-            else
-            {
-                value = null;
-                return false;
-            }
+            bool isSome = false;
+            T x = default;
+            (isSome, x) = f_tryGet(Id);
+            value = x;
+            return isSome;
         }
 
         /// <summary>
         /// </summary>
-        public T Value => GetValue(CancellationToken.None);
+        public (bool, T) TryGetValue() => f_tryGet(Id);
+
+        /// <summary>
+        /// </summary>
+        public T Value => f_get(Id);
     }
 }

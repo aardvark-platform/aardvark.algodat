@@ -57,12 +57,12 @@ namespace Aardvark.Geometry.Points
 
             if (IsLeaf && PointCount != PointCountTree) throw new InvalidOperationException();
 
-            if (psId != null) PersistentRefs[PointSetAttributes.Positions] = new PersistentRef<V3f[]>(psId.ToString(), storage.GetV3fArray);
-            if (csId != null) PersistentRefs[PointSetAttributes.Colors] = new PersistentRef<C4b[]>(csId.ToString(), storage.GetC4bArray);
-            if (kdId != null) PersistentRefs[PointSetAttributes.KdTree] = new PersistentRef<PointRkdTreeD<V3f[], V3f>>(kdId.ToString(), LoadKdTree);
-            if (nsId != null) PersistentRefs[PointSetAttributes.Normals] = new PersistentRef<V3f[]>(nsId.ToString(), storage.GetV3fArray);
-            if (isId != null) PersistentRefs[PointSetAttributes.Intensities] = new PersistentRef<int[]>(isId.ToString(), storage.GetIntArray);
-            if (ksId != null) PersistentRefs[PointSetAttributes.Classifications]  = new PersistentRef<byte[]>(ksId.ToString(), storage.GetByteArray);
+            if (psId != null) PersistentRefs[PointSetAttributes.Positions] = new PersistentRef<V3f[]>(psId.ToString(), storage.GetV3fArray, storage.TryGetV3fArray);
+            if (csId != null) PersistentRefs[PointSetAttributes.Colors] = new PersistentRef<C4b[]>(csId.ToString(), storage.GetC4bArray, storage.TryGetC4bArray);
+            if (kdId != null) PersistentRefs[PointSetAttributes.KdTree] = new PersistentRef<PointRkdTreeD<V3f[], V3f>>(kdId.ToString(), LoadKdTree, TryLoadKdTree);
+            if (nsId != null) PersistentRefs[PointSetAttributes.Normals] = new PersistentRef<V3f[]>(nsId.ToString(), storage.GetV3fArray, storage.TryGetV3fArray);
+            if (isId != null) PersistentRefs[PointSetAttributes.Intensities] = new PersistentRef<int[]>(isId.ToString(), storage.GetIntArray, storage.TryGetIntArray);
+            if (ksId != null) PersistentRefs[PointSetAttributes.Classifications]  = new PersistentRef<byte[]>(ksId.ToString(), storage.GetByteArray, storage.TryGetByteArray);
 
             if (subnodeIds != null)
             {
@@ -70,7 +70,7 @@ namespace Aardvark.Geometry.Points
                 for (var i = 0; i < 8; i++)
                 {
                     if (subnodeIds[i] == null) continue;
-                    var pRef = new PersistentRef<PointSetNode>(subnodeIds[i].ToString(), storage.GetPointSetNode);
+                    var pRef = new PersistentRef<PointSetNode>(subnodeIds[i].ToString(), storage.GetPointSetNode, storage.TryGetPointSetNode);
                     Subnodes[i] = pRef;
 
 #if DEBUG && PEDANTIC
@@ -91,7 +91,7 @@ namespace Aardvark.Geometry.Points
             
             BoundingBoxExactLocal = boundingBoxExactLocal;
 
-            if (writeToStore) storage.Add(Id.ToString(), this, CancellationToken.None);
+            if (writeToStore) storage.Add(Id.ToString(), this);
 
 #if DEBUG
             if (PositionsId == null && PointCount != 0) throw new InvalidOperationException();
@@ -104,9 +104,9 @@ namespace Aardvark.Geometry.Points
                 if (KdTreeId == null) throw new InvalidOperationException();
             }
 #endif
-            PointRkdTreeD<V3f[], V3f> LoadKdTree(string key, CancellationToken ct)
+            PointRkdTreeD<V3f[], V3f> LoadKdTree(string key)
             {
-                var data = Storage.GetPointRkdTreeDData(key, ct);
+                var data = Storage.GetPointRkdTreeDData(key);
                 var ps = Positions.Value;
                 return new PointRkdTreeD<V3f[], V3f>(
                     3, ps.Length, ps,
@@ -115,6 +115,20 @@ namespace Aardvark.Geometry.Points
                     (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, 1e-9,
                     data
                     );
+            }
+
+            (bool, PointRkdTreeD<V3f[], V3f>) TryLoadKdTree(string key)
+            {
+                var (ok, data) = Storage.TryGetPointRkdTreeDData(key);
+                if (ok == false) return (false, default);
+                var ps = Positions.Value;
+                return (true, new PointRkdTreeD<V3f[], V3f>(
+                    3, ps.Length, ps,
+                    (xs, i) => xs[(int)i], (v, i) => (float)v[i],
+                    (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
+                    (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, 1e-9,
+                    data
+                    ));
             }
         }
 
@@ -1151,14 +1165,14 @@ namespace Aardvark.Geometry.Points
                 if (Subnodes == null) return null;
                 return new[]
                 {
-                    Subnodes[0] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[0].Id, (_, ct) => Subnodes[0].GetValue(ct)),
-                    Subnodes[1] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[1].Id, (_, ct) => Subnodes[1].GetValue(ct)),
-                    Subnodes[2] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[2].Id, (_, ct) => Subnodes[2].GetValue(ct)),
-                    Subnodes[3] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[3].Id, (_, ct) => Subnodes[3].GetValue(ct)),
-                    Subnodes[4] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[4].Id, (_, ct) => Subnodes[4].GetValue(ct)),
-                    Subnodes[5] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[5].Id, (_, ct) => Subnodes[5].GetValue(ct)),
-                    Subnodes[6] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[6].Id, (_, ct) => Subnodes[6].GetValue(ct)),
-                    Subnodes[7] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[7].Id, (_, ct) => Subnodes[7].GetValue(ct)),
+                    Subnodes[0] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[0].Id, _ => Subnodes[0].Value, _ => Subnodes[0].TryGetValue()),
+                    Subnodes[1] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[1].Id, _ => Subnodes[1].Value, _ => Subnodes[1].TryGetValue()),
+                    Subnodes[2] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[2].Id, _ => Subnodes[2].Value, _ => Subnodes[2].TryGetValue()),
+                    Subnodes[3] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[3].Id, _ => Subnodes[3].Value, _ => Subnodes[3].TryGetValue()),
+                    Subnodes[4] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[4].Id, _ => Subnodes[4].Value, _ => Subnodes[4].TryGetValue()),
+                    Subnodes[5] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[5].Id, _ => Subnodes[5].Value, _ => Subnodes[5].TryGetValue()),
+                    Subnodes[6] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[6].Id, _ => Subnodes[6].Value, _ => Subnodes[6].TryGetValue()),
+                    Subnodes[7] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[7].Id, _ => Subnodes[7].Value, _ => Subnodes[7].TryGetValue()),
                 };
             }
         }

@@ -33,7 +33,7 @@ namespace Aardvark.Geometry.Tests
             var ps = new V3d[n];
             for (var i = 0; i < n; i++) ps[i] = new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble());
             var config = ImportConfig.Default
-                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 .WithOctreeSplitLimit(splitLimit)
                 ;
@@ -48,7 +48,7 @@ namespace Aardvark.Geometry.Tests
             for (var i = 0; i < n / 2; i++) ps[i] = randomPos();
             for (var i = n / 2 + 1; i < n; i++) ps[i] = randomPos();
             var config = ImportConfig.Default
-                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 .WithOctreeSplitLimit(splitLimit)
                 ;
@@ -65,7 +65,7 @@ namespace Aardvark.Geometry.Tests
                     for (var z = start; z < 1.0; z += step)
                         ps.Add(new V3d(x, y, z));
             var config = ImportConfig.Default
-                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 .WithOctreeSplitLimit(splitLimit)
                 ;
@@ -741,7 +741,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void ForEachNodeIntersecting_Works()
         {
-            var storage = PointCloud.CreateInMemoryStore();
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
             var pointcloud = CreateClusteredPointsInUnitCube(1000, 10);
             var ns = pointcloud.Octree.Value.ForEachNodeIntersecting(Hull3d.Create(Box3d.Unit), true).ToArray();
             Assert.IsTrue(ns.Length > 0);
@@ -925,7 +925,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CanQueryPointsWithEverythingInside_Single()
         {
-            var storage = PointCloud.CreateInMemoryStore();
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
             var root = InMemoryPointSet.Build(ps, null, null, null, null, Cell.Unit, 1).ToPointSetNode(storage, ct: CancellationToken.None);
 
@@ -950,7 +950,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CanQueryPointsWithEverythingOutside_Single()
         {
-            var storage = PointCloud.CreateInMemoryStore();
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
             var root = InMemoryPointSet.Build(ps, null, null, null, null, Cell.Unit, 1).ToPointSetNode(storage, ct: CancellationToken.None);
 

@@ -207,7 +207,7 @@ namespace Aardvark.Geometry.Tests
 
             using (var storageB = PointSetTests.CreateDiskStorage(dbDiskLocation))
             {
-                var pointset = storageB.GetPointSet(id, CancellationToken.None);
+                var pointset = storageB.GetPointSet(id, IdentityResolver.Default);
                 pointset.Octree.Value.ForEachNode(true, cell =>
                 {
                     var pointcount = cell.GetPositions()?.Value.Length ?? 0;
