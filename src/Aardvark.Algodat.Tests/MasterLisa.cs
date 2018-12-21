@@ -8,6 +8,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Aardvark.Geometry.Tests
 {
@@ -16,110 +17,50 @@ namespace Aardvark.Geometry.Tests
         public static void Perform()
         {
             var path2store = @"C:\Users\kellner\Desktop\Diplomarbeit\Store";
-
-            //var pData = @"C:\Users\kellner\Desktop\Diplomarbeit\networks";
-
+           
             var dirData = @"C:\Users\kellner\Desktop\Diplomarbeit\data\Semantic3d\sem8_data_training";
             var dirLabels = @"C:\Users\kellner\Desktop\Diplomarbeit\data\Semantic3d\sem8_labels_training";
 
-            var fn = "bildstein_station1_xyz_intensity_rgb";
-            var k = "bildstein_station1_2";
+            var filenames = Directory.EnumerateFiles(dirData).
+                Select(x => Path.GetFileNameWithoutExtension(x));
 
-            Import( // import new pointcloud
-                Path.Combine(dirData, fn + ".txt"),
-                Path.Combine(dirLabels, fn + ".labels"),
-                path2store, k);
-            AddNormals(path2store, k); // add normals
-            FilterPoints(path2store, k, 0); // filter all unlabelled points
-            
+            var keys = filenames.Select(fn => 
+            {
+                var splits = fn.Split('_');
+                return splits[0] + "_" + splits[1];
+            }).ToArray();
+
+            filenames.ForEach( (fn, i) => 
+            {
+                var k = keys[i];
+
+                Import( // import new pointcloud
+                    Path.Combine(dirData, fn + ".txt"),
+                    Path.Combine(dirLabels, fn + ".labels"),
+                    path2store, k);
+                //AddNormals(path2store, k); // add normals
+                FilterPoints(path2store, k, 0); // filter all unlabelled points
+            });
+
             // -----------------------------------
+
+            var keysFiltered = keys.Select(k => k + "_filtered");
 
             var store = PointCloud.OpenStore(path2store);
 
-            var keys = new string[]
-            {
-                "bildstein_station1_filtered",
-                "bildstein_station3_filtered",
-                "bildstein_5_labelled_filtered",
-                "neugasse_station1_filtered",
-                "sg27_station2_filtered",
-            };
+            var exponent = -3;
+            var minPointsInBox = 10;
+            var mode = "binary";
+            var gridsize = 8;
+
+            var pout = @"C:\Users\kellner\Desktop\Diplomarbeit\networks\data_binary_gs=8_all.csv";
+            ExportPointclouds(path2store, keys, pout, minPointsInBox, mode, gridsize, exponent);
 
             // -----------------------------------
 
-            var dumpStore = PointSetTests.CreateDiskStorage(
-                @"C:\Users\kellner\Desktop\Diplomarbeit\dumpStore");
-
-            var exponent = -3;
-
-            var pointset = store.GetPointSet("neugasse_station1_filtered", CancellationToken.None);
-            var (nodes, leafs) = GetNodesWithExponent(pointset.Root.Value, exponent);
-
-            var foo = nodes.Select(n =>AmountClassesInNode(n)).GroupBy(x => x);
-            var asdf = leafs.Select(n => AmountClassesInNode(n)).GroupBy(x => x);
-
-            Report.Line("nodes:");
-            foo.ForEach(g => Report.Line($"{g.Key} = {g.Count()}"));
-
-            Report.Line("leafs:");
-            asdf.ForEach(g => Report.Line($"{g.Key} = {g.Count()}"));
-
-            //var pointsInNodes = nodes.Select(l => l.PointCount).GroupBy(x => x);
-            //Report.Line("points in nodes:");
-            //pointsInNodes.ForEach(g => Report.Line($"{g.Key} = {g.Count()}"));
-
-            var i = 0;
-            var nextIteration = leafs.RandomOrder().Take(1000).Select( n => 
-            {
-                ++i;
-
-                if ((i % 250) == 0)
-                {
-                    Report.Line($"processed {i}/{leafs.Count()} leafs");
-                    dumpStore.Flush();
-                }
-
-                var chunks = n.QueryAllPoints();
-
-                var ps = chunks.SelectMany(ch => ch.Positions).ToList();
-
-                var hasCs = chunks.All(ch => ch.HasColors);
-                var cs = hasCs ? chunks.SelectMany(ch => ch.Colors).ToList() : null;
-
-                var hasNs = chunks.All(ch => ch.HasNormals);
-                var ns = hasNs ? chunks.SelectMany(ch => ch.Normals).ToList() : null;
-
-                var hasJs = chunks.All(ch => ch.HasIntensities);
-                var js = hasJs ? chunks.SelectMany(ch => ch.Intensities).ToList() : null;
-
-                var hasKs = chunks.All(ch => ch.HasClassifications);
-                var ks = hasKs ? chunks.SelectMany(ch => ch.Classifications).ToList() : null;
-
-                var bb = new Box3d(ps);
-
-                var pts = InMemoryPointSet.Build(ps, cs, ns, js, ks, bb, 2);
-                var rootNode = pts.ToPointSetCell(dumpStore);
-
-                return GetNodesWithExponent(rootNode, exponent);
-            }).ToArray();
-
-            var nextNodes = nextIteration.Map(x => x.Item1);
-            var nextLeafs = nextIteration.Map(x => x.Item2);
-
-            var pointsInRemainingLeafs = nextLeafs.SelectMany(l => l.Select(x => x.PointCount)).
-                GroupBy(x => x);
-            var pointsInRemainingNodes = nextNodes.SelectMany(l => l.Select(x => x.PointCount)).
-                GroupBy(x => x);
-
-            Report.Line("points in leafs:");
-            pointsInRemainingLeafs.ForEach(g => Report.Line($"{g.Key} = {g.Count()}"));
-
-            Report.Line("points in nodes:");
-            pointsInRemainingNodes.ForEach(g => Report.Line($"{g.Key} = {g.Count()}"));
-
-            dumpStore.Dispose();
-            //var pp = @"C:\Users\kellner\Desktop\Diplomarbeit\networks\predictions.txt";
-            //PerPointValidation(store, pp);
+            //var pp = @"C:\Users\kellner\Desktop\Diplomarbeit\networks\predictions1.txt";
+            //var pout = @"C:\Users\kellner\Desktop\Diplomarbeit\networks\";
+            //PerPointValidation(store, pp, pout);
         }
 
         private static int AmountClassesInNode(PointSetNode n)
@@ -129,8 +70,16 @@ namespace Aardvark.Geometry.Tests
             return -1;
         }
 
-        private static void PerPointValidation(Storage store, string pResults)
+        private static void PerPointValidation(Storage store, string pResults, 
+            string output = "")
         {
+            var pTruth = ""; var pPredictions = "";
+            if (!output.IsEmptyOrNull())
+            {
+                pTruth = Path.Combine(output, "truths.txt");
+                pPredictions = Path.Combine(output, "predictions.txt");
+            }
+
             var lines = File.ReadLines(pResults);
 
             var predictions = new Dictionary<string, List<(V3d, V3d, byte)>>();
@@ -178,6 +127,15 @@ namespace Aardvark.Geometry.Tests
                         SelectMany(ch => ch.Classifications);
 
                     truths.ForEach(truth => cm.AddPrediction(truth, prediction));
+
+                    if(!output.IsEmptyOrNull())
+                    {
+                        truths.ForEach(t => 
+                        {
+                            File.AppendAllText(pTruth, t.ToString() + "\n");
+                            File.AppendAllText(pPredictions, prediction.ToString() + "\n");
+                        });
+                    }
                 });
             });
 
@@ -280,13 +238,79 @@ namespace Aardvark.Geometry.Tests
         }
 
         /// <summary>
+        /// Splits leafs further to until given exponent is reached. 
+        /// Returns only boxes with point count > minPointsInBox.
+        /// </summary>
+        private static IEnumerable<(List<Box3d>, PointSetNode)> ArtificialLeafSplit(
+            IEnumerable<PointSetNode> leafs, int exponent, int minPointsInBox)
+        {
+            return leafs.Select( (n,i) =>
+            {
+                if ((i % 100) == 0)
+                    Report.Line($"processed {i}/{leafs.Count()} leafs");
+
+                var diff = (double)Math.Abs(exponent - n.Cell.Exponent);
+
+                var boxes = new List<Box3d> { n.BoundingBox };
+                while (diff > 0)
+                {
+                    var octants = boxes.SelectMany(bb =>
+                        new Range1i(0, 7).Elements.Select(idx => bb.GetOctant(idx)));
+                    boxes = octants.Where(bb => n.QueryPointsInsideBox(bb).
+                        SelectMany(x => x.Positions).Count() > minPointsInBox).ToList();
+                    diff -= 1;
+                }
+                return (boxes, n);
+            });
+        }
+
+        /// <summary>
+        /// Converts the boxes into a grid with occupancy values
+        /// and appends it to the given file.
+        /// </summary>
+        private static void WriteBox2File(Box3d box, PointSetNode node, string mode, 
+            double grids, string key, string path)
+        {
+            var min = box.Min;
+            var max = box.Max;
+
+            var boxSize = Math.Abs(max.X - min.X);
+            var gridSize = boxSize / grids;
+
+            var cl = node.QueryPointsInsideBox(box).SelectMany(c => c.Classifications);
+            var truth = cl.GroupBy(c => c).OrderByDescending(g => g.ToArray().Length).First().Key;
+
+            var occupancies = new List<string>();
+
+            for (double y = min.Y; y < max.Y; y += gridSize)
+                for (double z = max.Z; z > min.Z; z -= gridSize)
+                    for (double x = min.X; x < max.X; x += gridSize)
+                    {
+                        var b = new Box3d(x, y, z, x + gridSize, y + gridSize, z + gridSize);
+                        var pc = node.CountPointsInsideBox(b);
+
+                        // calculate the occupancy value of the inner cube
+                        //var occ = pc > 0 ? 1 : 0; // binary 
+                        //var occ = pc; // point count
+                        //var occ = pc / 8192.0; // fraction of max points
+
+                        var occ = mode == "binary" ? (pc > 0 ? 1 : 0) :
+                               mode == "count" ? pc : pc / 8192.0;
+
+                        occupancies.Add(occ.ToString(CultureInfo.InvariantCulture));
+                    }
+            var data = ($"{key};{min};{max};{truth};{occupancies.Join(";")}\n");
+            File.AppendAllText(path, data);
+        }
+
+        /// <summary>
         /// Exports occupancy values (flattend cubes with given gridsize and mode)
         /// of pointclouds to csv-file.
         /// </summary>
         /// <param name="mode">binary, count, fraction</param>
         /// <param name="grids">gridsize of cube</param>
         private static void ExportPointclouds(string path2store, string[] keys, string outPath,
-            string mode = "binary", double grids = 8.0, int exponent = -3)
+            int minPointsInBox, string mode = "binary", double grids = 8.0, int exponent = -3)
         {
             var store = PointCloud.OpenStore(path2store);
 
@@ -297,44 +321,24 @@ namespace Aardvark.Geometry.Tests
                 var pointset = store.GetPointSet(key, CancellationToken.None);
                 var (nodes, leafs) = GetNodesWithExponent(pointset.Root.Value, exponent);
 
-                nodes.ForEach((subnode, j) =>
+                // export nodes to file
+                nodes.ForEach((subnode, i) =>
                 {
-                    if ((j % 100) == 0)
-                        Report.Line($"processing subnode # {j}");
+                    if ((i % 100) == 0)
+                        Report.Line($"processing node # {i}");
 
-                    // converts the boxes into a grid with occupancy values
-                    var box = subnode.BoundingBox;
+                    WriteBox2File(subnode.BoundingBox, subnode, mode, grids, key, outPath);
+                });
 
-                    var min = box.Min;
-                    var max = box.Max;
+                // export leafs to file
+                var leafsAsBoxes = ArtificialLeafSplit(leafs, exponent, minPointsInBox);
+                leafsAsBoxes.ForEach( (lb, i) =>
+                {
+                    if ((i % 100) == 0)
+                        Report.Line($"processing leaf # {i} ({lb.Item1.Count()} boxes)");
 
-                    var boxSize = Math.Abs(max.X - min.X);
-                    var gridSize = boxSize / grids;
-
-                    var cl = subnode.QueryPointsInsideBox(box).SelectMany(c => c.Classifications);
-                    var truth = cl.GroupBy(c => c).OrderByDescending(g => g.ToArray().Length).First().Key;
-
-                    var occupancies = new List<string>();
-
-                    for (double y = min.Y; y < max.Y; y += gridSize)
-                        for (double z = max.Z; z > min.Z; z -= gridSize)
-                            for (double x = min.X; x < max.X; x += gridSize)
-                            {
-                                var b = new Box3d(x, y, z, x + gridSize, y + gridSize, z + gridSize);
-                                var pc = subnode.CountPointsInsideBox(b);
-
-                                // calculate the occupancy value of the inner cube
-                                //var occ = pc > 0 ? 1 : 0; // binary 
-                                //var occ = pc; // point count
-                                //var occ = pc / 8192.0; // fraction of max points
-
-                                var occ = mode == "binary" ? (pc > 0 ? 1 : 0) :
-                                       mode == "count" ? pc : pc / 8192.0;
-
-                                occupancies.Add(occ.ToString(CultureInfo.InvariantCulture));
-                            }
-                    var data = ($"{key};{min};{max};{truth};{occupancies.Join(";")}\n");
-                    File.AppendAllText(outPath, data);
+                    lb.Item1.ForEach(box =>
+                        WriteBox2File(box, lb.Item2, mode, grids, key, outPath));
                 });
             });
         }
@@ -369,7 +373,7 @@ namespace Aardvark.Geometry.Tests
         }
 
         /// <summary>
-        /// Returns all nodes from given tree with given exponent.
+        /// Returns all nodes from given tree with given exponent (nodes,leafs).
         /// </summary>
         private static (IEnumerable<PointSetNode>, IEnumerable<PointSetNode>) GetNodesWithExponent(
             PointSetNode root, int exponent)
@@ -473,7 +477,7 @@ namespace Aardvark.Geometry.Tests
         /// Import pointcloud with labels from different files.
         /// </summary>
         private static void Import(string path2data, string path2labels, string path2store,
-            string key, int maxChunkSize = 1024 * 1024)
+            string key, int maxChunkSize = 1024 * 1024, int splitLimit = 8192)
         {
             var labels = File.ReadLines(path2labels)
                 .Select(l => (byte)int.Parse(l, CultureInfo.InvariantCulture));
@@ -521,7 +525,7 @@ namespace Aardvark.Geometry.Tests
             var config = ImportConfig.Default
                .WithStorage(store)
                .WithKey(key)
-               .WithOctreeSplitLimit(500)
+               .WithOctreeSplitLimit(splitLimit)
                .WithMaxChunkPointCount(maxChunkSize)
                .WithVerbose(true);
 
