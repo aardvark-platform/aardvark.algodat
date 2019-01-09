@@ -246,12 +246,12 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
-            new LruDictionaryTests().RandomInserts_1M_MultiThreaded();
+            //new LruDictionaryTests().RandomInserts_1M_MultiThreaded();
             //KeepAliveCacheTest();
 
             //LinkedStores();
 
-            //MasterLisa.Perform();
+            MasterLisa.Perform();
             //TestE57();
 
             //using (var store = PointCloud.OpenStore(@"G:\cells\3267_5514_0_10\pointcloud"))

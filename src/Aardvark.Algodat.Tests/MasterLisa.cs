@@ -16,21 +16,77 @@ namespace Aardvark.Geometry.Tests
     {
         public static void Perform()
         {
+            //var p = @"C:\Users\kellner\Desktop\Diplomarbeit\networks\Semantic3d_binary_gs=8\data_binary_gs=8_all.csv";
+            //var dir = @"C:\Users\kellner\Desktop\Diplomarbeit\networks\Semantic3d_binary_gs=8";
+
+            //File.ReadLines(p).ForEach( (l,i) => 
+            //{
+            //    var splits = l.Split(';');
+            //    var fn = splits[0];
+            //    var truth = splits[3];
+
+            //    if(truth != "0")
+            //        File.AppendAllText(Path.Combine(dir, fn + ".csv"), l + "\n");
+
+            //    if ((i % 1000000) == 0)
+            //        Report.Line($"processed {i} lines");
+            //});
+
+            // -----------------------------------
+
+            var path2store = @"G:\Semantic3d\Store";
+            var dirData = @"C:\Users\kellner\Desktop\Diplomarbeit\data\Semantic3d\sem8_data_training";
+
+            var filenames = Directory.EnumerateFiles(dirData).
+                Select(x => Path.GetFileNameWithoutExtension(x));
+
+            var keys = filenames.Select(fn =>
+            {
+                var splits = fn.Split('_');
+                return splits[0] + "_" + splits[1];
+            }).ToArray();
+
+            var keysFiltered = keys.Skip(4).Take(1).Select(k => k + "_filtered").ToArray();
+            
+            var exponent = -3;
+            var minPointsInBox = 10;
+            var mode = "binary";
+            var gridsize = 8;
+
+            var pout = @"C:\Users\kellner\Desktop\Diplomarbeit\networks\"+ keysFiltered.Single().ToString() +".csv";
+
+            var store = PointCloud.OpenStore(path2store);
+
+            //PerPointValidation(store, @"C:\Users\kellner\Desktop\Diplomarbeit\networks\v_predictions.txt");
+            ExportPointclouds(path2store, keysFiltered, pout, minPointsInBox, mode, gridsize, exponent);
+
+            // -----------------------------------
+
+            //var pp = @"C:\Users\kellner\Desktop\Diplomarbeit\networks\predictions1.txt";
+            //var pout = @"C:\Users\kellner\Desktop\Diplomarbeit\networks\";
+            //PerPointValidation(store, pp, pout);
+        }
+        
+        /// <summary>
+        /// Imports and filters whole semantic3d dataset.
+        /// </summary>
+        private static void ImportSemantic3d()
+        {
             var path2store = @"C:\Users\kellner\Desktop\Diplomarbeit\Store";
-           
+
             var dirData = @"C:\Users\kellner\Desktop\Diplomarbeit\data\Semantic3d\sem8_data_training";
             var dirLabels = @"C:\Users\kellner\Desktop\Diplomarbeit\data\Semantic3d\sem8_labels_training";
 
             var filenames = Directory.EnumerateFiles(dirData).
                 Select(x => Path.GetFileNameWithoutExtension(x));
 
-            var keys = filenames.Select(fn => 
+            var keys = filenames.Select(fn =>
             {
                 var splits = fn.Split('_');
                 return splits[0] + "_" + splits[1];
             }).ToArray();
 
-            filenames.ForEach( (fn, i) => 
+            filenames.ForEach((fn, i) =>
             {
                 var k = keys[i];
 
@@ -41,28 +97,11 @@ namespace Aardvark.Geometry.Tests
                 //AddNormals(path2store, k); // add normals
                 FilterPoints(path2store, k, 0); // filter all unlabelled points
             });
-
-            // -----------------------------------
-
-            var keysFiltered = keys.Select(k => k + "_filtered");
-
-            var store = PointCloud.OpenStore(path2store);
-
-            var exponent = -3;
-            var minPointsInBox = 10;
-            var mode = "binary";
-            var gridsize = 8;
-
-            var pout = @"C:\Users\kellner\Desktop\Diplomarbeit\networks\data_binary_gs=8_all.csv";
-            ExportPointclouds(path2store, keys, pout, minPointsInBox, mode, gridsize, exponent);
-
-            // -----------------------------------
-
-            //var pp = @"C:\Users\kellner\Desktop\Diplomarbeit\networks\predictions1.txt";
-            //var pout = @"C:\Users\kellner\Desktop\Diplomarbeit\networks\";
-            //PerPointValidation(store, pp, pout);
         }
 
+        /// <summary>
+        /// Computes the amount of classes in a node.
+        /// </summary>
         private static int AmountClassesInNode(PointSetNode n)
         {
             if(n.HasClassifications)
@@ -70,17 +109,17 @@ namespace Aardvark.Geometry.Tests
             return -1;
         }
 
-        private static void PerPointValidation(Storage store, string pResults, 
-            string output = "")
+        /// <summary>
+        /// Validates given predictions (one label for a bb) with labels of single points.
+        /// </summary>
+        private static void PerPointValidation(Storage store, string fnPredictions,
+            bool writeResults = false)
         {
-            var pTruth = ""; var pPredictions = "";
-            if (!output.IsEmptyOrNull())
-            {
-                pTruth = Path.Combine(output, "truths.txt");
-                pPredictions = Path.Combine(output, "predictions.txt");
-            }
+            var dir = Path.GetDirectoryName(fnPredictions);
+            var outprediction = Path.Combine(dir, "perPointPredictions.txt");
+            var outtruth = Path.Combine(dir, "perPointTargets.txt");
 
-            var lines = File.ReadLines(pResults);
+            var lines = File.ReadLines(fnPredictions);
 
             var predictions = new Dictionary<string, List<(V3d, V3d, byte)>>();
             var classes = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 };
@@ -114,34 +153,50 @@ namespace Aardvark.Geometry.Tests
 
             predictions.Keys.ForEach(key =>
             {
-                var boxes = predictions[key];
+                var values = predictions[key];
 
                 Report.Line($"processing pointcloud: {key}");
                 var pointset = store.GetPointSet(key, CancellationToken.None);
 
-                boxes.ForEach(vs =>
+                values.ForEach(vs =>
                 {
                     var prediction = vs.Item3;
 
                     var truths = pointset.QueryPointsInsideBox(new Box3d(vs.Item1, vs.Item2)).
                         SelectMany(ch => ch.Classifications);
-
-                    truths.ForEach(truth => cm.AddPrediction(truth, prediction));
-
-                    if(!output.IsEmptyOrNull())
+                    
+                    if (writeResults)
                     {
-                        truths.ForEach(t => 
+                        var ts = new List<string>();
+                        var ps = new List<string>();
+                        truths.ForEach(truth =>
                         {
-                            File.AppendAllText(pTruth, t.ToString() + "\n");
-                            File.AppendAllText(pPredictions, prediction.ToString() + "\n");
+                            cm.AddPrediction(truth, prediction);
+
+                            ts.Add(truth.ToString());
+                            ps.Add(prediction.ToString());
                         });
+
+                        File.AppendAllLines(outtruth, ts);
+                        File.AppendAllLines(outprediction, ps);
                     }
+                    else
+                        truths.ForEach(truth => cm.AddPrediction(truth, prediction));
                 });
             });
-
-            Report.Line($"ACC = {cm.Accuracy()}");
-            cm.Print();
+            
+            Report.Line("\nper class accuracy:");
             cm.PrintPerClassAccuracy();
+
+            Report.Line("\nintersection over union:");
+            var a_iou = cm.PrintPerClassIntersectionOverUnion();
+
+            Report.Line("\nconfusion matrix:");
+            cm.Print();
+
+            Report.Line($"\nOverall ACC = {cm.Accuracy():0.0000}");
+
+            Report.Line($"\nAverage IoU = {a_iou:0.0000}");
         }
 
         private class NxN_ConfusionMatrix<T>
@@ -212,11 +267,48 @@ namespace Aardvark.Geometry.Tests
                 });
                 return acc;
             }
-
+            
             public void PrintPerClassAccuracy()
             {
                 var dict = PerClassAccuracy();
                 dict.Keys.ForEach(c => Report.Line($"{m_classes2string[c]} = {dict[c]:0.0000}"));
+            }
+
+            public double PrintPerClassIntersectionOverUnion()
+            {
+                var classes = m_cm.Keys;
+
+                var perRowError = new Dictionary<T, double>();
+                var perColumnError = new Dictionary<T, double>();
+                var correct = new Dict<T, double>();
+
+                classes.ForEach(truth =>
+                {
+                    var wrongRow = 0.0;
+                    var wrongColumn = 0.0;
+
+                    classes.ForEach(prediction =>
+                    {
+                        if (!truth.Equals(prediction))
+                        {
+                            wrongRow += m_cm[truth][prediction];
+                            wrongColumn += m_cm[prediction][truth];
+                        }
+                        else
+                            correct.Add(truth, m_cm[truth][prediction]);
+                    });
+                    perRowError.Add(truth, wrongRow);
+                    perColumnError.Add(truth, wrongColumn);
+                });
+
+                var ious = classes.Select(cl => 
+                {
+                    var iou = correct[cl] / (perRowError[cl] + perColumnError[cl] + correct[cl]);
+                    Report.Line($"{m_classes2string[cl]}: {iou:0.0000}");
+                    return iou;
+                }).Sum();
+
+                return ious / classes.Count();
             }
 
             public void Print()
