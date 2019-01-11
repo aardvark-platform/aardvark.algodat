@@ -16,25 +16,8 @@ namespace Aardvark.Geometry.Tests
     {
         public static void Perform()
         {
-            //var p = @"C:\Users\kellner\Desktop\Diplomarbeit\networks\Semantic3d_binary_gs=8\data_binary_gs=8_all.csv";
-            //var dir = @"C:\Users\kellner\Desktop\Diplomarbeit\networks\Semantic3d_binary_gs=8";
-
-            //File.ReadLines(p).ForEach( (l,i) => 
-            //{
-            //    var splits = l.Split(';');
-            //    var fn = splits[0];
-            //    var truth = splits[3];
-
-            //    if(truth != "0")
-            //        File.AppendAllText(Path.Combine(dir, fn + ".csv"), l + "\n");
-
-            //    if ((i % 1000000) == 0)
-            //        Report.Line($"processed {i} lines");
-            //});
-
-            // -----------------------------------
-
             var path2store = @"G:\Semantic3d\Store";
+            //var path2store = @"C:\Users\kellner\Desktop\Diplomarbeit\store";
             var dirData = @"C:\Users\kellner\Desktop\Diplomarbeit\data\Semantic3d\sem8_data_training";
 
             var filenames = Directory.EnumerateFiles(dirData).
@@ -46,19 +29,21 @@ namespace Aardvark.Geometry.Tests
                 return splits[0] + "_" + splits[1];
             }).ToArray();
 
-            var keysFiltered = keys.Skip(4).Take(1).Select(k => k + "_filtered").ToArray();
-            
+            var keysFiltered = keys.Take(3).Select(k => k + "_filtered").ToArray();
+
             var exponent = -3;
             var minPointsInBox = 10;
             var mode = "binary";
-            var gridsize = 8;
-
-            var pout = @"C:\Users\kellner\Desktop\Diplomarbeit\networks\"+ keysFiltered.Single().ToString() +".csv";
+            var gridsize = 32;
 
             var store = PointCloud.OpenStore(path2store);
+            var dir = @"C:\Users\kellner\Desktop\Diplomarbeit\networks\Semantic3d_" + mode + "_gs=" + gridsize.ToString();
 
-            //PerPointValidation(store, @"C:\Users\kellner\Desktop\Diplomarbeit\networks\v_predictions.txt");
-            ExportPointclouds(path2store, keysFiltered, pout, minPointsInBox, mode, gridsize, exponent);
+            //var pathPredictions = @"C:\Users\kellner\Desktop\Diplomarbeit\networks\src\outputs\predictions.txt";
+
+            //PerPointValidation(store, pathPredictions);
+            ExportPointclouds(path2store, keysFiltered, dir, minPointsInBox, mode, gridsize, exponent);
+            //AddPredictions(store, pathPredictions, exponent);
 
             // -----------------------------------
 
@@ -66,20 +51,60 @@ namespace Aardvark.Geometry.Tests
             //var pout = @"C:\Users\kellner\Desktop\Diplomarbeit\networks\";
             //PerPointValidation(store, pp, pout);
         }
+
+        /// <summary>
+        /// Adds predictions from a file to the according pointcloud.
+        /// </summary>
+        private static void AddPredictions(Storage store, string pathPredictions, int exponent)
+        {
+            var predictions = new List<(V3d, V3d, byte)>();
+            var key = "";
+
+            File.ReadLines(pathPredictions).ForEach(line =>
+            {
+                var splits = line.Split(';');
+
+                if(key.IsEmptyOrNull())
+                    key = splits[0];
+                else
+                    if (splits[0] != key)
+                        throw new Exception("predictions-file contains different keys");
+                
+                var min = V3d.Parse(splits[1]);
+                var max = V3d.Parse(splits[2]);
+                var p = byte.Parse(splits[3]);
+                
+                predictions.Add((min, max, p));
+            });
+            
+            var pointset = store.GetPointSet(key, CancellationToken.None);
+            var root = pointset.Root.Value;
+
+            //FutureExtensions.AddPredictions(root, new byte[] { 0, 1, 0, 1, 0, 1 });
+            //var ps = FutureExtensions.GetPredictions(root);
+
+            var bbs = predictions.Map(p => (new Box3d(p.Item1, p.Item2), p.Item3));
+            var points = pointset.QueryAllPoints().SelectMany(x => x.Positions);
+
+            points.ForEach(pt => 
+            {
+
+            });
+        }
         
         /// <summary>
         /// Imports and filters whole semantic3d dataset.
         /// </summary>
         private static void ImportSemantic3d()
         {
-            var path2store = @"C:\Users\kellner\Desktop\Diplomarbeit\Store";
+            var path2store = @"C:\Users\kellner\Desktop\Diplomarbeit\store";
 
             var dirData = @"C:\Users\kellner\Desktop\Diplomarbeit\data\Semantic3d\sem8_data_training";
             var dirLabels = @"C:\Users\kellner\Desktop\Diplomarbeit\data\Semantic3d\sem8_labels_training";
 
             var filenames = Directory.EnumerateFiles(dirData).
-                Select(x => Path.GetFileNameWithoutExtension(x));
-
+                Select(x => Path.GetFileNameWithoutExtension(x)).Where(x => x.Contains("bildstein_station5"));
+            
             var keys = filenames.Select(fn =>
             {
                 var splits = fn.Split('_');
@@ -94,6 +119,7 @@ namespace Aardvark.Geometry.Tests
                     Path.Combine(dirData, fn + ".txt"),
                     Path.Combine(dirLabels, fn + ".labels"),
                     path2store, k);
+                Report.Warn("import done, starting filtering");
                 //AddNormals(path2store, k); // add normals
                 FilterPoints(path2store, k, 0); // filter all unlabelled points
             });
@@ -370,8 +396,10 @@ namespace Aardvark.Geometry.Tests
             var gridSize = boxSize / grids;
 
             var cl = node.QueryPointsInsideBox(box).SelectMany(c => c.Classifications);
-            var truth = cl.GroupBy(c => c).OrderByDescending(g => g.ToArray().Length).First().Key;
+            if (cl.IsEmptyOrNull()) return;
 
+            var truth = cl.GroupBy(c => c).OrderByDescending(g => g.ToArray().Length).First().Key;
+            
             var occupancies = new List<string>();
 
             for (double y = min.Y; y < max.Y; y += gridSize)
@@ -401,7 +429,7 @@ namespace Aardvark.Geometry.Tests
         /// </summary>
         /// <param name="mode">binary, count, fraction</param>
         /// <param name="grids">gridsize of cube</param>
-        private static void ExportPointclouds(string path2store, string[] keys, string outPath,
+        private static void ExportPointclouds(string path2store, string[] keys, string baseDir,
             int minPointsInBox, string mode = "binary", double grids = 8.0, int exponent = -3)
         {
             var store = PointCloud.OpenStore(path2store);
@@ -409,6 +437,8 @@ namespace Aardvark.Geometry.Tests
             keys.ForEach(key =>
             {
                 Report.Warn($"processing pointcloud: {key}");
+
+                var outPath = Path.Combine(baseDir, key.ToString() + ".csv");
 
                 var pointset = store.GetPointSet(key, CancellationToken.None);
                 var (nodes, leafs) = GetNodesWithExponent(pointset.Root.Value, exponent);
