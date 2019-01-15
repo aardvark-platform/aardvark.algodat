@@ -16,6 +16,11 @@ namespace Aardvark.Geometry.Tests
     {
         public static void Perform()
         {
+            //var pathPredictions = @"C:\Users\kellner\Desktop\Diplomarbeit\src\outputs\predictions.txt";
+            //AddPredictions(PointCloud.OpenStore(@"C:\Users\kellner\Desktop\Diplomarbeit\store"),
+            //    pathPredictions, -3);
+            //return;
+
             var path2store = @"G:\Semantic3d\Store";
             //var path2store = @"C:\Users\kellner\Desktop\Diplomarbeit\store";
             var dirData = @"C:\Users\kellner\Desktop\Diplomarbeit\data\Semantic3d\sem8_data_training";
@@ -33,11 +38,11 @@ namespace Aardvark.Geometry.Tests
 
             var exponent = -3;
             var minPointsInBox = 10;
-            var mode = "binary";
-            var gridsize = 32;
+            var mode = "count";
+            var gridsize = 16;
 
             var store = PointCloud.OpenStore(path2store);
-            var dir = @"C:\Users\kellner\Desktop\Diplomarbeit\networks\Semantic3d_" + mode + "_gs=" + gridsize.ToString();
+            var dir = @"C:\Users\kellner\Desktop\Diplomarbeit\src\data\Semantic3d_gs=" + gridsize.ToString() + @"\" + mode;
 
             //var pathPredictions = @"C:\Users\kellner\Desktop\Diplomarbeit\networks\src\outputs\predictions.txt";
 
@@ -78,18 +83,46 @@ namespace Aardvark.Geometry.Tests
             });
             
             var pointset = store.GetPointSet(key, CancellationToken.None);
-            var root = pointset.Root.Value;
-
-            //FutureExtensions.AddPredictions(root, new byte[] { 0, 1, 0, 1, 0, 1 });
-            //var ps = FutureExtensions.GetPredictions(root);
-
             var bbs = predictions.Map(p => (new Box3d(p.Item1, p.Item2), p.Item3));
-            var points = pointset.QueryAllPoints().SelectMany(x => x.Positions);
+            var (nodes, leafs) = GetNodesWithExponent(pointset.Root.Value, exponent);
 
-            points.ForEach(pt => 
+            // add predictions as property to nodes
+            nodes.ForEach(node => 
             {
-
+                var pc = (int)node.PointCountTree;
+                var bb = bbs.Where(b => b.Item1 == node.BoundingBox).Single();
+                var ps = Enumerable.Repeat(bb.Item2, pc).ToArray();
+                FutureExtensions.AddPredictions(node, ps);
+                bbs.Remove(bb);
             });
+
+            // add predictions as property to leafs
+            leafs.ForEach(leaf => 
+            {
+                var boxes = bbs.Where(b => leaf.BoundingBox.Contains(b.Item1)).ToArray();
+                
+                if(boxes.Length > 0)
+                {
+                    var positions = leaf.GetLodPositionsAbsolute();
+                    var ps = positions.Select(pos => 
+                    {
+                        var box4point = boxes.Where(b => b.Item1.Contains(pos)).ToArray();
+
+                        if (box4point.Length > 1)
+                            throw new Exception("[AddPredictions] position contained by more than one bb");
+
+                        if (box4point.Length == 0)
+                            return (byte)0;
+
+                        return box4point.Single().Item2;
+                    }).ToArray();
+                    FutureExtensions.AddPredictions(leaf, ps);
+                }
+                boxes.ForEach(b => bbs.Remove(b));
+            });
+
+            if (bbs.Count() > 0)
+                throw new Exception("[AddPredictions] not all predictions could be matched.");
         }
         
         /// <summary>
@@ -103,7 +136,7 @@ namespace Aardvark.Geometry.Tests
             var dirLabels = @"C:\Users\kellner\Desktop\Diplomarbeit\data\Semantic3d\sem8_labels_training";
 
             var filenames = Directory.EnumerateFiles(dirData).
-                Select(x => Path.GetFileNameWithoutExtension(x)).Where(x => x.Contains("bildstein_station5"));
+                Select(x => Path.GetFileNameWithoutExtension(x)).Where(x => x.Contains("bildstein_station3"));
             
             var keys = filenames.Select(fn =>
             {
