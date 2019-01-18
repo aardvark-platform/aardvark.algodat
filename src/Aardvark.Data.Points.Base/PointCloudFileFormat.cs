@@ -45,7 +45,7 @@ namespace Aardvark.Data.Points
                 {
                     var t = x.Item1;
                     RuntimeHelpers.RunClassConstructor(t.TypeHandle);
-                    Console.WriteLine($"[PointCloudFileFormat] registered {x.Item1.FullName}");
+                    //Console.WriteLine($"[PointCloudFileFormat] registered {x.Item1.FullName}");
                 }
                 catch (Exception e)
                 {

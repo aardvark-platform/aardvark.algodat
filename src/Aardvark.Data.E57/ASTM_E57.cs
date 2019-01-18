@@ -501,7 +501,7 @@ namespace Aardvark.Data.E57
             public IEnumerable<Tuple<V3d,C4b>> ReadData(int[] cartesianXYZ, int[] sphericalRAE, int[] colorRGB, bool verbose = false)
             {
                 var compressedVectorHeader = E57CompressedVectorHeader.Parse(ReadLogicalBytes(m_stream, FileOffset, 32));
-                if (true)
+                if (verbose)
                 {
                     Report.Line($"[E57CompressedVector] FileOffset       = {FileOffset,10}");
                     Report.Line($"[E57CompressedVector] IndexStartOffset = {compressedVectorHeader.IndexStartOffset,10}");

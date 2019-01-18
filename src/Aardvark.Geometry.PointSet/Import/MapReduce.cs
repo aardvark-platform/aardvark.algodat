@@ -39,7 +39,7 @@ namespace Aardvark.Geometry.Points
                 .MapParallel((chunk, ct2) =>
                 {
                     Interlocked.Add(ref totalPointCountInChunks, chunk.Count);
-                    progress(1.0 - 1.0 / Interlocked.Increment(ref totalChunkCount));
+                    progress(Math.Sqrt(1.0 - 1.0 / Interlocked.Increment(ref totalChunkCount)));
 
                     var builder = InMemoryPointSet.Build(chunk, config.OctreeSplitLimit);
                     var root = builder.ToPointSetCell(config.Storage, ct: ct2);
@@ -79,8 +79,12 @@ namespace Aardvark.Geometry.Points
             }
             var final = pointsets.MapReduceParallel((first, second, ct2) =>
             {
-                progress(Interlocked.Increment(ref i) / (double)totalPointSetsCount);
                 var merged = first.Merge(second, ct2);
+
+                var p = Interlocked.Increment(ref i);
+                progress(1.0 / (totalPointSetsCount - p + 1));
+                //Console.WriteLine($"[MapReduceParallel] {i}/{totalPointSetsCount}");
+
                 config.Storage.Add(merged.Id, merged, ct2);
                 if (config.Verbose) Console.WriteLine($"[MapReduce] merged "
                     + $"{first.Root.Value.Cell} + {second.Root.Value.Cell} -> {merged.Root.Value.Cell} "
