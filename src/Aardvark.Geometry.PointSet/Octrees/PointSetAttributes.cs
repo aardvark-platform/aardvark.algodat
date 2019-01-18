@@ -216,13 +216,13 @@ namespace Aardvark.Geometry.Points
         BoundingBoxExactLocal = 1 <<  0,
 
         /// <summary>
-        /// float.
+        /// float (avg) + float (stddev).
         /// </summary>
-        PointDistanceAverage  = 1 <<  1,
-
+        PointDistance  = 1 <<  1,
+        
         /// <summary>
-        /// float.
+        /// byte (min) + byte (max).
         /// </summary>
-        PointDistanceStandardDeviation = 1 << 2,
+        TreeDepthMinMax = 1 << 2,
     }
 }

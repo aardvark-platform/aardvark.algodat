@@ -253,15 +253,10 @@ namespace Aardvark.Geometry.Points
                         bw.Write(max.X); bw.Write(max.Y); bw.Write(max.Z);
                     }
 
-                    //  4 bytes (float)
-                    if ((CellAttributeMask | CellAttributes.PointDistanceAverage) != 0)
+                    //  8 bytes (float + float)
+                    if ((CellAttributeMask | CellAttributes.PointDistance) != 0)
                     {
                         bw.Write(PointDistanceAverage);
-                    }
-
-                    //  4 bytes (float)
-                    if ((CellAttributeMask | CellAttributes.PointDistanceStandardDeviation) != 0)
-                    {
                         bw.Write(PointDistanceStandardDeviation);
                     }
                 }
@@ -375,13 +370,9 @@ namespace Aardvark.Geometry.Points
                     exactBoundingBoxLocal = ebb;
                 }
 
-                if ((cellAttributeMask & (uint)CellAttributes.PointDistanceAverage) != 0)
+                if ((cellAttributeMask & (uint)CellAttributes.PointDistance) != 0)
                 {
                     pointDistanceAverage = BitConverter.ToSingle(buffer, offset); offset += sizeof(float);
-                }
-
-                if ((cellAttributeMask & (uint)CellAttributes.PointDistanceStandardDeviation) != 0)
-                {
                     pointDistanceStandardDeviation = BitConverter.ToSingle(buffer, offset); offset += sizeof(float);
                 }
             }
