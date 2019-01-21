@@ -416,6 +416,12 @@ namespace Aardvark.Geometry.Points
             );
 
 
+        public static readonly CellAttribute<long> PointCountCell =
+            new CellAttribute<long>(
+                new Guid(0x172e1f20, 0x0ffc, 0x4d9c, 0x9b, 0x3d, 0x90, 0x3f, 0xca, 0x41, 0xab, 0xe3),
+                "PointCountCell",
+                (self, node) => node.IsLeaf() ? node.PointCountTree : (node.GetPositions()?.Value?.Length ?? 0L)
+            );
 
         ///// <summary>
         ///// min- and max-depth for the subtree (distances to leaf)

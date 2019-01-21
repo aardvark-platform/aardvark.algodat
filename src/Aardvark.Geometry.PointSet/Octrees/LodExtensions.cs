@@ -116,13 +116,27 @@ namespace Aardvark.Geometry.Points
                 var xs = xss[ci];
 
                 var jmax = xs.Length;
-                var dj = (jmax + 0.49) / counts[ci];
-                for (var j = 0.0; j < jmax; j += dj)
+                if (jmax <= counts[ci])
                 {
-                    rs[i++] = xs[(int)j];
+                    xs.CopyTo(0, xs.Length, rs, i);
+                    i += xs.Length;
+                }
+                else
+                {
+                    var dj = (jmax + 0.49) / counts[ci];
+                    for (var j = 0.0; j < jmax; j += dj)
+                    {
+                        rs[i++] = xs[(int)j];
+                    }
                 }
             }
-            return rs;
+
+            if(i < splitLimit)
+            {
+                Array.Resize(ref rs, i);
+                return rs;
+            }
+            else return rs;
         }
     }
 
@@ -250,7 +264,6 @@ namespace Aardvark.Geometry.Points
             
             foreach(var att in config.CellAttributes)
             {
-                // TODO: !!!!proper node!!!!!
                 var dict = node.CellAttributes.Add(att.Id, att.ComputeValue(node));
                 node = node.WithCellAttributes(dict);
             }

@@ -151,6 +151,7 @@ namespace Aardvark.Data.Points
                 Geometry.Points.CellAttributes.AveragePointDistanceStdDev,
                 Geometry.Points.CellAttributes.TreeMinDepth,
                 Geometry.Points.CellAttributes.TreeMaxDepth,
+                Geometry.Points.CellAttributes.PointCountCell,
             });
             //ImmutableList<CellAttribute>.Empty
             //    .Add(Aardvark.Geometry.Points.CellAttributes.BoundingBoxExactLocal)
