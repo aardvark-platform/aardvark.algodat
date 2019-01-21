@@ -11,6 +11,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+using Aardvark.Base;
 using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
@@ -35,6 +36,8 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PointSet Chunks(IEnumerable<Chunk> chunks, ImportConfig config)
         {
+            config?.ProgressCallback(0.0);
+
             // optionally filter minDist
             if (config.MinDist > 0.0)
             {
@@ -72,7 +75,7 @@ namespace Aardvark.Geometry.Points
 
             // reduce all chunks to single PointSet
             var final = chunks
-                .MapReduce(config.WithRandomKey().WithProgressCallback(x => config.ProgressCallback(x * 0.66)))
+                .MapReduce(config.WithRandomKey().WithProgressCallback(x => config.ProgressCallback(0.01 + x * 0.65)))
                 ;
 
             // create LOD data

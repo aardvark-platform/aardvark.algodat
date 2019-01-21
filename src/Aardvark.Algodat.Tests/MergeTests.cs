@@ -45,7 +45,7 @@ namespace Aardvark.Geometry.Tests
             var ks2 = ps1.Map(_ => (byte)7);
             var pointset2 = PointSet.Create(storage, "test2", ps2, cs2, ns2, is2, ks2, 1000, true, CancellationToken.None);
 
-            var merged = pointset1.Merge(pointset2, CancellationToken.None);
+            var merged = pointset1.Merge(pointset2, null, CancellationToken.None);
             Assert.IsTrue(merged.PointCount == 84000);
             Assert.IsTrue(merged.Octree.Value.PointCountTree == 84000);
             Assert.IsTrue(merged.Octree.Value.CountPoints() == 84000);
@@ -69,7 +69,7 @@ namespace Aardvark.Geometry.Tests
             var ks2 = ps1.Map(_ => (byte)7);
             var pointset2 = PointSet.Create(storage, "test2", ps2, null, ns2, is2, ks2, 1000, true, CancellationToken.None);
 
-            var merged = pointset1.Merge(pointset2, CancellationToken.None);
+            var merged = pointset1.Merge(pointset2, null, CancellationToken.None);
             Assert.IsTrue(merged.PointCount == 84000);
             Assert.IsTrue(merged.Octree.Value.PointCountTree == 84000);
             Assert.IsTrue(merged.Octree.Value.CountPoints() == 84000);
@@ -93,7 +93,7 @@ namespace Aardvark.Geometry.Tests
             var ks2 = ps2.Map(_ => (byte)7);
             var pointset2 = PointSet.Create(storage, "test2", ps2, cs2, null, is2, ks2, 1000, true, CancellationToken.None);
 
-            var merged = pointset1.Merge(pointset2, CancellationToken.None);
+            var merged = pointset1.Merge(pointset2, null, CancellationToken.None);
             Assert.IsTrue(merged.PointCount == 84000);
             Assert.IsTrue(merged.Octree.Value.PointCountTree == 84000);
             Assert.IsTrue(merged.Octree.Value.CountPoints() == 84000);

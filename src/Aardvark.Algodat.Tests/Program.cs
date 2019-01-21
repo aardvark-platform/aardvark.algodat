@@ -8,147 +8,48 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using Uncodium.SimpleStore;
 
 namespace Aardvark.Geometry.Tests
 {
     public unsafe class Program
     {
-        internal static void LinkedStores()
-        {
-            var tmpStorePath = @"G:\allStore";
-            var resolver = new PatternResolver(@"G:\cells\%KEY%\pointcloud");
-            
-            var links = Directory
-                .EnumerateDirectories(@"G:\cells", "pointcloud", SearchOption.AllDirectories)
-                .Select(x => (storePath: x, key: Path.GetFileName(Path.GetDirectoryName(x))))
-                //.Skip(6)
-                //.Take(2)
-                .ToArray();
-            
-            var sw = new Stopwatch(); sw.Restart();
-            
-#if false // not now
-            var totalCount = 0L;
-            using (var storage = PointCloud.OpenStore(tmpStorePath))
-            {
-                var ls = links
-                    .Select(x =>
-                    {
-                        try
-                        {
-                            var node = new LinkedNode(storage, x.key, x.key, resolver);
-                            Console.WriteLine($"{node.PointCountTree,20:N0}");
-                            totalCount += node.PointCountTree;
-                            return node;
-                        }
-                        catch
-                        {
-                            Console.WriteLine($"[ERROR] could not read {x.key}@{x.storePath}");
-                            return null;
-                        }
-                    })
-                    .Where(x => x != null)
-                    .ToArray();
-
-                    sw.Stop();
-                    Console.WriteLine($"{totalCount,20:N0} total");
-                    Console.WriteLine(sw.Elapsed);
-
-
-                foreach (var x in ls)
-                {
-                    storage.Add(x.Id, x);
-                    //Console.WriteLine($"x.CountNodes() -> {x.CountNodes()}");
-                    Console.WriteLine($"processed {x.Id}  {x.Cell}  PointCountTree -> {x.PointCountTree,20:N0}");
-                }
-
-                var config = ImportConfig.Default
-                    .WithCreateOctreeLod(false)
-                    //.WithEstimateNormals(ps => Normals.EstimateNormals((V3d[])ps, 8))
-                    ;
-
-                var merged = Merge.NonOverlapping(storage, resolver, ls, config);
-                //Console.WriteLine($"merged.CountNodes()   -> {merged.CountNodes()}");
-                Console.WriteLine($"merged.PointCountTree -> {merged.PointCountTree,20:N0}");
-                storage.Add(merged.Id, merged);
-                storage.Add("merged", merged);
-
-                //var cloud = new PointSet(storage, resolver, "merged", merged, 8192);
-                //storage.Add("merged", cloud, default);
-
-                storage.Flush();
-            }
-#endif
-
-            using (var storage = PointCloud.OpenStore(tmpStorePath, cache: default))
-            {
-                var reloaded = storage.GetPointCloudNode("merged", resolver);
-                //Console.WriteLine($"reloaded.CountNodes() -> {reloaded.CountNodes()}");
-                Console.WriteLine($"reloaded.PointCountTree -> {reloaded.PointCountTree,20:N0}");
-                printLinks(reloaded);
-
-                void printLinks(IPointCloudNode n)
-                {
-                    if (n == null) return;
-                    if (n is LinkedNode x)
-                    {
-                        Console.WriteLine($"LinkedNode: {x.Cell}  {x.LinkedStoreName}  {x.LinkedPointCloudKey}");
-                        return;
-                    }
-                    if (n.SubNodes == null) return;
-                    foreach (var y in n.SubNodes)
-                    {
-                        if (y == null) continue;
-                        printLinks(y.Value);
-                    }
-                }
-            }
-
-            /*
-            var key = @"3274_5507_0_10";
-            using (var tmp = PointCloud.OpenStore(tmpStorePath))
-            {
-                var a = new LinkedNode(key, key, resolver);
-                Console.WriteLine(a.CountNodes());
-                tmp.Add("link", a);
-                tmp.Flush();
-            }
-            using (var tmp = PointCloud.OpenStore(tmpStorePath))
-            {
-                var a = tmp.GetPointCloudNode("link", resolver);
-                Console.WriteLine(a.CountNodes());
-            }
-            */
-
-            //Console.WriteLine($"{a.PointCountTree:N0}");
-            Environment.Exit(0);
-        }
-
         internal static void TestE57()
         {
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
-            var filename = @"test.e57";
+            var filename = @"T:\Vgm\Data\E57\CloudCompare_Technologiezentrum_Teil1.e57";
             var fileSizeInBytes = new FileInfo(filename).Length;
 
+            var sw = new Stopwatch(); sw.Start();
+
+            var lastProgress = 0.0;
             var config = ImportConfig.Default
                 .WithInMemoryStore()
                 .WithRandomKey()
-                .WithVerbose(true)
+                .WithVerbose(false)
                 .WithMaxDegreeOfParallelism(0)
-                .WithMinDist(0.005)
+                .WithMinDist(0.0)
+                .WithEstimateNormals(ps =>
+                {
+                    //Console.WriteLine($"[NORMALS]");
+                    return Normals.EstimateNormals((V3d[])ps, 16);
+                })
+                .WithProgressCallback(x =>
+                {
+                    if (x < lastProgress) Console.WriteLine("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH"); else lastProgress = x;
+                    Console.WriteLine($"[PROGRESS]; {x,8:0.00000}; {sw.Elapsed.TotalSeconds:0.00}");
+                })
                 ;
 
-            var chunks = E57.Chunks(filename, config).ToList();
+            var chunks = E57.Chunks(filename, config);
             var pointcloud = PointCloud.Chunks(chunks, config);
             Console.WriteLine($"pointcloud.PointCount  : {pointcloud.PointCount}");
-            Console.WriteLine($"pointcloud.Bounds      :{pointcloud.Bounds}");
-            Console.WriteLine($"pointcloud.BoundingBox :{pointcloud.BoundingBox}");
+            Console.WriteLine($"pointcloud.Bounds      : {pointcloud.Bounds}");
+            Console.WriteLine($"pointcloud.BoundingBox : {pointcloud.BoundingBox}");
 
-            var leafLodPointCount = 0L;
-            pointcloud.Octree.Value.ForEachNode(true, n => { if (n.IsLeaf()) leafLodPointCount += n.GetPositions().Value.Length; });
-            Console.WriteLine($"leaf lod point count :{leafLodPointCount}");
+            //var leafLodPointCount = 0L;
+            //pointcloud.Root.Value.ForEachNode(true, n => { if (n.IsLeaf) leafLodPointCount += n.LodPositionsAbsolute.Length; });
+            //Console.WriteLine($"leaf lod point count :{leafLodPointCount}");
 
             //foreach (var chunk in chunks)
             //{
@@ -158,8 +59,8 @@ namespace Aardvark.Geometry.Tests
             //    }
             //}
 
-            Console.WriteLine($"chunks point count: {chunks.Sum(x => x.Positions.Count)}");
-            Console.WriteLine($"chunks bounds     : {new Box3d(chunks.SelectMany(x => x.Positions))}");
+            //Console.WriteLine($"chunks point count: {chunks.Sum(x => x.Positions.Count)}");
+            //Console.WriteLine($"chunks bounds     : {new Box3d(chunks.SelectMany(x => x.Positions))}");
 
             //using (var w = File.CreateText("test.txt"))
             //{
@@ -198,9 +99,9 @@ namespace Aardvark.Geometry.Tests
         internal static void TestImport()
         {
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
-            var filename = @"T:\Vgm\Data\E57\Cylcone.e57";
+            var filename = @"test.e57";
 
-            var store = new SimpleDiskStore(@"c:\temp\teststore").ToPointCloudStore(cache: default);
+            var store = new SimpleDiskStore(@"./store").ToPointCloudStore(new LruDictionary<string, object>(1024 * 1024 * 1024));
 
             var config = ImportConfig.Default
                 .WithStorage(store)
@@ -212,8 +113,6 @@ namespace Aardvark.Geometry.Tests
             var pointcloud = PointCloud.Import(filename, config);
             Report.EndTimed();
             store.Flush();
-
-            //if (KeepAliveCache.Default.IsValueCreated) KeepAliveCache.Default.Value.Dispose();
         }
 
         internal static void TestImportPts(string filename)
@@ -261,7 +160,7 @@ namespace Aardvark.Geometry.Tests
                 var ps = new V3d[n];
                 for (var i = 0; i < n; i++) ps[i] = new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble());
                 var config = ImportConfig.Default
-                    .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                    .WithStorage(PointCloud.CreateInMemoryStore(new LruDictionary<string, object>(1024*1024*1024)))
                     .WithKey("test")
                     .WithOctreeSplitLimit(splitLimit)
                     ;
@@ -269,66 +168,14 @@ namespace Aardvark.Geometry.Tests
             }
         }
 
-        //internal static void KeepAliveCacheTest()
-        //{
-        //    var cache0 = new KeepAliveCache("foo cache", 1024 * 1024, false);
-        //    var run0 = true;
-        //    new Thread(() => { while (run0) { cache0.Add("foo", 100); Thread.Sleep(10); } }).Start();
-
-        //    Console.ReadLine();
-        //    var store0 = PointCloud.OpenStore("teststore0");
-        //    var runstore0 = true;
-        //    new Thread(() => { while (runstore0) { store0.Add("foo", new byte[10]); store0.GetByteArray("foo"); Thread.Sleep(1000); } }).Start();
-
-
-        //    Console.ReadLine();
-        //    var store1 = PointCloud.OpenStore("teststore1");
-        //    var runstore1 = true;
-        //    new Thread(() => { while (runstore1) { store1.Add("foo", new byte[10]); store1.GetByteArray("foo"); Thread.Sleep(1000); } }).Start();
-
-
-        //    Console.ReadLine();
-        //    runstore1 = false; Thread.Sleep(10);
-        //    store1.Dispose();
-
-        //    Console.ReadLine();
-        //    run0 = false; Thread.Sleep(10);
-        //    cache0.Dispose();
-
-        //    Console.ReadLine();
-        //    runstore0 = false; Thread.Sleep(10);
-        //    store0.Dispose();
-
-        //    Console.ReadLine();
-        //    var store2 = PointCloud.OpenStore("teststore2");
-        //    var run2 = true;
-        //    new Thread(() => { while (run2) { store2.Add("foo", new byte[10]); store2.GetByteArray("foo"); Thread.Sleep(100); } }).Start();
-
-        //    Console.ReadLine();
-        //    run2 = false; Thread.Sleep(10);
-        //    store2.Dispose();
-        //}
-
         public static void Main(string[] args)
         {
-            Console.WriteLine(File.ReadLines(@"T:\Vgm\Data\kindergarten.pts").Count());
-            //new LruDictionaryTests().RandomInserts_1M_MultiThreaded();
-            //KeepAliveCacheTest();
+            TestE57();
 
-            //LinkedStores();
-
-            //MasterLisa.Perform();
-            //TestE57();
-
-            //using (var store = PointCloud.OpenStore(@"G:\cells\3267_5514_0_10\pointcloud"))
-            //{
-            //    var pc = store.GetPointSet("3267_5514_0_10", default);
-            //    Console.WriteLine(pc.Id);
-            //    Console.WriteLine(pc.PointCount);
-
-            //    var root = pc.Root.Value;
-            //    var kd = root.LodKdTree.Value;
-            //}
+            //var store = PointCloud.OpenStore(@"G:\cells\3280_5503_0_10\pointcloud");
+            //var pc = store.GetPointSet("3280_5503_0_10", default);
+            //Console.WriteLine(pc.Id);
+            //Console.WriteLine(pc.PointCount);
 
             //TestKNearest();
             //foreach (var filename in Directory.EnumerateFiles(@"C:\", "*.pts", SearchOption.AllDirectories))

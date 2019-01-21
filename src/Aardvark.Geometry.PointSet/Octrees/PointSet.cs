@@ -248,7 +248,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        public PointSet Merge(PointSet other, CancellationToken ct)
+        public PointSet Merge(PointSet other, Action<long> pointsMergedCallback, CancellationToken ct)
         {
             if (other.IsEmpty) return this;
             if (this.IsEmpty) return other;
@@ -257,7 +257,7 @@ namespace Aardvark.Geometry.Points
 
             if (Octree.Value is PointSetNode root && other.Octree.Value is PointSetNode otherRoot)
             {
-                var merged = root.Merge(otherRoot, SplitLimit, ct);
+                var merged = root.Merge(otherRoot, SplitLimit, pointsMergedCallback, ct);
                 var id = $"{Guid.NewGuid()}.json";
                 return new PointSet(Storage, id, merged.Id, SplitLimit);
             }

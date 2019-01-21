@@ -129,9 +129,9 @@ namespace Aardvark.Geometry.Points
                     finally
                     {
                         Interlocked.Decrement(ref inFlightCount);
+                        queueSemapore.Release();
                     }
                 });
-                queueSemapore.Release();
             }
 
             while (inFlightCount > 0) { CheckCancellationOrException(); Task.Delay(100).Wait(); }

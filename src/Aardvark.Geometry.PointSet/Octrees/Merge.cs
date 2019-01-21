@@ -104,10 +104,13 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Returns union of trees as new tree (immutable operation).
         /// </summary>
-        public static PointSetNode Merge(this PointSetNode a, PointSetNode b, long octreeSplitLimit, CancellationToken ct)
+        public static PointSetNode Merge(this PointSetNode a, PointSetNode b,
+            long octreeSplitLimit, Action<long> pointsMergedCallback,
+            CancellationToken ct
+            )
         {
-            if (a == null || a.PointCountTree == 0) return b;
-            if (b == null || b.PointCountTree == 0) return a;
+            if (a == null || a.PointCountTree == 0) { pointsMergedCallback?.Invoke(b?.PointCountTree ?? 0); return b; }
+            if (b == null || b.PointCountTree == 0) { pointsMergedCallback?.Invoke(a?.PointCountTree ?? 0); return a; }
 
 #if DEBUG
             var debugPointCountTree = a.PointCountTree + b.PointCountTree;
@@ -120,8 +123,9 @@ namespace Aardvark.Geometry.Points
                     ? (b.IsLeaf ? MergeLeafAndLeafWithIdenticalRootCell(a, b, octreeSplitLimit, ct)
                                 : MergeLeafAndTreeWithIdenticalRootCell(a, b, octreeSplitLimit, ct))
                     : (b.IsLeaf ? MergeLeafAndTreeWithIdenticalRootCell(b, a, octreeSplitLimit, ct)
-                                : MergeTreeAndTreeWithIdenticalRootCell(a, b, octreeSplitLimit, ct))
+                                : MergeTreeAndTreeWithIdenticalRootCell(a, b, octreeSplitLimit, pointsMergedCallback, ct))
                     ;
+                pointsMergedCallback?.Invoke(a.PointCountTree + b.PointCountTree);
                 return result;
             }
 
@@ -129,10 +133,11 @@ namespace Aardvark.Geometry.Points
             if (!a.Cell.Intersects(b.Cell))
             {
                 var rootCell = new Cell(new Box3d(a.BoundingBox, b.BoundingBox));
-                var result = JoinNonOverlappingTrees(rootCell, a, b, octreeSplitLimit, ct);
+                var result = JoinNonOverlappingTrees(rootCell, a, b, octreeSplitLimit, pointsMergedCallback, ct);
 #if DEBUG
                 if (result.PointCountTree != debugPointCountTree) throw new InvalidOperationException();
 #endif
+                pointsMergedCallback?.Invoke(a.PointCountTree + b.PointCountTree);
                 return result;
             }
 
@@ -145,7 +150,7 @@ namespace Aardvark.Geometry.Points
                     if (a.IsLeaf)
                     {
                         // split A into 8 subcells to get rid of centered cell
-                        return Merge(a.ForceSplitLeaf(ct), b, octreeSplitLimit, ct);
+                        return Merge(a.ForceSplitLeaf(ct), b, octreeSplitLimit, pointsMergedCallback, ct);
                     }
                     else
                     {
@@ -162,7 +167,7 @@ namespace Aardvark.Geometry.Points
                     if (b.IsLeaf)
                     {
                         // split B into 8 subcells to get rid of centered cell
-                        return Merge(a, b.ForceSplitLeaf(ct), octreeSplitLimit, ct);
+                        return Merge(a, b.ForceSplitLeaf(ct), octreeSplitLimit, pointsMergedCallback, ct);
                     }
                     else
                     {
@@ -177,7 +182,12 @@ namespace Aardvark.Geometry.Points
                 // special case: there is only 1 part -> finished
                 parts = parts.Where(x => x != null).ToList();
                 if (parts.Count == 0) throw new InvalidOperationException();
-                if (parts.Count == 1) return parts.Single();
+                if (parts.Count == 1)
+                {
+                    var r = parts.Single();
+                    pointsMergedCallback?.Invoke(r.PointCountTree);
+                    return r;
+                }
 
                 // common case: multiple parts
                 var rootCellBounds = new Box3d(a.Cell.BoundingBox, b.Cell.BoundingBox);
@@ -206,7 +216,7 @@ namespace Aardvark.Geometry.Points
                     }
                     else
                     {
-                        roots[oi] = Merge(roots[oi], x, octreeSplitLimit, ct);
+                        roots[oi] = Merge(roots[oi], x, octreeSplitLimit, pointsMergedCallback, ct);
                     }
 
                     if (oct != roots[oi].Cell) throw new InvalidOperationException();
@@ -214,7 +224,9 @@ namespace Aardvark.Geometry.Points
 
                 var pointCountTree = roots.Where(x => x != null).Sum(x => x.PointCountTree);
                 var ebb = new Box3f(roots.Where(x => x != null).Select(x => x.BoundingBoxExactLocal));
+                pointsMergedCallback?.Invoke(pointCountTree);
                 return new PointSetNode(rootCell, pointCountTree, ebb, 0.0f, 0.0f, roots.Map(n => n?.Id), a.Storage);
+                //return new PointSetNode(rootCell, pointCountTree, roots.Map(n => n?.Id), a.Storage);
             }
 #if DEBUG
             if (a.Cell.Exponent == b.Cell.Exponent)
@@ -228,7 +240,7 @@ namespace Aardvark.Geometry.Points
             // ... otherwise ensure that A's root cell is bigger than B's to reduce number of cases to handle ...
             if (a.Cell.Exponent < b.Cell.Exponent)
             {
-                var result = Merge(b, a, octreeSplitLimit, ct);
+                var result = Merge(b, a, octreeSplitLimit, pointsMergedCallback, ct);
 #if DEBUG
                 if (result.PointCountTree != debugPointCountTree) throw new InvalidOperationException();
 #endif
@@ -239,6 +251,7 @@ namespace Aardvark.Geometry.Points
 #if DEBUG
             var isExactlyOne = false;
 #endif
+            var processedPointCount = 0L;
             var subcells = a.Subnodes?.Map(x => x?.Value) ?? new PointSetNode[8];
             for (var i = 0; i < 8; i++)
             {
@@ -249,15 +262,19 @@ namespace Aardvark.Geometry.Points
                     if (isExactlyOne) throw new InvalidOperationException();
                     isExactlyOne = true;
 #endif
-
                     if (subcells[i] == null)
                     {
                         subcells[i] = JoinTreeToRootCell(subcellIndex, b);
                     }
                     else
                     {
-                        subcells[i] = Merge(subcells[i], b, octreeSplitLimit, ct);
+                        subcells[i] = Merge(subcells[i], b, octreeSplitLimit, 
+                            n => pointsMergedCallback?.Invoke(processedPointCount + n),
+                            ct);
                     }
+
+                    processedPointCount += subcells[i].PointCountTree;
+                    pointsMergedCallback?.Invoke(processedPointCount);
                 }
             }
 #if DEBUG
@@ -280,6 +297,7 @@ namespace Aardvark.Geometry.Points
             // this no longer holds due to removal of duplicate points
             //if (result2.PointCountTree != debugPointCountTree) throw new InvalidOperationException();
 #endif
+            pointsMergedCallback?.Invoke(result2.PointCountTree);
             return result2;
         }
         
@@ -293,7 +311,10 @@ namespace Aardvark.Geometry.Points
             return rs;
         }
         
-        private static PointSetNode JoinNonOverlappingTrees(Cell rootCell, PointSetNode a, PointSetNode b, long octreeSplitLimit, CancellationToken ct)
+        private static PointSetNode JoinNonOverlappingTrees(Cell rootCell, PointSetNode a, PointSetNode b,
+            long octreeSplitLimit, Action<long> pointsMergedCallback,
+            CancellationToken ct
+            )
         {
             #region Preconditions
 
@@ -333,7 +354,7 @@ namespace Aardvark.Geometry.Points
                 #region special case: split 'a' into subcells to get rid of centered cell containing points
                 if (a.IsLeaf)
                 {
-                    return JoinNonOverlappingTrees(rootCell, a.ForceSplitLeaf(ct), b, octreeSplitLimit, ct);
+                    return JoinNonOverlappingTrees(rootCell, a.ForceSplitLeaf(ct), b, octreeSplitLimit, pointsMergedCallback, ct);
                 }
                 #endregion
 #if DEBUG
@@ -356,7 +377,7 @@ namespace Aardvark.Geometry.Points
                         if (bIsContained)
                         {
                             // CASE: both contained
-                            var merged = Merge(aSub, b, octreeSplitLimit, ct);
+                            var merged = Merge(aSub, b, octreeSplitLimit, pointsMergedCallback, ct);
                             subcells[i] = JoinTreeToRootCell(rootCellOctant, merged);
                         }
                         else
@@ -385,6 +406,7 @@ namespace Aardvark.Geometry.Points
                 if (result.PointCountTree != a.PointCountTree + b.PointCountTree) throw new InvalidOperationException();
                 if (result.PointCountTree != result.Subnodes.Sum(x => x?.Value?.PointCountTree)) throw new InvalidOperationException();
 #endif
+                //pointsMergedCallback?.Invoke(result.PointCountTree);
                 return result;
             }
 
@@ -431,6 +453,7 @@ namespace Aardvark.Geometry.Points
                 if (result.PointCountTree != a.PointCountTree + b.PointCountTree) throw new InvalidOperationException();
                 if (result.PointCountTree != result.Subnodes.Sum(x => x?.Value?.PointCountTree)) throw new InvalidOperationException();
 #endif
+                //pointsMergedCallback?.Invoke(result.PointCountTree);
                 return result;
             }
 
@@ -495,7 +518,10 @@ namespace Aardvark.Geometry.Points
             return result;
         }
 
-        private static PointSetNode MergeTreeAndTreeWithIdenticalRootCell(PointSetNode a, PointSetNode b, long octreeSplitLimit, CancellationToken ct)
+        private static PointSetNode MergeTreeAndTreeWithIdenticalRootCell(PointSetNode a, PointSetNode b,
+            long octreeSplitLimit, Action<long> pointsMergedCallback,
+            CancellationToken ct
+            )
         {
             if (a.IsLeaf || b.IsLeaf) throw new InvalidOperationException();
             if (a.Cell != b.Cell) throw new InvalidOperationException();
@@ -514,7 +540,7 @@ namespace Aardvark.Geometry.Points
                 {
                     if (y != null)
                     {
-                        subcells[i] = Merge(x, y, octreeSplitLimit, ct);
+                        subcells[i] = Merge(x, y, octreeSplitLimit, pointsMergedCallback, ct);
                         pointCountTree += x.PointCountTree + y.PointCountTree;
                     }
                     else
@@ -542,6 +568,7 @@ namespace Aardvark.Geometry.Points
 
             var ebb = new Box3f(subcells.Where(x => x != null).Select(x => x.BoundingBoxExactLocal));
             var result = new PointSetNode(a.Cell, pointCountTree, ebb, 0.0f, 0.0f, subcells.Map(x => x?.Id), a.Storage);
+            //pointsMergedCallback?.Invoke(result.PointCountTree);
             return result;
         }
 
