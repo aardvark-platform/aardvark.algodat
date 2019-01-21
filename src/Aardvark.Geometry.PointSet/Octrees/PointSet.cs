@@ -202,13 +202,13 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        public PointSet Merge(PointSet other, CancellationToken ct)
+        public PointSet Merge(PointSet other, Action<long> pointsMergedCallback, CancellationToken ct)
         {
             if (other.IsEmpty) return this;
             if (this.IsEmpty) return other;
             if (this.Storage != other.Storage) throw new InvalidOperationException();
 
-            var merged = Root.Value.Merge(other.Root.Value, SplitLimit, ct);
+            var merged = Root.Value.Merge(other.Root.Value, SplitLimit, pointsMergedCallback, ct);
             var id = $"{Guid.NewGuid()}.json";
             return new PointSet(Storage, id, merged.Id, SplitLimit);
         }

@@ -66,6 +66,7 @@ namespace Aardvark.Geometry.Points
 
             progress = x => config.ProgressCallback(0.5 + x * 0.5);
             var i = 0;
+            var fractionalProgress = new Dictionary<int, double>();
 
             var totalPointsToMerge = pointsets.Sum(x => x.PointCount);
             if (config.Verbose) Console.WriteLine($"[MapReduce] totalPointsToMerge: {totalPointsToMerge}");
@@ -77,13 +78,52 @@ namespace Aardvark.Geometry.Points
                 config.Storage.Add(config.Key, empty, config.CancellationToken);
                 return empty;
             }
+
+            var doneCount = 0;
+            var parts = new HashSet<PointSet>(pointsets);
             var final = pointsets.MapReduceParallel((first, second, ct2) =>
             {
-                var merged = first.Merge(second, ct2);
+                lock (parts)
+                {
+                    if (!parts.Remove(first)) throw new InvalidOperationException("map reduce error");
+                    if (!parts.Remove(second)) throw new InvalidOperationException("map reduce error");
+                }
+                
+                var id = Interlocked.Increment(ref i);
+                var firstPlusSecondPointCount = first.PointCount + second.PointCount;
 
-                var p = Interlocked.Increment(ref i);
-                progress(1.0 / (totalPointSetsCount - p + 1));
-                //Console.WriteLine($"[MapReduceParallel] {i}/{totalPointSetsCount}");
+                var lastN = 0L;
+                var merged = first.Merge(second,
+                    n =>
+                    {
+                        //Console.WriteLine($"[MERGE CALLBACK][{id}] {n:N0}");
+                        if (n > lastN)
+                        {
+                            lastN = n;
+                            var p = 0.0;
+                            lock (fractionalProgress)
+                            {
+                                fractionalProgress[id] = n / (double)firstPlusSecondPointCount;
+                                p = 1.0 / (totalPointSetsCount - (doneCount + fractionalProgress.Values.Sum()));
+                            }
+                            progress(p);
+                        }
+                    },
+                    ct2
+                    );
+
+                lock (fractionalProgress)
+                {
+                    fractionalProgress.Remove(id);
+                    Interlocked.Increment(ref doneCount);
+                }
+
+                //Console.WriteLine($"[MERGE CALLBACK][{id}] {(first.PointCount + second.PointCount) / (double)totalPointsToMerge,7:N3}");
+
+                lock (parts)
+                {
+                    parts.Add(merged);
+                }
 
                 config.Storage.Add(merged.Id, merged, ct2);
                 if (config.Verbose) Console.WriteLine($"[MapReduce] merged "
@@ -92,7 +132,6 @@ namespace Aardvark.Geometry.Points
                     );
 
                 if (merged.Root.Value.PointCountTree == 0) throw new InvalidOperationException();
-
                 return merged;
             },
             config.MaxDegreeOfParallelism

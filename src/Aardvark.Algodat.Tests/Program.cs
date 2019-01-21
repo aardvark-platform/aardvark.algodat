@@ -17,26 +17,39 @@ namespace Aardvark.Geometry.Tests
         internal static void TestE57()
         {
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
-            var filename = @"test.e57";
+            var filename = @"T:\Vgm\Data\E57\CloudCompare_Technologiezentrum_Teil1.e57";
             var fileSizeInBytes = new FileInfo(filename).Length;
 
+            var sw = new Stopwatch(); sw.Start();
+
+            var lastProgress = 0.0;
             var config = ImportConfig.Default
                 .WithInMemoryStore()
                 .WithRandomKey()
-                .WithVerbose(true)
+                .WithVerbose(false)
                 .WithMaxDegreeOfParallelism(0)
-                .WithMinDist(0.005)
+                .WithMinDist(0.0)
+                .WithEstimateNormals(ps =>
+                {
+                    //Console.WriteLine($"[NORMALS]");
+                    return Normals.EstimateNormals((V3d[])ps, 16);
+                })
+                .WithProgressCallback(x =>
+                {
+                    if (x < lastProgress) Console.WriteLine("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH"); else lastProgress = x;
+                    Console.WriteLine($"[PROGRESS]; {x,8:0.00000}; {sw.Elapsed.TotalSeconds:0.00}");
+                })
                 ;
 
-            var chunks = E57.Chunks(filename, config).ToList();
+            var chunks = E57.Chunks(filename, config);
             var pointcloud = PointCloud.Chunks(chunks, config);
             Console.WriteLine($"pointcloud.PointCount  : {pointcloud.PointCount}");
-            Console.WriteLine($"pointcloud.Bounds      :{pointcloud.Bounds}");
-            Console.WriteLine($"pointcloud.BoundingBox :{pointcloud.BoundingBox}");
+            Console.WriteLine($"pointcloud.Bounds      : {pointcloud.Bounds}");
+            Console.WriteLine($"pointcloud.BoundingBox : {pointcloud.BoundingBox}");
 
-            var leafLodPointCount = 0L;
-            pointcloud.Root.Value.ForEachNode(true, n => { if (n.IsLeaf) leafLodPointCount += n.LodPositionsAbsolute.Length; });
-            Console.WriteLine($"leaf lod point count :{leafLodPointCount}");
+            //var leafLodPointCount = 0L;
+            //pointcloud.Root.Value.ForEachNode(true, n => { if (n.IsLeaf) leafLodPointCount += n.LodPositionsAbsolute.Length; });
+            //Console.WriteLine($"leaf lod point count :{leafLodPointCount}");
 
             //foreach (var chunk in chunks)
             //{
@@ -46,8 +59,8 @@ namespace Aardvark.Geometry.Tests
             //    }
             //}
 
-            Console.WriteLine($"chunks point count: {chunks.Sum(x => x.Positions.Count)}");
-            Console.WriteLine($"chunks bounds     : {new Box3d(chunks.SelectMany(x => x.Positions))}");
+            //Console.WriteLine($"chunks point count: {chunks.Sum(x => x.Positions.Count)}");
+            //Console.WriteLine($"chunks bounds     : {new Box3d(chunks.SelectMany(x => x.Positions))}");
 
             //using (var w = File.CreateText("test.txt"))
             //{
