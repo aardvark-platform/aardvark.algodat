@@ -98,10 +98,10 @@ namespace Aardvark.Geometry.Points
                             }
                     }
 
-                    if (value is Array || value is PointRkdTreeDData)
+                    if (storeOnCreation && (value is Array || value is PointRkdTreeDData))
                     {
                         if (storeOnCreation) storage.StoreAttribute(name, attributeKey, value);
-                        m_pRefs[name] = storage.CreatePersistentRef(name, attributeKey, value);
+                        m_pRefs[name] = storage.CreatePersistentRef(name, attributeKey, null);
                     }
                     else
                     {

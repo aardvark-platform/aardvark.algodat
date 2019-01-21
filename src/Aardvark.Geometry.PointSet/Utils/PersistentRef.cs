@@ -29,7 +29,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public PersistentRef(string id, Func<string, T> get, Func<string, (bool, T)> tryGet)
         {
-            Id = id ?? throw new ArgumentNullException(nameof(id));
+            Id = id; //?? throw new ArgumentNullException(nameof(id));
             f_get = get ?? throw new ArgumentNullException(nameof(get));
             f_tryGet = tryGet ?? throw new ArgumentNullException(nameof(tryGet));
         }
@@ -44,6 +44,11 @@ namespace Aardvark.Geometry.Points
                 (s => { var (w, t) = tryGet(s); return w ? (w, (A)(object)t) : (false, default(A)); })
             );
 
+        }
+
+        public static PersistentRef<T> FromValue(T value)
+        {
+            return new PersistentRef<T>(null, s => value, s => (true, value));
         }
 
 

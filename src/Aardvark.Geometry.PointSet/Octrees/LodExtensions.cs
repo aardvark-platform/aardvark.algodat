@@ -208,7 +208,7 @@ namespace Aardvark.Geometry.Points
 
             var lodKdId = Guid.NewGuid();
             self.Storage.Add(lodKdId, lodKd.Data);
-            attributes.Add((PointCloudAttribute.KdTree, lodKdId.ToString(), lodKd.Data));
+            attributes.Add((PointCloudAttribute.KdTree, lodKdId.ToString(), lodKd));
 
             var lodCsId = needsCs ? (Guid?)Guid.NewGuid() : null;
             if (needsCs)

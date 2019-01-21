@@ -49,6 +49,7 @@ namespace Aardvark.Geometry.Tests
         }
 
         [Test]
+        [Ignore("not implemented yet")]
         public void LinkedNode_LinkToOldPointSetNode()
         {
             var storepath = Path.Combine(Config.TempDataDir, Guid.NewGuid().ToString());

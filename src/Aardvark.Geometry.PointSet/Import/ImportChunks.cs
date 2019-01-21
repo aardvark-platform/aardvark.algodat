@@ -25,6 +25,37 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public static partial class PointCloud
     {
+
+        private static IEnumerable<Chunk> MergeSmall(int limit, IEnumerable<Chunk> input)
+        {
+            Chunk? current = null;
+            foreach(var c in input)
+            {
+                if(c.Count < limit)
+                {
+                    if (current.HasValue) current = current.Value.Union(c);
+                    else current = c;
+
+                    if (current.Value.Count >= limit)
+                    {
+                        yield return current.Value;
+                        current = null;
+                    }
+
+                }
+                else
+                {
+                    yield return c;
+                }
+            }
+
+            if (current.HasValue)
+            {
+                yield return current.Value;
+                current = null;
+            }
+        }
+
         /// <summary>
         /// Imports single chunk.
         /// </summary>
@@ -36,6 +67,9 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PointSet Chunks(IEnumerable<Chunk> chunks, ImportConfig config)
         {
+            chunks = MergeSmall(config.OctreeSplitLimit, chunks);
+
+
             config?.ProgressCallback(0.0);
 
             // optionally filter minDist
@@ -72,6 +106,8 @@ namespace Aardvark.Geometry.Points
 
                 chunks = chunks.MapParallel(map, config.MaxDegreeOfParallelism, null, config.CancellationToken);
             }
+
+            //var foo = chunks.ToArray();
 
             // reduce all chunks to single PointSet
             var final = chunks

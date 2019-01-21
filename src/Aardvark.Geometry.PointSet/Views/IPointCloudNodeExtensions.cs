@@ -59,16 +59,31 @@ namespace Aardvark.Geometry.Points
         
         /// <summary></summary>
         public static bool HasClassifications(this IPointCloudNode self) => Has(self, PointCloudAttribute.Classifications);
-        
+
         #endregion
 
         #region Get*
 
+        private static PersistentRef<T> GetValue<T>(IPointCloudNode self, string key) where T : class
+        {
+            if (self.TryGetPropertyValue(key, out object value))
+            {
+                var arr = value as T;
+                if (arr != null) return PersistentRef<T>.FromValue(arr);
+
+                var pref = value as PersistentRef<T>;
+                if (pref != null) return pref;
+            }
+
+            return null;
+
+        }
+
         /// <summary>
         /// Point positions relative to cell's center, or null if no positions.
         /// </summary>
-        public static PersistentRef<V3f[]> GetPositions(this IPointCloudNode self)
-            => self.TryGetPropertyValue(PointCloudAttribute.Positions, out object value) ? (PersistentRef<V3f[]>)value : null;
+        public static PersistentRef<V3f[]> GetPositions(this IPointCloudNode self) =>
+            GetValue<V3f[]>(self, PointCloudAttribute.Positions);
 
         /// <summary>
         /// Point positions (absolute), or null if no positions.
@@ -84,29 +99,59 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// </summary>
         public static PersistentRef<PointRkdTreeD<V3f[], V3f>> GetKdTree(this IPointCloudNode self)
-            => self.TryGetPropertyValue(PointCloudAttribute.KdTree, out object value) ? (PersistentRef<PointRkdTreeD<V3f[], V3f>>)value : null;
+        {
+            var res = GetValue<PointRkdTreeD<V3f[], V3f>>(self, PointCloudAttribute.KdTree);
+            if (res != null) return res;
+
+            var data = GetValue<PointRkdTreeDData>(self, PointCloudAttribute.KdTree);
+            if(data != null)
+            {
+                var ps = GetPositions(self);
+                PointRkdTreeD<V3f[], V3f> Get(string id)
+                {
+                    var pos = ps.Value;
+                    return new PointRkdTreeD<V3f[], V3f>(
+                        3, pos.Length, pos,
+                        (xs, i) => xs[(int)i], (v, i) => (float)v[i],
+                        (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
+                        (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, 1e-9,
+                        data.Value
+                    );
+                }
+
+
+                (bool, PointRkdTreeD<V3f[], V3f>) TryGet(string id)
+                {
+                    return (true, Get(id));
+                }
+
+                return new PersistentRef<PointRkdTreeD<V3f[], V3f>>(data.Id, Get, TryGet);
+            }
+
+            return null;
+        }
 
         /// <summary>
         /// Point colors, or null if no points.
         /// </summary>
         public static PersistentRef<C4b[]> GetColors(this IPointCloudNode self)
-            => self.TryGetPropertyValue(PointCloudAttribute.Colors, out object value) ? (PersistentRef<C4b[]>)value : null;
+            => GetValue<C4b[]>(self, PointCloudAttribute.Colors);
 
         /// <summary>
         /// </summary>
         public static PersistentRef<V3f[]> GetNormals(this IPointCloudNode self)
-            => self.TryGetPropertyValue(PointCloudAttribute.Normals, out object value) ? (PersistentRef<V3f[]>)value : null;
+            => GetValue<V3f[]>(self, PointCloudAttribute.Normals);
 
         /// <summary>
         /// </summary>
         public static PersistentRef<int[]> GetIntensities(this IPointCloudNode self)
-            => self.TryGetPropertyValue(PointCloudAttribute.Intensities, out object value) ? (PersistentRef<int[]>)value : null;
+            => GetValue<int[]>(self, PointCloudAttribute.Intensities);
 
         /// <summary>
         /// </summary>
         public static PersistentRef<byte[]> GetClassifications(this IPointCloudNode self)
-            => self.TryGetPropertyValue(PointCloudAttribute.Classifications, out object value) ? (PersistentRef<byte[]>)value : null;
-        
+            => GetValue<byte[]>(self, PointCloudAttribute.Classifications);
+
         #endregion
 
         #region Storage

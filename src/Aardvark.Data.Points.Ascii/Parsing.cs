@@ -16,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -48,10 +49,12 @@ namespace Aardvark.Data.Points
             )
         {
             // importing file
-            return stream
+            var result = stream
                 .ChunkStreamAtNewlines(streamLengthInBytes, config.ReadBufferSizeInBytes, config.CancellationToken)
                 .ParseBuffers(streamLengthInBytes, lineParser, config.MinDist, config.MaxDegreeOfParallelism, config.Verbose, config.CancellationToken)
                 ;
+            //var foo = result.ToArray();
+            return result;
         }
 
         /// <summary>
@@ -142,8 +145,10 @@ namespace Aardvark.Data.Points
             var sampleCountYielded = 0L;
             var totalBytesRead = 0L;
             var bounds = Box3d.Invalid;
-            
-            return buffers.MapParallel((buffer, ct2) =>
+
+            //var foo2 = buffers.ToArray();
+
+            var result = buffers.MapParallel((buffer, ct2) =>
             {
                 var optionalSamples = parser(buffer.Data, buffer.Count, minDist);
                 if (!optionalSamples.HasValue) return Chunk.Empty;
@@ -176,6 +181,9 @@ namespace Aardvark.Data.Points
             })
             .WhereNotNull()
             ;
+
+            //var foo = result.ToArray();
+            return result;
         }
     }
 }

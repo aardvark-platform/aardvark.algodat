@@ -23,6 +23,16 @@ namespace Aardvark.Data.Points
     /// </summary>
     public struct Chunk
     {
+
+        private static IList<T> Append<T>(IList<T> l, IList<T> r)
+        {
+            if (l == null || r == null) return null;
+
+            var ll = new List<T>(l);
+            ll.AddRange(r);
+            return (List<T>)ll;
+        }
+
         /// <summary></summary>
         public static readonly Chunk Empty = new Chunk();
 
@@ -85,6 +95,19 @@ namespace Aardvark.Data.Points
             Classifications = classifications;
             BoundingBox = bbox ?? new Box3d(positions);
         }
+
+        public Chunk Union(Chunk other)
+        {
+            return new Chunk(
+                Append(Positions, other.Positions),
+                Append(Colors, other.Colors),
+                Append(Normals, other.Normals),
+                Append(Intensities, other.Intensities),
+                Append(Classifications, other.Classifications),
+                Box3d.Union(BoundingBox, other.BoundingBox)
+            );
+        }
+
 
         /// <summary>
         /// Immutable update of positions.

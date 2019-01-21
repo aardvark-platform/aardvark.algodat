@@ -173,9 +173,9 @@ namespace Aardvark.Geometry.Points
             var id = (string)json["Id"];
 
             //
-            var rootType = (string)json["RootType"] ?? typeof(PointSetNode).ToString();
+            var rootType = (string)json["RootType"] ?? typeof(PointSetNode).Name;
             if (rootType == "PointSetNode")
-                return new PointSet(storage, id, Guid.Parse(octreeId), splitLimit); // backwards compatibility
+                return new PointSet(storage, id, octreeId == null ? (Guid?)null: Guid.Parse(octreeId), splitLimit); // backwards compatibility
             else
             {
                 return new PointSet(storage, resolver, id, octree.Value, splitLimit);
@@ -254,6 +254,7 @@ namespace Aardvark.Geometry.Points
             if (this.IsEmpty) return other;
             if (this.Storage != other.Storage) throw new InvalidOperationException();
 
+            
 
             if (Octree.Value is PointSetNode root && other.Octree.Value is PointSetNode otherRoot)
             {

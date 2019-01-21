@@ -101,6 +101,14 @@ namespace Aardvark.Geometry.Points
             return result;
         }
 
+        private static T[] Append<T>(T[] left, T[] right)
+        {
+            var res = new T[left.Length + right.Length];
+            left.CopyTo(0, left.Length, res, 0);
+            right.CopyTo(0, right.Length, res, left.Length);
+            return res;
+        }
+
         /// <summary>
         /// Returns union of trees as new tree (immutable operation).
         /// </summary>
@@ -112,9 +120,48 @@ namespace Aardvark.Geometry.Points
             if (a == null || a.PointCountTree == 0) { pointsMergedCallback?.Invoke(b?.PointCountTree ?? 0); return b; }
             if (b == null || b.PointCountTree == 0) { pointsMergedCallback?.Invoke(a?.PointCountTree ?? 0); return a; }
 
-#if DEBUG
-            var debugPointCountTree = a.PointCountTree + b.PointCountTree;
-#endif
+            var totalPointCountTree = a.PointCountTree + b.PointCountTree;
+            if (totalPointCountTree <= octreeSplitLimit)
+            {
+                var storage = a.Storage;
+                var ac = a.Center;
+                var bc = b.Center;
+
+                var psAbs = a.HasPositions && b.HasPositions ? Append(a.Positions.Value.Map(p => (V3d)p + ac), b.Positions.Value.Map(p => (V3d)p + bc)) : null;
+                var ns = a.HasNormals && b.HasNormals ? Append(a.Normals.Value, b.Normals.Value) : null;
+                var cs = a.HasColors && b.HasColors ? Append(a.Colors.Value, b.Colors.Value) : null;
+                var js = a.HasIntensities && b.HasIntensities ? Append(a.Intensities.Value, b.Intensities.Value) : null;
+                var ks = a.HasClassifications && b.HasClassifications ? Append(a.Classifications.Value, b.Classifications.Value) : null;
+
+                Guid? psId = psAbs != null ? Guid.NewGuid() : (Guid?)null;
+                Guid? kId = psAbs != null ? Guid.NewGuid() : (Guid?)null;
+                Guid? nsId = ns != null ? Guid.NewGuid() : (Guid?)null;
+                Guid? csId = cs != null ? Guid.NewGuid() : (Guid?)null;
+                Guid? jsId = js != null ? Guid.NewGuid() : (Guid?)null;
+                Guid? ksId = ks != null ? Guid.NewGuid() : (Guid?)null;
+
+
+                var cell = new Cell(psAbs);
+                var center = cell.BoundingBox.Center;
+
+                var ps = psAbs.Map(p => (V3f)(p - center));
+                var kd = kId.HasValue ? ps.BuildKdTree() : null;
+
+                if (psId.HasValue) storage.Add(psId.Value, ps);
+                if (nsId.HasValue) storage.Add(nsId.Value, ns);
+                if (csId.HasValue) storage.Add(csId.Value, cs);
+                if (jsId.HasValue) storage.Add(jsId.Value, js);
+                if (ksId.HasValue) storage.Add(ksId.Value, ks);
+                if (kId.HasValue) storage.Add(kId.Value, kd.Data);
+
+                var node =
+                    new PointSetNode(
+                        cell, totalPointCountTree, ImmutableDictionary<Guid, object>.Empty, 
+                        psId, csId, kId, nsId, jsId, ksId, storage
+                    );
+                return node;
+            }
+
 
             // if A and B have identical root cells, then merge ...
             if (a.Cell == b.Cell)
@@ -135,7 +182,7 @@ namespace Aardvark.Geometry.Points
                 var rootCell = new Cell(new Box3d(a.BoundingBox, b.BoundingBox));
                 var result = JoinNonOverlappingTrees(rootCell, a, b, octreeSplitLimit, pointsMergedCallback, ct);
 #if DEBUG
-                if (result.PointCountTree != debugPointCountTree) throw new InvalidOperationException();
+                if (result.PointCountTree != totalPointCountTree) throw new InvalidOperationException();
 #endif
                 pointsMergedCallback?.Invoke(a.PointCountTree + b.PointCountTree);
                 return result;
@@ -243,7 +290,7 @@ namespace Aardvark.Geometry.Points
             {
                 var result = Merge(b, a, octreeSplitLimit, pointsMergedCallback, ct);
 #if DEBUG
-                if (result.PointCountTree != debugPointCountTree) throw new InvalidOperationException();
+                if (result.PointCountTree != totalPointCountTree) throw new InvalidOperationException();
 #endif
                 return result;
             }

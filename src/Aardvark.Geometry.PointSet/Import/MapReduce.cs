@@ -29,6 +29,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PointSet MapReduce(this IEnumerable<Chunk> chunks, ImportConfig config)
         {
+            //var foo = chunks.ToArray();
             var totalChunkCount = 0;
             var totalPointCountInChunks = 0L;
             Action<double> progress = x => config.ProgressCallback(x * 0.5);
