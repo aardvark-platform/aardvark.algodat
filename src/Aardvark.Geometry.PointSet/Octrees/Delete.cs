@@ -13,6 +13,7 @@
 */
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using Aardvark.Base;
@@ -119,7 +120,7 @@ namespace Aardvark.Geometry.Points
 
             var newSubnodes = node.Subnodes?.Map(n => n?.Value.Delete(isNodeFullyInside, isNodeFullyOutside, isPositionInside, ct));
             if (newSubnodes?.All(n => n == null) == true) return null;
-            return node.WithData(ps.Count, newPsId, newCsId, newNsId, newIsId, newKdId, newKsId, newSubnodes);
+            return node.WithData(ImmutableDictionary<Guid, object>.Empty, ps.Count, newPsId, newCsId, newNsId, newIsId, newKdId, newKsId, newSubnodes);
         }
     }
 }

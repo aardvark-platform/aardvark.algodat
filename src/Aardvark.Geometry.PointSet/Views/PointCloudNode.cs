@@ -16,6 +16,7 @@ using Aardvark.Data.Points;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 
 namespace Aardvark.Geometry.Points
@@ -34,6 +35,15 @@ namespace Aardvark.Geometry.Points
             string id, Cell cell, Box3d boundingBoxExact, long pointCountTree, PersistentRef<IPointCloudNode>[] subnodes, bool storeOnCreation,
             params (string attributeName, string attributeKey, object attributeValue)[] attributes
             )
+            : this(storage, id, cell, boundingBoxExact, pointCountTree, subnodes, storeOnCreation, ImmutableDictionary<Guid, object>.Empty, attributes)
+        { }
+        /// <summary>
+        /// </summary>
+        public PointCloudNode(Storage storage,
+            string id, Cell cell, Box3d boundingBoxExact, long pointCountTree, PersistentRef<IPointCloudNode>[] subnodes, bool storeOnCreation,
+            ImmutableDictionary<Guid, object> cellAttributes,
+            params (string attributeName, string attributeKey, object attributeValue)[] attributes
+            )
         {
             Storage = storage;
             Id = id;
@@ -42,6 +52,7 @@ namespace Aardvark.Geometry.Points
             BoundingBoxExact = boundingBoxExact;
             PointCountTree = pointCountTree;
             SubNodes = subnodes;
+            CellAttributes = cellAttributes;
 
             if (attributes != null)
             {
@@ -109,6 +120,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         private PointCloudNode(Storage storage,
             string id, Cell cell, Box3d boundingBoxExact, long pointCountTree, PersistentRef<IPointCloudNode>[] subnodes,
+            ImmutableDictionary<Guid, object> cellAttributes,
             params (string attributeName, string attributeKey)[] attributes
             )
         {
@@ -119,6 +131,7 @@ namespace Aardvark.Geometry.Points
             BoundingBoxExact = boundingBoxExact;
             PointCountTree = pointCountTree;
             SubNodes = subnodes;
+            CellAttributes = cellAttributes;
 
             if (attributes != null)
             {
@@ -130,8 +143,8 @@ namespace Aardvark.Geometry.Points
             }
         }
 
-        private readonly Dictionary<string, string> m_pIds = new Dictionary<string, string>();
-        private readonly Dictionary<string, object> m_pRefs = new Dictionary<string, object>();
+        private Dictionary<string, string> m_pIds = new Dictionary<string, string>();
+        private Dictionary<string, object> m_pRefs = new Dictionary<string, object>();
 
         /// <summary></summary>
         public Storage Storage { get; }
@@ -159,6 +172,9 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public PersistentRef<IPointCloudNode>[] SubNodes { get; }
+
+        /// <summary></summary>
+        public ImmutableDictionary<Guid, object> CellAttributes { get; }
 
         /// <summary></summary>
         public bool TryGetPropertyKey(string property, out string key) => m_pIds.TryGetValue(property, out key);
@@ -204,7 +220,7 @@ namespace Aardvark.Geometry.Points
                 : null
                 );
 
-            return new PointCloudNode(storage, id, cell, boundingBoxExact, pointCountTree, subnodes, attributes);
+            return new PointCloudNode(storage, id, cell, boundingBoxExact, pointCountTree, subnodes, ImmutableDictionary<Guid, object>.Empty, attributes);
         }
 
         /// <summary></summary>
@@ -231,13 +247,38 @@ namespace Aardvark.Geometry.Points
             TryAdd(PointCloudAttribute.Normals, normalsId);
             TryAdd(PointCloudAttribute.Positions, positionsId);
 
-            return new PointCloudNode(Storage, Id, Cell, BoundingBoxExact, PointCountTree, SubNodes, attributes.ToArray());
+            return new PointCloudNode(Storage, Id, Cell, BoundingBoxExact, PointCountTree, SubNodes, CellAttributes, attributes.ToArray());
 
             void TryAdd(string attributeName, string id)
             {
                 if (id == null) return;
                 if (m_pIds.ContainsKey(attributeName)) throw new InvalidOperationException();
                 attributes.Add((attributeName, id));
+            }
+        }
+
+        internal PointCloudNode WithCellAttributes(ImmutableDictionary<Guid, object> atts)
+        {
+            var dict = CellAttributes;
+            foreach (var kvp in atts) dict = dict.Add(kvp.Key, kvp.Value);
+
+            var res = new PointCloudNode(Storage, Id, Cell, BoundingBoxExact, PointCountTree, SubNodes, dict);
+            res.m_pIds = m_pIds;
+            res.m_pRefs = m_pRefs;
+            return res;
+        }
+
+        public bool TryGetCellAttribute<T>(Guid id, out T value)
+        {
+            if(CellAttributes.TryGetValue(id, out object v) && v is T)
+            {
+                value = (T)v;
+                return true;
+            }
+            else
+            {
+                value = default(T);
+                return false;
             }
         }
 

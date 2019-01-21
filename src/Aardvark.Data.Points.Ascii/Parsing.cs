@@ -32,7 +32,7 @@ namespace Aardvark.Data.Points
         /// Parses ASCII lines file.
         /// </summary>
         internal static IEnumerable<Chunk> AsciiLines(Func<byte[], int, double, Chunk?> lineParser,
-            string filename, ImportConfig config
+            string filename, ParseConfig config
             )
         {
             var fileSizeInBytes = new FileInfo(filename).Length;
@@ -44,7 +44,7 @@ namespace Aardvark.Data.Points
         /// Parses ASCII lines stream.
         /// </summary>
         internal static IEnumerable<Chunk> AsciiLines(Func<byte[], int, double, Chunk?> lineParser,
-            Stream stream, long streamLengthInBytes, ImportConfig config
+            Stream stream, long streamLengthInBytes, ParseConfig config
             )
         {
             // importing file

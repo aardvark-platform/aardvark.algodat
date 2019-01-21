@@ -14,6 +14,8 @@
 using Aardvark.Base;
 using Aardvark.Data.Points;
 using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 
@@ -134,7 +136,7 @@ namespace Aardvark.Geometry.Points
         {
             var nodeCount = self.Octree?.Value?.CountNodes() ?? 0;
             var loddedNodesCount = 0L;
-            var result = self.GenerateLod(config.Key, () =>
+            var result = self.GenerateLod(config, () =>
             {
                 config.CancellationToken.ThrowIfCancellationRequested();
                 var i = Interlocked.Increment(ref loddedNodesCount);
@@ -149,11 +151,13 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        private static PointSet GenerateLod(this PointSet self, string key, Action callback, int maxLevelOfParallelism, CancellationToken ct)
+        private static PointSet GenerateLod(this PointSet self, ImportConfig config, Action callback, int maxLevelOfParallelism, CancellationToken ct)
         {
+            var key = config.Key;
+
             if (self.IsEmpty) return self;
 #pragma warning disable CS0618 // Type or member is obsolete
-            var lod = self.Root.Value.GenerateLod(self.SplitLimit, callback, ct);
+            var lod = self.Root.Value.GenerateLod(config, self.SplitLimit, callback, ct);
 #pragma warning restore CS0618 // Type or member is obsolete
             var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit);
             self.Storage.Add(key, result);
@@ -162,7 +166,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        private static PointSetNode GenerateLod(this PointSetNode self, int splitLimit, Action callback, CancellationToken ct)
+        private static PointSetNode GenerateLod(this PointSetNode self, ImportConfig config, int splitLimit, Action callback, CancellationToken ct)
         {
             if (self == null) throw new ArgumentNullException(nameof(self));
 
@@ -176,7 +180,7 @@ namespace Aardvark.Geometry.Points
 
             if (self.Subnodes == null || self.Subnodes.Length != 8) throw new InvalidOperationException();
 
-            var subcells = self.Subnodes.Map(x => x?.Value.GenerateLod(splitLimit, callback, ct));
+            var subcells = self.Subnodes.Map(x => x?.Value.GenerateLod(config, splitLimit, callback, ct));
             var subcenters = subcells.Map(x => x?.Center);
             var subcellsTotalCount = (long)subcells.Sum(x => x?.PointCountTree);
 
@@ -196,26 +200,62 @@ namespace Aardvark.Geometry.Points
             var lodKs = needsKs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetClassifications()?.Value)) : null;
             var lodKd = lodPs.BuildKdTree();
 
+            var attributes = new List<(string, string, object)>();
             // store LoD data ...
             var lodPsId = Guid.NewGuid();
             self.Storage.Add(lodPsId, lodPs);
+            attributes.Add((PointCloudAttribute.Positions, lodPsId.ToString(), lodPs));
 
             var lodKdId = Guid.NewGuid();
             self.Storage.Add(lodKdId, lodKd.Data);
-            
+            attributes.Add((PointCloudAttribute.KdTree, lodKdId.ToString(), lodKd.Data));
+
             var lodCsId = needsCs ? (Guid?)Guid.NewGuid() : null;
-            if (needsCs) self.Storage.Add(lodCsId.Value, lodCs);
+            if (needsCs)
+            {
+                self.Storage.Add(lodCsId.Value, lodCs);
+                attributes.Add((PointCloudAttribute.Colors, lodCsId.Value.ToString(), lodCs));
+            }
 
             var lodNsId = needsNs ? (Guid?)Guid.NewGuid() : null;
-            if (needsNs) self.Storage.Add(lodNsId.Value, lodNs);
+            if (needsNs)
+            {
+                self.Storage.Add(lodNsId.Value, lodNs);
+                attributes.Add((PointCloudAttribute.Normals, lodNsId.Value.ToString(), lodNs));
+            }
+
 
             var lodIsId = needsIs ? (Guid?)Guid.NewGuid() : null;
-            if (needsIs) self.Storage.Add(lodIsId.Value, lodIs);
+            if (needsIs)
+            {
+                self.Storage.Add(lodIsId.Value, lodIs);
+                attributes.Add((PointCloudAttribute.Intensities, lodIsId.Value.ToString(), lodIs));
+            }
 
             var lodKsId = needsKs ? (Guid?)Guid.NewGuid() : null;
-            if (needsKs) self.Storage.Add(lodKsId.Value, lodKs);
+            if (needsKs)
+            {
+                self.Storage.Add(lodKsId.Value, lodKs);
+                attributes.Add((PointCloudAttribute.Classifications, lodKsId.Value.ToString(), lodKs));
+            }
 
-            var result = self.WithData(subcellsTotalCount, lodPsId, lodCsId, lodNsId, lodIsId, lodKdId, lodKsId, subcells);
+
+            PointCloudNode node = 
+                new PointCloudNode(
+                    self.Storage, null, self.Cell, self.BoundingBox,
+                    self.PointCountTree, self.Subnodes.Map(a => a == null ? null : a.Cast<IPointCloudNode>()), false,
+                    ImmutableDictionary<Guid, object>.Empty,
+                    attributes.ToArray()
+                );
+            
+            foreach(var att in config.CellAttributes)
+            {
+                // TODO: !!!!proper node!!!!!
+                var dict = node.CellAttributes.Add(att.Id, att.ComputeValue(node));
+                node = node.WithCellAttributes(dict);
+            }
+
+            var result = self.WithData(node.CellAttributes, subcellsTotalCount, lodPsId, lodCsId, lodNsId, lodIsId, lodKdId, lodKsId, subcells);
             return result;
         }
 

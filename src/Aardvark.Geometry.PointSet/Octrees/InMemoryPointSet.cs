@@ -15,6 +15,7 @@ using Aardvark.Base;
 using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -115,10 +116,6 @@ namespace Aardvark.Geometry.Points
                 byte[] ks = null;
                 PointRkdTreeD<V3f[], V3f> kdTree = null;
                 
-                Box3f? bbel = null;
-                float? pointDistanceAverage = null;
-                float? pointDistanceStandardDeviation = null;
-
                 if (_ia != null)
                 {
                     var allPs = _octree.m_ps;
@@ -126,7 +123,6 @@ namespace Aardvark.Geometry.Points
 
                     ps = new V3f[count];
                     for (var i = 0; i < count; i++) ps[i] = (V3f)(allPs[_ia[i]] - center);
-                    bbel = new Box3f(ps);
 
                     if (_octree.m_cs != null)
                     {
@@ -162,25 +158,7 @@ namespace Aardvark.Geometry.Points
                         (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
                         (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, kdTreeEps
                         );
-
-                    var halfDiagonal = bbel.Value.Size.Length / 2.0f;
-                    var dists = new float[ps.Length];
-                    var sum = 0.0f;
-                    for (var i = 0; i < ps.Length; i++)
-                    {
-                        var closest = kdTree.GetClosest(ps[i], halfDiagonal, 2);
-                        var d = (float)closest[0].Dist;
-                        dists[i] = d;
-                        sum += d;
-                    }
-                    pointDistanceAverage = sum / ps.Length;
-                    sum = 0.0f;
-                    for (var i = 0; i < ps.Length; i++)
-                    {
-                        var d = dists[i] - pointDistanceAverage.Value;
-                        sum += d * d;
-                    }
-                    pointDistanceStandardDeviation = (float)Math.Sqrt(sum);
+                    
                 }
 
                 Guid? psId = ps != null ? (Guid?)Guid.NewGuid() : null;
@@ -192,12 +170,6 @@ namespace Aardvark.Geometry.Points
                 
                 var subcells = _subnodes?.Map(x => x?.ToPointSetCell(storage, ct, kdTreeEps));
                 var subcellIds = subcells?.Map(x => x?.Id);
-
-                if (subcells != null)
-                {
-                    var ebbGlobal = new Box3d(subcells.Where(x => x != null).Select(x => ((IPointCloudNode)x).BoundingBoxExact));
-                    bbel = new Box3f(new V3f(ebbGlobal.Min - center), new V3f(ebbGlobal.Max - center));
-                }
 
 #if DEBUG
                 if (ps != null && _subnodes != null) throw new InvalidOperationException();
@@ -214,15 +186,16 @@ namespace Aardvark.Geometry.Points
                 if (ksId != null) storage.Add(ksId.ToString(), ks);
                 if (kdId != null) storage.Add(kdId.ToString(), kdTree.Data);
 
+
+
                 if (subcellIds == null) // leaf
                 {
-                    return new PointSetNode(_cell, pointCountTree, bbel.Value,
-                        pointDistanceAverage.Value, pointDistanceStandardDeviation.Value,
+                    return new PointSetNode(_cell, pointCountTree, ImmutableDictionary<Guid, object>.Empty,
                         psId, csId, kdId, nsId, isId, ksId, storage);
                 }
                 else
                 {
-                    return new PointSetNode(_cell, pointCountTree, bbel.Value, 0.0f, 0.0f, subcellIds, storage);
+                    return new PointSetNode(_cell, pointCountTree, ImmutableDictionary<Guid, object>.Empty, subcellIds, storage);
                 }
             }
             

@@ -360,7 +360,7 @@ namespace Aardvark.Geometry.Tests
             var filename = Path.Combine(Config.TestDataDir, "test.pts");
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
             TestContext.WriteLine($"testfile is '{filename}'");
-            var info = PointCloud.ParseFileInfo(filename, ImportConfig.Default);
+            var info = PointCloud.ParseFileInfo(filename, ImportConfig.Default.ParseConfig);
 
             Assert.IsTrue(info.PointCount == 3);
             Assert.IsTrue(info.Bounds == new Box3d(new V3d(1), new V3d(9)));
@@ -371,7 +371,7 @@ namespace Aardvark.Geometry.Tests
         {
             var filename = Path.Combine(Config.TestDataDir, "test.pts");
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
-            var ps = PointCloud.Parse(filename, ImportConfig.Default)
+            var ps = PointCloud.Parse(filename, ImportConfig.Default.ParseConfig)
                 .SelectMany(x => x.Positions)
                 .ToArray()
                 ;
@@ -452,7 +452,7 @@ namespace Aardvark.Geometry.Tests
                 .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 ;
-            var ptsChunks = Data.Points.Import.Pts.Chunks(filename, config);
+            var ptsChunks = Data.Points.Import.Pts.Chunks(filename, config.ParseConfig);
             var pointset = PointCloud.Chunks(ptsChunks, config);
             Assert.IsTrue(pointset.Id == "test");
             var pointset2 = config.Storage.GetPointSet("test", IdentityResolver.Default);
@@ -468,7 +468,7 @@ namespace Aardvark.Geometry.Tests
         public void CanParseE57FileInfo()
         {
             var filename = Path.Combine(Config.TestDataDir, "test.e57");
-            var info = PointCloud.ParseFileInfo(filename, ImportConfig.Default);
+            var info = PointCloud.ParseFileInfo(filename, ParseConfig.Default);
 
             Assert.IsTrue(info.PointCount == 3);
             Assert.IsTrue(info.Bounds == new Box3d(new V3d(1), new V3d(9)));
@@ -478,7 +478,7 @@ namespace Aardvark.Geometry.Tests
         public void CanParseE57File()
         {
             var filename = Path.Combine(Config.TestDataDir, "test.e57");
-            var ps = PointCloud.Parse(filename, ImportConfig.Default)
+            var ps = PointCloud.Parse(filename, ParseConfig.Default)
                 .SelectMany(x => x.Positions)
                 .ToArray()
                 ;

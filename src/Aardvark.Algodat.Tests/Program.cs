@@ -41,7 +41,7 @@ namespace Aardvark.Geometry.Tests
                 })
                 ;
 
-            var chunks = E57.Chunks(filename, config);
+            var chunks = E57.Chunks(filename, config.ParseConfig);
             var pointcloud = PointCloud.Chunks(chunks, config);
             Console.WriteLine($"pointcloud.PointCount  : {pointcloud.PointCount}");
             Console.WriteLine($"pointcloud.Bounds      : {pointcloud.Bounds}");
@@ -117,7 +117,7 @@ namespace Aardvark.Geometry.Tests
 
         internal static void TestImportPts(string filename)
         {
-            var chunks = Pts.Chunks(filename, ImportConfig.Default);
+            var chunks = Pts.Chunks(filename, ParseConfig.Default);
 
             Console.WriteLine(filename);
             var sw = new Stopwatch();

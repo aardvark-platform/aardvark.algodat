@@ -15,6 +15,7 @@ using Aardvark.Base;
 using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 
@@ -88,8 +89,7 @@ namespace Aardvark.Geometry.Points
                 subnodes[i] = subnode;
             }
 
-            var result = new PointSetNode(cell.Cell, imax, cell.BoundingBoxExactLocal,
-                cell.PointDistanceAverage, cell.PointDistanceStandardDeviation,
+            var result = new PointSetNode(cell.Cell, imax, cell.CustomAttributes,
                 subnodes.Map(x => x?.Id), cell.Storage);
 
             // POST
@@ -223,9 +223,10 @@ namespace Aardvark.Geometry.Points
                 }
 
                 var pointCountTree = roots.Where(x => x != null).Sum(x => x.PointCountTree);
-                var ebb = new Box3f(roots.Where(x => x != null).Select(x => x.BoundingBoxExactLocal));
                 pointsMergedCallback?.Invoke(pointCountTree);
-                return new PointSetNode(rootCell, pointCountTree, ebb, 0.0f, 0.0f, roots.Map(n => n?.Id), a.Storage);
+                
+
+                return new PointSetNode(rootCell, pointCountTree, ImmutableDictionary<Guid, object>.Empty, roots.Map(n => n?.Id), a.Storage);
                 //return new PointSetNode(rootCell, pointCountTree, roots.Map(n => n?.Id), a.Storage);
             }
 #if DEBUG
@@ -400,8 +401,8 @@ namespace Aardvark.Geometry.Points
                         }
                     }
                 }
-                var ebb = new Box3f(subcells.Where(x => x != null).Select(x => x.BoundingBoxExactLocal));
-                var result = new PointSetNode(rootCell, a.PointCountTree + b.PointCountTree, ebb, 0.0f, 0.0f, subcells.Map(x => x?.Id), a.Storage);
+
+                var result = new PointSetNode(rootCell, a.PointCountTree + b.PointCountTree, ImmutableDictionary<Guid, object>.Empty, subcells.Map(x => x?.Id), a.Storage);
 #if DEBUG
                 if (result.PointCountTree != a.PointCountTree + b.PointCountTree) throw new InvalidOperationException();
                 if (result.PointCountTree != result.Subnodes.Sum(x => x?.Value?.PointCountTree)) throw new InvalidOperationException();
@@ -447,8 +448,8 @@ namespace Aardvark.Geometry.Points
                         doneB = true;
                     }
                 }
-                var ebb = new Box3f(subcells.Where(x => x != null).Select(x => x.BoundingBoxExactLocal));
-                var result = new PointSetNode(rootCell, a.PointCountTree + b.PointCountTree, ebb, 0.0f, 0.0f, subcells.Map(x => x?.Id), a.Storage);
+
+                var result = new PointSetNode(rootCell, a.PointCountTree + b.PointCountTree, ImmutableDictionary<Guid, object>.Empty, subcells.Map(x => x?.Id), a.Storage);
 #if DEBUG
                 if (result.PointCountTree != a.PointCountTree + b.PointCountTree) throw new InvalidOperationException();
                 if (result.PointCountTree != result.Subnodes.Sum(x => x?.Value?.PointCountTree)) throw new InvalidOperationException();
@@ -476,8 +477,9 @@ namespace Aardvark.Geometry.Points
                 if (subcell == a.Cell) { subcells[i] = a; break; }
                 if (subcell.Contains(a.Cell)) { subcells[i] = JoinTreeToRootCell(subcell, a); break; }
             }
-            var ebb = new Box3f(subcells.Where(x => x != null).Select(x => x.BoundingBoxExactLocal));
-            var result = new PointSetNode(rootCell, a.PointCountTree, ebb, 0.0f, 0.0f, subcells.Map(x => x?.Id), a.Storage);
+
+
+            var result = new PointSetNode(rootCell, a.PointCountTree, ImmutableDictionary<Guid, object>.Empty, subcells.Map(x => x?.Id), a.Storage);
 #if DEBUG
             if (result.PointCountTree != a.PointCountTree) throw new InvalidOperationException();
 #endif
@@ -566,8 +568,7 @@ namespace Aardvark.Geometry.Points
                 }
             }
 
-            var ebb = new Box3f(subcells.Where(x => x != null).Select(x => x.BoundingBoxExactLocal));
-            var result = new PointSetNode(a.Cell, pointCountTree, ebb, 0.0f, 0.0f, subcells.Map(x => x?.Id), a.Storage);
+            var result = new PointSetNode(a.Cell, pointCountTree, a.CustomAttributes, subcells.Map(x => x?.Id), a.Storage);
             //pointsMergedCallback?.Invoke(result.PointCountTree);
             return result;
         }

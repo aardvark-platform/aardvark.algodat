@@ -27,14 +27,14 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Gets general info for given point cloud file.
         /// </summary>
-        public static PointFileInfo ParseFileInfo(string filename, ImportConfig config)
+        public static PointFileInfo ParseFileInfo(string filename, ParseConfig config)
             => PointCloudFileFormat.FromFileName(filename).ParseFileInfo(filename, config);
         
         /// <summary>
         /// Parses file.
         /// Format is guessed based on file extension.
         /// </summary>
-        public static IEnumerable<Chunk> Parse(string filename, ImportConfig config)
+        public static IEnumerable<Chunk> Parse(string filename, ParseConfig config)
         {
             if (filename == null) throw new ArgumentNullException(nameof(filename));
             if (!File.Exists(filename)) throw new FileNotFoundException($"File does not exit ({filename}).", filename);

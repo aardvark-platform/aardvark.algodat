@@ -17,9 +17,10 @@ using System.Threading;
 
 namespace Aardvark.Geometry.Points
 {
+
     /// <summary>
     /// </summary>
-    public class PersistentRef<T> where T : class
+    public class PersistentRef<T> 
     {
         private readonly Func<string, T> f_get;
         private readonly Func<string, (bool, T)> f_tryGet;
@@ -32,6 +33,19 @@ namespace Aardvark.Geometry.Points
             f_get = get ?? throw new ArgumentNullException(nameof(get));
             f_tryGet = tryGet ?? throw new ArgumentNullException(nameof(tryGet));
         }
+        
+        public PersistentRef<A> Cast<A>()
+        {
+            var get = f_get;
+            var tryGet = f_tryGet;
+            return new PersistentRef<A>(
+                Id,
+                (s => (A)(object)get(s)),
+                (s => { var (w, t) = tryGet(s); return w ? (w, (A)(object)t) : (false, default(A)); })
+            );
+
+        }
+
 
         /// <summary>
         /// </summary>

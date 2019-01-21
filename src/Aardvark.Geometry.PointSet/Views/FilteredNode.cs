@@ -184,6 +184,11 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public static FilteredNode Parse(JObject json) => throw new NotImplementedException();
 
+        public bool TryGetCellAttribute<T>(Guid id, out T value)
+        {
+            throw new NotImplementedException();
+        }
+
         /// <summary></summary>
         public string NodeType => Type;
     }

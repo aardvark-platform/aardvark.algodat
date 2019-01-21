@@ -76,6 +76,11 @@ namespace Aardvark.Geometry.Points
         bool TryGetPropertyKey(string property, out string key);
 
         /// <summary>
+        /// Gets the attribute for the given id 
+        /// </summary>
+        bool TryGetCellAttribute<T>(Guid id, out T value);
+
+        /// <summary>
         /// Gets value of given property.
         /// </summary>
         bool TryGetPropertyValue(string property, out object value);

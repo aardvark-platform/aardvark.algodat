@@ -166,5 +166,10 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public void Dispose() => Storage?.Dispose();
+
+        public bool TryGetCellAttribute<T>(Guid id, out T value)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

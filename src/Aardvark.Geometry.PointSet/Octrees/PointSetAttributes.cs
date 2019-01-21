@@ -14,6 +14,9 @@
 using Aardvark.Base;
 using Aardvark.Data.Points;
 using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Linq;
 
 namespace Aardvark.Geometry.Points
 {
@@ -205,24 +208,220 @@ namespace Aardvark.Geometry.Points
         HasCellAttributes   = 1 << 23,
     }
 
+
+    public abstract class CellAttribute
+    {
+        public readonly Guid Id;
+        public readonly string Name;
+        public readonly IImmutableSet<CellAttribute> DependsOn;
+
+        public abstract object ComputeValue(IPointCloudNode node);
+
+        public CellAttribute(Guid id, string name, IImmutableSet<CellAttribute> depends)
+        {
+            Id = id;
+            Name = name;
+            DependsOn = depends;
+        }
+    }
+
+    public class CellAttribute<T> : CellAttribute where T : struct
+    {
+        public readonly Func<CellAttribute<T>, IPointCloudNode, T> Compute;
+        public readonly Func<CellAttribute<T>, IPointCloudNode, IPointCloudNode, T?> TryMerge;
+
+
+        public CellAttribute(Guid id, string name, Func<CellAttribute<T>, IPointCloudNode, T> compute, Func<CellAttribute<T>, IPointCloudNode, IPointCloudNode, T?> tryMerge, params CellAttribute[] depends)
+            : base(id, name, ImmutableHashSet.Create(depends))
+        {
+            Compute = compute;
+            TryMerge = tryMerge ?? ((a, b, c) => null);
+        }
+
+        public CellAttribute(Guid id, string name, Func<CellAttribute<T>, IPointCloudNode, T> compute, params CellAttribute[] depends)
+            : this(id, name, compute, null, depends)
+        { }
+
+        public override object ComputeValue(IPointCloudNode node)
+        {
+            return Compute(this, node);
+        }
+
+    }
+
     /// <summary>
     /// </summary>
-    [Flags]
-    public enum CellAttributes : uint
+    public static class CellAttributes
     {
-        /// <summary>
-        /// Box3f.
-        /// </summary>
-        BoundingBoxExactLocal = 1 <<  0,
+        public static T GetCellAttribute<T>(this IPointCloudNode node, CellAttribute<T> attribute) where T : struct
+        {
+            if (node.TryGetCellAttribute<T>(attribute.Id, out T value)) return value;
+            else return attribute.Compute(attribute, node);
+        }
 
-        /// <summary>
-        /// float (avg) + float (stddev).
-        /// </summary>
-        PointDistance  = 1 <<  1,
-        
-        /// <summary>
-        /// byte (min) + byte (max).
-        /// </summary>
-        TreeDepthMinMax = 1 << 2,
+
+        public static readonly CellAttribute<Box3f> BoundingBoxExactLocal =
+            new CellAttribute<Box3f>(
+                new Guid(0xaadbb622, 0x1cf6, 0x42e0, 0x86, 0xdf, 0xbe, 0x79, 0xd2, 0x8d, 0x67, 0x57),
+                "BoundingBoxExactLocal",
+                (self, node) =>
+                {
+                    if (node.TryGetCellAttribute(self.Id, out Box3f box))
+                    {
+                        return box;
+                    }
+                    else if(node.IsLeaf())
+                    {
+                        var posRef = node.GetPositions();
+                        if (posRef == null) return Box3f.Invalid;
+
+                        var pos = posRef.Value;
+                        return new Box3f(pos);
+                    }
+                    else
+                    {
+                        var center = node.Cell.BoundingBox.Center;
+                        var bounds = Box3f.Invalid;
+                        foreach(var nr in node.SubNodes)
+                        {
+                            if (nr == null) continue;
+                            var n = nr.Value;
+                            var b = n.GetCellAttribute(self);
+                            var shift = (V3f)(n.Cell.BoundingBox.Center - center);
+                            bounds.ExtendBy(new Box3f(shift + b.Min, shift + b.Max));
+                        }
+                        return bounds;
+                    }
+                },
+                (self, l, r) =>
+                    (l.Cell == r.Cell &&
+                     l.TryGetCellAttribute(self.Id, out Box3f lb) &&
+                     r.TryGetCellAttribute(self.Id, out Box3f rb)) ? Box3f.Union(lb, rb) : (Box3f?)null
+                
+            );
+
+
+        private static readonly CellAttribute<V2f> AveragePointDistanceData =
+            new CellAttribute<V2f>(
+                new Guid(0x33fcdbd9, 0x310e, 0x45e7, 0xbb, 0xa4, 0xc1, 0xd2, 0xb5, 0x7a, 0x8f, 0xb1),
+                "AveragePointDistanceData",
+                (self, node) =>
+                {
+                    if (node.TryGetCellAttribute(self.Id, out V2f value))
+                    {
+                        return value;
+                    }
+                    else
+                    {
+                        var posRef = node.GetPositions();
+                        var kdTreeRef = node.GetKdTree();
+                        if (kdTreeRef == null || posRef == null) return new V2f(-1.0f, -1.0f);
+
+                        var kdTree = kdTreeRef.Value;
+                        var pos = posRef.Value;
+
+                        var sum = 0.0;
+                        var sumSq = 0.0;
+                        var cnt = 0;
+                        foreach(var p in pos)
+                        {
+                            var res = kdTree.GetClosest(kdTree.CreateClosestToPointQuery(double.PositiveInfinity, 2), p);
+                            var maxDist = res[0].Dist;
+
+                            if(maxDist > 0.0)
+                            {
+                                sum += maxDist;
+                                sumSq += maxDist * maxDist;
+                                cnt++;
+                            }
+                        }
+                        
+                        if (cnt == 0) return new V2f(-1.0f, -1.0f);
+
+                        var avg = sum / cnt;
+                        var var = (sumSq / cnt) - avg * avg;
+                        var stddev = Fun.Sqrt(var);
+                        return new V2f(avg, stddev);
+                    }
+                }
+            );
+
+
+        public static readonly CellAttribute<float> AveragePointDistance =
+            new CellAttribute<float>(
+                new Guid(0x39c21132, 0x4570, 0x4624, 0xaf, 0xae, 0x63, 0x04, 0x85, 0x15, 0x67, 0xd7),
+                "AveragePointDistance",
+                (self, node) => node.GetCellAttribute(AveragePointDistanceData).X,
+                AveragePointDistanceData
+            );
+
+        public static readonly CellAttribute<float> AveragePointDistanceStdDev =
+            new CellAttribute<float>(
+                new Guid(0x94cac234, 0xb6ea, 0x443a, 0xb1, 0x96, 0xc7, 0xdd, 0x8e, 0x5d, 0xef, 0x0d),
+                "AveragePointDistanceStdDev",
+                (self, node) => node.GetCellAttribute(AveragePointDistanceData).Y,
+                AveragePointDistanceData
+            );
+
+
+        private static readonly CellAttribute<Range1i> TreeMinMaxDepth =
+            new CellAttribute<Range1i>(
+                new Guid(0x309a1fc8, 0x79f3, 0x4e3f, 0x8d, 0xed, 0x5c, 0x6b, 0x46, 0xea, 0xa3, 0xca),
+                "TreeMinMaxDepth",
+                (self, node) =>
+                {
+                    if (node.TryGetCellAttribute(self.Id, out Range1i value))
+                    {
+                        return value;
+                    }
+                    else
+                    {
+                        if (node.IsLeaf()) return new Range1i(0,0);
+                        else
+                        {
+                            Range1i range = new Range1i(int.MaxValue,int.MinValue);
+
+                            foreach(var nr in node.SubNodes)
+                            {
+                                if (nr == null) continue;
+                                var n = nr.Value.GetCellAttribute(self);
+                                n.Min += 1;
+                                n.Max += 1;
+
+                                if (n.Min < range.Min) range.Min = n.Min;
+                                if (n.Max > range.Max) range.Max = n.Max;
+                            }
+
+                            return range;
+                        }
+                    }
+                }
+            );
+
+
+        public static readonly CellAttribute<int> TreeMinDepth =
+            new CellAttribute<int>(
+                new Guid(0x42edbdd6, 0xa29e, 0x4dfd, 0x98, 0x36, 0x05, 0x0a, 0xb7, 0xfa, 0x4e, 0x31),
+                "TreeMinDepth",
+                (self, node) => node.GetCellAttribute(TreeMinMaxDepth).Min,
+                TreeMinMaxDepth
+            );
+
+        public static readonly CellAttribute<int> TreeMaxDepth =
+            new CellAttribute<int>(
+                new Guid(0xd6f54b9e, 0xe907, 0x46c5, 0x91, 0x06, 0xd2, 0x6c, 0xd4, 0x53, 0xdc, 0x97),
+                "TreeMaxDepth",
+                (self, node) => node.GetCellAttribute(TreeMinMaxDepth).Max,
+                TreeMinMaxDepth
+            );
+
+
+
+        ///// <summary>
+        ///// min- and max-depth for the subtree (distances to leaf)
+        ///// </summary>
+        //public static readonly Guid TreeDepthMinMax         = new Guid(0xf1eb6598, 0x94e6, 0x41aa, 0xa8, 0xa3, 0xd6, 0x44, 0x60, 0xf6, 0xf8, 0x43);
+
     }
+
 }

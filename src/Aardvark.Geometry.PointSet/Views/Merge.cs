@@ -19,6 +19,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 
@@ -104,7 +105,7 @@ namespace Aardvark.Geometry.Points
             }
 
             // create node
-            var result = new PointCloudNode(storage, id, cell, boundingBoxExact, pointCountTree, subnodes, storeOnCreation: true);
+            var result = new PointCloudNode(storage, id, cell, boundingBoxExact, pointCountTree, subnodes, true, ImmutableDictionary<Guid, object>.Empty);
 
             // generate lod
             //result = result.GenerateLod(config);
