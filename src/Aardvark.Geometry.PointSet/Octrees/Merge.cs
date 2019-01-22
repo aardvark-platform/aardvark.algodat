@@ -141,7 +141,7 @@ namespace Aardvark.Geometry.Points
                 Guid? ksId = ks != null ? Guid.NewGuid() : (Guid?)null;
 
 
-                var cell = new Cell(psAbs);
+                var cell = ParentCell(a.Cell, b.Cell);
                 var center = cell.BoundingBox.Center;
 
                 var ps = psAbs.Map(p => (V3f)(p - center));
@@ -506,6 +506,28 @@ namespace Aardvark.Geometry.Points
             }
 
             #endregion
+        }
+
+        private static Cell ParentCell(Cell a, Cell b)
+        {
+            return new Cell(Box3d.Union(a.BoundingBox, b.BoundingBox));
+            //if (a == b) return a;
+            //if (a.IsCenteredAtOrigin && b.IsCenteredAtOrigin)  return new Cell(Fun.Max(a.Exponent, b.Exponent));
+
+            //var oa = new V3i(Math.Sign(a.X + 0.5), Math.Sign(a.Y + 0.5), Math.Sign(a.Z + 0.5));
+            //var ob = new V3i(Math.Sign(b.X + 0.5), Math.Sign(b.Y + 0.5), Math.Sign(b.Z + 0.5));
+
+            //if(oa == ob)
+            //{
+            //    if (b.Exponent < a.Exponent) return ParentCell(b.Parent, a);
+            //    else if (a.Exponent < b.Exponent) return ParentCell(a.Parent, b);
+            //    else return ParentCell(a.Parent, b.Parent);
+            //}
+            //else
+            //{
+            //    return new Cell()
+            //}
+
         }
 
         private static PointSetNode JoinTreeToRootCell(Cell rootCell, PointSetNode a)

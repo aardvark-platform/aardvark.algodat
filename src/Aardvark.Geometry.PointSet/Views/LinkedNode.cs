@@ -16,6 +16,7 @@ using Aardvark.Data.Points;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Immutable;
 
 namespace Aardvark.Geometry.Points
 {
@@ -164,12 +165,10 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public string NodeType => Type;
 
+        public ImmutableDictionary<Guid, object> CellAttributes => throw new NotImplementedException();
+
         /// <summary></summary>
         public void Dispose() => Storage?.Dispose();
 
-        public bool TryGetCellAttribute<T>(Guid id, out T value)
-        {
-            throw new NotImplementedException();
-        }
     }
 }

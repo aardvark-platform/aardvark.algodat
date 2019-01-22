@@ -29,7 +29,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PointSet GenerateNormals(this PointSet self, ImportConfig config)
         {
-            if (config.EstimateNormals == null) return self;
+            if (config.EstimateNormals == null && config.EstimateNormalsKdTree == null) return self;
 
             var nodeCount = self.Octree.Value.CountNodes();
             var processedNodesCount = 0L;
@@ -69,7 +69,12 @@ namespace Aardvark.Geometry.Points
 
             // generate normals ...
             var needsNormals = self.HasPositions && !self.HasNormals;
-            var ns = needsNormals ? config.EstimateNormals(self.PositionsAbsolute) : null;
+            var ns =
+                needsNormals ?
+                    (config.EstimateNormalsKdTree == null ?
+                        config.EstimateNormals(self.PositionsAbsolute).ToArray() :
+                        config.EstimateNormalsKdTree(self.KdTree.Value, self.Positions.Value)
+                    ) : null;
             
             // store data ...
             var result = self;

@@ -90,9 +90,9 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static V3d[] GetPositionsAbsolute(this IPointCloudNode self)
         {
-            var c = self.Center;
             var ps = GetPositions(self);
             if (ps == null) return null;
+            var c = self.Center;
             return ps.Value.Map(p => new V3d(p.X + c.X, p.Y + c.Y, p.Z + c.Z));
         }
 

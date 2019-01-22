@@ -17,6 +17,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using Aardvark.Base;
+using Aardvark.Geometry;
 using Aardvark.Geometry.Points;
 using Uncodium.SimpleStore;
 
@@ -132,6 +133,11 @@ namespace Aardvark.Data.Points
         /// <summary>
         /// Positions -> Normals.
         /// </summary>
+        public Func<PointRkdTreeD<V3f[], V3f>, V3f[], V3f[]> EstimateNormalsKdTree { get; private set; } = null;
+
+        /// <summary>
+        /// Positions -> Normals.
+        /// </summary>
         public Func<IList<V3d>, IList<V3f>> EstimateNormals { get; private set; } = null;
 
         /// <summary></summary>
@@ -174,6 +180,7 @@ namespace Aardvark.Data.Points
             ParseConfig = x.ParseConfig;
             Reproject = x.Reproject;
             EstimateNormals = x.EstimateNormals;
+            EstimateNormalsKdTree = x.EstimateNormalsKdTree;
             Storage = x.Storage;
             CellAttributes = x.CellAttributes;
         }
@@ -210,6 +217,9 @@ namespace Aardvark.Data.Points
 
         /// <summary></summary>
         public ImportConfig WithReproject(Func<IList<V3d>, IList<V3d>> x) => new ImportConfig(this) { Reproject = x };
+
+        /// <summary></summary>
+        public ImportConfig WithEstimateKdNormals(Func<PointRkdTreeD<V3f[], V3f>, V3f[], V3f[]> x) => new ImportConfig(this) { EstimateNormalsKdTree = x };
 
         /// <summary></summary>
         public ImportConfig WithEstimateNormals(Func<IList<V3d>, IList<V3f>> x) => new ImportConfig(this) { EstimateNormals = x };

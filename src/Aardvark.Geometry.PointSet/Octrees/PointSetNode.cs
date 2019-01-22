@@ -35,7 +35,7 @@ namespace Aardvark.Geometry.Points
     {
         #region Construction
         
-        private PointSetNode(Guid id,
+        internal PointSetNode(Guid id,
             Cell cell, long pointCountTree,
             ImmutableDictionary<Guid, object> custom,
             Guid? psId, Guid? csId, Guid? kdId, Guid? nsId, Guid? isId, Guid? ksId,
@@ -327,32 +327,32 @@ namespace Aardvark.Geometry.Points
 
             if (lodPsId.HasValue)
             {
-                if (psId.HasValue) throw new InvalidOperationException();
+                //if (psId.HasValue) throw new InvalidOperationException();
                 psId = lodPsId;
             }
             if (lodCsId.HasValue)
             {
-                if (csId.HasValue) throw new InvalidOperationException();
+                //if (csId.HasValue) throw new InvalidOperationException();
                 csId = lodCsId;
             }
             if (lodNsId.HasValue)
             {
-                if (nsId.HasValue) throw new InvalidOperationException();
+                //if (nsId.HasValue) throw new InvalidOperationException();
                 nsId = lodNsId;
             }
             if (lodIsId.HasValue)
             {
-                if (isId.HasValue) throw new InvalidOperationException();
+                //if (isId.HasValue) throw new InvalidOperationException();
                 isId = lodIsId;
             }
             if (lodKdId.HasValue)
             {
-                if (kdId.HasValue) throw new InvalidOperationException();
+                //if (kdId.HasValue) throw new InvalidOperationException();
                 kdId = lodKdId;
             }
             if (lodKsId.HasValue)
             {
-                if (ksId.HasValue) throw new InvalidOperationException();
+                //if (ksId.HasValue) throw new InvalidOperationException();
                 ksId = lodKsId;
             }
 
@@ -426,7 +426,7 @@ namespace Aardvark.Geometry.Points
             offset += 16;
             return guid;
         }
-        
+
         #endregion
 
         #region Properties (derived/runtime, non-serialized)
@@ -1057,6 +1057,21 @@ namespace Aardvark.Geometry.Points
         }
 
 
+        internal PointSetNode WithCellAttributes(bool persist, ImmutableDictionary<Guid, object> custom)
+        {
+            var dict = CustomAttributes;
+            foreach (var kvp in custom) dict = dict.Add(kvp.Key, kvp.Value);
+            
+            return new PointSetNode(Guid.NewGuid(),
+                Cell, PointCountTree,
+                dict,
+                PositionsId, ColorsId, KdTreeId, NormalsId, IntensitiesId, ClassificationsId,
+                SubnodeIds, Storage, persist
+                );
+        }
+
+
+
 
 
         /// <summary>
@@ -1097,6 +1112,7 @@ namespace Aardvark.Geometry.Points
                 SubnodeIds, Storage, true
                 );
         }
+        
 
         #endregion
 
@@ -1192,27 +1208,16 @@ namespace Aardvark.Geometry.Points
 
         Storage IPointCloudNode.Storage => Storage;
 
-        public bool TryGetCellAttribute<T>(Guid id, out T value)
-        {
-            if(CustomAttributes.TryGetValue(id, out object o) && o is T)
-            {
-                value = (T)o;
-                return true;
-            }
-            else
-            {
-                value = default(T);
-                return false;
-            }
-        }
 
+        public ImmutableDictionary<Guid, object> CellAttributes => CustomAttributes;
 
+        
         /// <summary></summary>
         public Box3f BoundingBoxExactLocal
         {
             get
             {
-                if (CustomAttributes.TryGetValue(CellAttributes.BoundingBoxExactLocal.Id, out var value) && value is Box3f)
+                if (CustomAttributes.TryGetValue(Geometry.Points.CellAttributes.BoundingBoxExactLocal.Id, out var value) && value is Box3f)
                 {
                     return (Box3f)value;
                 }
@@ -1228,7 +1233,7 @@ namespace Aardvark.Geometry.Points
         {
             get
             {
-                if (CustomAttributes.TryGetValue(CellAttributes.BoundingBoxExactLocal.Id, out var value) && value is Box3f)
+                if (CustomAttributes.TryGetValue(Geometry.Points.CellAttributes.BoundingBoxExactLocal.Id, out var value) && value is Box3f)
                 {
                     var box = (Box3f)value;
                     var c = BoundingBox.Center;
@@ -1242,7 +1247,7 @@ namespace Aardvark.Geometry.Points
         {
             get
             {
-                if (CustomAttributes.TryGetValue(CellAttributes.AveragePointDistance.Id, out var value) && value is float)
+                if (CustomAttributes.TryGetValue(Geometry.Points.CellAttributes.AveragePointDistance.Id, out var value) && value is float)
                     return (float)value;
                 else
                     return -1.0f;
@@ -1254,7 +1259,7 @@ namespace Aardvark.Geometry.Points
         {
             get
             {
-                if (CustomAttributes.TryGetValue(CellAttributes.AveragePointDistanceStdDev.Id, out var value) && value is float)
+                if (CustomAttributes.TryGetValue(Geometry.Points.CellAttributes.AveragePointDistanceStdDev.Id, out var value) && value is float)
                     return (float)value;
                 else
                     return -1.0f;

@@ -171,7 +171,7 @@ namespace Aardvark.Geometry.Points
 
             if (self.IsEmpty) return self;
 #pragma warning disable CS0618 // Type or member is obsolete
-            var lod = self.Root.Value.GenerateLod(config, self.SplitLimit, callback, ct);
+            var lod = self.Root.Value.GenerateLod(0, config, self.SplitLimit, callback, ct);
 #pragma warning restore CS0618 // Type or member is obsolete
             var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit);
             self.Storage.Add(key, result);
@@ -180,7 +180,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        private static PointSetNode GenerateLod(this PointSetNode self, ImportConfig config, int splitLimit, Action callback, CancellationToken ct)
+        private static PointSetNode GenerateLod(this PointSetNode self, int level, ImportConfig config, int splitLimit, Action callback, CancellationToken ct)
         {
             if (self == null) throw new ArgumentNullException(nameof(self));
 
@@ -188,13 +188,45 @@ namespace Aardvark.Geometry.Points
 
             callback?.Invoke();
 
-            if (self.IsLeaf) return self;
+            if (self.IsLeaf)
+            {
+                var simple = new SimpleNode(self);
+                var changed = false;
+
+                if (!self.HasNormals && (config.EstimateNormals != null || config.EstimateNormalsKdTree != null))
+                {
+                    var nsId = Guid.NewGuid();
+
+                    var ns =
+                        config.EstimateNormalsKdTree == null ?
+                        config.EstimateNormals(self.Positions.Value.MapToList(p => self.Center + (V3d)p)).ToArray() :
+                        config.EstimateNormalsKdTree(self.KdTree.Value, self.Positions.Value);
+
+                    self.Storage.Add(nsId, ns);
+                    simple = simple.AddAttribute(PointCloudAttribute.Normals, nsId.ToString(), ns);
+                    changed = true;
+                }
+
+                foreach(var att in config.CellAttributes)
+                {
+                    var o = att.ComputeValue(simple);
+                    simple = simple.WithCellAttributes(simple.CellAttributes.Add(att.Id, o));
+                    changed = true;
+                }
+
+                if (changed) return simple.Persist();
+                else return self;
+            }
 
             if (self.HasPositions) return self; // cell already has data -> done
 
             if (self.Subnodes == null || self.Subnodes.Length != 8) throw new InvalidOperationException();
 
-            var subcells = self.Subnodes.Map(x => x?.Value.GenerateLod(config, splitLimit, callback, ct));
+            var subcells = 
+                //level < 8 ?
+                //self.Subnodes.MapParallel((x,__) => x?.Value.GenerateLod(level + 1, config, splitLimit, callback, ct), Environment.ProcessorCount).ToArray() :
+                self.Subnodes.Map(x => x?.Value.GenerateLod(level + 1, config, splitLimit, callback, ct));
+
             var subcenters = subcells.Map(x => x?.Center);
             var subcellsTotalCount = (long)subcells.Sum(x => x?.PointCountTree);
 
@@ -209,10 +241,21 @@ namespace Aardvark.Geometry.Points
             // generate LoD data ...
             var lodPs = Lod.AggregateSubPositions(counts, splitLimit, self.Center, subcenters, subcells.Map(x => x?.GetPositions()?.Value));
             var lodCs = needsCs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetColors()?.Value)) : null;
-            var lodNs = needsNs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetNormals()?.Value)) : null;
             var lodIs = needsIs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetIntensities()?.Value)) : null;
             var lodKs = needsKs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetClassifications()?.Value)) : null;
             var lodKd = lodPs.BuildKdTree();
+
+            var lodNs =
+                needsNs ?
+                    (config.EstimateNormalsKdTree == null ?
+                        (config.EstimateNormals == null ?
+                            Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetNormals()?.Value)) :
+                            config.EstimateNormals(lodPs.MapToList(p => (V3d)p + self.Center)).ToArray()
+                        ) :
+                        config.EstimateNormalsKdTree(lodKd, lodPs)
+                    ) :
+                    null;
+
 
             var attributes = new List<(string, string, object)>();
             // store LoD data ...
@@ -254,14 +297,7 @@ namespace Aardvark.Geometry.Points
             }
 
 
-            PointCloudNode node = 
-                new PointCloudNode(
-                    self.Storage, null, self.Cell, self.BoundingBox,
-                    self.PointCountTree, self.Subnodes.Map(a => a == null ? null : a.Cast<IPointCloudNode>()), false,
-                    ImmutableDictionary<Guid, object>.Empty,
-                    attributes.ToArray()
-                );
-            
+            SimpleNode node = new SimpleNode(self);
             foreach(var att in config.CellAttributes)
             {
                 var dict = node.CellAttributes.Add(att.Id, att.ComputeValue(node));
@@ -274,13 +310,18 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        private static PointCloudNode GenerateLod(this PointCloudNode self, int splitLimit, CancellationToken ct)
+        private static PointCloudNode GenerateLod(this PointCloudNode self, ImportConfig cfg, CancellationToken ct)
         {
+            var splitLimit = cfg.OctreeSplitLimit;
             if (self == null) throw new ArgumentNullException(nameof(self));
 
             ct.ThrowIfCancellationRequested();
-            
-            if (self.IsLeaf()) return self;
+
+            if (self.IsLeaf())
+            {
+                Report.Error("wrongness (no normals / etc.)");
+                return self;
+            }
 
             if (self.HasPositions()) return self; // cell already has lod data -> done
 
@@ -301,10 +342,19 @@ namespace Aardvark.Geometry.Points
             // generate LoD data ...
             var lodPs = Lod.AggregateSubPositions(counts, splitLimit, self.Center, subcenters, subcells.Map(x => x?.GetPositions()?.Value));
             var lodCs = needsCs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetColors()?.Value)) : null;
-            var lodNs = needsNs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetNormals()?.Value)) : null;
             var lodIs = needsIs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetIntensities()?.Value)) : null;
             var lodKs = needsKs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetClassifications()?.Value)) : null;
             var lodKd = lodPs.BuildKdTree();
+            var lodNs = 
+                    needsNs ? 
+                        (cfg.EstimateNormalsKdTree == null ?
+                            (cfg.EstimateNormals == null ?
+                                Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetNormals()?.Value)) :
+                                cfg.EstimateNormals(lodPs.MapToList(p => (V3d)p + self.Center)).ToArray()
+                            ) :
+                            cfg.EstimateNormalsKdTree(lodKd, lodPs)
+                        ) : 
+                        null;
 
             // store LoD data ...
             var lodPsId = Guid.NewGuid().ToString();

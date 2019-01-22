@@ -249,14 +249,43 @@ namespace Aardvark.Geometry.Points
 
     }
 
+    
     /// <summary>
     /// </summary>
     public static class CellAttributes
     {
+        public static bool TryGetCellAttribute<T>(this IPointCloudNode node, Guid id, out T value) where T : struct
+        {
+            if (node.CellAttributes.TryGetValue(id, out var o) && o is T)
+            {
+                value = (T)o;
+                return true;
+            }
+            else
+            {
+                value = default(T);
+                return false;
+            }
+        }
+
         public static T GetCellAttribute<T>(this IPointCloudNode node, CellAttribute<T> attribute) where T : struct
         {
             if (node.TryGetCellAttribute<T>(attribute.Id, out T value)) return value;
             else return attribute.Compute(attribute, node);
+        }
+
+        public static bool TryGetCellAttribute<T>(this IPointCloudNode node, CellAttribute<T> attribute, out T value) where T : struct
+        {
+            if (node.CellAttributes.TryGetValue(attribute.Id, out var o) && o is T)
+            {
+                value = (T)o;
+                return true;
+            }
+            else
+            {
+                value = default(T);
+                return false;
+            }
         }
 
 
@@ -280,24 +309,19 @@ namespace Aardvark.Geometry.Points
                     }
                     else
                     {
-                        var center = node.Cell.BoundingBox.Center;
+                        var center = node.Center;
                         var bounds = Box3f.Invalid;
                         foreach(var nr in node.SubNodes)
                         {
                             if (nr == null) continue;
                             var n = nr.Value;
                             var b = n.GetCellAttribute(self);
-                            var shift = (V3f)(n.Cell.BoundingBox.Center - center);
+                            var shift = (V3f)(n.Center - center);
                             bounds.ExtendBy(new Box3f(shift + b.Min, shift + b.Max));
                         }
                         return bounds;
                     }
-                },
-                (self, l, r) =>
-                    (l.Cell == r.Cell &&
-                     l.TryGetCellAttribute(self.Id, out Box3f lb) &&
-                     r.TryGetCellAttribute(self.Id, out Box3f rb)) ? Box3f.Union(lb, rb) : (Box3f?)null
-                
+                }
             );
 
 
@@ -320,30 +344,31 @@ namespace Aardvark.Geometry.Points
                         var kdTree = kdTreeRef.Value;
                         var pos = posRef.Value;
 
+                        var maxRadius = node.BoundingBoxExact.Size.NormMax / 20.0;
                         var sum = 0.0;
                         var sumSq = 0.0;
                         var cnt = 0;
                         foreach(var p in pos)
                         {
-                            var res = kdTree.GetClosest(kdTree.CreateClosestToPointQuery(double.PositiveInfinity, 2), p);
-                            var maxDist = res[0].Dist;
-
-                            if(maxDist > 0.0)
+                            var res = kdTree.GetClosest(kdTree.CreateClosestToPointQuery(maxRadius, 2), p);
+                            if(res.Count > 1 && res[0].Dist > 0.0)
                             {
+                                var maxDist = res[0].Dist;
                                 sum += maxDist;
                                 sumSq += maxDist * maxDist;
                                 cnt++;
                             }
                         }
                         
-                        if (cnt == 0) return new V2f(-1.0f, -1.0f);
+                        if (cnt == 0) return new V2f(maxRadius, -1.0f);
 
                         var avg = sum / cnt;
                         var var = (sumSq / cnt) - avg * avg;
                         var stddev = Fun.Sqrt(var);
                         return new V2f(avg, stddev);
                     }
-                }
+                },
+                BoundingBoxExactLocal
             );
 
 

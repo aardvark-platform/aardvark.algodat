@@ -15,6 +15,7 @@ using Aardvark.Base;
 using Aardvark.Data.Points;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Immutable;
 
 namespace Aardvark.Geometry.Points
 {
@@ -78,7 +79,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Gets the attribute for the given id 
         /// </summary>
-        bool TryGetCellAttribute<T>(Guid id, out T value);
+        ImmutableDictionary<Guid, object> CellAttributes { get; }
 
         /// <summary>
         /// Gets value of given property.
