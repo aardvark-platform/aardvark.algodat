@@ -35,7 +35,7 @@ namespace Aardvark.Geometry.Points
     {
         #region Construction
         
-        internal PointSetNode(Guid id,
+        public PointSetNode(Guid id,
             Cell cell, long pointCountTree,
             ImmutableDictionary<Guid, object> custom,
             Guid? psId, Guid? csId, Guid? kdId, Guid? nsId, Guid? isId, Guid? ksId,

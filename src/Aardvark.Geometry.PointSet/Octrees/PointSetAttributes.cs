@@ -348,8 +348,11 @@ namespace Aardvark.Geometry.Points
                         var sum = 0.0;
                         var sumSq = 0.0;
                         var cnt = 0;
-                        foreach(var p in pos)
+
+                        var step = pos.Length < 1000 ? 1 : pos.Length / 1000;
+                        for(int i = 0; i < pos.Length; i += step)
                         {
+                            var p = pos[i];
                             var res = kdTree.GetClosest(kdTree.CreateClosestToPointQuery(maxRadius, 2), p);
                             if(res.Count > 1 && res[0].Dist > 0.0)
                             {
