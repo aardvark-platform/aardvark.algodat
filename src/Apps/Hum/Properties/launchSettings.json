@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Hum": {
+      "commandName": "Project",
+      "commandLineArgs": "view C:\\Users\\Schorsch\\Development\\WorkDirectory\\jbnew jb"
+    }
+  }
+}

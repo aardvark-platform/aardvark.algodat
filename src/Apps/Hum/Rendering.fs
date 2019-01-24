@@ -72,7 +72,7 @@ module Rendering =
                 budget = Mod.init -(256L <<< 10)
                 lighting = Mod.init true
                 colors = Mod.init true
-                magicSqrt = Mod.init true
+                magicSqrt = Mod.init false
                 stats = Mod.init Unchecked.defaultof<_>
                 background = Mod.init true
             }
@@ -132,6 +132,11 @@ module Rendering =
             |> Sg.projTrafo (frustum |> Mod.map Frustum.projTrafo)
             |> Sg.andAlso (RenderConfig.toSg win config)
             
+        win.Keyboard.KeyDown(Keys.End).Values.Add (fun () ->
+            if not (win.Keyboard.Control.GetValue()) then
+                transact (fun () -> config.magicSqrt.Value <- not config.magicSqrt.Value)
+        )
+
         win.Keyboard.DownWithRepeats.Values.Add(fun k ->
             match k with
             | Keys.V ->
@@ -160,9 +165,8 @@ module Rendering =
 
             | Keys.Y -> transact (fun () -> config.budget.Value <- -config.budget.Value)
             
-            | Keys.I -> transact (fun () -> config.magicSqrt.Value <- not config.magicSqrt.Value)
             | Keys.Space -> transact (fun () -> config.background.Value <- not config.background.Value)
-            | _ -> 
+            | k -> 
                 ()
         )
 
@@ -181,7 +185,7 @@ module Rendering =
             |> DefaultCameraController.control win.Mouse win.Keyboard win.Time
 
         let frustum =
-            win.Sizes |> Mod.map (fun s -> Frustum.perspective 60.0 0.5 5000.0 (float s.X / float s.Y))
+            win.Sizes |> Mod.map (fun s -> Frustum.perspective 60.0 0.2 500.0 (float s.X / float s.Y))
 
 
         let config, pcs = pointClouds win camera frustum pcs
