@@ -844,6 +844,7 @@ module PointSetShaders =
 
 
     type UniformScope with
+        member x.MagicExp : float = x?MagicExp
         member x.PointVisualization : PointVisualization = x?PointVisualization
         member x.Overlay : float[] = x?StorageBuffer?Overlay
         member x.ModelTrafos : M44d[] = x?StorageBuffer?ModelTrafos
@@ -957,51 +958,64 @@ module PointSetShaders =
         //        else n
 
 
+    let getNdcPointRadius (vp : V4d) (dist : float) =
+        let ppx = uniform.ProjTrafo * (vp + V4d(0.5 * dist, 0.0, 0.0, 0.0))
+        let ppy = uniform.ProjTrafo * (vp + V4d(0.0, 0.5 * dist, 0.0, 0.0))
+        let ppz = uniform.ProjTrafo * vp
+
+        let ppz = ppz.XYZ / ppz.W
+        let d1 = ppx.XYZ / ppx.W - ppz |> Vec.length
+        let d2 = ppy.XYZ / ppy.W - ppz |> Vec.length
+        0.5 * (d1 + d2)
+        
+    let div (v : V4d) = v.XYZ / v.W
 
     let lodPointSize (v : PointVertex) =
         vertex { 
             let mv = uniform.ModelViewTrafos.[v.id]
             let magic = uniform.PointVisualization &&& PointVisualization.MagicSqrt <>  PointVisualization.None
-            let f = if magic then 0.07 else 1.0 / 0.3
+            //let f = if magic then 0.07 else 1.0 / 0.3
 
-            let scale = uniform.Scales.[v.id] * f
-            let dist = v.dist * scale
-            let ovp = mv * v.pos
+            let vp = mv * v.pos
+            let pp = div (uniform.ProjTrafo * vp)
 
-            let vp = ovp + V4d(0.0, 0.0, 0.5*dist, 0.0)
-            let ppz = uniform.ProjTrafo * ovp
-            let pp1 = uniform.ProjTrafo * (vp + V4d(0.5 * dist, 0.0, 0.0, 0.0))
-            let pp2 = uniform.ProjTrafo * (vp + V4d(0.0, 0.5 * dist, 0.0, 0.0))
+            let scale = uniform.Scales.[v.id] 
+            let dist = v.dist * scale * uniform.PointSize * 8.0
 
-            let pp = uniform.ProjTrafo * vp
+            let dist = getNdcPointRadius vp dist
+            let r0 = 0.0390625 
+
+            let f = abs (dist / r0)
+            let r = if f > 0.0001 then 0.3 * r0 * f ** (0.35 * uniform.MagicExp) else dist
+
+            let vpx = uniform.ProjTrafoInv * (V4d(pp.X + r, pp.Y, pp.Z, 1.0)) |> div
+            let vpy = uniform.ProjTrafoInv * (V4d(pp.X, pp.Y + r, pp.Z, 1.0)) |> div
+            let dist = 0.5 * (Vec.length (vpx - vp.XYZ) + Vec.length (vpy - vp.XYZ))
+
+            let vpz = vp + V4d(0.0, 0.0, 0.5*dist, 0.0)
+            let ppx = uniform.ProjTrafo * (vpz + V4d(0.5 * dist, 0.0, 0.0, 0.0))
+            let ppy = uniform.ProjTrafo * (vpz + V4d(0.0, 0.5 * dist, 0.0, 0.0))
+            let fpp = uniform.ProjTrafo * vpz
+            let opp = uniform.ProjTrafo * vp
             
-            let ppz = ppz.XYZ / ppz.W
-            let pp0 = pp.XYZ / pp.W
-            let d1 = pp1.XYZ / pp1.W - pp0 |> Vec.length
-            let d2 = pp2.XYZ / pp2.W - pp0 |> Vec.length
-            let ndcDist = 
-                if magic then
-                    sqrt (0.5 * (d1 + d2))
-                else
-                    0.5 * (d1 + d2)
-
-            let depthRange = 
-                if magic then abs pp0.Z * (abs (ppz.Z - pp0.Z) / abs pp0.Z)  ** 0.5
-                else abs (ppz.Z - pp0.Z)
-
-            let pixelDist = ndcDist * float uniform.ViewportSize.X
+            let pp0 = opp.XYZ / opp.W
+            let ppz = fpp.XYZ / fpp.W
+            let d1 = ppx.XYZ / ppx.W - ppz |> Vec.length
+            let d2 = ppy.XYZ / ppy.W - ppz |> Vec.length
             
-            //let n = (mv * V4d(v.n, 0.0)) / scale |> Vec.xyz
+            let ndcDist = 0.5 * (d1 + d2)
+            let depthRange = abs (pp0.Z - ppz.Z)
+
+            let pixelDist = 
+                ndcDist * float uniform.ViewportSize.X
             
             let pixelDist = 
-                if pp.Z < -pp.W then -1.0
-                else uniform.PointSize * pixelDist
+                if ppz.Z < -1.0 then -1.0
+                else pixelDist
                 
             let col =
                 if uniform.PointVisualization &&& PointVisualization.Color <> PointVisualization.None then
                     v.col.XYZ
-                //elif uniform.PointVisualization &&& PointVisualization.Normals <> PointVisualization.None then
-                //    flipNormal v.n
                 else
                     V3d.III
 
@@ -1014,11 +1028,13 @@ module PointSetShaders =
                     col
 
 
+            //let pp = V4d(pp.X, pp.Y, pp.Z + depthRange * pp.W, pp.W)
+
             //let pixelDist = 
             //    if pixelDist > 30.0 then -1.0
             //    else pixelDist //min pixelDist 30.0
 
-            return { v with s = pixelDist; pos = pp; depthRange = depthRange; vp = ovp.XYZ; vc = ovp.XYZ; col = V4d(col, v.col.W) }
+            return { v with s = pixelDist; pos = fpp; depthRange = depthRange; vp = vpz.XYZ; vc = vpz.XYZ; col = V4d(col, v.col.W) }
         }
 
 

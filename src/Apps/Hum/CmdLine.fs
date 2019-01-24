@@ -46,7 +46,7 @@ module CmdLine =
             |> Array.ofSeq
             
     let view (store : string) (id : string) (args : Args) =
-        Rendering.show [
+        Rendering.show args [
             LodTreeInstance.load "ssd" id store []
         ]
 

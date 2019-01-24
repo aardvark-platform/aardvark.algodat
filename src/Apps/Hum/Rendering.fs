@@ -72,7 +72,7 @@ module Rendering =
                 budget = Mod.init -(256L <<< 10)
                 lighting = Mod.init true
                 colors = Mod.init true
-                magicSqrt = Mod.init false
+                magicExp = Mod.init 1.0
                 stats = Mod.init Unchecked.defaultof<_>
                 background = Mod.init true
             }
@@ -81,7 +81,7 @@ module Rendering =
             Mod.custom (fun t ->
                 let l = config.lighting.GetValue t
                 let c = config.colors.GetValue t
-                let s = config.magicSqrt.GetValue t
+                let s = config.magicExp.GetValue t
 
                 let vis = PointVisualization.OverlayLod
                 let vis = 
@@ -92,9 +92,9 @@ module Rendering =
                     if c then PointVisualization.Color ||| vis
                     else PointVisualization.White ||| vis
                     
-                let vis =
-                    if s then PointVisualization.MagicSqrt ||| vis
-                    else vis
+                //let vis =
+                //    if s then PointVisualization.MagicSqrt ||| vis
+                //    else vis
 
                 vis
 
@@ -123,6 +123,7 @@ module Rendering =
             |> Sg.uniform "PointSize" config.pointSize
             |> Sg.uniform "ViewportSize" win.Sizes
             |> Sg.uniform "PointVisualization" vis
+            |> Sg.uniform "MagicExp" config.magicExp
             |> Sg.shader {
                 do! PointSetShaders.lodPointSize
                 do! PointSetShaders.cameraLight
@@ -132,13 +133,12 @@ module Rendering =
             |> Sg.projTrafo (frustum |> Mod.map Frustum.projTrafo)
             |> Sg.andAlso (RenderConfig.toSg win config)
             
-        win.Keyboard.KeyDown(Keys.End).Values.Add (fun () ->
-            if not (win.Keyboard.Control.GetValue()) then
-                transact (fun () -> config.magicSqrt.Value <- not config.magicSqrt.Value)
-        )
-
         win.Keyboard.DownWithRepeats.Values.Add(fun k ->
             match k with
+            | Keys.I ->
+                transact (fun () -> config.magicExp.Value <- min 4.0 (config.magicExp.Value + 0.01))
+            | Keys.U ->
+                transact (fun () -> config.magicExp.Value <- max 0.0 (config.magicExp.Value - 0.01))
             | Keys.V ->
                 transact (fun () ->
                     config.colors.Value <- not config.colors.Value
@@ -172,7 +172,7 @@ module Rendering =
 
         config, sg
 
-    let show (pcs : list<_>) =
+    let show (args : Args) (pcs : list<_>) =
         Ag.initialize()
         Aardvark.Init()
 
@@ -185,7 +185,7 @@ module Rendering =
             |> DefaultCameraController.control win.Mouse win.Keyboard win.Time
 
         let frustum =
-            win.Sizes |> Mod.map (fun s -> Frustum.perspective 60.0 0.2 500.0 (float s.X / float s.Y))
+            win.Sizes |> Mod.map (fun s -> Frustum.perspective args.fov 0.05 500.0 (float s.X / float s.Y))
 
 
         let config, pcs = pointClouds win camera frustum pcs
@@ -194,9 +194,9 @@ module Rendering =
             Sg.ofList [
                 pcs
                 Util.coordinateBox
-                |> Sg.onOff config.background
                 |> Sg.viewTrafo (camera |> Mod.map CameraView.viewTrafo)
                 |> Sg.projTrafo (frustum |> Mod.map Frustum.projTrafo)
+                |> Sg.onOff config.background
             ]
     
         win.RenderTask <- Sg.compile app.Runtime win.FramebufferSignature sg

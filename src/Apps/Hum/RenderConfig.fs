@@ -20,7 +20,7 @@ type RenderConfig =
         budget          : ModRef<int64>
         lighting        : ModRef<bool>
         colors          : ModRef<bool>
-        magicSqrt       : ModRef<bool>
+        magicExp        : ModRef<float>
         background      : ModRef<bool>
         stats           : ModRef<LodRendererStats>
     }
@@ -58,7 +58,7 @@ module RenderConfig =
                 "Budget",           "X", "C/Y", cfg.budget |> Mod.map (fun v -> if v < 0L then "off" else string (Numeric v))
                 "Light",            "L", "L", cfg.lighting |> Mod.map (function true -> "on" | false -> "off")
                 "Color",            "V", "V", cfg.colors |> Mod.map (function true -> "on" | false -> "off")
-                //"Magic",            "I", "I", cfg.magicSqrt |> Mod.map (function true -> "on" | false -> "off")
+                "MagicExp",         "U", "I", cfg.magicExp |> Mod.map (sprintf "%.2f")
                 "Memory",           " ", " ", totalMem
                 "Quality",          " ", " ", Mod.constant pi
                 "Points",           " ", " ", prim
