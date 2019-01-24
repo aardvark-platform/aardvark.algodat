@@ -12,7 +12,12 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Utilities.fs" />
+    <Compile Include="Prelude.fs" />
+    <Compile Include="Args.fs" />
+    <Compile Include="Download.fs" />
     <Compile Include="RenderConfig.fs" />
+    <Compile Include="Rendering.fs" />
+    <Compile Include="CmdLine.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>

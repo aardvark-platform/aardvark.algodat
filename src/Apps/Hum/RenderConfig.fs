@@ -109,6 +109,8 @@ module RenderConfig =
                         text
                         |> layoutWithBackground 1.0
                         |> ShapeList.replace (sprintf "(%s)" pi) (fun (box : Box2d) ->
+                            let q = clamp 0.03 1.0 q
+                            let mq = clamp 0.03 1.0 q
                             let w = 0.1
                             let offset = box.Min
                             let size =  V2d(box.Size.X, min 0.8 box.Size.Y)
