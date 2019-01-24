@@ -12,57 +12,55 @@ open Aardvark.Base.Rendering
 
 
 module Util =
-    let coordinateBox (size : float) =
-        let s = size
 
-        let ppp = V3d( s, s, s)
-        let ppm = V3d( s, s,-s)
-        let pmp = V3d( s,-s, s)
-        let pmm = V3d( s,-s,-s)
-        let mpp = V3d(-s, s, s)
-        let mpm = V3d(-s, s,-s)
-        let mmp = V3d(-s,-s, s)
-        let mmm = V3d(-s,-s,-s)
+    module Shader =
+        open FShade
 
-        let hi = 70
-        let lo = 30
+        let reverseTrafo (v : Effects.Vertex) =
+            vertex {
+                let wp = uniform.ViewProjTrafoInv * v.pos
+                return { v with wp = wp / wp.W }
+            }
+    
+        let hi = 70.0 / 255.0
+        let lo = 30.0 / 255.0
+        let qf = (V4d(hi,lo,lo,1.0))
+        let qb = (V4d(lo,hi,hi,1.0))
+        let ql = (V4d(lo,hi,lo,1.0))
+        let qr = (V4d(hi,lo,hi,1.0))
+        let qu = (V4d(lo,lo,hi,1.0))
+        let qd = (V4d(hi,hi,lo,1.0))
 
-        let qf = IndexedGeometryPrimitives.Quad.solidQuadrangle' pmp ppp ppm pmm (C4b(hi,lo,lo,255))
-        let qb = IndexedGeometryPrimitives.Quad.solidQuadrangle' mmp mmm mpm mpp (C4b(lo,hi,hi,255))
-        let ql = IndexedGeometryPrimitives.Quad.solidQuadrangle' pmp pmm mmm mmp (C4b(lo,hi,lo,255))
-        let qr = IndexedGeometryPrimitives.Quad.solidQuadrangle' ppp mpp mpm ppm (C4b(hi,lo,hi,255))
-        let qu = IndexedGeometryPrimitives.Quad.solidQuadrangle' pmp ppp mpp mmp (C4b(lo,lo,hi,255))
-        let qd = IndexedGeometryPrimitives.Quad.solidQuadrangle' pmm mmm mpm ppm (C4b(hi,hi,lo,255))
+        let box (v : Effects.Vertex) =
+            fragment {
+                let c = uniform.CameraLocation
+                let f = v.wp.XYZ
+                let dir = Vec.normalize (f - c)
+                
+                let absDir = V3d(abs dir.X, abs dir.Y, abs dir.Z)
 
-        [qf; qb; ql; qr; qu; qd]
+                if absDir.X > absDir.Y && absDir.X > absDir.Z then 
+                    if dir.X > 0.0 then return qf
+                    else return qb
+                elif absDir.Y > absDir.X && absDir.Y > absDir.Z then
+                    if dir.Y > 0.0 then return ql
+                    else return qr
+                else
+                    if dir.Z > 0.0 then return qu
+                    else return qd
+
+            }
+
+    let coordinateBox =
+        Sg.farPlaneQuad
+            |> Sg.shader  {
+                do! Shader.reverseTrafo
+                do! Shader.box
+            }
     
 
 module Rendering =
 
-
-    let coordinateCross = 
-        let cross =
-            IndexedGeometryPrimitives.coordinateCross (V3d.III * 2.0)
-                |> Sg.ofIndexedGeometry
-                |> Sg.translate -6.0 -6.0 -6.0
-                |> Sg.shader {
-                    do! DefaultSurfaces.trafo
-                    do! DefaultSurfaces.thickLine
-                    do! DefaultSurfaces.vertexColor
-                }
-                |> Sg.uniform "LineWidth" (Mod.constant 2.0)
-
-
-        let box =
-            Util.coordinateBox 500.0
-                |> List.map Sg.ofIndexedGeometry
-                |> Sg.ofList
-                |> Sg.shader {
-                    do! DefaultSurfaces.trafo
-                    do! DefaultSurfaces.vertexColor
-                }
-
-        [cross; box] |> Sg.ofList
 
     let pointClouds (win : IRenderWindow) (camera : IMod<CameraView>) (frustum : IMod<Frustum>) (pcs : list<LodTreeInstance>) =
         let config =
@@ -71,17 +69,19 @@ module Rendering =
                 overlayAlpha = Mod.init 0.0
                 maxSplits = Mod.init 8
                 renderBounds = Mod.init false
-                budget = Mod.init -1L
+                budget = Mod.init -(256L <<< 10)
                 lighting = Mod.init true
                 colors = Mod.init true
-                quality = Mod.init 0.0
-                maxQuality = Mod.init 1.0
+                magicSqrt = Mod.init true
+                stats = Mod.init Unchecked.defaultof<_>
+                background = Mod.init true
             }
 
         let vis = 
             Mod.custom (fun t ->
                 let l = config.lighting.GetValue t
                 let c = config.colors.GetValue t
+                let s = config.magicSqrt.GetValue t
 
                 let vis = PointVisualization.OverlayLod
                 let vis = 
@@ -91,6 +91,10 @@ module Rendering =
                 let vis =
                     if c then PointVisualization.Color ||| vis
                     else PointVisualization.White ||| vis
+                    
+                let vis =
+                    if s then PointVisualization.MagicSqrt ||| vis
+                    else vis
 
                 vis
 
@@ -115,7 +119,7 @@ module Rendering =
             pcs |> List.map (LodTreeInstance.transform trafo) |> ASet.ofList
             
         let sg =
-            Sg.LodTreeNode(config.quality, config.maxQuality, config.budget, config.renderBounds, config.maxSplits, win.Time, pcs) :> ISg
+            Sg.LodTreeNode(config.stats, config.budget, config.renderBounds, config.maxSplits, win.Time, pcs) :> ISg
             |> Sg.uniform "PointSize" config.pointSize
             |> Sg.uniform "ViewportSize" win.Sizes
             |> Sg.uniform "PointVisualization" vis
@@ -127,7 +131,7 @@ module Rendering =
             |> Sg.viewTrafo (camera |> Mod.map CameraView.viewTrafo)
             |> Sg.projTrafo (frustum |> Mod.map Frustum.projTrafo)
             |> Sg.andAlso (RenderConfig.toSg win config)
-
+            
         win.Keyboard.DownWithRepeats.Values.Add(fun k ->
             match k with
             | Keys.V ->
@@ -149,16 +153,20 @@ module Rendering =
             | Keys.Up -> transact (fun () -> config.maxSplits.Value <- config.maxSplits.Value + 1); printfn "splits: %A" config.maxSplits.Value
             | Keys.Down -> transact (fun () -> config.maxSplits.Value <- max 1 (config.maxSplits.Value - 1)); printfn "splits: %A" config.maxSplits.Value
 
-            | Keys.C -> transact (fun () -> config.budget.Value <- 2L * config.budget.Value); Log.line "budget: %A" config.budget.Value
-            | Keys.X -> transact (fun () -> config.budget.Value <- max (config.budget.Value / 2L) (256L <<< 10)); Log.line "budget: %A" config.budget.Value
+            | Keys.C -> transact (fun () -> if config.budget.Value > 0L && config.budget.Value < (1L <<< 30) then config.budget.Value <- 2L * config.budget.Value); Log.line "budget: %A" config.budget.Value
+            | Keys.X -> transact (fun () -> if config.budget.Value > (256L <<< 10) then config.budget.Value <- max (config.budget.Value / 2L) (256L <<< 10)); Log.line "budget: %A" config.budget.Value
         
             | Keys.B -> transact (fun () -> config.renderBounds.Value <- not config.renderBounds.Value); Log.line "bounds: %A" config.renderBounds.Value
 
+            | Keys.Y -> transact (fun () -> config.budget.Value <- -config.budget.Value)
+            
+            | Keys.I -> transact (fun () -> config.magicSqrt.Value <- not config.magicSqrt.Value)
+            | Keys.Space -> transact (fun () -> config.background.Value <- not config.background.Value)
             | _ -> 
                 ()
         )
 
-        sg
+        config, sg
 
     let show (pcs : list<_>) =
         Ag.initialize()
@@ -173,15 +181,18 @@ module Rendering =
             |> DefaultCameraController.control win.Mouse win.Keyboard win.Time
 
         let frustum =
-            win.Sizes |> Mod.map (fun s -> Frustum.perspective 60.0 0.1 1000.0 (float s.X / float s.Y))
+            win.Sizes |> Mod.map (fun s -> Frustum.perspective 60.0 0.5 5000.0 (float s.X / float s.Y))
 
 
-        let pcs = pointClouds win camera frustum pcs
+        let config, pcs = pointClouds win camera frustum pcs
 
         let sg =
             Sg.ofList [
                 pcs
-                coordinateCross
+                Util.coordinateBox
+                |> Sg.onOff config.background
+                |> Sg.viewTrafo (camera |> Mod.map CameraView.viewTrafo)
+                |> Sg.projTrafo (frustum |> Mod.map Frustum.projTrafo)
             ]
     
         win.RenderTask <- Sg.compile app.Runtime win.FramebufferSignature sg

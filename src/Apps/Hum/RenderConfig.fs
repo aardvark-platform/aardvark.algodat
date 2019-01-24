@@ -20,28 +20,52 @@ type RenderConfig =
         budget          : ModRef<int64>
         lighting        : ModRef<bool>
         colors          : ModRef<bool>
-        quality         : ModRef<float>
-        maxQuality       : ModRef<float>
+        magicSqrt       : ModRef<bool>
+        background      : ModRef<bool>
+        stats           : ModRef<LodRendererStats>
     }
 
 
 module RenderConfig =
 
     let toSg (win : IRenderWindow) (cfg : RenderConfig) =
-        let pi = "$$$$$$"
+
+    
+        let pi = "($qual$)"
+        let pm = "($memo$)"
+        let pt = "($pts$$)"
+        
+        let totalMem = cfg.stats |> Mod.map (fun s -> sprintf "%A (%A)" s.usedMemory s.allocatedMemory)
+        let counts = cfg.stats |> Mod.map (fun s -> sprintf "%An / %Ap" (Numeric(int64 s.totalNodes)) (Numeric s.totalPrimitives))
+        
+        let prim =
+            Mod.custom (fun t ->
+                let v = cfg.stats.GetValue(t).totalPrimitives
+                let b = cfg.budget.GetValue t
+
+                let n = sprintf "%Ap" (Numeric v)
+                if b < 0L then n
+                else sprintf "%s %s" pt n
+            )
+
+        let renderTime = cfg.stats |> Mod.map (fun s -> string s.renderTime)
+
         let lines =
             [
-                "PointScale",       "O", "P", cfg.pointSize |> Mod.map (sprintf "%.2f")
+                "Scale",            "O", "P", cfg.pointSize |> Mod.map (sprintf "%.2f")
                 "Overlay",          "-", "+", cfg.overlayAlpha |> Mod.map (sprintf "%.1f")
-                "BoundingBoxes",    "B", "B", cfg.renderBounds |> Mod.map (function true -> "on" | false -> "off")
-                "PointBudget",      "X", "C", cfg.budget |> Mod.map (fun v -> if v < 0L then "off" else string (Numeric v))
-                "Lighting",         "L", "L", cfg.lighting |> Mod.map (function true -> "on" | false -> "off")
-                "Coloring",         "V", "V", cfg.colors |> Mod.map (function true -> "on" | false -> "off")
-                "Quality",          pi,  pi,  cfg.quality |> Mod.map (fun q -> sprintf "%.0f%%" (100.0 * q))
+                "Boxes",            "B", "B", cfg.renderBounds |> Mod.map (function true -> "on" | false -> "off")
+                "Budget",           "X", "C/Y", cfg.budget |> Mod.map (fun v -> if v < 0L then "off" else string (Numeric v))
+                "Light",            "L", "L", cfg.lighting |> Mod.map (function true -> "on" | false -> "off")
+                "Color",            "V", "V", cfg.colors |> Mod.map (function true -> "on" | false -> "off")
+                "Magic",            "I", "I", cfg.magicSqrt |> Mod.map (function true -> "on" | false -> "off")
+                "Memory",           " ", " ", totalMem
+                "Quality",          " ", " ", Mod.constant pi
+                "Points",           " ", " ", prim
             ]
 
         let maxNameLength = 
-            lines |> List.map (fun (n,_,_,_) -> n.Length) |> List.max
+            lines |> List.map (fun (n,l,h,_) -> n.Length) |> List.max
 
         let pad (len : int) (i : string) (str : string) =
             let padding = if str.Length < len then System.String(' ', len - str.Length) else ""
@@ -58,7 +82,7 @@ module RenderConfig =
                 )
 
                 let maxValueLength = 
-                    lines |> List.map (fun (_,_,_,v) -> v.Length) |> List.max
+                    lines |> List.map (fun (_,l,h,v) -> if System.String.IsNullOrWhiteSpace l && System.String.IsNullOrWhiteSpace h then 0 else v.Length) |> List.max
                 lines 
                 |> List.map (fun (n,l,h,v) -> 
                     let v = pad maxValueLength "" v
@@ -77,11 +101,11 @@ module RenderConfig =
         let trafo =
             win.Sizes |> Mod.map (fun s ->
                 Trafo3d.Translation(1.0, -1.5, 0.0) * 
-                Trafo3d.Scale(20.0) *
+                Trafo3d.Scale(18.0) *
 
                 Trafo3d.Scale(1.0 / float s.X, 1.0 / float s.Y, 1.0) *
                 Trafo3d.Scale(2.0, 2.0, 2.0) *
-                Trafo3d.Translation(-1.0, 1.0, 0.0)
+                Trafo3d.Translation(-1.0, 1.0, -1.0)
             )
             
         let config = { TextConfig.Default with align = TextAlignment.Left }
@@ -98,33 +122,44 @@ module RenderConfig =
             let rect = ConcreteShape.fillRoundedRectangle (C4b(0uy,0uy,0uy,bgAlpha)) 0.8 bounds
             ShapeList.prepend rect shapes
 
+        let progress (v : float) (mv : float) (box : Box2d) =
+            let q = clamp 0.03 1.0 v
+            let mq = clamp 0.03 1.0 mv
+            let w = 0.1
+            let offset = box.Min
+            let size =  V2d(box.Size.X, min 0.8 box.Size.Y)
+            let bgBounds = Box2d.FromMinAndSize(offset, size).ShrunkBy(w / 2.0)
+            let maxBounds = Box2d.FromMinAndSize(bgBounds.Min, V2d(bgBounds.SizeX * mq, bgBounds.SizeY)).ShrunkBy(w / 2.0)
+            let curBounds = Box2d.FromMinAndSize(bgBounds.Min, V2d(bgBounds.SizeX * q, bgBounds.SizeY)).ShrunkBy(w / 2.0)
+            let mutable c = HeatMap.color(1.0 - q)
+
+            let max = if mv > 0.0 then mv else 1.0
+
+            if q < max then c.A <- 200uy
+            else c.A <- 150uy
+
+            [
+                yield ConcreteShape.roundedRectangle (C4b(255uy,255uy,255uy,255uy)) w 0.8 bgBounds
+                if mv > 0.0 then yield ConcreteShape.fillRoundedRectangle (C4b(255uy,255uy,255uy,150uy)) 0.8 maxBounds
+                yield ConcreteShape.fillRoundedRectangle c 0.8 curBounds
+            ]
+            
+        let inline progress' (v : ^a) (max : ^a) =
+            progress (v / max) -1.0
+
         let shapes =
             adaptive {
                 let! a = active
                 if a then
                     let! text = text
-                    let! q = cfg.quality
-                    let! mq = cfg.maxQuality
+                    let! stats = cfg.stats
+                    let! b = cfg.budget
                     return 
                         text
                         |> layoutWithBackground 1.0
-                        |> ShapeList.replace (sprintf "(%s)" pi) (fun (box : Box2d) ->
-                            let q = clamp 0.03 1.0 q
-                            let mq = clamp 0.03 1.0 q
-                            let w = 0.1
-                            let offset = box.Min
-                            let size =  V2d(box.Size.X, min 0.8 box.Size.Y)
-                            let bgBounds = Box2d.FromMinAndSize(offset, size).ShrunkBy(w / 2.0)
-                            let maxBounds = Box2d.FromMinAndSize(bgBounds.Min, V2d(bgBounds.SizeX * mq, bgBounds.SizeY)).ShrunkBy(w / 2.0)
-                            let curBounds = Box2d.FromMinAndSize(bgBounds.Min, V2d(bgBounds.SizeX * q, bgBounds.SizeY)).ShrunkBy(w / 2.0)
-                            let c = HeatMap.color(1.0 - q)
-
-                            [
-                                ConcreteShape.roundedRectangle (C4b(255uy,255uy,255uy,255uy)) w 0.8 bgBounds
-                                ConcreteShape.fillRoundedRectangle (C4b(255uy,255uy,255uy,150uy)) 0.8 maxBounds
-                                ConcreteShape.fillRoundedRectangle (C4b(c.R,c.G,c.B,200uy)) 0.8 curBounds
-                            ]
-                        )
+                        |> ShapeList.replace pi (progress stats.quality stats.maxQuality)
+                        |> ShapeList.replace pm (progress' stats.usedMemory stats.allocatedMemory)
+                        |> ShapeList.replace pt (progress' (float stats.totalPrimitives) (float b))
                 else
                     return layoutWithBackground 0.5 "press 'H' for help"
             }
