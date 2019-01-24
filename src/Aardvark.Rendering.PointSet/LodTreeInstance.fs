@@ -745,7 +745,7 @@ module LodTreeInstance =
                 let n = Mod.map2 (*) old t
                 MapExt.add "ModelTrafo" (n :> IMod) uniforms
             | _ ->
-                uniforms
+                MapExt.add "ModelTrafo" (t :> IMod) uniforms
 
         let uniforms =
             match MapExt.tryFind "Scales" uniforms with
