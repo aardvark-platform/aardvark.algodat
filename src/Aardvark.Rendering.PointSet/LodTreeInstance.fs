@@ -1106,8 +1106,29 @@ module PointSetShaders =
             return V4d(color, v.col.W)
         }
 
+    let env =
+        samplerCube {
+            texture uniform?EnvMap
+            filter Filter.MinMagMipLinear
+        }
+    let envMap (v : PointVertex) =
+        fragment {
+            let c = v.c * V2d(2.0, 2.0) - V2d.II
+            let f = Vec.dot c c
+            let z = sqrt (max 0.0 (1.0 - f))        
+            let vn = V3d(c.X, -c.Y, z)
 
+            let wn = uniform.ViewTrafoInv * V4d(vn, 0.0) |> Vec.xyz |> Vec.normalize
+            let d = uniform.ViewTrafoInv * V4d(v.vp, 0.0) |> Vec.xyz |> Vec.normalize
+            //let cp = uniform.ViewTrafoInv.C3.XYZ
+            
+            let rc = env.Sample(Vec.reflect d wn).XYZ
+            let tc = env.Sample(Vec.refract d wn 0.9).XYZ
 
+            let ec = 0.8 * tc * v.col.XYZ + 0.05 * rc + 0.15 * v.col.XYZ
+            
+            return V4d(ec, v.col.W)
+        }
 
     let normalColor ( v : Vertex) =
         fragment {

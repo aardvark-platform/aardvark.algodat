@@ -11,6 +11,18 @@
     <OutputPath>..\..\..\bin\Release\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="CubeMap\2010.04.29-16.59.11-b.jpg" />
+    <EmbeddedResource Include="CubeMap\2010.04.29-16.59.11-d.jpg" />
+    <EmbeddedResource Include="CubeMap\2010.04.29-16.59.11-f.jpg" />
+    <EmbeddedResource Include="CubeMap\2010.04.29-16.59.11-l.jpg" />
+    <EmbeddedResource Include="CubeMap\2010.04.29-16.59.11-r.jpg" />
+    <EmbeddedResource Include="CubeMap\2010.04.29-16.59.11-u.jpg" />
+    <EmbeddedResource Include="CubeMap\violentdays_bk.jpg" />
+    <EmbeddedResource Include="CubeMap\violentdays_dn.jpg" />
+    <EmbeddedResource Include="CubeMap\violentdays_ft.jpg" />
+    <EmbeddedResource Include="CubeMap\violentdays_lf.jpg" />
+    <EmbeddedResource Include="CubeMap\violentdays_rt.jpg" />
+    <EmbeddedResource Include="CubeMap\violentdays_up.jpg" />
     <EmbeddedResource Include="CubeMap\miramar_bk.png" />
     <EmbeddedResource Include="CubeMap\miramar_dn.png" />
     <EmbeddedResource Include="CubeMap\miramar_ft.png" />

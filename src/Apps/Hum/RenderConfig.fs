@@ -11,8 +11,13 @@ open Aardvark.Application
 open Aardvark.Application.Slim
 open Aardvark.Rendering.Text
 
+type Skybox =
+    | ViolentDays
+    | Miramar
+    | Wasserleonburg
+
 type Background =
-    | Skybox
+    | Skybox of box : Skybox
     | CoordinateBox
     | Black
 
@@ -183,3 +188,5 @@ module RenderConfig =
         Sg.shape shapes
             |> Sg.trafo trafo
             |> Sg.blendMode (Mod.constant BlendMode.Blend)
+            |> Sg.viewTrafo (Mod.constant Trafo3d.Identity)
+            |> Sg.projTrafo (Mod.constant Trafo3d.Identity)

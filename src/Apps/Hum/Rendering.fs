@@ -91,7 +91,7 @@ module Rendering =
                 colors = Mod.init true
                 magicExp = Mod.init 1.0
                 stats = Mod.init Unchecked.defaultof<_>
-                background = Mod.init Background.Skybox
+                background = Mod.init (Background.Skybox Skybox.Miramar)
                 antialias = Mod.init true
                 fancy = Mod.init false
             }
@@ -145,6 +145,9 @@ module Rendering =
         let pcs =
             pcs |> List.map (LodTreeInstance.transform trafo) |> ASet.ofList
             
+        let cfg =
+            RenderConfig.toSg win config
+
         let sg =
             Sg.LodTreeNode(config.stats, true, config.budget, config.renderBounds, config.maxSplits, win.Time, pcs) :> ISg
             |> Sg.uniform "PointSize" config.pointSize
@@ -155,11 +158,12 @@ module Rendering =
                 do! PointSetShaders.lodPointSize
                 do! PointSetShaders.cameraLight
                 do! PointSetShaders.lodPointCircular
+                //do! PointSetShaders.envMap
             }
             |> Sg.multisample (Mod.constant true)
             |> Sg.viewTrafo (camera |> Mod.map CameraView.viewTrafo)
             |> Sg.projTrafo (frustum |> Mod.map Frustum.projTrafo)
-            |> Sg.andAlso (RenderConfig.toSg win config)
+            |> Sg.andAlso cfg
             |> Sg.blendMode (Mod.constant BlendMode.None)
 
         win.Keyboard.DownWithRepeats.Values.Add(fun k ->
@@ -195,9 +199,13 @@ module Rendering =
             | Keys.Space -> 
                 transact (fun () -> 
                     match config.background.Value with
-                    | Background.Skybox -> config.background.Value <- Background.CoordinateBox
+                    | Background.Skybox s -> 
+                        match s with
+                        | Skybox.Miramar -> config.background.Value <- Background.Skybox Skybox.ViolentDays
+                        | Skybox.ViolentDays -> config.background.Value <- Background.Skybox Skybox.Wasserleonburg
+                        | Skybox.Wasserleonburg -> config.background.Value <- Background.CoordinateBox
                     | Background.CoordinateBox ->  config.background.Value <- Background.Black
-                    | Background.Black -> config.background.Value <- Background.Skybox
+                    | Background.Black -> config.background.Value <- Background.Skybox Skybox.Miramar
                 )
 
             | Keys.D1 -> transact (fun () -> config.fancy.Value <- not config.fancy.Value)
@@ -209,7 +217,8 @@ module Rendering =
 
         config, sg
 
-    let skybox =
+    let skybox (name : string) =
+        
         Mod.custom (fun _ ->
             let env =
                 let trafo t (img : PixImage) = img.Transformed t
@@ -219,33 +228,81 @@ module Rendering =
                 
                 PixImageCube [|
                     PixImageMipMap(
-                        load "miramar_rt.png"
+                        load (name.Replace("$", "rt"))
                         |> trafo ImageTrafo.Rot90
                     )
                     PixImageMipMap(
-                        load "miramar_lf.png"
+                        load (name.Replace("$", "lf"))
                         |> trafo ImageTrafo.Rot270
                     )
                 
                     PixImageMipMap(
-                        load "miramar_bk.png"
+                        load (name.Replace("$", "bk"))
                     )
                     PixImageMipMap(
-                        load "miramar_ft.png"
+                        load (name.Replace("$", "ft"))
                         |> trafo ImageTrafo.Rot180
                     )
                 
                     PixImageMipMap(
-                        load "miramar_up.png"
+                        load (name.Replace("$", "up"))
                         |> trafo ImageTrafo.Rot90
                     )
                     PixImageMipMap(
-                        load "miramar_dn.png"
+                        load (name.Replace("$", "dn"))
+                        |> trafo ImageTrafo.Rot90
                     )
                 |]
 
             PixTextureCube(env, TextureParams.mipmapped) :> ITexture
         )
+
+    let rftSky =
+        let name = "2010.04.29-16.59.11-$.jpg"
+        Mod.custom (fun _ ->
+            let env =
+                let trafo t (img : PixImage) = img.Transformed t
+                let load (name : string) =
+                    use s = typeof<Args>.Assembly.GetManifestResourceStream("Hum.CubeMap." + name)
+                    PixImage.Create(s, PixLoadOptions.Default)
+                
+                PixImageCube [|
+                    PixImageMipMap(
+                        load (name.Replace("$", "l"))
+                        |> trafo ImageTrafo.Rot90
+                    )
+                    PixImageMipMap(
+                        load (name.Replace("$", "r"))
+                        |> trafo ImageTrafo.Rot270
+                    )
+                
+                    PixImageMipMap(
+                        load (name.Replace("$", "b"))
+                    )
+                    PixImageMipMap(
+                        load (name.Replace("$", "f"))
+                        |> trafo ImageTrafo.Rot180
+                    )
+                
+                    PixImageMipMap(
+                        load (name.Replace("$", "u"))
+                        |> trafo ImageTrafo.Rot180
+                    )
+                    PixImageMipMap(
+                        load (name.Replace("$", "d"))
+                        |> trafo ImageTrafo.Rot90
+                    )
+                |]
+
+            PixTextureCube(env, TextureParams.mipmapped) :> ITexture
+        )
+
+    let skyboxes =
+        Map.ofList [
+            Skybox.Miramar, skybox "miramar_$.png"
+            Skybox.ViolentDays, skybox "violentdays_$.jpg"
+            Skybox.Wasserleonburg, rftSky
+        ]
 
 
     let show (args : Args) (pcs : list<_>) =
@@ -261,7 +318,7 @@ module Rendering =
             |> DefaultCameraController.control win.Mouse win.Keyboard win.Time
 
         let frustum =
-            win.Sizes |> Mod.map (fun s -> Frustum.perspective args.fov 0.05 300.0 (float s.X / float s.Y))
+            win.Sizes |> Mod.map (fun s -> Frustum.perspective args.fov 0.05 500.0 (float s.X / float s.Y))
 
 
         let config, pcs = pointClouds win camera frustum pcs
@@ -271,21 +328,23 @@ module Rendering =
                 pcs
 
                 Util.coordinateBox
-                |> Sg.viewTrafo (camera |> Mod.map CameraView.viewTrafo)
-                |> Sg.projTrafo (frustum |> Mod.map Frustum.projTrafo)
                 |> Sg.onOff (config.background |> Mod.map ((=) Background.CoordinateBox))
 
-                Sg.farPlaneQuad
-                |> Sg.shader {
-                    do! Util.Shader.reverseTrafo
-                    do! Util.Shader.envMap
-                }
-                |> Sg.uniform "EnvMap" skybox
-                |> Sg.viewTrafo (camera |> Mod.map CameraView.viewTrafo)
-                |> Sg.projTrafo (frustum |> Mod.map Frustum.projTrafo)
-                |> Sg.onOff (config.background |> Mod.map ((=) Background.Skybox))
+                Sg.ofList (
+                    skyboxes |> Map.toList |> List.map (fun (id, tex) ->
+                        Sg.farPlaneQuad
+                        |> Sg.shader {
+                            do! Util.Shader.reverseTrafo
+                            do! Util.Shader.envMap
+                        }
+                        |> Sg.uniform "EnvMap" tex
+                        |> Sg.onOff (config.background |> Mod.map ((=) (Background.Skybox id)))
+                    )
+                )
 
             ]
+            |> Sg.viewTrafo (camera |> Mod.map CameraView.viewTrafo)
+            |> Sg.projTrafo (frustum |> Mod.map Frustum.projTrafo)
     
         win.RenderTask <- Sg.compile app.Runtime win.FramebufferSignature sg
         win.Run()
