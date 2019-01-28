@@ -776,7 +776,8 @@ type PointVisualization =
     | White         = 0x000004
     | Lighting      = 0x000100
     | OverlayLod    = 0x001000
-    | MagicSqrt     = 0x002000
+    | Antialias     = 0x002000
+    | FancyPoints   = 0x004000
 
 [<ReflectedDefinition>]
 module PointSetShaders =
@@ -868,17 +869,20 @@ module PointSetShaders =
     type PointVertex =
         {
             [<Position>] pos : V4d
-            [<Color>] col : V4d
+            [<Color; Interpolation(InterpolationMode.Flat)>] col : V4d
             //[<Normal>] n : V3d
             [<Semantic("ViewCenter"); Interpolation(InterpolationMode.Flat)>] vc : V3d
             [<Semantic("ViewPosition")>] vp : V3d
             [<Semantic("AvgPointDistance")>] dist : float
-            [<Semantic("DepthRange")>] depthRange : float
+            [<Semantic("DepthRange"); Interpolation(InterpolationMode.Flat)>] depthRange : float
             [<PointSize>] s : float
+            [<Semantic("PointPixelSize")>] ps : float
             [<PointCoord>] c : V2d
-            [<FragCoord>] fc : V4d
+
             [<Semantic("TreeId")>] id : int
             [<Semantic("MaxTreeDepth")>] treeDepth : int
+            [<FragCoord>] fc : V4d
+            [<SamplePosition>] sp : V2d
         }
 
 
@@ -973,7 +977,6 @@ module PointSetShaders =
     let lodPointSize (v : PointVertex) =
         vertex { 
             let mv = uniform.ModelViewTrafos.[v.id]
-            let magic = uniform.PointVisualization &&& PointVisualization.MagicSqrt <>  PointVisualization.None
             //let f = if magic then 0.07 else 1.0 / 0.3
 
             let vp = mv * v.pos
@@ -1034,7 +1037,7 @@ module PointSetShaders =
             //    if pixelDist > 30.0 then -1.0
             //    else pixelDist //min pixelDist 30.0
 
-            return { v with s = pixelDist; pos = fpp; depthRange = depthRange; vp = vpz.XYZ; vc = vpz.XYZ; col = V4d(col, v.col.W) }
+            return { v with ps = float (int pixelDist); s = pixelDist; pos = fpp; depthRange = depthRange; vp = vpz.XYZ; vc = vpz.XYZ; col = V4d(col, v.col.W) }
         }
 
 
@@ -1047,34 +1050,47 @@ module PointSetShaders =
 
     let lodPointCircular (v : PointVertex) =
         fragment {
-            let c = v.c * 2.0 - V2d.II
-            let f = Vec.dot c c
-            if f > 1.0 then discard()
+            //let cc = (v.c * v.ps + 2.0 * v.sp - V2d.II) / v.ps
+            let c = v.c * 2.0 - V2d.II //v.c * 2.0 - V2d.II + 0.00001 * v.sp
+            let f = Vec.dot c c - 1.0
+            if f > 0.0 then discard()
 
-
-            let t = 1.0 - sqrt (1.0 - f)
+            let t = 1.0 - sqrt (-f)
             let depth = v.fc.Z
             let outDepth = depth + v.depthRange * t
             
+            let mutable alpha = 1.0 //v.col.W
 
-            return { c = v.col; d = outDepth }
+            if uniform.PointVisualization &&& PointVisualization.Antialias <> PointVisualization.None then
+                let dx = ddx(v.c) * 2.0
+                let dy = ddy(v.c) * 2.0
+                let dfx = 2.0*c.X*dx.X + 2.0*c.Y*dx.Y
+                let dfy = 2.0*c.X*dy.X + 2.0*c.Y*dy.Y
+                let d = abs f / sqrt (dfx * dfx + dfy * dfy)
+                alpha <- min 1.0 d
+
+            return { c = V4d(v.col.XYZ, alpha); d = outDepth }
         }
 
     let cameraLight (v : PointVertex) =
         fragment {
             let mutable color = v.col.XYZ
 
+            if uniform.PointVisualization &&& PointVisualization.FancyPoints <> PointVisualization.None then
+                let vd = heat(v.ps / 8.0).XYZ
+                color <- 0.5 * (vd + V3d.III)
+
             if uniform.PointVisualization &&& PointVisualization.Lighting <> PointVisualization.None then
                 //let lvn = Vec.length v.n |> clamp 0.0 1.0
                 //let vn = v.n / lvn
-                let vd = Vec.normalize v.vp 
+                //let vd = Vec.normalize v.vp 
 
-                let c = v.c * V2d(2.0, 2.0) + V2d(-1.0, -1.0)
+                let c = v.c * V2d(2.0, 2.0) - V2d.II
                 let f = Vec.dot c c
                 let z = sqrt (max 0.0 (1.0 - f))
-                let sn = V3d(c.X, c.Y, -z)
+                //let sn = V3d(c.X, c.Y, -z)
                 
-                let dSphere = Vec.dot sn vd |> abs
+                let dSphere = z //Vec.dot sn vd |> abs
                 //let dPlane = Vec.dot vn vd |> abs
 
                 //let t = lvn

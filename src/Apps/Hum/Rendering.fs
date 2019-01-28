@@ -51,6 +51,23 @@ module Util =
 
             }
 
+        let env =
+            samplerCube {
+                texture uniform?EnvMap
+                addressU WrapMode.Wrap
+                addressV WrapMode.Wrap
+                addressW WrapMode.Wrap
+                filter Filter.MinMagMipLinear
+            }
+
+        let envMap (v : Effects.Vertex) =
+            fragment {
+                let c = uniform.CameraLocation
+                let f = v.wp.XYZ
+                let dir = Vec.normalize (f - c)
+                return env.Sample(dir)
+            }
+
     let coordinateBox =
         Sg.farPlaneQuad
             |> Sg.shader  {
@@ -74,14 +91,17 @@ module Rendering =
                 colors = Mod.init true
                 magicExp = Mod.init 1.0
                 stats = Mod.init Unchecked.defaultof<_>
-                background = Mod.init true
+                background = Mod.init Background.Skybox
+                antialias = Mod.init true
+                fancy = Mod.init false
             }
 
         let vis = 
             Mod.custom (fun t ->
                 let l = config.lighting.GetValue t
                 let c = config.colors.GetValue t
-                let s = config.magicExp.GetValue t
+                let aa = config.antialias.GetValue t
+                let fancy = config.fancy.GetValue t
 
                 let vis = PointVisualization.OverlayLod
                 let vis = 
@@ -92,6 +112,13 @@ module Rendering =
                     if c then PointVisualization.Color ||| vis
                     else PointVisualization.White ||| vis
                     
+                let vis =
+                    if aa then PointVisualization.Antialias ||| vis
+                    else vis
+
+                let vis =
+                    if fancy then PointVisualization.FancyPoints ||| vis
+                    else vis
                 //let vis =
                 //    if s then PointVisualization.MagicSqrt ||| vis
                 //    else vis
@@ -119,7 +146,7 @@ module Rendering =
             pcs |> List.map (LodTreeInstance.transform trafo) |> ASet.ofList
             
         let sg =
-            Sg.LodTreeNode(config.stats, config.budget, config.renderBounds, config.maxSplits, win.Time, pcs) :> ISg
+            Sg.LodTreeNode(config.stats, true, config.budget, config.renderBounds, config.maxSplits, win.Time, pcs) :> ISg
             |> Sg.uniform "PointSize" config.pointSize
             |> Sg.uniform "ViewportSize" win.Sizes
             |> Sg.uniform "PointVisualization" vis
@@ -129,10 +156,12 @@ module Rendering =
                 do! PointSetShaders.cameraLight
                 do! PointSetShaders.lodPointCircular
             }
+            |> Sg.multisample (Mod.constant true)
             |> Sg.viewTrafo (camera |> Mod.map CameraView.viewTrafo)
             |> Sg.projTrafo (frustum |> Mod.map Frustum.projTrafo)
             |> Sg.andAlso (RenderConfig.toSg win config)
-            
+            |> Sg.blendMode (Mod.constant BlendMode.None)
+
         win.Keyboard.DownWithRepeats.Values.Add(fun k ->
             match k with
             | Keys.I ->
@@ -153,8 +182,6 @@ module Rendering =
             | Keys.Subtract | Keys.OemMinus -> transact (fun () -> config.overlayAlpha.Value <- max 0.0 (config.overlayAlpha.Value - 0.1))
             | Keys.Add | Keys.OemPlus -> transact (fun () -> config.overlayAlpha.Value <- min 1.0 (config.overlayAlpha.Value + 0.1))
         
-            | Keys.D1 -> transact (fun () -> isActive.Value <- not isActive.Value); printfn "active: %A" isActive.Value
-
             | Keys.Up -> transact (fun () -> config.maxSplits.Value <- config.maxSplits.Value + 1); printfn "splits: %A" config.maxSplits.Value
             | Keys.Down -> transact (fun () -> config.maxSplits.Value <- max 1 (config.maxSplits.Value - 1)); printfn "splits: %A" config.maxSplits.Value
 
@@ -165,19 +192,68 @@ module Rendering =
 
             | Keys.Y -> transact (fun () -> config.budget.Value <- -config.budget.Value)
             
-            | Keys.Space -> transact (fun () -> config.background.Value <- not config.background.Value)
+            | Keys.Space -> 
+                transact (fun () -> 
+                    match config.background.Value with
+                    | Background.Skybox -> config.background.Value <- Background.CoordinateBox
+                    | Background.CoordinateBox ->  config.background.Value <- Background.Black
+                    | Background.Black -> config.background.Value <- Background.Skybox
+                )
+
+            | Keys.D1 -> transact (fun () -> config.fancy.Value <- not config.fancy.Value)
+            | Keys.D2 -> transact (fun () -> config.antialias.Value <- not config.antialias.Value)
+
             | k -> 
                 ()
         )
 
         config, sg
 
+    let skybox =
+        Mod.custom (fun _ ->
+            let env =
+                let trafo t (img : PixImage) = img.Transformed t
+                let load (name : string) =
+                    use s = typeof<Args>.Assembly.GetManifestResourceStream("Hum.CubeMap." + name)
+                    PixImage.Create(s, PixLoadOptions.Default)
+                
+                PixImageCube [|
+                    PixImageMipMap(
+                        load "miramar_rt.png"
+                        |> trafo ImageTrafo.Rot90
+                    )
+                    PixImageMipMap(
+                        load "miramar_lf.png"
+                        |> trafo ImageTrafo.Rot270
+                    )
+                
+                    PixImageMipMap(
+                        load "miramar_bk.png"
+                    )
+                    PixImageMipMap(
+                        load "miramar_ft.png"
+                        |> trafo ImageTrafo.Rot180
+                    )
+                
+                    PixImageMipMap(
+                        load "miramar_up.png"
+                        |> trafo ImageTrafo.Rot90
+                    )
+                    PixImageMipMap(
+                        load "miramar_dn.png"
+                    )
+                |]
+
+            PixTextureCube(env, TextureParams.mipmapped) :> ITexture
+        )
+
+
     let show (args : Args) (pcs : list<_>) =
         Ag.initialize()
         Aardvark.Init()
 
         
-        use app = new OpenGlApplication()
+        use app = new OpenGlApplication(true, false)
         use win = app.CreateGameWindow(8)
         
         let camera =
@@ -185,7 +261,7 @@ module Rendering =
             |> DefaultCameraController.control win.Mouse win.Keyboard win.Time
 
         let frustum =
-            win.Sizes |> Mod.map (fun s -> Frustum.perspective args.fov 0.05 500.0 (float s.X / float s.Y))
+            win.Sizes |> Mod.map (fun s -> Frustum.perspective args.fov 0.05 300.0 (float s.X / float s.Y))
 
 
         let config, pcs = pointClouds win camera frustum pcs
@@ -193,10 +269,22 @@ module Rendering =
         let sg =
             Sg.ofList [
                 pcs
+
                 Util.coordinateBox
                 |> Sg.viewTrafo (camera |> Mod.map CameraView.viewTrafo)
                 |> Sg.projTrafo (frustum |> Mod.map Frustum.projTrafo)
-                |> Sg.onOff config.background
+                |> Sg.onOff (config.background |> Mod.map ((=) Background.CoordinateBox))
+
+                Sg.farPlaneQuad
+                |> Sg.shader {
+                    do! Util.Shader.reverseTrafo
+                    do! Util.Shader.envMap
+                }
+                |> Sg.uniform "EnvMap" skybox
+                |> Sg.viewTrafo (camera |> Mod.map CameraView.viewTrafo)
+                |> Sg.projTrafo (frustum |> Mod.map Frustum.projTrafo)
+                |> Sg.onOff (config.background |> Mod.map ((=) Background.Skybox))
+
             ]
     
         win.RenderTask <- Sg.compile app.Runtime win.FramebufferSignature sg

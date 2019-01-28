@@ -11,6 +11,11 @@ open Aardvark.Application
 open Aardvark.Application.Slim
 open Aardvark.Rendering.Text
 
+type Background =
+    | Skybox
+    | CoordinateBox
+    | Black
+
 type RenderConfig =
     {
         pointSize       : ModRef<float>
@@ -21,8 +26,10 @@ type RenderConfig =
         lighting        : ModRef<bool>
         colors          : ModRef<bool>
         magicExp        : ModRef<float>
-        background      : ModRef<bool>
+        background      : ModRef<Background>
         stats           : ModRef<LodRendererStats>
+        antialias       : ModRef<bool>
+        fancy           : ModRef<bool>
     }
 
 
@@ -58,6 +65,8 @@ module RenderConfig =
                 "Budget",           "X", "C/Y", cfg.budget |> Mod.map (fun v -> if v < 0L then "off" else string (Numeric v))
                 "Light",            "L", "L", cfg.lighting |> Mod.map (function true -> "on" | false -> "off")
                 "Color",            "V", "V", cfg.colors |> Mod.map (function true -> "on" | false -> "off")
+                "Fancy" ,           "1", "1", cfg.fancy |> Mod.map (function true -> "on" | false -> "off")
+                "Antialias",        "2", "2", cfg.antialias |> Mod.map (function true -> "on" | false -> "off")
                 "MagicExp",         "U", "I", cfg.magicExp |> Mod.map (sprintf "%.2f")
                 "Memory",           " ", " ", totalMem
                 "Quality",          " ", " ", Mod.constant pi
