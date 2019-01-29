@@ -974,6 +974,8 @@ module PointSetShaders =
         
     let div (v : V4d) = v.XYZ / v.W
 
+    
+
     let lodPointSize (v : PointVertex) =
         vertex { 
             let mv = uniform.ModelViewTrafos.[v.id]
@@ -983,7 +985,7 @@ module PointSetShaders =
             let pp = div (uniform.ProjTrafo * vp)
 
             let scale = uniform.Scales.[v.id] 
-            let dist = v.dist * scale * uniform.PointSize * 8.0
+            let dist = v.dist * scale * 8.0
 
             let dist = getNdcPointRadius vp dist
             let r0 = 0.0390625 
@@ -1010,12 +1012,14 @@ module PointSetShaders =
             let depthRange = abs (pp0.Z - ppz.Z)
 
             let pixelDist = 
-                ndcDist * float uniform.ViewportSize.X
+                ndcDist * float uniform.ViewportSize.X * uniform.PointSize
             
             let pixelDist = 
                 if ppz.Z < -1.0 then -1.0
                 else pixelDist
                 
+
+
             let col =
                 if uniform.PointVisualization &&& PointVisualization.Color <> PointVisualization.None then
                     v.col.XYZ
@@ -1030,6 +1034,9 @@ module PointSetShaders =
                 else
                     col
 
+            let pixelDist = 
+                if uniform.PointVisualization &&& PointVisualization.Antialias <> PointVisualization.None then pixelDist + 1.0
+                else pixelDist
 
             //let pp = V4d(pp.X, pp.Y, pp.Z + depthRange * pp.W, pp.W)
 
@@ -1047,19 +1054,48 @@ module PointSetShaders =
             [<Color>] c : V4d
             [<Depth(DepthWriteMode.OnlyGreater)>] d : float
         }
-
-    let lodPointCircular (v : PointVertex) =
+        
+    let lodPointCircularMSAA (v : PointVertex) =
         fragment {
-            //let cc = (v.c * v.ps + 2.0 * v.sp - V2d.II) / v.ps
-            let c = v.c * 2.0 - V2d.II //v.c * 2.0 - V2d.II + 0.00001 * v.sp
+            let mutable cc = v.c
+            if uniform.PointVisualization &&& PointVisualization.Antialias <> PointVisualization.None then
+                cc <- (v.c * v.ps + 2.0 * v.sp - V2d.II) / v.ps
+
+            let c = cc * 2.0 - V2d.II
             let f = Vec.dot c c - 1.0
             if f > 0.0 then discard()
-
+            
             let t = 1.0 - sqrt (-f)
             let depth = v.fc.Z
             let outDepth = depth + v.depthRange * t
             
-            let mutable alpha = 1.0 //v.col.W
+            let mutable alpha = v.col.W
+            let mutable color = v.col.XYZ
+            
+            if uniform.PointVisualization &&& PointVisualization.FancyPoints <> PointVisualization.None then
+                let vd = heat(v.ps / 8.0).XYZ
+                color <- 0.5 * (vd + V3d.III)
+                
+            if uniform.PointVisualization &&& PointVisualization.Lighting <> PointVisualization.None then
+                let diffuse = sqrt -f
+                color <- color * diffuse
+
+            return { c = V4d(color, alpha); d = outDepth }
+        }
+
+    let lodPointCircular (v : PointVertex) =
+        fragment {
+            let mutable cc = v.c
+            let c = v.c * 2.0 - V2d.II
+            let f = Vec.dot c c - 1.0
+            if f > 0.0 then discard()
+            
+            let t = 1.0 - sqrt (-f)
+            let depth = v.fc.Z
+            let outDepth = depth + v.depthRange * t
+            
+            let mutable alpha = v.col.W
+            let mutable color = v.col.XYZ
 
             if uniform.PointVisualization &&& PointVisualization.Antialias <> PointVisualization.None then
                 let dx = ddx(v.c) * 2.0
@@ -1067,44 +1103,59 @@ module PointSetShaders =
                 let dfx = 2.0*c.X*dx.X + 2.0*c.Y*dx.Y
                 let dfy = 2.0*c.X*dy.X + 2.0*c.Y*dy.Y
                 let d = abs f / sqrt (dfx * dfx + dfy * dfy)
-                alpha <- min 1.0 d
-
-            return { c = V4d(v.col.XYZ, alpha); d = outDepth }
-        }
-
-    let cameraLight (v : PointVertex) =
-        fragment {
-            let mutable color = v.col.XYZ
-
+                alpha <- min 1.0 (d / 2.0)
+                
             if uniform.PointVisualization &&& PointVisualization.FancyPoints <> PointVisualization.None then
                 let vd = heat(v.ps / 8.0).XYZ
                 color <- 0.5 * (vd + V3d.III)
-
+                
             if uniform.PointVisualization &&& PointVisualization.Lighting <> PointVisualization.None then
-                //let lvn = Vec.length v.n |> clamp 0.0 1.0
-                //let vn = v.n / lvn
-                //let vd = Vec.normalize v.vp 
+                let c = 
+                    if uniform.PointVisualization &&& PointVisualization.Antialias <> PointVisualization.None then
+                        c * (1.0 + 2.0 / v.ps)
+                    else
+                        c
 
-                let c = v.c * V2d(2.0, 2.0) - V2d.II
                 let f = Vec.dot c c
-                let z = sqrt (max 0.0 (1.0 - f))
-                //let sn = V3d(c.X, c.Y, -z)
-                
-                let dSphere = z //Vec.dot sn vd |> abs
-                //let dPlane = Vec.dot vn vd |> abs
-
-                //let t = lvn
-                //let pp : float = uniform?Planeness
-                
-                //let t = 
-                //    if pp < 0.01 then 0.0
-                //    else 1.0 - (1.0 - t) ** pp
- 
-                let diffuse = dSphere //(1.0 - t) * dSphere + t * dPlane
+                let diffuse = sqrt (max 0.0 (1.0 - f))
                 color <- color * diffuse
 
-            return V4d(color, v.col.W)
+            return { c = V4d(color, alpha); d = outDepth }
         }
+
+    //let cameraLight (v : PointVertex) =
+    //    fragment {
+    //        let mutable color = v.col.XYZ
+
+    //        if uniform.PointVisualization &&& PointVisualization.FancyPoints <> PointVisualization.None then
+    //            let vd = heat(v.ps / 8.0).XYZ
+    //            color <- 0.5 * (vd + V3d.III)
+
+    //        if uniform.PointVisualization &&& PointVisualization.Lighting <> PointVisualization.None then
+                
+    //            let mutable c = v.c * V2d(2.0, 2.0) - V2d.II
+                
+    //            if uniform.PointVisualization &&& PointVisualization.Antialias <> PointVisualization.None then
+    //                c <- c * (1.0 + 2.0 / v.ps)
+    //            let f = Vec.dot c c
+    //            let z = sqrt (max 0.0 (1.0 - f))
+    //            //let sn = V3d(c.X, c.Y, -z)
+                
+    //            let dSphere = z //Vec.dot sn vd |> abs
+    //            //let dPlane = Vec.dot vn vd |> abs
+
+    //            //let t = lvn
+    //            //let pp : float = uniform?Planeness
+                
+    //            //let t = 
+    //            //    if pp < 0.01 then 0.0
+    //            //    else 1.0 - (1.0 - t) ** pp
+ 
+    //            let diffuse = dSphere //(1.0 - t) * dSphere + t * dPlane
+    //            color <- color * diffuse
+
+    //        return V4d(color, v.col.W)
+    //    }
 
     let env =
         samplerCube {
@@ -1125,7 +1176,7 @@ module PointSetShaders =
             let rc = env.Sample(Vec.reflect d wn).XYZ
             let tc = env.Sample(Vec.refract d wn 0.9).XYZ
 
-            let ec = 0.8 * tc * v.col.XYZ + 0.05 * rc + 0.15 * v.col.XYZ
+            let ec = 0.8 * tc + 0.05 * rc + 0.15 * v.col.XYZ
             
             return V4d(ec, v.col.W)
         }

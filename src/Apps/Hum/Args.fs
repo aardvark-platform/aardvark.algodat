@@ -57,6 +57,8 @@ type Args =
         skip                : int
         /// batch import: take n files
         take                : int
+
+        msaa                : bool
     }
 
 module Args =
@@ -74,6 +76,7 @@ module Args =
         fov = 60.0
         skip = 0
         take = Int32.MaxValue
+        msaa = false
     }
     
     (* parse ascii-parser format string *)
@@ -107,7 +110,7 @@ module Args =
     let rec private parse' (a : Args) (argv : string list) : Args =
         match argv with
         | [] -> a
-
+        
         | "info" :: filename :: xs
             -> parse' { a with command = Some (Info filename) } xs
 
@@ -127,6 +130,9 @@ module Args =
         | "-ogl" :: xs
         | "-gl" :: xs           -> parse' { a with useVulkan = false } xs
         | "-vulkan" :: xs       -> parse' { a with useVulkan = true } xs
+        | "-msaa" :: xs         -> parse' { a with msaa = true } xs
+
+
 
         | "-port" :: x :: xs
         | "-p" :: x :: xs       -> parse' { a with port = Some (Int32.Parse x) } xs

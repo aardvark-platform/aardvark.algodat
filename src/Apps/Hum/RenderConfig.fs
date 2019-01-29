@@ -37,6 +37,172 @@ type RenderConfig =
         fancy           : ModRef<bool>
     }
 
+type OverlayPosition =
+    | None      = 0x00
+    | Top       = 0x01
+    | Bottom    = 0x02
+    | Left      = 0x10
+    | Right     = 0x20
+
+type OverlayConfig =
+    {
+        pos : OverlayPosition
+    }
+
+module Overlay =
+    open System
+    open System.Reflection
+    open Aardvark.Base.IL
+    open Microsoft.FSharp.Reflection
+
+    type private Format private() =
+        static member Format(t : MicroTime) = t.ToString()
+        static member Format(t : Mem) = t.ToString()
+
+    module private String =
+        let ws = System.String(' ', 512)
+
+        let padRight (len : int) (str : string) =
+            if len > str.Length then str + ws.Substring(0, len - str.Length)
+            else str
+            
+        let padLeft (len : int) (str : string) =
+            if len > str.Length then ws.Substring(0, len - str.Length) + str
+            else str
+            
+        let padCenter (len : int) (str : string) =
+            if len > str.Length then 
+                let m = len - str.Length
+                let l = m / 2
+                let r = m - l
+                ws.Substring(0, l) + str + ws.Substring(0, r)
+            else 
+                str
+
+    module private Reflection =
+        open System.Reflection
+
+        let getFields (t : Type) =
+            if FSharpType.IsTuple t then 
+                let args = FSharpType.GetTupleElements t
+                Array.init args.Length (fun i ->
+                    let (p,_) = FSharpValue.PreComputeTuplePropertyInfo(t, i)
+                    p
+                )
+            elif FSharpType.IsRecord(t, true) then 
+                FSharpType.GetRecordFields(t, true)
+            else
+                failwith "unexpected type"
+
+        let private formatters = System.Collections.Concurrent.ConcurrentDictionary<Type, MethodInfo>()
+
+        let private getFormatMethod (t : Type) =
+            formatters.GetOrAdd(t, fun t ->
+                let m = typeof<Format>.GetMethod("Format", BindingFlags.NonPublic ||| BindingFlags.Public ||| BindingFlags.Static, Type.DefaultBinder, [| t |], null)
+                if isNull m || m.ReturnType <> typeof<string> then
+                    t.GetMethod("ToString", BindingFlags.NonPublic ||| BindingFlags.Public ||| BindingFlags.Instance, Type.DefaultBinder, [||], null)
+                else
+                    m
+            )
+
+        let getFormatter (p : PropertyInfo) : obj -> string =
+            let m = getFormatMethod p.PropertyType
+            cil {
+                do! IL.ldarg 0
+                do! IL.call p.GetMethod
+                do! IL.call m
+                do! IL.ret
+            }
+
+    
+
+    let table (cfg : IMod<OverlayConfig>) (viewport : IMod<V2i>) (data : IMod<list<'a>>) =
+        let t = typeof<'a>
+        let fields = Reflection.getFields t
+        let format = 
+            let fieldFormat = fields |> Array.map Reflection.getFormatter
+            fun (v : 'a) -> fieldFormat |> Array.map (fun fmt -> fmt (v :> obj))
+         
+        let content = 
+            data |> Mod.map (fun c ->
+                let lines = c |> List.map format
+
+                let maxColLength = Array.zeroCreate fields.Length
+                for l in lines do
+                    for i in 0 .. fields.Length - 1 do
+                        let str = l.[i]
+                        maxColLength.[i] <- max maxColLength.[i] str.Length
+
+                lines |> List.map (fun line ->
+                    line 
+                    |> Seq.mapi (fun i e -> String.padRight maxColLength.[i] e) |> String.concat " "
+                )
+                |> String.concat "\r\n"
+            )
+        
+        let shapes =
+            let fgAlpha = byte (255.0 * 1.0)
+            let bgAlpha = byte (255.0 * 0.6)
+            let config = 
+                { TextConfig.Default with 
+                    color = C4b(255uy, 255uy, 255uy, fgAlpha) 
+                    align = TextAlignment.Left
+                    flipViewDependent = false
+                }
+
+            content |> Mod.map (fun text ->
+                let shapes = config.Layout text
+                let realBounds = shapes.bounds
+                let bounds = realBounds.EnlargedBy(0.5, 0.5, 0.2, 0.5)
+                let rect = ConcreteShape.fillRoundedRectangle (C4b(0uy,0uy,0uy,bgAlpha)) 0.8 bounds
+                ShapeList.prepend rect shapes
+            )
+
+
+        let trafo =
+            Mod.custom (fun t ->
+                let s = viewport.GetValue t
+                let shapes = shapes.GetValue t
+                let cfg = cfg.GetValue t
+                let bounds = shapes.bounds
+                let fontSize = 18.0
+                let padding = 5.0
+
+                let verticalShift =
+                    if cfg.pos.HasFlag(OverlayPosition.Top) then V3d(0.0, -bounds.Max.Y - padding / fontSize, 0.0)
+                    elif cfg.pos.HasFlag(OverlayPosition.Bottom) then V3d(0.0, -bounds.Min.Y + padding / fontSize, 0.0)
+                    else V3d(0.0, -bounds.Center.Y, 0.0)
+                    
+                let horizontalShift =
+                    if cfg.pos.HasFlag(OverlayPosition.Left) then V3d(-bounds.Min.X + padding / fontSize, 0.0, 0.0)
+                    elif cfg.pos.HasFlag(OverlayPosition.Right) then V3d(-bounds.Max.X - padding / fontSize, 0.0, 0.0)
+                    else V3d(-bounds.Center.X, 0.0, 0.0)
+
+                let finalPos =
+                    let v = 
+                        if cfg.pos.HasFlag(OverlayPosition.Top) then V3d(0,1,0)
+                        elif cfg.pos.HasFlag(OverlayPosition.Bottom) then V3d(0,-1,0)
+                        else V3d.Zero
+                    
+                    let h = 
+                        if cfg.pos.HasFlag(OverlayPosition.Left) then V3d(-1, 0, 0)
+                        elif cfg.pos.HasFlag(OverlayPosition.Right) then V3d(1, 0, 0)
+                        else V3d.Zero
+                    v + h
+
+                Trafo3d.Translation(verticalShift + horizontalShift) * 
+                Trafo3d.Scale(18.0) *
+
+                Trafo3d.Scale(1.0 / float s.X, 1.0 / float s.Y, 1.0) *
+                Trafo3d.Scale(2.0, 2.0, 2.0) *
+                Trafo3d.Translation(finalPos)
+            )
+
+        Sg.shape shapes
+            |> Sg.trafo trafo
+            |> Sg.blendMode (Mod.constant BlendMode.Blend)
+            |> Sg.viewTrafo (Mod.constant Trafo3d.Identity)
+            |> Sg.projTrafo (Mod.constant Trafo3d.Identity)
 
 module RenderConfig =
 

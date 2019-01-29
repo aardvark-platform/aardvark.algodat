@@ -79,7 +79,7 @@ module Util =
 module Rendering =
 
 
-    let pointClouds (win : IRenderWindow) (camera : IMod<CameraView>) (frustum : IMod<Frustum>) (pcs : list<LodTreeInstance>) =
+    let pointClouds (win : IRenderWindow) (msaa : bool) (camera : IMod<CameraView>) (frustum : IMod<Frustum>) (pcs : list<LodTreeInstance>) =
         let config =
             {
                 pointSize = Mod.init 1.0
@@ -126,10 +126,7 @@ module Rendering =
                 vis
 
             ) 
-            
-        let isActive = Mod.init true
-        let trafo = Mod.init Trafo3d.Identity
-        
+
         let pcs =
             pcs |> List.map (fun t ->
                 { t with uniforms = MapExt.add "Overlay" (config.overlayAlpha :> IMod) t.uniforms }
@@ -148,6 +145,30 @@ module Rendering =
         let cfg =
             RenderConfig.toSg win config
 
+        //let bla =
+        //    let pi = Mod.init 0
+        //    let pos = 
+        //        [|
+        //            OverlayPosition.None
+        //            OverlayPosition.Top
+        //            OverlayPosition.Top ||| OverlayPosition.Right
+        //            OverlayPosition.Right
+        //            OverlayPosition.Right ||| OverlayPosition.Bottom
+        //            OverlayPosition.Bottom
+        //            OverlayPosition.Bottom ||| OverlayPosition.Left
+        //            OverlayPosition.Left
+        //            OverlayPosition.Left ||| OverlayPosition.Top
+        //        |]
+        //    win.Keyboard.DownWithRepeats.Values.Add (fun k ->
+        //        match k with
+        //        | Keys.Divide -> transact (fun () -> pi.Value <- (pi.Value + 1) % pos.Length)
+        //        | _ -> ()
+        //    )
+
+        //    let cfg = pi |> Mod.map (fun pi -> { pos = pos.[pi]  })
+        //    let content = Mod.constant [ ("bla", MicroTime.FromMilliseconds 123.0) ]
+        //    Overlay.table cfg win.Sizes content
+
         let sg =
             Sg.LodTreeNode(config.stats, true, config.budget, config.renderBounds, config.maxSplits, win.Time, pcs) :> ISg
             |> Sg.uniform "PointSize" config.pointSize
@@ -156,14 +177,18 @@ module Rendering =
             |> Sg.uniform "MagicExp" config.magicExp
             |> Sg.shader {
                 do! PointSetShaders.lodPointSize
-                do! PointSetShaders.cameraLight
-                do! PointSetShaders.lodPointCircular
+                //do! PointSetShaders.cameraLight
+                if msaa then
+                    do! PointSetShaders.lodPointCircularMSAA
+                else
+                    do! PointSetShaders.lodPointCircular
                 //do! PointSetShaders.envMap
             }
             |> Sg.multisample (Mod.constant true)
             |> Sg.viewTrafo (camera |> Mod.map CameraView.viewTrafo)
             |> Sg.projTrafo (frustum |> Mod.map Frustum.projTrafo)
             |> Sg.andAlso cfg
+            //|> Sg.andAlso bla
             |> Sg.blendMode (Mod.constant BlendMode.None)
 
         win.Keyboard.DownWithRepeats.Values.Add(fun k ->
@@ -309,7 +334,6 @@ module Rendering =
         Ag.initialize()
         Aardvark.Init()
 
-        
         use app = new OpenGlApplication(true, false)
         use win = app.CreateGameWindow(8)
         
@@ -317,12 +341,26 @@ module Rendering =
             CameraView.lookAt (V3d(10,10,10)) V3d.Zero V3d.OOI
             |> DefaultCameraController.control win.Mouse win.Keyboard win.Time
 
+
+        let bb = Box3d.FromCenterAndSize(V3d.Zero, V3d.III * 300.0)
+
         let frustum =
-            win.Sizes |> Mod.map (fun s -> Frustum.perspective args.fov 0.05 500.0 (float s.X / float s.Y))
+            Mod.custom (fun t ->
+                let s = win.Sizes.GetValue t
+                let c = camera.GetValue t
+
+                let (minPt, maxPt) = bb.GetMinMaxInDirection(c.Forward)
+                
+                let near = Vec.dot c.Forward (minPt - c.Location)
+                let far = Vec.dot c.Forward (maxPt - c.Location)
+                let near = max (max 0.05 near) (far / 1000.0)
+
+                Frustum.perspective args.fov near far (float s.X / float s.Y)
+            )
 
 
-        let config, pcs = pointClouds win camera frustum pcs
-
+        let config, pcs = pointClouds win args.msaa camera frustum pcs
+        
         let sg =
             Sg.ofList [
                 pcs
@@ -333,18 +371,19 @@ module Rendering =
                 Sg.ofList (
                     skyboxes |> Map.toList |> List.map (fun (id, tex) ->
                         Sg.farPlaneQuad
-                        |> Sg.shader {
-                            do! Util.Shader.reverseTrafo
-                            do! Util.Shader.envMap
-                        }
                         |> Sg.uniform "EnvMap" tex
                         |> Sg.onOff (config.background |> Mod.map ((=) (Background.Skybox id)))
                     )
                 )
+                |> Sg.shader {
+                    do! Util.Shader.reverseTrafo
+                    do! Util.Shader.envMap
+                }
 
             ]
             |> Sg.viewTrafo (camera |> Mod.map CameraView.viewTrafo)
             |> Sg.projTrafo (frustum |> Mod.map Frustum.projTrafo)
+            //|> Sg.uniform "EnvMap" skyboxes.[Skybox.ViolentDays]
     
         win.RenderTask <- Sg.compile app.Runtime win.FramebufferSignature sg
         win.Run()

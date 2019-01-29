@@ -2,7 +2,7 @@
   "profiles": {
     "Hum": {
       "commandName": "Project",
-      "commandLineArgs": "view C:\\Users\\Schorsch\\Development\\WorkDirectory\\kauny2 kaunertal"
+      "commandLineArgs": "view C:\\Users\\Schorsch\\Development\\WorkDirectory\\kauny2 kaunertal -msaa "
     }
   }
 }
