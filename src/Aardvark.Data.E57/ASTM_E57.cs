@@ -2346,8 +2346,14 @@ namespace Aardvark.Data.E57
             var element = GetElement(root, elementName);
             if (element == null) return null;
             var blob = E57Blob.Parse(GetElement(root, elementName));
-            // Mysterious!  Why is +16 required?
-            var offest = new E57PhysicalOffset(blob.FileOffset.Value + 16);
+            // Mysterious!  Why is +16 required? 
+            var start = blob.FileOffset.Value + 16;
+            // If start falls in checksum region move it forward the the next page
+            if(start % 1024 >= 1020)
+            {
+                start += 1024 - (start % 1024);
+            }
+            var offest = new E57PhysicalOffset(start);
             return ReadLogicalBytes(stream, offest, (int)blob.Length);            
         }
         private static double? GetFloatOrInteger(XElement root, string elementName, bool required)
