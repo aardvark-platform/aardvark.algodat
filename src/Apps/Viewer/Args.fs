@@ -1,17 +1,7 @@
 ﻿(*
-    Copyright (c) 2018. Attila Szabo, Georg Haaser, Harald Steinlechner, Stefan Maierhofer.
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Affero General Public License for more details.
-    You should have received a copy of the GNU Affero General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    Copied from https://github.com/aardvark-community/hum.
 *)
-namespace Hum
+namespace Aardvark.Algodat.App.Viewer
 
 open Aardvark.Data.Points.Import
 open System
@@ -131,9 +121,7 @@ module Args =
         | "-gl" :: xs           -> parse' { a with useVulkan = false } xs
         | "-vulkan" :: xs       -> parse' { a with useVulkan = true } xs
         | "-msaa" :: xs         -> parse' { a with msaa = true } xs
-
-
-
+        
         | "-port" :: x :: xs
         | "-p" :: x :: xs       -> parse' { a with port = Some (Int32.Parse x) } xs
         | "-port" :: []         
@@ -169,7 +157,6 @@ module Args =
         | "-take" :: []          -> failwith "missing argument: -take <???>"
 
         | x :: _                -> printf "unknown argument '%s'" x
-                                   printUsage ()
                                    Environment.Exit(1)
                                    failwith "never reached, but makes compiler happy ;-)"
         

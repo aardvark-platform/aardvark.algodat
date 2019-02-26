@@ -1,6 +1,4 @@
-﻿namespace Hum
-
-
+﻿namespace Aardvark.Algodat.App.Viewer
 
 open Aardvark.Base.Incremental
 open Aardvark.Base

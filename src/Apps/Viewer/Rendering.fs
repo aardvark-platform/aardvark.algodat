@@ -1,4 +1,7 @@
-﻿namespace Hum
+﻿(*
+    Copied from https://github.com/aardvark-community/hum.
+*)
+namespace Aardvark.Algodat.App.Viewer
 
 open Aardvark.Base.Incremental
 open Aardvark.Base
@@ -7,7 +10,6 @@ open Aardvark.Application
 open Aardvark.Application.Slim
 open Aardvark.Rendering.Text
 open Aardvark.Rendering.PointSet
-open Hum
 open Aardvark.Base.Rendering
 
 
@@ -248,7 +250,7 @@ module Rendering =
             let env =
                 let trafo t (img : PixImage) = img.Transformed t
                 let load (name : string) =
-                    use s = typeof<Args>.Assembly.GetManifestResourceStream("Hum.CubeMap." + name)
+                    use s = typeof<Args>.Assembly.GetManifestResourceStream("Viewer.CubeMap." + name)
                     PixImage.Create(s, PixLoadOptions.Default)
                 
                 PixImageCube [|
@@ -288,7 +290,7 @@ module Rendering =
             let env =
                 let trafo t (img : PixImage) = img.Transformed t
                 let load (name : string) =
-                    use s = typeof<Args>.Assembly.GetManifestResourceStream("Hum.CubeMap." + name)
+                    use s = typeof<Args>.Assembly.GetManifestResourceStream("Viewer.CubeMap." + name)
                     PixImage.Create(s, PixLoadOptions.Default)
                 
                 PixImageCube [|
