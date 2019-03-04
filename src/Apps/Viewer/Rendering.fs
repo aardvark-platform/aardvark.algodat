@@ -148,62 +148,62 @@ module Rendering =
         let cfg =
             RenderConfig.toSg win config
 
-        let bla =
-            let pi = Mod.init 0
-            let pos = 
-                [|
-                    OverlayPosition.None
-                    OverlayPosition.Top
-                    OverlayPosition.Top ||| OverlayPosition.Right
-                    OverlayPosition.Right
-                    OverlayPosition.Right ||| OverlayPosition.Bottom
-                    OverlayPosition.Bottom
-                    OverlayPosition.Bottom ||| OverlayPosition.Left
-                    OverlayPosition.Left
-                    OverlayPosition.Left ||| OverlayPosition.Top
-                |]
-            win.Keyboard.DownWithRepeats.Values.Add (fun k ->
-                match k with
-                | Keys.Divide -> transact (fun () -> pi.Value <- (pi.Value + 1) % pos.Length)
-                | _ -> ()
-            )
+        //let bla =
+        //    let pi = Mod.init 0
+        //    let pos = 
+        //        [|
+        //            OverlayPosition.None
+        //            OverlayPosition.Top
+        //            OverlayPosition.Top ||| OverlayPosition.Right
+        //            OverlayPosition.Right
+        //            OverlayPosition.Right ||| OverlayPosition.Bottom
+        //            OverlayPosition.Bottom
+        //            OverlayPosition.Bottom ||| OverlayPosition.Left
+        //            OverlayPosition.Left
+        //            OverlayPosition.Left ||| OverlayPosition.Top
+        //        |]
+        //    win.Keyboard.DownWithRepeats.Values.Add (fun k ->
+        //        match k with
+        //        | Keys.Divide -> transact (fun () -> pi.Value <- (pi.Value + 1) % pos.Length)
+        //        | _ -> ()
+        //    )
 
-            let cfg = pi |> Mod.map (fun pi -> { pos = pos.[pi]  })
-            let content = 
-                Mod.constant {
-                    prefix = ""
-                    suffix = ""
-                    separator = " "
-                    entries = [
-                        [ 
-                            Text ~~"Hig"
-                            Text ~~""
-                            Number((config.stats |> Mod.map (fun s -> float s.totalPrimitives)), "pt", 1)
-                        ]
-                        [ 
-                            Text ~~"Hugo"
-                            Text ~~"Sepp"
-                            Number((config.stats |> Mod.map (fun s -> float s.totalPrimitives)), "pt", 1)
-                        ]
-                        [ 
-                            Text ~~"Hugo"
-                            ColSpan(2, 
-                                Text (~~(string (Mem (1L <<< 48))))
-                            )
-                        ]
-                        //[ 
-                        //    Text ~~"Seppy"
-                        //    Concat [
-                        //        //Progress (config.stats |> Mod.map (fun s -> s.quality))
-                        //        Text (config.stats |> Mod.map (fun s -> sprintf " %.0f%%" (100.0 * s.quality)))
-                        //    ]
-                        //]
-                        //[
-                        //    ColSpan(2, Text ~~"kjasndjasnlkdnsadlknsadnaldnasd")
-                        //]
-                    ]
-                }
-            Overlay.table cfg win.Sizes content
+        //    let cfg = pi |> Mod.map (fun pi -> { pos = pos.[pi]  })
+        //    let content = 
+        //        Mod.constant {
+        //            prefix = ""
+        //            suffix = ""
+        //            separator = " "
+        //            entries = [
+        //                [ 
+        //                    Text ~~"Hig"
+        //                    Text ~~""
+        //                    Number((config.stats |> Mod.map (fun s -> float s.totalPrimitives)), "pt", 1)
+        //                ]
+        //                [ 
+        //                    Text ~~"Hugo"
+        //                    Text ~~"Sepp"
+        //                    Number((config.stats |> Mod.map (fun s -> float s.totalPrimitives)), "pt", 1)
+        //                ]
+        //                [ 
+        //                    Text ~~"Hugo"
+        //                    ColSpan(2, 
+        //                        Text (~~(string (Mem (1L <<< 48))))
+        //                    )
+        //                ]
+        //                //[ 
+        //                //    Text ~~"Seppy"
+        //                //    Concat [
+        //                //        //Progress (config.stats |> Mod.map (fun s -> s.quality))
+        //                //        Text (config.stats |> Mod.map (fun s -> sprintf " %.0f%%" (100.0 * s.quality)))
+        //                //    ]
+        //                //]
+        //                //[
+        //                //    ColSpan(2, Text ~~"kjasndjasnlkdnsadlknsadnaldnasd")
+        //                //]
+        //            ]
+        //        }
+        //    Overlay.table cfg win.Sizes content
 
         let sg =
             Sg.LodTreeNode(config.stats, true, config.budget, config.renderBounds, config.maxSplits, win.Time, pcs) :> ISg
