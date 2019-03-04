@@ -47,6 +47,336 @@ type OverlayConfig =
         pos : OverlayPosition
     }
 
+type TableEntry =
+    | Text of value : IMod<string>
+    | Time of value : IMod<MicroTime>
+    | Number of value : IMod<float> * unit : string * digits : int
+    | Progress of value : IMod<float>
+    | ColSpan of width : int * child : TableEntry
+    | Concat of content : list<TableEntry>
+    
+type Table =
+    {
+        prefix      : string
+        suffix      : string
+        separator   : string
+        entries     : list<list<TableEntry>>
+    }
+    
+module Table =
+    open System.Text
+
+    module private Seq = 
+        let range (l : seq<int>) =
+            let mutable r = Range1i.Invalid
+            for e in l do
+                r.ExtendBy e
+            r
+
+
+    let format (suffix : string) (d : int) (v : float) (u : string) =  
+        let fmt = 
+            if d > 1 then "0." + System.String('0', 1) + System.String('#', d - 1)
+            elif d > 0 then "0." + System.String('0', 1)
+            else "0"
+
+        v.ToString(fmt, System.Globalization.CultureInfo.InvariantCulture) + suffix + u
+
+    let private numberString (v : float) (u : string) (d : int) =
+        let a = abs v
+        if v = 0.0 then "0"
+        elif a >= 1000000000000000000000000.0 then format "Y" d (v / 1000000000000000000000000.0) u
+        elif a >= 1000000000000000000000.0 then format "Z" d (v / 1000000000000000000000.0) u
+        elif a >= 1000000000000000000.0 then format "E" d (v / 1000000000000000000.0) u
+        elif a >= 1000000000000000.0 then format "P" d (v / 1000000000000000.0) u
+        elif a >= 1000000000000.0 then format "T" d (v / 1000000000000.0) u
+        elif a >= 1000000000.0 then format "G" d (v / 1000000000.0) u
+        elif a >= 1000000.0 then format "M" d (v / 1000000.0) u
+        elif a >= 1000.0 then format "k" d (v / 1000.0) u
+        elif a >= 1.0 then format "" d v u
+        elif a >= 0.0010 then format "m" d (v * 1000.0) u
+        elif a >= 0.0000010 then format "µ" d (v * 1000000.0) u
+        elif a >= 0.0000000010 then format "n" d (v * 1000000000.0) u
+        elif a >= 0.0000000000010 then format "p" d (v * 1000000000000.0) u
+        elif a >= 0.0000000000000010 then format "f" d (v * 1000000000000000.0) u
+        elif a >= 0.0000000000000000010 then format "a" d (v * 1000000000000000000.0) u
+        elif a >= 0.0000000000000000000010 then format "z" d (v * 1000000000000000000000.0) u
+        elif a >= 0.0000000000000000000000010 then format "y" d (v * 1000000000000000000000000.0) u
+        else
+            let e = int (Fun.Log10 a)
+            let r = v / pown 10.0 e
+            format (sprintf "E%d" e) d r u
+
+    let rec private toStringColSpan (t : AdaptiveToken) (id : ref<int>) (progressTable : ref<Map<string, float>>) (e : TableEntry) =
+        match e with
+        | Text s -> 
+            1, s.GetValue t
+        | Time v -> 
+            1, v.GetValue t |> string
+
+        | Number(v,u,d) ->
+            let v = v.GetValue t
+            let str = numberString v u d
+            1, str
+        | Progress v -> 
+            let v = v.GetValue t
+            let i = !id
+            let splice = "{" + i.ToString("X6") + "}"
+            id := i + 1
+            progressTable := Map.add splice v !progressTable
+            1, splice
+
+        | Concat es ->
+            let rs = es |> Seq.map (toStringColSpan t id progressTable >> snd) |> String.concat ""
+            1, rs
+        | ColSpan(w, e) ->
+            let (_, v) = toStringColSpan t id progressTable e
+            w, v
+  
+    let rec private toShapeColSpan (cfg : TextConfig) (t : AdaptiveToken) (id : ref<int>) (progressTable : ref<Map<string, float>>) (e : TableEntry) =
+        match e with
+        | Text v -> 
+            let v = v.GetValue t
+            let shape = cfg.Layout v
+            1, shape
+            
+        | Time v -> 
+            let v = v.GetValue t
+            let shape = cfg.Layout (string v)
+            1, shape
+
+        | Number(v,u,d) ->
+            let v = v.GetValue t
+            let str = numberString v u d
+            let shape = cfg.Layout str
+            1, shape
+            
+        | Concat es ->
+            let rs = es |> List.map (toShapeColSpan cfg t id progressTable >> snd)
+            
+            let res = 
+                match rs with
+                | [] -> failwith ""
+                | h :: t ->
+                    t |> List.fold (ShapeList.appendHorizontal 0.0) h
+
+            1, res
+            
+        | Progress v -> 
+            1, ShapeList.empty
+            
+        | ColSpan(w, e) ->
+            let (_, v) = toShapeColSpan cfg t id progressTable e
+            w, v
+
+  
+    let private progressBar (v : float) (box : Box2d) =
+        let q = clamp 0.03 1.0 v
+        let w = 0.1
+        let offset = box.Min
+        let size =  V2d(box.Size.X, min 0.8 box.Size.Y)
+        let bgBounds = Box2d.FromMinAndSize(offset, size).ShrunkBy(w / 2.0)
+        let curBounds = Box2d.FromMinAndSize(bgBounds.Min, V2d(bgBounds.SizeX * q, bgBounds.SizeY)).ShrunkBy(w / 2.0)
+        let mutable c = HeatMap.color(1.0 - q)
+        
+        if q < 1.0 then c.A <- 200uy
+        else c.A <- 150uy
+
+        [
+            yield ConcreteShape.roundedRectangle (C4b(255uy,255uy,255uy,255uy)) w 0.8 bgBounds
+            yield ConcreteShape.fillRoundedRectangle c 0.8 curBounds
+        ]
+              
+              
+    let layoutNew (cfg : TextConfig) (table : Table) =
+        Mod.custom (fun t ->
+            let id = ref 0
+            let progress = ref Map.empty
+            let entries = table.entries |> List.map (List.map (toShapeColSpan cfg t id progress))
+            
+            let columns =
+                entries |> Seq.map (List.sumBy fst) |> Seq.max
+            
+
+            let colLengths =
+                let lengths = Array.zeroCreate columns
+                entries |> List.iter (fun row ->
+                    let mutable c = 0
+                    row |> List.iter (fun (span,v) ->
+                        if span = 1 then
+                            lengths.[c] <- max v.bounds.SizeX lengths.[c]
+                        c <- c + span
+                    )
+                )
+                lengths 
+
+            entries |> List.iter (fun row ->
+                let mutable c = 0
+                row |> List.iter (fun (span,v) ->
+                    if span > 1 then
+                        let sum = Seq.init span (fun i -> colLengths.[c + i]) |> Seq.sum
+                        let sum = sum 
+                        if sum < v.bounds.SizeX then
+                            let missing = v.bounds.SizeX - sum
+                            let realSum = Seq.init span (fun i -> colLengths.[c + i]) |> Seq.sum
+                            for i in 0 .. span - 1 do
+                                let rel = colLengths.[c + i] / realSum
+                                let inc = rel * missing
+                                colLengths.[c + i] <- colLengths.[c + i] + inc
+   
+                    c <- c + span
+                )
+            ) 
+            
+            for i in 0 .. columns - 2 do colLengths.[i] <- colLengths.[i] + 2.0
+            
+            let negativeV = 0.3
+            let rows =
+                entries |> List.map (fun row ->
+                    let mutable res = ShapeList.empty
+
+                    let mutable offset = 0.0
+                    let mutable c = 0
+                    for (span, e) in row do
+                        let l = colLengths.[c]
+
+                        let e = ShapeList.translated (V2d(offset, 0.0)) e
+                        res <- ShapeList.union res e
+
+                        offset <- offset + l
+                        c <- c + span
+                        
+
+                    let mutable offset = 0.0
+                    let mutable c = 0
+                    for (span, _) in row do
+                        if c > 0 then                           
+                            let width = 0.02
+                            let vLine = ConcreteShape.fillRectangle C4b.White (Box2d(-width/2.0, res.bounds.Min.Y + negativeV, width / 2.0, res.bounds.Max.Y))
+                            let vLine = [{ vLine with z = 100 }] |> ShapeList.ofList
+                            res <- ShapeList.union res (ShapeList.translated (V2d(offset - 1.0, 0.0)) vLine)
+                        offset <- offset + colLengths.[c]
+                        c <- c + span
+                        
+
+                    res
+                )
+
+                
+            let mutable offset = 0.0
+            let mutable res = ShapeList.empty
+            for r in rows do
+                res <- ShapeList.union res (ShapeList.translated (V2d(0.0, offset)) r)
+                offset <- offset - r.bounds.SizeY + negativeV
+
+            
+            //let width = 0.02
+            //let vLine = ConcreteShape.fillRectangle C4b.White (Box2d(-width/2.0, res.bounds.Min.Y, width / 2.0, res.bounds.Max.Y))
+            //let vLine = [{ vLine with z = 100 }] |> ShapeList.ofList
+
+            //let mutable offset = colLengths.[0] - 1.0
+            //for i in 1 .. columns - 1 do
+            //    res <- ShapeList.union res (ShapeList.translated (V2d(offset, 0.0)) vLine)
+            //    offset <- offset + colLengths.[i]
+
+
+            res
+        )
+
+    let layout (cfg : TextConfig) (table : Table) =
+        Mod.custom (fun t ->
+            let id = ref 0
+            let progress = ref Map.empty
+            let entries = table.entries |> List.map (List.map (toStringColSpan t id progress))
+            let progress = !progress
+
+            let columns =
+                entries |> Seq.map (List.sumBy fst) |> Seq.max
+            
+            let colLengths =
+                let lengths = Array.zeroCreate columns
+                entries |> List.iter (fun row ->
+                    let mutable c = 0
+                    row |> List.iter (fun (span,v) ->
+                        //let strLen = v.Length + table.separator.Length
+                        //let v = ()
+                        
+                        if span = 1 then
+                            lengths.[c] <- max v.Length lengths.[c]
+                        //let sum = Seq.init span (fun i -> lengths.[c + i]) |> Seq.sum
+                        //if sum < strLen then
+                        //    let mutable missing = strLen - sum
+                        //    let inc = int (float missing / float span)
+                        //    for i in 0 .. span - 1 do
+                        //        lengths.[c + i] <- lengths.[c + i] + inc
+                        //        missing <- missing - inc
+                        //    if missing > 0 then
+                        //        lengths.[c + span - 1] <- lengths.[c + span - 1] + missing
+
+                        c <- c + span
+                    )
+                )
+                lengths 
+                
+            entries |> List.iter (fun row ->
+                let mutable c = 0
+                row |> List.iter (fun (span,v) ->
+                    if span > 1 then
+                        let sum = Seq.init span (fun i -> colLengths.[c + i] + table.separator.Length) |> Seq.sum
+                        let sum = sum - table.separator.Length
+                        if sum < v.Length then
+                            let missing = v.Length - sum
+                            if missing <= span then
+                                for i in 0 .. missing - 1 do colLengths.[c + i] <- colLengths.[c + i] + 1
+                            else
+                                let mutable rem = missing
+                                let realSum = Seq.init span (fun i -> colLengths.[c + i]) |> Seq.sum
+                                for i in 0 .. span - 1 do
+                                    let rel = float colLengths.[c + i] / float realSum
+                                    let inc = int (rel * float missing)
+                                    colLengths.[c + i] <- colLengths.[c + i] + inc
+                                    rem <- rem - inc
+
+                                if rem > 0 then
+                                    colLengths.[c + span - 1] <- colLengths.[c + span - 1] + rem
+                                    
+
+                    c <- c + span
+                )
+            )
+
+            let content =
+                let b = StringBuilder()
+                entries |> List.iter (fun row ->
+                    let mutable c = 0
+
+                    b.Append(table.prefix) |> ignore
+
+                    for (span, e) in row do
+                        let len = 
+                            let l = Seq.init span (fun i -> colLengths.[c + i] + table.separator.Length) |> Seq.sum
+                            l - table.separator.Length
+                        b.Append(e) |> ignore
+
+                        if len > e.Length then
+                            b.Append(' ', len - e.Length) |> ignore
+                            
+                        c <- c + span
+                        if c < columns then b.Append(table.separator) |> ignore
+                        else b.Append(table.suffix) |> ignore
+
+                    b.AppendLine() |> ignore
+                )
+                b.ToString()
+                
+            let mutable shapes = cfg.Layout content
+
+            for (splice, value) in Map.toSeq progress do
+                shapes <- ShapeList.replace splice (progressBar value) shapes
+
+            shapes
+        )
+
 module Overlay =
     open System
     open System.Reflection
@@ -112,44 +442,25 @@ module Overlay =
                 do! IL.ret
             }
 
-    
 
-    let table (cfg : IMod<OverlayConfig>) (viewport : IMod<V2i>) (data : IMod<list<'a>>) =
-        let t = typeof<'a>
-        let fields = Reflection.getFields t
-        let format = 
-            let fieldFormat = fields |> Array.map Reflection.getFormatter
-            fun (v : 'a) -> fieldFormat |> Array.map (fun fmt -> fmt (v :> obj))
-         
-        let content = 
-            data |> Mod.map (fun c ->
-                let lines = c |> List.map format
-
-                let maxColLength = Array.zeroCreate fields.Length
-                for l in lines do
-                    for i in 0 .. fields.Length - 1 do
-                        let str = l.[i]
-                        maxColLength.[i] <- max maxColLength.[i] str.Length
-
-                lines |> List.map (fun line ->
-                    line 
-                    |> Seq.mapi (fun i e -> String.padRight maxColLength.[i] e) |> String.concat " "
-                )
-                |> String.concat "\r\n"
-            )
+    let table (cfg : IMod<OverlayConfig>) (viewport : IMod<V2i>) (table : IMod<Table>) =
+        let fgAlpha = byte (255.0 * 1.0)
+        let bgAlpha = byte (255.0 * 0.6)
+        let config = 
+            { TextConfig.Default with 
+                font = Font "Blackadder ITC"
+                color = C4b(255uy, 255uy, 255uy, fgAlpha) 
+                align = TextAlignment.Left
+                flipViewDependent = false
+            }
         
-        let shapes =
-            let fgAlpha = byte (255.0 * 1.0)
-            let bgAlpha = byte (255.0 * 0.6)
-            let config = 
-                { TextConfig.Default with 
-                    color = C4b(255uy, 255uy, 255uy, fgAlpha) 
-                    align = TextAlignment.Left
-                    flipViewDependent = false
-                }
+        let content =
+            table |> Mod.bind (Table.layoutNew config)
 
-            content |> Mod.map (fun text ->
-                let shapes = config.Layout text
+        let shapes =
+
+
+            content |> Mod.map (fun shapes ->
                 let realBounds = shapes.bounds
                 let bounds = realBounds.EnlargedBy(0.5, 0.5, 0.2, 0.5)
                 let rect = ConcreteShape.fillRoundedRectangle (C4b(0uy,0uy,0uy,bgAlpha)) 0.8 bounds
@@ -189,7 +500,7 @@ module Overlay =
                     v + h
 
                 Trafo3d.Translation(verticalShift + horizontalShift) * 
-                Trafo3d.Scale(18.0) *
+                Trafo3d.Scale(40.0) *
 
                 Trafo3d.Scale(1.0 / float s.X, 1.0 / float s.Y, 1.0) *
                 Trafo3d.Scale(2.0, 2.0, 2.0) *

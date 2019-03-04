@@ -25,6 +25,62 @@ type private Numeric(value : int64) =
         
 
 module ShapeList =
+
+    let empty =
+        {
+            bounds = Box2d.Invalid
+            concreteShapes = []
+            zRange = Range1i.Invalid
+            renderTrafo = Trafo3d.Identity
+            flipViewDependent = true
+        }
+
+    let translated (shift : V2d) (l : ShapeList) =
+        let bounds = l.bounds.Translated shift
+        let renderTrafo = l.renderTrafo * Trafo3d.Translation(V3d(shift, 0.0))
+        
+        { 
+            bounds = bounds
+            renderTrafo = renderTrafo
+            concreteShapes = l.concreteShapes
+            zRange = l.zRange
+            flipViewDependent = l.flipViewDependent
+        }
+        
+    let union (l : ShapeList) (r : ShapeList) =
+        let bounds = Box2d.Union(l.bounds, r.bounds)
+        let renderTrafo = Trafo3d.Translation(V3d(bounds.Center.X, 0.0, 0.0))
+        
+        let lShapes =
+            let l2g = l.renderTrafo * renderTrafo.Inverse
+            l.concreteShapes |> List.map (fun (s : ConcreteShape) ->
+                let offset = l2g.Forward.TransformPos (V3d(s.offset, 0.0)) |> Vec.xy
+                let scale = l2g.Forward.TransformDir (V3d(s.scale, 0.0)) |> Vec.xy
+                { offset = offset; scale = scale; color = s.color; shape = s.shape; z = s.z }
+            )
+
+        let rShapes =
+            let r2g = r.renderTrafo * renderTrafo.Inverse
+            r.concreteShapes |> List.map (fun (s : ConcreteShape) ->
+                let offset = r2g.Forward.TransformPos (V3d(s.offset, 0.0)) |> Vec.xy
+                let scale = r2g.Forward.TransformDir (V3d(s.scale, 0.0)) |> Vec.xy
+                { offset = offset; scale = scale; color = s.color; shape = s.shape; z = s.z }
+            )
+        
+        { 
+            bounds = bounds
+            renderTrafo = renderTrafo
+            concreteShapes = lShapes @ rShapes
+            zRange = Range1i.Union(l.zRange, r.zRange)
+            flipViewDependent = l.flipViewDependent && r.flipViewDependent
+        }
+
+    let appendHorizontal (spacing : float) (l : ShapeList) (r : ShapeList) =
+        let shift = l.bounds.Max.XO - r.bounds.Min.XO + V2d(spacing, 0.0)
+        union l (translated shift r)
+        
+
+
     let replace (str : string) (rep : Box2d -> list<ConcreteShape>) (s : ShapeList) =
                         
         let rec tryReplaceFront (str : string) (i : int) (current : Box2d) (s : list<ConcreteShape>) =
