@@ -27,4 +27,7 @@ let main args =
         
     | Some (Download (baseurl, targetdir)) -> download baseurl targetdir args
         
+    | None ->
+        printUsage()
+
     0
