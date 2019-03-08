@@ -156,13 +156,16 @@ module Rendering =
             pcs |> List.map (fun t ->
                 { t with uniforms = MapExt.add "Overlay" (config.overlayAlpha :> IMod) t.uniforms }
             )
-            
-        //let trafo = 
-        //    Trafo3d.Translation(-overallBounds.Center) //*
-        //    //Trafo3d.Scale(300.0 / overallBounds.Size.NormMax)
+        
+        let overallBounds = 
+            pcs |> List.map (fun i -> i.root.WorldBoundingBox) |> Box3d
+
+        let trafo = 
+            Trafo3d.Translation(-overallBounds.Center) * 
+            Trafo3d.Scale(300.0 / overallBounds.Size.NormMax)
 
         let pcs =
-            pcs |> ASet.ofList
+            pcs |> List.map (LodTreeInstance.transform trafo) |> ASet.ofList
             
         let cfg =
             RenderConfig.toSg win config
@@ -238,7 +241,9 @@ module Rendering =
                         let vp = v.GetValue a * p.GetValue a
                         let loc = vp.Backward.TransformPosProj(V3d(0.0,0.0,-100000000.0))
                         let npp = vp.Backward.TransformPosProj(V3d(ndc, -1.0))
-                        let ray : Ray3d = Ray3d(loc, (npp-loc).Normalized)
+                        let l = trafo.Backward.TransformPos loc
+                        let n = trafo.Backward.TransformPos npp
+                        let ray : Ray3d = Ray3d(l, (n-l).Normalized)
                         tree.FindPoints(ray,0.0,System.Double.PositiveInfinity,1.0) |> Seq.toArray
 
                 Log.warn "%A" picked
@@ -415,16 +420,13 @@ module Rendering =
         use app = new OpenGlApplication(true, false)
         use win = app.CreateGameWindow(8)
         
-        let overallBounds = 
-            pcs |> List.map (fun i -> i.root.WorldBoundingBox) |> Box3d
     
         let camera =
-            let center = overallBounds.Center
-            CameraView.lookAt (V3d(10,10,10) + center) center V3d.OOI
+            CameraView.lookAt (V3d(10,10,10)) V3d.OOO V3d.OOI
             |> DefaultCameraController.control win.Mouse win.Keyboard win.Time
 
-
-        let bb = overallBounds
+            
+        let bb = Box3d.FromCenterAndSize(V3d.Zero, V3d.III * 300.0)
 
         let frustum =
             Mod.custom (fun t ->
