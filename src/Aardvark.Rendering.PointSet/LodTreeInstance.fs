@@ -85,8 +85,10 @@ module LodTreeInstance =
         static let cmp = Func<float,float,int>(compare)
         
         let globalTrafoTrafo = Trafo3d globalTrafo
-        let bounds = (self :> IPointCloudNode).BoundingBoxExact.Transformed globalTrafoTrafo //self.BoundingBox.Transformed globalTrafoTrafo
-        let cellBounds = self.BoundingBox.Transformed globalTrafoTrafo
+        let worldBounds = (self :> IPointCloudNode).BoundingBoxExact
+        let worldCellBounds = self.BoundingBox
+        let localBounds = worldBounds.Transformed(globalTrafoTrafo)
+        let localCellBounds = worldCellBounds.Transformed(globalTrafoTrafo)
         let cell = self.Cell
         let isLeaf = self.IsLeaf
         let id = self.Id
@@ -180,7 +182,7 @@ module LodTreeInstance =
 
                     let avgDist = 
                         //bounds.Size.NormMax / 40.0
-                        if dist <= 0.0 then bounds.Size.NormMax / 40.0 else dist
+                        if dist <= 0.0 then localBounds.Size.NormMax / 40.0 else dist
 
                     uniforms <- MapExt.add "AvgPointDistance" ([| float32 (scale * avgDist) |] :> System.Array) uniforms
                     
@@ -219,9 +221,9 @@ module LodTreeInstance =
         let angle (view : Trafo3d) =
             let cam = view.Backward.C3.XYZ
 
-            let avgPointDistance = bounds.Size.NormMax / 40.0
+            let avgPointDistance = localBounds.Size.NormMax / 40.0
 
-            let minDist = bounds.GetMinimalDistanceTo(cam)
+            let minDist = localBounds.GetMinimalDistanceTo(cam)
             let minDist = max 0.01 minDist
 
             let angle = Constant.DegreesPerRadian * atan2 avgPointDistance minDist
@@ -360,9 +362,10 @@ module LodTreeInstance =
                     | _ -> if self.IsLeaf then int self.PointCountTree else 8192
             member x.TotalDataSize = int self.PointCountTree
             member x.GetData(ct, ips) = x.GetData(ct, ips)
-            member x.BoundingBox = bounds
-            member x.CellBoundingBox = cellBounds
+            member x.WorldBoundingBox = worldBounds
+            member x.WorldCellBoundingBox = worldCellBounds
             member x.Cell = cell
+            member x.DataTrafo = globalTrafoTrafo.Inverse
             member x.Acquire() = x.Acquire()
             member x.Release() = x.Release()
 
@@ -457,6 +460,7 @@ module LodTreeInstance =
                 inner.GetData(ct, ips)
         
         interface ILodTreeNode with
+            member x.DataTrafo = inner.DataTrafo
             member x.Root = root
             member x.Level = inner.Level
             member x.Name = inner.Name
@@ -472,8 +476,8 @@ module LodTreeInstance =
             member x.DataSize = if isLeaf then inner.TotalDataSize else inner.DataSize
             member x.TotalDataSize = inner.TotalDataSize
             member x.GetData(ct, ips) = x.GetData(ct, ips)
-            member x.BoundingBox = inner.BoundingBox
-            member x.CellBoundingBox = inner.CellBoundingBox
+            member x.WorldBoundingBox = inner.WorldBoundingBox
+            member x.WorldCellBoundingBox = inner.WorldCellBoundingBox
             member x.Cell = inner.Cell
             member x.Acquire() = inner.Acquire()
             member x.Release() = inner.Release()
@@ -498,6 +502,7 @@ module LodTreeInstance =
 
 
         interface ILodTreeNode with
+            member x.DataTrafo = inner.DataTrafo
             member x.Root = root
             member x.Level = inner.Level
             member x.Name = inner.Name
@@ -511,8 +516,8 @@ module LodTreeInstance =
             member x.DataSize = inner.DataSize
             member x.TotalDataSize = inner.TotalDataSize
             member x.GetData(ct, ips) = inner.GetData(ct, ips)
-            member x.BoundingBox = inner.BoundingBox
-            member x.CellBoundingBox = inner.CellBoundingBox
+            member x.WorldBoundingBox = inner.WorldBoundingBox
+            member x.WorldCellBoundingBox = inner.WorldCellBoundingBox
             member x.Cell = inner.Cell
             member x.Acquire() = inner.Acquire()
             member x.Release() = inner.Release()
@@ -712,7 +717,7 @@ module LodTreeInstance =
     let normalizeTo (box : Box3d) (instance : LodTreeInstance) =
         let tree = instance.root
 
-        let bounds = tree.BoundingBox
+        let bounds = tree.WorldBoundingBox
         let scale = (box.Size / bounds.Size).NormMin
         let t = 
             Trafo3d.Translation(box.Center - bounds.Center) * 

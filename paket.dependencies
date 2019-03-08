@@ -8,8 +8,8 @@ nuget FSharp.Core                       ~> 4.3.0
 nuget Aardvark.Base                     ~> 4.3.9
 nuget Aardvark.Base.IO                  ~> 4.3.9
 
-nuget Aardvark.Base.Rendering           ~> 4.7.9
-nuget Aardvark.SceneGraph               ~> 4.7.9
+nuget Aardvark.Base.Rendering           ~> 4.7.14
+nuget Aardvark.SceneGraph               ~> 4.7.14
 
 // 3rd-party
 #nuget Crc32C.NET                        ~> 1.0.5
@@ -20,10 +20,10 @@ nuget Uncodium.Eigensystems             ~> 1.0.2
 nuget Uncodium.SimpleStore              ~> 2.0.0
 
 // viewer
-nuget Aardvark.Application.Utilities    ~> 4.7.9
-nuget Aardvark.Application.Slim         ~> 4.7.9
-nuget Aardvark.Application.Slim.GL      ~> 4.7.9
-nuget Aardvark.Application.Slim.Vulkan  ~> 4.7.9
+nuget Aardvark.Application.Utilities    ~> 4.7.13
+nuget Aardvark.Application.Slim         ~> 4.7.13
+nuget Aardvark.Application.Slim.GL      ~> 4.7.13
+nuget Aardvark.Application.Slim.Vulkan  ~> 4.7.13
 
 nuget FShade                            ~> 4.3.4
 

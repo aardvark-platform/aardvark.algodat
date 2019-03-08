@@ -2,7 +2,7 @@
   "profiles": {
     "Viewer": {
       "commandName": "Project",
-      "commandLineArgs": "view C:\\Users\\Schorsch\\Development\\WorkDirectory\\jbnew jb"
+      "commandLineArgs": "view \\\\euclid\\InOut\\haaser\\kauny2 kaunertal"
     }
   }
 }

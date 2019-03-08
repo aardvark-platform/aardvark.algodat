@@ -65,9 +65,30 @@ module Util =
 
         let envMap (v : Effects.Vertex) =
             fragment {
-                let c = uniform.CameraLocation
-                let f = v.wp.XYZ
-                let dir = Vec.normalize (f - c)
+                
+                let vp = uniform.ProjTrafoInv * V4d(v.pos.X, v.pos.Y, -1.0, 1.0)
+                let vp = vp.XYZ / vp.W
+
+                let dir = (uniform.ViewTrafoInv * V4d(vp, 0.0)).XYZ |> Vec.normalize
+
+
+                //let wp = uniform.ViewProjTrafoInv * V4d(v.pos.X, v.pos.Y, -1.0, 1.0)
+
+                //let f = 1.0 / (uniform.ViewProjTrafoInv.M33 - uniform.ViewProjTrafoInv.M32)
+                
+                //let dir = 
+                //    f * uniform.ViewProjTrafoInv.C0.XYZ * v.pos.X + 
+                //    f * uniform.ViewProjTrafoInv.C1.XYZ * v.pos.Y +
+                //    f * uniform.ViewProjTrafoInv.C2.XYZ * -1.0 +
+
+                //    f * uniform.ViewProjTrafoInv.C3.XYZ +
+                //    (uniform.ViewProjTrafoInv.C2.XYZ) / (-uniform.ViewProjTrafoInv.M32)
+
+                //let dir = Vec.normalize dir
+
+                //let c = uniform.CameraLocation
+                //let f = v.wp.XYZ
+                //let dir = Vec.normalize (f - c)
                 return env.Sample(dir)
             }
 
@@ -83,6 +104,7 @@ module Rendering =
 
 
     let pointClouds (win : IRenderWindow) (msaa : bool) (camera : IMod<CameraView>) (frustum : IMod<Frustum>) (pcs : list<LodTreeInstance>) =
+        let picktrees : mmap<ILodTreeNode,SimplePickTree> = MMap.empty
         let config =
             {
                 pointSize = Mod.init 1.0
@@ -135,15 +157,12 @@ module Rendering =
                 { t with uniforms = MapExt.add "Overlay" (config.overlayAlpha :> IMod) t.uniforms }
             )
             
-        let overallBounds = 
-            pcs |> List.map (fun i -> i.root.BoundingBox) |> Box3d
-    
-        let trafo = 
-            Trafo3d.Translation(-overallBounds.Center) *
-            Trafo3d.Scale(300.0 / overallBounds.Size.NormMax)
+        //let trafo = 
+        //    Trafo3d.Translation(-overallBounds.Center) //*
+        //    //Trafo3d.Scale(300.0 / overallBounds.Size.NormMax)
 
         let pcs =
-            pcs |> List.map (LodTreeInstance.transform trafo) |> ASet.ofList
+            pcs |> ASet.ofList
             
         let cfg =
             RenderConfig.toSg win config
@@ -205,8 +224,29 @@ module Rendering =
         //        }
         //    Overlay.table cfg win.Sizes content
 
+        let v = (camera |> Mod.map CameraView.viewTrafo)
+        let p = (frustum |> Mod.map Frustum.projTrafo)
+
+        let picked = 
+            Mod.custom ( fun a ->
+                let ndc = win.Mouse.Position.GetValue a |> (fun pp -> pp.NormalizedPosition)
+                
+                let picked = 
+                    match (picktrees |> MMap.toMod).GetValue a |> Seq.tryHead with
+                    | None -> [||]
+                    | Some (node,tree) -> 
+                        let vp = v.GetValue a * p.GetValue a
+                        let loc = vp.Backward.TransformPosProj(V3d(0.0,0.0,-100000000.0))
+                        let npp = vp.Backward.TransformPosProj(V3d(ndc, -1.0))
+                        let ray : Ray3d = Ray3d(loc, (npp-loc).Normalized)
+                        tree.FindPoints(ray,0.0,System.Double.PositiveInfinity,1.0) |> Seq.toArray
+
+                Log.warn "%A" picked
+            )
+
+
         let sg =
-            Sg.LodTreeNode(config.stats, true, config.budget, config.renderBounds, config.maxSplits, win.Time, pcs) :> ISg
+            Sg.LodTreeNode(config.stats, picktrees, true, config.budget, config.renderBounds, config.maxSplits, win.Time, pcs) :> ISg
             |> Sg.uniform "PointSize" config.pointSize
             |> Sg.uniform "ViewportSize" win.Sizes
             |> Sg.uniform "PointVisualization" vis
@@ -221,8 +261,8 @@ module Rendering =
                 //do! PointSetShaders.envMap
             }
             |> Sg.multisample (Mod.constant true)
-            |> Sg.viewTrafo (camera |> Mod.map CameraView.viewTrafo)
-            |> Sg.projTrafo (frustum |> Mod.map Frustum.projTrafo)
+            |> Sg.viewTrafo v
+            |> Sg.projTrafo p
             |> Sg.andAlso cfg
             //|> Sg.andAlso bla
             |> Sg.blendMode (Mod.constant BlendMode.None)
@@ -241,6 +281,8 @@ module Rendering =
                 transact (fun () ->
                     config.lighting.Value <- not config.lighting.Value
                 )
+            | Keys.Return -> 
+                picked |> Mod.force
 
             | Keys.O -> transact (fun () -> config.pointSize.Value <- config.pointSize.Value / 1.3)
             | Keys.P -> transact (fun () -> config.pointSize.Value <- config.pointSize.Value * 1.3)
@@ -373,12 +415,16 @@ module Rendering =
         use app = new OpenGlApplication(true, false)
         use win = app.CreateGameWindow(8)
         
+        let overallBounds = 
+            pcs |> List.map (fun i -> i.root.WorldBoundingBox) |> Box3d
+    
         let camera =
-            CameraView.lookAt (V3d(10,10,10)) V3d.Zero V3d.OOI
+            let center = overallBounds.Center
+            CameraView.lookAt (V3d(10,10,10) + center) center V3d.OOI
             |> DefaultCameraController.control win.Mouse win.Keyboard win.Time
 
 
-        let bb = Box3d.FromCenterAndSize(V3d.Zero, V3d.III * 300.0)
+        let bb = overallBounds
 
         let frustum =
             Mod.custom (fun t ->
