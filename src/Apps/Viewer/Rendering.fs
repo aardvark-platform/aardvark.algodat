@@ -12,6 +12,7 @@ open Aardvark.Application.Slim
 open Aardvark.Rendering.Text
 open Aardvark.Rendering.PointSet
 open Aardvark.Base.Rendering
+open Aardvark.Base.Geometry
 
 
 module Util =
@@ -232,23 +233,46 @@ module Rendering =
 
         let picked = 
             Mod.custom ( fun a ->
-                let ndc = win.Mouse.Position.GetValue a |> (fun pp -> pp.NormalizedPosition)
+                let ndc = win.Mouse.Position.GetValue a |> (fun pp -> pp.NormalizedPosition * V2d(2,-2) + V2d(-1,1))
                 
-                let picked = 
-                    match (picktrees |> MMap.toMod).GetValue a |> Seq.tryHead with
-                    | None -> [||]
-                    | Some (node,tree) -> 
-                        let vp = v.GetValue a * p.GetValue a
-                        let loc = vp.Backward.TransformPosProj(V3d(0.0,0.0,-100000000.0))
-                        let npp = vp.Backward.TransformPosProj(V3d(ndc, -1.0))
-                        let l = trafo.Backward.TransformPos loc
-                        let n = trafo.Backward.TransformPos npp
-                        let ray : Ray3d = Ray3d(l, (n-l).Normalized)
-                        tree.FindPoints(ray,0.0,System.Double.PositiveInfinity,1.0) |> Seq.toArray
+                match (picktrees |> MMap.toMod).GetValue a |> Seq.tryHead with
+                | None -> 
+                    false, Trafo3d.Identity
+                | Some (_,tree) -> 
+                    let vp = v.GetValue a * p.GetValue a
+                    let loc = vp.Backward.TransformPosProj(V3d(0.0,0.0,-100000000.0))
+                    let npp = vp.Backward.TransformPosProj(V3d(ndc, -1.0))
+                    let l = loc
+                    let n = npp
 
-                Log.warn "%A" picked
+                    let cone = Ray3d(l, (n-l).Normalized)
+                    let k = tan (0.2 * Constant.RadiansPerDegree)
+                    let pt = tree.FindPoints(cone, 0.0, System.Double.PositiveInfinity, 0.0, k) |> Seq.tryHead
+                    match pt with
+                    | Some pt -> 
+                        let t = pt.Value.WorldPosition
+                        Log.warn "%A" pt.Value.DataPosition
+                        true, Trafo3d.Translation t
+                    | None -> false, Trafo3d.Identity
             )
 
+        let afterMain = RenderPass.after "aftermain" RenderPassOrder.Arbitrary RenderPass.main
+
+        let thing =
+            Sg.draw IndexedGeometryMode.PointList
+            |> Sg.vertexAttribute' DefaultSemantic.Positions [| V3f.Zero |]
+            |> Sg.trafo (Mod.map snd picked)
+            |> Sg.onOff (Mod.map fst picked)
+            |> Sg.shader {
+                do! DefaultSurfaces.trafo
+                do! DefaultSurfaces.pointSprite
+                do! DefaultSurfaces.constantColor C4f.Red
+                do! DefaultSurfaces.pointSpriteFragment
+            }
+            |> Sg.uniform "PointSize" (Mod.constant 10.0)
+            |> Sg.uniform "ViewportSize" win.Sizes
+            |> Sg.depthTest (Mod.constant DepthTestMode.None)
+            |> Sg.pass afterMain
 
         let sg =
             Sg.LodTreeNode(config.stats, picktrees, true, config.budget, config.renderBounds, config.maxSplits, win.Time, pcs) :> ISg
@@ -265,6 +289,7 @@ module Rendering =
                     do! PointSetShaders.lodPointCircular
                 //do! PointSetShaders.envMap
             }
+            |> Sg.andAlso thing
             |> Sg.multisample (Mod.constant true)
             |> Sg.viewTrafo v
             |> Sg.projTrafo p
@@ -286,8 +311,7 @@ module Rendering =
                 transact (fun () ->
                     config.lighting.Value <- not config.lighting.Value
                 )
-            | Keys.Return -> 
-                picked |> Mod.force
+            
 
             | Keys.O -> transact (fun () -> config.pointSize.Value <- config.pointSize.Value / 1.3)
             | Keys.P -> transact (fun () -> config.pointSize.Value <- config.pointSize.Value * 1.3)
