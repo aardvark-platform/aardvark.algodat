@@ -262,12 +262,15 @@ namespace Aardvark.Geometry.Points
             var dict = CellAttributes;
             foreach (var kvp in atts) dict = dict.Add(kvp.Key, kvp.Value);
 
-            var res = new PointCloudNode(Storage, Id, Cell, BoundingBoxExact, PointCountTree, SubNodes, dict);
-            res.m_pIds = m_pIds;
-            res.m_pRefs = m_pRefs;
+            var res = new PointCloudNode(Storage, Id, Cell, BoundingBoxExact, PointCountTree, SubNodes, dict)
+            {
+                m_pIds = m_pIds,
+                m_pRefs = m_pRefs
+            };
             return res;
         }
 
+        /// <summary></summary>
         public bool TryGetCellAttribute<T>(Guid id, out T value)
         {
             if(CellAttributes.TryGetValue(id, out object v) && v is T)
@@ -277,7 +280,7 @@ namespace Aardvark.Geometry.Points
             }
             else
             {
-                value = default(T);
+                value = default;
                 return false;
             }
         }

@@ -188,6 +188,7 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public string NodeType => Type;
 
+        /// <summary></summary>
         public ImmutableDictionary<Guid, object> CellAttributes => throw new NotImplementedException();
     }
 }

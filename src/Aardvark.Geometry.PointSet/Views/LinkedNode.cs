@@ -30,7 +30,7 @@ namespace Aardvark.Geometry.Points
 
         private readonly IStoreResolver m_storeResolver;
         private WeakReference<IPointCloudNode> m_root;
-        private LruDictionary<string, object> m_cache;
+        //private LruDictionary<string, object> m_cache;
 
         /// <summary>
         /// </summary>
@@ -165,10 +165,10 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public string NodeType => Type;
 
+        /// <summary></summary>
         public ImmutableDictionary<Guid, object> CellAttributes => throw new NotImplementedException();
 
         /// <summary></summary>
         public void Dispose() => Storage?.Dispose();
-
     }
 }

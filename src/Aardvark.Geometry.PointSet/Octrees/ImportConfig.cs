@@ -149,7 +149,7 @@ namespace Aardvark.Data.Points
         /// <summary></summary>
         public int MaxChunkPointCount => ParseConfig.MaxChunkPointCount;
 
-
+        /// <summary>Per-cell attributes.</summary>
         public ImmutableList<CellAttribute> CellAttributes { get; private set; } =
             Sort(new CellAttribute[]  {
                 Geometry.Points.CellAttributes.BoundingBoxExactLocal,
@@ -159,10 +159,6 @@ namespace Aardvark.Data.Points
                 Geometry.Points.CellAttributes.TreeMaxDepth,
                 Geometry.Points.CellAttributes.PointCountCell,
             });
-            //ImmutableList<CellAttribute>.Empty
-            //    .Add(Aardvark.Geometry.Points.CellAttributes.BoundingBoxExactLocal)
-            //    .Add(Aardvark.Geometry.Points.CellAttributes.)
-            //    ;
 
         #endregion
 

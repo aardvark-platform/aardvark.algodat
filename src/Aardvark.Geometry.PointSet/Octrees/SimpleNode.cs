@@ -8,9 +8,10 @@ using Newtonsoft.Json.Linq;
 
 namespace Aardvark.Geometry.Points
 {
+    /// <summary></summary>
     public class SimpleNode : IPointCloudNode
     {
-        private static string[] AttributeNames =
+        private static readonly string[] AttributeNames =
             new string[]
             {
                 PointCloudAttribute.Positions,
@@ -45,8 +46,11 @@ namespace Aardvark.Geometry.Points
             return result;
         }
 
-        private Guid guid;
+        private readonly Guid guid;
 
+        /// <summary>
+        /// Create node.
+        /// </summary>
         public SimpleNode(
             Storage storage, Guid id, Cell cell, int pointCount,
             ImmutableDictionary<Guid, object> cellAttributes,
@@ -66,6 +70,9 @@ namespace Aardvark.Geometry.Points
             NodeType = "SimpleNode";
         }
 
+        /// <summary>
+        /// Copy.
+        /// </summary>
         public SimpleNode(IPointCloudNode other)
         {
             CellAttributes = other.CellAttributes;
@@ -81,6 +88,9 @@ namespace Aardvark.Geometry.Points
             NodeType = other.NodeType;
         }
 
+        /// <summary>
+        /// Copy.
+        /// </summary>
         private SimpleNode(SimpleNode other)
         {
             CellAttributes = other.CellAttributes;
@@ -96,7 +106,8 @@ namespace Aardvark.Geometry.Points
             NodeType = other.NodeType;
         }
 
-
+        /// <summary>
+        /// </summary>
         public PointSetNode Persist()
         {
             Guid? TryParse(string str)
@@ -124,55 +135,58 @@ namespace Aardvark.Geometry.Points
                 TryGetId(PointCloudAttribute.Classifications),
                 SubNodes?.Map(r => TryParse(r?.Id)),
                 Storage,
-                true
+                writeToStore: true
             );
-
         }
 
-
+        /// <summary></summary>
         public SimpleNode WithCellAttributes(ImmutableDictionary<Guid, object> att)
-        {
-            return new SimpleNode(this) { CellAttributes = att };
-        }
+            => new SimpleNode(this) { CellAttributes = att };
+
+        /// <summary></summary>
         public SimpleNode WithAttributes(ImmutableDictionary<string, (string, object)> att)
-        {
-            return new SimpleNode(this) { Attributes = att };
-        }
+            => new SimpleNode(this) { Attributes = att };
+
+        /// <summary></summary>
         public SimpleNode AddAttribute(string key, string id, object value)
-        {
-            return new SimpleNode(this) { Attributes = Attributes.Add(key, (id, value)) };
-        }
+            => new SimpleNode(this) { Attributes = Attributes.Add(key, (id, value)) };
+
+        /// <summary></summary>
         public SimpleNode WithStorage(Storage s)
-        {
-            return new SimpleNode(this) { Storage = s };
-        }
+            => new SimpleNode(this) { Storage = s };
+
+        /// <summary></summary>
         public SimpleNode WithId(string id)
-        {
-            return new SimpleNode(this) { Id = id };
-        }
+            => new SimpleNode(this) { Id = id };
 
+        /// <summary></summary>
         public SimpleNode WithPointCountTree(int count)
-        {
-            return new SimpleNode(this) { PointCountTree = count };
-        }
+            => new SimpleNode(this) { PointCountTree = count };
 
+        /// <summary></summary>
         public ImmutableDictionary<Guid, object> CellAttributes { get; private set; }
 
+        /// <summary></summary>
         public ImmutableDictionary<string, (string, object)> Attributes { get; private set; }
 
+        /// <summary></summary>
         public Storage Storage { get; private set; }
 
+        /// <summary></summary>
         public string Id { get; private set; }
 
+        /// <summary></summary>
         public Cell Cell { get; private set; }
 
+        /// <summary></summary>
         public V3d Center { get; private set; }
 
+        /// <summary></summary>
         public Box3d BoundingBoxExact
         {
             get
             {
-                if (CellAttributes.TryGetValue(Geometry.Points.CellAttributes.BoundingBoxExactLocal.Id, out var value) && value is Box3f)
+                if (CellAttributes.TryGetValue(Points.CellAttributes.BoundingBoxExactLocal.Id, out var value) && value is Box3f)
                 {
                     var box = (Box3f)value;
                     return new Box3d(Center + (V3d)box.Min, Center + (V3d)box.Max);
@@ -181,27 +195,31 @@ namespace Aardvark.Geometry.Points
             }
         }
 
+        /// <summary></summary>
         public long PointCountTree { get; private set; }
 
-        public float PointDistanceAverage => this.GetCellAttribute(Aardvark.Geometry.Points.CellAttributes.AveragePointDistance);
+        /// <summary></summary>
+        public float PointDistanceAverage => this.GetCellAttribute(Points.CellAttributes.AveragePointDistance);
 
-        public float PointDistanceStandardDeviation => this.GetCellAttribute(Aardvark.Geometry.Points.CellAttributes.AveragePointDistanceStdDev);
+        /// <summary></summary>
+        public float PointDistanceStandardDeviation => this.GetCellAttribute(Points.CellAttributes.AveragePointDistanceStdDev);
 
+        /// <summary></summary>
         public PersistentRef<IPointCloudNode>[] SubNodes { get; private set; }
 
+        /// <summary></summary>
         public FilterState FilterState { get; private set; }
 
+        /// <summary></summary>
         public string NodeType { get; private set; }
 
-        public void Dispose()
-        {
-        }
+        /// <summary></summary>
+        public void Dispose() { }
 
-        public JObject ToJson()
-        {
-            throw new NotSupportedException();
-        }
+        /// <summary></summary>
+        public JObject ToJson() => throw new NotSupportedException();
 
+        /// <summary></summary>
         public bool TryGetCellAttribute<T>(Guid id, out T value)
         {
             if (CellAttributes.TryGetValue(id, out var v) && v is T)
@@ -211,11 +229,12 @@ namespace Aardvark.Geometry.Points
             }
             else
             {
-                value = default(T);
+                value = default;
                 return false;
             }
         }
 
+        /// <summary></summary>
         public bool TryGetPropertyKey(string property, out string key)
         {
             if (Attributes.TryGetValue(property, out var t))
@@ -230,6 +249,7 @@ namespace Aardvark.Geometry.Points
             }
         }
 
+        /// <summary></summary>
         public bool TryGetPropertyValue(string property, out object value)
         {
             if (Attributes.TryGetValue(property, out var t))

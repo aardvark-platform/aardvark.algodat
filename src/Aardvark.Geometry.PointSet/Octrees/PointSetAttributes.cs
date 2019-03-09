@@ -14,9 +14,7 @@
 using Aardvark.Base;
 using Aardvark.Data.Points;
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
 
 namespace Aardvark.Geometry.Points
 {
@@ -208,15 +206,23 @@ namespace Aardvark.Geometry.Points
         HasCellAttributes   = 1 << 23,
     }
 
-
+    /// <summary>
+    /// </summary>
     public abstract class CellAttribute
     {
+        /// <summary></summary>
         public readonly Guid Id;
+
+        /// <summary></summary>
         public readonly string Name;
+
+        /// <summary></summary>
         public readonly IImmutableSet<CellAttribute> DependsOn;
 
+        /// <summary></summary>
         public abstract object ComputeValue(IPointCloudNode node);
 
+        /// <summary></summary>
         public CellAttribute(Guid id, string name, IImmutableSet<CellAttribute> depends)
         {
             Id = id;
@@ -225,12 +231,16 @@ namespace Aardvark.Geometry.Points
         }
     }
 
+    /// <summary></summary>
     public class CellAttribute<T> : CellAttribute where T : struct
     {
+        /// <summary></summary>
         public readonly Func<CellAttribute<T>, IPointCloudNode, T> Compute;
+
+        /// <summary></summary>
         public readonly Func<CellAttribute<T>, IPointCloudNode, IPointCloudNode, T?> TryMerge;
 
-
+        /// <summary></summary>
         public CellAttribute(Guid id, string name, Func<CellAttribute<T>, IPointCloudNode, T> compute, Func<CellAttribute<T>, IPointCloudNode, IPointCloudNode, T?> tryMerge, params CellAttribute[] depends)
             : base(id, name, ImmutableHashSet.Create(depends))
         {
@@ -238,22 +248,24 @@ namespace Aardvark.Geometry.Points
             TryMerge = tryMerge ?? ((a, b, c) => null);
         }
 
+        /// <summary></summary>
         public CellAttribute(Guid id, string name, Func<CellAttribute<T>, IPointCloudNode, T> compute, params CellAttribute[] depends)
             : this(id, name, compute, null, depends)
         { }
 
+        /// <summary></summary>
         public override object ComputeValue(IPointCloudNode node)
         {
             return Compute(this, node);
         }
-
     }
 
-    
+
     /// <summary>
     /// </summary>
     public static class CellAttributes
     {
+        /// <summary></summary>
         public static bool TryGetCellAttribute<T>(this IPointCloudNode node, Guid id, out T value) where T : struct
         {
             if (node.CellAttributes.TryGetValue(id, out var o) && o is T)
@@ -268,12 +280,14 @@ namespace Aardvark.Geometry.Points
             }
         }
 
+        /// <summary></summary>
         public static T GetCellAttribute<T>(this IPointCloudNode node, CellAttribute<T> attribute) where T : struct
         {
             if (node.TryGetCellAttribute<T>(attribute.Id, out T value)) return value;
             else return attribute.Compute(attribute, node);
         }
 
+        /// <summary></summary>
         public static bool TryGetCellAttribute<T>(this IPointCloudNode node, CellAttribute<T> attribute, out T value) where T : struct
         {
             if (node.CellAttributes.TryGetValue(attribute.Id, out var o) && o is T)
@@ -288,7 +302,7 @@ namespace Aardvark.Geometry.Points
             }
         }
 
-
+        /// <summary></summary>
         public static readonly CellAttribute<Box3f> BoundingBoxExactLocal =
             new CellAttribute<Box3f>(
                 new Guid(0xaadbb622, 0x1cf6, 0x42e0, 0x86, 0xdf, 0xbe, 0x79, 0xd2, 0x8d, 0x67, 0x57),
@@ -299,7 +313,7 @@ namespace Aardvark.Geometry.Points
                     {
                         return box;
                     }
-                    else if(node.IsLeaf())
+                    else if (node.IsLeaf())
                     {
                         var posRef = node.GetPositions();
                         if (posRef == null) return Box3f.Invalid;
@@ -311,7 +325,7 @@ namespace Aardvark.Geometry.Points
                     {
                         var center = node.Center;
                         var bounds = Box3f.Invalid;
-                        foreach(var nr in node.SubNodes)
+                        foreach (var nr in node.SubNodes)
                         {
                             if (nr == null) continue;
                             var n = nr.Value;
@@ -323,7 +337,6 @@ namespace Aardvark.Geometry.Points
                     }
                 }
             );
-
 
         private static readonly CellAttribute<V2f> AveragePointDistanceData =
             new CellAttribute<V2f>(
@@ -350,11 +363,11 @@ namespace Aardvark.Geometry.Points
                         var cnt = 0;
 
                         var step = pos.Length < 1000 ? 1 : pos.Length / 1000;
-                        for(int i = 0; i < pos.Length; i += step)
+                        for (int i = 0; i < pos.Length; i += step)
                         {
                             var p = pos[i];
                             var res = kdTree.GetClosest(kdTree.CreateClosestToPointQuery(maxRadius, 2), p);
-                            if(res.Count > 1 && res[0].Dist > 0.0)
+                            if (res.Count > 1 && res[0].Dist > 0.0)
                             {
                                 var maxDist = res[0].Dist;
                                 sum += maxDist;
@@ -362,7 +375,7 @@ namespace Aardvark.Geometry.Points
                                 cnt++;
                             }
                         }
-                        
+
                         if (cnt == 0) return new V2f(maxRadius, -1.0f);
 
                         var avg = sum / cnt;
@@ -374,7 +387,7 @@ namespace Aardvark.Geometry.Points
                 BoundingBoxExactLocal
             );
 
-
+        /// <summary></summary>
         public static readonly CellAttribute<float> AveragePointDistance =
             new CellAttribute<float>(
                 new Guid(0x39c21132, 0x4570, 0x4624, 0xaf, 0xae, 0x63, 0x04, 0x85, 0x15, 0x67, 0xd7),
@@ -383,6 +396,7 @@ namespace Aardvark.Geometry.Points
                 AveragePointDistanceData
             );
 
+        /// <summary></summary>
         public static readonly CellAttribute<float> AveragePointDistanceStdDev =
             new CellAttribute<float>(
                 new Guid(0x94cac234, 0xb6ea, 0x443a, 0xb1, 0x96, 0xc7, 0xdd, 0x8e, 0x5d, 0xef, 0x0d),
@@ -391,7 +405,7 @@ namespace Aardvark.Geometry.Points
                 AveragePointDistanceData
             );
 
-
+        /// <summary></summary>
         private static readonly CellAttribute<Range1i> TreeMinMaxDepth =
             new CellAttribute<Range1i>(
                 new Guid(0x309a1fc8, 0x79f3, 0x4e3f, 0x8d, 0xed, 0x5c, 0x6b, 0x46, 0xea, 0xa3, 0xca),
@@ -404,12 +418,12 @@ namespace Aardvark.Geometry.Points
                     }
                     else
                     {
-                        if (node.IsLeaf()) return new Range1i(0,0);
+                        if (node.IsLeaf()) return new Range1i(0, 0);
                         else
                         {
-                            Range1i range = new Range1i(int.MaxValue,int.MinValue);
+                            Range1i range = new Range1i(int.MaxValue, int.MinValue);
 
-                            foreach(var nr in node.SubNodes)
+                            foreach (var nr in node.SubNodes)
                             {
                                 if (nr == null) continue;
                                 var n = nr.Value.GetCellAttribute(self);
@@ -426,7 +440,7 @@ namespace Aardvark.Geometry.Points
                 }
             );
 
-
+        /// <summary></summary>
         public static readonly CellAttribute<int> TreeMinDepth =
             new CellAttribute<int>(
                 new Guid(0x42edbdd6, 0xa29e, 0x4dfd, 0x98, 0x36, 0x05, 0x0a, 0xb7, 0xfa, 0x4e, 0x31),
@@ -435,6 +449,7 @@ namespace Aardvark.Geometry.Points
                 TreeMinMaxDepth
             );
 
+        /// <summary></summary>
         public static readonly CellAttribute<int> TreeMaxDepth =
             new CellAttribute<int>(
                 new Guid(0xd6f54b9e, 0xe907, 0x46c5, 0x91, 0x06, 0xd2, 0x6c, 0xd4, 0x53, 0xdc, 0x97),
@@ -443,19 +458,12 @@ namespace Aardvark.Geometry.Points
                 TreeMinMaxDepth
             );
 
-
+        /// <summary></summary>
         public static readonly CellAttribute<long> PointCountCell =
             new CellAttribute<long>(
                 new Guid(0x172e1f20, 0x0ffc, 0x4d9c, 0x9b, 0x3d, 0x90, 0x3f, 0xca, 0x41, 0xab, 0xe3),
                 "PointCountCell",
                 (self, node) => node.IsLeaf() ? node.PointCountTree : (node.GetPositions()?.Value?.Length ?? 0L)
             );
-
-        ///// <summary>
-        ///// min- and max-depth for the subtree (distances to leaf)
-        ///// </summary>
-        //public static readonly Guid TreeDepthMinMax         = new Guid(0xf1eb6598, 0x94e6, 0x41aa, 0xa8, 0xa3, 0xd6, 0x44, 0x60, 0xf6, 0xf8, 0x43);
-
     }
-
 }

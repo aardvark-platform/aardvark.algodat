@@ -35,6 +35,9 @@ namespace Aardvark.Geometry.Points
     {
         #region Construction
         
+        /// <summary>
+        /// Creates node.
+        /// </summary>
         public PointSetNode(Guid id,
             Cell cell, long pointCountTree,
             ImmutableDictionary<Guid, object> custom,
@@ -1208,7 +1211,7 @@ namespace Aardvark.Geometry.Points
 
         Storage IPointCloudNode.Storage => Storage;
 
-
+        /// <summary></summary>
         public ImmutableDictionary<Guid, object> CellAttributes => CustomAttributes;
 
         
@@ -1217,7 +1220,7 @@ namespace Aardvark.Geometry.Points
         {
             get
             {
-                if (CustomAttributes.TryGetValue(Geometry.Points.CellAttributes.BoundingBoxExactLocal.Id, out var value) && value is Box3f)
+                if (CustomAttributes.TryGetValue(Points.CellAttributes.BoundingBoxExactLocal.Id, out var value) && value is Box3f)
                 {
                     return (Box3f)value;
                 }
@@ -1233,7 +1236,7 @@ namespace Aardvark.Geometry.Points
         {
             get
             {
-                if (CustomAttributes.TryGetValue(Geometry.Points.CellAttributes.BoundingBoxExactLocal.Id, out var value) && value is Box3f)
+                if (CustomAttributes.TryGetValue(Points.CellAttributes.BoundingBoxExactLocal.Id, out var value) && value is Box3f)
                 {
                     var box = (Box3f)value;
                     var c = BoundingBox.Center;
@@ -1247,7 +1250,7 @@ namespace Aardvark.Geometry.Points
         {
             get
             {
-                if (CustomAttributes.TryGetValue(Geometry.Points.CellAttributes.AveragePointDistance.Id, out var value) && value is float)
+                if (CustomAttributes.TryGetValue(Points.CellAttributes.AveragePointDistance.Id, out var value) && value is float)
                     return (float)value;
                 else
                     return -1.0f;
@@ -1259,7 +1262,7 @@ namespace Aardvark.Geometry.Points
         {
             get
             {
-                if (CustomAttributes.TryGetValue(Geometry.Points.CellAttributes.AveragePointDistanceStdDev.Id, out var value) && value is float)
+                if (CustomAttributes.TryGetValue(Points.CellAttributes.AveragePointDistanceStdDev.Id, out var value) && value is float)
                     return (float)value;
                 else
                     return -1.0f;

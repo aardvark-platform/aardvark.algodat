@@ -17,13 +17,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace Aardvark.Data.Points
 {
-
-    //public abstract
-
     /// <summary>
     /// Class must have static constructor which registers file format, e.g.
     /// static Foo()
@@ -35,75 +31,6 @@ namespace Aardvark.Data.Points
     [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
     public sealed class PointCloudFileFormatAttributeAttribute : Attribute
     {
-    }
-
-
-    public struct ParseConfig
-    {
-        public int MaxChunkPointCount;
-        public bool Verbose;
-        public CancellationToken CancellationToken;
-        public int MaxDegreeOfParallelism;
-        public double MinDist;
-        public int ReadBufferSizeInBytes;
-
-        public static readonly ParseConfig Default =
-            new ParseConfig(
-                1048576, false,
-                CancellationToken.None,
-                0,
-                0.0,
-                268435456
-            );
-
-
-        public ParseConfig(int maxChunkPointCount, bool verbose, CancellationToken ct, int par, double md, int rbs)
-        {
-            MaxChunkPointCount = maxChunkPointCount;
-            Verbose = verbose;
-            CancellationToken = ct;
-            MaxDegreeOfParallelism = par;
-            MinDist = md;
-            ReadBufferSizeInBytes = rbs;
-        }
-        public ParseConfig(ParseConfig x)
-        {
-            MaxChunkPointCount = x.MaxChunkPointCount;
-            Verbose = x.Verbose;
-            CancellationToken = x.CancellationToken;
-            MaxDegreeOfParallelism = x.MaxDegreeOfParallelism;
-            MinDist = x.MinDist;
-            ReadBufferSizeInBytes = x.ReadBufferSizeInBytes;
-        }
-
-
-
-        public ParseConfig WithMaxChunkPointCount(int c)
-        {
-            return new ParseConfig(this) { MaxChunkPointCount = c };
-        }
-        public ParseConfig WithCancellationToken(CancellationToken v)
-        {
-            return new ParseConfig(this) { CancellationToken = v };
-        }
-        public ParseConfig WithMaxDegreeOfParallelism(int v)
-        {
-            return new ParseConfig(this) { MaxDegreeOfParallelism = v };
-        }
-        public ParseConfig WithMinDist(double v)
-        {
-            return new ParseConfig(this) { MinDist = v };
-        }
-        public ParseConfig WithReadBufferSizeInBytes(int v)
-        {
-            return new ParseConfig(this) { ReadBufferSizeInBytes = v };
-        }
-
-        public ParseConfig WithVerbose(bool v)
-        {
-            return new ParseConfig(this) { Verbose = v };
-        }
-
     }
 
     /// <summary></summary>

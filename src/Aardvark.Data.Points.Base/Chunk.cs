@@ -96,6 +96,9 @@ namespace Aardvark.Data.Points
             BoundingBox = bbox ?? new Box3d(positions);
         }
 
+        /// <summary>
+        /// Creates new chunk which is union of this chunk and other. 
+        /// </summary>
         public Chunk Union(Chunk other)
         {
             return new Chunk(

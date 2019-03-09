@@ -34,6 +34,8 @@ namespace Aardvark.Geometry.Points
             f_tryGet = tryGet ?? throw new ArgumentNullException(nameof(tryGet));
         }
         
+        /// <summary>
+        /// </summary>
         public PersistentRef<A> Cast<A>()
         {
             var get = f_get;
@@ -46,11 +48,12 @@ namespace Aardvark.Geometry.Points
 
         }
 
+        /// <summary>
+        /// </summary>
         public static PersistentRef<T> FromValue(T value)
         {
             return new PersistentRef<T>(null, s => value, s => (true, value));
         }
-
 
         /// <summary>
         /// </summary>
