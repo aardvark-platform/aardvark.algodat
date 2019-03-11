@@ -237,32 +237,54 @@ module Rendering =
                 
                 match (picktrees |> MMap.toMod).GetValue a |> Seq.tryHead with
                 | None -> 
-                    false, Trafo3d.Identity
+                    false, [||]
                 | Some (_,tree) -> 
+                    let s = win.Sizes.GetValue a
                     let vp = v.GetValue a * p.GetValue a
                     let loc = vp.Backward.TransformPosProj(V3d(0.0,0.0,-100000000.0))
                     let npp = vp.Backward.TransformPosProj(V3d(ndc, -1.0))
                     let l = loc
                     let n = npp
 
-                    let cone = Ray3d(l, (n-l).Normalized)
-                    let k = tan (0.2 * Constant.RadiansPerDegree)
-                    let pt = tree.FindPoints(cone, 0.0, System.Double.PositiveInfinity, 0.0, k) |> Seq.tryHead
-                    match pt with
-                    | Some pt -> 
-                        let t = pt.Value.WorldPosition
-                        Log.warn "%A" pt.Value.DataPosition
-                        true, Trafo3d.Translation t
-                    | None -> false, Trafo3d.Identity
+                    //let cone = Ray3d(l, (n-l).Normalized)
+                    //let k = tan (2.0 * Constant.RadiansPerDegree)
+                    //let pts = 
+                    //    tree.FindPointsLocal(cone, 0.0, System.Double.PositiveInfinity, 0.0, k)
+                    //    |> Seq.map (fun p -> V3f p.Value.WorldPosition)
+                    //    |> Seq.truncate 5000
+                    //    |> Seq.toArray
+
+                    
+                    let pixelRadius = 10.0
+                    let e = Ellipse2d(ndc, 2.0 * V2d.IO * pixelRadius / float s.X, 2.0 * V2d.OI * pixelRadius / float s.Y)
+
+                    let d2 (pt : V3d) =
+                        vp.Forward.TransformPosProj(pt).XY - ndc |> Vec.lengthSquared
+
+                    let pts = 
+                        tree.FindPoints(vp, e)
+                        |> Seq.truncate 30
+                        |> Seq.sortBy (fun p -> d2 p.Value.WorldPosition)
+                        |> Seq.truncate 1
+                        |> Seq.map (fun p -> V3f p.Value.WorldPosition)
+                        |> Seq.toArray
+
+                    pts.Length > 0, pts
+                    //match pt with
+                    //| Some pt -> 
+                    //    let t = pt.Value.WorldPosition
+                    //    Log.warn "%A" pt.Value.DataPosition
+                    //    true, Trafo3d.Translation t
+                    //| None -> false, Trafo3d.Identity
             )
 
         let afterMain = RenderPass.after "aftermain" RenderPassOrder.Arbitrary RenderPass.main
 
         let thing =
             Sg.draw IndexedGeometryMode.PointList
-            |> Sg.vertexAttribute' DefaultSemantic.Positions [| V3f.Zero |]
-            |> Sg.trafo (Mod.map snd picked)
-            |> Sg.onOff (Mod.map fst picked)
+            |> Sg.vertexAttribute DefaultSemantic.Positions (Mod.map snd picked)
+            //|> Sg.onOff (Mod.map fst picked)
+            //|> Sg.fillMode (Mod.constant FillMode.Line)
             |> Sg.shader {
                 do! DefaultSurfaces.trafo
                 do! DefaultSurfaces.pointSprite
@@ -272,6 +294,8 @@ module Rendering =
             |> Sg.uniform "PointSize" (Mod.constant 10.0)
             |> Sg.uniform "ViewportSize" win.Sizes
             |> Sg.depthTest (Mod.constant DepthTestMode.None)
+            //|> Sg.viewTrafo (Mod.constant Trafo3d.Identity)
+            //|> Sg.projTrafo (Mod.constant Trafo3d.Identity)
             |> Sg.pass afterMain
 
         let sg =

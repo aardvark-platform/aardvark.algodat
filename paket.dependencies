@@ -6,6 +6,7 @@ nuget FSharp.Core                       ~> 4.3.0
 
 // public repository
 nuget Aardvark.Base                     ~> 4.3.9
+nuget Aardvark.Geometry                 ~> 4.3.9
 nuget Aardvark.Base.IO                  ~> 4.3.9
 
 nuget Aardvark.Base.Rendering           ~> 4.7.14

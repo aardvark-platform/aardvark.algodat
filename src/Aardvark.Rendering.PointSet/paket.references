@@ -1,3 +1,4 @@
 FSharp.Core
 Aardvark.Base.Rendering
 Aardvark.SceneGraph
+Aardvark.Geometry
