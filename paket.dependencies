@@ -5,12 +5,12 @@ source https://api.nuget.org/v3/index.json
 nuget FSharp.Core                       ~> 4.3.0
 
 // public repository
-nuget Aardvark.Base                     ~> 4.3.9
-nuget Aardvark.Geometry                 ~> 4.3.9
-nuget Aardvark.Base.IO                  ~> 4.3.9
+nuget Aardvark.Base                     = 4.3.9
+nuget Aardvark.Geometry                 = 4.3.9
+nuget Aardvark.Base.IO                  = 4.3.9
 
-nuget Aardvark.Base.Rendering           ~> 4.7.14
-nuget Aardvark.SceneGraph               ~> 4.7.14
+nuget Aardvark.Base.Rendering           ~> 4.7.15
+nuget Aardvark.SceneGraph               ~> 4.7.15
 
 // 3rd-party
 #nuget Crc32C.NET                        ~> 1.0.5
