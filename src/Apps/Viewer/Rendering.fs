@@ -12,6 +12,7 @@ open Aardvark.Application.Slim
 open Aardvark.Rendering.Text
 open Aardvark.Rendering.PointSet
 open Aardvark.Base.Rendering
+open Aardvark.Base.Geometry
 
 
 module Util =
@@ -65,9 +66,30 @@ module Util =
 
         let envMap (v : Effects.Vertex) =
             fragment {
-                let c = uniform.CameraLocation
-                let f = v.wp.XYZ
-                let dir = Vec.normalize (f - c)
+                
+                let vp = uniform.ProjTrafoInv * V4d(v.pos.X, v.pos.Y, -1.0, 1.0)
+                let vp = vp.XYZ / vp.W
+
+                let dir = (uniform.ViewTrafoInv * V4d(vp, 0.0)).XYZ |> Vec.normalize
+
+
+                //let wp = uniform.ViewProjTrafoInv * V4d(v.pos.X, v.pos.Y, -1.0, 1.0)
+
+                //let f = 1.0 / (uniform.ViewProjTrafoInv.M33 - uniform.ViewProjTrafoInv.M32)
+                
+                //let dir = 
+                //    f * uniform.ViewProjTrafoInv.C0.XYZ * v.pos.X + 
+                //    f * uniform.ViewProjTrafoInv.C1.XYZ * v.pos.Y +
+                //    f * uniform.ViewProjTrafoInv.C2.XYZ * -1.0 +
+
+                //    f * uniform.ViewProjTrafoInv.C3.XYZ +
+                //    (uniform.ViewProjTrafoInv.C2.XYZ) / (-uniform.ViewProjTrafoInv.M32)
+
+                //let dir = Vec.normalize dir
+
+                //let c = uniform.CameraLocation
+                //let f = v.wp.XYZ
+                //let dir = Vec.normalize (f - c)
                 return env.Sample(dir)
             }
 
@@ -83,6 +105,7 @@ module Rendering =
 
 
     let pointClouds (win : IRenderWindow) (msaa : bool) (camera : IMod<CameraView>) (frustum : IMod<Frustum>) (pcs : list<LodTreeInstance>) =
+        let picktrees : mmap<ILodTreeNode,SimplePickTree> = MMap.empty
         let config =
             {
                 pointSize = Mod.init 1.0
@@ -134,12 +157,12 @@ module Rendering =
             pcs |> List.map (fun t ->
                 { t with uniforms = MapExt.add "Overlay" (config.overlayAlpha :> IMod) t.uniforms }
             )
-            
+        
         let overallBounds = 
-            pcs |> List.map (fun i -> i.root.BoundingBox) |> Box3d
-    
+            pcs |> List.map (fun i -> i.root.WorldBoundingBox) |> Box3d
+
         let trafo = 
-            Trafo3d.Translation(-overallBounds.Center) *
+            Trafo3d.Translation(-overallBounds.Center) * 
             Trafo3d.Scale(300.0 / overallBounds.Size.NormMax)
 
         let pcs =
@@ -205,8 +228,78 @@ module Rendering =
         //        }
         //    Overlay.table cfg win.Sizes content
 
+        let v = (camera |> Mod.map CameraView.viewTrafo)
+        let p = (frustum |> Mod.map Frustum.projTrafo)
+
+        let picked = 
+            Mod.custom ( fun a ->
+                let ndc = win.Mouse.Position.GetValue a |> (fun pp -> pp.NormalizedPosition * V2d(2,-2) + V2d(-1,1))
+                
+                match (picktrees |> MMap.toMod).GetValue a |> Seq.tryHead with
+                | None -> 
+                    false, [||]
+                | Some (_,tree) -> 
+                    let s = win.Sizes.GetValue a
+                    let vp = v.GetValue a * p.GetValue a
+                    let loc = vp.Backward.TransformPosProj(V3d(0.0,0.0,-100000000.0))
+                    let npp = vp.Backward.TransformPosProj(V3d(ndc, -1.0))
+                    let l = loc
+                    let n = npp
+
+                    //let cone = Ray3d(l, (n-l).Normalized)
+                    //let k = tan (2.0 * Constant.RadiansPerDegree)
+                    //let pts = 
+                    //    tree.FindPointsLocal(cone, 0.0, System.Double.PositiveInfinity, 0.0, k)
+                    //    |> Seq.map (fun p -> V3f p.Value.WorldPosition)
+                    //    |> Seq.truncate 5000
+                    //    |> Seq.toArray
+
+                    
+                    let pixelRadius = 10.0
+                    let e = Ellipse2d(ndc, 2.0 * V2d.IO * pixelRadius / float s.X, 2.0 * V2d.OI * pixelRadius / float s.Y)
+
+                    let d2 (pt : V3d) =
+                        vp.Forward.TransformPosProj(pt).XY - ndc |> Vec.lengthSquared
+
+                    let pts = 
+                        tree.FindPoints(vp, e)
+                        |> Seq.truncate 30
+                        |> Seq.sortBy (fun p -> d2 p.Value.WorldPosition)
+                        |> Seq.truncate 1
+                        |> Seq.map (fun p -> V3f p.Value.WorldPosition)
+                        |> Seq.toArray
+
+                    pts.Length > 0, pts
+                    //match pt with
+                    //| Some pt -> 
+                    //    let t = pt.Value.WorldPosition
+                    //    Log.warn "%A" pt.Value.DataPosition
+                    //    true, Trafo3d.Translation t
+                    //| None -> false, Trafo3d.Identity
+            )
+
+        let afterMain = RenderPass.after "aftermain" RenderPassOrder.Arbitrary RenderPass.main
+
+        let thing =
+            Sg.draw IndexedGeometryMode.PointList
+            |> Sg.vertexAttribute DefaultSemantic.Positions (Mod.map snd picked)
+            //|> Sg.onOff (Mod.map fst picked)
+            //|> Sg.fillMode (Mod.constant FillMode.Line)
+            |> Sg.shader {
+                do! DefaultSurfaces.trafo
+                do! DefaultSurfaces.pointSprite
+                do! DefaultSurfaces.constantColor C4f.Red
+                do! DefaultSurfaces.pointSpriteFragment
+            }
+            |> Sg.uniform "PointSize" (Mod.constant 10.0)
+            |> Sg.uniform "ViewportSize" win.Sizes
+            |> Sg.depthTest (Mod.constant DepthTestMode.None)
+            //|> Sg.viewTrafo (Mod.constant Trafo3d.Identity)
+            //|> Sg.projTrafo (Mod.constant Trafo3d.Identity)
+            |> Sg.pass afterMain
+
         let sg =
-            Sg.LodTreeNode(config.stats, true, config.budget, config.renderBounds, config.maxSplits, win.Time, pcs) :> ISg
+            Sg.LodTreeNode(config.stats, picktrees, true, config.budget, config.renderBounds, config.maxSplits, win.Time, pcs) :> ISg
             |> Sg.uniform "PointSize" config.pointSize
             |> Sg.uniform "ViewportSize" win.Sizes
             |> Sg.uniform "PointVisualization" vis
@@ -220,9 +313,10 @@ module Rendering =
                     do! PointSetShaders.lodPointCircular
                 //do! PointSetShaders.envMap
             }
+            |> Sg.andAlso thing
             |> Sg.multisample (Mod.constant true)
-            |> Sg.viewTrafo (camera |> Mod.map CameraView.viewTrafo)
-            |> Sg.projTrafo (frustum |> Mod.map Frustum.projTrafo)
+            |> Sg.viewTrafo v
+            |> Sg.projTrafo p
             |> Sg.andAlso cfg
             //|> Sg.andAlso bla
             |> Sg.blendMode (Mod.constant BlendMode.None)
@@ -241,6 +335,7 @@ module Rendering =
                 transact (fun () ->
                     config.lighting.Value <- not config.lighting.Value
                 )
+            
 
             | Keys.O -> transact (fun () -> config.pointSize.Value <- config.pointSize.Value / 1.3)
             | Keys.P -> transact (fun () -> config.pointSize.Value <- config.pointSize.Value * 1.3)
@@ -373,11 +468,12 @@ module Rendering =
         use app = new OpenGlApplication(true, false)
         use win = app.CreateGameWindow(8)
         
+    
         let camera =
-            CameraView.lookAt (V3d(10,10,10)) V3d.Zero V3d.OOI
+            CameraView.lookAt (V3d(10,10,10)) V3d.OOO V3d.OOI
             |> DefaultCameraController.control win.Mouse win.Keyboard win.Time
 
-
+            
         let bb = Box3d.FromCenterAndSize(V3d.Zero, V3d.III * 300.0)
 
         let frustum =

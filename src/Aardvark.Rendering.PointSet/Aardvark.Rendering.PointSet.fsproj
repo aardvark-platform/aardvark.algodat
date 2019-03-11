@@ -12,6 +12,7 @@
   <ItemGroup>
     <Compile Include="Utilities.fs" />
     <Compile Include="LodTreeInstance.fs" />
+    <Compile Include="SimplePick.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Aardvark.Data.Points.Ascii\Aardvark.Data.Points.Ascii.csproj" />
