@@ -81,6 +81,18 @@ namespace Aardvark.Geometry.Tests
         }
 
         [Test]
+        public void DeleteDelete()
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                var q1 = new Box3d(new V3d(0.0), new V3d(0.1));
+                var a = CreateRandomPointsInUnitCube(50000, 100);
+                var b = a.Delete(n => q1.Contains(n.BoundingBox), n => !(q1.Contains(n.BoundingBox) || q1.Intersects(n.BoundingBox)), p => q1.Contains(p), CancellationToken.None);
+                var c = b.Delete(n => true, n => false, p => true, CancellationToken.None);
+                Assert.IsTrue(c.PointCount == 0L);
+            }
+        }
+        [Test]
         public void DeleteAll()
         {
             var a = CreateRegularPointsInUnitCube(10, 1);

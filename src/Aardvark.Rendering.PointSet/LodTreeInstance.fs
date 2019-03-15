@@ -14,6 +14,204 @@ open Aardvark.Base.Incremental
 module LodTreeInstance =
 
     
+    type TransformedBox3d =
+        {
+            box : Box3d
+            trafo : Trafo3d
+        }
+    
+    module TransformedBox3d =
+        
+        let transformed (trafo : Trafo3d) (tbox : TransformedBox3d) =
+            {
+                box = tbox.box
+                trafo = tbox.trafo * trafo
+            }
+            
+        let getWorldCorners (tbox : TransformedBox3d) = 
+            tbox.box.ComputeCorners() |> Array.map tbox.trafo.Forward.TransformPos
+    
+        let toHull3d (tbox : TransformedBox3d) =
+            (Hull3d.Create tbox.box).Transformed(tbox.trafo)
+    
+    [<AbstractClass>]
+    type TransformedIntersectable3d() =
+        abstract member Intersects : TransformedBox3d -> bool
+        abstract member Contains : TransformedBox3d -> bool
+        abstract member Contains : V3d -> bool
+        default x.Contains(v : V3d) = x.Contains( { box = Box3d(v,v); trafo = Trafo3d.Identity })
+    
+    [<RequireQualifiedAccess>]
+    type TransformedRegion3d = 
+        | Single      of            TransformedIntersectable3d
+        | And         of TransformedRegion3d * TransformedRegion3d 
+        | Or          of TransformedRegion3d * TransformedRegion3d
+        | Xor         of TransformedRegion3d * TransformedRegion3d
+        | Subtract    of TransformedRegion3d * TransformedRegion3d
+        | Complement  of TransformedRegion3d
+        | Transformed of Trafo3d * TransformedRegion3d
+        | Empty 
+    
+    module Intersectable3d =
+        
+        let ofBox3d (b : Box3d) =
+            let h = Hull3d.Create b
+            {
+                new TransformedIntersectable3d() with
+                    member x.Intersects(o : TransformedBox3d) = 
+                        let h = h.Transformed(o.trafo.Inverse)
+                        h.Intersects(o.box)
+                    member x.Contains(o : TransformedBox3d) = 
+                        let h = h.Transformed(o.trafo.Inverse)
+                        o.box.ComputeCorners() |> Array.forall h.Contains
+                    member x.Contains(o : V3d) = 
+                        b.Contains(o)
+            }
+    
+        let ofSphere3d (s : Sphere3d) =
+            {
+                new TransformedIntersectable3d() with
+                    member x.Intersects(o : TransformedBox3d) =    
+                        let h = o |> TransformedBox3d.toHull3d
+                        h.Intersects(s)
+                    member x.Contains(o : TransformedBox3d) =   
+                        o |> TransformedBox3d.getWorldCorners |> Array.forall x.Contains
+                    member x.Contains(o : V3d) =        
+                        V3d.Distance(o, s.Center) <= s.Radius
+            }
+            
+        let internal toHull3d (viewProj : Trafo3d) =
+            let r0 = viewProj.Forward.R0
+            let r1 = viewProj.Forward.R1
+            let r2 = viewProj.Forward.R2
+            let r3 = viewProj.Forward.R3
+    
+            let inline toPlane (v : V4d) =
+                let n = -v.XYZ
+                let d = v.W
+                let l = Vec.length n
+                Plane3d(n / l, d / l)
+    
+            Hull3d [|
+                r3 - r0 |> toPlane  // right
+                r3 + r0 |> toPlane  // left
+                r3 + r1 |> toPlane  // bottom
+                r3 - r1 |> toPlane  // top
+                r3 + r2 |> toPlane  // near
+                //r3 - r2 |> toPlane  // far
+            |]
+        let ofNearPlanePolygon (viewProj : Trafo3d) (npp : PolyRegion) =
+    
+    
+            let hull = toHull3d viewProj
+    
+            let intersectsBox (box : TransformedBox3d) =
+                let hull = hull.Transformed(box.trafo.Inverse)
+                if hull.Intersects box.box then
+                    let proj = 
+                        box.box 
+                        |> PolyRegion.ofProjectedBox (box.trafo * viewProj)
+                    let res = PolyRegion.overlaps npp proj
+    
+    
+                    res
+                else
+                    false
+    
+            let containsPoint (v : V3d) =
+                if hull.Contains v then
+                    let pp = viewProj.Forward.TransformPosProj v
+                    if pp.Z >= -1.0 then
+                        PolyRegion.containsPoint pp.XY npp
+                    else
+                        false
+                else
+                    false
+            
+            let containsBox (box : TransformedBox3d) =
+                if box |> TransformedBox3d.getWorldCorners |> Array.forall hull.Contains then
+                    box.box 
+                    |> PolyRegion.ofProjectedBox (box.trafo * viewProj)
+                    |> PolyRegion.containsRegion npp
+                else
+                    false
+                
+            {
+                new TransformedIntersectable3d() with
+                    member x.Intersects(o : TransformedBox3d) =     intersectsBox o
+                    member x.Contains(o : TransformedBox3d) =       containsBox   o
+                    member x.Contains(o : V3d) =                    containsPoint o
+            }
+    
+    module TransformedRegion3d =
+    
+        let empty = TransformedRegion3d.Empty
+        let inline ofIntersectable x = TransformedRegion3d.Single x
+        let inline ofBox3d b = TransformedRegion3d.Single (Intersectable3d.ofBox3d b)
+        let inline ofSphere3d s = TransformedRegion3d.Single (Intersectable3d.ofSphere3d s)
+        let inline ofNearPlanePolygon viewProj p = TransformedRegion3d.Single (Intersectable3d.ofNearPlanePolygon viewProj p)
+    
+        let inline intersect l r = TransformedRegion3d.And(l,r)
+        let inline union l r = TransformedRegion3d.Or(l,r)
+        let inline xor l r = TransformedRegion3d.Xor(l,r)
+        let inline subtract l r = TransformedRegion3d.Subtract(l,r)
+        let inline complement r = TransformedRegion3d.Complement r
+        
+        let rec intersectsTransformed (b : TransformedBox3d) (s : TransformedRegion3d) =
+            match s with
+            | TransformedRegion3d.Empty ->    false
+            | TransformedRegion3d.Single x ->       x.Intersects b
+            | TransformedRegion3d.Or (l,r) ->       intersectsTransformed b r || intersectsTransformed b l
+            | TransformedRegion3d.And (l,r) ->      intersectsTransformed b r && intersectsTransformed b l
+            | TransformedRegion3d.Xor (l,r) ->      intersectsTransformed b (TransformedRegion3d.Or(l,r)) && not (containsBoxTransformed b (TransformedRegion3d.And(l,r)))
+            | TransformedRegion3d.Subtract (l,r) -> (not (containsBoxTransformed b r)) && intersectsTransformed b l
+            | TransformedRegion3d.Transformed(t,r) -> intersectsTransformed (b |> TransformedBox3d.transformed t.Inverse) r
+            | TransformedRegion3d.Complement (l) ->     not (containsBoxTransformed b l)
+    
+        and containsBoxTransformed (b : TransformedBox3d) (s : TransformedRegion3d) =
+            match s with
+            | TransformedRegion3d.Empty ->    false
+            | TransformedRegion3d.Single x ->       x.Contains b
+            | TransformedRegion3d.Or (l,r) ->       intersectsTransformed b (TransformedRegion3d.And(TransformedRegion3d.Complement(l),TransformedRegion3d.Complement(r))) |> not
+            | TransformedRegion3d.And (l,r) ->      containsBoxTransformed b r && containsBoxTransformed b l
+            | TransformedRegion3d.Xor (l,r) ->      containsBoxTransformed b (TransformedRegion3d.Or(l,r)) && not (intersectsTransformed b (TransformedRegion3d.And(l,r)))
+            | TransformedRegion3d.Subtract (l,r) -> (not (intersectsTransformed b r)) && containsBoxTransformed b l
+            | TransformedRegion3d.Transformed(t,r) -> containsBoxTransformed (b |> TransformedBox3d.transformed t.Inverse) r
+            | TransformedRegion3d.Complement (l) -> not (intersectsTransformed b l)
+    
+        let intersects (b : Box3d) (s : TransformedRegion3d) =
+            intersectsTransformed {box = b; trafo = Trafo3d.Identity} s
+    
+        let containsBox (b : Box3d) (s : TransformedRegion3d) =
+            containsBoxTransformed {box = b; trafo = Trafo3d.Identity} s
+    
+        let rec contains (v : V3d) (s : TransformedRegion3d) =
+            match s with
+            | TransformedRegion3d.Empty ->    false
+            | TransformedRegion3d.Single x ->       x.Contains v
+            | TransformedRegion3d.Or (l,r) ->       contains v r || contains v l
+            | TransformedRegion3d.And (l,r) ->      contains v r && contains v l
+            | TransformedRegion3d.Xor (l,r) ->      contains v r <> contains v l
+            | TransformedRegion3d.Subtract (l,r) -> not (contains v r) && contains v l
+            | TransformedRegion3d.Transformed(t,r) -> contains (t.Backward.TransformPos v) r
+            | TransformedRegion3d.Complement (l) -> not (contains v l)
+
+    let mockMaskPoly =
+        [|
+            V2d.OO - V2d.II*0.49
+            V2d(-0.1, 0.5) - V2d.II*0.49
+            V2d.OI - V2d.II*0.49
+            V2d(0.6, 0.5) - V2d.II*0.49
+            V2d.II - V2d.II*0.49
+            V2d(1.1, 0.5) - V2d.II*0.49
+            V2d.IO - V2d.II*0.49
+            V2d(0.5, -0.1) - V2d.II*0.49
+        |]
+
+    let getMockRange (pp : Trafo3d) =
+        TransformedRegion3d.ofNearPlanePolygon pp (PolyRegion.ofArray mockMaskPoly)
+
+    
     module private AsciiFormatParser =
         open System.Text.RegularExpressions
         open Aardvark.Data.Points.Import
@@ -656,8 +854,29 @@ module LodTreeInstance =
             else
                 set
                
+        let p = MBrace.FsPickler.FsPickler.CreateBinarySerializer()
+        let pp : Trafo3d = """AM6R9aAP6f0AAAEVQWFyZHZhcmsuQmFzZS5UcmFmbzNkAM6R9QDOkfXmWBfDJ7bZvx4Jb8c3yME/rddOpHMCb8CyVZEgEBhvQKS6tRWnidq/rrmXAIA6wb/mOOrj298zwD9EOxetRTNAAAAAAAAAAAD0V7RUd/nVP3lXHyewP1bAijVc+WkhVkAAAAAAAAAAAAAAAAAAAAAAc2iR7Xz/E8CNl24SgwAUQADOkfWtglHSnUjzv/tLSFA95/O/AAAAAAAAAACponBw7S9QQEr0uZXQn+w/nLSFJ7C76785QFNjua8BQHLFzgPbElTAvO3VdAUH5D94yFCsaGfjv+qSwIhva9+/vHh3ChEbNMCNS6n6/gXkP3YOAV5qZuO/tqxfwNNp37+AauSl1+YzwA==""" |> System.Convert.FromBase64String |> p.UnPickle
+        let w2li : Trafo3d = """AM6R9aAP6f0AAAEVQWFyZHZhcmsuQmFzZS5UcmFmbzNkAM6R9QDOkfUAAAAAAADwPwAAAAAAAAAAAAAAAAAAAAAAAABA00C8QAAAAAAAAAAAAAAAAAAA8D8AAAAAAAAAAAAAWDP+Xw/BAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPA/AAAAuK0ehsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwPwDOkfUAAAAAAADwPwAAAAAAAAAAAAAAAAAAAAAAAABA00C8wAAAAAAAAAAAAAAAAAAA8D8AAAAAAAAAAAAAWDP+Xw9BAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPA/AAAAuK0ehkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwPw==""" |> System.Convert.FromBase64String |> p.UnPickle
 
-        let root = points.Root.Value
+        let sel = getMockRange pp
+        let selection = TransformedRegion3d.Transformed(w2li,sel)
+
+        //let bb = Box3d(V3d(-7613.36181640625, 256962.005462646, 693.556701660156), V3d(-7111.74163818359, 257019.422454834, 729.612609863281))
+        let a = 
+            points.Delete( 
+                Func<PointSetNode,bool>(fun n -> TransformedRegion3d.containsBox n.BoundingBox selection),
+                Func<PointSetNode,bool>(fun n -> TransformedRegion3d.intersects n.BoundingBox selection |> not),
+                Func<V3d,bool>(fun v -> TransformedRegion3d.contains v selection),
+                CancellationToken.None
+            )
+        let b = 
+            a.Delete( 
+                Func<PointSetNode,bool>(fun n -> TransformedRegion3d.containsBox n.BoundingBox selection),
+                Func<PointSetNode,bool>(fun n -> TransformedRegion3d.intersects n.BoundingBox selection |> not),
+                Func<V3d,bool>(fun v -> TransformedRegion3d.contains v selection),
+                CancellationToken.None
+            )
+        let root = b.Root.Value
         let bounds = root.Cell.BoundingBox
         let trafo = Similarity3d(1.0, Euclidean3d(Rot3d.Identity, -bounds.Center))
         let source = Symbol.Create sourceName

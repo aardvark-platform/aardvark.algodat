@@ -119,7 +119,7 @@ namespace Aardvark.Geometry.Points
             }
 
             var newSubnodes = node.Subnodes?.Map(n => n?.Value.Delete(isNodeFullyInside, isNodeFullyOutside, isPositionInside, ct));
-            if (newSubnodes?.All(n => n == null) == true) return null;
+            if (ps.Count == 0 && (newSubnodes == null || newSubnodes.All(n => n == null))) return null;
             return node.WithData(ImmutableDictionary<Guid, object>.Empty, ps.Count, newPsId, newCsId, newNsId, newIsId, newKdId, newKsId, newSubnodes);
         }
     }
