@@ -352,7 +352,7 @@ module LodTreeInstance =
 
                 if MapExt.containsKey "Colors" ips then
                     let colors = 
-                        if self.HasColors then self.Colors.Value
+                        if self.HasColors  then self.Colors.Value
                         else Array.create original.Length C4b.White
                     attributes.[DefaultSemantic.Colors] <- colors
                     vertexSize <- vertexSize + 4L
@@ -404,15 +404,30 @@ module LodTreeInstance =
                     let arr = [| depth |] :> System.Array
                     uniforms <- MapExt.add "MinTreeDepth" arr uniforms
 
-                let geometry =
-                    IndexedGeometry(
-                        Mode = IndexedGeometryMode.PointList,
-                        IndexedAttributes = attributes
-                    )
+                if original.Length = 0 then
+                    let geometry =
+                        IndexedGeometry(
+                            Mode = IndexedGeometryMode.PointList,
+                            IndexedAttributes = 
+                                SymDict.ofList [
+                                    DefaultSemantic.Positions, [| V3f(System.Single.NaN, System.Single.NaN, System.Single.NaN) |] :> System.Array
+                                    DefaultSemantic.Colors, [| C4b.White |] :> System.Array
+                                    DefaultSemantic.Normals, [| V3f.OOI |] :> System.Array
+                                ]
+                        )
+                    let mem = positions.LongLength * vertexSize
+                    let res = geometry, uniforms
+                    struct (res :> obj, mem)
+                else
+                    let geometry =
+                        IndexedGeometry(
+                            Mode = IndexedGeometryMode.PointList,
+                            IndexedAttributes = attributes
+                        )
                 
-                let mem = positions.LongLength * vertexSize
-                let res = geometry, uniforms
-                struct (res :> obj, mem)
+                    let mem = positions.LongLength * vertexSize
+                    let res = geometry, uniforms
+                    struct (res :> obj, mem)
             )
             |> unbox<IndexedGeometry * MapExt<string, Array>>
 
