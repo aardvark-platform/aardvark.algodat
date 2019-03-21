@@ -3,9 +3,9 @@ framework: netstandard2.0, net471
 source https://api.nuget.org/v3/index.json
 
 // public repository
-nuget Aardvark.Base                     ~> 4.3.8
-nuget Aardvark.Base.IO                  ~> 4.3.8
-nuget Aardvark.Base.Rendering           ~> 4.7.3
+nuget Aardvark.Base                     ~> 4.4.0
+nuget Aardvark.Base.IO                  ~> 4.4.0
+nuget Aardvark.Base.Rendering           ~> 4.7.16
 
 // 3rd-party
 #nuget Crc32C.NET                        ~> 1.0.5
