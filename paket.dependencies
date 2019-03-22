@@ -27,7 +27,8 @@ nuget Aardvark.Application.Slim.GL      ~> 4.7.13
 nuget Aardvark.Application.Slim.Vulkan  ~> 4.7.13
 
 nuget FShade                            ~> 4.3.4
-
+nuget ProjNET4GeoAPI                    ~> 1.4.1
+nuget Unofficial.DotSpatial.Projections ~> 0.0.2
 group Build
 framework: net471
 content: none
