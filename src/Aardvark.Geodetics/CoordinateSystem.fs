@@ -2,94 +2,114 @@
 
 open Aardvark.Base
 open System.Text
-open ProjNet
-open ProjNet.CoordinateSystems
-open ProjNet.Converters
-open GeoAPI.CoordinateSystems
-open GeoAPI.Geometries
-open ProjNet.Converters.WellKnownText
-open ProjNet.CoordinateSystems.Transformations
 
+open DotSpatial.Projections
 
-open DotSpatial.Projections.Transforms
+type CoordinateSystem private (system : ProjectionInfo, id : string) =
+    static let epsgTable = System.Collections.Concurrent.ConcurrentDictionary<int, CoordinateSystem>()
+    static let proj4Table = System.Collections.Concurrent.ConcurrentDictionary<string, CoordinateSystem>()
+    static let esriTable = System.Collections.Concurrent.ConcurrentDictionary<string, CoordinateSystem>()
+    static let ws = System.Text.RegularExpressions.Regex @"[ \t\r\n][ \t\r\n]+"
 
-[<AutoOpen>]
-module private Dehate =
-    let factory = CoordinateTransformationFactory()
+    member internal x.System : ProjectionInfo = system
 
-
-
-    type Transformation private (srcSystem : CoordinateSystem, dstSystem : CoordinateSystem) =
-        static let table = System.Collections.Concurrent.ConcurrentDictionary<CoordinateSystem * CoordinateSystem, Transformation>()
-
-        let trans = factory.CreateFromCoordinateSystems(srcSystem.System, dstSystem.System)
-
-        member x.Transform(p : V3d) = 
-            V3d (trans.MathTransform.Transform [| p.X; p.Y; p.Z |])
-
-        member x.Transform(p : V3d[]) = 
-            let arr = Array.zeroCreate 3
-            p |> Array.map (fun pt ->
-                arr.[0] <- pt.X; arr.[1] <- pt.X; arr.[2] <- pt.X;
-                let res = trans.MathTransform.Transform arr
-                V3d res
-            )
-        
-        member x.Transform(p : seq<V3d>) = 
-            p |> Seq.map (fun pt ->
-                let res = trans.MathTransform.Transform [|pt.X; pt.Y; pt.Z |]
-                V3d res
-            )
-        
-        member x.Transform(p : list<V3d>) = 
-            p |> List.map (fun pt ->
-                let res = trans.MathTransform.Transform [|pt.X; pt.Y; pt.Z |]
-                V3d res
-            )
-        static member Get(srcSystem : CoordinateSystem, dstSystem : CoordinateSystem) =
-            table.GetOrAdd((srcSystem, dstSystem), fun (srcSystem, dstSystem) -> Transformation(srcSystem, dstSystem))
-
-
-type CoordinateSystem private (system : ICoordinateSystem, epsg : int) =
-    static let table = System.Collections.Concurrent.ConcurrentDictionary<int, CoordinateSystem>()
-    
-    static let web = 
-        let wkt = ProjectedCoordinateSystem.WebMercator.WKT
-        Log.warn "%s" wkt
-        CoordinateSystem(ProjectedCoordinateSystem.WebMercator, 1231233857)
-
-    //let system = CoordinateSystemWktReader.Parse(WKT.get epsg, Encoding.UTF8) |> unbox<ICoordinateSystem>
-
-    static member WebMercator = web
-
-    member internal x.System : ICoordinateSystem = system
-
-    member x.Id = epsg
+    member x.Id = id
     member x.Name = system.Name
 
-    override x.GetHashCode() = epsg
+    member x.Zone = 
+        if system.Zone.HasValue then Some system.Zone.Value else None
+
+
+    override x.GetHashCode() =
+        id.GetHashCode()
+
     override x.Equals o =
         match o with
-        | :? CoordinateSystem as o -> epsg = o.Id
+        | :? CoordinateSystem as o -> id = o.Id
         | _ -> false
-    override x.ToString() = sprintf "EPSG:%d %s" epsg system.Name
+    override x.ToString() = sprintf "%s %s" id system.Name
 
-    static member Get(id : int) =
-        table.GetOrAdd(id, fun id -> 
-            let sys = CoordinateSystemWktReader.Parse(WKT.get id, Encoding.UTF8) |> unbox<ICoordinateSystem>
-            CoordinateSystem(sys, id)
+    static member FromEPSGCode(id : int) =
+        epsgTable.GetOrAdd(id, fun id -> 
+            let sys = ProjectionInfo.FromEpsgCode id
+            CoordinateSystem(sys, sprintf "EPSG:%d" id)
         )
 
-    static member Transform (src : CoordinateSystem, dst : CoordinateSystem, pt : V3d) = Transformation.Get(src, dst).Transform pt
-    static member Transform (src : CoordinateSystem, dst : CoordinateSystem, pt : V3d[]) = Transformation.Get(src, dst).Transform pt
-    static member Transform (src : CoordinateSystem, dst : CoordinateSystem, pt : seq<V3d>) = Transformation.Get(src, dst).Transform pt
-    static member Transform (src : CoordinateSystem, dst : CoordinateSystem, pt : list<V3d>) = Transformation.Get(src, dst).Transform pt
+    static member FromProj4(proj4 : string) =
+        let proj4 = ws.Replace(proj4.Trim(), " ")
+        proj4Table.GetOrAdd(proj4, fun proj4 -> 
+            let sys = ProjectionInfo.FromProj4String proj4
+            CoordinateSystem(sys, proj4)
+        )
+
+    static member FromEsri(esri : string) =
+        let esri = ws.Replace(esri.Trim(), " ")
+        esriTable.GetOrAdd(esri, fun esri -> 
+            let sys = ProjectionInfo.FromEsriString esri
+            CoordinateSystem(sys, esri)
+        )
+            
+        
+    static member Transform (src : CoordinateSystem, dst : CoordinateSystem, pt : V2d) = 
+        let xy = [| pt.X; pt.Y |]
+        Reproject.ReprojectPoints(xy, null, src.System, dst.System, 0, 1)
+        V2d(xy.[0], xy.[1])
+        
+    static member Transform (src : CoordinateSystem, dst : CoordinateSystem, pt : V3d) = 
+        let xy = [| pt.X; pt.Y |]
+        let z = [| pt.Z |]
+        Reproject.ReprojectPoints(xy, z, src.System, dst.System, 0, 1)
+        V3d(xy.[0], xy.[1], z.[0])
+
+    static member Transform (src : CoordinateSystem, dst : CoordinateSystem, pt : V3d[]) =
+        let xy = Array.zeroCreate (2 * pt.Length)
+        let z = Array.zeroCreate pt.Length
+        let mutable j = 0
+        for i in 0 .. pt.Length - 1 do
+            let p = pt.[i]
+            xy.[j] <- p.X
+            xy.[j+1] <- p.Y
+            z.[i] <- p.Z
+            j <- j + 2
+        
+        Reproject.ReprojectPoints(xy, z, src.System, dst.System, 0, pt.Length)
+        let res = Array.zeroCreate pt.Length
+        let mutable j = 0
+        for i in 0 .. pt.Length - 1 do
+            res.[i] <- V3d(xy.[j], xy.[j+1], z.[i])
+            j <- j + 2
+        res
+
+    static member Transform (src : CoordinateSystem, dst : CoordinateSystem, pt : V2d[]) =
+        let xy = Array.zeroCreate (2 * pt.Length)
+        let mutable j = 0
+        for i in 0 .. pt.Length - 1 do
+            let p = pt.[i]
+            xy.[j] <- p.X
+            xy.[j+1] <- p.Y
+            j <- j + 2
+            
+        Reproject.ReprojectPoints(xy, null, src.System, dst.System, 0, pt.Length)
+        let res = Array.zeroCreate pt.Length
+        let mutable j = 0
+        for i in 0 .. pt.Length - 1 do
+            res.[i] <- V2d(xy.[j], xy.[j+1])
+            j <- j + 2
+        res
+
+    static member Transform (src : CoordinateSystem, dst : CoordinateSystem, pt : seq<V3d>) = CoordinateSystem.Transform(src, dst, Seq.toArray pt) :> seq<_>
+    static member Transform (src : CoordinateSystem, dst : CoordinateSystem, pt : list<V3d>) = CoordinateSystem.Transform(src, dst, List.toArray pt) |> Array.toList
+
+    static member Transform (src : CoordinateSystem, dst : CoordinateSystem, pt : seq<V2d>) = CoordinateSystem.Transform(src, dst, Seq.toArray pt) :> seq<_>
+    static member Transform (src : CoordinateSystem, dst : CoordinateSystem, pt : list<V2d>) = CoordinateSystem.Transform(src, dst, List.toArray pt) |> Array.toList
 
 
 
 
 module CoordinateSystem =
-    let inline get (id : int) = CoordinateSystem.Get id
+    let inline epsg (id : int) = CoordinateSystem.FromEPSGCode id
+    let inline proj4 (proj4 : string) = CoordinateSystem.FromProj4 proj4
+    let inline esri (esri : string) = CoordinateSystem.FromEsri esri
     let inline name (sys : CoordinateSystem) = sys.Name
     let inline id (sys : CoordinateSystem) = sys.Id
 

@@ -7,33 +7,18 @@ open Aardvark.Geodetics
 [<EntryPoint>]
 let main argv =
     
-    
-    let a = DotSpatial.Projections.ProjectionInfo.FromEpsgCode 32756
-    let b = DotSpatial.Projections.ProjectionInfo.FromEpsgCode 3857
+    let a = CoordinateSystem.esri "PROJCS[\"WGS_1984_UTM_Zone_56S\",GEOGCS[\"GCS_WGS_1984\",DATUM[\"D_WGS_1984\",SPHEROID[\"WGS_1984\",6378137,298.257223563]],PRIMEM[\"Greenwich\",0],UNIT[\"Degree\",0.017453292519943295]],PROJECTION[\"Transverse_Mercator\"],PARAMETER[\"latitude_of_origin\",0],PARAMETER[\"central_meridian\",153],PARAMETER[\"scale_factor\",0.9996],PARAMETER[\"false_easting\",500000],PARAMETER[\"false_northing\",10000000],UNIT[\"Meter\",1]]" //32756
+    let b = CoordinateSystem.proj4 "+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +wktext  +no_defs" // 3857
 
     
-    let xy = [|337865.2269059850368649;6250798.0734301581978798|]
-    let z = [|0.0|]
-    DotSpatial.Projections.Reproject.ReprojectPoints(xy, z, a, b, 0, 1)
+    let pa = V2d(337865.2269059850368649,6250798.0734301581978798)
+    let pb = V2d(16836745.65,-4011453.12)
 
-    let rb = V3d(xy.[0], xy.[1], z.[0])
-
-    //let a = CoordinateSystem.get 32756
-    //let b = CoordinateSystem.get 3857
-    //let c = CoordinateSystem.WebMercator
-
-    let p3857 = V3d(16836745.65,-4011453.12, 0.0)
-    //let p32756 = V3d(337865.2269059850368649,6250798.0734301581978798, 0.0)
-    //let p3857 = V3d(16836745.65,-4011453.12, 0.0)
-    ////let rb = CoordinateSystem.transform a b p32756
-    //let rc = CoordinateSystem.transform a c p32756
-
-    
-    //let rt = CoordinateSystem.transform b a rb
+    let res = CoordinateSystem.transform a b pa
 
 
-    let dist = rb.XY - p3857.XY
-    Log.line "%A" rb
+    let dist = res.XY - pb.XY
+    Log.line "%A" res
     Log.line "%A" dist
 
     
