@@ -18,15 +18,15 @@ let main args =
     | Some (Info filename) -> info filename args
 
     | Some (Import (filename, store, key)) -> import filename store key args
-        
+      
     | Some (View (store, key)) ->
         view store key args
-        
+      
     | Some Gui ->
         failwith "not implemented"
-        
+      
     | Some (Download (baseurl, targetdir)) -> download baseurl targetdir args
-        
+      
     | None ->
         printUsage()
 

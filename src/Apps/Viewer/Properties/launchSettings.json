@@ -1,8 +1,7 @@
 {
   "profiles": {
     "Viewer": {
-      "commandName": "Project",
-      "commandLineArgs": "view \\\\euclid\\InOut\\haaser\\kauny2 kaunertal"
+      "commandName": "Project"
     }
   }
 }

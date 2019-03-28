@@ -17,6 +17,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using Aardvark.Base;
+using Aardvark.Data.Points;
 
 namespace Aardvark.Geometry.Points
 {
@@ -67,7 +68,7 @@ namespace Aardvark.Geometry.Points
             var js = node.HasIntensities ? new List<int>() : null;
             var ks = node.HasClassifications ? new List<byte>() : null;
             var oldPsAbsolute = node.PositionsAbsolute;
-            var oldPs = node.Positions.Value;
+            var oldPs = node.Positions?.Value;
             var oldCs = node.Colors?.Value;
             var oldNs = node.Normals?.Value;
             var oldIs = node.Intensities?.Value;
@@ -76,7 +77,7 @@ namespace Aardvark.Geometry.Points
             {
                 if (!isPositionInside(oldPsAbsolute[i]))
                 {
-                    ps.Add(oldPs[i]);
+                    if (oldPs != null) ps.Add(oldPs[i]);
                     if (oldCs != null) cs.Add(oldCs[i]);
                     if (oldNs != null) ns.Add(oldNs[i]);
                     if (oldIs != null) js.Add(oldIs[i]);
@@ -84,43 +85,46 @@ namespace Aardvark.Geometry.Points
                 }
             }
 
-            if (ps.Count > 0)
+            if (node.HasPositions)
             {
                 newPsId = Guid.NewGuid();
                 var psa = ps.ToArray();
                 node.Storage.Add(newPsId.Value, psa);
 
                 newKdId = Guid.NewGuid();
-                node.Storage.Add(newKdId.Value, psa.BuildKdTree().Data);
+                node.Storage.Add(newKdId.Value, psa.Length != 0 ? psa.BuildKdTree().Data : new PointRkdTreeDData());
+            }
 
-                if (node.HasColors)
-                {
-                    newCsId = Guid.NewGuid();
-                    node.Storage.Add(newCsId.Value, cs.ToArray());
-                }
+            if (node.HasColors)
+            {
+                newCsId = Guid.NewGuid();
+                node.Storage.Add(newCsId.Value, cs.ToArray());
+            }
 
-                if (node.HasNormals)
-                {
-                    newNsId = Guid.NewGuid();
-                    node.Storage.Add(newNsId.Value, ns.ToArray());
-                }
+            if (node.HasNormals)
+            {
+                newNsId = Guid.NewGuid();
+                node.Storage.Add(newNsId.Value, ns.ToArray());
+            }
 
-                if (node.HasIntensities)
-                {
-                    newIsId = Guid.NewGuid();
-                    node.Storage.Add(newIsId.Value, js.ToArray());
-                }
+            if (node.HasIntensities)
+            {
+                newIsId = Guid.NewGuid();
+                node.Storage.Add(newIsId.Value, js.ToArray());
+            }
 
-                if (node.HasClassifications)
-                {
-                    newKsId = Guid.NewGuid();
-                    node.Storage.Add(newKsId.Value, ks.ToArray());
-                }
+            if (node.HasClassifications)
+            {
+                newKsId = Guid.NewGuid();
+                node.Storage.Add(newKsId.Value, ks.ToArray());
             }
 
             var newSubnodes = node.Subnodes?.Map(n => n?.Value.Delete(isNodeFullyInside, isNodeFullyOutside, isPositionInside, ct));
-            if (newSubnodes?.All(n => n == null) == true) return null;
-            return node.WithData(ImmutableDictionary<Guid, object>.Empty, ps.Count, newPsId, newCsId, newNsId, newIsId, newKdId, newKsId, newSubnodes);
+            if (newSubnodes != null && newSubnodes.All(n => n == null)) newSubnodes = null;
+            if (ps.Count == 0 && newSubnodes == null) return null;
+            var pointCountTree = newSubnodes != null ? (newSubnodes.Sum(n => n != null ? n.PointCountTree : 0)) : ps.Count;
+
+            return node.WithData(ImmutableDictionary<Guid, object>.Empty, pointCountTree, newPsId, newCsId, newNsId, newIsId, newKdId, newKsId, newSubnodes);
         }
     }
 }
