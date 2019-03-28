@@ -18,11 +18,18 @@ using System.Linq;
 
 namespace Aardvark.Geometry
 {
+    /// <summary>
+    /// Triangle set defined by vertices in V3f[] and int[] indices.
+    /// </summary>
     public class IntersectableTriangleSet : IIntersectableObjectSet
     {
         private int[] m_indices;
         private V3f[] m_positions;
         private Box3d m_bounds;
+
+        public int[] Indices { get { return m_indices; } }
+        public V3f[] Positions { get { return m_positions; } }
+        public Box3d Bounds { get { return m_bounds; } }
 
         public IntersectableTriangleSet(int[] indices, V3f[] positions)
         {
