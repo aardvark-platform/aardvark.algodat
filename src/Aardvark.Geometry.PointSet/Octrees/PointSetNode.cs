@@ -407,7 +407,6 @@ namespace Aardvark.Geometry.Points
                 }
             }
 
-
             return new PointSetNode(
                 id, cell, pointCountTree, 
                 custom,

@@ -89,7 +89,7 @@ namespace Aardvark.Geometry.Tests
             var storepath = Path.Combine(Config.TempDataDir, Guid.NewGuid().ToString());
             using (var store = PointCloud.OpenStore(storepath, cache: default))
             {
-                var resolver = new MapResolver();
+                var resolver = IdentityResolver.Default;
 
                 var cell = new Cell(1, 2, 3, 0);
                 var aPs = RandomPositions(100).Map(p => (V3f)(p - new V3d(0.5, 0.5, 0.5)));

@@ -254,10 +254,7 @@ namespace Aardvark.Geometry.Points
         { }
 
         /// <summary></summary>
-        public override object ComputeValue(IPointCloudNode node)
-        {
-            return Compute(this, node);
-        }
+        public override object ComputeValue(IPointCloudNode node) => Compute(this, node);
     }
 
 
@@ -275,7 +272,7 @@ namespace Aardvark.Geometry.Points
             }
             else
             {
-                value = default(T);
+                value = default;
                 return false;
             }
         }
