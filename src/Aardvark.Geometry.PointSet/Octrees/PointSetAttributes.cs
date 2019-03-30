@@ -324,12 +324,42 @@ namespace Aardvark.Geometry.Points
             );
 
         /// <summary>
-        /// Octree. Kd-tree for positions in local cell space (PointRkdTreeD&lt;V3f[], V3f&gt;).
+        /// Octree. Per-point positions in local cell space (V3f[]).
+        /// </summary>
+        public static readonly DurableData<Guid> PositionsLocal3f =
+            new DurableData<Guid>(
+                new Guid("05eb38fa-1b6a-4576-820b-780163199db9"),
+                "Octree.PositionsLocal3f",
+                "Octree. Per-point positions in local cell space (V3f[])."
+            );
+
+        /// <summary>
+        /// Octree. Per-point positions in global space (V3d[]).
+        /// </summary>
+        public static readonly DurableData<Guid> PositionsGlobal3d =
+            new DurableData<Guid>(
+                new Guid("05eb38fa-1b6a-4576-820b-780163199db9"),
+                "Octree.PositionsGlobal3d",
+                "Octree. Per-point positions in global space (V3d[])."
+            );
+
+        /// <summary>
+        /// Octree. Reference to kd-tree for positions in local cell space (PointRkdTreeD&lt;V3f[], V3f&gt;).
         /// </summary>
         public static readonly DurableData<Guid> RefKdTreeLocal3f =
             new DurableData<Guid>(
                 new Guid("dea5651f-2d84-4552-9d09-dbeea761e5d4"),
                 "Octree.RefKdTreeLocal3f",
+                "Octree. Reference to kd-tree for positions in local cell space (PointRkdTreeD<V3f[], V3f>)."
+            );
+
+        /// <summary>
+        /// Octree. Kd-tree for positions in local cell space (PointRkdTreeD&lt;V3f[], V3f&gt;).
+        /// </summary>
+        public static readonly DurableData<Guid> KdTreeLocal3f =
+            new DurableData<Guid>(
+                new Guid("86f71249-5342-4d9f-be33-ca31ce23c46a"),
+                "Octree.KdTreeLocal3f",
                 "Octree. Kd-tree for positions in local cell space (PointRkdTreeD<V3f[], V3f>)."
             );
 
@@ -371,6 +401,16 @@ namespace Aardvark.Geometry.Points
                 new Guid("25f45721-c647-45eb-b45b-26585ae0bcde"),
                 "Octree.RefIntensities1i",
                 "Octree. Reference to per-point intensities (int[])."
+            );
+
+        /// <summary>
+        /// Octree. Per-point intensities (int[]).
+        /// </summary>
+        public static readonly DurableData<Guid> Intensities1i =
+            new DurableData<Guid>(
+                new Guid("0876257e-a23b-4861-b82c-a68b12e594e9"),
+                "Octree.Intensities1i",
+                "Octree. Per-point intensities (int[])."
             );
 
         /// <summary>

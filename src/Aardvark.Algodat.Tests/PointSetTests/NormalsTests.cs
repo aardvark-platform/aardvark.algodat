@@ -88,10 +88,11 @@ namespace Aardvark.Geometry.Tests
                 Assert.IsTrue(node.Normals.Value.Length == node.PointCount);
 
                 //
-                var binary = node.ToBinary();
-                var node2 = PointSetNode.ParseBinary(binary, storage);
-                Assert.IsTrue(node.HasNormals == node2.HasNormals);
-                Assert.IsTrue(node.Normals?.Value?.Length == node2.Normals?.Value?.Length);
+                throw new NotImplementedException();
+                //var binary = node.ToBinary();
+                //var node2 = PointSetNode.ParseBinary(binary, storage);
+                //Assert.IsTrue(node.HasNormals == node2.HasNormals);
+                //Assert.IsTrue(node.Normals?.Value?.Length == node2.Normals?.Value?.Length);
             });
 
             PointSetNode WithRandomNormals(PointSetNode n)
@@ -100,17 +101,18 @@ namespace Aardvark.Geometry.Tests
                 var ns = new V3f[n.PointCount].Set(V3f.OOI);
                 storage.Add(id, ns);
 
-                if (n.IsLeaf)
-                {
-                    var m = n.WithNormals(id);
-                    return m;
-                }
-                else
-                {
-                    var subnodes = n.Subnodes.Map(x => x != null ? WithRandomNormals(x.Value) : null);
-                    var m = n.WithNormals(id, subnodes);
-                    return m;
-                }
+                throw new NotImplementedException();
+                //if (n.IsLeaf)
+                //{
+                //    var m = n.WithNormals(id);
+                //    return m;
+                //}
+                //else
+                //{
+                //    var subnodes = n.Subnodes.Map(x => x != null ? WithRandomNormals(x.Value) : null);
+                //    var m = n.WithNormals(id, subnodes);
+                //    return m;
+                //}
             }
         }
     }

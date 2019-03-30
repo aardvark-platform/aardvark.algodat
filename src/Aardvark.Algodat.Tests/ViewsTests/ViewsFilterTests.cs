@@ -40,7 +40,7 @@ namespace Aardvark.Geometry.Tests
                 pointCountTree: ps0.Length,
                 subnodes: null,
                 storeOnCreation: true,
-                (PointCloudAttribute.PositionsAbsolute, "a.positions", ps0)
+                (OctreeAttributes.PositionsGlobal3d, Guid.NewGuid(), ps0)
                 );
 
             var f = new FilteredNode(a, new FilterInsideBox3d(new Box3d(ps0)));
@@ -62,7 +62,7 @@ namespace Aardvark.Geometry.Tests
                 pointCountTree: ps0.Length,
                 subnodes: null,
                 storeOnCreation: true,
-                (PointCloudAttribute.PositionsAbsolute, "a.positions", ps0)
+                (OctreeAttributes.PositionsGlobal3d, Guid.NewGuid(), ps0)
                 );
 
             var f = new FilteredNode(a, new FilterInsideBox3d(new Box3d(ps0) + V3d.IOO));
@@ -84,7 +84,7 @@ namespace Aardvark.Geometry.Tests
                 pointCountTree: ps0.Length,
                 subnodes: null,
                 storeOnCreation: true,
-                (PointCloudAttribute.PositionsAbsolute, "a.positions", ps0)
+                (OctreeAttributes.PositionsGlobal3d, Guid.NewGuid(), ps0)
                 );
 
             var f = new FilteredNode(a, new FilterInsideBox3d(new Box3d(new V3d(0, 0, 0), new V3d(1, 1, 0.5))));
@@ -110,7 +110,7 @@ namespace Aardvark.Geometry.Tests
                 pointCountTree: ps0.Length,
                 subnodes: null,
                 storeOnCreation: true,
-                (PointCloudAttribute.PositionsAbsolute, "a.positions", ps0)
+                (OctreeAttributes.PositionsGlobal3d, Guid.NewGuid(), ps0)
                 );
 
             var f = new FilteredNode(a, new FilterOutsideBox3d(new Box3d(ps0) + V3d.IOO));
@@ -132,7 +132,7 @@ namespace Aardvark.Geometry.Tests
                 pointCountTree: ps0.Length,
                 subnodes: null,
                 storeOnCreation: true,
-                (PointCloudAttribute.PositionsAbsolute, "a.positions", ps0)
+                (OctreeAttributes.PositionsGlobal3d, Guid.NewGuid(), ps0)
                 );
 
             var f = new FilteredNode(a, new FilterOutsideBox3d(new Box3d(ps0)));
@@ -154,7 +154,7 @@ namespace Aardvark.Geometry.Tests
                 pointCountTree: ps0.Length,
                 subnodes: null,
                 storeOnCreation: true,
-                (PointCloudAttribute.PositionsAbsolute, "a.positions", ps0)
+                (OctreeAttributes.PositionsGlobal3d, Guid.NewGuid(), ps0)
                 );
 
             var f = new FilteredNode(a, new FilterOutsideBox3d(new Box3d(new V3d(0, 0, 0), new V3d(1, 1, 0.5))));
@@ -180,8 +180,8 @@ namespace Aardvark.Geometry.Tests
                 pointCountTree: ps0.Length,
                 subnodes: null,
                 storeOnCreation: true,
-                (PointCloudAttribute.PositionsAbsolute, "a.positions", ps0),
-                (PointCloudAttribute.Intensities, "a.intensities", new[] { -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 })
+                (OctreeAttributes.PositionsGlobal3d, Guid.NewGuid(), ps0),
+                (OctreeAttributes.Intensities1i, Guid.NewGuid(), new[] { -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 })
                 );
 
             var f = new FilteredNode(a, new FilterIntensity(new Range1i(-100, +100)));
@@ -203,8 +203,8 @@ namespace Aardvark.Geometry.Tests
                 pointCountTree: ps0.Length,
                 subnodes: null,
                 storeOnCreation: true,
-                (PointCloudAttribute.PositionsAbsolute, "a.positions", ps0),
-                (PointCloudAttribute.Intensities, "a.intensities", new[] { -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 })
+                (OctreeAttributes.PositionsGlobal3d, Guid.NewGuid(), ps0),
+                (OctreeAttributes.Intensities1i, Guid.NewGuid(), new[] { -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 })
                 );
 
             var f = new FilteredNode(a, new FilterIntensity(new Range1i(6, 10000)));
@@ -226,8 +226,8 @@ namespace Aardvark.Geometry.Tests
                 pointCountTree: ps0.Length,
                 subnodes: null,
                 storeOnCreation: true,
-                (PointCloudAttribute.PositionsAbsolute, "a.positions", ps0),
-                (PointCloudAttribute.Intensities, "a.intensities", new[] { -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 })
+                (OctreeAttributes.PositionsGlobal3d, Guid.NewGuid(), ps0),
+                (OctreeAttributes.Intensities1i, Guid.NewGuid(), new[] { -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 })
                 );
 
             var f = new FilteredNode(a, new FilterIntensity(new Range1i(-2, +2)));

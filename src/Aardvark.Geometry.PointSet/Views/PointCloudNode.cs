@@ -33,7 +33,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public PointCloudNode(Storage storage,
             string id, Cell cell, Box3d boundingBoxExact, long pointCountTree, PersistentRef<IPointCloudNode>[] subnodes, bool storeOnCreation,
-            params (string attributeName, string attributeKey, object attributeValue)[] attributes
+            params (DurableData attributeName, Guid attributeKey, object attributeValue)[] attributes
             )
             : this(storage, id, cell, boundingBoxExact, pointCountTree, subnodes, storeOnCreation, ImmutableDictionary<DurableData, object>.Empty, attributes)
         { }
@@ -43,7 +43,7 @@ namespace Aardvark.Geometry.Points
         public PointCloudNode(Storage storage,
             string id, Cell cell, Box3d boundingBoxExact, long pointCountTree, PersistentRef<IPointCloudNode>[] subnodes, bool storeOnCreation,
             ImmutableDictionary<DurableData, object> data,
-            params (string attributeName, string attributeKey, object attributeValue)[] attributes
+            params (DurableData attributeName, Guid attributeKey, object attributeValue)[] attributes
             )
         {
             Storage = storage;

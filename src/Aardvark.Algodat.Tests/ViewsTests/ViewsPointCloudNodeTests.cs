@@ -48,7 +48,7 @@ namespace Aardvark.Geometry.Tests
         {
             var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps0 = new V3d[100].SetByIndex(_ => RandomPosition());
-            var ps0Id = "a.positions";
+            var ps0Id = Guid.NewGuid();
 
             var a = new PointCloudNode(storage,
                 id              : "a",
@@ -57,7 +57,7 @@ namespace Aardvark.Geometry.Tests
                 pointCountTree  : ps0.Length,
                 subnodes        : null,
                 storeOnCreation : true,
-                (PointCloudAttribute.PositionsAbsolute, ps0Id, ps0)
+                (OctreeAttributes.PositionsGlobal3d, ps0Id, ps0)
                 );
 
             Assert.IsTrue(a.Id == "a");
@@ -71,8 +71,8 @@ namespace Aardvark.Geometry.Tests
         {
             var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps0 = new V3d[100].SetByIndex(_ => RandomPosition()).Map(p => new V3f(p - new V3d(0.5, 0.5, 0.5)));
-            var ps0Id = "a.positions";
-            var kd0Id = "a.kd";
+            var ps0Id = Guid.NewGuid();
+            var kd0Id = Guid.NewGuid();
             var bb = (Box3d)new Box3f(ps0);
 
             var a = new PointCloudNode(storage,
@@ -82,8 +82,8 @@ namespace Aardvark.Geometry.Tests
                 pointCountTree  : ps0.Length,
                 subnodes        : null,
                 storeOnCreation : true,
-                (PointCloudAttribute.Positions, ps0Id, ps0),
-                (PointCloudAttribute.KdTree, kd0Id, ps0)
+                (OctreeAttributes.PositionsLocal3f, ps0Id, ps0),
+                (OctreeAttributes.KdTreeLocal3f, kd0Id, ps0)
                 );
 
             Assert.IsTrue(a.Id == "a");

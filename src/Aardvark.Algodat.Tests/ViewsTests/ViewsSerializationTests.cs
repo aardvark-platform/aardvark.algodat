@@ -97,7 +97,7 @@ namespace Aardvark.Geometry.Tests
 
                 var bb = (Box3d)new Box3f(aPs);
                 var a = new PointCloudNode(store, "a", cell, bb, aPs.Length, null, storeOnCreation: true,
-                    (PointCloudAttribute.Positions, "a.positions", aPs)
+                    (OctreeAttributes.PositionsLocal3f, Guid.NewGuid(), aPs)
                     );
                 store.Add("a", a);
 
