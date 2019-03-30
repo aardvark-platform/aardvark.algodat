@@ -28,7 +28,7 @@ namespace Aardvark.Geometry.Points
     {
         #region Has*
 
-        private static bool Has(IPointCloudNode n, string attributeName)
+        private static bool Has(IPointCloudNode n, DurableData what)
         {
             switch (n.FilterState)
             {
@@ -36,54 +36,54 @@ namespace Aardvark.Geometry.Points
                     return false;
                 case FilterState.FullyInside:
                 case FilterState.Partial:
-                    return n.TryGetPropertyKey(attributeName, out string _);
+                    return n.Data.ContainsKey(what);
                 default:
                     throw new InvalidOperationException($"Unknown FilterState {n.FilterState}.");
             }
         }
 
         /// <summary> </summary>
-        public static bool HasPositions(this IPointCloudNode self) => Has(self, PointCloudAttribute.Positions);
+        public static bool HasPositions(this IPointCloudNode self) => Has(self, OctreeAttributes.RefPositionsLocal3f);
 
         /// <summary></summary>
-        public static bool HasColors(this IPointCloudNode self) => Has(self, PointCloudAttribute.Colors);
+        public static bool HasColors(this IPointCloudNode self) => Has(self, OctreeAttributes.RefColors3b);
 
         /// <summary></summary>
-        public static bool HasNormals(this IPointCloudNode self) => Has(self, PointCloudAttribute.Normals);
+        public static bool HasNormals(this IPointCloudNode self) => Has(self, OctreeAttributes.RefNormals3f);
 
         /// <summary></summary>
-        public static bool HasIntensities(this IPointCloudNode self) => Has(self, PointCloudAttribute.Intensities);
+        public static bool HasIntensities(this IPointCloudNode self) => Has(self, OctreeAttributes.RefIntensities1i);
 
         /// <summary></summary>
-        public static bool HasKdTree(this IPointCloudNode self) => Has(self, PointCloudAttribute.KdTree);
+        public static bool HasKdTree(this IPointCloudNode self) => Has(self, OctreeAttributes.RefKdTreeLocal3f);
         
         /// <summary></summary>
-        public static bool HasClassifications(this IPointCloudNode self) => Has(self, PointCloudAttribute.Classifications);
+        public static bool HasClassifications(this IPointCloudNode self) => Has(self, OctreeAttributes.RefClassifications1b);
 
         #endregion
 
         #region Get*
 
-        private static PersistentRef<T> GetValue<T>(IPointCloudNode self, string key) where T : class
+        private static PersistentRef<T> GetValue<T>(IPointCloudNode self, DurableData key) where T : class
         {
-            if (self.TryGetPropertyValue(key, out object value))
-            {
-                var arr = value as T;
-                if (arr != null) return PersistentRef<T>.FromValue(arr);
+            throw new NotImplementedException();
+            //if (self.TryGetPropertyValue(key, out object value))
+            //{
+            //    var arr = value as T;
+            //    if (arr != null) return PersistentRef<T>.FromValue(arr);
 
-                var pref = value as PersistentRef<T>;
-                if (pref != null) return pref;
-            }
+            //    var pref = value as PersistentRef<T>;
+            //    if (pref != null) return pref;
+            //}
 
-            return null;
-
+            //return null;
         }
 
         /// <summary>
         /// Point positions relative to cell's center, or null if no positions.
         /// </summary>
         public static PersistentRef<V3f[]> GetPositions(this IPointCloudNode self) =>
-            GetValue<V3f[]>(self, PointCloudAttribute.Positions);
+            GetValue<V3f[]>(self, OctreeAttributes.RefPositionsLocal3f);
 
         /// <summary>
         /// Point positions (absolute), or null if no positions.
@@ -100,10 +100,10 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PersistentRef<PointRkdTreeD<V3f[], V3f>> GetKdTree(this IPointCloudNode self)
         {
-            var res = GetValue<PointRkdTreeD<V3f[], V3f>>(self, PointCloudAttribute.KdTree);
+            var res = GetValue<PointRkdTreeD<V3f[], V3f>>(self, OctreeAttributes.RefKdTreeLocal3f);
             if (res != null) return res;
 
-            var data = GetValue<PointRkdTreeDData>(self, PointCloudAttribute.KdTree);
+            var data = GetValue<PointRkdTreeDData>(self, OctreeAttributes.RefKdTreeLocal3f);
             if(data != null)
             {
                 var ps = GetPositions(self);
@@ -135,22 +135,22 @@ namespace Aardvark.Geometry.Points
         /// Point colors, or null if no points.
         /// </summary>
         public static PersistentRef<C4b[]> GetColors(this IPointCloudNode self)
-            => GetValue<C4b[]>(self, PointCloudAttribute.Colors);
+            => GetValue<C4b[]>(self, OctreeAttributes.RefColors3b);
 
         /// <summary>
         /// </summary>
         public static PersistentRef<V3f[]> GetNormals(this IPointCloudNode self)
-            => GetValue<V3f[]>(self, PointCloudAttribute.Normals);
+            => GetValue<V3f[]>(self, OctreeAttributes.RefNormals3f);
 
         /// <summary>
         /// </summary>
         public static PersistentRef<int[]> GetIntensities(this IPointCloudNode self)
-            => GetValue<int[]>(self, PointCloudAttribute.Intensities);
+            => GetValue<int[]>(self, OctreeAttributes.RefIntensities1i);
 
         /// <summary>
         /// </summary>
         public static PersistentRef<byte[]> GetClassifications(this IPointCloudNode self)
-            => GetValue<byte[]>(self, PointCloudAttribute.Classifications);
+            => GetValue<byte[]>(self, OctreeAttributes.RefClassifications1b);
 
         #endregion
 

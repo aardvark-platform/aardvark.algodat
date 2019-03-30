@@ -105,7 +105,7 @@ namespace Aardvark.Geometry.Points
             }
 
             // create node
-            var result = new PointCloudNode(storage, id, cell, boundingBoxExact, pointCountTree, subnodes, true, ImmutableDictionary<Guid, object>.Empty);
+            var result = new PointCloudNode(storage, id, cell, boundingBoxExact, pointCountTree, subnodes, true, ImmutableDictionary<DurableData, object>.Empty);
 
             // generate lod
             //result = result.GenerateLod(config);

@@ -123,8 +123,8 @@ namespace Aardvark.Geometry.Points
             if (newSubnodes != null && newSubnodes.All(n => n == null)) newSubnodes = null;
             if (ps.Count == 0 && newSubnodes == null) return null;
             var pointCountTree = newSubnodes != null ? (newSubnodes.Sum(n => n != null ? n.PointCountTree : 0)) : ps.Count;
-
-            return node.WithData(ImmutableDictionary<Guid, object>.Empty, pointCountTree, newPsId, newCsId, newNsId, newIsId, newKdId, newKsId, newSubnodes);
+            throw new NotImplementedException();
+            //return node.WithData(ImmutableDictionary<Guid, object>.Empty, pointCountTree, newPsId, newCsId, newNsId, newIsId, newKdId, newKsId, newSubnodes);
         }
     }
 }

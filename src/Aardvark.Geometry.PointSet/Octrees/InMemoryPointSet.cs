@@ -190,12 +190,14 @@ namespace Aardvark.Geometry.Points
 
                 if (subcellIds == null) // leaf
                 {
-                    return new PointSetNode(_cell, pointCountTree, ImmutableDictionary<Guid, object>.Empty,
-                        psId, csId, kdId, nsId, isId, ksId, storage);
+                    throw new NotImplementedException();
+                    //return new PointSetNode(_cell, pointCountTree, ImmutableDictionary<Guid, object>.Empty,
+                    //    psId, csId, kdId, nsId, isId, ksId, storage);
                 }
                 else
                 {
-                    return new PointSetNode(_cell, pointCountTree, ImmutableDictionary<Guid, object>.Empty, subcellIds, storage);
+                    throw new NotImplementedException();
+                    //return new PointSetNode(_cell, pointCountTree, ImmutableDictionary<Guid, object>.Empty, subcellIds, storage);
                 }
             }
             

@@ -83,7 +83,8 @@ namespace Aardvark.Geometry.Points
             {
                 var nsId = Guid.NewGuid();
                 self.Storage.Add(nsId, ns);
-                result = result.WithNormals(nsId, subcells);
+                throw new NotImplementedException();
+                //result = result.WithNormals(nsId, subcells);
             }
             
             return result;

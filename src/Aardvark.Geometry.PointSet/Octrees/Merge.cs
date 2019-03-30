@@ -89,7 +89,7 @@ namespace Aardvark.Geometry.Points
                 subnodes[i] = subnode;
             }
 
-            var result = new PointSetNode(cell.Cell, imax, cell.CustomAttributes,
+            var result = new PointSetNode(cell.Cell, imax, cell.Data,
                 subnodes.Map(x => x?.Id), cell.Storage);
 
             // POST
@@ -154,12 +154,13 @@ namespace Aardvark.Geometry.Points
                 if (ksId.HasValue) storage.Add(ksId.Value, ks);
                 if (kId.HasValue) storage.Add(kId.Value, kd.Data);
 
-                var node =
-                    new PointSetNode(
-                        cell, totalPointCountTree, ImmutableDictionary<Guid, object>.Empty, 
-                        psId, csId, kId, nsId, jsId, ksId, storage
-                    );
-                return node;
+                throw new NotImplementedException();
+                //var node =
+                //    new PointSetNode(
+                //        cell, totalPointCountTree, ImmutableDictionary<Guid, object>.Empty, 
+                //        psId, csId, kId, nsId, jsId, ksId, storage
+                //    );
+                //return node;
             }
 
 
@@ -273,7 +274,7 @@ namespace Aardvark.Geometry.Points
                 pointsMergedCallback?.Invoke(pointCountTree);
                 
 
-                return new PointSetNode(rootCell, pointCountTree, ImmutableDictionary<Guid, object>.Empty, roots.Map(n => n?.Id), a.Storage);
+                return new PointSetNode(rootCell, pointCountTree, ImmutableDictionary<DurableData, object>.Empty, roots.Map(n => n?.Id), a.Storage);
                 //return new PointSetNode(rootCell, pointCountTree, roots.Map(n => n?.Id), a.Storage);
             }
 #if DEBUG
@@ -449,7 +450,7 @@ namespace Aardvark.Geometry.Points
                     }
                 }
 
-                var result = new PointSetNode(rootCell, a.PointCountTree + b.PointCountTree, ImmutableDictionary<Guid, object>.Empty, subcells.Map(x => x?.Id), a.Storage);
+                var result = new PointSetNode(rootCell, a.PointCountTree + b.PointCountTree, ImmutableDictionary<DurableData, object>.Empty, subcells.Map(x => x?.Id), a.Storage);
 #if DEBUG
                 if (result.PointCountTree != a.PointCountTree + b.PointCountTree) throw new InvalidOperationException();
                 if (result.PointCountTree != result.Subnodes.Sum(x => x?.Value?.PointCountTree)) throw new InvalidOperationException();
@@ -496,7 +497,7 @@ namespace Aardvark.Geometry.Points
                     }
                 }
 
-                var result = new PointSetNode(rootCell, a.PointCountTree + b.PointCountTree, ImmutableDictionary<Guid, object>.Empty, subcells.Map(x => x?.Id), a.Storage);
+                var result = new PointSetNode(rootCell, a.PointCountTree + b.PointCountTree, ImmutableDictionary<DurableData, object>.Empty, subcells.Map(x => x?.Id), a.Storage);
 #if DEBUG
                 if (result.PointCountTree != a.PointCountTree + b.PointCountTree) throw new InvalidOperationException();
                 if (result.PointCountTree != result.Subnodes.Sum(x => x?.Value?.PointCountTree)) throw new InvalidOperationException();
@@ -548,7 +549,7 @@ namespace Aardvark.Geometry.Points
             }
 
 
-            var result = new PointSetNode(rootCell, a.PointCountTree, ImmutableDictionary<Guid, object>.Empty, subcells.Map(x => x?.Id), a.Storage);
+            var result = new PointSetNode(rootCell, a.PointCountTree, ImmutableDictionary<DurableData, object>.Empty, subcells.Map(x => x?.Id), a.Storage);
 #if DEBUG
             if (result.PointCountTree != a.PointCountTree) throw new InvalidOperationException();
 #endif
@@ -637,7 +638,7 @@ namespace Aardvark.Geometry.Points
                 }
             }
 
-            var result = new PointSetNode(a.Cell, pointCountTree, a.CustomAttributes, subcells.Map(x => x?.Id), a.Storage);
+            var result = new PointSetNode(a.Cell, pointCountTree, a.Data, subcells.Map(x => x?.Id), a.Storage);
             //pointsMergedCallback?.Invoke(result.PointCountTree);
             return result;
         }

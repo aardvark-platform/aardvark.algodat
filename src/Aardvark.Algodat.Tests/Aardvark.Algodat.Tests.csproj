@@ -87,6 +87,10 @@
     <Compile Include="ViewsTests\ViewsPointCloudNodeTests.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Aardvark.Base.DurableData\Aardvark.Base.DurableData.csproj">
+      <Project>{d602e883-34b8-4e34-8092-d05c1e1a9367}</Project>
+      <Name>Aardvark.Base.DurableData</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Aardvark.Data.E57\Aardvark.Data.E57.csproj">
       <Project>{a7247d3b-7cb6-428a-bfcc-97fef89e55b6}</Project>
       <Name>Aardvark.Data.E57</Name>

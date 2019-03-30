@@ -53,75 +53,77 @@ namespace Aardvark.Geometry.Points
             BoundingBoxExact = boundingBoxExact;
             PointCountTree = pointCountTree;
             SubNodes = subnodes;
-            CellAttributes = data;
+            Data = data;
 
-            if (attributes != null)
-            {
-                foreach (var (attributeName, attributeKey, attributeValue) in attributes)
-                {
-                    var name = attributeName;
-                    var value = attributeValue;
+            throw new NotImplementedException();
 
-                    switch (name)
-                    {
-                        case PointCloudAttribute.PositionsAbsolute:
-                            {
-                                var c = Center;
-                                name = PointCloudAttribute.Positions;
-                                value = ((V3d[])value).Map(p => new V3f(p - c));
-                                break;
-                            }
+            //if (attributes != null)
+            //{
+            //    foreach (var (attributeName, attributeKey, attributeValue) in attributes)
+            //    {
+            //        var name = attributeName;
+            //        var value = attributeValue;
+
+            //        switch (name)
+            //        {
+            //            case PointCloudAttribute.PositionsAbsolute:
+            //                {
+            //                    var c = Center;
+            //                    name = PointCloudAttribute.Positions;
+            //                    value = ((V3d[])value).Map(p => new V3f(p - c));
+            //                    break;
+            //                }
                             
-                        case PointCloudAttribute.KdTree:
-                            {
-                                if (value is PointRkdTreeD<V3f[], V3f>)
-                                {
-                                    value = ((PointRkdTreeD<V3f[], V3f>)value).Data;
-                                }
-                                else if (value is PointRkdTreeDData)
-                                {
-                                    // OK
-                                }
-                                else if (value is V3d[])
-                                {
-                                    var c = Center;
-                                    value = ((V3d[])value).Map(p => new V3f(p - c)).BuildKdTree();
-                                }
-                                else if (value is V3f[])
-                                {
-                                    value = ((V3f[])value).BuildKdTree().Data;
-                                }
-                                else
-                                {
-                                    throw new InvalidOperationException();
-                                }
-                                break;
-                            }
-                    }
+            //            case PointCloudAttribute.KdTree:
+            //                {
+            //                    if (value is PointRkdTreeD<V3f[], V3f>)
+            //                    {
+            //                        value = ((PointRkdTreeD<V3f[], V3f>)value).Data;
+            //                    }
+            //                    else if (value is PointRkdTreeDData)
+            //                    {
+            //                        // OK
+            //                    }
+            //                    else if (value is V3d[])
+            //                    {
+            //                        var c = Center;
+            //                        value = ((V3d[])value).Map(p => new V3f(p - c)).BuildKdTree();
+            //                    }
+            //                    else if (value is V3f[])
+            //                    {
+            //                        value = ((V3f[])value).BuildKdTree().Data;
+            //                    }
+            //                    else
+            //                    {
+            //                        throw new InvalidOperationException();
+            //                    }
+            //                    break;
+            //                }
+            //        }
 
-                    if (storeOnCreation && (value is Array || value is PointRkdTreeDData))
-                    {
-                        if (storeOnCreation) storage.StoreAttribute(name, attributeKey, value);
-                        m_pRefs[name] = storage.CreatePersistentRef(name, attributeKey, null);
-                    }
-                    else
-                    {
-                        if (value is PointRkdTreeD<V3f[], V3f>) throw new InvalidOperationException();
-                        m_pRefs[name] = value;
-                    }
+            //        if (storeOnCreation && (value is Array || value is PointRkdTreeDData))
+            //        {
+            //            if (storeOnCreation) storage.StoreAttribute(name, attributeKey, value);
+            //            m_pRefs[name] = storage.CreatePersistentRef(name, attributeKey, null);
+            //        }
+            //        else
+            //        {
+            //            if (value is PointRkdTreeD<V3f[], V3f>) throw new InvalidOperationException();
+            //            m_pRefs[name] = value;
+            //        }
                     
-                    m_pIds[name] = attributeKey;
-                }
-            }
+            //        m_pIds[name] = attributeKey;
+            //    }
+            //}
 
-            if (storeOnCreation) storage.Add(Id, this);
+            //if (storeOnCreation) storage.Add(Id, this);
         }
 
         /// <summary>
         /// </summary>
         private PointCloudNode(Storage storage,
             string id, Cell cell, Box3d boundingBoxExact, long pointCountTree, PersistentRef<IPointCloudNode>[] subnodes,
-            ImmutableDictionary<Guid, object> cellAttributes,
+            ImmutableDictionary<DurableData, object> data,
             params (string attributeName, string attributeKey)[] attributes
             )
         {
@@ -132,16 +134,17 @@ namespace Aardvark.Geometry.Points
             BoundingBoxExact = boundingBoxExact;
             PointCountTree = pointCountTree;
             SubNodes = subnodes;
-            CellAttributes = cellAttributes;
+            Data = data;
 
-            if (attributes != null)
-            {
-                foreach (var (attributeName, attributeKey) in attributes)
-                {
-                    m_pRefs[attributeName] = storage.CreatePersistentRef(attributeName, attributeKey, default);
-                    m_pIds[attributeName] = attributeKey;
-                }
-            }
+            throw new NotImplementedException();
+            //if (attributes != null)
+            //{
+            //    foreach (var (attributeName, attributeKey) in attributes)
+            //    {
+            //        m_pRefs[attributeName] = storage.CreatePersistentRef(attributeName, attributeKey, default);
+            //        m_pIds[attributeName] = attributeKey;
+            //    }
+            //}
         }
 
         private Dictionary<DurableData, Guid> m_pIds = new Dictionary<DurableData, Guid>();
@@ -189,17 +192,18 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public JObject ToJson()
         {
-            return JObject.FromObject(new
-            {
-                NodeType,
-                Id,
-                Cell,
-                BoundingBoxExact = BoundingBoxExact.ToString(),
-                PointCountTree,
-                SubNodes = SubNodes?.Map(x => x?.Id),
-                Properties = m_pIds.Select(kv => new[] { kv.Key, kv.Value }).ToArray(),
-                FilterState
-            });
+            throw new NotImplementedException();
+            //return JObject.FromObject(new
+            //{
+            //    NodeType,
+            //    Id,
+            //    Cell,
+            //    BoundingBoxExact = BoundingBoxExact.ToString(),
+            //    PointCountTree,
+            //    SubNodes = SubNodes?.Map(x => x?.Id),
+            //    Properties = m_pIds.Select(kv => new[] { kv.Key, kv.Value }).ToArray(),
+            //    FilterState
+            //});
         }
 
         /// <summary></summary>
@@ -221,7 +225,7 @@ namespace Aardvark.Geometry.Points
                 : null
                 );
 
-            return new PointCloudNode(storage, id, cell, boundingBoxExact, pointCountTree, subnodes, ImmutableDictionary<Guid, object>.Empty, attributes);
+            return new PointCloudNode(storage, id, cell, boundingBoxExact, pointCountTree, subnodes, ImmutableDictionary<DurableData, object>.Empty, attributes);
         }
 
         /// <summary></summary>
@@ -248,7 +252,8 @@ namespace Aardvark.Geometry.Points
             TryAdd(OctreeAttributes.RefNormals3f, normalsId);
             TryAdd(OctreeAttributes.RefPositionsLocal3f, positionsId);
 
-            return new PointCloudNode(Storage, Id, Cell, BoundingBoxExact, PointCountTree, SubNodes, CellAttributes, attributes.ToArray());
+            throw new NotImplementedException();
+            //return new PointCloudNode(Storage, Id, Cell, BoundingBoxExact, PointCountTree, SubNodes, CellAttributes, attributes.ToArray());
 
             void TryAdd(DurableData key, Guid id)
             {
@@ -258,23 +263,23 @@ namespace Aardvark.Geometry.Points
             }
         }
 
-        internal PointCloudNode WithCellAttributes(ImmutableDictionary<Guid, object> atts)
-        {
-            var dict = CellAttributes;
-            foreach (var kvp in atts) dict = dict.Add(kvp.Key, kvp.Value);
+        //internal PointCloudNode WithCellAttributes(ImmutableDictionary<Guid, object> atts)
+        //{
+        //    var dict = CellAttributes;
+        //    foreach (var kvp in atts) dict = dict.Add(kvp.Key, kvp.Value);
 
-            var res = new PointCloudNode(Storage, Id, Cell, BoundingBoxExact, PointCountTree, SubNodes, dict)
-            {
-                m_pIds = m_pIds,
-                m_pRefs = m_pRefs
-            };
-            return res;
-        }
+        //    var res = new PointCloudNode(Storage, Id, Cell, BoundingBoxExact, PointCountTree, SubNodes, dict)
+        //    {
+        //        m_pIds = m_pIds,
+        //        m_pRefs = m_pRefs
+        //    };
+        //    return res;
+        //}
 
         /// <summary></summary>
-        public bool TryGetCellAttribute<T>(Guid id, out T value)
+        public bool TryGetCellAttribute<T>(DurableData id, out T value)
         {
-            if(CellAttributes.TryGetValue(id, out object v) && v is T)
+            if(Data.TryGetValue(id, out object v) && v is T)
             {
                 value = (T)v;
                 return true;

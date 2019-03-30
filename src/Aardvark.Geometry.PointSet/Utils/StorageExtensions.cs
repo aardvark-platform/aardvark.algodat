@@ -571,8 +571,9 @@ namespace Aardvark.Geometry.Points
         {
             storage.f_add(key, data, () =>
             {
-                var buffer = data.ToBinary();
-                return buffer;
+                throw new NotImplementedException();
+                //var buffer = data.ToBinary();
+                //return buffer;
             });
         }
 
@@ -583,12 +584,13 @@ namespace Aardvark.Geometry.Points
 
             var buffer = storage.f_get(key);
             if (buffer == null) return default;
-            var data = PointSetNode.ParseBinary(buffer, storage);
+            throw new NotImplementedException();
+            //var data = PointSetNode.ParseBinary(buffer, storage);
             
-            if (storage.HasCache) storage.Cache.Add(
-                key, data, buffer.Length, onRemove: default
-                );
-            return data;
+            //if (storage.HasCache) storage.Cache.Add(
+            //    key, data, buffer.Length, onRemove: default
+            //    );
+            //return data;
         }
 
         /// <summary></summary>

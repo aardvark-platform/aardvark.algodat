@@ -95,9 +95,10 @@ namespace Aardvark.Geometry.Points
                 self.Storage.Add(nsId, ns);
 
                 // create node with new normals
-                var r = self.WithNormals(nsId);
+                throw new NotImplementedException();
+                //var r = self.WithNormals(nsId);
 
-                return r;
+                //return r;
             }
 
             if (self.Subnodes == null || self.Subnodes.Length != 8) throw new InvalidOperationException();
@@ -144,9 +145,10 @@ namespace Aardvark.Geometry.Points
 
             // store LoD data ...
             self.Storage.Add(nsId, ns);
-            
-            var result = self.WithNormals(nsId, subcells);
-            return result;
+
+            throw new NotImplementedException();
+            //var result = self.WithNormals(nsId, subcells);
+            //return result;
         }
 
         /// <summary>
@@ -171,9 +173,10 @@ namespace Aardvark.Geometry.Points
                 self.Storage.Add(nsId, ns);
 
                 // create node with new normals and LoD normals
-                var r = self.WithNormals(nsId);
+                throw new NotImplementedException();
+                //var r = self.WithNormals(nsId);
 
-                return r;
+                //return r;
             }
 
             if (self.Subnodes == null || self.Subnodes.Length != 8) throw new InvalidOperationException();
