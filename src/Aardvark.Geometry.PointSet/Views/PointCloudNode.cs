@@ -35,13 +35,14 @@ namespace Aardvark.Geometry.Points
             string id, Cell cell, Box3d boundingBoxExact, long pointCountTree, PersistentRef<IPointCloudNode>[] subnodes, bool storeOnCreation,
             params (string attributeName, string attributeKey, object attributeValue)[] attributes
             )
-            : this(storage, id, cell, boundingBoxExact, pointCountTree, subnodes, storeOnCreation, ImmutableDictionary<Guid, object>.Empty, attributes)
+            : this(storage, id, cell, boundingBoxExact, pointCountTree, subnodes, storeOnCreation, ImmutableDictionary<DurableData, object>.Empty, attributes)
         { }
+
         /// <summary>
         /// </summary>
         public PointCloudNode(Storage storage,
             string id, Cell cell, Box3d boundingBoxExact, long pointCountTree, PersistentRef<IPointCloudNode>[] subnodes, bool storeOnCreation,
-            ImmutableDictionary<Guid, object> cellAttributes,
+            ImmutableDictionary<DurableData, object> data,
             params (string attributeName, string attributeKey, object attributeValue)[] attributes
             )
         {
@@ -52,7 +53,7 @@ namespace Aardvark.Geometry.Points
             BoundingBoxExact = boundingBoxExact;
             PointCountTree = pointCountTree;
             SubNodes = subnodes;
-            CellAttributes = cellAttributes;
+            CellAttributes = data;
 
             if (attributes != null)
             {
@@ -143,8 +144,8 @@ namespace Aardvark.Geometry.Points
             }
         }
 
-        private Dictionary<string, string> m_pIds = new Dictionary<string, string>();
-        private Dictionary<string, object> m_pRefs = new Dictionary<string, object>();
+        private Dictionary<DurableData, Guid> m_pIds = new Dictionary<DurableData, Guid>();
+        private Dictionary<DurableData, object> m_pRefs = new Dictionary<DurableData, object>();
 
         /// <summary></summary>
         public Storage Storage { get; }
@@ -174,13 +175,13 @@ namespace Aardvark.Geometry.Points
         public PersistentRef<IPointCloudNode>[] SubNodes { get; }
 
         /// <summary></summary>
-        public ImmutableDictionary<Guid, object> CellAttributes { get; }
+        public ImmutableDictionary<DurableData, object> Data { get; }
 
-        /// <summary></summary>
-        public bool TryGetPropertyKey(string property, out string key) => m_pIds.TryGetValue(property, out key);
+        ///// <summary></summary>
+        //public bool TryGetPropertyKey(string property, out string key) => m_pIds.TryGetValue(property, out key);
 
-        /// <summary></summary>
-        public bool TryGetPropertyValue(string property, out object value) => m_pRefs.TryGetValue(property, out value);
+        ///// <summary></summary>
+        //public bool TryGetPropertyValue(string property, out object value) => m_pRefs.TryGetValue(property, out value);
 
         /// <summary></summary>
         public FilterState FilterState => FilterState.FullyInside;
@@ -235,25 +236,25 @@ namespace Aardvark.Geometry.Points
         /// Gets node with added lod attributes.
         /// </summary>
         internal PointCloudNode WithData(
-            string positionsId, string kdTreeId, string colorsId, string normalsId, string intensitiesId, string classificationsId
+            Guid positionsId, Guid kdTreeId, Guid colorsId, Guid normalsId, Guid intensitiesId, Guid classificationsId
             )
         {
             var attributes = m_pIds.Select(kv => (kv.Key, kv.Value)).ToList();
             
-            TryAdd(PointCloudAttribute.Classifications, classificationsId);
-            TryAdd(PointCloudAttribute.Colors, colorsId);
-            TryAdd(PointCloudAttribute.Intensities, intensitiesId);
-            TryAdd(PointCloudAttribute.KdTree, kdTreeId);
-            TryAdd(PointCloudAttribute.Normals, normalsId);
-            TryAdd(PointCloudAttribute.Positions, positionsId);
+            TryAdd(OctreeAttributes.RefClassifications1b, classificationsId);
+            TryAdd(OctreeAttributes.RefColors3b, colorsId);
+            TryAdd(OctreeAttributes.RefIntensities1i, intensitiesId);
+            TryAdd(OctreeAttributes.RefKdTreeLocal3f, kdTreeId);
+            TryAdd(OctreeAttributes.RefNormals3f, normalsId);
+            TryAdd(OctreeAttributes.RefPositionsLocal3f, positionsId);
 
             return new PointCloudNode(Storage, Id, Cell, BoundingBoxExact, PointCountTree, SubNodes, CellAttributes, attributes.ToArray());
 
-            void TryAdd(string attributeName, string id)
+            void TryAdd(DurableData key, Guid id)
             {
                 if (id == null) return;
-                if (m_pIds.ContainsKey(attributeName)) throw new InvalidOperationException();
-                attributes.Add((attributeName, id));
+                if (m_pIds.ContainsKey(key)) throw new InvalidOperationException();
+                attributes.Add((key, id));
             }
         }
 

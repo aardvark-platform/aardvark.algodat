@@ -28,58 +28,56 @@ namespace Aardvark.Data.Points
     /// </summary>
     public class ImportConfig
     {
+        //private static ImmutableHashSet<DurableData> Hull(DurableData a, ImmutableHashSet<DurableData> set)
+        //{
+        //    if (set.Contains(a)) return set;
+        //    else
+        //    {
+        //        set = set.Add(a);
+        //        foreach (var d in a.DependsOn) { set = Hull(d, set); }
+        //        return set;
+        //    }
+        //}
 
-        private static ImmutableHashSet<CellAttribute> Hull(CellAttribute a, ImmutableHashSet<CellAttribute> set)
-        {
-            if (set.Contains(a)) return set;
-            else
-            {
-                set = set.Add(a);
-                foreach (var d in a.DependsOn) { set = Hull(d, set); }
-                return set;
-            }
+        //private static ImmutableList<DurableData> Sort(IEnumerable<DurableData> atts)
+        //{
+        //    var arr = atts.Aggregate(ImmutableHashSet<DurableData>.Empty, (s, c) => Hull(c, s)).ToArray();
 
-        }
+        //    var sofar = ImmutableHashSet<DurableData>.Empty;
+        //    for (int i = 0; i < arr.Length; i++)
+        //    {
+        //        var self = arr[i];
+        //        var deps = self.DependsOn;
+        //        if (deps.IsSubsetOf(sofar))
+        //        {
+        //            sofar = sofar.Add(self);
+        //        }
+        //        else
+        //        {
+        //            var p = sofar;
+        //            var sat = false;
+        //            for (int j = i + 1; j < arr.Length; j++)
+        //            {
+        //                var aj = arr[j];
+        //                p = p.Add(aj);
+        //                arr[j - 1] = aj;
 
-        private static ImmutableList<CellAttribute> Sort(IEnumerable<CellAttribute> atts)
-        {
-            var arr = atts.Aggregate(ImmutableHashSet<CellAttribute>.Empty, (s, c) => Hull(c, s)).ToArray();
+        //                if (deps.IsSubsetOf(p))
+        //                {
+        //                    arr[j] = self;
+        //                    i--;
+        //                    sat = true;
+        //                    break;
+        //                }
 
-            var sofar = ImmutableHashSet<CellAttribute>.Empty;
-            for (int i = 0; i < arr.Length; i++)
-            {
-                var self = arr[i];
-                var deps = self.DependsOn;
-                if (deps.IsSubsetOf(sofar))
-                {
-                    sofar = sofar.Add(self);
-                }
-                else
-                {
-                    var p = sofar;
-                    var sat = false;
-                    for (int j = i + 1; j < arr.Length; j++)
-                    {
-                        var aj = arr[j];
-                        p = p.Add(aj);
-                        arr[j - 1] = aj;
+        //            }
 
-                        if (deps.IsSubsetOf(p))
-                        {
-                            arr[j] = self;
-                            i--;
-                            sat = true;
-                            break;
-                        }
+        //            if (!sat) throw new Exception("strange");
+        //        }
+        //    }
 
-                    }
-
-                    if (!sat) throw new Exception("strange");
-                }
-            }
-
-            return ImmutableList.Create(arr);
-        }
+        //    return ImmutableList.Create(arr);
+        //}
 
 
 
@@ -149,16 +147,16 @@ namespace Aardvark.Data.Points
         /// <summary></summary>
         public int MaxChunkPointCount => ParseConfig.MaxChunkPointCount;
 
-        /// <summary>Per-cell attributes.</summary>
-        public ImmutableList<CellAttribute> CellAttributes { get; private set; } =
-            Sort(new CellAttribute[]  {
-                Geometry.Points.CellAttributes.BoundingBoxExactLocal,
-                Geometry.Points.CellAttributes.AveragePointDistance,
-                Geometry.Points.CellAttributes.AveragePointDistanceStdDev,
-                Geometry.Points.CellAttributes.TreeMinDepth,
-                Geometry.Points.CellAttributes.TreeMaxDepth,
-                Geometry.Points.CellAttributes.PointCountCell,
-            });
+        ///// <summary>Per-cell attributes.</summary>
+        //public ImmutableList<DurableData> CellAttributes { get; private set; } =
+        //    Sort(new DurableData[]  {
+        //        Geometry.Points.CellAttributes.BoundingBoxExactLocal,
+        //        Geometry.Points.CellAttributes.AveragePointDistance,
+        //        Geometry.Points.CellAttributes.AveragePointDistanceStdDev,
+        //        Geometry.Points.CellAttributes.TreeMinDepth,
+        //        Geometry.Points.CellAttributes.TreeMaxDepth,
+        //        Geometry.Points.CellAttributes.PointCountCell,
+        //    });
 
         #endregion
 
@@ -178,7 +176,7 @@ namespace Aardvark.Data.Points
             EstimateNormals = x.EstimateNormals;
             EstimateNormalsKdTree = x.EstimateNormalsKdTree;
             Storage = x.Storage;
-            CellAttributes = x.CellAttributes;
+            //CellAttributes = x.CellAttributes;
         }
 
         /// <summary></summary>
@@ -226,12 +224,11 @@ namespace Aardvark.Data.Points
         /// <summary></summary>
         public ImportConfig WithVerbose(bool x) => new ImportConfig(this) { ParseConfig = ParseConfig.WithVerbose(x) };
 
-        /// <summary></summary>
-        public ImportConfig WithCellAttributes(IEnumerable<CellAttribute> atts) => new ImportConfig(this) { CellAttributes = Sort(atts) };
+        ///// <summary></summary>
+        //public ImportConfig WithCellAttributes(IEnumerable<DurableData> atts) => new ImportConfig(this) { CellAttributes = Sort(atts) };
 
-        /// <summary></summary>
-        public ImportConfig WithCellAttributes(params CellAttribute[] atts) => new ImportConfig(this) { CellAttributes = Sort(atts) };
-
+        ///// <summary></summary>
+        //public ImportConfig WithCellAttributes(params DurableData[] atts) => new ImportConfig(this) { CellAttributes = Sort(atts) };
 
         #endregion
     }

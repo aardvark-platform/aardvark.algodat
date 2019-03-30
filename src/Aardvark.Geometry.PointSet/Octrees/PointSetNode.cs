@@ -40,8 +40,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public PointSetNode(Guid id,
             Cell cell, long pointCountTree,
-            ImmutableDictionary<Guid, object> custom,
-            Guid? psId, Guid? csId, Guid? kdId, Guid? nsId, Guid? isId, Guid? ksId,
+            ImmutableDictionary<DurableData, object> data,
             Guid?[] subnodeIds, Storage storage, bool writeToStore
             )
         {
@@ -50,16 +49,16 @@ namespace Aardvark.Geometry.Points
             Cell = cell;
             PointCountTree = pointCountTree;
             SubnodeIds = subnodeIds;
-            CustomAttributes = custom;
-
-            if (psId.HasValue) Attributes[PointSetAttributes.Positions] = psId.Value;
-            if (csId.HasValue) Attributes[PointSetAttributes.Colors] = csId.Value;
-            if (kdId.HasValue) Attributes[PointSetAttributes.KdTree] = kdId.Value;
-            if (nsId.HasValue) Attributes[PointSetAttributes.Normals] = nsId.Value;
-            if (isId.HasValue) Attributes[PointSetAttributes.Intensities] = isId.Value;
-            if (ksId.HasValue) Attributes[PointSetAttributes.Classifications] = ksId.Value;
+            Data = data;
 
             if (IsLeaf && PointCount != PointCountTree) throw new InvalidOperationException();
+
+            var psId = PositionsId;
+            var csId = ColorsId;
+            var kdId = KdTreeId;
+            var nsId = NormalsId;
+            var isId = IntensitiesId;
+            var ksId = ClassificationsId;
 
             if (psId != null) PersistentRefs[PointSetAttributes.Positions] = new PersistentRef<V3f[]>(psId.ToString(), storage.GetV3fArray, storage.TryGetV3fArray);
             if (csId != null) PersistentRefs[PointSetAttributes.Colors] = new PersistentRef<C4b[]>(csId.ToString(), storage.GetC4bArray, storage.TryGetC4bArray);
@@ -108,20 +107,20 @@ namespace Aardvark.Geometry.Points
 #endif
             PointRkdTreeD<V3f[], V3f> LoadKdTree(string key)
             {
-                var data = Storage.GetPointRkdTreeDData(key);
+                var value = Storage.GetPointRkdTreeDData(key);
                 var ps = Positions.Value;
                 return new PointRkdTreeD<V3f[], V3f>(
                     3, ps.Length, ps,
                     (xs, i) => xs[(int)i], (v, i) => (float)v[i],
                     (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
                     (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, 1e-9,
-                    data
+                    value
                     );
             }
 
             (bool, PointRkdTreeD<V3f[], V3f>) TryLoadKdTree(string key)
             {
-                var (ok, data) = Storage.TryGetPointRkdTreeDData(key);
+                var (ok, value) = Storage.TryGetPointRkdTreeDData(key);
                 if (ok == false) return (false, default);
                 var ps = Positions.Value;
                 return (true, new PointRkdTreeD<V3f[], V3f>(
@@ -129,7 +128,7 @@ namespace Aardvark.Geometry.Points
                     (xs, i) => xs[(int)i], (v, i) => (float)v[i],
                     (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
                     (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, 1e-9,
-                    data
+                    value
                     ));
             }
         }
@@ -138,13 +137,10 @@ namespace Aardvark.Geometry.Points
         /// Creates inner node.
         /// </summary>
         internal PointSetNode(
-            Cell cell, long pointCountTree,
-            ImmutableDictionary<Guid, object> custom,
-            Guid?[] subnodeIds, Storage storage
-            ) : this(Guid.NewGuid(), cell, pointCountTree,
-                custom,
-                null, null, null, null, null, null, subnodeIds, storage, true
-                )
+            Cell cell, long pointCountTree, ImmutableDictionary<DurableData, object> data,
+            Guid?[] subnodeIds,
+            Storage storage
+            ) : this(Guid.NewGuid(), cell, pointCountTree, data, subnodeIds, storage, true)
         {
         }
 
@@ -152,14 +148,9 @@ namespace Aardvark.Geometry.Points
         /// Creates leaf node.
         /// </summary>
         internal PointSetNode(
-            Cell cell, long pointCountTree,
-            ImmutableDictionary<Guid, object> custom,
-            Guid? psId, Guid? csId, Guid? kdId, Guid? nsId, Guid? isId, Guid? ksId,
+            Cell cell, long pointCountTree, ImmutableDictionary<DurableData, object> data,
             Storage storage
-            ) : this(Guid.NewGuid(), cell, pointCountTree, 
-                custom,
-                psId, csId, kdId, nsId, isId, ksId, null, storage, true
-                )
+            ) : this(Guid.NewGuid(), cell, pointCountTree, data, null,       storage, true)
         {
         }
 
@@ -169,12 +160,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        public readonly Dictionary<PointSetAttributes, Guid> Attributes = new Dictionary<PointSetAttributes, Guid>();
-
-        /// <summary>
-        /// </summary>
-        public readonly ImmutableDictionary<Guid, object> CustomAttributes = ImmutableDictionary<Guid, object>.Empty;
-
+        public ImmutableDictionary<DurableData, object> Data { get; } = ImmutableDictionary<DurableData, object>.Empty;
 
         /// <summary>
         /// This node's unique id (16 bytes).
@@ -196,225 +182,222 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public readonly Guid?[] SubnodeIds;
 
-
         #endregion
 
         #region Serialization
 
-        /// <summary></summary>
-        public int SerializedSizeInBytes =>
-            1 + 3 +                 // subcellmask (8bit), attribute mask (24bit)
-            16 +                    // Guid
-            (3 * 8 + 4) +           // Bounds (Cell)
-            8 +                     // PointCountTree
-            SubnodeCount * 16 +     // subcell keys
-            Attributes.Count * 16 + // attribute keys
-            4 + CustomAttributes.Values.Sum((o) => 16 + Binary.SizeOf(o))
-            ;
+        ///// <summary></summary>
+        //public int SerializedSizeInBytes =>
+        //    1 + 3 +                 // subcellmask (8bit), attribute mask (24bit)
+        //    16 +                    // Guid
+        //    (3 * 8 + 4) +           // Bounds (Cell)
+        //    8 +                     // PointCountTree
+        //    SubnodeCount * 16 +     // subcell keys
+        //    Attributes.Count * 16 + // attribute keys
+        //    4 + CustomAttributes.Values.Sum((o) => 16 + Binary.SizeOf(o))
+        //    ;
 
-        /// <summary>
-        /// </summary>
-        public byte[] ToBinary()
-        {
-            var count = SerializedSizeInBytes;
-            var buffer = new byte[count];
-            using (var ms = new MemoryStream(buffer))
-            using (var bw = new BinaryWriter(ms))
-            {
-                var attributemask = (uint)AttributeMask;
-                bw.Write(attributemask | ((uint)SubnodeMask << 24));
-                bw.Write(Id.ToByteArray());
-                bw.Write(Cell.X); bw.Write(Cell.Y); bw.Write(Cell.Z); bw.Write(Cell.Exponent);
-                bw.Write(PointCountTree);
-                if (SubnodeIds != null)
-                {
-                    foreach (var x in SubnodeIds) if (x.HasValue) bw.Write(x.Value.ToByteArray());
-                }
-                var a = 1u;
-                for (var i = 0; i < 23; i++, a <<= 1)
-                {
-                    if ((attributemask & a) == 0) continue;
-                    bw.Write(Attributes[(PointSetAttributes)a].ToByteArray());
-                }
+        ///// <summary>
+        ///// </summary>
+        //public byte[] ToBinary()
+        //{
+        //    var count = SerializedSizeInBytes;
+        //    var buffer = new byte[count];
+        //    using (var ms = new MemoryStream(buffer))
+        //    using (var bw = new BinaryWriter(ms))
+        //    {
+        //        var attributemask = (uint)AttributeMask;
+        //        bw.Write(attributemask | ((uint)SubnodeMask << 24));
+        //        bw.Write(Id.ToByteArray());
+        //        bw.Write(Cell.X); bw.Write(Cell.Y); bw.Write(Cell.Z); bw.Write(Cell.Exponent);
+        //        bw.Write(PointCountTree);
+        //        if (SubnodeIds != null)
+        //        {
+        //            foreach (var x in SubnodeIds) if (x.HasValue) bw.Write(x.Value.ToByteArray());
+        //        }
+        //        var a = 1u;
+        //        for (var i = 0; i < 23; i++, a <<= 1)
+        //        {
+        //            if ((attributemask & a) == 0) continue;
+        //            bw.Write(Attributes[(PointSetAttributes)a].ToByteArray());
+        //        }
 
-                if ((attributemask & (uint)PointSetAttributes.HasCellAttributes) != 0)
-                {
-                    var temp = new byte[512];
-                    int offset;
+        //        if ((attributemask & (uint)PointSetAttributes.HasCellAttributes) != 0)
+        //        {
+        //            var temp = new byte[512];
+        //            int offset;
 
-                    bw.Write(CustomAttributes.Count);
-                    foreach (var kvp in CustomAttributes)
-                    {
-                        offset = 0;
-                        Binary.Write(temp, ref offset, kvp.Key);
-                        Binary.Write(kvp.Value, temp, ref offset);
-                        bw.Write(temp, 0, offset);
-                    }
+        //            bw.Write(CustomAttributes.Count);
+        //            foreach (var kvp in CustomAttributes)
+        //            {
+        //                offset = 0;
+        //                Binary.Write(temp, ref offset, kvp.Key);
+        //                Binary.Write(kvp.Value, temp, ref offset);
+        //                bw.Write(temp, 0, offset);
+        //            }
 
 
-                    ////  4 bytes (uint)
-                    //bw.Write((uint)CellAttributeMask);
+        //            ////  4 bytes (uint)
+        //            //bw.Write((uint)CellAttributeMask);
 
-                    //// 24 bytes (Box3f)
-                    //if ((CellAttributeMask | CellAttributes.BoundingBoxExactLocal) != 0)
-                    //{
-                    //    ref readonly var min = ref BoundingBoxExactLocal.Min;
-                    //    ref readonly var max = ref BoundingBoxExactLocal.Max;
-                    //    bw.Write(min.X); bw.Write(min.Y); bw.Write(min.Z);
-                    //    bw.Write(max.X); bw.Write(max.Y); bw.Write(max.Z);
-                    //}
+        //            //// 24 bytes (Box3f)
+        //            //if ((CellAttributeMask | CellAttributes.BoundingBoxExactLocal) != 0)
+        //            //{
+        //            //    ref readonly var min = ref BoundingBoxExactLocal.Min;
+        //            //    ref readonly var max = ref BoundingBoxExactLocal.Max;
+        //            //    bw.Write(min.X); bw.Write(min.Y); bw.Write(min.Z);
+        //            //    bw.Write(max.X); bw.Write(max.Y); bw.Write(max.Z);
+        //            //}
 
-                    ////  8 bytes (float + float)
-                    //if ((CellAttributeMask | CellAttributes.PointDistance) != 0)
-                    //{
-                    //    bw.Write(PointDistanceAverage);
-                    //    bw.Write(PointDistanceStandardDeviation);
-                    //}
-                }
-            }
-            return buffer;
-        }
+        //            ////  8 bytes (float + float)
+        //            //if ((CellAttributeMask | CellAttributes.PointDistance) != 0)
+        //            //{
+        //            //    bw.Write(PointDistanceAverage);
+        //            //    bw.Write(PointDistanceStandardDeviation);
+        //            //}
+        //        }
+        //    }
+        //    return buffer;
+        //}
         
-        /// <summary>
-        /// </summary>
-        public static PointSetNode ParseBinary(byte[] buffer, Storage storage)
-        {
-            var masks = BitConverter.ToUInt32(buffer, 0);
-            var subcellmask = masks >> 24;
-            var attributemask = masks & 0b00000000_11111111_11111111_11111111;
+//        /// <summary>
+//        /// </summary>
+//        public static PointSetNode ParseBinary(byte[] buffer, Storage storage)
+//        {
+//            var masks = BitConverter.ToUInt32(buffer, 0);
+//            var subcellmask = masks >> 24;
+//            var attributemask = masks & 0b00000000_11111111_11111111_11111111;
 
-            var offset = 4;
-            var id = ParseGuid(buffer, ref offset);
+//            var offset = 4;
+//            var id = ParseGuid(buffer, ref offset);
             
-            var cell = new Cell(
-                BitConverter.ToInt64(buffer, 20),
-                BitConverter.ToInt64(buffer, 28),
-                BitConverter.ToInt64(buffer, 36),
-                BitConverter.ToInt32(buffer, 44)
-                );
+//            var cell = new Cell(
+//                BitConverter.ToInt64(buffer, 20),
+//                BitConverter.ToInt64(buffer, 28),
+//                BitConverter.ToInt64(buffer, 36),
+//                BitConverter.ToInt32(buffer, 44)
+//                );
 
-            var pointCountTree = BitConverter.ToInt64(buffer, 48);
+//            var pointCountTree = BitConverter.ToInt64(buffer, 48);
             
-            offset = 56;
+//            offset = 56;
 
-            Guid?[] subcellIds = null;
-            if (subcellmask != 0)
-            {
-                subcellIds = new Guid?[8];
-                if ((subcellmask & 0x01) != 0) subcellIds[0] = ParseGuid(buffer, ref offset);
-                if ((subcellmask & 0x02) != 0) subcellIds[1] = ParseGuid(buffer, ref offset);
-                if ((subcellmask & 0x04) != 0) subcellIds[2] = ParseGuid(buffer, ref offset);
-                if ((subcellmask & 0x08) != 0) subcellIds[3] = ParseGuid(buffer, ref offset);
-                if ((subcellmask & 0x10) != 0) subcellIds[4] = ParseGuid(buffer, ref offset);
-                if ((subcellmask & 0x20) != 0) subcellIds[5] = ParseGuid(buffer, ref offset);
-                if ((subcellmask & 0x40) != 0) subcellIds[6] = ParseGuid(buffer, ref offset);
-                if ((subcellmask & 0x80) != 0) subcellIds[7] = ParseGuid(buffer, ref offset);
-            }
+//            Guid?[] subcellIds = null;
+//            if (subcellmask != 0)
+//            {
+//                subcellIds = new Guid?[8];
+//                if ((subcellmask & 0x01) != 0) subcellIds[0] = ParseGuid(buffer, ref offset);
+//                if ((subcellmask & 0x02) != 0) subcellIds[1] = ParseGuid(buffer, ref offset);
+//                if ((subcellmask & 0x04) != 0) subcellIds[2] = ParseGuid(buffer, ref offset);
+//                if ((subcellmask & 0x08) != 0) subcellIds[3] = ParseGuid(buffer, ref offset);
+//                if ((subcellmask & 0x10) != 0) subcellIds[4] = ParseGuid(buffer, ref offset);
+//                if ((subcellmask & 0x20) != 0) subcellIds[5] = ParseGuid(buffer, ref offset);
+//                if ((subcellmask & 0x40) != 0) subcellIds[6] = ParseGuid(buffer, ref offset);
+//                if ((subcellmask & 0x80) != 0) subcellIds[7] = ParseGuid(buffer, ref offset);
+//            }
 
-            var psId = (attributemask & (uint)PointSetAttributes.Positions) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
-            var csId = (attributemask & (uint)PointSetAttributes.Colors) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
-            var nsId = (attributemask & (uint)PointSetAttributes.Normals) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
-            var isId = (attributemask & (uint)PointSetAttributes.Intensities) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
-            var kdId = (attributemask & (uint)PointSetAttributes.KdTree) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
-#pragma warning disable CS0612 // Type or member is obsolete
-            var lodPsId = (attributemask & (uint)PointSetAttributes.LodPositions) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
-            var lodCsId = (attributemask & (uint)PointSetAttributes.LodColors) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
-            var lodNsId = (attributemask & (uint)PointSetAttributes.LodNormals) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
-            var lodIsId = (attributemask & (uint)PointSetAttributes.LodIntensities) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
-            var lodKdId = (attributemask & (uint)PointSetAttributes.LodKdTree) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
-            var ksId = (attributemask & (uint)PointSetAttributes.Classifications) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
-            var lodKsId = (attributemask & (uint)PointSetAttributes.LodClassifications) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
-#pragma warning restore CS0612 // Type or member is obsolete
+//            var psId = (attributemask & (uint)PointSetAttributes.Positions) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
+//            var csId = (attributemask & (uint)PointSetAttributes.Colors) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
+//            var nsId = (attributemask & (uint)PointSetAttributes.Normals) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
+//            var isId = (attributemask & (uint)PointSetAttributes.Intensities) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
+//            var kdId = (attributemask & (uint)PointSetAttributes.KdTree) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
+//#pragma warning disable CS0612 // Type or member is obsolete
+//            var lodPsId = (attributemask & (uint)PointSetAttributes.LodPositions) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
+//            var lodCsId = (attributemask & (uint)PointSetAttributes.LodColors) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
+//            var lodNsId = (attributemask & (uint)PointSetAttributes.LodNormals) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
+//            var lodIsId = (attributemask & (uint)PointSetAttributes.LodIntensities) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
+//            var lodKdId = (attributemask & (uint)PointSetAttributes.LodKdTree) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
+//            var ksId = (attributemask & (uint)PointSetAttributes.Classifications) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
+//            var lodKsId = (attributemask & (uint)PointSetAttributes.LodClassifications) != 0 ? ParseGuid(buffer, ref offset) : (Guid?)null;
+//#pragma warning restore CS0612 // Type or member is obsolete
 
-            #region backwards compatibility with obsolete lod entries
+//            #region backwards compatibility with obsolete lod entries
 
-            if (lodPsId.HasValue)
-            {
-                //if (psId.HasValue) throw new InvalidOperationException();
-                psId = lodPsId;
-            }
-            if (lodCsId.HasValue)
-            {
-                //if (csId.HasValue) throw new InvalidOperationException();
-                csId = lodCsId;
-            }
-            if (lodNsId.HasValue)
-            {
-                //if (nsId.HasValue) throw new InvalidOperationException();
-                nsId = lodNsId;
-            }
-            if (lodIsId.HasValue)
-            {
-                //if (isId.HasValue) throw new InvalidOperationException();
-                isId = lodIsId;
-            }
-            if (lodKdId.HasValue)
-            {
-                //if (kdId.HasValue) throw new InvalidOperationException();
-                kdId = lodKdId;
-            }
-            if (lodKsId.HasValue)
-            {
-                //if (ksId.HasValue) throw new InvalidOperationException();
-                ksId = lodKsId;
-            }
+//            if (lodPsId.HasValue)
+//            {
+//                //if (psId.HasValue) throw new InvalidOperationException();
+//                psId = lodPsId;
+//            }
+//            if (lodCsId.HasValue)
+//            {
+//                //if (csId.HasValue) throw new InvalidOperationException();
+//                csId = lodCsId;
+//            }
+//            if (lodNsId.HasValue)
+//            {
+//                //if (nsId.HasValue) throw new InvalidOperationException();
+//                nsId = lodNsId;
+//            }
+//            if (lodIsId.HasValue)
+//            {
+//                //if (isId.HasValue) throw new InvalidOperationException();
+//                isId = lodIsId;
+//            }
+//            if (lodKdId.HasValue)
+//            {
+//                //if (kdId.HasValue) throw new InvalidOperationException();
+//                kdId = lodKdId;
+//            }
+//            if (lodKsId.HasValue)
+//            {
+//                //if (ksId.HasValue) throw new InvalidOperationException();
+//                ksId = lodKsId;
+//            }
 
-            #endregion
+//            #endregion
 
-            //Box3f? exactBoundingBoxLocal = null;
-            //float? pointDistanceAverage = null;
-            //float? pointDistanceStandardDeviation = null;
-            //if ((attributemask & (uint)PointSetAttributes.HasCellAttributes) != 0)
-            //{
-            //    var cellAttributeMask = BitConverter.ToUInt32(buffer, offset); offset += sizeof(uint);
-            //    if ((cellAttributeMask & (uint)CellAttributes.BoundingBoxExactLocal) != 0)
-            //    {
-            //        Box3f ebb = default;
-            //        ref var min = ref ebb.Min;
-            //        ref var max = ref ebb.Max;
-            //        min.X = BitConverter.ToSingle(buffer, offset); offset += sizeof(float);
-            //        min.Y = BitConverter.ToSingle(buffer, offset); offset += sizeof(float);
-            //        min.Z = BitConverter.ToSingle(buffer, offset); offset += sizeof(float);
-            //        max.X = BitConverter.ToSingle(buffer, offset); offset += sizeof(float);
-            //        max.Y = BitConverter.ToSingle(buffer, offset); offset += sizeof(float);
-            //        max.Z = BitConverter.ToSingle(buffer, offset); offset += sizeof(float);
-            //        exactBoundingBoxLocal = ebb;
-            //    }
+//            //Box3f? exactBoundingBoxLocal = null;
+//            //float? pointDistanceAverage = null;
+//            //float? pointDistanceStandardDeviation = null;
+//            //if ((attributemask & (uint)PointSetAttributes.HasCellAttributes) != 0)
+//            //{
+//            //    var cellAttributeMask = BitConverter.ToUInt32(buffer, offset); offset += sizeof(uint);
+//            //    if ((cellAttributeMask & (uint)CellAttributes.BoundingBoxExactLocal) != 0)
+//            //    {
+//            //        Box3f ebb = default;
+//            //        ref var min = ref ebb.Min;
+//            //        ref var max = ref ebb.Max;
+//            //        min.X = BitConverter.ToSingle(buffer, offset); offset += sizeof(float);
+//            //        min.Y = BitConverter.ToSingle(buffer, offset); offset += sizeof(float);
+//            //        min.Z = BitConverter.ToSingle(buffer, offset); offset += sizeof(float);
+//            //        max.X = BitConverter.ToSingle(buffer, offset); offset += sizeof(float);
+//            //        max.Y = BitConverter.ToSingle(buffer, offset); offset += sizeof(float);
+//            //        max.Z = BitConverter.ToSingle(buffer, offset); offset += sizeof(float);
+//            //        exactBoundingBoxLocal = ebb;
+//            //    }
 
-            //    if ((cellAttributeMask & (uint)CellAttributes.PointDistance) != 0)
-            //    {
-            //        pointDistanceAverage = BitConverter.ToSingle(buffer, offset); offset += sizeof(float);
-            //        pointDistanceStandardDeviation = BitConverter.ToSingle(buffer, offset); offset += sizeof(float);
-            //    }
-            //}
+//            //    if ((cellAttributeMask & (uint)CellAttributes.PointDistance) != 0)
+//            //    {
+//            //        pointDistanceAverage = BitConverter.ToSingle(buffer, offset); offset += sizeof(float);
+//            //        pointDistanceStandardDeviation = BitConverter.ToSingle(buffer, offset); offset += sizeof(float);
+//            //    }
+//            //}
 
-            //if (!exactBoundingBoxLocal.HasValue)
-            //{
-            //    var bb = cell.BoundingBox;
-            //    var c = bb.Center;
-            //    exactBoundingBoxLocal = new Box3f(new V3f(bb.Min - c), new V3f(bb.Max - c));
-            //}
+//            //if (!exactBoundingBoxLocal.HasValue)
+//            //{
+//            //    var bb = cell.BoundingBox;
+//            //    var c = bb.Center;
+//            //    exactBoundingBoxLocal = new Box3f(new V3f(bb.Min - c), new V3f(bb.Max - c));
+//            //}
 
-            var custom = ImmutableDictionary<Guid, object>.Empty;
-            if((attributemask & (uint)PointSetAttributes.HasCellAttributes) != 0)
-            {
-                var cnt = BitConverter.ToInt32(buffer, offset); offset += 4;
-                for(var i = 0; i < cnt; i++)
-                {
-                    var key = ParseGuid(buffer, ref offset);
-                    var value = Binary.Read(buffer, ref offset);
-                    custom = custom.Add(key, value);
-                }
-            }
+//            var data = ImmutableDictionary<DurableData, object>.Empty;
+//            if((attributemask & (uint)PointSetAttributes.HasCellAttributes) != 0)
+//            {
+//                var cnt = BitConverter.ToInt32(buffer, offset); offset += 4;
+//                for(var i = 0; i < cnt; i++)
+//                {
+//                    var key = ParseGuid(buffer, ref offset);
+//                    var value = Binary.Read(buffer, ref offset);
+//                    data = data.Add(key, value);
+//                }
+//            }
 
-            return new PointSetNode(
-                id, cell, pointCountTree, 
-                custom,
-                psId, csId, kdId, nsId, isId, ksId,
-                subcellIds,
-                storage, false
-                );
-        }
+//            return new PointSetNode(
+//                id, cell, pointCountTree, data,
+//                //psId, csId, kdId, nsId, isId, ksId,
+//                subcellIds, storage, false
+//                );
+//        }
 
         private static Guid ParseGuid(byte[] buffer, ref int offset)
         {
@@ -439,7 +422,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public Guid? PositionsId => Attributes.TryGetValue(PointSetAttributes.Positions, out Guid id) ? (Guid?)id : null;
+        public Guid? PositionsId => Data.TryGetValue(OctreeAttributes.RefPositionsLocal3f, out var id) ? (Guid?)id : null;
 
         /// <summary>
         /// Point positions relative to cell's center, or null if no positions.
@@ -463,7 +446,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public Guid? ColorsId => Attributes.TryGetValue(PointSetAttributes.Colors, out Guid id) ? (Guid?)id : null;
+        public Guid? ColorsId => Data.TryGetValue(OctreeAttributes.RefColors3b, out var id) ? (Guid?)id : null;
 
         /// <summary>
         /// Point colors, or null if no points.
@@ -481,7 +464,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public Guid? NormalsId => Attributes.TryGetValue(PointSetAttributes.Normals, out Guid id) ? (Guid?)id : null;
+        public Guid? NormalsId => Data.TryGetValue(OctreeAttributes.RefNormals3f, out var id) ? (Guid?)id : null;
 
         /// <summary></summary>
         [JsonIgnore]
@@ -497,7 +480,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public Guid? IntensitiesId => Attributes.TryGetValue(PointSetAttributes.Intensities, out Guid id) ? (Guid?)id : null;
+        public Guid? IntensitiesId => Data.TryGetValue(OctreeAttributes.RefIntensities1i, out var id) ? (Guid?)id : null;
 
         /// <summary></summary>
         [JsonIgnore]
@@ -513,7 +496,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public Guid? ClassificationsId => Attributes.TryGetValue(PointSetAttributes.Classifications, out Guid id) ? (Guid?)id : null;
+        public Guid? ClassificationsId => Data.TryGetValue(OctreeAttributes.RefClassifications1b, out var id) ? (Guid?)id : null;
 
         /// <summary></summary>
         [JsonIgnore]
@@ -529,7 +512,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public Guid? KdTreeId => Attributes.TryGetValue(PointSetAttributes.KdTree, out Guid id) ? (Guid?)id : null;
+        public Guid? KdTreeId => Data.TryGetValue(OctreeAttributes.RefKdTreeLocal3f, out var id) ? (Guid?)id : null;
 
         /// <summary></summary>
         [JsonIgnore]
@@ -618,20 +601,20 @@ namespace Aardvark.Geometry.Points
               (SubnodeIds[7].HasValue ? 0b10000000 : 0  ))
             ;
 
-        /// <summary>
-        /// Bitmask indicating which attributes exist (attribute flags or'ed together).
-        /// </summary>
-        [JsonIgnore]
-        public PointSetAttributes AttributeMask
-        {
-            get
-            {
-                PointSetAttributes mask = 0u;
-                foreach (var key in Attributes.Keys) mask |= key;
-                if (CustomAttributes.Count > 0) mask |= PointSetAttributes.HasCellAttributes;
-                return mask;
-            }
-        }
+        ///// <summary>
+        ///// Bitmask indicating which attributes exist (attribute flags or'ed together).
+        ///// </summary>
+        //[JsonIgnore]
+        //public PointSetAttributes AttributeMask
+        //{
+        //    get
+        //    {
+        //        PointSetAttributes mask = 0u;
+        //        foreach (var key in Attributes.Keys) mask |= key;
+        //        if (CustomAttributes.Count > 0) mask |= PointSetAttributes.HasCellAttributes;
+        //        return mask;
+        //    }
+        //}
         
         #endregion
 
@@ -1034,86 +1017,58 @@ namespace Aardvark.Geometry.Points
             if (subnodes == null) throw new ArgumentNullException(nameof(subnodes));
 
             var pointCountTree = subnodes.Sum(x => x?.PointCountTree);
-            return new PointSetNode(Guid.NewGuid(), Cell, pointCountTree.Value, 
-                CustomAttributes,
-                PositionsId, ColorsId, KdTreeId, NormalsId, IntensitiesId, ClassificationsId,
-                subnodes.Map(x => x?.Id), Storage, true
-                );
+            return new PointSetNode(Guid.NewGuid(), Cell, pointCountTree.Value, Data, subnodes.Map(x => x?.Id), Storage, true);
         }
 
         /// <summary>
-        /// Makes node with LoD data from inner node.
+        /// Makes new node with added data. Existing entries are replaced.
         /// </summary>
-        internal PointSetNode WithData(ImmutableDictionary<Guid, object> custom, long? pointCountTree, Guid? psId, Guid? csId, Guid? nsId, Guid? isId, Guid? kdId, Guid? ksId, PointSetNode[] subnodes)
-        {
-            var dict = CustomAttributes;
-            foreach (var kvp in custom) dict = dict.Add(kvp.Key, kvp.Value);
-
-            pointCountTree = pointCountTree ?? subnodes?.Sum(n => n != null ? n.PointCountTree : 0);
-            return new PointSetNode(Guid.NewGuid(),
-                Cell, pointCountTree.Value,
-                dict,
-                psId, csId, kdId, nsId, isId, ksId,
-                subnodes?.Map(x => x?.Id), Storage, true
-                );
-        }
-
-
-        internal PointSetNode WithCellAttributes(bool persist, ImmutableDictionary<Guid, object> custom)
-        {
-            var dict = CustomAttributes;
-            foreach (var kvp in custom) dict = dict.Add(kvp.Key, kvp.Value);
-            
-            return new PointSetNode(Guid.NewGuid(),
-                Cell, PointCountTree,
-                dict,
-                PositionsId, ColorsId, KdTreeId, NormalsId, IntensitiesId, ClassificationsId,
-                SubnodeIds, Storage, persist
-                );
-        }
-
-
-
-
-
-        /// <summary>
-        /// Returns node with normals and subnodes replaced.
-        /// </summary>
-        public PointSetNode WithNormals(Guid? nsId, Guid?[] subnodeIds)
+        internal PointSetNode WithAddedOrReplacedData(ImmutableDictionary<DurableData, object> additionalData)
         {
             return new PointSetNode(Guid.NewGuid(),
-                Cell, PointCountTree,
-                CustomAttributes,
-                PositionsId, ColorsId, KdTreeId, nsId, IntensitiesId, ClassificationsId,
-                subnodeIds, Storage, true
-                );
-        }
-
-        /// <summary>
-        /// Returns node with normals and subnodes replaced.
-        /// </summary>
-        public PointSetNode WithNormals(Guid? nsId, PointSetNode[] subnodes)
-        {
-            return new PointSetNode(Guid.NewGuid(),
-                Cell, PointCountTree, 
-                CustomAttributes,
-                PositionsId, ColorsId, KdTreeId, nsId, IntensitiesId, ClassificationsId,
-                subnodes?.Map(n => (Guid?)n.Id), Storage, true
-                );
-        }
-
-        /// <summary>
-        /// Returns node with normals replaced.
-        /// </summary>
-        public PointSetNode WithNormals(Guid? nsId)
-        {
-            return new PointSetNode(Guid.NewGuid(),
-                Cell, PointCountTree, 
-                CustomAttributes,
-                PositionsId, ColorsId, KdTreeId, nsId, IntensitiesId, ClassificationsId,
+                Cell, PointCountTree, Data.AddRange(additionalData),
                 SubnodeIds, Storage, true
                 );
         }
+
+
+
+        ///// <summary>
+        ///// Returns node with normals and subnodes replaced.
+        ///// </summary>
+        //public PointSetNode WithNormals(Guid? nsId, Guid?[] subnodeIds)
+        //{
+        //    return new PointSetNode(Guid.NewGuid(),
+        //        Cell, PointCountTree,
+        //        CustomAttributes,
+        //        PositionsId, ColorsId, KdTreeId, nsId, IntensitiesId, ClassificationsId,
+        //        subnodeIds, Storage, true
+        //        );
+        //}
+
+        ///// <summary>
+        ///// Returns node with normals and subnodes replaced.
+        ///// </summary>
+        //public PointSetNode WithNormals(Guid? nsId, PointSetNode[] subnodes)
+        //{
+        //    return new PointSetNode(Guid.NewGuid(),
+        //        Cell, PointCountTree,  Data,
+        //        //PositionsId, ColorsId, KdTreeId, nsId, IntensitiesId, ClassificationsId,
+        //        subnodes?.Map(n => (Guid?)n.Id), Storage, true
+        //        );
+        //}
+
+        ///// <summary>
+        ///// Returns node with normals replaced.
+        ///// </summary>
+        //public PointSetNode WithNormals(Guid? nsId)
+        //{
+        //    return new PointSetNode(Guid.NewGuid(),
+        //        Cell, PointCountTree,  Data,
+        //        //PositionsId, ColorsId, KdTreeId, nsId, IntensitiesId, ClassificationsId,
+        //        SubnodeIds, Storage, true
+        //        );
+        //}
         
 
         #endregion
@@ -1210,8 +1165,6 @@ namespace Aardvark.Geometry.Points
 
         Storage IPointCloudNode.Storage => Storage;
 
-        /// <summary></summary>
-        public ImmutableDictionary<Guid, object> CellAttributes => CustomAttributes;
 
         
         /// <summary></summary>
@@ -1219,7 +1172,7 @@ namespace Aardvark.Geometry.Points
         {
             get
             {
-                if (CustomAttributes.TryGetValue(Points.CellAttributes.BoundingBoxExactLocal.Id, out var value) && value is Box3f)
+                if (Data.TryGetValue(OctreeAttributes.BoundingBoxExactLocal, out var value) && value is Box3f)
                 {
                     return (Box3f)value;
                 }
@@ -1235,7 +1188,7 @@ namespace Aardvark.Geometry.Points
         {
             get
             {
-                if (CustomAttributes.TryGetValue(Points.CellAttributes.BoundingBoxExactLocal.Id, out var value) && value is Box3f)
+                if (Data.TryGetValue(OctreeAttributes.BoundingBoxExactLocal, out var value) && value is Box3f)
                 {
                     var box = (Box3f)value;
                     var c = BoundingBox.Center;
@@ -1249,7 +1202,7 @@ namespace Aardvark.Geometry.Points
         {
             get
             {
-                if (CustomAttributes.TryGetValue(Points.CellAttributes.AveragePointDistance.Id, out var value) && value is float)
+                if (Data.TryGetValue(OctreeAttributes.AveragePointDistance, out var value) && value is float)
                     return (float)value;
                 else
                     return -1.0f;
@@ -1261,44 +1214,44 @@ namespace Aardvark.Geometry.Points
         {
             get
             {
-                if (CustomAttributes.TryGetValue(Points.CellAttributes.AveragePointDistanceStdDev.Id, out var value) && value is float)
+                if (Data.TryGetValue(OctreeAttributes.AveragePointDistanceStdDev, out var value) && value is float)
                     return (float)value;
                 else
                     return -1.0f;
             }
         }
         
-        /// <summary></summary>
-        public bool TryGetPropertyKey(string property, out string key)
-        {
-            if (Attributes.TryGetValue(property.ToPointSetAttribute(), out Guid guid))
-            {
-                key = guid.ToString();
-                return true;
-            }
-            else
-            {
-                key = null;
-                return false;
-            }
-        }
+        ///// <summary></summary>
+        //public bool TryGetPropertyKey(DurableData property, out string key)
+        //{
+        //    if (Attributes.TryGetValue(property, out Guid guid))
+        //    {
+        //        key = guid.ToString();
+        //        return true;
+        //    }
+        //    else
+        //    {
+        //        key = null;
+        //        return false;
+        //    }
+        //}
 
-        /// <summary></summary>
-        public bool TryGetPropertyValue(string property, out object value)
-        {
-            switch (property)
-            {
-                case PointCloudAttribute.Classifications: value = Classifications; return value != null;
+        ///// <summary></summary>
+        //public bool TryGetPropertyValue(DurableData property, out object value)
+        //{
+        //    switch (property)
+        //    {
+        //        case OctreeAttributes.RefClassifications1b: value = Classifications; return value != null;
 
-                case PointCloudAttribute.Colors:                value = Colors;             return value != null;
-                case PointCloudAttribute.Intensities:           value = Intensities;        return value != null;
-                case PointCloudAttribute.KdTree:                value = KdTree;             return value != null;
-                case PointCloudAttribute.Normals:               value = Normals;            return value != null;
-                case PointCloudAttribute.Positions:             value = Positions;          return value != null;
+        //        case PointCloudAttribute.Colors:                value = Colors;             return value != null;
+        //        case PointCloudAttribute.Intensities:           value = Intensities;        return value != null;
+        //        case PointCloudAttribute.KdTree:                value = KdTree;             return value != null;
+        //        case PointCloudAttribute.Normals:               value = Normals;            return value != null;
+        //        case PointCloudAttribute.Positions:             value = Positions;          return value != null;
 
-                default: throw new InvalidOperationException($"Unknown property '{property}'.");
-            }
-        }
+        //        default: throw new InvalidOperationException($"Unknown property '{property}'.");
+        //    }
+        //}
 
         /// <summary></summary>
         public FilterState FilterState => FilterState.FullyInside;

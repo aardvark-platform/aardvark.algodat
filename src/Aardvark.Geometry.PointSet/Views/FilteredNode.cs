@@ -115,20 +115,20 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public void Dispose() => Node.Dispose();
 
-        /// <summary></summary>
-        public bool TryGetPropertyKey(string property, out string key)
-        {
-            if (Node.TryGetPropertyKey(property, out string originalKey))
-            {
-                key = (Id + originalKey).ToGuid().ToString();
-                return true;
-            }
-            else
-            {
-                key = null;
-                return false;
-            }
-        }
+        ///// <summary></summary>
+        //public bool TryGetPropertyKey(string property, out string key)
+        //{
+        //    if (Node.TryGetPropertyKey(property, out string originalKey))
+        //    {
+        //        key = (Id + originalKey).ToGuid().ToString();
+        //        return true;
+        //    }
+        //    else
+        //    {
+        //        key = null;
+        //        return false;
+        //    }
+        //}
 
         private PersistentRef<T[]> GetSubArray<T>(object originalValue)
         {
@@ -146,35 +146,36 @@ namespace Aardvark.Geometry.Points
             }
 
         }
-        /// <summary></summary>
-        public bool TryGetPropertyValue(string property, out object value)
-        {
-            if (Node.TryGetPropertyValue(property, out object originalValue))
-            {
 
-                switch (property)
-                {
-                    case PointCloudAttribute.Classifications: value = GetSubArray<byte>(originalValue); break;
+        ///// <summary></summary>
+        //public bool TryGetPropertyValue(string property, out object value)
+        //{
+        //    if (Node.TryGetPropertyValue(property, out object originalValue))
+        //    {
 
-                    case PointCloudAttribute.Colors: value = GetSubArray<C4b>(originalValue); break;
+        //        switch (property)
+        //        {
+        //            case PointCloudAttribute.Classifications: value = GetSubArray<byte>(originalValue); break;
 
-                    case PointCloudAttribute.Intensities: value = GetSubArray<int>(originalValue); break;
+        //            case PointCloudAttribute.Colors: value = GetSubArray<C4b>(originalValue); break;
+
+        //            case PointCloudAttribute.Intensities: value = GetSubArray<int>(originalValue); break;
                         
-                    case PointCloudAttribute.Normals:
-                    case PointCloudAttribute.Positions: value = GetSubArray<V3f>(originalValue); break;
+        //            case PointCloudAttribute.Normals:
+        //            case PointCloudAttribute.Positions: value = GetSubArray<V3f>(originalValue); break;
 
-                    case PointCloudAttribute.KdTree: throw new NotImplementedException();
+        //            case PointCloudAttribute.KdTree: throw new NotImplementedException();
 
-                    default: throw new InvalidOperationException($"Cannot convert '{property}' to property.");
-                }
-                return true;
-            }
-            else
-            {
-                value = null;
-                return false;
-            }
-        }
+        //            default: throw new InvalidOperationException($"Cannot convert '{property}' to property.");
+        //        }
+        //        return true;
+        //    }
+        //    else
+        //    {
+        //        value = null;
+        //        return false;
+        //    }
+        //}
 
         /// <summary></summary>
         public JObject ToJson() => JObject.FromObject(new 
@@ -189,6 +190,6 @@ namespace Aardvark.Geometry.Points
         public string NodeType => Type;
 
         /// <summary></summary>
-        public ImmutableDictionary<Guid, object> CellAttributes => throw new NotImplementedException();
+        public ImmutableDictionary<DurableData, object> Data => throw new NotImplementedException();
     }
 }

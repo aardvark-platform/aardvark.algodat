@@ -14,6 +14,7 @@
 using Aardvark.Base;
 using Aardvark.Data.Points;
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 
 namespace Aardvark.Geometry.Points
@@ -23,40 +24,40 @@ namespace Aardvark.Geometry.Points
     public static class PointCloudAttribute
     {
         /// <summary>byte[].</summary>
-        public const string Classifications = "Classifications";
+        public const string _Classifications = "Classifications";
         /// <summary>C4b[].</summary>
-        public const string Colors = "Colors";
+        public const string _Colors = "Colors";
         /// <summary>int[].</summary>
-        public const string Intensities = "Intensities";
+        public const string _Intensities = "Intensities";
         /// <summary>PointRkdTreeDData.</summary>
-        public const string KdTree = "KdTree";
+        public const string _KdTree = "KdTree";
         /// <summary>byte[].</summary>
         [Obsolete]
-        public const string LodClassifications = "LodClassifications";
+        public const string _LodClassifications = "LodClassifications";
         /// <summary>C4b[].</summary>
         [Obsolete]
-        public const string LodColors = "LodColors";
+        public const string _LodColors = "LodColors";
         /// <summary>int[].</summary>
         [Obsolete]
-        public const string LodIntensities = "LodIntensities";
+        public const string _LodIntensities = "LodIntensities";
         /// <summary>PointRkdTreeDData.</summary>
         [Obsolete]
-        public const string LodKdTree = "LodKdTree";
+        public const string _LodKdTree = "LodKdTree";
         /// <summary>V3f[].</summary>
         [Obsolete]
-        public const string LodNormals = "LodNormals";
+        public const string _LodNormals = "LodNormals";
         /// <summary>V3f[] relative to center.</summary>
         [Obsolete]
-        public const string LodPositions = "LodPositions";
+        public const string _LodPositions = "LodPositions";
         /// <summary>V3d[] absolute.</summary>
         [Obsolete]
-        public const string LodPositionsAbsolute = "LodPositionsAbsolute";
+        public const string _LodPositionsAbsolute = "LodPositionsAbsolute";
         /// <summary>V3f[].</summary>
-        public const string Normals = "Normals";
+        public const string _Normals = "Normals";
         /// <summary>V3f[] relative to center.</summary>
-        public const string Positions = "Positions";
+        public const string _Positions = "Positions";
         /// <summary>V3d[] absolute.</summary>
-        public const string PositionsAbsolute = "PositionsAbsolute";
+        public const string _PositionsAbsolute = "PositionsAbsolute";
 
         /// <summary>
         /// Gets name of attribute.
@@ -65,12 +66,12 @@ namespace Aardvark.Geometry.Points
         {
             switch (self)
             {
-                case PointSetAttributes.Classifications:    return Classifications;
-                case PointSetAttributes.Colors:             return Colors;            
-                case PointSetAttributes.Intensities:        return Intensities;       
-                case PointSetAttributes.KdTree:             return KdTree;  
-                case PointSetAttributes.Normals:            return Normals;           
-                case PointSetAttributes.Positions:          return Positions;         
+                case PointSetAttributes.Classifications:    return _Classifications;
+                case PointSetAttributes.Colors:             return _Colors;            
+                case PointSetAttributes.Intensities:        return _Intensities;       
+                case PointSetAttributes.KdTree:             return _KdTree;  
+                case PointSetAttributes.Normals:            return _Normals;           
+                case PointSetAttributes.Positions:          return _Positions;         
 
                 default: throw new InvalidOperationException($"Cannot convert '{self}' to name.");
             }
@@ -83,12 +84,12 @@ namespace Aardvark.Geometry.Points
         {
             switch (self)
             {
-                case Classifications:       return PointSetAttributes.Classifications;
-                case Colors:                return PointSetAttributes.Colors;
-                case Intensities:           return PointSetAttributes.Intensities;
-                case KdTree:                return PointSetAttributes.KdTree;
-                case Normals:               return PointSetAttributes.Normals;
-                case Positions:             return PointSetAttributes.Positions;
+                case _Classifications:       return PointSetAttributes.Classifications;
+                case _Colors:                return PointSetAttributes.Colors;
+                case _Intensities:           return PointSetAttributes.Intensities;
+                case _KdTree:                return PointSetAttributes.KdTree;
+                case _Normals:               return PointSetAttributes.Normals;
+                case _Positions:             return PointSetAttributes.Positions;
 
                 default: throw new InvalidOperationException($"Cannot convert '{self}' to property.");
             }
@@ -100,12 +101,12 @@ namespace Aardvark.Geometry.Points
         {
             switch (attributeName)
             {
-                case Classifications:       return new PersistentRef<byte[]>(key, storage.GetByteArray, storage.TryGetByteArray);
-                case Colors:                return new PersistentRef<C4b[]>(key, storage.GetC4bArray, storage.TryGetC4bArray);
-                case Intensities:           return new PersistentRef<int[]>(key, storage.GetIntArray, storage.TryGetIntArray);
-                case KdTree:                return new PersistentRef<PointRkdTreeDData>(key, storage.GetPointRkdTreeDData, storage.TryGetPointRkdTreeDData);
-                case Normals:               return new PersistentRef<V3f[]>(key, storage.GetV3fArray, storage.TryGetV3fArray);
-                case Positions:             return new PersistentRef<V3f[]>(key, storage.GetV3fArray, storage.TryGetV3fArray);
+                case _Classifications:       return new PersistentRef<byte[]>(key, storage.GetByteArray, storage.TryGetByteArray);
+                case _Colors:                return new PersistentRef<C4b[]>(key, storage.GetC4bArray, storage.TryGetC4bArray);
+                case _Intensities:           return new PersistentRef<int[]>(key, storage.GetIntArray, storage.TryGetIntArray);
+                case _KdTree:                return new PersistentRef<PointRkdTreeDData>(key, storage.GetPointRkdTreeDData, storage.TryGetPointRkdTreeDData);
+                case _Normals:               return new PersistentRef<V3f[]>(key, storage.GetV3fArray, storage.TryGetV3fArray);
+                case _Positions:             return new PersistentRef<V3f[]>(key, storage.GetV3fArray, storage.TryGetV3fArray);
 
                 default: throw new InvalidOperationException($"Cannot convert '{attributeName}' to property.");
             }
@@ -117,12 +118,12 @@ namespace Aardvark.Geometry.Points
         {
             switch (attributeName)
             {
-                case Classifications:       storage.Add(key, (byte[])value); break;
-                case Colors:                storage.Add(key, (C4b[])value); break;
-                case Intensities:           storage.Add(key, (int[])value); break;
-                case KdTree:                storage.Add(key, (PointRkdTreeDData)value); break;
-                case Normals:               storage.Add(key, (V3f[])value); break;
-                case Positions:             storage.Add(key, (V3f[])value); break;
+                case _Classifications:       storage.Add(key, (byte[])value); break;
+                case _Colors:                storage.Add(key, (C4b[])value); break;
+                case _Intensities:           storage.Add(key, (int[])value); break;
+                case _KdTree:                storage.Add(key, (PointRkdTreeDData)value); break;
+                case _Normals:               storage.Add(key, (V3f[])value); break;
+                case _Positions:             storage.Add(key, (V3f[])value); break;
 
                 default: throw new InvalidOperationException($"Cannot store '{attributeName}'.");
             }
@@ -208,64 +209,192 @@ namespace Aardvark.Geometry.Points
 
     /// <summary>
     /// </summary>
-    public abstract class CellAttribute
+    public static class OctreeAttributes
     {
-        /// <summary></summary>
-        public readonly Guid Id;
+        #region Cell attributes
 
-        /// <summary></summary>
-        public readonly string Name;
+        #region Bounds
 
-        /// <summary></summary>
-        public readonly IImmutableSet<CellAttribute> DependsOn;
+        /// <summary>
+        /// Octree. Exact bounding box of this node's PositionsLocal3f. Local space.
+        /// </summary>
+        public static readonly DurableData<Box3f> BoundingBoxExactLocal =
+            new DurableData<Box3f>(
+                new Guid("aadbb622-1cf6-42e0-86df-be79d28d6757"),
+                "Octree.BoundingBoxExactLocal",
+                "Octree. Exact bounding box of this node's PositionsLocal3f. Local space."
+            );
 
-        /// <summary></summary>
-        public abstract object ComputeValue(IPointCloudNode node);
+        #endregion
 
-        /// <summary></summary>
-        public CellAttribute(Guid id, string name, IImmutableSet<CellAttribute> depends)
-        {
-            Id = id;
-            Name = name;
-            DependsOn = depends;
-        }
+        #region Point distances
+
+        /// <summary>
+        /// Octree. Average (X) and stddev (Y) of distances of each point to its nearest neighbour.
+        /// </summary>
+        public static readonly DurableData<V2f> AveragePointDistanceData =
+            new DurableData<V2f>(
+                new Guid("33fcdbd9-310e-45e7-bba4-c1d2b57a8fb1"),
+                "Octree.AveragePointDistanceData",
+                "Octree. Average (X) and standard deviation (Y) of distances of each point to its nearest neighbour."
+            );
+
+        /// <summary>
+        /// Octree. Average distance of each point to its nearest neighbour
+        /// </summary>
+        public static readonly DurableData<float> AveragePointDistance =
+            new DurableData<float>(
+                new Guid("39c21132-4570-4624-afae-6304851567d7"),
+                "Octree.AveragePointDistance",
+                "Octree. Average distance of each point to its nearest neighbour."
+            );
+
+        /// <summary>
+        /// Octree. Standard deviation of average distance of each point to its nearest neighbour
+        /// </summary>
+        public static readonly DurableData<float> AveragePointDistanceStdDev =
+            new DurableData<float>(
+                new Guid("94cac234-b6ea-443a-b196-c7dd8e5def0d"),
+                "Octree.AveragePointDistanceStdDev",
+                "Octree. Standard deviation of average distance of each point to its nearest neighbour."
+            );
+
+        #endregion
+
+        #region Tree depth
+
+        /// <summary>
+        /// Min and max depth of this tree. A leaf node has depth 0.
+        /// </summary>
+        public static readonly DurableData<Range1i> TreeMinMaxDepth =
+            new DurableData<Range1i>(
+                new Guid("309a1fc8-79f3-4e3f-8ded-5c6b46eaa3ca"),
+                "Octree.TreeMinMaxDepth",
+                "Min and max depth of this tree. A leaf node has depth 0."
+            );
+
+        /// <summary>
+        /// Min depth of this tree. A leaf node has depth 0.
+        /// </summary>
+        public static readonly DurableData<int> TreeMinDepth =
+            new DurableData<int>(
+                new Guid("42edbdd6-a29e-4dfd-9836-050ab7fa4e31"),
+                "Octree.TreeMinDepth",
+                "Min depth of this tree. A leaf node has depth 0."
+            );
+
+        /// <summary>
+        /// Max depth of this tree. A leaf node has depth 0.
+        /// </summary>
+        public static readonly DurableData<int> TreeMaxDepth =
+            new DurableData<int>(
+                new Guid("d6f54b9e-e907-46c5-9106-d26cd453dc97"),
+                "Octree.TreeMaxDepth",
+                "Max depth of this tree. A leaf node has depth 0."
+            );
+
+        #endregion
+
+        #region Counts
+
+        /// <summary>
+        /// Octree. Number of points in this cell. Also dimension of per-point attribute arrays (e.g. Colors3b).
+        /// </summary>
+        public static readonly DurableData<long> PointCountCell =
+            new DurableData<long>(
+                new Guid("172e1f20-0ffc-4d9c-9b3d-903fca41abe3"),
+                "Octree.PointCountCell",
+                "Octree. Number of points in this cell. Also dimension of per-point attribute arrays (e.g. Colors3b)."
+            );
+
+        #endregion
+
+        #endregion
+
+        #region Point attributes
+
+        /// <summary>
+        /// Octree. Reference to per-point positions in local cell space (V3f[]).
+        /// </summary>
+        public static readonly DurableData<Guid> RefPositionsLocal3f =
+            new DurableData<Guid>(
+                new Guid("cb127ab9-e58f-4407-8b6b-7f38a192a611"),
+                "Octree.RefPositionsLocal3f",
+                "Octree. Reference to per-point positions in local cell space (V3f[])."
+            );
+
+        /// <summary>
+        /// Octree. Kd-tree for positions in local cell space (PointRkdTreeD&lt;V3f[], V3f&gt;).
+        /// </summary>
+        public static readonly DurableData<Guid> RefKdTreeLocal3f =
+            new DurableData<Guid>(
+                new Guid("dea5651f-2d84-4552-9d09-dbeea761e5d4"),
+                "Octree.RefKdTreeLocal3f",
+                "Octree. Kd-tree for positions in local cell space (PointRkdTreeD<V3f[], V3f>)."
+            );
+
+        /// <summary>
+        /// Octree. Reference to per-point colors (C3b[]).
+        /// </summary>
+        public static readonly DurableData<Guid> RefColors3b =
+            new DurableData<Guid>(
+                new Guid("481857a0-398b-4299-afca-41d07b9b92bd"),
+                "Octree.RefColors3b",
+                "Octree. Reference to per-point colors (C3b[])."
+            );
+
+        /// <summary>
+        /// Octree. Reference to per-point colors (C4b[]).
+        /// </summary>
+        public static readonly DurableData<Guid> RefColors4b =
+            new DurableData<Guid>(
+                new Guid("5e9a09c8-76f4-48d2-bcdb-dc284f029667"),
+                "Octree.RefColors4b",
+                "Octree. Reference to per-point colors (C4b[])."
+            );
+
+        /// <summary>
+        /// Octree. Reference to per-point normals (V3f[]).
+        /// </summary>
+        public static readonly DurableData<Guid> RefNormals3f =
+            new DurableData<Guid>(
+                new Guid("14a89b04-c24a-439d-988e-f6528282e7fd"),
+                "Octree.RefNormals3f",
+                "Octree. Reference to per-point normals (V3f[])."
+            );
+
+        /// <summary>
+        /// Octree. Reference to per-point intensities (int[]).
+        /// </summary>
+        public static readonly DurableData<Guid> RefIntensities1i =
+            new DurableData<Guid>(
+                new Guid("25f45721-c647-45eb-b45b-26585ae0bcde"),
+                "Octree.RefIntensities1i",
+                "Octree. Reference to per-point intensities (int[])."
+            );
+
+        /// <summary>
+        /// Octree. Reference to per-point classifications array (byte[]).
+        /// </summary>
+        public static readonly DurableData<Guid> RefClassifications1b =
+            new DurableData<Guid>(
+                new Guid("ff6bf035-1e0e-4a03-a27d-9d1fe134bb48"),
+                "Octree.RefClassifications1b",
+                "Octree. Reference to per-point classifications array (byte[])."
+            );
+
+
+        #endregion
     }
-
-    /// <summary></summary>
-    public class CellAttribute<T> : CellAttribute where T : struct
-    {
-        /// <summary></summary>
-        public readonly Func<CellAttribute<T>, IPointCloudNode, T> Compute;
-
-        /// <summary></summary>
-        public readonly Func<CellAttribute<T>, IPointCloudNode, IPointCloudNode, T?> TryMerge;
-
-        /// <summary></summary>
-        public CellAttribute(Guid id, string name, Func<CellAttribute<T>, IPointCloudNode, T> compute, Func<CellAttribute<T>, IPointCloudNode, IPointCloudNode, T?> tryMerge, params CellAttribute[] depends)
-            : base(id, name, ImmutableHashSet.Create(depends))
-        {
-            Compute = compute;
-            TryMerge = tryMerge ?? ((a, b, c) => null);
-        }
-
-        /// <summary></summary>
-        public CellAttribute(Guid id, string name, Func<CellAttribute<T>, IPointCloudNode, T> compute, params CellAttribute[] depends)
-            : this(id, name, compute, null, depends)
-        { }
-
-        /// <summary></summary>
-        public override object ComputeValue(IPointCloudNode node) => Compute(this, node);
-    }
-
 
     /// <summary>
     /// </summary>
-    public static class CellAttributes
+    public static class OctreeAttributesExtensions
     {
         /// <summary></summary>
-        public static bool TryGetCellAttribute<T>(this IPointCloudNode node, Guid id, out T value) where T : struct
+        public static bool TryGetValue<T>(this IPointCloudNode node, DurableData<T> attribute, out T value)
         {
-            if (node.CellAttributes.TryGetValue(id, out var o) && o is T)
+            if (node.Data.TryGetValue(attribute, out var o) && o is T)
             {
                 value = (T)o;
                 return true;
@@ -278,189 +407,173 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public static T GetCellAttribute<T>(this IPointCloudNode node, CellAttribute<T> attribute) where T : struct
+        public static T GetValue<T>(this IPointCloudNode node, DurableData<T> attribute)
         {
-            if (node.TryGetCellAttribute<T>(attribute.Id, out T value)) return value;
-            else return attribute.Compute(attribute, node);
-        }
-
-        /// <summary></summary>
-        public static bool TryGetCellAttribute<T>(this IPointCloudNode node, CellAttribute<T> attribute, out T value) where T : struct
-        {
-            if (node.CellAttributes.TryGetValue(attribute.Id, out var o) && o is T)
+            if (node.Data.TryGetValue(attribute, out var o) && o is T)
             {
-                value = (T)o;
-                return true;
+                return (T)o;
             }
             else
             {
-                value = default(T);
-                return false;
+                throw new InvalidOperationException();
             }
         }
 
-        /// <summary></summary>
-        public static readonly CellAttribute<Box3f> BoundingBoxExactLocal =
-            new CellAttribute<Box3f>(
-                new Guid(0xaadbb622, 0x1cf6, 0x42e0, 0x86, 0xdf, 0xbe, 0x79, 0xd2, 0x8d, 0x67, 0x57),
-                "BoundingBoxExactLocal",
-                (self, node) =>
-                {
-                    if (node.TryGetCellAttribute(self.Id, out Box3f box))
-                    {
-                        return box;
-                    }
-                    else if (node.IsLeaf())
-                    {
-                        var posRef = node.GetPositions();
-                        if (posRef == null) return Box3f.Invalid;
+        #region Bounds
 
-                        var pos = posRef.Value;
-                        return new Box3f(pos);
-                    }
-                    else
+        /// <summary>
+        /// Octree. Exact bounding box of this node's PositionsLocal3f. Local space.
+        /// </summary>
+        public static Box3f GetOrComputeBoundingBoxExactLocal(this IPointCloudNode node)
+        {
+            if (node.TryGetValue(OctreeAttributes.BoundingBoxExactLocal, out Box3f box))
+            {
+                return box;
+            }
+            else if (node.IsLeaf())
+            {
+                var posRef = node.GetPositions();
+                if (posRef == null) return Box3f.Invalid;
+
+                var pos = posRef.Value;
+                return new Box3f(pos);
+            }
+            else
+            {
+                var center = node.Center;
+                var bounds = Box3f.Invalid;
+                foreach (var nr in node.SubNodes)
+                {
+                    if (nr == null) continue;
+                    var n = nr.Value;
+                    var b = n.GetValue(OctreeAttributes.BoundingBoxExactLocal);
+                    var shift = (V3f)(n.Center - center);
+                    bounds.ExtendBy(new Box3f(shift + b.Min, shift + b.Max));
+                }
+                return bounds;
+            }
+        }
+
+        #endregion
+
+        #region Point distances
+
+        /// <summary>
+        /// Octree. Average (X) and stddev (Y) of distances of each point to its nearest neighbour.
+        /// </summary>
+        public static V2f GetOrComputeAveragePointDistanceData(this IPointCloudNode node)
+        {
+            if (node.TryGetValue(OctreeAttributes.AveragePointDistanceData, out V2f value))
+            {
+                return value;
+            }
+            else
+            {
+                var posRef = node.GetPositions();
+                var kdTreeRef = node.GetKdTree();
+                if (kdTreeRef == null || posRef == null) return new V2f(-1.0f, -1.0f);
+
+                var kdTree = kdTreeRef.Value;
+                var pos = posRef.Value;
+
+                var maxRadius = node.BoundingBoxExact.Size.NormMax / 20.0;
+                var sum = 0.0;
+                var sumSq = 0.0;
+                var cnt = 0;
+
+                var step = pos.Length < 1000 ? 1 : pos.Length / 1000;
+                for (int i = 0; i < pos.Length; i += step)
+                {
+                    var p = pos[i];
+                    var res = kdTree.GetClosest(kdTree.CreateClosestToPointQuery(maxRadius, 2), p);
+                    if (res.Count > 1 && res[0].Dist > 0.0)
                     {
-                        var center = node.Center;
-                        var bounds = Box3f.Invalid;
-                        foreach (var nr in node.SubNodes)
-                        {
-                            if (nr == null) continue;
-                            var n = nr.Value;
-                            var b = n.GetCellAttribute(self);
-                            var shift = (V3f)(n.Center - center);
-                            bounds.ExtendBy(new Box3f(shift + b.Min, shift + b.Max));
-                        }
-                        return bounds;
+                        var maxDist = res[0].Dist;
+                        sum += maxDist;
+                        sumSq += maxDist * maxDist;
+                        cnt++;
                     }
                 }
-            );
 
-        private static readonly CellAttribute<V2f> AveragePointDistanceData =
-            new CellAttribute<V2f>(
-                new Guid(0x33fcdbd9, 0x310e, 0x45e7, 0xbb, 0xa4, 0xc1, 0xd2, 0xb5, 0x7a, 0x8f, 0xb1),
-                "AveragePointDistanceData",
-                (self, node) =>
+                if (cnt == 0) return new V2f(maxRadius, -1.0f);
+
+                var avg = sum / cnt;
+                var var = (sumSq / cnt) - avg * avg;
+                var stddev = Math.Sqrt(var);
+                return new V2f(avg, stddev);
+            }
+        }
+
+        /// <summary>
+        /// Octree. Average distance of each point to its nearest neighbour
+        /// </summary>
+        public static float GetOrComputeAveragePointDistance(this IPointCloudNode node)
+            => node.GetOrComputeAveragePointDistanceData().X;
+
+        /// <summary>
+        /// Octree. Standard deviation of average distance of each point to its nearest neighbour
+        /// </summary>
+        public static float GetOrComputeAveragePointDistanceStdDev(this IPointCloudNode node)
+            => node.GetOrComputeAveragePointDistanceData().Y;
+
+        #endregion
+
+        #region Tree depth
+
+        /// <summary>
+        /// Min and max depth of this tree. A leaf node has depth 0.
+        /// </summary>
+        public static Range1i GetOrComputeTreeMinMaxDepth(this IPointCloudNode node)
+        {
+            if (node.TryGetValue(OctreeAttributes.TreeMinMaxDepth, out Range1i value))
+            {
+                return value;
+            }
+            else
+            {
+                if (node.IsLeaf()) return new Range1i(0, 0);
+                else
                 {
-                    if (node.TryGetCellAttribute(self.Id, out V2f value))
+                    Range1i range = new Range1i(int.MaxValue, int.MinValue);
+
+                    foreach (var nr in node.SubNodes)
                     {
-                        return value;
+                        if (nr == null) continue;
+                        var n = nr.Value.GetValue(OctreeAttributes.TreeMinMaxDepth);
+                        n.Min += 1;
+                        n.Max += 1;
+
+                        if (n.Min < range.Min) range.Min = n.Min;
+                        if (n.Max > range.Max) range.Max = n.Max;
                     }
-                    else
-                    {
-                        var posRef = node.GetPositions();
-                        var kdTreeRef = node.GetKdTree();
-                        if (kdTreeRef == null || posRef == null) return new V2f(-1.0f, -1.0f);
 
-                        var kdTree = kdTreeRef.Value;
-                        var pos = posRef.Value;
-
-                        var maxRadius = node.BoundingBoxExact.Size.NormMax / 20.0;
-                        var sum = 0.0;
-                        var sumSq = 0.0;
-                        var cnt = 0;
-
-                        var step = pos.Length < 1000 ? 1 : pos.Length / 1000;
-                        for (int i = 0; i < pos.Length; i += step)
-                        {
-                            var p = pos[i];
-                            var res = kdTree.GetClosest(kdTree.CreateClosestToPointQuery(maxRadius, 2), p);
-                            if (res.Count > 1 && res[0].Dist > 0.0)
-                            {
-                                var maxDist = res[0].Dist;
-                                sum += maxDist;
-                                sumSq += maxDist * maxDist;
-                                cnt++;
-                            }
-                        }
-
-                        if (cnt == 0) return new V2f(maxRadius, -1.0f);
-
-                        var avg = sum / cnt;
-                        var var = (sumSq / cnt) - avg * avg;
-                        var stddev = Fun.Sqrt(var);
-                        return new V2f(avg, stddev);
-                    }
-                },
-                BoundingBoxExactLocal
-            );
-
-        /// <summary></summary>
-        public static readonly CellAttribute<float> AveragePointDistance =
-            new CellAttribute<float>(
-                new Guid(0x39c21132, 0x4570, 0x4624, 0xaf, 0xae, 0x63, 0x04, 0x85, 0x15, 0x67, 0xd7),
-                "AveragePointDistance",
-                (self, node) => node.GetCellAttribute(AveragePointDistanceData).X,
-                AveragePointDistanceData
-            );
-
-        /// <summary></summary>
-        public static readonly CellAttribute<float> AveragePointDistanceStdDev =
-            new CellAttribute<float>(
-                new Guid(0x94cac234, 0xb6ea, 0x443a, 0xb1, 0x96, 0xc7, 0xdd, 0x8e, 0x5d, 0xef, 0x0d),
-                "AveragePointDistanceStdDev",
-                (self, node) => node.GetCellAttribute(AveragePointDistanceData).Y,
-                AveragePointDistanceData
-            );
-
-        /// <summary></summary>
-        private static readonly CellAttribute<Range1i> TreeMinMaxDepth =
-            new CellAttribute<Range1i>(
-                new Guid(0x309a1fc8, 0x79f3, 0x4e3f, 0x8d, 0xed, 0x5c, 0x6b, 0x46, 0xea, 0xa3, 0xca),
-                "TreeMinMaxDepth",
-                (self, node) =>
-                {
-                    if (node.TryGetCellAttribute(self.Id, out Range1i value))
-                    {
-                        return value;
-                    }
-                    else
-                    {
-                        if (node.IsLeaf()) return new Range1i(0, 0);
-                        else
-                        {
-                            Range1i range = new Range1i(int.MaxValue, int.MinValue);
-
-                            foreach (var nr in node.SubNodes)
-                            {
-                                if (nr == null) continue;
-                                var n = nr.Value.GetCellAttribute(self);
-                                n.Min += 1;
-                                n.Max += 1;
-
-                                if (n.Min < range.Min) range.Min = n.Min;
-                                if (n.Max > range.Max) range.Max = n.Max;
-                            }
-
-                            return range;
-                        }
-                    }
+                    return range;
                 }
-            );
+            }
+        }
 
-        /// <summary></summary>
-        public static readonly CellAttribute<int> TreeMinDepth =
-            new CellAttribute<int>(
-                new Guid(0x42edbdd6, 0xa29e, 0x4dfd, 0x98, 0x36, 0x05, 0x0a, 0xb7, 0xfa, 0x4e, 0x31),
-                "TreeMinDepth",
-                (self, node) => node.GetCellAttribute(TreeMinMaxDepth).Min,
-                TreeMinMaxDepth
-            );
+        /// <summary>
+        /// Min depth of this tree. A leaf node has depth 0.
+        /// </summary>
+        public static int GetOrComputeTreeMinDepth(this IPointCloudNode node)
+            => node.GetOrComputeTreeMinMaxDepth().Min;
 
-        /// <summary></summary>
-        public static readonly CellAttribute<int> TreeMaxDepth =
-            new CellAttribute<int>(
-                new Guid(0xd6f54b9e, 0xe907, 0x46c5, 0x91, 0x06, 0xd2, 0x6c, 0xd4, 0x53, 0xdc, 0x97),
-                "TreeMaxDepth",
-                (self, node) => node.GetCellAttribute(TreeMinMaxDepth).Max,
-                TreeMinMaxDepth
-            );
+        /// <summary>
+        /// Max depth of this tree. A leaf node has depth 0.
+        /// </summary>
+        public static int GetOrComputeTreeMaxDepth(this IPointCloudNode node)
+            => node.GetOrComputeTreeMinMaxDepth().Max;
 
-        /// <summary></summary>
-        public static readonly CellAttribute<long> PointCountCell =
-            new CellAttribute<long>(
-                new Guid(0x172e1f20, 0x0ffc, 0x4d9c, 0x9b, 0x3d, 0x90, 0x3f, 0xca, 0x41, 0xab, 0xe3),
-                "PointCountCell",
-                (self, node) => node.IsLeaf() ? node.PointCountTree : (node.GetPositions()?.Value?.Length ?? 0L)
-            );
+        #endregion
+
+        #region Counts
+
+        /// <summary>
+        /// Octree. Number of points in this cell. Also dimension of per-point attribute arrays (e.g. Colors3b).
+        /// </summary>
+        public static long GetOrComputePointCountCell(this IPointCloudNode node)
+            => node.IsLeaf() ? node.PointCountTree : (node.GetPositions()?.Value?.Length ?? 0L);
+
+        #endregion
     }
 }

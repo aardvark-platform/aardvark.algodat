@@ -128,13 +128,13 @@ namespace Aardvark.Geometry.Points
         [JsonIgnore]
         public Storage Storage { get; }
 
-        /// <summary></summary>
-        public bool TryGetPropertyKey(string property, out string key)
-            => Root.TryGetPropertyKey(property, out key);
+        ///// <summary></summary>
+        //public bool TryGetPropertyKey(string property, out string key)
+        //    => Root.TryGetPropertyKey(property, out key);
 
-        /// <summary></summary>
-        public bool TryGetPropertyValue(string property, out object value)
-            => Root.TryGetPropertyValue(property, out value);
+        ///// <summary></summary>
+        //public bool TryGetPropertyValue(string property, out object value)
+        //    => Root.TryGetPropertyValue(property, out value);
 
         /// <summary></summary>
         public FilterState FilterState => FilterState.FullyInside;
@@ -166,7 +166,7 @@ namespace Aardvark.Geometry.Points
         public string NodeType => Type;
 
         /// <summary></summary>
-        public ImmutableDictionary<Guid, object> CellAttributes => throw new NotImplementedException();
+        public ImmutableDictionary<DurableData, object> Data => throw new NotImplementedException();
 
         /// <summary></summary>
         public void Dispose() => Storage?.Dispose();

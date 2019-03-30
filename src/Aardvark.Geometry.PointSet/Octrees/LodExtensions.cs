@@ -195,27 +195,35 @@ namespace Aardvark.Geometry.Points
 
                 if (!self.HasNormals && (config.EstimateNormals != null || config.EstimateNormalsKdTree != null))
                 {
-                    var nsId = Guid.NewGuid();
+                    var keyNs = Guid.NewGuid();
 
                     var ns =
                         config.EstimateNormalsKdTree == null ?
                         config.EstimateNormals(self.Positions.Value.MapToList(p => self.Center + (V3d)p)).ToArray() :
                         config.EstimateNormalsKdTree(self.KdTree.Value, self.Positions.Value);
 
-                    self.Storage.Add(nsId, ns);
-                    simple = simple.AddAttribute(PointCloudAttribute.Normals, nsId.ToString(), ns);
+                    self.Storage.Add(keyNs, ns);
+                    simple = simple.AddData(OctreeAttributes.RefNormals3f, keyNs, ns);
                     changed = true;
                 }
 
-                foreach(var att in config.CellAttributes)
+                //// TODO
+                //foreach(var att in config.CellAttributes)
+                //{
+                //    var o = att.ComputeValue(simple);
+                //    simple = simple.WithCellAttributes(simple.CellAttributes.Add(att.Id, o));
+                //    changed = true;
+                //}
+
+                if (changed)
                 {
-                    var o = att.ComputeValue(simple);
-                    simple = simple.WithCellAttributes(simple.CellAttributes.Add(att.Id, o));
-                    changed = true;
+                    throw new NotImplementedException();
+                    //return simple.Persist();
                 }
-
-                if (changed) return simple.Persist();
-                else return self;
+                else
+                {
+                    return self;
+                }
             }
 
             if (self.HasPositions) return self; // cell already has data -> done
@@ -257,54 +265,55 @@ namespace Aardvark.Geometry.Points
                     null;
 
 
-            var attributes = new List<(string, string, object)>();
+            var data = new Dictionary<DurableData, (Guid, object)>();
+
             // store LoD data ...
-            var lodPsId = Guid.NewGuid();
-            self.Storage.Add(lodPsId, lodPs);
-            attributes.Add((PointCloudAttribute.Positions, lodPsId.ToString(), lodPs));
+            var keyLodPs = Guid.NewGuid();
+            self.Storage.Add(keyLodPs, lodPs);
+            data[OctreeAttributes.RefPositionsLocal3f] = (keyLodPs, lodPs);
 
-            var lodKdId = Guid.NewGuid();
-            self.Storage.Add(lodKdId, lodKd.Data);
-            attributes.Add((PointCloudAttribute.KdTree, lodKdId.ToString(), lodKd));
+            var keyLodKd = Guid.NewGuid();
+            self.Storage.Add(keyLodKd, lodKd.Data);
+            data[OctreeAttributes.RefKdTreeLocal3f] = (keyLodKd, lodKd);
 
-            var lodCsId = needsCs ? (Guid?)Guid.NewGuid() : null;
             if (needsCs)
             {
-                self.Storage.Add(lodCsId.Value, lodCs);
-                attributes.Add((PointCloudAttribute.Colors, lodCsId.Value.ToString(), lodCs));
+                var key = Guid.NewGuid();
+                self.Storage.Add(key, lodCs);
+                data[OctreeAttributes.RefColors4b] = (key, lodCs);
             }
 
-            var lodNsId = needsNs ? (Guid?)Guid.NewGuid() : null;
             if (needsNs)
             {
-                self.Storage.Add(lodNsId.Value, lodNs);
-                attributes.Add((PointCloudAttribute.Normals, lodNsId.Value.ToString(), lodNs));
+                var key = Guid.NewGuid();
+                self.Storage.Add(key, lodNs);
+                data[OctreeAttributes.RefNormals3f] = (key, lodNs);
             }
 
-
-            var lodIsId = needsIs ? (Guid?)Guid.NewGuid() : null;
             if (needsIs)
             {
-                self.Storage.Add(lodIsId.Value, lodIs);
-                attributes.Add((PointCloudAttribute.Intensities, lodIsId.Value.ToString(), lodIs));
+                var key = Guid.NewGuid();
+                self.Storage.Add(key, lodIs);
+                data[OctreeAttributes.RefIntensities1i] = (key, lodIs);
             }
 
-            var lodKsId = needsKs ? (Guid?)Guid.NewGuid() : null;
             if (needsKs)
             {
-                self.Storage.Add(lodKsId.Value, lodKs);
-                attributes.Add((PointCloudAttribute.Classifications, lodKsId.Value.ToString(), lodKs));
+                var key = Guid.NewGuid();
+                self.Storage.Add(key, lodKs);
+                data[OctreeAttributes.RefClassifications1b] = (key, lodKs);
             }
-
 
             SimpleNode node = new SimpleNode(self);
-            foreach(var att in config.CellAttributes)
-            {
-                var dict = node.CellAttributes.Add(att.Id, att.ComputeValue(node));
-                node = node.WithCellAttributes(dict);
-            }
+            //foreach (var att in config.CellAttributes)
+            //{
+            //    var dict = node.CellAttributes.Add(att.Id, att.ComputeValue(node));
+            //    node = node.WithData(dict);
+            //}
 
-            var result = self.WithData(node.CellAttributes, subcellsTotalCount, lodPsId, lodCsId, lodNsId, lodIsId, lodKdId, lodKsId, subcells);
+            var result = self
+                .WithSubNodes(subcells)
+                .WithAddedOrReplacedData(node.Data/*, subcellsTotalCount, keyLodPs, lodCsId, lodNsId, lodIsId, keyLodKd, lodKsId,*/);
             return result;
         }
 
@@ -375,8 +384,9 @@ namespace Aardvark.Geometry.Points
             var lodKsId = needsKs ? Guid.NewGuid().ToString() : null;
             if (needsKs) self.Storage.Add(lodKsId, lodKs);
 
-            var result = self.WithData(lodPsId, lodKdId, lodCsId, lodNsId, lodIsId, lodKsId);
-            return result;
+            throw new NotImplementedException();
+            //var result = self.WithData(lodPsId, lodKdId, lodCsId, lodNsId, lodIsId, lodKsId);
+            //return result;
         }
     }
 }

@@ -72,19 +72,9 @@ namespace Aardvark.Geometry.Points
         PersistentRef<IPointCloudNode>[] SubNodes { get; }
 
         /// <summary>
-        /// Gets storage key of given property.
+        /// Gets the given durable data value. 
         /// </summary>
-        bool TryGetPropertyKey(string property, out string key);
-
-        /// <summary>
-        /// Gets the attribute for the given id 
-        /// </summary>
-        ImmutableDictionary<Guid, object> CellAttributes { get; }
-
-        /// <summary>
-        /// Gets value of given property.
-        /// </summary>
-        bool TryGetPropertyValue(string property, out object value);
+        ImmutableDictionary<DurableData, object> Data { get; }
 
         /// <summary>
         /// </summary>
