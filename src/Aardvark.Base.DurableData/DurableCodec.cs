@@ -33,6 +33,7 @@ namespace Aardvark.Base
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Encode<T>(byte[] dst, ref int index, in T value) where T : struct
         {
+            if (dst == null) throw new ArgumentNullException(nameof(dst));
             var gc = GCHandle.Alloc(dst, GCHandleType.Pinned);
             var size = Marshal.SizeOf<T>();
             Marshal.StructureToPtr(value, gc.AddrOfPinnedObject() + index, true);
@@ -101,10 +102,14 @@ namespace Aardvark.Base
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void EncodeArray<T>(byte[] dst, ref int index, in T[] values) where T : struct
         {
+            if (dst == null) throw new ArgumentNullException(nameof(dst));
+            if (values == null) throw new ArgumentNullException(nameof(values));
+
             var gc = GCHandle.Alloc(values, GCHandleType.Pinned);
             try
             {
                 // encode count
+                if (index + 4 >= dst.Length) throw new IndexOutOfRangeException();
                 unsafe
                 {
                     fixed (byte* p = dst)
@@ -116,6 +121,7 @@ namespace Aardvark.Base
 
                 // encode array values
                 var size = values.Length * Marshal.SizeOf<T>();
+                if (index + size >= dst.Length) throw new IndexOutOfRangeException();
                 Marshal.Copy(gc.AddrOfPinnedObject(), dst, index, size);
                 index += size;
             }
@@ -130,6 +136,8 @@ namespace Aardvark.Base
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static byte[] EncodeArray<T>(in T[] values) where T : struct
         {
+            if (values == null) throw new ArgumentNullException(nameof(values));
+
             var totalSize = 4 + values.Length * Marshal.SizeOf<T>();
             var dst = new byte[totalSize];
             var gc = GCHandle.Alloc(values, GCHandleType.Pinned);
@@ -256,12 +264,12 @@ namespace Aardvark.Base
         /// <summary>
         /// Encodes durable primitive type.
         /// </summary>
-        public static byte[] Encode(string value) => EncodeArray(Encoding.UTF8.GetBytes(value));
+        public static byte[] EncodeString(string value) => EncodeArray(Encoding.UTF8.GetBytes(value));
 
         /// <summary>
         /// Encodes durable primitive type.
         /// </summary>
-        public static byte[] EncodeArray(string[] values)
+        public static byte[] EncodeStringArray(string[] values)
         {
             using (var ms = new MemoryStream())
             {
@@ -285,7 +293,7 @@ namespace Aardvark.Base
         /// <summary>
         /// Decodes durable primitive type.
         /// </summary>
-        public static string[] DecodeArrayString(byte[] src)
+        public static string[] DecodeStringArray(byte[] src)
         {
             var count = BitConverter.ToInt32(src, 0);
             var result = new string[count];
