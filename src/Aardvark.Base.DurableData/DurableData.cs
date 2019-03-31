@@ -23,6 +23,23 @@ namespace Aardvark.Base
     public partial class DurableData
     {
         /// <summary></summary>
+        public class Unit
+        {
+            /// <summary></summary>
+            public static readonly Unit Default = new Unit();
+        }
+
+        /// <summary>
+        /// None, nothing, null, etc.
+        /// </summary>
+        public static readonly DurableData None = new DurableData(Guid.Empty, "None", "None, nothing, null, etc.", DurableTypes.Unit);
+    }
+
+    /// <summary>
+    /// </summary>
+    public partial class DurableData
+    {
+        /// <summary></summary>
         public Guid Id { get; }
 
         /// <summary>

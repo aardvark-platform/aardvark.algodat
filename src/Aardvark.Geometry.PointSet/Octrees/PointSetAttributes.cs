@@ -60,42 +60,6 @@ namespace Aardvark.Geometry.Points
         public const string _PositionsAbsolute = "PositionsAbsolute";
 
         /// <summary>
-        /// Gets name of attribute.
-        /// </summary>
-        public static string ToName(this PointSetAttributes self)
-        {
-            switch (self)
-            {
-                case PointSetAttributes.Classifications:    return _Classifications;
-                case PointSetAttributes.Colors:             return _Colors;            
-                case PointSetAttributes.Intensities:        return _Intensities;       
-                case PointSetAttributes.KdTree:             return _KdTree;  
-                case PointSetAttributes.Normals:            return _Normals;           
-                case PointSetAttributes.Positions:          return _Positions;         
-
-                default: throw new InvalidOperationException($"Cannot convert '{self}' to name.");
-            }
-        }
-
-        /// <summary>
-        /// Gets attribute from name.
-        /// </summary>
-        public static PointSetAttributes ToPointSetAttribute(this string self)
-        {
-            switch (self)
-            {
-                case _Classifications:       return PointSetAttributes.Classifications;
-                case _Colors:                return PointSetAttributes.Colors;
-                case _Intensities:           return PointSetAttributes.Intensities;
-                case _KdTree:                return PointSetAttributes.KdTree;
-                case _Normals:               return PointSetAttributes.Normals;
-                case _Positions:             return PointSetAttributes.Positions;
-
-                default: throw new InvalidOperationException($"Cannot convert '{self}' to property.");
-            }
-        }
-
-        /// <summary>
         /// </summary>
         public static object CreatePersistentRef(this Storage storage, string attributeName, string key, object value)
         {
@@ -130,82 +94,82 @@ namespace Aardvark.Geometry.Points
         }
     }
 
-    /// <summary>
-    /// </summary>
-    [Flags]
-    public enum PointSetAttributes : uint
-    {
-        /// <summary>
-        /// V3f[] relative to Center.
-        /// </summary>
-        Positions           = 1 <<  0,
+    ///// <summary>
+    ///// </summary>
+    //[Flags]
+    //public enum PointSetAttributes : uint
+    //{
+    //    /// <summary>
+    //    /// V3f[] relative to Center.
+    //    /// </summary>
+    //    Positions           = 1 <<  0,
 
-        /// <summary>
-        /// C4b[].
-        /// </summary>
-        Colors              = 1 <<  1,
+    //    /// <summary>
+    //    /// C4b[].
+    //    /// </summary>
+    //    Colors              = 1 <<  1,
 
-        /// <summary>
-        /// V3f[].
-        /// </summary>
-        Normals             = 1 <<  2,
+    //    /// <summary>
+    //    /// V3f[].
+    //    /// </summary>
+    //    Normals             = 1 <<  2,
 
-        /// <summary>
-        /// int[].
-        /// </summary>
-        Intensities         = 1 <<  3,
+    //    /// <summary>
+    //    /// int[].
+    //    /// </summary>
+    //    Intensities         = 1 <<  3,
 
-        /// <summary>
-        /// PointRkdTreeD&lt;V3f[], V3f&gt;.
-        /// </summary>
-        KdTree              = 1 <<  4,
+    //    /// <summary>
+    //    /// PointRkdTreeD&lt;V3f[], V3f&gt;.
+    //    /// </summary>
+    //    KdTree              = 1 <<  4,
 
-        /// <summary>
-        /// V3f[] relative to Center.
-        /// </summary>
-        [Obsolete]
-        LodPositions        = 1 <<  5,
+    //    /// <summary>
+    //    /// V3f[] relative to Center.
+    //    /// </summary>
+    //    [Obsolete]
+    //    LodPositions        = 1 <<  5,
 
-        /// <summary>
-        /// C4b[].
-        /// </summary>
-        [Obsolete]
-        LodColors           = 1 <<  6,
+    //    /// <summary>
+    //    /// C4b[].
+    //    /// </summary>
+    //    [Obsolete]
+    //    LodColors           = 1 <<  6,
 
-        /// <summary>
-        /// V3f[].
-        /// </summary>
-        [Obsolete]
-        LodNormals          = 1 <<  7,
+    //    /// <summary>
+    //    /// V3f[].
+    //    /// </summary>
+    //    [Obsolete]
+    //    LodNormals          = 1 <<  7,
 
-        /// <summary>
-        /// int[].
-        /// </summary>
-        [Obsolete]
-        LodIntensities      = 1 <<  8,
+    //    /// <summary>
+    //    /// int[].
+    //    /// </summary>
+    //    [Obsolete]
+    //    LodIntensities      = 1 <<  8,
 
-        /// <summary>
-        /// PointRkdTreeD&lt;V3f[], V3f&gt;.
-        /// </summary>
-        [Obsolete]
-        LodKdTree           = 1 <<  9,
+    //    /// <summary>
+    //    /// PointRkdTreeD&lt;V3f[], V3f&gt;.
+    //    /// </summary>
+    //    [Obsolete]
+    //    LodKdTree           = 1 <<  9,
 
-        /// <summary>
-        /// byte[].
-        /// </summary>
-        Classifications     = 1 << 10,
+    //    /// <summary>
+    //    /// byte[].
+    //    /// </summary>
+    //    Classifications     = 1 << 10,
 
-        /// <summary>
-        /// byte[].
-        /// </summary>
-        [Obsolete]
-        LodClassifications  = 1 << 11,
+    //    /// <summary>
+    //    /// byte[].
+    //    /// </summary>
+    //    [Obsolete]
+    //    LodClassifications  = 1 << 11,
 
-        /// <summary>
-        /// Cell attributes.
-        /// </summary>
-        HasCellAttributes   = 1 << 23,
-    }
+    //    /// <summary>
+    //    /// Cell attributes.
+    //    /// </summary>
+    //    HasCellAttributes   = 1 << 23,
+    //}
 
     /// <summary>
     /// </summary>
@@ -338,19 +302,19 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static readonly DurableData<Guid> PositionsGlobal3d =
             new DurableData<Guid>(
-                new Guid("05eb38fa-1b6a-4576-820b-780163199db9"),
+                new Guid("61ef7c1e-6aeb-45cd-85ed-ad0ed2584553"),
                 "Octree.PositionsGlobal3d",
                 "Octree. Per-point positions in global space (V3d[])."
             );
 
         /// <summary>
-        /// Octree. Reference to kd-tree for positions in local cell space (PointRkdTreeD&lt;V3f[], V3f&gt;).
+        /// Octree. Reference to kd-tree for positions in local cell space (PointRkdTreeD&lt;V3f[], V3f&gt;.Data).
         /// </summary>
         public static readonly DurableData<Guid> RefKdTreeLocal3f =
             new DurableData<Guid>(
                 new Guid("dea5651f-2d84-4552-9d09-dbeea761e5d4"),
                 "Octree.RefKdTreeLocal3f",
-                "Octree. Reference to kd-tree for positions in local cell space (PointRkdTreeD<V3f[], V3f>)."
+                "Octree. Reference to kd-tree for positions in local cell space (PointRkdTreeD<V3f[], V3f>.Data)."
             );
 
         /// <summary>

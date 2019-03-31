@@ -179,25 +179,22 @@ namespace Aardvark.Geometry.Points
                     : ps.Length
                     ;
 
-                if (psId != null) storage.Add(psId.ToString(), ps);
-                if (csId != null) storage.Add(csId.ToString(), cs);
-                if (nsId != null) storage.Add(nsId.ToString(), ns);
-                if (isId != null) storage.Add(isId.ToString(), js);
-                if (ksId != null) storage.Add(ksId.ToString(), ks);
-                if (kdId != null) storage.Add(kdId.ToString(), kdTree.Data);
+                var data = ImmutableDictionary<DurableData, object>.Empty;
 
-
+                if (psId != null) { storage.Add(psId.ToString(), ps); data = data.Add(OctreeAttributes.RefPositionsLocal3f, psId.Value); }
+                if (csId != null) { storage.Add(csId.ToString(), cs); data = data.Add(OctreeAttributes.RefColors3b, csId.Value); }
+                if (nsId != null) { storage.Add(nsId.ToString(), ns); data = data.Add(OctreeAttributes.RefNormals3f, nsId.Value); }
+                if (isId != null) { storage.Add(isId.ToString(), js); data = data.Add(OctreeAttributes.RefIntensities1i, isId.Value); }
+                if (ksId != null) { storage.Add(ksId.ToString(), ks); data = data.Add(OctreeAttributes.RefClassifications1b, ksId.Value); }
+                if (kdId != null) { storage.Add(kdId.ToString(), kdTree.Data); data = data.Add(OctreeAttributes.RefKdTreeLocal3f, kdId.Value); }
 
                 if (subcellIds == null) // leaf
                 {
-                    throw new NotImplementedException();
-                    //return new PointSetNode(_cell, pointCountTree, ImmutableDictionary<Guid, object>.Empty,
-                    //    psId, csId, kdId, nsId, isId, ksId, storage);
+                    return new PointSetNode(_cell, pointCountTree, data, storage);
                 }
                 else
                 {
-                    throw new NotImplementedException();
-                    //return new PointSetNode(_cell, pointCountTree, ImmutableDictionary<Guid, object>.Empty, subcellIds, storage);
+                    return new PointSetNode(_cell, pointCountTree, data, subcellIds, storage);
                 }
             }
             

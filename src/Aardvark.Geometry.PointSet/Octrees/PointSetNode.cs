@@ -60,12 +60,12 @@ namespace Aardvark.Geometry.Points
             var isId = IntensitiesId;
             var ksId = ClassificationsId;
 
-            if (psId != null) PersistentRefs[PointSetAttributes.Positions] = new PersistentRef<V3f[]>(psId.ToString(), storage.GetV3fArray, storage.TryGetV3fArray);
-            if (csId != null) PersistentRefs[PointSetAttributes.Colors] = new PersistentRef<C4b[]>(csId.ToString(), storage.GetC4bArray, storage.TryGetC4bArray);
-            if (kdId != null) PersistentRefs[PointSetAttributes.KdTree] = new PersistentRef<PointRkdTreeD<V3f[], V3f>>(kdId.ToString(), LoadKdTree, TryLoadKdTree);
-            if (nsId != null) PersistentRefs[PointSetAttributes.Normals] = new PersistentRef<V3f[]>(nsId.ToString(), storage.GetV3fArray, storage.TryGetV3fArray);
-            if (isId != null) PersistentRefs[PointSetAttributes.Intensities] = new PersistentRef<int[]>(isId.ToString(), storage.GetIntArray, storage.TryGetIntArray);
-            if (ksId != null) PersistentRefs[PointSetAttributes.Classifications]  = new PersistentRef<byte[]>(ksId.ToString(), storage.GetByteArray, storage.TryGetByteArray);
+            if (psId != null) PersistentRefs[OctreeAttributes.RefPositionsLocal3f] = new PersistentRef<V3f[]>(psId.ToString(), storage.GetV3fArray, storage.TryGetV3fArray);
+            if (csId != null) PersistentRefs[OctreeAttributes.RefColors3b] = new PersistentRef<C4b[]>(csId.ToString(), storage.GetC4bArray, storage.TryGetC4bArray);
+            if (kdId != null) PersistentRefs[OctreeAttributes.RefKdTreeLocal3f] = new PersistentRef<PointRkdTreeD<V3f[], V3f>>(kdId.ToString(), LoadKdTree, TryLoadKdTree);
+            if (nsId != null) PersistentRefs[OctreeAttributes.RefNormals3f] = new PersistentRef<V3f[]>(nsId.ToString(), storage.GetV3fArray, storage.TryGetV3fArray);
+            if (isId != null) PersistentRefs[OctreeAttributes.RefIntensities1i] = new PersistentRef<int[]>(isId.ToString(), storage.GetIntArray, storage.TryGetIntArray);
+            if (ksId != null) PersistentRefs[OctreeAttributes.RefClassifications1b]  = new PersistentRef<byte[]>(ksId.ToString(), storage.GetByteArray, storage.TryGetByteArray);
 
             if (subnodeIds != null)
             {
@@ -416,7 +416,7 @@ namespace Aardvark.Geometry.Points
 
         #region Properties (derived/runtime, non-serialized)
 
-        private Dictionary<PointSetAttributes, object> PersistentRefs = new Dictionary<PointSetAttributes, object>();
+        private Dictionary<DurableData, object> PersistentRefs = new Dictionary<DurableData, object>();
 
         #region Positions
 
@@ -428,11 +428,11 @@ namespace Aardvark.Geometry.Points
         /// Point positions relative to cell's center, or null if no positions.
         /// </summary>
         [JsonIgnore]
-        public PersistentRef<V3f[]> Positions => PersistentRefs.TryGetValue(PointSetAttributes.Positions, out object x) ? (PersistentRef<V3f[]>)x : null;
+        public PersistentRef<V3f[]> Positions => PersistentRefs.TryGetValue(OctreeAttributes.RefPositionsLocal3f, out object x) ? (PersistentRef<V3f[]>)x : null;
 
         /// <summary></summary>
         [JsonIgnore]
-        public bool HasPositions => PersistentRefs.ContainsKey(PointSetAttributes.Positions);
+        public bool HasPositions => PersistentRefs.ContainsKey(OctreeAttributes.RefPositionsLocal3f);
 
         /// <summary>
         /// Point positions (absolute), or null if no positions.
@@ -452,11 +452,11 @@ namespace Aardvark.Geometry.Points
         /// Point colors, or null if no points.
         /// </summary>
         [JsonIgnore]
-        public PersistentRef<C4b[]> Colors => PersistentRefs.TryGetValue(PointSetAttributes.Colors, out object x) ? (PersistentRef<C4b[]>)x : null;
+        public PersistentRef<C4b[]> Colors => PersistentRefs.TryGetValue(OctreeAttributes.RefColors3b, out object x) ? (PersistentRef<C4b[]>)x : null;
 
         /// <summary></summary>
         [JsonIgnore]
-        public bool HasColors => PersistentRefs.ContainsKey(PointSetAttributes.Colors);
+        public bool HasColors => PersistentRefs.ContainsKey(OctreeAttributes.RefColors3b);
 
         #endregion
 
@@ -468,11 +468,11 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public PersistentRef<V3f[]> Normals => PersistentRefs.TryGetValue(PointSetAttributes.Normals, out object x) ? (PersistentRef<V3f[]>)x : null;
+        public PersistentRef<V3f[]> Normals => PersistentRefs.TryGetValue(OctreeAttributes.RefNormals3f, out object x) ? (PersistentRef<V3f[]>)x : null;
 
         /// <summary></summary>
         [JsonIgnore]
-        public bool HasNormals => PersistentRefs.ContainsKey(PointSetAttributes.Normals);
+        public bool HasNormals => PersistentRefs.ContainsKey(OctreeAttributes.RefNormals3f);
 
         #endregion
 
@@ -484,11 +484,11 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public PersistentRef<int[]> Intensities => PersistentRefs.TryGetValue(PointSetAttributes.Intensities, out object x) ? (PersistentRef<int[]>)x : null;
+        public PersistentRef<int[]> Intensities => PersistentRefs.TryGetValue(OctreeAttributes.RefIntensities1i, out object x) ? (PersistentRef<int[]>)x : null;
 
         /// <summary></summary>
         [JsonIgnore]
-        public bool HasIntensities => PersistentRefs.ContainsKey(PointSetAttributes.Intensities);
+        public bool HasIntensities => PersistentRefs.ContainsKey(OctreeAttributes.RefIntensities1i);
 
         #endregion
 
@@ -500,11 +500,11 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public PersistentRef<byte[]> Classifications => PersistentRefs.TryGetValue(PointSetAttributes.Classifications, out object x) ? (PersistentRef<byte[]>) x : null;
+        public PersistentRef<byte[]> Classifications => PersistentRefs.TryGetValue(OctreeAttributes.RefClassifications1b, out object x) ? (PersistentRef<byte[]>) x : null;
 
         /// <summary></summary>
         [JsonIgnore]
-        public bool HasClassifications => PersistentRefs.ContainsKey(PointSetAttributes.Classifications);
+        public bool HasClassifications => PersistentRefs.ContainsKey(OctreeAttributes.RefClassifications1b);
 
         #endregion
 
@@ -516,11 +516,11 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public PersistentRef<PointRkdTreeD<V3f[], V3f>> KdTree => PersistentRefs.TryGetValue(PointSetAttributes.KdTree, out object x) ? (PersistentRef<PointRkdTreeD<V3f[], V3f>>)x : null;
+        public PersistentRef<PointRkdTreeD<V3f[], V3f>> KdTree => PersistentRefs.TryGetValue(OctreeAttributes.RefKdTreeLocal3f, out object x) ? (PersistentRef<PointRkdTreeD<V3f[], V3f>>)x : null;
 
         /// <summary></summary>
         [JsonIgnore]
-        public bool HasKdTree => PersistentRefs.ContainsKey(PointSetAttributes.KdTree);
+        public bool HasKdTree => PersistentRefs.ContainsKey(OctreeAttributes.RefKdTreeLocal3f);
 
         #endregion
 
