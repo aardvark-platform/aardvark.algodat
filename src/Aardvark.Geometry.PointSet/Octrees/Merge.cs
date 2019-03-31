@@ -274,7 +274,7 @@ namespace Aardvark.Geometry.Points
                 pointsMergedCallback?.Invoke(pointCountTree);
                 
 
-                return new PointSetNode(rootCell, pointCountTree, ImmutableDictionary<DurableData, object>.Empty, roots.Map(n => n?.Id), a.Storage);
+                return new PointSetNode(rootCell, pointCountTree, ImmutableDictionary<DurableDataDefinition, object>.Empty, roots.Map(n => n?.Id), a.Storage);
                 //return new PointSetNode(rootCell, pointCountTree, roots.Map(n => n?.Id), a.Storage);
             }
 #if DEBUG
@@ -450,7 +450,7 @@ namespace Aardvark.Geometry.Points
                     }
                 }
 
-                var result = new PointSetNode(rootCell, a.PointCountTree + b.PointCountTree, ImmutableDictionary<DurableData, object>.Empty, subcells.Map(x => x?.Id), a.Storage);
+                var result = new PointSetNode(rootCell, a.PointCountTree + b.PointCountTree, ImmutableDictionary<DurableDataDefinition, object>.Empty, subcells.Map(x => x?.Id), a.Storage);
 #if DEBUG
                 if (result.PointCountTree != a.PointCountTree + b.PointCountTree) throw new InvalidOperationException();
                 if (result.PointCountTree != result.Subnodes.Sum(x => x?.Value?.PointCountTree)) throw new InvalidOperationException();
@@ -497,7 +497,7 @@ namespace Aardvark.Geometry.Points
                     }
                 }
 
-                var result = new PointSetNode(rootCell, a.PointCountTree + b.PointCountTree, ImmutableDictionary<DurableData, object>.Empty, subcells.Map(x => x?.Id), a.Storage);
+                var result = new PointSetNode(rootCell, a.PointCountTree + b.PointCountTree, ImmutableDictionary<DurableDataDefinition, object>.Empty, subcells.Map(x => x?.Id), a.Storage);
 #if DEBUG
                 if (result.PointCountTree != a.PointCountTree + b.PointCountTree) throw new InvalidOperationException();
                 if (result.PointCountTree != result.Subnodes.Sum(x => x?.Value?.PointCountTree)) throw new InvalidOperationException();
@@ -549,7 +549,7 @@ namespace Aardvark.Geometry.Points
             }
 
 
-            var result = new PointSetNode(rootCell, a.PointCountTree, ImmutableDictionary<DurableData, object>.Empty, subcells.Map(x => x?.Id), a.Storage);
+            var result = new PointSetNode(rootCell, a.PointCountTree, ImmutableDictionary<DurableDataDefinition, object>.Empty, subcells.Map(x => x?.Id), a.Storage);
 #if DEBUG
             if (result.PointCountTree != a.PointCountTree) throw new InvalidOperationException();
 #endif

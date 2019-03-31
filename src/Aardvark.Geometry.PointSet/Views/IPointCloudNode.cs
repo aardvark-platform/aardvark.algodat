@@ -74,7 +74,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Gets the given durable data value. 
         /// </summary>
-        ImmutableDictionary<DurableData, object> Data { get; }
+        ImmutableDictionary<DurableDataDefinition, object> Data { get; }
 
         /// <summary>
         /// </summary>

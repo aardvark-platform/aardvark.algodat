@@ -18,7 +18,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public SimpleNode(
             Storage storage, Guid id, Cell cell, int pointCount,
-            ImmutableDictionary<DurableData, object> data,
+            ImmutableDictionary<DurableDataDefinition, object> data,
             PersistentRef<IPointCloudNode>[] subNodes)
         {
             Storage = storage;
@@ -101,11 +101,11 @@ namespace Aardvark.Geometry.Points
         //}
 
         /// <summary></summary>
-        public SimpleNode WithData(ImmutableDictionary<DurableData, object> data)
+        public SimpleNode WithData(ImmutableDictionary<DurableDataDefinition, object> data)
             => new SimpleNode(this) { Data = data };
 
         /// <summary></summary>
-        public SimpleNode AddData(DurableData what, Guid key, object value)
+        public SimpleNode AddData(DurableDataDefinition what, Guid key, object value)
             => new SimpleNode(this) { Data = Data.Add(what, (key, value)) };
 
         /// <summary></summary>
@@ -121,7 +121,7 @@ namespace Aardvark.Geometry.Points
             => new SimpleNode(this) { PointCountTree = count };
 
         /// <summary></summary>
-        public ImmutableDictionary<DurableData, object> Data { get; private set; }
+        public ImmutableDictionary<DurableDataDefinition, object> Data { get; private set; }
 
         /// <summary></summary>
         public Storage Storage { get; private set; }

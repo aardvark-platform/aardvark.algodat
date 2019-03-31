@@ -265,7 +265,7 @@ namespace Aardvark.Geometry.Points
                     null;
 
 
-            var data = new Dictionary<DurableData, (Guid, object)>();
+            var data = new Dictionary<DurableDataDefinition, (Guid, object)>();
 
             // store LoD data ...
             var keyLodPs = Guid.NewGuid();

@@ -24,60 +24,73 @@ namespace Aardvark.Base.DurableDataCodec
     public class DurableDataCodecTests
     {
         [Test]
-        public void CodecRoundtripFloat()
+        public void CodecRoundtripFloat_Durable()
         {
             var x = 3.1415926f;
-            var buffer = new byte[Marshal.SizeOf<float>()];
-            var index = 0;
-            Codec.Write(buffer, ref index, x);
+            var buffer = DurableCodec.Encode(x);
 
-            index = 0;
-            var y = Codec.Read<float>(buffer, ref index);
-            
+            var y = DurableCodec.Decode<float>(buffer);
+
             Assert.IsTrue(x == y);
         }
 
         [Test]
-        public void CodecRoundtripFloatArray()
+        public void CodecRoundtripFloatArray_Durable()
         {
             var xs = new float[] { 0.1f, 2.3f, 4.5f, 6.7f, 8.9f };
-            var buffer = new byte[xs.Length * Marshal.SizeOf<float>()];
-            var index = 0;
-            Codec.Write(buffer, ref index, xs);
+            var buffer = DurableCodec.EncodeArray(xs);
 
-            index = 0;
-            var ys = new float[xs.Length];
-            Codec.Read(buffer, ref index, ref ys);
+            var ys = DurableCodec.DecodeArray<float>(buffer);
 
             Assert.IsTrue(xs.Length == ys.Length);
             for (var i = 0; i < xs.Length; i++) Assert.IsTrue(xs[i] == ys[i]);
         }
 
-        [Test]
-        public void CodecRoundtripV3d()
-        {
-            var x = new V3d(1.23, 4.56, 7.89);
-            var buffer = new byte[Marshal.SizeOf<V3d>()];
-            var index = 0;
-            Codec.Write(buffer, ref index, x);
 
-            index = 0;
-            var y = Codec.Read<V3d>(buffer, ref index);
+
+        [Test]
+        public void CodecRoundtripGuid_Durable()
+        {
+            var x = Guid.NewGuid();
+            var buffer = DurableCodec.Encode(x);
+
+            var y = DurableCodec.Decode<Guid>(buffer);
 
             Assert.IsTrue(x == y);
         }
 
         [Test]
-        public void CodecRoundtripV3dArray()
+        public void CodecRoundtripGuidArray_Durable()
+        {
+            var xs = new Guid[] { Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid() };
+            var buffer = DurableCodec.EncodeArray(xs);
+
+            var ys = DurableCodec.DecodeArray<Guid>(buffer);
+
+            Assert.IsTrue(xs.Length == ys.Length);
+            for (var i = 0; i < xs.Length; i++) Assert.IsTrue(xs[i] == ys[i]);
+        }
+
+
+
+        [Test]
+        public void CodecRoundtripV3d_Durable()
+        {
+            var x = new V3d(1.23, 4.56, 7.89);
+            var buffer = DurableCodec.Encode(x);
+
+            var y = DurableCodec.Decode<V3d>(buffer);
+
+            Assert.IsTrue(x == y);
+        }
+
+        [Test]
+        public void CodecRoundtripV3dArray_Durable()
         {
             var xs = new V3d[] { V3d.IOO, V3d.OIO, V3d.OOI };
-            var buffer = new byte[xs.Length * Marshal.SizeOf<V3d>()];
-            var index = 0;
-            Codec.Write(buffer, ref index, xs);
+            var buffer = DurableCodec.EncodeArray(xs);
 
-            index = 0;
-            var ys = new V3d[xs.Length];
-            Codec.Read(buffer, ref index, ref ys);
+            var ys = DurableCodec.DecodeArray<V3d>(buffer);
 
             Assert.IsTrue(xs.Length == ys.Length);
             for (var i = 0; i < xs.Length; i++) Assert.IsTrue(xs[i] == ys[i]);

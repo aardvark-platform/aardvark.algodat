@@ -179,7 +179,7 @@ namespace Aardvark.Geometry.Points
                     : ps.Length
                     ;
 
-                var data = ImmutableDictionary<DurableData, object>.Empty;
+                var data = ImmutableDictionary<DurableDataDefinition, object>.Empty;
 
                 if (psId != null) { storage.Add(psId.ToString(), ps); data = data.Add(OctreeAttributes.RefPositionsLocal3f, psId.Value); }
                 if (csId != null) { storage.Add(csId.ToString(), cs); data = data.Add(OctreeAttributes.RefColors3b, csId.Value); }

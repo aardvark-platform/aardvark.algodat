@@ -40,7 +40,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public PointSetNode(Guid id,
             Cell cell, long pointCountTree,
-            ImmutableDictionary<DurableData, object> data,
+            ImmutableDictionary<DurableDataDefinition, object> data,
             Guid?[] subnodeIds, Storage storage, bool writeToStore
             )
         {
@@ -137,7 +137,7 @@ namespace Aardvark.Geometry.Points
         /// Creates inner node.
         /// </summary>
         internal PointSetNode(
-            Cell cell, long pointCountTree, ImmutableDictionary<DurableData, object> data,
+            Cell cell, long pointCountTree, ImmutableDictionary<DurableDataDefinition, object> data,
             Guid?[] subnodeIds,
             Storage storage
             ) : this(Guid.NewGuid(), cell, pointCountTree, data, subnodeIds, storage, true)
@@ -148,7 +148,7 @@ namespace Aardvark.Geometry.Points
         /// Creates leaf node.
         /// </summary>
         internal PointSetNode(
-            Cell cell, long pointCountTree, ImmutableDictionary<DurableData, object> data,
+            Cell cell, long pointCountTree, ImmutableDictionary<DurableDataDefinition, object> data,
             Storage storage
             ) : this(Guid.NewGuid(), cell, pointCountTree, data, null,       storage, true)
         {
@@ -160,7 +160,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        public ImmutableDictionary<DurableData, object> Data { get; } = ImmutableDictionary<DurableData, object>.Empty;
+        public ImmutableDictionary<DurableDataDefinition, object> Data { get; } = ImmutableDictionary<DurableDataDefinition, object>.Empty;
 
         /// <summary>
         /// This node's unique id (16 bytes).
@@ -416,7 +416,7 @@ namespace Aardvark.Geometry.Points
 
         #region Properties (derived/runtime, non-serialized)
 
-        private Dictionary<DurableData, object> PersistentRefs = new Dictionary<DurableData, object>();
+        private Dictionary<DurableDataDefinition, object> PersistentRefs = new Dictionary<DurableDataDefinition, object>();
 
         #region Positions
 
@@ -1023,7 +1023,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Makes new node with added data. Existing entries are replaced.
         /// </summary>
-        internal PointSetNode WithAddedOrReplacedData(ImmutableDictionary<DurableData, object> additionalData)
+        internal PointSetNode WithAddedOrReplacedData(ImmutableDictionary<DurableDataDefinition, object> additionalData)
         {
             return new PointSetNode(Guid.NewGuid(),
                 Cell, PointCountTree, Data.AddRange(additionalData),

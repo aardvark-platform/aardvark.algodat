@@ -190,6 +190,6 @@ namespace Aardvark.Geometry.Points
         public string NodeType => Type;
 
         /// <summary></summary>
-        public ImmutableDictionary<DurableData, object> Data => throw new NotImplementedException();
+        public ImmutableDictionary<DurableDataDefinition, object> Data => throw new NotImplementedException();
     }
 }

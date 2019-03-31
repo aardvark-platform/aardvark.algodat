@@ -28,7 +28,7 @@ namespace Aardvark.Geometry.Points
     {
         #region Has*
 
-        private static bool Has(IPointCloudNode n, DurableData what)
+        private static bool Has(IPointCloudNode n, DurableDataDefinition what)
         {
             switch (n.FilterState)
             {
@@ -64,7 +64,7 @@ namespace Aardvark.Geometry.Points
 
         #region Get*
 
-        private static PersistentRef<T> GetValue<T>(IPointCloudNode self, DurableData key) where T : class
+        private static PersistentRef<T> GetValue<T>(IPointCloudNode self, DurableDataDefinition key) where T : class
         {
             throw new NotImplementedException();
             //if (self.TryGetPropertyValue(key, out object value))

@@ -20,7 +20,7 @@ namespace Aardvark.Base
 {
     /// <summary>
     /// </summary>
-    public partial class DurableData
+    public partial class DurableDataDefinition
     {
         /// <summary></summary>
         public class Unit
@@ -32,12 +32,27 @@ namespace Aardvark.Base
         /// <summary>
         /// None, nothing, null, etc.
         /// </summary>
-        public static readonly DurableData None = new DurableData(Guid.Empty, "None", "None, nothing, null, etc.", DurableTypes.Unit);
+        public static readonly DurableDataDefinition None = new DurableDataDefinition(
+            Guid.Empty,
+            "None",
+            "None, nothing, null, etc.",
+            DurablePrimitiveTypes.Unit
+            );
+
+        /// <summary>
+        /// UTF8 encoded string.
+        /// </summary>
+        public static readonly DurableDataDefinition StringUtf8 = new DurableDataDefinition(
+            new Guid("524a4466-1d7a-4717-8cfc-070920bc2756"),
+            "StringUtf8",
+            "UTF8 encoded string.",
+            DurablePrimitiveTypes.UByteArray
+            );
     }
 
     /// <summary>
     /// </summary>
-    public partial class DurableData
+    public partial class DurableDataDefinition
     {
         /// <summary></summary>
         public Guid Id { get; }
@@ -54,12 +69,12 @@ namespace Aardvark.Base
 
         /// <summary>
         /// Data type of this durable data.
-        /// Given as language independent string.
+        /// Given as a language independent string.
         /// </summary>
-        public string Type { get; }
+        public DurablePrimitiveType Type { get; }
 
         /// <summary></summary>
-        public DurableData(Guid id, string name, string comment, string type)
+        public DurableDataDefinition(Guid id, string name, string comment, DurablePrimitiveType type)
         {
             lock (s_guids)
                 if (!s_guids.Add(id))
@@ -76,11 +91,11 @@ namespace Aardvark.Base
 
     /// <summary>
     /// </summary>
-    public class DurableData<T> : DurableData
+    public class DurableData<T> : DurableDataDefinition
     {
         /// <summary></summary>
         public DurableData(Guid id, string name, string comment)
-            : base(id, name, comment, DurableTypes.OfType(typeof(T)))
+            : base(id, name, comment, DurablePrimitiveTypes.OfType(typeof(T)))
         {
         }
     }

@@ -33,17 +33,17 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public PointCloudNode(Storage storage,
             string id, Cell cell, Box3d boundingBoxExact, long pointCountTree, PersistentRef<IPointCloudNode>[] subnodes, bool storeOnCreation,
-            params (DurableData attributeName, Guid attributeKey, object attributeValue)[] attributes
+            params (DurableDataDefinition attributeName, Guid attributeKey, object attributeValue)[] attributes
             )
-            : this(storage, id, cell, boundingBoxExact, pointCountTree, subnodes, storeOnCreation, ImmutableDictionary<DurableData, object>.Empty, attributes)
+            : this(storage, id, cell, boundingBoxExact, pointCountTree, subnodes, storeOnCreation, ImmutableDictionary<DurableDataDefinition, object>.Empty, attributes)
         { }
 
         /// <summary>
         /// </summary>
         public PointCloudNode(Storage storage,
             string id, Cell cell, Box3d boundingBoxExact, long pointCountTree, PersistentRef<IPointCloudNode>[] subnodes, bool storeOnCreation,
-            ImmutableDictionary<DurableData, object> data,
-            params (DurableData attributeName, Guid attributeKey, object attributeValue)[] attributes
+            ImmutableDictionary<DurableDataDefinition, object> data,
+            params (DurableDataDefinition attributeName, Guid attributeKey, object attributeValue)[] attributes
             )
         {
             Storage = storage;
@@ -123,7 +123,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         private PointCloudNode(Storage storage,
             string id, Cell cell, Box3d boundingBoxExact, long pointCountTree, PersistentRef<IPointCloudNode>[] subnodes,
-            ImmutableDictionary<DurableData, object> data,
+            ImmutableDictionary<DurableDataDefinition, object> data,
             params (string attributeName, string attributeKey)[] attributes
             )
         {
@@ -147,8 +147,8 @@ namespace Aardvark.Geometry.Points
             //}
         }
 
-        private Dictionary<DurableData, Guid> m_pIds = new Dictionary<DurableData, Guid>();
-        private Dictionary<DurableData, object> m_pRefs = new Dictionary<DurableData, object>();
+        private Dictionary<DurableDataDefinition, Guid> m_pIds = new Dictionary<DurableDataDefinition, Guid>();
+        private Dictionary<DurableDataDefinition, object> m_pRefs = new Dictionary<DurableDataDefinition, object>();
 
         /// <summary></summary>
         public Storage Storage { get; }
@@ -178,7 +178,7 @@ namespace Aardvark.Geometry.Points
         public PersistentRef<IPointCloudNode>[] SubNodes { get; }
 
         /// <summary></summary>
-        public ImmutableDictionary<DurableData, object> Data { get; }
+        public ImmutableDictionary<DurableDataDefinition, object> Data { get; }
 
         ///// <summary></summary>
         //public bool TryGetPropertyKey(string property, out string key) => m_pIds.TryGetValue(property, out key);
@@ -225,7 +225,7 @@ namespace Aardvark.Geometry.Points
                 : null
                 );
 
-            return new PointCloudNode(storage, id, cell, boundingBoxExact, pointCountTree, subnodes, ImmutableDictionary<DurableData, object>.Empty, attributes);
+            return new PointCloudNode(storage, id, cell, boundingBoxExact, pointCountTree, subnodes, ImmutableDictionary<DurableDataDefinition, object>.Empty, attributes);
         }
 
         /// <summary></summary>
@@ -255,7 +255,7 @@ namespace Aardvark.Geometry.Points
             throw new NotImplementedException();
             //return new PointCloudNode(Storage, Id, Cell, BoundingBoxExact, PointCountTree, SubNodes, CellAttributes, attributes.ToArray());
 
-            void TryAdd(DurableData key, Guid id)
+            void TryAdd(DurableDataDefinition key, Guid id)
             {
                 if (id == null) return;
                 if (m_pIds.ContainsKey(key)) throw new InvalidOperationException();
@@ -277,7 +277,7 @@ namespace Aardvark.Geometry.Points
         //}
 
         /// <summary></summary>
-        public bool TryGetCellAttribute<T>(DurableData id, out T value)
+        public bool TryGetCellAttribute<T>(DurableDataDefinition id, out T value)
         {
             if(Data.TryGetValue(id, out object v) && v is T)
             {
