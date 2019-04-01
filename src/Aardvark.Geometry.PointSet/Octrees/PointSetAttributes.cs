@@ -182,8 +182,8 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Octree. Exact bounding box of this node's PositionsLocal3f. Local space.
         /// </summary>
-        public static readonly DurableData<Box3f> BoundingBoxExactLocal =
-            new DurableData<Box3f>(
+        public static readonly DurableDataDefinition<Box3f> BoundingBoxExactLocal =
+            new DurableDataDefinition<Box3f>(
                 new Guid("aadbb622-1cf6-42e0-86df-be79d28d6757"),
                 "Octree.BoundingBoxExactLocal",
                 "Octree. Exact bounding box of this node's PositionsLocal3f. Local space."
@@ -196,8 +196,8 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Octree. Average (X) and stddev (Y) of distances of each point to its nearest neighbour.
         /// </summary>
-        public static readonly DurableData<V2f> AveragePointDistanceData =
-            new DurableData<V2f>(
+        public static readonly DurableDataDefinition<V2f> AveragePointDistanceData =
+            new DurableDataDefinition<V2f>(
                 new Guid("33fcdbd9-310e-45e7-bba4-c1d2b57a8fb1"),
                 "Octree.AveragePointDistanceData",
                 "Octree. Average (X) and standard deviation (Y) of distances of each point to its nearest neighbour."
@@ -206,8 +206,8 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Octree. Average distance of each point to its nearest neighbour
         /// </summary>
-        public static readonly DurableData<float> AveragePointDistance =
-            new DurableData<float>(
+        public static readonly DurableDataDefinition<float> AveragePointDistance =
+            new DurableDataDefinition<float>(
                 new Guid("39c21132-4570-4624-afae-6304851567d7"),
                 "Octree.AveragePointDistance",
                 "Octree. Average distance of each point to its nearest neighbour."
@@ -216,8 +216,8 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Octree. Standard deviation of average distance of each point to its nearest neighbour
         /// </summary>
-        public static readonly DurableData<float> AveragePointDistanceStdDev =
-            new DurableData<float>(
+        public static readonly DurableDataDefinition<float> AveragePointDistanceStdDev =
+            new DurableDataDefinition<float>(
                 new Guid("94cac234-b6ea-443a-b196-c7dd8e5def0d"),
                 "Octree.AveragePointDistanceStdDev",
                 "Octree. Standard deviation of average distance of each point to its nearest neighbour."
@@ -230,8 +230,8 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Min and max depth of this tree. A leaf node has depth 0.
         /// </summary>
-        public static readonly DurableData<Range1i> TreeMinMaxDepth =
-            new DurableData<Range1i>(
+        public static readonly DurableDataDefinition<Range1i> TreeMinMaxDepth =
+            new DurableDataDefinition<Range1i>(
                 new Guid("309a1fc8-79f3-4e3f-8ded-5c6b46eaa3ca"),
                 "Octree.TreeMinMaxDepth",
                 "Min and max depth of this tree. A leaf node has depth 0."
@@ -240,8 +240,8 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Min depth of this tree. A leaf node has depth 0.
         /// </summary>
-        public static readonly DurableData<int> TreeMinDepth =
-            new DurableData<int>(
+        public static readonly DurableDataDefinition<int> TreeMinDepth =
+            new DurableDataDefinition<int>(
                 new Guid("42edbdd6-a29e-4dfd-9836-050ab7fa4e31"),
                 "Octree.TreeMinDepth",
                 "Min depth of this tree. A leaf node has depth 0."
@@ -250,8 +250,8 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Max depth of this tree. A leaf node has depth 0.
         /// </summary>
-        public static readonly DurableData<int> TreeMaxDepth =
-            new DurableData<int>(
+        public static readonly DurableDataDefinition<int> TreeMaxDepth =
+            new DurableDataDefinition<int>(
                 new Guid("d6f54b9e-e907-46c5-9106-d26cd453dc97"),
                 "Octree.TreeMaxDepth",
                 "Max depth of this tree. A leaf node has depth 0."
@@ -264,8 +264,8 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Octree. Number of points in this cell. Also dimension of per-point attribute arrays (e.g. Colors3b).
         /// </summary>
-        public static readonly DurableData<long> PointCountCell =
-            new DurableData<long>(
+        public static readonly DurableDataDefinition<long> PointCountCell =
+            new DurableDataDefinition<long>(
                 new Guid("172e1f20-0ffc-4d9c-9b3d-903fca41abe3"),
                 "Octree.PointCountCell",
                 "Octree. Number of points in this cell. Also dimension of per-point attribute arrays (e.g. Colors3b)."
@@ -280,8 +280,8 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Octree. Reference to per-point positions in local cell space (V3f[]).
         /// </summary>
-        public static readonly DurableData<Guid> RefPositionsLocal3f =
-            new DurableData<Guid>(
+        public static readonly DurableDataDefinition<Guid> RefPositionsLocal3f =
+            new DurableDataDefinition<Guid>(
                 new Guid("cb127ab9-e58f-4407-8b6b-7f38a192a611"),
                 "Octree.RefPositionsLocal3f",
                 "Octree. Reference to per-point positions in local cell space (V3f[])."
@@ -290,8 +290,8 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Octree. Per-point positions in local cell space (V3f[]).
         /// </summary>
-        public static readonly DurableData<Guid> PositionsLocal3f =
-            new DurableData<Guid>(
+        public static readonly DurableDataDefinition<Guid> PositionsLocal3f =
+            new DurableDataDefinition<Guid>(
                 new Guid("05eb38fa-1b6a-4576-820b-780163199db9"),
                 "Octree.PositionsLocal3f",
                 "Octree. Per-point positions in local cell space (V3f[])."
@@ -300,8 +300,8 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Octree. Per-point positions in global space (V3d[]).
         /// </summary>
-        public static readonly DurableData<Guid> PositionsGlobal3d =
-            new DurableData<Guid>(
+        public static readonly DurableDataDefinition<Guid> PositionsGlobal3d =
+            new DurableDataDefinition<Guid>(
                 new Guid("61ef7c1e-6aeb-45cd-85ed-ad0ed2584553"),
                 "Octree.PositionsGlobal3d",
                 "Octree. Per-point positions in global space (V3d[])."
@@ -310,8 +310,8 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Octree. Reference to kd-tree for positions in local cell space (PointRkdTreeD&lt;V3f[], V3f&gt;.Data).
         /// </summary>
-        public static readonly DurableData<Guid> RefKdTreeLocal3f =
-            new DurableData<Guid>(
+        public static readonly DurableDataDefinition<Guid> RefKdTreeLocal3f =
+            new DurableDataDefinition<Guid>(
                 new Guid("dea5651f-2d84-4552-9d09-dbeea761e5d4"),
                 "Octree.RefKdTreeLocal3f",
                 "Octree. Reference to kd-tree for positions in local cell space (PointRkdTreeD<V3f[], V3f>.Data)."
@@ -320,8 +320,8 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Octree. Kd-tree for positions in local cell space (PointRkdTreeD&lt;V3f[], V3f&gt;).
         /// </summary>
-        public static readonly DurableData<Guid> KdTreeLocal3f =
-            new DurableData<Guid>(
+        public static readonly DurableDataDefinition<Guid> KdTreeLocal3f =
+            new DurableDataDefinition<Guid>(
                 new Guid("86f71249-5342-4d9f-be33-ca31ce23c46a"),
                 "Octree.KdTreeLocal3f",
                 "Octree. Kd-tree for positions in local cell space (PointRkdTreeD<V3f[], V3f>)."
@@ -330,8 +330,8 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Octree. Reference to per-point colors (C3b[]).
         /// </summary>
-        public static readonly DurableData<Guid> RefColors3b =
-            new DurableData<Guid>(
+        public static readonly DurableDataDefinition<Guid> RefColors3b =
+            new DurableDataDefinition<Guid>(
                 new Guid("481857a0-398b-4299-afca-41d07b9b92bd"),
                 "Octree.RefColors3b",
                 "Octree. Reference to per-point colors (C3b[])."
@@ -340,8 +340,8 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Octree. Reference to per-point colors (C4b[]).
         /// </summary>
-        public static readonly DurableData<Guid> RefColors4b =
-            new DurableData<Guid>(
+        public static readonly DurableDataDefinition<Guid> RefColors4b =
+            new DurableDataDefinition<Guid>(
                 new Guid("5e9a09c8-76f4-48d2-bcdb-dc284f029667"),
                 "Octree.RefColors4b",
                 "Octree. Reference to per-point colors (C4b[])."
@@ -350,8 +350,8 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Octree. Reference to per-point normals (V3f[]).
         /// </summary>
-        public static readonly DurableData<Guid> RefNormals3f =
-            new DurableData<Guid>(
+        public static readonly DurableDataDefinition<Guid> RefNormals3f =
+            new DurableDataDefinition<Guid>(
                 new Guid("14a89b04-c24a-439d-988e-f6528282e7fd"),
                 "Octree.RefNormals3f",
                 "Octree. Reference to per-point normals (V3f[])."
@@ -360,8 +360,8 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Octree. Reference to per-point intensities (int[]).
         /// </summary>
-        public static readonly DurableData<Guid> RefIntensities1i =
-            new DurableData<Guid>(
+        public static readonly DurableDataDefinition<Guid> RefIntensities1i =
+            new DurableDataDefinition<Guid>(
                 new Guid("25f45721-c647-45eb-b45b-26585ae0bcde"),
                 "Octree.RefIntensities1i",
                 "Octree. Reference to per-point intensities (int[])."
@@ -370,8 +370,8 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Octree. Per-point intensities (int[]).
         /// </summary>
-        public static readonly DurableData<Guid> Intensities1i =
-            new DurableData<Guid>(
+        public static readonly DurableDataDefinition<Guid> Intensities1i =
+            new DurableDataDefinition<Guid>(
                 new Guid("0876257e-a23b-4861-b82c-a68b12e594e9"),
                 "Octree.Intensities1i",
                 "Octree. Per-point intensities (int[])."
@@ -380,8 +380,8 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Octree. Reference to per-point classifications array (byte[]).
         /// </summary>
-        public static readonly DurableData<Guid> RefClassifications1b =
-            new DurableData<Guid>(
+        public static readonly DurableDataDefinition<Guid> RefClassifications1b =
+            new DurableDataDefinition<Guid>(
                 new Guid("ff6bf035-1e0e-4a03-a27d-9d1fe134bb48"),
                 "Octree.RefClassifications1b",
                 "Octree. Reference to per-point classifications array (byte[])."
@@ -396,7 +396,7 @@ namespace Aardvark.Geometry.Points
     public static class OctreeAttributesExtensions
     {
         /// <summary></summary>
-        public static bool TryGetValue<T>(this IPointCloudNode node, DurableData<T> attribute, out T value)
+        public static bool TryGetValue<T>(this IPointCloudNode node, DurableDataDefinition<T> attribute, out T value)
         {
             if (node.Data.TryGetValue(attribute, out var o) && o is T)
             {
@@ -411,7 +411,7 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public static T GetValue<T>(this IPointCloudNode node, DurableData<T> attribute)
+        public static T GetValue<T>(this IPointCloudNode node, DurableDataDefinition<T> attribute)
         {
             if (node.Data.TryGetValue(attribute, out var o) && o is T)
             {

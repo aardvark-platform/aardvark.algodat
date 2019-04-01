@@ -57,6 +57,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BitPackTests.cs" />
+    <Compile Include="DurableData\DurableDataSizeOfTests.cs" />
     <Compile Include="DurableData\DurableDataCodecTests.cs" />
     <Compile Include="LruDictionaryTests.cs" />
     <Compile Include="PointCloudTests.cs" />

@@ -40,12 +40,32 @@ namespace Aardvark.Base
         public bool IsArray { get; }
 
         /// <summary>
+        /// Type of a single element of this type.
+        /// I.e. the same for T and T[].
         /// </summary>
-        public DurablePrimitiveType(string name, int elementSizeInBytes, bool isArray)
+        public Type ElementType { get; }
+
+        /// <summary>
+        /// </summary>
+        public DurablePrimitiveType(string name, int elementSizeInBytes, bool isArray, Type elementType)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             ElementSizeInBytes = elementSizeInBytes;
             IsArray = isArray;
+            ElementType = elementType;
+        }
+    }
+
+    /// <summary>
+    /// Language independent primitive type definition.
+    /// </summary>
+    public class DurablePrimitiveType<T> : DurablePrimitiveType
+    {
+        /// <summary>
+        /// </summary>
+        public DurablePrimitiveType(string name, int elementSizeInBytes, bool isArray)
+            : base(name, elementSizeInBytes, isArray, typeof(T))
+        {
         }
     }
 }

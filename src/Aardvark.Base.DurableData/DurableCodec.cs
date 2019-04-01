@@ -26,7 +26,47 @@ namespace Aardvark.Base
     /// </summary>
     public static class DurableCodec
     {
-        #region Primitive types.
+        #region Sizes
+
+        /// <summary>
+        /// [T].
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int SizeOf<T>() where T : struct
+        {
+            return Marshal.SizeOf<T>();
+        }
+
+        /// <summary>
+        /// [T].
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int SizeOf(Type t)
+        {
+            return Marshal.SizeOf(t);
+        }
+
+        /// <summary>
+        /// [count:int32][Ts...]
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int SizeOf<T>(T[] xs) where T : struct => xs != null ? 4 + xs.Length * Marshal.SizeOf<T>() : 4;
+
+        /// <summary>
+        /// [Guid][T].
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int SizeOfDurable<T>() where T : struct => 16 + Marshal.SizeOf<T>();
+
+        /// <summary>
+        /// [Guid][count:int32][Ts...].
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int SizeOfDurable<T>(T[] xs) where T : struct => xs != null ? 20 + xs.Length * Marshal.SizeOf<T>() : 20;
+
+        #endregion
+
+        #region Primitive types
 
         /// <summary>
         /// </summary>
@@ -35,7 +75,7 @@ namespace Aardvark.Base
         {
             if (dst == null) throw new ArgumentNullException(nameof(dst));
             var gc = GCHandle.Alloc(dst, GCHandleType.Pinned);
-            var size = Marshal.SizeOf<T>();
+            var size = SizeOf<T>();
             Marshal.StructureToPtr(value, gc.AddrOfPinnedObject() + index, true);
             index += size;
         }
@@ -45,7 +85,7 @@ namespace Aardvark.Base
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static byte[] Encode<T>(in T value) where T : struct
         {
-            var size = Marshal.SizeOf<T>();
+            var size = SizeOf<T>();
             var dst = new byte[size];
             var gc = GCHandle.Alloc(dst, GCHandleType.Pinned);
             Marshal.StructureToPtr(value, gc.AddrOfPinnedObject(), true);
@@ -58,18 +98,28 @@ namespace Aardvark.Base
         public static void Decode<T>(byte[] src, ref int index, out T value) where T : struct
         {
             var gc = GCHandle.Alloc(src, GCHandleType.Pinned);
-            var size = Marshal.SizeOf<T>();
+            var size = SizeOf<T>();
             value = Marshal.PtrToStructure<T>(gc.AddrOfPinnedObject() + index);
             index += size;
         }
-        
+        /// <summary>
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Decode(DurablePrimitiveType t, byte[] src, ref int index, out object value)
+        {
+            var gc = GCHandle.Alloc(src, GCHandleType.Pinned);
+            var size = SizeOf(t.ElementType);
+            value = Marshal.PtrToStructure(gc.AddrOfPinnedObject() + index, t.ElementType);
+            index += size;
+        }
+
         /// <summary>
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T Decode<T>(byte[] src, ref int index) where T : struct
         {
             var gc = GCHandle.Alloc(src, GCHandleType.Pinned);
-            var size = Marshal.SizeOf<T>();
+            var size = SizeOf<T>();
             var value = Marshal.PtrToStructure<T>(gc.AddrOfPinnedObject() + index);
             index += size;
             return value;
@@ -93,9 +143,7 @@ namespace Aardvark.Base
             return Marshal.PtrToStructure<T>(gc.AddrOfPinnedObject());
         }
 
-        #endregion
 
-        #region Arrays of primitive types.
 
         /// <summary>
         /// </summary>
@@ -120,7 +168,7 @@ namespace Aardvark.Base
                 index += 4;
 
                 // encode array values
-                var size = values.Length * Marshal.SizeOf<T>();
+                var size = values.Length * SizeOf<T>();
                 if (index + size >= dst.Length) throw new IndexOutOfRangeException();
                 Marshal.Copy(gc.AddrOfPinnedObject(), dst, index, size);
                 index += size;
@@ -138,7 +186,7 @@ namespace Aardvark.Base
         {
             if (values == null) throw new ArgumentNullException(nameof(values));
 
-            var totalSize = 4 + values.Length * Marshal.SizeOf<T>();
+            var totalSize = 4 + values.Length * SizeOf<T>();
             var dst = new byte[totalSize];
             var gc = GCHandle.Alloc(values, GCHandleType.Pinned);
             try
@@ -153,7 +201,7 @@ namespace Aardvark.Base
                 }
 
                 // encode array values
-                var size = values.Length * Marshal.SizeOf<T>();
+                var size = values.Length * SizeOf<T>();
                 Marshal.Copy(gc.AddrOfPinnedObject(), dst, 4, size);
                 return dst;
             }
@@ -177,7 +225,7 @@ namespace Aardvark.Base
             var pDst = GCHandle.Alloc(values, GCHandleType.Pinned);
             try
             {
-                var size = count * Marshal.SizeOf<T>();
+                var size = count * SizeOf<T>();
                 Marshal.Copy(src, index, pDst.AddrOfPinnedObject(), size);
                 index += size;
             }
@@ -201,7 +249,7 @@ namespace Aardvark.Base
             var pDst = GCHandle.Alloc(values, GCHandleType.Pinned);
             try
             {
-                var size = count * Marshal.SizeOf<T>();
+                var size = count * SizeOf<T>();
                 Marshal.Copy(src, index, pDst.AddrOfPinnedObject(), size);
                 index += size;
                 return values;
@@ -225,7 +273,7 @@ namespace Aardvark.Base
             var pDst = GCHandle.Alloc(values, GCHandleType.Pinned);
             try
             {
-                var size = count * Marshal.SizeOf<T>();
+                var size = count * SizeOf<T>();
                 Marshal.Copy(src, 4, pDst.AddrOfPinnedObject(), size);
             }
             finally
@@ -247,7 +295,7 @@ namespace Aardvark.Base
             var pDst = GCHandle.Alloc(values, GCHandleType.Pinned);
             try
             {
-                var size = count * Marshal.SizeOf<T>();
+                var size = count * SizeOf<T>();
                 Marshal.Copy(src, 4, pDst.AddrOfPinnedObject(), size);
                 return values;
             }
@@ -257,9 +305,7 @@ namespace Aardvark.Base
             }
         }
 
-        #endregion
 
-        #region Strings
 
         /// <summary>
         /// Encodes durable primitive type.
@@ -301,6 +347,128 @@ namespace Aardvark.Base
             for (var i = 0; i < count; i++)
                 result[i] = Encoding.UTF8.GetString(DecodeArray<byte>(src, ref index));
             return result;
+        }
+
+        #endregion
+
+        #region Durable
+
+        /// <summary>
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void EncodeDurable<T>(DurableDataDefinition def, byte[] dst, ref int index, in T value) where T : struct
+        {
+            if (def == null) throw new ArgumentNullException(nameof(def));
+            if (dst == null) throw new ArgumentNullException(nameof(dst));
+
+            var t = DurablePrimitiveTypes.OfType(typeof(T));
+            if (def.Type != t) throw new InvalidOperationException();
+
+            Encode(dst, ref index, def.Id);
+            Encode(dst, ref index, value);
+        }
+
+        /// <summary>
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static byte[] EncodeDurable<T>(DurableDataDefinition def, in T value) where T : struct
+        {
+            if (def == null) throw new ArgumentNullException(nameof(def));
+
+            var dst = new byte[SizeOfDurable<T>()];
+            var t = DurablePrimitiveTypes.OfType(typeof(T));
+            if (def.Type != t) throw new InvalidOperationException();
+
+            var index = 0;
+            Encode(dst, ref index, def.Id);
+            Encode(dst, ref index, value);
+
+            return dst;
+        }
+
+        /// <summary>
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void DecodeDurable<T>(byte[] src, ref int index, out (DurableDataDefinition def, T value) result) where T : struct
+        {
+            if (src == null) throw new ArgumentNullException(nameof(src));
+
+            Decode(src, ref index, out Guid id);
+            var def = DurableDataDefinition.OfId(id);
+
+            var t = DurablePrimitiveTypes.OfType(typeof(T));
+            if (def.Type != t) throw new InvalidOperationException();
+
+            Decode(src, ref index, out T value);
+            result = (def, value);
+        }
+
+        /// <summary>
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static (DurableDataDefinition def, T value) DecodeDurable<T>(byte[] src, ref int index) where T : struct
+        {
+            if (src == null) throw new ArgumentNullException(nameof(src));
+
+            Decode(src, ref index, out Guid id);
+            var def = DurableDataDefinition.OfId(id);
+
+            var t = DurablePrimitiveTypes.OfType(typeof(T));
+            if (def.Type != t) throw new InvalidOperationException();
+
+            Decode(src, ref index, out T value);
+            return (def, value);
+        }
+
+        /// <summary>
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void DecodeDurable<T>(byte[] src, out (DurableDataDefinition def, T value) result) where T : struct
+        {
+            if (src == null) throw new ArgumentNullException(nameof(src));
+
+            var index = 0;
+            Decode(src, ref index, out Guid id);
+            var def = DurableDataDefinition.OfId(id);
+
+            var t = DurablePrimitiveTypes.OfType(typeof(T));
+            if (def.Type != t) throw new InvalidOperationException();
+
+            Decode(src, ref index, out T value);
+            result = (def, value);
+        }
+
+        /// <summary>
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static (DurableDataDefinition def, T value) DecodeDurable<T>(byte[] src) where T : struct
+        {
+            if (src == null) throw new ArgumentNullException(nameof(src));
+
+            var index = 0;
+            Decode(src, ref index, out Guid id);
+            var def = DurableDataDefinition.OfId(id);
+
+            var t = DurablePrimitiveTypes.OfType(typeof(T));
+            if (def.Type != t) throw new InvalidOperationException();
+
+            Decode(src, ref index, out T value);
+            return (def, value);
+        }
+
+        /// <summary>
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static (DurableDataDefinition def, object value) DecodeDurable(byte[] src)
+        {
+            if (src == null) throw new ArgumentNullException(nameof(src));
+
+            var index = 0;
+            Decode(src, ref index, out Guid id);
+            var def = DurableDataDefinition.OfId(id);
+            
+            Decode(def.Type, src, ref index, out object value);
+            return (def, value);
         }
 
         #endregion

@@ -30,6 +30,19 @@ namespace Aardvark.Base
         }
 
         /// <summary>
+        /// Gets definition from its id.
+        /// </summary>
+        public static DurableDataDefinition OfId(Guid id)
+        {
+            lock (s_defs)
+            {
+                return s_defs[id];
+            }
+        }
+
+        private static readonly Dictionary<Guid, DurableDataDefinition> s_defs = new Dictionary<Guid, DurableDataDefinition>();
+
+        /// <summary>
         /// None, nothing, null, etc.
         /// </summary>
         public static readonly DurableDataDefinition None = new DurableDataDefinition(
@@ -76,25 +89,29 @@ namespace Aardvark.Base
         /// <summary></summary>
         public DurableDataDefinition(Guid id, string name, string comment, DurablePrimitiveType type)
         {
-            lock (s_guids)
-                if (!s_guids.Add(id))
-                    throw new Exception($"Duplicate key {id} ({name}, {comment}, {type}).");
-
             Id = id;
             Name = name ?? throw new ArgumentNullException(nameof(name));
             Comment = comment ?? throw new ArgumentNullException(nameof(comment));
             Type = type ?? throw new ArgumentNullException(nameof(type));
+
+            lock (s_defs)
+            {
+                if (s_defs.ContainsKey(id))
+                    throw new Exception($"Duplicate key {id} ({name}, {comment}, {type}).");
+                s_defs[id] = this;
+            }
         }
 
-        private static readonly HashSet<Guid> s_guids = new HashSet<Guid>();
+        /// <summary></summary>
+        public override string ToString() => $"[{Name}, {Type.Name}]";
     }
 
     /// <summary>
     /// </summary>
-    public class DurableData<T> : DurableDataDefinition
+    public class DurableDataDefinition<T> : DurableDataDefinition
     {
         /// <summary></summary>
-        public DurableData(Guid id, string name, string comment)
+        public DurableDataDefinition(Guid id, string name, string comment)
             : base(id, name, comment, DurablePrimitiveTypes.OfType(typeof(T)))
         {
         }

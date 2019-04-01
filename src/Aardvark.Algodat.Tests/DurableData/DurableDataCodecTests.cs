@@ -16,6 +16,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Aardvark.Base;
+using Aardvark.Geometry.Points;
 using NUnit.Framework;
 
 namespace Aardvark.Base.DurableDataCodec
@@ -23,6 +24,8 @@ namespace Aardvark.Base.DurableDataCodec
     [TestFixture]
     public class DurableDataCodecTests
     {
+        #region Encode/Decode
+
         #region roundtrip all overloads
 
         [Test]
@@ -147,6 +150,65 @@ namespace Aardvark.Base.DurableDataCodec
 
         #endregion
 
+        #region roundtrip cell
+
+        [Test]
+        public void RoundtripCell()
+        {
+            var x = new Cell(1, 2, 3, 4);
+            var buffer = DurableCodec.Encode(x);
+
+            var y = DurableCodec.Decode<Cell>(buffer);
+
+            Assert.IsTrue(x == y);
+            Assert.IsTrue(x.BoundingBox == y.BoundingBox);
+        }
+
+        [Test]
+        public void RoundtripCellArray()
+        {
+            var xs = new [] { new Cell(1, 2, 3, 4), new Cell(5,6,7,8) };
+            var buffer = DurableCodec.EncodeArray(xs);
+
+            var ys = DurableCodec.DecodeArray<Cell>(buffer);
+
+            Assert.IsTrue(xs.Length == ys.Length);
+            for (var i = 0; i < xs.Length; i++)
+            {
+                Assert.IsTrue(xs[i] == ys[i]);
+                Assert.IsTrue(xs[i].BoundingBox == ys[i].BoundingBox);
+            }
+        }
+
+        #endregion
+
+        #region roundtrip box2f
+
+        [Test]
+        public void RoundtripBox2i()
+        {
+            var x = new Box2i(new V2i(1,2), new V2i(4,5));
+            var buffer = DurableCodec.Encode(x);
+
+            var y = DurableCodec.Decode<Box2i>(buffer);
+
+            Assert.IsTrue(x == y);
+        }
+
+        [Test]
+        public void RoundtripBox2iArray()
+        {
+            var xs = new[] { new Box2i(new V2i(1, 2), new V2i(3, 4)), new Box2i(new V2i(5, 6), new V2i(7, 8)) };
+            var buffer = DurableCodec.EncodeArray(xs);
+
+            var ys = DurableCodec.DecodeArray<Box2i>(buffer);
+
+            Assert.IsTrue(xs.Length == ys.Length);
+            for (var i = 0; i < xs.Length; i++) Assert.IsTrue(xs[i] == ys[i]);
+        }
+
+        #endregion
+
         #region rountrip v3d
 
         [Test]
@@ -249,6 +311,27 @@ namespace Aardvark.Base.DurableDataCodec
                 var index = 0;
                 DurableCodec.EncodeArray(buffer, ref index, xs);
             });
+        }
+
+        #endregion
+
+        #endregion
+
+        #region EncodeDurable/DecodeDurable
+
+        [Test]
+        public void RoundtripDurableRange2d()
+        {
+            var x = new Range1i(2, 7);
+            var buffer = DurableCodec.EncodeDurable(OctreeAttributes.TreeMinMaxDepth, x);
+
+            var (def1, y1) = DurableCodec.DecodeDurable<Range1i>(buffer);
+            Assert.IsTrue(def1 == OctreeAttributes.TreeMinMaxDepth);
+            Assert.IsTrue(x == y1);
+
+            var (def2, y2) = DurableCodec.DecodeDurable(buffer);
+            Assert.IsTrue(def2 == OctreeAttributes.TreeMinMaxDepth);
+            Assert.IsTrue(x == (Range1i)y2);
         }
 
         #endregion
