@@ -29,6 +29,23 @@ namespace Aardvark.Base
             public static readonly Unit Default = new Unit();
         }
 
+        /// <summary></summary>
+        public struct DurableData
+        {
+            /// <summary></summary>
+            public readonly DurableDataDefinition Definition;
+
+            /// <summary></summary>
+            public readonly object Value;
+
+            /// <summary></summary>
+            public DurableData(DurableDataDefinition definition, object value)
+            {
+                Definition = definition;
+                Value = value;
+            }
+        }
+
         /// <summary>
         /// Gets definition from its id.
         /// </summary>
