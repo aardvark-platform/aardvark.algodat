@@ -14,6 +14,8 @@
 using Aardvark.Base;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace Aardvark.Data.Points
@@ -52,6 +54,48 @@ namespace Aardvark.Data.Points
         public bool HasNormals => Normals != null && Normals.Count > 0;
         /// <summary></summary>
         public bool HasIntensities => Intensities != null && Intensities.Count > 0;
+
+        /// <summary>
+        /// </summary>
+        public static Chunk ImmutableMerge(Chunk a, Chunk b)
+        {
+            if (a.IsEmpty) return b;
+            if (b.IsEmpty) return a;
+
+            ImmutableList<V3d> ps = null;
+            if (a.HasPositions)
+            {
+                var ps0 = (a.Positions is ImmutableList<V3d> x0) ? x0 : ImmutableList<V3d>.Empty.AddRange(a.Positions);
+                var ps1 = (b.Positions is ImmutableList<V3d> x1) ? x1 : ImmutableList<V3d>.Empty.AddRange(b.Positions);
+                ps = ps0.AddRange(ps1);
+            }
+
+            ImmutableList<C4b> cs = null;
+            if (a.HasColors)
+            {
+                var cs0 = (a.Colors is ImmutableList<C4b> x2) ? x2 : ImmutableList<C4b>.Empty.AddRange(a.Colors);
+                var cs1 = (b.Colors is ImmutableList<C4b> x3) ? x3 : ImmutableList<C4b>.Empty.AddRange(b.Colors);
+                cs = cs0.AddRange(cs1);
+            }
+
+            ImmutableList<V3f> ns = null;
+            if (a.HasNormals)
+            {
+                var ns0 = (a.Normals is ImmutableList<V3f> x4) ? x4 : ImmutableList<V3f>.Empty.AddRange(a.Normals);
+                var ns1 = (b.Normals is ImmutableList<V3f> x5) ? x5 : ImmutableList<V3f>.Empty.AddRange(b.Normals);
+                ns = ns0.AddRange(ns1);
+            }
+
+            ImmutableList<int> js = null;
+            if (a.HasIntensities)
+            {
+                var js0 = (a.Intensities is ImmutableList<int> x6) ? x6 : ImmutableList<int>.Empty.AddRange(a.Intensities);
+                var js1 = (b.Intensities is ImmutableList<int> x7) ? x7 : ImmutableList<int>.Empty.AddRange(b.Intensities);
+                js = js0.AddRange(js1);
+            }
+
+            return new Chunk(ps, cs, ns, js, new Box3d(a.BoundingBox, b.BoundingBox));
+        }
 
         /// <summary>
         /// </summary>

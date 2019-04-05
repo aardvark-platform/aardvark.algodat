@@ -68,7 +68,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        public PointSetNode ToPointSetCell(Storage storage, double kdTreeEps = 1e-6, CancellationToken ct = default(CancellationToken))
+        public PointSetNode ToPointSetCell(Storage storage, double kdTreeEps = 1e-6, CancellationToken ct = default)
         {
             var result = m_root.ToPointSetCell(storage, ct, kdTreeEps);
 #if DEBUG
