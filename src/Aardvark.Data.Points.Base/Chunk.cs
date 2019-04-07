@@ -17,6 +17,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 
 namespace Aardvark.Data.Points
 {
@@ -142,7 +143,7 @@ namespace Aardvark.Data.Points
         /// </summary>
         public Chunk ImmutableFilterSequentialMinDistL2(double minDist)
         {
-            if (minDist <= 0.0) return this;
+            if (minDist <= 0.0 || Positions == null) return this;
             var minDistSquared = minDist * minDist;
 
             var ps = new List<V3d>();
@@ -194,6 +195,67 @@ namespace Aardvark.Data.Points
             return new Chunk(ps, cs, ns, js);
         }
 
+
+        /// <summary>
+        /// Returns chunk with duplicate point positions removed.
+        /// </summary>
+        public Chunk ImmutableFilterMinDistByCell(double minDist, Cell bounds)
+        {
+            if (!HasPositions) return this;
+
+            var smallestCellExponent = Fun.Log2(minDist).Ceiling();
+            var positions = Positions;
+            var take = new bool[Count];
+            var foo = new List<int>(positions.Count); for (var i = 0; i < positions.Count; i++) foo.Add(i);
+            filter(bounds, foo).Wait();
+
+            async Task filter(Cell c, List<int> ia)
+            {
+#if DEBUG
+                if (ia == null || ia.Count == 0) throw new InvalidOperationException();
+                if (c.Exponent < smallestCellExponent) throw new InvalidOperationException();
+#endif
+                if (c.Exponent == smallestCellExponent)
+                {
+                    take[ia[0]] = true;
+                    return;
+                }
+
+                var center = c.GetCenter();
+                var subias = new List<int>[8].SetByIndex(_ => new List<int>());
+                for (var i = 0; i < ia.Count; i++)
+                {
+                    var p = positions[ia[i]];
+                    var o = 0;
+                    if (p.X >= center.X) o = 1;
+                    if (p.Y >= center.Y) o |= 2;
+                    if (p.Z >= center.Z) o |= 4;
+                    subias[o].Add(ia[i]);
+                }
+
+                var ts = new List<Task>();
+                for (var i = 0; i < 8; i++)
+                {
+                    if (subias[i].Count == 0) continue;
+                    if (subias[i].Count == 1) { take[subias[i][0]] = true; continue; }
+                    var _i = i;
+                    var t = (subias[i].Count < 16384)
+                        ? filter(c.GetOctant(i), subias[i])
+                        : Task.Run(() => filter(c.GetOctant(_i), subias[_i]))
+                        ;
+                    ts.Add(t);
+                }
+                await Task.WhenAll(ts);
+            }
+
+            var self = this;
+            var ps = Positions.Where((_, i) => take[i]).ToList();
+            var cs = HasColors ? Colors.Where((_, i) => take[i]).ToList() : null;
+            var ns = HasNormals ? Normals.Where((_, i) => take[i]).ToList() : null;
+            var js = HasIntensities ? Intensities.Where((_, i) => take[i]).ToList() : null;
+            return new Chunk(ps, cs, ns, js);
+        }
+
         /// <summary>
         /// Returns chunk with duplicate point positions removed.
         /// </summary>
@@ -223,7 +285,7 @@ namespace Aardvark.Data.Points
                 return this;
             }
         }
-
+        
         /// <summary>
         /// Removes points which are less than minDist from previous point.
         /// </summary>

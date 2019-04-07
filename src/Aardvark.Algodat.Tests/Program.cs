@@ -24,7 +24,7 @@ namespace Aardvark.Geometry.Tests
 
             var info = E57.E57Info(filename, ImportConfig.Default);
             Report.Line($"total bounds: {info.Bounds}");
-            Report.Line($"total count : {info.PointCount}");
+            Report.Line($"total count : {info.PointCount:N0}");
 
             var config = ImportConfig.Default
                 .WithInMemoryStore()
@@ -40,12 +40,13 @@ namespace Aardvark.Geometry.Tests
             Report.BeginTimed("count chunks");
             var chunks = E57
                 .Chunks(filename, config)
-                .Take(1)
+                //.Take(1)
                 .AsParallel()
-                .Select(x => x.ImmutableFilterSequentialMinDistL1(0.01))
+                .Select(x => x.ImmutableFilterMinDistByCell(0.01, new Cell(x.BoundingBox)))
+                //.Select(x => x.ImmutableFilterSequentialMinDistL1(0.01))
                 .ToArray()
                 ;
-            Report.Line($"chunks     : {chunks.Length}");
+            Report.Line($"chunks     : {chunks.Length:N0}");
             Report.EndTimed();
 
             var memstore = new SimpleMemoryStore().ToPointCloudStore();
@@ -64,7 +65,12 @@ namespace Aardvark.Geometry.Tests
             Report.BeginTimed("merging all chunks");
             var chunk = Chunk.Empty;
             foreach (var x in chunks) chunk = Chunk.ImmutableMerge(chunk, x);
-            Report.Line($"points     : {chunk.Count}");
+            Report.Line($"points     : {chunk.Count:N0}");
+            Report.EndTimed();
+
+            Report.BeginTimed("filter mindist");
+            chunk = chunk.ImmutableFilterMinDistByCell(0.01, new Cell(chunk.BoundingBox));
+            Report.Line($"points     : {chunk.Count:N0}");
             Report.EndTimed();
 
             //Report.BeginTimed("slots");
@@ -73,12 +79,13 @@ namespace Aardvark.Geometry.Tests
             //var slotsCountAvg = slots.Sum(x => x.Count() / (double)slots.Length);
             //var slotsCountMin = slots.Min(x => x.Count());
             //var slotsCountMax = slots.Max(x => x.Count());
-            //var slotsCountSd = (slots.Sum(x => (x.Count() - slotsCountAvg).Square() ) / slots.Length).Sqrt();
+            //var slotsCountSd = (slots.Sum(x => (x.Count() - slotsCountAvg).Square()) / slots.Length).Sqrt();
             //Report.Line($"[slots] count avg = {slotsCountAvg}");
             //Report.Line($"[slots] count min = {slotsCountMin}");
             //Report.Line($"[slots] count max = {slotsCountMax}");
             //Report.Line($"[slots] count sd  = {slotsCountSd}");
             //Report.EndTimed();
+
 
             Report.BeginTimed("build octree");
             var octree = InMemoryPointSet.Build(chunk, 8192);
