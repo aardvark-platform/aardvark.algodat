@@ -171,7 +171,7 @@ namespace Aardvark.Data.Points
         /// </summary>
         public Chunk ImmutableFilterSequentialMinDistL1(double minDist)
         {
-            if (minDist <= 0.0) return this;
+            if (minDist <= 0.0 || Positions == null) return this;
 
             var ps = new List<V3d>();
             var cs = Colors != null ? new List<C4b>() : null;

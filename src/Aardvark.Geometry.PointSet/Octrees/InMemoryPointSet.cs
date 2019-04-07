@@ -31,7 +31,7 @@ namespace Aardvark.Geometry.Points
         private IList<V3f> m_ns;
         private IList<int> m_is;
         private Node m_root;
-        private long m_insertedPointsCount = 0;
+        private readonly long m_insertedPointsCount = 0;
         private long m_duplicatePointsCount = 0;
 
         /// <summary>

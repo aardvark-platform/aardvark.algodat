@@ -51,7 +51,7 @@ namespace Aardvark.Geometry.Points
             }
 
             // optionally reproject positions and/or estimate normals
-            if (config.Reproject != null || config.EstimateNormals != null)
+            if (config.Reproject != null)
             {
                 Chunk map(Chunk x, CancellationToken ct)
                 {
@@ -60,13 +60,6 @@ namespace Aardvark.Geometry.Points
                         var ps = config.Reproject(x.Positions);
                         x = x.WithPositions(ps);
                     }
-
-                    if (config.EstimateNormals != null)
-                    {
-                        var ns = config.EstimateNormals(x.Positions);
-                        x = x.WithNormals(ns);
-                    }
-
                     return x;
                 }
 

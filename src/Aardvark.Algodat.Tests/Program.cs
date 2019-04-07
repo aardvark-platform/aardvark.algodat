@@ -9,7 +9,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using Uncodium.SimpleStore;
-using static System.Console;
 
 namespace Aardvark.Geometry.Tests
 {
@@ -20,12 +19,12 @@ namespace Aardvark.Geometry.Tests
             var sw = new Stopwatch();
 
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
-            var filename = @"T:\rmdata\Data\E57\Lichthof grob.e57";
+            var filename = @"T:\Vgm\Data\E57\Lichthof grob.e57";
             var fileSizeInBytes = new FileInfo(filename).Length;
 
             var info = E57.E57Info(filename, ImportConfig.Default);
-            WriteLine($"total bounds: {info.Bounds}");
-            WriteLine($"total count : {info.PointCount}");
+            Report.Line($"total bounds: {info.Bounds}");
+            Report.Line($"total count : {info.PointCount}");
 
             var config = ImportConfig.Default
                 .WithInMemoryStore()
@@ -34,14 +33,19 @@ namespace Aardvark.Geometry.Tests
                 .WithMaxDegreeOfParallelism(0)
                 .WithMinDist(0.01)
                 ;
-
-
+            
             Report.BeginTimed("total");
 
 
             Report.BeginTimed("count chunks");
-            var chunks = E57.Chunks(filename, config).ToArray();
-            WriteLine($"chunks     : {chunks.Length}");
+            var chunks = E57
+                .Chunks(filename, config)
+                .Take(1)
+                .AsParallel()
+                .Select(x => x.ImmutableFilterSequentialMinDistL1(0.01))
+                .ToArray()
+                ;
+            Report.Line($"chunks     : {chunks.Length}");
             Report.EndTimed();
 
             var memstore = new SimpleMemoryStore().ToPointCloudStore();
@@ -60,12 +64,35 @@ namespace Aardvark.Geometry.Tests
             Report.BeginTimed("merging all chunks");
             var chunk = Chunk.Empty;
             foreach (var x in chunks) chunk = Chunk.ImmutableMerge(chunk, x);
+            Report.Line($"points     : {chunk.Count}");
             Report.EndTimed();
+
+            //Report.BeginTimed("slots");
+            //var slots = chunk.Positions.GroupBy(p => (V3i)p).ToArray();
+            //Report.Line($"[slots] {slots.Length}");
+            //var slotsCountAvg = slots.Sum(x => x.Count() / (double)slots.Length);
+            //var slotsCountMin = slots.Min(x => x.Count());
+            //var slotsCountMax = slots.Max(x => x.Count());
+            //var slotsCountSd = (slots.Sum(x => (x.Count() - slotsCountAvg).Square() ) / slots.Length).Sqrt();
+            //Report.Line($"[slots] count avg = {slotsCountAvg}");
+            //Report.Line($"[slots] count min = {slotsCountMin}");
+            //Report.Line($"[slots] count max = {slotsCountMax}");
+            //Report.Line($"[slots] count sd  = {slotsCountSd}");
+            //Report.EndTimed();
 
             Report.BeginTimed("build octree");
             var octree = InMemoryPointSet.Build(chunk, 8192);
             Report.EndTimed();
-            
+
+            Report.BeginTimed("toPointSetCell");
+            var psc = octree.ToPointSetCell(memstore);
+            var ps = new PointSet(memstore, "foo", psc.Id, 8192);
+            Report.EndTimed();
+
+            Report.BeginTimed("generate lod");
+            var psWithNormals = ps.GenerateLod(config);
+            Report.EndTimed();
+
 
 
             Report.EndTimed();
@@ -82,11 +109,6 @@ namespace Aardvark.Geometry.Tests
                 .WithVerbose(false)
                 .WithMaxDegreeOfParallelism(0)
                 .WithMinDist(0.01)
-                .WithEstimateNormals(ps =>
-                {
-                    //Console.WriteLine($"[NORMALS]");
-                    return Normals.EstimateNormals((V3d[])ps, 16);
-                })
                 .WithProgressCallback(x =>
                 {
                     if (x < lastProgress) Console.WriteLine("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH"); else lastProgress = x;

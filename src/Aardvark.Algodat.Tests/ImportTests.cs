@@ -128,41 +128,7 @@ namespace Aardvark.Geometry.Tests
             var pointcloud = PointCloud.Chunks(chunk, config);
             Assert.IsTrue(pointcloud.BoundingBox == bb + V3d.OIO);
         }
-
-        [Test]
-        public void CanImportChunk_EstimateNormals()
-        {
-            int n = 10;
-            var ps = new V3d[n];
-            for (var i = 0; i < n; i++) ps[i] = new V3d(i, 0, 0);
-
-            var chunk = new Chunk(ps);
-            Assert.IsTrue(chunk.Count == 10);
-
-            var config = ImportConfig.Default
-                .WithStorage(PointCloud.CreateInMemoryStore())
-                .WithKey("test")
-                .WithOctreeSplitLimit(10)
-                ;
-            var pointcloud = PointCloud.Chunks(chunk, config);
-            var node = pointcloud.Root.Value;
-            Assert.IsTrue(node.IsLeaf);
-            Assert.IsTrue(node.HasNormals == false);
-
-
-            config = ImportConfig.Default
-                .WithStorage(PointCloud.CreateInMemoryStore())
-                .WithKey("test")
-                .WithOctreeSplitLimit(10)
-                .WithEstimateNormals(xs => xs.Select(x => V3f.OOI).ToArray())
-                ;
-            pointcloud = PointCloud.Chunks(chunk, config);
-            node = pointcloud.Root.Value;
-            Assert.IsTrue(node.IsLeaf);
-            Assert.IsTrue(node.HasNormals == true);
-            Assert.IsTrue(node.Normals.Value.All(x => x == V3f.OOI));
-        }
-
+        
         [Test]
         public void CanImport_WithKey()
         {
@@ -181,7 +147,6 @@ namespace Aardvark.Geometry.Tests
                 .WithDeduplicateChunks(false)
                 .WithMinDist(0.0)
                 .WithReproject(null)
-                .WithEstimateNormals(null)
                 ;
             var pointcloud = PointCloud.Chunks(chunk, config);
             Assert.IsTrue(pointcloud.Id == "test");
@@ -205,7 +170,6 @@ namespace Aardvark.Geometry.Tests
                 .WithDeduplicateChunks(false)
                 .WithMinDist(0.0)
                 .WithReproject(null)
-                .WithEstimateNormals(null)
                 ;
             var pointcloud = PointCloud.Chunks(chunk, config);
             Assert.IsTrue(pointcloud.Id != null);
@@ -229,7 +193,6 @@ namespace Aardvark.Geometry.Tests
                 .WithDeduplicateChunks(false)
                 .WithMinDist(0.0)
                 .WithReproject(null)
-                .WithEstimateNormals(null)
                 ;
 
 
@@ -258,7 +221,6 @@ namespace Aardvark.Geometry.Tests
                 .WithDeduplicateChunks(false)
                 .WithMinDist(0.0)
                 .WithReproject(null)
-                .WithEstimateNormals(null)
                 ;
 
 

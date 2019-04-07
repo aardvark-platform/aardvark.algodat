@@ -59,7 +59,6 @@
     <Compile Include="BitPackTests.cs" />
     <Compile Include="UtilsTests.cs" />
     <Compile Include="PointSetTests\NormalsEstimationTests.cs" />
-    <Compile Include="PointSetTests\NormalsGenerationTests.cs" />
     <Compile Include="PointSetTests\RegenerateNormalsTests.cs" />
     <Compile Include="PointSetTests\NormalsTests.cs" />
     <Compile Include="ProgressReportingTests.cs" />
