@@ -67,7 +67,7 @@ namespace Aardvark.Data.Points
         public int ReadBufferSizeInBytes { get; private set; } = 256 * 1024 * 1024;
 
         /// <summary></summary>
-        public int MaxChunkPointCount { get; private set; } = 10 * 1024 * 1024;
+        public int MaxChunkPointCount { get; private set; } = 1024 * 1024;
 
         /// <summary></summary>
         public Func<IList<V3d>, IList<V3d>> Reproject { get; private set; } = null;
@@ -121,7 +121,7 @@ namespace Aardvark.Data.Points
         public ImportConfig WithRandomKey() => WithKey(Guid.NewGuid().ToString());
 
         /// <summary></summary>
-        public ImportConfig WithMaxDegreeOfParallelism(int x) => new ImportConfig(this) { MaxDegreeOfParallelism = 0 };
+        public ImportConfig WithMaxDegreeOfParallelism(int x) => new ImportConfig(this) { MaxDegreeOfParallelism = x };
 
         /// <summary></summary>
         public ImportConfig WithMinDist(double x) => new ImportConfig(this) { MinDist = x };
