@@ -1497,10 +1497,10 @@ namespace Aardvark.Data.E57
                 return new E57Image2D
                 {
                     Guid = GetString(root, "guid", true),
-                    VisualReferenceRepresentation = E57VisualReferenceRepresentation.Parse(GetElement(root, "visualReferenceRepresentation")),
-                    PinholeRepresentation = E57PinholeRepresentation.Parse(GetElement(root, "pinholeRepresentation")),
-                    SphericalRepresentation = E57SphericalRepresentation.Parse(GetElement(root, "sphericalRepresentation")),
-                    CylindricalRepresentation = E57CylindricalRepresentation.Parse(GetElement(root, "cylindricalRepresentation")),
+                    VisualReferenceRepresentation = E57VisualReferenceRepresentation.Parse(GetElement(root, "visualReferenceRepresentation"),stream),
+                    PinholeRepresentation = E57PinholeRepresentation.Parse(GetElement(root, "pinholeRepresentation"), stream),
+                    SphericalRepresentation = E57SphericalRepresentation.Parse(GetElement(root, "sphericalRepresentation"), stream),
+                    CylindricalRepresentation = E57CylindricalRepresentation.Parse(GetElement(root, "cylindricalRepresentation"), stream),
                     Pose = E57RigidBodyTransform.Parse(GetElement(root, "pose")),
                     AssociatedData3DGuid = GetString(root, "associatedData3DGuid", false),
                     Name = GetString(root, "name", false),
@@ -1526,13 +1526,13 @@ namespace Aardvark.Data.E57
             /// Optional.
             /// JPEG format image data.
             /// </summary>
-            public byte[] JpegImage => throw new NotImplementedException();
+            public byte[] JpegImage;
 
             /// <summary>
             /// Optional.
             /// PNG format image data.
             /// </summary>
-            public byte[] PngImage => throw new NotImplementedException();
+            public byte[] PngImage;
 
             /// <summary>
             /// Optional.
@@ -1559,11 +1559,13 @@ namespace Aardvark.Data.E57
 
 #endregion
 
-            internal static E57VisualReferenceRepresentation Parse(XElement root)
+            internal static E57VisualReferenceRepresentation Parse(XElement root, Stream stream)
             {
                 if (root == null) return null;
                 return new E57VisualReferenceRepresentation
                 {
+                    JpegImage = GetImageBytes(root, "jpegImage", stream),
+                    PngImage = GetImageBytes(root, "pngImage", stream),
                     ImageWidth = GetInteger(root, "imageWidth", true).Value,
                     ImageHeight = GetInteger(root, "imageHeight", true).Value,
                 };
@@ -1577,19 +1579,19 @@ namespace Aardvark.Data.E57
         {
             public E57ElementType E57Type => E57ElementType.PinholeRepresentation;
 
-#region Properties
+            #region Properties
 
             /// <summary>
             /// Optional.
             /// JPEG format image data.
             /// </summary>
-            public byte[] JpegImage => throw new NotImplementedException();
+            public byte[] JpegImage;
 
             /// <summary>
             /// Optional.
             /// PNG format image data.
             /// </summary>
-            public byte[] PngImage => throw new NotImplementedException();
+            public byte[] PngImage;
 
             /// <summary>
             /// Optional.
@@ -1657,11 +1659,14 @@ namespace Aardvark.Data.E57
 
 #endregion
 
-            internal static E57PinholeRepresentation Parse(XElement root)
+            internal static E57PinholeRepresentation Parse(XElement root, Stream stream)
             {
                 if (root == null) return null;
-                return new E57PinholeRepresentation
+                
+                var result = new E57PinholeRepresentation
                 {
+                    JpegImage = GetImageBytes(root, "jpegImage", stream),
+                    PngImage = GetImageBytes(root, "pngImage", stream),                    
                     ImageWidth = GetInteger(root, "imageWidth", true).Value,
                     ImageHeight = GetInteger(root, "imageHeight", true).Value,
                     FocalLength = GetFloat(root, "focalLength", true).Value,
@@ -1670,6 +1675,9 @@ namespace Aardvark.Data.E57
                     PrincipalPointX = GetFloat(root, "principalPointX", true).Value,
                     PrincipalPointY = GetFloat(root, "principalPointY", true).Value,
                 };
+                
+
+                return result;
             }
         }
 
@@ -1680,19 +1688,19 @@ namespace Aardvark.Data.E57
         {
             public E57ElementType E57Type => E57ElementType.SphericalRepresentation;
 
-#region Properties
+            #region Properties
 
             /// <summary>
             /// Optional.
             /// JPEG format image data.
             /// </summary>
-            public byte[] JpegImage => throw new NotImplementedException();
+            public byte[] JpegImage;
 
             /// <summary>
             /// Optional.
             /// PNG format image data.
             /// </summary>
-            public byte[] PngImage => throw new NotImplementedException();
+            public byte[] PngImage;
 
             /// <summary>
             /// Optional.
@@ -1736,11 +1744,13 @@ namespace Aardvark.Data.E57
 
 #endregion
 
-            internal static E57SphericalRepresentation Parse(XElement root)
+            internal static E57SphericalRepresentation Parse(XElement root, Stream stream)
             {
                 if (root == null) return null;
                 return new E57SphericalRepresentation
                 {
+                    JpegImage = GetImageBytes(root, "jpegImage", stream),
+                    PngImage = GetImageBytes(root, "pngImage", stream),
                     ImageWidth = GetInteger(root, "imageWidth", true).Value,
                     ImageHeight = GetInteger(root, "imageHeight", true).Value,
                     PixelWidth = GetFloat(root, "pixelWidth", true).Value,
@@ -1762,13 +1772,13 @@ namespace Aardvark.Data.E57
             /// Optional.
             /// JPEG format image data.
             /// </summary>
-            public byte[] JpegImage => throw new NotImplementedException();
+            public byte[] JpegImage;
 
             /// <summary>
             /// Optional.
             /// PNG format image data.
             /// </summary>
-            public byte[] PngImage => throw new NotImplementedException();
+            public byte[] PngImage;
 
             /// <summary>
             /// Optional.
@@ -1825,11 +1835,13 @@ namespace Aardvark.Data.E57
 
 #endregion
 
-            internal static E57CylindricalRepresentation Parse(XElement root)
+            internal static E57CylindricalRepresentation Parse(XElement root, Stream stream)
             {
                 if (root == null) return null;
                 return new E57CylindricalRepresentation
                 {
+                    JpegImage = GetImageBytes(root, "jpegImage", stream),
+                    PngImage = GetImageBytes(root, "pngImage", stream),
                     ImageWidth = GetInteger(root, "imageWidth", true).Value,
                     ImageHeight = GetInteger(root, "imageHeight", true).Value,
                     Radius = GetFloat(root, "radius", true).Value,
@@ -2329,6 +2341,21 @@ namespace Aardvark.Data.E57
         private static double? GetFloat(XElement root, string elementName, bool required, double? mustBe = null)
             => GetValue<double?>(root, elementName, required, "Float", x => mustBe.HasValue ? x == mustBe.Value : true,
                 x => x != null ? double.Parse(x, CultureInfo.InvariantCulture) : 0.0, mustBe, null);
+        private static byte[] GetImageBytes(XElement root, string elementName, Stream stream)
+        {
+            var element = GetElement(root, elementName);
+            if (element == null) return null;
+            var blob = E57Blob.Parse(GetElement(root, elementName));
+            // Mysterious!  Why is +16 required? 
+            var start = blob.FileOffset.Value + 16;
+            // If start falls in checksum region move it forward the the next page
+            if(start % 1024 >= 1020)
+            {
+                start += 1024 - (start % 1024);
+            }
+            var offest = new E57PhysicalOffset(start);
+            return ReadLogicalBytes(stream, offest, (int)blob.Length);            
+        }
         private static double? GetFloatOrInteger(XElement root, string elementName, bool required)
         {
             var type = GetElementType(GetElement(root, elementName));
@@ -2409,10 +2436,10 @@ namespace Aardvark.Data.E57
                 //case "Quaternion":
                 //case "Translation":
                 case "Image2d": return E57Image2D.Parse(root, stream);
-                case "VisualReferenceRepresentation": return E57VisualReferenceRepresentation.Parse(root);
-                case "PinholeRepresentation": return E57PinholeRepresentation.Parse(root);
-                case "SphericalRepresentation": return E57SphericalRepresentation.Parse(root);
-                case "CylindricalRepresentation": return E57CylindricalRepresentation.Parse(root);
+                case "VisualReferenceRepresentation": return E57VisualReferenceRepresentation.Parse(root,stream);
+                case "PinholeRepresentation": return E57PinholeRepresentation.Parse(root, stream);
+                case "SphericalRepresentation": return E57SphericalRepresentation.Parse(root, stream);
+                case "CylindricalRepresentation": return E57CylindricalRepresentation.Parse(root, stream);
                 case "CartesianBounds": return E57CartesianBounds.Parse(root);
                 case "SphericalBounds": return E57SphericalBounds.Parse(root);
                 case "IndexBounds": return E57IndexBounds.Parse(root);
