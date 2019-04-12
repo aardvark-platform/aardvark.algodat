@@ -1160,7 +1160,9 @@ namespace Aardvark.Data.E57
 #region 8.4.3.4
                 if (data3d.HasCartesianCoordinates && data3d.CartesianBounds == null)
                 {
+                    #if DEBUG
                     Console.WriteLine("[Warning][8.4.3.4] CartesianBounds must be defined (if cartesian coordinates are defined).");
+                    #endif
                 }
 #endregion
 #region 8.4.3.5
@@ -1354,7 +1356,7 @@ namespace Aardvark.Data.E57
         {
             public E57ElementType E57Type => E57ElementType.RigidBodyTransform;
 
-            #region Properties
+#region Properties
 
             /// <summary>
             /// Required.
@@ -1368,7 +1370,7 @@ namespace Aardvark.Data.E57
             /// </summary>
             public V3d Translation { get; }
 
-            #endregion
+#endregion
 
             /// <summary>
             /// A 3D point is transformed from the source coordinate system to the
@@ -2038,7 +2040,7 @@ namespace Aardvark.Data.E57
             public DateTimeOffset DateTime => GpsStartEpoch + TimeSpan.FromSeconds(DateTimeValue);
             private static readonly DateTimeOffset GpsStartEpoch = new DateTimeOffset(1980, 01, 06, 0, 0, 0, TimeSpan.Zero);
 
-            #endregion
+#endregion
 
             internal static E57DateTime Parse(XElement root) => (root == null) ? null : new E57DateTime
             {

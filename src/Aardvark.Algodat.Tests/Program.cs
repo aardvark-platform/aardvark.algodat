@@ -36,20 +36,19 @@ namespace Aardvark.Geometry.Tests
             
             Report.BeginTimed("total");
 
-
-            Report.BeginTimed("count chunks");
             var chunks = E57
                 .Chunks(filename, config)
                 //.Take(1)
-                .AsParallel()
-                .Select(x => x.ImmutableFilterMinDistByCell(0.01, new Cell(x.BoundingBox)))
-                //.Select(x => x.ImmutableFilterSequentialMinDistL1(0.01))
-                .ToArray()
+                //.AsParallel()
+                //.Select(x => x.ImmutableFilterMinDistByCell(0.01, new Cell(x.BoundingBox)))
+                ////.Select(x => x.ImmutableFilterSequentialMinDistL1(0.01))
+                //.ToArray()
                 ;
-            Report.Line($"chunks     : {chunks.Length:N0}");
+            var pc = PointCloud.Chunks(chunks, config);
+
             Report.EndTimed();
 
-            var memstore = new SimpleMemoryStore().ToPointCloudStore();
+            //var memstore = new SimpleMemoryStore().ToPointCloudStore();
 
             // classic
             //var foo = chunks.AsParallel().Select(x => InMemoryPointSet.Build(x, 8192).ToPointSetCell(memstore));
@@ -61,17 +60,17 @@ namespace Aardvark.Geometry.Tests
             //    return merged;
             //}, 0);
 
-            // test 1
-            Report.BeginTimed("merging all chunks");
-            var chunk = Chunk.Empty;
-            foreach (var x in chunks) chunk = Chunk.ImmutableMerge(chunk, x);
-            Report.Line($"points     : {chunk.Count:N0}");
-            Report.EndTimed();
+            //// test 1
+            //Report.BeginTimed("merging all chunks");
+            //var chunk = Chunk.Empty;
+            //foreach (var x in chunks) chunk = Chunk.ImmutableMerge(chunk, x);
+            //Report.Line($"points     : {chunk.Count:N0}");
+            //Report.EndTimed();
 
-            Report.BeginTimed("filter mindist");
-            chunk = chunk.ImmutableFilterMinDistByCell(0.01, new Cell(chunk.BoundingBox));
-            Report.Line($"points     : {chunk.Count:N0}");
-            Report.EndTimed();
+            //Report.BeginTimed("filter mindist");
+            //chunk = chunk.ImmutableFilterMinDistByCell(0.01, new Cell(chunk.BoundingBox));
+            //Report.Line($"points     : {chunk.Count:N0}");
+            //Report.EndTimed();
 
             //Report.BeginTimed("slots");
             //var slots = chunk.Positions.GroupBy(p => (V3i)p).ToArray();
@@ -87,22 +86,21 @@ namespace Aardvark.Geometry.Tests
             //Report.EndTimed();
 
 
-            Report.BeginTimed("build octree");
-            var octree = InMemoryPointSet.Build(chunk, 8192);
-            Report.EndTimed();
+            //Report.BeginTimed("build octree");
+            //var octree = InMemoryPointSet.Build(chunk, 8192);
+            //Report.EndTimed();
 
-            Report.BeginTimed("toPointSetCell");
-            var psc = octree.ToPointSetCell(memstore);
-            var ps = new PointSet(memstore, "foo", psc.Id, 8192);
-            Report.EndTimed();
+            //Report.BeginTimed("toPointSetCell");
+            //var psc = octree.ToPointSetCell(memstore);
+            //var ps = new PointSet(memstore, "foo", psc.Id, 8192);
+            //Report.EndTimed();
 
-            Report.BeginTimed("generate lod");
-            var psWithNormals = ps.GenerateLod(config);
-            Report.EndTimed();
+            //Report.BeginTimed("generate lod");
+            //var psWithNormals = ps.GenerateLod(config);
+            //Report.EndTimed();
 
 
 
-            Report.EndTimed();
             //Report.Line($"chunks: {foo.Count}");
 
             

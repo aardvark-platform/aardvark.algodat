@@ -34,9 +34,6 @@ namespace Aardvark.Data.Points
         /// <summary></summary>
         public CancellationToken CancellationToken { get; private set; } = CancellationToken.None;
 
-        /// <summary></summary>
-        public bool CreateOctreeLod { get; private set; } = true;
-
         /// <summary>
         /// Store imported pointcloud with this key.
         /// </summary>
@@ -93,7 +90,6 @@ namespace Aardvark.Data.Points
         public ImportConfig(ImportConfig x)
         {
             CancellationToken = x.CancellationToken;
-            CreateOctreeLod = x.CreateOctreeLod;
             Key = x.Key;
             MaxDegreeOfParallelism = x.MaxDegreeOfParallelism;
             MinDist = x.MinDist;
@@ -110,9 +106,6 @@ namespace Aardvark.Data.Points
 
         /// <summary></summary>
         public ImportConfig WithCancellationToken(CancellationToken x) => new ImportConfig(this) { CancellationToken = x };
-
-        /// <summary></summary>
-        public ImportConfig WithCreateOctreeLod(bool x) => new ImportConfig(this) { CreateOctreeLod = x };
 
         /// <summary></summary>
         public ImportConfig WithKey(string x) => new ImportConfig(this) { Key = x };

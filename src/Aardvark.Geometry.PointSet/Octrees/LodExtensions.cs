@@ -29,8 +29,6 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PointSet GenerateLod(this PointSet self, ImportConfig config)
         {
-            if (config.CreateOctreeLod == false) return self;
-
             var nodeCount = self.Root.Value.CountNodes();
             var loddedNodesCount = 0L;
             var result = self.GenerateLod(config.Key, () =>
@@ -57,10 +55,9 @@ namespace Aardvark.Geometry.Points
             return result;
         }
 
-        private static V3f[] EstimateNormals(this V3f[] points, PointRkdTreeD<V3f[], V3f> kdtree, int k)
+        private static Task<V3f[]> EstimateNormals(this V3f[] points, PointRkdTreeD<V3f[], V3f> kdtree, int k)
         {
-            //return Task.Run(() => 
-            return points.Map((p, i) =>
+            return Task.Run(() => points.Map((p, i) =>
             {
                 if (k > points.Length) k = points.Length;
 
@@ -81,8 +78,8 @@ namespace Aardvark.Geometry.Points
                 // solve eigensystem -> eigenvector for smallest eigenvalue gives normal 
                 Eigensystems.Dsyevh3((M33d)cvm, out M33d q, out V3d w);
                 return (V3f)((w.X < w.Y) ? ((w.X < w.Z) ? q.C0 : q.C2) : ((w.Y < w.Z) ? q.C1 : q.C2));
-            });
-            //);
+            })
+            );
         }
 
         /// <summary>
@@ -101,7 +98,7 @@ namespace Aardvark.Geometry.Points
                 {
                     var ns = self.Positions.Value.EstimateNormals(self.KdTree.Value, 16);
                     var nsId = Guid.NewGuid();
-                    self.Storage.Add(nsId, ns, ct);
+                    self.Storage.Add(nsId, await ns, ct);
                     self = self.WithNormals(nsId);
                 }
                 return self.WithLod();

@@ -195,7 +195,6 @@ namespace Aardvark.Data.Points
             return new Chunk(ps, cs, ns, js);
         }
 
-
         /// <summary>
         /// Returns chunk with duplicate point positions removed.
         /// </summary>
