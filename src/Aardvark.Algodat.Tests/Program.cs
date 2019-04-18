@@ -105,21 +105,21 @@ namespace Aardvark.Geometry.Tests
 
             
 
-            return;
+            //return;
 
-            var lastProgress = 0.0;
-            config = ImportConfig.Default
-                .WithInMemoryStore()
-                .WithRandomKey()
-                .WithVerbose(false)
-                .WithMaxDegreeOfParallelism(0)
-                .WithMinDist(0.01)
-                .WithProgressCallback(x =>
-                {
-                    if (x < lastProgress) Console.WriteLine("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH"); else lastProgress = x;
-                    Console.WriteLine($"[PROGRESS]; {x,8:0.00000}; {sw.Elapsed.TotalSeconds:0.00}");
-                })
-                ;
+            //var lastProgress = 0.0;
+            //config = ImportConfig.Default
+            //    .WithInMemoryStore()
+            //    .WithRandomKey()
+            //    .WithVerbose(false)
+            //    .WithMaxDegreeOfParallelism(0)
+            //    .WithMinDist(0.01)
+            //    .WithProgressCallback(x =>
+            //    {
+            //        if (x < lastProgress) Console.WriteLine("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH"); else lastProgress = x;
+            //        Console.WriteLine($"[PROGRESS]; {x,8:0.00000}; {sw.Elapsed.TotalSeconds:0.00}");
+            //    })
+            //    ;
 
             //var chunks = E57.Chunks(filename, config);
             //var pointcloud = PointCloud.Chunks(chunks, config);
