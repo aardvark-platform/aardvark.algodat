@@ -44,6 +44,10 @@ namespace Aardvark.Geometry.Points
                 chunks = chunks.Select(x => x.ImmutableFilterSequentialMinDistL1(config.MinDist));
             }
 
+            //Report.BeginTimed("unmix");
+            //chunks = chunks.ImmutableUnmixOutOfCore(@"T:\tmp", 1, config);
+            //Report.End();
+
             // optionally deduplicate points
             if (config.DeduplicateChunks)
             {
@@ -51,7 +55,7 @@ namespace Aardvark.Geometry.Points
             }
 
             // optionally reproject positions and/or estimate normals
-            if (config.Reproject != null || config.EstimateNormals != null)
+            if (config.Reproject != null)
             {
                 Chunk map(Chunk x, CancellationToken ct)
                 {
@@ -60,13 +64,6 @@ namespace Aardvark.Geometry.Points
                         var ps = config.Reproject(x.Positions);
                         x = x.WithPositions(ps);
                     }
-
-                    if (config.EstimateNormals != null)
-                    {
-                        var ns = config.EstimateNormals(x.Positions);
-                        x = x.WithNormals(ns);
-                    }
-
                     return x;
                 }
 
@@ -74,15 +71,16 @@ namespace Aardvark.Geometry.Points
             }
 
             // reduce all chunks to single PointSet
+            Report.BeginTimed("map/reduce");
             var final = chunks
                 .MapReduce(config.WithRandomKey().WithProgressCallback(x => config.ProgressCallback(0.01 + x * 0.65)))
                 ;
+            Report.EndTimed();
 
             // optionally create LOD data
-            if (config.CreateOctreeLod)
-            {
-                final = final.GenerateLod(config.WithRandomKey().WithProgressCallback(x => config.ProgressCallback(0.66 + x * 0.34)));
-            }
+            Report.BeginTimed("generate lod");
+            final = final.GenerateLod(config.WithRandomKey().WithProgressCallback(x => config.ProgressCallback(0.66 + x * 0.34)));
+            Report.End();
 
             // create final point set with specified key (or random key when no key is specified)
             var key = config.Key ?? Guid.NewGuid().ToString();

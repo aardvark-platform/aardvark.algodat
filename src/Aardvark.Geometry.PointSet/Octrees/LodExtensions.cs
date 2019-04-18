@@ -16,6 +16,8 @@ using Aardvark.Data.Points;
 using System;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
+using Uncodium;
 
 namespace Aardvark.Geometry.Points
 {
@@ -27,8 +29,6 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PointSet GenerateLod(this PointSet self, ImportConfig config)
         {
-            if (config.CreateOctreeLod == false) return self;
-
             var nodeCount = self.Root.Value.CountNodes();
             var loddedNodesCount = 0L;
             var result = self.GenerateLod(config.Key, () =>
@@ -41,23 +41,50 @@ namespace Aardvark.Geometry.Points
 
             config.ProgressCallback(1.0);
 
-            return result;
+            return result.Result;
         }
 
         /// <summary>
         /// </summary>
-        private static PointSet GenerateLod(this PointSet self, string key, Action callback, int maxLevelOfParallelism, CancellationToken ct)
+        private static async Task<PointSet> GenerateLod(this PointSet self, string key, Action callback, int maxLevelOfParallelism, CancellationToken ct)
         {
             if (self.IsEmpty) return self;
-            var lod = self.Root.Value.GenerateLod(self.SplitLimit, callback, ct);
+            var lod = await self.Root.Value.GenerateLod(self.SplitLimit, callback, ct);
             var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit);
             self.Storage.Add(key, result, ct);
             return result;
         }
 
+        private static Task<V3f[]> EstimateNormals(this V3f[] points, PointRkdTreeD<V3f[], V3f> kdtree, int k)
+        {
+            return Task.Run(() => points.Map((p, i) =>
+            {
+                if (k > points.Length) k = points.Length;
+
+                // find k closest points
+                var closest = kdtree.GetClosest(p, float.MaxValue, k);
+                if (closest.Count == 0) return V3f.Zero;
+
+                // compute centroid of k closest points
+                var c = points[closest[0].Index];
+                for (var j = 1; j < k; j++) c += points[closest[j].Index];
+                c /= k;
+
+                // compute covariance matrix of k closest points relative to centroid
+                var cvm = M33f.Zero;
+                for (var j = 0; j < k; j++) cvm.AddOuterProduct(points[closest[j].Index] - c);
+                cvm /= k;
+
+                // solve eigensystem -> eigenvector for smallest eigenvalue gives normal 
+                Eigensystems.Dsyevh3((M33d)cvm, out M33d q, out V3d w);
+                return (V3f)((w.X < w.Y) ? ((w.X < w.Z) ? q.C0 : q.C2) : ((w.Y < w.Z) ? q.C1 : q.C2));
+            })
+            );
+        }
+
         /// <summary>
         /// </summary>
-        private static PointSetNode GenerateLod(this PointSetNode self, long octreeSplitLimit, Action callback, CancellationToken ct)
+        private static async Task<PointSetNode> GenerateLod(this PointSetNode self, long octreeSplitLimit, Action callback, CancellationToken ct)
         {
             if (self == null) throw new ArgumentNullException(nameof(self));
 
@@ -65,11 +92,23 @@ namespace Aardvark.Geometry.Points
 
             callback?.Invoke();
 
-            if (self.IsLeaf) return self.WithLod();
+            if (self.IsLeaf)
+            {
+                if (!self.HasNormals)
+                {
+                    var ns = self.Positions.Value.EstimateNormals(self.KdTree.Value, 16);
+                    var nsId = Guid.NewGuid();
+                    self.Storage.Add(nsId, await ns, ct);
+                    self = self.WithNormals(nsId);
+                }
+                return self.WithLod();
+            }
 
             if (self.Subnodes == null || self.Subnodes.Length != 8) throw new InvalidOperationException();
 
-            var subcells = self.Subnodes.Map(x => x?.Value.GenerateLod(octreeSplitLimit, callback, ct));
+            var subcellsAsync = self.Subnodes.Map(x => x?.Value.GenerateLod(octreeSplitLimit, callback, ct));
+            await Task.WhenAll(subcellsAsync.Where(x => x != null));
+            var subcells = subcellsAsync.Map(x => x?.Result);
             var subcellsTotalCount = (long)subcells.Sum(x => x?.PointCountTree);
 
             var needsCs = subcells.Any(x => x != null ? (x.HasColors || x.HasLodColors) : false);

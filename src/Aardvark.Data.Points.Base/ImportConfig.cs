@@ -34,9 +34,6 @@ namespace Aardvark.Data.Points
         /// <summary></summary>
         public CancellationToken CancellationToken { get; private set; } = CancellationToken.None;
 
-        /// <summary></summary>
-        public bool CreateOctreeLod { get; private set; } = true;
-
         /// <summary>
         /// Store imported pointcloud with this key.
         /// </summary>
@@ -53,6 +50,9 @@ namespace Aardvark.Data.Points
         /// <summary>Removes duplicate points in chunk after MinDist filtering and before Reproject and EstimateNormals.</summary>
         public bool DeduplicateChunks { get; private set; } = true;
 
+        /// <summary>Normalizes point density globally using MinDist distance.</summary>
+        public bool NormalizePointDensityGlobal { get; private set; } = true;
+
         /// <summary>
         /// Max number of points in octree cell.
         /// </summary>
@@ -67,15 +67,10 @@ namespace Aardvark.Data.Points
         public int ReadBufferSizeInBytes { get; private set; } = 256 * 1024 * 1024;
 
         /// <summary></summary>
-        public int MaxChunkPointCount { get; private set; } = 1024 * 1024;
+        public int MaxChunkPointCount { get; private set; } = 5 * 1024 * 1024;
 
         /// <summary></summary>
         public Func<IList<V3d>, IList<V3d>> Reproject { get; private set; } = null;
-
-        /// <summary>
-        /// Positions -> Normals.
-        /// </summary>
-        public Func<IList<V3d>, IList<V3f>> EstimateNormals { get; private set; } = null;
 
         /// <summary></summary>
         public Storage Storage { get; private set; } = null;
@@ -93,17 +88,16 @@ namespace Aardvark.Data.Points
         public ImportConfig(ImportConfig x)
         {
             CancellationToken = x.CancellationToken;
-            CreateOctreeLod = x.CreateOctreeLod;
             Key = x.Key;
             MaxDegreeOfParallelism = x.MaxDegreeOfParallelism;
             MinDist = x.MinDist;
             DeduplicateChunks = x.DeduplicateChunks;
+            NormalizePointDensityGlobal = x.NormalizePointDensityGlobal;
             OctreeSplitLimit = x.OctreeSplitLimit;
             ProgressCallback = x.ProgressCallback;
             ReadBufferSizeInBytes = x.ReadBufferSizeInBytes;
             MaxChunkPointCount = x.MaxChunkPointCount;
             Reproject = x.Reproject;
-            EstimateNormals = x.EstimateNormals;
             Storage = x.Storage;
             Verbose = x.Verbose;
         }
@@ -112,22 +106,22 @@ namespace Aardvark.Data.Points
         public ImportConfig WithCancellationToken(CancellationToken x) => new ImportConfig(this) { CancellationToken = x };
 
         /// <summary></summary>
-        public ImportConfig WithCreateOctreeLod(bool x) => new ImportConfig(this) { CreateOctreeLod = x };
-
-        /// <summary></summary>
         public ImportConfig WithKey(string x) => new ImportConfig(this) { Key = x };
 
         /// <summary></summary>
         public ImportConfig WithRandomKey() => WithKey(Guid.NewGuid().ToString());
 
         /// <summary></summary>
-        public ImportConfig WithMaxDegreeOfParallelism(int x) => new ImportConfig(this) { MaxDegreeOfParallelism = x };
+        public ImportConfig WithMaxDegreeOfParallelism(int x) => new ImportConfig(this) { MaxDegreeOfParallelism = 0 };
 
         /// <summary></summary>
         public ImportConfig WithMinDist(double x) => new ImportConfig(this) { MinDist = x };
 
         /// <summary></summary>
         public ImportConfig WithDeduplicateChunks(bool x) => new ImportConfig(this) { DeduplicateChunks = x };
+
+        /// <summary></summary>
+        public ImportConfig WithNormalizePointDensityGlobal(bool x) => new ImportConfig(this) { NormalizePointDensityGlobal = x };
 
         /// <summary></summary>
         public ImportConfig WithOctreeSplitLimit(int x) => new ImportConfig(this) { OctreeSplitLimit = x };
@@ -143,9 +137,6 @@ namespace Aardvark.Data.Points
 
         /// <summary></summary>
         public ImportConfig WithReproject(Func<IList<V3d>, IList<V3d>> x) => new ImportConfig(this) { Reproject = x };
-
-        /// <summary></summary>
-        public ImportConfig WithEstimateNormals(Func<IList<V3d>, IList<V3f>> x) => new ImportConfig(this) { EstimateNormals = x };
 
         /// <summary></summary>
         public ImportConfig WithStorage(Storage x) => new ImportConfig(this) { Storage = x };

@@ -70,7 +70,6 @@ namespace Aardvark.Geometry.Tests
             var config = ImportConfig.Default
                 .WithKey("Test")
                 .WithOctreeSplitLimit(1)
-                .WithCreateOctreeLod(false)
                 ;
             var lodded = pointset.GenerateLod(config);
             lodded.Root.Value.ForEachNode(true, cell =>

@@ -29,8 +29,6 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PointSet GenerateNormals(this PointSet self, ImportConfig config)
         {
-            if (config.EstimateNormals == null) return self;
-
             var nodeCount = self.Root.Value.CountNodes();
             var processedNodesCount = 0L;
             var result = self.GenerateNormals(() =>
@@ -67,10 +65,10 @@ namespace Aardvark.Geometry.Points
 
             // generate normals ...
             var needsNormals = self.HasPositions && !self.HasNormals;
-            var ns = needsNormals ? config.EstimateNormals(self.PositionsAbsolute) : null;
+            var ns = needsNormals ? self.Positions.Value.EstimateNormals(self.KdTree.Value, 16) : null;
 
             var needsLodNormals = self.HasLodPositions && !self.HasLodNormals;
-            var lodNs = needsLodNormals ? config.EstimateNormals(self.LodPositionsAbsolute) : null;
+            var lodNs = needsLodNormals ? self.LodPositions.Value.EstimateNormals(self.LodKdTree.Value, 16) : null;
 
             // store data ...
             var result = self;
