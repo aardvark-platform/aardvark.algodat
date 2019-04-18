@@ -49,10 +49,10 @@ namespace Aardvark.Geometry.Points
             //Report.End();
 
             // optionally deduplicate points
-            //if (config.DeduplicateChunks)
-            //{
-            //    chunks = chunks.Select(x => x.ImmutableDeduplicate());
-            //}
+            if (config.DeduplicateChunks)
+            {
+                chunks = chunks.Select(x => x.ImmutableDeduplicate());
+            }
 
             // optionally reproject positions and/or estimate normals
             if (config.Reproject != null)

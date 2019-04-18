@@ -50,6 +50,9 @@ namespace Aardvark.Data.Points
         /// <summary>Removes duplicate points in chunk after MinDist filtering and before Reproject and EstimateNormals.</summary>
         public bool DeduplicateChunks { get; private set; } = true;
 
+        /// <summary>Normalizes point density globally using MinDist distance.</summary>
+        public bool NormalizePointDensityGlobal { get; private set; } = true;
+
         /// <summary>
         /// Max number of points in octree cell.
         /// </summary>
@@ -68,11 +71,6 @@ namespace Aardvark.Data.Points
 
         /// <summary></summary>
         public Func<IList<V3d>, IList<V3d>> Reproject { get; private set; } = null;
-
-        /// <summary>
-        /// Positions -> Normals.
-        /// </summary>
-        public Func<IList<V3d>, IList<V3f>> EstimateNormals { get; private set; } = null;
 
         /// <summary></summary>
         public Storage Storage { get; private set; } = null;
@@ -94,12 +92,12 @@ namespace Aardvark.Data.Points
             MaxDegreeOfParallelism = x.MaxDegreeOfParallelism;
             MinDist = x.MinDist;
             DeduplicateChunks = x.DeduplicateChunks;
+            NormalizePointDensityGlobal = x.NormalizePointDensityGlobal;
             OctreeSplitLimit = x.OctreeSplitLimit;
             ProgressCallback = x.ProgressCallback;
             ReadBufferSizeInBytes = x.ReadBufferSizeInBytes;
             MaxChunkPointCount = x.MaxChunkPointCount;
             Reproject = x.Reproject;
-            EstimateNormals = x.EstimateNormals;
             Storage = x.Storage;
             Verbose = x.Verbose;
         }
@@ -123,6 +121,9 @@ namespace Aardvark.Data.Points
         public ImportConfig WithDeduplicateChunks(bool x) => new ImportConfig(this) { DeduplicateChunks = x };
 
         /// <summary></summary>
+        public ImportConfig WithNormalizePointDensityGlobal(bool x) => new ImportConfig(this) { NormalizePointDensityGlobal = x };
+
+        /// <summary></summary>
         public ImportConfig WithOctreeSplitLimit(int x) => new ImportConfig(this) { OctreeSplitLimit = x };
 
         /// <summary></summary>
@@ -136,9 +137,6 @@ namespace Aardvark.Data.Points
 
         /// <summary></summary>
         public ImportConfig WithReproject(Func<IList<V3d>, IList<V3d>> x) => new ImportConfig(this) { Reproject = x };
-
-        /// <summary></summary>
-        public ImportConfig WithEstimateNormals(Func<IList<V3d>, IList<V3f>> x) => new ImportConfig(this) { EstimateNormals = x };
 
         /// <summary></summary>
         public ImportConfig WithStorage(Storage x) => new ImportConfig(this) { Storage = x };
