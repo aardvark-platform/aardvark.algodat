@@ -44,9 +44,9 @@ namespace Aardvark.Geometry.Points
                 chunks = chunks.Select(x => x.ImmutableFilterSequentialMinDistL1(config.MinDist));
             }
 
-            Report.BeginTimed("unmix");
-            chunks = chunks.ImmutableUnmixOutOfCore(@"T:\tmp", 1, config);
-            Report.End();
+            //Report.BeginTimed("unmix");
+            //chunks = chunks.ImmutableUnmixOutOfCore(@"T:\tmp", 1, config);
+            //Report.End();
 
             // optionally deduplicate points
             //if (config.DeduplicateChunks)
