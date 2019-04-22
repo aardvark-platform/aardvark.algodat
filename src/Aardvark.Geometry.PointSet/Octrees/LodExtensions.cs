@@ -90,8 +90,6 @@ namespace Aardvark.Geometry.Points
 
             ct.ThrowIfCancellationRequested();
 
-            callback?.Invoke();
-
             if (self.IsLeaf)
             {
                 if (!self.HasNormals)
@@ -101,6 +99,7 @@ namespace Aardvark.Geometry.Points
                     self.Storage.Add(nsId, await ns, ct);
                     self = self.WithNormals(nsId);
                 }
+                callback?.Invoke();
                 return self.WithLod();
             }
 
@@ -178,6 +177,7 @@ namespace Aardvark.Geometry.Points
             if (needsIs) self.Storage.Add(lodIsId.Value, lodIs, ct);
 
             var result = self.WithLod(lodPsId, lodCsId, lodNsId, lodIsId, lodKdId, subcells);
+            callback?.Invoke();
             return result;
         }
     }
