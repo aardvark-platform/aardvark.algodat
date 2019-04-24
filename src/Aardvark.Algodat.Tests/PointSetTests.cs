@@ -200,9 +200,9 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(pointset.HasLodColors == true);
             Assert.IsTrue(pointset.HasLodIntensities == false);
             Assert.IsTrue(pointset.HasLodKdTree == true);
-            Assert.IsTrue(pointset.HasLodNormals == false);
+            Assert.IsTrue(pointset.HasLodNormals == true);
             Assert.IsTrue(pointset.HasLodPositions == true);
-            Assert.IsTrue(pointset.HasNormals == false);
+            Assert.IsTrue(pointset.HasNormals == true);
             Assert.IsTrue(pointset.HasPositions == true);
         }
     }

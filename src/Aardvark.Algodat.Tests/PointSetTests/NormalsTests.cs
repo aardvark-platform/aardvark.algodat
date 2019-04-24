@@ -87,7 +87,7 @@ namespace Aardvark.Geometry.Tests
                 if (node.IsLeaf)
                 {
                     Assert.IsTrue(node.HasNormals);
-                    Assert.IsTrue(!node.HasLodNormals);
+                    Assert.IsTrue(node.HasLodNormals);
                     Assert.IsTrue(node.Normals.Value.Length == node.PointCount);
                 }
                 else
