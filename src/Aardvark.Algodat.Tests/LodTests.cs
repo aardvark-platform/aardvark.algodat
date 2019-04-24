@@ -53,33 +53,6 @@ namespace Aardvark.Geometry.Tests
         }
 
         [Test]
-        public void DisablingLodCreationWorks()
-        {
-            var r = new Random();
-            var storage = PointSetTests.CreateStorage();
-
-            var ps = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
-            var cs = ps.Map(_ => C4b.White);
-
-            var pointset = PointSet.Create(storage, "test", ps.ToList(), cs.ToList(), null, null, 5000, false, CancellationToken.None);
-            pointset.Root.Value.ForEachNode(true, cell =>
-            {
-                Assert.IsTrue(cell.LodPointCount == 0);
-            });
-
-            var config = ImportConfig.Default
-                .WithKey("Test")
-                .WithOctreeSplitLimit(1)
-                ;
-            var lodded = pointset.GenerateLod(config);
-            lodded.Root.Value.ForEachNode(true, cell =>
-            {
-                Assert.IsTrue(cell.LodPointCount == 0);
-                Assert.IsTrue(cell.HasLodPositions == false);
-            });
-        }
-
-        [Test]
         public void LodPositions()
         {
             var r = new Random();

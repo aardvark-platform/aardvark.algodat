@@ -51,7 +51,7 @@ namespace Aardvark.Data.Points
         public bool DeduplicateChunks { get; private set; } = true;
 
         /// <summary>Normalizes point density globally using MinDist distance.</summary>
-        public bool NormalizePointDensityGlobal { get; private set; } = true;
+        public bool NormalizePointDensityGlobal { get; private set; } = false;
 
         /// <summary>
         /// Max number of points in octree cell.

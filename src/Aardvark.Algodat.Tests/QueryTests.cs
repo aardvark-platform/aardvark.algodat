@@ -159,12 +159,12 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CanQueryPointsNearPoint_6()
         {
-            var pointset = CreateClusteredPointsInUnitCube(1000000, 32);
+            var pointset = CreateClusteredPointsInUnitCube(1000000, 8);
             var xs = pointset.QueryAllPoints().SelectMany(x => x.Positions).ToArray();
 
             var nonEmtpyResultCount = 0;
             var rand = new Random();
-            for (var round = 0; round < 1000; round++)
+            for (var round = 0; round < 100; round++)
             {
                 var query = new V3d(rand.NextDouble() * 3 - 1, rand.NextDouble() * 3 - 1, rand.NextDouble() * 3 - 1);
                 var maxDistanceToPoint = rand.NextDouble();
