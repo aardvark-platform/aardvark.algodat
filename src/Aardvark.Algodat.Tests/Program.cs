@@ -29,7 +29,7 @@ namespace Aardvark.Geometry.Tests
             var config = ImportConfig.Default
                 .WithInMemoryStore()
                 .WithRandomKey()
-                .WithVerbose(false)
+                //.WithVerbose(true)
                 .WithMaxDegreeOfParallelism(0)
                 .WithMinDist(0.01)
                 ;
@@ -38,9 +38,9 @@ namespace Aardvark.Geometry.Tests
 
             var chunks = E57
                 .Chunks(filename, config)
-                //.Take(1)
+                //.Take(2)
                 //.AsParallel()
-                //.Select(x => x.ImmutableFilterMinDistByCell(0.01, new Cell(x.BoundingBox)))
+                //.Select(x => x.ImmutableFilterMinDistByCell(new Cell(x.BoundingBox), config))
                 ////.Select(x => x.ImmutableFilterSequentialMinDistL1(0.01))
                 //.ToArray()
                 ;

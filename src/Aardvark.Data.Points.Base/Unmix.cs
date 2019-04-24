@@ -141,17 +141,25 @@ namespace Aardvark.Data.Points
                     using (var f = File.Open(path, FileMode.Open, FileAccess.Read))
                     using (var br = new BinaryReader(f))
                     {
-                        while (br.BaseStream.Position < br.BaseStream.Length)
+                        try
                         {
-                            _ps.Add(new V3d(br.ReadDouble(), br.ReadDouble(), br.ReadDouble()));
-                            if (hasNormals) _ns.Add(new V3f(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()));
-                            if (hasIntensities) _js.Add(br.ReadInt32());
-                            if (hasColors) { var x = br.ReadInt32(); _cs.Add(new C4b(x & 0xff, (x >> 8) & 0xff, (x >> 16) & 0xff)); }
+                            while (br.BaseStream.Position < br.BaseStream.Length)
+                            {
+                                _ps.Add(new V3d(br.ReadDouble(), br.ReadDouble(), br.ReadDouble()));
+                                if (hasNormals) _ns.Add(new V3f(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()));
+                                if (hasIntensities) _js.Add(br.ReadInt32());
+                                if (hasColors) { var x = br.ReadInt32(); _cs.Add(new C4b(x & 0xff, (x >> 8) & 0xff, (x >> 16) & 0xff)); }
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            Report.Error(e.ToString());
+                            return;
                         }
                     }
 
                     var chunk = new Chunk(_ps, _cs, _ns, _js);
-                    var chunkFiltered = chunk.ImmutableFilterMinDistByCell(config.MinDist, cell);
+                    var chunkFiltered = chunk.ImmutableFilterMinDistByCell(cell, config);
                     countFiltered += chunkFiltered.Count;
 
                     //Report.Line($"[{cell}] {countFiltered:N0}/{countOriginal:N0} ({countOriginal- countFiltered:N0})");
@@ -182,12 +190,24 @@ namespace Aardvark.Data.Points
                     using (var f = File.Open(path, FileMode.Open, FileAccess.Read))
                     using (var br = new BinaryReader(f))
                     {
-                        while (br.BaseStream.Position < br.BaseStream.Length)
+                        try
                         {
-                            ps.Add(new V3d(br.ReadDouble(), br.ReadDouble(), br.ReadDouble()));
-                            if (hasNormals) ns.Add(new V3f(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()));
-                            if (hasIntensities) js.Add(br.ReadInt32());
-                            if (hasColors) { var x = br.ReadInt32(); cs.Add(new C4b(x & 0xff, (x >> 8) & 0xff, (x >> 16) & 0xff)); }
+                            while (br.BaseStream.Position < br.BaseStream.Length)
+                            {
+                                ps.Add(new V3d(br.ReadDouble(), br.ReadDouble(), br.ReadDouble()));
+                                if (hasNormals) ns.Add(new V3f(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()));
+                                if (hasIntensities) js.Add(br.ReadInt32());
+                                if (hasColors) { var x = br.ReadInt32(); cs.Add(new C4b(x & 0xff, (x >> 8) & 0xff, (x >> 16) & 0xff)); }
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            Report.Error(e.ToString());
+                            ps = new List<V3d>();
+                            ns = hasNormals ? new List<V3f>() : null;
+                            js = hasIntensities ? new List<int>() : null;
+                            cs = hasColors ? new List<C4b>() : null;
+                            continue;
                         }
                     }
                     File.Delete(path);

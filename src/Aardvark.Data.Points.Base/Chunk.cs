@@ -198,11 +198,11 @@ namespace Aardvark.Data.Points
         /// <summary>
         /// Returns chunk with duplicate point positions removed.
         /// </summary>
-        public Chunk ImmutableFilterMinDistByCell(double minDist, Cell bounds)
+        public Chunk ImmutableFilterMinDistByCell(Cell bounds, ImportConfig config)
         {
             if (!HasPositions) return this;
 
-            var smallestCellExponent = Fun.Log2(minDist).Ceiling();
+            var smallestCellExponent = Fun.Log2(config.MinDist).Ceiling();
             var positions = Positions;
             var take = new bool[Count];
             var foo = new List<int>(positions.Count); for (var i = 0; i < positions.Count; i++) foo.Add(i);
@@ -252,6 +252,14 @@ namespace Aardvark.Data.Points
             var cs = HasColors ? Colors.Where((_, i) => take[i]).ToList() : null;
             var ns = HasNormals ? Normals.Where((_, i) => take[i]).ToList() : null;
             var js = HasIntensities ? Intensities.Where((_, i) => take[i]).ToList() : null;
+            if (config.Verbose)
+            {
+                var removedCount = this.Count - ps.Count;
+                if (removedCount > 0)
+                {
+                    Report.Line($"[ImmutableFilterMinDistByCell] {this.Count:N0} - {removedCount:N0} -> {ps.Count:N0}");
+                }
+            }
             return new Chunk(ps, cs, ns, js);
         }
 

@@ -41,7 +41,14 @@ namespace Aardvark.Geometry.Points
             // optionally filter minDist
             if (config.MinDist > 0.0)
             {
-                chunks = chunks.Select(x => x.ImmutableFilterSequentialMinDistL1(config.MinDist));
+                if (config.NormalizePointDensityGlobal)
+                {
+                    chunks = chunks.Select(x => x.ImmutableFilterMinDistByCell(new Cell(x.BoundingBox), config));
+                }
+                else
+                {
+                    chunks = chunks.Select(x => x.ImmutableFilterSequentialMinDistL1(config.MinDist));
+                }
             }
 
             //Report.BeginTimed("unmix");

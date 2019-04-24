@@ -31,6 +31,7 @@ namespace Aardvark.Geometry.Points
         {
             var nodeCount = self.Root.Value.CountNodes();
             var loddedNodesCount = 0L;
+
             var result = self.GenerateLod(config.Key, () =>
             {
                 config.CancellationToken.ThrowIfCancellationRequested();

@@ -12,13 +12,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
+using Aardvark.Data.Points;
+using Aardvark.Geometry.Points;
 using NUnit.Framework;
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Threading;
-using Aardvark.Geometry.Points;
 
 namespace Aardvark.Geometry.Tests
 {
@@ -30,6 +28,10 @@ namespace Aardvark.Geometry.Tests
         {
             var r = new Random();
             var storage = PointSetTests.CreateStorage();
+            var config = ImportConfig.Default
+                .WithStorage(storage)
+                .WithNormalizePointDensityGlobal(false)
+                ;
 
             var ps1 = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
             var cs1 = ps1.Map(_ => C4b.White);
@@ -43,7 +45,7 @@ namespace Aardvark.Geometry.Tests
             var is2 = ps2.Map(_ => 456);
             var pointset2 = PointSet.Create(storage, "test2", ps2, cs2, ns2, is2, 1000, true, CancellationToken.None);
 
-            var merged = pointset1.Merge(pointset2, null, CancellationToken.None);
+            var merged = pointset1.Merge(pointset2, null, config);
             Assert.IsTrue(merged.PointCount == 84000);
             Assert.IsTrue(merged.Root.Value.PointCountTree == 84000);
             Assert.IsTrue(merged.Root.Value.CountPoints() == 84000);
@@ -54,6 +56,10 @@ namespace Aardvark.Geometry.Tests
         {
             var r = new Random();
             var storage = PointSetTests.CreateStorage();
+            var config = ImportConfig.Default
+                .WithStorage(storage)
+                .WithNormalizePointDensityGlobal(false)
+                ;
 
             var ps1 = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
             var ns1 = ps1.Map(_ => V3f.XAxis);
@@ -65,7 +71,7 @@ namespace Aardvark.Geometry.Tests
             var is2 = ps2.Map(_ => 456);
             var pointset2 = PointSet.Create(storage, "test2", ps2, null, ns2, is2, 1000, true, CancellationToken.None);
 
-            var merged = pointset1.Merge(pointset2, null, CancellationToken.None);
+            var merged = pointset1.Merge(pointset2, null, config);
             Assert.IsTrue(merged.PointCount == 84000);
             Assert.IsTrue(merged.Root.Value.PointCountTree == 84000);
             Assert.IsTrue(merged.Root.Value.CountPoints() == 84000);
@@ -76,6 +82,10 @@ namespace Aardvark.Geometry.Tests
         {
             var r = new Random();
             var storage = PointSetTests.CreateStorage();
+            var config = ImportConfig.Default
+                .WithStorage(storage)
+                .WithNormalizePointDensityGlobal(false)
+                ;
 
             var ps1 = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
             var cs1 = ps1.Map(_ => C4b.White);
@@ -87,7 +97,7 @@ namespace Aardvark.Geometry.Tests
             var is2 = ps2.Map(_ => 456);
             var pointset2 = PointSet.Create(storage, "test2", ps2, cs2, null, is2, 1000, true, CancellationToken.None);
 
-            var merged = pointset1.Merge(pointset2, null, CancellationToken.None);
+            var merged = pointset1.Merge(pointset2, null, config);
             Assert.IsTrue(merged.PointCount == 84000);
             Assert.IsTrue(merged.Root.Value.PointCountTree == 84000);
             Assert.IsTrue(merged.Root.Value.CountPoints() == 84000);

@@ -981,6 +981,16 @@ namespace Aardvark.Geometry.Points
         {
             if (subnodes == null) throw new ArgumentNullException(nameof(subnodes));
             if (IsNotLeaf) throw new InvalidOperationException();
+#if DEBUG
+            for (var i = 0; i < 8; i++)
+            {
+                var sn = subnodes[i]; if (sn == null) continue;
+                if (sn.Cell.Exponent != this.Cell.Exponent - 1)
+                {
+                    throw new InvalidOperationException("Invariant 173c8cef-f87f-4c17-b22e-a3a3abf016db.");
+                }
+            }
+#endif
 
             var pointCountTree = subnodes.Sum(x => x?.PointCountTree);
             return new PointSetNode(Guid.NewGuid(), Cell, pointCountTree.Value,
@@ -997,6 +1007,16 @@ namespace Aardvark.Geometry.Points
         {
             if (subnodes == null) throw new ArgumentNullException(nameof(subnodes));
             if (IsLeaf) throw new InvalidOperationException();
+#if DEBUG
+            for (var i = 0; i < 8; i++)
+            {
+                var sn = subnodes[i]; if (sn == null) continue;
+                if (sn.Cell.Exponent != this.Cell.Exponent - 1)
+                {
+                    throw new InvalidOperationException("Invariant c79cd9a4-3e44-46c8-9a7f-5f7e09627f1a.");
+                }
+            }
+#endif
 
             var pointCountTree = subnodes.Sum(x => x?.PointCountTree);
             return new PointSetNode(Guid.NewGuid(), Cell, pointCountTree.Value,
@@ -1013,6 +1033,16 @@ namespace Aardvark.Geometry.Points
         {
             if (IsLeaf) throw new InvalidOperationException();
             if (subnodes == null) throw new InvalidOperationException();
+#if DEBUG
+            for (var i = 0; i < 8; i++)
+            {
+                var sn = subnodes[i]; if (sn == null) continue;
+                if (sn.Cell.Exponent != this.Cell.Exponent - 1)
+                {
+                    throw new InvalidOperationException("Invariant 6341e030-97ff-460a-984f-d04a22e4124d.");
+                }
+            }
+#endif
             var pointCountTree = subnodes.Sum(n => n != null ? n.PointCountTree : 0);
             return new PointSetNode(Guid.NewGuid(),
                 Cell, pointCountTree,
