@@ -159,7 +159,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CanQueryPointsNearPoint_6()
         {
-            var pointset = CreateClusteredPointsInUnitCube(1000000, 8);
+            var pointset = CreateClusteredPointsInUnitCube(100000, 32);
             var xs = pointset.QueryAllPoints().SelectMany(x => x.Positions).ToArray();
 
             var nonEmtpyResultCount = 0;
@@ -441,7 +441,7 @@ namespace Aardvark.Geometry.Tests
         public void CanQueryPointsNearPolygon_Performance()
         {
             var sw = new Stopwatch();
-            var pointset = CreateRandomPointsInUnitCube(1024 * 1024, 32);
+            var pointset = CreateRandomPointsInUnitCube(256*1024, 32);
 
             var q = new Polygon3d(new V3d(0.4, 0.4, 0.5), new V3d(0.41, 0.4, 0.5), new V3d(0.41, 0.41, 0.5), new V3d(0.4, 0.41, 0.5));
             var plane = new Plane3d(new V3d(0.4, 0.4, 0.5), new V3d(0.41, 0.4, 0.5), new V3d(0.41, 0.41, 0.5));
@@ -454,7 +454,7 @@ namespace Aardvark.Geometry.Tests
             var ps1 = pointset.QueryPointsNearPlane(plane, 0.01).ToList();
             var t1 = sw.Elapsed.TotalSeconds;
 
-            Assert.IsTrue(t0 * 10 < t1);
+            Assert.IsTrue(t0 * 2.5 < t1);
         }
 
         [Test]
