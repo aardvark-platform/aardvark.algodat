@@ -586,7 +586,7 @@ namespace Aardvark.Geometry.Points
                 var newCs = cs != null ? new List<C4b>(cs) : null; newCs?.AddRange(a.Colors.Value);
                 var newNs = ns != null ? new List<V3f>(ns) : null; newNs?.AddRange(a.Normals.Value);
                 var newIs = js != null ? new List<int>(js) : null; newIs?.AddRange(a.Intensities.Value);
-                var chunk = new Chunk(psAbsolute, cs, ns, js, cell.BoundingBox);
+                var chunk = new Chunk(newPs, newCs, newNs, newIs, cell.BoundingBox);
                 if (config.NormalizePointDensityGlobal)
                 {
                     chunk = chunk.ImmutableFilterMinDistByCell(cell, config);
