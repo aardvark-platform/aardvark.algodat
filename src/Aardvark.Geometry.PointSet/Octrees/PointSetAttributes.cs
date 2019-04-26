@@ -204,23 +204,23 @@ namespace Aardvark.Geometry.Points
             );
 
         /// <summary>
-        /// Octree. Average distance of each point to its nearest neighbour
+        /// Octree. Average distance of each point to its nearest neighbour. float32.
         /// </summary>
         public static readonly DurableDataDefinition<float> AveragePointDistance =
             new DurableDataDefinition<float>(
                 new Guid("39c21132-4570-4624-afae-6304851567d7"),
                 "Octree.AveragePointDistance",
-                "Octree. Average distance of each point to its nearest neighbour."
+                "Octree. Average distance of each point to its nearest neighbour. float32."
             );
 
         /// <summary>
-        /// Octree. Standard deviation of average distance of each point to its nearest neighbour
+        /// Octree. Standard deviation of average distance of each point to its nearest neighbour. float32.
         /// </summary>
         public static readonly DurableDataDefinition<float> AveragePointDistanceStdDev =
             new DurableDataDefinition<float>(
                 new Guid("94cac234-b6ea-443a-b196-c7dd8e5def0d"),
                 "Octree.AveragePointDistanceStdDev",
-                "Octree. Standard deviation of average distance of each point to its nearest neighbour."
+                "Octree. Standard deviation of average distance of each point to its nearest neighbour. float32."
             );
 
         #endregion
@@ -238,23 +238,23 @@ namespace Aardvark.Geometry.Points
             );
 
         /// <summary>
-        /// Min depth of this tree. A leaf node has depth 0.
+        /// Min depth of this tree. A leaf node has depth 0. int32.
         /// </summary>
-        public static readonly DurableDataDefinition<int> TreeMinDepth =
+        public static readonly DurableDataDefinition<int> MinTreeDepth =
             new DurableDataDefinition<int>(
                 new Guid("42edbdd6-a29e-4dfd-9836-050ab7fa4e31"),
-                "Octree.TreeMinDepth",
-                "Min depth of this tree. A leaf node has depth 0."
+                "Octree.MinTreeDepth",
+                "Octree. Min depth of this tree. A leaf node has depth 0. int32."
             );
 
         /// <summary>
-        /// Max depth of this tree. A leaf node has depth 0.
+        /// Max depth of this tree. A leaf node has depth 0. int32.
         /// </summary>
-        public static readonly DurableDataDefinition<int> TreeMaxDepth =
+        public static readonly DurableDataDefinition<int> MaxTreeDepth =
             new DurableDataDefinition<int>(
                 new Guid("d6f54b9e-e907-46c5-9106-d26cd453dc97"),
-                "Octree.TreeMaxDepth",
-                "Max depth of this tree. A leaf node has depth 0."
+                "Octree.MaxTreeDepth",
+                "Octree. Max depth of this tree. A leaf node has depth 0. int32."
             );
 
         #endregion
@@ -290,8 +290,8 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Octree. Per-point positions in local cell space (V3f[]).
         /// </summary>
-        public static readonly DurableDataDefinition<Guid> PositionsLocal3f =
-            new DurableDataDefinition<Guid>(
+        public static readonly DurableDataDefinition<V3f[]> PositionsLocal3f =
+            new DurableDataDefinition<V3f[]>(
                 new Guid("05eb38fa-1b6a-4576-820b-780163199db9"),
                 "Octree.PositionsLocal3f",
                 "Octree. Per-point positions in local cell space (V3f[])."
@@ -300,8 +300,8 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Octree. Per-point positions in global space (V3d[]).
         /// </summary>
-        public static readonly DurableDataDefinition<Guid> PositionsGlobal3d =
-            new DurableDataDefinition<Guid>(
+        public static readonly DurableDataDefinition<V3d[]> PositionsGlobal3d =
+            new DurableDataDefinition<V3d[]>(
                 new Guid("61ef7c1e-6aeb-45cd-85ed-ad0ed2584553"),
                 "Octree.PositionsGlobal3d",
                 "Octree. Per-point positions in global space (V3d[])."
@@ -320,8 +320,8 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Octree. Kd-tree for positions in local cell space (PointRkdTreeD&lt;V3f[], V3f&gt;).
         /// </summary>
-        public static readonly DurableDataDefinition<Guid> KdTreeLocal3f =
-            new DurableDataDefinition<Guid>(
+        public static readonly DurableDataDefinition<PointRkdTreeD<V3f[],V3f>> KdTreeLocal3f =
+            new DurableDataDefinition<PointRkdTreeD<V3f[], V3f>>(
                 new Guid("86f71249-5342-4d9f-be33-ca31ce23c46a"),
                 "Octree.KdTreeLocal3f",
                 "Octree. Kd-tree for positions in local cell space (PointRkdTreeD<V3f[], V3f>)."
@@ -338,6 +338,16 @@ namespace Aardvark.Geometry.Points
             );
 
         /// <summary>
+        /// Octree. Per-point colors (C3b[]).
+        /// </summary>
+        public static readonly DurableDataDefinition<C3b[]> Colors3b =
+            new DurableDataDefinition<C3b[]>(
+                new Guid("6f4d21d7-244f-4ba2-ab8a-236d3653506d"),
+                "Octree.RefColors3b",
+                "Octree. Per-point colors (C3b[])."
+            );
+
+        /// <summary>
         /// Octree. Reference to per-point colors (C4b[]).
         /// </summary>
         public static readonly DurableDataDefinition<Guid> RefColors4b =
@@ -348,6 +358,16 @@ namespace Aardvark.Geometry.Points
             );
 
         /// <summary>
+        /// Octree. Per-point colors (C4b[]).
+        /// </summary>
+        public static readonly DurableDataDefinition<C4b[]> Colors4b =
+            new DurableDataDefinition<C4b[]>(
+                new Guid("b2ad0003-13ba-4073-b2bb-89732e71d7ed"),
+                "Octree.RefColors4b",
+                "Octree. Per-point colors (C4b[])."
+            );
+
+        /// <summary>
         /// Octree. Reference to per-point normals (V3f[]).
         /// </summary>
         public static readonly DurableDataDefinition<Guid> RefNormals3f =
@@ -355,6 +375,16 @@ namespace Aardvark.Geometry.Points
                 new Guid("14a89b04-c24a-439d-988e-f6528282e7fd"),
                 "Octree.RefNormals3f",
                 "Octree. Reference to per-point normals (V3f[])."
+            );
+
+        /// <summary>
+        /// Octree. Per-point normals (V3f[]).
+        /// </summary>
+        public static readonly DurableDataDefinition<V3f[]> Normals3f =
+            new DurableDataDefinition<V3f[]>(
+                new Guid("712d0a0c-a8d0-42d1-bfc7-77eac2e4a755"),
+                "Octree.RefNormals3f",
+                "Octree. Per-point normals (V3f[])."
             );
 
         /// <summary>
@@ -370,8 +400,8 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Octree. Per-point intensities (int[]).
         /// </summary>
-        public static readonly DurableDataDefinition<Guid> Intensities1i =
-            new DurableDataDefinition<Guid>(
+        public static readonly DurableDataDefinition<int[]> Intensities1i =
+            new DurableDataDefinition<int[]>(
                 new Guid("0876257e-a23b-4861-b82c-a68b12e594e9"),
                 "Octree.Intensities1i",
                 "Octree. Per-point intensities (int[])."
@@ -385,6 +415,16 @@ namespace Aardvark.Geometry.Points
                 new Guid("ff6bf035-1e0e-4a03-a27d-9d1fe134bb48"),
                 "Octree.RefClassifications1b",
                 "Octree. Reference to per-point classifications array (byte[])."
+            );
+
+        /// <summary>
+        /// Octree. Per-point classifications array (byte[]).
+        /// </summary>
+        public static readonly DurableDataDefinition<byte[]> Classifications1b =
+            new DurableDataDefinition<byte[]>(
+                new Guid("27aaf42e-1872-4377-a544-31a6c2343a97"),
+                "Octree.RefClassifications1b",
+                "Octree. Per-point classifications array (byte[])."
             );
 
 

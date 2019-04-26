@@ -198,7 +198,7 @@ namespace Aardvark.Base
         /// <summary>Aardvark.Base.Box2f [MIN:V2d,MAX:V2d]</summary>
         public static readonly DurablePrimitiveType Box2d = new DurablePrimitiveType<Box2d>("Box2d", 32, false);
 
-        /// <summary>Aardvark.Base.Box3f [MIN:V3d,MAX:V3d]</summary>
+        /// <summary>Aardvark.Base.Box3d [MIN:V3d,MAX:V3d]</summary>
         public static readonly DurablePrimitiveType Box3d = new DurablePrimitiveType<Box3d>("Box3d", 48, false);
 
         #endregion
