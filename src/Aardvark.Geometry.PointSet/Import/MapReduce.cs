@@ -110,7 +110,7 @@ namespace Aardvark.Geometry.Points
                             progress(p);
                         }
                     },
-                    ct2
+                    config.WithCancellationToken(ct2)
                     );
 
                 lock (fractionalProgress)

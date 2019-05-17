@@ -51,7 +51,7 @@ namespace Aardvark.Geometry.Tests
                 Assert.IsTrue(cell.GetPositions().Value.Length > 0);
             });
         }
-        
+
         [Test]
         public void LodPositions()
         {

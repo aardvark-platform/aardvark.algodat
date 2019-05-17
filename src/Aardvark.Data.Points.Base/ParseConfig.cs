@@ -55,7 +55,7 @@ namespace Aardvark.Data.Points
         /// </summary>
         public static readonly ParseConfig Default =
             new ParseConfig(
-                maxChunkPointCount: 1048576,        // 1 MPoints
+                maxChunkPointCount: 5242880,        // 5 MPoints
                 verbose: false,                     
                 ct: default,
                 maxDegreeOfParallelism: 0,          // Environment.ProcessorCount

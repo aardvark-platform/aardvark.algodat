@@ -75,8 +75,19 @@ namespace Aardvark.Geometry.Points
             // optionally filter minDist
             if (config.MinDist > 0.0)
             {
-                chunks = chunks.Select(x => x.ImmutableFilterSequentialMinDistL1(config.MinDist));
+                if (config.NormalizePointDensityGlobal)
+                {
+                    chunks = chunks.Select(x => x.ImmutableFilterMinDistByCell(new Cell(x.BoundingBox), config.ParseConfig));
+                }
+                else
+                {
+                    chunks = chunks.Select(x => x.ImmutableFilterSequentialMinDistL1(config.MinDist));
+                }
             }
+
+            //Report.BeginTimed("unmix");
+            //chunks = chunks.ImmutableUnmixOutOfCore(@"T:\tmp", 1, config);
+            //Report.End();
 
             // optionally deduplicate points
             if (config.DeduplicateChunks)
@@ -110,12 +121,16 @@ namespace Aardvark.Geometry.Points
             //var foo = chunks.ToArray();
 
             // reduce all chunks to single PointSet
+            Report.BeginTimed("map/reduce");
             var final = chunks
                 .MapReduce(config.WithRandomKey().WithProgressCallback(x => config.ProgressCallback(0.01 + x * 0.65)))
                 ;
+            Report.EndTimed();
 
             // create LOD data
+            Report.BeginTimed("generate lod");
             final = final.GenerateLod(config.WithRandomKey().WithProgressCallback(x => config.ProgressCallback(0.66 + x * 0.34)));
+            Report.End();
 
             // create final point set with specified key (or random key when no key is specified)
             var key = config.Key ?? Guid.NewGuid().ToString();

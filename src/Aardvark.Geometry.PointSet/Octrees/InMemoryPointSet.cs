@@ -34,7 +34,7 @@ namespace Aardvark.Geometry.Points
         private IList<int> m_is;
         private IList<byte> m_ks;
         private Node m_root;
-        private long m_insertedPointsCount = 0;
+        private readonly long m_insertedPointsCount = 0;
         private long m_duplicatePointsCount = 0;
 
         /// <summary>
@@ -46,6 +46,11 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static InMemoryPointSet Build(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, Box3d bounds, long octreeSplitLimit)
             => new InMemoryPointSet(ps, cs, ns, js, ks, bounds, octreeSplitLimit);
+
+        /// <summary>
+        /// </summary>
+        public static InMemoryPointSet Build(Chunk chunk, Cell rootBounds, long octreeSplitLimit)
+            => Build(chunk.Positions, chunk.Colors, chunk.Normals, chunk.Intensities, chunk.Classifications, rootBounds, octreeSplitLimit);
 
         /// <summary>
         /// </summary>
@@ -172,7 +177,22 @@ namespace Aardvark.Geometry.Points
                 var subcellIds = subcells?.Map(x => x?.Id);
 
 #if DEBUG
-                if (ps != null && _subnodes != null) throw new InvalidOperationException();
+                if (_subnodes != null)
+                {
+                    if (ps != null)
+                    {
+                        throw new InvalidOperationException("Invariant d98ea55b-760c-4564-8076-ce9cf7d293a0.");
+                    }
+
+                    for (var i = 0; i < 8; i++)
+                    {
+                        var sn = _subnodes[i]; if (sn == null) continue;
+                        if (sn._cell.Exponent != this._cell.Exponent - 1)
+                        {
+                            throw new InvalidOperationException("Invariant 2c33afb4-683b-4f71-9e1f-36ec4a79fba1.");
+                        }
+                    }
+                }
 #endif
                 var pointCountTree = subcells != null
                     ? subcells.Sum(n => n != null ? n.PointCountTree : 0)

@@ -1008,13 +1008,52 @@ namespace Aardvark.Geometry.Points
         #endregion
 
         #region Immutable updates (With...)
-        
+
+//        /// <summary>
+//        /// Makes inner node from leaf node.
+//        /// Removes local points and attaches given subnodes.
+//        /// </summary>
+//        internal PointSetNode ToInnerNode(PointSetNode[] subnodes)
+//        {
+//            if (subnodes == null) throw new ArgumentNullException(nameof(subnodes));
+//            if (IsNotLeaf) throw new InvalidOperationException();
+//#if DEBUG
+//            for (var i = 0; i < 8; i++)
+//            {
+//                var sn = subnodes[i]; if (sn == null) continue;
+//                if (sn.Cell.Exponent != this.Cell.Exponent - 1)
+//                {
+//                    throw new InvalidOperationException("Invariant 173c8cef-f87f-4c17-b22e-a3a3abf016db.");
+//                }
+//            }
+//#endif
+
+//            var pointCountTree = subnodes.Sum(x => x?.PointCountTree);
+//            return new PointSetNode(Guid.NewGuid(), Cell, pointCountTree.Value,
+//                null, null, null, null, null,
+//                LodPositionsId, LodColorsId, LodKdTreeId, LodNormalsId, LodIntensitiesId,
+//                subnodes.Map(x => x?.Id), Storage, true
+//                );
+//        }
+
         /// <summary>
         /// Replaces subnodes.
         /// </summary>
         internal PointSetNode WithSubNodes(PointSetNode[] subnodes)
         {
             if (subnodes == null) throw new ArgumentNullException(nameof(subnodes));
+
+            if (IsLeaf) throw new InvalidOperationException();
+#if DEBUG
+            for (var i = 0; i < 8; i++)
+            {
+                var sn = subnodes[i]; if (sn == null) continue;
+                if (sn.Cell.Exponent != this.Cell.Exponent - 1)
+                {
+                    throw new InvalidOperationException("Invariant c79cd9a4-3e44-46c8-9a7f-5f7e09627f1a.");
+                }
+            }
+#endif
 
             var pointCountTree = subnodes.Sum(x => x?.PointCountTree);
             return new PointSetNode(Guid.NewGuid(), Cell, pointCountTree.Value, Data, subnodes.Map(x => x?.Id), Storage, true);

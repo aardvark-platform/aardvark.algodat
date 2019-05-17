@@ -24,70 +24,70 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public static class PointSetNormalsGeneration
     {
-        /// <summary>
-        /// Generates normals using k-nearest neighbours.
-        /// </summary>
-        public static PointSet GenerateNormals(this PointSet self, ImportConfig config)
-        {
-            if (config.EstimateNormals == null && config.EstimateNormalsKdTree == null) return self;
+        ///// <summary>
+        ///// Generates normals using k-nearest neighbours.
+        ///// </summary>
+        //public static PointSet GenerateNormals(this PointSet self, ImportConfig config)
+        //{
+        //    if (config.EstimateNormals == null && config.EstimateNormalsKdTree == null) return self;
 
-            var nodeCount = self.Octree.Value.CountNodes();
-            var processedNodesCount = 0L;
-            var result = self.GenerateNormals(() =>
-            {
-                config.CancellationToken.ThrowIfCancellationRequested();
-                var i = Interlocked.Increment(ref processedNodesCount);
-                if (config.Verbose) Console.Write($"[Normals] {i}/{nodeCount}\r");
-                if (i % 100 == 0) config.ProgressCallback(i / (double)nodeCount);
-            }, config);
+        //    var nodeCount = self.Octree.Value.CountNodes();
+        //    var processedNodesCount = 0L;
+        //    var result = self.GenerateNormals(() =>
+        //    {
+        //        config.CancellationToken.ThrowIfCancellationRequested();
+        //        var i = Interlocked.Increment(ref processedNodesCount);
+        //        if (config.Verbose) Console.Write($"[Normals] {i}/{nodeCount}\r");
+        //        if (i % 100 == 0) config.ProgressCallback(i / (double)nodeCount);
+        //    }, config);
 
-            config.ProgressCallback(1.0);
+        //    config.ProgressCallback(1.0);
 
-            return result;
-        }
+        //    return result;
+        //}
         
-        private static PointSet GenerateNormals(this PointSet self, Action callback, ImportConfig config)
-        {
-            if (self.IsEmpty) return self;
-#pragma warning disable CS0618 // Type or member is obsolete
-            var normals = self.Root.Value.GenerateNormals(callback, config);
-#pragma warning restore CS0618 // Type or member is obsolete
-            var result = new PointSet(self.Storage, config.Key, normals.Id, self.SplitLimit);
-            self.Storage.Add(config.Key, result);
-            return result;
-        }
+//        private static PointSet GenerateNormals(this PointSet self, Action callback, ImportConfig config)
+//        {
+//            if (self.IsEmpty) return self;
+//#pragma warning disable CS0618 // Type or member is obsolete
+//            var normals = self.Root.Value.GenerateNormals(callback, config);
+//#pragma warning restore CS0618 // Type or member is obsolete
+//            var result = new PointSet(self.Storage, config.Key, normals.Id, self.SplitLimit);
+//            self.Storage.Add(config.Key, result);
+//            return result;
+//        }
         
-        private static PointSetNode GenerateNormals(this PointSetNode self, Action callback, ImportConfig config)
-        {
-            if (self == null) throw new ArgumentNullException(nameof(self));
+        //private static PointSetNode GenerateNormals(this PointSetNode self, Action callback, ImportConfig config)
+        //{
+        //    if (self == null) throw new ArgumentNullException(nameof(self));
 
-            config.CancellationToken.ThrowIfCancellationRequested();
+        //    config.CancellationToken.ThrowIfCancellationRequested();
 
-            callback?.Invoke();
+        //    callback?.Invoke();
             
-            var subcells = self.Subnodes?.Map(x => x?.Value.GenerateNormals(callback, config));
+        //    var subcells = self.Subnodes?.Map(x => x?.Value.GenerateNormals(callback, config));
 
-            // generate normals ...
-            var needsNormals = self.HasPositions && !self.HasNormals;
-            var ns =
-                needsNormals ?
-                    (config.EstimateNormalsKdTree == null ?
-                        config.EstimateNormals(self.PositionsAbsolute).ToArray() :
-                        config.EstimateNormalsKdTree(self.KdTree.Value, self.Positions.Value)
-                    ) : null;
+        //    // generate normals ...
+        //    var needsNormals = self.HasPositions && !self.HasNormals;
+        //    var ns =
+        //        needsNormals ?
+        //            (config.EstimateNormalsKdTree == null ?
+        //                config.EstimateNormals(self.PositionsAbsolute).ToArray() :
+        //                config.EstimateNormalsKdTree(self.KdTree.Value, self.Positions.Value)
+        //            ) : null;
             
-            // store data ...
-            var result = self;
+        //    // store data ...
+        //    var result = self;
 
-            if (needsNormals)
-            {
-                var nsId = Guid.NewGuid();
-                self.Storage.Add(nsId, ns);
-                throw new NotImplementedException();
-                //result = result.WithNormals(nsId, subcells);
-            }
+        //    if (needsNormals)
+        //    {
+        //        var nsId = Guid.NewGuid();
+        //        self.Storage.Add(nsId, ns);
+        //        throw new NotImplementedException();
+        //        //result = result.WithNormals(nsId, subcells);
+        //    }
             
-            return result;
-        }
+        //    return result;
+        //}
     }
 }
