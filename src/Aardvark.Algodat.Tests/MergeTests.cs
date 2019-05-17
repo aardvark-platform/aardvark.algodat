@@ -24,14 +24,59 @@ namespace Aardvark.Geometry.Tests
     public class MergeTests
     {
         [Test]
-        public void CanMergePointSets()
+        public void CanMergePointSets_0()
         {
+            const int n = 25;
+            const int splitLimit = 5;
+
             var r = new Random();
             var storage = PointSetTests.CreateStorage();
             var config = ImportConfig.Default
                 .WithStorage(storage)
-                .WithNormalizePointDensityGlobal(false)
+                .WithOctreeSplitLimit(splitLimit)
                 .WithMinDist(0)
+                .WithNormalizePointDensityGlobal(false)
+                .WithDeduplicateChunks(false)
+                .WithVerbose(true)
+                ;
+
+            var ps1 = new V3d[n].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
+            var cs1 = ps1.Map(_ => C4b.White);
+            var ns1 = ps1.Map(_ => V3f.XAxis);
+            var is1 = ps1.Map(_ => 123);
+            var ks1 = ps1.Map(_ => (byte)0);
+            var pointset1 = PointSet.Create(storage, "test1", ps1, cs1, ns1, is1, ks1, splitLimit, true, CancellationToken.None);
+            var pointset1Count = pointset1.Octree.Value.CountPoints();
+            Assert.IsTrue(pointset1Count == n);
+
+            var ps2 = new V3d[n].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
+            var cs2 = ps2.Map(_ => C4b.White);
+            var ns2 = ps2.Map(_ => V3f.XAxis);
+            var is2 = ps2.Map(_ => 456);
+            var ks2 = ps2.Map(_ => (byte)1);
+            var pointset2 = PointSet.Create(storage, "test2", ps2, cs2, ns2, is2, ks2, splitLimit, true, CancellationToken.None);
+            var pointset2Count = pointset2.Octree.Value.CountPoints();
+            Assert.IsTrue(pointset2Count == n);
+
+            var merged = pointset1.Merge(pointset2, null, config);
+            Assert.IsTrue(merged.PointCount == n + n);
+            Assert.IsTrue(merged.Octree.Value.PointCountTree == n + n);
+            var mergedCount = merged.Octree.Value.CountPoints();
+            Assert.IsTrue(mergedCount == n + n);
+        }
+
+        [Test]
+        public void CanMergePointSets()
+        {
+            const int splitLimit = 1000;
+
+            var r = new Random();
+            var storage = PointSetTests.CreateStorage();
+            var config = ImportConfig.Default
+                .WithStorage(storage)
+                .WithOctreeSplitLimit(splitLimit)
+                .WithMinDist(0)
+                .WithNormalizePointDensityGlobal(false)
                 .WithDeduplicateChunks(false)
                 .WithVerbose(true)
                 ;
@@ -59,11 +104,17 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CanMergePointSets_WithoutColors()
         {
+            const int splitLimit = 1000;
+
             var r = new Random();
             var storage = PointSetTests.CreateStorage();
             var config = ImportConfig.Default
                 .WithStorage(storage)
+                .WithOctreeSplitLimit(splitLimit)
+                .WithMinDist(0)
                 .WithNormalizePointDensityGlobal(false)
+                .WithDeduplicateChunks(false)
+                .WithVerbose(true)
                 ;
 
             var ps1 = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
@@ -87,11 +138,17 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CanMergePointSets_WithoutNormals()
         {
+            const int splitLimit = 1000;
+
             var r = new Random();
             var storage = PointSetTests.CreateStorage();
             var config = ImportConfig.Default
                 .WithStorage(storage)
+                .WithOctreeSplitLimit(splitLimit)
+                .WithMinDist(0)
                 .WithNormalizePointDensityGlobal(false)
+                .WithDeduplicateChunks(false)
+                .WithVerbose(true)
                 ;
 
             var ps1 = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
