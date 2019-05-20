@@ -24,14 +24,14 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public static class DurableOctree
     {
-        /// Octree. Per-point classifications. UInt8[].
-        public static readonly Durable.Def PointRkdTreeDDataReference = new Durable.Def(
-            id: new Guid("05cf0cac-4f8f-41bc-ac50-1b291297f892"),
-            name: "Octree.PointRkdTreeDData.Reference",
-            description: "Octree. Reference to data of an Aardvark.Geometry.PointRkdTreeD.",
-            type: Durable.Aardvark.PointRkdTreeDData.Id,
-            isArray: false
-            );
+        ///// Octree. Per-point classifications. UInt8[].
+        //public static readonly Durable.Def PointRkdTreeDDataReference = new Durable.Def(
+        //    id: new Guid("05cf0cac-4f8f-41bc-ac50-1b291297f892"),
+        //    name: "Octree.PointRkdTreeDData.Reference",
+        //    description: "Octree. Reference to data of an Aardvark.Geometry.PointRkdTreeD.",
+        //    type: Durable.Primitives.GuidDef.Id,
+        //    isArray: false
+        //    );
     }
 
     /// <summary>

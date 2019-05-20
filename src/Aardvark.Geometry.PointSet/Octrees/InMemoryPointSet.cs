@@ -207,7 +207,7 @@ namespace Aardvark.Geometry.Points
                 if (nsId != null) { storage.Add(nsId.ToString(), ns); data = data.Add(Durable.Octree.Normals3fReference, nsId.Value); }
                 if (isId != null) { storage.Add(isId.ToString(), js); data = data.Add(Durable.Octree.Intensities1iReference, isId.Value); }
                 if (ksId != null) { storage.Add(ksId.ToString(), ks); data = data.Add(Durable.Octree.Classifications1bReference, ksId.Value); }
-                if (kdId != null) { storage.Add(kdId.ToString(), kdTree.Data); data = data.Add(DurableOctree.PointRkdTreeDDataReference, kdId.Value); }
+                if (kdId != null) { storage.Add(kdId.ToString(), kdTree.Data); data = data.Add(Durable.Octree.PointRkdTreeFDataReference, kdId.Value); }
 
                 if (subcellIds == null) // leaf
                 {

@@ -2,7 +2,7 @@ framework: netcoreapp2.0, netstandard2.0, net471
 
 source https://api.nuget.org/v3/index.json
 
-nuget FSharp.Core                       ~> 4.3
+nuget FSharp.Core                       ~> 4.3.0
 
 // public repository
 nuget Aardvark.Base                     ~> 4.5.2
@@ -11,7 +11,7 @@ nuget Aardvark.Geometry                 ~> 4.5.2
 
 nuget Aardvark.Base.Rendering           ~> 4.8.2
 
-nuget Aardvark.Data.Durable             ~> 0.0.4
+nuget Aardvark.Data.Durable             ~> 0.0.5
 
 // 3rd-party
 #nuget Crc32C.NET                        ~> 1.0.5

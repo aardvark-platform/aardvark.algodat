@@ -84,7 +84,7 @@ namespace Aardvark.Geometry.Tests
                 subnodes        : null,
                 storeOnCreation : true,
                 (Durable.Octree.PositionsLocal3fReference, ps0Id, ps0),
-                (DurableOctree.PointRkdTreeDDataReference, kd0Id, ps0)
+                (Durable.Octree.PointRkdTreeFDataReference, kd0Id, ps0)
                 );
 
             Assert.IsTrue(a.Id == "a");

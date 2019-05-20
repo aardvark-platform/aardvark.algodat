@@ -56,7 +56,7 @@ namespace Aardvark.Geometry.Points
         public static bool HasIntensities(this IPointCloudNode self) => Has(self, Durable.Octree.Intensities1iReference);
 
         /// <summary></summary>
-        public static bool HasKdTree(this IPointCloudNode self) => Has(self, DurableOctree.PointRkdTreeDDataReference);
+        public static bool HasKdTree(this IPointCloudNode self) => Has(self, Durable.Octree.PointRkdTreeFDataReference);
         
         /// <summary></summary>
         public static bool HasClassifications(this IPointCloudNode self) => Has(self, Durable.Octree.Classifications1bReference);
@@ -101,10 +101,10 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PersistentRef<PointRkdTreeD<V3f[], V3f>> GetKdTree(this IPointCloudNode self)
         {
-            var res = GetValue<PointRkdTreeD<V3f[], V3f>>(self, DurableOctree.PointRkdTreeDDataReference);
+            var res = GetValue<PointRkdTreeD<V3f[], V3f>>(self, Durable.Octree.PointRkdTreeFDataReference);
             if (res != null) return res;
 
-            var data = GetValue<PointRkdTreeDData>(self, DurableOctree.PointRkdTreeDDataReference);
+            var data = GetValue<PointRkdTreeDData>(self, Durable.Octree.PointRkdTreeFDataReference);
             if(data != null)
             {
                 var ps = GetPositions(self);

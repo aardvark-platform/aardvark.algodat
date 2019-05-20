@@ -249,7 +249,7 @@ namespace Aardvark.Geometry.Points
             TryAdd(Durable.Octree.Classifications1bReference, classificationsId);
             TryAdd(Durable.Octree.Colors3bReference, colorsId);
             TryAdd(Durable.Octree.Intensities1iReference, intensitiesId);
-            TryAdd(DurableOctree.PointRkdTreeDDataReference, kdTreeId);
+            TryAdd(Durable.Octree.PointRkdTreeFDataReference, kdTreeId);
             TryAdd(Durable.Octree.Normals3fReference, normalsId);
             TryAdd(Durable.Octree.PositionsLocal3fReference, positionsId);
 
