@@ -12,6 +12,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
+using Aardvark.Data;
 using Aardvark.Data.Points;
 using Newtonsoft.Json.Linq;
 using System;
@@ -28,7 +29,7 @@ namespace Aardvark.Geometry.Points
     {
         #region Has*
 
-        private static bool Has(IPointCloudNode n, DurableDataDefinition what)
+        private static bool Has(IPointCloudNode n, Durable.Def what)
         {
             switch (n.FilterState)
             {
@@ -43,28 +44,28 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary> </summary>
-        public static bool HasPositions(this IPointCloudNode self) => Has(self, OctreeAttributes.RefPositionsLocal3f);
+        public static bool HasPositions(this IPointCloudNode self) => Has(self, Durable.Octree.PositionsLocal3fReference);
 
         /// <summary></summary>
-        public static bool HasColors(this IPointCloudNode self) => Has(self, OctreeAttributes.RefColors3b);
+        public static bool HasColors(this IPointCloudNode self) => Has(self, Durable.Octree.Colors3bReference);
 
         /// <summary></summary>
-        public static bool HasNormals(this IPointCloudNode self) => Has(self, OctreeAttributes.RefNormals3f);
+        public static bool HasNormals(this IPointCloudNode self) => Has(self, Durable.Octree.Normals3fReference);
 
         /// <summary></summary>
-        public static bool HasIntensities(this IPointCloudNode self) => Has(self, OctreeAttributes.RefIntensities1i);
+        public static bool HasIntensities(this IPointCloudNode self) => Has(self, Durable.Octree.Intensities1iReference);
 
         /// <summary></summary>
-        public static bool HasKdTree(this IPointCloudNode self) => Has(self, OctreeAttributes.RefKdTreeLocal3f);
+        public static bool HasKdTree(this IPointCloudNode self) => Has(self, DurableOctree.PointRkdTreeDDataReference);
         
         /// <summary></summary>
-        public static bool HasClassifications(this IPointCloudNode self) => Has(self, OctreeAttributes.RefClassifications1b);
+        public static bool HasClassifications(this IPointCloudNode self) => Has(self, Durable.Octree.Classifications1bReference);
 
         #endregion
 
         #region Get*
 
-        private static PersistentRef<T> GetValue<T>(IPointCloudNode self, DurableDataDefinition key) where T : class
+        private static PersistentRef<T> GetValue<T>(IPointCloudNode self, Durable.Def key) where T : class
         {
             throw new NotImplementedException();
             //if (self.TryGetPropertyValue(key, out object value))
@@ -83,7 +84,7 @@ namespace Aardvark.Geometry.Points
         /// Point positions relative to cell's center, or null if no positions.
         /// </summary>
         public static PersistentRef<V3f[]> GetPositions(this IPointCloudNode self) =>
-            GetValue<V3f[]>(self, OctreeAttributes.RefPositionsLocal3f);
+            GetValue<V3f[]>(self, Durable.Octree.PositionsLocal3fReference);
 
         /// <summary>
         /// Point positions (absolute), or null if no positions.
@@ -100,10 +101,10 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PersistentRef<PointRkdTreeD<V3f[], V3f>> GetKdTree(this IPointCloudNode self)
         {
-            var res = GetValue<PointRkdTreeD<V3f[], V3f>>(self, OctreeAttributes.RefKdTreeLocal3f);
+            var res = GetValue<PointRkdTreeD<V3f[], V3f>>(self, DurableOctree.PointRkdTreeDDataReference);
             if (res != null) return res;
 
-            var data = GetValue<PointRkdTreeDData>(self, OctreeAttributes.RefKdTreeLocal3f);
+            var data = GetValue<PointRkdTreeDData>(self, DurableOctree.PointRkdTreeDDataReference);
             if(data != null)
             {
                 var ps = GetPositions(self);
@@ -135,22 +136,22 @@ namespace Aardvark.Geometry.Points
         /// Point colors, or null if no points.
         /// </summary>
         public static PersistentRef<C4b[]> GetColors(this IPointCloudNode self)
-            => GetValue<C4b[]>(self, OctreeAttributes.RefColors3b);
+            => GetValue<C4b[]>(self, Durable.Octree.Colors3bReference);
 
         /// <summary>
         /// </summary>
         public static PersistentRef<V3f[]> GetNormals(this IPointCloudNode self)
-            => GetValue<V3f[]>(self, OctreeAttributes.RefNormals3f);
+            => GetValue<V3f[]>(self, Durable.Octree.Normals3fReference);
 
         /// <summary>
         /// </summary>
         public static PersistentRef<int[]> GetIntensities(this IPointCloudNode self)
-            => GetValue<int[]>(self, OctreeAttributes.RefIntensities1i);
+            => GetValue<int[]>(self, Durable.Octree.Intensities1iReference);
 
         /// <summary>
         /// </summary>
         public static PersistentRef<byte[]> GetClassifications(this IPointCloudNode self)
-            => GetValue<byte[]>(self, OctreeAttributes.RefClassifications1b);
+            => GetValue<byte[]>(self, Durable.Octree.Classifications1bReference);
 
         #endregion
 

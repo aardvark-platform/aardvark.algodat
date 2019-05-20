@@ -12,6 +12,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
+using Aardvark.Data;
 using Aardvark.Data.Points;
 using Newtonsoft.Json.Linq;
 using System;
@@ -33,17 +34,17 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public PointCloudNode(Storage storage,
             string id, Cell cell, Box3d boundingBoxExact, long pointCountTree, PersistentRef<IPointCloudNode>[] subnodes, bool storeOnCreation,
-            params (DurableDataDefinition attributeName, Guid attributeKey, object attributeValue)[] attributes
+            params (Durable.Def attributeName, Guid attributeKey, object attributeValue)[] attributes
             )
-            : this(storage, id, cell, boundingBoxExact, pointCountTree, subnodes, storeOnCreation, ImmutableDictionary<DurableDataDefinition, object>.Empty, attributes)
+            : this(storage, id, cell, boundingBoxExact, pointCountTree, subnodes, storeOnCreation, ImmutableDictionary<Durable.Def, object>.Empty, attributes)
         { }
 
         /// <summary>
         /// </summary>
         public PointCloudNode(Storage storage,
             string id, Cell cell, Box3d boundingBoxExact, long pointCountTree, PersistentRef<IPointCloudNode>[] subnodes, bool storeOnCreation,
-            ImmutableDictionary<DurableDataDefinition, object> data,
-            params (DurableDataDefinition attributeName, Guid attributeKey, object attributeValue)[] attributes
+            ImmutableDictionary<Durable.Def, object> data,
+            params (Durable.Def attributeName, Guid attributeKey, object attributeValue)[] attributes
             )
         {
             Storage = storage;
@@ -123,7 +124,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         private PointCloudNode(Storage storage,
             string id, Cell cell, Box3d boundingBoxExact, long pointCountTree, PersistentRef<IPointCloudNode>[] subnodes,
-            ImmutableDictionary<DurableDataDefinition, object> data,
+            ImmutableDictionary<Durable.Def, object> data,
             params (string attributeName, string attributeKey)[] attributes
             )
         {
@@ -147,8 +148,8 @@ namespace Aardvark.Geometry.Points
             //}
         }
 
-        private Dictionary<DurableDataDefinition, Guid> m_pIds = new Dictionary<DurableDataDefinition, Guid>();
-        private Dictionary<DurableDataDefinition, object> m_pRefs = new Dictionary<DurableDataDefinition, object>();
+        private Dictionary<Durable.Def, Guid> m_pIds = new Dictionary<Durable.Def, Guid>();
+        private Dictionary<Durable.Def, object> m_pRefs = new Dictionary<Durable.Def, object>();
 
         /// <summary></summary>
         public Storage Storage { get; }
@@ -178,7 +179,7 @@ namespace Aardvark.Geometry.Points
         public PersistentRef<IPointCloudNode>[] SubNodes { get; }
 
         /// <summary></summary>
-        public ImmutableDictionary<DurableDataDefinition, object> Data { get; }
+        public ImmutableDictionary<Durable.Def, object> Data { get; }
 
         ///// <summary></summary>
         //public bool TryGetPropertyKey(string property, out string key) => m_pIds.TryGetValue(property, out key);
@@ -225,7 +226,7 @@ namespace Aardvark.Geometry.Points
                 : null
                 );
 
-            return new PointCloudNode(storage, id, cell, boundingBoxExact, pointCountTree, subnodes, ImmutableDictionary<DurableDataDefinition, object>.Empty, attributes);
+            return new PointCloudNode(storage, id, cell, boundingBoxExact, pointCountTree, subnodes, ImmutableDictionary<Durable.Def, object>.Empty, attributes);
         }
 
         /// <summary></summary>
@@ -245,17 +246,17 @@ namespace Aardvark.Geometry.Points
         {
             var attributes = m_pIds.Select(kv => (kv.Key, kv.Value)).ToList();
             
-            TryAdd(OctreeAttributes.RefClassifications1b, classificationsId);
-            TryAdd(OctreeAttributes.RefColors3b, colorsId);
-            TryAdd(OctreeAttributes.RefIntensities1i, intensitiesId);
-            TryAdd(OctreeAttributes.RefKdTreeLocal3f, kdTreeId);
-            TryAdd(OctreeAttributes.RefNormals3f, normalsId);
-            TryAdd(OctreeAttributes.RefPositionsLocal3f, positionsId);
+            TryAdd(Durable.Octree.Classifications1bReference, classificationsId);
+            TryAdd(Durable.Octree.Colors3bReference, colorsId);
+            TryAdd(Durable.Octree.Intensities1iReference, intensitiesId);
+            TryAdd(DurableOctree.PointRkdTreeDDataReference, kdTreeId);
+            TryAdd(Durable.Octree.Normals3fReference, normalsId);
+            TryAdd(Durable.Octree.PositionsLocal3fReference, positionsId);
 
             throw new NotImplementedException();
             //return new PointCloudNode(Storage, Id, Cell, BoundingBoxExact, PointCountTree, SubNodes, CellAttributes, attributes.ToArray());
 
-            void TryAdd(DurableDataDefinition key, Guid id)
+            void TryAdd(Durable.Def key, Guid id)
             {
                 if (id == null) return;
                 if (m_pIds.ContainsKey(key)) throw new InvalidOperationException();
@@ -277,7 +278,7 @@ namespace Aardvark.Geometry.Points
         //}
 
         /// <summary></summary>
-        public bool TryGetCellAttribute<T>(DurableDataDefinition id, out T value)
+        public bool TryGetCellAttribute<T>(Durable.Def id, out T value)
         {
             if(Data.TryGetValue(id, out object v) && v is T)
             {

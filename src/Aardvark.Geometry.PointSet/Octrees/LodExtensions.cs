@@ -263,43 +263,43 @@ namespace Aardvark.Geometry.Points
             //        null;
 
 
-            //var data = new Dictionary<DurableDataDefinition, (Guid, object)>();
+            //var data = new Dictionary<Durable.Def, (Guid, object)>();
 
             //// store LoD data ...
             //var keyLodPs = Guid.NewGuid();
             //self.Storage.Add(keyLodPs, lodPs);
-            //data[OctreeAttributes.RefPositionsLocal3f] = (keyLodPs, lodPs);
+            //data[Durable.Octree.PositionsLocal3fReference] = (keyLodPs, lodPs);
 
             //var keyLodKd = Guid.NewGuid();
             //self.Storage.Add(keyLodKd, lodKd.Data);
-            //data[OctreeAttributes.RefKdTreeLocal3f] = (keyLodKd, lodKd);
+            //data[Durable.Octree.KdTreeLocal3fReference] = (keyLodKd, lodKd);
 
             //if (needsCs)
             //{
             //    var key = Guid.NewGuid();
             //    self.Storage.Add(key, lodCs);
-            //    data[OctreeAttributes.RefColors4b] = (key, lodCs);
+            //    data[Durable.Octree.RefColors4b] = (key, lodCs);
             //}
 
             //if (needsNs)
             //{
             //    var key = Guid.NewGuid();
             //    self.Storage.Add(key, lodNs);
-            //    data[OctreeAttributes.RefNormals3f] = (key, lodNs);
+            //    data[Durable.Octree.Normals3fReference] = (key, lodNs);
             //}
 
             //if (needsIs)
             //{
             //    var key = Guid.NewGuid();
             //    self.Storage.Add(key, lodIs);
-            //    data[OctreeAttributes.RefIntensities1i] = (key, lodIs);
+            //    data[Durable.Octree.Intensities1iReference] = (key, lodIs);
             //}
 
             //if (needsKs)
             //{
             //    var key = Guid.NewGuid();
             //    self.Storage.Add(key, lodKs);
-            //    data[OctreeAttributes.RefClassifications1b] = (key, lodKs);
+            //    data[Durable.Octree.Classifications1bReference] = (key, lodKs);
             //}
 
             //SimpleNode node = new SimpleNode(self);

@@ -12,6 +12,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
+using Aardvark.Data;
 using Aardvark.Data.Points;
 using Aardvark.Geometry.Points;
 using NUnit.Framework;
@@ -97,7 +98,7 @@ namespace Aardvark.Geometry.Tests
 
                 var bb = (Box3d)new Box3f(aPs);
                 var a = new PointCloudNode(store, "a", cell, bb, aPs.Length, null, storeOnCreation: true,
-                    (OctreeAttributes.PositionsLocal3f, Guid.NewGuid(), aPs)
+                    (Durable.Octree.PositionsLocal3f, Guid.NewGuid(), aPs)
                     );
                 store.Add("a", a);
 

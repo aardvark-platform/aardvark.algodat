@@ -34,8 +34,6 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Aardvark.Geodetics", "Aardv
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Geodetics", "Apps\Geodetics\Geodetics.fsproj", "{C83CAE2F-BAC5-4483-B68D-99C811FCD17D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aardvark.Base.DurableData", "Aardvark.Base.DurableData\Aardvark.Base.DurableData.csproj", "{D602E883-34B8-4E34-8092-D05C1E1A9367}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -102,10 +100,6 @@ Global
 		{C83CAE2F-BAC5-4483-B68D-99C811FCD17D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C83CAE2F-BAC5-4483-B68D-99C811FCD17D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C83CAE2F-BAC5-4483-B68D-99C811FCD17D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D602E883-34B8-4E34-8092-D05C1E1A9367}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D602E883-34B8-4E34-8092-D05C1E1A9367}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D602E883-34B8-4E34-8092-D05C1E1A9367}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D602E883-34B8-4E34-8092-D05C1E1A9367}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -115,7 +109,7 @@ Global
 		{C83CAE2F-BAC5-4483-B68D-99C811FCD17D} = {6CA9BC7A-0123-43E9-A26B-5FF0B9E01B08}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		EnterpriseLibraryConfigurationToolBinariesPathV6 = packages\EnterpriseLibrary.TransientFaultHandling.6.0.1304.0\lib\portable-net45+win+wp8;packages\EnterpriseLibrary.TransientFaultHandling.Data.6.0.1304.1\lib\NET45
 		SolutionGuid = {E996B5E6-49B2-4479-9DDE-455A40509F43}
+		EnterpriseLibraryConfigurationToolBinariesPathV6 = packages\EnterpriseLibrary.TransientFaultHandling.6.0.1304.0\lib\portable-net45+win+wp8;packages\EnterpriseLibrary.TransientFaultHandling.Data.6.0.1304.1\lib\NET45
 	EndGlobalSection
 EndGlobal

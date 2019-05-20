@@ -12,6 +12,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
+using Aardvark.Data;
 using Aardvark.Data.Points;
 using Newtonsoft.Json.Linq;
 using System;
@@ -74,7 +75,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Gets the given durable data value. 
         /// </summary>
-        ImmutableDictionary<DurableDataDefinition, object> Data { get; }
+        ImmutableDictionary<Durable.Def, object> Data { get; }
 
         /// <summary>
         /// </summary>

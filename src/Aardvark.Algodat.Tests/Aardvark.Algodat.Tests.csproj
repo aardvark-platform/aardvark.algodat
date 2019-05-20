@@ -89,10 +89,6 @@
     <Compile Include="ViewsTests\ViewsPointCloudNodeTests.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Aardvark.Base.DurableData\Aardvark.Base.DurableData.csproj">
-      <Project>{d602e883-34b8-4e34-8092-d05c1e1a9367}</Project>
-      <Name>Aardvark.Base.DurableData</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Aardvark.Data.E57\Aardvark.Data.E57.csproj">
       <Project>{a7247d3b-7cb6-428a-bfcc-97fef89e55b6}</Project>
       <Name>Aardvark.Data.E57</Name>
@@ -181,6 +177,17 @@
       <ItemGroup>
         <Reference Include="Aardvark.Base.Telemetry">
           <HintPath>..\..\packages\Aardvark.Base.Telemetry\lib\netstandard2.0\Aardvark.Base.Telemetry.dll</HintPath>
+          <Private>True</Private>
+          <Paket>True</Paket>
+        </Reference>
+      </ItemGroup>
+    </When>
+  </Choose>
+  <Choose>
+    <When Condition="($(TargetFrameworkIdentifier) == '.NETFramework' And $(TargetFrameworkVersion) == 'v4.7.1') Or ($(TargetFrameworkIdentifier) == '.NETCoreApp' And $(TargetFrameworkVersion) == 'v2.0') Or ($(TargetFrameworkIdentifier) == '.NETStandard' And $(TargetFrameworkVersion) == 'v2.0')">
+      <ItemGroup>
+        <Reference Include="Aardvark.Data.Durable">
+          <HintPath>..\..\packages\Aardvark.Data.Durable\lib\netstandard2.0\Aardvark.Data.Durable.dll</HintPath>
           <Private>True</Private>
           <Paket>True</Paket>
         </Reference>

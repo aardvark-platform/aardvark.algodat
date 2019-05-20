@@ -12,6 +12,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
+using Aardvark.Data;
 using Aardvark.Geometry.Points;
 using NUnit.Framework;
 using System;
@@ -57,7 +58,7 @@ namespace Aardvark.Geometry.Tests
                 pointCountTree  : ps0.Length,
                 subnodes        : null,
                 storeOnCreation : true,
-                (OctreeAttributes.PositionsGlobal3d, ps0Id, ps0)
+                (Durable.Octree.PositionsGlobal3d, ps0Id, ps0)
                 );
 
             Assert.IsTrue(a.Id == "a");
@@ -82,8 +83,8 @@ namespace Aardvark.Geometry.Tests
                 pointCountTree  : ps0.Length,
                 subnodes        : null,
                 storeOnCreation : true,
-                (OctreeAttributes.PositionsLocal3f, ps0Id, ps0),
-                (OctreeAttributes.KdTreeLocal3f, kd0Id, ps0)
+                (Durable.Octree.PositionsLocal3fReference, ps0Id, ps0),
+                (DurableOctree.PointRkdTreeDDataReference, kd0Id, ps0)
                 );
 
             Assert.IsTrue(a.Id == "a");

@@ -12,6 +12,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
+using Aardvark.Data;
 using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
@@ -199,14 +200,14 @@ namespace Aardvark.Geometry.Points
                     : ps.Length
                     ;
 
-                var data = ImmutableDictionary<DurableDataDefinition, object>.Empty;
+                var data = ImmutableDictionary<Durable.Def, object>.Empty;
 
-                if (psId != null) { storage.Add(psId.ToString(), ps); data = data.Add(OctreeAttributes.RefPositionsLocal3f, psId.Value); }
-                if (csId != null) { storage.Add(csId.ToString(), cs); data = data.Add(OctreeAttributes.RefColors3b, csId.Value); }
-                if (nsId != null) { storage.Add(nsId.ToString(), ns); data = data.Add(OctreeAttributes.RefNormals3f, nsId.Value); }
-                if (isId != null) { storage.Add(isId.ToString(), js); data = data.Add(OctreeAttributes.RefIntensities1i, isId.Value); }
-                if (ksId != null) { storage.Add(ksId.ToString(), ks); data = data.Add(OctreeAttributes.RefClassifications1b, ksId.Value); }
-                if (kdId != null) { storage.Add(kdId.ToString(), kdTree.Data); data = data.Add(OctreeAttributes.RefKdTreeLocal3f, kdId.Value); }
+                if (psId != null) { storage.Add(psId.ToString(), ps); data = data.Add(Durable.Octree.PositionsLocal3fReference, psId.Value); }
+                if (csId != null) { storage.Add(csId.ToString(), cs); data = data.Add(Durable.Octree.Colors3bReference, csId.Value); }
+                if (nsId != null) { storage.Add(nsId.ToString(), ns); data = data.Add(Durable.Octree.Normals3fReference, nsId.Value); }
+                if (isId != null) { storage.Add(isId.ToString(), js); data = data.Add(Durable.Octree.Intensities1iReference, isId.Value); }
+                if (ksId != null) { storage.Add(ksId.ToString(), ks); data = data.Add(Durable.Octree.Classifications1bReference, ksId.Value); }
+                if (kdId != null) { storage.Add(kdId.ToString(), kdTree.Data); data = data.Add(DurableOctree.PointRkdTreeDDataReference, kdId.Value); }
 
                 if (subcellIds == null) // leaf
                 {

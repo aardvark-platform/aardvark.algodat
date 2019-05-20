@@ -14,6 +14,7 @@
 #define PARANOID
 
 using Aardvark.Base;
+using Aardvark.Data;
 using Aardvark.Data.Points;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -105,7 +106,7 @@ namespace Aardvark.Geometry.Points
             }
 
             // create node
-            var result = new PointCloudNode(storage, id, cell, boundingBoxExact, pointCountTree, subnodes, true, ImmutableDictionary<DurableDataDefinition, object>.Empty);
+            var result = new PointCloudNode(storage, id, cell, boundingBoxExact, pointCountTree, subnodes, true, ImmutableDictionary<Durable.Def, object>.Empty);
 
             // generate lod
             //result = result.GenerateLod(config);

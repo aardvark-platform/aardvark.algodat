@@ -12,6 +12,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
+using Aardvark.Data;
 using Aardvark.Data.Points;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -190,6 +191,6 @@ namespace Aardvark.Geometry.Points
         public string NodeType => Type;
 
         /// <summary></summary>
-        public ImmutableDictionary<DurableDataDefinition, object> Data => throw new NotImplementedException();
+        public ImmutableDictionary<Durable.Def, object> Data => throw new NotImplementedException();
     }
 }
