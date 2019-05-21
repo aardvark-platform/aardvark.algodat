@@ -2,6 +2,7 @@ Aardvark.Base
 Aardvark.Base.IO
 Aardvark.Data.Durable
 FSharp.Core
+Microsoft.NET.Test.Sdk
 Newtonsoft.Json
 NUnit
 NUnit3TestAdapter

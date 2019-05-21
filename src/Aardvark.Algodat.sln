@@ -2,8 +2,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.28711.60
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aardvark.Algodat.Tests", "Aardvark.Algodat.Tests\Aardvark.Algodat.Tests.csproj", "{615830C5-5D54-41D4-A845-9B39973A4636}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aardvark.Geometry.PointTree", "Aardvark.Geometry.PointTree\Aardvark.Geometry.PointTree.csproj", "{765878C0-43E4-4E7F-BEEB-B32E7E0DD01A}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aardvark.Geometry.PointSet", "Aardvark.Geometry.PointSet\Aardvark.Geometry.PointSet.csproj", "{9976754A-07B4-489B-9C2C-0C3B848C1DF9}"
@@ -34,16 +32,16 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Aardvark.Geodetics", "Aardv
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Geodetics", "Apps\Geodetics\Geodetics.fsproj", "{C83CAE2F-BAC5-4483-B68D-99C811FCD17D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aardvark.Algodat.Tests", "Aardvark.Algodat.Tests\Aardvark.Algodat.Tests.csproj", "{FE7BE6D5-A6D0-46E9-9D67-FAC11042EBBB}"
+EndProject
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Aardvark.Data.Durable", "..\..\aardvark.data.durable.dotnet\src\Aardvark.Data.Durable\Aardvark.Data.Durable.fsproj", "{205EE6A5-774A-4797-8CFC-CD039C73395C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{615830C5-5D54-41D4-A845-9B39973A4636}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{615830C5-5D54-41D4-A845-9B39973A4636}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{615830C5-5D54-41D4-A845-9B39973A4636}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{615830C5-5D54-41D4-A845-9B39973A4636}.Release|Any CPU.Build.0 = Release|Any CPU
 		{765878C0-43E4-4E7F-BEEB-B32E7E0DD01A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{765878C0-43E4-4E7F-BEEB-B32E7E0DD01A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{765878C0-43E4-4E7F-BEEB-B32E7E0DD01A}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -100,6 +98,14 @@ Global
 		{C83CAE2F-BAC5-4483-B68D-99C811FCD17D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C83CAE2F-BAC5-4483-B68D-99C811FCD17D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C83CAE2F-BAC5-4483-B68D-99C811FCD17D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FE7BE6D5-A6D0-46E9-9D67-FAC11042EBBB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FE7BE6D5-A6D0-46E9-9D67-FAC11042EBBB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FE7BE6D5-A6D0-46E9-9D67-FAC11042EBBB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FE7BE6D5-A6D0-46E9-9D67-FAC11042EBBB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{205EE6A5-774A-4797-8CFC-CD039C73395C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{205EE6A5-774A-4797-8CFC-CD039C73395C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{205EE6A5-774A-4797-8CFC-CD039C73395C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{205EE6A5-774A-4797-8CFC-CD039C73395C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -109,7 +115,7 @@ Global
 		{C83CAE2F-BAC5-4483-B68D-99C811FCD17D} = {6CA9BC7A-0123-43E9-A26B-5FF0B9E01B08}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {E996B5E6-49B2-4479-9DDE-455A40509F43}
 		EnterpriseLibraryConfigurationToolBinariesPathV6 = packages\EnterpriseLibrary.TransientFaultHandling.6.0.1304.0\lib\portable-net45+win+wp8;packages\EnterpriseLibrary.TransientFaultHandling.Data.6.0.1304.1\lib\NET45
+		SolutionGuid = {E996B5E6-49B2-4479-9DDE-455A40509F43}
 	EndGlobalSection
 EndGlobal

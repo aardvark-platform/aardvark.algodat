@@ -1,4 +1,5 @@
 ﻿using Aardvark.Base;
+using Aardvark.Data;
 using Aardvark.Data.Points;
 using Aardvark.Data.Points.Import;
 using Aardvark.Geometry.Points;
@@ -12,7 +13,7 @@ using Uncodium.SimpleStore;
 
 namespace Aardvark.Geometry.Tests
 {
-    public unsafe class Program
+    public class Program
     {
         internal static void TestE57()
         {
@@ -257,7 +258,10 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
-            TestE57();
+            var foo = Durable.Octree.PositionsLocal3fReference;
+            //new ImportTests().CanImportChunkWithoutColor();
+
+            //TestE57();
 
             //var store = PointCloud.OpenStore(@"G:\cells\3280_5503_0_10\pointcloud");
             //var pc = store.GetPointSet("3280_5503_0_10", default);
