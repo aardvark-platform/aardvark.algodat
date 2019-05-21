@@ -35,7 +35,7 @@ namespace Aardvark.Geometry.Tests
             var ps0 = RandomPositions(100);
 
             var a = new PointCloudNode(storage,
-                id: "a",
+                id: Guid.NewGuid(),
                 cell: new Cell(ps0),
                 boundingBoxExact: new Box3d(ps0),
                 pointCountTree: ps0.Length,
@@ -57,7 +57,7 @@ namespace Aardvark.Geometry.Tests
             var ps0 = RandomPositions(100);
 
             var a = new PointCloudNode(storage,
-                id: "a",
+                id: Guid.NewGuid(),
                 cell: new Cell(ps0),
                 boundingBoxExact: new Box3d(ps0),
                 pointCountTree: ps0.Length,
@@ -79,7 +79,7 @@ namespace Aardvark.Geometry.Tests
             var ps0 = RandomPositions(100);
 
             var a = new PointCloudNode(storage,
-                id: "a",
+                id: Guid.NewGuid(),
                 cell: new Cell(ps0),
                 boundingBoxExact: new Box3d(ps0),
                 pointCountTree: ps0.Length,
@@ -105,7 +105,7 @@ namespace Aardvark.Geometry.Tests
             var ps0 = RandomPositions(100);
 
             var a = new PointCloudNode(storage,
-                id: "a",
+                id: Guid.NewGuid(),
                 cell: new Cell(ps0),
                 boundingBoxExact: new Box3d(ps0),
                 pointCountTree: ps0.Length,
@@ -127,7 +127,7 @@ namespace Aardvark.Geometry.Tests
             var ps0 = RandomPositions(100);
 
             var a = new PointCloudNode(storage,
-                id: "a",
+                id: Guid.NewGuid(),
                 cell: new Cell(ps0),
                 boundingBoxExact: new Box3d(ps0),
                 pointCountTree: ps0.Length,
@@ -149,7 +149,7 @@ namespace Aardvark.Geometry.Tests
             var ps0 = RandomPositions(100);
 
             var a = new PointCloudNode(storage,
-                id: "a",
+                id: Guid.NewGuid(),
                 cell: new Cell(ps0),
                 boundingBoxExact: new Box3d(ps0),
                 pointCountTree: ps0.Length,
@@ -175,7 +175,7 @@ namespace Aardvark.Geometry.Tests
             var ps0 = RandomPositions(10);
 
             var a = new PointCloudNode(storage,
-                id: "a",
+                id: Guid.NewGuid(),
                 cell: new Cell(ps0),
                 boundingBoxExact: new Box3d(ps0),
                 pointCountTree: ps0.Length,
@@ -198,7 +198,7 @@ namespace Aardvark.Geometry.Tests
             var ps0 = RandomPositions(10);
 
             var a = new PointCloudNode(storage,
-                id: "a",
+                id: Guid.NewGuid(),
                 cell: new Cell(ps0),
                 boundingBoxExact: new Box3d(ps0),
                 pointCountTree: ps0.Length,
@@ -221,7 +221,7 @@ namespace Aardvark.Geometry.Tests
             var ps0 = RandomPositions(10);
 
             var a = new PointCloudNode(storage,
-                id: "a",
+                id: Guid.NewGuid(),
                 cell: new Cell(ps0),
                 boundingBoxExact: new Box3d(ps0),
                 pointCountTree: ps0.Length,

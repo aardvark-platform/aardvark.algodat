@@ -45,15 +45,13 @@ namespace Aardvark.Geometry.Points
         /// Links to different octree.
         /// </summary>
         public LinkedNode(Storage storage, string linkedStoreName, string linkedPointCloudKey, IStoreResolver storeResolver)
-            : this(storage, Guid.NewGuid().ToString(), linkedStoreName, linkedPointCloudKey, storeResolver) { }
+            : this(storage, Guid.NewGuid(), linkedStoreName, linkedPointCloudKey, storeResolver) { }
 
         /// <summary>
         /// Links to different octree.
         /// </summary>
-        public LinkedNode(Storage storage, string id, string linkedStoreName, string linkedPointCloudKey, IStoreResolver storeResolver)
+        public LinkedNode(Storage storage, Guid id, string linkedStoreName, string linkedPointCloudKey, IStoreResolver storeResolver)
         {
-            if (string.IsNullOrWhiteSpace(id)) throw new ArgumentNullException(nameof(id));
-
             m_storeResolver = storeResolver;
             var foo = m_storeResolver.Resolve(linkedStoreName, cache: default).GetPointSet(linkedPointCloudKey, default);
             var root = foo.Octree.Value;
@@ -68,10 +66,8 @@ namespace Aardvark.Geometry.Points
             LinkedPointCloudKey = linkedPointCloudKey;
         }
 
-        private LinkedNode(Storage storage, string id, Cell cell, Box3d boundingBoxExact, long pointCountTree, string linkedStoreName, string linkedPointCloudKey, IStoreResolver storeResolver)
+        private LinkedNode(Storage storage, Guid id, Cell cell, Box3d boundingBoxExact, long pointCountTree, string linkedStoreName, string linkedPointCloudKey, IStoreResolver storeResolver)
         {
-            if (string.IsNullOrWhiteSpace(id)) throw new ArgumentNullException(nameof(id));
-            
             Storage = storage;
             Id = id;
             Cell = cell;
@@ -100,7 +96,7 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public string Id { get; }
+        public Guid Id { get; }
 
         /// <summary></summary>
         public Cell Cell { get; }
@@ -154,7 +150,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public static LinkedNode Parse(JObject json, Storage storage, IStoreResolver resolver)
-            => new LinkedNode(storage, (string)json["Id"],
+            => new LinkedNode(storage, (Guid)json["Id"],
                 json["Cell"].ToObject<Cell>(),
                 Box3d.Parse((string)json["BoundingBoxExact"]),
                 (long)json["PointCountTree"],

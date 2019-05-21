@@ -46,9 +46,9 @@ namespace Aardvark.Geometry.Points
         #region Construction
 
         /// <summary></summary>
-        public FilteredNode(string id, IPointCloudNode node, IFilter filter, HashSet<int> activePoints = null)
+        public FilteredNode(Guid id, IPointCloudNode node, IFilter filter, HashSet<int> activePoints = null)
         {
-            Id = id ?? throw new ArgumentNullException(nameof(id));
+            Id = id;
             Node = node ?? throw new ArgumentNullException(nameof(node));
             Filter = filter ?? throw new ArgumentNullException(nameof(filter));
             FilterState = Node.GetFilterState(Filter);
@@ -62,7 +62,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public FilteredNode(IPointCloudNode node, IFilter filter)
-            : this(Guid.NewGuid().ToString(), node, filter)
+            : this(Guid.NewGuid(), node, filter)
         { }
 
         #endregion
@@ -71,7 +71,7 @@ namespace Aardvark.Geometry.Points
         public Storage Storage => Node.Storage;
 
         /// <summary></summary>
-        public string Id { get; }
+        public Guid Id { get; }
 
         /// <summary></summary>
         public Cell Cell => Node.Cell;
@@ -103,10 +103,10 @@ namespace Aardvark.Geometry.Points
                     m_subnodes_cache = new PersistentRef<IPointCloudNode>[8];
                     for (var i = 0; i < 8; i++)
                     {
-                        var id = (Id + "." + i).ToGuid().ToString();
+                        var id = (Id + "." + i).ToGuid();
                         var n0 = Node.SubNodes[i]?.Value;
                         var n = n0 != null ? new FilteredNode(id, n0, Filter) : null;
-                        m_subnodes_cache[i] = new PersistentRef<IPointCloudNode>(id, _ => n, _ => (true, n));
+                        m_subnodes_cache[i] = new PersistentRef<IPointCloudNode>(id.ToString(), _ => n, _ => (true, n));
                     }
                 }
                 return m_subnodes_cache;

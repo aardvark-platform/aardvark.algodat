@@ -43,7 +43,7 @@ namespace Aardvark.Geometry.Points
             if (nodes.Length == 0) throw new ArgumentOutOfRangeException(nameof(nodes), "Need at least 1 node (0 given).");
             if (nodes.Length == 1) return nodes[0];
 
-            var id = Guid.NewGuid().ToString();
+            var id = Guid.NewGuid();
             var cell = new Cell(new Box3d(nodes.Select(x => x.Cell.BoundingBox)));
             var center = cell.GetCenter();
             var boundingBoxExact = new Box3d(nodes.Select(x => x.BoundingBoxExact));
@@ -95,14 +95,14 @@ namespace Aardvark.Geometry.Points
                 if (bucket.Count == 1 && bucket[0].Cell == subcells[i])
                 {
                     Console.WriteLine($"FOO -> {bucket[0].CountNodes()}");
-                    var localId = bucket[0].Id;
+                    var localId = bucket[0].Id.ToString();
                     subnodes[i] = new PersistentRef<IPointCloudNode>(localId, _id => storage.GetPointCloudNode(localId, resolver), _id => storage.TryGetPointCloudNode(localId));
                     bucket.Clear();
                     continue;
                 }
 
                 var subnode = NonOverlapping(storage, resolver, bucket.ToArray(), config);
-                subnodes[i] = new PersistentRef<IPointCloudNode>(subnode.Id, _id => storage.GetPointCloudNode(_id, resolver), _id => storage.TryGetPointCloudNode(_id));
+                subnodes[i] = new PersistentRef<IPointCloudNode>(subnode.Id.ToString(), _id => storage.GetPointCloudNode(_id, resolver), _id => storage.TryGetPointCloudNode(_id));
             }
 
             // create node

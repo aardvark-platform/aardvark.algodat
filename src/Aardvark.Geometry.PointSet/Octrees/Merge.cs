@@ -84,7 +84,7 @@ namespace Aardvark.Geometry.Points
                     chunk = chunk.ImmutableFilterMinDistByCell(subCell, config.ParseConfig);
                 }
                 var builder = InMemoryPointSet.Build(subnodesPoints[i], subnodesColors?[i], subnodesNormals?[i], subnodesIntensities?[i], subnodesClassifications?[i],subCell, int.MaxValue);
-                var subnode = builder.ToPointSetCell(cell.Storage, ct: config.CancellationToken);
+                var subnode = builder.ToPointSetCell(config.Storage, ct: config.CancellationToken);
                 if (subnode.PointCountTree > subnodesPoints[i].Count) throw new InvalidOperationException();
                 if (!cell.Cell.Contains(subnode.Cell)) throw new InvalidOperationException();
                 if (cell.Cell.Exponent != subnode.Cell.Exponent + 1) throw new InvalidOperationException();
@@ -93,7 +93,7 @@ namespace Aardvark.Geometry.Points
             }
 
             var data = cell.Data.Add(Durable.Octree.SubnodesGuids, subnodes.Map(x => x?.Id ?? Guid.Empty));
-            var result = new PointSetNode(cell.Data, config.Storage);
+            var result = new PointSetNode(cell.Data, config.Storage, writeToStore: true);
 
             // POST
             if (result.IsLeaf) throw new InvalidOperationException();
@@ -123,7 +123,7 @@ namespace Aardvark.Geometry.Points
             var totalPointCountTree = a.PointCountTree + b.PointCountTree;
             if (totalPointCountTree <= config.OctreeSplitLimit)
             {
-                var storage = a.Storage;
+                var storage = config.Storage;
                 var ac = a.Center;
                 var bc = b.Center;
 
@@ -278,7 +278,7 @@ namespace Aardvark.Geometry.Points
                     .Add(Durable.Octree.PointCountTreeLeafs, pointCountTreeLeafs)
                     .Add(Durable.Octree.SubnodesGuids, roots.Map(n => n?.Id ?? Guid.Empty))
                     ;
-                return new PointSetNode(data, config.Storage);
+                return new PointSetNode(data, config.Storage, writeToStore: true);
             }
 #if DEBUG
             if (a.Cell.Exponent == b.Cell.Exponent)
@@ -456,7 +456,7 @@ namespace Aardvark.Geometry.Points
                     .Add(Durable.Octree.PointCountTreeLeafs, a.PointCountTree + b.PointCountTree)
                     .Add(Durable.Octree.SubnodesGuids, subcells.Map(x => x?.Id ?? Guid.Empty))
                     ;
-                var result = new PointSetNode(data, config.Storage);
+                var result = new PointSetNode(data, config.Storage, writeToStore: true);
 #if DEBUG
                 if (result.PointCountTree != a.PointCountTree + b.PointCountTree) throw new InvalidOperationException();
                 if (result.PointCountTree != result.Subnodes.Sum(x => x?.Value?.PointCountTree)) throw new InvalidOperationException();
@@ -508,7 +508,7 @@ namespace Aardvark.Geometry.Points
                     .Add(Durable.Octree.PointCountTreeLeafs, a.PointCountTree + b.PointCountTree)
                     .Add(Durable.Octree.SubnodesGuids, subcells.Map(x => x?.Id ?? Guid.Empty))
                     ;
-                var result = new PointSetNode(data, config.Storage);
+                var result = new PointSetNode(data, config.Storage, writeToStore: true);
 #if DEBUG
                 if (result.PointCountTree != a.PointCountTree + b.PointCountTree) throw new InvalidOperationException();
                 if (result.PointCountTree != result.Subnodes.Sum(x => x?.Value?.PointCountTree)) throw new InvalidOperationException();
@@ -564,7 +564,7 @@ namespace Aardvark.Geometry.Points
                     .Add(Durable.Octree.PointCountTreeLeafs, a.PointCountTree)
                     .Add(Durable.Octree.SubnodesGuids, subcells.Map(x => x?.Id ?? Guid.Empty))
                     ;
-            var result = new PointSetNode(data, config.Storage);
+            var result = new PointSetNode(data, config.Storage, writeToStore: true);
 #if DEBUG
             if (result.PointCountTree != a.PointCountTree) throw new InvalidOperationException();
 #endif
@@ -594,7 +594,7 @@ namespace Aardvark.Geometry.Points
             {
                 chunk = chunk.ImmutableFilterMinDistByCell(cell, config.ParseConfig);
             }
-            var result = InMemoryPointSet.Build(chunk, cell, config.OctreeSplitLimit).ToPointSetNode(a.Storage, ct: config.CancellationToken);
+            var result = InMemoryPointSet.Build(chunk, cell, config.OctreeSplitLimit).ToPointSetNode(config.Storage, ct: config.CancellationToken);
             if (a.Cell != result.Cell) throw new InvalidOperationException("Invariant 771d781a-6d37-4017-a890-4f72a96a01a8.");
             return result;
         }
@@ -664,7 +664,7 @@ namespace Aardvark.Geometry.Points
                 .Add(Durable.Octree.PointCountTreeLeafs, pointCountTree)
                 .Add(Durable.Octree.SubnodesGuids, subcells.Map(x => x?.Id ?? Guid.Empty))
                 ;
-            var result = new PointSetNode(data, config.Storage);
+            var result = new PointSetNode(data, config.Storage, writeToStore: true);
             //pointsMergedCallback?.Invoke(result.PointCountTree);
             if (a.Cell != result.Cell) throw new InvalidOperationException("Invariant 97239777-8a0c-4158-853b-e9ebef63fda8.");
             return result;

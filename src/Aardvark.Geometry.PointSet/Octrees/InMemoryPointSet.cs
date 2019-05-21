@@ -216,14 +216,14 @@ namespace Aardvark.Geometry.Points
 
                 if (subcellIds == null) // leaf
                 {
-                    return new PointSetNode(data, storage);
+                    return new PointSetNode(data, storage, writeToStore: true);
                 }
                 else
                 {
                     data = data
                         .Add(Durable.Octree.SubnodesGuids, subcellIds.Map(x => x ?? Guid.Empty))
                         ;
-                    return new PointSetNode(data, storage);
+                    return new PointSetNode(data, storage, writeToStore: true);
                 }
             }
             

@@ -33,7 +33,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// </summary>
         public PointCloudNode(Storage storage,
-            string id, Cell cell, Box3d boundingBoxExact, long pointCountTree, PersistentRef<IPointCloudNode>[] subnodes, bool storeOnCreation,
+            Guid id, Cell cell, Box3d boundingBoxExact, long pointCountTree, PersistentRef<IPointCloudNode>[] subnodes, bool storeOnCreation,
             params (Durable.Def attributeName, Guid attributeKey, object attributeValue)[] attributes
             )
             : this(storage, id, cell, boundingBoxExact, pointCountTree, subnodes, storeOnCreation, ImmutableDictionary<Durable.Def, object>.Empty, attributes)
@@ -42,7 +42,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// </summary>
         public PointCloudNode(Storage storage,
-            string id, Cell cell, Box3d boundingBoxExact, long pointCountTree, PersistentRef<IPointCloudNode>[] subnodes, bool storeOnCreation,
+            Guid id, Cell cell, Box3d boundingBoxExact, long pointCountTree, PersistentRef<IPointCloudNode>[] subnodes, bool storeOnCreation,
             ImmutableDictionary<Durable.Def, object> data,
             params (Durable.Def attributeName, Guid attributeKey, object attributeValue)[] attributes
             )
@@ -123,7 +123,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// </summary>
         private PointCloudNode(Storage storage,
-            string id, Cell cell, Box3d boundingBoxExact, long pointCountTree, PersistentRef<IPointCloudNode>[] subnodes,
+            Guid id, Cell cell, Box3d boundingBoxExact, long pointCountTree, PersistentRef<IPointCloudNode>[] subnodes,
             ImmutableDictionary<Durable.Def, object> data,
             params (string attributeName, string attributeKey)[] attributes
             )
@@ -155,7 +155,7 @@ namespace Aardvark.Geometry.Points
         public Storage Storage { get; }
 
         /// <summary></summary>
-        public string Id { get; }
+        public Guid Id { get; }
 
         /// <summary></summary>
         public Cell Cell { get; }
@@ -213,7 +213,7 @@ namespace Aardvark.Geometry.Points
             var nodetype = (string)json["NodeType"];
             if (nodetype != Type) throw new InvalidOperationException($"Expected node type '{Type}', but was '{nodetype}'.");
 
-            var id = (string)json["Id"];
+            var id = (Guid)json["Id"];
             var cell = json["Cell"].ToObject<Cell>();
             var boundingBoxExact = Box3d.Parse((string)json["BoundingBoxExact"]);
             var pointCountTree = (long)json["PointCountTree"];

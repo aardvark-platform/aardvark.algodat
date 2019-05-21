@@ -30,8 +30,9 @@ namespace Aardvark.Geometry.Tests
         {
             var storage = PointCloud.CreateInMemoryStore(cache: default);
 
+            var aId = Guid.NewGuid();
             var a = new PointCloudNode(storage,
-                id              : "a",
+                id              : aId,
                 cell            : Cell.Unit,
                 boundingBoxExact: Box3d.Unit,
                 pointCountTree  : 0,
@@ -39,7 +40,7 @@ namespace Aardvark.Geometry.Tests
                 storeOnCreation : true
                 );
 
-            Assert.IsTrue(a.Id == "a");
+            Assert.IsTrue(a.Id == aId);
             Assert.IsTrue(a.Cell == Cell.Unit);
             Assert.IsTrue(a.BoundingBoxExact == Box3d.Unit);
         }
@@ -50,9 +51,10 @@ namespace Aardvark.Geometry.Tests
             var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps0 = new V3d[100].SetByIndex(_ => RandomPosition());
             var ps0Id = Guid.NewGuid();
+            var aId = Guid.NewGuid();
 
             var a = new PointCloudNode(storage,
-                id              : "a",
+                id              : aId,
                 cell            : new Cell(ps0),
                 boundingBoxExact: new Box3d(ps0),
                 pointCountTree  : ps0.Length,
@@ -61,7 +63,7 @@ namespace Aardvark.Geometry.Tests
                 (Durable.Octree.PositionsGlobal3d, ps0Id, ps0)
                 );
 
-            Assert.IsTrue(a.Id == "a");
+            Assert.IsTrue(a.Id == aId);
             Assert.IsTrue(a.Cell == new Cell(ps0));
             Assert.IsTrue(a.BoundingBoxExact == new Box3d(ps0));
             Assert.IsTrue(a.HasPositions());
@@ -76,8 +78,9 @@ namespace Aardvark.Geometry.Tests
             var kd0Id = Guid.NewGuid();
             var bb = (Box3d)new Box3f(ps0);
 
+            var aId = Guid.NewGuid();
             var a = new PointCloudNode(storage,
-                id              : "a",
+                id              : aId,
                 cell            : new Cell(ps0),
                 boundingBoxExact: bb,
                 pointCountTree  : ps0.Length,
@@ -87,7 +90,7 @@ namespace Aardvark.Geometry.Tests
                 (Durable.Octree.PointRkdTreeFDataReference, kd0Id, ps0)
                 );
 
-            Assert.IsTrue(a.Id == "a");
+            Assert.IsTrue(a.Id == aId);
             Assert.IsTrue(a.Cell == new Cell(ps0));
             Assert.IsTrue(a.BoundingBoxExact == bb);
             Assert.IsTrue(a.HasPositions());

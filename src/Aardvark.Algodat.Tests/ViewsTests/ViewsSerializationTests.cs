@@ -97,7 +97,8 @@ namespace Aardvark.Geometry.Tests
                 store.Add("a.positions", aPs);
 
                 var bb = (Box3d)new Box3f(aPs);
-                var a = new PointCloudNode(store, "a", cell, bb, aPs.Length, null, storeOnCreation: true,
+                var aId = Guid.NewGuid();
+                var a = new PointCloudNode(store, aId, cell, bb, aPs.Length, null, storeOnCreation: true,
                     (Durable.Octree.PositionsLocal3f, Guid.NewGuid(), aPs)
                     );
                 store.Add("a", a);
@@ -106,7 +107,7 @@ namespace Aardvark.Geometry.Tests
                 var json = a.ToJson();
 
                 var b = PointCloudNode.Parse(json, store, resolver);
-                Assert.IsTrue(b.Id == "a");
+                Assert.IsTrue(b.Id == aId);
                 Assert.IsTrue(b.Cell == cell);
                 Assert.IsTrue(b.BoundingBoxExact.Min.ApproxEqual(bb.Min, 0.000000001) && b.BoundingBoxExact.Max.ApproxEqual(bb.Max, 0.000000001));
                 Assert.IsTrue(b.PointCountTree == 100);

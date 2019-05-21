@@ -33,7 +33,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Key.
         /// </summary>
-        string Id { get; }
+        Guid Id { get; }
 
         /// <summary>
         /// This node's index/bounds.

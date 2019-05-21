@@ -92,11 +92,11 @@ namespace Aardvark.Geometry.Points
 
             if (key != null)
             {
-                Octree = new PersistentRef<IPointCloudNode>(root.Id, id => storage.GetPointCloudNode(id, resolver), id => storage.TryGetPointCloudNode(id));
+                Octree = new PersistentRef<IPointCloudNode>(root.Id.ToString(), id => storage.GetPointCloudNode(id, resolver), id => storage.TryGetPointCloudNode(id));
 #pragma warning disable CS0618 // Type or member is obsolete
                 Root = oldSchool != null
                     ? new PersistentRef<PointSetNode>(oldSchool.Id.ToString(), storage.GetPointSetNode, storage.TryGetPointSetNode)
-                    : new PersistentRef<PointSetNode>(root.Id, _ => throw new InvalidOperationException(), _ => throw new InvalidOperationException());
+                    : new PersistentRef<PointSetNode>(root.Id.ToString(), _ => throw new InvalidOperationException(), _ => throw new InvalidOperationException());
 #pragma warning restore CS0618 // Type or member is obsolete
             }
         }
