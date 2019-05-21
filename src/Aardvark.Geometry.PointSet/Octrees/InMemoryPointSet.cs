@@ -78,11 +78,11 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [Obsolete("Use ToPointSetNode instead.")]
-        public PointSetNode ToPointSetCell(Storage storage, double kdTreeEps = 1e-6, CancellationToken ct = default)
+        public PointSetNode ToPointSetCell(Storage storage, float kdTreeEps = 1e-6f, CancellationToken ct = default)
             => ToPointSetNode(storage, kdTreeEps, ct);
 
         /// <summary></summary>
-        public PointSetNode ToPointSetNode(Storage storage, double kdTreeEps = 1e-6, CancellationToken ct = default)
+        public PointSetNode ToPointSetNode(Storage storage, float kdTreeEps = 1e-6f, CancellationToken ct = default)
         {
             var result = m_root.ToPointSetCell(storage, ct, kdTreeEps);
 #if DEBUG
@@ -112,7 +112,7 @@ namespace Aardvark.Geometry.Points
                 _centerX = c.X; _centerY = c.Y; _centerZ = c.Z;
             }
 
-            public PointSetNode ToPointSetCell(Storage storage, CancellationToken ct, double kdTreeEps = 1e-6)
+            public PointSetNode ToPointSetCell(Storage storage, CancellationToken ct, float kdTreeEps = 1e-6f)
             {
                 var center = new V3d(_centerX, _centerY, _centerZ);
                 V3f[] ps = null;
@@ -120,7 +120,7 @@ namespace Aardvark.Geometry.Points
                 V3f[] ns = null;
                 int[] js = null;
                 byte[] ks = null;
-                PointRkdTreeD<V3f[], V3f> kdTree = null;
+                PointRkdTreeF<V3f[], V3f> kdTree = null;
                 
                 if (_ia != null)
                 {
@@ -158,7 +158,7 @@ namespace Aardvark.Geometry.Points
                         for (var i = 0; i < count; i++) ks[i] = allKs[_ia[i]];
                     }
 
-                    kdTree = new PointRkdTreeD<V3f[], V3f>(
+                    kdTree = new PointRkdTreeF<V3f[], V3f>(
                         3, ps.Length, ps,
                         (xs, i) => xs[(int)i], (v, i) => (float)v[i],
                         (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
