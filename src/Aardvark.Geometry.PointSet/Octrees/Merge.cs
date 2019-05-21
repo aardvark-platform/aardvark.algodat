@@ -92,8 +92,8 @@ namespace Aardvark.Geometry.Points
                 subnodes[i] = subnode;
             }
 
-            var result = new PointSetNode(cell.Cell, imax, cell.Data,
-                subnodes.Map(x => x?.Id), cell.Storage);
+            var data = cell.Data.Add(Durable.Octree.SubnodesGuids, subnodes.Map(x => x?.Id ?? Guid.Empty));
+            var result = new PointSetNode(cell.Data, config.Storage);
 
             // POST
             if (result.IsLeaf) throw new InvalidOperationException();
@@ -255,7 +255,7 @@ namespace Aardvark.Geometry.Points
                         if (x.Cell != oct)
                         {
                             if (!oct.Contains(x.Cell)) throw new InvalidOperationException();
-                            roots[oi] = JoinTreeToRootCell(oct, x);
+                            roots[oi] = JoinTreeToRootCell(oct, x, config);
                         }
                         else
                         {
@@ -270,12 +270,15 @@ namespace Aardvark.Geometry.Points
                     if (oct != roots[oi].Cell) throw new InvalidOperationException();
                 }
 
-                var pointCountTree = roots.Where(x => x != null).Sum(x => x.PointCountTree);
-                pointsMergedCallback?.Invoke(pointCountTree);
-                
+                var pointCountTreeLeafs = roots.Where(x => x != null).Sum(x => x.PointCountTree);
+                pointsMergedCallback?.Invoke(pointCountTreeLeafs);
 
-                return new PointSetNode(rootCell, pointCountTree, ImmutableDictionary<Durable.Def, object>.Empty, roots.Map(n => n?.Id), a.Storage);
-                //return new PointSetNode(rootCell, pointCountTree, roots.Map(n => n?.Id), a.Storage);
+                var data = ImmutableDictionary<Durable.Def, object>.Empty
+                    .Add(Durable.Octree.Cell, rootCell)
+                    .Add(Durable.Octree.PointCountTreeLeafs, pointCountTreeLeafs)
+                    .Add(Durable.Octree.SubnodesGuids, roots.Map(n => n?.Id ?? Guid.Empty))
+                    ;
+                return new PointSetNode(data, config.Storage);
             }
 #if DEBUG
             if (a.Cell.Exponent == b.Cell.Exponent)
@@ -313,7 +316,7 @@ namespace Aardvark.Geometry.Points
 #endif
                     if (subcells[i] == null)
                     {
-                        subcells[i] = JoinTreeToRootCell(subcellIndex, b);
+                        subcells[i] = JoinTreeToRootCell(subcellIndex, b, config);
                     }
                     else
                     {
@@ -425,12 +428,12 @@ namespace Aardvark.Geometry.Points
                         {
                             // CASE: both contained
                             var merged = Merge(aSub, b, pointsMergedCallback, config);
-                            subcells[i] = JoinTreeToRootCell(rootCellOctant, merged);
+                            subcells[i] = JoinTreeToRootCell(rootCellOctant, merged, config);
                         }
                         else
                         {
                             // CASE: aSub contained
-                            subcells[i] = JoinTreeToRootCell(rootCellOctant, aSub);
+                            subcells[i] = JoinTreeToRootCell(rootCellOctant, aSub, config);
                         }
                     }
                     else
@@ -438,7 +441,7 @@ namespace Aardvark.Geometry.Points
                         if (bIsContained)
                         {
                             // CASE: b contained
-                            subcells[i] = JoinTreeToRootCell(rootCellOctant, b);
+                            subcells[i] = JoinTreeToRootCell(rootCellOctant, b, config);
                         }
                         else
                         {
@@ -448,7 +451,12 @@ namespace Aardvark.Geometry.Points
                     }
                 }
 
-                var result = new PointSetNode(rootCell, a.PointCountTree + b.PointCountTree, ImmutableDictionary<Durable.Def, object>.Empty, subcells.Map(x => x?.Id), a.Storage);
+                var data = ImmutableDictionary<Durable.Def, object>.Empty
+                    .Add(Durable.Octree.Cell, rootCell)
+                    .Add(Durable.Octree.PointCountTreeLeafs, a.PointCountTree + b.PointCountTree)
+                    .Add(Durable.Octree.SubnodesGuids, subcells.Map(x => x?.Id ?? Guid.Empty))
+                    ;
+                var result = new PointSetNode(data, config.Storage);
 #if DEBUG
                 if (result.PointCountTree != a.PointCountTree + b.PointCountTree) throw new InvalidOperationException();
                 if (result.PointCountTree != result.Subnodes.Sum(x => x?.Value?.PointCountTree)) throw new InvalidOperationException();
@@ -480,7 +488,7 @@ namespace Aardvark.Geometry.Points
 #if DEBUG
                         if (subcell.Intersects(b.Cell)) throw new InvalidOperationException();
 #endif
-                        subcells[i] = JoinTreeToRootCell(subcell, a);
+                        subcells[i] = JoinTreeToRootCell(subcell, a, config);
                         if (doneB) break;
                         doneA = true;
                     }
@@ -489,13 +497,18 @@ namespace Aardvark.Geometry.Points
 #if DEBUG
                         if (subcell.Intersects(a.Cell)) throw new InvalidOperationException();
 #endif
-                        subcells[i] = JoinTreeToRootCell(subcell, b);
+                        subcells[i] = JoinTreeToRootCell(subcell, b, config);
                         if (doneA == true) break;
                         doneB = true;
                     }
                 }
 
-                var result = new PointSetNode(rootCell, a.PointCountTree + b.PointCountTree, ImmutableDictionary<Durable.Def, object>.Empty, subcells.Map(x => x?.Id), a.Storage);
+                var data = ImmutableDictionary<Durable.Def, object>.Empty
+                    .Add(Durable.Octree.Cell, rootCell)
+                    .Add(Durable.Octree.PointCountTreeLeafs, a.PointCountTree + b.PointCountTree)
+                    .Add(Durable.Octree.SubnodesGuids, subcells.Map(x => x?.Id ?? Guid.Empty))
+                    ;
+                var result = new PointSetNode(data, config.Storage);
 #if DEBUG
                 if (result.PointCountTree != a.PointCountTree + b.PointCountTree) throw new InvalidOperationException();
                 if (result.PointCountTree != result.Subnodes.Sum(x => x?.Value?.PointCountTree)) throw new InvalidOperationException();
@@ -529,7 +542,7 @@ namespace Aardvark.Geometry.Points
 
         }
 
-        private static PointSetNode JoinTreeToRootCell(Cell rootCell, PointSetNode a)
+        private static PointSetNode JoinTreeToRootCell(Cell rootCell, PointSetNode a, ImportConfig config)
         {
             if (!rootCell.Contains(a.Cell)) throw new InvalidOperationException();
             if (a.IsCenteredAtOrigin)
@@ -543,11 +556,15 @@ namespace Aardvark.Geometry.Points
             {
                 var subcell = rootCell.GetOctant(i);
                 if (subcell == a.Cell) { subcells[i] = a; break; }
-                if (subcell.Contains(a.Cell)) { subcells[i] = JoinTreeToRootCell(subcell, a); break; }
+                if (subcell.Contains(a.Cell)) { subcells[i] = JoinTreeToRootCell(subcell, a, config); break; }
             }
 
-
-            var result = new PointSetNode(rootCell, a.PointCountTree, ImmutableDictionary<Durable.Def, object>.Empty, subcells.Map(x => x?.Id), a.Storage);
+            var data = ImmutableDictionary<Durable.Def, object>.Empty
+                    .Add(Durable.Octree.Cell, rootCell)
+                    .Add(Durable.Octree.PointCountTreeLeafs, a.PointCountTree)
+                    .Add(Durable.Octree.SubnodesGuids, subcells.Map(x => x?.Id ?? Guid.Empty))
+                    ;
+            var result = new PointSetNode(data, config.Storage);
 #if DEBUG
             if (result.PointCountTree != a.PointCountTree) throw new InvalidOperationException();
 #endif
@@ -642,7 +659,12 @@ namespace Aardvark.Geometry.Points
                 }
             }
 
-            var result = new PointSetNode(a.Cell, pointCountTree, a.Data, subcells.Map(x => x?.Id), a.Storage);
+            var data = a.Data
+                .Add(Durable.Octree.Cell, a.Cell)
+                .Add(Durable.Octree.PointCountTreeLeafs, pointCountTree)
+                .Add(Durable.Octree.SubnodesGuids, subcells.Map(x => x?.Id ?? Guid.Empty))
+                ;
+            var result = new PointSetNode(data, config.Storage);
             //pointsMergedCallback?.Invoke(result.PointCountTree);
             if (a.Cell != result.Cell) throw new InvalidOperationException("Invariant 97239777-8a0c-4158-853b-e9ebef63fda8.");
             return result;

@@ -195,7 +195,7 @@ namespace Aardvark.Geometry.Points
                     }
                 }
 #endif
-                var pointCountTree = subcells != null
+                var pointCountTreeLeafs = subcells != null
                     ? subcells.Sum(n => n != null ? n.PointCountTree : 0)
                     : ps.Length
                     ;
@@ -209,13 +209,21 @@ namespace Aardvark.Geometry.Points
                 if (ksId != null) { storage.Add(ksId.ToString(), ks); data = data.Add(Durable.Octree.Classifications1bReference, ksId.Value); }
                 if (kdId != null) { storage.Add(kdId.ToString(), kdTree.Data); data = data.Add(Durable.Octree.PointRkdTreeFDataReference, kdId.Value); }
 
+                data = data
+                    .Add(Durable.Octree.Cell, _cell)
+                    .Add(Durable.Octree.PointCountTreeLeafs, pointCountTreeLeafs)
+                    ;
+
                 if (subcellIds == null) // leaf
                 {
-                    return new PointSetNode(_cell, pointCountTree, data, storage);
+                    return new PointSetNode(data, storage);
                 }
                 else
                 {
-                    return new PointSetNode(_cell, pointCountTree, data, subcellIds, storage);
+                    data = data
+                        .Add(Durable.Octree.SubnodesGuids, subcellIds.Map(x => x ?? Guid.Empty))
+                        ;
+                    return new PointSetNode(data, storage);
                 }
             }
             
