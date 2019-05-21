@@ -45,7 +45,7 @@ namespace Aardvark.Geometry.Points
             )
         {
             if (!data.ContainsKey(Durable.Octree.NodeId)) throw new ArgumentException("Missing Durable.Octree.NodeId.");
-            if (!data.ContainsKey(Durable.Octree.PointCountTreeLeafs)) throw new ArgumentException("Missing Durable.Octree.PointCountTreeLeafs.");
+            if (!data.ContainsKey(Durable.Octree.Cell)) throw new ArgumentException("Missing Durable.Octree.Cell.");
 
             Data = data;
             Storage = storage;

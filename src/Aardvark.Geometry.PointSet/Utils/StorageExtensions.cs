@@ -345,6 +345,35 @@ namespace Aardvark.Geometry.Points
         }
 
         #endregion
+
+        #region PointRkdTreeFData
+
+        /// <summary>PointRkdTreeDData -> byte[]</summary>
+        public static byte[] PointRkdTreeFDataToBuffer(PointRkdTreeFData data)
+        {
+            if (data == null) return null;
+            var ms = new MemoryStream();
+            using (var coder = new BinaryWritingCoder(ms))
+            {
+                object x = data; coder.Code(ref x);
+            }
+            return ms.ToArray();
+        }
+
+        /// <summary>byte[] -> PointRkdTreeDData</summary>
+        public static PointRkdTreeFData BufferToPointRkdTreeFData(byte[] buffer)
+        {
+            if (buffer == null) return null;
+            using (var ms = new MemoryStream(buffer))
+            using (var coder = new BinaryReadingCoder(ms))
+            {
+                object o = null;
+                coder.Code(ref o);
+                return (PointRkdTreeFData)o;
+            }
+        }
+
+        #endregion
     }
 
     /// <summary>
@@ -560,6 +589,53 @@ namespace Aardvark.Geometry.Points
                 (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
                 (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, 1e-9,
                 storage.GetPointRkdTreeDData(key)
+                );
+
+        #endregion
+
+        #region PointRkdTreeFData
+
+        /// <summary></summary>
+        public static void Add(this Storage storage, Guid key, PointRkdTreeFData data) => Add(storage, key.ToString(), data);
+
+        /// <summary></summary>
+        public static void Add(this Storage storage, string key, PointRkdTreeFData data)
+            => storage.f_add(key, data, () => Codec.PointRkdTreeFDataToBuffer(data));
+
+        /// <summary></summary>
+        public static PointRkdTreeFData GetPointRkdTreeFData(this Storage storage, string key)
+        {
+            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (PointRkdTreeFData)o;
+
+            var buffer = storage.f_get(key);
+            if (buffer == null) return default;
+            var data = Codec.BufferToPointRkdTreeFData(buffer);
+            if (storage.HasCache) storage.Cache.Add(key, data, buffer.Length, onRemove: default);
+            return data;
+        }
+
+        /// <summary></summary>
+        public static (bool, PointRkdTreeDData) TryGetPointRkdTreeFData(this Storage storage, string key)
+        {
+            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
+            {
+                return (true, (PointRkdTreeDData)o);
+            }
+            else
+            {
+                return (false, default);
+            }
+        }
+
+        /// <summary>
+        /// </summary>
+        public static PointRkdTreeF<V3f[], V3f> GetKdTreeF(this Storage storage, string key, V3f[] positions)
+            => new PointRkdTreeF<V3f[], V3f>(
+                3, positions.Length, positions,
+                (xs, i) => xs[(int)i], (v, i) => (float)v[i],
+                (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
+                (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, 1e-6f,
+                storage.GetPointRkdTreeFData(key)
                 );
 
         #endregion

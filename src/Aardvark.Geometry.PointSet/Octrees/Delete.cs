@@ -92,7 +92,7 @@ namespace Aardvark.Geometry.Points
                 storage.Add(newPsId.Value, psa);
 
                 newKdId = Guid.NewGuid();
-                storage.Add(newKdId.Value, psa.Length != 0 ? psa.BuildKdTree().Data : new PointRkdTreeDData());
+                storage.Add(newKdId.Value, psa.Length != 0 ? psa.BuildKdTree().Data : new PointRkdTreeFData());
             }
 
             if (node.HasColors)

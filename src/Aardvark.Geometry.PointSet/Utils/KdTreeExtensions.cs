@@ -22,9 +22,9 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Creates point rkd-tree.
         /// </summary>
-        public static PointRkdTreeD<V3f[], V3f> BuildKdTree(this V3f[] self, double kdTreeEps = 1e-6)
+        public static PointRkdTreeF<V3f[], V3f> BuildKdTree(this V3f[] self, float kdTreeEps = 1e-6f)
         {
-            return new PointRkdTreeD<V3f[], V3f>(
+            return new PointRkdTreeF<V3f[], V3f>(
                 3, self.Length, self,
                 (xs, i) => xs[(int)i], (v, i) => (float)v[i],
                 (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,

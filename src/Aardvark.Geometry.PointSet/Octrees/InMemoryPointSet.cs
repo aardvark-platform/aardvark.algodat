@@ -200,19 +200,27 @@ namespace Aardvark.Geometry.Points
                     : ps.Length
                     ;
 
-                var data = ImmutableDictionary<Durable.Def, object>.Empty;
+                var data = ImmutableDictionary<Durable.Def, object>.Empty
+                    .Add(Durable.Octree.NodeId, Guid.NewGuid())
+                    .Add(Durable.Octree.Cell, _cell)
+                    .Add(Durable.Octree.PointCountTreeLeafs, pointCountTreeLeafs)
+                    ;
 
-                if (psId != null) { storage.Add(psId.ToString(), ps); data = data.Add(Durable.Octree.PositionsLocal3fReference, psId.Value); }
+                if (psId != null)
+                {
+                    storage.Add(psId.ToString(), ps);
+                    var exactBoundsLocal = new Box3f(ps);
+
+                    data = data
+                        .Add(Durable.Octree.PositionsLocal3fReference, psId.Value)
+                        .Add(Durable.Octree.BoundingBoxExactLocal, exactBoundsLocal)
+                        ;
+                }
                 if (csId != null) { storage.Add(csId.ToString(), cs); data = data.Add(Durable.Octree.Colors3bReference, csId.Value); }
                 if (nsId != null) { storage.Add(nsId.ToString(), ns); data = data.Add(Durable.Octree.Normals3fReference, nsId.Value); }
                 if (isId != null) { storage.Add(isId.ToString(), js); data = data.Add(Durable.Octree.Intensities1iReference, isId.Value); }
                 if (ksId != null) { storage.Add(ksId.ToString(), ks); data = data.Add(Durable.Octree.Classifications1bReference, ksId.Value); }
                 if (kdId != null) { storage.Add(kdId.ToString(), kdTree.Data); data = data.Add(Durable.Octree.PointRkdTreeFDataReference, kdId.Value); }
-
-                data = data
-                    .Add(Durable.Octree.Cell, _cell)
-                    .Add(Durable.Octree.PointCountTreeLeafs, pointCountTreeLeafs)
-                    ;
 
                 if (subcellIds == null) // leaf
                 {
