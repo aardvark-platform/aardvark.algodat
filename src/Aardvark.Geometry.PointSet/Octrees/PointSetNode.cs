@@ -54,6 +54,7 @@ namespace Aardvark.Geometry.Points
             Corners = BoundingBox.ComputeCorners();
 
             if (IsLeaf && PointCount != PointCountTree) throw new InvalidOperationException("Invariant 9464f38c-dc98-4d68-a8ac-0baed9f182b4.");
+            if (IsLeaf && !data.ContainsKey(Durable.Octree.PositionsLocal3fReference)) throw new ArgumentException("Missing Durable.Octree.PositionsLocal3fReference.");
 
             var psId = PositionsId;
             var csId = ColorsId;
@@ -64,22 +65,20 @@ namespace Aardvark.Geometry.Points
 
             if (psId != null) PersistentRefs[Durable.Octree.PositionsLocal3fReference] = new PersistentRef<V3f[]>(psId.ToString(), storage.GetV3fArray, storage.TryGetV3fArray);
             if (csId != null) PersistentRefs[Durable.Octree.Colors3bReference] = new PersistentRef<C4b[]>(csId.ToString(), storage.GetC4bArray, storage.TryGetC4bArray);
-            if (kdId != null) PersistentRefs[Durable.Octree.PointRkdTreeFDataReference] = new PersistentRef<PointRkdTreeD<V3f[], V3f>>(kdId.ToString(), LoadKdTree, TryLoadKdTree);
+            if (kdId != null) PersistentRefs[Durable.Octree.PointRkdTreeFDataReference] = new PersistentRef<PointRkdTreeF<V3f[], V3f>>(kdId.ToString(), LoadKdTree, TryLoadKdTree);
             if (nsId != null) PersistentRefs[Durable.Octree.Normals3fReference] = new PersistentRef<V3f[]>(nsId.ToString(), storage.GetV3fArray, storage.TryGetV3fArray);
             if (isId != null) PersistentRefs[Durable.Octree.Intensities1iReference] = new PersistentRef<int[]>(isId.ToString(), storage.GetIntArray, storage.TryGetIntArray);
             if (ksId != null) PersistentRefs[Durable.Octree.Classifications1bReference] = new PersistentRef<byte[]>(ksId.ToString(), storage.GetByteArray, storage.TryGetByteArray);
 
-            if (Data.TryGetValue(Durable.Octree.SubnodesGuids, out object _subnodeIds))
+            if (Data.TryGetValue(Durable.Octree.SubnodesGuids, out object o) && o is Guid[] subNodeIds)
             {
-                var subnodeIds = (Guid[])_subnodeIds;
-
-                if (subnodeIds != null)
+                if (subNodeIds != null)
                 {
                     Subnodes = new PersistentRef<PointSetNode>[8];
                     for (var i = 0; i < 8; i++)
                     {
-                        if (subnodeIds[i] == null) continue;
-                        var pRef = new PersistentRef<PointSetNode>(subnodeIds[i].ToString(), storage.GetPointSetNode, storage.TryGetPointSetNode);
+                        if (subNodeIds[i] == Guid.Empty) continue;
+                        var pRef = new PersistentRef<PointSetNode>(subNodeIds[i].ToString(), storage.GetPointSetNode, storage.TryGetPointSetNode);
                         Subnodes[i] = pRef;
 
 #if DEBUG && PEDANTIC
@@ -109,29 +108,29 @@ namespace Aardvark.Geometry.Points
             }
 #endif
 
-            PointRkdTreeD<V3f[], V3f> LoadKdTree(string key)
+            PointRkdTreeF<V3f[], V3f> LoadKdTree(string key)
             {
-                var value = Storage.GetPointRkdTreeDData(key);
+                var value = Storage.GetPointRkdTreeFData(key);
                 var ps = Positions.Value;
-                return new PointRkdTreeD<V3f[], V3f>(
+                return new PointRkdTreeF<V3f[], V3f>(
                     3, ps.Length, ps,
                     (xs, i) => xs[(int)i], (v, i) => (float)v[i],
                     (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
-                    (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, 1e-9,
+                    (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, 1e-6f,
                     value
                     );
             }
 
-            (bool, PointRkdTreeD<V3f[], V3f>) TryLoadKdTree(string key)
+            (bool, PointRkdTreeF<V3f[], V3f>) TryLoadKdTree(string key)
             {
-                var (ok, value) = Storage.TryGetPointRkdTreeDData(key);
+                var (ok, value) = Storage.TryGetPointRkdTreeFData(key);
                 if (ok == false) return (false, default);
                 var ps = Positions.Value;
-                return (true, new PointRkdTreeD<V3f[], V3f>(
+                return (true, new PointRkdTreeF<V3f[], V3f>(
                     3, ps.Length, ps,
                     (xs, i) => xs[(int)i], (v, i) => (float)v[i],
                     (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
-                    (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, 1e-9,
+                    (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, 1e-6f,
                     value
                     ));
             }
@@ -300,7 +299,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public PersistentRef<PointRkdTreeD<V3f[], V3f>> KdTree => PersistentRefs.TryGetValue(Durable.Octree.PointRkdTreeFDataReference, out object x) ? (PersistentRef<PointRkdTreeD<V3f[], V3f>>)x : null;
+        public PersistentRef<PointRkdTreeF<V3f[], V3f>> KdTree => PersistentRefs.TryGetValue(Durable.Octree.PointRkdTreeFDataReference, out object x) ? (PersistentRef<PointRkdTreeF<V3f[], V3f>>)x : null;
 
         #endregion
 
@@ -781,7 +780,7 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary>
-        /// Makes new node with added data. Existing entries are replaced.
+        /// Returns new node with added data. Existing entries are replaced.
         /// </summary>
         internal PointSetNode WithAddedOrReplacedData(ImmutableDictionary<Durable.Def, object> additionalData)
         {
@@ -791,6 +790,24 @@ namespace Aardvark.Geometry.Points
                    .Add(Durable.Octree.SubnodesGuids, SubnodeIds.Map(x => x ?? Guid.Empty))
                    ;
             return new PointSetNode(data, Storage, true);
+        }
+
+        /// <summary>
+        /// Returns new node with added data. Existing entry is replaced.
+        /// </summary>
+        internal PointSetNode With(Durable.Def def, object x, bool writeToStore = true)
+        {
+            var data = Data.Add(def, x);
+            return new PointSetNode(data, Storage, writeToStore);
+        }
+
+        /// <summary>
+        /// Returns new node with given entry removed.
+        /// </summary>
+        internal PointSetNode Without(Durable.Def def, bool writeToStore = true)
+        {
+            var data = Data.Remove(def);
+            return new PointSetNode(data, Storage, writeToStore);
         }
 
         #endregion

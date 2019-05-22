@@ -51,14 +51,14 @@ namespace Aardvark.Geometry.Points
             {
                 if (isNodeFullyInside(node))
                 {
-                    yield return new Chunk(node.GetPositionsAbsolute(), node.GetColors()?.Value, node.GetNormals()?.Value,
+                    yield return new Chunk(node.GetPositionsAbsolute(), node.GetColors4b()?.Value, node.GetNormals3f()?.Value,
                             node.GetIntensities()?.Value, node.GetClassifications()?.Value);
                 }
                 else // partially inside
                 {
                     var psRaw = node.GetPositionsAbsolute();
-                    var csRaw = node.GetColors()?.Value;
-                    var nsRaw = node.GetNormals()?.Value;
+                    var csRaw = node.GetColors4b()?.Value;
+                    var nsRaw = node.GetNormals3f()?.Value;
                     var jsRaw = node.GetIntensities()?.Value;
                     var ksRaw = node.GetClassifications()?.Value;
 

@@ -103,10 +103,10 @@ module LodTreeInstance =
         static let cacheId (n : PointSetNode) =
             string n.Id + "GeometryData"
             
-        let getAverageDistance (original : V3f[]) (positions : V3f[]) (tree : PointRkdTreeD<_,_>) =
+        let getAverageDistance (original : V3f[]) (positions : V3f[]) (tree : PointRkdTreeF<_,_>) =
             let heap = List<float>(positions.Length)
             for i in 0 .. original.Length - 1 do
-                let q = tree.CreateClosestToPointQuery(Double.PositiveInfinity, 25)
+                let q = tree.CreateClosestToPointQuery(Single.PositiveInfinity, 25)
                 let l = tree.GetClosest(q, original.[i])
                 if l.Count > 1 then
                     let mutable minDist = Double.PositiveInfinity

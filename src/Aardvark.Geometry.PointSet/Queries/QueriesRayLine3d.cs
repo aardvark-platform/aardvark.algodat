@@ -58,39 +58,43 @@ namespace Aardvark.Geometry.Points
             {
                 yield break;
             }
-            else if ((node.GetPositions()?.Value.Length ?? 0) > 0)
+            else
             {
-                var center = node.Center;
-                var ia = node.GetKdTree().Value.GetClosestToLine((V3f)(lineSegment.P0 - center), (V3f)(lineSegment.P1 - center), (float)maxDistanceToRay, 1000);
-                if (ia.Count > 0)
+                var nodePositions = node.GetPositions();
+                if ((nodePositions?.Value.Length ?? 0) > 0)
                 {
-                    var ps = new V3d[ia.Count];
-                    var cs = node.HasColors() ? new C4b[ia.Count] : null;
-                    var ns = node.HasNormals() ? new V3f[ia.Count] : null;
-                    var js = node.HasIntensities() ? new int[ia.Count] : null;
-                    var ks = node.HasClassifications() ? new byte[ia.Count] : null;
-                    var ds = new double[ia.Count];
-                    for (var i = 0; i < ia.Count; i++)
+                    var center = node.Center;
+                    var ia = node.GetKdTree(nodePositions.Value).Value.GetClosestToLine((V3f)(lineSegment.P0 - center), (V3f)(lineSegment.P1 - center), (float)maxDistanceToRay, 1000);
+                    if (ia.Count > 0)
                     {
-                        var index = (int)ia[i].Index;
-                        ps[i] = center + (V3d)node.GetPositions().Value[index];
-                        if (node.HasColors()) cs[i] = node.GetColors().Value[index];
-                        if (node.HasNormals()) ns[i] = node.GetNormals().Value[index];
-                        if (node.HasIntensities()) js[i] = node.GetIntensities().Value[index];
-                        if (node.HasClassifications()) ks[i] = node.GetClassifications().Value[index];
-                        ds[i] = ia[i].Dist;
+                        var ps = new V3d[ia.Count];
+                        var cs = node.HasColors() ? new C4b[ia.Count] : null;
+                        var ns = node.HasNormals() ? new V3f[ia.Count] : null;
+                        var js = node.HasIntensities() ? new int[ia.Count] : null;
+                        var ks = node.HasClassifications() ? new byte[ia.Count] : null;
+                        var ds = new double[ia.Count];
+                        for (var i = 0; i < ia.Count; i++)
+                        {
+                            var index = (int)ia[i].Index;
+                            ps[i] = center + (V3d)node.GetPositions().Value[index];
+                            if (node.HasColors()) cs[i] = node.GetColors4b().Value[index];
+                            if (node.HasNormals()) ns[i] = node.GetNormals3f().Value[index];
+                            if (node.HasIntensities()) js[i] = node.GetIntensities().Value[index];
+                            if (node.HasClassifications()) ks[i] = node.GetClassifications().Value[index];
+                            ds[i] = ia[i].Dist;
+                        }
+                        var chunk = new PointsNearObject<Line3d>(lineSegment, maxDistanceToRay, ps, cs, ns, js, ks, ds);
+                        yield return chunk;
                     }
-                    var chunk = new PointsNearObject<Line3d>(lineSegment, maxDistanceToRay, ps, cs, ns, js, ks, ds);
-                    yield return chunk;
                 }
-            }
-            else if (node.SubNodes != null)
-            {
-                for (var i = 0; i < 8; i++)
+                else if (node.SubNodes != null)
                 {
-                    var n = node.SubNodes[i];
-                    if (n == null) continue;
-                    foreach (var x in QueryPointsNearLineSegment(n.Value, lineSegment, maxDistanceToRay)) yield return x;
+                    for (var i = 0; i < 8; i++)
+                    {
+                        var n = node.SubNodes[i];
+                        if (n == null) continue;
+                        foreach (var x in QueryPointsNearLineSegment(n.Value, lineSegment, maxDistanceToRay)) yield return x;
+                    }
                 }
             }
         }

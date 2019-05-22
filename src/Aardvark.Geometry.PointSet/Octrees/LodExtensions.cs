@@ -12,6 +12,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
+using Aardvark.Data;
 using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
@@ -160,7 +161,7 @@ namespace Aardvark.Geometry.Points
                 var i = Interlocked.Increment(ref loddedNodesCount);
                 if (config.Verbose) Console.Write($"[Lod] {i}/{nodeCount}\r");
                 if (i % 100 == 0) config.ProgressCallback(loddedNodesCount / (double)nodeCount);
-            }, config.MaxDegreeOfParallelism, config.CancellationToken);
+            }, config.CancellationToken);
 
             config.ProgressCallback(1.0);
 
@@ -169,16 +170,23 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        private static async Task<PointSet> GenerateLod(this PointSet self, string key, Action callback, int maxLevelOfParallelism, CancellationToken ct)
+        private static async Task<PointSet> GenerateLod(this PointSet self, string key, Action callback, CancellationToken ct)
         {
-            if (self.IsEmpty) return self;
-            var lod = await self.Root.Value.GenerateLod(self.SplitLimit, callback, ct);
-            var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit);
-            self.Storage.Add(key, result);
-            return result;
+            try
+            {
+                if (self.IsEmpty) return self;
+                var lod = await self.Root.Value.GenerateLod(self.SplitLimit, callback, regenerateNormals: true, ct);
+                var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit);
+                self.Storage.Add(key, result);
+                return result;
+            }
+            catch (Exception e)
+            {
+                throw;
+            }
         }
 
-        private static Task<V3f[]> EstimateNormals(this V3f[] points, PointRkdTreeD<V3f[], V3f> kdtree, int k)
+        private static Task<V3f[]> EstimateNormals(this V3f[] points, PointRkdTreeF<V3f[], V3f> kdtree, int k)
         {
             return Task.Run(() => points.Map((p, i) =>
             {
@@ -207,184 +215,94 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        private static async Task<PointSetNode> GenerateLod(this PointSetNode self, long octreeSplitLimit, Action callback, CancellationToken ct)
+        private static async Task<PointSetNode> GenerateLod(this PointSetNode self,
+            int octreeSplitLimit, Action callback, bool regenerateNormals,
+            CancellationToken ct)
         {
-            throw new NotImplementedException();
+            if (self == null) throw new ArgumentNullException(nameof(self));
 
-            //if (self == null) throw new ArgumentNullException(nameof(self));
+            ct.ThrowIfCancellationRequested();
 
-            //ct.ThrowIfCancellationRequested();
+            if (self.IsLeaf)
+            {
+                if (!self.HasNormals)
+                {
+                    var ns = self.Positions.Value.EstimateNormals(self.KdTree.Value, 16);
+                    var nsId = Guid.NewGuid();
+                    self.Storage.Add(nsId, await ns);
+                    self = self.With(Durable.Octree.Normals3fReference, nsId);
+                }
+                callback?.Invoke();
+                return self;
+            }
 
-            //if (self.IsLeaf)
-            //{
-            //    if (!self.HasNormals)
-            //    {
-            //        var ns = self.Positions.Value.EstimateNormals(self.KdTree.Value, 16);
-            //        var nsId = Guid.NewGuid();
-            //        self.Storage.Add(nsId, await ns, ct);
-            //        self = self.WithNormals(nsId);
-            //    }
-            //    callback?.Invoke();
-            //    return self.WithLod();
-            //}
+            if (self.Subnodes == null || self.Subnodes.Length != 8) throw new InvalidOperationException();
 
-            //if (self.Subnodes == null || self.Subnodes.Length != 8) throw new InvalidOperationException();
+            var subcellsAsync = self.Subnodes.Map(x => x?.Value.GenerateLod(octreeSplitLimit, callback, regenerateNormals, ct));
+            await Task.WhenAll(subcellsAsync.Where(x => x != null));
+            var subcells = subcellsAsync.Map(x => x?.Result);
+            var subcellsTotalCount = (long)subcells.Sum(x => x?.PointCountTree);
+            var fractions = Lod.ComputeLodFractions(subcells);
+            var counts = Lod.ComputeLodCounts(octreeSplitLimit, fractions);
 
-            //var subcellsAsync = self.Subnodes.Map(x => x?.Value.GenerateLod(octreeSplitLimit, callback, ct));
-            //await Task.WhenAll(subcellsAsync.Where(x => x != null));
-            //var subcells = subcellsAsync.Map(x => x?.Result);
+            // generate LoD data ...
+            var needsCs = subcells.Any(x => x != null ? x.HasColors : false);
+            var needsNs = subcells.Any(x => x != null ? x.HasNormals : false);
+            var needsIs = subcells.Any(x => x != null ? x.HasIntensities : false);
+            var needsKs = subcells.Any(x => x != null ? x.HasClassifications : false);
 
-            //var subcellsTotalCount = (long)subcells.Sum(x => x?.PointCountTree);
+            var subcenters = subcells.Map(x => x?.Center);
+            var lodPs = Lod.AggregateSubPositions(counts, octreeSplitLimit, self.Center, subcenters, subcells.Map(x => x?.GetPositions()?.Value));
+            var lodCs = needsCs ? Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.GetColors4b()?.Value)) : null;
+            var lodIs = needsIs ? Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.GetIntensities()?.Value)) : null;
+            var lodKs = needsKs ? Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.GetClassifications()?.Value)) : null;
+            var lodKd = lodPs.BuildKdTree();
+            var lodNs = regenerateNormals
+                            ? Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.GetNormals3f()?.Value))
+                            : await lodPs.EstimateNormals(lodKd, 16)
+                            ;
 
-            //var needsCs = subcells.Any(x => x != null ? x.HasColors : false);
-            //var needsNs = subcells.Any(x => x != null ? x.HasNormals : false);
-            //var needsIs = subcells.Any(x => x != null ? x.HasIntensities : false);
-            //var needsKs = subcells.Any(x => x != null ? x.HasClassifications : false);
+            var data = self.Data;
 
-            //var fractions = Lod.ComputeLodFractions(subcells);
-            //var counts = Lod.ComputeLodCounts((int)octreeSplitLimit, fractions);
+            // store LoD data ...
+            var lodPsKey = Guid.NewGuid();
+            self.Storage.Add(lodPsKey, lodPs);
+            data.Add(Durable.Octree.PositionsLocal3fReference, lodPsKey);
 
-            //// generate LoD data ...
-            //var lodPs = Lod.AggregateSubPositions(counts, octreeSplitLimit, self.Center, subcenters, subcells.Map(x => x?.GetPositions()?.Value));
-            //var lodCs = needsCs ? Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.GetColors()?.Value)) : null;
-            //var lodIs = needsIs ? Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.GetIntensities()?.Value)) : null;
-            //var lodKs = needsKs ? Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.GetClassifications()?.Value)) : null;
-            //var lodKd = lodPs.BuildKdTree();
+            var lodKdKey = Guid.NewGuid();
+            self.Storage.Add(lodKdKey, lodKd.Data);
+            data.Add(Durable.Octree.PointRkdTreeFDataReference, lodKdKey);
 
-            //var lodNs =
-            //    needsNs ?
-            //        (config.EstimateNormalsKdTree == null ?
-            //            (config.EstimateNormals == null ?
-            //                Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetNormals()?.Value)) :
-            //                config.EstimateNormals(lodPs.MapToList(p => (V3d)p + self.Center)).ToArray()
-            //            ) :
-            //            config.EstimateNormalsKdTree(lodKd, lodPs)
-            //        ) :
-            //        null;
+            if (needsCs)
+            {
+                var key = Guid.NewGuid();
+                self.Storage.Add(key, lodCs);
+                data.Add(Durable.Octree.Colors4bReference, key);
+            }
 
+            if (needsNs)
+            {
+                var key = Guid.NewGuid();
+                self.Storage.Add(key, lodNs);
+                data.Add(Durable.Octree.Normals3fReference, key);
+            }
 
-            //var data = new Dictionary<Durable.Def, (Guid, object)>();
+            if (needsIs)
+            {
+                var key = Guid.NewGuid();
+                self.Storage.Add(key, lodIs);
+                data.Add(Durable.Octree.Intensities1iReference, key);
+            }
 
-            //// store LoD data ...
-            //var keyLodPs = Guid.NewGuid();
-            //self.Storage.Add(keyLodPs, lodPs);
-            //data[Durable.Octree.PositionsLocal3fReference] = (keyLodPs, lodPs);
+            if (needsKs)
+            {
+                var key = Guid.NewGuid();
+                self.Storage.Add(key, lodKs);
+                data.Add(Durable.Octree.Classifications1bReference, key);
+            }
 
-            //var keyLodKd = Guid.NewGuid();
-            //self.Storage.Add(keyLodKd, lodKd.Data);
-            //data[Durable.Octree.KdTreeLocal3fReference] = (keyLodKd, lodKd);
-
-            //if (needsCs)
-            //{
-            //    var key = Guid.NewGuid();
-            //    self.Storage.Add(key, lodCs);
-            //    data[Durable.Octree.RefColors4b] = (key, lodCs);
-            //}
-
-            //if (needsNs)
-            //{
-            //    var key = Guid.NewGuid();
-            //    self.Storage.Add(key, lodNs);
-            //    data[Durable.Octree.Normals3fReference] = (key, lodNs);
-            //}
-
-            //if (needsIs)
-            //{
-            //    var key = Guid.NewGuid();
-            //    self.Storage.Add(key, lodIs);
-            //    data[Durable.Octree.Intensities1iReference] = (key, lodIs);
-            //}
-
-            //if (needsKs)
-            //{
-            //    var key = Guid.NewGuid();
-            //    self.Storage.Add(key, lodKs);
-            //    data[Durable.Octree.Classifications1bReference] = (key, lodKs);
-            //}
-
-            //SimpleNode node = new SimpleNode(self);
-            ////foreach (var att in config.CellAttributes)
-            ////{
-            ////    var dict = node.CellAttributes.Add(att.Id, att.ComputeValue(node));
-            ////    node = node.WithData(dict);
-            ////}
-
-            //var result = self
-            //    .WithSubNodes(subcells)
-            //    .WithAddedOrReplacedData(node.Data/*, subcellsTotalCount, keyLodPs, lodCsId, lodNsId, lodIsId, keyLodKd, lodKsId,*/);
-            //return result;
+            var result = new PointSetNode(data, self.Storage, writeToStore: true);
+            return result;
         }
-
-        ///// <summary>
-        ///// </summary>
-        //private static PointCloudNode GenerateLod(this PointCloudNode self, ImportConfig cfg, CancellationToken ct)
-        //{
-        //    var splitLimit = cfg.OctreeSplitLimit;
-        //    if (self == null) throw new ArgumentNullException(nameof(self));
-
-        //    ct.ThrowIfCancellationRequested();
-
-        //    if (self.IsLeaf())
-        //    {
-        //        Report.Error("wrongness (no normals / etc.)");
-        //        return self;
-        //    }
-
-        //    if (self.HasPositions()) return self; // cell already has lod data -> done
-
-        //    if (self.SubNodes == null || self.SubNodes.Length != 8) throw new InvalidOperationException();
-
-        //    var subcells = self.SubNodes.Map(x => x?.Value);
-        //    var subcenters = subcells.Map(x => x?.Center);
-        //    var subcellsTotalCount = (long)subcells.Sum(x => x?.PointCountTree);
-
-        //    var needsCs = subcells.Any(x => x != null ? (x.HasColors()) : false);
-        //    var needsNs = subcells.Any(x => x != null ? (x.HasNormals()) : false);
-        //    var needsIs = subcells.Any(x => x != null ? (x.HasIntensities()) : false);
-        //    var needsKs = subcells.Any(x => x != null ? (x.HasClassifications()) : false);
-
-        //    var fractions = Lod.ComputeLodFractions(subcells);
-        //    var counts = Lod.ComputeLodCounts(splitLimit, fractions);
-
-        //    // generate LoD data ...
-        //    var lodPs = Lod.AggregateSubPositions(counts, splitLimit, self.Center, subcenters, subcells.Map(x => x?.GetPositions()?.Value));
-        //    var lodCs = needsCs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetColors()?.Value)) : null;
-        //    var lodIs = needsIs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetIntensities()?.Value)) : null;
-        //    var lodKs = needsKs ? Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetClassifications()?.Value)) : null;
-        //    var lodKd = lodPs.BuildKdTree();
-        //    var lodNs = 
-        //            needsNs ? 
-        //                (cfg.EstimateNormalsKdTree == null ?
-        //                    (cfg.EstimateNormals == null ?
-        //                        Lod.AggregateSubArrays(counts, splitLimit, subcells.Map(x => x?.GetNormals()?.Value)) :
-        //                        cfg.EstimateNormals(lodPs.MapToList(p => (V3d)p + self.Center)).ToArray()
-        //                    ) :
-        //                    cfg.EstimateNormalsKdTree(lodKd, lodPs)
-        //                ) : 
-        //                null;
-
-        //    // store LoD data ...
-        //    var lodPsId = Guid.NewGuid().ToString();
-        //    self.Storage.Add(lodPsId, lodPs);
-
-        //    var lodKdId = Guid.NewGuid().ToString();
-        //    self.Storage.Add(lodKdId, lodKd.Data);
-
-        //    var lodCsId = needsCs ? Guid.NewGuid().ToString() : null;
-        //    if (needsCs) self.Storage.Add(lodCsId, lodCs);
-
-        //    var lodNsId = needsNs ? Guid.NewGuid().ToString() : null;
-        //    if (needsNs) self.Storage.Add(lodNsId, lodNs);
-
-        //    var lodIsId = needsIs ? Guid.NewGuid().ToString() : null;
-        //    if (needsIs) self.Storage.Add(lodIsId, lodIs);
-
-        //    var lodKsId = needsKs ? Guid.NewGuid().ToString() : null;
-        //    if (needsKs) self.Storage.Add(lodKsId, lodKs);
-
-        //    var result = self.WithLod(lodPsId, lodCsId, lodNsId, lodIsId, lodKdId, subcells);
-        //    callback?.Invoke();
-        //    return result;
-        //}
     }
 }

@@ -11,15 +11,10 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+using Aardvark.Base;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Linq;
 using System.Threading;
-using Aardvark.Base;
-using Aardvark.Geometry;
-using Aardvark.Geometry.Points;
-using Uncodium.SimpleStore;
 
 namespace Aardvark.Data.Points
 {
@@ -28,59 +23,6 @@ namespace Aardvark.Data.Points
     /// </summary>
     public class ImportConfig
     {
-        //private static ImmutableHashSet<DurableData> Hull(DurableData a, ImmutableHashSet<DurableData> set)
-        //{
-        //    if (set.Contains(a)) return set;
-        //    else
-        //    {
-        //        set = set.Add(a);
-        //        foreach (var d in a.DependsOn) { set = Hull(d, set); }
-        //        return set;
-        //    }
-        //}
-
-        //private static ImmutableList<DurableData> Sort(IEnumerable<DurableData> atts)
-        //{
-        //    var arr = atts.Aggregate(ImmutableHashSet<DurableData>.Empty, (s, c) => Hull(c, s)).ToArray();
-
-        //    var sofar = ImmutableHashSet<DurableData>.Empty;
-        //    for (int i = 0; i < arr.Length; i++)
-        //    {
-        //        var self = arr[i];
-        //        var deps = self.DependsOn;
-        //        if (deps.IsSubsetOf(sofar))
-        //        {
-        //            sofar = sofar.Add(self);
-        //        }
-        //        else
-        //        {
-        //            var p = sofar;
-        //            var sat = false;
-        //            for (int j = i + 1; j < arr.Length; j++)
-        //            {
-        //                var aj = arr[j];
-        //                p = p.Add(aj);
-        //                arr[j - 1] = aj;
-
-        //                if (deps.IsSubsetOf(p))
-        //                {
-        //                    arr[j] = self;
-        //                    i--;
-        //                    sat = true;
-        //                    break;
-        //                }
-
-        //            }
-
-        //            if (!sat) throw new Exception("strange");
-        //        }
-        //    }
-
-        //    return ImmutableList.Create(arr);
-        //}
-
-
-
         /// <summary>
         /// Default configuration.
         /// </summary>
@@ -128,16 +70,6 @@ namespace Aardvark.Data.Points
         /// <summary></summary>
         public Func<IList<V3d>, IList<V3d>> Reproject { get; private set; } = null;
 
-        ///// <summary>
-        ///// Positions -> Normals.
-        ///// </summary>
-        //public Func<PointRkdTreeD<V3f[], V3f>, V3f[], V3f[]> EstimateNormalsKdTree { get; private set; } = null;
-
-        ///// <summary>
-        ///// Positions -> Normals.
-        ///// </summary>
-        //public Func<IList<V3d>, IList<V3f>> EstimateNormals { get; private set; } = null;
-
         /// <summary></summary>
         public Storage Storage { get; private set; } = null;
 
@@ -146,17 +78,6 @@ namespace Aardvark.Data.Points
 
         /// <summary></summary>
         public int MaxChunkPointCount => ParseConfig.MaxChunkPointCount;
-
-        ///// <summary>Per-cell attributes.</summary>
-        //public ImmutableList<DurableData> CellAttributes { get; private set; } =
-        //    Sort(new DurableData[]  {
-        //        Geometry.Points.CellAttributes.BoundingBoxExactLocal,
-        //        Geometry.Points.CellAttributes.AveragePointDistance,
-        //        Geometry.Points.CellAttributes.AveragePointDistanceStdDev,
-        //        Geometry.Points.CellAttributes.TreeMinDepth,
-        //        Geometry.Points.CellAttributes.TreeMaxDepth,
-        //        Geometry.Points.CellAttributes.PointCountCell,
-        //    });
 
         #endregion
 
@@ -175,7 +96,6 @@ namespace Aardvark.Data.Points
             ParseConfig = x.ParseConfig;
             Reproject = x.Reproject;
             Storage = x.Storage;
-            //CellAttributes = x.CellAttributes;
         }
 
         /// <summary></summary>
@@ -219,13 +139,6 @@ namespace Aardvark.Data.Points
 
         /// <summary></summary>
         public ImportConfig WithStorage(Storage x) => new ImportConfig(this) { Storage = x };
-
-
-        ///// <summary></summary>
-        //public ImportConfig WithCellAttributes(IEnumerable<DurableData> atts) => new ImportConfig(this) { CellAttributes = Sort(atts) };
-
-        ///// <summary></summary>
-        //public ImportConfig WithCellAttributes(params DurableData[] atts) => new ImportConfig(this) { CellAttributes = Sort(atts) };
 
         #endregion
     }

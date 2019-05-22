@@ -32,7 +32,7 @@ namespace Aardvark.Geometry.Points
 
         private readonly float m_eps;
 
-        private V3f[] GetValues(IPointCloudNode node) => node.HasNormals() ? node.GetNormals().Value : null;
+        private V3f[] GetValues(IPointCloudNode node) => node.HasNormals() ? node.GetNormals3f().Value : null;
 
         /// <summary></summary>
         public bool IsFullyInside(IPointCloudNode node)

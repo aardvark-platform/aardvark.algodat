@@ -19,6 +19,7 @@ namespace Aardvark.Data
         {
             s_encoders = new Dictionary<Guid, object>
             {
+                [Durable.Primitives.GuidDef.Id] = EncodeGuid,
                 [Durable.Primitives.Int16.Id] = EncodeInt16,
                 [Durable.Primitives.UInt16.Id] = EncodeUInt16,
                 [Durable.Primitives.Int32.Id] = EncodeInt32,
@@ -27,29 +28,26 @@ namespace Aardvark.Data
                 [Durable.Primitives.UInt64.Id] = EncodeUInt64,
                 [Durable.Primitives.Float32.Id] = EncodeFloat32,
                 [Durable.Primitives.Float64.Id] = EncodeFloat64,
-
-                [Durable.Primitives.GuidDef.Id] = EncodeGuid,
                 [Durable.Primitives.DurableMap.Id] = EncodeDurableMap,
 
                 [Durable.Aardvark.Cell.Id] = EncodeCell,
-
                 [Durable.Aardvark.V2f.Id] = EncodeV2f,
                 [Durable.Aardvark.V3f.Id] = EncodeV3f,
                 [Durable.Aardvark.V4f.Id] = EncodeV4f,
-
                 [Durable.Aardvark.V2d.Id] = EncodeV2d,
                 [Durable.Aardvark.V3d.Id] = EncodeV3d,
                 [Durable.Aardvark.V4d.Id] = EncodeV4d,
-
                 [Durable.Aardvark.Box2f.Id] = EncodeBox2f,
                 [Durable.Aardvark.Box2d.Id] = EncodeBox2d,
-
                 [Durable.Aardvark.Box3f.Id] = EncodeBox3f,
                 [Durable.Aardvark.Box3d.Id] = EncodeBox3d,
+
+                [Durable.Primitives.GuidArray.Id] = EncodeGuidArray,
             };
 
             s_decoders = new Dictionary<Guid, object>
             {
+                [Durable.Primitives.GuidDef.Id] = DecodeGuid,
                 [Durable.Primitives.Int16.Id] = DecodeInt16,
                 [Durable.Primitives.UInt16.Id] = DecodeUInt16,
                 [Durable.Primitives.Int32.Id] = DecodeInt32,
@@ -58,30 +56,27 @@ namespace Aardvark.Data
                 [Durable.Primitives.UInt64.Id] = DecodeUInt64,
                 [Durable.Primitives.Float32.Id] = DecodeFloat32,
                 [Durable.Primitives.Float64.Id] = DecodeFloat64,
-
-                [Durable.Primitives.GuidDef.Id] = DecodeGuid,
                 [Durable.Primitives.DurableMap.Id] = DecodeDurableMap,
 
                 [Durable.Aardvark.Cell.Id] = DecodeCell,
-
                 [Durable.Aardvark.V2f.Id] = DecodeV2f,
                 [Durable.Aardvark.V3f.Id] = DecodeV3f,
                 [Durable.Aardvark.V4f.Id] = DecodeV4f,
-
                 [Durable.Aardvark.V2d.Id] = DecodeV2d,
                 [Durable.Aardvark.V3d.Id] = DecodeV3d,
                 [Durable.Aardvark.V4d.Id] = DecodeV4d,
-
                 [Durable.Aardvark.Box2f.Id] = DecodeBox2f,
                 [Durable.Aardvark.Box2d.Id] = DecodeBox2d,
-
                 [Durable.Aardvark.Box3f.Id] = DecodeBox3f,
                 [Durable.Aardvark.Box3d.Id] = DecodeBox3d,
+
+                [Durable.Primitives.GuidArray.Id] = DecodeGuidArray,
             };
         }
 
         #region Encode
 
+        private static readonly Action<BinaryWriter, object> EncodeGuid = (s, o) => s.Write(((Guid)o).ToByteArray(), 0, 16);
         private static readonly Action<BinaryWriter, object> EncodeInt16 = (s, o) => s.Write((short)o);
         private static readonly Action<BinaryWriter, object> EncodeUInt16 = (s, o) => s.Write((ushort)o);
         private static readonly Action<BinaryWriter, object> EncodeInt32 = (s, o) => s.Write((int)o);
@@ -90,9 +85,6 @@ namespace Aardvark.Data
         private static readonly Action<BinaryWriter, object> EncodeUInt64 = (s, o) => s.Write((ulong)o);
         private static readonly Action<BinaryWriter, object> EncodeFloat32 = (s, o) => s.Write((float)o);
         private static readonly Action<BinaryWriter, object> EncodeFloat64 = (s, o) => s.Write((double)o);
-
-        private static readonly Action<BinaryWriter, object> EncodeGuid =
-            (s, o) => s.Write(((Guid)o).ToByteArray(), 0, 16);
 
         private static readonly Action<BinaryWriter, object> EncodeDurableMap =
             (s, o) =>
@@ -140,6 +132,16 @@ namespace Aardvark.Data
         private static readonly Action<BinaryWriter, object> EncodeBox3d =
             (s, o) => { var x = (Box3d)o; EncodeV3d(s, x.Min); EncodeV3d(s, x.Max); };
 
+
+        private static readonly Action<BinaryWriter, object> EncodeGuidArray =
+            (s, o) =>
+            {
+                var xs = (Guid[])o;
+                s.Write(xs.Length);
+                for (var i = 0; i < xs.Length; i++) s.Write(xs[i].ToByteArray(), 0, 16);
+            };
+
+
         /// <summary>
         /// </summary>
         public static void Encode<T>(BinaryWriter stream, Durable.Def def, T x)
@@ -175,6 +177,7 @@ namespace Aardvark.Data
 
         #region Decode
 
+        private static readonly Func<BinaryReader, object> DecodeGuid = s => new Guid(s.ReadBytes(16));
         private static readonly Func<BinaryReader, object> DecodeInt16 = s => s.ReadInt16();
         private static readonly Func<BinaryReader, object> DecodeUInt16 = s => s.ReadUInt16();
         private static readonly Func<BinaryReader, object> DecodeInt32 = s => s.ReadInt32();
@@ -183,8 +186,6 @@ namespace Aardvark.Data
         private static readonly Func<BinaryReader, object> DecodeUInt64 = s => s.ReadUInt64();
         private static readonly Func<BinaryReader, object> DecodeFloat32 = s => s.ReadSingle();
         private static readonly Func<BinaryReader, object> DecodeFloat64 = s => s.ReadDouble();
-
-        private static readonly Func<BinaryReader, object> DecodeGuid = s => new Guid(s.ReadBytes(16));
 
         private static readonly Func<BinaryReader, object> DecodeDurableMap =
             s =>
@@ -214,6 +215,17 @@ namespace Aardvark.Data
 
         private static readonly Func<BinaryReader, object> DecodeBox3f = s => new Box3f((V3f)DecodeV3f(s), (V3f)DecodeV3f(s));
         private static readonly Func<BinaryReader, object> DecodeBox3d = s => new Box3d((V3d)DecodeV3d(s), (V3d)DecodeV3d(s));
+
+
+        private static readonly Func<BinaryReader, object> DecodeGuidArray =
+            s =>
+            {
+                var count = s.ReadInt32();
+                var xs = new Guid[count];
+                for (var i = 0; i < count; i++) xs[i] = new Guid(s.ReadBytes(16));
+                return xs;
+            };
+
 
         /// <summary>
         /// </summary>

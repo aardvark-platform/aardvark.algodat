@@ -547,12 +547,12 @@ namespace Aardvark.Geometry.Points
 
         #region PointRkdTreeDData
 
-        /// <summary></summary>
-        public static void Add(this Storage storage, Guid key, PointRkdTreeDData data) => Add(storage, key.ToString(), data);
+        ///// <summary></summary>
+        //public static void Add(this Storage storage, Guid key, PointRkdTreeDData data) => Add(storage, key.ToString(), data);
 
-        /// <summary></summary>
-        public static void Add(this Storage storage, string key, PointRkdTreeDData data)
-            => storage.f_add(key, data, () => Codec.PointRkdTreeDDataToBuffer(data));
+        ///// <summary></summary>
+        //public static void Add(this Storage storage, string key, PointRkdTreeDData data)
+        //    => storage.f_add(key, data, () => Codec.PointRkdTreeDDataToBuffer(data));
 
         /// <summary></summary>
         public static PointRkdTreeDData GetPointRkdTreeDData(this Storage storage, string key)
@@ -614,11 +614,11 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public static (bool, PointRkdTreeDData) TryGetPointRkdTreeFData(this Storage storage, string key)
+        public static (bool, PointRkdTreeFData) TryGetPointRkdTreeFData(this Storage storage, string key)
         {
             if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
             {
-                return (true, (PointRkdTreeDData)o);
+                return (true, (PointRkdTreeFData)o);
             }
             else
             {
@@ -636,6 +636,20 @@ namespace Aardvark.Geometry.Points
                 (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, 1e-6f,
                 storage.GetPointRkdTreeFData(key)
                 );
+
+        /// <summary>
+        /// </summary>
+        public static (bool, PointRkdTreeF<V3f[], V3f>) TryGetKdTreeF(this Storage storage, string key, V3f[] positions)
+        {
+            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
+            {
+                return (true, (PointRkdTreeF<V3f[], V3f>)o);
+            }
+            else
+            {
+                return (false, default);
+            }
+        }
 
         #endregion
 

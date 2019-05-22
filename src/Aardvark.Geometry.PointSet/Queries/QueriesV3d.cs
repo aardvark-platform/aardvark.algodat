@@ -47,13 +47,14 @@ namespace Aardvark.Geometry.Points
 
             if (node.IsLeaf())
             {
+                var nodePositions = node.GetPositions();
                 #if PARANOID
-                if (node.GetPositions().Value.Length <= 0) throw new InvalidOperationException();
+                if (nodePositions.Value.Length <= 0) throw new InvalidOperationException();
                 #endif
 
                 var center = node.Center;
 
-                var ia = node.GetKdTree().Value.GetClosest((V3f)(query - center), (float)maxDistanceToPoint, maxCount);
+                var ia = node.GetKdTree(nodePositions.Value).Value.GetClosest((V3f)(query - center), (float)maxDistanceToPoint, maxCount);
                 if (ia.Count > 0)
                 {
                     var ps = new V3d[ia.Count];
@@ -66,8 +67,8 @@ namespace Aardvark.Geometry.Points
                     {
                         var index = (int)ia[i].Index;
                         ps[i] = center + (V3d)node.GetPositions().Value[index];
-                        if (node.HasColors()) cs[i] = node.GetColors().Value[index];
-                        if (node.HasNormals()) ns[i] = node.GetNormals().Value[index];
+                        if (node.HasColors()) cs[i] = node.GetColors4b().Value[index];
+                        if (node.HasNormals()) ns[i] = node.GetNormals3f().Value[index];
                         if (node.HasIntensities()) js[i] = node.GetIntensities().Value[index];
                         if (node.HasClassifications()) js[i] = node.GetClassifications().Value[index];
                         ds[i] = ia[i].Dist;

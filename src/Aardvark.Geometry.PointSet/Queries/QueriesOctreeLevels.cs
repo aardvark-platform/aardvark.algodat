@@ -194,8 +194,8 @@ namespace Aardvark.Geometry.Points
             if (level == 0 || node.IsLeaf())
             {
                 var ps = node.GetPositionsAbsolute();
-                var cs = node?.GetColors()?.Value;
-                var ns = node?.GetNormals()?.Value;
+                var cs = node?.GetColors4b()?.Value;
+                var ns = node?.GetNormals3f()?.Value;
                 var js = node?.GetIntensities()?.Value;
                 var ks = node?.GetClassifications()?.Value;
                 var chunk = new Chunk(ps, cs, ns, js, ks);
@@ -239,8 +239,8 @@ namespace Aardvark.Geometry.Points
             if (level == 0 || node.IsLeaf())
             {
                 var ps = node.GetPositionsAbsolute();
-                var cs = node?.GetColors()?.Value;
-                var ns = node?.GetNormals()?.Value;
+                var cs = node?.GetColors4b()?.Value;
+                var ns = node?.GetNormals3f()?.Value;
                 var js = node?.GetIntensities()?.Value;
                 var ks = node?.GetClassifications()?.Value;
                 var chunk = new Chunk(ps, cs, ns, js, ks);

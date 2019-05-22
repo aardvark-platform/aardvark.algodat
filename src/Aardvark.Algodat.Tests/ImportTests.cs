@@ -487,7 +487,7 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(pointset2 != null);
             Assert.IsTrue(pointset2.PointCount == 3);
 
-            Assert.IsTrue(pointset2.Octree.Value.GetKdTree().Value != null);
+            Assert.IsTrue(pointset2.Octree.Value.GetKdTree(pointset2.Octree.Value.GetPositions().Value).Value != null);
         }
 
         #endregion
