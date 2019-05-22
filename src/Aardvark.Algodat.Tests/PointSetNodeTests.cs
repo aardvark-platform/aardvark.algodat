@@ -19,6 +19,7 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.Threading;
 using Uncodium.SimpleStore;
 
@@ -41,8 +42,33 @@ namespace Aardvark.Geometry.Tests
 
         internal static readonly ImmutableDictionary<Durable.Def, object> EmptyData = ImmutableDictionary<Durable.Def, object>.Empty;
 
+        internal static PointSetNode CreateNode(Storage storage)
+        {
+            var id = Guid.NewGuid();
+            var cell = new Cell(1, 2, 3, 0);
+
+            var psId = Guid.NewGuid();
+            var ps = new[] { new V3f(1.1f, 2.2f, 3.3f) };
+            storage.Add(psId, ps);
+
+            var kdId = Guid.NewGuid();
+            var kd = ps.BuildKdTree();
+            storage.Add(kdId, kd.Data);
+
+            var data = EmptyData
+                .Add(Durable.Octree.NodeId, id)
+                .Add(Durable.Octree.Cell, cell)
+                .Add(Durable.Octree.PointCountTreeLeafs, ps.LongLength)
+                .Add(Durable.Octree.PositionsLocal3fReference, psId)
+                .Add(Durable.Octree.PointRkdTreeFDataReference, kdId)
+                .Add(Durable.Octree.BoundingBoxExactLocal, new Box3f(ps))
+                ;
+
+            return new PointSetNode(data, storage, writeToStore: true);
+        }
+
         [Test]
-        public void CanCreateEmptyPointSet()
+        public void CanCreatePointSetNode()
         {
             var storage = CreateStorage();
 
@@ -50,7 +76,7 @@ namespace Aardvark.Geometry.Tests
             var cell = new Cell(1, 2, 3, 0);
 
             var psId = Guid.NewGuid();
-            var ps = new [] { new V3f(1.1f, 2.2f, 3.3f) };
+            var ps = new[] { new V3f(1.1f, 2.2f, 3.3f) };
             storage.Add(psId, ps);
 
             var kdId = Guid.NewGuid();
@@ -67,12 +93,36 @@ namespace Aardvark.Geometry.Tests
                 ;
 
             var node = new PointSetNode(data, storage, writeToStore: true);
+
             Assert.IsTrue(node.Id == id);
             Assert.IsTrue(node.Cell == cell);
             Assert.IsTrue(node.PointCount == ps.LongLength);
             Assert.IsTrue(node.PointCountTree == ps.LongLength);
             Assert.IsTrue(node.BoundingBox == cell.BoundingBox);
             Assert.IsTrue(node.BoundingBoxExactLocal == new Box3f(ps));
+        }
+
+        [Test]
+        public void CanEncodePointSetNode()
+        {
+            var storage = CreateStorage();
+            var node = CreateNode(storage);
+            node.Encode();
+        }
+
+        [Test]
+        public void CanDecodePointSetNode()
+        {
+            // encode
+            var storage = CreateStorage();
+            var node = CreateNode(storage);
+            var buffer = node.Encode();
+
+            // decode
+            var node2 = PointSetNode.Decode(storage, buffer);
+            Assert.IsTrue(node.Id == node2.Id);
+            Assert.IsTrue(node.Cell == node2.Cell);
+            Assert.IsTrue(node.PointCountTree == node2.PointCountTree);
         }
     }
 }

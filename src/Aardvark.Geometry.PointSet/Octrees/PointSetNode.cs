@@ -856,6 +856,37 @@ namespace Aardvark.Geometry.Points
 
         #endregion
 
+        #region Durable codec
+
+        /// <summary>
+        /// </summary>
+        public byte[] Encode()
+        {
+            using (var ms = new MemoryStream())
+            using (var bw = new BinaryWriter(ms))
+            {
+                Aardvark.Data.Codec.Encode(bw, Durable.Octree.Node, Data);
+                bw.Flush();
+                return ms.ToArray();
+            }
+        }
+
+        /// <summary>
+        /// </summary>
+        public static PointSetNode Decode(Storage storage, byte[] buffer)
+        {
+            using (var ms = new MemoryStream(buffer))
+            using (var br = new BinaryReader(ms))
+            {
+                var r = Aardvark.Data.Codec.Decode(br);
+                if (r.Item1 != Durable.Octree.Node) throw new InvalidOperationException("Invariant 5cc4cbfe-07c8-4b92-885d-b1d397210e41.");
+                var data = (ImmutableDictionary<Durable.Def, object>)r.Item2;
+                return new PointSetNode(data, storage, false);
+            }
+        }
+
+        #endregion
+
         #region IPointCloudNode
 
         Guid IPointCloudNode.Id => Id;

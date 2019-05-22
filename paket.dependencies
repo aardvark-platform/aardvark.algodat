@@ -11,7 +11,7 @@ nuget Aardvark.Geometry                 ~> 4.5.2
 
 nuget Aardvark.Base.Rendering           ~> 4.8.2
 
-nuget Aardvark.Data.Durable             ~> 0.0.5
+#nuget Aardvark.Data.Durable             ~> 0.0.5
 
 // 3rd-party
 #nuget Crc32C.NET                        ~> 1.0.5

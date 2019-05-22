@@ -38,7 +38,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PointSet Create(Storage storage, string key,
             IList<V3d> positions, IList<C4b> colors, IList<V3f> normals, IList<int> intensities, IList<byte> classifications,
-            int octreeSplitLimit, bool generateLod, CancellationToken ct
+            int octreeSplitLimit, CancellationToken ct
             )
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
@@ -50,7 +50,7 @@ namespace Aardvark.Geometry.Points
                 .WithRandomKey()
                 .WithCancellationToken(ct)
                 ;
-            if (generateLod) result = result.GenerateLod(config);
+            result = result.GenerateLod(config);
             return result;
         }
 
@@ -66,7 +66,7 @@ namespace Aardvark.Geometry.Points
 
             if (rootCellId.HasValue)
             {
-                Octree = new PersistentRef<IPointCloudNode>(rootCellId.ToString(), storage.GetPointSetNode,
+                Octree = new PersistentRef<IPointCloudNode>(rootCellId.Value.ToString(), storage.GetPointSetNode,
                     k => { var (a, b) = storage.TryGetPointSetNode(k); return (a, b); }
                     );
 #pragma warning disable CS0618 // Type or member is obsolete

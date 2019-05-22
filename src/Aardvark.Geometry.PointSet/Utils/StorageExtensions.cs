@@ -13,6 +13,7 @@
 */
 using Aardvark.Base;
 using Aardvark.Base.Coder;
+using Aardvark.Data;
 using Aardvark.Data.Points;
 using Newtonsoft.Json.Linq;
 using System;
@@ -25,8 +26,6 @@ using Uncodium.SimpleStore;
 
 namespace Aardvark.Geometry.Points
 {
-
-
     /// <summary></summary>
     public static class Binary
     {
@@ -640,50 +639,6 @@ namespace Aardvark.Geometry.Points
 
         #endregion
 
-        #region PointSetNode
-
-        /// <summary></summary>
-        public static void Add(this Storage storage, string key, PointSetNode data)
-        {
-            storage.f_add(key, data, () =>
-            {
-                throw new NotImplementedException();
-                //var buffer = data.ToBinary();
-                //return buffer;
-            });
-        }
-
-        /// <summary></summary>
-        public static PointSetNode GetPointSetNode(this Storage storage, string key)
-        {
-            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (PointSetNode)o;
-
-            var buffer = storage.f_get(key);
-            if (buffer == null) return default;
-            throw new NotImplementedException();
-            //var data = PointSetNode.ParseBinary(buffer, storage);
-            
-            //if (storage.HasCache) storage.Cache.Add(
-            //    key, data, buffer.Length, onRemove: default
-            //    );
-            //return data;
-        }
-
-        /// <summary></summary>
-        public static (bool, PointSetNode) TryGetPointSetNode(this Storage storage, string key)
-        {
-            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
-            {
-                return (true, (PointSetNode)o);
-            }
-            else
-            {
-                return (false, default);
-            }
-        }
-
-        #endregion
-
         #region PointSet
 
         /// <summary></summary>
@@ -719,6 +674,49 @@ namespace Aardvark.Geometry.Points
             if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
             {
                 return (true, (PointSet)o);
+            }
+            else
+            {
+                return (false, default);
+            }
+        }
+
+        #endregion
+
+        #region PointSetNode
+
+        /// <summary></summary>
+        public static void Add(this Storage storage, string key, PointSetNode data)
+        {
+            storage.f_add(key, data, () =>
+            {
+                if (key != data.Id.ToString()) throw new InvalidOperationException("Invariant b5b13ca6-0182-4e00-a7fe-41ccd9362beb.");
+                return data.Encode();
+            });
+        }
+
+        /// <summary></summary>
+        public static PointSetNode GetPointSetNode(this Storage storage, string key)
+        {
+            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (PointSetNode)o;
+
+            var buffer = storage.f_get(key);
+            if (buffer == null) return default;
+            
+            var data = PointSetNode.Decode(storage, buffer);
+
+            if (storage.HasCache) storage.Cache.Add(
+                key, data, buffer.Length, onRemove: default
+                );
+            return data;
+        }
+
+        /// <summary></summary>
+        public static (bool, PointSetNode) TryGetPointSetNode(this Storage storage, string key)
+        {
+            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
+            {
+                return (true, (PointSetNode)o);
             }
             else
             {
