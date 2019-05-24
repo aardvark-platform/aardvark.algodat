@@ -896,7 +896,7 @@ module PointSetShaders =
             [<PointSize>] s : float
             [<Semantic("PointPixelSize")>] ps : float
             [<PointCoord>] c : V2d
-
+            [<Normal>] n : V4d
             [<Semantic("TreeId")>] id : int
             [<Semantic("MaxTreeDepth")>] treeDepth : int
             [<FragCoord>] fc : V4d
@@ -1042,7 +1042,7 @@ module PointSetShaders =
                 if uniform.PointVisualization &&& PointVisualization.Color <> PointVisualization.None then
                     v.col.XYZ
                 else
-                    V3d.III
+                    v.n.XYZ * 0.5 + 0.5
 
             let o = uniform.Overlay.[v.id]
             let h = heat (float v.treeDepth / 6.0)
@@ -1063,6 +1063,57 @@ module PointSetShaders =
             //    else pixelDist //min pixelDist 30.0
 
             return { v with ps = float (int pixelDist); s = pixelDist; pos = fpp; depthRange = depthRange; vp = vpz.XYZ; vc = vpz.XYZ; col = V4d(col, v.col.W) }
+        }
+
+
+
+    let lodPointSize2 (v : PointVertex) =
+        vertex { 
+            let mv = uniform.ModelViewTrafos.[v.id]
+            //let f = if magic then 0.07 else 1.0 / 0.3
+
+            let vp = mv * v.pos
+            let pp = div (uniform.ProjTrafo * vp)
+
+            let pixelSize = uniform.Scales.[v.id]  * uniform.PointSize
+            let ndcRadius = pixelSize / V2d uniform.ViewportSize
+
+            let vpx = uniform.ProjTrafoInv * (V4d(pp.X + ndcRadius.X, pp.Y, pp.Z, 1.0)) |> div
+            let vpy = uniform.ProjTrafoInv * (V4d(pp.X, pp.Y + ndcRadius.Y, pp.Z, 1.0)) |> div
+            let dist = 0.5 * (Vec.length (vpx - vp.XYZ) + Vec.length (vpy - vp.XYZ))
+
+            let vpz = vp + V4d(0.0, 0.0, 0.5*dist, 0.0)
+            let fpp = uniform.ProjTrafo * vpz
+            let opp = uniform.ProjTrafo * vp
+        
+            let pp0 = opp.XYZ / opp.W
+            let ppz = fpp.XYZ / fpp.W
+        
+            let depthRange = abs (pp0.Z - ppz.Z)
+
+            let pixelSize = 
+                if ppz.Z < -1.0 then -1.0
+                else pixelSize
+            
+            let col =
+                if uniform.PointVisualization &&& PointVisualization.Color <> PointVisualization.None then
+                    v.col.XYZ
+                else
+                    V3d.III
+
+            let o = uniform.Overlay.[v.id]
+            let h = heat (float v.treeDepth / 6.0)
+            let col =
+                if uniform.PointVisualization &&& PointVisualization.OverlayLod <> PointVisualization.None then
+                    o * h.XYZ + (1.0 - o) * col
+                else
+                    col
+
+            let pixelSize = 
+                if uniform.PointVisualization &&& PointVisualization.Antialias <> PointVisualization.None then pixelSize + 1.0
+                else pixelSize
+
+            return { v with ps = float (int pixelSize); s = pixelSize; pos = fpp; depthRange = depthRange; vp = vpz.XYZ; vc = vpz.XYZ; col = V4d(col, v.col.W) }
         }
 
 
