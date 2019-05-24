@@ -342,17 +342,17 @@ module LodTreeInstance =
         member x.GetData(ct, ips) = 
             load ct ips
             
-        member x.ShouldSplit (quality : float, view : Trafo3d, proj : Trafo3d) =
-            not isLeaf && angle view > 0.4 / quality
+        member x.ShouldSplit (splitfactor : float, quality : float, view : Trafo3d, proj : Trafo3d) =
+            not isLeaf && angle view > splitfactor / quality
 
-        member x.ShouldCollapse (quality : float, view : Trafo3d, proj : Trafo3d) =
-            angle view < 0.3 / quality
+        member x.ShouldCollapse (splitfactor : float, quality : float, view : Trafo3d, proj : Trafo3d) =
+            angle view < (splitfactor * 0.75) / quality
             
-        member x.SplitQuality (view : Trafo3d, proj : Trafo3d) =
-            0.4 / angle view
+        member x.SplitQuality (splitfactor : float, view : Trafo3d, proj : Trafo3d) =
+            splitfactor / angle view
 
-        member x.CollapseQuality (view : Trafo3d, proj : Trafo3d) =
-            0.3 / angle view
+        member x.CollapseQuality (splitfactor : float, view : Trafo3d, proj : Trafo3d) =
+            (splitfactor * 0.75) / angle view
 
         member x.DataSource = source
 
@@ -366,10 +366,10 @@ module LodTreeInstance =
             member x.DataSource = source
             member x.Parent = parent |> Option.map (fun n -> n :> ILodTreeNode)
             member x.Children = x.Children 
-            member x.ShouldSplit(q,v,p) = x.ShouldSplit(q,v,p)
-            member x.ShouldCollapse(q,v,p) = x.ShouldCollapse(q,v,p)
-            member x.SplitQuality(v,p) = x.SplitQuality(v,p)
-            member x.CollapseQuality(v,p) = x.CollapseQuality(v,p)
+            member x.ShouldSplit(s,q,v,p) = x.ShouldSplit(s,q,v,p)
+            member x.ShouldCollapse(s,q,v,p) = x.ShouldCollapse(s,q,v,p)
+            member x.SplitQuality(s,v,p) = x.SplitQuality(s,v,p)
+            member x.CollapseQuality(s,v,p) = x.CollapseQuality(s,v,p)
             member x.DataSize = 
                 match self.TryGetCellAttribute<int64>(CellAttributes.PointCountCell.Id) with
                     | (true, dist) -> int dist
@@ -452,8 +452,8 @@ module LodTreeInstance =
 
         let isLeaf = inner.TotalDataSize <= limit
                 
-        member x.ShouldSplit(q,v,p) =
-            not isLeaf && inner.ShouldSplit(q,v,p)
+        member x.ShouldSplit(s,q,v,p) =
+            not isLeaf && inner.ShouldSplit(s,q,v,p)
 
         member x.GetData(ct : CancellationToken, ips : MapExt<string, Type>) =
             if isLeaf then
@@ -483,10 +483,10 @@ module LodTreeInstance =
             member x.Children = 
                 if isLeaf then Seq.empty
                 else inner.Children |> Seq.map (fun n -> TreeViewNode(n, limit, Some (this :> ILodTreeNode), Some root) :> ILodTreeNode)
-            member x.ShouldSplit(q,v,p) = x.ShouldSplit(q,v,p)
-            member x.ShouldCollapse(q,v,p) = inner.ShouldCollapse(q,v,p)
-            member x.SplitQuality(v,p) = inner.SplitQuality(v,p)
-            member x.CollapseQuality(v,p) = inner.CollapseQuality(v,p)
+            member x.ShouldSplit(s,q,v,p) = x.ShouldSplit(s,q,v,p)
+            member x.ShouldCollapse(s,q,v,p) = inner.ShouldCollapse(s,q,v,p)
+            member x.SplitQuality(s,v,p) = inner.SplitQuality(s,v,p)
+            member x.CollapseQuality(s,v,p) = inner.CollapseQuality(s,v,p)
             member x.DataSize = if isLeaf then inner.TotalDataSize else inner.DataSize
             member x.TotalDataSize = inner.TotalDataSize
             member x.GetData(ct, ips) = x.GetData(ct, ips)
@@ -523,10 +523,10 @@ module LodTreeInstance =
             member x.DataSource = inner.DataSource
             member x.Parent = parent
             member x.Children = children :> seq<_>
-            member x.ShouldSplit(q,v,p) = inner.ShouldSplit(q,v,p)
-            member x.ShouldCollapse(q,v,p) = inner.ShouldCollapse(q,v,p)
-            member x.SplitQuality(v,p) = inner.SplitQuality(v,p)
-            member x.CollapseQuality(v,p) = inner.CollapseQuality(v,p)
+            member x.ShouldSplit(s,q,v,p) = inner.ShouldSplit(s,q,v,p)
+            member x.ShouldCollapse(s,q,v,p) = inner.ShouldCollapse(s,q,v,p)
+            member x.SplitQuality(s,v,p) = inner.SplitQuality(s,v,p)
+            member x.CollapseQuality(s,v,p) = inner.CollapseQuality(s,v,p)
             member x.DataSize = inner.DataSize
             member x.TotalDataSize = inner.TotalDataSize
             member x.GetData(ct, ips) = inner.GetData(ct, ips)
