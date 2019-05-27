@@ -718,6 +718,7 @@ namespace Aardvark.Geometry.Points
             if (buffer == null) return default;
             
             var data = PointSetNode.Decode(storage, buffer);
+            if (key != data.Id.ToString()) throw new InvalidOperationException("Invariant 32554e4b-1e53-4e30-8b3c-c218c5b63c46.");
 
             if (storage.HasCache) storage.Cache.Add(
                 key, data, buffer.Length, onRemove: default

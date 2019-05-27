@@ -51,16 +51,19 @@ namespace Aardvark.Geometry.Points
             {
                 if (isNodeFullyInside(node))
                 {
-                    yield return new Chunk(node.GetPositionsAbsolute(), node.GetColors4b()?.Value, node.GetNormals3f()?.Value,
-                            node.GetIntensities()?.Value, node.GetClassifications()?.Value);
+                    var cs = node.HasColors() ? node.GetColors4b().Value : null;
+                    var ns = node.HasNormals() ? node.GetNormals3f().Value : null;
+                    var js = node.HasIntensities() ? node.GetIntensities().Value : null;
+                    var ks = node.HasClassifications() ? node.GetClassifications().Value : null;
+                    yield return new Chunk(node.GetPositionsAbsolute(), cs, ns, js, ks);
                 }
                 else // partially inside
                 {
                     var psRaw = node.GetPositionsAbsolute();
-                    var csRaw = node.GetColors4b()?.Value;
-                    var nsRaw = node.GetNormals3f()?.Value;
-                    var jsRaw = node.GetIntensities()?.Value;
-                    var ksRaw = node.GetClassifications()?.Value;
+                    var csRaw = node.HasColors() ? node.GetColors4b().Value : null;
+                    var nsRaw = node.HasNormals() ? node.GetNormals3f().Value : null;
+                    var jsRaw = node.HasIntensities() ? node.GetIntensities().Value : null;
+                    var ksRaw = node.HasClassifications() ? node.GetClassifications().Value : null ;
 
                     var ps = new List<V3d>();
                     var cs = csRaw != null ? new List<C4b>() : null;

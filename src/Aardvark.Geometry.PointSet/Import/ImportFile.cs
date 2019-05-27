@@ -56,7 +56,6 @@ namespace Aardvark.Geometry.Points
                     .WithInMemoryStore()
                     .WithKey(FileHelpers.ComputeMd5Hash(filename, true))
                     ;
-
             }
 
             return PointCloudFileFormat.FromFileName(filename).ImportFile(filename, config);

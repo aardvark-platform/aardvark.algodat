@@ -45,7 +45,7 @@ namespace Aardvark.Geometry.Points
         public static bool HasPositions(this IPointCloudNode self) => Has(self, Durable.Octree.PositionsLocal3fReference);
 
         /// <summary></summary>
-        public static bool HasColors(this IPointCloudNode self) => Has(self, Durable.Octree.Colors3bReference);
+        public static bool HasColors(this IPointCloudNode self) => Has(self, Durable.Octree.Colors4bReference);
 
         /// <summary></summary>
         public static bool HasNormals(this IPointCloudNode self) => Has(self, Durable.Octree.Normals3fReference);
@@ -76,6 +76,11 @@ namespace Aardvark.Geometry.Points
             if (self.Data.TryGetValue(keyRef, out var o) && o is Guid id)
                 return new PersistentRef<T>(id.ToString(), get, tryGet);
 
+//#if DEBUG
+//            Console.WriteLine($"keyData: {keyData}");
+//            Console.WriteLine($"keyRef : {keyRef}");
+//            foreach (var kv in self.Data) Console.WriteLine($"{kv.Key} - {kv.Value}");
+//#endif
             throw new InvalidOperationException($"Invariant 0725615a-a9a3-4989-86bd-a0b5708b2283. {keyData}. {keyRef}.");
         }
 
@@ -146,9 +151,9 @@ namespace Aardvark.Geometry.Points
             var buffer = storage.f_get(key);
             if (buffer == null) return null;
             var json = JObject.Parse(Encoding.UTF8.GetString(buffer));
-
-            IPointCloudNode data = null;
             var nodeType = (string)json["NodeType"];
+
+            IPointCloudNode data;
             switch (nodeType)
             {
                 case LinkedNode.Type:
@@ -160,7 +165,7 @@ namespace Aardvark.Geometry.Points
                 default:
                     throw new InvalidOperationException($"Unknown node type '{nodeType}'.");
             }
-            
+
             return data;
         }
 

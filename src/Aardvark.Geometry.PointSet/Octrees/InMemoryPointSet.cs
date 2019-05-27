@@ -216,7 +216,7 @@ namespace Aardvark.Geometry.Points
                         .Add(Durable.Octree.BoundingBoxExactLocal, exactBoundsLocal)
                         ;
                 }
-                if (csId != null) { storage.Add(csId.ToString(), cs); data = data.Add(Durable.Octree.Colors3bReference, csId.Value); }
+                if (csId != null) { storage.Add(csId.ToString(), cs); data = data.Add(Durable.Octree.Colors4bReference, csId.Value); }
                 if (nsId != null) { storage.Add(nsId.ToString(), ns); data = data.Add(Durable.Octree.Normals3fReference, nsId.Value); }
                 if (isId != null) { storage.Add(isId.ToString(), js); data = data.Add(Durable.Octree.Intensities1iReference, isId.Value); }
                 if (ksId != null) { storage.Add(ksId.ToString(), ks); data = data.Add(Durable.Octree.Classifications1bReference, ksId.Value); }
@@ -224,14 +224,27 @@ namespace Aardvark.Geometry.Points
 
                 if (subcellIds == null) // leaf
                 {
-                    return new PointSetNode(data, storage, writeToStore: true);
+                    var result = new PointSetNode(data, storage, writeToStore: true);
+                    if (storage.GetPointSetNode(result.Id.ToString()) == null) throw new InvalidOperationException("Invariant d1022027-2dbf-4b11-9b40-4829436f5789.");
+                    return result;
                 }
                 else
                 {
+                    for (var i = 0; i < 8; i++)
+                    {
+                        var x = subcellIds[i];
+                        if (x.HasValue)
+                        {
+                            var id = x.Value.ToString();
+                            if (storage.GetPointSetNode(id) == null) throw new InvalidOperationException("Invariant 01830b8b-3c0e-4a8b-a1bd-bfd1b1be1844.");
+                        }
+                    }
                     data = data
                         .Add(Durable.Octree.SubnodesGuids, subcellIds.Map(x => x ?? Guid.Empty))
                         ;
-                    return new PointSetNode(data, storage, writeToStore: true);
+                    var result = new PointSetNode(data, storage, writeToStore: true);
+                    if (storage.GetPointSetNode(result.Id.ToString()) == null) throw new InvalidOperationException("Invariant 7b09eccb-b6a0-4b99-be7a-eeff53b6a98b.");
+                    return result;
                 }
             }
             

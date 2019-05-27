@@ -76,7 +76,7 @@ namespace Aardvark.Data.Points
             Func<string, ParseConfig, PointFileInfo> parseFileInfo,
             Func<string, ParseConfig, IEnumerable<Chunk>> parseFile
             )
-        {
+        { 
             Description = description ?? throw new ArgumentNullException(nameof(description));
             FileExtensions = fileExtensions?.Map(x => x.ToLowerInvariant()) ?? throw new ArgumentNullException(nameof(fileExtensions));
             f_parseFileInfo = parseFileInfo;

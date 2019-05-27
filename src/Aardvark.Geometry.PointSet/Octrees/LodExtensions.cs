@@ -153,6 +153,9 @@ namespace Aardvark.Geometry.Points
         {
             if (self.Octree == null) return self;
 
+            var pRef0 = new PersistentRef<PointSetNode>(self.Root.Value.Id.ToString(), self.Storage.GetPointSetNode, self.Storage.TryGetPointSetNode);
+            if (pRef0.Value == null) throw new InvalidOperationException("d947d383-a46a-4a97-85e5-75d6a150d6ef.");
+
             var nodeCount = self.Octree?.Value?.CountNodes() ?? 0;
             var loddedNodesCount = 0L;
             var result = self.GenerateLod(config.Key, () =>
@@ -175,7 +178,11 @@ namespace Aardvark.Geometry.Points
             try
             {
                 if (self.IsEmpty) return self;
-                var lod = await self.Root.Value.GenerateLod(self.SplitLimit, callback, regenerateNormals: true, ct);
+
+                var pRef0 = new PersistentRef<PointSetNode>(self.Root.Value.Id.ToString(), self.Storage.GetPointSetNode, self.Storage.TryGetPointSetNode);
+                if (pRef0.Value == null) throw new InvalidOperationException("d947d383-a46a-4a97-85e5-75d6a150d6ef.");
+
+                var lod = await self.Root.Value.GenerateLod(self.SplitLimit, callback, ct);
                 var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit);
                 self.Storage.Add(key, result);
                 return result;
@@ -216,10 +223,12 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// </summary>
         private static async Task<PointSetNode> GenerateLod(this PointSetNode self,
-            int octreeSplitLimit, Action callback, bool regenerateNormals,
+            int octreeSplitLimit, Action callback,
             CancellationToken ct)
         {
             if (self == null) throw new ArgumentNullException(nameof(self));
+            var pRef0 = new PersistentRef<PointSetNode>(self.Id.ToString(), self.Storage.GetPointSetNode, self.Storage.TryGetPointSetNode);
+            if (pRef0.Value == null) throw new InvalidOperationException("Invariant f24c6bda-36d7-4254-bf4d-626eb7682e03.");
 
             ct.ThrowIfCancellationRequested();
 
@@ -231,14 +240,21 @@ namespace Aardvark.Geometry.Points
                     var nsId = Guid.NewGuid();
                     self.Storage.Add(nsId, await ns);
                     self = self.With(Durable.Octree.Normals3fReference, nsId);
+
+                    var pRef1 = new PersistentRef<PointSetNode>(self.Id.ToString(), self.Storage.GetPointSetNode, self.Storage.TryGetPointSetNode);
+                    if (pRef1.Value == null) throw new InvalidOperationException("Invariant a3123a90-a2e0-4896-9c58-202eb1a5e549.");
+
                 }
                 callback?.Invoke();
+
+                var pRef2 = new PersistentRef<PointSetNode>(self.Id.ToString(), self.Storage.GetPointSetNode, self.Storage.TryGetPointSetNode);
+                if (pRef2.Value == null) throw new InvalidOperationException("Invariant 16798ff0-14a6-4b3e-a9be-5bc2c83fe607.");
                 return self;
             }
 
             if (self.Subnodes == null || self.Subnodes.Length != 8) throw new InvalidOperationException();
 
-            var subcellsAsync = self.Subnodes.Map(x => x?.Value.GenerateLod(octreeSplitLimit, callback, regenerateNormals, ct));
+            var subcellsAsync = self.Subnodes.Map(x => x?.Value.GenerateLod(octreeSplitLimit, callback, ct));
             await Task.WhenAll(subcellsAsync.Where(x => x != null));
             var subcells = subcellsAsync.Map(x => x?.Result);
             var subcellsTotalCount = (long)subcells.Sum(x => x?.PointCountTree);
@@ -257,48 +273,48 @@ namespace Aardvark.Geometry.Points
             var lodIs = needsIs ? Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.GetIntensities()?.Value)) : null;
             var lodKs = needsKs ? Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.GetClassifications()?.Value)) : null;
             var lodKd = lodPs.BuildKdTree();
-            var lodNs = regenerateNormals
-                            ? Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.GetNormals3f()?.Value))
-                            : await lodPs.EstimateNormals(lodKd, 16)
-                            ;
+            var lodNs = await lodPs.EstimateNormals(lodKd, 16); // Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.GetNormals3f()?.Value))
 
             var data = self.Data;
+
+            var subnodeIds = subcells.Map(x => x != null ? x.Id : Guid.Empty);
+            data = data.Remove(Durable.Octree.SubnodesGuids).Add(Durable.Octree.SubnodesGuids, subnodeIds);
 
             // store LoD data ...
             var lodPsKey = Guid.NewGuid();
             self.Storage.Add(lodPsKey, lodPs);
-            data.Add(Durable.Octree.PositionsLocal3fReference, lodPsKey);
+            data = data.Remove(Durable.Octree.PositionsLocal3fReference).Add(Durable.Octree.PositionsLocal3fReference, lodPsKey);
 
             var lodKdKey = Guid.NewGuid();
             self.Storage.Add(lodKdKey, lodKd.Data);
-            data.Add(Durable.Octree.PointRkdTreeFDataReference, lodKdKey);
+            data = data.Remove(Durable.Octree.PointRkdTreeFDataReference).Add(Durable.Octree.PointRkdTreeFDataReference, lodKdKey);
 
             if (needsCs)
             {
                 var key = Guid.NewGuid();
                 self.Storage.Add(key, lodCs);
-                data.Add(Durable.Octree.Colors4bReference, key);
+                data = data.Remove(Durable.Octree.Colors4bReference).Add(Durable.Octree.Colors4bReference, key);
             }
 
             if (needsNs)
             {
                 var key = Guid.NewGuid();
                 self.Storage.Add(key, lodNs);
-                data.Add(Durable.Octree.Normals3fReference, key);
+                data = data.Remove(Durable.Octree.Normals3fReference).Add(Durable.Octree.Normals3fReference, key);
             }
 
             if (needsIs)
             {
                 var key = Guid.NewGuid();
                 self.Storage.Add(key, lodIs);
-                data.Add(Durable.Octree.Intensities1iReference, key);
+                data = data.Remove(Durable.Octree.Intensities1iReference).Add(Durable.Octree.Intensities1iReference, key);
             }
 
             if (needsKs)
             {
                 var key = Guid.NewGuid();
                 self.Storage.Add(key, lodKs);
-                data.Add(Durable.Octree.Classifications1bReference, key);
+                data = data.Remove(Durable.Octree.Classifications1bReference).Add(Durable.Octree.Classifications1bReference, key);
             }
 
             var result = new PointSetNode(data, self.Storage, writeToStore: true);

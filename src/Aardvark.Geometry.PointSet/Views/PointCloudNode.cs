@@ -247,7 +247,7 @@ namespace Aardvark.Geometry.Points
             var attributes = m_pIds.Select(kv => (kv.Key, kv.Value)).ToList();
             
             TryAdd(Durable.Octree.Classifications1bReference, classificationsId);
-            TryAdd(Durable.Octree.Colors3bReference, colorsId);
+            TryAdd(Durable.Octree.Colors4bReference, colorsId);
             TryAdd(Durable.Octree.Intensities1iReference, intensitiesId);
             TryAdd(Durable.Octree.PointRkdTreeFDataReference, kdTreeId);
             TryAdd(Durable.Octree.Normals3fReference, normalsId);

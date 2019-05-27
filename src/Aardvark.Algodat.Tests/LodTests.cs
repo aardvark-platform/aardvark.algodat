@@ -64,74 +64,26 @@ namespace Aardvark.Geometry.Tests
             var pointset = PointSet.Create(storage, "test", ps.ToList(), cs.ToList(), null, null, null, 5000, CancellationToken.None);
             pointset.Octree.Value.ForEachNode(true, cell =>
             {
-                if (cell.IsLeaf())
-                {
-                    var pointcount = cell.GetPositions().Value.Length;
-                    Assert.IsTrue(pointcount > 0);
-                    Assert.IsTrue(cell.GetPositions().Value.Length == pointcount);
-                }
-                else
-                {
-                    Assert.IsTrue(cell.GetPositions() == null);
-                }
+                var pointcount = cell.GetPositions().Value.Length;
+                Assert.IsTrue(pointcount > 0);
             });
 
-            var config = ImportConfig.Default
-                .WithKey("lod")
-                .WithOctreeSplitLimit(1)
-                ;
-            var lodded = pointset.GenerateLod(config);
-            lodded.Octree.Value.ForEachNode(true, cell =>
-            {
-                if (cell.IsLeaf())
-                {
-                    var pointcount = cell.GetPositions().Value.Length;
-                    Assert.IsTrue(pointcount > 0);
-                    Assert.IsTrue(cell.GetPositions().Value.Length == pointcount);
-                }
-                else
-                {
-                    Assert.IsTrue(cell.GetPositions().Value.Length > 0);
-                }
-            });
-        }
-
-        [Test]
-        public void Serialization()
-        {
-            var r = new Random();
-            var storage = PointSetTests.CreateStorage();
-
-            var ps = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
-            var cs = ps.Map(_ => C4b.White);
-
-            var pointset = PointSet.Create(storage, "test", ps.ToList(), cs.ToList(), null, null, null, 5000, CancellationToken.None);
-
-            var config = ImportConfig.Default
-                  .WithKey("lod")
-                  .WithOctreeSplitLimit(1)
-                  ;
-            var lodded = pointset.GenerateLod(config);
-            
-            var json = lodded.ToJson();
-            var relodded = PointSet.Parse(json, storage, IdentityResolver.Default);
-
-            var xs = new Queue<long>();
-            lodded.Octree.Value.ForEachNode(true, cell =>
-            {
-                xs.Enqueue(cell.GetPositions()?.Value.Length ?? 0);
-                xs.Enqueue(cell.PointCountTree);
-            });
-            relodded.Octree.Value.ForEachNode(true, cell =>
-            {
-                Assert.IsTrue(xs.Dequeue() == (cell.GetPositions()?.Value.Length ?? 0));
-                Assert.IsTrue(xs.Dequeue() == cell.PointCountTree);
-            });
+            //var config = ImportConfig.Default
+            //    .WithKey("lod")
+            //    .WithOctreeSplitLimit(1)
+            //    ;
+            //var lodded = pointset.GenerateLod(config);
+            //lodded.Octree.Value.ForEachNode(true, cell =>
+            //{
+            //    var pointcount = cell.GetPositions().Value.Length;
+            //    Assert.IsTrue(pointcount > 0);
+            //});
         }
 
         [Test]
         public void LodCreationSetsPointCountCell_FromPts()
         {
+            Assert.IsTrue(Data.Points.Import.Pts.PtsFormat != null);
             var filename = Config.TEST_FILE_NAME_PTS;
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
 
@@ -151,6 +103,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void Serialization_FromPts()
         {
+            Assert.IsTrue(Data.Points.Import.Pts.PtsFormat != null);
             var filename = Config.TEST_FILE_NAME_PTS;
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
 
@@ -180,6 +133,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void Serialization_FromPts_Really()
         {
+            Assert.IsTrue(Data.Points.Import.Pts.PtsFormat != null);
             var filename = Config.TEST_FILE_NAME_PTS;
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
             Console.WriteLine($"filename: {filename}");

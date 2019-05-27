@@ -258,7 +258,7 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
-            var foo = Durable.Octree.PositionsLocal3fReference;
+            new MergeTests().CanMergePointSets();
             //new ImportTests().CanImportChunkWithoutColor();
 
             //TestE57();

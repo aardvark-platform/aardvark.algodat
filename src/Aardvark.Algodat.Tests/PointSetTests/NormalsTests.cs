@@ -62,57 +62,5 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(ps.Octree.Value.HasNormals());
             Assert.IsTrue(ps.Octree.Value.GetNormals3f().Value[0] == V3f.OIO);
         }
-
-        [Test]
-        public void CanAddNormals()
-        {
-            var r = new Random();
-            var storage = PointSetTests.CreateStorage();
-
-            var ps = new V3d[10000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
-
-            var pointset = PointSet
-                .Create(storage, "test", ps.ToList(), null, null, null, null, 5000, CancellationToken.None)
-                .GenerateLod(ImportConfig.Default.WithKey("lod").WithOctreeSplitLimit(5000))
-                ;
-            storage.Add("pss", pointset);
-
-#pragma warning disable CS0618 // Type or member is obsolete
-            var withNormals = WithRandomNormals(pointset.Root.Value);
-            storage.Add("psWithNormals", withNormals);
-
-            withNormals.ForEachNode(true, node =>
-            {
-                Assert.IsTrue(node.HasNormals);
-                Assert.IsTrue(node.Normals.Value.Length == node.PointCount);
-
-                //
-                throw new NotImplementedException();
-                //var binary = node.ToBinary();
-                //var node2 = PointSetNode.ParseBinary(binary, storage);
-                //Assert.IsTrue(node.HasNormals == node2.HasNormals);
-                //Assert.IsTrue(node.Normals?.Value?.Length == node2.Normals?.Value?.Length);
-            });
-
-            PointSetNode WithRandomNormals(PointSetNode n)
-            {
-                var id = Guid.NewGuid();
-                var ns = new V3f[n.PointCount].Set(V3f.OOI);
-                storage.Add(id, ns);
-
-                throw new NotImplementedException();
-                //if (n.IsLeaf)
-                //{
-                //    var m = n.WithNormals(id);
-                //    return m;
-                //}
-                //else
-                //{
-                //    var subnodes = n.Subnodes.Map(x => x != null ? WithRandomNormals(x.Value) : null);
-                //    var m = n.WithNormals(id, subnodes);
-                //    return m;
-                //}
-            }
-        }
     }
 }
