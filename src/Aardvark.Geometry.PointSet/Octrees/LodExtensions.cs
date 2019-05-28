@@ -230,7 +230,10 @@ namespace Aardvark.Geometry.Points
                     var ns = self.Positions.Value.EstimateNormals(self.KdTree.Value, 16);
                     var nsId = Guid.NewGuid();
                     self.Storage.Add(nsId, await ns);
-                    self = self.With(Durable.Octree.Normals3fReference, nsId);
+                    self = self
+                        .WithUpsert(Durable.Octree.Normals3fReference, nsId)
+                        .WriteToStore()
+                        ;
                 }
                 callback?.Invoke();
                 return self;
@@ -259,50 +262,48 @@ namespace Aardvark.Geometry.Points
             var lodKd = lodPs.BuildKdTree();
             var lodNs = await lodPs.EstimateNormals(lodKd, 16); // Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.GetNormals3f()?.Value))
 
-            var data = self.Data;
-
             var subnodeIds = subcells.Map(x => x != null ? x.Id : Guid.Empty);
-            data = data.Remove(Durable.Octree.SubnodesGuids).Add(Durable.Octree.SubnodesGuids, subnodeIds);
+            self = self.WithUpsert(Durable.Octree.SubnodesGuids, subnodeIds);
 
             // store LoD data ...
             var lodPsKey = Guid.NewGuid();
             self.Storage.Add(lodPsKey, lodPs);
-            data = data.Remove(Durable.Octree.PositionsLocal3fReference).Add(Durable.Octree.PositionsLocal3fReference, lodPsKey);
+            self = self.WithUpsert(Durable.Octree.PositionsLocal3fReference, lodPsKey);
 
             var lodKdKey = Guid.NewGuid();
             self.Storage.Add(lodKdKey, lodKd.Data);
-            data = data.Remove(Durable.Octree.PointRkdTreeFDataReference).Add(Durable.Octree.PointRkdTreeFDataReference, lodKdKey);
+            self = self.WithUpsert(Durable.Octree.PointRkdTreeFDataReference, lodKdKey);
 
             if (needsCs)
             {
                 var key = Guid.NewGuid();
                 self.Storage.Add(key, lodCs);
-                data = data.Remove(Durable.Octree.Colors4bReference).Add(Durable.Octree.Colors4bReference, key);
+                self = self.WithUpsert(Durable.Octree.Colors4bReference, key);
             }
 
             if (needsNs)
             {
                 var key = Guid.NewGuid();
                 self.Storage.Add(key, lodNs);
-                data = data.Remove(Durable.Octree.Normals3fReference).Add(Durable.Octree.Normals3fReference, key);
+                self = self.WithUpsert(Durable.Octree.Normals3fReference, key);
             }
 
             if (needsIs)
             {
                 var key = Guid.NewGuid();
                 self.Storage.Add(key, lodIs);
-                data = data.Remove(Durable.Octree.Intensities1iReference).Add(Durable.Octree.Intensities1iReference, key);
+                self = self.WithUpsert(Durable.Octree.Intensities1iReference, key);
             }
 
             if (needsKs)
             {
                 var key = Guid.NewGuid();
                 self.Storage.Add(key, lodKs);
-                data = data.Remove(Durable.Octree.Classifications1bReference).Add(Durable.Octree.Classifications1bReference, key);
+                self = self.WithUpsert(Durable.Octree.Classifications1bReference, key);
             }
 
-            var result = new PointSetNode(data, self.Storage, writeToStore: true);
-            return result;
+            self.WriteToStore();
+            return self;
         }
     }
 }

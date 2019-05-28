@@ -60,19 +60,19 @@ namespace Aardvark.Geometry.Points
             Id = id;
             Cell = root.Cell;
             Center = Cell.GetCenter();
-            BoundingBoxExact = root.BoundingBoxExact;
+            BoundingBoxExactGlobal = root.BoundingBoxExactGlobal;
             PointCountTree = root.PointCountTree;
             LinkedStoreName = linkedStoreName;
             LinkedPointCloudKey = linkedPointCloudKey;
         }
 
-        private LinkedNode(Storage storage, Guid id, Cell cell, Box3d boundingBoxExact, long pointCountTree, string linkedStoreName, string linkedPointCloudKey, IStoreResolver storeResolver)
+        private LinkedNode(Storage storage, Guid id, Cell cell, Box3d boundingBoxExactGlobal, long pointCountTree, string linkedStoreName, string linkedPointCloudKey, IStoreResolver storeResolver)
         {
             Storage = storage;
             Id = id;
             Cell = cell;
             Center = Cell.GetCenter();
-            BoundingBoxExact = boundingBoxExact;
+            BoundingBoxExactGlobal = boundingBoxExactGlobal;
             PointCountTree = pointCountTree;
             LinkedStoreName = linkedStoreName;
             LinkedPointCloudKey = linkedPointCloudKey;
@@ -107,7 +107,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Exact bounding box of all points in this tree.
         /// </summary>
-        public Box3d BoundingBoxExact { get; }
+        public Box3d BoundingBoxExactGlobal { get; }
 
         /// <summary></summary>
         public long PointCountTree { get; }
@@ -120,7 +120,13 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public PersistentRef<IPointCloudNode>[] SubNodes => Root.SubNodes;
-        
+
+        /// <summary></summary>
+        public bool Has(Durable.Def what) => Root.Has(what);
+
+        /// <summary></summary>
+        public bool TryGetValue(Durable.Def what, out object o) => Root.TryGetValue(what, out o);
+
         /// <summary></summary>
         [JsonIgnore]
         public Storage Storage { get; }
@@ -142,7 +148,7 @@ namespace Aardvark.Geometry.Points
             NodeType,
             Id,
             Cell,
-            BoundingBoxExact = BoundingBoxExact.ToString(),
+            BoundingBoxExactGlobal = BoundingBoxExactGlobal.ToString(),
             PointCountTree,
             LinkedStoreName,
             LinkedPointCloudKey
@@ -152,7 +158,7 @@ namespace Aardvark.Geometry.Points
         public static LinkedNode Parse(JObject json, Storage storage, IStoreResolver resolver)
             => new LinkedNode(storage, (Guid)json["Id"],
                 json["Cell"].ToObject<Cell>(),
-                Box3d.Parse((string)json["BoundingBoxExact"]),
+                Box3d.Parse((string)json["BoundingBoxExactGlobal"]),
                 (long)json["PointCountTree"],
                 (string)json["LinkedStoreName"],
                 (string)json["LinkedPointCloudKey"],

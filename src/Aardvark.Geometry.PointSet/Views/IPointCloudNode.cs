@@ -48,7 +48,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Exact bounding box of all points in this tree.
         /// </summary>
-        Box3d BoundingBoxExact { get; }
+        Box3d BoundingBoxExactGlobal { get; }
 
         /// <summary>
         /// Number of points in this tree (sum of leaves).
@@ -72,10 +72,19 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         PersistentRef<IPointCloudNode>[] SubNodes { get; }
 
+        ///// <summary>
+        ///// Gets the given durable data value. 
+        ///// </summary>
+        //ImmutableDictionary<Durable.Def, object> Data { get; }
+
         /// <summary>
-        /// Gets the given durable data value. 
+        /// Returns true if node has given property.
         /// </summary>
-        ImmutableDictionary<Durable.Def, object> Data { get; }
+        bool Has(Durable.Def what);
+
+        /// <summary>
+        /// </summary>
+        bool TryGetValue(Durable.Def what, out object o);
 
         /// <summary>
         /// </summary>

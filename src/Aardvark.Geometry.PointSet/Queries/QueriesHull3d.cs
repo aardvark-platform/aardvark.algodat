@@ -39,8 +39,8 @@ namespace Aardvark.Geometry.Points
             this IPointCloudNode self, Hull3d query, int minCellExponent = int.MinValue
             )
             => QueryPoints(self,
-                n => query.Contains(n.BoundingBoxExact),
-                n => !query.Intersects(n.BoundingBoxExact),
+                n => query.Contains(n.BoundingBoxExactGlobal),
+                n => !query.Intersects(n.BoundingBoxExactGlobal),
                 p => query.Contains(p),
                 minCellExponent);
 
@@ -79,8 +79,8 @@ namespace Aardvark.Geometry.Points
             this IPointCloudNode self, Hull3d query, int minCellExponent = int.MinValue
             )
             => CountPoints(self,
-                n => query.Contains(n.BoundingBoxExact),
-                n => !query.Intersects(n.BoundingBoxExact),
+                n => query.Contains(n.BoundingBoxExactGlobal),
+                n => !query.Intersects(n.BoundingBoxExactGlobal),
                 p => query.Contains(p),
                 minCellExponent);
 
@@ -121,8 +121,8 @@ namespace Aardvark.Geometry.Points
             this IPointCloudNode self, Hull3d query, int minCellExponent = int.MinValue
             )
             => CountPointsApproximately(self,
-                n => query.Contains(n.BoundingBoxExact),
-                n => !query.Intersects(n.BoundingBoxExact),
+                n => query.Contains(n.BoundingBoxExactGlobal),
+                n => !query.Intersects(n.BoundingBoxExactGlobal),
                 minCellExponent);
 
         /// <summary>
@@ -142,8 +142,8 @@ namespace Aardvark.Geometry.Points
             this IPointCloudNode self, Hull3d query, int minCellExponent = int.MinValue
             )
             => CountPointsApproximately(self,
-                n => !query.Intersects(n.BoundingBoxExact),
-                n => query.Contains(n.BoundingBoxExact),
+                n => !query.Intersects(n.BoundingBoxExactGlobal),
+                n => query.Contains(n.BoundingBoxExactGlobal),
                 minCellExponent);
 
         #endregion

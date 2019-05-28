@@ -207,7 +207,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Gets bounds of dataset root cell.
         /// </summary>
-        public Box3d Bounds => Octree?.Value?.BoundingBoxExact ?? Box3d.Invalid;
+        public Box3d Bounds => Octree?.Value?.Cell.BoundingBox ?? Box3d.Invalid;
 
         /// <summary>
         /// Gets exact bounding box of all points from coarsest LoD.

@@ -45,7 +45,7 @@ namespace Aardvark.Geometry.Points
             var poly2d = new Polygon2d(polygon.GetPointArray().Map(p => w2p.TransformPos(p).XY));
             return QueryPoints(node,
                 n => false,
-                n => !n.BoundingBoxExact.Intersects(bounds),
+                n => !n.BoundingBoxExactGlobal.Intersects(bounds),
                 p => polygon.Contains(plane, w2p, poly2d, maxDistance, p, out double d),
                 minCellExponent
                 );
@@ -72,7 +72,7 @@ namespace Aardvark.Geometry.Points
             var poly2d = polygons.Map((x, i) => new Polygon2d(x.GetPointArray().Map(p => w2p[i].TransformPos(p).XY)));
             return QueryPoints(node,
                 n => false,
-                n => !bounds.Any(b => n.BoundingBoxExact.Intersects(b)),
+                n => !bounds.Any(b => n.BoundingBoxExactGlobal.Intersects(b)),
                 p => planes.Any((plane, i) => polygons[i].Contains(plane, w2p[i], poly2d[i], maxDistance, p, out double d)),
                 minCellExponent
                 );
@@ -98,7 +98,7 @@ namespace Aardvark.Geometry.Points
             var w2p = plane.GetWorldToPlane();
             var poly2d = new Polygon2d(polygon.GetPointArray().Map(p => w2p.TransformPos(p).XY));
             return QueryPoints(node,
-                n => !n.BoundingBoxExact.Intersects(bounds),
+                n => !n.BoundingBoxExactGlobal.Intersects(bounds),
                 n => false,
                 p => !polygon.Contains(plane, w2p, poly2d, maxDistance, p, out double d),
                 minCellExponent
@@ -125,7 +125,7 @@ namespace Aardvark.Geometry.Points
             var w2p = planes.Map(x => x.GetWorldToPlane());
             var poly2d = polygons.Map((x, i) => new Polygon2d(x.GetPointArray().Map(p => w2p[i].TransformPos(p).XY)));
             return QueryPoints(node,
-                n => !bounds.Any(b => n.BoundingBoxExact.Intersects(b)),
+                n => !bounds.Any(b => n.BoundingBoxExactGlobal.Intersects(b)),
                 n => false,
                 p => !planes.Any((plane, i) => polygons[i].Contains(plane, w2p[i], poly2d[i], maxDistance, p, out double d)),
                 minCellExponent
@@ -157,7 +157,7 @@ namespace Aardvark.Geometry.Points
             var poly2d = new Polygon2d(polygon.GetPointArray().Map(p => w2p.TransformPos(p).XY));
             return CountPoints(node,
                 n => false,
-                n => !n.BoundingBoxExact.Intersects(bounds),
+                n => !n.BoundingBoxExactGlobal.Intersects(bounds),
                 p => polygon.Contains(plane, w2p, poly2d, maxDistance, p, out double d),
                 minCellExponent
                 );
@@ -184,7 +184,7 @@ namespace Aardvark.Geometry.Points
             var poly2d = polygons.Map((x, i) => new Polygon2d(x.GetPointArray().Map(p => w2p[i].TransformPos(p).XY)));
             return CountPoints(node,
                 n => false,
-                n => !bounds.Any(b => n.BoundingBoxExact.Intersects(b)),
+                n => !bounds.Any(b => n.BoundingBoxExactGlobal.Intersects(b)),
                 p => planes.Any((plane, i) => polygons[i].Contains(plane, w2p[i], poly2d[i], maxDistance, p, out double d)),
                 minCellExponent
                 );
@@ -210,7 +210,7 @@ namespace Aardvark.Geometry.Points
             var w2p = plane.GetWorldToPlane();
             var poly2d = new Polygon2d(polygon.GetPointArray().Map(p => w2p.TransformPos(p).XY));
             return CountPoints(node,
-                n => !n.BoundingBoxExact.Intersects(bounds),
+                n => !n.BoundingBoxExactGlobal.Intersects(bounds),
                 n => false,
                 p => !polygon.Contains(plane, w2p, poly2d, maxDistance, p, out double d),
                 minCellExponent
@@ -237,7 +237,7 @@ namespace Aardvark.Geometry.Points
             var w2p = planes.Map(x => x.GetWorldToPlane());
             var poly2d = polygons.Map((x, i) => new Polygon2d(x.GetPointArray().Map(p => w2p[i].TransformPos(p).XY)));
             return CountPoints(node,
-                n => !bounds.Any(b => n.BoundingBoxExact.Intersects(b)),
+                n => !bounds.Any(b => n.BoundingBoxExactGlobal.Intersects(b)),
                 n => false,
                 p => !planes.Any((plane, i) => polygons[i].Contains(plane, w2p[i], poly2d[i], maxDistance, p, out double d)),
                 minCellExponent
@@ -273,7 +273,7 @@ namespace Aardvark.Geometry.Points
             var poly2d = new Polygon2d(polygon.GetPointArray().Map(p => w2p.TransformPos(p).XY));
             return CountPointsApproximately(node,
                 n => false,
-                n => !n.BoundingBoxExact.Intersects(bounds),
+                n => !n.BoundingBoxExactGlobal.Intersects(bounds),
                 minCellExponent
                 );
         }
@@ -303,7 +303,7 @@ namespace Aardvark.Geometry.Points
             var poly2d = polygons.Map((x, i) => new Polygon2d(x.GetPointArray().Map(p => w2p[i].TransformPos(p).XY)));
             return CountPointsApproximately(node,
                 n => false,
-                n => !bounds.Any(b => n.BoundingBoxExact.Intersects(b)),
+                n => !bounds.Any(b => n.BoundingBoxExactGlobal.Intersects(b)),
                 minCellExponent
                 );
         }
@@ -332,7 +332,7 @@ namespace Aardvark.Geometry.Points
             var w2p = plane.GetWorldToPlane();
             var poly2d = new Polygon2d(polygon.GetPointArray().Map(p => w2p.TransformPos(p).XY));
             return CountPointsApproximately(node,
-                n => !n.BoundingBoxExact.Intersects(bounds),
+                n => !n.BoundingBoxExactGlobal.Intersects(bounds),
                 n => false,
                 minCellExponent
                 );
@@ -362,7 +362,7 @@ namespace Aardvark.Geometry.Points
             var w2p = planes.Map(x => x.GetWorldToPlane());
             var poly2d = polygons.Map((x, i) => new Polygon2d(x.GetPointArray().Map(p => w2p[i].TransformPos(p).XY)));
             return CountPointsApproximately(node,
-                n => !bounds.Any(b => n.BoundingBoxExact.Intersects(b)),
+                n => !bounds.Any(b => n.BoundingBoxExactGlobal.Intersects(b)),
                 n => false,
                 minCellExponent
                 );

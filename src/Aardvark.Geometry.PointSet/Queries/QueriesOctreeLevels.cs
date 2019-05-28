@@ -151,7 +151,7 @@ namespace Aardvark.Geometry.Points
             )
         {
             if (level < 0) return 0;
-            if (!node.BoundingBoxExact.Intersects(bounds)) return 0;
+            if (!node.BoundingBoxExactGlobal.Intersects(bounds)) return 0;
 
             if (level == 0 || node.IsLeaf())
             {
@@ -234,7 +234,7 @@ namespace Aardvark.Geometry.Points
             )
         {
             if (level < 0) yield break;
-            if (!node.BoundingBoxExact.Intersects(bounds)) yield break;
+            if (!node.BoundingBoxExactGlobal.Intersects(bounds)) yield break;
 
             if (level == 0 || node.IsLeaf())
             {

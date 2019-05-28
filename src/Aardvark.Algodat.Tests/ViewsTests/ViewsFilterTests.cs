@@ -34,14 +34,12 @@ namespace Aardvark.Geometry.Tests
             var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps0 = RandomPositions(100);
 
-            var a = new PointCloudNode(storage,
-                id: Guid.NewGuid(),
-                cell: new Cell(ps0),
-                boundingBoxExact: new Box3d(ps0),
-                pointCountTree: ps0.Length,
-                subnodes: null,
-                storeOnCreation: true,
-                (Durable.Octree.PositionsGlobal3d, Guid.NewGuid(), ps0)
+            var a = new PointSetNode(storage, writeToStore: true,
+                (Durable.Octree.NodeId, Guid.NewGuid()),
+                (Durable.Octree.Cell, new Cell(ps0)),
+                (Durable.Octree.BoundingBoxExactGlobal, new Box3d(ps0)),
+                (Durable.Octree.PointCountTreeLeafs, ps0.LongLength),
+                (Durable.Octree.PositionsGlobal3d, ps0)
                 );
 
             var f = new FilteredNode(a, new FilterInsideBox3d(new Box3d(ps0)));
@@ -56,14 +54,12 @@ namespace Aardvark.Geometry.Tests
             var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps0 = RandomPositions(100);
 
-            var a = new PointCloudNode(storage,
-                id: Guid.NewGuid(),
-                cell: new Cell(ps0),
-                boundingBoxExact: new Box3d(ps0),
-                pointCountTree: ps0.Length,
-                subnodes: null,
-                storeOnCreation: true,
-                (Durable.Octree.PositionsGlobal3d, Guid.NewGuid(), ps0)
+            var a = new PointSetNode(storage, writeToStore: true,
+                (Durable.Octree.NodeId, Guid.NewGuid()),
+                (Durable.Octree.Cell, new Cell(ps0)),
+                (Durable.Octree.BoundingBoxExactGlobal, new Box3d(ps0)),
+                (Durable.Octree.PointCountTreeLeafs, ps0.LongLength),
+                (Durable.Octree.PositionsGlobal3d, ps0)
                 );
 
             var f = new FilteredNode(a, new FilterInsideBox3d(new Box3d(ps0) + V3d.IOO));
@@ -78,14 +74,12 @@ namespace Aardvark.Geometry.Tests
             var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps0 = RandomPositions(100);
 
-            var a = new PointCloudNode(storage,
-                id: Guid.NewGuid(),
-                cell: new Cell(ps0),
-                boundingBoxExact: new Box3d(ps0),
-                pointCountTree: ps0.Length,
-                subnodes: null,
-                storeOnCreation: true,
-                (Durable.Octree.PositionsGlobal3d, Guid.NewGuid(), ps0)
+            var a = new PointSetNode(storage, writeToStore: true,
+                (Durable.Octree.NodeId, Guid.NewGuid()),
+                (Durable.Octree.Cell, new Cell(ps0)),
+                (Durable.Octree.BoundingBoxExactGlobal, new Box3d(ps0)),
+                (Durable.Octree.PointCountTreeLeafs, ps0.LongLength),
+                (Durable.Octree.PositionsGlobal3d, ps0)
                 );
 
             var f = new FilteredNode(a, new FilterInsideBox3d(new Box3d(new V3d(0, 0, 0), new V3d(1, 1, 0.5))));
@@ -104,14 +98,12 @@ namespace Aardvark.Geometry.Tests
             var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps0 = RandomPositions(100);
 
-            var a = new PointCloudNode(storage,
-                id: Guid.NewGuid(),
-                cell: new Cell(ps0),
-                boundingBoxExact: new Box3d(ps0),
-                pointCountTree: ps0.Length,
-                subnodes: null,
-                storeOnCreation: true,
-                (Durable.Octree.PositionsGlobal3d, Guid.NewGuid(), ps0)
+            var a = new PointSetNode(storage, writeToStore: true,
+                (Durable.Octree.NodeId, Guid.NewGuid()),
+                (Durable.Octree.Cell, new Cell(ps0)),
+                (Durable.Octree.BoundingBoxExactGlobal, new Box3d(ps0)),
+                (Durable.Octree.PointCountTreeLeafs, ps0.LongLength),
+                (Durable.Octree.PositionsGlobal3d, ps0)
                 );
 
             var f = new FilteredNode(a, new FilterOutsideBox3d(new Box3d(ps0) + V3d.IOO));
@@ -126,14 +118,12 @@ namespace Aardvark.Geometry.Tests
             var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps0 = RandomPositions(100);
 
-            var a = new PointCloudNode(storage,
-                id: Guid.NewGuid(),
-                cell: new Cell(ps0),
-                boundingBoxExact: new Box3d(ps0),
-                pointCountTree: ps0.Length,
-                subnodes: null,
-                storeOnCreation: true,
-                (Durable.Octree.PositionsGlobal3d, Guid.NewGuid(), ps0)
+            var a = new PointSetNode(storage, writeToStore: true,
+                (Durable.Octree.NodeId, Guid.NewGuid()),
+                (Durable.Octree.Cell, new Cell(ps0)),
+                (Durable.Octree.BoundingBoxExactGlobal, new Box3d(ps0)),
+                (Durable.Octree.PointCountTreeLeafs, ps0.LongLength),
+                (Durable.Octree.PositionsGlobal3d, ps0)
                 );
 
             var f = new FilteredNode(a, new FilterOutsideBox3d(new Box3d(ps0)));
@@ -148,14 +138,12 @@ namespace Aardvark.Geometry.Tests
             var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps0 = RandomPositions(100);
 
-            var a = new PointCloudNode(storage,
-                id: Guid.NewGuid(),
-                cell: new Cell(ps0),
-                boundingBoxExact: new Box3d(ps0),
-                pointCountTree: ps0.Length,
-                subnodes: null,
-                storeOnCreation: true,
-                (Durable.Octree.PositionsGlobal3d, Guid.NewGuid(), ps0)
+            var a = new PointSetNode(storage, writeToStore: true,
+                (Durable.Octree.NodeId, Guid.NewGuid()),
+                (Durable.Octree.Cell, new Cell(ps0)),
+                (Durable.Octree.BoundingBoxExactGlobal, new Box3d(ps0)),
+                (Durable.Octree.PointCountTreeLeafs, ps0.LongLength),
+                (Durable.Octree.PositionsGlobal3d, ps0)
                 );
 
             var f = new FilteredNode(a, new FilterOutsideBox3d(new Box3d(new V3d(0, 0, 0), new V3d(1, 1, 0.5))));
@@ -174,15 +162,13 @@ namespace Aardvark.Geometry.Tests
             var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps0 = RandomPositions(10);
 
-            var a = new PointCloudNode(storage,
-                id: Guid.NewGuid(),
-                cell: new Cell(ps0),
-                boundingBoxExact: new Box3d(ps0),
-                pointCountTree: ps0.Length,
-                subnodes: null,
-                storeOnCreation: true,
-                (Durable.Octree.PositionsGlobal3d, Guid.NewGuid(), ps0),
-                (Durable.Octree.Intensities1i, Guid.NewGuid(), new[] { -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 })
+            var a = new PointSetNode(storage, writeToStore: true,
+                (Durable.Octree.NodeId, Guid.NewGuid()),
+                (Durable.Octree.Cell, new Cell(ps0)),
+                (Durable.Octree.BoundingBoxExactGlobal, new Box3d(ps0)),
+                (Durable.Octree.PointCountTreeLeafs, ps0.LongLength),
+                (Durable.Octree.PositionsGlobal3d, ps0),
+                (Durable.Octree.Intensities1i, new[] { -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 })
                 );
 
             var f = new FilteredNode(a, new FilterIntensity(new Range1i(-100, +100)));
@@ -197,15 +183,13 @@ namespace Aardvark.Geometry.Tests
             var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps0 = RandomPositions(10);
 
-            var a = new PointCloudNode(storage,
-                id: Guid.NewGuid(),
-                cell: new Cell(ps0),
-                boundingBoxExact: new Box3d(ps0),
-                pointCountTree: ps0.Length,
-                subnodes: null,
-                storeOnCreation: true,
-                (Durable.Octree.PositionsGlobal3d, Guid.NewGuid(), ps0),
-                (Durable.Octree.Intensities1i, Guid.NewGuid(), new[] { -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 })
+            var a = new PointSetNode(storage, writeToStore: true,
+                (Durable.Octree.NodeId, Guid.NewGuid()),
+                (Durable.Octree.Cell, new Cell(ps0)),
+                (Durable.Octree.BoundingBoxExactGlobal, new Box3d(ps0)),
+                (Durable.Octree.PointCountTreeLeafs, ps0.LongLength),
+                (Durable.Octree.PositionsGlobal3d, ps0),
+                (Durable.Octree.Intensities1i, new[] { -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 })
                 );
 
             var f = new FilteredNode(a, new FilterIntensity(new Range1i(6, 10000)));
@@ -220,15 +204,13 @@ namespace Aardvark.Geometry.Tests
             var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps0 = RandomPositions(10);
 
-            var a = new PointCloudNode(storage,
-                id: Guid.NewGuid(),
-                cell: new Cell(ps0),
-                boundingBoxExact: new Box3d(ps0),
-                pointCountTree: ps0.Length,
-                subnodes: null,
-                storeOnCreation: true,
-                (Durable.Octree.PositionsGlobal3d, Guid.NewGuid(), ps0),
-                (Durable.Octree.Intensities1i, Guid.NewGuid(), new[] { -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 })
+            var a = new PointSetNode(storage, writeToStore: true,
+                (Durable.Octree.NodeId, Guid.NewGuid()),
+                (Durable.Octree.Cell, new Cell(ps0)),
+                (Durable.Octree.BoundingBoxExactGlobal, new Box3d(ps0)),
+                (Durable.Octree.PointCountTreeLeafs, ps0.LongLength),
+                (Durable.Octree.PositionsGlobal3d, ps0),
+                (Durable.Octree.Intensities1i, new[] { -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 })
                 );
 
             var f = new FilteredNode(a, new FilterIntensity(new Range1i(-2, +2)));

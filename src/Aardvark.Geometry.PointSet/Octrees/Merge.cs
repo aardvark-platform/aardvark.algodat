@@ -30,30 +30,30 @@ namespace Aardvark.Geometry.Points
         /// If cell is a leaf, it will be split once (non-recursive, without taking into account any split limit).
         /// If cell is not a leaf, this is an invalid operation.
         /// </summary>
-        public static PointSetNode ForceSplitLeaf(this PointSetNode cell, ImportConfig config)
+        public static PointSetNode ForceSplitLeaf(this PointSetNode self, ImportConfig config)
         {
-            if (cell == null) throw new ArgumentNullException(nameof(cell));
-            if (cell.IsNotLeaf) throw new InvalidOperationException();
-            if (cell.PointCount == 0) throw new InvalidOperationException();
-            if (cell.PointCountTree != cell.PointCount) throw new InvalidOperationException();
+            if (self == null) throw new ArgumentNullException(nameof(self));
+            if (self.IsNotLeaf) throw new InvalidOperationException();
+            if (self.PointCount == 0) throw new InvalidOperationException();
+            if (self.PointCountTree != self.PointCount) throw new InvalidOperationException();
 
             var subnodesPoints = new List<V3d>[8];
-            var subnodesColors = cell.HasColors ? new List<C4b>[8] : null;
-            var subnodesNormals = cell.HasNormals ? new List<V3f>[8] : null;
-            var subnodesIntensities = cell.HasIntensities ? new List<int>[8] : null;
-            var subnodesClassifications = cell.HasClassifications ? new List<byte>[8] : null;
+            var subnodesColors = self.HasColors ? new List<C4b>[8] : null;
+            var subnodesNormals = self.HasNormals ? new List<V3f>[8] : null;
+            var subnodesIntensities = self.HasIntensities ? new List<int>[8] : null;
+            var subnodesClassifications = self.HasClassifications ? new List<byte>[8] : null;
 
-            var pa = cell.PositionsAbsolute;
-            var ca = cell.Colors?.Value;
-            var na = cell.Normals?.Value;
-            var ia = cell.Intensities?.Value;
-            var ka = cell.Classifications?.Value;
-            var imax = cell.PointCount;
+            var pa = self.PositionsAbsolute;
+            var ca = self.Colors?.Value;
+            var na = self.Normals?.Value;
+            var ia = self.Intensities?.Value;
+            var ka = self.Classifications?.Value;
+            var imax = self.PointCount;
             if (pa.Length != imax) throw new InvalidOperationException();
 
             for (var i = 0; i < imax; i++)
             {
-                var si = cell.GetSubIndex(pa[i]);
+                var si = self.GetSubIndex(pa[i]);
                 if (subnodesPoints[si] == null)
                 {
                     subnodesPoints[si] = new List<V3d>();
@@ -74,9 +74,9 @@ namespace Aardvark.Geometry.Points
             {
                 if (subnodesPoints[i] == null) continue;
 
-                var subCell = cell.Cell.GetOctant(i);
-                if (!cell.Cell.Contains(subCell)) throw new InvalidOperationException();
-                if (cell.Cell.Exponent != subCell.Exponent + 1) throw new InvalidOperationException();
+                var subCell = self.Cell.GetOctant(i);
+                if (!self.Cell.Contains(subCell)) throw new InvalidOperationException();
+                if (self.Cell.Exponent != subCell.Exponent + 1) throw new InvalidOperationException();
 
                 var chunk = new Chunk(subnodesPoints[i], subnodesColors?[i], subnodesNormals?[i], subnodesIntensities?[i], subnodesClassifications?[i], subCell.BoundingBox);
                 if (config.NormalizePointDensityGlobal)
@@ -86,20 +86,22 @@ namespace Aardvark.Geometry.Points
                 var builder = InMemoryPointSet.Build(subnodesPoints[i], subnodesColors?[i], subnodesNormals?[i], subnodesIntensities?[i], subnodesClassifications?[i],subCell, int.MaxValue);
                 var subnode = builder.ToPointSetCell(config.Storage, ct: config.CancellationToken);
                 if (subnode.PointCountTree > subnodesPoints[i].Count) throw new InvalidOperationException();
-                if (!cell.Cell.Contains(subnode.Cell)) throw new InvalidOperationException();
-                if (cell.Cell.Exponent != subnode.Cell.Exponent + 1) throw new InvalidOperationException();
+                if (!self.Cell.Contains(subnode.Cell)) throw new InvalidOperationException();
+                if (self.Cell.Exponent != subnode.Cell.Exponent + 1) throw new InvalidOperationException();
                 
                 subnodes[i] = subnode;
             }
 
-            var data = cell.Data.Add(Durable.Octree.SubnodesGuids, subnodes.Map(x => x?.Id ?? Guid.Empty));
-            var result = new PointSetNode(cell.Data, config.Storage, writeToStore: true);
+            var result = self
+                .WithUpsert(Durable.Octree.SubnodesGuids, subnodes.Map(x => x?.Id ?? Guid.Empty))
+                .WriteToStore()
+                ;
 
             // POST
             if (result.IsLeaf) throw new InvalidOperationException();
-            if (result.PointCountTree != cell.PointCountTree) throw new InvalidOperationException();
+            if (result.PointCountTree != self.PointCountTree) throw new InvalidOperationException();
             if (result.PointCount != 0) throw new InvalidOperationException();
-            if (result.Subnodes.Sum(x => x?.Value?.PointCountTree) > cell.PointCountTree) throw new InvalidOperationException();
+            if (result.Subnodes.Sum(x => x?.Value?.PointCountTree) > self.PointCountTree) throw new InvalidOperationException();
 
             return result;
         }
@@ -676,13 +678,12 @@ namespace Aardvark.Geometry.Points
                 }
             }
 
-            var data = a.Data
-                .Remove(Durable.Octree.PointCountTreeLeafs)
-                .Add   (Durable.Octree.PointCountTreeLeafs, pointCountTree)
-                .Remove(Durable.Octree.SubnodesGuids)
-                .Add   (Durable.Octree.SubnodesGuids, subcells.Map(x => x?.Id ?? Guid.Empty))
+            var result = a
+                .WithUpsert(Durable.Octree.PointCountTreeLeafs, pointCountTree)
+                .WithUpsert(Durable.Octree.SubnodesGuids, subcells.Map(x => x?.Id ?? Guid.Empty))
+                .WriteToStore()
                 ;
-            var result = new PointSetNode(data, config.Storage, writeToStore: true);
+
             //pointsMergedCallback?.Invoke(result.PointCountTree);
             if (a.PointCountTree + b.PointCountTree != pointCountTree) throw new InvalidOperationException("Invariant 3db845c1-9d20-42b9-beb4-81684d47b1eb.");
             if (a.Cell != result.Cell) throw new InvalidOperationException("Invariant 97239777-8a0c-4158-853b-e9ebef63fda8.");

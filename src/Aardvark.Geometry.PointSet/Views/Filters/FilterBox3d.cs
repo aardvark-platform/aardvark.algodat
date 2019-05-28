@@ -22,10 +22,10 @@ namespace Aardvark.Geometry.Points
         public FilterInsideBox3d(Box3d filter) { Box = filter; }
 
         /// <summary></summary>
-        public bool IsFullyInside(IPointCloudNode node) => Box.Contains(node.BoundingBoxExact);
+        public bool IsFullyInside(IPointCloudNode node) => Box.Contains(node.BoundingBoxExactGlobal);
 
         /// <summary></summary>
-        public bool IsFullyOutside(IPointCloudNode node) => !Box.Intersects(node.BoundingBoxExact);
+        public bool IsFullyOutside(IPointCloudNode node) => !Box.Intersects(node.BoundingBoxExactGlobal);
 
         /// <summary></summary>
         public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int> selected = null)
@@ -71,10 +71,10 @@ namespace Aardvark.Geometry.Points
         public FilterOutsideBox3d(Box3d filter) { Box = filter; }
 
         /// <summary></summary>
-        public bool IsFullyInside(IPointCloudNode node) => !Box.Intersects(node.BoundingBoxExact);
+        public bool IsFullyInside(IPointCloudNode node) => !Box.Intersects(node.BoundingBoxExactGlobal);
 
         /// <summary></summary>
-        public bool IsFullyOutside(IPointCloudNode node) => Box.Contains(node.BoundingBoxExact);
+        public bool IsFullyOutside(IPointCloudNode node) => Box.Contains(node.BoundingBoxExactGlobal);
 
         /// <summary></summary>
         public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int> selected = null)

@@ -42,7 +42,7 @@ namespace Aardvark.Geometry.Points
 
             // if query point is farther from bounding box than maxDistanceToPoint,
             // then there cannot be a result and we are done
-            var eps = node.BoundingBoxExact.Distance(query);
+            var eps = node.BoundingBoxExactGlobal.Distance(query);
             if (eps > maxDistanceToPoint) return PointsNearObject<V3d>.Empty;
 
             if (node.IsLeaf())

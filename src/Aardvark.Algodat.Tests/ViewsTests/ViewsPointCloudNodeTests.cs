@@ -31,18 +31,17 @@ namespace Aardvark.Geometry.Tests
             var storage = PointCloud.CreateInMemoryStore(cache: default);
 
             var aId = Guid.NewGuid();
-            var a = new PointCloudNode(storage,
-                id              : aId,
-                cell            : Cell.Unit,
-                boundingBoxExact: Box3d.Unit,
-                pointCountTree  : 0,
-                subnodes        : null,
-                storeOnCreation : true
+
+            var a = new PointSetNode(storage, writeToStore: true,
+                (Durable.Octree.NodeId, aId),
+                (Durable.Octree.Cell, Cell.Unit),
+                (Durable.Octree.BoundingBoxExactGlobal, Box3d.Unit),
+                (Durable.Octree.PointCountTreeLeafs, 0L)
                 );
 
             Assert.IsTrue(a.Id == aId);
             Assert.IsTrue(a.Cell == Cell.Unit);
-            Assert.IsTrue(a.BoundingBoxExact == Box3d.Unit);
+            Assert.IsTrue(a.BoundingBoxExactGlobal == Box3d.Unit);
         }
 
         [Test]
@@ -53,46 +52,17 @@ namespace Aardvark.Geometry.Tests
             var ps0Id = Guid.NewGuid();
             var aId = Guid.NewGuid();
 
-            var a = new PointCloudNode(storage,
-                id              : aId,
-                cell            : new Cell(ps0),
-                boundingBoxExact: new Box3d(ps0),
-                pointCountTree  : ps0.Length,
-                subnodes        : null,
-                storeOnCreation : true,
-                (Durable.Octree.PositionsGlobal3d, ps0Id, ps0)
+            var a = new PointSetNode(storage, writeToStore: true,
+                (Durable.Octree.NodeId, aId),
+                (Durable.Octree.Cell, new Cell(ps0)),
+                (Durable.Octree.BoundingBoxExactGlobal, new Box3d(ps0)),
+                (Durable.Octree.PointCountTreeLeafs, ps0.LongLength),
+                (Durable.Octree.PositionsGlobal3d, ps0)
                 );
 
             Assert.IsTrue(a.Id == aId);
             Assert.IsTrue(a.Cell == new Cell(ps0));
-            Assert.IsTrue(a.BoundingBoxExact == new Box3d(ps0));
-            Assert.IsTrue(a.HasPositions());
-        }
-
-        [Test]
-        public void Create_KdTree()
-        {
-            var storage = PointCloud.CreateInMemoryStore(cache: default);
-            var ps0 = new V3d[100].SetByIndex(_ => RandomPosition()).Map(p => new V3f(p - new V3d(0.5, 0.5, 0.5)));
-            var ps0Id = Guid.NewGuid();
-            var kd0Id = Guid.NewGuid();
-            var bb = (Box3d)new Box3f(ps0);
-
-            var aId = Guid.NewGuid();
-            var a = new PointCloudNode(storage,
-                id              : aId,
-                cell            : new Cell(ps0),
-                boundingBoxExact: bb,
-                pointCountTree  : ps0.Length,
-                subnodes        : null,
-                storeOnCreation : true,
-                (Durable.Octree.PositionsLocal3fReference, ps0Id, ps0),
-                (Durable.Octree.PointRkdTreeFDataReference, kd0Id, ps0)
-                );
-
-            Assert.IsTrue(a.Id == aId);
-            Assert.IsTrue(a.Cell == new Cell(ps0));
-            Assert.IsTrue(a.BoundingBoxExact == bb);
+            Assert.IsTrue(a.BoundingBoxExactGlobal == new Box3d(ps0));
             Assert.IsTrue(a.HasPositions());
         }
     }

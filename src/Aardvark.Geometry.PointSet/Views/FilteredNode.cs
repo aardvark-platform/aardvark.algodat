@@ -80,7 +80,7 @@ namespace Aardvark.Geometry.Points
         public V3d Center => Node.Center;
 
         /// <summary></summary>
-        public Box3d BoundingBoxExact => Node.BoundingBoxExact;
+        public Box3d BoundingBoxExactGlobal => Node.BoundingBoxExactGlobal;
 
         /// <summary></summary>
         public long PointCountTree => Node.PointCountTree;
@@ -114,22 +114,13 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public void Dispose() => Node.Dispose();
+        public bool Has(Durable.Def what) => Node.Has(what);
 
-        ///// <summary></summary>
-        //public bool TryGetPropertyKey(string property, out string key)
-        //{
-        //    if (Node.TryGetPropertyKey(property, out string originalKey))
-        //    {
-        //        key = (Id + originalKey).ToGuid().ToString();
-        //        return true;
-        //    }
-        //    else
-        //    {
-        //        key = null;
-        //        return false;
-        //    }
-        //}
+        /// <summary></summary>
+        public bool TryGetValue(Durable.Def what, out object o) => Node.TryGetValue(what, out o);
+
+        /// <summary></summary>
+        public void Dispose() => Node.Dispose();
 
         private PersistentRef<T[]> GetSubArray<T>(object originalValue)
         {
@@ -147,36 +138,6 @@ namespace Aardvark.Geometry.Points
             }
 
         }
-
-        ///// <summary></summary>
-        //public bool TryGetPropertyValue(string property, out object value)
-        //{
-        //    if (Node.TryGetPropertyValue(property, out object originalValue))
-        //    {
-
-        //        switch (property)
-        //        {
-        //            case PointCloudAttribute.Classifications: value = GetSubArray<byte>(originalValue); break;
-
-        //            case PointCloudAttribute.Colors: value = GetSubArray<C4b>(originalValue); break;
-
-        //            case PointCloudAttribute.Intensities: value = GetSubArray<int>(originalValue); break;
-                        
-        //            case PointCloudAttribute.Normals:
-        //            case PointCloudAttribute.Positions: value = GetSubArray<V3f>(originalValue); break;
-
-        //            case PointCloudAttribute.KdTree: throw new NotImplementedException();
-
-        //            default: throw new InvalidOperationException($"Cannot convert '{property}' to property.");
-        //        }
-        //        return true;
-        //    }
-        //    else
-        //    {
-        //        value = null;
-        //        return false;
-        //    }
-        //}
 
         /// <summary></summary>
         public JObject ToJson() => JObject.FromObject(new 

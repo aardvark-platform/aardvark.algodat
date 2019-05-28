@@ -27,53 +27,54 @@ namespace Aardvark.Geometry.Points
     {
         #region Has*
 
-        private static bool Has(IPointCloudNode n, Durable.Def what)
-        {
-            switch (n.FilterState)
-            {
-                case FilterState.FullyOutside:
-                    return false;
-                case FilterState.FullyInside:
-                case FilterState.Partial:
-                    return n.Data.ContainsKey(what);
-                default:
-                    throw new InvalidOperationException($"Unknown FilterState {n.FilterState}.");
-            }
-        }
+        //private static bool Has(IPointCloudNode n, Durable.Def what)
+        //{
+        //    switch (n.FilterState)
+        //    {
+        //        case FilterState.FullyOutside:
+        //            return false;
+        //        case FilterState.FullyInside:
+        //        case FilterState.Partial:
+        //            return n.Data.ContainsKey(what);
+        //        default:
+        //            throw new InvalidOperationException($"Unknown FilterState {n.FilterState}.");
+        //    }
+        //}
 
         /// <summary> </summary>
-        public static bool HasPositions(this IPointCloudNode self) => Has(self, Durable.Octree.PositionsLocal3fReference);
+        public static bool HasPositions(this IPointCloudNode self) => self.Has(Durable.Octree.PositionsLocal3fReference);
 
         /// <summary></summary>
-        public static bool HasColors(this IPointCloudNode self) => Has(self, Durable.Octree.Colors4bReference);
+        public static bool HasColors(this IPointCloudNode self) => self.Has(Durable.Octree.Colors4bReference);
 
         /// <summary></summary>
-        public static bool HasNormals(this IPointCloudNode self) => Has(self, Durable.Octree.Normals3fReference);
+        public static bool HasNormals(this IPointCloudNode self) => self.Has(Durable.Octree.Normals3fReference);
 
         /// <summary></summary>
-        public static bool HasIntensities(this IPointCloudNode self) => Has(self, Durable.Octree.Intensities1iReference);
+        public static bool HasIntensities(this IPointCloudNode self) => self.Has(Durable.Octree.Intensities1iReference);
 
         /// <summary></summary>
-        public static bool HasKdTree(this IPointCloudNode self) => Has(self, Durable.Octree.PointRkdTreeFDataReference);
+        public static bool HasKdTree(this IPointCloudNode self) => self.Has(Durable.Octree.PointRkdTreeFDataReference);
         
         /// <summary></summary>
-        public static bool HasClassifications(this IPointCloudNode self) => Has(self, Durable.Octree.Classifications1bReference);
+        public static bool HasClassifications(this IPointCloudNode self) => self.Has(Durable.Octree.Classifications1bReference);
 
         #endregion
 
         #region Get*
 
-        private static PersistentRef<T> GetValue<T>(IPointCloudNode self, Durable.Def keyData,
-            Durable.Def keyRef, Func<string, T> get, Func<string, (bool, T)> tryGet
+        private static PersistentRef<T> GetValue<T>(IPointCloudNode self, 
+            Durable.Def keyData, Durable.Def keyRef,
+            Func<string, T> get, Func<string, (bool, T)> tryGet
             ) where T : class
         {
-            if (self.Data.TryGetValue(keyData, out var value))
+            if (self.TryGetValue(keyData, out var value))
             {
                 if (value is T x) return PersistentRef<T>.FromValue(x);
                 if (value is PersistentRef<T> pref) return pref;
             }
 
-            if (self.Data.TryGetValue(keyRef, out var o) && o is Guid id)
+            if (self.TryGetValue(keyRef, out var o) && o is Guid id)
                 return new PersistentRef<T>(id.ToString(), get, tryGet);
 
 //#if DEBUG
@@ -170,9 +171,6 @@ namespace Aardvark.Geometry.Points
                 case LinkedNode.Type:
                     data = LinkedNode.Parse(json, storage, resolver);
                     break;
-                case PointCloudNode.Type:
-                    data = PointCloudNode.Parse(json, storage, resolver);
-                    break;
                 default:
                     throw new InvalidOperationException($"Unknown node type '{nodeType}'.");
             }
@@ -229,7 +227,7 @@ namespace Aardvark.Geometry.Points
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IntersectsPositiveHalfSpace(this IPointCloudNode self, in Plane3d plane)
         {
-            var corners = self.BoundingBoxExact.ComputeCorners();
+            var corners = self.BoundingBoxExactGlobal.ComputeCorners();
             for (var i = 0; i < 8; i++)
             {
                 if (plane.Height(corners[i]) > 0) return true;
@@ -242,7 +240,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static bool IntersectsNegativeHalfSpace(this IPointCloudNode self, in Plane3d plane)
         {
-            var corners = self.BoundingBoxExact.ComputeCorners();
+            var corners = self.BoundingBoxExactGlobal.ComputeCorners();
             for (var i = 0; i < 8; i++)
             {
                 if (plane.Height(corners[i]) < 0) return true;
@@ -256,7 +254,7 @@ namespace Aardvark.Geometry.Points
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool InsidePositiveHalfSpace(this IPointCloudNode self, in Plane3d plane)
         {
-            self.BoundingBoxExact.GetMinMaxInDirection(plane.Normal, out V3d min, out V3d max);
+            self.BoundingBoxExactGlobal.GetMinMaxInDirection(plane.Normal, out V3d min, out V3d max);
             return plane.Height(min) > 0;
         }
 
@@ -266,7 +264,7 @@ namespace Aardvark.Geometry.Points
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool InsideNegativeHalfSpace(this IPointCloudNode self, in Plane3d plane)
         {
-            self.BoundingBoxExact.GetMinMaxInDirection(-plane.Normal, out V3d min, out V3d max);
+            self.BoundingBoxExactGlobal.GetMinMaxInDirection(-plane.Normal, out V3d min, out V3d max);
             return plane.Height(min) < 0;
         }
 

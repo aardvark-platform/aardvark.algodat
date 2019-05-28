@@ -75,45 +75,9 @@ namespace Aardvark.Geometry.Tests
             var link1 = store.GetPointCloudNode("link", resolver);
 
             Assert.IsTrue(link1.Cell == new Cell(ps0));
-            Assert.IsTrue(link1.BoundingBoxExact == pointcloud.BoundingBox);
+            Assert.IsTrue(link1.BoundingBoxExactGlobal == pointcloud.BoundingBox);
             Assert.IsTrue(link1.HasPositions());
             Assert.IsTrue(link1.GetPositionsAbsolute().Length == 100);
-        }
-
-        #endregion
-
-        #region PointCloudNode
-
-        [Test]
-        public void PointCloudNode_RoundtripStore()
-        {
-            var storepath = Path.Combine(Config.TempDataDir, Guid.NewGuid().ToString());
-            using (var store = PointCloud.OpenStore(storepath, cache: default))
-            {
-                var resolver = IdentityResolver.Default;
-
-                var cell = new Cell(1, 2, 3, 0);
-                var aPs = RandomPositions(100).Map(p => (V3f)(p - new V3d(0.5, 0.5, 0.5)));
-                store.Add("a.positions", aPs);
-
-                var bb = (Box3d)new Box3f(aPs);
-                var aId = Guid.NewGuid();
-                var a = new PointCloudNode(store, aId, cell, bb, aPs.Length, null, storeOnCreation: true,
-                    (Durable.Octree.PositionsLocal3f, Guid.NewGuid(), aPs)
-                    );
-                store.Add("a", a);
-
-
-                var json = a.ToJson();
-
-                var b = PointCloudNode.Parse(json, store, resolver);
-                Assert.IsTrue(b.Id == aId);
-                Assert.IsTrue(b.Cell == cell);
-                Assert.IsTrue(b.BoundingBoxExact.Min.ApproxEqual(bb.Min, 0.000000001) && b.BoundingBoxExact.Max.ApproxEqual(bb.Max, 0.000000001));
-                Assert.IsTrue(b.PointCountTree == 100);
-                Assert.IsTrue(b.HasPositions());
-                Assert.IsTrue(b.GetPositionsAbsolute().Length == 100);
-            }
         }
 
         #endregion

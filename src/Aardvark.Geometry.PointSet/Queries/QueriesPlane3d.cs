@@ -40,8 +40,8 @@ namespace Aardvark.Geometry.Points
             this IPointCloudNode node, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
             )
             => QueryPoints(node,
-                n => plane.Contains(maxDistance, node.BoundingBoxExact),
-                n => !node.BoundingBoxExact.Intersects(plane, maxDistance),
+                n => plane.Contains(maxDistance, node.BoundingBoxExactGlobal),
+                n => !node.BoundingBoxExactGlobal.Intersects(plane, maxDistance),
                 p => Math.Abs(plane.Height(p)) <= maxDistance,
                 minCellExponent
                 );
@@ -61,8 +61,8 @@ namespace Aardvark.Geometry.Points
             this IPointCloudNode node, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
             )
             => QueryPoints(node,
-                n => planes.Any(plane => plane.Contains(maxDistance, node.BoundingBoxExact)),
-                n => !planes.Any(plane => node.BoundingBoxExact.Intersects(plane, maxDistance)),
+                n => planes.Any(plane => plane.Contains(maxDistance, node.BoundingBoxExactGlobal)),
+                n => !planes.Any(plane => node.BoundingBoxExactGlobal.Intersects(plane, maxDistance)),
                 p => planes.Any(plane => Math.Abs(plane.Height(p)) <= maxDistance),
                 minCellExponent
                 );
@@ -82,8 +82,8 @@ namespace Aardvark.Geometry.Points
             this IPointCloudNode node, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
             )
             => QueryPoints(node,
-                n => !node.BoundingBoxExact.Intersects(plane, maxDistance),
-                n => plane.Contains(maxDistance, node.BoundingBoxExact),
+                n => !node.BoundingBoxExactGlobal.Intersects(plane, maxDistance),
+                n => plane.Contains(maxDistance, node.BoundingBoxExactGlobal),
                 p => Math.Abs(plane.Height(p)) > maxDistance,
                 minCellExponent
                 );
@@ -103,8 +103,8 @@ namespace Aardvark.Geometry.Points
             this IPointCloudNode node, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
             )
             => QueryPoints(node,
-                n => !planes.Any(plane => node.BoundingBoxExact.Intersects(plane, maxDistance)),
-                n => planes.Any(plane => plane.Contains(maxDistance, node.BoundingBoxExact)),
+                n => !planes.Any(plane => node.BoundingBoxExactGlobal.Intersects(plane, maxDistance)),
+                n => planes.Any(plane => plane.Contains(maxDistance, node.BoundingBoxExactGlobal)),
                 p => !planes.Any(plane => Math.Abs(plane.Height(p)) <= maxDistance),
                 minCellExponent
                 );
@@ -128,8 +128,8 @@ namespace Aardvark.Geometry.Points
             this IPointCloudNode node, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
             )
             => CountPoints(node,
-                n => plane.Contains(maxDistance, node.BoundingBoxExact),
-                n => !node.BoundingBoxExact.Intersects(plane, maxDistance),
+                n => plane.Contains(maxDistance, node.BoundingBoxExactGlobal),
+                n => !node.BoundingBoxExactGlobal.Intersects(plane, maxDistance),
                 p => Math.Abs(plane.Height(p)) <= maxDistance,
                 minCellExponent
                 );
@@ -149,8 +149,8 @@ namespace Aardvark.Geometry.Points
             this IPointCloudNode node, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
             )
             => CountPoints(node,
-                n => planes.Any(plane => plane.Contains(maxDistance, node.BoundingBoxExact)),
-                n => !planes.Any(plane => node.BoundingBoxExact.Intersects(plane, maxDistance)),
+                n => planes.Any(plane => plane.Contains(maxDistance, node.BoundingBoxExactGlobal)),
+                n => !planes.Any(plane => node.BoundingBoxExactGlobal.Intersects(plane, maxDistance)),
                 p => planes.Any(plane => Math.Abs(plane.Height(p)) <= maxDistance),
                 minCellExponent
                 );
@@ -170,8 +170,8 @@ namespace Aardvark.Geometry.Points
             this IPointCloudNode node, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
             )
             => CountPoints(node,
-                n => !node.BoundingBoxExact.Intersects(plane, maxDistance),
-                n => plane.Contains(maxDistance, node.BoundingBoxExact),
+                n => !node.BoundingBoxExactGlobal.Intersects(plane, maxDistance),
+                n => plane.Contains(maxDistance, node.BoundingBoxExactGlobal),
                 p => Math.Abs(plane.Height(p)) > maxDistance,
                 minCellExponent
                 );
@@ -191,8 +191,8 @@ namespace Aardvark.Geometry.Points
             this IPointCloudNode node, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
             )
             => CountPoints(node,
-                n => !planes.Any(plane => node.BoundingBoxExact.Intersects(plane, maxDistance)),
-                n => planes.Any(plane => plane.Contains(maxDistance, node.BoundingBoxExact)),
+                n => !planes.Any(plane => node.BoundingBoxExactGlobal.Intersects(plane, maxDistance)),
+                n => planes.Any(plane => plane.Contains(maxDistance, node.BoundingBoxExactGlobal)),
                 p => !planes.Any(plane => Math.Abs(plane.Height(p)) <= maxDistance),
                 minCellExponent
                 );
@@ -220,8 +220,8 @@ namespace Aardvark.Geometry.Points
             this IPointCloudNode node, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
             )
             => CountPointsApproximately(node,
-                n => plane.Contains(maxDistance, node.BoundingBoxExact),
-                n => !node.BoundingBoxExact.Intersects(plane, maxDistance),
+                n => plane.Contains(maxDistance, node.BoundingBoxExactGlobal),
+                n => !node.BoundingBoxExactGlobal.Intersects(plane, maxDistance),
                 minCellExponent
                 );
 
@@ -244,8 +244,8 @@ namespace Aardvark.Geometry.Points
             this IPointCloudNode node, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
             )
             => CountPointsApproximately(node,
-                n => planes.Any(plane => plane.Contains(maxDistance, node.BoundingBoxExact)),
-                n => !planes.Any(plane => node.BoundingBoxExact.Intersects(plane, maxDistance)),
+                n => planes.Any(plane => plane.Contains(maxDistance, node.BoundingBoxExactGlobal)),
+                n => !planes.Any(plane => node.BoundingBoxExactGlobal.Intersects(plane, maxDistance)),
                 minCellExponent
                 );
 
@@ -268,8 +268,8 @@ namespace Aardvark.Geometry.Points
             this IPointCloudNode node, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
             )
             => CountPointsApproximately(node,
-                n => !node.BoundingBoxExact.Intersects(plane, maxDistance),
-                n => plane.Contains(maxDistance, node.BoundingBoxExact),
+                n => !node.BoundingBoxExactGlobal.Intersects(plane, maxDistance),
+                n => plane.Contains(maxDistance, node.BoundingBoxExactGlobal),
                 minCellExponent
                 );
 
@@ -292,8 +292,8 @@ namespace Aardvark.Geometry.Points
             this IPointCloudNode node, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
             )
             => CountPointsApproximately(node,
-                n => !planes.Any(plane => node.BoundingBoxExact.Intersects(plane, maxDistance)),
-                n => planes.Any(plane => plane.Contains(maxDistance, node.BoundingBoxExact)),
+                n => !planes.Any(plane => node.BoundingBoxExactGlobal.Intersects(plane, maxDistance)),
+                n => planes.Any(plane => plane.Contains(maxDistance, node.BoundingBoxExactGlobal)),
                 minCellExponent
                 );
         

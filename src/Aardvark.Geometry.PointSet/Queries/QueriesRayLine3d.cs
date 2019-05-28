@@ -31,7 +31,7 @@ namespace Aardvark.Geometry.Points
         {
             ray.Direction = ray.Direction.Normalized;
             var data = self.Octree.Value;
-            var bbox = data.BoundingBoxExact;
+            var bbox = data.BoundingBoxExactGlobal;
 
             var line = Clip(bbox, ray);
             if (!line.HasValue) return Enumerable.Empty<PointsNearObject<Line3d>>();
@@ -54,7 +54,7 @@ namespace Aardvark.Geometry.Points
             this IPointCloudNode node, Line3d lineSegment, double maxDistanceToRay
             )
         {
-            if (!node.BoundingBoxExact.Intersects(lineSegment))
+            if (!node.BoundingBoxExactGlobal.Intersects(lineSegment))
             {
                 yield break;
             }

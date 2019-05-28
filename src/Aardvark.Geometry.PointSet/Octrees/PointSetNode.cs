@@ -22,7 +22,6 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -36,6 +35,14 @@ namespace Aardvark.Geometry.Points
     public class PointSetNode : IPointCloudNode
     {
         #region Construction
+        /// <summary>
+        /// Creates node.
+        /// </summary>
+        public PointSetNode(Storage storage, bool writeToStore, params (Durable.Def, object)[] props)
+            : this(ImmutableDictionary<Durable.Def, object>.Empty, storage, writeToStore)
+        {
+            Data = Data.AddRange(props.Select(x => new KeyValuePair<Durable.Def, object>(x.Item1, x.Item2)));
+        }
 
         /// <summary>
         /// Creates node.
@@ -100,8 +107,7 @@ namespace Aardvark.Geometry.Points
                 }
             }
 
-            if (writeToStore) storage.Add(Id.ToString(), this);
-            //else Console.WriteLine($"PointSetNode({Id})");
+            if (writeToStore) WriteToStore();
 
 #if DEBUG
             if (PositionsId == null && PointCount != 0) throw new InvalidOperationException();
@@ -143,6 +149,15 @@ namespace Aardvark.Geometry.Points
             }
         }
 
+        /// <summary>
+        /// Writes this node to store.
+        /// </summary>
+        public PointSetNode WriteToStore()
+        {
+            Storage.Add(Id.ToString(), this);
+            return this;
+        }
+
         #endregion
 
         #region Properties (state to serialize)
@@ -150,7 +165,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Durable properties.
         /// </summary>
-        public ImmutableDictionary<Durable.Def, object> Data { get; } = ImmutableDictionary<Durable.Def, object>.Empty;
+        private ImmutableDictionary<Durable.Def, object> Data { get; } = ImmutableDictionary<Durable.Def, object>.Empty;
 
         #endregion
 
@@ -312,7 +327,6 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// Number of points in this node (without subnodes).
-        /// Is always 0 for inner nodes. 
         /// </summary>
         [JsonIgnore]
         public long PointCount => IsLeaf ? PointCountTree : 0;
@@ -778,49 +792,52 @@ namespace Aardvark.Geometry.Points
 #endif
 
             var pointCountTree = subnodes.Sum(x => x?.PointCountTree);
-            var data = Data
-                .Remove(Durable.Octree.Cell)
-                .Add(Durable.Octree.Cell, Cell)
-                .Remove(Durable.Octree.PointCountTreeLeafs)
-                .Add(Durable.Octree.PointCountTreeLeafs, pointCountTree ?? 0)
-                .Remove(Durable.Octree.SubnodesGuids)
-                .Add(Durable.Octree.SubnodesGuids, subnodes.Map(x => x?.Id ?? Guid.Empty))
+
+            return this
+                .WithUpsert(Durable.Octree.Cell, Cell)
+                .WithUpsert(Durable.Octree.PointCountTreeLeafs, pointCountTree ?? 0L)
+                .WithUpsert(Durable.Octree.SubnodesGuids, subnodes.Map(x => x?.Id ?? Guid.Empty))
+                .WriteToStore()
                 ;
-            return new PointSetNode(data, Storage, true);
         }
 
         /// <summary>
-        /// Returns new node with added data. Existing entries are replaced.
+        /// Returns new node with added/replaced data.
+        /// If existing entry is replaced, then the node gets a new id.
+        /// Node is NOT written to store. Use WriteToStore if you want this.
         /// </summary>
-        internal PointSetNode WithAddedOrReplacedData(ImmutableDictionary<Durable.Def, object> additionalData)
+        internal PointSetNode WithUpsert(Durable.Def def, object x)
         {
-            var data = Data.AddRange(additionalData)
-                .Remove(Durable.Octree.Cell)
-                .Add(Durable.Octree.Cell, Cell)
-                .Remove(Durable.Octree.PointCountTreeLeafs)
-                .Add(Durable.Octree.PointCountTreeLeafs, PointCountTree)
-                .Remove(Durable.Octree.SubnodesGuids)
-                .Add(Durable.Octree.SubnodesGuids, SubnodeIds.Map(x => x ?? Guid.Empty))
-                ;
-            return new PointSetNode(data, Storage, true);
+            var data = Data;
+            if (data.ContainsKey(def))
+            {
+                data = data
+                    .RemoveRange(new[] { def, Durable.Octree.NodeId })
+                    .Add(Durable.Octree.NodeId, Guid.NewGuid())
+                    ;
+            }
+            data = data.Add(def, x);
+            return new PointSetNode(data, Storage, false);
         }
 
         /// <summary>
-        /// Returns new node with added data. Existing entry is replaced.
-        /// </summary>
-        internal PointSetNode With(Durable.Def def, object x, bool writeToStore = true)
-        {
-            var data = Data.Add(def, x);
-            return new PointSetNode(data, Storage, writeToStore);
-        }
-
-        /// <summary>
-        /// Returns new node with given entry removed.
+        /// Returns new node with given entry removed or same node if entry does not exist.
+        /// If 
         /// </summary>
         internal PointSetNode Without(Durable.Def def, bool writeToStore = true)
         {
-            var data = Data.Remove(def);
-            return new PointSetNode(data, Storage, writeToStore);
+            if (Data.ContainsKey(def))
+            {
+                var data = Data
+                    .RemoveRange(new[] { def, Durable.Octree.NodeId })
+                    .Add(Durable.Octree.NodeId, Guid.NewGuid())
+                    ;
+                return new PointSetNode(data, Storage, writeToStore);
+            }
+            else
+            {
+                return this;
+            }
         }
 
         #endregion
@@ -946,6 +963,12 @@ namespace Aardvark.Geometry.Points
             }
         }
 
+        /// <summary></summary>
+        public bool Has(Durable.Def what) => Data.ContainsKey(what);
+
+        /// <summary></summary>
+        public bool TryGetValue(Durable.Def what, out object o) => Data.TryGetValue(what, out o);
+
         Storage IPointCloudNode.Storage => Storage;
 
 
@@ -966,8 +989,9 @@ namespace Aardvark.Geometry.Points
                 }
             }
         }
+
         /// <summary></summary>
-        Box3d IPointCloudNode.BoundingBoxExact
+        public Box3d BoundingBoxExactGlobal
         {
             get
             {
