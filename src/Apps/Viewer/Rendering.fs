@@ -112,6 +112,7 @@ module Rendering =
                 overlayAlpha = Mod.init 0.0
                 maxSplits = Mod.init 8
                 renderBounds = Mod.init false
+                splitfactor = Mod.init 0.4
                 budget = Mod.init -(256L <<< 10)
                 lighting = Mod.init true
                 colors = Mod.init true
@@ -136,7 +137,7 @@ module Rendering =
 
                 let vis =
                     if c then PointVisualization.Color ||| vis
-                    else PointVisualization.White ||| vis
+                    else PointVisualization.Normals ||| vis
                     
                 let vis =
                     if aa then PointVisualization.Antialias ||| vis
@@ -299,7 +300,7 @@ module Rendering =
             |> Sg.pass afterMain
 
         let sg =
-            Sg.LodTreeNode(config.stats, picktrees, true, config.budget, config.renderBounds, config.maxSplits, win.Time, pcs) :> ISg
+            Sg.LodTreeNode(config.stats, picktrees, true, config.budget, config.splitfactor, config.renderBounds, config.maxSplits, win.Time, pcs) :> ISg
             |> Sg.uniform "PointSize" config.pointSize
             |> Sg.uniform "ViewportSize" win.Sizes
             |> Sg.uniform "PointVisualization" vis

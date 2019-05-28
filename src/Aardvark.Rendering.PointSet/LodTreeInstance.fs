@@ -345,17 +345,17 @@ module LodTreeInstance =
         member x.GetData(ct, ips) = 
             load ct ips
             
-        member x.ShouldSplit (quality : float, view : Trafo3d, proj : Trafo3d) =
-            not isLeaf && angle view > 0.4 / quality
+        member x.ShouldSplit (splitfactor : float, quality : float, view : Trafo3d, proj : Trafo3d) =
+            not isLeaf && angle view > splitfactor / quality
 
-        member x.ShouldCollapse (quality : float, view : Trafo3d, proj : Trafo3d) =
-            angle view < 0.3 / quality
+        member x.ShouldCollapse (splitfactor : float, quality : float, view : Trafo3d, proj : Trafo3d) =
+            angle view < (splitfactor * 0.75) / quality
             
-        member x.SplitQuality (view : Trafo3d, proj : Trafo3d) =
-            0.4 / angle view
+        member x.SplitQuality (splitfactor : float, view : Trafo3d, proj : Trafo3d) =
+            splitfactor / angle view
 
-        member x.CollapseQuality (view : Trafo3d, proj : Trafo3d) =
-            0.3 / angle view
+        member x.CollapseQuality (splitfactor : float, view : Trafo3d, proj : Trafo3d) =
+            (splitfactor * 0.75) / angle view
 
         member x.DataSource = source
 
@@ -369,10 +369,10 @@ module LodTreeInstance =
             member x.DataSource = source
             member x.Parent = parent |> Option.map (fun n -> n :> ILodTreeNode)
             member x.Children = x.Children 
-            member x.ShouldSplit(q,v,p) = x.ShouldSplit(q,v,p)
-            member x.ShouldCollapse(q,v,p) = x.ShouldCollapse(q,v,p)
-            member x.SplitQuality(v,p) = x.SplitQuality(v,p)
-            member x.CollapseQuality(v,p) = x.CollapseQuality(v,p)
+            member x.ShouldSplit(s,q,v,p) = x.ShouldSplit(s,q,v,p)
+            member x.ShouldCollapse(s,q,v,p) = x.ShouldCollapse(s,q,v,p)
+            member x.SplitQuality(s,v,p) = x.SplitQuality(s,v,p)
+            member x.CollapseQuality(s,v,p) = x.CollapseQuality(s,v,p)
             member x.DataSize = 
                 failwith "not implemented"
                 //match self.TryGetCellAttribute<int64>(CellAttributes.PointCountCell.Id) with
@@ -456,8 +456,8 @@ module LodTreeInstance =
 
         let isLeaf = inner.TotalDataSize <= limit
                 
-        member x.ShouldSplit(q,v,p) =
-            not isLeaf && inner.ShouldSplit(q,v,p)
+        member x.ShouldSplit(s,q,v,p) =
+            not isLeaf && inner.ShouldSplit(s,q,v,p)
 
         member x.GetData(ct : CancellationToken, ips : MapExt<string, Type>) =
             if isLeaf then
@@ -487,10 +487,10 @@ module LodTreeInstance =
             member x.Children = 
                 if isLeaf then Seq.empty
                 else inner.Children |> Seq.map (fun n -> TreeViewNode(n, limit, Some (this :> ILodTreeNode), Some root) :> ILodTreeNode)
-            member x.ShouldSplit(q,v,p) = x.ShouldSplit(q,v,p)
-            member x.ShouldCollapse(q,v,p) = inner.ShouldCollapse(q,v,p)
-            member x.SplitQuality(v,p) = inner.SplitQuality(v,p)
-            member x.CollapseQuality(v,p) = inner.CollapseQuality(v,p)
+            member x.ShouldSplit(s,q,v,p) = x.ShouldSplit(s,q,v,p)
+            member x.ShouldCollapse(s,q,v,p) = inner.ShouldCollapse(s,q,v,p)
+            member x.SplitQuality(s,v,p) = inner.SplitQuality(s,v,p)
+            member x.CollapseQuality(s,v,p) = inner.CollapseQuality(s,v,p)
             member x.DataSize = if isLeaf then inner.TotalDataSize else inner.DataSize
             member x.TotalDataSize = inner.TotalDataSize
             member x.GetData(ct, ips) = x.GetData(ct, ips)
@@ -527,10 +527,10 @@ module LodTreeInstance =
             member x.DataSource = inner.DataSource
             member x.Parent = parent
             member x.Children = children :> seq<_>
-            member x.ShouldSplit(q,v,p) = inner.ShouldSplit(q,v,p)
-            member x.ShouldCollapse(q,v,p) = inner.ShouldCollapse(q,v,p)
-            member x.SplitQuality(v,p) = inner.SplitQuality(v,p)
-            member x.CollapseQuality(v,p) = inner.CollapseQuality(v,p)
+            member x.ShouldSplit(s,q,v,p) = inner.ShouldSplit(s,q,v,p)
+            member x.ShouldCollapse(s,q,v,p) = inner.ShouldCollapse(s,q,v,p)
+            member x.SplitQuality(s,v,p) = inner.SplitQuality(s,v,p)
+            member x.CollapseQuality(s,v,p) = inner.CollapseQuality(s,v,p)
             member x.DataSize = inner.DataSize
             member x.TotalDataSize = inner.TotalDataSize
             member x.GetData(ct, ips) = inner.GetData(ct, ips)
@@ -900,7 +900,7 @@ module PointSetShaders =
             [<PointSize>] s : float
             [<Semantic("PointPixelSize")>] ps : float
             [<PointCoord>] c : V2d
-
+            [<Normal>] n : V4d
             [<Semantic("TreeId")>] id : int
             [<Semantic("MaxTreeDepth")>] treeDepth : int
             [<FragCoord>] fc : V4d
@@ -1046,7 +1046,7 @@ module PointSetShaders =
                 if uniform.PointVisualization &&& PointVisualization.Color <> PointVisualization.None then
                     v.col.XYZ
                 else
-                    V3d.III
+                    v.n.XYZ * 0.5 + 0.5
 
             let o = uniform.Overlay.[v.id]
             let h = heat (float v.treeDepth / 6.0)
@@ -1067,6 +1067,57 @@ module PointSetShaders =
             //    else pixelDist //min pixelDist 30.0
 
             return { v with ps = float (int pixelDist); s = pixelDist; pos = fpp; depthRange = depthRange; vp = vpz.XYZ; vc = vpz.XYZ; col = V4d(col, v.col.W) }
+        }
+
+
+
+    let lodPointSize2 (v : PointVertex) =
+        vertex { 
+            let mv = uniform.ModelViewTrafos.[v.id]
+            //let f = if magic then 0.07 else 1.0 / 0.3
+
+            let vp = mv * v.pos
+            let pp = div (uniform.ProjTrafo * vp)
+
+            let pixelSize = uniform.Scales.[v.id]  * uniform.PointSize
+            let ndcRadius = pixelSize / V2d uniform.ViewportSize
+
+            let vpx = uniform.ProjTrafoInv * (V4d(pp.X + ndcRadius.X, pp.Y, pp.Z, 1.0)) |> div
+            let vpy = uniform.ProjTrafoInv * (V4d(pp.X, pp.Y + ndcRadius.Y, pp.Z, 1.0)) |> div
+            let dist = 0.5 * (Vec.length (vpx - vp.XYZ) + Vec.length (vpy - vp.XYZ))
+
+            let vpz = vp + V4d(0.0, 0.0, 0.5*dist, 0.0)
+            let fpp = uniform.ProjTrafo * vpz
+            let opp = uniform.ProjTrafo * vp
+        
+            let pp0 = opp.XYZ / opp.W
+            let ppz = fpp.XYZ / fpp.W
+        
+            let depthRange = abs (pp0.Z - ppz.Z)
+
+            let pixelSize = 
+                if ppz.Z < -1.0 then -1.0
+                else pixelSize
+            
+            let col =
+                if uniform.PointVisualization &&& PointVisualization.Color <> PointVisualization.None then
+                    v.col.XYZ
+                else
+                    V3d.III
+
+            let o = uniform.Overlay.[v.id]
+            let h = heat (float v.treeDepth / 6.0)
+            let col =
+                if uniform.PointVisualization &&& PointVisualization.OverlayLod <> PointVisualization.None then
+                    o * h.XYZ + (1.0 - o) * col
+                else
+                    col
+
+            let pixelSize = 
+                if uniform.PointVisualization &&& PointVisualization.Antialias <> PointVisualization.None then pixelSize + 1.0
+                else pixelSize
+
+            return { v with ps = float (int pixelSize); s = pixelSize; pos = fpp; depthRange = depthRange; vp = vpz.XYZ; vc = vpz.XYZ; col = V4d(col, v.col.W) }
         }
 
 

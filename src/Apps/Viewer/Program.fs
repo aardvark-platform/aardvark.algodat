@@ -12,7 +12,7 @@ open Aardvark.Algodat.App.Viewer
 let main args =  
 
     let args = Args.parse args
-
+    
     match args.command with
 
     | Some (Info filename) -> info filename args

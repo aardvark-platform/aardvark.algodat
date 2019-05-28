@@ -26,6 +26,7 @@ type RenderConfig =
         maxSplits       : ModRef<int>
         renderBounds    : ModRef<bool>
         budget          : ModRef<int64>
+        splitfactor     : ModRef<float>
         lighting        : ModRef<bool>
         colors          : ModRef<bool>
         magicExp        : ModRef<float>
