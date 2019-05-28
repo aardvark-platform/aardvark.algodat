@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Aardvark.Data
@@ -133,13 +134,24 @@ namespace Aardvark.Data
             (s, o) => { var x = (Box3d)o; EncodeV3d(s, x.Min); EncodeV3d(s, x.Max); };
 
 
-        private static readonly Action<BinaryWriter, object> EncodeGuidArray =
-            (s, o) =>
+        private static unsafe void EncodeArray<T>(BinaryWriter s, params T[] xs) where T : struct
+        {
+            var gc = GCHandle.Alloc(xs, GCHandleType.Pinned);
+            var size = xs.Length * Marshal.SizeOf<T>();
+            var dst = new byte[size];
+            try
             {
-                var xs = (Guid[])o;
+                Marshal.Copy(gc.AddrOfPinnedObject(), dst, 0, size);
                 s.Write(xs.Length);
-                for (var i = 0; i < xs.Length; i++) s.Write(xs[i].ToByteArray(), 0, 16);
-            };
+                s.Write(dst);
+            }
+            finally
+            {
+                gc.Free();
+            }
+        }
+
+        private static readonly Action<BinaryWriter, object> EncodeGuidArray = (s, o) => EncodeArray(s, (Guid[])o);
 
 
         /// <summary>
@@ -216,15 +228,25 @@ namespace Aardvark.Data
         private static readonly Func<BinaryReader, object> DecodeBox3f = s => new Box3f((V3f)DecodeV3f(s), (V3f)DecodeV3f(s));
         private static readonly Func<BinaryReader, object> DecodeBox3d = s => new Box3d((V3d)DecodeV3d(s), (V3d)DecodeV3d(s));
 
-
-        private static readonly Func<BinaryReader, object> DecodeGuidArray =
-            s =>
+        private static unsafe T[] DecodeArray<T>(BinaryReader s) where T : struct
+        {
+            var count = s.ReadInt32();
+            var size = count * Marshal.SizeOf<T>();
+            var buffer = s.ReadBytes(size);
+            var xs = new T[count];
+            var gc = GCHandle.Alloc(xs, GCHandleType.Pinned);
+            try
             {
-                var count = s.ReadInt32();
-                var xs = new Guid[count];
-                for (var i = 0; i < count; i++) xs[i] = new Guid(s.ReadBytes(16));
+                Marshal.Copy(buffer, 0, gc.AddrOfPinnedObject(), size);
                 return xs;
-            };
+            }
+            finally
+            {
+                gc.Free();
+            }
+        }
+
+        private static readonly Func<BinaryReader, object> DecodeGuidArray = s => DecodeArray<Guid>(s);
 
 
         /// <summary>
