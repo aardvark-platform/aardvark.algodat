@@ -157,7 +157,7 @@ namespace Aardvark.Geometry.Points
                 if (nsId.HasValue) { storage.Add(nsId.Value, ns); data = data.Add(Durable.Octree.Normals3fReference, nsId.Value); }
                 if (csId.HasValue) { storage.Add(csId.Value, cs); data = data.Add(Durable.Octree.Colors4bReference, csId.Value); }
                 if (jsId.HasValue) { storage.Add(jsId.Value, js); data = data.Add(Durable.Octree.Intensities1iReference, jsId.Value); }
-                if (ksId.HasValue) { storage.Add(ksId.Value, ks); data = data.Add(Durable.Octree.Classifications1b, ksId.Value); }
+                if (ksId.HasValue) { storage.Add(ksId.Value, ks); data = data.Add(Durable.Octree.Classifications1bReference, ksId.Value); }
                 if (kdId.HasValue) { storage.Add(kdId.Value, kd.Data); data = data.Add(Durable.Octree.PointRkdTreeFDataReference, kdId.Value); }
 
                 return new PointSetNode(data, config.Storage, writeToStore: true);
@@ -572,7 +572,7 @@ namespace Aardvark.Geometry.Points
                     ;
             var result = new PointSetNode(data, config.Storage, writeToStore: true);
 #if DEBUG
-            if (result.PointCountTree != a.PointCountTree) throw new InvalidOperationException();
+            if (result.PointCountTree != a.PointCountTree) throw new InvalidOperationException("Invariant 13b94065-4eac-4602-bc65-677869178dac.");
 #endif
             return result;
         }
@@ -601,6 +601,7 @@ namespace Aardvark.Geometry.Points
                 chunk = chunk.ImmutableFilterMinDistByCell(cell, config.ParseConfig);
             }
             var result = InMemoryPointSet.Build(chunk, cell, config.OctreeSplitLimit).ToPointSetNode(config.Storage, ct: config.CancellationToken);
+            if (a.PointCountTree + b.PointCountTree != result.PointCountTree) throw new InvalidOperationException("Invariant 369b10a2-f905-41c6-b016-1dbf8a68832d.");
             if (a.Cell != result.Cell) throw new InvalidOperationException("Invariant 771d781a-6d37-4017-a890-4f72a96a01a8.");
             return result;
         }
@@ -613,6 +614,7 @@ namespace Aardvark.Geometry.Points
             if (a.Cell != b.Cell) throw new InvalidOperationException();
 
             var result = InjectPointsIntoTree(a.PositionsAbsolute, a.Colors?.Value, a.Normals?.Value, a.Intensities?.Value, a.Classifications?.Value, b, a.Cell, config);
+            if (a.PointCountTree + b.PointCountTree != result.PointCountTree) throw new InvalidOperationException("Invariant db336387-4d1a-42fd-a582-48e8cac50fba.");
             if (a.Cell != result.Cell) throw new InvalidOperationException("Invariant 55551919-1a11-4ea9-bb4e-6f1a6b15e3d5.");
             return result;
         }
@@ -674,10 +676,7 @@ namespace Aardvark.Geometry.Points
                 }
             }
 
-            if (a.PointCountTree + b.PointCountTree != pointCountTree) throw new InvalidOperationException("Invariant 3db845c1-9d20-42b9-beb4-81684d47b1eb.");
-
             var data = a.Data
-                //.Add(Durable.Octree.Cell, a.Cell)
                 .Remove(Durable.Octree.PointCountTreeLeafs)
                 .Add   (Durable.Octree.PointCountTreeLeafs, pointCountTree)
                 .Remove(Durable.Octree.SubnodesGuids)
@@ -685,6 +684,7 @@ namespace Aardvark.Geometry.Points
                 ;
             var result = new PointSetNode(data, config.Storage, writeToStore: true);
             //pointsMergedCallback?.Invoke(result.PointCountTree);
+            if (a.PointCountTree + b.PointCountTree != pointCountTree) throw new InvalidOperationException("Invariant 3db845c1-9d20-42b9-beb4-81684d47b1eb.");
             if (a.Cell != result.Cell) throw new InvalidOperationException("Invariant 97239777-8a0c-4158-853b-e9ebef63fda8.");
             return result;
         }
@@ -703,7 +703,7 @@ namespace Aardvark.Geometry.Points
                 }
 
                 var result0 = InMemoryPointSet.Build(chunk, cell, config.OctreeSplitLimit).ToPointSetNode(config.Storage, ct: config.CancellationToken);
-                if (result0.PointCountTree > psAbsolute.Count) throw new InvalidOperationException("Invariant db6c1efb-32c3-4fc1-a9c8-a573442d593b.");
+                if (result0.PointCountTree != psAbsolute.Count) throw new InvalidOperationException("Invariant db6c1efb-32c3-4fc1-a9c8-a573442d593b.");
                 if (result0.Cell != cell) throw new InvalidOperationException("Invariant 266f3ced-7aea-4efd-b4f0-1c3e04fafb08.");
                 return result0;
             }
@@ -720,18 +720,18 @@ namespace Aardvark.Geometry.Points
                 var newPs = new List<V3d>(psAbsolute); newPs.AddRange(a.PositionsAbsolute);
                 var newCs = cs != null ? new List<C4b>(cs) : null; newCs?.AddRange(a.Colors.Value);
                 var newNs = ns != null ? new List<V3f>(ns) : null; newNs?.AddRange(a.Normals.Value);
-                var newIs = js != null ? new List<int>(js) : null; newIs?.AddRange(a.Intensities.Value);
+                var newJs = js != null ? new List<int>(js) : null; newJs?.AddRange(a.Intensities.Value);
                 var newKs = ks != null ? new List<byte>(ks) : null; newKs?.AddRange(a.Classifications.Value);
 
-                var chunk = new Chunk(psAbsolute, cs, ns, js, ks, cell.BoundingBox);
+                var chunk = new Chunk(newPs, newCs, newNs, newJs, newKs, cell.BoundingBox);
 
                 if (config.NormalizePointDensityGlobal)
                 {
                     chunk = chunk.ImmutableFilterMinDistByCell(cell, config.ParseConfig);
                 }
                 var result0 = InMemoryPointSet.Build(chunk, cell, config.OctreeSplitLimit).ToPointSetNode(config.Storage, ct: config.CancellationToken);
+                if (a.PointCountTree + psAbsolute.Count != result0.PointCountTree) throw new InvalidOperationException("Invariant 9bda6d47-26d8-42e3-8d94-3db2d4436fec.");
                 if (result0.Cell != cell) throw new InvalidOperationException("Invariant 2c11816c-da18-464e-9c2c-fad53301b41b.");
-
                 return result0;
             }
 
@@ -775,6 +775,7 @@ namespace Aardvark.Geometry.Points
             }
 
             var result = a.WithSubNodes(subcells);
+            if (a.PointCountTree + psAbsolute.Count != result.PointCountTree) throw new InvalidOperationException("Invariant d6117e5b-3031-4ff7-9a38-d34695c5a869.");
             if (result.Cell != cell) throw new InvalidOperationException("Invariant 04aa0996-2942-41e5-bfdb-0c6841e2f12f.");
             return result;
         }

@@ -196,7 +196,6 @@ namespace Aardvark.Geometry.Points
                 default: throw new NotImplementedException();
             }
         }
-
     }
 
     /// <summary></summary>

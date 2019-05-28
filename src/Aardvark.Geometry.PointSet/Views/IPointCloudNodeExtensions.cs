@@ -113,7 +113,7 @@ namespace Aardvark.Geometry.Points
             => GetValue(self, Durable.Octree.Colors4b, Durable.Octree.Colors4bReference, self.Storage.GetC4bArray, self.Storage.TryGetC4bArray);
         /// <summary>Returns null if node has no colors.</summary>
         public static PersistentRef<C4b[]> TryGetColors4b(this IPointCloudNode self)
-            => self.HasColors() ? GetValue(self, Durable.Octree.Colors4b, Durable.Octree.Colors4bReference, self.Storage.GetC4bArray, self.Storage.TryGetC4bArray) : null;
+            => self.HasColors() ? self.GetColors4b() : null;
 
 
         /// <summary></summary>
@@ -121,7 +121,7 @@ namespace Aardvark.Geometry.Points
             => GetValue(self, Durable.Octree.Normals3f, Durable.Octree.Normals3fReference, self.Storage.GetV3fArray, self.Storage.TryGetV3fArray);
         /// <summary>Returns null if node has no normals.</summary>
         public static PersistentRef<V3f[]> TryGetNormals3f(this IPointCloudNode self)
-            => self.HasNormals() ? GetValue(self, Durable.Octree.Normals3f, Durable.Octree.Normals3fReference, self.Storage.GetV3fArray, self.Storage.TryGetV3fArray) : null;
+            => self.HasNormals() ? self.GetNormals3f() : null;
 
 
         /// <summary></summary>
@@ -129,7 +129,7 @@ namespace Aardvark.Geometry.Points
             => GetValue(self, Durable.Octree.Intensities1i, Durable.Octree.Intensities1iReference, self.Storage.GetIntArray, self.Storage.TryGetIntArray);
         /// <summary>Returns null if node has no intensities.</summary>
         public static PersistentRef<int[]> TryGetIntensities(this IPointCloudNode self)
-            => self.HasIntensities() ? GetValue(self, Durable.Octree.Intensities1i, Durable.Octree.Intensities1iReference, self.Storage.GetIntArray, self.Storage.TryGetIntArray) : null;
+            => self.HasIntensities() ? self.GetIntensities() : null;
 
 
         /// <summary></summary>
@@ -137,7 +137,7 @@ namespace Aardvark.Geometry.Points
             => GetValue(self, Durable.Octree.Classifications1b, Durable.Octree.Classifications1bReference, self.Storage.GetByteArray, self.Storage.TryGetByteArray);
         /// <summary>Returns null if node has no classifications.</summary>
         public static PersistentRef<byte[]> TryGetClassifications(this IPointCloudNode self)
-            => self.HasClassifications() ? GetValue(self, Durable.Octree.Classifications1b, Durable.Octree.Classifications1bReference, self.Storage.GetByteArray, self.Storage.TryGetByteArray) : null;
+            => self.HasClassifications() ? self.GetClassifications() : null;
 
         #endregion
 

@@ -135,7 +135,7 @@ namespace Aardvark.Geometry.Points
                 newKsId = Guid.NewGuid();
                 storage.Add(newKsId.Value, ks.ToArray());
 
-                data = data.Add(Durable.Octree.Classifications1b, newKsId);
+                data = data.Add(Durable.Octree.Classifications1bReference, newKsId);
             }
 
             var newSubnodes = node.Subnodes?.Map(n => n?.Value.Delete(isNodeFullyInside, isNodeFullyOutside, isPositionInside, storage, ct));
