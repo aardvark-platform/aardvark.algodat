@@ -46,15 +46,9 @@ namespace Aardvark.Geometry.Points
             var builder = InMemoryPointSet.Build(positions, colors, normals, intensities, classifications, bounds, octreeSplitLimit);
             var root = builder.ToPointSetNode(storage, ct: ct);
 
-            var pRef0 = new PersistentRef<PointSetNode>(root.Id.ToString(), storage.GetPointSetNode, storage.TryGetPointSetNode);
-            if (pRef0.Value == null) throw new InvalidOperationException("Invariant 88c3cffd-c141-41bf-ae47-33ce8788f21d.");
-           
             var result = new PointSet(storage, key, root.Id, octreeSplitLimit);
 
             if (result.Root.Value == null) throw new InvalidOperationException("Invariant 5492d57b-add1-48bf-9721-5087c957d81e.");
-
-            var pRef1 = new PersistentRef<PointSetNode>(result.Root.Value.Id.ToString(), storage.GetPointSetNode, storage.TryGetPointSetNode);
-            if (pRef1.Value == null) throw new InvalidOperationException("Invariant cef6315a-3e0e-454a-8585-11916d4a5757.");
 
             var config = ImportConfig.Default
                 .WithRandomKey()
@@ -81,7 +75,6 @@ namespace Aardvark.Geometry.Points
                     );
 #pragma warning disable CS0618 // Type or member is obsolete
                 Root = new PersistentRef<PointSetNode>(rootCellId.ToString(), storage.GetPointSetNode, storage.TryGetPointSetNode);
-                if (Root.Value == null) throw new InvalidOperationException("Invariant 0e45f711-5e93-4ecf-b1f2-2e468ffd182c.");
 #pragma warning restore CS0618 // Type or member is obsolete
             }
         }

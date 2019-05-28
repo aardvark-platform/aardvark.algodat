@@ -153,9 +153,6 @@ namespace Aardvark.Geometry.Points
         {
             if (self.Octree == null) return self;
 
-            var pRef0 = new PersistentRef<PointSetNode>(self.Root.Value.Id.ToString(), self.Storage.GetPointSetNode, self.Storage.TryGetPointSetNode);
-            if (pRef0.Value == null) throw new InvalidOperationException("d947d383-a46a-4a97-85e5-75d6a150d6ef.");
-
             var nodeCount = self.Octree?.Value?.CountNodes() ?? 0;
             var loddedNodesCount = 0L;
             var result = self.GenerateLod(config.Key, () =>
@@ -178,9 +175,6 @@ namespace Aardvark.Geometry.Points
             try
             {
                 if (self.IsEmpty) return self;
-
-                var pRef0 = new PersistentRef<PointSetNode>(self.Root.Value.Id.ToString(), self.Storage.GetPointSetNode, self.Storage.TryGetPointSetNode);
-                if (pRef0.Value == null) throw new InvalidOperationException("d947d383-a46a-4a97-85e5-75d6a150d6ef.");
 
                 var lod = await self.Root.Value.GenerateLod(self.SplitLimit, callback, ct);
                 var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit);
@@ -227,9 +221,6 @@ namespace Aardvark.Geometry.Points
             CancellationToken ct)
         {
             if (self == null) throw new ArgumentNullException(nameof(self));
-            var pRef0 = new PersistentRef<PointSetNode>(self.Id.ToString(), self.Storage.GetPointSetNode, self.Storage.TryGetPointSetNode);
-            if (pRef0.Value == null) throw new InvalidOperationException("Invariant f24c6bda-36d7-4254-bf4d-626eb7682e03.");
-
             ct.ThrowIfCancellationRequested();
 
             if (self.IsLeaf)
@@ -240,15 +231,8 @@ namespace Aardvark.Geometry.Points
                     var nsId = Guid.NewGuid();
                     self.Storage.Add(nsId, await ns);
                     self = self.With(Durable.Octree.Normals3fReference, nsId);
-
-                    var pRef1 = new PersistentRef<PointSetNode>(self.Id.ToString(), self.Storage.GetPointSetNode, self.Storage.TryGetPointSetNode);
-                    if (pRef1.Value == null) throw new InvalidOperationException("Invariant a3123a90-a2e0-4896-9c58-202eb1a5e549.");
-
                 }
                 callback?.Invoke();
-
-                var pRef2 = new PersistentRef<PointSetNode>(self.Id.ToString(), self.Storage.GetPointSetNode, self.Storage.TryGetPointSetNode);
-                if (pRef2.Value == null) throw new InvalidOperationException("Invariant 16798ff0-14a6-4b3e-a9be-5bc2c83fe607.");
                 return self;
             }
 

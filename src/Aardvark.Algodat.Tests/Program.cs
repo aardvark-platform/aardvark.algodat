@@ -258,7 +258,7 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
-            new MergeTests().CanMergePointSets();
+            new QueryTests().CanQueryPointsNearPolygon_Performance();
             //new ImportTests().CanImportChunkWithoutColor();
 
             //TestE57();

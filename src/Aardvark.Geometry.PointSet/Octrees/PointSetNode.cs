@@ -86,7 +86,6 @@ namespace Aardvark.Geometry.Points
                         if (subNodeIds[i] == Guid.Empty) continue;
                         var pRef = new PersistentRef<PointSetNode>(subNodeIds[i].ToString(), storage.GetPointSetNode, storage.TryGetPointSetNode);
                         Subnodes[i] = pRef;
-                        if (pRef.Value == null) throw new InvalidOperationException("Invariant 7c64cb01-da3f-42cc-a277-0b49c7b0dee5.");
 
 #if DEBUG && PEDANTIC
                     var subNodeIndex = pRef.Value.Cell;
