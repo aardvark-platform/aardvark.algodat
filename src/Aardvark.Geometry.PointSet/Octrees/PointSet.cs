@@ -38,7 +38,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PointSet Create(Storage storage, string key,
             IList<V3d> positions, IList<C4b> colors, IList<V3f> normals, IList<int> intensities, IList<byte> classifications,
-            int octreeSplitLimit, CancellationToken ct
+            int octreeSplitLimit, bool generateLod, CancellationToken ct
             )
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
@@ -54,7 +54,12 @@ namespace Aardvark.Geometry.Points
                 .WithRandomKey()
                 .WithCancellationToken(ct)
                 ;
-            result = result.GenerateLod(config);
+
+            if (generateLod)
+            {
+                result = result.GenerateLod(config);
+            }
+
             return result;
         }
 

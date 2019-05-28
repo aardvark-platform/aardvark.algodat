@@ -761,7 +761,7 @@ namespace Aardvark.Geometry.Tests
 
             var config = ImportConfig.Default.WithKey("Test").WithOctreeSplitLimit(1);
             return PointSet
-                .Create(storage, "test", ps.ToList(), cs.ToList(), null, null, null, 100, CancellationToken.None)
+                .Create(storage, "test", ps.ToList(), cs.ToList(), null, null, null, 100, false, CancellationToken.None)
                 .GenerateLod(config)
                 ;
         }
