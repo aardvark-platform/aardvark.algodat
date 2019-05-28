@@ -23,71 +23,68 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public static partial class PointSetNodeExtensions
     {
-        /// <summary>
-        /// Computes centroid of absolute (LoD) positions in this node, or null if no (LoD) positions.
-        /// </summary>
-        public static V3d? ComputeCentroid(this PointSetNode self)
-            => self.HasPositions ? self.PositionsAbsolute.Average() : (V3d?)null;
-
+        
         /// <summary>
         /// Returns true if this node intersects the space within a given distance to a plane.
         /// </summary>
-        public static bool Intersects(this PointSetNode self, Plane3d plane, double distance)
-            => self.BoundingBox.Intersects(plane, distance);
+        public static bool Intersects(this IPointCloudNode self, Plane3d plane, double distance)
+            => self.BoundingBoxExactGlobal.Intersects(plane, distance);
 
         /// <summary>
         /// Returns true if this node intersects the positive halfspace defined by given plane.
         /// </summary>
-        public static bool IntersectsPositiveHalfSpace(this PointSetNode self, Plane3d plane)
-            => self.Corners.Any(p => plane.Height(p) > 0);
+        public static bool IntersectsPositiveHalfSpace(this IPointCloudNode self, Plane3d plane)
+            => self.BoundingBoxExactGlobal.Corners.Any(p => plane.Height(p) > 0);
 
         /// <summary>
         /// Returns true if this node intersects the negative halfspace defined by given plane.
         /// </summary>
-        public static bool IntersectsNegativeHalfSpace(this PointSetNode self, Plane3d plane)
-            => self.Corners.Any(p => plane.Height(p) < 0);
+        public static bool IntersectsNegativeHalfSpace(this IPointCloudNode self, Plane3d plane)
+            => self.BoundingBoxExactGlobal.Corners.Any(p => plane.Height(p) < 0);
 
         /// <summary>
         /// Returns true if this node is fully inside the positive halfspace defined by given plane.
         /// </summary>
-        public static bool InsidePositiveHalfSpace(this PointSetNode self, Plane3d plane)
+        public static bool InsidePositiveHalfSpace(this IPointCloudNode self, Plane3d plane)
         {
-            self.BoundingBox.GetMinMaxInDirection(plane.Normal, out V3d min, out V3d max);
+            self.BoundingBoxExactGlobal.GetMinMaxInDirection(plane.Normal, out V3d min, out V3d max);
             return plane.Height(min) > 0;
         }
         
         /// <summary>
         /// Returns true if this node is fully inside the negative halfspace defined by given plane.
         /// </summary>
-        public static bool InsideNegativeHalfSpace(this PointSetNode self, Plane3d plane)
+        public static bool InsideNegativeHalfSpace(this IPointCloudNode self, Plane3d plane)
         {
-            self.BoundingBox.GetMinMaxInDirection(-plane.Normal, out V3d min, out V3d max);
+            self.BoundingBoxExactGlobal.GetMinMaxInDirection(-plane.Normal, out V3d min, out V3d max);
             return plane.Height(min) < 0;
         }
 
         /// <summary>
-        /// Eagerly counts all nodes in tree.
+        /// Eagerly counts ALL nodes of this tree by traversing over all persistent refs.
         /// </summary>
-        public static long CountNodes(this PointSetNode self)
+        public static long CountNodes(this IPointCloudNode self)
         {
             if (self == null) return 0;
 
+            var subnodes = self.Subnodes;
+            if (subnodes == null) return 1;
+
             var count = 1L;
-            if (self.Subnodes != null)
+            for (var i = 0; i < 8; i++)
             {
-                for (var i = 0; i < 8; i++)
-                {
-                    var n = self.Subnodes[i];
-                    if (n != null) count += CountNodes(n.Value);
-                }
+                var n = subnodes[i];
+                if (n == null) continue;
+                count += n.Value.CountNodes();
             }
             return count;
         }
 
+
         /// <summary>
         /// Eagerly counts all points in octree (without using PointCountTree property).
         /// </summary>
-        public static long CountPoints(this PointSetNode self)
+        public static long CountPoints(this IPointCloudNode self)
         {
             if (self == null) return 0;
 
@@ -111,39 +108,13 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary>
-        /// Eagerly counts all points in octree (without using PointCountTree property).
-        /// </summary>
-        public static long CountPoints(this IPointCloudNode self)
-        {
-            if (self == null) return 0;
-
-            if (self.IsLeaf())
-            {
-                return self.GetPositions().Value.Length;
-            }
-            else
-            {
-                var count = 0L;
-                if (self.SubNodes != null)
-                {
-                    for (var i = 0; i < 8; i++)
-                    {
-                        var n = self.SubNodes[i];
-                        if (n != null) count += CountPoints(n.Value);
-                    }
-                }
-                return count;
-            }
-        }
-
-        /// <summary>
         /// Gets minimum point count of all tree nodes (eager).
         /// </summary>
-        public static long GetMinimumNodePointCount(this PointSetNode self)
+        public static long GetMinimumNodePointCount(this IPointCloudNode self)
         {
             if (self == null) return 0;
 
-            var min = self.PointCount;
+            long min = self.PointCountCell;
             if (self.Subnodes != null)
             {
                 for (var i = 0; i < 8; i++)
@@ -162,16 +133,16 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Gets average point count of all tree nodes (eager).
         /// </summary>
-        public static double GetAverageNodePointCount(this PointSetNode self)
+        public static double GetAverageNodePointCount(this IPointCloudNode self)
         {
             if (self == null) return 0;
             long sum = 0, count = 0;
             _GetAverageNodePointCount(self, ref sum, ref count);
             return sum / (double)count;
         }
-        private static void _GetAverageNodePointCount(this PointSetNode self, ref long sum, ref long count)
+        private static void _GetAverageNodePointCount(this IPointCloudNode self, ref long sum, ref long count)
         {
-            sum += self.PointCount;
+            sum += self.PointCountCell;
             count++;
 
             if (self.Subnodes == null) return;
@@ -186,11 +157,11 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Gets maximum point count of all tree nodes (eager).
         /// </summary>
-        public static long GetMaximumNodePointCount(this PointSetNode self)
+        public static long GetMaximumNodePointCount(this IPointCloudNode self)
         {
             if (self == null) return 0;
 
-            var max = self.PointCount;
+            long max = self.PointCountCell;
             if (self.Subnodes != null)
             {
                 for (var i = 0; i < 8; i++)
@@ -209,7 +180,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Average depth of tree (eager).
         /// </summary>
-        public static double GetAverageTreeDepth(this PointSetNode self)
+        public static double GetAverageTreeDepth(this IPointCloudNode self)
         {
             if (self == null) return 0;
 
@@ -217,7 +188,7 @@ namespace Aardvark.Geometry.Points
             _GetAverageTreeDepth(self, 1, ref sum, ref count);
             return sum / (double)count;
         }
-        private static void _GetAverageTreeDepth(PointSetNode self, int depth, ref long sum, ref long count)
+        private static void _GetAverageTreeDepth(IPointCloudNode self, int depth, ref long sum, ref long count)
         {
             if (self.Subnodes == null)
             {
@@ -234,16 +205,10 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary>
-        /// Calls action for each node in this tree.
         /// </summary>
-        public static IEnumerable<PointSetNode> ForEachNode(
-            this PointSetNode self, int minCellExponent = int.MinValue
-            )
-            => _ForEachNode(self, minCellExponent);
-
-        private static IEnumerable<PointSetNode> _ForEachNode(
-            this PointSetNode self, int minCellExponent = int.MinValue
-            )
+        public static IEnumerable<IPointCloudNode> ForEachNode(
+           this IPointCloudNode self, int minCellExponent = int.MinValue
+           )
         {
             if (self == null) yield break;
 
@@ -256,29 +221,6 @@ namespace Aardvark.Geometry.Points
                 for (var i = 0; i < 8; i++)
                 {
                     var n = self.Subnodes[i];
-                    if (n == null) continue;
-                    foreach (var x in _ForEachNode(n.Value, minCellExponent)) yield return x;
-                }
-            }
-        }
-
-        /// <summary>
-        /// </summary>
-        public static IEnumerable<IPointCloudNode> ForEachNode(
-           this IPointCloudNode self, int minCellExponent = int.MinValue
-           )
-        {
-            if (self == null) yield break;
-
-            if (self.Cell.Exponent < minCellExponent) yield break;
-
-            yield return self;
-
-            if (self.SubNodes != null)
-            {
-                for (var i = 0; i < 8; i++)
-                {
-                    var n = self.SubNodes[i];
                     if (n == null) continue;
                     foreach (var x in ForEachNode(n.Value, minCellExponent)) yield return x;
                 }
@@ -315,10 +257,10 @@ namespace Aardvark.Geometry.Points
 
             if (fullyInside && doNotTraverseSubnodesWhenFullyInside) yield break;
 
-            if (self.SubNodes == null) yield break;
+            if (self.Subnodes == null) yield break;
             for (var i = 0; i < 8; i++)
             {
-                var n = self.SubNodes[i];
+                var n = self.Subnodes[i];
                 if (n == null) continue;
                 var xs = ForEachNodeIntersecting(n.Value, hull, doNotTraverseSubnodesWhenFullyInside, minCellExponent);
                 foreach (var x in xs) yield return x;

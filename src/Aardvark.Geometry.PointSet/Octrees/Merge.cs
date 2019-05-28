@@ -30,12 +30,12 @@ namespace Aardvark.Geometry.Points
         /// If cell is a leaf, it will be split once (non-recursive, without taking into account any split limit).
         /// If cell is not a leaf, this is an invalid operation.
         /// </summary>
-        public static PointSetNode ForceSplitLeaf(this PointSetNode self, ImportConfig config)
+        public static IPointCloudNode ForceSplitLeaf(this IPointCloudNode self, ImportConfig config)
         {
             if (self == null) throw new ArgumentNullException(nameof(self));
-            if (self.IsNotLeaf) throw new InvalidOperationException();
-            if (self.PointCount == 0) throw new InvalidOperationException();
-            if (self.PointCountTree != self.PointCount) throw new InvalidOperationException();
+            if (self.IsLeaf == false) throw new InvalidOperationException();
+            if (self.PointCountCell == 0) throw new InvalidOperationException();
+            if (self.PointCountTree != self.PointCountCell) throw new InvalidOperationException();
 
             var subnodesPoints = new List<V3d>[8];
             var subnodesColors = self.HasColors ? new List<C4b>[8] : null;
@@ -48,7 +48,7 @@ namespace Aardvark.Geometry.Points
             var na = self.Normals?.Value;
             var ia = self.Intensities?.Value;
             var ka = self.Classifications?.Value;
-            var imax = self.PointCount;
+            var imax = self.PointCountCell;
             if (pa.Length != imax) throw new InvalidOperationException();
 
             for (var i = 0; i < imax; i++)
@@ -100,7 +100,7 @@ namespace Aardvark.Geometry.Points
             // POST
             if (result.IsLeaf) throw new InvalidOperationException();
             if (result.PointCountTree != self.PointCountTree) throw new InvalidOperationException();
-            if (result.PointCount != 0) throw new InvalidOperationException();
+            if (result.PointCountCell != 0) throw new InvalidOperationException();
             if (result.Subnodes.Sum(x => x?.Value?.PointCountTree) > self.PointCountTree) throw new InvalidOperationException();
 
             return result;
@@ -117,7 +117,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Returns union of trees as new tree (immutable operation).
         /// </summary>
-        public static PointSetNode Merge(this PointSetNode a, PointSetNode b, Action<long> pointsMergedCallback, ImportConfig config)
+        public static IPointCloudNode Merge(this IPointCloudNode a, IPointCloudNode b, Action<long> pointsMergedCallback, ImportConfig config)
         {
             if (a == null || a.PointCountTree == 0) { pointsMergedCallback?.Invoke(b?.PointCountTree ?? 0); return b; }
             if (b == null || b.PointCountTree == 0) { pointsMergedCallback?.Invoke(a?.PointCountTree ?? 0); return a; }
@@ -183,7 +183,7 @@ namespace Aardvark.Geometry.Points
             // if A and B do not intersect ...
             if (!a.Cell.Intersects(b.Cell))
             {
-                var rootCell = new Cell(new Box3d(a.BoundingBox, b.BoundingBox));
+                var rootCell = new Cell(new Box3d(a.BoundingBoxExactGlobal, b.BoundingBoxExactGlobal));
                 var result = JoinNonOverlappingTrees(rootCell, a, b, pointsMergedCallback, config);
 #if DEBUG
                 if (!config.NormalizePointDensityGlobal && result.PointCountTree != totalPointCountTree) throw new InvalidOperationException();
@@ -193,11 +193,11 @@ namespace Aardvark.Geometry.Points
                 return result;
             }
 
-            if (a.IsCenteredAtOrigin || b.IsCenteredAtOrigin)
+            if (a.Cell.IsCenteredAtOrigin || b.Cell.IsCenteredAtOrigin)
             {
                 // enumerate all non-IsCenteredAtOrigin (sub)cells of A and B
-                var parts = new List<PointSetNode>();
-                if (a.IsCenteredAtOrigin)
+                var parts = new List<IPointCloudNode>();
+                if (a.Cell.IsCenteredAtOrigin)
                 {
                     if (a.IsLeaf)
                     {
@@ -214,7 +214,7 @@ namespace Aardvark.Geometry.Points
                     parts.Add(a);
                 }
 
-                if (b.IsCenteredAtOrigin)
+                if (b.Cell.IsCenteredAtOrigin)
                 {
                     if (b.IsLeaf)
                     {
@@ -245,7 +245,7 @@ namespace Aardvark.Geometry.Points
                 // common case: multiple parts
                 var rootCellBounds = new Box3d(a.Cell.BoundingBox, b.Cell.BoundingBox);
                 var rootCell = new Cell(rootCellBounds);
-                var roots = new PointSetNode[8];
+                var roots = new IPointCloudNode[8];
                 int octant(Cell x)
                 {
                     if (x.IsCenteredAtOrigin) throw new InvalidOperationException();
@@ -290,7 +290,7 @@ namespace Aardvark.Geometry.Points
 #if DEBUG
             if (a.Cell.Exponent == b.Cell.Exponent)
             {
-                if (!a.IsCenteredAtOrigin && !b.IsCenteredAtOrigin) throw new InvalidOperationException(
+                if (!a.Cell.IsCenteredAtOrigin && !b.Cell.IsCenteredAtOrigin) throw new InvalidOperationException(
                     $"merge {a.Cell} with {b.Cell}")
                     ;
             }
@@ -311,7 +311,7 @@ namespace Aardvark.Geometry.Points
             var isExactlyOne = false;
 #endif
             var processedPointCount = 0L;
-            var subcells = a.Subnodes?.Map(x => x?.Value) ?? new PointSetNode[8];
+            var subcells = a.Subnodes?.Map(x => x?.Value) ?? new IPointCloudNode[8];
             for (var i = 0; i < 8; i++)
             {
                 var subcellIndex = a.Cell.GetOctant(i);
@@ -339,7 +339,7 @@ namespace Aardvark.Geometry.Points
 #if DEBUG
             if (!isExactlyOne) throw new InvalidOperationException();
 #endif
-            PointSetNode result2 = null;
+            IPointCloudNode result2 = null;
             if (a.IsLeaf)
             {
                 result2 = a.WithSubNodes(subcells);
@@ -370,7 +370,7 @@ namespace Aardvark.Geometry.Points
             return rs;
         }
         
-        private static PointSetNode JoinNonOverlappingTrees(Cell rootCell, PointSetNode a, PointSetNode b,
+        private static IPointCloudNode JoinNonOverlappingTrees(Cell rootCell, IPointCloudNode a, IPointCloudNode b,
             Action<long> pointsMergedCallback, ImportConfig config
             )
         {
@@ -389,25 +389,25 @@ namespace Aardvark.Geometry.Points
             // REDUCE CASES:
             // if one tree ('a' or 'b') is centered at origin, then ensure that 'a' is centered
             // (by swapping 'a' and 'b' if necessary)
-            if (b.IsCenteredAtOrigin)
+            if (b.Cell.IsCenteredAtOrigin)
             {
 #if DEBUG
                 // PRE: if 'b' is centered, than 'a' cannot be centered
                 // (because then 'a' and 'b' would overlap, and we join non-overlapping trees here)
-                if (a.IsCenteredAtOrigin) throw new InvalidOperationException();
+                if (a.Cell.IsCenteredAtOrigin) throw new InvalidOperationException();
 #endif
                 Fun.Swap(ref a, ref b);
 #if DEBUG
                 // POST: 'a' is centered, 'b' is not centered
-                if (!a.IsCenteredAtOrigin) throw new InvalidOperationException();
-                if (b.IsCenteredAtOrigin) throw new InvalidOperationException();
+                if (!a.Cell.IsCenteredAtOrigin) throw new InvalidOperationException();
+                if (b.Cell.IsCenteredAtOrigin) throw new InvalidOperationException();
 #endif
             }
             #endregion
             
             #region CASE 1 of 2: one tree is centered (must be 'a', since if it originally was 'b' we would have swapped)
 
-            if (rootCell.IsCenteredAtOrigin && a.IsCenteredAtOrigin)
+            if (rootCell.IsCenteredAtOrigin && a.Cell.IsCenteredAtOrigin)
             {
                 #region special case: split 'a' into subcells to get rid of centered cell containing points
                 if (a.IsLeaf)
@@ -416,10 +416,10 @@ namespace Aardvark.Geometry.Points
                 }
                 #endregion
 #if DEBUG
-                if (a.PointCount != 0) throw new InvalidOperationException();
+                if (a.PointCountCell != 0) throw new InvalidOperationException();
 #endif
 
-                var subcells = new PointSetNode[8];
+                var subcells = new IPointCloudNode[8];
                 for (var i = 0; i < 8; i++)
                 {
                     var rootCellOctant = rootCell.GetOctant(i);
@@ -481,11 +481,11 @@ namespace Aardvark.Geometry.Points
             {
 #if DEBUG
                 // PRE: no tree is centered
-                if (a.IsCenteredAtOrigin) throw new InvalidOperationException();
-                if (b.IsCenteredAtOrigin) throw new InvalidOperationException();
+                if (a.Cell.IsCenteredAtOrigin) throw new InvalidOperationException();
+                if (b.Cell.IsCenteredAtOrigin) throw new InvalidOperationException();
 #endif
 
-                var subcells = new PointSetNode[8];
+                var subcells = new IPointCloudNode[8];
                 var doneA = false;
                 var doneB = false;
                 for (var i = 0; i < 8; i++)
@@ -550,16 +550,16 @@ namespace Aardvark.Geometry.Points
 
         }
 
-        private static PointSetNode JoinTreeToRootCell(Cell rootCell, PointSetNode a, ImportConfig config)
+        private static IPointCloudNode JoinTreeToRootCell(Cell rootCell, IPointCloudNode a, ImportConfig config)
         {
             if (!rootCell.Contains(a.Cell)) throw new InvalidOperationException();
-            if (a.IsCenteredAtOrigin)
+            if (a.Cell.IsCenteredAtOrigin)
             {
                 throw new InvalidOperationException();
             }
             if (rootCell == a.Cell) return a;
 
-            var subcells = new PointSetNode[8];
+            var subcells = new IPointCloudNode[8];
             for (var i = 0; i < 8; i++)
             {
                 var subcell = rootCell.GetOctant(i);
@@ -579,9 +579,9 @@ namespace Aardvark.Geometry.Points
             return result;
         }
 
-        private static PointSetNode MergeLeafAndLeafWithIdenticalRootCell(PointSetNode a, PointSetNode b, ImportConfig config)
+        private static IPointCloudNode MergeLeafAndLeafWithIdenticalRootCell(IPointCloudNode a, IPointCloudNode b, ImportConfig config)
         {
-            if (a.IsNotLeaf || b.IsNotLeaf) throw new InvalidOperationException();
+            if (a.IsLeaf == false || b.IsLeaf == false) throw new InvalidOperationException();
             if (a.Cell != b.Cell) throw new InvalidOperationException();
             if (b.PositionsAbsolute == null) throw new InvalidOperationException();
             if (a.HasColors != b.HasColors) throw new InvalidOperationException();
@@ -608,11 +608,11 @@ namespace Aardvark.Geometry.Points
             return result;
         }
 
-        private static PointSetNode MergeLeafAndTreeWithIdenticalRootCell(PointSetNode a, PointSetNode b, ImportConfig config)
+        private static IPointCloudNode MergeLeafAndTreeWithIdenticalRootCell(IPointCloudNode a, IPointCloudNode b, ImportConfig config)
         {
             if (a == null) throw new ArgumentNullException(nameof(a));
             if (b == null) throw new ArgumentNullException(nameof(b));
-            if (a.IsNotLeaf || b.IsLeaf) throw new InvalidOperationException();
+            if (a.IsLeaf == false || b.IsLeaf == true) throw new InvalidOperationException();
             if (a.Cell != b.Cell) throw new InvalidOperationException();
 
             var result = InjectPointsIntoTree(a.PositionsAbsolute, a.Colors?.Value, a.Normals?.Value, a.Intensities?.Value, a.Classifications?.Value, b, a.Cell, config);
@@ -621,18 +621,18 @@ namespace Aardvark.Geometry.Points
             return result;
         }
 
-        private static PointSetNode MergeTreeAndTreeWithIdenticalRootCell(PointSetNode a, PointSetNode b,
+        private static IPointCloudNode MergeTreeAndTreeWithIdenticalRootCell(IPointCloudNode a, IPointCloudNode b,
             Action<long> pointsMergedCallback,
             ImportConfig config
             )
         {
             if (a.IsLeaf || b.IsLeaf) throw new InvalidOperationException();
             if (a.Cell != b.Cell) throw new InvalidOperationException();
-            if (a.PointCount > 0) throw new InvalidOperationException();
-            if (b.PointCount > 0) throw new InvalidOperationException();
+            if (a.PointCountCell > 0) throw new InvalidOperationException();
+            if (b.PointCountCell > 0) throw new InvalidOperationException();
 
             var pointCountTree = 0L;
-            var subcells = new PointSetNode[8];
+            var subcells = new IPointCloudNode[8];
             var subcellsDebug = new int[8];
             for (var i = 0; i < 8; i++)
             {
@@ -690,9 +690,9 @@ namespace Aardvark.Geometry.Points
             return result;
         }
 
-        private static PointSetNode InjectPointsIntoTree(
+        private static IPointCloudNode InjectPointsIntoTree(
             IList<V3d> psAbsolute, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks,
-            PointSetNode a, Cell cell, ImportConfig config
+            IPointCloudNode a, Cell cell, ImportConfig config
             )
         {
             if (a == null)
@@ -761,7 +761,7 @@ namespace Aardvark.Geometry.Points
 
             if (pss.Sum(x => x?.Count) != psAbsolute.Count) throw new InvalidOperationException();
 
-            var subcells = new PointSetNode[8];
+            var subcells = new IPointCloudNode[8];
             for (var j = 0; j < 8; j++)
             {
                 var x = a.Subnodes[j]?.Value;

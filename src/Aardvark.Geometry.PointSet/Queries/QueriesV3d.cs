@@ -29,7 +29,7 @@ namespace Aardvark.Geometry.Points
         public static PointsNearObject<V3d> QueryPointsNearPoint(
             this PointSet self, V3d query, double maxDistanceToPoint, int maxCount
             )
-            => QueryPointsNearPoint(self.Octree.Value, query, maxDistanceToPoint, maxCount);
+            => QueryPointsNearPoint(self.Root.Value, query, maxDistanceToPoint, maxCount);
 
         /// <summary>
         /// Points within given distance of a point.
@@ -85,7 +85,7 @@ namespace Aardvark.Geometry.Points
             {
                 // first traverse octant containing query point
                 var index = node.GetSubIndex(query);
-                var n = node.SubNodes[index];
+                var n = node.Subnodes[index];
                 var result = n != null ? n.Value.QueryPointsNearPoint(query, maxDistanceToPoint, maxCount) : PointsNearObject<V3d>.Empty;
                 if (!result.IsEmpty && result.MaxDistance < maxDistanceToPoint) maxDistanceToPoint = result.MaxDistance;
 
@@ -93,7 +93,7 @@ namespace Aardvark.Geometry.Points
                 for (var i = 0; i < 8; i++)
                 {
                     if (i == index) continue;
-                    n = node.SubNodes[i];
+                    n = node.Subnodes[i];
                     if (n == null) continue;
                     var x = n.Value.QueryPointsNearPoint(query, maxDistanceToPoint, maxCount);
                     result = result.Merge(x, maxCount);

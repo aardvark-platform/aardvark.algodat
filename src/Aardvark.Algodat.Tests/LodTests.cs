@@ -36,7 +36,7 @@ namespace Aardvark.Geometry.Tests
             var cs = ps.Map(_ => C4b.White);
 
             var pointset = PointSet.Create(storage, "test", ps.ToList(), cs.ToList(), null, null, null, 5000, CancellationToken.None);
-            pointset.Octree.Value.ForEachNode(true, cell =>
+            pointset.Root.Value.ForEachNode(true, cell =>
             {
                 Assert.IsTrue(cell.IsNotLeaf() || cell.GetPositions() != null);
             });
@@ -46,7 +46,7 @@ namespace Aardvark.Geometry.Tests
                 .WithOctreeSplitLimit(1)
                 ;
             var lodded = pointset.GenerateLod(config);
-            lodded.Octree.Value.ForEachNode(true, cell =>
+            lodded.Root.Value.ForEachNode(true, cell =>
             {
                 Assert.IsTrue(cell.GetPositions().Value.Length > 0);
             });
@@ -62,7 +62,7 @@ namespace Aardvark.Geometry.Tests
             var cs = ps.Map(_ => C4b.White);
 
             var pointset = PointSet.Create(storage, "test", ps.ToList(), cs.ToList(), null, null, null, 5000, CancellationToken.None);
-            pointset.Octree.Value.ForEachNode(true, cell =>
+            pointset.Root.Value.ForEachNode(true, cell =>
             {
                 var pointcount = cell.GetPositions().Value.Length;
                 Assert.IsTrue(pointcount > 0);
@@ -94,7 +94,7 @@ namespace Aardvark.Geometry.Tests
                 ;
             var pointset = PointCloud.Import(filename, config);
 
-            pointset.Octree.Value.ForEachNode(true, cell =>
+            pointset.Root.Value.ForEachNode(true, cell =>
             {
                 Assert.IsTrue(cell.GetPositions().Value.Length > 0);
             });
@@ -118,12 +118,12 @@ namespace Aardvark.Geometry.Tests
             var jsonReloaded = PointSet.Parse(json, config.Storage, IdentityResolver.Default);
 
             var xs = new Queue<long>();
-            pointset.Octree.Value.ForEachNode(true, cell =>
+            pointset.Root.Value.ForEachNode(true, cell =>
             {
                 xs.Enqueue(cell.GetPositions()?.Value.Length ?? 0);
                 xs.Enqueue(cell.PointCountTree);
             });
-            jsonReloaded.Octree.Value.ForEachNode(true, cell =>
+            jsonReloaded.Root.Value.ForEachNode(true, cell =>
             {
                 Assert.IsTrue(xs.Dequeue() == (cell.GetPositions()?.Value.Length ?? 0));
                 Assert.IsTrue(xs.Dequeue() == cell.PointCountTree);
@@ -149,7 +149,7 @@ namespace Aardvark.Geometry.Tests
                    .WithOctreeSplitLimit(5000)
                    ;
                 var pointset = PointCloud.Import(filename, config);
-                pointset.Octree.Value.ForEachNode(true, cell =>
+                pointset.Root.Value.ForEachNode(true, cell =>
                 {
                     var pointcount = cell.GetPositions()?.Value.Length ?? 0;
                     Assert.IsTrue(pointcount > 0);
@@ -162,7 +162,7 @@ namespace Aardvark.Geometry.Tests
             using (var storageB = PointSetTests.CreateDiskStorage(dbDiskLocation))
             {
                 var pointset = storageB.GetPointSet(id, IdentityResolver.Default);
-                pointset.Octree.Value.ForEachNode(true, cell =>
+                pointset.Root.Value.ForEachNode(true, cell =>
                 {
                     var pointcount = cell.GetPositions()?.Value.Length ?? 0;
                     Assert.IsTrue(pointcount > 0);

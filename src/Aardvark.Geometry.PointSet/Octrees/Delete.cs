@@ -30,13 +30,13 @@ namespace Aardvark.Geometry.Points
         /// Returns new pointset with all points deleted which are inside.
         /// </summary>
         public static PointSet Delete(this PointSet node,
-            Func<PointSetNode, bool> isNodeFullyInside,
-            Func<PointSetNode, bool> isNodeFullyOutside,
+            Func<IPointCloudNode, bool> isNodeFullyInside,
+            Func<IPointCloudNode, bool> isNodeFullyOutside,
             Func<V3d, bool> isPositionInside,
             Storage storage, CancellationToken ct
             )
         {
-            var root = Delete((PointSetNode)node.Octree.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, storage, ct);
+            var root = Delete(node.Root.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, storage, ct);
             var newId = Guid.NewGuid().ToString();
             var result = new PointSet(node.Storage, newId, root?.Id, node.SplitLimit);
             node.Storage.Add(newId, result);
@@ -44,17 +44,18 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary>
+        /// Returns new tree with all points deleted which are inside.
         /// </summary>
-        public static PointSetNode Delete(this PointSetNode node,
-            Func<PointSetNode, bool> isNodeFullyInside,
-            Func<PointSetNode, bool> isNodeFullyOutside,
+        public static IPointCloudNode Delete(this IPointCloudNode root,
+            Func<IPointCloudNode, bool> isNodeFullyInside,
+            Func<IPointCloudNode, bool> isNodeFullyOutside,
             Func<V3d, bool> isPositionInside,
             Storage storage, CancellationToken ct
             )
         {
-            if (node == null) return null;
-            if (isNodeFullyInside(node)) return null;
-            if (isNodeFullyOutside(node)) return node;
+            if (root == null) return null;
+            if (isNodeFullyInside(root)) return null;
+            if (isNodeFullyOutside(root)) return root;
 
             Guid? newPsId = null;
             Guid? newCsId = null;
@@ -63,17 +64,17 @@ namespace Aardvark.Geometry.Points
             Guid? newKsId = null;
             Guid? newKdId = null;
             
-            var ps = node.HasPositions ? new List<V3f>() : null;
-            var cs = node.HasColors ? new List<C4b>() : null;
-            var ns = node.HasNormals ? new List<V3f>() : null;
-            var js = node.HasIntensities ? new List<int>() : null;
-            var ks = node.HasClassifications ? new List<byte>() : null;
-            var oldPsAbsolute = node.PositionsAbsolute;
-            var oldPs = node.Positions?.Value;
-            var oldCs = node.Colors?.Value;
-            var oldNs = node.Normals?.Value;
-            var oldIs = node.Intensities?.Value;
-            var oldKs = node.Classifications?.Value;
+            var ps = root.HasPositions ? new List<V3f>() : null;
+            var cs = root.HasColors ? new List<C4b>() : null;
+            var ns = root.HasNormals ? new List<V3f>() : null;
+            var js = root.HasIntensities ? new List<int>() : null;
+            var ks = root.HasClassifications ? new List<byte>() : null;
+            var oldPsAbsolute = root.PositionsAbsolute;
+            var oldPs = root.Positions?.Value;
+            var oldCs = root.Colors?.Value;
+            var oldNs = root.Normals?.Value;
+            var oldIs = root.Intensities?.Value;
+            var oldKs = root.Classifications?.Value;
             for (var i = 0; i < oldPsAbsolute.Length; i++)
             {
                 if (!isPositionInside(oldPsAbsolute[i]))
@@ -88,10 +89,10 @@ namespace Aardvark.Geometry.Points
 
             var data = ImmutableDictionary<Durable.Def, object>.Empty
                 .Add(Durable.Octree.NodeId, Guid.NewGuid())
-                .Add(Durable.Octree.Cell, node.Cell)
+                .Add(Durable.Octree.Cell, root.Cell)
                 ;
 
-            if (node.HasPositions)
+            if (root.HasPositions)
             {
                 newPsId = Guid.NewGuid();
                 var psa = ps.ToArray();
@@ -106,7 +107,7 @@ namespace Aardvark.Geometry.Points
                     ;
             }
 
-            if (node.HasColors)
+            if (root.HasColors)
             {
                 newCsId = Guid.NewGuid();
                 storage.Add(newCsId.Value, cs.ToArray());
@@ -114,7 +115,7 @@ namespace Aardvark.Geometry.Points
                 data = data.Add(Durable.Octree.Colors4bReference, newCsId);
             }
 
-            if (node.HasNormals)
+            if (root.HasNormals)
             {
                 newNsId = Guid.NewGuid();
                 storage.Add(newNsId.Value, ns.ToArray());
@@ -122,7 +123,7 @@ namespace Aardvark.Geometry.Points
                 data = data.Add(Durable.Octree.Normals3fReference, newNsId);
             }
 
-            if (node.HasIntensities)
+            if (root.HasIntensities)
             {
                 newIsId = Guid.NewGuid();
                 storage.Add(newIsId.Value, js.ToArray());
@@ -130,7 +131,7 @@ namespace Aardvark.Geometry.Points
                 data = data.Add(Durable.Octree.Intensities1iReference, newIsId);
             }
 
-            if (node.HasClassifications)
+            if (root.HasClassifications)
             {
                 newKsId = Guid.NewGuid();
                 storage.Add(newKsId.Value, ks.ToArray());
@@ -138,7 +139,7 @@ namespace Aardvark.Geometry.Points
                 data = data.Add(Durable.Octree.Classifications1bReference, newKsId);
             }
 
-            var newSubnodes = node.Subnodes?.Map(n => n?.Value.Delete(isNodeFullyInside, isNodeFullyOutside, isPositionInside, storage, ct));
+            var newSubnodes = root.Subnodes?.Map(n => n?.Value.Delete(isNodeFullyInside, isNodeFullyOutside, isPositionInside, storage, ct));
             if (newSubnodes != null && newSubnodes.All(n => n == null)) newSubnodes = null;
             if (ps.Count == 0 && newSubnodes == null) return null;
 

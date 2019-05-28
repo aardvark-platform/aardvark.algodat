@@ -31,7 +31,7 @@ namespace Aardvark.Geometry.Points
         public static IEnumerable<Chunk> QueryPointsNearPlane(
             this PointSet self, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
             )
-            => QueryPointsNearPlane(self.Octree.Value, plane, maxDistance, minCellExponent);
+            => QueryPointsNearPlane(self.Root.Value, plane, maxDistance, minCellExponent);
 
         /// <summary>
         /// All points within maxDistance of given plane.
@@ -52,7 +52,7 @@ namespace Aardvark.Geometry.Points
         public static IEnumerable<Chunk> QueryPointsNearPlanes(
             this PointSet self, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
             )
-            => QueryPointsNearPlanes(self.Octree.Value, planes, maxDistance, minCellExponent);
+            => QueryPointsNearPlanes(self.Root.Value, planes, maxDistance, minCellExponent);
 
         /// <summary>
         /// All points within maxDistance of ANY of the given planes.
@@ -73,7 +73,7 @@ namespace Aardvark.Geometry.Points
         public static IEnumerable<Chunk> QueryPointsNotNearPlane(
             this PointSet self, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
             )
-            => QueryPointsNotNearPlane(self.Octree.Value, plane, maxDistance, minCellExponent);
+            => QueryPointsNotNearPlane(self.Root.Value, plane, maxDistance, minCellExponent);
 
         /// <summary>
         /// All points NOT within maxDistance of given plane.
@@ -94,7 +94,7 @@ namespace Aardvark.Geometry.Points
         public static IEnumerable<Chunk> QueryPointsNotNearPlanes(
             this PointSet self, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
             )
-            => QueryPointsNotNearPlanes(self.Octree.Value, planes, maxDistance, minCellExponent);
+            => QueryPointsNotNearPlanes(self.Root.Value, planes, maxDistance, minCellExponent);
 
         /// <summary>
         /// All points NOT within maxDistance of ALL the given planes.
@@ -119,7 +119,7 @@ namespace Aardvark.Geometry.Points
         public static long CountPointsNearPlane(
             this PointSet self, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
             )
-            => CountPointsNearPlane(self.Octree.Value, plane, maxDistance, minCellExponent);
+            => CountPointsNearPlane(self.Root.Value, plane, maxDistance, minCellExponent);
 
         /// <summary>
         /// Count points within maxDistance of given plane.
@@ -140,7 +140,7 @@ namespace Aardvark.Geometry.Points
         public static long CountPointsNearPlanes(
             this PointSet self, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
             )
-            => CountPointsNearPlanes(self.Octree.Value, planes, maxDistance, minCellExponent);
+            => CountPointsNearPlanes(self.Root.Value, planes, maxDistance, minCellExponent);
 
         /// <summary>
         /// Count points within maxDistance of ANY of the given planes.
@@ -161,7 +161,7 @@ namespace Aardvark.Geometry.Points
         public static long CountPointsNotNearPlane(
             this PointSet self, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
             )
-            => CountPointsNotNearPlane(self.Octree.Value, plane, maxDistance, minCellExponent);
+            => CountPointsNotNearPlane(self.Root.Value, plane, maxDistance, minCellExponent);
 
         /// <summary>
         /// Count points NOT within maxDistance of given plane.
@@ -182,7 +182,7 @@ namespace Aardvark.Geometry.Points
         public static long CountPointsNotNearPlanes(
             this PointSet self, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
             )
-            => CountPointsNotNearPlanes(self.Octree.Value, planes, maxDistance, minCellExponent);
+            => CountPointsNotNearPlanes(self.Root.Value, planes, maxDistance, minCellExponent);
 
         /// <summary>
         /// Count points NOT within maxDistance of ALL the given planes.
@@ -209,7 +209,7 @@ namespace Aardvark.Geometry.Points
         public static long CountPointsApproximatelyNearPlane(
             this PointSet self, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
             )
-            => CountPointsApproximatelyNearPlane(self.Octree.Value, plane, maxDistance, minCellExponent);
+            => CountPointsApproximatelyNearPlane(self.Root.Value, plane, maxDistance, minCellExponent);
 
         /// <summary>
         /// Count points approximately within maxDistance of given plane.
@@ -233,7 +233,7 @@ namespace Aardvark.Geometry.Points
         public static long CountPointsApproximatelyNearPlanes(
             this PointSet self, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
             )
-            => CountPointsApproximatelyNearPlanes(self.Octree.Value, planes, maxDistance, minCellExponent);
+            => CountPointsApproximatelyNearPlanes(self.Root.Value, planes, maxDistance, minCellExponent);
 
         /// <summary>
         /// Count points approximately within maxDistance of ANY of the given planes.
@@ -257,7 +257,7 @@ namespace Aardvark.Geometry.Points
         public static long CountPointsApproximatelyNotNearPlane(
             this PointSet self, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
             )
-            => CountPointsApproximatelyNotNearPlane(self.Octree.Value, plane, maxDistance, minCellExponent);
+            => CountPointsApproximatelyNotNearPlane(self.Root.Value, plane, maxDistance, minCellExponent);
 
         /// <summary>
         /// Count points approximately NOT within maxDistance of given plane.
@@ -281,7 +281,7 @@ namespace Aardvark.Geometry.Points
         public static long CountPointsApproximatelyNotNearPlanes(
             this PointSet self, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
             )
-            => CountPointsApproximatelyNotNearPlanes(self.Octree.Value, planes, maxDistance, minCellExponent);
+            => CountPointsApproximatelyNotNearPlanes(self.Root.Value, planes, maxDistance, minCellExponent);
 
         /// <summary>
         /// Count points approximately NOT within maxDistance of ALL the given planes.

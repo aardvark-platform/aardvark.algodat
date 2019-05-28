@@ -35,13 +35,16 @@ namespace Aardvark.Geometry.Points
     public class PointSetNode : IPointCloudNode
     {
         #region Construction
+
         /// <summary>
         /// Creates node.
         /// </summary>
         public PointSetNode(Storage storage, bool writeToStore, params (Durable.Def, object)[] props)
-            : this(ImmutableDictionary<Durable.Def, object>.Empty, storage, writeToStore)
+            : this(
+                  ImmutableDictionary<Durable.Def, object>.Empty.AddRange(props.Select(x => new KeyValuePair<Durable.Def, object>(x.Item1, x.Item2))),
+                  storage, writeToStore
+                  )
         {
-            Data = Data.AddRange(props.Select(x => new KeyValuePair<Durable.Def, object>(x.Item1, x.Item2)));
         }
 
         /// <summary>
@@ -55,19 +58,11 @@ namespace Aardvark.Geometry.Points
             if (!data.ContainsKey(Durable.Octree.NodeId)) throw new ArgumentException("Missing Durable.Octree.NodeId.");
             if (!data.ContainsKey(Durable.Octree.Cell)) throw new ArgumentException("Missing Durable.Octree.Cell.");
 
-            //// assign unique id
-            //data = data
-            //    .Remove(Durable.Octree.NodeId)
-            //    .Add(Durable.Octree.NodeId, Guid.NewGuid());
-
             Data = data;
             Storage = storage;
             BoundingBox = Cell.BoundingBox;
             Center = BoundingBox.Center;
             Corners = BoundingBox.ComputeCorners();
-
-            if (IsLeaf && PointCount != PointCountTree) throw new InvalidOperationException("Invariant 9464f38c-dc98-4d68-a8ac-0baed9f182b4.");
-            if (IsLeaf && !data.ContainsKey(Durable.Octree.PositionsLocal3fReference)) throw new ArgumentException("Missing Durable.Octree.PositionsLocal3fReference.");
 
             var psId = PositionsId;
             var csId = ColorsId;
@@ -87,11 +82,11 @@ namespace Aardvark.Geometry.Points
             {
                 if (subNodeIds != null)
                 {
-                    Subnodes = new PersistentRef<PointSetNode>[8];
+                    Subnodes = new PersistentRef<IPointCloudNode>[8];
                     for (var i = 0; i < 8; i++)
                     {
                         if (subNodeIds[i] == Guid.Empty) continue;
-                        var pRef = new PersistentRef<PointSetNode>(subNodeIds[i].ToString(), storage.GetPointSetNode, storage.TryGetPointSetNode);
+                        var pRef = new PersistentRef<IPointCloudNode>(subNodeIds[i].ToString(), storage.GetPointCloudNode, storage.TryGetPointCloudNode);
                         Subnodes[i] = pRef;
 
 #if DEBUG && PEDANTIC
@@ -107,10 +102,20 @@ namespace Aardvark.Geometry.Points
                 }
             }
 
+            if (!Data.ContainsKey(Durable.Octree.PointCountCell))
+            {
+                Report.Warn("Missing Durable.Octree.PointCountCell.");
+                Data = Data.Add(Durable.Octree.PointCountCell, HasPositions ? Positions.Value.Length : 0);
+            }
+
+            if (IsLeaf && PointCountCell != PointCountTree) throw new InvalidOperationException("Invariant 9464f38c-dc98-4d68-a8ac-0baed9f182b4.");
+            if (IsLeaf && !data.ContainsKey(Durable.Octree.PositionsLocal3fReference)) throw new ArgumentException("Missing Durable.Octree.PositionsLocal3fReference.");
+
+
             if (writeToStore) WriteToStore();
 
 #if DEBUG
-            if (PositionsId == null && PointCount != 0) throw new InvalidOperationException();
+            if (PositionsId == null && PointCountCell != 0) throw new InvalidOperationException();
 #if PEDANTIC
             if (PositionsId != null && Positions.Value.Length != PointCount) throw new InvalidOperationException();
 #endif
@@ -152,7 +157,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Writes this node to store.
         /// </summary>
-        public PointSetNode WriteToStore()
+        public IPointCloudNode WriteToStore()
         {
             Storage.Add(Id.ToString(), this);
             return this;
@@ -180,6 +185,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Runtime.
         /// </summary>
+        [JsonIgnore]
         private Dictionary<Durable.Def, object> PersistentRefs { get; } = new Dictionary<Durable.Def, object>();
 
         #region Cell attributes
@@ -187,21 +193,33 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// This node's unique id (16 bytes).
         /// </summary>
+        [JsonIgnore]
         public Guid Id => (Guid)Data.Get(Durable.Octree.NodeId);
 
         /// <summary>
         /// This node's index/bounds.
         /// </summary>
+        [JsonIgnore]
         public Cell Cell => (Cell)Data.Get(Durable.Octree.Cell);
+
+        /// <summary>
+        /// Octree. Number of points in this cell.
+        /// Durable definition 172e1f20-0ffc-4d9c-9b3d-903fca41abe3.
+        /// </summary>
+        [JsonIgnore]
+        public int PointCountCell => (int)Data.Get(Durable.Octree.PointCountCell);
+
 
         /// <summary>
         /// Number of points in this tree (sum of leaves).
         /// </summary>
+        [JsonIgnore]
         public long PointCountTree => (long)Data.Get(Durable.Octree.PointCountTreeLeafs);
 
         /// <summary>
         /// Subnodes (8), or null if leaf.
         /// </summary>
+        [JsonIgnore]
         public Guid?[] SubnodeIds
         {
             get
@@ -326,16 +344,10 @@ namespace Aardvark.Geometry.Points
         #endregion
 
         /// <summary>
-        /// Number of points in this node (without subnodes).
-        /// </summary>
-        [JsonIgnore]
-        public long PointCount => IsLeaf ? PointCountTree : 0;
-        
-        /// <summary>
         /// Subnodes (8), or null if leaf.
         /// </summary>
         [JsonIgnore]
-        public readonly PersistentRef<PointSetNode>[] Subnodes;
+        public readonly PersistentRef<IPointCloudNode>[] Subnodes;
 
         /// <summary>
         /// Bounding box of this node's cell.
@@ -381,401 +393,12 @@ namespace Aardvark.Geometry.Points
 
         #endregion
 
-        #region Counts (optionally traversing out-of-core nodes)
-
-        /// <summary>
-        /// Total number of nodes.
-        /// </summary>
-        public long CountNodes(bool outOfCore)
-        {
-            var count = 1L;
-            if (Subnodes != null)
-            {
-                if (outOfCore)
-                {
-                    for (var i = 0; i < 8; i++)
-                    {
-                        var n = Subnodes[i];
-                        if (n != null) count += n.Value.CountNodes(outOfCore);
-                    }
-                }
-                else
-                {
-                    for (var i = 0; i < 8; i++)
-                    {
-                        var n = Subnodes[i];
-                        if (n != null)
-                        {
-                            if (n.TryGetValue(out PointSetNode node)) count += node.CountNodes(outOfCore);
-                        }
-                    }
-                }
-            }
-            return count;
-        }
-
-        /// <summary>
-        /// Number of inner nodes.
-        /// </summary>
-        public long CountInnerNodes(bool outOfCore)
-        {
-            long count = 0;
-            if (Subnodes != null)
-            {
-                if (outOfCore)
-                {
-                    for (var i = 0; i < 8; i++)
-                    {
-                        var n = Subnodes[i];
-                        if (n != null) count += n.Value.CountInnerNodes(outOfCore);
-                    }
-                }
-                else
-                {
-                    for (var i = 0; i < 8; i++)
-                    {
-                        var n = Subnodes[i];
-                        if (n != null)
-                        {
-                            if (n.TryGetValue(out PointSetNode node)) count += node.CountInnerNodes(outOfCore);
-                        }
-                    }
-                }
-            }
-            return count;
-        }
-
-        /// <summary>
-        /// Number of leaf nodes.
-        /// </summary>
-        public long CountLeafNodes(bool outOfCore)
-        {
-            if (Subnodes == null) return 1;
-
-            var count = 0L;
-            if (outOfCore)
-            {
-                for (var i = 0; i < 8; i++)
-                {
-                    var n = Subnodes[i];
-                    if (n != null) count += n.Value.CountLeafNodes(outOfCore);
-                }
-            }
-            else
-            {
-                for (var i = 0; i < 8; i++)
-                {
-                    var n = Subnodes[i];
-                    if (n != null)
-                    {
-                        if (n.TryGetValue(out PointSetNode node)) count += node.CountLeafNodes(outOfCore);
-                    }
-                }
-            }
-            return count;
-        }
-
-        /// <summary>
-        /// Gets minimum point count of leaf nodes.
-        /// </summary>
-        public long GetMinimumLeafPointCount(bool outOfCore)
-        {
-            var min = long.MaxValue;
-            if (Subnodes != null)
-            {
-                if (outOfCore)
-                {
-                    for (var i = 0; i < 8; i++)
-                    {
-                        var n = Subnodes[i];
-                        if (n != null)
-                        {
-                            var x = n.Value.GetMinimumLeafPointCount(outOfCore);
-                            if (x < min) min = x;
-                        }
-                    }
-                }
-                else
-                {
-                    for (var i = 0; i < 8; i++)
-                    {
-                        var n = Subnodes[i];
-                        if (n != null)
-                        {
-                            if (n.TryGetValue(out PointSetNode node))
-                            {
-                                var x = node.GetMinimumLeafPointCount(outOfCore);
-                                if (x < min) min = x;
-                            }
-                        }
-                    }
-                }
-            }
-            return min;
-        }
-
-        /// <summary>
-        /// Gets maximum point count of leaf nodes.
-        /// </summary>
-        public long GetMaximumLeafPointCount(bool outOfCore)
-        {
-            var max = long.MinValue;
-            if (Subnodes != null)
-            {
-                if (outOfCore)
-                {
-                    for (var i = 0; i < 8; i++)
-                    {
-                        var n = Subnodes[i];
-                        if (n != null)
-                        {
-                            var x = n.Value.GetMinimumLeafPointCount(outOfCore);
-                            if (x > max) max = x;
-                        }
-                    }
-                }
-                else
-                {
-                    for (var i = 0; i < 8; i++)
-                    {
-                        var n = Subnodes[i];
-                        if (n != null)
-                        {
-                            if (n.TryGetValue(out PointSetNode node))
-                            {
-                                var x = node.GetMinimumLeafPointCount(outOfCore);
-                                if (x > max) max = x;
-                            }
-                        }
-                    }
-                }
-            }
-            return max;
-        }
-
-        /// <summary>
-        /// Gets average point count of leaf nodes.
-        /// </summary>
-        public double GetAverageLeafPointCount(bool outOfCore)
-        {
-            return PointCountTree / (double)CountNodes(outOfCore);
-        }
-
-        /// <summary>
-        /// Depth of tree (minimum).
-        /// </summary>
-        public int GetMinimumTreeDepth(bool outOfCore)
-        {
-            if (Subnodes == null) return 1;
-
-            var min = int.MaxValue;
-
-            if (outOfCore)
-            {
-                for (var i = 0; i < 8; i++)
-                {
-                    var n = Subnodes[i];
-                    if (n != null)
-                    {
-                        var x = n.Value.GetMinimumTreeDepth(outOfCore);
-                        if (x < min) min = x;
-                    }
-                }
-            }
-            else
-            {
-                for (var i = 0; i < 8; i++)
-                {
-                    var n = Subnodes[i];
-                    if (n != null)
-                    {
-                        if (n.TryGetValue(out PointSetNode node))
-                        {
-                            var x = node.GetMinimumTreeDepth(outOfCore);
-                            if (x < min) min = x;
-                        }
-                    }
-                }
-            }
-            return 1 + (min != int.MaxValue ? min : 0);
-        }
-
-        /// <summary>
-        /// Depth of tree (maximum).
-        /// </summary>
-        public int GetMaximiumTreeDepth(bool outOfCore)
-        {
-            if (Subnodes == null) return 1;
-
-            var max = 0;
-
-            if (outOfCore)
-            {
-                for (var i = 0; i < 8; i++)
-                {
-                    var n = Subnodes[i];
-                    if (n != null)
-                    {
-                        var x = n.Value.GetMaximiumTreeDepth(outOfCore);
-                        if (x > max) max = x;
-                    }
-                }
-            }
-            else
-            {
-                for (var i = 0; i < 8; i++)
-                {
-                    var n = Subnodes[i];
-                    if (n != null)
-                    {
-                        if (n.TryGetValue(out PointSetNode node))
-                        {
-                            var x = node.GetMaximiumTreeDepth(outOfCore);
-                            if (x > max) max = x;
-                        }
-                    }
-                }
-            }
-            return 1 + max;
-        }
-
-        /// <summary>
-        /// Depth of tree (average).
-        /// </summary>
-        public double GetAverageTreeDepth(bool outOfCore)
-        {
-            long sum = 0, count = 0;
-            GetAverageTreeDepth(outOfCore, 1, ref sum, ref count);
-            return sum / (double)count;
-        }
-        private void GetAverageTreeDepth(bool outOfCore, int depth, ref long sum, ref long count)
-        {
-            if (Subnodes == null)
-            {
-                sum += depth; count++;
-                return;
-            }
-
-            ++depth;
-
-            if (outOfCore)
-            {
-                for (var i = 0; i < 8; i++)
-                {
-                    var n = Subnodes[i];
-                    if (n != null) n.Value.GetAverageTreeDepth(outOfCore, depth, ref sum, ref count);
-                }
-            }
-            else
-            {
-                for (var i = 0; i < 8; i++)
-                {
-                    var n = Subnodes[i];
-                    if (n != null)
-                    {
-                        if (n.TryGetValue(out PointSetNode node)) node.GetAverageTreeDepth(outOfCore, depth, ref sum, ref count);
-                    }
-                }
-            }
-        }
-
-        #endregion
-
-        #region ForEach (optionally traversing out-of-core nodes) 
-
-        /// <summary>
-        /// Calls action for each node in this tree.
-        /// </summary>
-        public void ForEachNode(bool outOfCore, Action<PointSetNode> action)
-        {
-            action(this);
-
-            if (Subnodes == null) return;
-            
-            if (outOfCore)
-            {
-                for (var i = 0; i < 8; i++)
-                {
-                    Subnodes[i]?.Value.ForEachNode(outOfCore, action);
-                }
-            }
-            else
-            {
-                for (var i = 0; i < 8; i++)
-                {
-                    var n = Subnodes[i];
-                    if (n != null)
-                    {
-                        if (n.TryGetValue(out PointSetNode node)) node.ForEachNode(outOfCore, action);
-                    }
-                }
-            }
-        }
-        
-        /// <summary>
-        /// Calls action for each (node, fullyInside) in this pointset, that is intersecting the given hull.
-        /// </summary>
-        public void ForEachIntersectingNode(bool outOfCore, Hull3d hull, bool doNotTraverseSubnodesWhenFullyInside,
-            Action<PointSetNode, bool> action, CancellationToken ct = default(CancellationToken))
-        {
-            ct.ThrowIfCancellationRequested();
-
-            for (var i = 0; i < hull.PlaneCount; i++)
-            {
-                if (!IntersectsNegativeHalfSpace(hull.PlaneArray[i])) return;
-            }
-
-            bool fullyInside = true;
-            for (var i = 0; i < hull.PlaneCount; i++)
-            {
-                if (!InsideNegativeHalfSpace(hull.PlaneArray[i]))
-                {
-                    fullyInside = false;
-                    break;
-                }
-            }
-
-            action(this, fullyInside);
-
-            if (fullyInside && doNotTraverseSubnodesWhenFullyInside) return;
-
-            if (Subnodes == null) return;
-            
-            if (outOfCore)
-            {
-                for (var i = 0; i < 8; i++)
-                {
-                    var n = Subnodes[i];
-                    if (n != null)
-                    {
-                        n.Value.ForEachIntersectingNode(outOfCore, hull, doNotTraverseSubnodesWhenFullyInside, action, ct);
-                    }
-                }
-            }
-            else
-            {
-                for (var i = 0; i < 8; i++)
-                {
-                    var n = Subnodes[i];
-                    if (n != null)
-                    {
-                        if (n.TryGetValue(out PointSetNode node))
-                        {
-                            node.ForEachIntersectingNode(outOfCore, hull, doNotTraverseSubnodesWhenFullyInside, action, ct);
-                        }
-                    }
-                }
-            }
-        }
-
-        #endregion
-
         #region Immutable updates (With...)
 
         /// <summary>
-        /// Replaces subnodes.
+        /// Returns new node with replaced subnodes.
         /// </summary>
-        internal PointSetNode WithSubNodes(PointSetNode[] subnodes)
+        public IPointCloudNode WithSubNodes(IPointCloudNode[] subnodes)
         {
             if (subnodes == null) throw new ArgumentNullException(nameof(subnodes));
 
@@ -842,67 +465,6 @@ namespace Aardvark.Geometry.Points
 
         #endregion
 
-        #region Intersections, inside/outside, ...
-
-        /// <summary>
-        /// Index of subnode for given point.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int GetSubIndex(in V3d p)
-        {
-            var i = 0;
-            if (p.X > Center.X) i = 1;
-            if (p.Y > Center.Y) i += 2;
-            if (p.Z > Center.Z) i += 4;
-            return i;
-        }
-
-        /// <summary>
-        /// Returns true if this node intersects the positive halfspace defined by given plane.
-        /// </summary>
-        public bool IntersectsPositiveHalfSpace(in Plane3d plane)
-        {
-            for (var i = 0; i < 8; i++)
-            {
-                if (plane.Height(Corners[i]) > 0) return true;
-            }
-            return false;
-        }
-
-        /// <summary>
-        /// Returns true if this node intersects the negative halfspace defined by given plane.
-        /// </summary>
-        public bool IntersectsNegativeHalfSpace(in Plane3d plane)
-        {
-            for (var i = 0; i < 8; i++)
-            {
-                if (plane.Height(Corners[i]) < 0) return true;
-            }
-            return false;
-        }
-
-        /// <summary>
-        /// Returns true if this node is fully inside the positive halfspace defined by given plane.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool InsidePositiveHalfSpace(in Plane3d plane)
-        {
-            BoundingBox.GetMinMaxInDirection(plane.Normal, out V3d min, out V3d max);
-            return plane.Height(min) > 0;
-        }
-
-        /// <summary>
-        /// Returns true if this node is fully inside the negative halfspace defined by given plane.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool InsideNegativeHalfSpace(in Plane3d plane)
-        {
-            BoundingBox.GetMinMaxInDirection(-plane.Normal, out V3d min, out V3d max);
-            return plane.Height(min) < 0;
-        }
-
-        #endregion
-
         #region Durable codec
 
         /// <summary>
@@ -944,25 +506,6 @@ namespace Aardvark.Geometry.Points
 
         long IPointCloudNode.PointCountTree => PointCountTree;
 
-        PersistentRef<IPointCloudNode>[] IPointCloudNode.SubNodes
-        {
-            get
-            {
-                if (Subnodes == null) return null;
-                return new[]
-                {
-                    Subnodes[0] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[0].Id, _ => Subnodes[0].Value, _ => Subnodes[0].TryGetValue()),
-                    Subnodes[1] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[1].Id, _ => Subnodes[1].Value, _ => Subnodes[1].TryGetValue()),
-                    Subnodes[2] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[2].Id, _ => Subnodes[2].Value, _ => Subnodes[2].TryGetValue()),
-                    Subnodes[3] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[3].Id, _ => Subnodes[3].Value, _ => Subnodes[3].TryGetValue()),
-                    Subnodes[4] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[4].Id, _ => Subnodes[4].Value, _ => Subnodes[4].TryGetValue()),
-                    Subnodes[5] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[5].Id, _ => Subnodes[5].Value, _ => Subnodes[5].TryGetValue()),
-                    Subnodes[6] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[6].Id, _ => Subnodes[6].Value, _ => Subnodes[6].TryGetValue()),
-                    Subnodes[7] == null ? null : new PersistentRef<IPointCloudNode>(Subnodes[7].Id, _ => Subnodes[7].Value, _ => Subnodes[7].TryGetValue()),
-                };
-            }
-        }
-
         /// <summary></summary>
         public bool Has(Durable.Def what) => Data.ContainsKey(what);
 
@@ -971,8 +514,6 @@ namespace Aardvark.Geometry.Points
 
         Storage IPointCloudNode.Storage => Storage;
 
-
-        
         /// <summary></summary>
         public Box3f BoundingBoxExactLocal
         {
@@ -1027,18 +568,13 @@ namespace Aardvark.Geometry.Points
                     return -1.0f;
             }
         }
-        
-        /// <summary></summary>
-        public FilterState FilterState => FilterState.FullyInside;
-        
-        /// <summary></summary>
-        public JObject ToJson()
-        {
-            throw new NotImplementedException();
-        }
+
+        PersistentRef<IPointCloudNode>[] IPointCloudNode.Subnodes => Subnodes;
 
         /// <summary></summary>
-        public string NodeType => "PointSetNode";
+        public FilterState FilterState => FilterState.FullyInside;
+
+        IPointCloudNode IPointCloudNode.WithUpsert(Durable.Def def, object x) => WithUpsert(def, x);
 
         /// <summary></summary>
         public void Dispose() { }

@@ -14,8 +14,6 @@
 using Aardvark.Base;
 using Aardvark.Data;
 using Aardvark.Data.Points;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -92,11 +90,11 @@ namespace Aardvark.Geometry.Points
         public float PointDistanceStandardDeviation => Node.PointDistanceStandardDeviation;
 
         /// <summary></summary>
-        public PersistentRef<IPointCloudNode>[] SubNodes
+        public PersistentRef<IPointCloudNode>[] Subnodes
         {
             get
             {
-                if (Node.SubNodes == null) return null;
+                if (Node.Subnodes == null) return null;
 
                 if (m_subnodes_cache == null)
                 {
@@ -104,7 +102,7 @@ namespace Aardvark.Geometry.Points
                     for (var i = 0; i < 8; i++)
                     {
                         var id = (Id + "." + i).ToGuid();
-                        var n0 = Node.SubNodes[i]?.Value;
+                        var n0 = Node.Subnodes[i]?.Value;
                         var n = n0 != null ? new FilteredNode(id, n0, Filter) : null;
                         m_subnodes_cache[i] = new PersistentRef<IPointCloudNode>(id.ToString(), _ => n, _ => (true, n));
                     }
@@ -139,19 +137,79 @@ namespace Aardvark.Geometry.Points
 
         }
 
-        /// <summary></summary>
-        public JObject ToJson() => JObject.FromObject(new 
+        /// <summary>
+        /// </summary>
+        public IPointCloudNode WithUpsert(Durable.Def def, object x)
         {
-            
-        });
+            throw new NotImplementedException();
+        }
 
         /// <summary></summary>
-        public static FilteredNode Parse(JObject json) => throw new NotImplementedException();
-        
-        /// <summary></summary>
-        public string NodeType => Type;
+        public IPointCloudNode WriteToStore()
+        {
+            throw new NotImplementedException();
+        }
 
         /// <summary></summary>
-        public ImmutableDictionary<Durable.Def, object> Data => throw new NotImplementedException();
+        public IPointCloudNode WithSubNodes(PointSetNode[] subnodes)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary></summary>
+        public IPointCloudNode WithSubNodes(IPointCloudNode[] subnodes)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary></summary>
+        private ImmutableDictionary<Durable.Def, object> Data => throw new NotImplementedException();
+
+        /// <summary></summary>
+        public bool HasPositions => throw new NotImplementedException();
+
+        /// <summary></summary>
+        public V3f[] Positions => throw new NotImplementedException();
+
+        /// <summary></summary>
+        public V3d[] PositionsAbsolute => throw new NotImplementedException();
+
+        /// <summary></summary>
+        public int PointCountCell => throw new NotImplementedException();
+
+        PersistentRef<V3f[]> IPointCloudNode.Positions => throw new NotImplementedException();
+
+        /// <summary></summary>
+        public bool HasColors => throw new NotImplementedException();
+
+        /// <summary></summary>
+        public bool HasNormals => throw new NotImplementedException();
+
+        /// <summary></summary>
+        public bool HasIntensities => throw new NotImplementedException();
+
+        /// <summary></summary>
+        public bool HasClassifications => throw new NotImplementedException();
+
+        /// <summary></summary>
+        public bool IsLeaf => throw new NotImplementedException();
+
+        /// <summary></summary>
+        public bool HasKdTree => throw new NotImplementedException();
+
+        /// <summary></summary>
+        public PersistentRef<PointRkdTreeF<V3f[], V3f>> KdTree => throw new NotImplementedException();
+
+        /// <summary></summary>
+        public PersistentRef<C4b[]> Colors => throw new NotImplementedException();
+
+        /// <summary></summary>
+        public PersistentRef<V3f[]> Normals => throw new NotImplementedException();
+
+        /// <summary></summary>
+        public PersistentRef<int[]> Intensities => throw new NotImplementedException();
+
+        /// <summary></summary>
+        public PersistentRef<byte[]> Classifications => throw new NotImplementedException();
     }
 }

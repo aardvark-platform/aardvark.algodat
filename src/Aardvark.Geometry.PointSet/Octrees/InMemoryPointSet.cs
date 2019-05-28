@@ -225,7 +225,7 @@ namespace Aardvark.Geometry.Points
                 if (subcellIds == null) // leaf
                 {
                     var result = new PointSetNode(data, storage, writeToStore: true);
-                    if (storage.GetPointSetNode(result.Id.ToString()) == null) throw new InvalidOperationException("Invariant d1022027-2dbf-4b11-9b40-4829436f5789.");
+                    if (storage.GetPointCloudNode(result.Id.ToString()) == null) throw new InvalidOperationException("Invariant d1022027-2dbf-4b11-9b40-4829436f5789.");
                     return result;
                 }
                 else
@@ -236,14 +236,14 @@ namespace Aardvark.Geometry.Points
                         if (x.HasValue)
                         {
                             var id = x.Value.ToString();
-                            if (storage.GetPointSetNode(id) == null) throw new InvalidOperationException("Invariant 01830b8b-3c0e-4a8b-a1bd-bfd1b1be1844.");
+                            if (storage.GetPointCloudNode(id) == null) throw new InvalidOperationException("Invariant 01830b8b-3c0e-4a8b-a1bd-bfd1b1be1844.");
                         }
                     }
                     data = data
                         .Add(Durable.Octree.SubnodesGuids, subcellIds.Map(x => x ?? Guid.Empty))
                         ;
                     var result = new PointSetNode(data, storage, writeToStore: true);
-                    if (storage.GetPointSetNode(result.Id.ToString()) == null) throw new InvalidOperationException("Invariant 7b09eccb-b6a0-4b99-be7a-eeff53b6a98b.");
+                    if (storage.GetPointCloudNode(result.Id.ToString()) == null) throw new InvalidOperationException("Invariant 7b09eccb-b6a0-4b99-be7a-eeff53b6a98b.");
                     return result;
                 }
             }

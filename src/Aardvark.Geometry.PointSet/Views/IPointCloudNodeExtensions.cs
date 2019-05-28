@@ -23,23 +23,9 @@ namespace Aardvark.Geometry.Points
 {
     /// <summary>
     /// </summary>
-    public static class IPointCloudNodeExtensions
+    public static class IPointCloudNodeExtensions2
     {
         #region Has*
-
-        //private static bool Has(IPointCloudNode n, Durable.Def what)
-        //{
-        //    switch (n.FilterState)
-        //    {
-        //        case FilterState.FullyOutside:
-        //            return false;
-        //        case FilterState.FullyInside:
-        //        case FilterState.Partial:
-        //            return n.Data.ContainsKey(what);
-        //        default:
-        //            throw new InvalidOperationException($"Unknown FilterState {n.FilterState}.");
-        //    }
-        //}
 
         /// <summary> </summary>
         public static bool HasPositions(this IPointCloudNode self) => self.Has(Durable.Octree.PositionsLocal3fReference);
@@ -142,172 +128,10 @@ namespace Aardvark.Geometry.Points
 
         #endregion
 
-        #region Storage
+        /// <summary></summary>
+        public static bool IsLeaf(this IPointCloudNode self) => self.Subnodes == null;
 
         /// <summary></summary>
-        public static void Add(this Storage storage, string key, IPointCloudNode data)
-        {
-            storage.f_add(key, data, () =>
-            {
-                var json = data.ToJson().ToString();
-                var buffer = Encoding.UTF8.GetBytes(json);
-                return buffer;
-            });
-        }
-
-        /// <summary></summary>
-        public static IPointCloudNode GetPointCloudNode(this Storage storage, string key, IStoreResolver resolver)
-        {
-            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (IPointCloudNode)o;
-            
-            var buffer = storage.f_get(key);
-            if (buffer == null) return null;
-            var json = JObject.Parse(Encoding.UTF8.GetString(buffer));
-            var nodeType = (string)json["NodeType"];
-
-            IPointCloudNode data;
-            switch (nodeType)
-            {
-                case LinkedNode.Type:
-                    data = LinkedNode.Parse(json, storage, resolver);
-                    break;
-                default:
-                    throw new InvalidOperationException($"Unknown node type '{nodeType}'.");
-            }
-
-            return data;
-        }
-
-        #endregion
-
-        /// <summary></summary>
-        public static bool IsLeaf(this IPointCloudNode self) => self.SubNodes == null;
-
-        /// <summary></summary>
-        public static bool IsNotLeaf(this IPointCloudNode self) => self.SubNodes != null;
-
-        /// <summary>
-        /// Counts ALL nodes of this tree by traversing over all persistent refs.
-        /// </summary>
-        public static long CountNodes(this IPointCloudNode self)
-        {
-            if (self == null) return 0;
-
-            var subnodes = self.SubNodes;
-            if (subnodes == null) return 1;
-            
-            var count = 1L;
-            for (var i = 0; i < 8; i++)
-            {
-                var n = subnodes[i];
-                if (n == null) continue;
-                count += n.Value.CountNodes();
-            }
-            return count;
-        }
-
-        #region Intersections, inside/outside, ...
-
-        /// <summary>
-        /// Index of subnode for given point.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int GetSubIndex(this IPointCloudNode self, in V3d p)
-        {
-            var i = 0;
-            if (p.X > self.Center.X) i = 1;
-            if (p.Y > self.Center.Y) i += 2;
-            if (p.Z > self.Center.Z) i += 4;
-            return i;
-        }
-
-        /// <summary>
-        /// Returns true if this node intersects the positive halfspace defined by given plane.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IntersectsPositiveHalfSpace(this IPointCloudNode self, in Plane3d plane)
-        {
-            var corners = self.BoundingBoxExactGlobal.ComputeCorners();
-            for (var i = 0; i < 8; i++)
-            {
-                if (plane.Height(corners[i]) > 0) return true;
-            }
-            return false;
-        }
-
-        /// <summary>
-        /// Returns true if this node intersects the negative halfspace defined by given plane.
-        /// </summary>
-        public static bool IntersectsNegativeHalfSpace(this IPointCloudNode self, in Plane3d plane)
-        {
-            var corners = self.BoundingBoxExactGlobal.ComputeCorners();
-            for (var i = 0; i < 8; i++)
-            {
-                if (plane.Height(corners[i]) < 0) return true;
-            }
-            return false;
-        }
-
-        /// <summary>
-        /// Returns true if this node is fully inside the positive halfspace defined by given plane.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool InsidePositiveHalfSpace(this IPointCloudNode self, in Plane3d plane)
-        {
-            self.BoundingBoxExactGlobal.GetMinMaxInDirection(plane.Normal, out V3d min, out V3d max);
-            return plane.Height(min) > 0;
-        }
-
-        /// <summary>
-        /// Returns true if this node is fully inside the negative halfspace defined by given plane.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool InsideNegativeHalfSpace(this IPointCloudNode self, in Plane3d plane)
-        {
-            self.BoundingBoxExactGlobal.GetMinMaxInDirection(-plane.Normal, out V3d min, out V3d max);
-            return plane.Height(min) < 0;
-        }
-
-        /// <summary>
-        /// </summary>
-        public static (bool, IPointCloudNode) TryGetPointCloudNode(this Storage storage, string id)
-        {
-            throw new NotImplementedException();
-        }
-
-        #endregion
-
-        #region ForEach (optionally traversing out-of-core nodes) 
-
-        /// <summary>
-        /// Calls action for each node in this tree.
-        /// </summary>
-        public static void ForEachNode(this IPointCloudNode self, bool outOfCore, Action<IPointCloudNode> action)
-        {
-            action(self);
-
-            if (self.SubNodes == null) return;
-
-            if (outOfCore)
-            {
-                for (var i = 0; i < 8; i++)
-                {
-                    self.SubNodes[i]?.Value.ForEachNode(outOfCore, action);
-                }
-            }
-            else
-            {
-                for (var i = 0; i < 8; i++)
-                {
-                    var n = self.SubNodes[i];
-                    if (n != null)
-                    {
-                        if (n.TryGetValue(out IPointCloudNode node)) node.ForEachNode(outOfCore, action);
-                    }
-                }
-            }
-        }
-
-        #endregion
+        public static bool IsNotLeaf(this IPointCloudNode self) => self.Subnodes != null;
     }
 }

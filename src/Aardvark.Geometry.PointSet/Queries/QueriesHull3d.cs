@@ -30,7 +30,7 @@ namespace Aardvark.Geometry.Points
         public static IEnumerable<Chunk> QueryPointsInsideConvexHull(
             this PointSet self, Hull3d query, int minCellExponent = int.MinValue
             )
-            => QueryPointsInsideConvexHull(self.Octree.Value, query, minCellExponent);
+            => QueryPointsInsideConvexHull(self.Root.Value, query, minCellExponent);
 
         /// <summary>
         /// All points inside convex hull (including boundary).
@@ -50,7 +50,7 @@ namespace Aardvark.Geometry.Points
         public static IEnumerable<Chunk> QueryPointsOutsideConvexHull(
             this PointSet self, Hull3d query, int minCellExponent = int.MinValue
             )
-            => QueryPointsOutsideConvexHull(self.Octree.Value, query, minCellExponent);
+            => QueryPointsOutsideConvexHull(self.Root.Value, query, minCellExponent);
 
         /// <summary>
         /// All points outside convex hull (excluding boundary).
@@ -70,7 +70,7 @@ namespace Aardvark.Geometry.Points
         internal static long CountPointsInsideConvexHull(
             this PointSet self, Hull3d query, int minCellExponent = int.MinValue
             )
-            => CountPointsInsideConvexHull(self.Octree.Value, query, minCellExponent);
+            => CountPointsInsideConvexHull(self.Root.Value, query, minCellExponent);
 
         /// <summary>
         /// Counts points inside convex hull.
@@ -90,7 +90,7 @@ namespace Aardvark.Geometry.Points
         internal static long CountPointsOutsideConvexHull(
             this PointSet self, Hull3d query, int minCellExponent = int.MinValue
             )
-            => CountPointsOutsideConvexHull(self.Octree.Value, query, minCellExponent);
+            => CountPointsOutsideConvexHull(self.Root.Value, query, minCellExponent);
 
         /// <summary>
         /// Counts points outside convex hull.
@@ -111,7 +111,7 @@ namespace Aardvark.Geometry.Points
         internal static long CountPointsApproximatelyInsideConvexHull(
             this PointSet self, Hull3d query, int minCellExponent = int.MinValue
             )
-            => CountPointsApproximatelyInsideConvexHull(self.Octree.Value, query, minCellExponent);
+            => CountPointsApproximatelyInsideConvexHull(self.Root.Value, query, minCellExponent);
 
         /// <summary>
         /// Counts points inside convex hull (approximately).
@@ -132,7 +132,7 @@ namespace Aardvark.Geometry.Points
         internal static long CountPointsApproximatelyOutsideConvexHull(
             this PointSet self, Hull3d query, int minCellExponent = int.MinValue
             )
-            => CountPointsApproximatelyOutsideConvexHull(self.Octree.Value, query, minCellExponent);
+            => CountPointsApproximatelyOutsideConvexHull(self.Root.Value, query, minCellExponent);
 
         /// <summary>
         /// Counts points outside convex hull (approximately).

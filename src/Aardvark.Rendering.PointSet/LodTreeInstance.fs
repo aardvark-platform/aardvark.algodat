@@ -80,12 +80,12 @@ module LodTreeInstance =
 
 
 
-    type PointTreeNode(cache : LruDictionary<string, obj>, source : Symbol, globalTrafo : Similarity3d, root : Option<PointTreeNode>, parent : Option<PointTreeNode>, level : int, self : PointSetNode) as this =
+    type PointTreeNode(cache : LruDictionary<string, obj>, source : Symbol, globalTrafo : Similarity3d, root : Option<PointTreeNode>, parent : Option<PointTreeNode>, level : int, self : IPointCloudNode) as this =
         static let cmp = Func<float,float,int>(compare)
         
         let globalTrafoTrafo = Trafo3d globalTrafo
-        let worldBounds = (self :> IPointCloudNode).BoundingBoxExactGlobal
-        let worldCellBounds = self.BoundingBox
+        let worldBounds = self.BoundingBoxExactGlobal
+        let worldCellBounds = self.BoundingBoxExactGlobal
         let localBounds = worldBounds.Transformed(globalTrafoTrafo)
         let localCellBounds = worldCellBounds.Transformed(globalTrafoTrafo)
         let cell = self.Cell
@@ -97,10 +97,10 @@ module LodTreeInstance =
         //let mutable livingChildren = 0
         let mutable children : Option<list<ILodTreeNode>> = None
  
-        static let nodeId (n : PointSetNode) =
+        static let nodeId (n : IPointCloudNode) =
             string n.Id + "PointTreeNode"
             
-        static let cacheId (n : PointSetNode) =
+        static let cacheId (n : IPointCloudNode) =
             string n.Id + "GeometryData"
             
         let getAverageDistance (original : V3f[]) (positions : V3f[]) (tree : PointRkdTreeF<_,_>) =
@@ -298,7 +298,7 @@ module LodTreeInstance =
             //    | Some p -> p.ReleaseChild()
             //    | None -> ()
 
-        member x.Original : PointSetNode = self
+        member x.Original : IPointCloudNode = self
 
         member x.Root : PointTreeNode =
             match root with
@@ -567,8 +567,8 @@ module LodTreeInstance =
         use input = PointCloud.OpenStore(input, LruDictionary(1L <<< 30))
         let set = input.GetPointSet(key, IdentityResolver.Default)   
        
-        let storeStructure (node : PointSetNode) =
-            let queue = Queue<PointSetNode>()
+        let storeStructure (node : IPointCloudNode) =
+            let queue = Queue<IPointCloudNode>()
             queue.Enqueue(node)
 
             let mutable i = 0
@@ -588,8 +588,8 @@ module LodTreeInstance =
 
                 i <- i + 1
 
-        let storeAttributes (node : PointSetNode) =
-            let queue = Queue<PointSetNode>()
+        let storeAttributes (node : IPointCloudNode) =
+            let queue = Queue<IPointCloudNode>()
             queue.Enqueue(node)
             
             let mutable i = 0

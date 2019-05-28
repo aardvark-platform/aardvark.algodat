@@ -534,7 +534,17 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public static PointSetNode GetPointSetNode(this Storage storage, string key)
+        public static void Add(this Storage storage, string key, IPointCloudNode data)
+        {
+            storage.f_add(key, data, () =>
+            {
+                if (key != data.Id.ToString()) throw new InvalidOperationException("Invariant a1e63dbc-6996-481e-996f-afdac047be0b.");
+                return data.Encode();
+            });
+        }
+
+        /// <summary></summary>
+        public static IPointCloudNode GetPointCloudNode(this Storage storage, string key)
         {
             if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (PointSetNode)o;
 
@@ -551,7 +561,7 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public static (bool, PointSetNode) TryGetPointSetNode(this Storage storage, string key)
+        public static (bool, IPointCloudNode) TryGetPointCloudNode(this Storage storage, string key)
         {
             if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
             {

@@ -45,7 +45,7 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(pointset.Id == "PointSet.Empty");
             Assert.IsTrue(pointset.IsEmpty == true);
             Assert.IsTrue(pointset.PointCount == 0);
-            Assert.IsTrue(pointset.Octree == null);
+            Assert.IsTrue(pointset.Root == null);
             Assert.IsTrue(pointset.SplitLimit == 0);
         }
 
@@ -57,9 +57,9 @@ namespace Aardvark.Geometry.Tests
             var cs = new List<C4b> { C4b.White };
             var pointset = PointSet.Create(store, "id", ps, cs, null, null, null, 1000, CancellationToken.None);
             Assert.IsTrue(pointset.PointCount == 1);
-            Assert.IsTrue(pointset.Octree.Value.IsLeaf());
-            Assert.IsTrue(pointset.Octree.Value.GetPositions().Value.Length == 1);
-            Assert.IsTrue(pointset.Octree.Value.PointCountTree == 1);
+            Assert.IsTrue(pointset.Root.Value.IsLeaf());
+            Assert.IsTrue(pointset.Root.Value.GetPositions().Value.Length == 1);
+            Assert.IsTrue(pointset.Root.Value.PointCountTree == 1);
         }
 
         [Test]

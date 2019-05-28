@@ -151,9 +151,9 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PointSet GenerateLod(this PointSet self, ImportConfig config)
         {
-            if (self.Octree == null) return self;
+            if (self.Root == null) return self;
 
-            var nodeCount = self.Octree?.Value?.CountNodes() ?? 0;
+            var nodeCount = self.Root?.Value?.CountNodes() ?? 0;
             var loddedNodesCount = 0L;
             var result = self.GenerateLod(config.Key, () =>
             {
@@ -183,6 +183,7 @@ namespace Aardvark.Geometry.Points
             }
             catch (Exception e)
             {
+                Report.Error(e.ToString());
                 throw;
             }
         }
@@ -216,7 +217,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        private static async Task<PointSetNode> GenerateLod(this PointSetNode self,
+        private static async Task<IPointCloudNode> GenerateLod(this IPointCloudNode self,
             int octreeSplitLimit, Action callback,
             CancellationToken ct)
         {
@@ -268,7 +269,10 @@ namespace Aardvark.Geometry.Points
             // store LoD data ...
             var lodPsKey = Guid.NewGuid();
             self.Storage.Add(lodPsKey, lodPs);
-            self = self.WithUpsert(Durable.Octree.PositionsLocal3fReference, lodPsKey);
+            self = self
+                .WithUpsert(Durable.Octree.PositionsLocal3fReference, lodPsKey)
+                .WithUpsert(Durable.Octree.PointCountCell, lodPs.Length)
+                ;
 
             var lodKdKey = Guid.NewGuid();
             self.Storage.Add(lodKdKey, lodKd.Data);
