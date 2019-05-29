@@ -18,14 +18,11 @@ using Aardvark.Base;
 using Aardvark.Data;
 using Aardvark.Data.Points;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace Aardvark.Geometry.Points
 {
@@ -445,7 +442,6 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// Returns new node with given entry removed or same node if entry does not exist.
-        /// If 
         /// </summary>
         internal PointSetNode Without(Durable.Def def, bool writeToStore = true)
         {

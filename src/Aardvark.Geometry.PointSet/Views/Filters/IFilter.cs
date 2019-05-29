@@ -46,17 +46,17 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Node is fully included by filter.
         /// </summary>
-        FullyInside,
+        FullyInside = 0,
 
         /// <summary>
         /// Node is fully excluded by filter.
         /// </summary>
-        FullyOutside,
+        FullyOutside = 1,
 
         /// <summary>
         /// Node is partially selected by filter.
         /// </summary>
-        Partial
+        Partial = 2
     }
 
     /// <summary>

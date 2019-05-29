@@ -14,6 +14,7 @@
 using Aardvark.Base;
 using Aardvark.Data;
 using Aardvark.Data.Points;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -26,8 +27,35 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public class FilteredNode : IPointCloudNode
     {
+        #region Construction
+
+        private readonly HashSet<int> m_activePoints;
+        private PersistentRef<IPointCloudNode>[] m_subnodes_cache;
+
         /// <summary></summary>
-        public const string Type = "FilteredNode";
+        public FilteredNode(Guid id, IPointCloudNode node, IFilter filter)
+        {
+            Id = id;
+            Node = node ?? throw new ArgumentNullException(nameof(node));
+            Filter = filter ?? throw new ArgumentNullException(nameof(filter));
+
+            FilterState = Node.GetFilterState(Filter);
+
+            if (FilterState == FilterState.Partial)
+            {
+                m_activePoints = Filter.FilterPoints(Node, m_activePoints);
+            }
+        }
+
+        /// <summary></summary>
+        public FilteredNode(IPointCloudNode node, IFilter filter) : this(Guid.NewGuid(), node, filter) { }
+
+        #endregion
+
+        #region Properties (state to serialize)
+
+        /// <summary></summary>
+        public Guid Id { get; }
 
         /// <summary> </summary>
         public IPointCloudNode Node { get; }
@@ -38,38 +66,12 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public FilterState FilterState { get; }
 
-        private readonly HashSet<int> m_activePoints;
-        private PersistentRef<IPointCloudNode>[] m_subnodes_cache;
-
-        #region Construction
-
-        /// <summary></summary>
-        public FilteredNode(Guid id, IPointCloudNode node, IFilter filter, HashSet<int> activePoints = null)
-        {
-            Id = id;
-            Node = node ?? throw new ArgumentNullException(nameof(node));
-            Filter = filter ?? throw new ArgumentNullException(nameof(filter));
-            FilterState = Node.GetFilterState(Filter);
-
-            m_activePoints = activePoints;
-            if (FilterState == FilterState.Partial)
-            {
-                m_activePoints = Filter.FilterPoints(Node, m_activePoints);
-            }
-        }
-
-        /// <summary></summary>
-        public FilteredNode(IPointCloudNode node, IFilter filter)
-            : this(Guid.NewGuid(), node, filter)
-        { }
-
         #endregion
+
+        #region Properties (derived/runtime, non-serialized)
 
         /// <summary></summary>
         public Storage Storage => Node.Storage;
-
-        /// <summary></summary>
-        public Guid Id { get; }
 
         /// <summary></summary>
         public Cell Cell => Node.Cell;
@@ -88,6 +90,19 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public float PointDistanceStandardDeviation => Node.PointDistanceStandardDeviation;
+
+        /// <summary></summary>
+        public bool Has(Durable.Def what) => Node.Has(what);
+
+        /// <summary></summary>
+        public bool TryGetValue(Durable.Def what, out object o) => Node.TryGetValue(what, out o);
+
+        /// <summary></summary>
+        public void Dispose() => Node.Dispose();
+
+        #endregion
+
+
 
         /// <summary></summary>
         public PersistentRef<IPointCloudNode>[] Subnodes
@@ -111,15 +126,6 @@ namespace Aardvark.Geometry.Points
             }
         }
 
-        /// <summary></summary>
-        public bool Has(Durable.Def what) => Node.Has(what);
-
-        /// <summary></summary>
-        public bool TryGetValue(Durable.Def what, out object o) => Node.TryGetValue(what, out o);
-
-        /// <summary></summary>
-        public void Dispose() => Node.Dispose();
-
         private PersistentRef<T[]> GetSubArray<T>(object originalValue)
         {
             var pref = ((PersistentRef<T[]>)originalValue);
@@ -137,41 +143,14 @@ namespace Aardvark.Geometry.Points
 
         }
 
-        /// <summary>
-        /// </summary>
-        public IPointCloudNode WithUpsert(Durable.Def def, object x)
-        {
-            throw new NotImplementedException();
-        }
-
         /// <summary></summary>
-        public IPointCloudNode WriteToStore()
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary></summary>
-        public IPointCloudNode WithSubNodes(IPointCloudNode[] subnodes)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary></summary>
-        private ImmutableDictionary<Durable.Def, object> Data => throw new NotImplementedException();
+        public int PointCountCell => throw new NotImplementedException();
 
         /// <summary></summary>
         public bool HasPositions => throw new NotImplementedException();
 
         /// <summary></summary>
-        public V3f[] Positions => throw new NotImplementedException();
-
-        /// <summary></summary>
-        public V3d[] PositionsAbsolute => throw new NotImplementedException();
-
-        /// <summary></summary>
-        public int PointCountCell => throw new NotImplementedException();
-
-        PersistentRef<V3f[]> IPointCloudNode.Positions => throw new NotImplementedException();
+        public bool HasKdTree => throw new NotImplementedException();
 
         /// <summary></summary>
         public bool HasColors => throw new NotImplementedException();
@@ -189,7 +168,10 @@ namespace Aardvark.Geometry.Points
         public bool IsLeaf => throw new NotImplementedException();
 
         /// <summary></summary>
-        public bool HasKdTree => throw new NotImplementedException();
+        public PersistentRef<V3f[]> Positions => throw new NotImplementedException();
+
+        /// <summary></summary>
+        public V3d[] PositionsAbsolute => throw new NotImplementedException();
 
         /// <summary></summary>
         public PersistentRef<PointRkdTreeF<V3f[], V3f>> KdTree => throw new NotImplementedException();
@@ -205,5 +187,23 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public PersistentRef<byte[]> Classifications => throw new NotImplementedException();
+
+        #region Not supported ...
+
+        /// <summary>
+        /// Filtered not does not support WithUpsert.
+        /// </summary>
+        public IPointCloudNode WithUpsert(Durable.Def def, object x)
+            => throw new InvalidOperationException("Invariant 3de7dad1-668d-4104-838b-552eae03f7a8.");
+
+        /// <summary></summary>
+        public IPointCloudNode WriteToStore()
+            => throw new InvalidOperationException("Invariant aa395510-cbaa-459f-b51f-9da28f4769e8.");
+
+        /// <summary></summary>
+        public IPointCloudNode WithSubNodes(IPointCloudNode[] subnodes)
+            => throw new InvalidOperationException("Invariant 62e6dab8-133a-452d-8d8c-f0b0eb5f286c.");
+
+        #endregion
     }
 }

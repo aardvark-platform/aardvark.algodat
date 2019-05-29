@@ -619,29 +619,29 @@ namespace Aardvark.Geometry.Points
 
         #endregion
 
-        #region Get*
+        #region TryGet*
 
-        private static PersistentRef<T> GetValue<T>(IPointCloudNode self, 
-            Durable.Def keyData, Durable.Def keyRef,
-            Func<string, T> get, Func<string, (bool, T)> tryGet
-            ) where T : class
-        {
-            if (self.TryGetValue(keyData, out var value))
-            {
-                if (value is T x) return PersistentRef<T>.FromValue(x);
-                if (value is PersistentRef<T> pref) return pref;
-            }
+//        private static PersistentRef<T> GetValue<T>(IPointCloudNode self, 
+//            Durable.Def keyData, Durable.Def keyRef,
+//            Func<string, T> get, Func<string, (bool, T)> tryGet
+//            ) where T : class
+//        {
+//            if (self.TryGetValue(keyData, out var value))
+//            {
+//                if (value is T x) return PersistentRef<T>.FromValue(x);
+//                if (value is PersistentRef<T> pref) return pref;
+//            }
 
-            if (self.TryGetValue(keyRef, out var o) && o is Guid id)
-                return new PersistentRef<T>(id.ToString(), get, tryGet);
+//            if (self.TryGetValue(keyRef, out var o) && o is Guid id)
+//                return new PersistentRef<T>(id.ToString(), get, tryGet);
 
-//#if DEBUG
-//            Console.WriteLine($"keyData: {keyData}");
-//            Console.WriteLine($"keyRef : {keyRef}");
-//            foreach (var kv in self.Data) Console.WriteLine($"{kv.Key} - {kv.Value}");
-//#endif
-            throw new InvalidOperationException($"Invariant 0725615a-a9a3-4989-86bd-a0b5708b2283. {keyData}. {keyRef}.");
-        }
+////#if DEBUG
+////            Console.WriteLine($"keyData: {keyData}");
+////            Console.WriteLine($"keyRef : {keyRef}");
+////            foreach (var kv in self.Data) Console.WriteLine($"{kv.Key} - {kv.Value}");
+////#endif
+//            throw new InvalidOperationException($"Invariant 0725615a-a9a3-4989-86bd-a0b5708b2283. {keyData}. {keyRef}.");
+//        }
 
         /// <summary>Returns null if node has no colors.</summary>
         public static PersistentRef<C4b[]> TryGetColors4b(this IPointCloudNode self)
