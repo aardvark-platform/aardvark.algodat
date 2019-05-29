@@ -21,7 +21,7 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public FilterIntensity(Range1i range) { Range = range; }
 
-        private int[] GetValues(IPointCloudNode node) => node.HasIntensities() ? node.GetIntensities().Value : null;
+        private int[] GetValues(IPointCloudNode node) => node.HasIntensities ? node.Intensities.Value : null;
 
         /// <summary></summary>
         public bool IsFullyInside(IPointCloudNode node)

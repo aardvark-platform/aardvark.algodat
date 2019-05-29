@@ -58,9 +58,9 @@ namespace Aardvark.Geometry.Tests
 
             Assert.IsTrue(!ps.IsEmpty);
             Assert.IsTrue(ps.Root.Value.IsLeaf());
-            Assert.IsTrue(ps.Root.Value.GetPositions().Value.Length == 1);
-            Assert.IsTrue(ps.Root.Value.HasNormals());
-            Assert.IsTrue(ps.Root.Value.GetNormals3f().Value[0] == V3f.OIO);
+            Assert.IsTrue(ps.Root.Value.Positions.Value.Length == 1);
+            Assert.IsTrue(ps.Root.Value.HasNormals);
+            Assert.IsTrue(ps.Root.Value.Normals.Value[0] == V3f.OIO);
         }
     }
 }

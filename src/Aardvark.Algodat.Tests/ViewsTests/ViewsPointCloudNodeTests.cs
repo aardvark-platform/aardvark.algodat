@@ -29,6 +29,9 @@ namespace Aardvark.Geometry.Tests
         public void Create_Empty()
         {
             var storage = PointCloud.CreateInMemoryStore(cache: default);
+            var ps0 = new V3f[0];
+            var ps0Id = Guid.NewGuid();
+            storage.Add(ps0Id, ps0);
 
             var aId = Guid.NewGuid();
 
@@ -37,7 +40,7 @@ namespace Aardvark.Geometry.Tests
                 (Durable.Octree.Cell, Cell.Unit),
                 (Durable.Octree.BoundingBoxExactGlobal, Box3d.Unit),
                 (Durable.Octree.PointCountTreeLeafs, 0L),
-                (Durable.Octree.PositionsLocal3fReference, Guid.Empty),
+                (Durable.Octree.PositionsLocal3fReference, ps0Id),
                 (Durable.Octree.PointRkdTreeFDataReference, Guid.Empty)
                 );
 
@@ -51,12 +54,14 @@ namespace Aardvark.Geometry.Tests
         {
             var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps0 = new V3f[100].SetByIndex(_ => RandomPosition());
-            var bbLocal = new Box3f(ps0);
             var ps0Id = Guid.NewGuid();
+            storage.Add(ps0Id, ps0);
+            var bbLocal = new Box3f(ps0);
             var kd0 = ps0.BuildKdTree();
             var kd0Id = Guid.NewGuid();
-            var aId = Guid.NewGuid();
+            storage.Add(kd0Id, kd0.Data);
 
+            var aId = Guid.NewGuid();
             var a = new PointSetNode(storage, writeToStore: true,
                 (Durable.Octree.NodeId, aId),
                 (Durable.Octree.Cell, new Cell(ps0)),
@@ -70,7 +75,7 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(a.Cell == new Cell(ps0));
             Assert.IsTrue(a.BoundingBoxExactLocal == bbLocal);
             Assert.IsTrue(a.BoundingBoxExactGlobal == ((Box3d)bbLocal) + a.Cell.GetCenter());
-            Assert.IsTrue(a.HasPositions());
+            Assert.IsTrue(a.HasPositions);
         }
     }
 }

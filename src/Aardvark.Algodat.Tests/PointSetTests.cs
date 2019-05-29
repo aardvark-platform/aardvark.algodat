@@ -58,7 +58,7 @@ namespace Aardvark.Geometry.Tests
             var pointset = PointSet.Create(store, "id", ps, cs, null, null, null, 1000, false, CancellationToken.None);
             Assert.IsTrue(pointset.PointCount == 1);
             Assert.IsTrue(pointset.Root.Value.IsLeaf());
-            Assert.IsTrue(pointset.Root.Value.GetPositions().Value.Length == 1);
+            Assert.IsTrue(pointset.Root.Value.Positions.Value.Length == 1);
             Assert.IsTrue(pointset.Root.Value.PointCountTree == 1);
         }
 
@@ -190,7 +190,7 @@ namespace Aardvark.Geometry.Tests
             var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
             var cs = new List<C4b> { C4b.White };
             var storage = PointCloud.CreateInMemoryStore(cache: default);
-            var pointset = PointSet.Create(storage, "test", ps, cs, null, null, null, 1, false, default);
+            var pointset = PointSet.Create(storage, "test", ps, cs, null, null, null, 1, true, default);
             Assert.IsTrue(pointset.HasColors == true);
             Assert.IsTrue(pointset.HasIntensities == false);
             Assert.IsTrue(pointset.HasKdTree == true);

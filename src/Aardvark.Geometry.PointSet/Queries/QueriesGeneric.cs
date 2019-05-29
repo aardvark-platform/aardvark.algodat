@@ -51,19 +51,19 @@ namespace Aardvark.Geometry.Points
             {
                 if (isNodeFullyInside(node))
                 {
-                    var cs = node.HasColors() ? node.GetColors4b().Value : null;
-                    var ns = node.HasNormals() ? node.GetNormals3f().Value : null;
-                    var js = node.HasIntensities() ? node.GetIntensities().Value : null;
-                    var ks = node.HasClassifications() ? node.GetClassifications().Value : null;
-                    yield return new Chunk(node.GetPositionsAbsolute(), cs, ns, js, ks);
+                    var cs = node.HasColors ? node.Colors.Value : null;
+                    var ns = node.HasNormals ? node.Normals.Value : null;
+                    var js = node.HasIntensities ? node.Intensities.Value : null;
+                    var ks = node.HasClassifications ? node.Classifications.Value : null;
+                    yield return new Chunk(node.PositionsAbsolute, cs, ns, js, ks);
                 }
                 else // partially inside
                 {
-                    var psRaw = node.GetPositionsAbsolute();
-                    var csRaw = node.HasColors() ? node.GetColors4b().Value : null;
-                    var nsRaw = node.HasNormals() ? node.GetNormals3f().Value : null;
-                    var jsRaw = node.HasIntensities() ? node.GetIntensities().Value : null;
-                    var ksRaw = node.HasClassifications() ? node.GetClassifications().Value : null ;
+                    var psRaw = node.PositionsAbsolute;
+                    var csRaw = node.HasColors ? node.Colors.Value : null;
+                    var nsRaw = node.HasNormals ? node.Normals.Value : null;
+                    var jsRaw = node.HasIntensities ? node.Intensities.Value : null;
+                    var ksRaw = node.HasClassifications ? node.Classifications.Value : null ;
 
                     var ps = new List<V3d>();
                     var cs = csRaw != null ? new List<C4b>() : null;
@@ -134,12 +134,12 @@ namespace Aardvark.Geometry.Points
             {
                 if (isNodeFullyInside(node))
                 {
-                    return node.GetPositions().Value.Length;
+                    return node.Positions.Value.Length;
                 }
                 else // partially inside
                 {
                     var count = 0L;
-                    var psRaw = node.GetPositionsAbsolute();
+                    var psRaw = node.PositionsAbsolute;
                     for (var i = 0; i < psRaw.Length; i++)
                     {
                         var p = psRaw[i];
@@ -192,7 +192,7 @@ namespace Aardvark.Geometry.Points
 
             if (node.IsLeaf() || node.Cell.Exponent == minCellExponent)
             {
-                return node.GetPositions().Value.Length;
+                return node.Positions.Value.Length;
             }
             else
             {

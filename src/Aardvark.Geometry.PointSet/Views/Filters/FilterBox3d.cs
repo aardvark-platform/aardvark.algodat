@@ -33,13 +33,13 @@ namespace Aardvark.Geometry.Points
             if (selected != null)
             {
                 var c = node.Center;
-                var ps = node.GetPositions().Value;
+                var ps = node.Positions.Value;
                 return new HashSet<int>(selected.Where(i => Box.Contains(c + (V3d)ps[i])));
             }
             else
             {
                 var c = node.Center;
-                var ps = node.GetPositions().Value;
+                var ps = node.Positions.Value;
                 var result = new HashSet<int>();
                 for (var i = 0; i < ps.Length; i++)
                 {
@@ -80,7 +80,7 @@ namespace Aardvark.Geometry.Points
         public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int> selected = null)
         {
             var c = node.Center;
-            var xs = node.GetPositions().Value;
+            var xs = node.Positions.Value;
 
             if (selected != null)
             {

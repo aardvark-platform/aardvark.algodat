@@ -113,7 +113,7 @@ namespace Aardvark.Geometry.Points
 
             if (level == 0 || node.IsLeaf())
             {
-                return node.GetPositions().Value.Count();
+                return node.Positions.Value.Count();
             }
             else
             {
@@ -155,7 +155,7 @@ namespace Aardvark.Geometry.Points
 
             if (level == 0 || node.IsLeaf())
             {
-                return node.GetPositions().Value.Length;
+                return node.Positions.Value.Length;
             }
             else
             {
@@ -193,7 +193,7 @@ namespace Aardvark.Geometry.Points
 
             if (level == 0 || node.IsLeaf())
             {
-                var ps = node.GetPositionsAbsolute();
+                var ps = node.PositionsAbsolute;
                 var cs = node?.TryGetColors4b()?.Value;
                 var ns = node?.TryGetNormals3f()?.Value;
                 var js = node?.TryGetIntensities()?.Value;
@@ -238,7 +238,7 @@ namespace Aardvark.Geometry.Points
 
             if (level == 0 || node.IsLeaf())
             {
-                var ps = node.GetPositionsAbsolute();
+                var ps = node.PositionsAbsolute;
                 var cs = node?.TryGetColors4b()?.Value;
                 var ns = node?.TryGetNormals3f()?.Value;
                 var js = node?.TryGetIntensities()?.Value;

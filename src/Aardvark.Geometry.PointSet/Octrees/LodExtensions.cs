@@ -153,7 +153,7 @@ namespace Aardvark.Geometry.Points
         {
             if (self.Root == null) return self;
 
-            var nodeCount = self.Root?.Value?.CountNodes() ?? 0;
+            var nodeCount = self.Root?.Value?.CountNodes(true) ?? 0;
             var loddedNodesCount = 0L;
             var result = self.GenerateLod(config.Key, () =>
             {
@@ -256,10 +256,10 @@ namespace Aardvark.Geometry.Points
             var needsKs = subcells.Any(x => x != null ? x.HasClassifications : false);
 
             var subcenters = subcells.Map(x => x?.Center);
-            var lodPs = Lod.AggregateSubPositions(counts, octreeSplitLimit, self.Center, subcenters, subcells.Map(x => x?.GetPositions()?.Value));
-            var lodCs = needsCs ? Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.GetColors4b()?.Value)) : null;
-            var lodIs = needsIs ? Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.GetIntensities()?.Value)) : null;
-            var lodKs = needsKs ? Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.GetClassifications()?.Value)) : null;
+            var lodPs = Lod.AggregateSubPositions(counts, octreeSplitLimit, self.Center, subcenters, subcells.Map(x => x?.Positions?.Value));
+            var lodCs = needsCs ? Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Colors?.Value)) : null;
+            var lodIs = needsIs ? Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Intensities?.Value)) : null;
+            var lodKs = needsKs ? Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Classifications?.Value)) : null;
             var lodKd = lodPs.BuildKdTree();
             var lodNs = await lodPs.EstimateNormals(lodKd, 16); // Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.GetNormals3f()?.Value))
 

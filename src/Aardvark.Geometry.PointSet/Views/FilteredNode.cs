@@ -151,12 +151,6 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public IPointCloudNode WithSubNodes(PointSetNode[] subnodes)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary></summary>
         public IPointCloudNode WithSubNodes(IPointCloudNode[] subnodes)
         {
             throw new NotImplementedException();

@@ -47,30 +47,30 @@ namespace Aardvark.Geometry.Points
 
             if (node.IsLeaf())
             {
-                var nodePositions = node.GetPositions();
+                var nodePositions = node.Positions;
                 #if PARANOID
                 if (nodePositions.Value.Length <= 0) throw new InvalidOperationException();
                 #endif
 
                 var center = node.Center;
 
-                var ia = node.GetKdTree(nodePositions.Value).Value.GetClosest((V3f)(query - center), (float)maxDistanceToPoint, maxCount);
+                var ia = node.KdTree.Value.GetClosest((V3f)(query - center), (float)maxDistanceToPoint, maxCount);
                 if (ia.Count > 0)
                 {
                     var ps = new V3d[ia.Count];
-                    var cs = node.HasColors() ? new C4b[ia.Count] : null;
-                    var ns = node.HasNormals() ? new V3f[ia.Count] : null;
-                    var js = node.HasIntensities() ? new int[ia.Count] : null;
-                    var ks = node.HasClassifications() ? new byte[ia.Count] : null;
+                    var cs = node.HasColors ? new C4b[ia.Count] : null;
+                    var ns = node.HasNormals ? new V3f[ia.Count] : null;
+                    var js = node.HasIntensities ? new int[ia.Count] : null;
+                    var ks = node.HasClassifications ? new byte[ia.Count] : null;
                     var ds = new double[ia.Count];
                     for (var i = 0; i < ia.Count; i++)
                     {
                         var index = (int)ia[i].Index;
-                        ps[i] = center + (V3d)node.GetPositions().Value[index];
-                        if (node.HasColors()) cs[i] = node.GetColors4b().Value[index];
-                        if (node.HasNormals()) ns[i] = node.GetNormals3f().Value[index];
-                        if (node.HasIntensities()) js[i] = node.GetIntensities().Value[index];
-                        if (node.HasClassifications()) js[i] = node.GetClassifications().Value[index];
+                        ps[i] = center + (V3d)node.Positions.Value[index];
+                        if (node.HasColors) cs[i] = node.Colors.Value[index];
+                        if (node.HasNormals) ns[i] = node.Normals.Value[index];
+                        if (node.HasIntensities) js[i] = node.Intensities.Value[index];
+                        if (node.HasClassifications) js[i] = node.Classifications.Value[index];
                         ds[i] = ia[i].Dist;
                     }
                     var chunk = new PointsNearObject<V3d>(query, maxDistanceToPoint, ps, cs, ns, js, ks, ds);

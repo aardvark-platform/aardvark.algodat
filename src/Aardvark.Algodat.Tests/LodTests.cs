@@ -38,7 +38,7 @@ namespace Aardvark.Geometry.Tests
             var pointset = PointSet.Create(storage, "test", ps.ToList(), cs.ToList(), null, null, null, 5000, true, CancellationToken.None);
             pointset.Root.Value.ForEachNode(true, cell =>
             {
-                Assert.IsTrue(cell.IsNotLeaf() || cell.GetPositions() != null);
+                Assert.IsTrue(cell.IsNotLeaf() || cell.Positions != null);
             });
 
             var config = ImportConfig.Default
@@ -48,7 +48,7 @@ namespace Aardvark.Geometry.Tests
             var lodded = pointset.GenerateLod(config);
             lodded.Root.Value.ForEachNode(true, cell =>
             {
-                Assert.IsTrue(cell.GetPositions().Value.Length > 0);
+                Assert.IsTrue(cell.Positions.Value.Length > 0);
             });
         }
 
@@ -64,7 +64,7 @@ namespace Aardvark.Geometry.Tests
             var pointset = PointSet.Create(storage, "test", ps.ToList(), cs.ToList(), null, null, null, 5000, true, CancellationToken.None);
             pointset.Root.Value.ForEachNode(true, cell =>
             {
-                var pointcount = cell.GetPositions().Value.Length;
+                var pointcount = cell.Positions.Value.Length;
                 Assert.IsTrue(pointcount > 0);
             });
 
@@ -96,7 +96,7 @@ namespace Aardvark.Geometry.Tests
 
             pointset.Root.Value.ForEachNode(true, cell =>
             {
-                Assert.IsTrue(cell.GetPositions().Value.Length > 0);
+                Assert.IsTrue(cell.Positions.Value.Length > 0);
             });
         }
 
@@ -120,12 +120,12 @@ namespace Aardvark.Geometry.Tests
             var xs = new Queue<long>();
             pointset.Root.Value.ForEachNode(true, cell =>
             {
-                xs.Enqueue(cell.GetPositions()?.Value.Length ?? 0);
+                xs.Enqueue(cell.Positions?.Value.Length ?? 0);
                 xs.Enqueue(cell.PointCountTree);
             });
             jsonReloaded.Root.Value.ForEachNode(true, cell =>
             {
-                Assert.IsTrue(xs.Dequeue() == (cell.GetPositions()?.Value.Length ?? 0));
+                Assert.IsTrue(xs.Dequeue() == (cell.Positions?.Value.Length ?? 0));
                 Assert.IsTrue(xs.Dequeue() == cell.PointCountTree);
             });
         }
@@ -151,9 +151,9 @@ namespace Aardvark.Geometry.Tests
                 var pointset = PointCloud.Import(filename, config);
                 pointset.Root.Value.ForEachNode(true, cell =>
                 {
-                    var pointcount = cell.GetPositions()?.Value.Length ?? 0;
+                    var pointcount = cell.Positions?.Value.Length ?? 0;
                     Assert.IsTrue(pointcount > 0);
-                    Assert.IsTrue(cell.GetPositions().Value.Length == pointcount);
+                    Assert.IsTrue(cell.Positions.Value.Length == pointcount);
                 });
 
                 id = pointset.Id;
@@ -164,9 +164,9 @@ namespace Aardvark.Geometry.Tests
                 var pointset = storageB.GetPointSet(id, IdentityResolver.Default);
                 pointset.Root.Value.ForEachNode(true, cell =>
                 {
-                    var pointcount = cell.GetPositions()?.Value.Length ?? 0;
+                    var pointcount = cell.Positions?.Value.Length ?? 0;
                     Assert.IsTrue(pointcount > 0);
-                    Assert.IsTrue(cell.GetPositions().Value.Length == pointcount);
+                    Assert.IsTrue(cell.Positions.Value.Length == pointcount);
                 });
             }
 
