@@ -15,12 +15,9 @@ using Aardvark.Base;
 using Aardvark.Data;
 using Aardvark.Data.Points;
 using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Uncodium;
 
 namespace Aardvark.Geometry.Points
 {
@@ -196,6 +193,19 @@ namespace Aardvark.Geometry.Points
         {
             if (self == null) throw new ArgumentNullException(nameof(self));
             ct.ThrowIfCancellationRequested();
+
+            if (!self.HasCentroidLocal)
+            {
+                var ps = self.Positions.Value;
+                var centroid = ps.ComputeCentroid();
+                var dists = ps.Map(p => (p - centroid).Length);
+                var (avg, sd) = dists.ComputeAvgAndStdDev();
+                self = self
+                    .WithUpsert(Durable.Octree.PositionsLocal3fCentroid, centroid)
+                    .WithUpsert(Durable.Octree.PositionsLocal3fDistToCentroidAverage, avg)
+                    .WithUpsert(Durable.Octree.PositionsLocal3fDistToCentroidStdDev, sd)
+                    ;
+            }
 
             if (self.IsLeaf)
             {

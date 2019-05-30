@@ -67,17 +67,6 @@ namespace Aardvark.Geometry.Tests
                 var pointcount = cell.Positions.Value.Length;
                 Assert.IsTrue(pointcount > 0);
             });
-
-            //var config = ImportConfig.Default
-            //    .WithKey("lod")
-            //    .WithOctreeSplitLimit(1)
-            //    ;
-            //var lodded = pointset.GenerateLod(config);
-            //lodded.Octree.Value.ForEachNode(true, cell =>
-            //{
-            //    var pointcount = cell.GetPositions().Value.Length;
-            //    Assert.IsTrue(pointcount > 0);
-            //});
         }
 
         [Test]
@@ -171,6 +160,35 @@ namespace Aardvark.Geometry.Tests
             }
 
             Directory.Delete(dbDiskLocation, true);
+        }
+
+        [Test]
+        public void HasCentroid()
+        {
+            var storage = PointSetTests.CreateStorage();
+
+            var ps = new[]
+            {
+                new V3d(0.1, 0.1, 0.1),
+                new V3d(0.9, 0.1, 0.1),
+                new V3d(0.9, 0.9, 0.1),
+                new V3d(0.1, 0.9, 0.1),
+                new V3d(0.1, 0.1, 0.9),
+                new V3d(0.9, 0.1, 0.9),
+                new V3d(0.9, 0.9, 0.9),
+                new V3d(0.1, 0.9, 0.9),
+            };
+
+            var config = ImportConfig.Default.WithStorage(storage).WithRandomKey();
+            var n = PointCloud.Chunks(new Chunk(ps, null), config).GenerateLod(config).Root.Value;
+
+            Assert.IsTrue(n.HasCentroidLocal);
+            Assert.IsTrue(n.HasCentroidLocalAverageDist);
+            Assert.IsTrue(n.HasCentroidLocalStdDev);
+
+            Assert.IsTrue(n.CentroidLocal.ApproxEqual(V3f.Zero, 1e-5f));
+            Assert.IsTrue(n.CentroidLocalAverageDist.ApproximateEquals(new V3f(0.4, 0.4, 0.4).Length, 1e-5f));
+            Assert.IsTrue(n.CentroidLocalStdDev.ApproximateEquals(0.0f, 1e-5f));
         }
     }
 }

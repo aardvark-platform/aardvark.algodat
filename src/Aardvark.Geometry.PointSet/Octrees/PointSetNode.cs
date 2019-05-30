@@ -340,6 +340,28 @@ namespace Aardvark.Geometry.Points
 
         #endregion
 
+        #region CentroidLocal
+
+        /// <summary></summary>
+        public bool HasCentroidLocal => Data.ContainsKey(Durable.Octree.PositionsLocal3fCentroid);
+
+        /// <summary></summary>
+        public V3f CentroidLocal => (V3f)Data.Get(Durable.Octree.PositionsLocal3fCentroid);
+
+        /// <summary></summary>
+        public bool HasCentroidLocalAverageDist => Data.ContainsKey(Durable.Octree.PositionsLocal3fDistToCentroidAverage);
+
+        /// <summary></summary>
+        public float CentroidLocalAverageDist => (float)Data.Get(Durable.Octree.PositionsLocal3fDistToCentroidAverage);
+
+        /// <summary></summary>
+        public bool HasCentroidLocalStdDev => Data.ContainsKey(Durable.Octree.PositionsLocal3fDistToCentroidStdDev);
+
+        /// <summary></summary>
+        public float CentroidLocalStdDev => (float)Data.Get(Durable.Octree.PositionsLocal3fDistToCentroidStdDev);
+
+        #endregion
+
         /// <summary>
         /// Subnodes (8), or null if leaf.
         /// </summary>

@@ -25,6 +25,28 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public static class EnumerableExtensions
     {
+        /// <summary>
+        /// Returns average and standard deviation of given values.
+        /// </summary>
+        public static (float avg, float stddev) ComputeAvgAndStdDev(this float[] xs)
+        {
+            var n = xs.Length;
+
+            var sum = 0.0f;
+            for (var i = 0; i < n; i++) sum += xs[i];
+            var avg = sum / n;
+
+            sum = 0.0f;
+            for (var i = 0; i < n; i++)
+            {
+                var d = xs[i] - avg;
+                sum += d * d;
+            }
+            var sd = (float)Math.Sqrt(sum / n);
+
+            return (avg, sd);
+        }
+
         internal static bool Any<T>(this IEnumerable<T> xs, Func<T, int, bool> predicate)
         {
             var i = 0;

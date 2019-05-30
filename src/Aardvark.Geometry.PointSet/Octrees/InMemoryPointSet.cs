@@ -77,11 +77,6 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        [Obsolete("Use ToPointSetNode instead.")]
-        public PointSetNode ToPointSetCell(Storage storage, float kdTreeEps = 1e-6f, CancellationToken ct = default)
-            => ToPointSetNode(storage, kdTreeEps, ct);
-
-        /// <summary></summary>
         public PointSetNode ToPointSetNode(Storage storage, float kdTreeEps = 1e-6f, CancellationToken ct = default)
         {
             var result = m_root.ToPointSetCell(storage, ct, kdTreeEps);

@@ -96,8 +96,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         bool Has(Durable.Def what);
 
-        /// <summary>
-        /// </summary>
+        /// <summary></summary>
         bool TryGetValue(Durable.Def what, out object o);
 
         /// <summary>
@@ -107,10 +106,9 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         IPointCloudNode WithUpsert(Durable.Def def, object x);
 
+        #region Positions
 
-
-        /// <summary>
-        /// </summary>
+        /// <summary></summary>
         bool HasPositions { get; }
 
         /// <summary>
@@ -125,18 +123,22 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         V3d[] PositionsAbsolute { get; }
 
-        /// <summary>
-        /// </summary>
+        #endregion
+
+        #region KdTree
+
+        /// <summary></summary>
         bool HasKdTree { get; }
 
         /// <summary>
         /// </summary>
         PersistentRef<PointRkdTreeF<V3f[], V3f>> KdTree { get; }
 
+        #endregion
 
+        #region Colors
 
-        /// <summary>
-        /// </summary>
+        /// <summary></summary>
         bool HasColors { get; }
 
         /// <summary>
@@ -145,9 +147,11 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         PersistentRef<C4b[]> Colors { get; }
 
+        #endregion
 
-        /// <summary>
-        /// </summary>
+        #region Normals
+
+        /// <summary></summary>
         bool HasNormals { get; }
 
         /// <summary>
@@ -156,10 +160,11 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         PersistentRef<V3f[]> Normals { get; }
 
+        #endregion
 
+        #region Intensities
 
-        /// <summary>
-        /// </summary>
+        /// <summary></summary>
         bool HasIntensities { get; }
 
         /// <summary>
@@ -168,10 +173,11 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         PersistentRef<int[]> Intensities { get; }
 
+        #endregion
 
+        #region Classifications
 
-        /// <summary>
-        /// </summary>
+        /// <summary></summary>
         bool HasClassifications { get; }
 
         /// <summary>
@@ -179,5 +185,38 @@ namespace Aardvark.Geometry.Points
         /// Durable definition bf0975e4-43bd-4742-9e61-c7469d81805d.
         /// </summary>
         PersistentRef<byte[]> Classifications { get; }
+
+        #endregion
+
+        #region CentroidLocal
+
+        /// <summary></summary>
+        bool HasCentroidLocal { get; }
+
+        /// <summary>
+        /// Octree. Centroid of positions (local space).
+        /// Durable definition bd6cc4ab-6a41-49b3-aca2-ca4f21510609.
+        /// </summary>
+        V3f CentroidLocal { get; }
+
+        /// <summary></summary>
+        bool HasCentroidLocalAverageDist { get; }
+
+        /// <summary>
+        /// Octree. Average point distance to centroid (local space).
+        /// Durable definition 1b7e74c5-b2ba-46fd-a7db-c08734da3b75.
+        /// </summary>
+        float CentroidLocalAverageDist { get; }
+
+        /// <summary></summary>
+        bool HasCentroidLocalStdDev { get; }
+
+        /// <summary>
+        /// Octree. Standard deviation of average point distance to centroid (local space).
+        /// Durable definition c927d42b-02d8-480e-be93-0660eefd62a5.
+        /// </summary>
+        float CentroidLocalStdDev { get; }
+
+        #endregion
     }
 }

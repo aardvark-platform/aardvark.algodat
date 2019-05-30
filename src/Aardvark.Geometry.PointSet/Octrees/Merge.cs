@@ -18,7 +18,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Threading;
 
 namespace Aardvark.Geometry.Points
 {
@@ -84,7 +83,7 @@ namespace Aardvark.Geometry.Points
                     chunk = chunk.ImmutableFilterMinDistByCell(subCell, config.ParseConfig);
                 }
                 var builder = InMemoryPointSet.Build(subnodesPoints[i], subnodesColors?[i], subnodesNormals?[i], subnodesIntensities?[i], subnodesClassifications?[i],subCell, int.MaxValue);
-                var subnode = builder.ToPointSetCell(config.Storage, ct: config.CancellationToken);
+                var subnode = builder.ToPointSetNode(config.Storage, ct: config.CancellationToken);
                 if (subnode.PointCountTree > subnodesPoints[i].Count) throw new InvalidOperationException();
                 if (!self.Cell.Contains(subnode.Cell)) throw new InvalidOperationException();
                 if (self.Cell.Exponent != subnode.Cell.Exponent + 1) throw new InvalidOperationException();

@@ -442,7 +442,7 @@ namespace Aardvark.Geometry.Tests
         public void CanQueryPointsNearPolygon_Performance()
         {
             var sw = new Stopwatch();
-            var pointset = CreateRandomPointsInUnitCube(256*1024, 32);
+            var pointset = CreateRandomPointsInUnitCube(64*1024, 32);
 
             var q = new Polygon3d(new V3d(0.4, 0.4, 0.5), new V3d(0.41, 0.4, 0.5), new V3d(0.41, 0.41, 0.5), new V3d(0.4, 0.41, 0.5));
             var plane = new Plane3d(new V3d(0.4, 0.4, 0.5), new V3d(0.41, 0.4, 0.5), new V3d(0.41, 0.41, 0.5));

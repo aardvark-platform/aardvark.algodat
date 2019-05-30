@@ -193,6 +193,28 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public PersistentRef<byte[]> Classifications => GetSubArray(Node.Classifications);
 
+        #region CentroidLocal
+
+        /// <summary></summary>
+        public bool HasCentroidLocal => Node.HasCentroidLocal;
+
+        /// <summary></summary>
+        public V3f CentroidLocal => Node.CentroidLocal;
+
+        /// <summary></summary>
+        public bool HasCentroidLocalAverageDist => Node.HasCentroidLocalAverageDist;
+
+        /// <summary></summary>
+        public float CentroidLocalAverageDist => Node.CentroidLocalAverageDist;
+
+        /// <summary></summary>
+        public bool HasCentroidLocalStdDev => Node.HasCentroidLocalStdDev;
+
+        /// <summary></summary>
+        public float CentroidLocalStdDev => Node.CentroidLocalStdDev;
+
+        #endregion
+
         /// <summary></summary>
         public IPointCloudNode WriteToStore()
         {
