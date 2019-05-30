@@ -29,7 +29,13 @@ namespace Aardvark.Geometry.Tests
         {
             var r = new Random();
             var ps = new V3d[n];
-            for (var i = 0; i < n; i++) ps[i] = new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble());
+            for (var i = 0; i < n; i++)
+            {
+                ref var p = ref ps[i];
+                p.X = r.NextDouble();
+                p.Y = r.NextDouble();
+                p.Z = r.NextDouble();
+            }
             var config = ImportConfig.Default
                 .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
@@ -83,10 +89,10 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void DeleteDelete()
         {
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < 1; i++)
             {
                 var q1 = new Box3d(new V3d(0.0), new V3d(0.1));
-                var a = CreateRandomPointsInUnitCube(50000, 100);
+                var a = CreateRandomPointsInUnitCube(50000, 1024);
                 var b = a.Delete(n => q1.Contains(n.BoundingBoxExactGlobal), n => !(q1.Contains(n.BoundingBoxExactGlobal) || q1.Intersects(n.BoundingBoxExactGlobal)), p => q1.Contains(p), a.Storage, CancellationToken.None);
                 var c = b.Delete(n => true, n => false, p => true, a.Storage, CancellationToken.None);
                 Assert.IsTrue(c.PointCount == 0L);

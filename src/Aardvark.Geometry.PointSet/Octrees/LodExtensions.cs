@@ -188,33 +188,6 @@ namespace Aardvark.Geometry.Points
             }
         }
 
-        private static Task<V3f[]> EstimateNormals(this V3f[] points, PointRkdTreeF<V3f[], V3f> kdtree, int k)
-        {
-            return Task.Run(() => points.Map((p, i) =>
-            {
-                if (k > points.Length) k = points.Length;
-
-                // find k closest points
-                var closest = kdtree.GetClosest(p, float.MaxValue, k);
-                if (closest.Count == 0) return V3f.Zero;
-
-                // compute centroid of k closest points
-                var c = points[closest[0].Index];
-                for (var j = 1; j < k; j++) c += points[closest[j].Index];
-                c /= k;
-
-                // compute covariance matrix of k closest points relative to centroid
-                var cvm = M33f.Zero;
-                for (var j = 0; j < k; j++) cvm.AddOuterProduct(points[closest[j].Index] - c);
-                cvm /= k;
-
-                // solve eigensystem -> eigenvector for smallest eigenvalue gives normal 
-                Eigensystems.Dsyevh3((M33d)cvm, out M33d q, out V3d w);
-                return (V3f)((w.X < w.Y) ? ((w.X < w.Z) ? q.C0 : q.C2) : ((w.Y < w.Z) ? q.C1 : q.C2));
-            })
-            );
-        }
-
         /// <summary>
         /// </summary>
         private static async Task<IPointCloudNode> GenerateLod(this IPointCloudNode self,
@@ -228,9 +201,9 @@ namespace Aardvark.Geometry.Points
             {
                 if (!self.HasNormals)
                 {
-                    var ns = self.Positions.Value.EstimateNormals(self.KdTree.Value, 16);
+                    var ns = await self.Positions.Value.EstimateNormals(self.KdTree.Value, 16);
                     var nsId = Guid.NewGuid();
-                    self.Storage.Add(nsId, await ns);
+                    self.Storage.Add(nsId, ns);
                     self = self
                         .WithUpsert(Durable.Octree.Normals3fReference, nsId)
                         .WriteToStore()

@@ -259,6 +259,7 @@ namespace Aardvark.Geometry.Tests
         public static void Main(string[] args)
         {
             new DeleteTests().DeleteDelete();
+            Console.WriteLine("done");
             //new ImportTests().CanImportChunkWithoutColor();
 
             //TestE57();
