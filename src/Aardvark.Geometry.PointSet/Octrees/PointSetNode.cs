@@ -362,6 +362,38 @@ namespace Aardvark.Geometry.Points
 
         #endregion
 
+        #region TreeDepth
+
+        /// <summary></summary>
+        public bool HasMinTreeDepth => Data.ContainsKey(Durable.Octree.MinTreeDepth);
+
+        /// <summary></summary>
+        public int MinTreeDepth => (int)Data.Get(Durable.Octree.MinTreeDepth);
+
+        /// <summary></summary>
+        public bool HasMaxTreeDepth => Data.ContainsKey(Durable.Octree.MaxTreeDepth);
+
+        /// <summary></summary>
+        public int MaxTreeDepth => (int)Data.Get(Durable.Octree.MaxTreeDepth);
+
+        #endregion
+
+        #region PointDistance
+
+        /// <summary></summary>
+        public bool HasPointDistanceAverage => Data.ContainsKey(Durable.Octree.AveragePointDistance);
+
+        /// <summary></summary>
+        public float PointDistanceAverage => (Data.TryGetValue(Durable.Octree.AveragePointDistance, out var value) && value is float x) ? x : -1.0f;
+
+        /// <summary></summary>
+        public bool HasPointDistanceStandardDeviation => Data.ContainsKey(Durable.Octree.AveragePointDistanceStdDev);
+
+        /// <summary></summary>
+        public float PointDistanceStandardDeviation => (Data.TryGetValue(Durable.Octree.AveragePointDistanceStdDev, out var value) && value is float x) ? x : -1.0f;
+
+        #endregion
+
         /// <summary>
         /// Subnodes (8), or null if leaf.
         /// </summary>
@@ -558,29 +590,6 @@ namespace Aardvark.Geometry.Points
                     return new Box3d(c + (V3d)box.Min, c + (V3d)box.Max);
                 }
                 else return BoundingBox;
-            }
-        }
-        /// <summary></summary>
-        float IPointCloudNode.PointDistanceAverage
-        {
-            get
-            {
-                if (Data.TryGetValue(Durable.Octree.AveragePointDistance, out var value) && value is float)
-                    return (float)value;
-                else
-                    return -1.0f;
-            }
-        }
-
-        /// <summary></summary>
-        float IPointCloudNode.PointDistanceStandardDeviation
-        {
-            get
-            {
-                if (Data.TryGetValue(Durable.Octree.AveragePointDistanceStdDev, out var value) && value is float)
-                    return (float)value;
-                else
-                    return -1.0f;
             }
         }
 

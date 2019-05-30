@@ -65,16 +65,6 @@ namespace Aardvark.Geometry.Points
         long PointCountTree { get; }
 
         /// <summary>
-        /// Average distance of points in this cell.
-        /// </summary>
-        float PointDistanceAverage { get; }
-
-        /// <summary>
-        /// Standard deviation of distance of points in this cell.
-        /// </summary>
-        float PointDistanceStandardDeviation { get; }
-        
-        /// <summary>
         /// Subnodes (8), or null if leaf.
         /// Entries are null if there is no subnode.
         /// There is at least 1 non-null entry.
@@ -216,6 +206,42 @@ namespace Aardvark.Geometry.Points
         /// Durable definition c927d42b-02d8-480e-be93-0660eefd62a5.
         /// </summary>
         float CentroidLocalStdDev { get; }
+
+        #endregion
+
+        #region TreeDepth
+
+        /// <summary></summary>
+        bool HasMinTreeDepth { get; }
+
+        /// <summary></summary>
+        int MinTreeDepth { get; }
+
+        /// <summary></summary>
+        bool HasMaxTreeDepth { get; }
+
+        /// <summary></summary>
+        int MaxTreeDepth { get; }
+
+        #endregion
+
+        #region PointDistance
+
+        /// <summary></summary>
+        bool HasPointDistanceAverage { get; }
+
+        /// <summary>
+        /// Average distance of points in this cell.
+        /// </summary>
+        float PointDistanceAverage { get; }
+
+        /// <summary></summary>
+        bool HasPointDistanceStandardDeviation { get; }
+
+        /// <summary>
+        /// Standard deviation of distance of points in this cell.
+        /// </summary>
+        float PointDistanceStandardDeviation { get; }
 
         #endregion
     }

@@ -35,7 +35,7 @@ namespace Aardvark.Geometry.Tests
             var ps = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
             var cs = ps.Map(_ => C4b.White);
 
-            var pointset = PointSet.Create(storage, "test", ps.ToList(), cs.ToList(), null, null, null, 5000, true, CancellationToken.None);
+            var pointset = PointSet.Create(storage, "test", ps.ToList(), cs.ToList(), null, null, null, 5000, false, CancellationToken.None);
             pointset.Root.Value.ForEachNode(true, cell =>
             {
                 Assert.IsTrue(cell.IsNotLeaf() || cell.Positions != null);
@@ -180,7 +180,7 @@ namespace Aardvark.Geometry.Tests
             };
 
             var config = ImportConfig.Default.WithStorage(storage).WithRandomKey();
-            var n = PointCloud.Chunks(new Chunk(ps, null), config).GenerateLod(config).Root.Value;
+            var n = PointCloud.Chunks(new Chunk(ps, null), config).Root.Value;
 
             Assert.IsTrue(n.HasCentroidLocal);
             Assert.IsTrue(n.HasCentroidLocalAverageDist);
@@ -189,6 +189,69 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(n.CentroidLocal.ApproxEqual(V3f.Zero, 1e-5f));
             Assert.IsTrue(n.CentroidLocalAverageDist.ApproximateEquals(new V3f(0.4, 0.4, 0.4).Length, 1e-5f));
             Assert.IsTrue(n.CentroidLocalStdDev.ApproximateEquals(0.0f, 1e-5f));
+        }
+
+        [Test]
+        public void HasTreeDepth()
+        {
+            var r = new Random();
+            var storage = PointSetTests.CreateStorage();
+
+            var ps = new V3d[10].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
+
+            var config = ImportConfig.Default.WithStorage(storage).WithRandomKey();
+            var n = PointCloud.Chunks(new Chunk(ps, null), config).Root.Value;
+
+            Assert.IsTrue(n.HasMinTreeDepth);
+            Assert.IsTrue(n.HasMaxTreeDepth);
+
+            Assert.IsTrue(n.MinTreeDepth == 0);
+            Assert.IsTrue(n.MaxTreeDepth == 0);
+        }
+
+        [Test]
+        public void HasTreeDepth2()
+        {
+            var r = new Random();
+            var storage = PointSetTests.CreateStorage();
+
+            var ps = new V3d[20000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
+
+            var config = ImportConfig.Default.WithStorage(storage).WithRandomKey();
+            var n = PointCloud.Chunks(new Chunk(ps, null), config).Root.Value;
+
+            Assert.IsTrue(n.HasMinTreeDepth);
+            Assert.IsTrue(n.HasMaxTreeDepth);
+
+            Assert.IsTrue(n.MinTreeDepth == 1);
+            Assert.IsTrue(n.MaxTreeDepth == 1);
+        }
+
+        [Test]
+        public void HasPointDistance()
+        {
+            var storage = PointSetTests.CreateStorage();
+
+            var ps = new[]
+            {
+                new V3d(0.1, 0.1, 0.1),
+                new V3d(0.9, 0.1, 0.1),
+                new V3d(0.9, 0.9, 0.1),
+                new V3d(0.1, 0.9, 0.1),
+                new V3d(0.1, 0.1, 0.9),
+                new V3d(0.9, 0.1, 0.9),
+                new V3d(0.9, 0.9, 0.9),
+                new V3d(0.1, 0.9, 0.9),
+            };
+
+            var config = ImportConfig.Default.WithStorage(storage).WithRandomKey();
+            var n = PointCloud.Chunks(new Chunk(ps, null), config).Root.Value;
+
+            Assert.IsTrue(n.HasPointDistanceAverage);
+            Assert.IsTrue(n.HasPointDistanceStandardDeviation);
+
+            Assert.IsTrue(n.PointDistanceAverage.ApproximateEquals(0.8f, 1e-5f));
+            Assert.IsTrue(n.PointDistanceStandardDeviation.ApproximateEquals(0.0f, 1e-5f));
         }
     }
 }

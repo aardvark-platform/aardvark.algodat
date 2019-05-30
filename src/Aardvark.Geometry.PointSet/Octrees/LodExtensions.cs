@@ -185,6 +185,80 @@ namespace Aardvark.Geometry.Points
             }
         }
 
+        private static IPointCloudNode WithComputedCentroid(this IPointCloudNode self)
+        {
+            if (self.HasCentroidLocal) return self;
+            
+            var ps = self.Positions.Value;
+            var centroid = ps.ComputeCentroid();
+            var dists = ps.Map(p => (p - centroid).Length);
+            var (avg, sd) = dists.ComputeAvgAndStdDev();
+            self = self
+                .WithUpsert(Durable.Octree.PositionsLocal3fCentroid, centroid)
+                .WithUpsert(Durable.Octree.PositionsLocal3fDistToCentroidAverage, avg)
+                .WithUpsert(Durable.Octree.PositionsLocal3fDistToCentroidStdDev, sd)
+                ;
+            return self;
+        }
+
+        private static IPointCloudNode WithComputedTreeDepth(this IPointCloudNode self)
+        {
+            if (self.IsLeaf)
+            {
+                return self
+                    .WithUpsert(Durable.Octree.MinTreeDepth, 0)
+                    .WithUpsert(Durable.Octree.MaxTreeDepth, 0)
+                    ;
+            }
+            else
+            {
+                var min = 1;
+                var max = 0;
+                for (var i = 0; i < 8; i++)
+                {
+                    var r = self.Subnodes[i];
+                    if (r == null) continue;
+                    var n = r.Value;
+                    min = Math.Min(min, 1 + n.MinTreeDepth);
+                    max = Math.Max(max, 1 + n.MaxTreeDepth);
+                }
+                return self
+                    .WithUpsert(Durable.Octree.MinTreeDepth, min)
+                    .WithUpsert(Durable.Octree.MaxTreeDepth, max)
+                    ;
+            }
+        }
+
+        private static IPointCloudNode WithComputedPointDistance(this IPointCloudNode self)
+        {
+            var ps = self.Positions.Value;
+            var kd = self.KdTree.Value;
+
+            if (ps.Length < 2)
+            {
+                return self
+                    .WithUpsert(Durable.Octree.AveragePointDistance, 0.0f)
+                    .WithUpsert(Durable.Octree.AveragePointDistanceStdDev, 0.0f)
+                    ;
+            }
+            else if (ps.Length == 3)
+            {
+                var d = V3f.Distance(ps[0], ps[1]);
+                return self
+                    .WithUpsert(Durable.Octree.AveragePointDistance, d)
+                    .WithUpsert(Durable.Octree.AveragePointDistanceStdDev, 0.0f)
+                    ;
+            }
+
+            var indexDists = ps.Map(p => kd.GetClosest(p, float.MaxValue, 2));
+            var ds = indexDists.Map(x => V3f.Distance(ps[x[0].Index], ps[x[1].Index]));
+            var (avg, sd) = ds.ComputeAvgAndStdDev();
+            return self
+                .WithUpsert(Durable.Octree.AveragePointDistance, avg)
+                .WithUpsert(Durable.Octree.AveragePointDistanceStdDev, sd)
+                ;
+        }
+
         /// <summary>
         /// </summary>
         private static async Task<IPointCloudNode> GenerateLod(this IPointCloudNode self,
@@ -194,21 +268,14 @@ namespace Aardvark.Geometry.Points
             if (self == null) throw new ArgumentNullException(nameof(self));
             ct.ThrowIfCancellationRequested();
 
-            if (!self.HasCentroidLocal)
-            {
-                var ps = self.Positions.Value;
-                var centroid = ps.ComputeCentroid();
-                var dists = ps.Map(p => (p - centroid).Length);
-                var (avg, sd) = dists.ComputeAvgAndStdDev();
-                self = self
-                    .WithUpsert(Durable.Octree.PositionsLocal3fCentroid, centroid)
-                    .WithUpsert(Durable.Octree.PositionsLocal3fDistToCentroidAverage, avg)
-                    .WithUpsert(Durable.Octree.PositionsLocal3fDistToCentroidStdDev, sd)
-                    ;
-            }
-
             if (self.IsLeaf)
             {
+                self = self
+                    .WithComputedTreeDepth()
+                    .WithComputedCentroid()
+                    .WithComputedPointDistance()
+                    ;
+
                 if (!self.HasNormals)
                 {
                     var ns = await self.Positions.Value.EstimateNormals(self.KdTree.Value, 16);
@@ -288,6 +355,12 @@ namespace Aardvark.Geometry.Points
                 self.Storage.Add(key, lodKs);
                 self = self.WithUpsert(Durable.Octree.Classifications1bReference, key);
             }
+
+            self = self
+                .WithComputedTreeDepth()
+                .WithComputedCentroid()
+                .WithComputedPointDistance()
+                ;
 
             self.WriteToStore();
             return self;

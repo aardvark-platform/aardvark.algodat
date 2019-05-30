@@ -101,12 +101,6 @@ namespace Aardvark.Geometry.Points
         public long PointCountTree => Node.PointCountTree;
 
         /// <summary></summary>
-        public float PointDistanceAverage => Node.PointDistanceAverage;
-
-        /// <summary></summary>
-        public float PointDistanceStandardDeviation => Node.PointDistanceStandardDeviation;
-
-        /// <summary></summary>
         public bool Has(Durable.Def what) => Node.Has(what);
 
         /// <summary></summary>
@@ -212,6 +206,42 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public float CentroidLocalStdDev => Node.CentroidLocalStdDev;
+
+        #endregion
+
+        #region TreeDepth
+
+        /// <summary></summary>
+        public bool HasMinTreeDepth => Node.HasMinTreeDepth;
+
+        /// <summary></summary>
+        public int MinTreeDepth => Node.MinTreeDepth;
+
+        /// <summary></summary>
+        public bool HasMaxTreeDepth => Node.HasMaxTreeDepth;
+
+        /// <summary></summary>
+        public int MaxTreeDepth => Node.MaxTreeDepth;
+
+        #endregion
+
+        #region PointDistance
+
+        /// <summary></summary>
+        public bool HasPointDistanceAverage => Node.HasPointDistanceAverage;
+
+        /// <summary>
+        /// Average distance of points in this cell.
+        /// </summary>
+        public float PointDistanceAverage => Node.PointDistanceAverage;
+
+        /// <summary></summary>
+        public bool HasPointDistanceStandardDeviation => Node.HasPointDistanceStandardDeviation;
+
+        /// <summary>
+        /// Standard deviation of distance of points in this cell.
+        /// </summary>
+        public float PointDistanceStandardDeviation => Node.PointDistanceStandardDeviation;
 
         #endregion
 
