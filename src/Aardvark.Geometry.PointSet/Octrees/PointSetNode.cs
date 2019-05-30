@@ -597,9 +597,6 @@ namespace Aardvark.Geometry.Points
 
         IPointCloudNode IPointCloudNode.WithUpsert(Durable.Def def, object x) => WithUpsert(def, x);
 
-        /// <summary></summary>
-        public void Dispose() { }
-        
         #endregion
     }
 }

@@ -21,7 +21,7 @@ namespace Aardvark.Geometry.Points
     /// <summary>
     /// An immutable point cloud octree node.
     /// </summary>
-    public interface IPointCloudNode : IDisposable
+    public interface IPointCloudNode
     {
         /// <summary>
         /// Backing store.

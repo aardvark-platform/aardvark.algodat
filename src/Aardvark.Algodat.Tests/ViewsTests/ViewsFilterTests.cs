@@ -15,6 +15,7 @@ using Aardvark.Base;
 using Aardvark.Data;
 using Aardvark.Data.Points;
 using Aardvark.Geometry.Points;
+using Newtonsoft.Json;
 using NUnit.Framework;
 using System;
 using System.Linq;
@@ -177,6 +178,69 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(f.HasIntensities);
             var js = f.Intensities.Value;
             Assert.IsTrue(js.Length == 5);
+        }
+
+        #endregion
+
+        #region Serialization
+
+        [Test]
+        public void Serialize_FilterInsideBox3d()
+        {
+            new FilterInsideBox3d(Box3d.Unit).Serialize();
+        }
+        [Test]
+        public void Serialize_FilterOutsideBox3d()
+        {
+            new FilterOutsideBox3d(Box3d.Unit).Serialize();
+        }
+        [Test]
+        public void Serialize_FilterClassification()
+        {
+            new FilterClassification(new byte[] { 1, 2, 3, 4, 5 }).Serialize();
+        }
+        [Test]
+        public void Serialize_FilterIntensity()
+        {
+            new FilterIntensity(new Range1i(-5, +17)).Serialize();
+        }
+        [Test]
+        public void Serialize_FilterNormalDirection()
+        {
+            new FilterNormalDirection(V3f.ZAxis, 0.1f).Serialize();
+        }
+        [Test]
+        public void Serialize_FilterOr()
+        {
+            new FilterOr(new FilterInsideBox3d(Box3d.Unit), new FilterOutsideBox3d(Box3d.Unit)).Serialize();
+        }
+        [Test]
+        public void Serialize_FilterAnd()
+        {
+            new FilterAnd(new FilterInsideBox3d(Box3d.Unit), new FilterOutsideBox3d(Box3d.Unit)).Serialize();
+        }
+
+        #endregion
+
+        #region FilteredNode
+
+        [Test]
+        public void EncodeDecodeRoundtrip()
+        {
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
+            var a = CreateNode(storage, RandomPositions(100));
+
+            var f = (FilteredNode)FilteredNode.Create(a, new FilterInsideBox3d(a.BoundingBoxExactGlobal + new V3d(0.5, 0.0, 0.0)));
+            var buffer = f.Encode();
+            Assert.IsTrue(buffer != null);
+
+            var g = FilteredNode.Decode(storage, buffer);
+            Assert.IsTrue(f.Id == g.Id);
+            Assert.IsTrue(f.Node.Id == g.Node.Id);
+
+            var fFilterJson = f.Filter.Serialize().ToString();
+            var gFilterJson = g.Filter.Serialize().ToString();
+            Assert.IsTrue(fFilterJson == gFilterJson);
         }
 
         #endregion

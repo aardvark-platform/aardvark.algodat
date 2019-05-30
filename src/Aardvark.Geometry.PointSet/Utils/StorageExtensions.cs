@@ -531,6 +531,10 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
+        public static IPointCloudNode GetPointCloudNode(this Storage storage, Guid key)
+            => GetPointCloudNode(storage, key.ToString());
+
+        /// <summary></summary>
         public static IPointCloudNode GetPointCloudNode(this Storage storage, string key)
         {
             if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (PointSetNode)o;

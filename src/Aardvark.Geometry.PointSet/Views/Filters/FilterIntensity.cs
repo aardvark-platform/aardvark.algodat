@@ -1,10 +1,7 @@
-﻿using System;
+﻿using Aardvark.Base;
+using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using Aardvark.Base;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Aardvark.Geometry.Points
 {
@@ -72,7 +69,7 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public JObject Serialize() => new JObject(new { Type, Range = Range.ToString() });
+        public JObject Serialize() => JObject.FromObject(new { Type, Range = Range.ToString() });
 
         /// <summary></summary>
         public static FilterIntensity Deserialize(JObject json) => new FilterIntensity(Range1i.Parse((string)json["Range"]));

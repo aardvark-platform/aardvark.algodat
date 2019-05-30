@@ -15,11 +15,13 @@ using Aardvark.Base;
 using Aardvark.Data;
 using Aardvark.Data.Points;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using static Aardvark.Data.Durable;
 
 namespace Aardvark.Geometry.Points
 {
@@ -29,17 +31,6 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public class FilteredNode : IPointCloudNode
     {
-        /// <summary>
-        /// 
-        /// </summary>
-        public static readonly Durable.Def Def = new Durable.Def(
-            new Guid("a5dd1687-ea0b-4735-9be1-b74b969e0673"),
-            "Octree.Node",
-            "Octree. A filtered octree node.",
-            Durable.Primitives.StringUTF8.Id,
-            false
-            );
-
         #region Construction
 
         /// <summary>
@@ -66,7 +57,7 @@ namespace Aardvark.Geometry.Points
 
         #endregion
 
-        #region Properties (state to serialize)
+        #region Properties
 
         private PersistentRef<IPointCloudNode>[] m_subnodes_cache;
 
@@ -80,10 +71,6 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public IFilter Filter { get; }
-
-        #endregion
-
-        #region Properties (derived/runtime, non-serialized)
 
         /// <summary></summary>
         public Storage Storage => Node.Storage;
@@ -107,13 +94,6 @@ namespace Aardvark.Geometry.Points
         public bool TryGetValue(Durable.Def what, out object o) => Node.TryGetValue(what, out o);
 
         /// <summary></summary>
-        public void Dispose() => Node.Dispose();
-
-        #endregion
-
-
-
-        /// <summary></summary>
         public PersistentRef<IPointCloudNode>[] Subnodes
         {
             get
@@ -135,36 +115,16 @@ namespace Aardvark.Geometry.Points
             }
         }
 
-        private PersistentRef<T[]> GetSubArray<T>(PersistentRef<T[]> originalValue)
-        {
-            var key = (Id + originalValue.Id).ToGuid().ToString();
-            var xs = originalValue.Value.Where((_, i) => m_activePoints.Contains(i)).ToArray();
-            return new PersistentRef<T[]>(key, _ => xs, _ => (true, xs));
-        }
-
         /// <summary></summary>
         public int PointCountCell => m_activePoints.Count;
 
         /// <summary></summary>
-        public bool HasPositions => Node.HasPositions;
-
-        /// <summary></summary>
-        public bool HasKdTree => Node.HasKdTree;
-
-        /// <summary></summary>
-        public bool HasColors => Node.HasColors;
-
-        /// <summary></summary>
-        public bool HasNormals => Node.HasNormals;
-
-        /// <summary></summary>
-        public bool HasIntensities => Node.HasIntensities;
-
-        /// <summary></summary>
-        public bool HasClassifications => Node.HasClassifications;
-
-        /// <summary></summary>
         public bool IsLeaf => Node.IsLeaf;
+
+        #region Positions
+
+        /// <summary></summary>
+        public bool HasPositions => Node.HasPositions;
 
         /// <summary></summary>
         public PersistentRef<V3f[]> Positions => GetSubArray(Node.Positions);
@@ -172,20 +132,57 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public V3d[] PositionsAbsolute { get { var c = Center; return Positions.Value.Map(p => (V3d)p + c); } }
 
+        #endregion
+
+        #region KdTree
+
+        /// <summary></summary>
+        public bool HasKdTree => Node.HasKdTree;
+
         /// <summary></summary>
         public PersistentRef<PointRkdTreeF<V3f[], V3f>> KdTree => throw new NotImplementedException();
+
+        #endregion
+
+        #region Colors
+
+        /// <summary></summary>
+        public bool HasColors => Node.HasColors;
 
         /// <summary></summary>
         public PersistentRef<C4b[]> Colors => GetSubArray(Node.Colors);
 
+        #endregion
+
+        #region Normals
+
+        /// <summary></summary>
+        public bool HasNormals => Node.HasNormals;
+
         /// <summary></summary>
         public PersistentRef<V3f[]> Normals => GetSubArray(Node.Normals);
+
+        #endregion
+
+        #region Intensities
+
+        /// <summary></summary>
+        public bool HasIntensities => Node.HasIntensities;
 
         /// <summary></summary>
         public PersistentRef<int[]> Intensities => GetSubArray(Node.Intensities);
 
+        #endregion
+
+        #region Classifications
+
+        /// <summary></summary>
+        public bool HasClassifications => Node.HasClassifications;
+
         /// <summary></summary>
         public PersistentRef<byte[]> Classifications => GetSubArray(Node.Classifications);
+
+        #endregion
 
         #region CentroidLocal
 
@@ -245,13 +242,14 @@ namespace Aardvark.Geometry.Points
 
         #endregion
 
-        /// <summary></summary>
-        public IPointCloudNode WriteToStore()
+        private PersistentRef<T[]> GetSubArray<T>(PersistentRef<T[]> originalValue)
         {
-            var buffer = Encode();
-            Storage.Add(Id, buffer);
-            return this;
+            var key = (Id + originalValue.Id).ToGuid().ToString();
+            var xs = originalValue.Value.Where((_, i) => m_activePoints.Contains(i)).ToArray();
+            return new PersistentRef<T[]>(key, _ => xs, _ => (true, xs));
         }
+
+        #endregion
 
         #region Not supported ...
 
@@ -269,6 +267,39 @@ namespace Aardvark.Geometry.Points
 
         #region Durable codec
 
+        /// <summary></summary>
+        public static class Defs
+        {
+            /// <summary></summary>
+            public static readonly Def FilteredNode = addDef(new Def(
+                new Guid("a5dd1687-ea0b-4735-9be1-b74b969e0673"),
+                "Octree.FilteredNode", "Octree.FilteredNode. A filtered octree node.",
+                Primitives.DurableMap.Id, false
+                ));
+
+            /// <summary></summary>
+            public static readonly Def FilteredNodeRootId = addDef(new Def(
+                new Guid("f9a7c994-35b3-4d50-b5b0-80af05896987"),
+                "Octree.FilteredNode.RootId", "Octree.FilteredNode. Node id of the node to be filtered.",
+                Primitives.GuidDef.Id, false
+                ));
+
+            /// <summary></summary>
+            public static readonly Def FilteredNodeFilter = addDef(new Def(
+                new Guid("1d2298b6-df47-4170-8fc2-4bd899ea6153"),
+                "Octree.FilteredNode.Filter", "Octree.FilteredNode. Filter definition as UTF8-encoded JSON string.",
+                Primitives.StringUTF8.Id, false
+                ));
+        }
+
+        /// <summary></summary>
+        public IPointCloudNode WriteToStore()
+        {
+            var buffer = Encode();
+            Storage.Add(Id, buffer);
+            return this;
+        }
+
         /// <summary>
         /// </summary>
         public byte[] Encode()
@@ -276,9 +307,15 @@ namespace Aardvark.Geometry.Points
             using (var ms = new MemoryStream())
             using (var bw = new BinaryWriter(ms))
             {
-                var s = "TODO";
-                Data.Codec.Encode(bw, Durable.Primitives.GuidDef, Def.Id);
-                Data.Codec.Encode(bw, Def, s);
+                var filter = Filter.Serialize().ToString(Formatting.Indented);
+
+                var x = ImmutableDictionary<Def, object>.Empty
+                    .Add(Octree.NodeId, Id)
+                    .Add(Defs.FilteredNodeRootId, Node.Id)
+                    .Add(Defs.FilteredNodeFilter, filter)
+                    ;
+
+                Data.Codec.Encode(bw, Defs.FilteredNode, x);
                 bw.Flush();
                 return ms.ToArray();
             }
@@ -286,15 +323,20 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        public static PointSetNode Decode(Storage storage, byte[] buffer)
+        public static FilteredNode Decode(Storage storage, byte[] buffer)
         {
             using (var ms = new MemoryStream(buffer))
             using (var br = new BinaryReader(ms))
             {
                 var r = Data.Codec.Decode(br);
-                if (r.Item1 != Durable.Octree.Node) throw new InvalidOperationException("Invariant 24b085b9-f745-4af6-8897-b04bfbe830ad.");
-                var data = (ImmutableDictionary<Durable.Def, object>)r.Item2;
-                return new PointSetNode(data, storage, false);
+                if (r.Item1 != Defs.FilteredNode) throw new InvalidOperationException("Invariant c03cfd90-a083-44f2-a00f-cb36b1735f37.");
+                var data = (ImmutableDictionary<Def, object>)r.Item2;
+                var id = (Guid)data.Get(Octree.NodeId);
+                var filterString = (string)data.Get(Defs.FilteredNodeFilter);
+                var filter = Points.Filter.Deserialize(filterString);
+                var rootId = (Guid)data.Get(Defs.FilteredNodeRootId);
+                var root = storage.GetPointCloudNode(rootId);
+                return new FilteredNode(id, root, filter);
             }
         }
 

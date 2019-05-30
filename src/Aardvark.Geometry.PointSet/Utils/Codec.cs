@@ -29,6 +29,7 @@ namespace Aardvark.Data
                 [Durable.Primitives.UInt64.Id] = EncodeUInt64,
                 [Durable.Primitives.Float32.Id] = EncodeFloat32,
                 [Durable.Primitives.Float64.Id] = EncodeFloat64,
+                [Durable.Primitives.StringUTF8.Id] = EncodeStringUtf8,
                 [Durable.Primitives.DurableMap.Id] = EncodeDurableMap,
 
                 [Durable.Aardvark.Cell.Id] = EncodeCell,
@@ -57,6 +58,7 @@ namespace Aardvark.Data
                 [Durable.Primitives.UInt64.Id] = DecodeUInt64,
                 [Durable.Primitives.Float32.Id] = DecodeFloat32,
                 [Durable.Primitives.Float64.Id] = DecodeFloat64,
+                [Durable.Primitives.StringUTF8.Id] = DecodeStringUtf8,
                 [Durable.Primitives.DurableMap.Id] = DecodeDurableMap,
 
                 [Durable.Aardvark.Cell.Id] = DecodeCell,
@@ -86,6 +88,7 @@ namespace Aardvark.Data
         private static readonly Action<BinaryWriter, object> EncodeUInt64 = (s, o) => s.Write((ulong)o);
         private static readonly Action<BinaryWriter, object> EncodeFloat32 = (s, o) => s.Write((float)o);
         private static readonly Action<BinaryWriter, object> EncodeFloat64 = (s, o) => s.Write((double)o);
+        private static readonly Action<BinaryWriter, object> EncodeStringUtf8 = (s, o) => EncodeArray(s, Encoding.UTF8.GetBytes((string)o));
 
         private static readonly Action<BinaryWriter, object> EncodeDurableMap =
             (s, o) =>
@@ -198,6 +201,7 @@ namespace Aardvark.Data
         private static readonly Func<BinaryReader, object> DecodeUInt64 = s => s.ReadUInt64();
         private static readonly Func<BinaryReader, object> DecodeFloat32 = s => s.ReadSingle();
         private static readonly Func<BinaryReader, object> DecodeFloat64 = s => s.ReadDouble();
+        private static readonly Func<BinaryReader, object> DecodeStringUtf8 = s => Encoding.UTF8.GetString(DecodeArray<byte>(s));
 
         private static readonly Func<BinaryReader, object> DecodeDurableMap =
             s =>
