@@ -49,7 +49,7 @@ namespace Aardvark.Geometry.Tests
                 (Durable.Octree.PointRkdTreeFDataReference, kd0Id)
                 );
 
-            var f = new FilteredNode(a, new FilterInsideBox3d((Box3d)new Box3f(ps0)));
+            var f = FilteredNode.Create(a, new FilterInsideBox3d((Box3d)new Box3f(ps0)));
             Assert.IsTrue(f.HasPositions);
             var ps1 = f.PositionsAbsolute;
             Assert.IsTrue(ps1.Length == 100);
@@ -76,9 +76,8 @@ namespace Aardvark.Geometry.Tests
                 (Durable.Octree.PointRkdTreeFDataReference, kd0Id)
                 );
 
-            var f = new FilteredNode(a, new FilterInsideBox3d((Box3d)new Box3f(ps0) + V3d.IOO));
-            var ps1 = f.PositionsAbsolute;
-            Assert.IsTrue(ps1 == null);
+            var f = FilteredNode.Create(a, new FilterInsideBox3d((Box3d)new Box3f(ps0) + V3d.IOO));
+            Assert.IsTrue(f == null);
         }
 
         [Test]
@@ -102,7 +101,7 @@ namespace Aardvark.Geometry.Tests
                 (Durable.Octree.PointRkdTreeFDataReference, kd0Id)
                 );
 
-            var f = new FilteredNode(a, new FilterInsideBox3d(new Box3d(new V3d(0, 0, 0), new V3d(1, 1, 0.5))));
+            var f = FilteredNode.Create(a, new FilterInsideBox3d(new Box3d(new V3d(0, 0, 0), new V3d(1, 1, 0.5))));
             Assert.IsTrue(f.HasPositions);
             var ps1 = f.PositionsAbsolute;
             Assert.IsTrue(ps1.Length < 100);
@@ -133,7 +132,7 @@ namespace Aardvark.Geometry.Tests
                 (Durable.Octree.PointRkdTreeFDataReference, kd0Id)
                 );
 
-            var f = new FilteredNode(a, new FilterOutsideBox3d((Box3d)new Box3f(ps0) + V3d.IOO));
+            var f = FilteredNode.Create(a, new FilterOutsideBox3d((Box3d)new Box3f(ps0) + V3d.IOO));
             Assert.IsTrue(f.HasPositions);
             var ps1 = f.PositionsAbsolute;
             Assert.IsTrue(ps1.Length == 100);
@@ -160,10 +159,8 @@ namespace Aardvark.Geometry.Tests
                 (Durable.Octree.PointRkdTreeFDataReference, kd0Id)
                 );
 
-            var f = new FilteredNode(a, new FilterOutsideBox3d((Box3d)new Box3f(ps0)));
-            Assert.IsTrue(!f.HasPositions);
-            var ps1 = f.PositionsAbsolute;
-            Assert.IsTrue(ps1 == null);
+            var f = FilteredNode.Create(a, new FilterOutsideBox3d((Box3d)new Box3f(ps0)));
+            Assert.IsTrue(f == null);
         }
 
         [Test]
@@ -187,7 +184,7 @@ namespace Aardvark.Geometry.Tests
                 (Durable.Octree.PointRkdTreeFDataReference, kd0Id)
                 );
 
-            var f = new FilteredNode(a, new FilterOutsideBox3d(new Box3d(new V3d(0, 0, 0), new V3d(1, 1, 0.5))));
+            var f = FilteredNode.Create(a, new FilterOutsideBox3d(new Box3d(new V3d(0, 0, 0), new V3d(1, 1, 0.5))));
             Assert.IsTrue(f.HasPositions);
             var ps1 = f.PositionsAbsolute;
             Assert.IsTrue(ps1.Length < 100);
@@ -223,7 +220,7 @@ namespace Aardvark.Geometry.Tests
                 (Durable.Octree.Intensities1iReference, js0Id)
                 );
 
-            var f = new FilteredNode(a, new FilterIntensity(new Range1i(-100, +100)));
+            var f = FilteredNode.Create(a, new FilterIntensity(new Range1i(-100, +100)));
             Assert.IsTrue(f.HasIntensities);
             var js1 = f.Intensities.Value;
             Assert.IsTrue(js1.Length == 10);
@@ -255,10 +252,8 @@ namespace Aardvark.Geometry.Tests
                 (Durable.Octree.Intensities1iReference, js0Id)
                 );
 
-            var f = new FilteredNode(a, new FilterIntensity(new Range1i(6, 10000)));
-            Assert.IsTrue(!f.HasIntensities);
-            var js1 = f.Intensities;
-            Assert.IsTrue(js1 == null);
+            var f = FilteredNode.Create(a, new FilterIntensity(new Range1i(6, 10000)));
+            Assert.IsTrue(f == null);
         }
 
         [Test]
@@ -287,7 +282,7 @@ namespace Aardvark.Geometry.Tests
                 (Durable.Octree.Intensities1iReference, js0Id)
                 );
 
-            var f = new FilteredNode(a, new FilterIntensity(new Range1i(-2, +2)));
+            var f = FilteredNode.Create(a, new FilterIntensity(new Range1i(-2, +2)));
             Assert.IsTrue(f.HasIntensities);
             var js1 = f.Intensities.Value;
             Assert.IsTrue(js1.Length == 5);

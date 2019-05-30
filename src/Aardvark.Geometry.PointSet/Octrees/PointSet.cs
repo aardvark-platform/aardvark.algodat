@@ -83,7 +83,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Creates pointset from given root cell.
         /// </summary>
-        public PointSet(Storage storage, IStoreResolver resolver, string key, IPointCloudNode root, int splitLimit)
+        public PointSet(Storage storage, string key, IPointCloudNode root, int splitLimit)
         {
             if (root == null) throw new ArgumentNullException(nameof(root));
 
@@ -142,7 +142,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        public static PointSet Parse(JObject json, Storage storage, IStoreResolver resolver)
+        public static PointSet Parse(JObject json, Storage storage)
         {
             var octreeId = (string)json["OctreeId"];
             if (octreeId == null) octreeId = (string)json["RootCellId"]; // backwards compatibility
@@ -164,7 +164,7 @@ namespace Aardvark.Geometry.Points
                 return new PointSet(storage, id, octreeId == null ? (Guid?)null: Guid.Parse(octreeId), splitLimit); // backwards compatibility
             else
             {
-                return new PointSet(storage, resolver, id, octree.Value, splitLimit);
+                return new PointSet(storage, id, octree.Value, splitLimit);
             }
         }
 

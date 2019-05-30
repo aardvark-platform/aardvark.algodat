@@ -491,32 +491,19 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public static PointSet GetPointSet(this Storage storage, string key, IStoreResolver resolver)
+        public static PointSet GetPointSet(this Storage storage, string key)
         {
             if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (PointSet)o;
 
             var buffer = storage.f_get(key);
             if (buffer == null) return default;
             var json = JObject.Parse(Encoding.UTF8.GetString(buffer));
-            var data = PointSet.Parse(json, storage, resolver);
+            var data = PointSet.Parse(json, storage);
 
             if (storage.HasCache) storage.Cache.Add(
                 key, data, buffer.Length, onRemove: default
                 );
             return data;
-        }
-
-        /// <summary></summary>
-        public static (bool, PointSet) TryGetPointSet(this Storage storage, string key)
-        {
-            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
-            {
-                return (true, (PointSet)o);
-            }
-            else
-            {
-                return (false, default);
-            }
         }
 
         #endregion

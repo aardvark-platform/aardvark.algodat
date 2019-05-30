@@ -18,41 +18,59 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 
 namespace Aardvark.Geometry.Points
 {
+
     /// <summary>
     /// A filtered view onto a point cloud.
     /// </summary>
     public class FilteredNode : IPointCloudNode
     {
+        /// <summary>
+        /// 
+        /// </summary>
+        public static readonly Durable.Def Def = new Durable.Def(
+            new Guid("a5dd1687-ea0b-4735-9be1-b74b969e0673"),
+            "Octree.Node",
+            "Octree. A filtered octree node.",
+            Durable.Primitives.StringUTF8.Id,
+            false
+            );
+
         #region Construction
 
-        private readonly HashSet<int> m_activePoints;
-        private PersistentRef<IPointCloudNode>[] m_subnodes_cache;
+        /// <summary>
+        /// </summary>
+        public static IPointCloudNode Create(Guid id, IPointCloudNode node, IFilter filter)
+        {
+            if (filter.IsFullyOutside(node)) return null;
+            if (filter.IsFullyInside(node)) return node;
+            return new FilteredNode(id, node, filter);
+        }
 
         /// <summary></summary>
-        public FilteredNode(Guid id, IPointCloudNode node, IFilter filter)
+        private FilteredNode(Guid id, IPointCloudNode node, IFilter filter)
         {
             Id = id;
             Node = node ?? throw new ArgumentNullException(nameof(node));
             Filter = filter ?? throw new ArgumentNullException(nameof(filter));
-
-            FilterState = Node.GetFilterState(Filter);
-
-            if (FilterState == FilterState.Partial)
-            {
-                m_activePoints = Filter.FilterPoints(Node, m_activePoints);
-            }
+            m_activePoints = Filter.FilterPoints(Node, m_activePoints);
         }
 
         /// <summary></summary>
-        public FilteredNode(IPointCloudNode node, IFilter filter) : this(Guid.NewGuid(), node, filter) { }
+        public static IPointCloudNode Create(IPointCloudNode node, IFilter filter)
+            => Create(Guid.NewGuid(), node, filter);
 
         #endregion
 
         #region Properties (state to serialize)
+
+        private PersistentRef<IPointCloudNode>[] m_subnodes_cache;
+
+        private readonly HashSet<int> m_activePoints;
 
         /// <summary></summary>
         public Guid Id { get; }
@@ -62,9 +80,6 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public IFilter Filter { get; }
-
-        /// <summary></summary>
-        public FilterState FilterState { get; }
 
         #endregion
 
@@ -126,67 +141,65 @@ namespace Aardvark.Geometry.Points
             }
         }
 
-        private PersistentRef<T[]> GetSubArray<T>(object originalValue)
+        private PersistentRef<T[]> GetSubArray<T>(PersistentRef<T[]> originalValue)
         {
-            var pref = ((PersistentRef<T[]>)originalValue);
-            switch (FilterState)
-            {
-                case FilterState.FullyInside: return pref;
-                case FilterState.FullyOutside: return null;
-                case FilterState.Partial:
-                    var key = (Id + pref.Id).ToGuid().ToString();
-                    var xs = pref.Value.Where((_, i) => m_activePoints.Contains(i)).ToArray();
-                    return new PersistentRef<T[]>(key, _ => xs, _ => (true, xs));
-                default:
-                    throw new InvalidOperationException($"Unknown FilterState {FilterState}.");
-            }
-
+            var key = (Id + originalValue.Id).ToGuid().ToString();
+            var xs = originalValue.Value.Where((_, i) => m_activePoints.Contains(i)).ToArray();
+            return new PersistentRef<T[]>(key, _ => xs, _ => (true, xs));
         }
 
         /// <summary></summary>
-        public int PointCountCell => throw new NotImplementedException();
+        public int PointCountCell => m_activePoints.Count;
 
         /// <summary></summary>
-        public bool HasPositions => throw new NotImplementedException();
+        public bool HasPositions => Node.HasPositions;
 
         /// <summary></summary>
-        public bool HasKdTree => throw new NotImplementedException();
+        public bool HasKdTree => Node.HasKdTree;
 
         /// <summary></summary>
-        public bool HasColors => throw new NotImplementedException();
+        public bool HasColors => Node.HasColors;
 
         /// <summary></summary>
-        public bool HasNormals => throw new NotImplementedException();
+        public bool HasNormals => Node.HasNormals;
 
         /// <summary></summary>
-        public bool HasIntensities => throw new NotImplementedException();
+        public bool HasIntensities => Node.HasIntensities;
 
         /// <summary></summary>
-        public bool HasClassifications => throw new NotImplementedException();
+        public bool HasClassifications => Node.HasClassifications;
 
         /// <summary></summary>
-        public bool IsLeaf => throw new NotImplementedException();
+        public bool IsLeaf => Node.IsLeaf;
 
         /// <summary></summary>
-        public PersistentRef<V3f[]> Positions => throw new NotImplementedException();
+        public PersistentRef<V3f[]> Positions => GetSubArray(Node.Positions);
 
         /// <summary></summary>
-        public V3d[] PositionsAbsolute => throw new NotImplementedException();
+        public V3d[] PositionsAbsolute { get { var c = Center; return Positions.Value.Map(p => (V3d)p + c); } }
 
         /// <summary></summary>
         public PersistentRef<PointRkdTreeF<V3f[], V3f>> KdTree => throw new NotImplementedException();
 
         /// <summary></summary>
-        public PersistentRef<C4b[]> Colors => throw new NotImplementedException();
+        public PersistentRef<C4b[]> Colors => GetSubArray(Node.Colors);
 
         /// <summary></summary>
-        public PersistentRef<V3f[]> Normals => throw new NotImplementedException();
+        public PersistentRef<V3f[]> Normals => GetSubArray(Node.Normals);
 
         /// <summary></summary>
-        public PersistentRef<int[]> Intensities => throw new NotImplementedException();
+        public PersistentRef<int[]> Intensities => GetSubArray(Node.Intensities);
 
         /// <summary></summary>
-        public PersistentRef<byte[]> Classifications => throw new NotImplementedException();
+        public PersistentRef<byte[]> Classifications => GetSubArray(Node.Classifications);
+
+        /// <summary></summary>
+        public IPointCloudNode WriteToStore()
+        {
+            var buffer = Encode();
+            Storage.Add(Id, buffer);
+            return this;
+        }
 
         #region Not supported ...
 
@@ -197,12 +210,41 @@ namespace Aardvark.Geometry.Points
             => throw new InvalidOperationException("Invariant 3de7dad1-668d-4104-838b-552eae03f7a8.");
 
         /// <summary></summary>
-        public IPointCloudNode WriteToStore()
-            => throw new InvalidOperationException("Invariant aa395510-cbaa-459f-b51f-9da28f4769e8.");
-
-        /// <summary></summary>
         public IPointCloudNode WithSubNodes(IPointCloudNode[] subnodes)
             => throw new InvalidOperationException("Invariant 62e6dab8-133a-452d-8d8c-f0b0eb5f286c.");
+
+        #endregion
+
+        #region Durable codec
+
+        /// <summary>
+        /// </summary>
+        public byte[] Encode()
+        {
+            using (var ms = new MemoryStream())
+            using (var bw = new BinaryWriter(ms))
+            {
+                var s = "TODO";
+                Data.Codec.Encode(bw, Durable.Primitives.GuidDef, Def.Id);
+                Data.Codec.Encode(bw, Def, s);
+                bw.Flush();
+                return ms.ToArray();
+            }
+        }
+
+        /// <summary>
+        /// </summary>
+        public static PointSetNode Decode(Storage storage, byte[] buffer)
+        {
+            using (var ms = new MemoryStream(buffer))
+            using (var br = new BinaryReader(ms))
+            {
+                var r = Data.Codec.Decode(br);
+                if (r.Item1 != Durable.Octree.Node) throw new InvalidOperationException("Invariant 24b085b9-f745-4af6-8897-b04bfbe830ad.");
+                var data = (ImmutableDictionary<Durable.Def, object>)r.Item2;
+                return new PointSetNode(data, storage, false);
+            }
+        }
 
         #endregion
     }

@@ -567,9 +567,6 @@ namespace Aardvark.Geometry.Points
 
         PersistentRef<IPointCloudNode>[] IPointCloudNode.Subnodes => Subnodes;
 
-        /// <summary></summary>
-        public FilterState FilterState => FilterState.FullyInside;
-
         IPointCloudNode IPointCloudNode.WithUpsert(Durable.Def def, object x) => WithUpsert(def, x);
 
         /// <summary></summary>

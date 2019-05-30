@@ -101,10 +101,6 @@ namespace Aardvark.Geometry.Points
         bool TryGetValue(Durable.Def what, out object o);
 
         /// <summary>
-        /// </summary>
-        FilterState FilterState { get; }
-
-        /// <summary>
         /// Returns new node with added/replaced data.
         /// If existing entry is replaced, then the node gets a new id.
         /// Node is NOT written to store. Use WriteToStore if you want this.
