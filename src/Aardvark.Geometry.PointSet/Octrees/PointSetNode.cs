@@ -426,7 +426,7 @@ namespace Aardvark.Geometry.Points
         /// If existing entry is replaced, then the node gets a new id.
         /// Node is NOT written to store. Use WriteToStore if you want this.
         /// </summary>
-        internal PointSetNode WithUpsert(Durable.Def def, object x)
+        public PointSetNode WithUpsert(Durable.Def def, object x)
         {
             var data = Data;
             if (data.ContainsKey(def))

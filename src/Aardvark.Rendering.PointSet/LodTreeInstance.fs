@@ -565,7 +565,7 @@ module LodTreeInstance =
         
         use output = PointCloud.OpenStore(output, LruDictionary(1L <<< 30))
         use input = PointCloud.OpenStore(input, LruDictionary(1L <<< 30))
-        let set = input.GetPointSet(key, IdentityResolver.Default)   
+        let set = input.GetPointSet(key)   
        
         let storeStructure (node : IPointCloudNode) =
             let queue = Queue<IPointCloudNode>()
@@ -652,7 +652,7 @@ module LodTreeInstance =
             else
                 key
         
-        let set = store.GetPointSet(key, IdentityResolver.Default)
+        let set = store.GetPointSet(key)
 
         let points = 
             if isNull set then

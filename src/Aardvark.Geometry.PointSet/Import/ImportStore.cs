@@ -29,24 +29,24 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Gets general info for store dataset.
         /// </summary>
-        public static PointFileInfo StoreInfo(string storePath, string key, IStoreResolver resolver)
+        public static PointFileInfo StoreInfo(string storePath, string key)
         {
             if (!Directory.Exists(storePath)) return new PointFileInfo(storePath, PointCloudFileFormat.Unknown, 0, 0, Box3d.Invalid);
 
             var store = OpenStore(storePath, cache: default);
-            var pointset = store.GetPointSet(key, resolver);
+            var pointset = store.GetPointSet(key);
             return new PointFileInfo(storePath, PointCloudFileFormat.Store, 0L, pointset.PointCount, pointset.Bounds);
         }
 
         /// <summary>
         /// Loads point cloud from store.
         /// </summary>
-        public static PointSet Load(string key, string storePath, LruDictionary<string, object> cache, IStoreResolver resolver)
+        public static PointSet Load(string key, string storePath, LruDictionary<string, object> cache)
         {
             if (!Directory.Exists(storePath)) throw new InvalidOperationException($"Not a store ({storePath}).");
 
             var store = OpenStore(storePath, cache);
-            var result = store.GetPointSet(key, resolver);
+            var result = store.GetPointSet(key);
             if (result == null) throw new InvalidOperationException($"Key {key} not found in {storePath}.");
             return result;
         }
@@ -54,10 +54,10 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Loads point cloud from store.
         /// </summary>
-        public static PointSet Load(string key, Storage store, IStoreResolver resolver)
+        public static PointSet Load(string key, Storage store)
         {
             if (store == null) throw new ArgumentNullException(nameof(store));
-            var result = store.GetPointSet(key, resolver);
+            var result = store.GetPointSet(key);
             if (result == null) throw new InvalidOperationException($"Key {key} not found in store.");
             return result;
         }

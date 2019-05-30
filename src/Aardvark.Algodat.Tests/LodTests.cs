@@ -115,7 +115,7 @@ namespace Aardvark.Geometry.Tests
             var pointset = PointCloud.Import(filename, config);
 
             var json = pointset.ToJson();
-            var jsonReloaded = PointSet.Parse(json, config.Storage, IdentityResolver.Default);
+            var jsonReloaded = PointSet.Parse(json, config.Storage);
 
             var xs = new Queue<long>();
             pointset.Root.Value.ForEachNode(true, cell =>
@@ -161,7 +161,7 @@ namespace Aardvark.Geometry.Tests
 
             using (var storageB = PointSetTests.CreateDiskStorage(dbDiskLocation))
             {
-                var pointset = storageB.GetPointSet(id, IdentityResolver.Default);
+                var pointset = storageB.GetPointSet(id);
                 pointset.Root.Value.ForEachNode(true, cell =>
                 {
                     var pointcount = cell.Positions?.Value.Length ?? 0;

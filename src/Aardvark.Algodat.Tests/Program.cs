@@ -258,7 +258,7 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
-            new QueryTests().CanQueryPointsNearPolygon_Performance();
+            new DeleteTests().DeleteDelete();
             //new ImportTests().CanImportChunkWithoutColor();
 
             //TestE57();
