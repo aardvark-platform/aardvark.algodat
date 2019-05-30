@@ -1,4 +1,4 @@
-framework: netcoreapp2.0, netstandard2.0, net471
+framework: netcoreapp2.0, netcoreapp2.2, netstandard2.0, net471
 
 source https://api.nuget.org/v3/index.json
 
@@ -11,6 +11,8 @@ nuget Aardvark.Base.IO                  ~> 4.5.2
 
 nuget Aardvark.Base.Rendering           ~> 4.9.0
 nuget Aardvark.SceneGraph               ~> 4.9.0
+
+nuget Aardvark.Data.Durable             ~> 0.0.7
 
 // 3rd-party
 #nuget Crc32C.NET                       ~> 1.0.5
@@ -28,6 +30,8 @@ nuget Aardvark.Application.Slim.Vulkan  ~> 4.9.0
 
 nuget FShade                            ~> 4.3.5
 nuget Unofficial.DotSpatial.Projections ~> 0.0.3
+
+nuget Microsoft.NET.Test.Sdk            ~> 16.1.1
 
 group Build
 framework: net471
