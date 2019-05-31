@@ -261,6 +261,18 @@ module LodTreeInstance =
             | Some o -> o |> List.iter (fun o -> cache.Add(nodeId (unbox<PointTreeNode> o).Original, o, 1L <<< 10) |> ignore)
             | None -> ()
 
+        member x.WithPointCloudNode(r : IPointCloudNode) =
+            assert(level = 0 && Option.isNone parent)
+            PointTreeNode(
+                cache,
+                source,
+                globalTrafo,
+                None,
+                None,
+                0, 
+                r
+            )
+
 
         member x.Acquire() =
             ()
@@ -706,6 +718,7 @@ module LodTreeInstance =
         importAux import sourceName key key store uniforms
 
 
+
     let ofPointSet (uniforms : list<string * IMod>) (set : PointSet) =
         let store = set.Storage
         let root = PointTreeNode(store.Cache, Symbol.CreateNewGuid(), Similarity3d.Identity, None, None, 0, set.Root.Value) :> ILodTreeNode
@@ -715,7 +728,7 @@ module LodTreeInstance =
             uniforms = uniforms
         }
         
-    let ofPointSetNode (uniforms : list<string * IMod>) (root : PointSetNode) =
+    let ofPointCloudNode (uniforms : list<string * IMod>) (root : IPointCloudNode) =
         let store = root.Storage
         let root = PointTreeNode(store.Cache, Symbol.CreateNewGuid(), Similarity3d.Identity, None, None, 0, root) :> ILodTreeNode
         let uniforms = MapExt.ofList uniforms
@@ -723,6 +736,15 @@ module LodTreeInstance =
             root = root
             uniforms = uniforms
         }
+    let filter (filter : IFilter) (i : LodTreeInstance) =
+        match i.root with
+        | :? PointTreeNode as node ->
+            let o = node.Original
+            let n = FilteredNode.Create(o, filter)
+            { i with root = node.WithPointCloudNode(n) }
+        | _ ->
+            failwith "not implemented"
+
 
     let normalizeTo (box : Box3d) (instance : LodTreeInstance) =
         let tree = instance.root
