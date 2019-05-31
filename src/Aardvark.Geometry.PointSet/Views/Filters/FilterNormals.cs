@@ -23,9 +23,10 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public FilterNormalDirection(V3f direction, float epsInDegrees)
         {
-            Direction = direction;
+            var e = (float)Math.Sin(Conversion.RadiansFromDegrees(Fun.Clamp(epsInDegrees, 0.0, 90.0)));
+            Direction = direction.Normalized;
             EpsInDegrees = epsInDegrees;
-            m_eps = (float)Math.Acos(Conversion.RadiansFromDegrees(EpsInDegrees));
+            m_eps = e * e;
         }
 
         private readonly float m_eps;
@@ -33,32 +34,10 @@ namespace Aardvark.Geometry.Points
         private V3f[] GetValues(IPointCloudNode node) => node.HasNormals ? node.Normals.Value : null;
 
         /// <summary></summary>
-        public bool IsFullyInside(IPointCloudNode node)
-        {
-            var xs = GetValues(node);
-            if (xs == null) return true;
-            
-            for (var i = 0; i < xs.Length; i++)
-            {
-                if (V3f.Dot(Direction, xs[i]) > m_eps) return false;
-            }
-
-            return true;
-        }
+        public bool IsFullyInside(IPointCloudNode node) => false;
 
         /// <summary></summary>
-        public bool IsFullyOutside(IPointCloudNode node)
-        {
-            var xs = GetValues(node);
-            if (xs == null) return false;
-            
-            for (var i = 0; i < xs.Length; i++)
-            {
-                if (V3f.Dot(Direction, xs[i]) <= m_eps) return false;
-            }
-
-            return true;
-        }
+        public bool IsFullyOutside(IPointCloudNode node) => false;
 
         /// <summary></summary>
         public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int> selected = null)
@@ -67,14 +46,14 @@ namespace Aardvark.Geometry.Points
 
             if (selected != null)
             {
-                return new HashSet<int>(selected.Where(i => V3f.Dot(Direction, xs[i]) <= m_eps));
+                return new HashSet<int>(selected.Where(i => V3f.Cross(Direction, xs[i].Normalized).LengthSquared <= m_eps));
             }
             else
             {
                 var result = new HashSet<int>();
                 for (var i = 0; i < xs.Length; i++)
                 {
-                    if (V3f.Dot(Direction, xs[i]) <= m_eps) result.Add(i);
+                    if (V3f.Cross(Direction, xs[i].Normalized).LengthSquared <= m_eps) result.Add(i);
                 }
                 return result;
             }

@@ -759,6 +759,7 @@ module LodTreeInstance =
         let uniforms = MapExt.add "Scales" (Mod.constant scale :> IMod) uniforms
         let uniforms = MapExt.add "ModelTrafo" (Mod.constant t :> IMod) uniforms
 
+
         {
             root = tree
             uniforms = uniforms

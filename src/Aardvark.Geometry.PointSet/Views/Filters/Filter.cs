@@ -22,7 +22,7 @@ namespace Aardvark.Geometry.Points
             {
                 case FilterInsideBox3d      .Type : return FilterInsideBox3d    .Deserialize(json);
                 case FilterOutsideBox3d     .Type : return FilterOutsideBox3d   .Deserialize(json);
-                case FilterOr               .Type : return FilterOr             .Deserialize(json);
+                //case FilterOr               .Type : return FilterOr             .Deserialize(json);
                 case FilterAnd              .Type : return FilterAnd            .Deserialize(json);
                 case FilterIntensity        .Type : return FilterIntensity      .Deserialize(json);
                 case FilterNormalDirection  .Type : return FilterNormalDirection.Deserialize(json);

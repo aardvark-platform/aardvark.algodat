@@ -21,32 +21,10 @@ namespace Aardvark.Geometry.Points
         private int[] GetValues(IPointCloudNode node) => node.HasIntensities ? node.Intensities.Value : null;
 
         /// <summary></summary>
-        public bool IsFullyInside(IPointCloudNode node)
-        {
-            var xs = GetValues(node);
-            if (xs == null) return true;
-
-            for (var i = 0; i < xs.Length; i++)
-            {
-                if (!Range.Contains(xs[i])) return false;
-            }
-
-            return true;
-        }
+        public bool IsFullyInside(IPointCloudNode node) => false;
 
         /// <summary></summary>
-        public bool IsFullyOutside(IPointCloudNode node)
-        {
-            var xs = GetValues(node);
-            if (xs == null) return false;
-
-            for (var i = 0; i < xs.Length; i++)
-            {
-                if (Range.Contains(xs[i])) return false;
-            }
-
-            return true;
-        }
+        public bool IsFullyOutside(IPointCloudNode node) => false;
 
         /// <summary></summary>
         public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int> selected = null)

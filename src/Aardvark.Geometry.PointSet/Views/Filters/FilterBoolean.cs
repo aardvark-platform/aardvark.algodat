@@ -5,6 +5,7 @@ using System.Collections.Generic;
 namespace Aardvark.Geometry.Points
 {
     /// <summary>
+    /// NOT IMPLEMENTED
     /// </summary>
     public class FilterOr : IFilter
     {
