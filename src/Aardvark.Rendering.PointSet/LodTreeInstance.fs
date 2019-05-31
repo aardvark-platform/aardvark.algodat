@@ -373,11 +373,7 @@ module LodTreeInstance =
             member x.ShouldCollapse(s,q,v,p) = x.ShouldCollapse(s,q,v,p)
             member x.SplitQuality(s,v,p) = x.SplitQuality(s,v,p)
             member x.CollapseQuality(s,v,p) = x.CollapseQuality(s,v,p)
-            member x.DataSize = 
-                failwith "not implemented"
-                //match self.TryGetCellAttribute<int64>(CellAttributes.PointCountCell.Id) with
-                //    | (true, dist) -> int dist
-                //    | _ -> if self.IsLeaf then int self.PointCountTree else 8192
+            member x.DataSize = self.PointCountCell
             member x.TotalDataSize = int self.PointCountTree
             member x.GetData(ct, ips) = x.GetData(ct, ips)
             member x.WorldBoundingBox = worldBounds

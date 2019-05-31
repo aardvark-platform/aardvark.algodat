@@ -207,8 +207,15 @@ namespace Aardvark.Geometry.Points
                     var exactBoundsLocal = new Box3f(ps);
 
                     data = data
+                        .Add(Durable.Octree.PointCountCell, ps.Length)
                         .Add(Durable.Octree.PositionsLocal3fReference, psId.Value)
                         .Add(Durable.Octree.BoundingBoxExactLocal, exactBoundsLocal)
+                        ;
+                }
+                else
+                {
+                    data = data
+                        .Add(Durable.Octree.PointCountCell, 0)
                         ;
                 }
                 if (csId != null) { storage.Add(csId.ToString(), cs); data = data.Add(Durable.Octree.Colors4bReference, csId.Value); }
