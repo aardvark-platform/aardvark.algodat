@@ -18,6 +18,9 @@ namespace Aardvark.Data
 
         static Codec()
         {
+            // force Durable.Octree initializer
+            if (Durable.Octree.NodeId == null) throw new InvalidOperationException("Invariant 98c78cd6-cef2-4f0b-bb8e-907064c305c4.");
+
             s_encoders = new Dictionary<Guid, object>
             {
                 [Durable.Primitives.GuidDef.Id] = EncodeGuid,
@@ -257,7 +260,8 @@ namespace Aardvark.Data
         /// </summary>
         public static (Durable.Def, object) Decode(BinaryReader stream)
         {
-            var def = Durable.Get((Guid)DecodeGuid(stream));
+            var key = (Guid)DecodeGuid(stream);
+            var def = Durable.Get(key);
 
             if (def.Type != Durable.Primitives.Unit.Id)
             {

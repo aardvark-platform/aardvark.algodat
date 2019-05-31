@@ -174,11 +174,10 @@ module LodTreeInstance =
 
                 
                 if MapExt.containsKey "AvgPointDistance" ips then
-                    let dist = 
-                        failwith "not implemented"
-                        //match self.TryGetCellAttribute<float32>(CellAttributes.AveragePointDistance.Id) with
-                        //| (true, dist) -> float dist
-                        //| _ -> 0.0
+                    let dist =
+                        match self.HasPointDistanceAverage with
+                        | true -> float self.PointDistanceAverage
+                        | _ -> 0.0
 
                     let avgDist = 
                         //bounds.Size.NormMax / 40.0
@@ -192,19 +191,17 @@ module LodTreeInstance =
                     
                 if MapExt.containsKey "MaxTreeDepth" ips then    
                     let depth = 
-                        failwith "not implemented"
-                        //match self.TryGetCellAttribute<int>(CellAttributes.TreeMaxDepth.Id) with
-                        //    | (true, dist) -> dist
-                        //    | _ -> 1
+                        match self.HasMaxTreeDepth with
+                            | true -> self.MaxTreeDepth
+                            | _ -> 1
                     let arr = [| depth |] :> System.Array
                     uniforms <- MapExt.add "MaxTreeDepth" arr uniforms
                     
                 if MapExt.containsKey "MinTreeDepth" ips then     
                     let depth = 
-                        failwith "not implemented"
-                        //match self.TryGetCellAttribute<int>(CellAttributes.TreeMinDepth.Id) with
-                        //    | (true, dist) -> dist
-                        //    | _ -> 1
+                        match self.HasMinTreeDepth with
+                        | true -> self.MinTreeDepth
+                        | _ -> 1
                     let arr = [| depth |] :> System.Array
                     uniforms <- MapExt.add "MinTreeDepth" arr uniforms
 

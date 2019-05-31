@@ -11,26 +11,26 @@ open Aardvark.Algodat.App.Viewer
 [<EntryPoint>]
 let main args =  
 
-    import @"T:\Vgm\Data\JBs_Haus.pts"  @"T:\tmpstore" "jbshaus" (Args.parse [||])
-    view @"T:\tmpstore" "jbshaus" (Args.parse [||])
+    //import @"T:\Vgm\Data\JBs_Haus.pts"  @"T:\tmpstore" "jbshaus" (Args.parse [||])
+    //view @"T:\tmpstore" "jbshaus" (Args.parse [||])
 
-    //let args = Args.parse args
+    let args = Args.parse args
     
-    //match args.command with
+    match args.command with
 
-    //| Some (Info filename) -> info filename args
+    | Some (Info filename) -> info filename args
 
-    //| Some (Import (filename, store, key)) -> import filename store key args
+    | Some (Import (filename, store, key)) -> import filename store key args
       
-    //| Some (View (store, key)) ->
-    //    view store key args
+    | Some (View (store, key)) ->
+        view store key args
       
-    //| Some Gui ->
-    //    failwith "not implemented"
+    | Some Gui ->
+        failwith "not implemented"
       
-    //| Some (Download (baseurl, targetdir)) -> download baseurl targetdir args
+    | Some (Download (baseurl, targetdir)) -> download baseurl targetdir args
       
-    //| None ->
-    //    printUsage()
+    | None ->
+        printUsage()
 
     0
