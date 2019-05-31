@@ -17,6 +17,7 @@ using System.IO;
 using System.Runtime.Serialization;
 using Aardvark.Base;
 using Aardvark.Data.Points;
+using Aardvark.Geometry.Points;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
@@ -125,6 +126,19 @@ namespace Aardvark.Geometry.Tests
             var a = new V3d(1, 2, 3);
             var b = new V3d(2, 3, 4);
             Assert.IsTrue(!Utils.DistLessThanL2(ref b, ref a, 1.0));
+        }
+
+        #endregion
+
+        #region Normals
+
+        [Test]
+        public void NormalsFromEmptyArray()
+        {
+            var ps = new V3f[0];
+            var kd = ps.BuildKdTree();
+            var ns = ps.EstimateNormals(kd, 16).Result;
+            Assert.IsTrue(ns.Length == 0);
         }
 
         #endregion

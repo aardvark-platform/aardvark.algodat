@@ -35,10 +35,10 @@ namespace Aardvark.Geometry.Tests
             var ps = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
             var cs = ps.Map(_ => C4b.White);
 
-            var pointset = PointSet.Create(storage, "test", ps.ToList(), cs.ToList(), null, null, 5000, false, CancellationToken.None);
+            var pointset = PointSet.Create(storage, "test", ps.ToList(), cs.ToList(), null, null, null, 5000, false, CancellationToken.None);
             pointset.Root.Value.ForEachNode(true, cell =>
             {
-                Assert.IsTrue(cell.LodPointCount == 0);
+                Assert.IsTrue(cell.IsNotLeaf() || cell.Positions != null);
             });
 
             var config = ImportConfig.Default
@@ -48,7 +48,7 @@ namespace Aardvark.Geometry.Tests
             var lodded = pointset.GenerateLod(config);
             lodded.Root.Value.ForEachNode(true, cell =>
             {
-                Assert.IsTrue(cell.LodPointCount > 0);
+                Assert.IsTrue(cell.Positions.Value.Length > 0);
             });
         }
 
@@ -61,85 +61,18 @@ namespace Aardvark.Geometry.Tests
             var ps = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
             var cs = ps.Map(_ => C4b.White);
 
-            var pointset = PointSet.Create(storage, "test", ps.ToList(), cs.ToList(), null, null, 5000, false, CancellationToken.None);
+            var pointset = PointSet.Create(storage, "test", ps.ToList(), cs.ToList(), null, null, null, 5000, true, CancellationToken.None);
             pointset.Root.Value.ForEachNode(true, cell =>
             {
-                if (cell.IsLeaf)
-                {
-                    Assert.IsTrue(cell.PointCount > 0);
-                    Assert.IsTrue(cell.Positions.Value.Length == cell.PointCount);
-                    Assert.IsTrue(cell.LodPositions == null);
-                    Assert.IsTrue(cell.LodPointCount == 0);
-                }
-                else
-                {
-                    Assert.IsTrue(cell.PointCount == 0);
-                    Assert.IsTrue(cell.Positions == null);
-                    Assert.IsTrue(cell.LodPositions == null);
-                    Assert.IsTrue(cell.LodPointCount == 0);
-                }
-            });
-
-            var config = ImportConfig.Default
-                .WithKey("lod")
-                .WithOctreeSplitLimit(1)
-                ;
-            var lodded = pointset.GenerateLod(config);
-            lodded.Root.Value.ForEachNode(true, cell =>
-            {
-                if (cell.IsLeaf)
-                {
-                    Assert.IsTrue(cell.PointCount > 0);
-                    Assert.IsTrue(cell.Positions.Value.Length == cell.PointCount);
-                    Assert.IsTrue(cell.LodPositions.Value.Length == cell.PointCount);
-                    Assert.IsTrue(cell.LodPointCount > 0);
-                }
-                else
-                {
-                    Assert.IsTrue(cell.PointCount == 0);
-                    Assert.IsTrue(cell.Positions == null);
-                    Assert.IsTrue(cell.LodPositions.Value.Length > 0);
-                    Assert.IsTrue(cell.LodPointCount > 0);
-                }
-            });
-        }
-
-        [Test]
-        public void Serialization()
-        {
-            var r = new Random();
-            var storage = PointSetTests.CreateStorage();
-
-            var ps = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
-            var cs = ps.Map(_ => C4b.White);
-
-            var pointset = PointSet.Create(storage, "test", ps.ToList(), cs.ToList(), null, null, 5000, false, CancellationToken.None);
-
-            var config = ImportConfig.Default
-                  .WithKey("lod")
-                  .WithOctreeSplitLimit(1)
-                  ;
-            var lodded = pointset.GenerateLod(config);
-            
-            var json = lodded.ToJson();
-            var relodded = PointSet.Parse(json, storage);
-
-            var xs = new Queue<long>();
-            lodded.Root.Value.ForEachNode(true, cell =>
-            {
-                xs.Enqueue(cell.PointCount);
-                xs.Enqueue(cell.PointCountTree);
-            });
-            relodded.Root.Value.ForEachNode(true, cell =>
-            {
-                Assert.IsTrue(xs.Dequeue() == cell.PointCount);
-                Assert.IsTrue(xs.Dequeue() == cell.PointCountTree);
+                var pointcount = cell.Positions.Value.Length;
+                Assert.IsTrue(pointcount > 0);
             });
         }
 
         [Test]
         public void LodCreationSetsPointCountCell_FromPts()
         {
+            Assert.IsTrue(Data.Points.Import.Pts.PtsFormat != null);
             var filename = Config.TEST_FILE_NAME_PTS;
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
 
@@ -152,13 +85,14 @@ namespace Aardvark.Geometry.Tests
 
             pointset.Root.Value.ForEachNode(true, cell =>
             {
-                Assert.IsTrue(cell.LodPointCount > 0);
+                Assert.IsTrue(cell.Positions.Value.Length > 0);
             });
         }
 
         [Test]
         public void Serialization_FromPts()
         {
+            Assert.IsTrue(Data.Points.Import.Pts.PtsFormat != null);
             var filename = Config.TEST_FILE_NAME_PTS;
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
 
@@ -175,12 +109,12 @@ namespace Aardvark.Geometry.Tests
             var xs = new Queue<long>();
             pointset.Root.Value.ForEachNode(true, cell =>
             {
-                xs.Enqueue(cell.PointCount);
+                xs.Enqueue(cell.Positions?.Value.Length ?? 0);
                 xs.Enqueue(cell.PointCountTree);
             });
             jsonReloaded.Root.Value.ForEachNode(true, cell =>
             {
-                Assert.IsTrue(xs.Dequeue() == cell.PointCount);
+                Assert.IsTrue(xs.Dequeue() == (cell.Positions?.Value.Length ?? 0));
                 Assert.IsTrue(xs.Dequeue() == cell.PointCountTree);
             });
         }
@@ -188,6 +122,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void Serialization_FromPts_Really()
         {
+            Assert.IsTrue(Data.Points.Import.Pts.PtsFormat != null);
             var filename = Config.TEST_FILE_NAME_PTS;
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
             Console.WriteLine($"filename: {filename}");
@@ -205,18 +140,9 @@ namespace Aardvark.Geometry.Tests
                 var pointset = PointCloud.Import(filename, config);
                 pointset.Root.Value.ForEachNode(true, cell =>
                 {
-                    if (cell.IsLeaf)
-                    {
-                        Assert.IsTrue(cell.PointCount > 0);
-                        Assert.IsTrue(cell.Positions.Value.Length == cell.PointCount);
-                        Assert.IsTrue(cell.LodPositions.Value.Length == cell.PointCount);
-                    }
-                    else
-                    {
-                        Assert.IsTrue(cell.PointCount == 0);
-                        Assert.IsTrue(cell.Positions == null);
-                        Assert.IsTrue(cell.LodPositions.Value.Length > 0);
-                    }
+                    var pointcount = cell.Positions?.Value.Length ?? 0;
+                    Assert.IsTrue(pointcount > 0);
+                    Assert.IsTrue(cell.Positions.Value.Length == pointcount);
                 });
 
                 id = pointset.Id;
@@ -224,25 +150,108 @@ namespace Aardvark.Geometry.Tests
 
             using (var storageB = PointSetTests.CreateDiskStorage(dbDiskLocation))
             {
-                var pointset = storageB.GetPointSet(id, CancellationToken.None);
+                var pointset = storageB.GetPointSet(id);
                 pointset.Root.Value.ForEachNode(true, cell =>
                 {
-                    if (cell.IsLeaf)
-                    {
-                        Assert.IsTrue(cell.PointCount > 0);
-                        Assert.IsTrue(cell.Positions.Value.Length == cell.PointCount);
-                        Assert.IsTrue(cell.LodPositions.Value.Length == cell.PointCount);
-                    }
-                    else
-                    {
-                        Assert.IsTrue(cell.PointCount == 0);
-                        Assert.IsTrue(cell.Positions == null);
-                        Assert.IsTrue(cell.LodPositions.Value.Length > 0);
-                    }
+                    var pointcount = cell.Positions?.Value.Length ?? 0;
+                    Assert.IsTrue(pointcount > 0);
+                    Assert.IsTrue(cell.Positions.Value.Length == pointcount);
                 });
             }
 
             Directory.Delete(dbDiskLocation, true);
+        }
+
+        [Test]
+        public void HasCentroid()
+        {
+            var storage = PointSetTests.CreateStorage();
+
+            var ps = new[]
+            {
+                new V3d(0.1, 0.1, 0.1),
+                new V3d(0.9, 0.1, 0.1),
+                new V3d(0.9, 0.9, 0.1),
+                new V3d(0.1, 0.9, 0.1),
+                new V3d(0.1, 0.1, 0.9),
+                new V3d(0.9, 0.1, 0.9),
+                new V3d(0.9, 0.9, 0.9),
+                new V3d(0.1, 0.9, 0.9),
+            };
+
+            var config = ImportConfig.Default.WithStorage(storage).WithRandomKey();
+            var n = PointCloud.Chunks(new Chunk(ps, null), config).Root.Value;
+
+            Assert.IsTrue(n.HasCentroidLocal);
+            Assert.IsTrue(n.HasCentroidLocalAverageDist);
+            Assert.IsTrue(n.HasCentroidLocalStdDev);
+
+            Assert.IsTrue(n.CentroidLocal.ApproxEqual(V3f.Zero, 1e-5f));
+            Assert.IsTrue(n.CentroidLocalAverageDist.ApproximateEquals(new V3f(0.4, 0.4, 0.4).Length, 1e-5f));
+            Assert.IsTrue(n.CentroidLocalStdDev.ApproximateEquals(0.0f, 1e-5f));
+        }
+
+        [Test]
+        public void HasTreeDepth()
+        {
+            var r = new Random();
+            var storage = PointSetTests.CreateStorage();
+
+            var ps = new V3d[10].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
+
+            var config = ImportConfig.Default.WithStorage(storage).WithRandomKey();
+            var n = PointCloud.Chunks(new Chunk(ps, null), config).Root.Value;
+
+            Assert.IsTrue(n.HasMinTreeDepth);
+            Assert.IsTrue(n.HasMaxTreeDepth);
+
+            Assert.IsTrue(n.MinTreeDepth == 0);
+            Assert.IsTrue(n.MaxTreeDepth == 0);
+        }
+
+        [Test]
+        public void HasTreeDepth2()
+        {
+            var r = new Random();
+            var storage = PointSetTests.CreateStorage();
+
+            var ps = new V3d[20000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
+
+            var config = ImportConfig.Default.WithStorage(storage).WithRandomKey();
+            var n = PointCloud.Chunks(new Chunk(ps, null), config).Root.Value;
+
+            Assert.IsTrue(n.HasMinTreeDepth);
+            Assert.IsTrue(n.HasMaxTreeDepth);
+
+            Assert.IsTrue(n.MinTreeDepth == 1);
+            Assert.IsTrue(n.MaxTreeDepth == 1);
+        }
+
+        [Test]
+        public void HasPointDistance()
+        {
+            var storage = PointSetTests.CreateStorage();
+
+            var ps = new[]
+            {
+                new V3d(0.1, 0.1, 0.1),
+                new V3d(0.9, 0.1, 0.1),
+                new V3d(0.9, 0.9, 0.1),
+                new V3d(0.1, 0.9, 0.1),
+                new V3d(0.1, 0.1, 0.9),
+                new V3d(0.9, 0.1, 0.9),
+                new V3d(0.9, 0.9, 0.9),
+                new V3d(0.1, 0.9, 0.9),
+            };
+
+            var config = ImportConfig.Default.WithStorage(storage).WithRandomKey();
+            var n = PointCloud.Chunks(new Chunk(ps, null), config).Root.Value;
+
+            Assert.IsTrue(n.HasPointDistanceAverage);
+            Assert.IsTrue(n.HasPointDistanceStandardDeviation);
+
+            Assert.IsTrue(n.PointDistanceAverage.ApproximateEquals(0.8f, 1e-5f));
+            Assert.IsTrue(n.PointDistanceStandardDeviation.ApproximateEquals(0.0f, 1e-5f));
         }
     }
 }

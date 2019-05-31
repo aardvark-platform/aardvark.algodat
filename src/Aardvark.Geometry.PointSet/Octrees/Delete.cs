@@ -13,9 +13,12 @@
 */
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using Aardvark.Base;
+using Aardvark.Data;
+using Aardvark.Data.Points;
 
 namespace Aardvark.Geometry.Points
 {
@@ -27,162 +30,130 @@ namespace Aardvark.Geometry.Points
         /// Returns new pointset with all points deleted which are inside.
         /// </summary>
         public static PointSet Delete(this PointSet node,
-            Func<PointSetNode, bool> isNodeFullyInside,
-            Func<PointSetNode, bool> isNodeFullyOutside,
+            Func<IPointCloudNode, bool> isNodeFullyInside,
+            Func<IPointCloudNode, bool> isNodeFullyOutside,
             Func<V3d, bool> isPositionInside,
-            CancellationToken ct
+            Storage storage, CancellationToken ct
             )
         {
-            var root = Delete(node.Root.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, ct);
+            var root = Delete(node.Root.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, storage, ct);
             var newId = Guid.NewGuid().ToString();
             var result = new PointSet(node.Storage, newId, root?.Id, node.SplitLimit);
-            node.Storage.Add(newId, result, ct);
+            node.Storage.Add(newId, result);
             return result;
         }
 
         /// <summary>
+        /// Returns new tree with all points deleted which are inside.
         /// </summary>
-        public static PointSetNode Delete(this PointSetNode node,
-            Func<PointSetNode, bool> isNodeFullyInside,
-            Func<PointSetNode, bool> isNodeFullyOutside,
+        public static IPointCloudNode Delete(this IPointCloudNode root,
+            Func<IPointCloudNode, bool> isNodeFullyInside,
+            Func<IPointCloudNode, bool> isNodeFullyOutside,
             Func<V3d, bool> isPositionInside,
-            CancellationToken ct
+            Storage storage, CancellationToken ct
             )
-
         {
-            if (node == null) return null;
-            if (isNodeFullyInside(node)) return null;
-            if (isNodeFullyOutside(node)) return node;
+            if (root == null) return null;
+            if (isNodeFullyInside(root)) return null;
+            if (isNodeFullyOutside(root)) return root;
+
+            Guid? newPsId = null;
+            Guid? newCsId = null;
+            Guid? newNsId = null;
+            Guid? newIsId = null;
+            Guid? newKsId = null;
+            Guid? newKdId = null;
             
-            if (node.IsLeaf)
+            var ps = root.HasPositions ? new List<V3f>() : null;
+            var cs = root.HasColors ? new List<C4b>() : null;
+            var ns = root.HasNormals ? new List<V3f>() : null;
+            var js = root.HasIntensities ? new List<int>() : null;
+            var ks = root.HasClassifications ? new List<byte>() : null;
+            var oldPsAbsolute = root.PositionsAbsolute;
+            var oldPs = root.Positions?.Value;
+            var oldCs = root.Colors?.Value;
+            var oldNs = root.Normals?.Value;
+            var oldIs = root.Intensities?.Value;
+            var oldKs = root.Classifications?.Value;
+            for (var i = 0; i < oldPsAbsolute.Length; i++)
             {
-                Guid? newPsId = null;
-                Guid? newCsId = null;
-                Guid? newNsId = null;
-                Guid? newIsId = null;
-                Guid? newKdId = null;
-
-                if (!node.HasPositions) throw new InvalidOperationException();
-
-                var ps = new List<V3f>();
-                var cs = node.HasColors ? new List<C4b>() : null;
-                var ns = node.HasNormals ? new List<V3f>() : null;
-                var js = node.HasIntensities ? new List<int>() : null;
-                var oldPsAbsolute = node.PositionsAbsolute;
-                var oldPs = node.Positions.Value;
-                var oldCs = node.Colors?.Value;
-                var oldNs = node.Normals?.Value;
-                var oldIs = node.Intensities?.Value;
-                for (var i = 0; i < oldPsAbsolute.Length; i++)
+                if (!isPositionInside(oldPsAbsolute[i]))
                 {
-                    if (!isPositionInside(oldPsAbsolute[i]))
-                    {
-                        ps.Add(oldPs[i]);
-                        if (oldCs != null) cs.Add(oldCs[i]);
-                        if (oldNs != null) ns.Add(oldNs[i]);
-                        if (oldIs != null) js.Add(oldIs[i]);
-                    }
-                }
-
-                if (ps.Count > 0)
-                {
-                    newPsId = Guid.NewGuid();
-                    var psa = ps.ToArray();
-                    node.Storage.Add(newPsId.Value, psa, ct);
-
-                    newKdId = Guid.NewGuid();
-                    node.Storage.Add(newKdId.Value, psa.BuildKdTree().Data, ct);
-
-                    if (node.HasColors)
-                    {
-                        newCsId = Guid.NewGuid();
-                        node.Storage.Add(newCsId.Value, cs.ToArray(), ct);
-                    }
-
-                    if (node.HasNormals)
-                    {
-                        newNsId = Guid.NewGuid();
-                        node.Storage.Add(newNsId.Value, ns.ToArray(), ct);
-                    }
-
-                    if (node.HasIntensities)
-                    {
-                        newIsId = Guid.NewGuid();
-                        node.Storage.Add(newIsId.Value, js.ToArray(), ct);
-                    }
-                    
-                    var result = new PointSetNode(node.Cell, ps.Count, newPsId, newCsId, newKdId, newNsId, newIsId, node.Storage);
-                    if (node.HasLodPositions) result = result.WithLod();
-                    return result;
-                }
-                else
-                {
-                    return null;
+                    if (oldPs != null) ps.Add(oldPs[i]);
+                    if (oldCs != null) cs.Add(oldCs[i]);
+                    if (oldNs != null) ns.Add(oldNs[i]);
+                    if (oldIs != null) js.Add(oldIs[i]);
+                    if (oldKs != null) ks.Add(oldKs[i]);
                 }
             }
-            else
+
+            var data = ImmutableDictionary<Durable.Def, object>.Empty
+                .Add(Durable.Octree.NodeId, Guid.NewGuid())
+                .Add(Durable.Octree.Cell, root.Cell)
+                ;
+
+            if (root.HasPositions)
             {
-                Guid? newLodPsId = null;
-                Guid? newLodCsId = null;
-                Guid? newLodNsId = null;
-                Guid? newLodIsId = null;
-                Guid? newLodKdId = null;
+                newPsId = Guid.NewGuid();
+                var psa = ps.ToArray();
+                storage.Add(newPsId.Value, psa);
 
-                if (node.HasLodPositions)
-                {
-                    var ps = node.HasLodPositions ? new List<V3f>() : null;
-                    var cs = node.HasLodColors ? new List<C4b>() : null;
-                    var ns = node.HasLodNormals ? new List<V3f>() : null;
-                    var js = node.HasLodIntensities ? new List<int>() : null;
-                    var oldLodPsAbsolute = node.LodPositionsAbsolute;
-                    var oldLodPs = node.LodPositions.Value;
-                    var oldLodCs = node.LodColors?.Value;
-                    var oldLodNs = node.LodNormals?.Value;
-                    var oldLodIs = node.LodIntensities?.Value;
-                    for (var i = 0; i < oldLodPsAbsolute.Length; i++)
-                    {
-                        if (!isPositionInside(oldLodPsAbsolute[i]))
-                        {
-                            ps.Add(oldLodPs[i]);
-                            if (oldLodCs != null) cs.Add(oldLodCs[i]);
-                            if (oldLodNs != null) ns.Add(oldLodNs[i]);
-                            if (oldLodIs != null) js.Add(oldLodIs[i]);
-                        }
-                    }
+                newKdId = Guid.NewGuid();
+                storage.Add(newKdId.Value, psa.Length != 0 ? psa.BuildKdTree().Data : new PointRkdTreeFData());
 
-                    if (ps.Count > 0)
-                    {
-                        newLodPsId = Guid.NewGuid();
-                        var psa = ps.ToArray();
-                        node.Storage.Add(newLodPsId.Value, psa, ct);
-
-                        newLodKdId = Guid.NewGuid();
-                        node.Storage.Add(newLodKdId.Value, psa.BuildKdTree().Data, ct);
-
-                        if (node.HasLodColors)
-                        {
-                            newLodCsId = Guid.NewGuid();
-                            node.Storage.Add(newLodCsId.Value, cs.ToArray(), ct);
-                        }
-
-                        if (node.HasLodNormals)
-                        {
-                            newLodNsId = Guid.NewGuid();
-                            node.Storage.Add(newLodNsId.Value, ns.ToArray(), ct);
-                        }
-
-                        if (node.HasLodIntensities)
-                        {
-                            newLodIsId = Guid.NewGuid();
-                            node.Storage.Add(newLodIsId.Value, js.ToArray(), ct);
-                        }
-                    }
-                }
-
-                var newSubnodes = node.Subnodes.Map(n => n?.Value.Delete(isNodeFullyInside, isNodeFullyOutside, isPositionInside, ct));
-                if (newSubnodes.All(n => n == null)) return null;
-                return node.WithLod(newLodPsId, newLodCsId, newLodNsId, newLodIsId, newLodKdId, newSubnodes);
+                data = data
+                    .Add(Durable.Octree.PositionsLocal3fReference, newPsId)
+                    .Add(Durable.Octree.PointRkdTreeFDataReference, newKdId)
+                    ;
             }
+
+            if (root.HasColors)
+            {
+                newCsId = Guid.NewGuid();
+                storage.Add(newCsId.Value, cs.ToArray());
+
+                data = data.Add(Durable.Octree.Colors4bReference, newCsId);
+            }
+
+            if (root.HasNormals)
+            {
+                newNsId = Guid.NewGuid();
+                storage.Add(newNsId.Value, ns.ToArray());
+
+                data = data.Add(Durable.Octree.Normals3fReference, newNsId);
+            }
+
+            if (root.HasIntensities)
+            {
+                newIsId = Guid.NewGuid();
+                storage.Add(newIsId.Value, js.ToArray());
+
+                data = data.Add(Durable.Octree.Intensities1iReference, newIsId);
+            }
+
+            if (root.HasClassifications)
+            {
+                newKsId = Guid.NewGuid();
+                storage.Add(newKsId.Value, ks.ToArray());
+
+                data = data.Add(Durable.Octree.Classifications1bReference, newKsId);
+            }
+
+            var newSubnodes = root.Subnodes?.Map(n => n?.Value.Delete(isNodeFullyInside, isNodeFullyOutside, isPositionInside, storage, ct));
+            if (newSubnodes != null && newSubnodes.All(n => n == null)) newSubnodes = null;
+            if (ps.Count == 0 && newSubnodes == null) return null;
+
+            var pointCountTreeLeafs = newSubnodes != null ? (newSubnodes.Sum(n => n != null ? n.PointCountTree : 0)) : ps.Count;
+            data = data.Add(Durable.Octree.PointCountTreeLeafs, pointCountTreeLeafs);
+
+            if (newSubnodes != null)
+            {
+                var newSubnodesIds = newSubnodes.Map(x => x?.Id ?? Guid.Empty);
+                data = data.Add(Durable.Octree.SubnodesGuids, newSubnodesIds);
+            }
+
+            var result = new PointSetNode(data, storage, writeToStore: true);
+            return result;
         }
     }
 }

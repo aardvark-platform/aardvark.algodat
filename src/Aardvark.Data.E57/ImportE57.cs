@@ -41,7 +41,7 @@ namespace Aardvark.Data.Points.Import
         /// <summary>
         /// Parses .e57 file.
         /// </summary>
-        public static IEnumerable<Chunk> Chunks(string filename, ImportConfig config)
+        public static IEnumerable<Chunk> Chunks(string filename, ParseConfig config)
         {
             var fileSizeInBytes = new FileInfo(filename).Length;
             var stream = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -51,7 +51,7 @@ namespace Aardvark.Data.Points.Import
         /// <summary>
         /// Parses .e57 stream.
         /// </summary>
-        public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, ImportConfig config)
+        public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, ParseConfig config)
         {
             checked
             {
@@ -187,7 +187,7 @@ namespace Aardvark.Data.Points.Import
         /// <summary>
         /// Gets general info for .e57 file.
         /// </summary>
-        public static PointFileInfo<ASTM_E57.E57FileHeader> E57Info(string filename, ImportConfig config)
+        public static PointFileInfo<ASTM_E57.E57FileHeader> E57Info(string filename, ParseConfig config)
         {
             var filesize = new FileInfo(filename).Length;
             var stream = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read);

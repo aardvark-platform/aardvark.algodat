@@ -31,7 +31,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Max tree depth.
         /// </summary>
-        public static int CountOctreeLevels(this PointSetNode root)
+        public static int CountOctreeLevels(this IPointCloudNode root)
         {
             if (root == null) return 0;
             if (root.Subnodes == null) return 1;
@@ -52,7 +52,7 @@ namespace Aardvark.Geometry.Points
         /// Finds deepest octree level which still contains less than given number of points. 
         /// </summary>
         public static int GetMaxOctreeLevelWithLessThanGivenPointCount(
-            this PointSetNode node, long maxPointCount
+            this IPointCloudNode node, long maxPointCount
             )
         {
             var imax = node.CountOctreeLevels();
@@ -79,7 +79,7 @@ namespace Aardvark.Geometry.Points
         /// Finds deepest octree level which still contains less than given number of points within given bounds. 
         /// </summary>
         public static int GetMaxOctreeLevelWithLessThanGivenPointCount(
-            this PointSetNode node, long maxPointCount, Box3d bounds
+            this IPointCloudNode node, long maxPointCount, Box3d bounds
             )
         {
             var imax = node.CountOctreeLevels();
@@ -106,14 +106,14 @@ namespace Aardvark.Geometry.Points
         /// Gets total number of lod-points in all cells at given octree level.
         /// </summary>
         public static long CountPointsInOctreeLevel(
-            this PointSetNode node, int level
+            this IPointCloudNode node, int level
             )
         {
             if (level < 0) return 0;
 
-            if (level == 0 || node.IsLeaf)
+            if (level == 0 || node.IsLeaf())
             {
-                return node.LodPointCount;
+                return node.Positions.Value.Count();
             }
             else
             {
@@ -147,15 +147,15 @@ namespace Aardvark.Geometry.Points
         /// For performance reasons, in order to avoid per-point bounds checks.
         /// </summary>
         public static long CountPointsInOctreeLevel(
-            this PointSetNode node, int level, Box3d bounds
+            this IPointCloudNode node, int level, Box3d bounds
             )
         {
             if (level < 0) return 0;
-            if (!node.BoundingBox.Intersects(bounds)) return 0;
+            if (!node.BoundingBoxExactGlobal.Intersects(bounds)) return 0;
 
-            if (level == 0 || node.IsLeaf)
+            if (level == 0 || node.IsLeaf())
             {
-                return node.LodPointCount;
+                return node.Positions.Value.Length;
             }
             else
             {
@@ -186,17 +186,19 @@ namespace Aardvark.Geometry.Points
         /// Front will include leafs higher up than given level.
         /// </summary>
         public static IEnumerable<Chunk> QueryPointsInOctreeLevel(
-            this PointSetNode node, int level
+            this IPointCloudNode node, int level
             )
         {
             if (level < 0) yield break;
 
-            if (level == 0 || node.IsLeaf)
+            if (level == 0 || node.IsLeaf())
             {
-                var ps = node.LodPositionsAbsolute;
-                var cs = node?.LodColors?.Value;
-                var ns = node?.LodNormals?.Value;
-                var chunk = new Chunk(ps, cs, ns);
+                var ps = node.PositionsAbsolute;
+                var cs = node?.TryGetColors4b()?.Value;
+                var ns = node?.TryGetNormals3f()?.Value;
+                var js = node?.TryGetIntensities()?.Value;
+                var ks = node?.TryGetClassifications()?.Value;
+                var chunk = new Chunk(ps, cs, ns, js, ks);
                 yield return chunk;
             }
             else
@@ -228,18 +230,20 @@ namespace Aardvark.Geometry.Points
         /// Front will include leafs higher up than given level.
         /// </summary>
         public static IEnumerable<Chunk> QueryPointsInOctreeLevel(
-            this PointSetNode node, int level, Box3d bounds
+            this IPointCloudNode node, int level, Box3d bounds
             )
         {
             if (level < 0) yield break;
-            if (!node.BoundingBox.Intersects(bounds)) yield break;
+            if (!node.BoundingBoxExactGlobal.Intersects(bounds)) yield break;
 
-            if (level == 0 || node.IsLeaf)
+            if (level == 0 || node.IsLeaf())
             {
-                var ps = node.LodPositionsAbsolute;
-                var cs = node?.LodColors?.Value;
-                var ns = node?.LodNormals?.Value;
-                var chunk = new Chunk(ps, cs, ns);
+                var ps = node.PositionsAbsolute;
+                var cs = node?.TryGetColors4b()?.Value;
+                var ns = node?.TryGetNormals3f()?.Value;
+                var js = node?.TryGetIntensities()?.Value;
+                var ks = node?.TryGetClassifications()?.Value;
+                var chunk = new Chunk(ps, cs, ns, js, ks);
                 yield return chunk;
             }
             else

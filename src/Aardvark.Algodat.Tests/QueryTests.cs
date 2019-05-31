@@ -33,7 +33,7 @@ namespace Aardvark.Geometry.Tests
             var ps = new V3d[n];
             for (var i = 0; i < n; i++) ps[i] = new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble());
             var config = ImportConfig.Default
-                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 .WithOctreeSplitLimit(splitLimit)
                 ;
@@ -48,7 +48,7 @@ namespace Aardvark.Geometry.Tests
             for (var i = 0; i < n / 2; i++) ps[i] = randomPos();
             for (var i = n / 2 + 1; i < n; i++) ps[i] = randomPos();
             var config = ImportConfig.Default
-                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 .WithOctreeSplitLimit(splitLimit)
                 ;
@@ -65,11 +65,12 @@ namespace Aardvark.Geometry.Tests
                     for (var z = start; z < 1.0; z += step)
                         ps.Add(new V3d(x, y, z));
             var config = ImportConfig.Default
-                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 .WithOctreeSplitLimit(splitLimit)
                 ;
-            return PointCloud.Chunks(new Chunk(ps, null), config);
+            var pc = PointCloud.Chunks(new Chunk(ps, null), config);
+            return pc;
         }
 
         #region Ray3d, Line3d
@@ -108,7 +109,7 @@ namespace Aardvark.Geometry.Tests
         public void CanQueryPointsNearPoint_1()
         {
             var pointset = CreateRandomPointsInUnitCube(1024, 1024);
-            Assert.IsTrue(pointset.Root.Value.IsLeaf);
+            Assert.IsTrue(pointset.Root.Value.IsLeaf());
 
             var ps = pointset.QueryPointsNearPoint(new V3d(0.5, 0.5, 0.5), 1.0, 10000);
             Assert.IsTrue(ps.Count == 1024);
@@ -118,7 +119,7 @@ namespace Aardvark.Geometry.Tests
         public void CanQueryPointsNearPoint_2()
         {
             var pointset = CreateRandomPointsInUnitCube(1024, 32);
-            Assert.IsTrue(pointset.Root.Value.IsNotLeaf);
+            Assert.IsTrue(pointset.Root.Value.IsNotLeaf());
 
             var ps = pointset.QueryPointsNearPoint(new V3d(0.5, 0.5, 0.5), 1.0, 10000);
             Assert.IsTrue(ps.Count == 1024);
@@ -441,7 +442,7 @@ namespace Aardvark.Geometry.Tests
         public void CanQueryPointsNearPolygon_Performance()
         {
             var sw = new Stopwatch();
-            var pointset = CreateRandomPointsInUnitCube(256*1024, 32);
+            var pointset = CreateRandomPointsInUnitCube(64*1024, 32);
 
             var q = new Polygon3d(new V3d(0.4, 0.4, 0.5), new V3d(0.41, 0.4, 0.5), new V3d(0.41, 0.41, 0.5), new V3d(0.4, 0.41, 0.5));
             var plane = new Plane3d(new V3d(0.4, 0.4, 0.5), new V3d(0.41, 0.4, 0.5), new V3d(0.41, 0.41, 0.5));
@@ -740,7 +741,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void ForEachNodeIntersecting_Works()
         {
-            var storage = PointCloud.CreateInMemoryStore();
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
             var pointcloud = CreateClusteredPointsInUnitCube(1000, 10);
             var ns = pointcloud.Root.Value.ForEachNodeIntersecting(Hull3d.Create(Box3d.Unit), true).ToArray();
             Assert.IsTrue(ns.Length > 0);
@@ -760,7 +761,7 @@ namespace Aardvark.Geometry.Tests
 
             var config = ImportConfig.Default.WithKey("Test").WithOctreeSplitLimit(1);
             return PointSet
-                .Create(storage, "test", ps.ToList(), cs.ToList(), null, null, 100, true, CancellationToken.None)
+                .Create(storage, "test", ps.ToList(), cs.ToList(), null, null, null, 100, false, CancellationToken.None)
                 .GenerateLod(config)
                 ;
         }
@@ -924,9 +925,9 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CanQueryPointsWithEverythingInside_Single()
         {
-            var storage = PointCloud.CreateInMemoryStore();
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
-            var root = InMemoryPointSet.Build(ps, null, null, null, Cell.Unit, 1).ToPointSetCell(storage, ct: CancellationToken.None);
+            var root = InMemoryPointSet.Build(ps, null, null, null, null, Cell.Unit, 1).ToPointSetNode(storage, ct: CancellationToken.None);
 
             var rs = root.QueryPoints(cell => true, cell => false, p => true).SelectMany(x => x.Positions).ToArray();
             Assert.IsTrue(rs.Length == 1);
@@ -949,9 +950,9 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CanQueryPointsWithEverythingOutside_Single()
         {
-            var storage = PointCloud.CreateInMemoryStore();
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
-            var root = InMemoryPointSet.Build(ps, null, null, null, Cell.Unit, 1).ToPointSetCell(storage, ct: CancellationToken.None);
+            var root = InMemoryPointSet.Build(ps, null, null, null, null, Cell.Unit, 1).ToPointSetNode(storage, ct: CancellationToken.None);
 
             var rs = root.QueryPoints(cell => false, cell => true, p => false).SelectMany(x => x.Positions).ToArray();
             Assert.IsTrue(rs.Length == 0);

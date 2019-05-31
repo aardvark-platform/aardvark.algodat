@@ -1,0 +1,9 @@
+type project
+id Aardvark.Base.DurableData
+authors Aardvark Platform Team
+owners Aardvark Platform Team
+projectUrl http://github.com/aardvark-platform
+licenseUrl http://www.apache.org/licenses/LICENSE-2.0
+description
+    Durable data definitions.
+include-pdbs true

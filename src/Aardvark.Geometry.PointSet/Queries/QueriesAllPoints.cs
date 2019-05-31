@@ -29,7 +29,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Enumerates (chunked) all points in tree.
         /// </summary>
-        public static IEnumerable<Chunk> QueryAllPoints(this PointSetNode node)
+        public static IEnumerable<Chunk> QueryAllPoints(this IPointCloudNode node)
             => node.QueryPoints(_ => true, _ => false, _ => true);
     }
 }

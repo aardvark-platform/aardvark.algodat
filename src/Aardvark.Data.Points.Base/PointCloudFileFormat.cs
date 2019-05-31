@@ -64,27 +64,27 @@ namespace Aardvark.Data.Points
         public string[] FileExtensions { get; }
 
         /// <summary></summary>
-        public PointFileInfo ParseFileInfo(string filename, ImportConfig config) => f_parseFileInfo(filename, config);
+        public PointFileInfo ParseFileInfo(string filename, ParseConfig config) => f_parseFileInfo(filename, config);
 
         /// <summary></summary>
-        public IEnumerable<Chunk> ParseFile(string filename, ImportConfig config) => f_parseFile(filename, config);
+        public IEnumerable<Chunk> ParseFile(string filename, ParseConfig config) => f_parseFile(filename, config);
 
         /// <summary></summary>
         public PointCloudFileFormat(
             string description,
             string[] fileExtensions,
-            Func<string, ImportConfig, PointFileInfo> parseFileInfo,
-            Func<string, ImportConfig, IEnumerable<Chunk>> parseFile
+            Func<string, ParseConfig, PointFileInfo> parseFileInfo,
+            Func<string, ParseConfig, IEnumerable<Chunk>> parseFile
             )
-        {
+        { 
             Description = description ?? throw new ArgumentNullException(nameof(description));
             FileExtensions = fileExtensions?.Map(x => x.ToLowerInvariant()) ?? throw new ArgumentNullException(nameof(fileExtensions));
             f_parseFileInfo = parseFileInfo;
             f_parseFile = parseFile;
         }
 
-        private readonly Func<string, ImportConfig, PointFileInfo> f_parseFileInfo;
-        private readonly Func<string, ImportConfig, IEnumerable<Chunk>> f_parseFile;
+        private readonly Func<string, ParseConfig, PointFileInfo> f_parseFileInfo;
+        private readonly Func<string, ParseConfig, IEnumerable<Chunk>> f_parseFile;
 
         #region Registry
 

@@ -12,9 +12,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
+using Aardvark.Data;
 using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -30,6 +33,7 @@ namespace Aardvark.Geometry.Points
         private IList<C4b> m_cs;
         private IList<V3f> m_ns;
         private IList<int> m_is;
+        private IList<byte> m_ks;
         private Node m_root;
         private readonly long m_insertedPointsCount = 0;
         private long m_duplicatePointsCount = 0;
@@ -37,33 +41,34 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// </summary>
         public static InMemoryPointSet Build(Chunk chunk, long octreeSplitLimit)
-            => Build(chunk.Positions, chunk.Colors, chunk.Normals, chunk.Intensities, chunk.BoundingBox, octreeSplitLimit);
+            => Build(chunk.Positions, chunk.Colors, chunk.Normals, chunk.Intensities, chunk.Classifications, chunk.BoundingBox, octreeSplitLimit);
+
+        /// <summary>
+        /// </summary>
+        public static InMemoryPointSet Build(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, Box3d bounds, long octreeSplitLimit)
+            => new InMemoryPointSet(ps, cs, ns, js, ks, bounds, octreeSplitLimit);
 
         /// <summary>
         /// </summary>
         public static InMemoryPointSet Build(Chunk chunk, Cell rootBounds, long octreeSplitLimit)
-            => Build(chunk.Positions, chunk.Colors, chunk.Normals, chunk.Intensities, rootBounds, octreeSplitLimit);
+            => Build(chunk.Positions, chunk.Colors, chunk.Normals, chunk.Intensities, chunk.Classifications, rootBounds, octreeSplitLimit);
 
         /// <summary>
         /// </summary>
-        public static InMemoryPointSet Build(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, Box3d bounds, long octreeSplitLimit)
-            => new InMemoryPointSet(ps, cs, ns, js, bounds, octreeSplitLimit);
+        public static InMemoryPointSet Build(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, Cell bounds, long octreeSplitLimit)
+            => new InMemoryPointSet(ps, cs, ns, js, ks, bounds, octreeSplitLimit);
 
-        /// <summary>
-        /// </summary>
-        public static InMemoryPointSet Build(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, Cell bounds, long octreeSplitLimit)
-            => new InMemoryPointSet(ps, cs, ns, js, bounds, octreeSplitLimit);
+        private InMemoryPointSet(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, Box3d bounds, long octreeSplitLimit)
+            : this(ps, cs, ns, js, ks, new Cell(bounds), octreeSplitLimit)
+            { }
 
-        private InMemoryPointSet(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, Box3d bounds, long octreeSplitLimit)
-         : this(ps, cs, ns, js, new Cell(bounds), octreeSplitLimit)
-        { }
-
-        private InMemoryPointSet(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, Cell bounds, long octreeSplitLimit)
+        private InMemoryPointSet(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, Cell bounds, long octreeSplitLimit)
         {
             m_ps = ps;
             m_cs = cs;
             m_ns = ns;
             m_is = js;
+            m_ks = ks;
             m_splitLimit = octreeSplitLimit;
 
             m_root = new Node(this, bounds);
@@ -71,9 +76,8 @@ namespace Aardvark.Geometry.Points
             for (var i = 0; i < ps.Count; i++) m_root.Insert(i);
         }
 
-        /// <summary>
-        /// </summary>
-        public PointSetNode ToPointSetCell(Storage storage, double kdTreeEps = 1e-6, CancellationToken ct = default)
+        /// <summary></summary>
+        public PointSetNode ToPointSetNode(Storage storage, float kdTreeEps = 1e-6f, CancellationToken ct = default)
         {
             var result = m_root.ToPointSetCell(storage, ct, kdTreeEps);
 #if DEBUG
@@ -103,15 +107,16 @@ namespace Aardvark.Geometry.Points
                 _centerX = c.X; _centerY = c.Y; _centerZ = c.Z;
             }
 
-            public PointSetNode ToPointSetCell(Storage storage, CancellationToken ct, double kdTreeEps = 1e-6)
+            public PointSetNode ToPointSetCell(Storage storage, CancellationToken ct, float kdTreeEps = 1e-6f)
             {
                 var center = new V3d(_centerX, _centerY, _centerZ);
                 V3f[] ps = null;
                 C4b[] cs = null;
                 V3f[] ns = null;
                 int[] js = null;
-                PointRkdTreeD<V3f[], V3f> kdTree = null;
-
+                byte[] ks = null;
+                PointRkdTreeF<V3f[], V3f> kdTree = null;
+                
                 if (_ia != null)
                 {
                     var allPs = _octree.m_ps;
@@ -141,18 +146,27 @@ namespace Aardvark.Geometry.Points
                         for (var i = 0; i < count; i++) js[i] = allIs[_ia[i]];
                     }
 
-                    kdTree = new PointRkdTreeD<V3f[], V3f>(
+                    if (_octree.m_ks != null)
+                    {
+                        var allKs = _octree.m_ks;
+                        ks = new byte[count];
+                        for (var i = 0; i < count; i++) ks[i] = allKs[_ia[i]];
+                    }
+
+                    kdTree = new PointRkdTreeF<V3f[], V3f>(
                         3, ps.Length, ps,
                         (xs, i) => xs[(int)i], (v, i) => (float)v[i],
                         (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
                         (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, kdTreeEps
                         );
+                    
                 }
 
                 Guid? psId = ps != null ? (Guid?)Guid.NewGuid() : null;
                 Guid? csId = cs != null ? (Guid?)Guid.NewGuid() : null;
                 Guid? nsId = ns != null ? (Guid?)Guid.NewGuid() : null;
                 Guid? isId = js != null ? (Guid?)Guid.NewGuid() : null;
+                Guid? ksId = ks != null ? (Guid?)Guid.NewGuid() : null;
                 Guid? kdId = kdTree != null ? (Guid?)Guid.NewGuid() : null;
                 
                 var subcells = _subnodes?.Map(x => x?.ToPointSetCell(storage, ct, kdTreeEps));
@@ -176,24 +190,63 @@ namespace Aardvark.Geometry.Points
                     }
                 }
 #endif
-                var pointCountTree = ps != null
-                    ? ps.Length
-                    : subcells.Sum(n => n != null ? n.PointCountTree : 0)
+                var pointCountTreeLeafs = subcells != null
+                    ? subcells.Sum(n => n != null ? n.PointCountTree : 0)
+                    : ps.Length
                     ;
 
-                if (psId != null) storage.Add(psId.ToString(), ps, ct);
-                if (csId != null) storage.Add(csId.ToString(), cs, ct);
-                if (nsId != null) storage.Add(nsId.ToString(), ns, ct);
-                if (isId != null) storage.Add(isId.ToString(), js, ct);
-                if (kdId != null) storage.Add(kdId.ToString(), kdTree.Data, ct);
+                var data = ImmutableDictionary<Durable.Def, object>.Empty
+                    .Add(Durable.Octree.NodeId, Guid.NewGuid())
+                    .Add(Durable.Octree.Cell, _cell)
+                    .Add(Durable.Octree.PointCountTreeLeafs, pointCountTreeLeafs)
+                    ;
 
-                if (subcellIds == null) // leaf
+                if (psId != null)
                 {
-                    return new PointSetNode(_cell, pointCountTree, psId, csId, kdId, nsId, isId, storage);
+                    storage.Add(psId.ToString(), ps);
+                    var exactBoundsLocal = new Box3f(ps);
+
+                    data = data
+                        .Add(Durable.Octree.PointCountCell, ps.Length)
+                        .Add(Durable.Octree.PositionsLocal3fReference, psId.Value)
+                        .Add(Durable.Octree.BoundingBoxExactLocal, exactBoundsLocal)
+                        ;
                 }
                 else
                 {
-                    return new PointSetNode(_cell, pointCountTree, subcellIds, storage);
+                    data = data
+                        .Add(Durable.Octree.PointCountCell, 0)
+                        ;
+                }
+                if (csId != null) { storage.Add(csId.ToString(), cs); data = data.Add(Durable.Octree.Colors4bReference, csId.Value); }
+                if (nsId != null) { storage.Add(nsId.ToString(), ns); data = data.Add(Durable.Octree.Normals3fReference, nsId.Value); }
+                if (isId != null) { storage.Add(isId.ToString(), js); data = data.Add(Durable.Octree.Intensities1iReference, isId.Value); }
+                if (ksId != null) { storage.Add(ksId.ToString(), ks); data = data.Add(Durable.Octree.Classifications1bReference, ksId.Value); }
+                if (kdId != null) { storage.Add(kdId.ToString(), kdTree.Data); data = data.Add(Durable.Octree.PointRkdTreeFDataReference, kdId.Value); }
+
+                if (subcellIds == null) // leaf
+                {
+                    var result = new PointSetNode(data, storage, writeToStore: true);
+                    if (storage.GetPointCloudNode(result.Id.ToString()) == null) throw new InvalidOperationException("Invariant d1022027-2dbf-4b11-9b40-4829436f5789.");
+                    return result;
+                }
+                else
+                {
+                    for (var i = 0; i < 8; i++)
+                    {
+                        var x = subcellIds[i];
+                        if (x.HasValue)
+                        {
+                            var id = x.Value.ToString();
+                            if (storage.GetPointCloudNode(id) == null) throw new InvalidOperationException("Invariant 01830b8b-3c0e-4a8b-a1bd-bfd1b1be1844.");
+                        }
+                    }
+                    data = data
+                        .Add(Durable.Octree.SubnodesGuids, subcellIds.Map(x => x ?? Guid.Empty))
+                        ;
+                    var result = new PointSetNode(data, storage, writeToStore: true);
+                    if (storage.GetPointCloudNode(result.Id.ToString()) == null) throw new InvalidOperationException("Invariant 7b09eccb-b6a0-4b99-be7a-eeff53b6a98b.");
+                    return result;
                 }
             }
             

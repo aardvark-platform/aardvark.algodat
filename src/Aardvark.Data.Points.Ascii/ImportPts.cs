@@ -37,24 +37,24 @@ namespace Aardvark.Data.Points.Import
         /// <summary>
         /// Parses .pts file.
         /// </summary>
-        public static IEnumerable<Chunk> Chunks(string filename, ImportConfig config)
+        public static IEnumerable<Chunk> Chunks(string filename, ParseConfig config)
             => Parsing.AsciiLines(LineParsers.XYZSRGB, filename, config);
 
         /// <summary>
         /// Parses .pts stream.
         /// </summary>
-        public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, ImportConfig config)
+        public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, ParseConfig config)
             => Parsing.AsciiLines(LineParsers.XYZSRGB, stream, streamLengthInBytes, config);
 
         /// <summary>
         /// Gets general info for .pts file.
         /// </summary>
-        public static PointFileInfo PtsInfo(string filename, ImportConfig config)
+        public static PointFileInfo PtsInfo(string filename, ParseConfig config)
         {
             var filesize = new FileInfo(filename).Length;
             var pointCount = 0L;
             var pointBounds = Box3d.Invalid;
-            foreach (var chunk in Chunks(filename, ImportConfig.Default))
+            foreach (var chunk in Chunks(filename, ParseConfig.Default))
             {
                 pointCount += chunk.Count;
                 pointBounds.ExtendBy(chunk.BoundingBox);

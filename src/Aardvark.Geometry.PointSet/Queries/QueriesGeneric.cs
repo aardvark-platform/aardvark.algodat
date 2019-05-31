@@ -27,8 +27,8 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// </summary>
         public static IEnumerable<Chunk> QueryPoints(this PointSet node,
-            Func<PointSetNode, bool> isNodeFullyInside,
-            Func<PointSetNode, bool> isNodeFullyOutside,
+            Func<IPointCloudNode, bool> isNodeFullyInside,
+            Func<IPointCloudNode, bool> isNodeFullyOutside,
             Func<V3d, bool> isPositionInside,
             int minCellExponent = int.MinValue
             )
@@ -36,15 +36,9 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        /// <param name="node"></param>
-        /// <param name="isNodeFullyInside"></param>
-        /// <param name="isNodeFullyOutside"></param>
-        /// <param name="isPositionInside"></param>
-        /// <param name="minCellExponent">Limit traversal depth to minCellExponent (inclusive).</param>
-        /// <returns></returns>
-        public static IEnumerable<Chunk> QueryPoints(this PointSetNode node,
-            Func<PointSetNode, bool> isNodeFullyInside,
-            Func<PointSetNode, bool> isNodeFullyOutside,
+        public static IEnumerable<Chunk> QueryPoints(this IPointCloudNode node,
+            Func<IPointCloudNode, bool> isNodeFullyInside,
+            Func<IPointCloudNode, bool> isNodeFullyOutside,
             Func<V3d, bool> isPositionInside,
             int minCellExponent = int.MinValue
             )
@@ -53,28 +47,30 @@ namespace Aardvark.Geometry.Points
 
             if (isNodeFullyOutside(node)) yield break;
             
-            if (node.IsLeaf || node.Cell.Exponent == minCellExponent)
+            if (node.IsLeaf() || node.Cell.Exponent == minCellExponent)
             {
                 if (isNodeFullyInside(node))
                 {
-                    if (node.HasPositions)
-                    {
-                        yield return new Chunk(node.PositionsAbsolute, node.Colors?.Value, node.Normals?.Value);
-                    }
-                    else if (node.HasLodPositions)
-                    {
-                        yield return new Chunk(node.LodPositionsAbsolute, node.LodColors?.Value, node.LodNormals?.Value);
-                    }
-                    yield break;
+                    var cs = node.HasColors ? node.Colors.Value : null;
+                    var ns = node.HasNormals ? node.Normals.Value : null;
+                    var js = node.HasIntensities ? node.Intensities.Value : null;
+                    var ks = node.HasClassifications ? node.Classifications.Value : null;
+                    yield return new Chunk(node.PositionsAbsolute, cs, ns, js, ks);
                 }
                 else // partially inside
                 {
-                    var psRaw = node.HasPositions ? node.PositionsAbsolute : node.LodPositionsAbsolute;
-                    var csRaw = node.HasColors ? node.Colors?.Value : node.LodColors?.Value;
-                    var nsRaw = node.HasNormals ? node.Normals?.Value : node.LodNormals?.Value;
+                    var psRaw = node.PositionsAbsolute;
+                    var csRaw = node.HasColors ? node.Colors.Value : null;
+                    var nsRaw = node.HasNormals ? node.Normals.Value : null;
+                    var jsRaw = node.HasIntensities ? node.Intensities.Value : null;
+                    var ksRaw = node.HasClassifications ? node.Classifications.Value : null ;
+
                     var ps = new List<V3d>();
                     var cs = csRaw != null ? new List<C4b>() : null;
                     var ns = nsRaw != null ? new List<V3f>() : null;
+                    var js = jsRaw != null ? new List<int>() : null;
+                    var ks = ksRaw != null ? new List<byte>() : null;
+
                     for (var i = 0; i < psRaw.Length; i++)
                     {
                         var p = psRaw[i];
@@ -83,11 +79,13 @@ namespace Aardvark.Geometry.Points
                             ps.Add(p);
                             if (csRaw != null) cs.Add(csRaw[i]);
                             if (nsRaw != null) ns.Add(nsRaw[i]);
+                            if (jsRaw != null) js.Add(jsRaw[i]);
+                            if (ksRaw != null) ks.Add(ksRaw[i]);
                         }
                     }
                     if (ps.Count > 0)
                     {
-                        yield return new Chunk(ps, cs, ns);
+                        yield return new Chunk(ps, cs, ns, js, ks);
                     }
                 }
             }
@@ -111,8 +109,8 @@ namespace Aardvark.Geometry.Points
         /// Exact count.
         /// </summary>
         public static long CountPoints(this PointSet node,
-            Func<PointSetNode, bool> isNodeFullyInside,
-            Func<PointSetNode, bool> isNodeFullyOutside,
+            Func<IPointCloudNode, bool> isNodeFullyInside,
+            Func<IPointCloudNode, bool> isNodeFullyOutside,
             Func<V3d, bool> isPositionInside,
             int minCellExponent = int.MinValue
             )
@@ -121,9 +119,9 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Exact count.
         /// </summary>
-        public static long CountPoints(this PointSetNode node,
-            Func<PointSetNode, bool> isNodeFullyInside,
-            Func<PointSetNode, bool> isNodeFullyOutside,
+        public static long CountPoints(this IPointCloudNode node,
+            Func<IPointCloudNode, bool> isNodeFullyInside,
+            Func<IPointCloudNode, bool> isNodeFullyOutside,
             Func<V3d, bool> isPositionInside,
             int minCellExponent = int.MinValue
             )
@@ -132,24 +130,16 @@ namespace Aardvark.Geometry.Points
 
             if (isNodeFullyOutside(node)) return 0L;
 
-            if (node.IsLeaf || node.Cell.Exponent == minCellExponent)
+            if (node.IsLeaf() || node.Cell.Exponent == minCellExponent)
             {
                 if (isNodeFullyInside(node))
                 {
-                    if (node.HasPositions)
-                    {
-                        return node.PointCount;
-                    }
-                    else if (node.HasLodPositions)
-                    {
-                        return node.LodPointCount;
-                    }
-                    return 0L;
+                    return node.Positions.Value.Length;
                 }
                 else // partially inside
                 {
                     var count = 0L;
-                    var psRaw = node.HasPositions ? node.PositionsAbsolute : node.LodPositionsAbsolute;
+                    var psRaw = node.PositionsAbsolute;
                     for (var i = 0; i < psRaw.Length; i++)
                     {
                         var p = psRaw[i];
@@ -180,8 +170,8 @@ namespace Aardvark.Geometry.Points
         /// Result is always equal or greater than exact number.
         /// </summary>
         public static long CountPointsApproximately(this PointSet node,
-            Func<PointSetNode, bool> isNodeFullyInside,
-            Func<PointSetNode, bool> isNodeFullyOutside,
+            Func<IPointCloudNode, bool> isNodeFullyInside,
+            Func<IPointCloudNode, bool> isNodeFullyOutside,
             int minCellExponent = int.MinValue
             )
             => CountPointsApproximately(node.Root.Value, isNodeFullyInside, isNodeFullyOutside, minCellExponent);
@@ -190,9 +180,9 @@ namespace Aardvark.Geometry.Points
         /// Approximate count (cell granularity).
         /// Result is always equal or greater than exact number.
         /// </summary>
-        public static long CountPointsApproximately(this PointSetNode node,
-            Func<PointSetNode, bool> isNodeFullyInside,
-            Func<PointSetNode, bool> isNodeFullyOutside,
+        public static long CountPointsApproximately(this IPointCloudNode node,
+            Func<IPointCloudNode, bool> isNodeFullyInside,
+            Func<IPointCloudNode, bool> isNodeFullyOutside,
             int minCellExponent = int.MinValue
             )
         {
@@ -200,11 +190,9 @@ namespace Aardvark.Geometry.Points
 
             if (isNodeFullyOutside(node)) return 0L;
 
-            if (node.IsLeaf || node.Cell.Exponent == minCellExponent)
+            if (node.IsLeaf() || node.Cell.Exponent == minCellExponent)
             {
-                if (node.HasPositions) return node.PointCount;
-                else if (node.HasLodPositions) return node.LodPointCount;
-                return 0L;
+                return node.Positions.Value.Length;
             }
             else
             {

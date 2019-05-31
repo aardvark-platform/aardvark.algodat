@@ -34,7 +34,7 @@ namespace Aardvark.Geometry.Tests
             var countProgressCallbacks = 0L;
 
             var config = ImportConfig.Default
-                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 .WithProgressCallback(x => Interlocked.Increment(ref countProgressCallbacks));
                 ;

@@ -1,4 +1,5 @@
 ﻿using Aardvark.Base;
+using Aardvark.Data;
 using Aardvark.Data.Points;
 using Aardvark.Data.Points.Import;
 using Aardvark.Geometry.Points;
@@ -12,7 +13,7 @@ using Uncodium.SimpleStore;
 
 namespace Aardvark.Geometry.Tests
 {
-    public unsafe class Program
+    public class Program
     {
         internal static void TestE57()
         {
@@ -22,7 +23,7 @@ namespace Aardvark.Geometry.Tests
             var filename = @"T:\Vgm\Data\E57\Lichthof grob.e57";
             var fileSizeInBytes = new FileInfo(filename).Length;
 
-            var info = E57.E57Info(filename, ImportConfig.Default);
+            var info = E57.E57Info(filename, ParseConfig.Default);
             Report.Line($"total bounds: {info.Bounds}");
             Report.Line($"total count : {info.PointCount:N0}");
 
@@ -37,7 +38,7 @@ namespace Aardvark.Geometry.Tests
             Report.BeginTimed("total");
 
             var chunks = E57
-                .Chunks(filename, config)
+                .Chunks(filename, config.ParseConfig)
                 //.Take(2)
                 //.AsParallel()
                 //.Select(x => x.ImmutableFilterMinDistByCell(new Cell(x.BoundingBox), config))
@@ -121,11 +122,18 @@ namespace Aardvark.Geometry.Tests
             //    })
             //    ;
 
+            chunks = E57.Chunks(filename, config.ParseConfig);
+            var pointcloud = PointCloud.Chunks(chunks, config);
+            Console.WriteLine($"pointcloud.PointCount  : {pointcloud.PointCount}");
+            Console.WriteLine($"pointcloud.Bounds      : {pointcloud.Bounds}");
+            Console.WriteLine($"pointcloud.BoundingBox : {pointcloud.BoundingBox}");
+
             //var chunks = E57.Chunks(filename, config);
             //var pointcloud = PointCloud.Chunks(chunks, config);
             //Console.WriteLine($"pointcloud.PointCount  : {pointcloud.PointCount}");
             //Console.WriteLine($"pointcloud.Bounds      : {pointcloud.Bounds}");
             //Console.WriteLine($"pointcloud.BoundingBox : {pointcloud.BoundingBox}");
+
 
             //var leafLodPointCount = 0L;
             //pointcloud.Root.Value.ForEachNode(true, n => { if (n.IsLeaf) leafLodPointCount += n.LodPositionsAbsolute.Length; });
@@ -181,7 +189,7 @@ namespace Aardvark.Geometry.Tests
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
             var filename = @"test.e57";
 
-            var store = new SimpleDiskStore(@"./store").ToPointCloudStore();
+            var store = new SimpleDiskStore(@"./store").ToPointCloudStore(new LruDictionary<string, object>(1024 * 1024 * 1024));
 
             var config = ImportConfig.Default
                 .WithStorage(store)
@@ -197,7 +205,7 @@ namespace Aardvark.Geometry.Tests
 
         internal static void TestImportPts(string filename)
         {
-            var chunks = Pts.Chunks(filename, ImportConfig.Default);
+            var chunks = Pts.Chunks(filename, ParseConfig.Default);
 
             Console.WriteLine(filename);
             var sw = new Stopwatch();
@@ -240,7 +248,7 @@ namespace Aardvark.Geometry.Tests
                 var ps = new V3d[n];
                 for (var i = 0; i < n; i++) ps[i] = new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble());
                 var config = ImportConfig.Default
-                    .WithStorage(PointCloud.CreateInMemoryStore())
+                    .WithStorage(PointCloud.CreateInMemoryStore(new LruDictionary<string, object>(1024*1024*1024)))
                     .WithKey("test")
                     .WithOctreeSplitLimit(splitLimit)
                     ;
@@ -250,7 +258,11 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
-            TestE57();
+            new DeleteTests().DeleteDelete();
+            Console.WriteLine("done");
+            //new ImportTests().CanImportChunkWithoutColor();
+
+            //TestE57();
 
             //var store = PointCloud.OpenStore(@"G:\cells\3280_5503_0_10\pointcloud");
             //var pc = store.GetPointSet("3280_5503_0_10", default);

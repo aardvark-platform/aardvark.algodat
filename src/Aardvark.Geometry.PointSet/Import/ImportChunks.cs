@@ -25,6 +25,37 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public static partial class PointCloud
     {
+
+        private static IEnumerable<Chunk> MergeSmall(int limit, IEnumerable<Chunk> input)
+        {
+            Chunk? current = null;
+            foreach(var c in input)
+            {
+                if(c.Count < limit)
+                {
+                    if (current.HasValue) current = current.Value.Union(c);
+                    else current = c;
+
+                    if (current.Value.Count >= limit)
+                    {
+                        yield return current.Value;
+                        current = null;
+                    }
+
+                }
+                else
+                {
+                    yield return c;
+                }
+            }
+
+            if (current.HasValue)
+            {
+                yield return current.Value;
+                current = null;
+            }
+        }
+
         /// <summary>
         /// Imports single chunk.
         /// </summary>
@@ -36,6 +67,9 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PointSet Chunks(IEnumerable<Chunk> chunks, ImportConfig config)
         {
+            chunks = MergeSmall(config.OctreeSplitLimit, chunks);
+
+
             config?.ProgressCallback(0.0);
 
             // optionally filter minDist
@@ -43,7 +77,7 @@ namespace Aardvark.Geometry.Points
             {
                 if (config.NormalizePointDensityGlobal)
                 {
-                    chunks = chunks.Select(x => x.ImmutableFilterMinDistByCell(new Cell(x.BoundingBox), config));
+                    chunks = chunks.Select(x => x.ImmutableFilterMinDistByCell(new Cell(x.BoundingBox), config.ParseConfig));
                 }
                 else
                 {
@@ -71,11 +105,20 @@ namespace Aardvark.Geometry.Points
                         var ps = config.Reproject(x.Positions);
                         x = x.WithPositions(ps);
                     }
+
+                    //if (config.EstimateNormals != null)
+                    //{
+                    //    var ns = config.EstimateNormals(x.Positions);
+                    //    x = x.WithNormals(ns);
+                    //}
+
                     return x;
                 }
 
                 chunks = chunks.MapParallel(map, config.MaxDegreeOfParallelism, null, config.CancellationToken);
             }
+
+            //var foo = chunks.ToArray();
 
             // reduce all chunks to single PointSet
             Report.BeginTimed("map/reduce");
@@ -84,15 +127,17 @@ namespace Aardvark.Geometry.Points
                 ;
             Report.EndTimed();
 
-            // optionally create LOD data
+            // create LOD data
             Report.BeginTimed("generate lod");
             final = final.GenerateLod(config.WithRandomKey().WithProgressCallback(x => config.ProgressCallback(0.66 + x * 0.34)));
             Report.End();
 
             // create final point set with specified key (or random key when no key is specified)
             var key = config.Key ?? Guid.NewGuid().ToString();
+#pragma warning disable CS0618 // Type or member is obsolete
             final = new PointSet(config.Storage, key, final?.Root?.Value?.Id, config.OctreeSplitLimit);
-            config.Storage.Add(key, final, config.CancellationToken);
+#pragma warning restore CS0618 // Type or member is obsolete
+            config.Storage.Add(key, final);
 
             return final;
         }

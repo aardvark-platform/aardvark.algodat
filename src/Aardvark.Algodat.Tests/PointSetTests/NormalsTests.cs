@@ -25,7 +25,7 @@ namespace Aardvark.Geometry.Tests
     [TestFixture]
     public class NormalsTests
     {
-        private Storage CreateInMemoryStore() => new SimpleMemoryStore().ToPointCloudStore();
+        private Storage CreateInMemoryStore() => new SimpleMemoryStore().ToPointCloudStore(cache: default);
 
         [Test]
         public void CanCreateChunkWithNormals()
@@ -41,10 +41,10 @@ namespace Aardvark.Geometry.Tests
             var chunk = new Chunk(new[] { V3d.IOO }, new[] { C4b.White }, new[] { V3f.OIO });
 
             var builder = InMemoryPointSet.Build(chunk, 8192);
-            var root = builder.ToPointSetCell(CreateInMemoryStore());
+            var root = builder.ToPointSetNode(CreateInMemoryStore());
           
             Assert.IsTrue(root.IsLeaf);
-            Assert.IsTrue(root.PointCount == 1);
+            Assert.IsTrue(root.PointCountCell == 1);
             Assert.IsTrue(root.HasNormals);
             Assert.IsTrue(root.Normals.Value[0] == V3f.OIO);
         }
@@ -53,77 +53,14 @@ namespace Aardvark.Geometry.Tests
         public void CanCreatePointSetWithNormals()
         {
             var ps = PointSet.Create(CreateInMemoryStore(), Guid.NewGuid().ToString(),
-                new[] { V3d.IOO }, new[] { C4b.White }, new[] { V3f.OIO }, null, 8192, true,
-                CancellationToken.None
+                new[] { V3d.IOO }, new[] { C4b.White }, new[] { V3f.OIO }, null, null, 8192, false, CancellationToken.None
                 );
 
             Assert.IsTrue(!ps.IsEmpty);
-            var root = ps.Root.Value;
-            Assert.IsTrue(root.IsLeaf);
-            Assert.IsTrue(root.PointCount == 1);
-            Assert.IsTrue(root.HasNormals);
-            Assert.IsTrue(root.Normals.Value[0] == V3f.OIO);
-        }
-
-        [Test]
-        public void CanAddNormals()
-        {
-            var r = new Random();
-            var storage = PointSetTests.CreateStorage();
-
-            var ps = new V3d[10000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
-
-            var pointset = PointSet
-                .Create(storage, "test", ps.ToList(), null, null, null, 5000, false, CancellationToken.None)
-                .GenerateLod(ImportConfig.Default.WithKey("lod").WithOctreeSplitLimit(5000))
-                ;
-            storage.Add("pss", pointset, CancellationToken.None);
-
-            var withNormals = WithRandomNormals(pointset.Root.Value);
-            storage.Add("psWithNormals", withNormals, CancellationToken.None);
-
-            withNormals.ForEachNode(true, node =>
-            {
-                if (node.IsLeaf)
-                {
-                    Assert.IsTrue(node.HasNormals);
-                    Assert.IsTrue(node.HasLodNormals);
-                    Assert.IsTrue(node.Normals.Value.Length == node.PointCount);
-                }
-                else
-                {
-                    Assert.IsTrue(!node.HasNormals);
-                    Assert.IsTrue(node.HasLodNormals);
-                    Assert.IsTrue(node.LodNormals.Value.Length == node.LodPointCount);
-                }
-
-                //
-                var binary = node.ToBinary();
-                var node2 = PointSetNode.ParseBinary(binary, storage);
-                Assert.IsTrue(node.HasNormals == node2.HasNormals);
-                Assert.IsTrue(node.HasLodNormals == node2.HasLodNormals);
-                Assert.IsTrue(node.Normals?.Value?.Length == node2.Normals?.Value?.Length);
-                Assert.IsTrue(node.LodNormals?.Value?.Length == node2.LodNormals?.Value?.Length);
-            });
-
-            PointSetNode WithRandomNormals(PointSetNode n)
-            {
-                var id = Guid.NewGuid();
-                var ns = new V3f[n.IsLeaf ? n.PointCount : n.LodPointCount].Set(V3f.OOI);
-                storage.Add(id, ns, CancellationToken.None);
-
-                if (n.IsLeaf)
-                {
-                    var m = n.WithNormals(id);
-                    return m;
-                }
-                else
-                {
-                    var subnodes = n.Subnodes.Map(x => x != null ? WithRandomNormals(x.Value) : null);
-                    var m = n.WithLodNormals(id, subnodes);
-                    return m;
-                }
-            }
+            Assert.IsTrue(ps.Root.Value.IsLeaf());
+            Assert.IsTrue(ps.Root.Value.Positions.Value.Length == 1);
+            Assert.IsTrue(ps.Root.Value.HasNormals);
+            Assert.IsTrue(ps.Root.Value.Normals.Value[0] == V3f.OIO);
         }
     }
 }

@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <OutputPath>..\..\bin\Debug\</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <OutputPath>..\..\bin\Release\</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Utilities.fs" />
+    <Compile Include="LodTreeInstance.fs" />
+    <Compile Include="SimplePick.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Aardvark.Data.Points.Ascii\Aardvark.Data.Points.Ascii.csproj" />
+    <ProjectReference Include="..\Aardvark.Data.Points.Base\Aardvark.Data.Points.Base.csproj" />
+    <ProjectReference Include="..\Aardvark.Geometry.PointSet\Aardvark.Geometry.PointSet.csproj" />
+    <ProjectReference Include="..\Aardvark.Geometry.PointTree\Aardvark.Geometry.PointTree.csproj" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

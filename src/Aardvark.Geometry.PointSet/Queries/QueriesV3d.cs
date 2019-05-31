@@ -35,20 +35,21 @@ namespace Aardvark.Geometry.Points
         /// Points within given distance of a point.
         /// </summary>
         public static PointsNearObject<V3d> QueryPointsNearPoint(
-            this PointSetNode node, V3d query, double maxDistanceToPoint, int maxCount
+            this IPointCloudNode node, V3d query, double maxDistanceToPoint, int maxCount
             )
         {
             if (node == null) return PointsNearObject<V3d>.Empty;
 
             // if query point is farther from bounding box than maxDistanceToPoint,
             // then there cannot be a result and we are done
-            var eps = node.BoundingBox.Distance(query);
+            var eps = node.BoundingBoxExactGlobal.Distance(query);
             if (eps > maxDistanceToPoint) return PointsNearObject<V3d>.Empty;
 
-            if (node.IsLeaf)
+            if (node.IsLeaf())
             {
+                var nodePositions = node.Positions;
                 #if PARANOID
-                if (node.PointCount <= 0) throw new InvalidOperationException();
+                if (nodePositions.Value.Length <= 0) throw new InvalidOperationException();
                 #endif
 
                 var center = node.Center;
@@ -60,6 +61,7 @@ namespace Aardvark.Geometry.Points
                     var cs = node.HasColors ? new C4b[ia.Count] : null;
                     var ns = node.HasNormals ? new V3f[ia.Count] : null;
                     var js = node.HasIntensities ? new int[ia.Count] : null;
+                    var ks = node.HasClassifications ? new byte[ia.Count] : null;
                     var ds = new double[ia.Count];
                     for (var i = 0; i < ia.Count; i++)
                     {
@@ -68,9 +70,10 @@ namespace Aardvark.Geometry.Points
                         if (node.HasColors) cs[i] = node.Colors.Value[index];
                         if (node.HasNormals) ns[i] = node.Normals.Value[index];
                         if (node.HasIntensities) js[i] = node.Intensities.Value[index];
+                        if (node.HasClassifications) js[i] = node.Classifications.Value[index];
                         ds[i] = ia[i].Dist;
                     }
-                    var chunk = new PointsNearObject<V3d>(query, maxDistanceToPoint, ps, cs, ns, js, ds);
+                    var chunk = new PointsNearObject<V3d>(query, maxDistanceToPoint, ps, cs, ns, js, ks, ds);
                     return chunk;
                 }
                 else

@@ -11,57 +11,71 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
 using System;
 using System.Threading;
 
 namespace Aardvark.Geometry.Points
 {
+
     /// <summary>
     /// </summary>
-    public class PersistentRef<T> where T : class
+    public class PersistentRef<T> 
     {
-        private Func<string, CancellationToken, T> f_get;
-        private WeakReference<T> m_value;
+        private readonly Func<string, T> f_get;
+        private readonly Func<string, (bool, T)> f_tryGet;
 
         /// <summary>
         /// </summary>
-        public PersistentRef(string id, Func<string, CancellationToken, T> get)
+        public PersistentRef(string id, Func<string, T> get, Func<string, (bool, T)> tryGet)
         {
-            Id = id ?? throw new ArgumentNullException(nameof(id));
+            Id = id; //?? throw new ArgumentNullException(nameof(id));
             f_get = get ?? throw new ArgumentNullException(nameof(get));
+            f_tryGet = tryGet ?? throw new ArgumentNullException(nameof(tryGet));
+        }
+        
+        /// <summary>
+        /// </summary>
+        public PersistentRef<A> Cast<A>()
+        {
+            var get = f_get;
+            var tryGet = f_tryGet;
+            return new PersistentRef<A>(
+                Id,
+                (s => (A)(object)get(s)),
+                (s => { var (w, t) = tryGet(s); return w ? (w, (A)(object)t) : (false, default(A)); })
+            );
+
+        }
+
+        /// <summary>
+        /// </summary>
+        public static PersistentRef<T> FromValue(T value)
+        {
+            return new PersistentRef<T>(null, s => value, s => (true, value));
         }
 
         /// <summary>
         /// </summary>
         public string Id { get; }
-
-        /// <summary>
-        /// </summary>
-        public T GetValue(CancellationToken ct)
-        {
-            if (m_value != null && m_value.TryGetTarget(out T result)) return result;
-            result = f_get(Id, ct);
-            m_value = new WeakReference<T>(result);
-            return result;
-        }
-
+        
         /// <summary>
         /// </summary>
         public bool TryGetValue(out T value)
         {
-            if (m_value != null)
-            {
-                return m_value.TryGetTarget(out value);
-            }
-            else
-            {
-                value = null;
-                return false;
-            }
+            bool isSome = false;
+            T x = default;
+            (isSome, x) = f_tryGet(Id);
+            value = x;
+            return isSome;
         }
 
         /// <summary>
         /// </summary>
-        public T Value => GetValue(CancellationToken.None);
+        public (bool, T) TryGetValue() => f_tryGet(Id);
+
+        /// <summary>
+        /// </summary>
+        public T Value => f_get(Id);
     }
 }

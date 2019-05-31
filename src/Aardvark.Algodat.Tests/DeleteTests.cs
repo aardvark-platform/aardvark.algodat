@@ -29,9 +29,15 @@ namespace Aardvark.Geometry.Tests
         {
             var r = new Random();
             var ps = new V3d[n];
-            for (var i = 0; i < n; i++) ps[i] = new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble());
+            for (var i = 0; i < n; i++)
+            {
+                ref var p = ref ps[i];
+                p.X = r.NextDouble();
+                p.Y = r.NextDouble();
+                p.Z = r.NextDouble();
+            }
             var config = ImportConfig.Default
-                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 .WithOctreeSplitLimit(splitLimit)
                 ;
@@ -48,7 +54,7 @@ namespace Aardvark.Geometry.Tests
                     for (var z = start; z < 1.0; z += step)
                         ps.Add(new V3d(x, y, z));
             var config = ImportConfig.Default
-                .WithStorage(PointCloud.CreateInMemoryStore())
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 .WithOctreeSplitLimit(splitLimit)
                 ;
@@ -63,7 +69,7 @@ namespace Aardvark.Geometry.Tests
             var a = CreateRegularPointsInUnitCube(10, 1);
             Assert.IsTrue(a.QueryAllPoints().SelectMany(chunk => chunk.Positions).Any(p => q.Contains(p)));
 
-            var b = a.Delete(n => q.Contains(n.BoundingBox), n => !(q.Contains(n.BoundingBox) || q.Intersects(n.BoundingBox)), p => q.Contains(p), CancellationToken.None);
+            var b = a.Delete(n => q.Contains(n.BoundingBoxExactGlobal), n => !(q.Contains(n.BoundingBoxExactGlobal) || q.Intersects(n.BoundingBoxExactGlobal)), p => q.Contains(p), a.Storage, CancellationToken.None);
 
             Assert.IsTrue(a.PointCount > b.PointCount);
 
@@ -74,17 +80,29 @@ namespace Aardvark.Geometry.Tests
         public void DeleteNothing()
         {
             var a = CreateRegularPointsInUnitCube(10, 1);
-            var b = a.Delete(n => false, n => true, p => false, CancellationToken.None);
+            var b = a.Delete(n => false, n => true, p => false, a.Storage, CancellationToken.None);
 
             Assert.IsTrue(a.PointCount == b.PointCount);
             Assert.IsTrue(a.Id != b.Id);
         }
 
         [Test]
+        public void DeleteDelete()
+        {
+            for (int i = 0; i < 1; i++)
+            {
+                var q1 = new Box3d(new V3d(0.0), new V3d(0.1));
+                var a = CreateRandomPointsInUnitCube(50000, 1024);
+                var b = a.Delete(n => q1.Contains(n.BoundingBoxExactGlobal), n => !(q1.Contains(n.BoundingBoxExactGlobal) || q1.Intersects(n.BoundingBoxExactGlobal)), p => q1.Contains(p), a.Storage, CancellationToken.None);
+                var c = b.Delete(n => true, n => false, p => true, a.Storage, CancellationToken.None);
+                Assert.IsTrue(c.PointCount == 0L);
+            }
+        }
+        [Test]
         public void DeleteAll()
         {
             var a = CreateRegularPointsInUnitCube(10, 1);
-            var b = a.Delete(n => true, n => false, p => true, CancellationToken.None);
+            var b = a.Delete(n => true, n => false, p => true, a.Storage, CancellationToken.None);
 
             Assert.IsTrue(a.PointCount != b.PointCount);
             Assert.IsTrue(b.PointCount == 0);

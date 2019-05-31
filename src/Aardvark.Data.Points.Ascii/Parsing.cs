@@ -16,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -32,7 +33,7 @@ namespace Aardvark.Data.Points
         /// Parses ASCII lines file.
         /// </summary>
         internal static IEnumerable<Chunk> AsciiLines(Func<byte[], int, double, Chunk?> lineParser,
-            string filename, ImportConfig config
+            string filename, ParseConfig config
             )
         {
             var fileSizeInBytes = new FileInfo(filename).Length;
@@ -44,14 +45,16 @@ namespace Aardvark.Data.Points
         /// Parses ASCII lines stream.
         /// </summary>
         internal static IEnumerable<Chunk> AsciiLines(Func<byte[], int, double, Chunk?> lineParser,
-            Stream stream, long streamLengthInBytes, ImportConfig config
+            Stream stream, long streamLengthInBytes, ParseConfig config
             )
         {
             // importing file
-            return stream
+            var result = stream
                 .ChunkStreamAtNewlines(streamLengthInBytes, config.ReadBufferSizeInBytes, config.CancellationToken)
                 .ParseBuffers(streamLengthInBytes, lineParser, config.MinDist, config.MaxDegreeOfParallelism, config.Verbose, config.CancellationToken)
                 ;
+            //var foo = result.ToArray();
+            return result;
         }
 
         /// <summary>
@@ -142,15 +145,17 @@ namespace Aardvark.Data.Points
             var sampleCountYielded = 0L;
             var totalBytesRead = 0L;
             var bounds = Box3d.Invalid;
-            
-            return buffers.MapParallel((buffer, ct2) =>
+
+            //var foo2 = buffers.ToArray();
+
+            var result = buffers.MapParallel((buffer, ct2) =>
             {
                 var optionalSamples = parser(buffer.Data, buffer.Count, minDist);
                 if (!optionalSamples.HasValue) return Chunk.Empty;
                 var samples = optionalSamples.Value;
                 bounds.ExtendBy(new Box3d(samples.Positions));
                 Interlocked.Add(ref sampleCount, samples.Count);
-                var r = new Chunk(samples.Positions, samples.Colors, null, null, samples.BoundingBox);
+                var r = new Chunk(samples.Positions, samples.Colors, null, null, null, samples.BoundingBox);
 
                 sampleCountYielded += r.Count;
                 totalBytesRead += buffer.Count;
@@ -176,6 +181,9 @@ namespace Aardvark.Data.Points
             })
             .WhereNotNull()
             ;
+
+            //var foo = result.ToArray();
+            return result;
         }
     }
 }

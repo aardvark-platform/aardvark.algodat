@@ -36,11 +36,11 @@ namespace Aardvark.Geometry.Points
         /// All points inside convex hull (including boundary).
         /// </summary>
         public static IEnumerable<Chunk> QueryPointsInsideConvexHull(
-            this PointSetNode self, Hull3d query, int minCellExponent = int.MinValue
+            this IPointCloudNode self, Hull3d query, int minCellExponent = int.MinValue
             )
             => QueryPoints(self,
-                n => query.Contains(n.BoundingBox),
-                n => !query.Intersects(n.BoundingBox),
+                n => query.Contains(n.BoundingBoxExactGlobal),
+                n => !query.Intersects(n.BoundingBoxExactGlobal),
                 p => query.Contains(p),
                 minCellExponent);
 
@@ -56,7 +56,7 @@ namespace Aardvark.Geometry.Points
         /// All points outside convex hull (excluding boundary).
         /// </summary>
         public static IEnumerable<Chunk> QueryPointsOutsideConvexHull(
-            this PointSetNode self, Hull3d query, int minCellExponent = int.MinValue
+            this IPointCloudNode self, Hull3d query, int minCellExponent = int.MinValue
             )
             => QueryPointsInsideConvexHull(self, query.Reversed(), minCellExponent);
 
@@ -76,11 +76,11 @@ namespace Aardvark.Geometry.Points
         /// Counts points inside convex hull.
         /// </summary>
         internal static long CountPointsInsideConvexHull(
-            this PointSetNode self, Hull3d query, int minCellExponent = int.MinValue
+            this IPointCloudNode self, Hull3d query, int minCellExponent = int.MinValue
             )
             => CountPoints(self,
-                n => query.Contains(n.BoundingBox),
-                n => !query.Intersects(n.BoundingBox),
+                n => query.Contains(n.BoundingBoxExactGlobal),
+                n => !query.Intersects(n.BoundingBoxExactGlobal),
                 p => query.Contains(p),
                 minCellExponent);
 
@@ -96,7 +96,7 @@ namespace Aardvark.Geometry.Points
         /// Counts points outside convex hull.
         /// </summary>
         internal static long CountPointsOutsideConvexHull(
-            this PointSetNode self, Hull3d query, int minCellExponent = int.MinValue
+            this IPointCloudNode self, Hull3d query, int minCellExponent = int.MinValue
             )
             => CountPointsInsideConvexHull(self, query.Reversed(), minCellExponent);
 
@@ -118,11 +118,11 @@ namespace Aardvark.Geometry.Points
         /// Result is always equal or greater than exact number.
         /// </summary>
         internal static long CountPointsApproximatelyInsideConvexHull(
-            this PointSetNode self, Hull3d query, int minCellExponent = int.MinValue
+            this IPointCloudNode self, Hull3d query, int minCellExponent = int.MinValue
             )
             => CountPointsApproximately(self,
-                n => query.Contains(n.BoundingBox),
-                n => !query.Intersects(n.BoundingBox),
+                n => query.Contains(n.BoundingBoxExactGlobal),
+                n => !query.Intersects(n.BoundingBoxExactGlobal),
                 minCellExponent);
 
         /// <summary>
@@ -139,11 +139,11 @@ namespace Aardvark.Geometry.Points
         /// Result is always equal or greater than exact number.
         /// </summary>
         internal static long CountPointsApproximatelyOutsideConvexHull(
-            this PointSetNode self, Hull3d query, int minCellExponent = int.MinValue
+            this IPointCloudNode self, Hull3d query, int minCellExponent = int.MinValue
             )
             => CountPointsApproximately(self,
-                n => !query.Intersects(n.BoundingBox),
-                n => query.Contains(n.BoundingBox),
+                n => !query.Intersects(n.BoundingBoxExactGlobal),
+                n => query.Contains(n.BoundingBoxExactGlobal),
                 minCellExponent);
 
         #endregion

@@ -14,7 +14,7 @@ namespace Aardvark.Data.Points
     {
         /// <summary>
         /// </summary>
-        public static IEnumerable<Chunk> ImmutableUnmixOutOfCore(this IEnumerable<Chunk> chunks, string tmpdir, int binsExponent, ImportConfig config)
+        public static IEnumerable<Chunk> ImmutableUnmixOutOfCore(this IEnumerable<Chunk> chunks, string tmpdir, int binsExponent, ParseConfig config)
         {
             var binsExponentFactor = 1.0 / Math.Pow(2.0, binsExponent);
             try

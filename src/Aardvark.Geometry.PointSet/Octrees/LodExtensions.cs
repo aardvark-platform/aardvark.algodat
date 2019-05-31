@@ -12,15 +12,134 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
+using Aardvark.Data;
 using Aardvark.Data.Points;
 using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Uncodium;
 
 namespace Aardvark.Geometry.Points
 {
+    /// <summary>
+    /// </summary>
+    public static class Lod
+    {
+        /// <summary></summary>
+        public static double[] ComputeLodFractions(long[] counts)
+        {
+            if (counts == null) return null;
+            if (counts.Length != 8) throw new ArgumentOutOfRangeException();
+
+            var sum = 0L;
+            for (var i = 0; i < 8; i++) sum += counts[i];
+
+            var fractions = new double[8];
+            for (var i = 0; i < 8; i++) fractions[i] = counts[i] / (double)sum;
+
+            return fractions;
+        }
+
+        /// <summary></summary>
+        public static double[] ComputeLodFractions(IPointCloudNode[] subnodes)
+        {
+            if (subnodes == null) return null;
+            if (subnodes.Length != 8) throw new ArgumentOutOfRangeException();
+
+            var counts = new long[8];
+            for (var i = 0; i < 8; i++) counts[i] = subnodes[i] != null ? subnodes[i].PointCountTree : 0;
+            return ComputeLodFractions(counts);
+        }
+
+        /// <summary></summary>
+        public static double[] ComputeLodFractions(PersistentRef<IPointCloudNode>[] subnodes)
+        {
+            if (subnodes == null) return null;
+            if (subnodes.Length != 8) throw new ArgumentOutOfRangeException();
+
+            var unpacked = new IPointCloudNode[8];
+            for (var i = 0; i < 8; i++) unpacked[i] = subnodes[i]?.Value;
+            return ComputeLodFractions(unpacked);
+        }
+        
+        /// <summary></summary>
+        public static int[] ComputeLodCounts(int splitLimit, double[] fractions)
+        {
+            if (fractions == null) return null;
+            if (fractions.Length != 8) throw new ArgumentOutOfRangeException();
+
+            var remainder = 0.1;
+            var counts = new int[8];
+            for (var i = 0; i < 8; i++)
+            {
+                var fn = splitLimit * fractions[i] + remainder;
+                var n = (int)fn;
+                remainder = fn - n;
+                counts[i] = n;
+            };
+
+            var e = splitLimit - counts.Sum();
+            if (e != 0) throw new InvalidOperationException();
+
+            return counts;
+        }
+
+        /// <summary></summary>
+        public static V3f[] AggregateSubPositions(int[] counts, int splitLimit, V3d center, V3d?[] subCenters, V3f[][] xss)
+        {
+            var rs = new V3f[splitLimit];
+            var i = 0;
+            for (var ci = 0; ci < 8; ci++)
+            {
+                if (counts[ci] == 0) continue;
+                var xs = xss[ci];
+                var c = subCenters[ci].Value;
+
+                var jmax = xs.Length;
+                var dj = (jmax + 0.49) / counts[ci];
+                for (var j = 0.0; j < jmax; j += dj)
+                {
+                    rs[i++] = new V3f((V3d)xs[(int)j] + c - center);
+                }
+            }
+            return rs;
+        }
+
+        /// <summary></summary>
+        public static T[] AggregateSubArrays<T>(int[] counts, int splitLimit, T[][] xss)
+        {
+            var rs = new T[splitLimit];
+            var i = 0;
+            for (var ci = 0; ci < 8; ci++)
+            {
+                if (counts[ci] == 0) continue;
+                var xs = xss[ci];
+
+                var jmax = xs.Length;
+                if (jmax <= counts[ci])
+                {
+                    xs.CopyTo(0, xs.Length, rs, i);
+                    i += xs.Length;
+                }
+                else
+                {
+                    var dj = (jmax + 0.49) / counts[ci];
+                    for (var j = 0.0; j < jmax; j += dj)
+                    {
+                        rs[i++] = xs[(int)j];
+                    }
+                }
+            }
+
+            if(i < splitLimit)
+            {
+                Array.Resize(ref rs, i);
+                return rs;
+            }
+            else return rs;
+        }
+    }
+
     /// <summary>
     /// </summary>
     public static class LodExtensions
@@ -31,16 +150,15 @@ namespace Aardvark.Geometry.Points
         {
             if (self.Root == null) return self;
 
-            var nodeCount = self.Root.Value.CountNodes();
+            var nodeCount = self.Root?.Value?.CountNodes(true) ?? 0;
             var loddedNodesCount = 0L;
-
             var result = self.GenerateLod(config.Key, () =>
             {
                 config.CancellationToken.ThrowIfCancellationRequested();
                 var i = Interlocked.Increment(ref loddedNodesCount);
                 if (config.Verbose) Console.Write($"[Lod] {i}/{nodeCount}\r");
                 if (i % 100 == 0) config.ProgressCallback(loddedNodesCount / (double)nodeCount);
-            }, config.MaxDegreeOfParallelism, config.CancellationToken);
+            }, config.CancellationToken);
 
             config.ProgressCallback(1.0);
 
@@ -49,61 +167,127 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        private static async Task<PointSet> GenerateLod(this PointSet self, string key, Action callback, int maxLevelOfParallelism, CancellationToken ct)
+        private static async Task<PointSet> GenerateLod(this PointSet self, string key, Action callback, CancellationToken ct)
         {
-            if (self.IsEmpty) return self;
-            var lod = await self.Root.Value.GenerateLod(self.SplitLimit, callback, ct);
-            var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit);
-            self.Storage.Add(key, result, ct);
-            return result;
+            try
+            {
+                if (self.IsEmpty) return self;
+
+                var lod = await self.Root.Value.GenerateLod(self.SplitLimit, callback, ct);
+                var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit);
+                self.Storage.Add(key, result);
+                return result;
+            }
+            catch (Exception e)
+            {
+                Report.Error(e.ToString());
+                throw;
+            }
         }
 
-        private static Task<V3f[]> EstimateNormals(this V3f[] points, PointRkdTreeD<V3f[], V3f> kdtree, int k)
+        private static IPointCloudNode WithComputedCentroid(this IPointCloudNode self)
         {
-            return Task.Run(() => points.Map((p, i) =>
+            if (self.HasCentroidLocal) return self;
+            
+            var ps = self.Positions.Value;
+            var centroid = ps.ComputeCentroid();
+            var dists = ps.Map(p => (p - centroid).Length);
+            var (avg, sd) = dists.ComputeAvgAndStdDev();
+            self = self
+                .WithUpsert(Durable.Octree.PositionsLocal3fCentroid, centroid)
+                .WithUpsert(Durable.Octree.PositionsLocal3fDistToCentroidAverage, avg)
+                .WithUpsert(Durable.Octree.PositionsLocal3fDistToCentroidStdDev, sd)
+                ;
+            return self;
+        }
+
+        private static IPointCloudNode WithComputedTreeDepth(this IPointCloudNode self)
+        {
+            if (self.IsLeaf)
             {
-                if (k > points.Length) k = points.Length;
+                return self
+                    .WithUpsert(Durable.Octree.MinTreeDepth, 0)
+                    .WithUpsert(Durable.Octree.MaxTreeDepth, 0)
+                    ;
+            }
+            else
+            {
+                var min = 1;
+                var max = 0;
+                for (var i = 0; i < 8; i++)
+                {
+                    var r = self.Subnodes[i];
+                    if (r == null) continue;
+                    var n = r.Value;
+                    min = Math.Min(min, 1 + n.MinTreeDepth);
+                    max = Math.Max(max, 1 + n.MaxTreeDepth);
+                }
+                return self
+                    .WithUpsert(Durable.Octree.MinTreeDepth, min)
+                    .WithUpsert(Durable.Octree.MaxTreeDepth, max)
+                    ;
+            }
+        }
 
-                // find k closest points
-                var closest = kdtree.GetClosest(p, float.MaxValue, k);
-                if (closest.Count == 0) return V3f.Zero;
+        private static IPointCloudNode WithComputedPointDistance(this IPointCloudNode self)
+        {
+            var ps = self.Positions.Value;
+            var kd = self.KdTree.Value;
 
-                // compute centroid of k closest points
-                var c = points[closest[0].Index];
-                for (var j = 1; j < k; j++) c += points[closest[j].Index];
-                c /= k;
+            if (ps.Length < 2)
+            {
+                return self
+                    .WithUpsert(Durable.Octree.AveragePointDistance, 0.0f)
+                    .WithUpsert(Durable.Octree.AveragePointDistanceStdDev, 0.0f)
+                    ;
+            }
+            else if (ps.Length == 3)
+            {
+                var d = V3f.Distance(ps[0], ps[1]);
+                return self
+                    .WithUpsert(Durable.Octree.AveragePointDistance, d)
+                    .WithUpsert(Durable.Octree.AveragePointDistanceStdDev, 0.0f)
+                    ;
+            }
 
-                // compute covariance matrix of k closest points relative to centroid
-                var cvm = M33f.Zero;
-                for (var j = 0; j < k; j++) cvm.AddOuterProduct(points[closest[j].Index] - c);
-                cvm /= k;
-
-                // solve eigensystem -> eigenvector for smallest eigenvalue gives normal 
-                Eigensystems.Dsyevh3((M33d)cvm, out M33d q, out V3d w);
-                return (V3f)((w.X < w.Y) ? ((w.X < w.Z) ? q.C0 : q.C2) : ((w.Y < w.Z) ? q.C1 : q.C2));
-            })
-            );
+            var indexDists = ps.Map(p => kd.GetClosest(p, float.MaxValue, 2));
+            var ds = indexDists.Map(x => V3f.Distance(ps[x[0].Index], ps[x[1].Index]));
+            var (avg, sd) = ds.ComputeAvgAndStdDev();
+            return self
+                .WithUpsert(Durable.Octree.AveragePointDistance, avg)
+                .WithUpsert(Durable.Octree.AveragePointDistanceStdDev, sd)
+                ;
         }
 
         /// <summary>
         /// </summary>
-        private static async Task<PointSetNode> GenerateLod(this PointSetNode self, long octreeSplitLimit, Action callback, CancellationToken ct)
+        private static async Task<IPointCloudNode> GenerateLod(this IPointCloudNode self,
+            int octreeSplitLimit, Action callback,
+            CancellationToken ct)
         {
             if (self == null) throw new ArgumentNullException(nameof(self));
-
             ct.ThrowIfCancellationRequested();
 
             if (self.IsLeaf)
             {
+                self = self
+                    .WithComputedTreeDepth()
+                    .WithComputedCentroid()
+                    .WithComputedPointDistance()
+                    ;
+
                 if (!self.HasNormals)
                 {
-                    var ns = self.Positions.Value.EstimateNormals(self.KdTree.Value, 16);
+                    var ns = await self.Positions.Value.EstimateNormals(self.KdTree.Value, 16);
                     var nsId = Guid.NewGuid();
-                    self.Storage.Add(nsId, await ns, ct);
-                    self = self.WithNormals(nsId);
+                    self.Storage.Add(nsId, ns);
+                    self = self
+                        .WithUpsert(Durable.Octree.Normals3fReference, nsId)
+                        .WriteToStore()
+                        ;
                 }
                 callback?.Invoke();
-                return self.WithLod();
+                return self;
             }
 
             if (self.Subnodes == null || self.Subnodes.Length != 8) throw new InvalidOperationException();
@@ -112,76 +296,74 @@ namespace Aardvark.Geometry.Points
             await Task.WhenAll(subcellsAsync.Where(x => x != null));
             var subcells = subcellsAsync.Map(x => x?.Result);
             var subcellsTotalCount = (long)subcells.Sum(x => x?.PointCountTree);
-
-            var needsCs = subcells.Any(x => x != null ? (x.HasColors || x.HasLodColors) : false);
-            var needsNs = subcells.Any(x => x != null ? (x.HasNormals || x.HasLodNormals) : false);
-            var needsIs = subcells.Any(x => x != null ? (x.HasIntensities || x.HasLodIntensities) : false);
-
-            var fractions = new double[8].SetByIndex(
-                ci => subcells[ci] != null ? (subcells[ci].PointCountTree / (double)subcellsTotalCount) : 0.0
-                );
-            var remainder = 0.1;
-            var counts = fractions.Map(x =>
-            {
-                var fn = octreeSplitLimit * x + remainder;
-                var n = (int)fn;
-                remainder = fn - n;
-                return n;
-            });
-            var e = octreeSplitLimit - counts.Sum();
-            if (e != 0) throw new InvalidOperationException();
+            var fractions = Lod.ComputeLodFractions(subcells);
+            var counts = Lod.ComputeLodCounts(octreeSplitLimit, fractions);
 
             // generate LoD data ...
-            var lodPs = new V3f[octreeSplitLimit];
-            var lodCs = needsCs ? new C4b[octreeSplitLimit] : null;
-            var lodNs = needsNs ? new V3f[octreeSplitLimit] : null;
-            var lodIs = needsIs ? new int[octreeSplitLimit] : null;
-            var i = 0;
-            for (var ci = 0; ci < 8; ci++)
-            {
-                if (counts[ci] == 0) continue;
-                var subcell = subcells[ci];
-                if (subcell == null) continue;
-                
-                var subps = subcell.IsLeaf ? subcell.Positions.Value : subcell.LodPositions.Value;
-                var subcs = needsCs ? (subcell.IsLeaf ? subcell.Colors.Value : subcell.LodColors.Value) : null;
-                var subns = needsNs ? (subcell.IsLeaf ? subcell.Normals.Value : subcell.LodNormals.Value) : null;
-                var subis = needsIs ? (subcell.IsLeaf ? subcell.Intensities.Value : subcell.LodIntensities.Value) : null;
+            var needsCs = subcells.Any(x => x != null ? x.HasColors : false);
+            var needsNs = subcells.Any(x => x != null ? x.HasNormals : false);
+            var needsIs = subcells.Any(x => x != null ? x.HasIntensities : false);
+            var needsKs = subcells.Any(x => x != null ? x.HasClassifications : false);
 
-                var jmax = subps.Length;
-                var dj = (jmax + 0.49) / counts[ci];
-                var oldI = i;
-                for (var j = 0.0; j < jmax; j += dj)
-                {
-                    var jj = (int)j;
-                    lodPs[i] = (V3f)(((V3d)subps[jj] + subcell.Center) - self.Center);
-                    if (needsCs) lodCs[i] = subcs[jj];
-                    if (needsNs) lodNs[i] = subns[jj];
-                    if (needsIs) lodIs[i] = subis[jj];
-                    i++;
-                }
-            }
+            var subcenters = subcells.Map(x => x?.Center);
+            var lodPs = Lod.AggregateSubPositions(counts, octreeSplitLimit, self.Center, subcenters, subcells.Map(x => x?.Positions?.Value));
+            var lodCs = needsCs ? Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Colors?.Value)) : null;
+            var lodIs = needsIs ? Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Intensities?.Value)) : null;
+            var lodKs = needsKs ? Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Classifications?.Value)) : null;
             var lodKd = lodPs.BuildKdTree();
+            var lodNs = await lodPs.EstimateNormals(lodKd, 16); // Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.GetNormals3f()?.Value))
+
+            var subnodeIds = subcells.Map(x => x != null ? x.Id : Guid.Empty);
+            self = self.WithUpsert(Durable.Octree.SubnodesGuids, subnodeIds);
 
             // store LoD data ...
-            var lodPsId = Guid.NewGuid();
-            self.Storage.Add(lodPsId, lodPs, ct);
+            var lodPsKey = Guid.NewGuid();
+            self.Storage.Add(lodPsKey, lodPs);
+            self = self
+                .WithUpsert(Durable.Octree.PositionsLocal3fReference, lodPsKey)
+                .WithUpsert(Durable.Octree.PointCountCell, lodPs.Length)
+                ;
 
-            var lodKdId = Guid.NewGuid();
-            self.Storage.Add(lodKdId, lodKd.Data, ct);
-            
-            var lodCsId = needsCs ? (Guid?)Guid.NewGuid() : null;
-            if (needsCs) self.Storage.Add(lodCsId.Value, lodCs, ct);
+            var lodKdKey = Guid.NewGuid();
+            self.Storage.Add(lodKdKey, lodKd.Data);
+            self = self.WithUpsert(Durable.Octree.PointRkdTreeFDataReference, lodKdKey);
 
-            var lodNsId = needsNs ? (Guid?)Guid.NewGuid() : null;
-            if (needsNs) self.Storage.Add(lodNsId.Value, lodNs, ct);
+            if (needsCs)
+            {
+                var key = Guid.NewGuid();
+                self.Storage.Add(key, lodCs);
+                self = self.WithUpsert(Durable.Octree.Colors4bReference, key);
+            }
 
-            var lodIsId = needsIs ? (Guid?)Guid.NewGuid() : null;
-            if (needsIs) self.Storage.Add(lodIsId.Value, lodIs, ct);
+            if (needsNs)
+            {
+                var key = Guid.NewGuid();
+                self.Storage.Add(key, lodNs);
+                self = self.WithUpsert(Durable.Octree.Normals3fReference, key);
+            }
 
-            var result = self.WithLod(lodPsId, lodCsId, lodNsId, lodIsId, lodKdId, subcells);
-            callback?.Invoke();
-            return result;
+            if (needsIs)
+            {
+                var key = Guid.NewGuid();
+                self.Storage.Add(key, lodIs);
+                self = self.WithUpsert(Durable.Octree.Intensities1iReference, key);
+            }
+
+            if (needsKs)
+            {
+                var key = Guid.NewGuid();
+                self.Storage.Add(key, lodKs);
+                self = self.WithUpsert(Durable.Octree.Classifications1bReference, key);
+            }
+
+            self = self
+                .WithComputedTreeDepth()
+                .WithComputedCentroid()
+                .WithComputedPointDistance()
+                ;
+
+            self.WriteToStore();
+            return self;
         }
     }
 }

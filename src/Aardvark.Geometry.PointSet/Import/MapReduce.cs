@@ -29,6 +29,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PointSet MapReduce(this IEnumerable<Chunk> chunks, ImportConfig config)
         {
+            //var foo = chunks.ToArray();
             var totalChunkCount = 0;
             var totalPointCountInChunks = 0L;
             Action<double> progress = x => config.ProgressCallback(x * 0.5);
@@ -42,7 +43,7 @@ namespace Aardvark.Geometry.Points
                     progress(Math.Sqrt(1.0 - 1.0 / Interlocked.Increment(ref totalChunkCount)));
 
                     var builder = InMemoryPointSet.Build(chunk, config.OctreeSplitLimit);
-                    var root = builder.ToPointSetCell(config.Storage, ct: ct2);
+                    var root = builder.ToPointSetNode(config.Storage, ct: ct2);
                     var id = $"Aardvark.Geometry.PointSet.{Guid.NewGuid()}.json";
                     var pointSet = new PointSet(config.Storage, id, root.Id, config.OctreeSplitLimit);
                     
@@ -75,7 +76,7 @@ namespace Aardvark.Geometry.Points
             if (totalPointSetsCount == 0)
             {
                 var empty = new PointSet(config.Storage, config.Key ?? Guid.NewGuid().ToString());
-                config.Storage.Add(config.Key, empty, config.CancellationToken);
+                config.Storage.Add(config.Key, empty);
                 return empty;
             }
 
@@ -125,10 +126,10 @@ namespace Aardvark.Geometry.Points
                     parts.Add(merged);
                 }
 
-                config.Storage.Add(merged.Id, merged, ct2);
+                config.Storage.Add(merged.Id, merged);
                 if (config.Verbose) Console.WriteLine($"[MapReduce] merged "
-                    + $"{first.Root.Value.Cell} + {second.Root.Value.Cell} -> {merged.Root.Value.Cell} "
-                    + $"({first.Root.Value.PointCountTree} + {second.Root.Value.PointCountTree} -> {merged.Root.Value.PointCountTree})"
+                    + $"{formatCell(first.Root.Value.Cell)} + {formatCell(second.Root.Value.Cell)} -> {formatCell(merged.Root.Value.Cell)} "
+                    + $"({first.Root.Value.PointCountTree:N0} + {second.Root.Value.PointCountTree:N0} -> {merged.Root.Value.PointCountTree:N0})"
                     );
 
                 if (merged.Root.Value.PointCountTree == 0) throw new InvalidOperationException();
@@ -145,9 +146,11 @@ namespace Aardvark.Geometry.Points
 
             #endregion
 
-            config.Storage.Add(config.Key, final, config.CancellationToken);
+            config.Storage.Add(config.Key, final);
             config.ProgressCallback(1.0);
             return final;
+
+            string formatCell(Cell c) => c.IsCenteredAtOrigin ? $"[centered, {c.Exponent}]" : c.ToString();
         }
     }
 }

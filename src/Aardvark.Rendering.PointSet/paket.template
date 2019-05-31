@@ -1,0 +1,9 @@
+type project
+id Aardvark.Rendering.PointSet
+authors Aardvark Platform Team
+owners Aardvark Platform Team
+projectUrl http://github.com/aardvark-platform
+licenseUrl http://www.gnu.org/licenses/agpl.txt
+description
+    Point Cloud Rendering Adapters
+include-pdbs true

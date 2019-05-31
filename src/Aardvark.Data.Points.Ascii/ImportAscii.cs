@@ -153,7 +153,7 @@ namespace Aardvark.Data.Points.Import
         /// <summary>
         /// Parses ASCII file.
         /// </summary>
-        public static IEnumerable<Chunk> Chunks(string filename, Token[] lineDefinition, ImportConfig config)
+        public static IEnumerable<Chunk> Chunks(string filename, Token[] lineDefinition, ParseConfig config)
         {
             Chunk? lineParser(byte[] buffer, int count, double filterDist)
                 => LineParsers.Custom(buffer, count, filterDist, lineDefinition);
@@ -163,7 +163,7 @@ namespace Aardvark.Data.Points.Import
         /// <summary>
         /// Parses ASCII stream.
         /// </summary>
-        public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, Token[] lineDefinition, ImportConfig config)
+        public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, Token[] lineDefinition, ParseConfig config)
         {
             Chunk? lineParser(byte[] buffer, int count, double filterDist)
                 => LineParsers.Custom(buffer, count, filterDist, lineDefinition);
@@ -173,12 +173,12 @@ namespace Aardvark.Data.Points.Import
         /// <summary>
         /// Gets general info for custom ASCII file.
         /// </summary>
-        public static PointFileInfo CustomAsciiInfo(string filename, Token[] lineDefinition, ImportConfig config)
+        public static PointFileInfo CustomAsciiInfo(string filename, Token[] lineDefinition, ParseConfig config)
         {
             var filesize = new FileInfo(filename).Length;
             var pointCount = 0L;
             var pointBounds = Box3d.Invalid;
-            foreach (var chunk in Chunks(filename, lineDefinition, ImportConfig.Default))
+            foreach (var chunk in Chunks(filename, lineDefinition, ParseConfig.Default))
             {
                 pointCount += chunk.Count;
                 pointBounds.ExtendBy(chunk.BoundingBox);
