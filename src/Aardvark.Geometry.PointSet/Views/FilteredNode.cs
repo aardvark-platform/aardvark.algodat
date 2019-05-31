@@ -271,25 +271,25 @@ namespace Aardvark.Geometry.Points
         public static class Defs
         {
             /// <summary></summary>
-            public static readonly Def FilteredNode = addDef(new Def(
+            public static readonly Def FilteredNode = new Def(
                 new Guid("a5dd1687-ea0b-4735-9be1-b74b969e0673"),
                 "Octree.FilteredNode", "Octree.FilteredNode. A filtered octree node.",
                 Primitives.DurableMap.Id, false
-                ));
+                );
 
             /// <summary></summary>
-            public static readonly Def FilteredNodeRootId = addDef(new Def(
+            public static readonly Def FilteredNodeRootId = new Def(
                 new Guid("f9a7c994-35b3-4d50-b5b0-80af05896987"),
                 "Octree.FilteredNode.RootId", "Octree.FilteredNode. Node id of the node to be filtered.",
                 Primitives.GuidDef.Id, false
-                ));
+                );
 
             /// <summary></summary>
-            public static readonly Def FilteredNodeFilter = addDef(new Def(
+            public static readonly Def FilteredNodeFilter = new Def(
                 new Guid("1d2298b6-df47-4170-8fc2-4bd899ea6153"),
                 "Octree.FilteredNode.Filter", "Octree.FilteredNode. Filter definition as UTF8-encoded JSON string.",
                 Primitives.StringUTF8.Id, false
-                ));
+                );
         }
 
         /// <summary></summary>

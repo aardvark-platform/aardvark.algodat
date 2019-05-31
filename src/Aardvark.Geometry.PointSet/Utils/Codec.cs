@@ -170,7 +170,7 @@ namespace Aardvark.Data
                 }
                 else
                 {
-                    var unknownDef = Durable.get(def.Type);
+                    var unknownDef = Durable.Get(def.Type);
                     throw new InvalidOperationException($"Unknown definition {unknownDef}.");
                 }
             }
@@ -182,7 +182,7 @@ namespace Aardvark.Data
                 }
                 else
                 {
-                    var unknownDef = Durable.get(def.Id);
+                    var unknownDef = Durable.Get(def.Id);
                     throw new InvalidOperationException($"Unknown definition {unknownDef}.");
                 }
             }
@@ -257,7 +257,7 @@ namespace Aardvark.Data
         /// </summary>
         public static (Durable.Def, object) Decode(BinaryReader stream)
         {
-            var def = Durable.get((Guid)DecodeGuid(stream));
+            var def = Durable.Get((Guid)DecodeGuid(stream));
 
             if (def.Type != Durable.Primitives.Unit.Id)
             {
@@ -268,7 +268,7 @@ namespace Aardvark.Data
                 }
                 else
                 {
-                    var unknownDef = Durable.get(def.Type);
+                    var unknownDef = Durable.Get(def.Type);
                     throw new InvalidOperationException($"Unknown definition {unknownDef}.");
                 }
             }
@@ -281,7 +281,7 @@ namespace Aardvark.Data
                 }
                 else
                 {
-                    var unknownDef = Durable.get(def.Id);
+                    var unknownDef = Durable.Get(def.Id);
                     throw new InvalidOperationException($"Unknown definition {unknownDef}.");
                 }
             }
