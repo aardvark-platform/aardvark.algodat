@@ -21,12 +21,9 @@ using System.Threading.Tasks;
 
 namespace Aardvark.Geometry.Points
 {
-    /// <summary>
-    /// </summary>
-    public static class Lod
+    public static class LodExtensions
     {
-        /// <summary></summary>
-        public static double[] ComputeLodFractions(long[] counts)
+        private static double[] ComputeLodFractions(long[] counts)
         {
             if (counts == null) return null;
             if (counts.Length != 8) throw new ArgumentOutOfRangeException();
@@ -40,8 +37,7 @@ namespace Aardvark.Geometry.Points
             return fractions;
         }
 
-        /// <summary></summary>
-        public static double[] ComputeLodFractions(IPointCloudNode[] subnodes)
+        private static double[] ComputeLodFractions(IPointCloudNode[] subnodes)
         {
             if (subnodes == null) return null;
             if (subnodes.Length != 8) throw new ArgumentOutOfRangeException();
@@ -51,19 +47,7 @@ namespace Aardvark.Geometry.Points
             return ComputeLodFractions(counts);
         }
 
-        /// <summary></summary>
-        public static double[] ComputeLodFractions(PersistentRef<IPointCloudNode>[] subnodes)
-        {
-            if (subnodes == null) return null;
-            if (subnodes.Length != 8) throw new ArgumentOutOfRangeException();
-
-            var unpacked = new IPointCloudNode[8];
-            for (var i = 0; i < 8; i++) unpacked[i] = subnodes[i]?.Value;
-            return ComputeLodFractions(unpacked);
-        }
-        
-        /// <summary></summary>
-        public static int[] ComputeLodCounts(int splitLimit, double[] fractions)
+        private static int[] ComputeLodCounts(int splitLimit, double[] fractions)
         {
             if (fractions == null) return null;
             if (fractions.Length != 8) throw new ArgumentOutOfRangeException();
@@ -84,8 +68,7 @@ namespace Aardvark.Geometry.Points
             return counts;
         }
 
-        /// <summary></summary>
-        public static V3f[] AggregateSubPositions(int[] counts, int splitLimit, V3d center, V3d?[] subCenters, V3f[][] xss)
+        private static V3f[] AggregateSubPositions(int[] counts, int splitLimit, V3d center, V3d?[] subCenters, V3f[][] xss)
         {
             var rs = new V3f[splitLimit];
             var i = 0;
@@ -105,8 +88,7 @@ namespace Aardvark.Geometry.Points
             return rs;
         }
 
-        /// <summary></summary>
-        public static T[] AggregateSubArrays<T>(int[] counts, int splitLimit, T[][] xss)
+        private static T[] AggregateSubArrays<T>(int[] counts, int splitLimit, T[][] xss)
         {
             var rs = new T[splitLimit];
             var i = 0;
@@ -138,35 +120,7 @@ namespace Aardvark.Geometry.Points
             }
             else return rs;
         }
-    }
-
-    /// <summary>
-    /// </summary>
-    public static class LodExtensions
-    {
-        /// <summary>
-        /// </summary>
-        public static PointSet GenerateLod(this PointSet self, ImportConfig config)
-        {
-            if (self.Root == null) return self;
-
-            var nodeCount = self.Root?.Value?.CountNodes(true) ?? 0;
-            var loddedNodesCount = 0L;
-            var result = self.GenerateLod(config.Key, () =>
-            {
-                config.CancellationToken.ThrowIfCancellationRequested();
-                var i = Interlocked.Increment(ref loddedNodesCount);
-                if (config.Verbose) Console.Write($"[Lod] {i}/{nodeCount}\r");
-                if (i % 100 == 0) config.ProgressCallback(loddedNodesCount / (double)nodeCount);
-            }, config.CancellationToken);
-
-            config.ProgressCallback(1.0);
-
-            return result.Result;
-        }
-
-        /// <summary>
-        /// </summary>
+   
         private static async Task<PointSet> GenerateLod(this PointSet self, string key, Action callback, CancellationToken ct)
         {
             try
@@ -260,7 +214,27 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary>
+        /// Returns new octree with LOD data created.
         /// </summary>
+        public static PointSet GenerateLod(this PointSet self, ImportConfig config)
+        {
+            if (self.Root == null) return self;
+
+            var nodeCount = self.Root?.Value?.CountNodes(true) ?? 0;
+            var loddedNodesCount = 0L;
+            var result = self.GenerateLod(config.Key, () =>
+            {
+                config.CancellationToken.ThrowIfCancellationRequested();
+                var i = Interlocked.Increment(ref loddedNodesCount);
+                if (config.Verbose) Console.Write($"[Lod] {i}/{nodeCount}\r");
+                if (i % 100 == 0) config.ProgressCallback(loddedNodesCount / (double)nodeCount);
+            }, config.CancellationToken);
+
+            config.ProgressCallback(1.0);
+
+            return result.Result;
+        }
+
         private static async Task<IPointCloudNode> GenerateLod(this IPointCloudNode self,
             int octreeSplitLimit, Action callback,
             CancellationToken ct)
@@ -278,7 +252,7 @@ namespace Aardvark.Geometry.Points
 
                 if (!self.HasNormals)
                 {
-                    var ns = await self.Positions.Value.EstimateNormals(self.KdTree.Value, 16);
+                    var ns = await self.Positions.Value.EstimateNormalsAsync(16, self.KdTree.Value);
                     var nsId = Guid.NewGuid();
                     self.Storage.Add(nsId, ns);
                     self = self
@@ -296,8 +270,8 @@ namespace Aardvark.Geometry.Points
             await Task.WhenAll(subcellsAsync.Where(x => x != null));
             var subcells = subcellsAsync.Map(x => x?.Result);
             var subcellsTotalCount = (long)subcells.Sum(x => x?.PointCountTree);
-            var fractions = Lod.ComputeLodFractions(subcells);
-            var counts = Lod.ComputeLodCounts(octreeSplitLimit, fractions);
+            var fractions = ComputeLodFractions(subcells);
+            var counts = ComputeLodCounts(octreeSplitLimit, fractions);
 
             // generate LoD data ...
             var needsCs = subcells.Any(x => x != null ? x.HasColors : false);
@@ -306,12 +280,12 @@ namespace Aardvark.Geometry.Points
             var needsKs = subcells.Any(x => x != null ? x.HasClassifications : false);
 
             var subcenters = subcells.Map(x => x?.Center);
-            var lodPs = Lod.AggregateSubPositions(counts, octreeSplitLimit, self.Center, subcenters, subcells.Map(x => x?.Positions?.Value));
-            var lodCs = needsCs ? Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Colors?.Value)) : null;
-            var lodIs = needsIs ? Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Intensities?.Value)) : null;
-            var lodKs = needsKs ? Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Classifications?.Value)) : null;
-            var lodKd = lodPs.BuildKdTree();
-            var lodNs = await lodPs.EstimateNormals(lodKd, 16); // Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.GetNormals3f()?.Value))
+            var lodPs = AggregateSubPositions(counts, octreeSplitLimit, self.Center, subcenters, subcells.Map(x => x?.Positions?.Value));
+            var lodCs = needsCs ? AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Colors?.Value)) : null;
+            var lodIs = needsIs ? AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Intensities?.Value)) : null;
+            var lodKs = needsKs ? AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Classifications?.Value)) : null;
+            var lodKd = await lodPs.BuildKdTreeAsync();
+            var lodNs = await lodPs.EstimateNormalsAsync(16, lodKd); // Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.GetNormals3f()?.Value))
 
             var subnodeIds = subcells.Map(x => x != null ? x.Id : Guid.Empty);
             self = self.WithUpsert(Durable.Octree.SubnodesGuids, subnodeIds);

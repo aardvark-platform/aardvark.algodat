@@ -1,0 +1,9 @@
+type project
+id Aardvark.Geometry.Normals
+authors Aardvark Platform Team
+owners Aardvark Platform Team
+projectUrl http://github.com/aardvark-platform
+licenseUrl http://www.gnu.org/licenses/agpl.txt
+description
+    Normals estimation.
+include-pdbs true

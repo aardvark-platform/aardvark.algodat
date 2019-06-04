@@ -16,7 +16,6 @@ using Aardvark.Data.Points;
 using Aardvark.Geometry.Points;
 using NUnit.Framework;
 using System;
-using System.Linq;
 using System.Threading;
 using Uncodium.SimpleStore;
 

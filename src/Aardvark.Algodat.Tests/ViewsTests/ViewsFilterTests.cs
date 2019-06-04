@@ -165,7 +165,7 @@ namespace Aardvark.Geometry.Tests
             var a = CreateNode(storage, RandomPositions(100), new[] { -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 });
 
             var f = FilteredNode.Create(a, new FilterIntensity(new Range1i(6, 10000)));
-            Assert.IsTrue(f == null);
+            Assert.IsTrue(f.PointCountCell == 0);
         }
 
         [Test]

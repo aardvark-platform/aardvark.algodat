@@ -137,7 +137,7 @@ namespace Aardvark.Geometry.Tests
         {
             var ps = new V3f[0];
             var kd = ps.BuildKdTree();
-            var ns = ps.EstimateNormals(kd, 16).Result;
+            var ns = ps.EstimateNormalsAsync(16, kd).Result;
             Assert.IsTrue(ns.Length == 0);
         }
 

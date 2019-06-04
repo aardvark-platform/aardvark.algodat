@@ -32,6 +32,8 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Geodetics", "Apps\Geodetics
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aardvark.Algodat.Tests", "Aardvark.Algodat.Tests\Aardvark.Algodat.Tests.csproj", "{FE7BE6D5-A6D0-46E9-9D67-FAC11042EBBB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aardvark.Geometry.Normals", "Aardvark.Geometry.Normals\Aardvark.Geometry.Normals.csproj", "{359CF793-3CF3-407D-9381-9FAA2C67835E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -94,6 +96,10 @@ Global
 		{FE7BE6D5-A6D0-46E9-9D67-FAC11042EBBB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FE7BE6D5-A6D0-46E9-9D67-FAC11042EBBB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FE7BE6D5-A6D0-46E9-9D67-FAC11042EBBB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{359CF793-3CF3-407D-9381-9FAA2C67835E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{359CF793-3CF3-407D-9381-9FAA2C67835E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{359CF793-3CF3-407D-9381-9FAA2C67835E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{359CF793-3CF3-407D-9381-9FAA2C67835E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -103,7 +109,7 @@ Global
 		{C83CAE2F-BAC5-4483-B68D-99C811FCD17D} = {6CA9BC7A-0123-43E9-A26B-5FF0B9E01B08}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {E996B5E6-49B2-4479-9DDE-455A40509F43}
 		EnterpriseLibraryConfigurationToolBinariesPathV6 = packages\EnterpriseLibrary.TransientFaultHandling.6.0.1304.0\lib\portable-net45+win+wp8;packages\EnterpriseLibrary.TransientFaultHandling.Data.6.0.1304.1\lib\NET45
+		SolutionGuid = {E996B5E6-49B2-4479-9DDE-455A40509F43}
 	EndGlobalSection
 EndGlobal
