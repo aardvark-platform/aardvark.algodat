@@ -57,8 +57,7 @@ namespace Aardvark.Geometry.Points
 
             Data = data;
             Storage = storage;
-            BoundingBox = Cell.BoundingBox;
-            Center = BoundingBox.Center;
+            Center = Cell.BoundingBox.Center;
             Corners = BoundingBox.ComputeCorners();
 
             var psId = PositionsId;
@@ -75,27 +74,35 @@ namespace Aardvark.Geometry.Points
             if (isId != null) PersistentRefs[Durable.Octree.Intensities1iReference] = new PersistentRef<int[]>(isId.ToString(), storage.GetIntArray, storage.TryGetIntArray);
             if (ksId != null) PersistentRefs[Durable.Octree.Classifications1bReference] = new PersistentRef<byte[]>(ksId.ToString(), storage.GetByteArray, storage.TryGetByteArray);
 
+            if (HasPositions)
+            {
+                var bboxExactLocal = Positions.Value.Length > 0
+                    ? (HasBoundingBoxExactLocal ? BoundingBoxExactLocal : new Box3f(Positions.Value))
+                    : (new Box3f(Cell.BoundingBox - Cell.GetCenter()))
+                    ;
+                Data = Data.Add(Durable.Octree.BoundingBoxExactLocal, bboxExactLocal);
+
+                if (!HasBoundingBoxExactGlobal && IsLeaf)
+                {
+                    var bboxExactGlobal = (Box3d)bboxExactLocal + Center;
+                    Data = Data.Add(Durable.Octree.BoundingBoxExactGlobal, bboxExactGlobal);
+                }
+            }
+
             if (Data.TryGetValue(Durable.Octree.SubnodesGuids, out object o) && o is Guid[] subNodeIds)
             {
-                if (subNodeIds != null)
+                Subnodes = new PersistentRef<IPointCloudNode>[8];
+                for (var i = 0; i < 8; i++)
                 {
-                    Subnodes = new PersistentRef<IPointCloudNode>[8];
-                    for (var i = 0; i < 8; i++)
-                    {
-                        if (subNodeIds[i] == Guid.Empty) continue;
-                        var pRef = new PersistentRef<IPointCloudNode>(subNodeIds[i].ToString(), storage.GetPointCloudNode, storage.TryGetPointCloudNode);
-                        Subnodes[i] = pRef;
+                    if (subNodeIds[i] == Guid.Empty) continue;
+                    var pRef = new PersistentRef<IPointCloudNode>(subNodeIds[i].ToString(), storage.GetPointCloudNode, storage.TryGetPointCloudNode);
+                    Subnodes[i] = pRef;
+                }
 
-#if DEBUG && PEDANTIC
-                    var subNodeIndex = pRef.Value.Cell;
-                    if (Cell.GetOctant(i) != subNodeIndex) throw new InvalidOperationException();
-                    if (!Cell.Contains(subNodeIndex)) throw new InvalidOperationException();
-                    if (Cell.Exponent != subNodeIndex.Exponent + 1) throw new InvalidOperationException();
-#endif
-                    }
-#if DEBUG && PEDANTIC
-                if (PointCountTree != PointCount + Subnodes.Map(x => x?.Value != null ? x.Value.PointCountTree : 0).Sum()) throw new InvalidOperationException();
-#endif
+                if (!HasBoundingBoxExactGlobal)
+                {
+                    var bboxExactGlobal = new Box3d(Subnodes.Where(x => x != null).Select(x => x.Value.BoundingBoxExactGlobal));
+                    Data = Data.Add(Durable.Octree.BoundingBoxExactGlobal, bboxExactGlobal);
                 }
             }
 

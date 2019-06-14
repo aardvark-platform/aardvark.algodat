@@ -23,7 +23,7 @@ namespace Aardvark.Geometry.Tests
     public class ViewsPointCloudNodeTests
     {
         private static readonly Random r = new Random();
-        private static V3f RandomPosition() => new V3f(r.NextDouble(), r.NextDouble(), r.NextDouble());
+        private static V3d RandomPosition() => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble());
         
         [Test]
         public void Create_Empty()
@@ -53,7 +53,8 @@ namespace Aardvark.Geometry.Tests
         public void Create_Positions()
         {
             var storage = PointCloud.CreateInMemoryStore(cache: default);
-            var ps0 = new V3f[100].SetByIndex(_ => RandomPosition());
+            var ps0Global = new V3d[100].SetByIndex(_ => RandomPosition());
+            var ps0 = ps0Global.Map(x => new V3f(x - new V3d(0.5)));
             var ps0Id = Guid.NewGuid();
             storage.Add(ps0Id, ps0);
             var bbLocal = new Box3f(ps0);
@@ -64,15 +65,15 @@ namespace Aardvark.Geometry.Tests
             var aId = Guid.NewGuid();
             var a = new PointSetNode(storage, writeToStore: true,
                 (Durable.Octree.NodeId, aId),
-                (Durable.Octree.Cell, new Cell(ps0)),
+                (Durable.Octree.Cell, new Cell(ps0Global)),
                 (Durable.Octree.BoundingBoxExactLocal, bbLocal),
-                (Durable.Octree.PointCountTreeLeafs, ps0.LongLength),
+                (Durable.Octree.PointCountTreeLeafs, ps0Global.LongLength),
                 (Durable.Octree.PositionsLocal3fReference, ps0Id),
                 (Durable.Octree.PointRkdTreeFDataReference, kd0Id)
                 );
 
             Assert.IsTrue(a.Id == aId);
-            Assert.IsTrue(a.Cell == new Cell(ps0));
+            Assert.IsTrue(a.Cell == new Cell(ps0Global));
             Assert.IsTrue(a.BoundingBoxExactLocal == bbLocal);
             Assert.IsTrue(a.BoundingBoxExactGlobal == ((Box3d)bbLocal) + a.Cell.GetCenter());
             Assert.IsTrue(a.HasPositions);
