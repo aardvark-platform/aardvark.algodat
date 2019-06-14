@@ -13,8 +13,8 @@
     <DocumentationFile>..\..\bin\Release\Aardvark.Geometry.Normals.xml</DocumentationFile>
     <LangVersion>7.2</LangVersion>
   </PropertyGroup>
-  <Import Project="..\..\.paket\Paket.Restore.targets" />
   <ItemGroup>
     <ProjectReference Include="..\Aardvark.Geometry.PointTree\Aardvark.Geometry.PointTree.csproj" />
   </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

@@ -258,6 +258,30 @@ namespace Aardvark.Geometry.Points
 
         #endregion
 
+        #region BoundingBoxExactLocal
+
+        /// <summary></summary>
+        [JsonIgnore]
+        public bool HasBoundingBoxExactLocal => Data.ContainsKey(Durable.Octree.BoundingBoxExactLocal);
+
+        /// <summary></summary>
+        [JsonIgnore]
+        public Box3f BoundingBoxExactLocal => Data.TryGetValue(Durable.Octree.BoundingBoxExactLocal, out var o) ? (Box3f)o : default;
+
+        #endregion
+
+        #region BoundingBoxExactGlobal
+
+        /// <summary></summary>
+        [JsonIgnore]
+        public bool HasBoundingBoxExactGlobal => Data.ContainsKey(Durable.Octree.BoundingBoxExactGlobal);
+
+        /// <summary></summary>
+        [JsonIgnore]
+        public Box3d BoundingBoxExactGlobal => Data.TryGetValue(Durable.Octree.BoundingBoxExactGlobal, out var o) ? (Box3d)o : default;
+
+        #endregion
+
         #region Colors
 
         /// <summary></summary>
@@ -560,38 +584,6 @@ namespace Aardvark.Geometry.Points
         public bool TryGetValue(Durable.Def what, out object o) => Data.TryGetValue(what, out o);
 
         Storage IPointCloudNode.Storage => Storage;
-
-        /// <summary></summary>
-        public Box3f BoundingBoxExactLocal
-        {
-            get
-            {
-                if (Data.TryGetValue(Durable.Octree.BoundingBoxExactLocal, out var value) && value is Box3f)
-                {
-                    return (Box3f)value;
-                }
-                else
-                {
-                    var hs = 0.5f * (V3f)BoundingBox.Size;
-                    return new Box3f(-hs, hs);
-                }
-            }
-        }
-
-        /// <summary></summary>
-        public Box3d BoundingBoxExactGlobal
-        {
-            get
-            {
-                if (Data.TryGetValue(Durable.Octree.BoundingBoxExactLocal, out var value) && value is Box3f)
-                {
-                    var box = (Box3f)value;
-                    var c = BoundingBox.Center;
-                    return new Box3d(c + (V3d)box.Min, c + (V3d)box.Max);
-                }
-                else return BoundingBox;
-            }
-        }
 
         PersistentRef<IPointCloudNode>[] IPointCloudNode.Subnodes => Subnodes;
 

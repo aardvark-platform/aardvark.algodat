@@ -192,6 +192,35 @@ namespace Aardvark.Geometry.Tests
         }
 
         [Test]
+        public void HasBoundingBoxExact()
+        {
+            var storage = PointSetTests.CreateStorage();
+
+            var ps = new[]
+            {
+                new V3d(0.1, 0.1, 0.1),
+                new V3d(0.9, 0.1, 0.1),
+                new V3d(0.9, 0.9, 0.1),
+                new V3d(0.1, 0.9, 0.1),
+                new V3d(0.1, 0.1, 0.9),
+                new V3d(0.9, 0.1, 0.9),
+                new V3d(0.9, 0.9, 0.9),
+                new V3d(0.1, 0.9, 0.9),
+            };
+
+            var config = ImportConfig.Default.WithStorage(storage).WithRandomKey();
+            var n = PointCloud.Chunks(new Chunk(ps, null), config).Root.Value;
+
+            Assert.IsTrue(n.HasBoundingBoxExactLocal);
+            Assert.IsTrue(n.BoundingBoxExactLocal == new Box3f(new V3f(-0.4f), new V3f(0.4f)));
+
+            Assert.IsTrue(n.HasBoundingBoxExactGlobal);
+            Assert.IsTrue(n.BoundingBoxExactGlobal.Min.ApproxEqual(new V3d(0.1), 1e-6));
+            Assert.IsTrue(n.BoundingBoxExactGlobal.Max.ApproxEqual(new V3d(0.9), 1e-6));
+
+        }
+
+        [Test]
         public void HasTreeDepth()
         {
             var r = new Random();

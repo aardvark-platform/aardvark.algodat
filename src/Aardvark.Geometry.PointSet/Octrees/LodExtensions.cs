@@ -188,12 +188,28 @@ namespace Aardvark.Geometry.Points
             var ps = self.Positions.Value;
             var kd = self.KdTree.Value;
 
+            var bbel = new Box3f(ps);
+            self = self.WithUpsert(Durable.Octree.BoundingBoxExactLocal, bbel);
+
+            if (self.IsLeaf)
+            {
+                var bbeg = (Box3d)bbel + self.Center;
+                self = self.WithUpsert(Durable.Octree.BoundingBoxExactGlobal, bbeg);
+            }
+            else
+            {
+                var bbeg = new Box3d(
+                    self.Subnodes.Where(x => x != null).Select(x => x.Value.BoundingBoxExactGlobal)
+                    );
+                self = self.WithUpsert(Durable.Octree.BoundingBoxExactGlobal, bbeg);
+            }
+
             if (ps.Length < 2)
             {
                 return self
                     .WithUpsert(Durable.Octree.AveragePointDistance, 0.0f)
                     .WithUpsert(Durable.Octree.AveragePointDistanceStdDev, 0.0f)
-                    ;
+                ;
             }
             else if (ps.Length == 3)
             {

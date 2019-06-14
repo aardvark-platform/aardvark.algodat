@@ -49,11 +49,6 @@ namespace Aardvark.Geometry.Points
         V3d Center { get; }
 
         /// <summary>
-        /// Exact bounding box of all points in this node (global space).
-        /// </summary>
-        Box3d BoundingBoxExactGlobal { get; }
-
-        /// <summary>
         /// Octree. Number of points in this cell.
         /// Durable definition 172e1f20-0ffc-4d9c-9b3d-903fca41abe3.
         /// </summary>
@@ -112,6 +107,36 @@ namespace Aardvark.Geometry.Points
         /// Durable definition 61ef7c1e-6aeb-45cd-85ed-ad0ed2584553.
         /// </summary>
         V3d[] PositionsAbsolute { get; }
+
+        #endregion
+
+        #region BoundingBoxExactLocal
+
+        /// <summary>
+        /// Durable definition aadbb622-1cf6-42e0-86df-be79d28d6757.
+        /// </summary>
+        bool HasBoundingBoxExactLocal { get; }
+
+        /// <summary>
+        /// Octree. Exact bounding box of this node's positions. Local space. Box3f.
+        /// Durable definition aadbb622-1cf6-42e0-86df-be79d28d6757.
+        /// </summary>
+        Box3f BoundingBoxExactLocal { get; }
+
+        #endregion
+
+        #region BoundingBoxExactGlobal
+
+        /// <summary>
+        /// Durable definition 7912c862-74b4-4f44-a8cd-d11ea1da9304.
+        /// </summary>
+        bool HasBoundingBoxExactGlobal { get; }
+
+        /// <summary>
+        /// Octree. Exact bounding box of this node's positions. Local space. Box3f.
+        /// Durable definition 7912c862-74b4-4f44-a8cd-d11ea1da9304.
+        /// </summary>
+        Box3d BoundingBoxExactGlobal { get; }
 
         #endregion
 

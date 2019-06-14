@@ -82,9 +82,6 @@ namespace Aardvark.Geometry.Points
         public V3d Center => Node.Center;
 
         /// <summary></summary>
-        public Box3d BoundingBoxExactGlobal => Node.BoundingBoxExactGlobal;
-
-        /// <summary></summary>
         public long PointCountTree => Node.PointCountTree;
 
         /// <summary></summary>
@@ -131,6 +128,26 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public V3d[] PositionsAbsolute { get { var c = Center; return Positions.Value.Map(p => (V3d)p + c); } }
+
+        #endregion
+
+        #region BoundingBoxExactLocal
+
+        /// <summary></summary>
+        public bool HasBoundingBoxExactLocal => Node.HasBoundingBoxExactLocal;
+
+        /// <summary></summary>
+        public Box3f BoundingBoxExactLocal => Node.BoundingBoxExactLocal;
+
+        #endregion
+
+        #region BoundingBoxExactGlobal
+
+        /// <summary></summary>
+        public bool HasBoundingBoxExactGlobal => Node.HasBoundingBoxExactGlobal;
+
+        /// <summary></summary>
+        public Box3d BoundingBoxExactGlobal => Node.BoundingBoxExactGlobal;
 
         #endregion
 
