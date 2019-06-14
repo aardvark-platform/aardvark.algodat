@@ -57,8 +57,9 @@ namespace Aardvark.Geometry.Points
 
             Data = data;
             Storage = storage;
-            Center = Cell.BoundingBox.Center;
-            Corners = BoundingBox.ComputeCorners();
+            var bboxCell = Cell.BoundingBox;
+            Center = bboxCell.Center;
+            Corners = bboxCell.ComputeCorners();
 
             var psId = PositionsId;
             var csId = ColorsId;
@@ -430,12 +431,6 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         [JsonIgnore]
         public readonly PersistentRef<IPointCloudNode>[] Subnodes;
-
-        /// <summary>
-        /// Bounding box of this node's cell.
-        /// </summary>
-        [JsonIgnore]
-        public readonly Box3d BoundingBox;
 
         /// <summary>
         /// Center of this node's cell.

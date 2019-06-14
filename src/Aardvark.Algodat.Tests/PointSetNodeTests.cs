@@ -98,7 +98,7 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(node.Cell == cell);
             Assert.IsTrue(node.PointCountCell == ps.LongLength);
             Assert.IsTrue(node.PointCountTree == ps.LongLength);
-            Assert.IsTrue(node.BoundingBox == cell.BoundingBox);
+            Assert.IsTrue(node.Cell.BoundingBox == cell.BoundingBox);
             Assert.IsTrue(node.BoundingBoxExactLocal == new Box3f(ps));
         }
 
