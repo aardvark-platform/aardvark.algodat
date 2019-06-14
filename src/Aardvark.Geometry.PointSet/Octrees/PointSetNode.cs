@@ -109,7 +109,7 @@ namespace Aardvark.Geometry.Points
 
             if (!Data.ContainsKey(Durable.Octree.PointCountCell))
             {
-                Report.Warn("Missing Durable.Octree.PointCountCell.");
+                //Report.Warn("Missing Durable.Octree.PointCountCell.");
                 Data = Data.Add(Durable.Octree.PointCountCell, HasPositions ? Positions.Value.Length : 0);
             }
 
