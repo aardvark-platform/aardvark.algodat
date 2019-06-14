@@ -20,7 +20,7 @@ namespace Aardvark.Geometry.Tests
             var sw = new Stopwatch();
 
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
-            var filename = @"T:\Vgm\Data\E57\Lichthof grob.e57";
+            var filename = @"T:\Vgm\Data\E57\Innenscan_FARO.e57";
             var fileSizeInBytes = new FileInfo(filename).Length;
 
             var info = E57.E57Info(filename, ParseConfig.Default);
@@ -30,7 +30,7 @@ namespace Aardvark.Geometry.Tests
             var config = ImportConfig.Default
                 .WithInMemoryStore()
                 .WithRandomKey()
-                //.WithVerbose(true)
+                .WithVerbose(true)
                 .WithMaxDegreeOfParallelism(0)
                 .WithMinDist(0.01)
                 ;
@@ -258,11 +258,12 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
-            new DeleteTests().DeleteDelete();
-            Console.WriteLine("done");
+            //new DeleteTests().DeleteDelete();
+            //Console.WriteLine("done");
+
             //new ImportTests().CanImportChunkWithoutColor();
 
-            //TestE57();
+            TestE57();
 
             //var store = PointCloud.OpenStore(@"G:\cells\3280_5503_0_10\pointcloud");
             //var pc = store.GetPointSet("3280_5503_0_10", default);
