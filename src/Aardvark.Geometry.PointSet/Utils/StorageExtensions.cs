@@ -537,11 +537,16 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public static IPointCloudNode GetPointCloudNode(this Storage storage, string key)
         {
-            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (PointSetNode)o;
+            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
+            {
+                if (o == null) throw new InvalidOperationException("Invariant 83d06cf3-078a-436c-98e6-c7da406a0d07.");
+                if (!(o is PointSetNode r)) throw new InvalidOperationException("Invariant d1cb769c-36b6-4374-8248-b8c1ca31d495.");
+                return r;
+            }
 
             var buffer = storage.f_get(key);
-            if (buffer == null) return default;
-            
+            if (buffer == null) throw new InvalidOperationException("Invariant 5127bd96-2137-4fd6-bbf1-2073f9b346c3.");
+
             var data = PointSetNode.Decode(storage, buffer);
             if (key != data.Id.ToString()) throw new InvalidOperationException("Invariant 32554e4b-1e53-4e30-8b3c-c218c5b63c46.");
 

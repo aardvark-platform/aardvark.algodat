@@ -19,6 +19,7 @@ using Newtonsoft.Json;
 using NUnit.Framework;
 using System;
 using System.Linq;
+using System.Threading;
 
 namespace Aardvark.Geometry.Tests
 {
@@ -241,6 +242,31 @@ namespace Aardvark.Geometry.Tests
             var fFilterJson = f.Filter.Serialize().ToString();
             var gFilterJson = g.Filter.Serialize().ToString();
             Assert.IsTrue(fFilterJson == gFilterJson);
+        }
+
+        #endregion
+
+        #region Delete
+
+        [Test]
+        public void CanDeletePoints()
+        {
+            var q = new Box3d(new V3d(0.3), new V3d(0.7));
+
+            var a = DeleteTests.CreateRegularPointsInUnitCube(2, 2).Root.Value;
+            var store = ((PointSetNode)a).Storage;
+            a.ForEachNode(true, n =>
+            {
+                Assert.IsTrue(store.GetPointCloudNode(n.Id) != null);
+            });
+
+            var f = FilteredNode.Create(a, new FilterInsideBox3d(q));
+
+            var b = f.Delete(n => q.Contains(n.BoundingBoxExactGlobal), n => !(q.Contains(n.BoundingBoxExactGlobal) || q.Intersects(n.BoundingBoxExactGlobal)), p => q.Contains(p), a.Storage, default);
+
+            Assert.IsTrue(a.PointCountTree > b.PointCountTree);
+
+            Assert.IsTrue(!b.QueryAllPoints().SelectMany(chunk => chunk.Positions).Any(p => q.Contains(p)));
         }
 
         #endregion

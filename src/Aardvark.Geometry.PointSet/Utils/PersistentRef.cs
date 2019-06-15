@@ -76,6 +76,14 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        public T Value => f_get(Id);
+        public T Value
+        {
+            get
+            {
+                var result = f_get(Id);
+                if (result == null) throw new InvalidOperationException("Invariant e73282a1-45c0-4cb3-bccf-e6d416163abc.");
+                return result;
+            }
+        }
     }
 }

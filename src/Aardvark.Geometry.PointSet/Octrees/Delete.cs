@@ -53,9 +53,17 @@ namespace Aardvark.Geometry.Points
             Storage storage, CancellationToken ct
             )
         {
+            Report.Error($"[Delete] {root.GetType().Name}.Delete({root.Id})");
             if (root == null) return null;
             if (isNodeFullyInside(root)) return null;
-            if (isNodeFullyOutside(root)) return root;
+            if (isNodeFullyOutside(root))
+            {
+                if (!root.IsMaterialized)
+                {
+                    root = root.Materialize();
+                }
+                return root;
+            }
 
             Guid? newPsId = null;
             Guid? newCsId = null;
@@ -87,8 +95,10 @@ namespace Aardvark.Geometry.Points
                 }
             }
 
+            var newId = Guid.NewGuid();
+            Report.Error($"[Delete] create {newId}");
             var data = ImmutableDictionary<Durable.Def, object>.Empty
-                .Add(Durable.Octree.NodeId, Guid.NewGuid())
+                .Add(Durable.Octree.NodeId, newId)
                 .Add(Durable.Octree.Cell, root.Cell)
                 ;
 
@@ -153,6 +163,15 @@ namespace Aardvark.Geometry.Points
             }
 
             var result = new PointSetNode(data, storage, writeToStore: true);
+#if DEBUG
+            if (result.Id != newId) throw new InvalidOperationException("Invariant 0c351a17-c4bb-40fc-94ba-04fc6a26ca7e.");
+            if (storage.GetPointCloudNode(newId) == null) throw new InvalidOperationException("Invariant a5ae64fa-4b60-40a5-88a7-15adc038d6bb.");
+            if (newSubnodes != null)
+            {
+                foreach (var id in result.SubnodeIds)
+                    if (id != Guid.Empty && storage.GetPointCloudNode(id.Value) == null) throw new InvalidOperationException("Invariant ef9f1b2c-91c4-4471-9f5e-f00a71f84033.");
+            }
+#endif
             return result;
         }
     }

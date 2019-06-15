@@ -61,6 +61,8 @@ namespace Aardvark.Geometry.Points
             Center = bboxCell.Center;
             Corners = bboxCell.ComputeCorners();
 
+            Report.Warn($"new PointSetNode({Id})");
+
             var psId = PositionsId;
             var csId = ColorsId;
             var kdId = KdTreeId;
@@ -102,7 +104,11 @@ namespace Aardvark.Geometry.Points
 
                 if (!HasBoundingBoxExactGlobal)
                 {
-                    var bboxExactGlobal = new Box3d(Subnodes.Where(x => x != null).Select(x => x.Value.BoundingBoxExactGlobal));
+                    var bboxExactGlobal = new Box3d(Subnodes.Where(x => x != null).Select(x =>
+                    {
+                        Report.Warn($"[foo] {x.Id}");
+                        return x.Value.BoundingBoxExactGlobal;
+                    })) ;
                     Data = Data.Add(Durable.Octree.BoundingBoxExactGlobal, bboxExactGlobal);
                 }
             }
@@ -117,7 +123,11 @@ namespace Aardvark.Geometry.Points
             if (IsLeaf && !data.ContainsKey(Durable.Octree.PositionsLocal3fReference)) throw new ArgumentException("Missing Durable.Octree.PositionsLocal3fReference.");
 
 
-            if (writeToStore) WriteToStore();
+            if (writeToStore)
+            {
+                Report.Warn($"[writeToStore] {Id}");
+                WriteToStore();
+            }
 
 #if DEBUG
             if (PositionsId == null && PointCountCell != 0) throw new InvalidOperationException();
@@ -586,6 +596,12 @@ namespace Aardvark.Geometry.Points
         public bool TryGetValue(Durable.Def what, out object o) => Data.TryGetValue(what, out o);
 
         Storage IPointCloudNode.Storage => Storage;
+
+        /// <summary></summary>
+        public bool IsMaterialized => true;
+
+        /// <summary></summary>
+        public IPointCloudNode Materialize() => this;
 
         PersistentRef<IPointCloudNode>[] IPointCloudNode.Subnodes => Subnodes;
 

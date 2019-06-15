@@ -258,12 +258,14 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
+            new ViewsFilterTests().CanDeletePoints();
+
             //new DeleteTests().DeleteDelete();
             //Console.WriteLine("done");
 
             //new ImportTests().CanImportChunkWithoutColor();
 
-            TestE57();
+            //TestE57();
 
             //var store = PointCloud.OpenStore(@"G:\cells\3280_5503_0_10\pointcloud");
             //var pc = store.GetPointSet("3280_5503_0_10", default);

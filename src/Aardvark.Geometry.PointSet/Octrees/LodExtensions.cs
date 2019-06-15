@@ -258,6 +258,8 @@ namespace Aardvark.Geometry.Points
             if (self == null) throw new ArgumentNullException(nameof(self));
             ct.ThrowIfCancellationRequested();
 
+            var originalId = self.Id;
+
             if (self.IsLeaf)
             {
                 self = self
@@ -273,9 +275,9 @@ namespace Aardvark.Geometry.Points
                     self.Storage.Add(nsId, ns);
                     self = self
                         .WithUpsert(Durable.Octree.Normals3fReference, nsId)
-                        .WriteToStore()
                         ;
                 }
+                if (self.Id != originalId) self = self.WriteToStore();
                 callback?.Invoke();
                 return self;
             }
@@ -352,7 +354,7 @@ namespace Aardvark.Geometry.Points
                 .WithComputedPointDistance()
                 ;
 
-            self.WriteToStore();
+            if (self.Id != originalId) self = self.WriteToStore();
             return self;
         }
     }

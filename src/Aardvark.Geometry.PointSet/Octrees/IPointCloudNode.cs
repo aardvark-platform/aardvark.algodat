@@ -29,6 +29,17 @@ namespace Aardvark.Geometry.Points
         Storage Storage { get; }
 
         /// <summary>
+        /// True, if this node is in store.
+        /// </summary>
+        bool IsMaterialized { get; }
+
+        /// <summary>
+        /// Returns materialized version of this node.
+        /// E.g. a non-materialized filtered node is converted into a PointSetNode (which is stored in Storage).
+        /// </summary>
+        IPointCloudNode Materialize();
+
+        /// <summary>
         /// Writes this node to store.
         /// </summary>
         IPointCloudNode WriteToStore();
@@ -93,10 +104,13 @@ namespace Aardvark.Geometry.Points
 
         #region Positions
 
-        /// <summary></summary>
+        /// <summary>
+        /// Octree.PositionsLocal3f.
+        /// </summary>
         bool HasPositions { get; }
 
         /// <summary>
+        /// Octree.PositionsLocal3f.
         /// Octree. Per-point positions in local cell space (as offsets from cell's center).
         /// Durable definition 05eb38fa-1b6a-4576-820b-780163199db9.
         /// </summary>

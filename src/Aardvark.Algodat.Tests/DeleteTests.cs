@@ -25,7 +25,7 @@ namespace Aardvark.Geometry.Tests
     [TestFixture]
     public class DeleteTests
     {
-        private static PointSet CreateRandomPointsInUnitCube(int n, int splitLimit)
+        public static PointSet CreateRandomPointsInUnitCube(int n, int splitLimit)
         {
             var r = new Random();
             var ps = new V3d[n];
@@ -44,7 +44,7 @@ namespace Aardvark.Geometry.Tests
             return PointCloud.Chunks(new Chunk(ps, null), config);
         }
 
-        private static PointSet CreateRegularPointsInUnitCube(int n, int splitLimit)
+        public static PointSet CreateRegularPointsInUnitCube(int n, int splitLimit)
         {
             var ps = new List<V3d>();
             var step = 1.0 / n;
