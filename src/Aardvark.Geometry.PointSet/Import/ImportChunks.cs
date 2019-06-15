@@ -130,7 +130,7 @@ namespace Aardvark.Geometry.Points
             // create LOD data
             Report.BeginTimed("generate lod");
             final = final.GenerateLod(config.WithRandomKey().WithProgressCallback(x => config.ProgressCallback(0.66 + x * 0.34)));
-            if (config.Storage.GetPointCloudNode(final.Root.Value.Id) == null) throw new InvalidOperationException("Invariant 4d633e55-bf84-45d7-b9c3-c534a799242e.");
+            if (final.Root != null && config.Storage.GetPointCloudNode(final.Root.Value.Id) == null) throw new InvalidOperationException("Invariant 4d633e55-bf84-45d7-b9c3-c534a799242e.");
             Report.End();
 
             // create final point set with specified key (or random key when no key is specified)

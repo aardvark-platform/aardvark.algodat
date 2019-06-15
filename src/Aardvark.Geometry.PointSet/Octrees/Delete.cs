@@ -169,7 +169,7 @@ namespace Aardvark.Geometry.Points
             if (newSubnodes != null)
             {
                 foreach (var id in result.SubnodeIds)
-                    if (id != Guid.Empty && storage.GetPointCloudNode(id.Value) == null) throw new InvalidOperationException("Invariant ef9f1b2c-91c4-4471-9f5e-f00a71f84033.");
+                    if (id.HasValue && id != Guid.Empty && storage.GetPointCloudNode(id.Value) == null) throw new InvalidOperationException("Invariant ef9f1b2c-91c4-4471-9f5e-f00a71f84033.");
             }
 #endif
             return result;
