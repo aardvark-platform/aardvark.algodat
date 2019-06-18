@@ -354,7 +354,11 @@ namespace Aardvark.Geometry.Points
                 .WithComputedPointDistance()
                 ;
 
-            if (self.Id != originalId) self = self.WriteToStore();
+            if (self.Id != originalId)
+            {
+                self = self.WriteToStore();
+            }
+
             return self;
         }
     }

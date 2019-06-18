@@ -188,6 +188,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public IPointCloudNode WriteToStore()
         {
+            this.CheckDerivedAttributes();
             Storage.Add(Id.ToString(), this);
             return this;
         }

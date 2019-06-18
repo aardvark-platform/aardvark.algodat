@@ -35,8 +35,8 @@ namespace Aardvark.Geometry.Tests
             var id = Guid.NewGuid();
             var cell = new Cell(psGlobal);
             var center = (V3f)cell.GetCenter();
-            var bbGlobal = new Box3f(psGlobal);
-            var bbLocal = bbGlobal - center;
+            var bbGlobal = (Box3d)new Box3f(psGlobal);
+            var bbLocal = (Box3f)bbGlobal - center;
 
             var psLocal = psGlobal.Map(p => p - center);
 
@@ -50,6 +50,7 @@ namespace Aardvark.Geometry.Tests
             var result = new PointSetNode(storage, writeToStore: true,
                 (Durable.Octree.NodeId, id),
                 (Durable.Octree.Cell, cell),
+                (Durable.Octree.BoundingBoxExactGlobal, bbGlobal),
                 (Durable.Octree.BoundingBoxExactLocal, bbLocal),
                 (Durable.Octree.PointCountTreeLeafs, psLocal.LongLength),
                 (Durable.Octree.PositionsLocal3fReference, psLocalId),

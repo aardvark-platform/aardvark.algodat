@@ -448,6 +448,7 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public IPointCloudNode WriteToStore()
         {
+            this.CheckDerivedAttributes();
             var buffer = Encode();
             Storage.Add(Id, buffer);
             return this;
