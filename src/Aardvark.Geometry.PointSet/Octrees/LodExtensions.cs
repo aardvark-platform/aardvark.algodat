@@ -139,7 +139,7 @@ namespace Aardvark.Geometry.Points
             }
         }
 
-        private static IPointCloudNode WithComputedCentroid(this IPointCloudNode self)
+        public static IPointCloudNode WithComputedCentroid(this IPointCloudNode self)
         {
             if (self.HasCentroidLocal) return self;
             
@@ -155,7 +155,7 @@ namespace Aardvark.Geometry.Points
             return self;
         }
 
-        private static IPointCloudNode WithComputedTreeDepth(this IPointCloudNode self)
+        public static IPointCloudNode WithComputedTreeDepth(this IPointCloudNode self)
         {
             if (self.IsLeaf)
             {
@@ -183,7 +183,7 @@ namespace Aardvark.Geometry.Points
             }
         }
 
-        private static IPointCloudNode WithComputedPointDistance(this IPointCloudNode self)
+        public static IPointCloudNode WithComputedPointDistance(this IPointCloudNode self)
         {
             var ps = self.Positions.Value;
             var kd = self.KdTree.Value;

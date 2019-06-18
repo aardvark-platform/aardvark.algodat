@@ -86,8 +86,22 @@ namespace Aardvark.Geometry.Points
                 .Add(Octree.NodeId, newId)
                 .Add(Octree.Cell, Cell)
                 .Add(Octree.BoundingBoxExactLocal, BoundingBoxExactLocal)
-                .Add(Octree.BoundingBoxExactGlobal, BoundingBoxExactGlobal)
                 ;
+
+            if (IsLeaf)
+            {
+                data = data.Add(Octree.BoundingBoxExactGlobal, BoundingBoxExactGlobal);
+            }
+            else
+            {
+                var subnodes = Subnodes.Map(x => x?.Value.Materialize());
+                var subnodeIds = subnodes.Map(x => x?.Id ?? Guid.Empty);
+                var bbExactGlobal = new Box3d(subnodes.Where(x => x != null).Select(x => x.BoundingBoxExactGlobal));
+                data = data
+                    .Add(Octree.SubnodesGuids, subnodeIds)
+                    .Add(Octree.BoundingBoxExactGlobal, bbExactGlobal)
+                    ;
+            }
 
             if (HasPositions)
             {
@@ -131,35 +145,11 @@ namespace Aardvark.Geometry.Points
                 data = data.Add(Octree.Intensities1iReference, id);
             }
 
-            if (HasCentroidLocal)
-            {
-                data = data.Add(Octree.PositionsLocal3fCentroid, Positions.Value.ComputeCentroid());
-                throw new NotImplementedException();
-            }
-            if (HasCentroidLocalAverageDist)
-            {
-                data = data.Add(Octree.PositionsLocal3fDistToCentroidAverage, CentroidLocalAverageDist);
-                throw new NotImplementedException();
-            }
-            if (HasCentroidLocalStdDev)
-            {
-                data = data.Add(Octree.PositionsGlobal3dDistToCentroidStdDev, CentroidLocalStdDev);
-                throw new NotImplementedException();
-            }
-
-            if (HasMinTreeDepth)
-            {
-                data = data.Add(Octree.MinTreeDepth, MinTreeDepth);
-                throw new NotImplementedException();
-            }
-
-            if (HasMaxTreeDepth)
-            {
-                data = data.Add(Octree.MaxTreeDepth, MaxTreeDepth);
-                throw new NotImplementedException();
-            }
-
-            var result = new PointSetNode(data, Storage, writeToStore: true);
+            var result = new PointSetNode(data, Storage, writeToStore: true)
+                .WithComputedTreeDepth()
+                .WithComputedCentroid()
+                .WithComputedPointDistance()
+                ;
             return result;
         }
 
