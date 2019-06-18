@@ -646,38 +646,39 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static void CheckDerivedAttributes(this IPointCloudNode self)
         {
-            if (self.HasPositions && !self.HasKdTree) throw new InvalidOperationException(
-                "Missing KdTree. Invariant ef8b6f10-a5ce-4dfd-826e-78319acd9faa."
-                );
-
-            if (!self.HasBoundingBoxExactLocal) throw new InvalidOperationException(
-                "Missing BoundingBoxExactLocal. Invariant f91b261b-2aa2-41a0-9ada-4d03cbaf0507."
-                );
-            if (!self.HasBoundingBoxExactGlobal) throw new InvalidOperationException(
-                "Missing BoundingBoxExactGlobal. Invariant 9bb641c6-ce54-4a1e-9cf9-943b85e3bf81."
-                );
-            if (!self.HasCentroidLocal) throw new InvalidOperationException(
-                "Missing CentroidLocal. Invariant 72b18b6e-4c95-4a79-b9dd-11902c097649."
-                );
-            if (!self.HasCentroidLocalAverageDist) throw new InvalidOperationException(
-                "Missing CentroidLocalAverageDist. Invariant 44feb085-a836-436e-93b6-c019f2df375f."
-                );
-            if (!self.HasCentroidLocalStdDev) throw new InvalidOperationException(
-                "Missing CentroidLocalStdDev. Invariant 429bb1c1-9a52-4e4c-bab1-f3635e143061."
-                );
+            if (self.HasPositions)
+            {
+                if (!self.HasKdTree) throw new InvalidOperationException(
+                    "Missing KdTree. Invariant ef8b6f10-a5ce-4dfd-826e-78319acd9faa."
+                    );
+                if (!self.HasBoundingBoxExactLocal) throw new InvalidOperationException(
+                    "Missing BoundingBoxExactLocal. Invariant f91b261b-2aa2-41a0-9ada-4d03cbaf0507."
+                    );
+                if (!self.HasBoundingBoxExactGlobal) throw new InvalidOperationException(
+                    "Missing BoundingBoxExactGlobal. Invariant 9bb641c6-ce54-4a1e-9cf9-943b85e3bf81."
+                    );
+                if (!self.HasCentroidLocal) throw new InvalidOperationException(
+                    "Missing CentroidLocal. Invariant 72b18b6e-4c95-4a79-b9dd-11902c097649."
+                    );
+                if (!self.HasCentroidLocalAverageDist) throw new InvalidOperationException(
+                    "Missing CentroidLocalAverageDist. Invariant 44feb085-a836-436e-93b6-c019f2df375f."
+                    );
+                if (!self.HasCentroidLocalStdDev) throw new InvalidOperationException(
+                    "Missing CentroidLocalStdDev. Invariant 429bb1c1-9a52-4e4c-bab1-f3635e143061."
+                    );
+                if (!self.HasPointDistanceAverage) throw new InvalidOperationException(
+                    "Missing PointDistanceAverage. Invariant e52003ff-72ca-4fc2-8242-f20d7f039473."
+                    );
+                if (!self.HasPointDistanceStandardDeviation) throw new InvalidOperationException(
+                    "Missing PointDistanceStandardDeviation. Invariant 4a03c3f5-a625-4124-91f6-6f79fd1b5d0e."
+                    );
+            }
             if (!self.HasMaxTreeDepth) throw new InvalidOperationException(
                 "Missing MaxTreeDepth. Invariant c7c3c337-5404-4773-aae3-01d213e575b0."
                 );
             if (!self.HasMinTreeDepth) throw new InvalidOperationException(
                 "Missing MinTreeDepth. Invariant 2df9fb7b-684a-4103-8f14-07785607d2f4."
                 );
-            if (!self.HasPointDistanceAverage) throw new InvalidOperationException(
-                "Missing PointDistanceAverage. Invariant e52003ff-72ca-4fc2-8242-f20d7f039473."
-                );
-            if (!self.HasPointDistanceStandardDeviation) throw new InvalidOperationException(
-                "Missing PointDistanceStandardDeviation. Invariant 4a03c3f5-a625-4124-91f6-6f79fd1b5d0e."
-                );
         }
-
     }
 }

@@ -15,7 +15,6 @@ using Aardvark.Base;
 using Aardvark.Data;
 using Aardvark.Data.Points;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -145,12 +144,7 @@ namespace Aardvark.Geometry.Points
                 data = data.Add(Octree.Intensities1iReference, id);
             }
 
-            var result = new PointSetNode(data, Storage, writeToStore: false)
-                .WithComputedTreeDepth()
-                .WithComputedCentroid()
-                .WithComputedPointDistance()
-                .WriteToStore()
-                ;
+            var result = new PointSetNode(data, Storage, writeToStore: true);
             return result;
         }
 

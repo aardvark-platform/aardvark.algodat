@@ -17,7 +17,6 @@ using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -29,12 +28,12 @@ namespace Aardvark.Geometry.Points
     public class InMemoryPointSet
     {
         private readonly long m_splitLimit;
-        private IList<V3d> m_ps;
-        private IList<C4b> m_cs;
-        private IList<V3f> m_ns;
-        private IList<int> m_is;
-        private IList<byte> m_ks;
-        private Node m_root;
+        private readonly IList<V3d> m_ps;
+        private readonly IList<C4b> m_cs;
+        private readonly IList<V3f> m_ns;
+        private readonly IList<int> m_is;
+        private readonly IList<byte> m_ks;
+        private readonly Node m_root;
         private readonly long m_insertedPointsCount = 0;
         private long m_duplicatePointsCount = 0;
 
