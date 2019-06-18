@@ -547,13 +547,22 @@ namespace Aardvark.Geometry.Points
             var buffer = storage.f_get(key);
             if (buffer == null) throw new InvalidOperationException("Invariant 5127bd96-2137-4fd6-bbf1-2073f9b346c3.");
 
-            var data = PointSetNode.Decode(storage, buffer);
-            if (key != data.Id.ToString()) throw new InvalidOperationException("Invariant 32554e4b-1e53-4e30-8b3c-c218c5b63c46.");
+            try
+            {
+                var data = PointSetNode.Decode(storage, buffer);
+                if (key != data.Id.ToString()) throw new InvalidOperationException("Invariant 32554e4b-1e53-4e30-8b3c-c218c5b63c46.");
 
-            if (storage.HasCache) storage.Cache.Add(
-                key, data, buffer.Length, onRemove: default
-                );
-            return data;
+                if (storage.HasCache) storage.Cache.Add(
+                    key, data, buffer.Length, onRemove: default
+                    );
+                return data;
+            }
+            catch (Exception e)
+            {
+                Report.Warn("Failed to decode PointSetNode. Maybe obsolete format?");
+                Report.Warn($"{e}");
+                return ObsoleteNodeParser.Parse(storage, buffer);
+            }
         }
 
         /// <summary></summary>

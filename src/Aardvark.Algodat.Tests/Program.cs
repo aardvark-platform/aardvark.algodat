@@ -256,9 +256,18 @@ namespace Aardvark.Geometry.Tests
             }
         }
 
+        internal static void TestLoadOldStore()
+        {
+            var store = new SimpleDiskStore(@"T:\Vgm\Stores\referenz_2019_21_store").ToPointCloudStore(cache: default);
+            var pc = store.GetPointSet("770ed498-5544-4313-9873-5449f2bd823e");
+            var root = store.GetPointCloudNode("e06a1e87-5ab1-4c73-8c3f-3daf1bdac1d9");
+        }
+
         public static void Main(string[] args)
         {
-            new ViewsFilterTests().CanDeletePoints();
+            TestLoadOldStore();
+
+            //new ViewsFilterTests().CanDeletePoints();
 
             //new DeleteTests().DeleteDelete();
             //Console.WriteLine("done");

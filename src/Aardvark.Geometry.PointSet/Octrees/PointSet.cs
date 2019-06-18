@@ -144,8 +144,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PointSet Parse(JObject json, Storage storage)
         {
-            var octreeId = (string)json["OctreeId"];
-            if (octreeId == null) octreeId = (string)json["RootCellId"]; // backwards compatibility
+            var octreeId = (string)json["OctreeId"] ?? (string)json["RootCellId"];
             var octree = octreeId != null
                 ? new PersistentRef<IPointCloudNode>(octreeId, storage.GetPointCloudNode, storage.TryGetPointCloudNode)
                 : null
@@ -159,13 +158,7 @@ namespace Aardvark.Geometry.Points
             var id = (string)json["Id"];
 
             //
-            var rootType = (string)json["RootType"] ?? typeof(PointSetNode).Name;
-            if (rootType == "PointSetNode")
-                return new PointSet(storage, id, octreeId == null ? (Guid?)null: Guid.Parse(octreeId), splitLimit); // backwards compatibility
-            else
-            {
-                return new PointSet(storage, id, octree.Value, splitLimit);
-            }
+            return new PointSet(storage, id, octree.Value, splitLimit);
         }
 
         #endregion

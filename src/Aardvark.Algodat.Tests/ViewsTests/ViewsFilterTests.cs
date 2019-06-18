@@ -268,6 +268,8 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(a.PointCountTree > b.PointCountTree);
 
             Assert.IsTrue(!b.QueryAllPoints().SelectMany(chunk => chunk.Positions).Any(p => q.Contains(p)));
+
+            Assert.IsTrue(b.HasCentroidLocal);
         }
 
         #endregion
