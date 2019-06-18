@@ -145,10 +145,11 @@ namespace Aardvark.Geometry.Points
                 data = data.Add(Octree.Intensities1iReference, id);
             }
 
-            var result = new PointSetNode(data, Storage, writeToStore: true)
+            var result = new PointSetNode(data, Storage, writeToStore: false)
                 .WithComputedTreeDepth()
                 .WithComputedCentroid()
                 .WithComputedPointDistance()
+                .WriteToStore()
                 ;
             return result;
         }

@@ -188,7 +188,7 @@ namespace Aardvark.Geometry.Points
             var ps = self.Positions.Value;
             var kd = self.KdTree.Value;
 
-            var bbel = new Box3f(ps);
+            var bbel = ps.Length > 0 ? new Box3f(ps) : Box3f.Invalid;
             self = self.WithUpsert(Durable.Octree.BoundingBoxExactLocal, bbel);
 
             if (self.IsLeaf)

@@ -81,9 +81,11 @@ namespace Aardvark.Geometry.Points
             {
                 var bboxExactLocal = Positions.Value.Length > 0
                     ? (HasBoundingBoxExactLocal ? BoundingBoxExactLocal : new Box3f(Positions.Value))
-                    : (new Box3f(Cell.BoundingBox - Cell.GetCenter()))
+                    : Box3f.Invalid
                     ;
-                Data = Data.Add(Durable.Octree.BoundingBoxExactLocal, bboxExactLocal);
+
+                if (!HasBoundingBoxExactLocal)
+                    Data = Data.Add(Durable.Octree.BoundingBoxExactLocal, bboxExactLocal);
 
                 if (!HasBoundingBoxExactGlobal && IsLeaf)
                 {
@@ -117,6 +119,18 @@ namespace Aardvark.Geometry.Points
             {
                 //Report.Warn("Missing Durable.Octree.PointCountCell.");
                 Data = Data.Add(Durable.Octree.PointCountCell, HasPositions ? Positions.Value.Length : 0);
+            }
+
+            if (!Data.ContainsKey(Durable.Octree.PointCountTreeLeafs))
+            {
+                if (IsLeaf)
+                {
+                    Data = Data.Add(Durable.Octree.PointCountTreeLeafs, (long)PointCountCell);
+                }
+                else
+                {
+                    Data = Data.Add(Durable.Octree.PointCountTreeLeafs, Subnodes.Where(x => x != null).Sum(x => x.Value.PointCountTree));
+                }
             }
 
             if (IsLeaf && PointCountCell != PointCountTree) throw new InvalidOperationException("Invariant 9464f38c-dc98-4d68-a8ac-0baed9f182b4.");
