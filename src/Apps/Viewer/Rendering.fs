@@ -123,6 +123,8 @@ module Rendering =
                 fancy = Mod.init false
             }
 
+
+
         let vis = 
             Mod.custom (fun t ->
                 let l = config.lighting.GetValue t
@@ -280,6 +282,21 @@ module Rendering =
             )
 
         let afterMain = RenderPass.after "aftermain" RenderPassOrder.Arbitrary RenderPass.main
+        let e = (pcs |> ASet.toMod |> Mod.force |> Seq.head)
+        //let c = V3d (e.root :?> Aardvark.Rendering.PointSet.LodTreeInstance.PointTreeNode).Original.CentroidLocal + e.root.Cell.BoundingBox.Center
+        let c = (e.root :?> Aardvark.Rendering.PointSet.LodTreeInstance.PointTreeNode).Original.Cell.BoundingBox.Center
+        let haha = 
+            IndexedGeometryPrimitives.Sphere.wireframeSubdivisionSphere (Sphere3d(c,5.0)) 4 C4b.Red 
+                |> Sg.ofIndexedGeometry
+                |> Sg.shader {
+                    do! DefaultSurfaces.trafo
+                    do! DefaultSurfaces.thickLine
+                    do! DefaultSurfaces.vertexColor
+                }
+                |> Sg.uniform "LineWidth" (Mod.constant 5.0)
+
+                
+
 
         let thing =
             Sg.draw IndexedGeometryMode.PointList
@@ -297,7 +314,40 @@ module Rendering =
             |> Sg.depthTest (Mod.constant DepthTestMode.None)
             //|> Sg.viewTrafo (Mod.constant Trafo3d.Identity)
             //|> Sg.projTrafo (Mod.constant Trafo3d.Identity)
-            |> Sg.pass afterMain
+            |> Sg.andAlso haha
+            |> Sg.pass afterMain 
+
+        let reset = Mod.init 0 
+
+        let pcs = 
+            pcs
+            |> ASet.toMod
+            |> Mod.map2 ( fun i pcs -> 
+                pcs |> HRefSet.collect ( fun e -> 
+                    let box = Box3d.FromCenterAndSize(c, e.root.WorldCellBoundingBox.Size * 7.45)
+                    let res = 
+                        if i%2 = 3 then
+                            Log.line "PC: empty"
+                            HRefSet.empty
+                        elif i%2 = 1 then
+                            Log.line "PC: normal"
+                            HRefSet.single e
+                        elif i%2 = 0 then  
+                            Log.line "PC: deleted"
+                            let d = (e.root :?> Aardvark.Rendering.PointSet.LodTreeInstance.PointTreeNode).Delete(box) :> ILodTreeNode
+                            HRefSet.single ({ e with root = d })
+                        //else
+                        //    let d = (e.root :?> Aardvark.Rendering.PointSet.LodTreeInstance.PointTreeNode).Delete(box) :> ILodTreeNode
+                        //    [|
+                        //        e
+                        //        { e with root = d}
+                        //    |] |> HRefSet.ofArray
+                        else
+                            failwith ""
+                    res
+                )
+            ) reset
+            |> ASet.ofMod
 
         let sg =
             Sg.LodTreeNode(config.stats, picktrees, true, config.budget, config.splitfactor, config.renderBounds, config.maxSplits, win.Time, pcs) :> ISg
@@ -336,7 +386,8 @@ module Rendering =
                 transact (fun () ->
                     config.lighting.Value <- not config.lighting.Value
                 )
-            
+            | Keys.M -> 
+                transact ( fun () -> reset.Value <- reset.Value + 1 )
 
             | Keys.O -> transact (fun () -> config.pointSize.Value <- config.pointSize.Value / 1.3)
             | Keys.P -> transact (fun () -> config.pointSize.Value <- config.pointSize.Value * 1.3)

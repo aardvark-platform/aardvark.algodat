@@ -134,7 +134,7 @@ module LodTreeInstance =
                 0.0
 
         let load (ct : CancellationToken) (ips : MapExt<string, Type>) =
-            cache.GetOrCreate(cacheId self, fun () ->
+            //cache.GetOrCreate(cacheId self, fun () ->
                 let center = self.Center
                 let attributes = SymbolDict<Array>()
                 let mutable uniforms = MapExt.empty
@@ -148,6 +148,7 @@ module LodTreeInstance =
                 let positions = 
                     let inline fix (p : V3f) = globalTrafo1.TransformPos (V3d p) |> V3f
                     original |> Array.map fix
+                if positions.Length = 0 then Log.error "ALAAAAAAAARRRRRRRMMMMMMMMMM empty!!"
                 attributes.[DefaultSemantic.Positions] <- positions
                 vertexSize <- vertexSize + 12L
 
@@ -218,7 +219,8 @@ module LodTreeInstance =
                         )
                     let mem = positions.LongLength * vertexSize
                     let res = geometry, uniforms
-                    struct (res :> obj, mem)
+                    //struct (res :> obj, mem)
+                    geometry, uniforms
                 else
                     let geometry =
                         IndexedGeometry(
@@ -228,9 +230,10 @@ module LodTreeInstance =
                 
                     let mem = positions.LongLength * vertexSize
                     let res = geometry, uniforms
-                    struct (res :> obj, mem)
-            )
-            |> unbox<IndexedGeometry * MapExt<string, Array>>
+                    //struct (res :> obj, mem)
+                    geometry, uniforms
+            //)
+            //|> unbox<IndexedGeometry * MapExt<string, Array>>
 
         let angle (view : Trafo3d) =
             let cam = view.Backward.C3.XYZ
@@ -313,6 +316,14 @@ module LodTreeInstance =
             match root with
             | Some r -> r
             | None -> x
+
+        member x.Delete(b : Box3d) =
+            let nodeFullyInside = Func<_,_>(fun (node : IPointCloudNode) -> b.Contains(node.Cell.BoundingBox))
+            let nodeFullyOutside = Func<_,_>(fun (node : IPointCloudNode) -> not(b.Contains(node.Cell.BoundingBox)) && not(b.Intersects(node.Cell.BoundingBox)))
+            let pointCountains = Func<_,_>(fun (v : V3d) -> b.Contains(v))
+            let n = self.Delete(nodeFullyInside,nodeFullyOutside,pointCountains,self.Storage,CancellationToken.None)
+            Log.line "Deleted"
+            PointTreeNode(cache, source, globalTrafo, root, parent, level, n)
 
         member x.Children  =
             match children with
