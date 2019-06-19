@@ -175,10 +175,29 @@ namespace Aardvark.Geometry.Points
                     m_subnodes_cache = new PersistentRef<IPointCloudNode>[8];
                     for (var i = 0; i < 8; i++)
                     {
-                        var id = (Id + "." + i).ToGuid();
-                        var n0 = Node.Subnodes[i]?.Value;
-                        var n = n0 != null ? new FilteredNode(id, n0, Filter) : null;
-                        m_subnodes_cache[i] = new PersistentRef<IPointCloudNode>(id.ToString(), _ => n, _ => (true, n));
+                        var subCell = Cell.GetOctant(i);
+
+                        if ((Filter is ISpatialFilter) && ((ISpatialFilter)Filter).IsFullyInside(subCell.BoundingBox))
+                        {
+                            m_subnodes_cache[i] = Node.Subnodes[i];
+                        }
+                        else if ((Filter is ISpatialFilter) && ((ISpatialFilter)Filter).IsFullyOutside(subCell.BoundingBox))
+                        {
+                            m_subnodes_cache[i] = null;
+                        }
+                        else
+                        {
+                            var id = (Id + "." + i).ToGuid();
+                            var n0 = Node.Subnodes[i]?.Value;
+
+                            if (n0 != null)
+                            {
+                                var n = new FilteredNode(id, n0, Filter);
+                                m_subnodes_cache[i] = new PersistentRef<IPointCloudNode>(id.ToString(), _ => n, _ => (true, n));
+                            }
+                        }
+
+
                     }
                 }
                 return m_subnodes_cache;

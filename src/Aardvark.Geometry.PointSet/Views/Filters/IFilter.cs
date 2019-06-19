@@ -38,4 +38,13 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         JObject Serialize();
     }
+
+    public interface ISpatialFilter : IFilter
+    {
+        /// <summary></summary>
+        bool IsFullyInside(Box3d box);
+
+        /// <summary></summary>
+        bool IsFullyOutside(Box3d box);
+    }
 }
