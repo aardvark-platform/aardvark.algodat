@@ -47,7 +47,14 @@ namespace Aardvark.Geometry.Points
             Id = id;
             Node = node ?? throw new ArgumentNullException(nameof(node));
             Filter = filter ?? throw new ArgumentNullException(nameof(filter));
-            m_activePoints = Filter.FilterPoints(Node, m_activePoints);
+            if (filter.IsFullyInside(this)) { m_activePoints = null; }
+            else if (filter.IsFullyOutside(this)) { m_activePoints = new HashSet<int>(); }
+            else
+            {
+                
+                m_activePoints = Filter.FilterPoints(Node, m_activePoints);
+                if(m_activePoints.Count == 0) { Console.WriteLine("asfas"); }
+            }
         }
 
         /// <summary></summary>
@@ -177,11 +184,13 @@ namespace Aardvark.Geometry.Points
                     {
                         var subCell = Cell.GetOctant(i);
 
-                        if ((Filter is ISpatialFilter) && ((ISpatialFilter)Filter).IsFullyInside(subCell.BoundingBox))
+                        var spatial = Filter as ISpatialFilter;
+
+                        if (spatial != null && spatial.IsFullyInside(subCell.BoundingBox))
                         {
                             m_subnodes_cache[i] = Node.Subnodes[i];
                         }
-                        else if ((Filter is ISpatialFilter) && ((ISpatialFilter)Filter).IsFullyOutside(subCell.BoundingBox))
+                        else if (spatial != null && spatial.IsFullyOutside(subCell.BoundingBox))
                         {
                             m_subnodes_cache[i] = null;
                         }
@@ -189,11 +198,25 @@ namespace Aardvark.Geometry.Points
                         {
                             var id = (Id + "." + i).ToGuid();
                             var n0 = Node.Subnodes[i]?.Value;
-
                             if (n0 != null)
                             {
-                                var n = new FilteredNode(id, n0, Filter);
-                                m_subnodes_cache[i] = new PersistentRef<IPointCloudNode>(id.ToString(), _ => n, _ => (true, n));
+                                if (spatial != null && spatial.IsFullyInside(n0.BoundingBoxExactGlobal))
+                                {
+                                    m_subnodes_cache[i] = Node.Subnodes[i];
+                                }
+                                else if (spatial != null && spatial.IsFullyOutside(n0.BoundingBoxExactGlobal))
+                                {
+                                    m_subnodes_cache[i] = null;
+                                }
+                                else if (n0 != null)
+                                {
+                                    var n = new FilteredNode(id, n0, Filter);
+                                    m_subnodes_cache[i] = new PersistentRef<IPointCloudNode>(id.ToString(), _ => n, _ => (true, n));
+                                }
+                            }
+                            else
+                            {
+                                m_subnodes_cache[i] = null;
                             }
                         }
 
@@ -205,7 +228,7 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public int PointCountCell => m_activePoints.Count;
+        public int PointCountCell => m_activePoints == null ? Node.PointCountCell : m_activePoints.Count;
 
         /// <summary></summary>
         public bool IsLeaf => Node.IsLeaf;
@@ -408,6 +431,8 @@ namespace Aardvark.Geometry.Points
             if (m_cache.TryGetValue(def.Id, out var o) && o is PersistentRef<T[]> x) return x;
 
             if (originalValue == null) return null;
+            if (m_activePoints == null) return originalValue;
+
             var key = (Id + originalValue.Id).ToGuid().ToString();
             var xs = originalValue.Value.Where((_, i) => m_activePoints.Contains(i)).ToArray();
             var result = new PersistentRef<T[]>(key, _ => xs, _ => (true, xs));

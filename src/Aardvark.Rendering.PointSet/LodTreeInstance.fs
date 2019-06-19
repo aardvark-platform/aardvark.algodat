@@ -681,10 +681,14 @@ module LodTreeInstance =
 
         let root = points.Root.Value
         let bounds = root.Cell.BoundingBox
-
-        let filter = FilterInsideBox3d(Box3d.FromCenterAndSize(V3d root.CentroidLocal + root.Center, float root.CentroidLocalStdDev * V3d.III))
+        //let c = V3d root.CentroidLocal + root.Center
+        //let filter = FilterInsideBox3d(Box3d.FromCenterAndSize(c, float root.CentroidLocalStdDev * V3d.III))
             
-        let root = FilteredNode.Create(root,filter)
+        //let root = FilteredNode.Create(root,filter)
+
+        //let query = root.QueryPointsNearPlane(Plane3d(V3d.OOI,c), 1.0) |> Seq.toList
+        //printfn "%A" query
+
         let trafo = Similarity3d(1.0, Euclidean3d(Rot3d.Identity, -bounds.Center))
         let source = Symbol.Create sourceName
         let root = PointTreeNode(store.Cache, source, trafo, None, None, 0, root) :> ILodTreeNode
