@@ -30,6 +30,17 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public static class ObsoleteNodeParser
     {
+        /// <summary>
+        /// Octree. Obsolete per-point positions. Raw V3f[].
+        /// </summary>
+        public static readonly Durable.Def ObsoletePositions = new Durable.Def(
+            new Guid("7cb3be14-062e-47d0-9941-fe135a82c632"),
+            "Octree.ObsoletePositions",
+            "Octree. Obsolete per-point positions. Raw V3f[].",
+            Guid.Empty,
+            false
+            );
+
         public static PointSetNode Parse(Storage storage, byte[] buffer)
         {
             return ParseBinary(buffer, storage);
@@ -191,20 +202,20 @@ namespace Aardvark.Geometry.Points
                 .Add(Durable.Octree.PointCountTreeLeafs, pointCountTree)
                 ;
 
+            if (psId.HasValue) data = data.Add(Durable.Octree.PositionsLocal3fReference, psId.Value);
+            if (csId.HasValue) data = data.Add(Durable.Octree.Colors4bReference, csId.Value);
+            if (kdId.HasValue) data = data.Add(Durable.Octree.PointRkdTreeDDataReference, kdId.Value);
+            if (nsId.HasValue) data = data.Add(Durable.Octree.Normals3fReference, nsId.Value);
+            if (isId.HasValue) data = data.Add(Durable.Octree.Intensities1iReference, isId.Value);
+            if (ksId.HasValue) data = data.Add(Durable.Octree.Classifications1bReference, ksId.Value);
+
             if (subcellIds != null)
             {
                 data = data.Add(Durable.Octree.SubnodesGuids, subcellIds);
             }
 
-            return new PointSetNode(data, storage, false);
-
-            //return new PointSetNode(
-            //    id, cell, pointCountTree,
-            //    custom,
-            //    psId, csId, kdId, nsId, isId, ksId,
-            //    subcellIds,
-            //    storage, false
-            //    );
+            var result = new PointSetNode(data, storage, false);
+            return result;
         }
 
         private static Guid ParseGuid(byte[] buffer, ref int offset)
@@ -555,32 +566,32 @@ namespace Aardvark.Geometry.Points
 
         #region V3f[]
 
-        /// <summary></summary>
-        private static V3f[] GetV3fArray(this Storage storage, string key)
-        {
-            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (V3f[])o;
+        ///// <summary></summary>
+        //private static V3f[] GetV3fArray(this Storage storage, string key)
+        //{
+        //    if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (V3f[])o;
 
-            var buffer = storage.f_get(key);
-            var data = Codec.BufferToV3fArray(buffer);
+        //    var buffer = storage.f_get(key);
+        //    var data = Codec.BufferToV3fArray(buffer);
 
-            if (data != null && storage.HasCache)
-                storage.Cache.Add(key, data, buffer.Length, onRemove: default);
+        //    if (data != null && storage.HasCache)
+        //        storage.Cache.Add(key, data, buffer.Length, onRemove: default);
 
-            return data;
-        }
+        //    return data;
+        //}
 
-        /// <summary></summary>
-        private static (bool, V3f[]) TryGetV3fArray(this Storage storage, string key)
-        {
-            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
-            {
-                return (true, (V3f[])o);
-            }
-            else
-            {
-                return (false, default);
-            }
-        }
+        ///// <summary></summary>
+        //private static (bool, V3f[]) TryGetV3fArray(this Storage storage, string key)
+        //{
+        //    if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
+        //    {
+        //        return (true, (V3f[])o);
+        //    }
+        //    else
+        //    {
+        //        return (false, default);
+        //    }
+        //}
 
         #endregion
 

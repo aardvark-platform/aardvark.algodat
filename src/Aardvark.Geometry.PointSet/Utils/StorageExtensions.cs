@@ -438,7 +438,38 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
+        public static PointRkdTreeFData GetPointRkdTreeFDataFromD(this Storage storage, string key)
+        {
+            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (PointRkdTreeFData)o;
+
+            var buffer = storage.f_get(key);
+            if (buffer == null) return default;
+            var data0 = Codec.BufferToPointRkdTreeDData(buffer);
+            var data = new PointRkdTreeFData
+            {
+                AxisArray = data0.AxisArray,
+                PermArray = data0.PermArray,
+                RadiusArray = data0.RadiusArray.Map(x => (float)x)
+            };
+            if (storage.HasCache) storage.Cache.Add(key, data, buffer.Length, onRemove: default);
+            return data;
+        }
+
+        /// <summary></summary>
         public static (bool, PointRkdTreeFData) TryGetPointRkdTreeFData(this Storage storage, string key)
+        {
+            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
+            {
+                return (true, (PointRkdTreeFData)o);
+            }
+            else
+            {
+                return (false, default);
+            }
+        }
+
+        /// <summary></summary>
+        public static (bool, PointRkdTreeFData) TryGetPointRkdTreeFDataFromD(this Storage storage, string key)
         {
             if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
             {
@@ -557,10 +588,10 @@ namespace Aardvark.Geometry.Points
                     );
                 return data;
             }
-            catch (Exception e)
+            catch //(Exception e)
             {
-                Report.Warn("Failed to decode PointSetNode. Maybe obsolete format?");
-                Report.Warn($"{e}");
+                //Report.Warn("Failed to decode PointSetNode. Maybe obsolete format?");
+                //Report.Warn($"{e}");
                 return ObsoleteNodeParser.Parse(storage, buffer);
             }
         }
