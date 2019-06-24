@@ -183,19 +183,6 @@ namespace Aardvark.Geometry.Points
 
             #endregion
 
-            var custom = ImmutableDictionary<Guid, object>.Empty;
-            if ((attributemask & (uint)PointSetAttributes.HasCellAttributes) != 0)
-            {
-                var cnt = BitConverter.ToInt32(buffer, offset); offset += 4;
-                for (var i = 0; i < cnt; i++)
-                {
-                    var key = ParseGuid(buffer, ref offset);
-                    var value = Read(buffer, ref offset);
-                    custom = custom.Add(key, value);
-                }
-            }
-            if (custom.Count > 0) throw new InvalidOperationException("Found obsolete custom parameters. Invariant 71875475-8f0f-4a62-a2c8-a8e202ec17ad.");
-
             var data = ImmutableDictionary<Durable.Def, object>.Empty
                 .Add(Durable.Octree.NodeId, id)
                 .Add(Durable.Octree.Cell, cell)

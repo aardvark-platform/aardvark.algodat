@@ -13,11 +13,13 @@
 */
 using Aardvark.Base;
 using Aardvark.Base.Coder;
+using Aardvark.Data;
 using Aardvark.Data.Points;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using Uncodium.SimpleStore;
 
@@ -580,13 +582,21 @@ namespace Aardvark.Geometry.Points
 
             try
             {
-                var data = PointSetNode.Decode(storage, buffer);
-                if (key != data.Id.ToString()) throw new InvalidOperationException("Invariant 32554e4b-1e53-4e30-8b3c-c218c5b63c46.");
+                var guid = new Guid(buffer.TakeToArray(16));
+                if (guid == Durable.Octree.Node.Id)
+                {
+                    var data = PointSetNode.Decode(storage, buffer);
+                    if (key != data.Id.ToString()) throw new InvalidOperationException("Invariant 32554e4b-1e53-4e30-8b3c-c218c5b63c46.");
 
-                if (storage.HasCache) storage.Cache.Add(
-                    key, data, buffer.Length, onRemove: default
-                    );
-                return data;
+                    if (storage.HasCache) storage.Cache.Add(
+                        key, data, buffer.Length, onRemove: default
+                        );
+                    return data;
+                }
+                else
+                {
+                    return ObsoleteNodeParser.Parse(storage, buffer);
+                }
             }
             catch //(Exception e)
             {
