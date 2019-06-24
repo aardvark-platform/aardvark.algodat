@@ -762,13 +762,25 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public PointSetNode WithUpsert(Durable.Def def, object x)
         {
-            var data = Data
-                .RemoveRange(new[] { def, Durable.Octree.NodeId })
-                .Add(Durable.Octree.NodeId, Guid.NewGuid())
-                .Add(def, x)
-                ;
-            
-            return new PointSetNode(data, Storage, false);
+            if (def == Durable.Octree.NodeId)
+            {
+                var data = Data
+                    .RemoveRange(new[] { Durable.Octree.NodeId })
+                    .Add(Durable.Octree.NodeId, x)
+                    ;
+
+                return new PointSetNode(data, Storage, false);
+            }
+            else
+            {
+                var data = Data
+                    .RemoveRange(new[] { def, Durable.Octree.NodeId })
+                    .Add(Durable.Octree.NodeId, Guid.NewGuid())
+                    .Add(def, x)
+                    ;
+
+                return new PointSetNode(data, Storage, false);
+            }
         }
 
         /// <summary>
