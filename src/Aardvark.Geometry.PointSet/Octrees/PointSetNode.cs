@@ -32,6 +32,25 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public class PointSetNode : IPointCloudNode
     {
+        public static readonly PointSetNode Empty = new PointSetNode(
+            null, writeToStore: false,
+            (Durable.Octree.NodeId, Guid.Empty),
+            (Durable.Octree.Cell, Cell.Unit),
+            (Durable.Octree.BoundingBoxExactLocal, Box3f.Unit - new V3f(0.5f)),
+            (Durable.Octree.BoundingBoxExactGlobal, Box3d.Unit),
+            (Durable.Octree.PointCountCell, 0),
+            (Durable.Octree.PointCountTreeLeafs, 0L),
+            (Durable.Octree.PositionsLocal3fReference, Guid.Empty),
+            (Durable.Octree.PointRkdTreeFDataReference, Guid.Empty),
+            (Durable.Octree.PositionsLocal3fCentroid, V3f.Zero),
+            (Durable.Octree.PositionsLocal3fDistToCentroidAverage, 0.0f),
+            (Durable.Octree.PositionsLocal3fDistToCentroidStdDev, 0.0f),
+            (Durable.Octree.AveragePointDistance, 0.0f),
+            (Durable.Octree.AveragePointDistanceStdDev, 0.0f),
+            (Durable.Octree.MinTreeDepth, 0),
+            (Durable.Octree.MaxTreeDepth, 0)
+            );
+
         #region Construction
 
         /// <summary>

@@ -42,7 +42,7 @@ namespace Aardvark.Geometry.Tests
                 //.Take(10)
                 //.AsParallel()
                 //.Select(x => x.ImmutableFilterMinDistByCell(new Cell(x.BoundingBox), config))
-                ////.Select(x => x.ImmutableFilterSequentialMinDistL1(0.01))
+                //.Select(x => x.ImmutableFilterSequentialMinDistL1(0.01))
                 //.ToArray()
                 ;
             var pc = PointCloud.Chunks(chunks, config);
