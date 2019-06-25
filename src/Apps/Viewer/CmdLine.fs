@@ -128,8 +128,10 @@ module CmdLine =
                 .WithStorage(store)
                 .WithKey(id)
                 .WithVerbose(true)
-                .WithMaxChunkPointCount(10000000)
-                .WithMinDist(match args.minDist with | None -> 0.0 | Some x -> x)
+                //.WithMaxChunkPointCount(10000000)
+                //.WithMinDist(match args.minDist with | None -> 0.0 | Some x -> x)
+                .WithMinDist(0.01)
+                .WithNormalizePointDensityGlobal(true)
                 
         //match args.k with
         //| Some k -> let generate (ps : IList<V3d>) = Normals.EstimateNormals(ps.ToArray(), k) :> IList<V3f>

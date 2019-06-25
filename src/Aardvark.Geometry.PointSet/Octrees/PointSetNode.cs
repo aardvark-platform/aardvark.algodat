@@ -329,7 +329,7 @@ namespace Aardvark.Geometry.Points
 
             if (writeToStore)
             {
-                Report.Warn($"[writeToStore] {Id}");
+                //Report.Warn($"[writeToStore] {Id}");
                 WriteToStore();
             }
 
