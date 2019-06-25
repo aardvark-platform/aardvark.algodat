@@ -231,7 +231,7 @@ namespace Aardvark.Geometry.Points
         {
             if (other.IsEmpty) return this;
             if (this.IsEmpty) return other;
-            if (this.Storage != other.Storage) throw new InvalidOperationException();
+            if (this.Storage != other.Storage) throw new InvalidOperationException("Invariant 3267c283-3192-438b-a219-821d67ac5061.");
 
             if (Root.Value is PointSetNode root && other.Root.Value is PointSetNode otherRoot)
             {

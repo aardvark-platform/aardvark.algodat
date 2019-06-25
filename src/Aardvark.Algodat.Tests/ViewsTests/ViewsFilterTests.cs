@@ -57,7 +57,6 @@ namespace Aardvark.Geometry.Tests
                 (Durable.Octree.PointRkdTreeFDataReference, kdLocalId)
                 );
 
-
             if (intensities != null)
             {
                 var jsId = Guid.NewGuid();

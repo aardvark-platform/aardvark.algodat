@@ -21,6 +21,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 
@@ -60,6 +61,14 @@ namespace Aardvark.Geometry.Points
                 "Missing Durable.Octree.Cell. Invariant f6f13915-c254-4d88-b60f-5e673c13ef59."
                 );
 
+            if (!data.ContainsKey(Durable.Octree.PointCountTreeLeafs)) throw new ArgumentException(
+                "Missing Durable.Octree.PointCountTreeLeafs. Invariant 9c764d4b-569e-4bd7-a839-add0df63cc13."
+                );
+
+            if (!data.ContainsKey(Durable.Octree.BoundingBoxExactGlobal)) throw new ArgumentException(
+                "Missing Durable.Octree.BoundingBoxExactGlobal. Invariant b51fc1e8-5698-47a7-acba-4fd7aec8bfda."
+                );
+
             var isObsoleteFormat = data.ContainsKey(Durable.Octree.PointRkdTreeDDataReference);
 
             Storage = storage;
@@ -74,6 +83,8 @@ namespace Aardvark.Geometry.Points
             {
                 Report.Line($"new PointSetNode({Id}), obsolete format");
             }
+
+            //if (IsNotLeaf && Has(Durable.Octree.PointCountCell) && PointCountCell > 0) Debugger.Break();
 #endif
 
             #region Subnodes
@@ -329,17 +340,24 @@ namespace Aardvark.Geometry.Points
 
             if (writeToStore)
             {
-                Report.Warn($"[writeToStore] {Id}");
+                //Report.Warn($"[writeToStore] {Id}");
                 WriteToStore();
             }
 
 #if DEBUG
             if (IsLeaf)
             {
-                if (PointCountCell != PointCountTree) throw new InvalidOperationException("Invariant 9464f38c-dc98-4d68-a8ac-0baed9f182b4.");
-                if (!Has(Durable.Octree.PositionsLocal3fReference)) throw new ArgumentException("Missing Durable.Octree.PositionsLocal3fReference.");
-                if (PositionsId == null) throw new InvalidOperationException();
-                if (KdTreeId == null) throw new InvalidOperationException();
+                if (PointCountCell != PointCountTree)
+                    throw new InvalidOperationException("Invariant 9464f38c-dc98-4d68-a8ac-0baed9f182b4.");
+
+                if (!Has(Durable.Octree.PositionsLocal3fReference))
+                    throw new ArgumentException("Invariant 663c45a4-1286-45ba-870c-fb4ceebdf318.");
+
+                if (PositionsId == null)
+                    throw new InvalidOperationException("Invariant ba64ffe9-ada4-4fff-a4e9-0916c1cc9992.");
+
+                if (KdTreeId == null)
+                    throw new InvalidOperationException("Invariant 606e8a7b-6e75-496a-bc2a-dfbe6e2c9b10.");
             }
 #endif
 #if PEDANTIC
@@ -733,7 +751,6 @@ namespace Aardvark.Geometry.Points
         {
             if (subnodes == null) throw new ArgumentNullException(nameof(subnodes));
 
-            if (IsLeaf) throw new InvalidOperationException();
 #if DEBUG
             for (var i = 0; i < 8; i++)
             {
@@ -746,13 +763,17 @@ namespace Aardvark.Geometry.Points
 #endif
 
             var pointCountTree = subnodes.Sum(x => x?.PointCountTree);
+            var bbExactGlobal = new Box3d(subnodes.Where(x => x != null).Select(x => x.BoundingBoxExactGlobal));
 
-            return this
-                .WithUpsert(Durable.Octree.Cell, Cell)
-                .WithUpsert(Durable.Octree.PointCountTreeLeafs, pointCountTree ?? 0L)
-                .WithUpsert(Durable.Octree.SubnodesGuids, subnodes.Map(x => x?.Id ?? Guid.Empty))
-                .WriteToStore()
+            var data = ImmutableDictionary<Durable.Def, object>.Empty
+                .Add(Durable.Octree.NodeId, Guid.NewGuid())
+                .Add(Durable.Octree.Cell, Cell)
+                .Add(Durable.Octree.BoundingBoxExactGlobal, bbExactGlobal)
+                .Add(Durable.Octree.PointCountTreeLeafs, pointCountTree ?? 0L)
+                .Add(Durable.Octree.SubnodesGuids, subnodes.Map(x => x?.Id ?? Guid.Empty))
                 ;
+            var result = new PointSetNode(data, this.Storage, writeToStore: true);
+            return result;
         }
 
         /// <summary>
@@ -784,22 +805,16 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary>
-        /// Returns new node with given entry removed or same node if entry does not exist.
+        /// Returns new node with removed data.
         /// </summary>
-        internal PointSetNode Without(Durable.Def def, bool writeToStore = true)
+        public IPointCloudNode Without(params Durable.Def[] defs)
         {
-            if (Data.ContainsKey(def))
-            {
-                var data = Data
-                    .RemoveRange(new[] { def, Durable.Octree.NodeId })
-                    .Add(Durable.Octree.NodeId, Guid.NewGuid())
-                    ;
-                return new PointSetNode(data, Storage, writeToStore);
-            }
-            else
-            {
-                return this;
-            }
+            var data = Data
+                .RemoveRange(defs)
+                .Remove(Durable.Octree.NodeId)
+                .Add(Durable.Octree.NodeId, Guid.NewGuid())
+                ;
+            return new PointSetNode(data, Storage, false);
         }
 
         #endregion

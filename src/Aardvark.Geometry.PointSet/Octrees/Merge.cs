@@ -91,10 +91,16 @@ namespace Aardvark.Geometry.Points
                 subnodes[i] = subnode;
             }
 
-            var result = self
-                .WithUpsert(Durable.Octree.SubnodesGuids, subnodes.Map(x => x?.Id ?? Guid.Empty))
-                .WriteToStore()
+            var bbExactGlobal = new Box3d(subnodes.Where(x => x != null).Select(x => x.BoundingBoxExactGlobal));
+
+            var data = ImmutableDictionary<Durable.Def, object>.Empty
+                .Add(Durable.Octree.NodeId, Guid.NewGuid())
+                .Add(Durable.Octree.Cell, self.Cell)
+                .Add(Durable.Octree.BoundingBoxExactGlobal, bbExactGlobal)
+                .Add(Durable.Octree.PointCountTreeLeafs, self.PointCountTree)
+                .Add(Durable.Octree.SubnodesGuids, subnodes.Map(x => x?.Id ?? Guid.Empty))
                 ;
+            var result = new PointSetNode(data, self.Storage, true);
 
             // POST
             if (result.IsLeaf) throw new InvalidOperationException();
@@ -148,9 +154,12 @@ namespace Aardvark.Geometry.Points
                 if (ps.Length != totalPointCountTree) throw new InvalidOperationException("Invariant 8b8539ae-05a8-47f8-9d92-fd49301ba750.");
                 var kd = kdId.HasValue ? ps.BuildKdTree() : null;
 
+                var bbExactGlobal = new Box3d(psAbs);
+
                 var data = ImmutableDictionary<Durable.Def, object>.Empty
                     .Add(Durable.Octree.NodeId, Guid.NewGuid())
                     .Add(Durable.Octree.Cell, cell)
+                    .Add(Durable.Octree.BoundingBoxExactGlobal, bbExactGlobal)
                     .Add(Durable.Octree.PointCountTreeLeafs, totalPointCountTree)
                     ;
 
@@ -275,11 +284,13 @@ namespace Aardvark.Geometry.Points
                 }
 
                 var pointCountTreeLeafs = roots.Where(x => x != null).Sum(x => x.PointCountTree);
+                var bbExactGlobal = new Box3d(roots.Where(x => x != null).Select(x => x.BoundingBoxExactGlobal));
                 pointsMergedCallback?.Invoke(pointCountTreeLeafs);
 
                 var data = ImmutableDictionary<Durable.Def, object>.Empty
                     .Add(Durable.Octree.NodeId, Guid.NewGuid())
                     .Add(Durable.Octree.Cell, rootCell)
+                    .Add(Durable.Octree.BoundingBoxExactGlobal, bbExactGlobal)
                     .Add(Durable.Octree.PointCountTreeLeafs, pointCountTreeLeafs)
                     .Add(Durable.Octree.SubnodesGuids, roots.Map(n => n?.Id ?? Guid.Empty))
                     ;
@@ -512,16 +523,23 @@ namespace Aardvark.Geometry.Points
                     }
                 }
 
+                var pointCountTree = subcells.Sum(x => x?.PointCountTree);
+                var bbExactGlobal = new Box3d(a.BoundingBoxExactGlobal, b.BoundingBoxExactGlobal);
+
                 var data = ImmutableDictionary<Durable.Def, object>.Empty
                     .Add(Durable.Octree.NodeId, Guid.NewGuid())
                     .Add(Durable.Octree.Cell, rootCell)
+                    .Add(Durable.Octree.BoundingBoxExactGlobal, bbExactGlobal)
                     .Add(Durable.Octree.PointCountTreeLeafs, a.PointCountTree + b.PointCountTree)
                     .Add(Durable.Octree.SubnodesGuids, subcells.Map(x => x?.Id ?? Guid.Empty))
                     ;
                 var result = new PointSetNode(data, config.Storage, writeToStore: true);
+
 #if DEBUG
                 if (result.PointCountTree != a.PointCountTree + b.PointCountTree) throw new InvalidOperationException();
-                if (result.PointCountTree != result.Subnodes.Sum(x => x?.Value?.PointCountTree)) throw new InvalidOperationException();
+                if (result.PointCountTree != pointCountTree) throw new InvalidOperationException(
+                    $"Invariant d2957ed7-d12c-461c-ae79-5181a4197654. {result.PointCountTree} != {pointCountTree}."
+                    );
 #endif
                 //pointsMergedCallback?.Invoke(result.PointCountTree);
                 return result;
@@ -572,10 +590,13 @@ namespace Aardvark.Geometry.Points
             var data = ImmutableDictionary<Durable.Def, object>.Empty
                 .Add(Durable.Octree.NodeId, Guid.NewGuid())
                 .Add(Durable.Octree.Cell, rootCell)
+                .Add(Durable.Octree.BoundingBoxExactGlobal, a.BoundingBoxExactGlobal)
                 .Add(Durable.Octree.PointCountTreeLeafs, a.PointCountTree)
                 .Add(Durable.Octree.SubnodesGuids, subcells.Map(x => x?.Id ?? Guid.Empty))
                 ;
+
             var result = new PointSetNode(data, config.Storage, writeToStore: true);
+            
 #if DEBUG
             if (result.PointCountTree != a.PointCountTree) throw new InvalidOperationException("Invariant 13b94065-4eac-4602-bc65-677869178dac.");
 #endif
