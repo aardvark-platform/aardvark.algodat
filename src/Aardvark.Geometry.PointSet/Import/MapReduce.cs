@@ -97,7 +97,7 @@ namespace Aardvark.Geometry.Points
                 var merged = first.Merge(second,
                     n =>
                     {
-                        Console.WriteLine($"[MERGE CALLBACK][{id}] {n:N0}");
+                        //Console.WriteLine($"[MERGE CALLBACK][{id}] {n:N0}");
                         if (n > lastN)
                         {
                             lastN = n;

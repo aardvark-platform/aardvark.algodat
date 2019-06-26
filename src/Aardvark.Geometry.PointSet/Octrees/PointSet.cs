@@ -237,7 +237,7 @@ namespace Aardvark.Geometry.Points
             {
                 var merged = root.Merge(otherRoot, pointsMergedCallback, config);
                 var id = $"{Guid.NewGuid()}.json";
-                return new PointSet(Storage, id, merged.Id, SplitLimit);
+                return new PointSet(Storage, id, merged.Item1.Id, SplitLimit);
             }
             else
             {

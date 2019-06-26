@@ -130,7 +130,7 @@ module CmdLine =
                 .WithVerbose(true)
                 //.WithMaxChunkPointCount(10000000)
                 //.WithMinDist(match args.minDist with | None -> 0.0 | Some x -> x)
-                .WithMinDist(0.01)
+                .WithMinDist(0.005)
                 .WithNormalizePointDensityGlobal(true)
                 
         //match args.k with
