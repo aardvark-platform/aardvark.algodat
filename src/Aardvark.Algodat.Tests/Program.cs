@@ -39,10 +39,10 @@ namespace Aardvark.Geometry.Tests
 
             var chunks = E57
                 .Chunks(filename, config.ParseConfig)
-                //.Take(2)
+                //.Take(10)
                 //.AsParallel()
                 //.Select(x => x.ImmutableFilterMinDistByCell(new Cell(x.BoundingBox), config))
-                ////.Select(x => x.ImmutableFilterSequentialMinDistL1(0.01))
+                //.Select(x => x.ImmutableFilterSequentialMinDistL1(0.01))
                 //.ToArray()
                 ;
             var pc = PointCloud.Chunks(chunks, config);
@@ -122,11 +122,11 @@ namespace Aardvark.Geometry.Tests
             //    })
             //    ;
 
-            chunks = E57.Chunks(filename, config.ParseConfig);
-            var pointcloud = PointCloud.Chunks(chunks, config);
-            Console.WriteLine($"pointcloud.PointCount  : {pointcloud.PointCount}");
-            Console.WriteLine($"pointcloud.Bounds      : {pointcloud.Bounds}");
-            Console.WriteLine($"pointcloud.BoundingBox : {pointcloud.BoundingBox}");
+            //chunks = E57.Chunks(filename, config.ParseConfig);
+            //var pointcloud = PointCloud.Chunks(chunks, config);
+            //Console.WriteLine($"pointcloud.PointCount  : {pointcloud.PointCount}");
+            //Console.WriteLine($"pointcloud.Bounds      : {pointcloud.Bounds}");
+            //Console.WriteLine($"pointcloud.BoundingBox : {pointcloud.BoundingBox}");
 
             //var chunks = E57.Chunks(filename, config);
             //var pointcloud = PointCloud.Chunks(chunks, config);
@@ -265,7 +265,7 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
-            TestLoadOldStore();
+            //TestLoadOldStore();
 
             //new ViewsFilterTests().CanDeletePoints();
 
@@ -274,7 +274,7 @@ namespace Aardvark.Geometry.Tests
 
             //new ImportTests().CanImportChunkWithoutColor();
 
-            //TestE57();
+            TestE57();
 
             //var store = PointCloud.OpenStore(@"G:\cells\3280_5503_0_10\pointcloud");
             //var pc = store.GetPointSet("3280_5503_0_10", default);

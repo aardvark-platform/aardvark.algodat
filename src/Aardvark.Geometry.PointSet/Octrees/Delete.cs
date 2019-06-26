@@ -156,6 +156,12 @@ namespace Aardvark.Geometry.Points
             var pointCountTreeLeafs = newSubnodes != null ? (newSubnodes.Sum(n => n != null ? n.PointCountTree : 0)) : ps.Count;
             data = data.Add(Durable.Octree.PointCountTreeLeafs, pointCountTreeLeafs);
 
+            var bbExactGlobal = root.IsLeaf
+                ? new Box3d(root.PositionsAbsolute)
+                : new Box3d(newSubnodes.Where(x => x != null).Select(x => x.BoundingBoxExactGlobal))
+                ;
+            data = data.Add(Durable.Octree.BoundingBoxExactGlobal, bbExactGlobal);
+
             if (newSubnodes != null)
             {
                 var newSubnodesIds = newSubnodes.Map(x => x?.Id ?? Guid.Empty);

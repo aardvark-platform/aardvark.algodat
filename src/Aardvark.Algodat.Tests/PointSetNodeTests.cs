@@ -62,6 +62,7 @@ namespace Aardvark.Geometry.Tests
                 .Add(Durable.Octree.PositionsLocal3fReference, psId)
                 .Add(Durable.Octree.PointRkdTreeFDataReference, kdId)
                 .Add(Durable.Octree.BoundingBoxExactLocal, new Box3f(ps))
+                .Add(Durable.Octree.BoundingBoxExactGlobal, ((Box3d)new Box3f(ps)) + cell.GetCenter())
                 ;
 
             return new PointSetNode(data, storage, writeToStore: true);
@@ -90,6 +91,7 @@ namespace Aardvark.Geometry.Tests
                 .Add(Durable.Octree.PositionsLocal3fReference, psId)
                 .Add(Durable.Octree.PointRkdTreeFDataReference, kdId)
                 .Add(Durable.Octree.BoundingBoxExactLocal, new Box3f(ps))
+                .Add(Durable.Octree.BoundingBoxExactGlobal, ((Box3d)new Box3f(ps)) + cell.GetCenter())
                 ;
 
             var node = new PointSetNode(data, storage, writeToStore: true);

@@ -147,7 +147,7 @@ namespace Aardvark.Geometry.Points
             var octreeId = (string)json["OctreeId"] ?? (string)json["RootCellId"];
             var octree = octreeId != null
                 ? new PersistentRef<IPointCloudNode>(octreeId, storage.GetPointCloudNode, storage.TryGetPointCloudNode)
-                : null
+                : null 
                 ;
             
             // backwards compatibility: if split limit is not set, guess as number of points in root cell
@@ -158,7 +158,7 @@ namespace Aardvark.Geometry.Points
             var id = (string)json["Id"];
 
             //
-            return new PointSet(storage, id, octree.Value, splitLimit);
+            return new PointSet(storage, id, octree?.Value ?? PointSetNode.Empty, splitLimit);
         }
 
         #endregion
@@ -173,12 +173,12 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Returns true if pointset is empty.
         /// </summary>
-        public bool IsEmpty => Root == null;
+        public bool IsEmpty => Root == null || Root.Id == Guid.Empty.ToString();
 
         /// <summary>
         /// Gets total number of points in dataset.
         /// </summary>
-        public long PointCount => Root?.Value?.PointCountTree ?? 0;
+        public long PointCount => IsEmpty ? 0 : (Root?.Value?.PointCountTree ?? 0);
 
         /// <summary>
         /// Gets bounds of dataset root cell.
@@ -231,7 +231,7 @@ namespace Aardvark.Geometry.Points
         {
             if (other.IsEmpty) return this;
             if (this.IsEmpty) return other;
-            if (this.Storage != other.Storage) throw new InvalidOperationException();
+            if (this.Storage != other.Storage) throw new InvalidOperationException("Invariant 3267c283-3192-438b-a219-821d67ac5061.");
 
             if (Root.Value is PointSetNode root && other.Root.Value is PointSetNode otherRoot)
             {
