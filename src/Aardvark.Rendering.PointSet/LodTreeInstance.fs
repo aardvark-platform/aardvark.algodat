@@ -80,7 +80,7 @@ module LodTreeInstance =
 
 
 
-    type PointTreeNode(cache : LruDictionary<string, obj>, source : Symbol, globalTrafo : Similarity3d, root : Option<PointTreeNode>, parent : Option<PointTreeNode>, level : int, self : IPointCloudNode) as this =
+    type PointTreeNode(pointCloudId : System.Guid, cache : LruDictionary<string, obj>, source : Symbol, globalTrafo : Similarity3d, root : Option<PointTreeNode>, parent : Option<PointTreeNode>, level : int, self : IPointCloudNode) as this =
         static let cmp = Func<float,float,int>(compare)
         
         let globalTrafoTrafo = Trafo3d globalTrafo
@@ -267,6 +267,7 @@ module LodTreeInstance =
         member x.WithPointCloudNode(r : IPointCloudNode) =
             assert(level = 0 && Option.isNone parent)
             PointTreeNode(
+                System.Guid.NewGuid(),
                 cache,
                 source,
                 globalTrafo,
@@ -323,7 +324,7 @@ module LodTreeInstance =
             let pointCountains = Func<_,_>(fun (v : V3d) -> b.Contains(v))
             let n = self.Delete(nodeFullyInside,nodeFullyOutside,pointCountains,self.Storage,CancellationToken.None)
             Log.line "Deleted"
-            PointTreeNode(cache, source, globalTrafo, root, parent, level, n)
+            PointTreeNode(System.Guid.NewGuid(), cache, source, globalTrafo, root, parent, level, n)
 
         member x.Children  =
             match children with
@@ -352,7 +353,7 @@ module LodTreeInstance =
                                                 unbox<ILodTreeNode> n |> Some
                                             | _ -> 
                                                 //Log.warn "alloc %A" id
-                                                PointTreeNode(cache, source, globalTrafo, Some this.Root, Some this, level + 1, c) :> ILodTreeNode |> Some
+                                                PointTreeNode(pointCloudId, cache, source, globalTrafo, Some this.Root, Some this, level + 1, c) :> ILodTreeNode |> Some
                                 )
                         children <- Some c
                         c :> seq<_>
@@ -403,12 +404,14 @@ module LodTreeInstance =
             member x.Acquire() = x.Acquire()
             member x.Release() = x.Release()
 
+        member x.PointCloudId = pointCloudId
+
         override x.GetHashCode() = 
-            HashCode.Combine(x.DataSource.GetHashCode(), self.Id.GetHashCode())
+            HashCode.Combine(pointCloudId.GetHashCode(), x.DataSource.GetHashCode(), self.Id.GetHashCode())
 
         override x.Equals o =
             match o with
-                | :? PointTreeNode as o -> x.DataSource = o.DataSource && self.Id = o.Id
+                | :? PointTreeNode as o -> x.PointCloudId = o.PointCloudId && x.DataSource = o.DataSource && self.Id = o.Id
                 | _ -> false
     
     module IndexedGeometry =
@@ -694,7 +697,7 @@ module LodTreeInstance =
         let bounds = root.Cell.BoundingBox
         let trafo = Similarity3d(1.0, Euclidean3d(Rot3d.Identity, -bounds.Center))
         let source = Symbol.Create sourceName
-        let root = PointTreeNode(store.Cache, source, trafo, None, None, 0, root) :> ILodTreeNode
+        let root = PointTreeNode(System.Guid.NewGuid(), store.Cache, source, trafo, None, None, 0, root) :> ILodTreeNode
 
         let uniforms = MapExt.ofList uniforms
         let uniforms = MapExt.add "Scales" (Mod.constant 1.0 :> IMod) uniforms
@@ -732,7 +735,7 @@ module LodTreeInstance =
 
     let ofPointSet (uniforms : list<string * IMod>) (set : PointSet) =
         let store = set.Storage
-        let root = PointTreeNode(store.Cache, Symbol.CreateNewGuid(), Similarity3d.Identity, None, None, 0, set.Root.Value) :> ILodTreeNode
+        let root = PointTreeNode(System.Guid.NewGuid(), store.Cache, Symbol.CreateNewGuid(), Similarity3d.Identity, None, None, 0, set.Root.Value) :> ILodTreeNode
         let uniforms = MapExt.ofList uniforms
         { 
             root = root
@@ -741,7 +744,7 @@ module LodTreeInstance =
         
     let ofPointCloudNode (uniforms : list<string * IMod>) (root : IPointCloudNode) =
         let store = root.Storage
-        let root = PointTreeNode(store.Cache, Symbol.CreateNewGuid(), Similarity3d.Identity, None, None, 0, root) :> ILodTreeNode
+        let root = PointTreeNode(System.Guid.NewGuid(), store.Cache, Symbol.CreateNewGuid(), Similarity3d.Identity, None, None, 0, root) :> ILodTreeNode
         let uniforms = MapExt.ofList uniforms
         { 
             root = root

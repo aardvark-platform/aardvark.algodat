@@ -169,7 +169,7 @@ module Rendering =
             Trafo3d.Scale(300.0 / overallBounds.Size.NormMax)
 
         let pcs =
-            pcs |> List.map (LodTreeInstance.transform trafo) |> ASet.ofList
+            pcs |> List.map (LodTreeInstance.transform trafo) // |> ASet.ofList
             
         let cfg =
             RenderConfig.toSg win config
@@ -282,7 +282,7 @@ module Rendering =
             )
 
         let afterMain = RenderPass.after "aftermain" RenderPassOrder.Arbitrary RenderPass.main
-        let e = (pcs |> ASet.toMod |> Mod.force |> Seq.head)
+        let e = pcs |> Seq.head
         //let c = V3d (e.root :?> Aardvark.Rendering.PointSet.LodTreeInstance.PointTreeNode).Original.CentroidLocal + e.root.Cell.BoundingBox.Center
         let c = (e.root :?> Aardvark.Rendering.PointSet.LodTreeInstance.PointTreeNode).Original.Cell.BoundingBox.Center
         let haha = 
@@ -320,33 +320,17 @@ module Rendering =
         let reset = Mod.init 0 
 
         let pcs = 
-            pcs
-            |> ASet.toMod
-            |> Mod.map2 ( fun i pcs -> 
-                pcs |> HRefSet.collect ( fun e -> 
+            let a = pcs |> HRefSet.ofList
+            let b = 
+                pcs |> List.map (fun p ->
                     let box = Box3d.FromCenterAndSize(c, e.root.WorldCellBoundingBox.Size * 7.45)
-                    let res = 
-                        if i%2 = 3 then
-                            Log.line "PC: empty"
-                            HRefSet.empty
-                        elif i%2 = 1 then
-                            Log.line "PC: normal"
-                            HRefSet.single e
-                        elif i%2 = 0 then  
-                            Log.line "PC: deleted"
-                            let d = (e.root :?> Aardvark.Rendering.PointSet.LodTreeInstance.PointTreeNode).Delete(box) :> ILodTreeNode
-                            HRefSet.single ({ e with root = d })
-                        //else
-                        //    let d = (e.root :?> Aardvark.Rendering.PointSet.LodTreeInstance.PointTreeNode).Delete(box) :> ILodTreeNode
-                        //    [|
-                        //        e
-                        //        { e with root = d}
-                        //    |] |> HRefSet.ofArray
-                        else
-                            failwith ""
-                    res
-                )
-            ) reset
+                    let d = (e.root :?> Aardvark.Rendering.PointSet.LodTreeInstance.PointTreeNode).Delete(box) :> ILodTreeNode
+                    { e with root = d }
+                ) |> HRefSet.ofList
+            reset |> Mod.map (fun i -> 
+                if i % 2 = 0 then a 
+                else b
+            )
             |> ASet.ofMod
 
         let sg =
