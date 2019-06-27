@@ -84,14 +84,14 @@ module LodTreeInstance =
         static let cmp = Func<float,float,int>(compare)
         
         let globalTrafoTrafo = Trafo3d globalTrafo
-        let worldBounds = self.BoundingBoxExactGlobal
-        let worldCellBounds = self.BoundingBoxExactGlobal
-        let localBounds = worldBounds.Transformed(globalTrafoTrafo)
-        let localCellBounds = worldCellBounds.Transformed(globalTrafoTrafo)
         let cell = self.Cell
         let isLeaf = self.IsLeaf
         let id = self.Id
         let scale = globalTrafo.Scale
+        let worldCellBounds = cell.BoundingBox
+        let localCellBounds = worldCellBounds.Transformed(globalTrafoTrafo)
+        let worldBounds = worldCellBounds
+        let localBounds = worldBounds.Transformed(globalTrafoTrafo)
 
         //let mutable refCount = 0
         //let mutable livingChildren = 0
