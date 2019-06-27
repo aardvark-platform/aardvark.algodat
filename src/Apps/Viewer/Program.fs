@@ -12,7 +12,7 @@ open Aardvark.Algodat.App.Viewer
 let main args =  
 
     //import @"D:\pts\JBs_Haus.pts"  @"D:\store" "innenscan" (Args.parse [||])
-    view @"D:\store" "innenscan" (Args.parse [||])
+    view @"D:\store_old" "770ed498-5544-4313-9873-5449f2bd823e" (Args.parse [||])
 
     //let args = Args.parse args
     
