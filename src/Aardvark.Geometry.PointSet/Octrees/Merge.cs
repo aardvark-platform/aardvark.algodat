@@ -73,6 +73,12 @@ namespace Aardvark.Geometry.Points
                 var js = new List<int>();
                 var ks = new List<byte>();
                 var leaves = CollectEverything(self, ps, cs, ns, js, ks);
+
+                if(ps.Any(p => !self.BoundingBoxExactGlobal.Contains(p)))
+                {
+                    Report.Warn("bad");
+                }
+
                 if (leaves <= 1)
                 {
                     return (self.WriteToStore(), true);
@@ -105,6 +111,10 @@ namespace Aardvark.Geometry.Points
             }
             else
             {
+                if (self.Subnodes.Where(n => n != null).Any(n => !(self.BoundingBoxExactGlobal.Contains(n.Value.BoundingBoxExactGlobal))))
+                {
+                    Report.Warn("bad");
+                }
                 return (self.WriteToStore(), true);
             }
         }
@@ -620,7 +630,7 @@ namespace Aardvark.Geometry.Points
                 }
 
                 var pointCountTree = subcells.Sum(x => x?.PointCountTree);
-                var bbExactGlobal = new Box3d(a.BoundingBoxExactGlobal, b.BoundingBoxExactGlobal);
+                var bbExactGlobal = new Box3d(subcells.Where(x => x != null).Select(x => x.BoundingBoxExactGlobal));
 
                 var data = ImmutableDictionary<Durable.Def, object>.Empty
                     .Add(Durable.Octree.NodeId, Guid.NewGuid())
@@ -804,6 +814,7 @@ namespace Aardvark.Geometry.Points
             var result = a
                 .WithUpsert(Durable.Octree.PointCountTreeLeafs, pointCountTree)
                 .WithUpsert(Durable.Octree.SubnodesGuids, subcells.Map(x => x?.Id ?? Guid.Empty))
+                .WithUpsert(Durable.Octree.BoundingBoxExactGlobal, new Box3d(subcells.Where(n => n != null).Select(n => n.BoundingBoxExactGlobal)))
                 .CollapseLeafNodes(config).Item1
                 ;
 
