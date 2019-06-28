@@ -12,7 +12,7 @@ nuget Aardvark.Base.IO                  ~> 4.5.2
 nuget Aardvark.Base.Rendering           ~> 4.9.0
 nuget Aardvark.SceneGraph               ~> 4.9.0
 
-nuget Aardvark.Data.Durable             ~> 0.0.9
+nuget Aardvark.Data.Durable             ~> 0.0.10
 
 // 3rd-party
 #nuget Crc32C.NET                       ~> 1.0.5

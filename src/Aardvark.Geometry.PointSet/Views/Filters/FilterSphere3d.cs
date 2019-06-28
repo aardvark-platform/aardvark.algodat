@@ -8,7 +8,7 @@ using Newtonsoft.Json.Linq;
 namespace Aardvark.Geometry.Points
 {
     /// <summary></summary>
-    public class FilterInsideSphere3d : IFilter
+    public class FilterInsideSphere3d : ISpatialFilter
     {
         private readonly Sphere3d m_sphere;
         private readonly double m_radiusSquared;
@@ -51,15 +51,26 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
+        public bool IsFullyInside(Box3d box)
+        {
+            return box.ComputeCorners().TrueForAll(Contains);
+        }
+        /// <summary></summary>
         public bool IsFullyInside(IPointCloudNode node)
         {
-            return node.BoundingBoxExactGlobal.ComputeCorners().TrueForAll(Contains);
+            return IsFullyInside(node.BoundingBoxExactGlobal);
+        }
+
+        /// <summary></summary>
+        public bool IsFullyOutside(Box3d box)
+        {
+            return !box.Intersects(m_sphere);
         }
 
         /// <summary></summary>
         public bool IsFullyOutside(IPointCloudNode node)
         {
-            return !node.BoundingBoxExactGlobal.Intersects(m_sphere);
+            return IsFullyOutside(node.BoundingBoxExactGlobal);
         }
 
         /// <summary></summary>

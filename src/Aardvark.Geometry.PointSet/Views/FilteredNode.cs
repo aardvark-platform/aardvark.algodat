@@ -15,7 +15,6 @@ using Aardvark.Base;
 using Aardvark.Data;
 using Aardvark.Data.Points;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -48,7 +47,14 @@ namespace Aardvark.Geometry.Points
             Id = id;
             Node = node ?? throw new ArgumentNullException(nameof(node));
             Filter = filter ?? throw new ArgumentNullException(nameof(filter));
-            m_activePoints = Filter.FilterPoints(Node, m_activePoints);
+            if (filter.IsFullyInside(this)) { m_activePoints = null; }
+            else if (filter.IsFullyOutside(this)) { m_activePoints = new HashSet<int>(); }
+            else
+            {
+                
+                m_activePoints = Filter.FilterPoints(Node, m_activePoints);
+                if(m_activePoints.Count == 0) { Console.WriteLine("asfas"); }
+            }
         }
 
         /// <summary></summary>
@@ -86,8 +92,22 @@ namespace Aardvark.Geometry.Points
                 .Add(Octree.NodeId, newId)
                 .Add(Octree.Cell, Cell)
                 .Add(Octree.BoundingBoxExactLocal, BoundingBoxExactLocal)
-                .Add(Octree.BoundingBoxExactGlobal, BoundingBoxExactGlobal)
                 ;
+
+            if (IsLeaf)
+            {
+                data = data.Add(Octree.BoundingBoxExactGlobal, BoundingBoxExactGlobal);
+            }
+            else
+            {
+                var subnodes = Subnodes.Map(x => x?.Value.Materialize());
+                var subnodeIds = subnodes.Map(x => x?.Id ?? Guid.Empty);
+                var bbExactGlobal = new Box3d(subnodes.Where(x => x != null).Select(x => x.BoundingBoxExactGlobal));
+                data = data
+                    .Add(Octree.SubnodesGuids, subnodeIds)
+                    .Add(Octree.BoundingBoxExactGlobal, bbExactGlobal)
+                    ;
+            }
 
             if (HasPositions)
             {
@@ -131,34 +151,6 @@ namespace Aardvark.Geometry.Points
                 data = data.Add(Octree.Intensities1iReference, id);
             }
 
-            if (HasCentroidLocal)
-            {
-                data = data.Add(Octree.PositionsLocal3fCentroid, Positions.Value.ComputeCentroid());
-                throw new NotImplementedException();
-            }
-            if (HasCentroidLocalAverageDist)
-            {
-                data = data.Add(Octree.PositionsLocal3fDistToCentroidAverage, CentroidLocalAverageDist);
-                throw new NotImplementedException();
-            }
-            if (HasCentroidLocalStdDev)
-            {
-                data = data.Add(Octree.PositionsGlobal3dDistToCentroidStdDev, CentroidLocalStdDev);
-                throw new NotImplementedException();
-            }
-
-            if (HasMinTreeDepth)
-            {
-                data = data.Add(Octree.MinTreeDepth, MinTreeDepth);
-                throw new NotImplementedException();
-            }
-
-            if (HasMaxTreeDepth)
-            {
-                data = data.Add(Octree.MaxTreeDepth, MaxTreeDepth);
-                throw new NotImplementedException();
-            }
-
             var result = new PointSetNode(data, Storage, writeToStore: true);
             return result;
         }
@@ -190,10 +182,45 @@ namespace Aardvark.Geometry.Points
                     m_subnodes_cache = new PersistentRef<IPointCloudNode>[8];
                     for (var i = 0; i < 8; i++)
                     {
-                        var id = (Id + "." + i).ToGuid();
-                        var n0 = Node.Subnodes[i]?.Value;
-                        var n = n0 != null ? new FilteredNode(id, n0, Filter) : null;
-                        m_subnodes_cache[i] = new PersistentRef<IPointCloudNode>(id.ToString(), _ => n, _ => (true, n));
+                        var subCell = Cell.GetOctant(i);
+
+                        var spatial = Filter as ISpatialFilter;
+
+                        if (spatial != null && spatial.IsFullyInside(subCell.BoundingBox))
+                        {
+                            m_subnodes_cache[i] = Node.Subnodes[i];
+                        }
+                        else if (spatial != null && spatial.IsFullyOutside(subCell.BoundingBox))
+                        {
+                            m_subnodes_cache[i] = null;
+                        }
+                        else
+                        {
+                            var id = (Id + "." + i).ToGuid();
+                            var n0 = Node.Subnodes[i]?.Value;
+                            if (n0 != null)
+                            {
+                                if (spatial != null && spatial.IsFullyInside(n0.BoundingBoxExactGlobal))
+                                {
+                                    m_subnodes_cache[i] = Node.Subnodes[i];
+                                }
+                                else if (spatial != null && spatial.IsFullyOutside(n0.BoundingBoxExactGlobal))
+                                {
+                                    m_subnodes_cache[i] = null;
+                                }
+                                else if (n0 != null)
+                                {
+                                    var n = new FilteredNode(id, n0, Filter);
+                                    m_subnodes_cache[i] = new PersistentRef<IPointCloudNode>(id.ToString(), _ => n, _ => (true, n));
+                                }
+                            }
+                            else
+                            {
+                                m_subnodes_cache[i] = null;
+                            }
+                        }
+
+
                     }
                 }
                 return m_subnodes_cache;
@@ -201,7 +228,7 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public int PointCountCell => m_activePoints.Count;
+        public int PointCountCell => m_activePoints == null ? Node.PointCountCell : m_activePoints.Count;
 
         /// <summary></summary>
         public bool IsLeaf => Node.IsLeaf;
@@ -404,6 +431,8 @@ namespace Aardvark.Geometry.Points
             if (m_cache.TryGetValue(def.Id, out var o) && o is PersistentRef<T[]> x) return x;
 
             if (originalValue == null) return null;
+            if (m_activePoints == null) return originalValue;
+
             var key = (Id + originalValue.Id).ToGuid().ToString();
             var xs = originalValue.Value.Where((_, i) => m_activePoints.Contains(i)).ToArray();
             var result = new PersistentRef<T[]>(key, _ => xs, _ => (true, xs));
@@ -457,6 +486,7 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public IPointCloudNode WriteToStore()
         {
+            this.CheckDerivedAttributes();
             var buffer = Encode();
             Storage.Add(Id, buffer);
             return this;

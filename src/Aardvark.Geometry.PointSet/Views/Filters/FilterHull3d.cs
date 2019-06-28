@@ -8,7 +8,7 @@ namespace Aardvark.Geometry.Points
 {
     /// <summary>
     /// </summary>
-    public class FilterInsideConvexHull3d : IFilter
+    public class FilterInsideConvexHull3d : ISpatialFilter
     {
         /// <summary></summary>
         public const string Type = "FilterInsideBox3d";
@@ -20,10 +20,16 @@ namespace Aardvark.Geometry.Points
         public FilterInsideConvexHull3d(Hull3d filter) { Hull = filter; }
 
         /// <summary></summary>
-        public bool IsFullyInside(IPointCloudNode node) => Hull.Contains(node.BoundingBoxExactGlobal);
+        public bool IsFullyInside(Box3d box) => Hull.Contains(box);
 
         /// <summary></summary>
-        public bool IsFullyOutside(IPointCloudNode node) => !Hull.Intersects(node.BoundingBoxExactGlobal);
+        public bool IsFullyOutside(Box3d box) => !Hull.Intersects(box);
+
+        /// <summary></summary>
+        public bool IsFullyInside(IPointCloudNode node) => IsFullyInside(node.BoundingBoxExactGlobal);
+
+        /// <summary></summary>
+        public bool IsFullyOutside(IPointCloudNode node) => IsFullyOutside(node.BoundingBoxExactGlobal);
 
         /// <summary></summary>
         public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int> selected = null)

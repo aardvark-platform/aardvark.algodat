@@ -13,11 +13,13 @@
 */
 using Aardvark.Base;
 using Aardvark.Base.Coder;
+using Aardvark.Data;
 using Aardvark.Data.Points;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using Uncodium.SimpleStore;
 
@@ -438,7 +440,38 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
+        public static PointRkdTreeFData GetPointRkdTreeFDataFromD(this Storage storage, string key)
+        {
+            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (PointRkdTreeFData)o;
+
+            var buffer = storage.f_get(key);
+            if (buffer == null) return default;
+            var data0 = Codec.BufferToPointRkdTreeDData(buffer);
+            var data = new PointRkdTreeFData
+            {
+                AxisArray = data0.AxisArray,
+                PermArray = data0.PermArray,
+                RadiusArray = data0.RadiusArray.Map(x => (float)x)
+            };
+            if (storage.HasCache) storage.Cache.Add(key, data, buffer.Length, onRemove: default);
+            return data;
+        }
+
+        /// <summary></summary>
         public static (bool, PointRkdTreeFData) TryGetPointRkdTreeFData(this Storage storage, string key)
+        {
+            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
+            {
+                return (true, (PointRkdTreeFData)o);
+            }
+            else
+            {
+                return (false, default);
+            }
+        }
+
+        /// <summary></summary>
+        public static (bool, PointRkdTreeFData) TryGetPointRkdTreeFDataFromD(this Storage storage, string key)
         {
             if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
             {
@@ -547,13 +580,30 @@ namespace Aardvark.Geometry.Points
             var buffer = storage.f_get(key);
             if (buffer == null) throw new InvalidOperationException("Invariant 5127bd96-2137-4fd6-bbf1-2073f9b346c3.");
 
-            var data = PointSetNode.Decode(storage, buffer);
-            if (key != data.Id.ToString()) throw new InvalidOperationException("Invariant 32554e4b-1e53-4e30-8b3c-c218c5b63c46.");
+            try
+            {
+                var guid = new Guid(buffer.TakeToArray(16));
+                if (guid == Durable.Octree.Node.Id)
+                {
+                    var data = PointSetNode.Decode(storage, buffer);
+                    if (key != data.Id.ToString()) throw new InvalidOperationException("Invariant 32554e4b-1e53-4e30-8b3c-c218c5b63c46.");
 
-            if (storage.HasCache) storage.Cache.Add(
-                key, data, buffer.Length, onRemove: default
-                );
-            return data;
+                    if (storage.HasCache) storage.Cache.Add(
+                        key, data, buffer.Length, onRemove: default
+                        );
+                    return data;
+                }
+                else
+                {
+                    return ObsoleteNodeParser.Parse(storage, buffer);
+                }
+            }
+            catch //(Exception e)
+            {
+                //Report.Warn("Failed to decode PointSetNode. Maybe obsolete format?");
+                //Report.Warn($"{e}");
+                return ObsoleteNodeParser.Parse(storage, buffer);
+            }
         }
 
         /// <summary></summary>

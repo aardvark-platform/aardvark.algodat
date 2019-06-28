@@ -21,6 +21,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 
@@ -31,6 +32,25 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public class PointSetNode : IPointCloudNode
     {
+        public static readonly PointSetNode Empty = new PointSetNode(
+            null, writeToStore: false,
+            (Durable.Octree.NodeId, Guid.Empty),
+            (Durable.Octree.Cell, Cell.Unit),
+            (Durable.Octree.BoundingBoxExactLocal, Box3f.Unit - new V3f(0.5f)),
+            (Durable.Octree.BoundingBoxExactGlobal, Box3d.Unit),
+            (Durable.Octree.PointCountCell, 0),
+            (Durable.Octree.PointCountTreeLeafs, 0L),
+            (Durable.Octree.PositionsLocal3fReference, Guid.Empty),
+            (Durable.Octree.PointRkdTreeFDataReference, Guid.Empty),
+            (Durable.Octree.PositionsLocal3fCentroid, V3f.Zero),
+            (Durable.Octree.PositionsLocal3fDistToCentroidAverage, 0.0f),
+            (Durable.Octree.PositionsLocal3fDistToCentroidStdDev, 0.0f),
+            (Durable.Octree.AveragePointDistance, 0.0f),
+            (Durable.Octree.AveragePointDistanceStdDev, 0.0f),
+            (Durable.Octree.MinTreeDepth, 0),
+            (Durable.Octree.MaxTreeDepth, 0)
+            );
+
         #region Construction
 
         /// <summary>
@@ -52,45 +72,41 @@ namespace Aardvark.Geometry.Points
             Storage storage, bool writeToStore
             )
         {
-            if (!data.ContainsKey(Durable.Octree.NodeId)) throw new ArgumentException("Missing Durable.Octree.NodeId.");
-            if (!data.ContainsKey(Durable.Octree.Cell)) throw new ArgumentException("Missing Durable.Octree.Cell.");
+            if (!data.ContainsKey(Durable.Octree.NodeId)) throw new ArgumentException(
+                "Missing Durable.Octree.NodeId. Invariant a14a3d76-36cd-430b-b160-42d7a53f916d."
+                );
 
-            Data = data;
+            if (!data.ContainsKey(Durable.Octree.Cell)) throw new ArgumentException(
+                "Missing Durable.Octree.Cell. Invariant f6f13915-c254-4d88-b60f-5e673c13ef59."
+                );
+
+            //if (!data.ContainsKey(Durable.Octree.PointCountTreeLeafs)) throw new ArgumentException(
+            //    "Missing Durable.Octree.PointCountTreeLeafs. Invariant 9c764d4b-569e-4bd7-a839-add0df63cc13."
+            //    );
+
+            //if (!data.ContainsKey(Durable.Octree.BoundingBoxExactGlobal)) throw new ArgumentException(
+            //    "Missing Durable.Octree.BoundingBoxExactGlobal. Invariant b51fc1e8-5698-47a7-acba-4fd7aec8bfda."
+            //    );
+
+            var isObsoleteFormat = data.ContainsKey(Durable.Octree.PointRkdTreeDDataReference);
+
             Storage = storage;
+            Data = data;
+
             var bboxCell = Cell.BoundingBox;
             Center = bboxCell.Center;
             Corners = bboxCell.ComputeCorners();
 
-            Report.Warn($"new PointSetNode({Id})");
-
-            var psId = PositionsId;
-            var csId = ColorsId;
-            var kdId = KdTreeId;
-            var nsId = NormalsId;
-            var isId = IntensitiesId;
-            var ksId = ClassificationsId;
-
-            if (psId != null) PersistentRefs[Durable.Octree.PositionsLocal3fReference] = new PersistentRef<V3f[]>(psId.ToString(), storage.GetV3fArray, storage.TryGetV3fArray);
-            if (csId != null) PersistentRefs[Durable.Octree.Colors4bReference] = new PersistentRef<C4b[]>(csId.ToString(), storage.GetC4bArray, storage.TryGetC4bArray);
-            if (kdId != null) PersistentRefs[Durable.Octree.PointRkdTreeFDataReference] = new PersistentRef<PointRkdTreeF<V3f[], V3f>>(kdId.ToString(), LoadKdTree, TryLoadKdTree);
-            if (nsId != null) PersistentRefs[Durable.Octree.Normals3fReference] = new PersistentRef<V3f[]>(nsId.ToString(), storage.GetV3fArray, storage.TryGetV3fArray);
-            if (isId != null) PersistentRefs[Durable.Octree.Intensities1iReference] = new PersistentRef<int[]>(isId.ToString(), storage.GetIntArray, storage.TryGetIntArray);
-            if (ksId != null) PersistentRefs[Durable.Octree.Classifications1bReference] = new PersistentRef<byte[]>(ksId.ToString(), storage.GetByteArray, storage.TryGetByteArray);
-
-            if (HasPositions)
+#if DEBUG
+            if (isObsoleteFormat)
             {
-                var bboxExactLocal = Positions.Value.Length > 0
-                    ? (HasBoundingBoxExactLocal ? BoundingBoxExactLocal : new Box3f(Positions.Value))
-                    : (new Box3f(Cell.BoundingBox - Cell.GetCenter()))
-                    ;
-                Data = Data.Add(Durable.Octree.BoundingBoxExactLocal, bboxExactLocal);
-
-                if (!HasBoundingBoxExactGlobal && IsLeaf)
-                {
-                    var bboxExactGlobal = (Box3d)bboxExactLocal + Center;
-                    Data = Data.Add(Durable.Octree.BoundingBoxExactGlobal, bboxExactGlobal);
-                }
+                Report.Line($"new PointSetNode({Id}), obsolete format");
             }
+
+            //if (IsNotLeaf && Has(Durable.Octree.PointCountCell) && PointCountCell > 0) Debugger.Break();
+#endif
+
+            #region Subnodes
 
             if (Data.TryGetValue(Durable.Octree.SubnodesGuids, out object o) && o is Guid[] subNodeIds)
             {
@@ -101,44 +117,270 @@ namespace Aardvark.Geometry.Points
                     var pRef = new PersistentRef<IPointCloudNode>(subNodeIds[i].ToString(), storage.GetPointCloudNode, storage.TryGetPointCloudNode);
                     Subnodes[i] = pRef;
                 }
+            }
+
+            #endregion
+
+            #region Per-point attributes
+
+            var psId = PositionsId;
+            var csId = ColorsId;
+            var kdId = KdTreeId;
+            var nsId = NormalsId;
+            var isId = IntensitiesId;
+            var ksId = ClassificationsId;
+
+            if (psId != null) PersistentRefs[Durable.Octree.PositionsLocal3fReference] = new PersistentRef<V3f[]>(psId.ToString(), storage.GetV3fArray, storage.TryGetV3fArray);
+            if (csId != null) PersistentRefs[Durable.Octree.Colors4bReference] = new PersistentRef<C4b[]>(csId.ToString(), storage.GetC4bArray, storage.TryGetC4bArray);
+            if (kdId != null)
+            {
+                if (isObsoleteFormat)
+                {
+                    PersistentRefs[Durable.Octree.PointRkdTreeFDataReference] =
+                        new PersistentRef<PointRkdTreeF<V3f[], V3f>>(kdId.ToString(), LoadKdTreeObsolete, TryLoadKdTreeObsolete)
+                        ;
+                }
+                else
+                {
+                    PersistentRefs[Durable.Octree.PointRkdTreeFDataReference] =
+                        new PersistentRef<PointRkdTreeF<V3f[], V3f>>(kdId.ToString(), LoadKdTree, TryLoadKdTree)
+                        ;
+                }
+            }
+            if (nsId != null) PersistentRefs[Durable.Octree.Normals3fReference] = new PersistentRef<V3f[]>(nsId.ToString(), storage.GetV3fArray, storage.TryGetV3fArray);
+            if (isId != null) PersistentRefs[Durable.Octree.Intensities1iReference] = new PersistentRef<int[]>(isId.ToString(), storage.GetIntArray, storage.TryGetIntArray);
+            if (ksId != null) PersistentRefs[Durable.Octree.Classifications1bReference] = new PersistentRef<byte[]>(ksId.ToString(), storage.GetByteArray, storage.TryGetByteArray);
+
+            #endregion
+
+            #region Durable.Octree.BoundingBoxExactLocal, Durable.Octree.BoundingBoxExactGlobal
+
+            if (HasPositions && (!HasBoundingBoxExactLocal || !HasBoundingBoxExactGlobal))
+            {
+                var bboxExactLocal = Positions.Value.Length > 0
+                    ? (HasBoundingBoxExactLocal ? BoundingBoxExactLocal : new Box3f(Positions.Value))
+                    : Box3f.Invalid
+                    ;
+
+                if (!HasBoundingBoxExactLocal)
+                {
+                    Data = Data.Add(Durable.Octree.BoundingBoxExactLocal, bboxExactLocal);
+                }
 
                 if (!HasBoundingBoxExactGlobal)
                 {
-                    var bboxExactGlobal = new Box3d(Subnodes.Where(x => x != null).Select(x =>
+                    if (IsLeaf)
                     {
-                        Report.Warn($"[foo] {x.Id}");
-                        return x.Value.BoundingBoxExactGlobal;
-                    })) ;
-                    Data = Data.Add(Durable.Octree.BoundingBoxExactGlobal, bboxExactGlobal);
+                        var bboxExactGlobal = (Box3d)bboxExactLocal + Center;
+                        Data = Data.Add(Durable.Octree.BoundingBoxExactGlobal, bboxExactGlobal);
+                    }
+                    else
+                    {
+                        if (isObsoleteFormat)
+                        {
+                            var bboxExactGlobal = Cell.BoundingBox;
+                            Data = Data.Add(Durable.Octree.BoundingBoxExactGlobal, bboxExactGlobal);
+                        }
+                        else
+                        {
+                            var bboxExactGlobal = new Box3d(Subnodes.Where(x => x != null).Select(x => x.Value.BoundingBoxExactGlobal));
+                            Data = Data.Add(Durable.Octree.BoundingBoxExactGlobal, bboxExactGlobal);
+                        }
+                    }
                 }
             }
 
-            if (!Data.ContainsKey(Durable.Octree.PointCountCell))
+            #endregion
+
+            #region Durable.Octree.PointCountCell
+
+            if (!Has(Durable.Octree.PointCountCell))
             {
-                //Report.Warn("Missing Durable.Octree.PointCountCell.");
                 Data = Data.Add(Durable.Octree.PointCountCell, HasPositions ? Positions.Value.Length : 0);
             }
 
-            if (IsLeaf && PointCountCell != PointCountTree) throw new InvalidOperationException("Invariant 9464f38c-dc98-4d68-a8ac-0baed9f182b4.");
-            if (IsLeaf && !data.ContainsKey(Durable.Octree.PositionsLocal3fReference)) throw new ArgumentException("Missing Durable.Octree.PositionsLocal3fReference.");
+            #endregion
 
+            #region Durable.Octree.PointCountTreeLeafs
+
+            if (!Has(Durable.Octree.PointCountTreeLeafs))
+            {
+                if (IsLeaf)
+                {
+                    Data = Data.Add(Durable.Octree.PointCountTreeLeafs, (long)PointCountCell);
+                }
+                else
+                {
+                    Data = Data.Add(Durable.Octree.PointCountTreeLeafs, Subnodes.Where(x => x != null).Sum(x => x.Value.PointCountTree));
+                }
+            }
+
+            #endregion
+
+            #region Centroid*
+
+            if (HasPositions && (!HasCentroidLocal || !HasCentroidLocalAverageDist || !HasCentroidLocalStdDev))
+            {
+                if (isObsoleteFormat)
+                {
+                    var a = Cell.BoundingBox.Size.Length / 2.0;
+                    Data = Data.Add(Durable.Octree.PositionsLocal3fCentroid, V3f.Zero);
+                    Data = Data.Add(Durable.Octree.PositionsLocal3fDistToCentroidAverage, a);
+                    Data = Data.Add(Durable.Octree.PositionsLocal3fDistToCentroidStdDev, a);
+                }
+                else
+                {
+                    var ps = Positions.Value;
+                    var centroid = ps.ComputeCentroid();
+
+                    if (!HasCentroidLocal)
+                    {
+                        Data = Data.Add(Durable.Octree.PositionsLocal3fCentroid, centroid);
+                    }
+
+                    var dists = ps.Map(p => (p - centroid).Length);
+                    var (avg, sd) = dists.ComputeAvgAndStdDev();
+
+                    if (!HasCentroidLocalAverageDist)
+                    {
+                        Data = Data.Add(Durable.Octree.PositionsLocal3fDistToCentroidAverage, avg);
+                    }
+
+                    if (!HasCentroidLocalStdDev)
+                    {
+                        Data = Data.Add(Durable.Octree.PositionsLocal3fDistToCentroidStdDev, sd);
+                    }
+                }
+            }
+            #endregion
+
+            #region TreeDepth*
+
+            if (!HasMinTreeDepth || !HasMaxTreeDepth)
+            {
+                if (IsLeaf)
+                {
+                    if (!HasMinTreeDepth)
+                    {
+                        Data = Data.Add(Durable.Octree.MinTreeDepth, 0);
+                    }
+                    if (!HasMaxTreeDepth)
+                    {
+                        Data = Data.Add(Durable.Octree.MaxTreeDepth, 0);
+                    }
+                }
+                else
+                {
+                    if (isObsoleteFormat)
+                    {
+                        Data = Data.Add(Durable.Octree.MinTreeDepth, 0);
+                        Data = Data.Add(Durable.Octree.MaxTreeDepth, 0);
+                    }
+                    else
+                    {
+                        var min = 1;
+                        var max = 0;
+                        for (var i = 0; i < 8; i++)
+                        {
+                            var r = Subnodes[i];
+                            if (r == null) continue;
+                            var n = r.Value;
+                            min = Math.Min(min, 1 + n.MinTreeDepth);
+                            max = Math.Max(max, 1 + n.MaxTreeDepth);
+                        }
+                        if (!HasMinTreeDepth)
+                        {
+                            Data = Data.Add(Durable.Octree.MinTreeDepth, min);
+                        }
+                        if (!HasMaxTreeDepth)
+                        {
+                            Data = Data.Add(Durable.Octree.MaxTreeDepth, max);
+                        }
+                    }
+                }
+            }
+
+            #endregion
+
+            #region PointDistance*
+
+            if (HasPositions && (!HasPointDistanceAverage || !HasPointDistanceStandardDeviation))
+            {
+                if (isObsoleteFormat)
+                {
+                    Data = Data.Add(Durable.Octree.AveragePointDistance, 0.0f);
+                    Data = Data.Add(Durable.Octree.AveragePointDistanceStdDev, 0.0f);
+                }
+                else
+                {
+                    var ps = Positions.Value;
+                    var kd = KdTree.Value;
+                    if (ps.Length < 2)
+                    {
+                        if (!HasPointDistanceAverage)
+                        {
+                            Data = Data.Add(Durable.Octree.AveragePointDistance, 0.0f);
+                        }
+                        if (!HasPointDistanceStandardDeviation)
+                        {
+                            Data = Data.Add(Durable.Octree.AveragePointDistanceStdDev, 0.0f);
+                        }
+                    }
+                    else if (ps.Length == 3)
+                    {
+                        var d = V3f.Distance(ps[0], ps[1]);
+                        if (!HasPointDistanceAverage)
+                        {
+                            Data = Data.Add(Durable.Octree.AveragePointDistance, d);
+                        }
+                        if (!HasPointDistanceStandardDeviation)
+                        {
+                            Data = Data.Add(Durable.Octree.AveragePointDistanceStdDev, 0.0f);
+                        }
+                    }
+                    else
+                    {
+                        var indexDists = ps.Map(p => kd.GetClosest(p, float.MaxValue, 2));
+                        var ds = indexDists.Map(x => V3f.Distance(ps[x[0].Index], ps[x[1].Index]));
+                        var (avg, sd) = ds.ComputeAvgAndStdDev();
+                        if (!HasPointDistanceAverage)
+                        {
+                            Data = Data.Add(Durable.Octree.AveragePointDistance, avg);
+                        }
+                        if (!HasPointDistanceStandardDeviation)
+                        {
+                            Data = Data.Add(Durable.Octree.AveragePointDistanceStdDev, sd);
+                        }
+                    }
+                }
+            }
+
+            #endregion
 
             if (writeToStore)
             {
-                Report.Warn($"[writeToStore] {Id}");
+                //Report.Warn($"[writeToStore] {Id}");
                 WriteToStore();
             }
 
 #if DEBUG
-            if (PositionsId == null && PointCountCell != 0) throw new InvalidOperationException();
-#if PEDANTIC
-            if (PositionsId != null && Positions.Value.Length != PointCount) throw new InvalidOperationException();
-#endif
             if (IsLeaf)
             {
-                if (PositionsId == null) throw new InvalidOperationException();
-                if (KdTreeId == null) throw new InvalidOperationException();
+                if (PointCountCell != PointCountTree)
+                    throw new InvalidOperationException("Invariant 9464f38c-dc98-4d68-a8ac-0baed9f182b4.");
+
+                if (!Has(Durable.Octree.PositionsLocal3fReference))
+                    throw new ArgumentException("Invariant 663c45a4-1286-45ba-870c-fb4ceebdf318.");
+
+                if (PositionsId == null)
+                    throw new InvalidOperationException("Invariant ba64ffe9-ada4-4fff-a4e9-0916c1cc9992.");
+
+                if (KdTreeId == null)
+                    throw new InvalidOperationException("Invariant 606e8a7b-6e75-496a-bc2a-dfbe6e2c9b10.");
             }
+#endif
+#if PEDANTIC
+            if (PositionsId != null && Positions.Value.Length != PointCount) throw new InvalidOperationException("Invariant 926ca077-845d-44ba-a1db-07dfe06e7cc3.");
 #endif
 
             PointRkdTreeF<V3f[], V3f> LoadKdTree(string key)
@@ -167,6 +409,33 @@ namespace Aardvark.Geometry.Points
                     value
                     ));
             }
+
+            PointRkdTreeF<V3f[], V3f> LoadKdTreeObsolete(string key)
+            {
+                var value = Storage.GetPointRkdTreeFDataFromD(key);
+                var ps = Positions.Value;
+                return new PointRkdTreeF<V3f[], V3f>(
+                    3, ps.Length, ps,
+                    (xs, i) => xs[(int)i], (v, i) => (float)v[i],
+                    (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
+                    (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, 1e-6f,
+                    value
+                    );
+            }
+
+            (bool, PointRkdTreeF<V3f[], V3f>) TryLoadKdTreeObsolete(string key)
+            {
+                var (ok, value) = Storage.TryGetPointRkdTreeFDataFromD(key);
+                if (ok == false) return (false, default);
+                var ps = Positions.Value;
+                return (true, new PointRkdTreeF<V3f[], V3f>(
+                    3, ps.Length, ps,
+                    (xs, i) => xs[(int)i], (v, i) => (float)v[i],
+                    (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
+                    (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, 1e-6f,
+                    value
+                    ));
+            }
         }
 
         /// <summary>
@@ -174,6 +443,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public IPointCloudNode WriteToStore()
         {
+            this.CheckDerivedAttributes();
             Storage.Add(Id.ToString(), this);
             return this;
         }
@@ -370,15 +640,26 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public bool HasKdTree => Data.ContainsKey(Durable.Octree.PointRkdTreeFDataReference);
+        public bool HasKdTree =>
+            Data.ContainsKey(Durable.Octree.PointRkdTreeFDataReference) ||
+            Data.ContainsKey(Durable.Octree.PointRkdTreeDDataReference)
+            ;
 
         /// <summary></summary>
         [JsonIgnore]
-        public Guid? KdTreeId => Data.TryGetValue(Durable.Octree.PointRkdTreeFDataReference, out var id) ? (Guid?)id : null;
+        public Guid? KdTreeId => 
+            Data.TryGetValue(Durable.Octree.PointRkdTreeFDataReference, out var id)
+            ? (Guid?)id 
+            : (Data.TryGetValue(Durable.Octree.PointRkdTreeDDataReference, out var id2) ? (Guid?)id2 : null)
+            ;
 
         /// <summary></summary>
         [JsonIgnore]
-        public PersistentRef<PointRkdTreeF<V3f[], V3f>> KdTree => PersistentRefs.TryGetValue(Durable.Octree.PointRkdTreeFDataReference, out object x) ? (PersistentRef<PointRkdTreeF<V3f[], V3f>>)x : null;
+        public PersistentRef<PointRkdTreeF<V3f[], V3f>> KdTree =>
+            PersistentRefs.TryGetValue(Durable.Octree.PointRkdTreeFDataReference, out object x)
+            ? (PersistentRef<PointRkdTreeF<V3f[], V3f>>)x
+            : null
+            ;
 
         #endregion
 
@@ -489,7 +770,6 @@ namespace Aardvark.Geometry.Points
         {
             if (subnodes == null) throw new ArgumentNullException(nameof(subnodes));
 
-            if (IsLeaf) throw new InvalidOperationException();
 #if DEBUG
             for (var i = 0; i < 8; i++)
             {
@@ -502,13 +782,17 @@ namespace Aardvark.Geometry.Points
 #endif
 
             var pointCountTree = subnodes.Sum(x => x?.PointCountTree);
+            var bbExactGlobal = new Box3d(subnodes.Where(x => x != null).Select(x => x.BoundingBoxExactGlobal));
 
-            return this
-                .WithUpsert(Durable.Octree.Cell, Cell)
-                .WithUpsert(Durable.Octree.PointCountTreeLeafs, pointCountTree ?? 0L)
-                .WithUpsert(Durable.Octree.SubnodesGuids, subnodes.Map(x => x?.Id ?? Guid.Empty))
-                .WriteToStore()
+            var data = ImmutableDictionary<Durable.Def, object>.Empty
+                .Add(Durable.Octree.NodeId, Guid.NewGuid())
+                .Add(Durable.Octree.Cell, Cell)
+                .Add(Durable.Octree.BoundingBoxExactGlobal, bbExactGlobal)
+                .Add(Durable.Octree.PointCountTreeLeafs, pointCountTree ?? 0L)
+                .Add(Durable.Octree.SubnodesGuids, subnodes.Map(x => x?.Id ?? Guid.Empty))
                 ;
+            var result = new PointSetNode(data, this.Storage, writeToStore: true);
+            return result;
         }
 
         /// <summary>
@@ -518,32 +802,38 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public PointSetNode WithUpsert(Durable.Def def, object x)
         {
-            var data = Data
-                .RemoveRange(new[] { def, Durable.Octree.NodeId })
-                .Add(Durable.Octree.NodeId, Guid.NewGuid())
-                .Add(def, x)
-                ;
-            
-            return new PointSetNode(data, Storage, false);
-        }
+            if (def == Durable.Octree.NodeId)
+            {
+                var data = Data
+                    .RemoveRange(new[] { Durable.Octree.NodeId })
+                    .Add(Durable.Octree.NodeId, x)
+                    ;
 
-        /// <summary>
-        /// Returns new node with given entry removed or same node if entry does not exist.
-        /// </summary>
-        internal PointSetNode Without(Durable.Def def, bool writeToStore = true)
-        {
-            if (Data.ContainsKey(def))
+                return new PointSetNode(data, Storage, false);
+            }
+            else
             {
                 var data = Data
                     .RemoveRange(new[] { def, Durable.Octree.NodeId })
                     .Add(Durable.Octree.NodeId, Guid.NewGuid())
+                    .Add(def, x)
                     ;
-                return new PointSetNode(data, Storage, writeToStore);
+
+                return new PointSetNode(data, Storage, false);
             }
-            else
-            {
-                return this;
-            }
+        }
+
+        /// <summary>
+        /// Returns new node with removed data.
+        /// </summary>
+        public IPointCloudNode Without(params Durable.Def[] defs)
+        {
+            var data = Data
+                .RemoveRange(defs)
+                .Remove(Durable.Octree.NodeId)
+                .Add(Durable.Octree.NodeId, Guid.NewGuid())
+                ;
+            return new PointSetNode(data, Storage, false);
         }
 
         #endregion

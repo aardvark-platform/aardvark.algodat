@@ -7,7 +7,7 @@ namespace Aardvark.Geometry.Points
 {
     /// <summary>
     /// </summary>
-    public class FilterInsideBox3d : IFilter
+    public class FilterInsideBox3d : ISpatialFilter
     {
         /// <summary></summary>
         public const string Type = "FilterInsideBox3d";
@@ -19,11 +19,16 @@ namespace Aardvark.Geometry.Points
         public FilterInsideBox3d(Box3d filter) { Box = filter; }
 
         /// <summary></summary>
-        public bool IsFullyInside(IPointCloudNode node) => Box.Contains(node.BoundingBoxExactGlobal);
+        public bool IsFullyInside(Box3d box) => Box.Contains(box);
 
         /// <summary></summary>
-        public bool IsFullyOutside(IPointCloudNode node) => !Box.Intersects(node.BoundingBoxExactGlobal);
+        public bool IsFullyOutside(Box3d box) => !Box.Intersects(box);
 
+        /// <summary></summary>
+        public bool IsFullyInside(IPointCloudNode node) => IsFullyInside(node.BoundingBoxExactGlobal);
+
+        /// <summary></summary>
+        public bool IsFullyOutside(IPointCloudNode node) => IsFullyOutside(node.BoundingBoxExactGlobal);
         /// <summary></summary>
         public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int> selected = null)
         {
@@ -56,7 +61,7 @@ namespace Aardvark.Geometry.Points
 
     /// <summary>
     /// </summary>
-    public class FilterOutsideBox3d : IFilter
+    public class FilterOutsideBox3d : ISpatialFilter
     {
         /// <summary></summary>
         public const string Type = "FilterOutsideBox3d";
@@ -68,10 +73,16 @@ namespace Aardvark.Geometry.Points
         public FilterOutsideBox3d(Box3d filter) { Box = filter; }
 
         /// <summary></summary>
-        public bool IsFullyInside(IPointCloudNode node) => !Box.Intersects(node.BoundingBoxExactGlobal);
+        public bool IsFullyInside(Box3d box) => !Box.Intersects(box);
 
         /// <summary></summary>
-        public bool IsFullyOutside(IPointCloudNode node) => Box.Contains(node.BoundingBoxExactGlobal);
+        public bool IsFullyOutside(Box3d box) => Box.Contains(box);
+
+        /// <summary></summary>
+        public bool IsFullyInside(IPointCloudNode node) => IsFullyInside(node.BoundingBoxExactGlobal);
+
+        /// <summary></summary>
+        public bool IsFullyOutside(IPointCloudNode node) => IsFullyOutside(node.BoundingBoxExactGlobal);
 
         /// <summary></summary>
         public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int> selected = null)

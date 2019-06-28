@@ -129,9 +129,9 @@ namespace Aardvark.Geometry
             m_lerp = lerpFun;
             m_eps = absoluteEps;
 
-            m_perm = data.PermArray;
-            m_axis = data.AxisArray;
-            m_radius = data.RadiusArray;
+            m_perm = data?.PermArray;
+            m_axis = data?.AxisArray;
+            m_radius = data?.RadiusArray;
         }
 
         private float GetMaxDist(
@@ -604,9 +604,9 @@ namespace Aardvark.Geometry
             m_lerp = lerpFun;
             m_eps = absoluteEps;
 
-            m_perm = data.PermArray;
-            m_axis = data.AxisArray;
-            m_radius = data.RadiusArray;
+            m_perm = data?.PermArray;
+            m_axis = data?.AxisArray;
+            m_radius = data?.RadiusArray;
         }
 
         private float GetMaxDist(
@@ -1080,8 +1080,8 @@ namespace Aardvark.Geometry
             m_dimDist = dimDistanceFun;
             m_eps = absoluteEps;
 
-            m_perm = data.PermArray;
-            m_axis = data.AxisArray;
+            m_perm = data?.PermArray;
+            m_axis = data?.AxisArray;
         }
 
         private void Balance(
@@ -1466,9 +1466,9 @@ namespace Aardvark.Geometry
             m_dist = distanceFun;
             m_eps = absoluteEpsilon;
 
-            m_perm = data.PermArray;
-            m_lmax = data.LMaxArray;
-            m_rmin = data.RMinArray;
+            m_perm = data?.PermArray;
+            m_lmax = data?.LMaxArray;
+            m_rmin = data?.RMinArray;
         }
 
         private long GetMinMaxIndex(
@@ -1805,9 +1805,9 @@ namespace Aardvark.Geometry
             m_lerp = lerpFun;
             m_eps = absoluteEps;
 
-            m_perm = data.PermArray;
-            m_axis = data.AxisArray;
-            m_radius = data.RadiusArray;
+            m_perm = data?.PermArray;
+            m_axis = data?.AxisArray;
+            m_radius = data?.RadiusArray;
         }
 
         private double GetMaxDist(
@@ -2280,9 +2280,9 @@ namespace Aardvark.Geometry
             m_lerp = lerpFun;
             m_eps = absoluteEps;
 
-            m_perm = data.PermArray;
-            m_axis = data.AxisArray;
-            m_radius = data.RadiusArray;
+            m_perm = data?.PermArray;
+            m_axis = data?.AxisArray;
+            m_radius = data?.RadiusArray;
         }
 
         private double GetMaxDist(
@@ -2756,8 +2756,8 @@ namespace Aardvark.Geometry
             m_dimDist = dimDistanceFun;
             m_eps = absoluteEps;
 
-            m_perm = data.PermArray;
-            m_axis = data.AxisArray;
+            m_perm = data?.PermArray;
+            m_axis = data?.AxisArray;
         }
 
         private void Balance(
@@ -3142,9 +3142,9 @@ namespace Aardvark.Geometry
             m_dist = distanceFun;
             m_eps = absoluteEpsilon;
 
-            m_perm = data.PermArray;
-            m_lmax = data.LMaxArray;
-            m_rmin = data.RMinArray;
+            m_perm = data?.PermArray;
+            m_lmax = data?.LMaxArray;
+            m_rmin = data?.RMinArray;
         }
 
         private long GetMinMaxIndex(

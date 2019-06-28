@@ -35,8 +35,8 @@ namespace Aardvark.Geometry.Tests
             var id = Guid.NewGuid();
             var cell = new Cell(psGlobal);
             var center = (V3f)cell.GetCenter();
-            var bbGlobal = new Box3f(psGlobal);
-            var bbLocal = bbGlobal - center;
+            var bbGlobal = (Box3d)new Box3f(psGlobal);
+            var bbLocal = (Box3f)bbGlobal - center;
 
             var psLocal = psGlobal.Map(p => p - center);
 
@@ -50,12 +50,12 @@ namespace Aardvark.Geometry.Tests
             var result = new PointSetNode(storage, writeToStore: true,
                 (Durable.Octree.NodeId, id),
                 (Durable.Octree.Cell, cell),
+                (Durable.Octree.BoundingBoxExactGlobal, bbGlobal),
                 (Durable.Octree.BoundingBoxExactLocal, bbLocal),
                 (Durable.Octree.PointCountTreeLeafs, psLocal.LongLength),
                 (Durable.Octree.PositionsLocal3fReference, psLocalId),
                 (Durable.Octree.PointRkdTreeFDataReference, kdLocalId)
                 );
-
 
             if (intensities != null)
             {
@@ -252,8 +252,9 @@ namespace Aardvark.Geometry.Tests
         public void CanDeletePoints()
         {
             var q = new Box3d(new V3d(0.3), new V3d(0.7));
+            var q1 = new Box3d(new V3d(0.4), new V3d(0.6));
 
-            var a = DeleteTests.CreateRegularPointsInUnitCube(2, 2).Root.Value;
+            var a = DeleteTests.CreateRegularPointsInUnitCube(10, 1024).Root.Value;
             var store = ((PointSetNode)a).Storage;
             a.ForEachNode(true, n =>
             {
@@ -262,11 +263,16 @@ namespace Aardvark.Geometry.Tests
 
             var f = FilteredNode.Create(a, new FilterInsideBox3d(q));
 
-            var b = f.Delete(n => q.Contains(n.BoundingBoxExactGlobal), n => !(q.Contains(n.BoundingBoxExactGlobal) || q.Intersects(n.BoundingBoxExactGlobal)), p => q.Contains(p), a.Storage, default);
+            var b = f.Delete(
+                n => q1.Contains(n.BoundingBoxExactGlobal),
+                n => !(q1.Contains(n.BoundingBoxExactGlobal) || q1.Intersects(n.BoundingBoxExactGlobal)),
+                p => q1.Contains(p), a.Storage, default);
 
             Assert.IsTrue(a.PointCountTree > b.PointCountTree);
 
-            Assert.IsTrue(!b.QueryAllPoints().SelectMany(chunk => chunk.Positions).Any(p => q.Contains(p)));
+            Assert.IsTrue(!b.QueryAllPoints().SelectMany(chunk => chunk.Positions).Any(p => q1.Contains(p)));
+
+            Assert.IsTrue(b.HasCentroidLocal);
         }
 
         #endregion
