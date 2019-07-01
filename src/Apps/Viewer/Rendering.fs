@@ -321,14 +321,17 @@ module Rendering =
 
         let pcs = 
             let a = pcs |> HRefSet.ofList
-            //let b = 
-            //    pcs |> List.map (fun p ->
-            //        let box = Box3d.FromCenterAndSize(c, e.root.WorldCellBoundingBox.Size * 7.45)
-            //        let d = (e.root :?> Aardvark.Rendering.PointSet.LodTreeInstance.PointTreeNode).Delete(box) :> ILodTreeNode
-            //        { e with root = d }
-            //    ) |> HRefSet.ofList
+            let b = 
+                pcs |> List.map (fun p ->
+                    let box = Box3d.FromCenterAndSize(e.root.WorldBoundingBox.Center, e.root.WorldBoundingBox.Size * 0.25)
+                    let d = (e.root :?> Aardvark.Rendering.PointSet.LodTreeInstance.PointTreeNode).Delete(box) :> ILodTreeNode
+                    { e with root = d }
+                ) |> HRefSet.ofList
             reset |> Mod.map (fun i -> 
-                a
+                if i%2 = 0 then
+                    a
+                else
+                    b
             )
             |> ASet.ofMod
 
