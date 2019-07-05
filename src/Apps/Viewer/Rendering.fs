@@ -116,7 +116,7 @@ module Rendering =
                 budget = Mod.init -(256L <<< 10)
                 lighting = Mod.init true
                 colors = Mod.init true
-                magicExp = Mod.init 1.0
+                magicExp = Mod.init 0.0
                 stats = Mod.init Unchecked.defaultof<_>
                 background = Mod.init (Background.Skybox Skybox.Miramar)
                 antialias = Mod.init true
@@ -158,7 +158,7 @@ module Rendering =
 
         let pcs =
             pcs |> List.map (fun t ->
-                fun () -> let t = t() in { t with uniforms = MapExt.add "Overlay" (config.overlayAlpha :> IMod) t.uniforms }
+                fun () -> let t = t() in { t with uniforms = MapExt.add "Overlay" (config.overlayAlpha |> Mod.map ((*) V4d.IIII) :> IMod) t.uniforms }
             )
         
         let overallBounds = 
@@ -516,7 +516,7 @@ module Rendering =
         Aardvark.Init()
 
         use app = new OpenGlApplication(true, false)
-        use win = app.CreateGameWindow(1)
+        use win = app.CreateGameWindow(8)
         
     
         let camera =
