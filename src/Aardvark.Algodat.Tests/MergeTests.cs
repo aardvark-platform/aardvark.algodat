@@ -44,7 +44,10 @@ namespace Aardvark.Geometry.Tests
             var ns1 = ps1.Map(_ => V3f.XAxis);
             var is1 = ps1.Map(_ => 123);
             var ks1 = ps1.Map(_ => (byte)0);
-            var pointset1 = PointSet.Create(storage, "test1", ps1, cs1, ns1, is1, ks1, splitLimit, false, CancellationToken.None);
+            var pointset1 = PointSet.Create(
+                storage, "test1", ps1, cs1, ns1, is1, ks1, splitLimit,
+                generateLod: false, isTemporaryImportNode: true, default
+                );
             var pointset1Count = pointset1.Root.Value.CountPoints();
             Assert.IsTrue(pointset1Count == n);
 
@@ -53,7 +56,10 @@ namespace Aardvark.Geometry.Tests
             var ns2 = ps2.Map(_ => V3f.XAxis);
             var is2 = ps2.Map(_ => 456);
             var ks2 = ps2.Map(_ => (byte)1);
-            var pointset2 = PointSet.Create(storage, "test2", ps2, cs2, ns2, is2, ks2, splitLimit, false, CancellationToken.None);
+            var pointset2 = PointSet.Create(
+                storage, "test2", ps2, cs2, ns2, is2, ks2, splitLimit,
+                generateLod: false, isTemporaryImportNode: true, default
+                );
             var pointset2Count = pointset2.Root.Value.CountPoints();
             Assert.IsTrue(pointset2Count == n);
 
@@ -84,14 +90,20 @@ namespace Aardvark.Geometry.Tests
             var ns1 = ps1.Map(_ => V3f.XAxis);
             var is1 = ps1.Map(_ => 123);
             var ks1 = ps1.Map(_ => (byte)42);
-            var pointset1 = PointSet.Create(storage, "test1", ps1, cs1, ns1, is1, ks1, 1000, false, CancellationToken.None);
+            var pointset1 = PointSet.Create(
+                storage, "test1", ps1, cs1, ns1, is1, ks1, 1000,
+                generateLod: false, isTemporaryImportNode: true, default
+                );
 
             var ps2 = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble() + 0.3, r.NextDouble() + 0.3, r.NextDouble() + 0.3));
             var cs2 = ps2.Map(_ => C4b.White);
             var ns2 = ps2.Map(_ => V3f.XAxis);
             var is2 = ps2.Map(_ => 456);
             var ks2 = ps1.Map(_ => (byte)7);
-            var pointset2 = PointSet.Create(storage, "test2", ps2, cs2, ns2, is2, ks2, 1000, false, CancellationToken.None);
+            var pointset2 = PointSet.Create(
+                storage, "test2", ps2, cs2, ns2, is2, ks2, 1000,
+                generateLod: false, isTemporaryImportNode: true, default
+                );
 
             var merged = pointset1.Merge(pointset2, null, config);
             Assert.IsTrue(merged.PointCount == 84000);
@@ -118,13 +130,19 @@ namespace Aardvark.Geometry.Tests
             var ns1 = ps1.Map(_ => V3f.XAxis);
             var is1 = ps1.Map(_ => 123);
             var ks1 = ps1.Map(_ => (byte)42);
-            var pointset1 = PointSet.Create(storage, "test1", ps1, null, ns1, is1, ks1, 1000, false, CancellationToken.None);
+            var pointset1 = PointSet.Create(
+                storage, "test1", ps1, null, ns1, is1, ks1, 1000,
+                generateLod: false, isTemporaryImportNode: true, default
+                );
 
             var ps2 = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble() + 0.3, r.NextDouble() + 0.3, r.NextDouble() + 0.3));
             var ns2 = ps2.Map(_ => V3f.XAxis);
             var is2 = ps2.Map(_ => 456);
             var ks2 = ps1.Map(_ => (byte)7);
-            var pointset2 = PointSet.Create(storage, "test2", ps2, null, ns2, is2, ks2, 1000, false, CancellationToken.None);
+            var pointset2 = PointSet.Create(
+                storage, "test2", ps2, null, ns2, is2, ks2, 1000,
+                generateLod: false, isTemporaryImportNode: true, default
+                );
 
             var merged = pointset1.Merge(pointset2, null, config);
             Assert.IsTrue(merged.PointCount == 84000);
@@ -151,13 +169,19 @@ namespace Aardvark.Geometry.Tests
             var cs1 = ps1.Map(_ => C4b.White);
             var is1 = ps1.Map(_ => 123);
             var ks1 = ps1.Map(_ => (byte)42);
-            var pointset1 = PointSet.Create(storage, "test1", ps1, cs1, null, is1, ks1, 1000, false, CancellationToken.None);
+            var pointset1 = PointSet.Create(
+                storage, "test1", ps1, cs1, null, is1, ks1, 1000,
+                generateLod: false, isTemporaryImportNode: true, default
+                );
 
             var ps2 = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble() + 0.3, r.NextDouble() + 0.3, r.NextDouble() + 0.3));
             var cs2 = ps2.Map(_ => C4b.White);
             var is2 = ps2.Map(_ => 456);
             var ks2 = ps2.Map(_ => (byte)7);
-            var pointset2 = PointSet.Create(storage, "test2", ps2, cs2, null, is2, ks2, 1000, false, CancellationToken.None);
+            var pointset2 = PointSet.Create(
+                storage, "test2", ps2, cs2, null, is2, ks2, 1000,
+                generateLod: false, isTemporaryImportNode: true, default
+                );
 
             var merged = pointset1.Merge(pointset2, null, config);
             Assert.IsTrue(merged.PointCount == 84000);

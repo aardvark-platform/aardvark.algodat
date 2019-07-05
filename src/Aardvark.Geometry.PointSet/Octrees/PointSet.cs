@@ -38,13 +38,13 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PointSet Create(Storage storage, string key,
             IList<V3d> positions, IList<C4b> colors, IList<V3f> normals, IList<int> intensities, IList<byte> classifications,
-            int octreeSplitLimit, bool generateLod, CancellationToken ct
+            int octreeSplitLimit, bool generateLod, bool isTemporaryImportNode, CancellationToken ct
             )
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
             var bounds = new Box3d(positions);
             var builder = InMemoryPointSet.Build(positions, colors, normals, intensities, classifications, bounds, octreeSplitLimit);
-            var root = builder.ToPointSetNode(storage, isTemporaryImportNode: false);
+            var root = builder.ToPointSetNode(storage, isTemporaryImportNode);
 
             var result = new PointSet(storage, key, root.Id, octreeSplitLimit);
 

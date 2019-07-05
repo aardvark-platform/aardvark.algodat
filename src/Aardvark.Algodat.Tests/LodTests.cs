@@ -35,7 +35,10 @@ namespace Aardvark.Geometry.Tests
             var ps = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
             var cs = ps.Map(_ => C4b.White);
 
-            var pointset = PointSet.Create(storage, "test", ps.ToList(), cs.ToList(), null, null, null, 5000, false, CancellationToken.None);
+            var pointset = PointSet.Create(
+                storage, "test", ps.ToList(), cs.ToList(), null, null, null, 5000,
+                generateLod: false, isTemporaryImportNode: true, ct: default
+                );
             pointset.Root.Value.ForEachNode(true, cell =>
             {
                 Assert.IsTrue(cell.IsNotLeaf() || cell.Positions != null);
@@ -61,7 +64,10 @@ namespace Aardvark.Geometry.Tests
             var ps = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
             var cs = ps.Map(_ => C4b.White);
 
-            var pointset = PointSet.Create(storage, "test", ps.ToList(), cs.ToList(), null, null, null, 5000, true, CancellationToken.None);
+            var pointset = PointSet.Create(
+                storage, "test", ps.ToList(), cs.ToList(), null, null, null, 5000,
+                generateLod: true, isTemporaryImportNode: true, default
+                );
             pointset.Root.Value.ForEachNode(true, cell =>
             {
                 var pointcount = cell.Positions.Value.Length;
@@ -257,6 +263,7 @@ namespace Aardvark.Geometry.Tests
         }
 
         [Test]
+        [Ignore("PointDistance is no longer calculated.")]
         public void HasPointDistance()
         {
             var storage = PointSetTests.CreateStorage();

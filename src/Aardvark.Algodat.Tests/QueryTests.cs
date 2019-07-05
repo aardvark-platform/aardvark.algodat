@@ -78,6 +78,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CanQueryPointsAlongRay()
         {
+            PointCloudFileFormat _ = Data.Points.Import.Pts.PtsFormat;
             var filename = Config.TEST_FILE_NAME_PTS;
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
 
@@ -615,6 +616,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CanQueryPointsInsideBox_1()
         {
+            PointCloudFileFormat _ = Data.Points.Import.Pts.PtsFormat;
             var filename = Config.TEST_FILE_NAME_PTS;
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
             var config = ImportConfig.Default
@@ -761,7 +763,10 @@ namespace Aardvark.Geometry.Tests
 
             var config = ImportConfig.Default.WithKey("Test").WithOctreeSplitLimit(1);
             return PointSet
-                .Create(storage, "test", ps.ToList(), cs.ToList(), null, null, null, 100, false, CancellationToken.None)
+                .Create(
+                    storage, "test", ps.ToList(), cs.ToList(), null, null, null, 100,
+                    generateLod: false, isTemporaryImportNode: true, default
+                    )
                 .GenerateLod(config)
                 ;
         }

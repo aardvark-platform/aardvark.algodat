@@ -55,7 +55,10 @@ namespace Aardvark.Geometry.Tests
             var store = CreateStorage();
             var ps = new List<V3d> { new V3d(0.1, 0.2, 0.3) };
             var cs = new List<C4b> { C4b.White };
-            var pointset = PointSet.Create(store, "id", ps, cs, null, null, null, 1000, false, CancellationToken.None);
+            var pointset = PointSet.Create(
+                store, "id", ps, cs, null, null, null, 1000,
+                generateLod: false, isTemporaryImportNode: true, default
+                );
             Assert.IsTrue(pointset.PointCount == 1);
             Assert.IsTrue(pointset.Root.Value.IsLeaf());
             Assert.IsTrue(pointset.Root.Value.Positions.Value.Length == 1);
@@ -157,7 +160,7 @@ namespace Aardvark.Geometry.Tests
             var js = new List<int> { 123 };
             var ks = new List<byte> { 42 };
             var storage = PointCloud.CreateInMemoryStore(cache: default);
-            var pointset = PointSet.Create(storage, "test", ps, cs, ns, js, ks, 1, false, default);
+            var pointset = PointSet.Create(storage, "test", ps, cs, ns, js, ks, 1, generateLod: true, isTemporaryImportNode: false, default);
             Assert.IsTrue(pointset.HasColors == true);
             Assert.IsTrue(pointset.HasIntensities == true);
             Assert.IsTrue(pointset.HasClassifications == true);
@@ -175,11 +178,11 @@ namespace Aardvark.Geometry.Tests
             var js = new List<int> { 123 };
             var ks = new List<byte> { 42 };
             var storage = PointCloud.CreateInMemoryStore(cache: default);
-            var pointset = PointSet.Create(storage, "test", ps, cs, ns, js, ks, 1, false, default);
+            var pointset = PointSet.Create(storage, "test", ps, cs, ns, js, ks, 1, generateLod: false, isTemporaryImportNode: true, default);
             Assert.IsTrue(pointset.HasColors == true);
             Assert.IsTrue(pointset.HasIntensities == true);
             Assert.IsTrue(pointset.HasClassifications == true);
-            Assert.IsTrue(pointset.HasKdTree == true);
+            //Assert.IsTrue(pointset.HasKdTree == true);
             Assert.IsTrue(pointset.HasNormals == true);
             Assert.IsTrue(pointset.HasPositions == true);
         }
@@ -190,7 +193,7 @@ namespace Aardvark.Geometry.Tests
             var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
             var cs = new List<C4b> { C4b.White };
             var storage = PointCloud.CreateInMemoryStore(cache: default);
-            var pointset = PointSet.Create(storage, "test", ps, cs, null, null, null, 1, true, default);
+            var pointset = PointSet.Create(storage, "test", ps, cs, null, null, null, 1, generateLod: true, isTemporaryImportNode: true, default);
             Assert.IsTrue(pointset.HasColors == true);
             Assert.IsTrue(pointset.HasIntensities == false);
             Assert.IsTrue(pointset.HasKdTree == true);
