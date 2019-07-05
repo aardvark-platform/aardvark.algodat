@@ -69,11 +69,10 @@ namespace Aardvark.Geometry.Points
         {
             chunks = MergeSmall(config.OctreeSplitLimit, chunks);
 
-
             config?.ProgressCallback(0.0);
 
             // optionally filter minDist
-            if (config.MinDist > 0.0)
+            if (config.MinDist > 0.0 && !config.NormalizePointDensityGlobal)
             {
                 if (config.NormalizePointDensityGlobal)
                 {
@@ -85,15 +84,13 @@ namespace Aardvark.Geometry.Points
                 }
             }
 
+            // EXPERIMENTAL
             //Report.BeginTimed("unmix");
             //chunks = chunks.ImmutableUnmixOutOfCore(@"T:\tmp", 1, config);
             //Report.End();
 
-            // optionally deduplicate points
-            if (config.DeduplicateChunks)
-            {
-                chunks = chunks.Select(x => x.ImmutableDeduplicate());
-            }
+            // deduplicate points
+            chunks = chunks.Select(x => x.ImmutableDeduplicate());
 
             // optionally reproject positions and/or estimate normals
             if (config.Reproject != null)
@@ -106,19 +103,11 @@ namespace Aardvark.Geometry.Points
                         x = x.WithPositions(ps);
                     }
 
-                    //if (config.EstimateNormals != null)
-                    //{
-                    //    var ns = config.EstimateNormals(x.Positions);
-                    //    x = x.WithNormals(ns);
-                    //}
-
                     return x;
                 }
 
                 chunks = chunks.MapParallel(map, config.MaxDegreeOfParallelism, null, config.CancellationToken);
             }
-
-            //var foo = chunks.ToArray();
 
             // reduce all chunks to single PointSet
             Report.BeginTimed("map/reduce");

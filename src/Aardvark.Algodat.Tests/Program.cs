@@ -3,6 +3,8 @@ using Aardvark.Data;
 using Aardvark.Data.Points;
 using Aardvark.Data.Points.Import;
 using Aardvark.Geometry.Points;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -15,6 +17,28 @@ namespace Aardvark.Geometry.Tests
 {
     public class Program
     {
+        internal static void PerfTestJuly2019()
+        {
+            var filename = @"T:\Vgm\Data\2017-10-20_09-44-27_1mm_shade_norm_5pp - Cloud.pts";
+
+            var config = ImportConfig.Default
+                .WithInMemoryStore()
+                .WithRandomKey()
+                .WithVerbose(true)
+                .WithMaxDegreeOfParallelism(0)
+                .WithMinDist(0.01)
+                .WithNormalizePointDensityGlobal(true)
+                ;
+
+            Report.BeginTimed("total");
+
+            var chunks = Pts.Chunks(filename, config.ParseConfig);
+            var pc = PointCloud.Chunks(chunks, config);
+
+            Report.EndTimed();
+
+            Report.Line($"count -> {pc.PointCount}");
+        }
         internal static void TestE57()
         {
             var sw = new Stopwatch();
@@ -265,6 +289,11 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
+            //var path = JObject.Parse(File.ReadAllText(@"T:\OEBB\20190619_Trajektorie_Verbindungsbahn\path.json"));
+            //File.WriteAllText(@"T:\OEBB\20190619_Trajektorie_Verbindungsbahn\path2.json", path.ToString(Formatting.Indented));
+            //Console.WriteLine(path);
+            PerfTestJuly2019();
+
             //TestLoadOldStore();
 
             //new ViewsFilterTests().CanDeletePoints();
@@ -274,7 +303,7 @@ namespace Aardvark.Geometry.Tests
 
             //new ImportTests().CanImportChunkWithoutColor();
 
-            TestE57();
+            //TestE57();
 
             //var store = PointCloud.OpenStore(@"G:\cells\3280_5503_0_10\pointcloud");
             //var pc = store.GetPointSet("3280_5503_0_10", default);

@@ -130,7 +130,7 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(ps.Count == 4 * 4 * 4);
 
             var imps = InMemoryPointSet.Build(ps, null, ns, null, null, new Cell(0, 0, 0, 0), 1);
-            var root = imps.ToPointSetNode(storage, ct: CancellationToken.None);
+            var root = imps.ToPointSetNode(storage, isTemporaryImportNode: false);
             Assert.IsTrue(root.PointCountTree == 4 * 4 * 4);
             var countNodes = root.CountLeafNodes(true);
             Assert.IsTrue(countNodes == 4 * 4 * 4);

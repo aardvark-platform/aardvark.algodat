@@ -142,7 +142,6 @@ namespace Aardvark.Geometry.Tests
                 .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 .WithOctreeSplitLimit(10)
-                .WithDeduplicateChunks(false)
                 .WithMinDist(0.0)
                 .WithReproject(null)
                 ;
@@ -168,7 +167,6 @@ namespace Aardvark.Geometry.Tests
                 .WithStorage(store)
                 .WithKey(key)
                 .WithOctreeSplitLimit(10)
-                .WithDeduplicateChunks(false)
                 .WithMinDist(0.0)
                 .WithReproject(null)
                 ;
@@ -194,7 +192,6 @@ namespace Aardvark.Geometry.Tests
                 .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey(null)
                 .WithOctreeSplitLimit(10)
-                .WithDeduplicateChunks(false)
                 .WithMinDist(0.0)
                 .WithReproject(null)
                 ;
@@ -216,7 +213,6 @@ namespace Aardvark.Geometry.Tests
                 .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 .WithOctreeSplitLimit(10)
-                .WithDeduplicateChunks(false)
                 .WithMinDist(0.0)
                 .WithReproject(null)
                 ;
@@ -243,7 +239,6 @@ namespace Aardvark.Geometry.Tests
                 .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 .WithOctreeSplitLimit(10)
-                .WithDeduplicateChunks(false)
                 .WithMinDist(0.0)
                 .WithReproject(null)
                 ;

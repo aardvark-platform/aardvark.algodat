@@ -44,7 +44,7 @@ namespace Aardvark.Geometry.Points
             if (key == null) throw new ArgumentNullException(nameof(key));
             var bounds = new Box3d(positions);
             var builder = InMemoryPointSet.Build(positions, colors, normals, intensities, classifications, bounds, octreeSplitLimit);
-            var root = builder.ToPointSetNode(storage, ct: ct);
+            var root = builder.ToPointSetNode(storage, isTemporaryImportNode: false);
 
             var result = new PointSet(storage, key, root.Id, octreeSplitLimit);
 

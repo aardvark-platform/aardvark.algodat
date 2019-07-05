@@ -50,6 +50,11 @@ namespace Aardvark.Geometry.Points
         Guid Id { get; }
 
         /// <summary>
+        /// Returns true if this a temporary import node (without computed properties like kd-tree).
+        /// </summary>
+        bool IsTemporaryImportNode { get; }
+
+        /// <summary>
         /// This node's index/bounds.
         /// </summary>
         Cell Cell { get; }

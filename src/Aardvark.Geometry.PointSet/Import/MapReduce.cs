@@ -43,7 +43,7 @@ namespace Aardvark.Geometry.Points
                     progress(Math.Sqrt(1.0 - 1.0 / Interlocked.Increment(ref totalChunkCount)));
 
                     var builder = InMemoryPointSet.Build(chunk, config.OctreeSplitLimit);
-                    var root = builder.ToPointSetNode(config.Storage, ct: ct2);
+                    var root = builder.ToPointSetNode(config.Storage, isTemporaryImportNode: true);
                     var id = $"Aardvark.Geometry.PointSet.{Guid.NewGuid()}.json";
                     var pointSet = new PointSet(config.Storage, id, root.Id, config.OctreeSplitLimit);
                     

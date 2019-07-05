@@ -32,6 +32,18 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public class PointSetNode : IPointCloudNode
     {
+        /// <summary>
+        /// This node has been stored during out-of-core import, without derived properties, like kd-trees, etc.
+        /// The value of this attribute has no meaning.
+        /// </summary>
+        public static readonly Durable.Def TemporaryImportNode = new Durable.Def(
+            new Guid("01bcdfee-b01e-40ff-ad02-7ea724198f10"),
+            "Durable.Octree.TemporaryImportNode",
+            "This node has been stored during out-of-core import, without derived properties, like kd-trees, etc. The value of this attribute has no meaning.",
+            Durable.Primitives.Int32.Id,
+            isArray: false
+            );
+
         public static readonly PointSetNode Empty = new PointSetNode(
             null, writeToStore: false,
             (Durable.Octree.NodeId, Guid.Empty),
@@ -80,18 +92,20 @@ namespace Aardvark.Geometry.Points
                 "Missing Durable.Octree.Cell. Invariant f6f13915-c254-4d88-b60f-5e673c13ef59."
                 );
 
-            //if (!data.ContainsKey(Durable.Octree.PointCountTreeLeafs)) throw new ArgumentException(
-            //    "Missing Durable.Octree.PointCountTreeLeafs. Invariant 9c764d4b-569e-4bd7-a839-add0df63cc13."
-            //    );
+            if (!data.ContainsKey(Durable.Octree.PointCountTreeLeafs)) throw new ArgumentException(
+                "Missing Durable.Octree.PointCountTreeLeafs. Invariant 9c764d4b-569e-4bd7-a839-add0df63cc13."
+                );
 
-            //if (!data.ContainsKey(Durable.Octree.BoundingBoxExactGlobal)) throw new ArgumentException(
-            //    "Missing Durable.Octree.BoundingBoxExactGlobal. Invariant b51fc1e8-5698-47a7-acba-4fd7aec8bfda."
-            //    );
+            if (!data.ContainsKey(Durable.Octree.BoundingBoxExactGlobal)) throw new ArgumentException(
+                "Missing Durable.Octree.BoundingBoxExactGlobal. Invariant b51fc1e8-5698-47a7-acba-4fd7aec8bfda."
+                );
 
             var isObsoleteFormat = data.ContainsKey(Durable.Octree.PointRkdTreeDDataReference);
 
             Storage = storage;
             Data = data;
+
+            //if (!IsTemporaryImportNode) Debugger.Break();
 
             var bboxCell = Cell.BoundingBox;
             Center = bboxCell.Center;
@@ -102,8 +116,6 @@ namespace Aardvark.Geometry.Points
             {
                 Report.Line($"new PointSetNode({Id}), obsolete format");
             }
-
-            //if (IsNotLeaf && Has(Durable.Octree.PointCountCell) && PointCountCell > 0) Debugger.Break();
 #endif
 
             #region Subnodes
@@ -130,26 +142,26 @@ namespace Aardvark.Geometry.Points
             var isId = IntensitiesId;
             var ksId = ClassificationsId;
 
-            if (psId != null) PersistentRefs[Durable.Octree.PositionsLocal3fReference] = new PersistentRef<V3f[]>(psId.ToString(), storage.GetV3fArray, storage.TryGetV3fArray);
-            if (csId != null) PersistentRefs[Durable.Octree.Colors4bReference] = new PersistentRef<C4b[]>(csId.ToString(), storage.GetC4bArray, storage.TryGetC4bArray);
+            if (psId != null) PersistentRefs[Durable.Octree.PositionsLocal3fReference] = new PersistentRef<V3f[]>(psId.Value, storage.GetV3fArray, storage.TryGetV3fArray);
+            if (csId != null) PersistentRefs[Durable.Octree.Colors4bReference] = new PersistentRef<C4b[]>(csId.Value, storage.GetC4bArray, storage.TryGetC4bArray);
             if (kdId != null)
             {
                 if (isObsoleteFormat)
                 {
                     PersistentRefs[Durable.Octree.PointRkdTreeFDataReference] =
-                        new PersistentRef<PointRkdTreeF<V3f[], V3f>>(kdId.ToString(), LoadKdTreeObsolete, TryLoadKdTreeObsolete)
+                        new PersistentRef<PointRkdTreeF<V3f[], V3f>>(kdId.Value, LoadKdTreeObsolete, TryLoadKdTreeObsolete)
                         ;
                 }
                 else
                 {
                     PersistentRefs[Durable.Octree.PointRkdTreeFDataReference] =
-                        new PersistentRef<PointRkdTreeF<V3f[], V3f>>(kdId.ToString(), LoadKdTree, TryLoadKdTree)
+                        new PersistentRef<PointRkdTreeF<V3f[], V3f>>(kdId.Value, LoadKdTree, TryLoadKdTree)
                         ;
                 }
             }
-            if (nsId != null) PersistentRefs[Durable.Octree.Normals3fReference] = new PersistentRef<V3f[]>(nsId.ToString(), storage.GetV3fArray, storage.TryGetV3fArray);
-            if (isId != null) PersistentRefs[Durable.Octree.Intensities1iReference] = new PersistentRef<int[]>(isId.ToString(), storage.GetIntArray, storage.TryGetIntArray);
-            if (ksId != null) PersistentRefs[Durable.Octree.Classifications1bReference] = new PersistentRef<byte[]>(ksId.ToString(), storage.GetByteArray, storage.TryGetByteArray);
+            if (nsId != null) PersistentRefs[Durable.Octree.Normals3fReference] = new PersistentRef<V3f[]>(nsId.Value, storage.GetV3fArray, storage.TryGetV3fArray);
+            if (isId != null) PersistentRefs[Durable.Octree.Intensities1iReference] = new PersistentRef<int[]>(isId.Value, storage.GetIntArray, storage.TryGetIntArray);
+            if (ksId != null) PersistentRefs[Durable.Octree.Classifications1bReference] = new PersistentRef<byte[]>(ksId.Value, storage.GetByteArray, storage.TryGetByteArray);
 
             #endregion
 
@@ -302,60 +314,73 @@ namespace Aardvark.Geometry.Points
 
             #endregion
 
-            #region PointDistance*
+            #region KdTree
 
-            if (HasPositions && (!HasPointDistanceAverage || !HasPointDistanceStandardDeviation))
+            if (HasPositions && !HasKdTree && !IsTemporaryImportNode)
             {
-                if (isObsoleteFormat)
-                {
-                    Data = Data.Add(Durable.Octree.AveragePointDistance, 0.0f);
-                    Data = Data.Add(Durable.Octree.AveragePointDistanceStdDev, 0.0f);
-                }
-                else
-                {
-                    var ps = Positions.Value;
-                    var kd = KdTree.Value;
-                    if (ps.Length < 2)
-                    {
-                        if (!HasPointDistanceAverage)
-                        {
-                            Data = Data.Add(Durable.Octree.AveragePointDistance, 0.0f);
-                        }
-                        if (!HasPointDistanceStandardDeviation)
-                        {
-                            Data = Data.Add(Durable.Octree.AveragePointDistanceStdDev, 0.0f);
-                        }
-                    }
-                    else if (ps.Length == 3)
-                    {
-                        var d = V3f.Distance(ps[0], ps[1]);
-                        if (!HasPointDistanceAverage)
-                        {
-                            Data = Data.Add(Durable.Octree.AveragePointDistance, d);
-                        }
-                        if (!HasPointDistanceStandardDeviation)
-                        {
-                            Data = Data.Add(Durable.Octree.AveragePointDistanceStdDev, 0.0f);
-                        }
-                    }
-                    else
-                    {
-                        var indexDists = ps.Map(p => kd.GetClosest(p, float.MaxValue, 2));
-                        var ds = indexDists.Map(x => V3f.Distance(ps[x[0].Index], ps[x[1].Index]));
-                        var (avg, sd) = ds.ComputeAvgAndStdDev();
-                        if (!HasPointDistanceAverage)
-                        {
-                            Data = Data.Add(Durable.Octree.AveragePointDistance, avg);
-                        }
-                        if (!HasPointDistanceStandardDeviation)
-                        {
-                            Data = Data.Add(Durable.Octree.AveragePointDistanceStdDev, sd);
-                        }
-                    }
-                }
+                kdId = ComputeAndStoreKdTree(Storage, Positions.Value);
+                Data = Data.Add(Durable.Octree.PointRkdTreeFDataReference, kdId);
+                PersistentRefs[Durable.Octree.PointRkdTreeFDataReference] =
+                    new PersistentRef<PointRkdTreeF<V3f[], V3f>>(kdId.Value, LoadKdTree, TryLoadKdTree)
+                    ;
             }
 
             #endregion
+
+            //#region PointDistance*
+
+            //if (HasPositions && HasKdTree && (!HasPointDistanceAverage || !HasPointDistanceStandardDeviation))
+            //{
+            //    if (isObsoleteFormat)
+            //    {
+            //        Data = Data.Add(Durable.Octree.AveragePointDistance, 0.0f);
+            //        Data = Data.Add(Durable.Octree.AveragePointDistanceStdDev, 0.0f);
+            //    }
+            //    else
+            //    {
+            //        var ps = Positions.Value;
+            //        var kd = KdTree.Value;
+            //        if (ps.Length < 2)
+            //        {
+            //            if (!HasPointDistanceAverage)
+            //            {
+            //                Data = Data.Add(Durable.Octree.AveragePointDistance, 0.0f);
+            //            }
+            //            if (!HasPointDistanceStandardDeviation)
+            //            {
+            //                Data = Data.Add(Durable.Octree.AveragePointDistanceStdDev, 0.0f);
+            //            }
+            //        }
+            //        else if (ps.Length == 3)
+            //        {
+            //            var d = V3f.Distance(ps[0], ps[1]);
+            //            if (!HasPointDistanceAverage)
+            //            {
+            //                Data = Data.Add(Durable.Octree.AveragePointDistance, d);
+            //            }
+            //            if (!HasPointDistanceStandardDeviation)
+            //            {
+            //                Data = Data.Add(Durable.Octree.AveragePointDistanceStdDev, 0.0f);
+            //            }
+            //        }
+            //        else
+            //        {
+            //            var indexDists = ps.Map(p => kd.GetClosest(p, float.MaxValue, 2));
+            //            var ds = indexDists.Map(x => V3f.Distance(ps[x[0].Index], ps[x[1].Index]));
+            //            var (avg, sd) = ds.ComputeAvgAndStdDev();
+            //            if (!HasPointDistanceAverage)
+            //            {
+            //                Data = Data.Add(Durable.Octree.AveragePointDistance, avg);
+            //            }
+            //            if (!HasPointDistanceStandardDeviation)
+            //            {
+            //                Data = Data.Add(Durable.Octree.AveragePointDistanceStdDev, sd);
+            //            }
+            //        }
+            //    }
+            //}
+
+            //#endregion
 
             if (writeToStore)
             {
@@ -375,12 +400,12 @@ namespace Aardvark.Geometry.Points
                 if (PositionsId == null)
                     throw new InvalidOperationException("Invariant ba64ffe9-ada4-4fff-a4e9-0916c1cc9992.");
 
-                if (KdTreeId == null)
+                if (KdTreeId == null && !Has(TemporaryImportNode))
                     throw new InvalidOperationException("Invariant 606e8a7b-6e75-496a-bc2a-dfbe6e2c9b10.");
             }
-#endif
 #if PEDANTIC
             if (PositionsId != null && Positions.Value.Length != PointCount) throw new InvalidOperationException("Invariant 926ca077-845d-44ba-a1db-07dfe06e7cc3.");
+#endif
 #endif
 
             PointRkdTreeF<V3f[], V3f> LoadKdTree(string key)
@@ -441,12 +466,14 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Writes this node to store.
         /// </summary>
-        public IPointCloudNode WriteToStore()
+        public PointSetNode WriteToStore()
         {
             this.CheckDerivedAttributes();
             Storage.Add(Id.ToString(), this);
             return this;
         }
+
+        IPointCloudNode IPointCloudNode.WriteToStore() => WriteToStore();
 
         #endregion
 
@@ -480,6 +507,12 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         [JsonIgnore]
         public Guid Id => (Guid)Data.Get(Durable.Octree.NodeId);
+
+        /// <summary>
+        /// Returns true if this a temporary import node (without computed properties like kd-tree).
+        /// </summary>
+        [JsonIgnore]
+        public bool IsTemporaryImportNode => Has(TemporaryImportNode);
 
         /// <summary>
         /// This node's index/bounds.
@@ -791,6 +824,8 @@ namespace Aardvark.Geometry.Points
                 .Add(Durable.Octree.PointCountTreeLeafs, pointCountTree ?? 0L)
                 .Add(Durable.Octree.SubnodesGuids, subnodes.Map(x => x?.Id ?? Guid.Empty))
                 ;
+            if (IsTemporaryImportNode) data = data.Add(TemporaryImportNode, 0);
+
             var result = new PointSetNode(data, this.Storage, writeToStore: true);
             return result;
         }
@@ -826,7 +861,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Returns new node with removed data.
         /// </summary>
-        public IPointCloudNode Without(params Durable.Def[] defs)
+        public PointSetNode Without(params Durable.Def[] defs)
         {
             var data = Data
                 .RemoveRange(defs)
@@ -834,6 +869,38 @@ namespace Aardvark.Geometry.Points
                 .Add(Durable.Octree.NodeId, Guid.NewGuid())
                 ;
             return new PointSetNode(data, Storage, false);
+        }
+
+        /// <summary>
+        /// Adds kd-tree to temporary import node.
+        /// </summary>
+        public PointSetNode WithComputedKdTree()
+        {
+            if (!IsTemporaryImportNode)
+                throw new InvalidOperationException("Only allowed on temporary import nodes. Invariant de875e86-4c30-44d4-9e53-cbaf4e24854f.");
+
+            if (HasKdTree) return this;
+
+            var kdId = ComputeAndStoreKdTree(Storage, Positions.Value);
+            var result = WithUpsert(Durable.Octree.PointRkdTreeFDataReference, kdId);
+            return result;
+        }
+
+        /// <summary>
+        /// Computes and stores kd-tree from given points.
+        /// Returns id of stored kd-tree.
+        /// </summary>
+        private static Guid ComputeAndStoreKdTree(Storage storage, V3f[] ps)
+        {
+            var kdTree = new PointRkdTreeF<V3f[], V3f>(
+                3, ps.Length, ps,
+                (xs, i) => xs[(int)i], (v, i) => (float)v[i],
+                (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
+                (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, 0.000001f
+                );
+            Guid kdId = Guid.NewGuid();
+            storage.Add(kdId, kdTree.Data);
+            return kdId;
         }
 
         #endregion

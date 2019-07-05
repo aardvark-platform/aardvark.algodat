@@ -27,6 +27,13 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
+        public PersistentRef(Guid id, Func<string, T> get, Func<string, (bool, T)> tryGet)
+            : this(id.ToString(), get, tryGet)
+        {
+        }
+
+        /// <summary>
+        /// </summary>
         public PersistentRef(string id, Func<string, T> get, Func<string, (bool, T)> tryGet)
         {
             Id = id; //?? throw new ArgumentNullException(nameof(id));

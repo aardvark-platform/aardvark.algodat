@@ -76,9 +76,9 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public PointSetNode ToPointSetNode(Storage storage, float kdTreeEps = 1e-6f, CancellationToken ct = default)
+        public PointSetNode ToPointSetNode(Storage storage, bool isTemporaryImportNode)
         {
-            var result = m_root.ToPointSetCell(storage, ct, kdTreeEps);
+            var result = m_root.ToPointSetCell(storage, isTemporaryImportNode);
 #if DEBUG
             if (m_duplicatePointsCount > 0)
             {
@@ -106,7 +106,7 @@ namespace Aardvark.Geometry.Points
                 _centerX = c.X; _centerY = c.Y; _centerZ = c.Z;
             }
 
-            public PointSetNode ToPointSetCell(Storage storage, CancellationToken ct, float kdTreeEps = 1e-6f)
+            public PointSetNode ToPointSetCell(Storage storage, bool isTemporaryImportNode)
             {
                 var center = new V3d(_centerX, _centerY, _centerZ);
                 V3f[] ps = null;
@@ -114,7 +114,6 @@ namespace Aardvark.Geometry.Points
                 V3f[] ns = null;
                 int[] js = null;
                 byte[] ks = null;
-                PointRkdTreeF<V3f[], V3f> kdTree = null;
                 
                 if (_ia != null)
                 {
@@ -151,14 +150,6 @@ namespace Aardvark.Geometry.Points
                         ks = new byte[count];
                         for (var i = 0; i < count; i++) ks[i] = allKs[_ia[i]];
                     }
-
-                    kdTree = new PointRkdTreeF<V3f[], V3f>(
-                        3, ps.Length, ps,
-                        (xs, i) => xs[(int)i], (v, i) => (float)v[i],
-                        (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
-                        (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, kdTreeEps
-                        );
-                    
                 }
 
                 Guid? psId = ps != null ? (Guid?)Guid.NewGuid() : null;
@@ -166,9 +157,8 @@ namespace Aardvark.Geometry.Points
                 Guid? nsId = ns != null ? (Guid?)Guid.NewGuid() : null;
                 Guid? isId = js != null ? (Guid?)Guid.NewGuid() : null;
                 Guid? ksId = ks != null ? (Guid?)Guid.NewGuid() : null;
-                Guid? kdId = kdTree != null ? (Guid?)Guid.NewGuid() : null;
                 
-                var subcells = _subnodes?.Map(x => x?.ToPointSetCell(storage, ct, kdTreeEps));
+                var subcells = _subnodes?.Map(x => x?.ToPointSetCell(storage, isTemporaryImportNode));
                 var subcellIds = subcells?.Map(x => x?.Id);
                 var isLeaf = _subnodes == null;
 
@@ -201,6 +191,11 @@ namespace Aardvark.Geometry.Points
                     .Add(Durable.Octree.PointCountTreeLeafs, pointCountTreeLeafs)
                     ;
 
+                if (isTemporaryImportNode)
+                {
+                    data = data.Add(PointSetNode.TemporaryImportNode, 0);
+                }
+
                 if (psId != null)
                 {
                     storage.Add(psId.ToString(), ps);
@@ -231,7 +226,6 @@ namespace Aardvark.Geometry.Points
                 if (nsId != null) { storage.Add(nsId.ToString(), ns); data = data.Add(Durable.Octree.Normals3fReference, nsId.Value); }
                 if (isId != null) { storage.Add(isId.ToString(), js); data = data.Add(Durable.Octree.Intensities1iReference, isId.Value); }
                 if (ksId != null) { storage.Add(ksId.ToString(), ks); data = data.Add(Durable.Octree.Classifications1bReference, ksId.Value); }
-                if (kdId != null) { storage.Add(kdId.ToString(), kdTree.Data); data = data.Add(Durable.Octree.PointRkdTreeFDataReference, kdId.Value); }
 
                 if (isLeaf) // leaf
                 {

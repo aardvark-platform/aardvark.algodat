@@ -646,9 +646,10 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static void CheckDerivedAttributes(this IPointCloudNode self)
         {
+            var isTmpNode = self.Has(PointSetNode.TemporaryImportNode);
             if (self.HasPositions)
             {
-                if (!self.HasKdTree) throw new InvalidOperationException(
+                if (!self.HasKdTree && !isTmpNode) throw new InvalidOperationException(
                     "Missing KdTree. Invariant ef8b6f10-a5ce-4dfd-826e-78319acd9faa."
                     );
                 if (!self.HasBoundingBoxExactLocal) throw new InvalidOperationException(
@@ -666,12 +667,12 @@ namespace Aardvark.Geometry.Points
                 if (!self.HasCentroidLocalStdDev) throw new InvalidOperationException(
                     "Missing CentroidLocalStdDev. Invariant 429bb1c1-9a52-4e4c-bab1-f3635e143061."
                     );
-                if (!self.HasPointDistanceAverage) throw new InvalidOperationException(
-                    "Missing PointDistanceAverage. Invariant e52003ff-72ca-4fc2-8242-f20d7f039473."
-                    );
-                if (!self.HasPointDistanceStandardDeviation) throw new InvalidOperationException(
-                    "Missing PointDistanceStandardDeviation. Invariant 4a03c3f5-a625-4124-91f6-6f79fd1b5d0e."
-                    );
+                //if (!self.HasPointDistanceAverage && !isTmpNode) throw new InvalidOperationException(
+                //    "Missing PointDistanceAverage. Invariant e52003ff-72ca-4fc2-8242-f20d7f039473."
+                //    );
+                //if (!self.HasPointDistanceStandardDeviation && !isTmpNode) throw new InvalidOperationException(
+                //    "Missing PointDistanceStandardDeviation. Invariant 4a03c3f5-a625-4124-91f6-6f79fd1b5d0e."
+                //    );
             }
             if (!self.HasMaxTreeDepth) throw new InvalidOperationException(
                 "Missing MaxTreeDepth. Invariant c7c3c337-5404-4773-aae3-01d213e575b0."

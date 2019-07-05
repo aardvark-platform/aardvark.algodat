@@ -59,6 +59,10 @@ namespace Aardvark.Geometry.Points
 
         public static (IPointCloudNode,bool) CollapseLeafNodes(this IPointCloudNode self, ImportConfig config)
         {
+            if (!self.IsTemporaryImportNode) throw new InvalidOperationException(
+                "CollapseLeafNodes is only valid for temporary import nodes. Invariant 4aa0809d-4cb0-422b-97ee-fa5b6dc4785e."
+                );
+
             if (self.PointCountTree == 0)
             {
                 return (null, true);
@@ -95,13 +99,15 @@ namespace Aardvark.Geometry.Points
                     if (js.Count == 0) js = null;
                     if (ks.Count == 0) ks = null;
 
+#if DEBUG
                     Report.Warn("Rebuild");
+#endif
 
                     var node = InMemoryPointSet.Build(ps, cs, ns, js, ks, bbExactGlobal, config.OctreeSplitLimit);
-                    var psnode = node.ToPointSetNode(self.Storage);
+                    var psnode = node.ToPointSetNode(self.Storage, isTemporaryImportNode: true);
                     if (self.Cell != psnode.Cell)
                     {
-                        return (JoinTreeToRootCell(self.Cell, psnode, config, false), true);
+                        return (JoinTreeToRootCell(self.Cell, psnode, config, collapse: false), true);
                     }
                     else
                     {
@@ -125,6 +131,10 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static IPointCloudNode ForceSplitLeaf(this IPointCloudNode self, ImportConfig config)
         {
+            if (!self.IsTemporaryImportNode) throw new InvalidOperationException(
+                "ForceSplitLeaf is only valid for temporary import nodes. Invariant 3bfca971-be98-45b7-86e7-de436b78cefb."
+                );
+
             if (self == null) throw new ArgumentNullException(nameof(self));
             if (self.IsLeaf == false) throw new InvalidOperationException();
             if (self.PointCountCell == 0) throw new InvalidOperationException();
@@ -177,7 +187,7 @@ namespace Aardvark.Geometry.Points
                     chunk = chunk.ImmutableFilterMinDistByCell(subCell, config.ParseConfig);
                 }
                 var builder = InMemoryPointSet.Build(subnodesPoints[i], subnodesColors?[i], subnodesNormals?[i], subnodesIntensities?[i], subnodesClassifications?[i],subCell, int.MaxValue);
-                var subnode = builder.ToPointSetNode(config.Storage, ct: config.CancellationToken);
+                var subnode = builder.ToPointSetNode(config.Storage, isTemporaryImportNode: true);
                 if (subnode.PointCountTree > subnodesPoints[i].Count) throw new InvalidOperationException();
                 if (!self.Cell.Contains(subnode.Cell)) throw new InvalidOperationException();
                 if (self.Cell.Exponent != subnode.Cell.Exponent + 1) throw new InvalidOperationException();
@@ -188,6 +198,7 @@ namespace Aardvark.Geometry.Points
             var bbExactGlobal = new Box3d(subnodes.Where(x => x != null).Select(x => x.BoundingBoxExactGlobal));
 
             var data = ImmutableDictionary<Durable.Def, object>.Empty
+                .Add(PointSetNode.TemporaryImportNode, 0)
                 .Add(Durable.Octree.NodeId, Guid.NewGuid())
                 .Add(Durable.Octree.Cell, self.Cell)
                 .Add(Durable.Octree.BoundingBoxExactGlobal, bbExactGlobal)
@@ -218,6 +229,10 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static (IPointCloudNode, bool) Merge(this IPointCloudNode a, IPointCloudNode b, Action<long> pointsMergedCallback, ImportConfig config)
         {
+            if (!a.IsTemporaryImportNode || !b.IsTemporaryImportNode) throw new InvalidOperationException(
+                "Merge is only allowed on temporary import nodes. Invariant d53042e7-a032-47a9-98dc-034c0749a649."
+                );
+
             if (a == null || a.PointCountTree == 0) { pointsMergedCallback?.Invoke(b?.PointCountTree ?? 0); return (b,true); }
             if (b == null || b.PointCountTree == 0) { pointsMergedCallback?.Invoke(a?.PointCountTree ?? 0); return (a,true); }
 
@@ -247,7 +262,7 @@ namespace Aardvark.Geometry.Points
                 if (psAbs.Length == 0) return (null,true);
 
                 Guid? psId = psAbs != null ? Guid.NewGuid() : (Guid?)null;
-                Guid? kdId = psAbs != null ? Guid.NewGuid() : (Guid?)null;
+                //Guid? kdId = psAbs != null ? Guid.NewGuid() : (Guid?)null;
                 Guid? nsId = ns != null ? Guid.NewGuid() : (Guid?)null;
                 Guid? csId = cs != null ? Guid.NewGuid() : (Guid?)null;
                 Guid? jsId = js != null ? Guid.NewGuid() : (Guid?)null;
@@ -258,11 +273,12 @@ namespace Aardvark.Geometry.Points
 
                 var ps = psAbs.Map(p => (V3f)(p - center));
                 //if (ps.Length != totalPointCountTree) throw new InvalidOperationException("Invariant 8b8539ae-05a8-47f8-9d92-fd49301ba750.");
-                var kd = kdId.HasValue ? ps.BuildKdTree() : null;
+                //var kd = kdId.HasValue ? ps.BuildKdTree() : null;
 
                 var bbExactGlobal = new Box3d(psAbs);
 
                 var data = ImmutableDictionary<Durable.Def, object>.Empty
+                    .Add(PointSetNode.TemporaryImportNode, 0)
                     .Add(Durable.Octree.NodeId, Guid.NewGuid())
                     .Add(Durable.Octree.Cell, cell)
                     .Add(Durable.Octree.BoundingBoxExactGlobal, bbExactGlobal)
@@ -274,9 +290,9 @@ namespace Aardvark.Geometry.Points
                 if (csId.HasValue) { storage.Add(csId.Value, cs); data = data.Add(Durable.Octree.Colors4bReference, csId.Value); }
                 if (jsId.HasValue) { storage.Add(jsId.Value, js); data = data.Add(Durable.Octree.Intensities1iReference, jsId.Value); }
                 if (ksId.HasValue) { storage.Add(ksId.Value, ks); data = data.Add(Durable.Octree.Classifications1bReference, ksId.Value); }
-                if (kdId.HasValue) { storage.Add(kdId.Value, kd.Data); data = data.Add(Durable.Octree.PointRkdTreeFDataReference, kdId.Value); }
+                //if (kdId.HasValue) { storage.Add(kdId.Value, kd.Data); data = data.Add(Durable.Octree.PointRkdTreeFDataReference, kdId.Value); }
 
-                return (new PointSetNode(data, config.Storage, writeToStore: true),true);
+                return (new PointSetNode(data, config.Storage, writeToStore: true), true);
             }
 
 
@@ -394,6 +410,7 @@ namespace Aardvark.Geometry.Points
                 pointsMergedCallback?.Invoke(pointCountTreeLeafs);
 
                 var data = ImmutableDictionary<Durable.Def, object>.Empty
+                    .Add(PointSetNode.TemporaryImportNode, 0)
                     .Add(Durable.Octree.NodeId, Guid.NewGuid())
                     .Add(Durable.Octree.Cell, rootCell)
                     .Add(Durable.Octree.BoundingBoxExactGlobal, bbExactGlobal)
@@ -491,7 +508,7 @@ namespace Aardvark.Geometry.Points
             Action<long> pointsMergedCallback, ImportConfig config
             )
         {
-            #region Preconditions
+#region Preconditions
 
             // PRE: ensure that trees 'a' and 'b' do not intersect,
             // because we are joining non-overlapping trees here
@@ -500,9 +517,9 @@ namespace Aardvark.Geometry.Points
             // PRE: we further assume, that both trees are non-empty
             if (a.PointCountTree == 0 && b.PointCountTree == 0) throw new InvalidOperationException();
 
-            #endregion
+#endregion
 
-            #region Case reduction
+#region Case reduction
             // REDUCE CASES:
             // if one tree ('a' or 'b') is centered at origin, then ensure that 'a' is centered
             // (by swapping 'a' and 'b' if necessary)
@@ -520,18 +537,18 @@ namespace Aardvark.Geometry.Points
                 if (b.Cell.IsCenteredAtOrigin) throw new InvalidOperationException();
 #endif
             }
-            #endregion
+#endregion
             
-            #region CASE 1 of 2: one tree is centered (must be 'a', since if it originally was 'b' we would have swapped)
+#region CASE 1 of 2: one tree is centered (must be 'a', since if it originally was 'b' we would have swapped)
 
             if (rootCell.IsCenteredAtOrigin && a.Cell.IsCenteredAtOrigin)
             {
-                #region special case: split 'a' into subcells to get rid of centered cell containing points
+#region special case: split 'a' into subcells to get rid of centered cell containing points
                 if (a.IsLeaf)
                 {
                     return JoinNonOverlappingTrees(rootCell, a.ForceSplitLeaf(config), b, pointsMergedCallback, config);
                 }
-                #endregion
+#endregion
 #if DEBUG
                 if (a.PointCountCell != 0) throw new InvalidOperationException();
 #endif
@@ -577,6 +594,7 @@ namespace Aardvark.Geometry.Points
                 }
 
                 var data = ImmutableDictionary<Durable.Def, object>.Empty
+                    .Add(PointSetNode.TemporaryImportNode, 0)
                     .Add(Durable.Octree.NodeId, Guid.NewGuid())
                     .Add(Durable.Octree.Cell, rootCell)
                     .Add(Durable.Octree.PointCountTreeLeafs, a.PointCountTree + b.PointCountTree)
@@ -591,9 +609,9 @@ namespace Aardvark.Geometry.Points
                 return result;
             }
 
-            #endregion
+#endregion
 
-            #region CASE 2 of 2: no tree is centered
+#region CASE 2 of 2: no tree is centered
 
             else
             {
@@ -633,6 +651,7 @@ namespace Aardvark.Geometry.Points
                 var bbExactGlobal = new Box3d(subcells.Where(x => x != null).Select(x => x.BoundingBoxExactGlobal));
 
                 var data = ImmutableDictionary<Durable.Def, object>.Empty
+                    .Add(PointSetNode.TemporaryImportNode, 0)
                     .Add(Durable.Octree.NodeId, Guid.NewGuid())
                     .Add(Durable.Octree.Cell, rootCell)
                     .Add(Durable.Octree.BoundingBoxExactGlobal, bbExactGlobal)
@@ -651,7 +670,7 @@ namespace Aardvark.Geometry.Points
                 return result;
             }
 
-            #endregion
+#endregion
         }
 
         private static Cell ParentCell(Cell a, Cell b)
@@ -695,6 +714,7 @@ namespace Aardvark.Geometry.Points
             }
 
             var data = ImmutableDictionary<Durable.Def, object>.Empty
+                .Add(PointSetNode.TemporaryImportNode, 0)
                 .Add(Durable.Octree.NodeId, Guid.NewGuid())
                 .Add(Durable.Octree.Cell, rootCell)
                 .Add(Durable.Octree.BoundingBoxExactGlobal, a.BoundingBoxExactGlobal)
@@ -714,6 +734,10 @@ namespace Aardvark.Geometry.Points
 
         private static IPointCloudNode MergeLeafAndLeafWithIdenticalRootCell(IPointCloudNode a, IPointCloudNode b, ImportConfig config)
         {
+            if (!a.IsTemporaryImportNode || !b.IsTemporaryImportNode) throw new InvalidOperationException(
+                "MergeLeafAndLeafWithIdenticalRootCell is only valid for temporary import nodes. Invariant 2d68b9d2-a001-47a8-b481-87488f33b85d."
+                );
+
             if (a.IsLeaf == false || b.IsLeaf == false) throw new InvalidOperationException();
             if (a.Cell != b.Cell) throw new InvalidOperationException();
             if (b.PositionsAbsolute == null) throw new InvalidOperationException();
@@ -735,7 +759,7 @@ namespace Aardvark.Geometry.Points
             {
                 chunk = chunk.ImmutableFilterMinDistByCell(cell, config.ParseConfig);
             }
-            var result = InMemoryPointSet.Build(chunk, cell, config.OctreeSplitLimit).ToPointSetNode(config.Storage, ct: config.CancellationToken);
+            var result = InMemoryPointSet.Build(chunk, cell, config.OctreeSplitLimit).ToPointSetNode(config.Storage, isTemporaryImportNode: true);
             //if (a.PointCountTree + b.PointCountTree != result.PointCountTree) throw new InvalidOperationException("Invariant 369b10a2-f905-41c6-b016-1dbf8a68832d.");
             if (a.Cell != result.Cell) throw new InvalidOperationException("Invariant 771d781a-6d37-4017-a890-4f72a96a01a8.");
             return result;
@@ -829,6 +853,10 @@ namespace Aardvark.Geometry.Points
             IPointCloudNode a, Cell cell, ImportConfig config
             )
         {
+            if (a != null && !a.IsTemporaryImportNode) throw new InvalidOperationException(
+                "InjectPointsIntoTree is only valid for temporary import nodes. Invariant 0b0c48dc-8500-4ad6-a3dd-9c00f6d0b1d9."
+                );
+
             if (a == null)
             {
                 var chunk = new Chunk(psAbsolute, cs, ns, js, ks, cell.BoundingBox);
@@ -837,7 +865,7 @@ namespace Aardvark.Geometry.Points
                     chunk = chunk.ImmutableFilterMinDistByCell(cell, config.ParseConfig);
                 }
 
-                var result0 = InMemoryPointSet.Build(chunk, cell, config.OctreeSplitLimit).ToPointSetNode(config.Storage, ct: config.CancellationToken);
+                var result0 = InMemoryPointSet.Build(chunk, cell, config.OctreeSplitLimit).ToPointSetNode(config.Storage, isTemporaryImportNode: true);
                 //if (result0.PointCountTree != psAbsolute.Count) throw new InvalidOperationException("Invariant db6c1efb-32c3-4fc1-a9c8-a573442d593b.");
                 if (result0.Cell != cell) throw new InvalidOperationException("Invariant 266f3ced-7aea-4efd-b4f0-1c3e04fafb08.");
                 return result0;
@@ -864,7 +892,7 @@ namespace Aardvark.Geometry.Points
                 {
                     chunk = chunk.ImmutableFilterMinDistByCell(cell, config.ParseConfig);
                 }
-                var result0 = InMemoryPointSet.Build(chunk, cell, config.OctreeSplitLimit).ToPointSetNode(config.Storage, ct: config.CancellationToken);
+                var result0 = InMemoryPointSet.Build(chunk, cell, config.OctreeSplitLimit).ToPointSetNode(config.Storage, isTemporaryImportNode: true);
                 //if (a.PointCountTree + psAbsolute.Count != result0.PointCountTree) throw new InvalidOperationException("Invariant 9bda6d47-26d8-42e3-8d94-3db2d4436fec.");
                 if (result0.Cell != cell) throw new InvalidOperationException("Invariant 2c11816c-da18-464e-9c2c-fad53301b41b.");
                 return result0;

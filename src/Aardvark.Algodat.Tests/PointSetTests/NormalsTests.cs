@@ -40,7 +40,7 @@ namespace Aardvark.Geometry.Tests
             var chunk = new Chunk(new[] { V3d.IOO }, new[] { C4b.White }, new[] { V3f.OIO });
 
             var builder = InMemoryPointSet.Build(chunk, 8192);
-            var root = builder.ToPointSetNode(CreateInMemoryStore());
+            var root = builder.ToPointSetNode(CreateInMemoryStore(), isTemporaryImportNode: false);
           
             Assert.IsTrue(root.IsLeaf);
             Assert.IsTrue(root.PointCountCell == 1);

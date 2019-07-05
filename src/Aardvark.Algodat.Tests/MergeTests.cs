@@ -36,7 +36,6 @@ namespace Aardvark.Geometry.Tests
                 .WithOctreeSplitLimit(splitLimit)
                 .WithMinDist(0)
                 .WithNormalizePointDensityGlobal(false)
-                .WithDeduplicateChunks(false)
                 .WithVerbose(true)
                 ;
 
@@ -77,7 +76,6 @@ namespace Aardvark.Geometry.Tests
                 .WithOctreeSplitLimit(splitLimit)
                 .WithMinDist(0)
                 .WithNormalizePointDensityGlobal(false)
-                .WithDeduplicateChunks(false)
                 .WithVerbose(true)
                 ;
 
@@ -113,7 +111,6 @@ namespace Aardvark.Geometry.Tests
                 .WithOctreeSplitLimit(splitLimit)
                 .WithMinDist(0)
                 .WithNormalizePointDensityGlobal(false)
-                .WithDeduplicateChunks(false)
                 .WithVerbose(true)
                 ;
 
@@ -147,7 +144,6 @@ namespace Aardvark.Geometry.Tests
                 .WithOctreeSplitLimit(splitLimit)
                 .WithMinDist(0)
                 .WithNormalizePointDensityGlobal(false)
-                .WithDeduplicateChunks(false)
                 .WithVerbose(true)
                 ;
 

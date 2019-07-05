@@ -53,9 +53,6 @@ namespace Aardvark.Data.Points
         /// </summary>
         public int ReadBufferSizeInBytes => ParseConfig.ReadBufferSizeInBytes;
 
-        /// <summary>Removes duplicate points in chunk after MinDist filtering and before Reproject and EstimateNormals.</summary>
-        public bool DeduplicateChunks { get; private set; } = true;
-
         /// <summary>Normalizes point density globally using MinDist distance.</summary>
         public bool NormalizePointDensityGlobal { get; private set; } = false;
 
@@ -89,7 +86,6 @@ namespace Aardvark.Data.Points
         public ImportConfig(ImportConfig x)
         {
             Key = x.Key;
-            DeduplicateChunks = x.DeduplicateChunks;
             NormalizePointDensityGlobal = x.NormalizePointDensityGlobal;
             OctreeSplitLimit = x.OctreeSplitLimit;
             ProgressCallback = x.ProgressCallback;
@@ -112,9 +108,6 @@ namespace Aardvark.Data.Points
 
         /// <summary></summary>
         public ImportConfig WithMinDist(double x) => new ImportConfig(this) { ParseConfig = ParseConfig.WithMinDist(x) };
-
-        /// <summary></summary>
-        public ImportConfig WithDeduplicateChunks(bool x) => new ImportConfig(this) { DeduplicateChunks = x };
 
         /// <summary></summary>
         public ImportConfig WithNormalizePointDensityGlobal(bool x) => new ImportConfig(this) { NormalizePointDensityGlobal = x };

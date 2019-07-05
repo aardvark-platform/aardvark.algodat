@@ -36,6 +36,9 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static IPointCloudNode Create(Guid id, IPointCloudNode node, IFilter filter)
         {
+            if (node.IsTemporaryImportNode) throw new InvalidOperationException(
+                "FilteredNode cannot be created from temporary import node. Invariant b9c2dca3-1510-4ea7-959f-6a0737c707fa."
+                );
             if (filter.IsFullyOutside(node)) return null;
             if (filter.IsFullyInside(node)) return node;
             return new FilteredNode(id, node, filter);
@@ -71,6 +74,9 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public Guid Id { get; }
+
+        /// <summary></summary>
+        public bool IsTemporaryImportNode => false;
 
         /// <summary> </summary>
         public IPointCloudNode Node { get; }

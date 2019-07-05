@@ -313,7 +313,7 @@ namespace Aardvark.Data.Points
                 var removedCount = this.Count - ps.Count;
                 if (removedCount > 0)
                 {
-                    Report.Line($"[ImmutableFilterMinDistByCell] {this.Count:N0} - {removedCount:N0} -> {ps.Count:N0}");
+                    //Report.Line($"[ImmutableFilterMinDistByCell] {this.Count:N0} - {removedCount:N0} -> {ps.Count:N0}");
                 }
             }
             return new Chunk(ps, cs, ns, js);
