@@ -53,7 +53,7 @@ namespace Aardvark.Geometry.Points
             Storage storage, CancellationToken ct
             )
         {
-            Report.Error($"[Delete] {root.GetType().Name}.Delete({root.Id})");
+            //Report.Error($"[Delete] {root.GetType().Name}.Delete({root.Id})");
             if (root == null) return null;
             if (isNodeFullyInside(root)) return null;
             if (isNodeFullyOutside(root))
@@ -96,7 +96,7 @@ namespace Aardvark.Geometry.Points
             }
 
             var newId = Guid.NewGuid();
-            Report.Error($"[Delete] create {newId}");
+            //Report.Error($"[Delete] create {newId}");
             var data = ImmutableDictionary<Durable.Def, object>.Empty
                 .Add(Durable.Octree.NodeId, newId)
                 .Add(Durable.Octree.Cell, root.Cell)

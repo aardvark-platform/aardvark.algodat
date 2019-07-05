@@ -35,10 +35,11 @@ module CmdLine =
             |> Seq.map (fun j -> Box3d.Parse(j.["Bounds"].ToObject<string>()))
             |> Array.ofSeq
             
-    let view (store : string) (id : string) (args : Args) =
-        Rendering.show args [
-            LodTreeInstance.load "ssd" id store []
-        ]
+    let view (store : string) (ids : list<string>) (args : Args) =
+        Rendering.show args (ids |> List.map (fun id ->
+            let a = LodTreeInstance.load "asdasdsadasd" id store []
+            fun () -> a
+        ))
 
     let info (filename : string) (args : Args) =
         initPointFileFormats ()
@@ -129,8 +130,8 @@ module CmdLine =
                 .WithKey(id)
                 .WithVerbose(true)
                 .WithMaxChunkPointCount(10000000)
-                .WithMinDist(0.005)
-                .WithNormalizePointDensityGlobal(true)
+                //.WithMinDist(0.005)
+                //.WithNormalizePointDensityGlobal(true)
                 //.WithMinDist(match args.minDist with | None -> 0.0 | Some x -> x)
                 
         //match args.k with
