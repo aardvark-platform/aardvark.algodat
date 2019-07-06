@@ -11,8 +11,8 @@ open Aardvark.Algodat.App.Viewer
 [<EntryPoint>]
 let main args =  
 
-    import @"D:\pts\Innenscan_FARO.e57"  @"D:\store3" "innenscan" (Args.parse [||])
-    view @"D:\store3" "innenscan" (Args.parse [||])
+    import @"T:\Vgm\Data\2017-10-20_09-44-27_1mm_shade_norm_5pp - Cloud.pts"  @"T:\store3" "innenscan" (Args.parse [||])
+    view @"T:\store3" "innenscan" (Args.parse [||])
 
     //let args = Args.parse args
     

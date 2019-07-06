@@ -11,13 +11,286 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Uncodium.SimpleStore;
 
 namespace Aardvark.Geometry.Tests
 {
-    public class Program
+    public static class Program
     {
-        internal static void PerfTestJuly2019()
+        internal static V3i ShiftRight(this V3i self, int i)
+            => i > 1 ? new V3i(self.X >> i, self.Y >> i, self.Z >> i) : self;
+
+        internal struct PointD
+        {
+            public V3d Pos;
+            public C3b Col;
+            public PointD(V3d pos, C3b col) { Pos = pos; Col = col; }
+        }
+
+        internal class Node
+        {
+            public Cell Cell;
+            public long PointCountTree;
+            public V3f[] Positions;
+            public C3b[] Colors;
+            public Node[] Children;
+
+            public Box3f BoundingBoxExactLocal;
+            public Box3d BoundingBoxExactGlobal;
+            public int TreeDepthMin;
+            public int TreeDepthMax;
+            public PointRkdTreeF<V3f[], V3f> KdTree;
+            public V3f[] Normals;
+
+            public long CountPoints()
+            {
+                var count = Positions != null ? Positions.Length : 0L;
+                if (Children != null)
+                {
+                    foreach (var x in Children)
+                    {
+                        if (x != null) count += x.CountPoints();
+                    }
+                }
+                return count;
+            }
+
+            public long CountNodes()
+            {
+                var count = 1L;
+                if (Children != null)
+                {
+                    foreach (var x in Children)
+                    {
+                        if (x != null) count += x.CountNodes();
+                    }
+                }
+                return count;
+            }
+
+            public bool IsLeaf => Children == null;
+
+            public async Task GenerateLod(int splitLimit)
+            {
+                if (IsLeaf)
+                {
+                    PointCountTree = Positions.Length;
+                    BoundingBoxExactLocal = new Box3f(Positions);
+                    BoundingBoxExactGlobal = (Box3d)BoundingBoxExactLocal + Cell.GetCenter();
+                    TreeDepthMin = 0;
+                    TreeDepthMax = 0;
+                }
+                else
+                {
+                    await Task.WhenAll(Children.Where(x => x != null).Select(x => x.GenerateLod(splitLimit)));
+                    
+                    PointCountTree = Children.Sum(x => x != null ? x.PointCountTree : 0L);
+                    BoundingBoxExactGlobal = new Box3d(Children.Where(x => x != null).Select(x => x.BoundingBoxExactGlobal));
+                    TreeDepthMin = Children.Select(x => x != null ? x.TreeDepthMin + 1 : 0).Min();
+                    TreeDepthMax = Children.Select(x => x != null ? x.TreeDepthMax + 1 : 0).Max();
+
+                    Positions = new V3f[splitLimit];
+                    Colors = new C3b[splitLimit];
+
+                    var pointCountChildren = Children.Sum(x => x != null ? x.Positions.Length : 0);
+                    var df = (float)pointCountChildren / splitLimit;
+
+                    var i = 0; var fi = 0.0f;
+                    for (var ci = 0; ci < 8; ci++)
+                    {
+                        var c = Children[ci];
+                        if (c == null) continue;
+                        var fiMax = c.Positions.Length - 1.0f;
+                        while (fi < fiMax)
+                        {
+                            Positions[i] = c.Positions[(int)fi];
+                            i++;
+                            fi += df;
+                        }
+                        fi -= fiMax;
+                    }
+
+                    i = 0; fi = 0.0f;
+                    for (var ci = 0; ci < 8; ci++)
+                    {
+                        var c = Children[ci];
+                        if (c == null) continue;
+                        var fiMax = c.Positions.Length - 1.0f;
+                        while (fi < fiMax)
+                        {
+                            Colors[i] = c.Colors[(int)fi];
+                            i++;
+                            fi += df;
+                        }
+                        fi -= fiMax;
+                    }
+                }
+
+                KdTree = await Positions.BuildKdTreeAsync();
+                Normals = await Positions.EstimateNormalsAsync(16, KdTree);
+            }
+
+            private Node(Cell cell, List<PointD> points, Node[] children)
+            {
+                Cell = cell;
+                var center = Cell.GetCenter();
+                Positions = points?.MapToArray(x => (V3f)(x.Pos - center));
+                Colors = points?.MapToArray(x => x.Col);
+                Children = children;
+            }
+
+            public static Node Build(Cell bounds, List<PointD> points, int splitLimit)
+            {
+                if (points.Count <= splitLimit)
+                {
+                    return new Node(bounds, points, children: null);
+                }
+                else
+                {
+                    var center = bounds.GetCenter();
+                    var childPoints = new List<PointD>[8];
+                    foreach (var p in points)
+                    {
+                        int o = 0;
+                        if (p.Pos.X >= center.X) o = 1;
+                        if (p.Pos.Y >= center.Y) o |= 2;
+                        if (p.Pos.Z >= center.Z) o |= 4;
+
+                        if (childPoints[o] == null) childPoints[o] = new List<PointD>();
+                        childPoints[o].Add(p);
+                    }
+
+                    var children = childPoints.Map((x, i) => x != null ? Build(bounds.GetOctant((int)i), x, splitLimit) : null);
+                    return new Node(bounds, null, children);
+                }
+            }
+            public static Node Build(Cell bounds, IEnumerable<(Cell cell, List<PointD> points)> cells, int splitLimit)
+            {
+                if (cells == null || !cells.Any()) throw new InvalidOperationException();
+
+                var center = bounds.GetCenter();
+                var boundsBb = bounds.BoundingBox;
+                var e = cells.First().cell.Exponent;
+                if (cells.Any(c => c.cell.Exponent != e)) throw new InvalidOperationException();
+                if (!cells.All(c => boundsBb.Contains(c.cell.BoundingBox))) throw new InvalidOperationException();
+
+                var totalCount = cells.Sum(x => (long)x.points.Count);
+
+                if (totalCount <= splitLimit)
+                {
+                    var cell = new Cell(new Box3d(cells.Select(x => x.cell.BoundingBox)));
+                    var points = new List<PointD>(); foreach (var x in cells) points.AddRange(x.points);
+                    return new Node(cell, points, children: null);
+                }
+
+                if (e < bounds.Exponent)
+                {
+                    var childCells = new List<(Cell cell, List<PointD> points)>[8];
+                    foreach (var x in cells)
+                    {
+                        if (x.cell.IsCenteredAtOrigin) throw new InvalidOperationException();
+                        var bb = x.cell.BoundingBox;
+                        int o = 0;
+                        if (bb.Min.X >= center.X) o = 1;
+                        if (bb.Min.Y >= center.Y) o |= 2;
+                        if (bb.Min.Z >= center.Z) o |= 4;
+                        if (childCells[o] == null) childCells[o] = new List<(Cell cell, List<PointD> points)>();
+                        childCells[o].Add(x);
+                    }
+
+                    var children = childCells.Map((x, i) => x != null ? Build(bounds.GetOctant((int)i), x, splitLimit) : null);
+                    return new Node(bounds, null, children);
+                }
+                else
+                {
+                    var points = new List<PointD>(); foreach (var x in cells) points.AddRange(x.points);
+                    return Build(bounds, points, splitLimit);
+                }
+            }
+        }
+
+        [ThreadStatic]
+        private static HashSet<V3d> s_deduplicate;
+        internal static List<PointD> Deduplicate(this IEnumerable<PointD> self, int digits)
+        {
+            if (s_deduplicate == null) s_deduplicate = new HashSet<V3d>();
+            s_deduplicate.Clear();
+            var rs = new List<PointD>();
+            foreach (var p in self)
+            {
+                var pos = p.Pos.Round(digits);
+                if (!s_deduplicate.Contains(pos))
+                {
+                    s_deduplicate.Add(pos);
+                    rs.Add(p);
+                }
+            }
+
+            return rs;
+        }
+
+        internal static void PerfTest20190705()
+        {
+            //var filename = @"T:\Vgm\Data\2017-10-20_09-44-27_1mm_shade_norm_5pp - Cloud.pts";
+            var filename = @"T:\Vgm\Data\Kindergarten.pts";
+
+            int splitLimit = 8192;
+
+
+            Report.BeginTimed($"total");
+
+            Report.BeginTimed($"processing");
+            var cells = File
+                .ReadLines(filename)
+                //.Take(17000000)
+                .AsParallel()
+                .AsUnordered()
+                .Select(line => line.Split(' '))
+                .Where(ts => ts.Length == 7)
+                .Select(ts => new PointD(
+                    new V3d(
+                        double.Parse(ts[0], CultureInfo.InvariantCulture),
+                        double.Parse(ts[1], CultureInfo.InvariantCulture),
+                        double.Parse(ts[2], CultureInfo.InvariantCulture)
+                        ),
+                    new C3b(byte.Parse(ts[4]), byte.Parse(ts[5]), byte.Parse(ts[6]))
+                    ))
+                .GroupBy(x => ((V3i)x.Pos))
+                .Select(g => {
+                    var points = g.Deduplicate(digits: 2);
+                    return (key: new Cell(Box3d.FromMinAndSize((V3d)g.Key, V3d.III)), points);
+                })
+                .ToList()
+                ;
+            Report.EndTimed();
+
+            var bb = new Box3d(cells.Select(x => x.key.BoundingBox));
+            var bbCell = new Cell(bb);
+
+            Report.Line($"points: {cells.Sum(g => g.points.Count):N0}");
+            Report.Line($"bounds: {bb}");
+            Report.Line($"bounds: {bbCell}");
+            Report.Line($"groups:  {cells.Count:N0}");
+            Report.Line($">= 16384: {cells.Count(x => x.points.Count >= 16384):N0}");
+            Report.Line($">=  8192: {cells.Count(x => x.points.Count < 16384 && x.points.Count >= 8192):N0}");
+            Report.Line($" <  8192: {cells.Count(x => x.points.Count < 8192):N0}");
+
+            Report.BeginTimed("building tree");
+            var tree = Node.Build(bbCell, cells, splitLimit);
+            Report.EndTimed();
+
+            Report.Line($"tree: count points: {tree.CountPoints(),15:N0}");
+            Report.Line($"tree: count nodes : {tree.CountNodes(),15:N0}");
+
+            Report.BeginTimed("generate lod");
+            tree.GenerateLod(splitLimit).Wait();
+            Report.EndTimed();
+
+            Report.EndTimed(); // total
+        }
+
+        internal static void PerfTest20190701()
         {
             var filename = @"T:\Vgm\Data\2017-10-20_09-44-27_1mm_shade_norm_5pp - Cloud.pts";
 
@@ -39,6 +312,7 @@ namespace Aardvark.Geometry.Tests
 
             Report.Line($"count -> {pc.PointCount}");
         }
+
         internal static void TestE57()
         {
             var sw = new Stopwatch();
@@ -289,10 +563,13 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
+            PerfTest20190705();
+
             //var path = JObject.Parse(File.ReadAllText(@"T:\OEBB\20190619_Trajektorie_Verbindungsbahn\path.json"));
             //File.WriteAllText(@"T:\OEBB\20190619_Trajektorie_Verbindungsbahn\path2.json", path.ToString(Formatting.Indented));
             //Console.WriteLine(path);
-            PerfTestJuly2019();
+
+            //PerfTest20190701();
 
             //TestLoadOldStore();
 
