@@ -561,9 +561,33 @@ namespace Aardvark.Geometry.Tests
             var root = store.GetPointCloudNode("e06a1e87-5ab1-4c73-8c3f-3daf1bdac1d9");
         }
 
+        internal static void TestOebb()
+        {
+            dynamic json = JObject.Parse(File.ReadAllText(@"T:\OEBB\20190619_Trajektorie_Verbindungsbahn\path2.json"));
+            Console.WriteLine(json.properties);
+            var offset = new V3d(
+                double.Parse((string)json.properties.x, CultureInfo.InvariantCulture),
+                double.Parse((string)json.properties.y, CultureInfo.InvariantCulture),
+                double.Parse((string)json.properties.z, CultureInfo.InvariantCulture)
+                );
+            Console.WriteLine($"offset: {offset}");
+
+            var coords = (JArray)json.geometry.coordinates;
+            var path = coords
+                .Map(xs => (JArray)xs)
+                .Map(xs => new V3d((double)xs[0], (double)xs[1], (double)xs[2]))
+                .Map(x => x + offset)
+                ;
+            var pathBounds = new Box3d(path);
+            Console.WriteLine($"path points: {path.Length:N0}");
+            Console.WriteLine($"path bounds: {pathBounds}");
+        }
+
         public static void Main(string[] args)
         {
-            PerfTest20190705();
+            TestOebb();
+
+            //PerfTest20190705();
 
             //var path = JObject.Parse(File.ReadAllText(@"T:\OEBB\20190619_Trajektorie_Verbindungsbahn\path.json"));
             //File.WriteAllText(@"T:\OEBB\20190619_Trajektorie_Verbindungsbahn\path2.json", path.ToString(Formatting.Indented));
