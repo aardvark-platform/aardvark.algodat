@@ -80,7 +80,7 @@ module LodTreeInstance =
 
 
 
-    type PointTreeNode(cache : LruDictionary<string, obj>, source : Symbol, globalTrafo : Similarity3d, root : Option<PointTreeNode>, parent : Option<PointTreeNode>, level : int, self : IPointCloudNode) as this =
+    type PointTreeNode(pointCloudId : System.Guid, cache : LruDictionary<string, obj>, source : Symbol, globalTrafo : Similarity3d, root : Option<PointTreeNode>, parent : Option<PointTreeNode>, level : int, self : IPointCloudNode) as this =
         static let cmp = Func<float,float,int>(compare)
         
         let globalTrafoTrafo = Trafo3d globalTrafo
@@ -264,6 +264,7 @@ module LodTreeInstance =
         member x.WithPointCloudNode(r : IPointCloudNode) =
             assert(level = 0 && Option.isNone parent)
             PointTreeNode(
+                System.Guid.NewGuid(),
                 cache,
                 source,
                 globalTrafo,
@@ -272,7 +273,17 @@ module LodTreeInstance =
                 0, 
                 r
             )
-
+        member x.Delete(b : Box3d) =
+            let nodeFullyInside = Func<_,_>(fun (node : IPointCloudNode) -> b.Contains(node.Cell.BoundingBox))
+            let nodeFullyOutside = Func<_,_>(fun (node : IPointCloudNode) -> not(b.Contains(node.Cell.BoundingBox)) && not(b.Intersects(node.Cell.BoundingBox)))
+            let pointCountains = Func<_,_>(fun (v : V3d) -> b.Contains(v))
+            let n = self.Delete(nodeFullyInside,nodeFullyOutside,pointCountains,self.Storage,CancellationToken.None)
+            Log.line "Deleted"
+            if isNull n then
+                Log.error "Node is null, not deleting"
+                this
+            else
+                PointTreeNode(System.Guid.NewGuid(), cache, source, globalTrafo, root, parent, level, n)
 
         member x.Acquire() =
             ()
@@ -341,7 +352,7 @@ module LodTreeInstance =
                                                 unbox<ILodTreeNode> n |> Some
                                             | _ -> 
                                                 //Log.warn "alloc %A" id
-                                                PointTreeNode(cache, source, globalTrafo, Some this.Root, Some this, level + 1, c) :> ILodTreeNode |> Some
+                                                PointTreeNode(pointCloudId, cache, source, globalTrafo, Some this.Root, Some this, level + 1, c) :> ILodTreeNode |> Some
                                 )
                         children <- Some c
                         c :> seq<_>
@@ -391,6 +402,8 @@ module LodTreeInstance =
             member x.DataTrafo = globalTrafoTrafo.Inverse
             member x.Acquire() = x.Acquire()
             member x.Release() = x.Release()
+
+        member x.PointCloudId = pointCloudId
 
         override x.GetHashCode() = 
             HashCode.Combine(x.DataSource.GetHashCode(), self.Id.GetHashCode())
@@ -691,10 +704,10 @@ module LodTreeInstance =
 
         let trafo = Similarity3d(1.0, Euclidean3d(Rot3d.Identity, -bounds.Center))
         let source = Symbol.Create sourceName
-        let root = PointTreeNode(store.Cache, source, trafo, None, None, 0, root) :> ILodTreeNode
+        let root = PointTreeNode(System.Guid.NewGuid(), store.Cache, source, trafo, None, None, 0, root) :> ILodTreeNode
 
         let uniforms = MapExt.ofList uniforms
-        let uniforms = MapExt.add "Scales" (Mod.constant 1.0 :> IMod) uniforms
+        let uniforms = MapExt.add "Scales" (Mod.constant V4d.IIII :> IMod) uniforms
         
 
         { 
@@ -729,7 +742,7 @@ module LodTreeInstance =
 
     let ofPointSet (uniforms : list<string * IMod>) (set : PointSet) =
         let store = set.Storage
-        let root = PointTreeNode(store.Cache, Symbol.CreateNewGuid(), Similarity3d.Identity, None, None, 0, set.Root.Value) :> ILodTreeNode
+        let root = PointTreeNode(System.Guid.NewGuid(), store.Cache, Symbol.CreateNewGuid(), Similarity3d.Identity, None, None, 0, set.Root.Value) :> ILodTreeNode
         let uniforms = MapExt.ofList uniforms
         { 
             root = root
@@ -738,7 +751,7 @@ module LodTreeInstance =
         
     let ofPointCloudNode (uniforms : list<string * IMod>) (root : IPointCloudNode) =
         let store = root.Storage
-        let root = PointTreeNode(store.Cache, Symbol.CreateNewGuid(), Similarity3d.Identity, None, None, 0, root) :> ILodTreeNode
+        let root = PointTreeNode(System.Guid.NewGuid(), store.Cache, Symbol.CreateNewGuid(), Similarity3d.Identity, None, None, 0, root) :> ILodTreeNode
         let uniforms = MapExt.ofList uniforms
         { 
             root = root
@@ -758,10 +771,10 @@ module LodTreeInstance =
         let tree = instance.root
 
         let bounds = tree.WorldBoundingBox
-        let scale = (box.Size / bounds.Size).NormMin
+        let scale = V4d.IIII * (box.Size / bounds.Size).NormMin
         let t = 
             Trafo3d.Translation(box.Center - bounds.Center) * 
-            Trafo3d.Scale scale
+            Trafo3d.Scale scale.X
 
         let uniforms = instance.uniforms
         let uniforms = MapExt.add "Scales" (Mod.constant scale :> IMod) uniforms
@@ -795,12 +808,12 @@ module LodTreeInstance =
 
         let uniforms =
             match MapExt.tryFind "Scales" uniforms with
-            | Some (:? IMod<float> as sOld) -> 
+            | Some (:? IMod<V4d> as sOld) -> 
                 let sNew = t |> Mod.map (fun o -> getScale o.Forward)
                 let sFin = Mod.map2 (*) sOld sNew
                 MapExt.add "Scales" (sFin :> IMod) uniforms
             | _ ->
-                let sNew = t |> Mod.map (fun o -> getScale o.Forward)
+                let sNew = t |> Mod.map (fun o -> V4d.IIII * (getScale o.Forward))
                 MapExt.add "Scales" (sNew :> IMod) uniforms
                 
         { instance with uniforms = uniforms }
@@ -893,10 +906,10 @@ module PointSetShaders =
     type UniformScope with
         member x.MagicExp : float = x?MagicExp
         member x.PointVisualization : PointVisualization = x?PointVisualization
-        member x.Overlay : float[] = x?StorageBuffer?Overlay
+        member x.Overlay : V4d[] = x?StorageBuffer?Overlay
         member x.ModelTrafos : M44d[] = x?StorageBuffer?ModelTrafos
         member x.ModelViewTrafos : M44d[] = x?StorageBuffer?ModelViewTrafos
-        member x.Scales : float[] = x?StorageBuffer?Scales
+        member x.Scales : V4d[] = x?StorageBuffer?Scales
 
     type Vertex =
         {
@@ -1030,7 +1043,7 @@ module PointSetShaders =
             let vp = mv * v.pos
             let pp = div (uniform.ProjTrafo * vp)
 
-            let scale = uniform.Scales.[v.id] 
+            let scale = uniform.Scales.[v.id].X
             let dist = v.dist * scale * 8.0
 
             let dist = getNdcPointRadius vp dist
@@ -1072,7 +1085,7 @@ module PointSetShaders =
                 else
                     v.n.XYZ * 0.5 + 0.5
 
-            let o = uniform.Overlay.[v.id]
+            let o = uniform.Overlay.[v.id].X
             let h = heat (float v.treeDepth / 6.0)
             let col =
                 if uniform.PointVisualization &&& PointVisualization.OverlayLod <> PointVisualization.None then
@@ -1090,7 +1103,7 @@ module PointSetShaders =
             //    if pixelDist > 30.0 then -1.0
             //    else pixelDist //min pixelDist 30.0
 
-            return { v with ps = float (int pixelDist); s = pixelDist; pos = fpp; depthRange = depthRange; vp = vpz.XYZ; vc = vpz.XYZ; col = V4d(col, v.col.W) }
+            return { v with ps = 5.0; s = pixelDist; pos = fpp; depthRange = depthRange; vp = vpz.XYZ; vc = vpz.XYZ; col = V4d(col, v.col.W) }
         }
 
 
@@ -1103,7 +1116,7 @@ module PointSetShaders =
             let vp = mv * v.pos
             let pp = div (uniform.ProjTrafo * vp)
 
-            let pixelSize = uniform.Scales.[v.id]  * uniform.PointSize
+            let pixelSize = uniform.Scales.[v.id].X  * uniform.PointSize
             let ndcRadius = pixelSize / V2d uniform.ViewportSize
 
             let vpx = uniform.ProjTrafoInv * (V4d(pp.X + ndcRadius.X, pp.Y, pp.Z, 1.0)) |> div
@@ -1129,7 +1142,7 @@ module PointSetShaders =
                 else
                     V3d.III
 
-            let o = uniform.Overlay.[v.id]
+            let o = uniform.Overlay.[v.id].X
             let h = heat (float v.treeDepth / 6.0)
             let col =
                 if uniform.PointVisualization &&& PointVisualization.OverlayLod <> PointVisualization.None then

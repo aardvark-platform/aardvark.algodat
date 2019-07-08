@@ -104,7 +104,7 @@ module Util =
 module Rendering =
 
 
-    let pointClouds (win : IRenderWindow) (msaa : bool) (camera : IMod<CameraView>) (frustum : IMod<Frustum>) (pcs : list<LodTreeInstance>) =
+    let pointClouds (win : IRenderWindow) (msaa : bool) (camera : IMod<CameraView>) (frustum : IMod<Frustum>) (pcs : list<unit -> LodTreeInstance>) =
         let picktrees : mmap<ILodTreeNode,SimplePickTree> = MMap.empty
         let config =
             {
@@ -116,12 +116,14 @@ module Rendering =
                 budget = Mod.init -(256L <<< 10)
                 lighting = Mod.init true
                 colors = Mod.init true
-                magicExp = Mod.init 1.0
+                magicExp = Mod.init 0.0
                 stats = Mod.init Unchecked.defaultof<_>
                 background = Mod.init (Background.Skybox Skybox.Miramar)
                 antialias = Mod.init true
                 fancy = Mod.init false
             }
+
+
 
         let vis = 
             Mod.custom (fun t ->
@@ -156,18 +158,18 @@ module Rendering =
 
         let pcs =
             pcs |> List.map (fun t ->
-                { t with uniforms = MapExt.add "Overlay" (config.overlayAlpha :> IMod) t.uniforms }
+                fun () -> let t = t() in { t with uniforms = MapExt.add "Overlay" (config.overlayAlpha |> Mod.map ((*) V4d.IIII) :> IMod) t.uniforms }
             )
         
         let overallBounds = 
-            pcs |> List.map (fun i -> i.root.WorldBoundingBox) |> Box3d
+            pcs |> List.map (fun i -> i().root.WorldBoundingBox) |> Box3d
 
         let trafo = 
             Trafo3d.Translation(-overallBounds.Center) * 
             Trafo3d.Scale(300.0 / overallBounds.Size.NormMax)
 
         let pcs =
-            pcs |> List.map (LodTreeInstance.transform trafo) |> ASet.ofList
+            pcs |> List.map (fun t () -> t() |> LodTreeInstance.transform trafo) // |> ASet.ofList
             
         let cfg =
             RenderConfig.toSg win config
@@ -280,6 +282,8 @@ module Rendering =
             )
 
         let afterMain = RenderPass.after "aftermain" RenderPassOrder.Arbitrary RenderPass.main
+        let e = pcs |> Seq.head
+        //let c = V3d (e.root :?> Aardvark.Rendering.PointSet.LodTreeInstance.PointTreeNode).Original.CentroidLocal + e.root.Cell.BoundingBox.Center
 
         let thing =
             Sg.draw IndexedGeometryMode.PointList
@@ -297,7 +301,31 @@ module Rendering =
             |> Sg.depthTest (Mod.constant DepthTestMode.None)
             //|> Sg.viewTrafo (Mod.constant Trafo3d.Identity)
             //|> Sg.projTrafo (Mod.constant Trafo3d.Identity)
-            |> Sg.pass afterMain
+            |> Sg.pass afterMain 
+
+        let reset = Mod.init 0 
+
+        //let pcs = 
+        //    let a = pcs |> HRefSet.ofList
+        //    let b = 
+        //        pcs |> List.map (fun p ->
+        //            let box = Box3d.FromCenterAndSize(e.root.WorldBoundingBox.Center, e.root.WorldBoundingBox.Size * 0.25)
+        //            let d = (e.root :?> Aardvark.Rendering.PointSet.LodTreeInstance.PointTreeNode).Delete(box) :> ILodTreeNode
+        //            { e with root = d }
+        //        ) |> HRefSet.ofList
+        //    reset |> Mod.map (fun i -> 
+        //        if i%2 = 0 then
+        //            a
+        //        else
+        //            b
+        //    )
+        //    |> ASet.ofMod
+
+        
+
+
+        let pcs = reset |> Mod.map (fun i -> pcs.[i%pcs.Length]()) |> ASet.ofModSingle
+
 
         let sg =
             Sg.LodTreeNode(config.stats, picktrees, true, config.budget, config.splitfactor, config.renderBounds, config.maxSplits, win.Time, pcs) :> ISg
@@ -322,6 +350,20 @@ module Rendering =
             //|> Sg.andAlso bla
             |> Sg.blendMode (Mod.constant BlendMode.None)
 
+
+        let switchActive = win.Keyboard.IsDown Keys.M
+        let switchThread =
+            for i in 1 .. 1 do
+                startThread (fun () ->
+                    let rand = RandomSystem()
+                    while true do
+                        System.Threading.Thread.Sleep(rand.UniformInt(100))
+                        if Mod.force switchActive then
+                            transact (fun () -> reset.Value <- reset.Value + 1)
+                    
+                ) |> ignore
+
+
         win.Keyboard.DownWithRepeats.Values.Add(fun k ->
             match k with
             | Keys.I ->
@@ -332,11 +374,15 @@ module Rendering =
                 transact (fun () ->
                     config.colors.Value <- not config.colors.Value
                 )
+
+
+
             | Keys.L ->
                 transact (fun () ->
                     config.lighting.Value <- not config.lighting.Value
                 )
-            
+            //| Keys.M -> 
+            //    transact ( fun () -> reset.Value <- reset.Value + 1 )
 
             | Keys.O -> transact (fun () -> config.pointSize.Value <- config.pointSize.Value / 1.3)
             | Keys.P -> transact (fun () -> config.pointSize.Value <- config.pointSize.Value * 1.3)
@@ -345,7 +391,7 @@ module Rendering =
         
             | Keys.Up -> transact (fun () -> config.maxSplits.Value <- config.maxSplits.Value + 1); printfn "splits: %A" config.maxSplits.Value
             | Keys.Down -> transact (fun () -> config.maxSplits.Value <- max 1 (config.maxSplits.Value - 1)); printfn "splits: %A" config.maxSplits.Value
-
+            | Keys.F -> transact (fun () -> if config.maxSplits.Value = 0 then printfn "unfreeze"; config.maxSplits.Value <- 12 else printfn "freeze"; config.maxSplits.Value <- 0)
             | Keys.C -> transact (fun () -> if config.budget.Value > 0L && config.budget.Value < (1L <<< 30) then config.budget.Value <- 2L * config.budget.Value); Log.line "budget: %A" config.budget.Value
             | Keys.X -> transact (fun () -> if config.budget.Value > (256L <<< 10) then config.budget.Value <- max (config.budget.Value / 2L) (256L <<< 10)); Log.line "budget: %A" config.budget.Value
         
@@ -367,6 +413,9 @@ module Rendering =
 
             | Keys.D1 -> transact (fun () -> config.fancy.Value <- not config.fancy.Value)
             | Keys.D2 -> transact (fun () -> config.antialias.Value <- not config.antialias.Value)
+
+            | Keys.N -> transact (fun () -> reset.Value <- reset.Value + 1)
+            | Keys.Return -> Log.line "%A" config.stats.Value
 
             | k -> 
                 ()
@@ -462,7 +511,7 @@ module Rendering =
         ]
 
 
-    let show (args : Args) (pcs : list<_>) =
+    let show (args : Args) (pcs : list<unit -> LodTreeInstance>) =
         Ag.initialize()
         Aardvark.Init()
 
