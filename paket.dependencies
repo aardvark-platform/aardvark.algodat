@@ -9,8 +9,8 @@ nuget Aardvark.Base                     ~> 4.5.2
 nuget Aardvark.Geometry                 ~> 4.5.2
 nuget Aardvark.Base.IO                  ~> 4.5.2
 
-nuget Aardvark.Base.Rendering           ~> 4.9.0
-nuget Aardvark.SceneGraph               ~> 4.9.0
+nuget Aardvark.Base.Rendering           ~> 4.9.3
+nuget Aardvark.SceneGraph               ~> 4.9.3
 
 nuget Aardvark.Data.Durable             ~> 0.0.10
 
@@ -23,10 +23,10 @@ nuget Uncodium.Eigensystems             ~> 1.0.2
 nuget Uncodium.SimpleStore              ~> 2.0.0
 
 // viewer
-nuget Aardvark.Application.Utilities    ~> 4.9.0
-nuget Aardvark.Application.Slim         ~> 4.9.0
-nuget Aardvark.Application.Slim.GL      ~> 4.9.0
-nuget Aardvark.Application.Slim.Vulkan  ~> 4.9.0
+nuget Aardvark.Application.Utilities    ~> 4.9.3
+nuget Aardvark.Application.Slim         ~> 4.9.3
+nuget Aardvark.Application.Slim.GL      ~> 4.9.3
+nuget Aardvark.Application.Slim.Vulkan  ~> 4.9.3
 
 nuget FShade                            ~> 4.3.5
 nuget Unofficial.DotSpatial.Projections ~> 0.0.3
