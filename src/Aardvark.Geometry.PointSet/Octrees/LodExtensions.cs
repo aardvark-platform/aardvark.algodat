@@ -166,7 +166,7 @@ namespace Aardvark.Geometry.Points
             return result.Result;
         }
 
-        private static async Task<IPointCloudNode> GenerateLod(this PointSetNode self,
+        internal static async Task<IPointCloudNode> GenerateLod(this PointSetNode self,
             int octreeSplitLimit, Action callback,
             CancellationToken ct)
         {
