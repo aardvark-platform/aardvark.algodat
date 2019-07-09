@@ -71,7 +71,8 @@ namespace Aardvark.Geometry.Points
             Guid? newIsId = null;
             Guid? newKsId = null;
             Guid? newKdId = null;
-            
+
+            var psaa = root.HasPositions ? new List<V3d>() : null;
             var ps = root.HasPositions ? new List<V3f>() : null;
             var cs = root.HasColors ? new List<C4b>() : null;
             var ns = root.HasNormals ? new List<V3f>() : null;
@@ -87,6 +88,7 @@ namespace Aardvark.Geometry.Points
             {
                 if (!isPositionInside(oldPsAbsolute[i]))
                 {
+                    if (oldPsAbsolute != null) psaa.Add(oldPsAbsolute[i]);
                     if (oldPs != null) ps.Add(oldPs[i]);
                     if (oldCs != null) cs.Add(oldCs[i]);
                     if (oldNs != null) ns.Add(oldNs[i]);
@@ -156,8 +158,9 @@ namespace Aardvark.Geometry.Points
             var pointCountTreeLeafs = newSubnodes != null ? (newSubnodes.Sum(n => n != null ? n.PointCountTree : 0)) : ps.Count;
             data = data.Add(Durable.Octree.PointCountTreeLeafs, pointCountTreeLeafs);
 
-            var bbExactGlobal = root.IsLeaf
-                ? new Box3d(root.PositionsAbsolute)
+            var bbExactGlobal =
+                newSubnodes == null
+                ? new Box3d(psaa)
                 : new Box3d(newSubnodes.Where(x => x != null).Select(x => x.BoundingBoxExactGlobal))
                 ;
             data = data.Add(Durable.Octree.BoundingBoxExactGlobal, bbExactGlobal);
