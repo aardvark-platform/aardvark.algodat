@@ -35,6 +35,12 @@ module CmdLine =
             |> Seq.map (fun j -> Box3d.Parse(j.["Bounds"].ToObject<string>()))
             |> Array.ofSeq
             
+    let movie (store : string ) (ids : list<string>) =
+        Rendering.renderImages (ids |> List.map (fun id ->
+            let a = LodTreeInstance.load "asdasdsadasd" id store []
+            fun () -> a
+        ))
+
     let view (store : string) (ids : list<string>) (args : Args) =
         Rendering.show args (ids |> List.map (fun id ->
             let a = LodTreeInstance.load "asdasdsadasd" id store []

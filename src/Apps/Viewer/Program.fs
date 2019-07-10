@@ -10,6 +10,10 @@ open Aardvark.Algodat.App.Viewer
 open Aardvark.Data.Points.Import
 
 
+
+
+
+
 [<EntryPoint>]
 let main args =  
 
@@ -24,10 +28,14 @@ let main args =
     //        Ascii.Token.ColorG
     //        Ascii.Token.ColorR
     //    |]
-    //import a  @"C:\Users\Schorsch\Development\WorkDirectory\tech" "a" (Args.parse [||])
     //import a  @"C:\Users\Schorsch\Development\WorkDirectory\tech" "b" { Args.parse [||] with asciiFormat = Some bgr }
 
-    view @"C:\Users\Schorsch\Development\WorkDirectory\tech" ["a"; "b"; "a"; "b"] (Args.parse [||])
+    let a = @"C:\Users\Schorsch\Desktop\oebb\Image_Matching_Meidling_Penzing.e57"
+    let b = @"C:\Users\Schorsch\Desktop\oebb\Image_Matching_Penzing_Meidling.e57"
+    let store = @"C:\Users\Schorsch\Development\WorkDirectory\oebb"
+    //import a store "a" (Args.parse [||])
+    //import b store "b" (Args.parse [||])
+    movie store ["a"; "b"] //(Args.parse [||])
 
     //let args = Args.parse args
     
