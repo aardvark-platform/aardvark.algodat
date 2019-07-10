@@ -37,7 +37,7 @@ namespace Aardvark.Geometry.Points
             return fractions;
         }
 
-        private static double[] ComputeLodFractions(IPointCloudNode[] subnodes)
+        internal static double[] ComputeLodFractions(IPointCloudNode[] subnodes)
         {
             if (subnodes == null) return null;
             if (subnodes.Length != 8) throw new ArgumentOutOfRangeException();
@@ -47,7 +47,7 @@ namespace Aardvark.Geometry.Points
             return ComputeLodFractions(counts);
         }
 
-        private static int[] ComputeLodCounts(int splitLimit, double[] fractions)
+        internal static int[] ComputeLodCounts(int splitLimit, double[] fractions)
         {
             if (fractions == null) return null;
             if (fractions.Length != 8) throw new ArgumentOutOfRangeException();
@@ -68,7 +68,7 @@ namespace Aardvark.Geometry.Points
             return counts;
         }
 
-        private static V3f[] AggregateSubPositions(int[] counts, int splitLimit, V3d center, V3d?[] subCenters, V3f[][] xss)
+        internal static V3f[] AggregateSubPositions(int[] counts, int splitLimit, V3d center, V3d?[] subCenters, V3f[][] xss)
         {
             var rs = new V3f[splitLimit];
             var i = 0;
@@ -88,7 +88,7 @@ namespace Aardvark.Geometry.Points
             return rs;
         }
 
-        private static T[] AggregateSubArrays<T>(int[] counts, int splitLimit, T[][] xss)
+        internal static T[] AggregateSubArrays<T>(int[] counts, int splitLimit, T[][] xss)
         {
             var rs = new T[splitLimit];
             var i = 0;
