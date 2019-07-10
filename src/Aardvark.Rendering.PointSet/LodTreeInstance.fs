@@ -277,7 +277,7 @@ module LodTreeInstance =
             let nodeFullyInside = Func<_,_>(fun (node : IPointCloudNode) -> b.Contains(node.Cell.BoundingBox))
             let nodeFullyOutside = Func<_,_>(fun (node : IPointCloudNode) -> not(b.Contains(node.Cell.BoundingBox)) && not(b.Intersects(node.Cell.BoundingBox)))
             let pointCountains = Func<_,_>(fun (v : V3d) -> b.Contains(v))
-            let n = self.Delete(nodeFullyInside,nodeFullyOutside,pointCountains,self.Storage,CancellationToken.None)
+            let n = self.Delete(nodeFullyInside,nodeFullyOutside,pointCountains,self.Storage,CancellationToken.None, 8192)
             Log.line "Deleted"
             if isNull n then
                 Log.error "Node is null, not deleting"

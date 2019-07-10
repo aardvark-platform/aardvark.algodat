@@ -266,7 +266,7 @@ namespace Aardvark.Geometry.Tests
             var b = f.Delete(
                 n => q1.Contains(n.BoundingBoxExactGlobal),
                 n => !(q1.Contains(n.BoundingBoxExactGlobal) || q1.Intersects(n.BoundingBoxExactGlobal)),
-                p => q1.Contains(p), a.Storage, default);
+                p => q1.Contains(p), a.Storage, default, 1024);
 
             Assert.IsTrue(a.PointCountTree > b.PointCountTree);
 

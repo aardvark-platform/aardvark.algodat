@@ -37,7 +37,7 @@ namespace Aardvark.Geometry.Points
             Storage storage, CancellationToken ct
             )
         {
-            var root = Delete(node.Root.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, storage, ct);
+            var root = Delete(node.Root.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, storage, ct, node.SplitLimit);
             var newId = Guid.NewGuid().ToString();
             var result = new PointSet(node.Storage, newId, root?.Id, node.SplitLimit);
             node.Storage.Add(newId, result);
@@ -51,10 +51,11 @@ namespace Aardvark.Geometry.Points
             Func<IPointCloudNode, bool> isNodeFullyInside,
             Func<IPointCloudNode, bool> isNodeFullyOutside,
             Func<V3d, bool> isPositionInside,
-            Storage storage, CancellationToken ct
+            Storage storage, CancellationToken ct,
+            int splitLimit
             )
         {
-            //Report.Error($"[Delete] {root.GetType().Name}.Delete({root.Id})");
+            Report.Error($"[Delete] {root.GetType().Name}.Delete({root.Id})");
             if (root == null) return null;
             if (isNodeFullyInside(root)) return null;
             if (isNodeFullyOutside(root))
@@ -98,17 +99,17 @@ namespace Aardvark.Geometry.Points
 
                 if (ps.Count == 0) return null;
 
+                var psa = ps.ToArray();
+                var newId = Guid.NewGuid();
+                var kd = psa.Length < 1 ? null : psa.BuildKdTree();
+                
                 Guid psId = Guid.NewGuid();
-                Guid kdId = Guid.NewGuid();
+                Guid kdId = kd != null ? Guid.NewGuid() : Guid.Empty;
                 Guid csId = cs != null ? Guid.NewGuid() : Guid.Empty;
                 Guid nsId = ns != null ? Guid.NewGuid() : Guid.Empty;
                 Guid isId = js != null ? Guid.NewGuid() : Guid.Empty;
                 Guid ksId = ks != null ? Guid.NewGuid() : Guid.Empty;
 
-                var psa = ps.ToArray();
-                var newId = Guid.NewGuid();
-                
-                storage.Add(kdId, psa.BuildKdTree().Data);
                 storage.Add(psId, psa);
 
                 var data = ImmutableDictionary<Durable.Def, object>.Empty
@@ -117,7 +118,6 @@ namespace Aardvark.Geometry.Points
                     .Add(Durable.Octree.BoundingBoxExactGlobal, bbabs)
                     .Add(Durable.Octree.BoundingBoxExactLocal, bbloc)
                     .Add(Durable.Octree.PositionsLocal3fReference, psId)
-                    .Add(Durable.Octree.PointRkdTreeFDataReference, kdId)
                     .Add(Durable.Octree.PointCountCell, ps.Count)
                     .Add(Durable.Octree.PointCountTreeLeafs, (long)ps.Count)
                     .Add(Durable.Octree.MaxTreeDepth, 0)
@@ -125,6 +125,11 @@ namespace Aardvark.Geometry.Points
                     ;
 
 
+                if (kd != null)
+                {
+                    storage.Add(kdId, kd.Data);
+                    data = data.Add(Durable.Octree.PointRkdTreeFDataReference, kdId);
+                }
                 if (cs != null)
                 {
                     storage.Add(csId, cs.ToArray());
@@ -151,29 +156,30 @@ namespace Aardvark.Geometry.Points
             }
             else
             {
-                var subnodes = root.Subnodes.Map((r) => r?.Value?.Delete(isNodeFullyInside, isNodeFullyOutside, isPositionInside, storage, ct));
+                var subnodes = root.Subnodes.Map((r) => r?.Value?.Delete(isNodeFullyInside, isNodeFullyOutside, isPositionInside, storage, ct, splitLimit));
                 var pointCountTree = subnodes.Sum((n) => n != null ? n.PointCountTree : 0);
                 if (pointCountTree == 0)
                 {
                     return null;
                 }
-                else if (pointCountTree < 8192)
+                else if (pointCountTree <= splitLimit)
                 {
                     var psabs = root.HasPositions ? new List<V3d>() : null;
                     var cs = root.HasColors ? new List<C4b>() : null;
                     var ns = root.HasNormals ? new List<V3f>() : null;
                     var js = root.HasIntensities ? new List<int>() : null;
                     var ks = root.HasClassifications ? new List<byte>() : null;
-
                     foreach(var c in subnodes)
                     {
                         if (c != null) MergeExtensions.CollectEverything(c, psabs, cs, ns, js, ks);
                     }
                     Debug.Assert(psabs.Count == pointCountTree);
                     var psa = psabs.MapToArray((p) => (V3f)(p - root.Center));
+                    var kd = psa.Length < 1 ? null : psa.BuildKdTree();
+
 
                     Guid psId = Guid.NewGuid();
-                    Guid kdId = Guid.NewGuid();
+                    Guid kdId = kd != null ? Guid.NewGuid() : Guid.Empty;
                     Guid csId = cs != null ? Guid.NewGuid() : Guid.Empty;
                     Guid nsId = ns != null ? Guid.NewGuid() : Guid.Empty;
                     Guid isId = js != null ? Guid.NewGuid() : Guid.Empty;
@@ -182,7 +188,6 @@ namespace Aardvark.Geometry.Points
                     var bbabs = new Box3d(psabs);
 
                     var newId = Guid.NewGuid();
-                    storage.Add(kdId, psa.BuildKdTree().Data);
                     storage.Add(psId, psa);
 
                     var data = ImmutableDictionary<Durable.Def, object>.Empty
@@ -191,12 +196,16 @@ namespace Aardvark.Geometry.Points
                     .Add(Durable.Octree.BoundingBoxExactGlobal, bbabs)
                     .Add(Durable.Octree.BoundingBoxExactLocal, (Box3f)(bbabs - root.Center))
                     .Add(Durable.Octree.PositionsLocal3fReference, psId)
-                    .Add(Durable.Octree.PointRkdTreeFDataReference, kdId)
                     .Add(Durable.Octree.PointCountCell, (int)pointCountTree)
                     .Add(Durable.Octree.PointCountTreeLeafs, pointCountTree)
                     .Add(Durable.Octree.MaxTreeDepth, 0)
                     .Add(Durable.Octree.MinTreeDepth, 0)
                     ;
+                    if (kd != null)
+                    {
+                        storage.Add(kdId, kd.Data);
+                        data = data.Add(Durable.Octree.PointRkdTreeFDataReference, kdId);
+                    }
                     if (cs != null)
                     {
                         storage.Add(csId, cs.ToArray());
@@ -230,7 +239,7 @@ namespace Aardvark.Geometry.Points
                     var minDepth = subnodes.Min(n => n != null ? n.MinTreeDepth + 1 : 0);
 
 
-                    var octreeSplitLimit = 8192;
+                    var octreeSplitLimit = splitLimit;
                     var fractions = LodExtensions.ComputeLodFractions(subnodes);
                     var counts = LodExtensions.ComputeLodCounts(octreeSplitLimit, fractions);
 
@@ -246,11 +255,11 @@ namespace Aardvark.Geometry.Points
                     var lodIs = needsIs ? LodExtensions.AggregateSubArrays(counts, octreeSplitLimit, subnodes.Map(x => x?.Intensities?.Value)) : null;
                     var lodKs = needsKs ? LodExtensions.AggregateSubArrays(counts, octreeSplitLimit, subnodes.Map(x => x?.Classifications?.Value)) : null;
                     var lodNs = needsNs ? LodExtensions.AggregateSubArrays(counts, octreeSplitLimit, subnodes.Map(x => x?.Normals?.Value)) : null;
-                    var lodKd = lodPs.BuildKdTree();
+                    var lodKd = lodPs.Length < 1 ? null : lodPs.BuildKdTree();
 
 
                     Guid psId = Guid.NewGuid();
-                    Guid kdId = Guid.NewGuid();
+                    Guid kdId = lodKd != null ? Guid.NewGuid() : Guid.Empty;
                     Guid csId = lodCs != null ? Guid.NewGuid() : Guid.Empty;
                     Guid nsId = lodNs != null ? Guid.NewGuid() : Guid.Empty;
                     Guid isId = lodIs != null ? Guid.NewGuid() : Guid.Empty;
@@ -258,7 +267,6 @@ namespace Aardvark.Geometry.Points
 
                     
                     var newId = Guid.NewGuid();
-                    storage.Add(kdId, lodKd.Data);
                     storage.Add(psId, lodPs);
 
                     var bbloc = new Box3f(lodPs);
@@ -271,12 +279,18 @@ namespace Aardvark.Geometry.Points
                     .Add(Durable.Octree.BoundingBoxExactGlobal, bbabs)
                     .Add(Durable.Octree.BoundingBoxExactLocal, bbloc)
                     .Add(Durable.Octree.PositionsLocal3fReference, psId)
-                    .Add(Durable.Octree.PointRkdTreeFDataReference, kdId)
                     .Add(Durable.Octree.PointCountCell, lodPs.Length)
                     .Add(Durable.Octree.PointCountTreeLeafs, pointCountTree)
                     .Add(Durable.Octree.MaxTreeDepth, maxDepth)
                     .Add(Durable.Octree.MinTreeDepth, minDepth)
                     ;
+
+
+                    if(lodKd != null)
+                    {
+                        storage.Add(kdId, lodKd.Data);
+                        data = data.Add(Durable.Octree.PointRkdTreeFDataReference, kdId);
+                    }
                     if (lodCs != null)
                     {
                         storage.Add(csId, lodCs);
@@ -399,7 +413,7 @@ namespace Aardvark.Geometry.Points
                         try
                         { //D
 
-                            var newSubnodes = root.Subnodes?.Map(n => n?.Value.Delete(isNodeFullyInside, isNodeFullyOutside, isPositionInside, storage, ct));
+                            var newSubnodes = root.Subnodes?.Map(n => n?.Value.Delete(isNodeFullyInside, isNodeFullyOutside, isPositionInside, storage, ct, splitLimit));
                             if (newSubnodes != null && newSubnodes.All(n => n == null)) newSubnodes = null;
                             if (ps.Count == 0 && newSubnodes == null) return null;
 

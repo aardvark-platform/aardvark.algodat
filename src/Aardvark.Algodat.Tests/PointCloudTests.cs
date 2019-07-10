@@ -59,6 +59,7 @@ namespace Aardvark.Geometry.Tests
         public void CreateSingleCell_NoSplit()
         {
             var a = CreateRandomPointsInUnitCube(123, int.MaxValue);
+            a.ValidateTree();
             Assert.IsTrue(a.CountOctreeLevels() == 1);
             Assert.IsTrue(a.PointCount == 123);
             Assert.IsTrue(a.Root.Value.CountPoints() == 123);
@@ -69,6 +70,7 @@ namespace Aardvark.Geometry.Tests
         public void CreateMultiCell_WithSplit()
         {
             var a = CreateRandomPointsInUnitCube(1234, 1024);
+            a.ValidateTree();
             Assert.IsTrue(a.CountOctreeLevels() == 2);
             Assert.IsTrue(a.PointCount == 1234);
             Assert.IsTrue(a.Root.Value.CountPoints() == 1234);

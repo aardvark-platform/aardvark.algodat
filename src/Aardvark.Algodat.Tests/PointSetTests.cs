@@ -47,6 +47,7 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(pointset.PointCount == 0);
             Assert.IsTrue(pointset.Root == null);
             Assert.IsTrue(pointset.SplitLimit == 0);
+            pointset.ValidateTree();
         }
 
         [Test]
@@ -63,6 +64,7 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(pointset.Root.Value.IsLeaf());
             Assert.IsTrue(pointset.Root.Value.Positions.Value.Length == 1);
             Assert.IsTrue(pointset.Root.Value.PointCountTree == 1);
+            pointset.ValidateTree();
         }
 
         [Test]
@@ -137,6 +139,7 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(root.PointCountTree == 4 * 4 * 4);
             var countNodes = root.CountLeafNodes(true);
             Assert.IsTrue(countNodes == 4 * 4 * 4);
+            root.ValidateTree(1, false);
         }
 
 
@@ -149,6 +152,7 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(pointset.HasKdTree == false);
             Assert.IsTrue(pointset.HasNormals == false);
             Assert.IsTrue(pointset.HasPositions == false);
+            pointset.ValidateTree();
         }
 
         [Test]
@@ -167,6 +171,7 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(pointset.HasKdTree == true);
             Assert.IsTrue(pointset.HasNormals == true);
             Assert.IsTrue(pointset.HasPositions == true);
+            pointset.ValidateTree();
         }
 
         [Test]
@@ -185,6 +190,7 @@ namespace Aardvark.Geometry.Tests
             //Assert.IsTrue(pointset.HasKdTree == true);
             Assert.IsTrue(pointset.HasNormals == true);
             Assert.IsTrue(pointset.HasPositions == true);
+            pointset.ValidateTree();
         }
 
         [Test]
