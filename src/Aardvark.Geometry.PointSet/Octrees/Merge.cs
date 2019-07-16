@@ -26,7 +26,7 @@ namespace Aardvark.Geometry.Points
     public static class MergeExtensions
     {
         
-        private static int CollectEverything(IPointCloudNode self, List<V3d> ps, List<C4b> cs, List<V3f> ns, List<int> js, List<byte> ks)
+        internal static int CollectEverything(IPointCloudNode self, List<V3d> ps, List<C4b> cs, List<V3f> ns, List<int> js, List<byte> ks)
         {
             if (self == null) return 0;
             else if(self.IsLeaf)
@@ -695,7 +695,7 @@ namespace Aardvark.Geometry.Points
 
         }
 
-        private static IPointCloudNode JoinTreeToRootCell(Cell rootCell, IPointCloudNode a, ImportConfig config, bool collapse = true)
+        internal static IPointCloudNode JoinTreeToRootCell(Cell rootCell, IPointCloudNode a, ImportConfig config, bool collapse = true)
         {
             if (!rootCell.Contains(a.Cell)) throw new InvalidOperationException();
 

@@ -79,8 +79,9 @@ module LodTreeInstance =
         
 
 
+    let isOrtho (proj : Trafo3d) = proj.Forward.R3.ApproxEqual(V4d.OOOI,1E-8)
 
-    type PointTreeNode(pointCloudId : System.Guid, cache : LruDictionary<string, obj>, source : Symbol, globalTrafo : Similarity3d, root : Option<PointTreeNode>, parent : Option<PointTreeNode>, level : int, self : IPointCloudNode) as this =
+    type PointTreeNode(pointCloudId : System.Guid, world : obj, cache : LruDictionary<string, obj>, source : Symbol, globalTrafo : Similarity3d, root : Option<PointTreeNode>, parent : Option<PointTreeNode>, level : int, self : IPointCloudNode) as this =
         static let cmp = Func<float,float,int>(compare)
         
         let globalTrafoTrafo = Trafo3d globalTrafo
@@ -231,21 +232,32 @@ module LodTreeInstance =
                     struct (res :> obj, mem)
             )
             |> unbox<IndexedGeometry * MapExt<string, Array>>
+            
+        let fov (proj : Trafo3d) =
+            2.0 * atan(proj.Backward.M00) * Constant.DegreesPerRadian
 
-        let angle (view : Trafo3d) =
-            let cam = view.Backward.C3.XYZ
+        let equivalentAngle60 (view : Trafo3d) (proj : Trafo3d) =
+            if isOrtho proj then 
+               let width = proj.Backward.M00 * 2.0 
+               let avgPointDistance = localBounds.Size.NormMax / 40.0
 
-            let avgPointDistance = localBounds.Size.NormMax / 40.0
+               60.0 * avgPointDistance / width
+            else 
+                let cam = view.Backward.C3.XYZ
 
-            let minDist = localBounds.GetMinimalDistanceTo(cam)
-            let minDist = max 0.01 minDist
+                let avgPointDistance = localBounds.Size.NormMax / 40.0
 
-            let angle = Constant.DegreesPerRadian * atan2 avgPointDistance minDist
+                let minDist = localBounds.GetMinimalDistanceTo(cam)
+                let minDist = max 0.01 minDist
 
-            let factor = 1.0 //(minDist / 0.01) ** 0.05
+                let angle = Constant.DegreesPerRadian * atan2 avgPointDistance minDist
 
-            angle / factor
+                let fov = fov proj
+
+                60.0 * angle / fov
         
+
+
         //member x.AcquireChild() =
         //    Interlocked.Increment(&livingChildren) |> ignore
     
@@ -265,6 +277,7 @@ module LodTreeInstance =
             assert(level = 0 && Option.isNone parent)
             PointTreeNode(
                 System.Guid.NewGuid(),
+                world,
                 cache,
                 source,
                 globalTrafo,
@@ -277,13 +290,13 @@ module LodTreeInstance =
             let nodeFullyInside = Func<_,_>(fun (node : IPointCloudNode) -> b.Contains(node.Cell.BoundingBox))
             let nodeFullyOutside = Func<_,_>(fun (node : IPointCloudNode) -> not(b.Contains(node.Cell.BoundingBox)) && not(b.Intersects(node.Cell.BoundingBox)))
             let pointCountains = Func<_,_>(fun (v : V3d) -> b.Contains(v))
-            let n = self.Delete(nodeFullyInside,nodeFullyOutside,pointCountains,self.Storage,CancellationToken.None)
+            let n = self.Delete(nodeFullyInside,nodeFullyOutside,pointCountains,self.Storage,CancellationToken.None, 8192)
             Log.line "Deleted"
             if isNull n then
                 Log.error "Node is null, not deleting"
                 this
             else
-                PointTreeNode(System.Guid.NewGuid(), cache, source, globalTrafo, root, parent, level, n)
+                PointTreeNode(System.Guid.NewGuid(), world, cache, source, globalTrafo, root, parent, level, n)
 
         member x.Acquire() =
             ()
@@ -352,7 +365,7 @@ module LodTreeInstance =
                                                 unbox<ILodTreeNode> n |> Some
                                             | _ -> 
                                                 //Log.warn "alloc %A" id
-                                                PointTreeNode(pointCloudId, cache, source, globalTrafo, Some this.Root, Some this, level + 1, c) :> ILodTreeNode |> Some
+                                                PointTreeNode(pointCloudId, world, cache, source, globalTrafo, Some this.Root, Some this, level + 1, c) :> ILodTreeNode |> Some
                                 )
                         children <- Some c
                         c :> seq<_>
@@ -366,16 +379,16 @@ module LodTreeInstance =
             load ct ips
             
         member x.ShouldSplit (splitfactor : float, quality : float, view : Trafo3d, proj : Trafo3d) =
-            not isLeaf && angle view > splitfactor / quality
+            not isLeaf && equivalentAngle60 view proj > splitfactor / quality
 
         member x.ShouldCollapse (splitfactor : float, quality : float, view : Trafo3d, proj : Trafo3d) =
-            angle view < (splitfactor * 0.75) / quality
+            equivalentAngle60 view proj < (splitfactor * 0.75) / quality
             
         member x.SplitQuality (splitfactor : float, view : Trafo3d, proj : Trafo3d) =
-            splitfactor / angle view
+            splitfactor / equivalentAngle60 view proj
 
         member x.CollapseQuality (splitfactor : float, view : Trafo3d, proj : Trafo3d) =
-            (splitfactor * 0.75) / angle view
+            (splitfactor * 0.75) / equivalentAngle60 view proj
 
         member x.DataSource = source
 
@@ -383,6 +396,7 @@ module LodTreeInstance =
             sprintf "%s[%d]" (string x.Id) level
 
         interface ILodTreeNode with
+            member x.Id = world
             member x.Root = x.Root :> ILodTreeNode
             member x.Level = level
             member x.Name = x.ToString()
@@ -496,6 +510,7 @@ module LodTreeInstance =
                 inner.GetData(ct, ips)
         
         interface ILodTreeNode with
+            member x.Id = inner.Id
             member x.DataTrafo = inner.DataTrafo
             member x.Root = root
             member x.Level = inner.Level
@@ -538,6 +553,7 @@ module LodTreeInstance =
 
 
         interface ILodTreeNode with
+            member x.Id = inner.Id
             member x.DataTrafo = inner.DataTrafo
             member x.Root = root
             member x.Level = inner.Level
@@ -704,7 +720,7 @@ module LodTreeInstance =
 
         let trafo = Similarity3d(1.0, Euclidean3d(Rot3d.Identity, -bounds.Center))
         let source = Symbol.Create sourceName
-        let root = PointTreeNode(System.Guid.NewGuid(), store.Cache, source, trafo, None, None, 0, root) :> ILodTreeNode
+        let root = PointTreeNode(System.Guid.NewGuid(), null, store.Cache, source, trafo, None, None, 0, root) :> ILodTreeNode
 
         let uniforms = MapExt.ofList uniforms
         let uniforms = MapExt.add "Scales" (Mod.constant V4d.IIII :> IMod) uniforms
@@ -742,7 +758,7 @@ module LodTreeInstance =
 
     let ofPointSet (uniforms : list<string * IMod>) (set : PointSet) =
         let store = set.Storage
-        let root = PointTreeNode(System.Guid.NewGuid(), store.Cache, Symbol.CreateNewGuid(), Similarity3d.Identity, None, None, 0, set.Root.Value) :> ILodTreeNode
+        let root = PointTreeNode(System.Guid.NewGuid(), null, store.Cache, Symbol.CreateNewGuid(), Similarity3d.Identity, None, None, 0, set.Root.Value) :> ILodTreeNode
         let uniforms = MapExt.ofList uniforms
         { 
             root = root
@@ -751,7 +767,7 @@ module LodTreeInstance =
         
     let ofPointCloudNode (uniforms : list<string * IMod>) (root : IPointCloudNode) =
         let store = root.Storage
-        let root = PointTreeNode(System.Guid.NewGuid(), store.Cache, Symbol.CreateNewGuid(), Similarity3d.Identity, None, None, 0, root) :> ILodTreeNode
+        let root = PointTreeNode(System.Guid.NewGuid(), null, store.Cache, Symbol.CreateNewGuid(), Similarity3d.Identity, None, None, 0, root) :> ILodTreeNode
         let uniforms = MapExt.ofList uniforms
         { 
             root = root

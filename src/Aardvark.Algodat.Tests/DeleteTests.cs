@@ -62,6 +62,23 @@ namespace Aardvark.Geometry.Tests
         }
 
         [Test]
+        public void DeleteCollapsesNodes()
+        {
+            var q = new Box3d(new V3d(0.25), new V3d(1.0));
+            var a = CreateRegularPointsInUnitCube(21, 8192);
+            a.ValidateTree();
+
+            var b = a.Delete(n => q.Contains(n.BoundingBoxExactGlobal), n => !(q.Contains(n.BoundingBoxExactGlobal) || q.Intersects(n.BoundingBoxExactGlobal)), p => q.Contains(p), a.Storage, CancellationToken.None);
+
+            Console.WriteLine("{0}", b.PointCount);
+            Assert.IsNotNull(b.Root);
+            Assert.IsNotNull(b.Root.Value);
+            Assert.IsTrue(b.Root.Value.IsLeaf);
+            b.ValidateTree();
+        }
+
+
+        [Test]
         public void CanDeletePoints()
         {
             var q = new Box3d(new V3d(0.3), new V3d(0.7));
@@ -70,10 +87,10 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(a.QueryAllPoints().SelectMany(chunk => chunk.Positions).Any(p => q.Contains(p)));
 
             var b = a.Delete(n => q.Contains(n.BoundingBoxExactGlobal), n => !(q.Contains(n.BoundingBoxExactGlobal) || q.Intersects(n.BoundingBoxExactGlobal)), p => q.Contains(p), a.Storage, CancellationToken.None);
-
+            Assert.IsTrue(b.Root?.Value.NoPointIn(p => q.Contains(p)));
             Assert.IsTrue(a.PointCount > b.PointCount);
-
             Assert.IsTrue(!b.QueryAllPoints().SelectMany(chunk => chunk.Positions).Any(p => q.Contains(p)));
+            b.ValidateTree();
         }
 
         [Test]
@@ -82,6 +99,7 @@ namespace Aardvark.Geometry.Tests
             var a = CreateRegularPointsInUnitCube(10, 1);
             var b = a.Delete(n => false, n => true, p => false, a.Storage, CancellationToken.None);
 
+            b.ValidateTree();
             Assert.IsTrue(a.PointCount == b.PointCount);
             Assert.IsTrue(a.Id != b.Id);
         }
@@ -94,16 +112,42 @@ namespace Aardvark.Geometry.Tests
                 var q1 = new Box3d(new V3d(0.0), new V3d(0.1));
                 var a = CreateRandomPointsInUnitCube(50000, 1024);
                 var b = a.Delete(n => q1.Contains(n.BoundingBoxExactGlobal), n => !(q1.Contains(n.BoundingBoxExactGlobal) || q1.Intersects(n.BoundingBoxExactGlobal)), p => q1.Contains(p), a.Storage, CancellationToken.None);
+                b.ValidateTree();
+                Assert.IsTrue(b.Root?.Value.NoPointIn(p => q1.Contains(p)));
                 var c = b.Delete(n => true, n => false, p => true, a.Storage, CancellationToken.None);
+                c.ValidateTree();
                 Assert.IsTrue(c.PointCount == 0L);
             }
         }
+
+
+        [Test]
+        public void DeleteAllButOne()
+        {
+            var a = CreateRegularPointsInUnitCube(2, 8);
+
+            var q1 = new Box3d(new V3d(0.0), new V3d(0.5));
+            var b = 
+                a.Delete(
+                    n => false, 
+                    n => false, 
+                    p => !q1.Contains(p), 
+                    a.Storage, 
+                    CancellationToken.None
+                );
+
+            Assert.IsTrue(b.Root?.Value.NoPointIn(p => !q1.Contains(p)));
+            b.ValidateTree();
+            Assert.IsTrue(b.PointCount == 1);
+            Assert.IsTrue(a.Id != b.Id);
+        }
+
         [Test]
         public void DeleteAll()
         {
             var a = CreateRegularPointsInUnitCube(10, 1);
             var b = a.Delete(n => true, n => false, p => true, a.Storage, CancellationToken.None);
-
+            b.ValidateTree();
             Assert.IsTrue(a.PointCount != b.PointCount);
             Assert.IsTrue(b.PointCount == 0);
             Assert.IsTrue(a.Id != b.Id);

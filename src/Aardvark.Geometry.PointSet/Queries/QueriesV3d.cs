@@ -70,7 +70,7 @@ namespace Aardvark.Geometry.Points
                         if (node.HasColors) cs[i] = node.Colors.Value[index];
                         if (node.HasNormals) ns[i] = node.Normals.Value[index];
                         if (node.HasIntensities) js[i] = node.Intensities.Value[index];
-                        if (node.HasClassifications) js[i] = node.Classifications.Value[index];
+                        if (node.HasClassifications) ks[i] = node.Classifications.Value[index];
                         ds[i] = ia[i].Dist;
                     }
                     var chunk = new PointsNearObject<V3d>(query, maxDistanceToPoint, ps, cs, ns, js, ks, ds);

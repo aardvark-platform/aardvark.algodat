@@ -9,8 +9,8 @@ nuget Aardvark.Base                     ~> 4.5.2
 nuget Aardvark.Geometry                 ~> 4.5.2
 nuget Aardvark.Base.IO                  ~> 4.5.2
 
-nuget Aardvark.Base.Rendering           ~> 4.9.3
-nuget Aardvark.SceneGraph               ~> 4.9.3
+nuget Aardvark.Base.Rendering           ~> 4.9.4
+nuget Aardvark.SceneGraph               ~> 4.9.4
 
 nuget Aardvark.Data.Durable             ~> 0.0.10
 
