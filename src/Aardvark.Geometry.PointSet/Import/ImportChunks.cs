@@ -72,7 +72,7 @@ namespace Aardvark.Geometry.Points
             config?.ProgressCallback(0.0);
 
             // optionally filter minDist
-            if (config.MinDist > 0.0 && !config.NormalizePointDensityGlobal)
+            if (config.MinDist > 0.0)
             {
                 if (config.NormalizePointDensityGlobal)
                 {
