@@ -57,6 +57,10 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public static FilterInsideBox3d Deserialize(JObject json) => new FilterInsideBox3d(Box3d.Parse((string)json["Box"]));
 
+        public Box3d Clip(Box3d box)
+        {
+            return box.Intersection(Box);
+        }
     }
 
     /// <summary>
@@ -110,5 +114,9 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public static FilterInsideBox3d Deserialize(JObject json) => new FilterInsideBox3d(Box3d.Parse((string)json["Box"]));
+        public Box3d Clip(Box3d box)
+        {
+            return box;
+        }
     }
 }

@@ -44,9 +44,12 @@ namespace Aardvark.Geometry.Points
             return new FilteredNode(id, node, filter);
         }
 
+        bool c;
+
         /// <summary></summary>
         private FilteredNode(Guid id, IPointCloudNode node, IFilter filter)
         {
+            c = true;
             Id = id;
             Node = node ?? throw new ArgumentNullException(nameof(node));
             Filter = filter ?? throw new ArgumentNullException(nameof(filter));
@@ -58,6 +61,7 @@ namespace Aardvark.Geometry.Points
                 m_activePoints = Filter.FilterPoints(Node, m_activePoints);
                 if(m_activePoints.Count == 0) { Console.WriteLine("asfas"); }
             }
+            c = false;
         }
 
         /// <summary></summary>
@@ -206,11 +210,11 @@ namespace Aardvark.Geometry.Points
                             var n0 = Node.Subnodes[i]?.Value;
                             if (n0 != null)
                             {
-                                if (spatial != null && spatial.IsFullyInside(n0.BoundingBoxExactGlobal))
+                                if (Filter.IsFullyInside(n0))
                                 {
                                     m_subnodes_cache[i] = Node.Subnodes[i];
                                 }
-                                else if (spatial != null && spatial.IsFullyOutside(n0.BoundingBoxExactGlobal))
+                                else if (Filter.IsFullyOutside(n0))
                                 {
                                     m_subnodes_cache[i] = null;
                                 }
@@ -312,8 +316,19 @@ namespace Aardvark.Geometry.Points
         public bool HasBoundingBoxExactGlobal => Node.HasBoundingBoxExactGlobal;
 
         /// <summary></summary>
-        public Box3d BoundingBoxExactGlobal => Node.BoundingBoxExactGlobal;
-
+        public Box3d BoundingBoxExactGlobal
+        {
+            get
+            {
+                if(c) return Node.BoundingBoxExactGlobal;
+                else
+                {
+                    var sf = Filter as ISpatialFilter;
+                    if (sf != null) return sf.Clip(Node.BoundingBoxExactGlobal);
+                    else return Node.BoundingBoxExactGlobal;
+                }
+            }
+        }
         #endregion
 
         #region KdTree

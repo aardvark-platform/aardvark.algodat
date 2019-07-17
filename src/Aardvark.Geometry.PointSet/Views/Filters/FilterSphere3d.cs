@@ -7,6 +7,22 @@ using Newtonsoft.Json.Linq;
 
 namespace Aardvark.Geometry.Points
 {
+    public static class BoxHullThings
+    {
+        public static Box3d IntersectionBounds(this Hull3d hull, Box3d box)
+        {
+            if (box.IsInvalid) return box;
+
+            var bh = Hull3d.Create(box);
+            var pp = new Plane3d[6 + hull.PlaneCount];
+            bh.PlaneArray.CopyTo(pp, 0);
+            hull.PlaneArray.CopyTo(pp, 6);
+            var h = new Hull3d(pp);
+            return new Box3d(h.ComputeCorners());
+        }
+
+    }
+
     /// <summary></summary>
     public class FilterInsideSphere3d : ISpatialFilter
     {
@@ -77,6 +93,11 @@ namespace Aardvark.Geometry.Points
         public JObject Serialize()
         {
             return JObject.FromObject(new { Type, Sphere = m_sphere.ToString() });
+        }
+
+        public Box3d Clip(Box3d box)
+        {
+            return m_sphere.BoundingBox3d.Intersection(box);
         }
     }
 }

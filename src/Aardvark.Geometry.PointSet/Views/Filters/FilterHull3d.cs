@@ -56,6 +56,9 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public JObject Serialize() => throw new NotImplementedException();
 
-
+        public Box3d Clip(Box3d box)
+        {
+            return Hull.IntersectionBounds(box);
+        }
     }
 }
