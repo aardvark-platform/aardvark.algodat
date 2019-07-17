@@ -31,16 +31,16 @@ namespace Aardvark.Geometry.Points
             if (self == null) return 0;
             else if(self.IsLeaf)
             {
-                if (self.HasPositions)
+                if (self.HasPositions && ps != null)
                 {
                     var off = self.Center;
                     ps.AddRange(self.Positions.Value.Map(p => off + (V3d)p));
                 }
 
-                if (self.HasColors) cs.AddRange(self.Colors.Value);
-                if (self.HasNormals) ns.AddRange(self.Normals.Value);
-                if (self.HasIntensities) js.AddRange(self.Intensities.Value);
-                if (self.HasClassifications) ks.AddRange(self.Classifications.Value);
+                if (self.HasColors && cs != null) cs.AddRange(self.Colors.Value);
+                if (self.HasNormals && ns != null) ns.AddRange(self.Normals.Value);
+                if (self.HasIntensities && js != null) js.AddRange(self.Intensities.Value);
+                if (self.HasClassifications && ks != null) ks.AddRange(self.Classifications.Value);
                 return 1;
             }
             else
@@ -70,40 +70,27 @@ namespace Aardvark.Geometry.Points
             else if (self.PointCountTree <= config.OctreeSplitLimit)
             {
                 if (self.IsLeaf) return (self.WriteToStore(), true);
-                       
-                var ps = new List<V3d>();
-                var cs = new List<C4b>();
-                var ns = new List<V3f>();
-                var js = new List<int>();
-                var ks = new List<byte>();
-                var leaves = CollectEverything(self, ps, cs, ns, js, ks);
 
-                if(ps.Any(p => !self.BoundingBoxExactGlobal.Contains(p)))
-                {
-                    Report.Warn("bad");
-                }
-
+                var psla = new List<V3d>();
+                var csla = new List<C4b>();
+                var nsla = new List<V3f>();
+                var jsla = new List<int>();
+                var ksla = new List<byte>();
+                var leaves = CollectEverything(self, psla, csla, nsla, jsla, ksla);
+                
                 if (leaves <= 1)
                 {
                     return (self.WriteToStore(), true);
                 }
                 else
                 {
-                    if (self.PointCountTree != ps.Count) throw new InvalidOperationException("Bad Point Count during Conditions");
+                    var chunk = new Chunk(psla.Count > 0 ? psla : null, csla.Count > 0 ? csla : null, nsla.Count > 0 ? nsla : null, jsla.Count > 0 ? jsla : null, ksla.Count > 0 ? ksla : null);
+                    if (config.NormalizePointDensityGlobal)
+                    {
+                        chunk = chunk.ImmutableFilterMinDistByCell(self.Cell, config.ParseConfig);
+                    }
 
-                    var bbExactGlobal = new Box3d(ps);
-
-                    if (ps.Count == 0) ps = null;
-                    if (cs.Count == 0) cs = null;
-                    if (ns.Count == 0) ns = null;
-                    if (js.Count == 0) js = null;
-                    if (ks.Count == 0) ks = null;
-
-#if DEBUG
-                    Report.Warn("Rebuild");
-#endif
-
-                    var node = InMemoryPointSet.Build(ps, cs, ns, js, ks, bbExactGlobal, config.OctreeSplitLimit);
+                    var node = InMemoryPointSet.Build(chunk, config.OctreeSplitLimit);
                     var psnode = node.ToPointSetNode(self.Storage, isTemporaryImportNode: true);
                     if (self.Cell != psnode.Cell)
                     {
@@ -117,10 +104,6 @@ namespace Aardvark.Geometry.Points
             }
             else
             {
-                if (self.Subnodes.Where(n => n != null).Any(n => !(self.BoundingBoxExactGlobal.Contains(n.Value.BoundingBoxExactGlobal))))
-                {
-                    Report.Warn("bad");
-                }
                 return (self.WriteToStore(), true);
             }
         }
@@ -236,30 +219,36 @@ namespace Aardvark.Geometry.Points
             if (a == null || a.PointCountTree == 0) { pointsMergedCallback?.Invoke(b?.PointCountTree ?? 0); return (b,true); }
             if (b == null || b.PointCountTree == 0) { pointsMergedCallback?.Invoke(a?.PointCountTree ?? 0); return (a,true); }
 
-            var totalPointCountTree = a.PointCountTree + b.PointCountTree;
-            if (totalPointCountTree <= config.OctreeSplitLimit)
+            if (a.PointCountTree + b.PointCountTree <= config.OctreeSplitLimit)
             {
+                var psla = new List<V3d>();
+                var csla = new List<C4b>();
+                var nsla = new List<V3f>();
+                var jsla = new List<int>();
+                var ksla = new List<byte>();
 
-                var psl = new List<V3d>();
-                var csl = new List<C4b>();
-                var nsl = new List<V3f>();
-                var jsl = new List<int>();
-                var ksl = new List<byte>();
+                CollectEverything(a, psla, csla, nsla, jsla, ksla);
+                CollectEverything(b, psla, csla, nsla, jsla, ksla);
 
-                if(a != null) CollectEverything(a, psl, csl, nsl, jsl, ksl);
-                if(b != null) CollectEverything(b, psl, csl, nsl, jsl, ksl);
+                var cell = ParentCell(a.Cell, b.Cell);
+                var chunk = new Chunk(psla.Count > 0 ? psla : null, csla.Count > 0 ? csla : null, nsla.Count > 0 ? nsla : null, jsla.Count > 0 ? jsla : null, ksla.Count > 0 ? ksla : null);
+                if(config.NormalizePointDensityGlobal)
+                {
+                    chunk = chunk.ImmutableFilterMinDistByCell(cell, config.ParseConfig);
+                }
 
                 var storage = config.Storage;
                 var ac = a.Center;
                 var bc = b.Center;
 
-                var psAbs = psl.Count > 0 ? psl.ToArray() : null;
-                var ns = nsl.Count > 0 ? nsl.ToArray() : null;
-                var cs = csl.Count > 0 ? csl.ToArray() : null;
-                var js = jsl.Count > 0 ? jsl.ToArray() : null;
-                var ks = ksl.Count > 0 ? ksl.ToArray() : null;
+                var psAbs = chunk.Positions?.ToArray();
+                var ns = chunk.Normals?.ToArray();
+                var cs = chunk.Colors?.ToArray();
+                var js = chunk.Intensities?.ToArray();
+                var ks = chunk.Classifications?.ToArray();
+                if (psAbs == null || psAbs.Length == 0) return (null,true);
 
-                if (psAbs.Length == 0) return (null,true);
+                var bbExactGlobal = chunk.BoundingBox;
 
                 Guid? psId = psAbs != null ? Guid.NewGuid() : (Guid?)null;
                 //Guid? kdId = psAbs != null ? Guid.NewGuid() : (Guid?)null;
@@ -268,14 +257,10 @@ namespace Aardvark.Geometry.Points
                 Guid? jsId = js != null ? Guid.NewGuid() : (Guid?)null;
                 Guid? ksId = ks != null ? Guid.NewGuid() : (Guid?)null;
 
-                var cell = ParentCell(a.Cell, b.Cell);
+                
                 var center = cell.BoundingBox.Center;
 
                 var ps = psAbs.Map(p => (V3f)(p - center));
-                //if (ps.Length != totalPointCountTree) throw new InvalidOperationException("Invariant 8b8539ae-05a8-47f8-9d92-fd49301ba750.");
-                //var kd = kdId.HasValue ? ps.BuildKdTree() : null;
-
-                var bbExactGlobal = new Box3d(psAbs);
 
                 var data = ImmutableDictionary<Durable.Def, object>.Empty
                     .Add(PointSetNode.TemporaryImportNode, 0)

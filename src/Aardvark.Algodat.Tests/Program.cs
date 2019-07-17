@@ -20,6 +20,7 @@ namespace Aardvark.Geometry.Tests
         internal static void PerfTestJuly2019()
         {
             var filename = @"T:\Vgm\Data\2017-10-20_09-44-27_1mm_shade_norm_5pp - Cloud.pts";
+            //var filename = @"T:\Vgm\Data\JBs_Haus.pts";
 
             var config = ImportConfig.Default
                 .WithInMemoryStore()
