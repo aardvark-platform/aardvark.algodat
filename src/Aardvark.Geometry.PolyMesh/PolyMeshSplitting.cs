@@ -677,7 +677,13 @@ namespace Aardvark.Geometry
             clippedMesh.BuildTopology();
 
             // use indices so an edge can be removed no matter what "ref"
-            var edges = new HashSet<int>(clippedMesh.Edges.Where(e => e.IsValid).Select(e => e.Index));
+            var edges = new IntSet(clippedMesh.EdgeCount);
+            foreach (var e in clippedMesh.Edges)
+                if (e.IsValid)
+                    edges.Add(e.Index);
+
+            var capFaceEdges = new List<PolyMesh.Edge>();
+            var capFaceEdgeSet = new IntSet();
 
             while (edges.Count > 0)
             {
@@ -689,8 +695,10 @@ namespace Aardvark.Geometry
                     && vertexOnPlane[e.ToVertexIndex])
                 {
                     // try to find other edges along the plane
-                    var capFaceEdges = new List<PolyMesh.Edge>();
-                    var capFaceEdgeSet = new IntSet(); // keep set of all edges so in case there the loop runs into a degenerated case an exit is possible (will generated degenerated face)
+                    // keep set of all edges so in case there the loop runs into a degenerated case an exit is possible (will generate degenerated face)
+                    capFaceEdges.Clear();
+                    capFaceEdgeSet.Clear();
+
                     var currEdge = e;
                     do
                     {
@@ -701,7 +709,7 @@ namespace Aardvark.Geometry
                         }
                         
                         // find next edge at start-vertex along plane 
-                        // the new cap face should have winding order start<-to becaue it is on the opposite of the current face-edge
+                        // the new cap face should have winding order start<-to becaues it is on the opposite of the current face-edge
                         currEdge = currEdge.FromVertex.Edges
                             .Select(x => x.FromVertexIndex == currEdge.FromVertexIndex ? x.Opposite : x)
                             .FirstOrDefault(x => x.IsAnyBorder && x.Index != currEdge.Index && vertexOnPlane[x.FromVertexIndex], PolyMesh.Edge.Invalid);
