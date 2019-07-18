@@ -239,15 +239,15 @@ module LodTreeInstance =
         let equivalentAngle60 (view : Trafo3d) (proj : Trafo3d) =
             if isOrtho proj then 
                let width = proj.Backward.M00 * 2.0 
-               let avgPointDistance = localBounds.Size.NormMax / 40.0
+               let avgPointDistance = localCellBounds.Size.NormMax / 40.0
 
                60.0 * avgPointDistance / width
             else 
                 let cam = view.Backward.C3.XYZ
 
-                let avgPointDistance = localBounds.Size.NormMax / 40.0
+                let avgPointDistance = localCellBounds.Size.NormMax / 40.0
 
-                let minDist = localBounds.GetMinimalDistanceTo(cam)
+                let minDist = localCellBounds.GetMinimalDistanceTo(cam)
                 let minDist = max 0.01 minDist
 
                 let angle = Constant.DegreesPerRadian * atan2 avgPointDistance minDist
