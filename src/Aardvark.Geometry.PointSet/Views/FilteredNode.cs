@@ -172,7 +172,21 @@ namespace Aardvark.Geometry.Points
         public V3d Center => Node.Center;
 
         /// <summary></summary>
-        public long PointCountTree => Node.PointCountTree;
+        public long PointCountTree
+        {
+            get
+            {
+                if(m_activePoints == null || m_activePoints.Count == 0L)
+                {
+                    return 0L;
+                }
+                else
+                {
+                    var ratio = (double)m_activePoints.Count / (double)Node.Positions.Value.Length;
+                    return (long)((double)Node.PointCountTree * ratio);
+                }
+            }
+        }
 
         /// <summary></summary>
         public bool Has(Def what) => Node.Has(what);
