@@ -44,24 +44,20 @@ namespace Aardvark.Geometry.Points
             return new FilteredNode(id, node, filter);
         }
 
-        bool c;
-
         /// <summary></summary>
         private FilteredNode(Guid id, IPointCloudNode node, IFilter filter)
         {
-            c = true;
             Id = id;
             Node = node ?? throw new ArgumentNullException(nameof(node));
             Filter = filter ?? throw new ArgumentNullException(nameof(filter));
-            if (filter.IsFullyInside(this)) { m_activePoints = null; }
-            else if (filter.IsFullyOutside(this)) { m_activePoints = new HashSet<int>(); }
+            if (filter.IsFullyInside(node)) { m_activePoints = null; }
+            else if (filter.IsFullyOutside(node)) { m_activePoints = new HashSet<int>(); }
             else
             {
                 
-                m_activePoints = Filter.FilterPoints(Node, m_activePoints);
+                m_activePoints = Filter.FilterPoints(node, m_activePoints);
                 if(m_activePoints.Count == 0) { Console.WriteLine("asfas"); }
             }
-            c = false;
         }
 
         /// <summary></summary>
@@ -320,13 +316,9 @@ namespace Aardvark.Geometry.Points
         {
             get
             {
-                if(c) return Node.BoundingBoxExactGlobal;
-                else
-                {
-                    var sf = Filter as ISpatialFilter;
-                    if (sf != null) return sf.Clip(Node.BoundingBoxExactGlobal);
-                    else return Node.BoundingBoxExactGlobal;
-                }
+                var sf = Filter as ISpatialFilter;
+                if (sf != null) return sf.Clip(Node.BoundingBoxExactGlobal);
+                else return Node.BoundingBoxExactGlobal;
             }
         }
         #endregion

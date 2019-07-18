@@ -47,6 +47,8 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         bool IsFullyOutside(Box3d box);
 
+        bool Contains(V3d pt);
+
         Box3d Clip(Box3d box);
     }
 }

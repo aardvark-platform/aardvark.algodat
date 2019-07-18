@@ -55,8 +55,27 @@ namespace Aardvark.Geometry.Points
             int splitLimit
             )
         {
-            Report.Error($"[Delete] {root.GetType().Name}.Delete({root.Id})");
             if (root == null) return null;
+
+            var f = root as FilteredNode;
+            if (f != null)
+            {
+                var filter = f.Filter as ISpatialFilter;
+                if (filter != null)
+                {
+                    bool remove(IPointCloudNode n) => filter.IsFullyInside(n) && isNodeFullyInside(n);
+                    bool keep(IPointCloudNode n) => filter.IsFullyOutside(n) || isNodeFullyOutside(n);
+                    bool contains(V3d pt) => filter.Contains(pt) && isPositionInside(pt);
+                    var res = f.Node.Delete(remove, keep, contains, storage, ct, splitLimit);
+                    return FilteredNode.Create(res, f.Filter);
+                }
+                else
+                {
+                    throw new NotImplementedException("cannot delete on PointCloud with non-spatial filter");
+                }
+            }
+
+
             if (isNodeFullyInside(root)) return null;
             if (isNodeFullyOutside(root))
             {

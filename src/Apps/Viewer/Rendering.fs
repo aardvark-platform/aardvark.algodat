@@ -13,6 +13,7 @@ open Aardvark.Rendering.Text
 open Aardvark.Rendering.PointSet
 open Aardvark.Base.Rendering
 open Aardvark.Base.Geometry
+open Aardvark.Geometry.Points
 
 
 module Util =
@@ -104,7 +105,7 @@ module Util =
 module Rendering =
 
 
-    let pointClouds (win : IRenderWindow) (msaa : bool) (camera : IMod<CameraView>) (frustum : IMod<Frustum>) (pcs : list<unit -> LodTreeInstance>) =
+    let pointClouds (win : IRenderWindow) (msaa : bool) (camera : IMod<CameraView>) (frustum : IMod<Frustum>) (pcs : list<LodTreeInstance>) =
         let picktrees : mmap<ILodTreeNode,SimplePickTree> = MMap.empty
         let config =
             {
@@ -158,78 +159,22 @@ module Rendering =
 
         let pcs =
             pcs |> List.map (fun t ->
-                fun () -> let t = t() in { t with uniforms = MapExt.add "Overlay" (config.overlayAlpha |> Mod.map ((*) V4d.IIII) :> IMod) t.uniforms }
+                { t with uniforms = MapExt.add "Overlay" (config.overlayAlpha |> Mod.map ((*) V4d.IIII) :> IMod) t.uniforms }
             )
         
         let overallBounds = 
-            pcs |> List.map (fun i -> i().root.WorldBoundingBox) |> Box3d
+            pcs |> List.map (fun i -> i.root.WorldBoundingBox) |> Box3d
 
         let trafo = 
             Trafo3d.Translation(-overallBounds.Center) * 
             Trafo3d.Scale(300.0 / overallBounds.Size.NormMax)
 
         let pcs =
-            pcs |> List.map (fun t () -> t() |> LodTreeInstance.transform trafo) // |> ASet.ofList
+            pcs |> List.toArray |> Array.map (LodTreeInstance.transform trafo >> Mod.init)
             
         let cfg =
             RenderConfig.toSg win config
 
-        //let bla =
-        //    let pi = Mod.init 0
-        //    let pos = 
-        //        [|
-        //            OverlayPosition.None
-        //            OverlayPosition.Top
-        //            OverlayPosition.Top ||| OverlayPosition.Right
-        //            OverlayPosition.Right
-        //            OverlayPosition.Right ||| OverlayPosition.Bottom
-        //            OverlayPosition.Bottom
-        //            OverlayPosition.Bottom ||| OverlayPosition.Left
-        //            OverlayPosition.Left
-        //            OverlayPosition.Left ||| OverlayPosition.Top
-        //        |]
-        //    win.Keyboard.DownWithRepeats.Values.Add (fun k ->
-        //        match k with
-        //        | Keys.Divide -> transact (fun () -> pi.Value <- (pi.Value + 1) % pos.Length)
-        //        | _ -> ()
-        //    )
-
-        //    let cfg = pi |> Mod.map (fun pi -> { pos = pos.[pi]  })
-        //    let content = 
-        //        Mod.constant {
-        //            prefix = ""
-        //            suffix = ""
-        //            separator = " "
-        //            entries = [
-        //                [ 
-        //                    Text ~~"Hig"
-        //                    Text ~~""
-        //                    Number((config.stats |> Mod.map (fun s -> float s.totalPrimitives)), "pt", 1)
-        //                ]
-        //                [ 
-        //                    Text ~~"Hugo"
-        //                    Text ~~"Sepp"
-        //                    Number((config.stats |> Mod.map (fun s -> float s.totalPrimitives)), "pt", 1)
-        //                ]
-        //                [ 
-        //                    Text ~~"Hugo"
-        //                    ColSpan(2, 
-        //                        Text (~~(string (Mem (1L <<< 48))))
-        //                    )
-        //                ]
-        //                //[ 
-        //                //    Text ~~"Seppy"
-        //                //    Concat [
-        //                //        //Progress (config.stats |> Mod.map (fun s -> s.quality))
-        //                //        Text (config.stats |> Mod.map (fun s -> sprintf " %.0f%%" (100.0 * s.quality)))
-        //                //    ]
-        //                //]
-        //                //[
-        //                //    ColSpan(2, Text ~~"kjasndjasnlkdnsadlknsadnaldnasd")
-        //                //]
-        //            ]
-        //        }
-        //    Overlay.table cfg win.Sizes content
 
         let v = (camera |> Mod.map CameraView.viewTrafo)
         let p = (frustum |> Mod.map Frustum.projTrafo)
@@ -249,15 +194,6 @@ module Rendering =
                     let l = loc
                     let n = npp
 
-                    //let cone = Ray3d(l, (n-l).Normalized)
-                    //let k = tan (2.0 * Constant.RadiansPerDegree)
-                    //let pts = 
-                    //    tree.FindPointsLocal(cone, 0.0, System.Double.PositiveInfinity, 0.0, k)
-                    //    |> Seq.map (fun p -> V3f p.Value.WorldPosition)
-                    //    |> Seq.truncate 5000
-                    //    |> Seq.toArray
-
-                    
                     let pixelRadius = 10.0
                     let e = Ellipse2d(ndc, 2.0 * V2d.IO * pixelRadius / float s.X, 2.0 * V2d.OI * pixelRadius / float s.Y)
 
@@ -273,23 +209,13 @@ module Rendering =
                         |> Seq.toArray
 
                     pts.Length > 0, pts
-                    //match pt with
-                    //| Some pt -> 
-                    //    let t = pt.Value.WorldPosition
-                    //    Log.warn "%A" pt.Value.DataPosition
-                    //    true, Trafo3d.Translation t
-                    //| None -> false, Trafo3d.Identity
             )
 
         let afterMain = RenderPass.after "aftermain" RenderPassOrder.Arbitrary RenderPass.main
-        let e = pcs |> Seq.head
-        //let c = V3d (e.root :?> Aardvark.Rendering.PointSet.LodTreeInstance.PointTreeNode).Original.CentroidLocal + e.root.Cell.BoundingBox.Center
 
         let thing =
             Sg.draw IndexedGeometryMode.PointList
             |> Sg.vertexAttribute DefaultSemantic.Positions (Mod.map snd picked)
-            //|> Sg.onOff (Mod.map fst picked)
-            //|> Sg.fillMode (Mod.constant FillMode.Line)
             |> Sg.shader {
                 do! DefaultSurfaces.trafo
                 do! DefaultSurfaces.pointSprite
@@ -299,36 +225,43 @@ module Rendering =
             |> Sg.uniform "PointSize" (Mod.constant 10.0)
             |> Sg.uniform "ViewportSize" win.Sizes
             |> Sg.depthTest (Mod.constant DepthTestMode.None)
-            //|> Sg.viewTrafo (Mod.constant Trafo3d.Identity)
-            //|> Sg.projTrafo (Mod.constant Trafo3d.Identity)
             |> Sg.pass afterMain 
 
         let reset = Mod.init 0 
-
-        //let pcs = 
-        //    let a = pcs |> HRefSet.ofList
-        //    let b = 
-        //        pcs |> List.map (fun p ->
-        //            let box = Box3d.FromCenterAndSize(e.root.WorldBoundingBox.Center, e.root.WorldBoundingBox.Size * 0.25)
-        //            let d = (e.root :?> Aardvark.Rendering.PointSet.LodTreeInstance.PointTreeNode).Delete(box) :> ILodTreeNode
-        //            { e with root = d }
-        //        ) |> HRefSet.ofList
-        //    reset |> Mod.map (fun i -> 
-        //        if i%2 = 0 then
-        //            a
-        //        else
-        //            b
-        //    )
-        //    |> ASet.ofMod
-
-        
+        //let filter : ModRef<Option<Hull3d>> = Mod.init None
 
 
-        let pcs = reset |> Mod.map (fun i -> pcs.[i%pcs.Length]()) |> ASet.ofModSingle
+        let stupidFilter =
+            let right (center : V3d) (p : V3d) = p.X >= center.X
+            { new ISpatialFilter with
+                member x.Serialize() = failwith ""
+                member x.Contains (pt : V3d) = true
+                member x.IsFullyInside (n : Box3d) = false
+                member x.IsFullyOutside (n : Box3d) = false
+                member x.IsFullyInside (n : IPointCloudNode) = x.IsFullyInside n.BoundingBoxExactGlobal
+                member x.IsFullyOutside (n : IPointCloudNode) = x.IsFullyOutside n.BoundingBoxExactGlobal
+                member x.Clip(bb) = bb
+                member x.FilterPoints(node, _set) =
+                    let ps = node.Positions.Value 
+                    let c = node.Center
+                    let set = System.Collections.Generic.HashSet<int>()
+                    for i in 0 .. ps.Length - 1 do
+                        if right c (c + V3d ps.[i]) then
+                            set.Add i |> ignore
+                    set
+            }
 
+        let instances = 
+            aset {
+                if pcs.Length > 0 then
+                    let! i = reset
+                    let! pc = pcs.[i%pcs.Length]
+                    yield pc
+
+            }
 
         let sg =
-            Sg.LodTreeNode(config.stats, picktrees, true, config.budget, config.splitfactor, config.renderBounds, config.maxSplits, win.Time, pcs) :> ISg
+            Sg.LodTreeNode(config.stats, picktrees, true, config.budget, config.splitfactor, config.renderBounds, config.maxSplits, win.Time, instances) :> ISg
             |> Sg.uniform "PointSize" config.pointSize
             |> Sg.uniform "ViewportSize" win.Sizes
             |> Sg.uniform "PointVisualization" vis
@@ -336,13 +269,13 @@ module Rendering =
             |> Sg.shader {
                 do! PointSetShaders.lodPointSize
                 //do! PointSetShaders.cameraLight
-                if msaa then
-                    do! PointSetShaders.lodPointCircularMSAA
-                else
-                    do! PointSetShaders.lodPointCircular
+                //if msaa then
+                //    do! PointSetShaders.lodPointCircularMSAA
+                //else
+                do! PointSetShaders.lodPointCircular
                 //do! PointSetShaders.envMap
             }
-            |> Sg.andAlso thing
+            //|> Sg.andAlso thing
             |> Sg.multisample (Mod.constant true)
             |> Sg.viewTrafo v
             |> Sg.projTrafo p
@@ -366,6 +299,46 @@ module Rendering =
 
         win.Keyboard.DownWithRepeats.Values.Add(fun k ->
             match k with
+
+            | Keys.Delete ->
+                let i = pcs.[0].Value
+                match i.root with
+                | :? LodTreeInstance.PointTreeNode as n -> 
+                    match n.Delete (Box3d.FromCenterAndSize(i.root.WorldBoundingBox.Center, V3d(10.0, 10.0, 1000.0))) with
+                    | Some r ->
+                        transact (fun () -> 
+                            pcs.[0].Value <- { i with root = r }
+                        )
+                    | None ->
+                        ()
+                | _ ->
+                    ()
+
+
+            | Keys.Escape ->
+                transact (fun () ->
+                    let pc = pcs.[0].Value
+                    let bb = pc.root.WorldBoundingBox
+                    let f1 = Hull3d.Create (Box3d.FromMinAndSize(bb.Min, bb.Size * V3d(1.0, 1.0, 0.15)))
+
+                    let root = pc.root |> unbox<LodTreeInstance.PointTreeNode>
+                    match root.Original with
+                    | :? FilteredNode as fn ->
+                        let inner = fn.Node
+                        Log.warn "%A" inner
+                        match root.WithPointCloudNode(inner) with
+                        | Some pp ->
+                            pcs.[0].Value <- { pc with root = pp }
+                        | None ->
+                            Log.warn "hinig"
+                    | _ -> 
+                        match LodTreeInstance.filter (FilterInsideConvexHull3d f1) pc with
+                        | Some pc -> 
+                            pcs.[0].Value <- pc
+                        | None -> 
+                            Log.warn "hinig"
+                  
+                )
             | Keys.I ->
                 transact (fun () -> config.magicExp.Value <- min 4.0 (config.magicExp.Value + 0.01))
             | Keys.U ->
@@ -511,7 +484,7 @@ module Rendering =
         ]
 
 
-    let show (args : Args) (pcs : list<unit -> LodTreeInstance>) =
+    let show (args : Args) (pcs : list<LodTreeInstance>) =
         Ag.initialize()
         Aardvark.Init()
 
