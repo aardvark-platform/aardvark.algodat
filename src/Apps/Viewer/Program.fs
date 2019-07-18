@@ -14,20 +14,8 @@ open Aardvark.Data.Points.Import
 let main args =  
 
     //let a = @"C:\Users\Schorsch\Development\WorkDirectory\Technologiezentrum_Teil1.pts"
-    //let bgr =
-    //    [|
-    //        Ascii.Token.PositionX
-    //        Ascii.Token.PositionY
-    //        Ascii.Token.PositionZ
-    //        Ascii.Token.Intensity
-    //        Ascii.Token.ColorB
-    //        Ascii.Token.ColorG
-    //        Ascii.Token.ColorR
-    //    |]
     //import a  @"C:\Users\Schorsch\Development\WorkDirectory\tech" "a" (Args.parse [||])
-    //import a  @"C:\Users\Schorsch\Development\WorkDirectory\tech" "b" { Args.parse [||] with asciiFormat = Some bgr }
-
-    view @"C:\Users\Schorsch\Development\WorkDirectory\tech" ["a"; "b"; "a"; "b"] (Args.parse [||])
+    view @"C:\Users\Schorsch\Development\WorkDirectory\tech" ["a"] (Args.parse [||])
 
     //let args = Args.parse args
     

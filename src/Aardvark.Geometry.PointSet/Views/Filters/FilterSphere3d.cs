@@ -32,7 +32,7 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public const string Type = "FilterInsideSphere3d";
 
-        private bool Contains(V3d pt)
+        public bool Contains(V3d pt)
         {
             return V3d.DistanceSquared(m_sphere.Center, pt) <= m_radiusSquared;
         }

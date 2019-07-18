@@ -61,6 +61,7 @@ namespace Aardvark.Geometry.Points
         {
             return box.Intersection(Box);
         }
+        public bool Contains(V3d pt) => Box.Contains(pt);
     }
 
     /// <summary>
@@ -118,5 +119,7 @@ namespace Aardvark.Geometry.Points
         {
             return box;
         }
+
+        public bool Contains(V3d pt) => !Box.Contains(pt);
     }
 }

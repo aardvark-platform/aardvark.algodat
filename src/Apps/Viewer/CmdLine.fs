@@ -36,9 +36,8 @@ module CmdLine =
             |> Array.ofSeq
             
     let view (store : string) (ids : list<string>) (args : Args) =
-        Rendering.show args (ids |> List.map (fun id ->
-            let a = LodTreeInstance.load "asdasdsadasd" id store []
-            fun () -> a
+        Rendering.show args (ids |> List.choose (fun id ->
+            LodTreeInstance.load "asdasdsadasd" id store []
         ))
 
     let info (filename : string) (args : Args) =
