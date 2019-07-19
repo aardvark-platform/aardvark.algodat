@@ -37,6 +37,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         JObject Serialize();
+
     }
 
     public interface ISpatialFilter : IFilter

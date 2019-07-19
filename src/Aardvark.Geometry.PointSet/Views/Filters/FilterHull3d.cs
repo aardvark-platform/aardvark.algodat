@@ -11,7 +11,8 @@ namespace Aardvark.Geometry.Points
     public class FilterInsideConvexHull3d : ISpatialFilter
     {
         /// <summary></summary>
-        public const string Type = "FilterInsideBox3d";
+        public const string Type = "FilterInsideConvexHull3d";
+        public const string Plane = "Plane3d";
 
         /// <summary></summary>
         public Hull3d Hull { get; }
@@ -44,6 +45,7 @@ namespace Aardvark.Geometry.Points
             {
                 var c = node.Center;
                 var ps = node.Positions.Value;
+                
                 var result = new HashSet<int>();
                 for (var i = 0; i < ps.Length; i++)
                 {
@@ -52,9 +54,17 @@ namespace Aardvark.Geometry.Points
                 return result;
             }
         }
-
+        
         /// <summary></summary>
-        public JObject Serialize() => throw new NotImplementedException();
+        public JObject Serialize() => JObject.FromObject(new { Type, Array = JArray.FromObject( this.Hull.PlaneArray.Map(p => JObject.FromObject(new { Point = p.Point.ToString(), Normal = p.Normal.ToString() }))) });
+
+        public static FilterInsideConvexHull3d Deserialize(JObject json)
+        {
+            var arr = (JArray)json["Array"];
+            var planes = arr.Map(jt => new Plane3d(V3d.Parse((string)jt["Point"]), V3d.Parse((string)jt["Normal"])));
+            var hull = new Hull3d(planes);
+            return new FilterInsideConvexHull3d(hull);
+        }
 
         public Box3d Clip(Box3d box) => Hull.IntersectionBounds(box);
         public bool Contains(V3d pt) => Hull.Contains(pt);

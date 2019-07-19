@@ -58,6 +58,8 @@ namespace Aardvark.Geometry.Points
                 m_activePoints = Filter.FilterPoints(node, m_activePoints);
                 if(m_activePoints.Count == 0) { Console.WriteLine("asfas"); }
             }
+            Console.WriteLine("Writing store:");
+            //WriteToStore();
         }
 
         /// <summary></summary>

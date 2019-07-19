@@ -26,6 +26,7 @@ namespace Aardvark.Geometry.Points
                 case FilterAnd              .Type : return FilterAnd            .Deserialize(json);
                 case FilterIntensity        .Type : return FilterIntensity      .Deserialize(json);
                 case FilterNormalDirection  .Type : return FilterNormalDirection.Deserialize(json);
+                case FilterInsideConvexHull3d.Type: return FilterInsideConvexHull3d.Deserialize(json);
                 default: throw new NotImplementedException($"Unknown filter type: '{type}'");
             }
         }
