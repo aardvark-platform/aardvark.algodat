@@ -92,14 +92,6 @@ namespace Aardvark.Geometry.Points
                 "Missing Durable.Octree.Cell. Invariant f6f13915-c254-4d88-b60f-5e673c13ef59."
                 );
 
-            if (!data.ContainsKey(Durable.Octree.PointCountTreeLeafs)) throw new ArgumentException(
-                "Missing Durable.Octree.PointCountTreeLeafs. Invariant 9c764d4b-569e-4bd7-a839-add0df63cc13."
-                );
-
-            if (!data.ContainsKey(Durable.Octree.BoundingBoxExactGlobal)) throw new ArgumentException(
-                "Missing Durable.Octree.BoundingBoxExactGlobal. Invariant b51fc1e8-5698-47a7-acba-4fd7aec8bfda."
-                );
-
             var isObsoleteFormat = data.ContainsKey(Durable.Octree.PointRkdTreeDDataReference);
 
             Storage = storage;
