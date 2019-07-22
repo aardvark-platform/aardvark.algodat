@@ -41,11 +41,11 @@ namespace Aardvark.Geometry.Points
                 );
             if (filter.IsFullyOutside(node)) return null;
             if (filter.IsFullyInside(node)) return node;
-            return new FilteredNode(id, node, filter);
+            return new FilteredNode(id, true, node, filter);
         }
 
         /// <summary></summary>
-        private FilteredNode(Guid id, IPointCloudNode node, IFilter filter)
+        private FilteredNode(Guid id, bool writeToStore, IPointCloudNode node, IFilter filter)
         {
             Id = id;
             Node = node ?? throw new ArgumentNullException(nameof(node));
@@ -56,10 +56,12 @@ namespace Aardvark.Geometry.Points
             {
                 
                 m_activePoints = Filter.FilterPoints(node, m_activePoints);
-                if(m_activePoints.Count == 0) { Console.WriteLine("asfas"); }
             }
-            Console.WriteLine("Writing store:");
-            //WriteToStore();
+            if (writeToStore)
+            {
+                WriteToStore();
+                //Console.WriteLine("Written to store: {0}", id);
+            }
         }
 
         /// <summary></summary>
@@ -232,7 +234,7 @@ namespace Aardvark.Geometry.Points
                                 }
                                 else if (n0 != null)
                                 {
-                                    var n = new FilteredNode(id, n0, Filter);
+                                    var n = new FilteredNode(id, false, n0, Filter);
                                     m_subnodes_cache[i] = new PersistentRef<IPointCloudNode>(id.ToString(), _ => n, _ => (true, n));
                                 }
                             }
@@ -557,7 +559,7 @@ namespace Aardvark.Geometry.Points
                 var filter = Points.Filter.Deserialize(filterString);
                 var rootId = (Guid)data.Get(Defs.FilteredNodeRootId);
                 var root = storage.GetPointCloudNode(rootId);
-                return new FilteredNode(id, root, filter);
+                return new FilteredNode(id, false, root, filter);
             }
         }
 
