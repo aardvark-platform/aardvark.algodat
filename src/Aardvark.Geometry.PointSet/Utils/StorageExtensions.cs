@@ -12,8 +12,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
-using Aardvark.Base.Coder;
 using Aardvark.Data;
+using Aardvark.Base.Coder;
 using Aardvark.Data.Points;
 using Newtonsoft.Json.Linq;
 using System;
@@ -594,6 +594,18 @@ namespace Aardvark.Geometry.Points
                         key, data, buffer.Length, onRemove: default
                         );
                     return data;
+                }
+                else if(guid == FilteredNode.Defs.FilteredNode.Id)
+                {
+                    var fn = FilteredNode.Decode(storage, buffer);
+                    if (key != fn.Id.ToString()) throw new InvalidOperationException("Invariant 14511080-b605-4f6b-ac49-2495899ccdec.");
+
+
+                    if (storage.HasCache) storage.Cache.Add(
+                        key, fn, buffer.Length, onRemove: default // what to add here?
+                        );
+
+                    return fn;
                 }
                 else
                 {

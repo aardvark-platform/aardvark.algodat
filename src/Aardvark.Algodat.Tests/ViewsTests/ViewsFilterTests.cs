@@ -92,6 +92,31 @@ namespace Aardvark.Geometry.Tests
         }
 
         [Test]
+        public void FilterInsideBox3d_StoreAddGet()
+        {
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
+            var a = CreateNode(storage, RandomPositions(100));
+
+            var f = FilteredNode.Create(a, new FilterInsideConvexHull3d(Hull3d.Create(a.BoundingBoxExactGlobal + V3d.IOO * 0.1)));
+            var g = f.Id;
+            var k = g.ToString();
+            storage.Add(k, f);
+            //var data = storage.GetByteArray(k);
+            //var f2 = FilteredNode.Decode(storage, data);
+
+            var ps = storage.GetPointCloudNode(g);
+
+            Assert.IsTrue(ps.Id == f.Id);
+
+            var f2 = (FilteredNode)ps;
+            var f1 = (FilteredNode)f;
+            Assert.IsTrue(f2.Node.Id == f1.Node.Id); // how to compare nodes structurally?
+            var f2s = f2.Filter.Serialize().ToString();
+            var f1s = f1.Filter.Serialize().ToString();
+            Assert.IsTrue(f2s == f1s); // how to compare filters structurally ?
+        }
+
+        [Test]
         public void FilterInsideBox3d_Partial()
         {
             var storage = PointCloud.CreateInMemoryStore(cache: default);
@@ -232,7 +257,7 @@ namespace Aardvark.Geometry.Tests
             var a = CreateNode(storage, RandomPositions(100));
 
             var f = (FilteredNode)FilteredNode.Create(a, new FilterInsideBox3d(a.BoundingBoxExactGlobal + new V3d(0.5, 0.0, 0.0)));
-            var buffer = f.Encode();
+            var buffer = ((IPointCloudNode)f).Encode();
             Assert.IsTrue(buffer != null);
 
             var g = FilteredNode.Decode(storage, buffer);

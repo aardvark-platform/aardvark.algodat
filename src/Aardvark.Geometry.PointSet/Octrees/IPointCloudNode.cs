@@ -44,6 +44,8 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         IPointCloudNode WriteToStore();
 
+        byte[] Encode();
+
         /// <summary>
         /// Key.
         /// </summary>

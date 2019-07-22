@@ -54,14 +54,24 @@ namespace Aardvark.Geometry.Points
                 return result;
             }
         }
-        
-        /// <summary></summary>
-        public JObject Serialize() => JObject.FromObject(new { Type, Array = JArray.FromObject( this.Hull.PlaneArray.Map(p => JObject.FromObject(new { Point = p.Point.ToString(), Normal = p.Normal.ToString() }))) });
 
+        /// <summary></summary>
+        public JObject Serialize()
+        {
+            return JObject.FromObject(new
+                { Type,
+                  Array = JArray.FromObject(
+                                this.Hull.PlaneArray.Map(p =>   
+                                        JObject.FromObject(new { Point = p.Point.ToString(), Normal = p.Normal.ToString() }
+                                    )
+                                )
+                          )
+                });
+        }
         public static FilterInsideConvexHull3d Deserialize(JObject json)
         {
             var arr = (JArray)json["Array"];
-            var planes = arr.Map(jt => new Plane3d(V3d.Parse((string)jt["Point"]), V3d.Parse((string)jt["Normal"])));
+            var planes = arr.Map(jt => new Plane3d(V3d.Parse((string)jt["Normal"]), V3d.Parse((string)jt["Point"])));
             var hull = new Hull3d(planes);
             return new FilterInsideConvexHull3d(hull);
         }
