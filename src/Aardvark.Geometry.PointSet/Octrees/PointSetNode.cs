@@ -55,7 +55,6 @@ namespace Aardvark.Geometry.Points
             (Durable.Octree.PositionsLocal3fReference, Guid.Empty),
             (Durable.Octree.PointRkdTreeFDataReference, Guid.Empty),
             (Durable.Octree.PositionsLocal3fCentroid, V3f.Zero),
-            (Durable.Octree.PositionsLocal3fDistToCentroidAverage, 0.0f),
             (Durable.Octree.PositionsLocal3fDistToCentroidStdDev, 0.0f),
             (Durable.Octree.AveragePointDistance, 0.0f),
             (Durable.Octree.AveragePointDistanceStdDev, 0.0f),
@@ -161,35 +160,28 @@ namespace Aardvark.Geometry.Points
 
             if (HasPositions && (!HasBoundingBoxExactLocal || !HasBoundingBoxExactGlobal))
             {
-                var bboxExactLocal = Positions.Value.Length > 0
-                    ? (HasBoundingBoxExactLocal ? BoundingBoxExactLocal : new Box3f(Positions.Value))
-                    : Box3f.Invalid
-                    ;
-
-                if (!HasBoundingBoxExactLocal)
+                if (!isObsoleteFormat && !HasBoundingBoxExactLocal)
                 {
+                    var bboxExactLocal = Positions.Value.Length > 0 ? new Box3f(Positions.Value) : Box3f.Invalid;
                     Data = Data.Add(Durable.Octree.BoundingBoxExactLocal, bboxExactLocal);
                 }
 
                 if (!HasBoundingBoxExactGlobal)
                 {
-                    if (IsLeaf)
+                    if (HasBoundingBoxExactLocal && IsLeaf)
                     {
-                        var bboxExactGlobal = (Box3d)bboxExactLocal + Center;
+                        var bboxExactGlobal = (Box3d)BoundingBoxExactLocal + Center;
+                        Data = Data.Add(Durable.Octree.BoundingBoxExactGlobal, bboxExactGlobal);
+                    }
+                    else if (isObsoleteFormat)
+                    {
+                        var bboxExactGlobal = Cell.BoundingBox;
                         Data = Data.Add(Durable.Octree.BoundingBoxExactGlobal, bboxExactGlobal);
                     }
                     else
                     {
-                        if (isObsoleteFormat)
-                        {
-                            var bboxExactGlobal = Cell.BoundingBox;
-                            Data = Data.Add(Durable.Octree.BoundingBoxExactGlobal, bboxExactGlobal);
-                        }
-                        else
-                        {
-                            var bboxExactGlobal = new Box3d(Subnodes.Where(x => x != null).Select(x => x.Value.BoundingBoxExactGlobal));
-                            Data = Data.Add(Durable.Octree.BoundingBoxExactGlobal, bboxExactGlobal);
-                        }
+                        var bboxExactGlobal = new Box3d(Subnodes.Where(x => x != null).Select(x => x.Value.BoundingBoxExactGlobal));
+                        Data = Data.Add(Durable.Octree.BoundingBoxExactGlobal, bboxExactGlobal);
                     }
                 }
             }
@@ -223,16 +215,9 @@ namespace Aardvark.Geometry.Points
 
             #region Centroid*
 
-            if (HasPositions && (!HasCentroidLocal || !HasCentroidLocalAverageDist || !HasCentroidLocalStdDev))
+            if (HasPositions && (!HasCentroidLocal || !HasCentroidLocalStdDev))
             {
-                if (isObsoleteFormat)
-                {
-                    var a = Cell.BoundingBox.Size.Length / 2.0;
-                    Data = Data.Add(Durable.Octree.PositionsLocal3fCentroid, V3f.Zero);
-                    Data = Data.Add(Durable.Octree.PositionsLocal3fDistToCentroidAverage, a);
-                    Data = Data.Add(Durable.Octree.PositionsLocal3fDistToCentroidStdDev, a);
-                }
-                else
+                if (!isObsoleteFormat)
                 {
                     var ps = Positions.Value;
                     var centroid = ps.ComputeCentroid();
@@ -244,11 +229,6 @@ namespace Aardvark.Geometry.Points
 
                     var dists = ps.Map(p => (p - centroid).Length);
                     var (avg, sd) = dists.ComputeAvgAndStdDev();
-
-                    if (!HasCentroidLocalAverageDist)
-                    {
-                        Data = Data.Add(Durable.Octree.PositionsLocal3fDistToCentroidAverage, avg);
-                    }
 
                     if (!HasCentroidLocalStdDev)
                     {
@@ -657,7 +637,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public PersistentRef<byte[]> Classifications => PersistentRefs.TryGetValue(Durable.Octree.Classifications1bReference, out object x) ? (PersistentRef<byte[]>) x : null;
+        public PersistentRef<byte[]> Classifications => PersistentRefs.TryGetValue(Durable.Octree.Classifications1bReference, out object x) ? (PersistentRef<byte[]>)x : null;
 
         #endregion
 
@@ -672,9 +652,9 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public Guid? KdTreeId => 
+        public Guid? KdTreeId =>
             Data.TryGetValue(Durable.Octree.PointRkdTreeFDataReference, out var id)
-            ? (Guid?)id 
+            ? (Guid?)id
             : (Data.TryGetValue(Durable.Octree.PointRkdTreeDDataReference, out var id2) ? (Guid?)id2 : null)
             ;
 
@@ -691,28 +671,78 @@ namespace Aardvark.Geometry.Points
         #region CentroidLocal
 
         /// <summary></summary>
-        public bool HasCentroidLocal => Data.ContainsKey(Durable.Octree.PositionsLocal3fCentroid);
+        public bool HasCentroidLocal => PointCountCell > 0 || Data.ContainsKey(Durable.Octree.PositionsLocal3fCentroid);
+
+        private V3f? m_centroid;
+        private float? m_centroidStdDev;
+
+        private static (V3f, float) ComputeStuffs(V3f[] ps)
+        {
+            if(ps.Length <= 0) return (V3f.NaN, 0);
+            if(ps.Length <= 1) return (ps[0], 0);
+
+            var sum = V3d.Zero;
+            var sumSq = 0.0;
+            foreach(var p in ps)
+            {
+                var pd = (V3d)p;
+                sum += pd;
+                sumSq += pd.LengthSquared;
+            }
+
+            var avg = sum / ps.Length;
+            var avgSq = sumSq / (ps.Length - 1);
+            var factor = (double)ps.Length / (ps.Length - 1);
+
+            var variance = avgSq - factor * avg.LengthSquared;
+
+            return ((V3f)avg, (float)Fun.Sqrt(variance));
+        }
 
         /// <summary></summary>
-        public V3f CentroidLocal => (V3f)Data.Get(Durable.Octree.PositionsLocal3fCentroid);
+        public V3f CentroidLocal
+        {
+            get
+            {
+                if (m_centroid != null) return m_centroid.Value;
+                if (Data.TryGetValue(Durable.Octree.PositionsLocal3fCentroid, out var local))
+                {
+                    m_centroid = (V3f)local;
+                    return m_centroid.Value;
+                }
+                var (centroid, stddev) = ComputeStuffs(Positions.Value);
+                m_centroid = centroid;
+                m_centroidStdDev = stddev;
+                return m_centroid.Value;
+            }
+        }
 
         /// <summary></summary>
-        public bool HasCentroidLocalAverageDist => Data.ContainsKey(Durable.Octree.PositionsLocal3fDistToCentroidAverage);
+        public bool HasCentroidLocalStdDev => PointCountCell > 0 || Data.ContainsKey(Durable.Octree.PositionsLocal3fDistToCentroidStdDev);
 
         /// <summary></summary>
-        public float CentroidLocalAverageDist => (float)Data.Get(Durable.Octree.PositionsLocal3fDistToCentroidAverage);
-
-        /// <summary></summary>
-        public bool HasCentroidLocalStdDev => Data.ContainsKey(Durable.Octree.PositionsLocal3fDistToCentroidStdDev);
-
-        /// <summary></summary>
-        public float CentroidLocalStdDev => (float)Data.Get(Durable.Octree.PositionsLocal3fDistToCentroidStdDev);
+        public float CentroidLocalStdDev
+        {
+            get
+            {
+                if (m_centroidStdDev != null) return m_centroidStdDev.Value;
+                if (Data.TryGetValue(Durable.Octree.PositionsLocal3fDistToCentroidStdDev, out var local))
+                {
+                    m_centroidStdDev = (float)local;
+                    return m_centroidStdDev.Value;
+                }
+                var (centroid, stddev) = ComputeStuffs(Positions.Value);
+                m_centroid = centroid;
+                m_centroidStdDev = stddev;
+                return m_centroidStdDev.Value;
+            }
+        }
 
         #endregion
 
-        #region TreeDepth
+            #region TreeDepth
 
-        /// <summary></summary>
+            /// <summary></summary>
         public bool HasMinTreeDepth => Data.ContainsKey(Durable.Octree.MinTreeDepth);
 
         /// <summary></summary>
@@ -953,6 +983,32 @@ namespace Aardvark.Geometry.Points
         public IPointCloudNode Materialize() => this;
 
         PersistentRef<IPointCloudNode>[] IPointCloudNode.Subnodes => Subnodes;
+
+        public Box3d BoundingBoxApproximate
+        {
+            get
+            {
+                var cellBounds = Cell.BoundingBox;
+                if(HasBoundingBoxExactGlobal)
+                {
+                    var be = BoundingBoxExactGlobal;
+                    if(be != cellBounds) return be;
+                }
+
+                if (HasBoundingBoxExactLocal)
+                {
+                    return (Box3d)BoundingBoxExactLocal + Center;
+                }
+
+                if(HasPositions)
+                {
+                    var ps = Positions.Value;
+                    if (ps.Length > 0) return (Box3d)(new Box3f(ps)) + Center;
+                }
+
+                return cellBounds;
+            }        
+        }
 
         IPointCloudNode IPointCloudNode.WithUpsert(Durable.Def def, object x) => WithUpsert(def, x);
 

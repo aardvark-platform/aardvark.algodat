@@ -661,9 +661,6 @@ namespace Aardvark.Geometry.Points
                 if (!self.HasCentroidLocal) throw new InvalidOperationException(
                     "Missing CentroidLocal. Invariant 72b18b6e-4c95-4a79-b9dd-11902c097649."
                     );
-                if (!self.HasCentroidLocalAverageDist) throw new InvalidOperationException(
-                    "Missing CentroidLocalAverageDist. Invariant 44feb085-a836-436e-93b6-c019f2df375f."
-                    );
                 if (!self.HasCentroidLocalStdDev) throw new InvalidOperationException(
                     "Missing CentroidLocalStdDev. Invariant 429bb1c1-9a52-4e4c-bab1-f3635e143061."
                     );

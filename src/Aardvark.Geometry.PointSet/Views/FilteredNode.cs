@@ -339,6 +339,16 @@ namespace Aardvark.Geometry.Points
                 else return Node.BoundingBoxExactGlobal;
             }
         }
+
+        public Box3d BoundingBoxApproximate
+        {
+            get
+            {
+                var sf = Filter as ISpatialFilter;
+                if (sf != null) return sf.Clip(Node.BoundingBoxApproximate);
+                else return Node.BoundingBoxApproximate;
+            }
+        }
         #endregion
 
         #region KdTree
@@ -405,12 +415,6 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public V3f CentroidLocal => Node.CentroidLocal;
-
-        /// <summary></summary>
-        public bool HasCentroidLocalAverageDist => Node.HasCentroidLocalAverageDist;
-
-        /// <summary></summary>
-        public float CentroidLocalAverageDist => Node.CentroidLocalAverageDist;
 
         /// <summary></summary>
         public bool HasCentroidLocalStdDev => Node.HasCentroidLocalStdDev;

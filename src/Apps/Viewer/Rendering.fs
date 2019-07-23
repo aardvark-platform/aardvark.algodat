@@ -162,12 +162,16 @@ module Rendering =
                 { t with uniforms = MapExt.add "Overlay" (config.overlayAlpha |> Mod.map ((*) V4d.IIII) :> IMod) t.uniforms }
             )
         
-        let overallBounds = 
-            pcs |> List.map (fun i -> i.root.WorldBoundingBox) |> Box3d
-
-        let trafo = 
-            Trafo3d.Translation(-overallBounds.Center) * 
-            Trafo3d.Scale(300.0 / overallBounds.Size.NormMax)
+        let trafo = Trafo3d.Identity
+            //let bb = 
+            //    pcs |> List.map (fun i -> 
+            //        match i.root with
+            //        | :? LodTreeInstance.PointTreeNode as n -> n.Original.BoundingBoxApproximate
+            //        | _ -> i.root.WorldBoundingBox
+            //    ) |> Box3d
+            //Trafo3d.Translation(-bb.Center) * 
+            //Trafo3d.Scale(300.0 / bb.Size.NormMax) *
+            //Trafo3d.Translation(bb.Center)
 
         let pcs =
             pcs |> List.toArray |> Array.map (LodTreeInstance.transform trafo >> Mod.init)
@@ -491,13 +495,34 @@ module Rendering =
         use app = new OpenGlApplication(true, false)
         use win = app.CreateGameWindow(8)
         
-    
+
+        
+            
+        let bb = 
+            pcs |> List.map (fun i -> 
+                match i.root with
+                | :? LodTreeInstance.PointTreeNode as n -> n.Original.BoundingBoxApproximate
+                | _ -> i.root.WorldBoundingBox
+            ) |> Box3d
+
+        let loc, center =
+            let pc = pcs |> List.head
+        
+            let rand = RandomSystem()
+            match pc.root with
+            | :? LodTreeInstance.PointTreeNode as n -> 
+                let c = n.Original.Center + V3d n.Original.CentroidLocal
+                let pos = c + rand.UniformV3dDirection() * 2.0 * float n.Original.CentroidLocalStdDev
+                pos, c
+            | _ -> 
+                let bb = pc.root.WorldBoundingBox
+                bb.Max, bb.Center
+
         let camera =
-            CameraView.lookAt (V3d(10,10,10)) V3d.OOO V3d.OOI
+            CameraView.lookAt loc center V3d.OOI
             |> DefaultCameraController.control win.Mouse win.Keyboard win.Time
 
-            
-        let bb = Box3d.FromCenterAndSize(V3d.Zero, V3d.III * 300.0)
+        //let bb = Box3d.FromCenterAndSize(V3d.Zero, V3d.III * 300.0)
 
         let frustum =
             Mod.custom (fun t ->

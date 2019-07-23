@@ -161,6 +161,8 @@ namespace Aardvark.Geometry.Points
 
         #endregion
 
+        Box3d BoundingBoxApproximate { get; }
+
         #region KdTree
 
         /// <summary></summary>
@@ -234,15 +236,6 @@ namespace Aardvark.Geometry.Points
         /// Durable definition bd6cc4ab-6a41-49b3-aca2-ca4f21510609.
         /// </summary>
         V3f CentroidLocal { get; }
-
-        /// <summary></summary>
-        bool HasCentroidLocalAverageDist { get; }
-
-        /// <summary>
-        /// Octree. Average point distance to centroid (local space).
-        /// Durable definition 1b7e74c5-b2ba-46fd-a7db-c08734da3b75.
-        /// </summary>
-        float CentroidLocalAverageDist { get; }
 
         /// <summary></summary>
         bool HasCentroidLocalStdDev { get; }

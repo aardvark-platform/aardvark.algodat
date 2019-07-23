@@ -189,11 +189,9 @@ namespace Aardvark.Geometry.Tests
             var n = PointCloud.Chunks(new Chunk(ps, null), config).Root.Value;
 
             Assert.IsTrue(n.HasCentroidLocal);
-            Assert.IsTrue(n.HasCentroidLocalAverageDist);
             Assert.IsTrue(n.HasCentroidLocalStdDev);
 
             Assert.IsTrue(n.CentroidLocal.ApproxEqual(V3f.Zero, 1e-5f));
-            Assert.IsTrue(n.CentroidLocalAverageDist.ApproximateEquals(new V3f(0.4, 0.4, 0.4).Length, 1e-5f));
             Assert.IsTrue(n.CentroidLocalStdDev.ApproximateEquals(0.0f, 1e-5f));
         }
 
