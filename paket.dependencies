@@ -2,15 +2,15 @@ framework: netcoreapp2.0, netcoreapp2.2, netstandard2.0, net471
 
 source https://api.nuget.org/v3/index.json
 
-nuget FSharp.Core                       ~> 4.3.0
+nuget FSharp.Core ~> 4.6.2
 
 // public repository
-nuget Aardvark.Base                     ~> 4.5.6
-nuget Aardvark.Geometry                 ~> 4.5.6
-nuget Aardvark.Base.IO                  ~> 4.5.6
+nuget Aardvark.Base ~> 4.5.8
+nuget Aardvark.Geometry ~> 4.5.8
+nuget Aardvark.Base.IO ~> 4.5.8
 
-nuget Aardvark.Base.Rendering           ~> 4.10.1
-nuget Aardvark.SceneGraph               ~> 4.10.1
+nuget Aardvark.Base.Rendering ~> 4.10.2
+nuget Aardvark.SceneGraph ~> 4.10.2
 
 nuget Aardvark.Data.Durable             ~> 0.0.10
 
@@ -23,13 +23,13 @@ nuget Uncodium.Eigensystems             ~> 1.0.2
 nuget Uncodium.SimpleStore              ~> 2.0.0
 
 // viewer
-nuget Aardvark.Application.Utilities    ~> 4.10.1
-nuget Aardvark.Application.Slim         ~> 4.10.1
-nuget Aardvark.Application.Slim.GL      ~> 4.10.1
-nuget Aardvark.Application.Slim.Vulkan  ~> 4.10.1
+nuget Aardvark.Application.Utilities ~> 4.10.2
+nuget Aardvark.Application.Slim ~> 4.10.2
+nuget Aardvark.Application.Slim.GL ~> 4.10.2
+nuget Aardvark.Application.Slim.Vulkan ~> 4.10.2
 
-nuget FShade                            ~> 4.3.7
-nuget Unofficial.DotSpatial.Projections ~> 0.0.3
+nuget FShade ~> 4.3.8
+nuget Unofficial.DotSpatial.Projections ~> 0.0.4
 
 nuget Microsoft.NET.Test.Sdk            ~> 16.1.1
 
@@ -39,4 +39,3 @@ content: none
 source https://api.nuget.org/v3/index.json
 
 github aardvark-platform/aardvark.fake:v4-temp
-
