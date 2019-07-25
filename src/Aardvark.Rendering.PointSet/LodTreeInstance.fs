@@ -13,6 +13,10 @@ open Aardvark.Base.Incremental
 
 module LodTreeInstance =
 
+    module Semantic =
+        let Intensities = Sym.ofString "Intensities"
+        let Classifications = Sym.ofString "Classifications"
+
     module private AsciiFormatParser =
         open System.Text.RegularExpressions
         open Aardvark.Data.Points.Import
@@ -173,7 +177,21 @@ module LodTreeInstance =
                     attributes.[DefaultSemantic.Normals] <- normals
                     vertexSize <- vertexSize + 12L
 
+                if MapExt.containsKey "Intensities" ips then
+                    let arr = 
+                        if self.HasIntensities then (self.Intensities.Value)
+                        else Array.replicate original.Length 0
 
+                    attributes.[Semantic.Intensities] <- arr
+                    vertexSize <- vertexSize + 4L
+                
+                if MapExt.containsKey "Classifications" ips then
+                    let arr = 
+                        if self.HasClassifications then (self.Classifications.Value |> Array.map int)
+                        else Array.replicate original.Length 0
+
+                    attributes.[Semantic.Classifications] <- arr
+                    vertexSize <- vertexSize + 4L
                 
                 if MapExt.containsKey "AvgPointDistance" ips then
                     let dist =
