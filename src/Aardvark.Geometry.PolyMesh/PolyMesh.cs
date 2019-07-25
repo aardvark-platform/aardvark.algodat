@@ -1164,11 +1164,15 @@ namespace Aardvark.Geometry
         public IEnumerable<int> NonDegenerateFaceIndices(
                 bool compareVertices = true, bool checkNormals = true)
         {
+            int fc = FaceCount;
+            int[] fia = FirstIndexArray, via = VertexIndexArray;
+
+            // check if mesh is valid
+            if (fc == 0 || fia == null || via == null) yield break;
+
             V3d[] na = FaceAttributes.GetOrDefault(Property.Normals) as V3d[];
             if (checkNormals && na == null) na = ComputeFaceNormalArray(false);
-            int[] fia = FirstIndexArray, via = VertexIndexArray;
             var pa = PositionArray;
-            int fc = FaceCount;
             for (int fvi = fia[0], fi = 0; fi < fc; fi++)
             {
                 if (checkNormals && na[fi].LengthSquared == 0)
