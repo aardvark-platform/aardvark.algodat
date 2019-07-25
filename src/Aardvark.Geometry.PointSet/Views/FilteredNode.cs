@@ -39,8 +39,6 @@ namespace Aardvark.Geometry.Points
             if (node.IsTemporaryImportNode) throw new InvalidOperationException(
                 "FilteredNode cannot be created from temporary import node. Invariant b9c2dca3-1510-4ea7-959f-6a0737c707fa."
                 );
-            if (filter.IsFullyOutside(node)) return null;
-            if (filter.IsFullyInside(node)) return node;
             return new FilteredNode(id, true, node, filter);
         }
 
@@ -54,7 +52,6 @@ namespace Aardvark.Geometry.Points
             else if (filter.IsFullyOutside(node)) { m_activePoints = new HashSet<int>(); }
             else
             {
-                
                 m_activePoints = Filter.FilterPoints(node, m_activePoints);
             }
             if (writeToStore)
@@ -176,7 +173,11 @@ namespace Aardvark.Geometry.Points
         {
             get
             {
-                if(m_activePoints == null || m_activePoints.Count == 0L)
+                if(m_activePoints == null)
+                {
+                    return Node.PointCountTree;
+                }
+                else if(m_activePoints.Count == 0L)
                 {
                     return 0L;
                 }
