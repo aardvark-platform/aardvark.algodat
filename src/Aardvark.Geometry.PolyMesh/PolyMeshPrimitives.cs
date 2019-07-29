@@ -301,14 +301,30 @@ namespace Aardvark.Geometry
         }
 
         #endregion
-        
+
         #region Cylinder
 
+        /// <summary>
+        /// Generates a cylinder with the given tessellation as segments (minimum 3). 
+        /// The caps are generated as circular triangle fan from the center. 
+        /// The horizontal segments are generated as quads.
+        /// The origin of the cylinder is at the center and will extend from [-height/2, height/2] in Z direction.
+        /// Texture coordinates can be generated optional by specifying the attribute name.
+        /// The coordinates in X are wrapped around the mantle from [0, 1] in counter clockwise order starting at [+X,0].
+        /// The coordinates in Y are 0 at the top and 1 at the bottom.
+        /// The cap have degenerated coordinates.
+        /// </summary>
+        /// <param name="tessellation">Number of segments the cylinder should have</param>
+        /// <param name="height">Height</param>
+        /// <param name="radius">Radius</param>
+        /// <param name="color">Color</param>
+        /// <param name="coordinateName">Attribute name the coordinates should get. If value is Symbol.Empty no coordinates are generated.</param>
+        /// <returns>PolyMesh</returns>
         public static PolyMesh Cylinder2(
             int tessellation,
             double height,
             double radius,
-            C4b color,
+            C4b color, // TODO: remove / unused -> breaking change
             Symbol coordinateName
             )
         {
@@ -319,8 +335,8 @@ namespace Aardvark.Geometry
 
             var positions = new V3d[horizontalSegments * 2 + 2]; // two circles + 2 center of circles
             var normals = new V3d[horizontalSegments + 2]; // one circle + 2 flat faces
-            var coordinates = new V2d[horizontalSegments * 3 + 3]; // two circles + one circle + center
-            //var tangens = new V3d[horizontalSegments + 2]; // one circles + 2 faces
+            var coordinates = coordinateName.IsNotEmpty ? new V2d[horizontalSegments * 3 + 4] : null; // two circles + one circle + center top/bottom
+            //var tangents = new V3d[horizontalSegments + 2]; // one circles + 2 faces
             
             var topCenter = new V3d(0, 0, 0.5 * height);
             var bottomCenter = new V3d(0, 0, -0.5 * height);
@@ -333,23 +349,33 @@ namespace Aardvark.Geometry
                 var n = new V3d(Fun.Cos(longitude), Fun.Sin(longitude), 0.0);
 
                 normals[j] = n;
-                //tangens[j] = new V3d(n.Y, n.Y, 0.0);
+                //tangents[j] = new V3d(n.Y, n.Y, 0.0);
                 positions[j] = topCenter + n * radius;
                 positions[j + horizontalSegments] = bottomCenter + n * radius;
-                coordinates[j] = new V2d(circleCoord, 0);
-                coordinates[j + horizontalSegments + 1] = new V2d(circleCoord, 1);
+                if (coordinates != null)
+                {
+                    coordinates[j] = new V2d(circleCoord, 0);
+                    coordinates[j + horizontalSegments + 1] = new V2d(circleCoord, 1);
 
-                coordinates[horizontalSegments * 2 + 2 + j] = new V2d(n.X, n.Y) * 0.5 + 0.5;
+                    coordinates[horizontalSegments * 2 + 2 + j] = new V2d(n.X, n.Y) * 0.5 + 0.5;
+                }
             }
 
             positions[horizontalSegments * 2] = topCenter;
             positions[horizontalSegments * 2 + 1] = bottomCenter;
             normals[horizontalSegments] = V3d.ZAxis;
             normals[horizontalSegments + 1] = -V3d.ZAxis;
-            //tangens[horizontalSegments] = V3d.XAxis;
-            coordinates[horizontalSegments] = V2d.IO;
-            coordinates[horizontalSegments * 2 + 1] = V2d.II;
-            coordinates[horizontalSegments * 3 + 2] = new V2d(0.5, 0.5);
+            //tangents[horizontalSegments] = V3d.XAxis;
+            if (coordinates != null)
+            {
+                // coordinates for the last segment where vertex position shared, but coordinates need to be unique
+                coordinates[horizontalSegments] = V2d.IO;
+                coordinates[horizontalSegments * 2 + 1] = V2d.II;
+
+                // coordinate for the top center
+                coordinates[horizontalSegments * 3 + 2] = new V2d(0.5, 0.0); // top center
+                coordinates[horizontalSegments * 3 + 3] = new V2d(0.5, 1.0); // bottom center
+            }
 
             var vertexIndices = new int[horizontalSegments * (4 + 3 * 2)];
             var faceIndices = new int[horizontalSegments * 3 + 1];
@@ -362,6 +388,7 @@ namespace Aardvark.Geometry
             {
                 faceIndices[j] = quadVertexIndex;
 
+                // horizontal quad
                 vertexIndices[quadVertexIndex++] = j;
                 vertexIndices[quadVertexIndex++] = j + horizontalSegments;
                 vertexIndices[quadVertexIndex++] = ((j + 1) % horizontalSegments) + horizontalSegments;
@@ -369,15 +396,17 @@ namespace Aardvark.Geometry
                                 
                 faceIndices[horizontalSegments + j] = topTriangleVertexIndex;
 
+                // circle segment triangle
                 vertexIndices[topTriangleVertexIndex++] = j;
                 vertexIndices[topTriangleVertexIndex++] = (j + 1) % horizontalSegments;
-                vertexIndices[topTriangleVertexIndex++] = horizontalSegments * 2; // top center
+                vertexIndices[topTriangleVertexIndex++] = horizontalSegments * 2; // top center / constant
 
                 faceIndices[horizontalSegments * 2 + j] = bottomTriangleVertexIndex;
 
+                // circle segment triangle
                 vertexIndices[bottomTriangleVertexIndex++] = horizontalSegments + ((j + 1) % horizontalSegments);
                 vertexIndices[bottomTriangleVertexIndex++] = horizontalSegments + j;
-                vertexIndices[bottomTriangleVertexIndex++] = horizontalSegments * 2 + 1; // bottom center
+                vertexIndices[bottomTriangleVertexIndex++] = horizontalSegments * 2 + 1; // bottom center / constant
             }
 
             faceIndices[horizontalSegments * 3] = bottomTriangleVertexIndex;
@@ -403,29 +432,41 @@ namespace Aardvark.Geometry
                 normalIndices[bottomTriangleVertexIndex++] = horizontalSegments + 1;
                 normalIndices[bottomTriangleVertexIndex++] = horizontalSegments + 1;
             }
-
-            var coordinateIndices = new int[horizontalSegments * (4 + 3 * 2)];
-
-            quadVertexIndex = 0;
-            topTriangleVertexIndex = horizontalSegments * 4;
-            bottomTriangleVertexIndex = horizontalSegments * (4 + 3);
-
-            var horizontalSegmentsPlusOne = horizontalSegments + 1;
-
-            for (int j = 0; j < horizontalSegments; j++)
+            
+            var faceVertexAttribues = new SymbolDict<Array>()
             {
-                coordinateIndices[quadVertexIndex++] = j;
-                coordinateIndices[quadVertexIndex++] = horizontalSegmentsPlusOne + j;
-                coordinateIndices[quadVertexIndex++] = horizontalSegmentsPlusOne + j + 1;
-                coordinateIndices[quadVertexIndex++] = j + 1;
+                { PolyMesh.Property.Normals, normalIndices },
+                { -PolyMesh.Property.Normals, normals },
+            };
 
-                coordinateIndices[topTriangleVertexIndex++] = horizontalSegmentsPlusOne * 2 + j;
-                coordinateIndices[topTriangleVertexIndex++] = horizontalSegmentsPlusOne * 2 + ((j + 1) % horizontalSegments);
-                coordinateIndices[topTriangleVertexIndex++] = horizontalSegmentsPlusOne * 2 + horizontalSegments;
+            if (coordinates != null)
+            {
+                var coordinateIndices = new int[horizontalSegments * (4 + 3 * 2)];
 
-                coordinateIndices[bottomTriangleVertexIndex++] = horizontalSegmentsPlusOne * 2 + j;
-                coordinateIndices[bottomTriangleVertexIndex++] = horizontalSegmentsPlusOne * 2 + ((j + 1) % horizontalSegments);
-                coordinateIndices[bottomTriangleVertexIndex++] = horizontalSegmentsPlusOne * 2 + horizontalSegments;
+                quadVertexIndex = 0;
+                topTriangleVertexIndex = horizontalSegments * 4;
+                bottomTriangleVertexIndex = horizontalSegments * (4 + 3);
+
+                var horizontalSegmentsPlusOne = horizontalSegments + 1;
+
+                for (int j = 0; j < horizontalSegments; j++)
+                {
+                    coordinateIndices[quadVertexIndex++] = j;
+                    coordinateIndices[quadVertexIndex++] = horizontalSegmentsPlusOne + j;
+                    coordinateIndices[quadVertexIndex++] = horizontalSegmentsPlusOne + j + 1;
+                    coordinateIndices[quadVertexIndex++] = j + 1;
+
+                    coordinateIndices[topTriangleVertexIndex++] = horizontalSegmentsPlusOne * 2 + j;
+                    coordinateIndices[topTriangleVertexIndex++] = horizontalSegmentsPlusOne * 2 + ((j + 1) % horizontalSegments);
+                    coordinateIndices[topTriangleVertexIndex++] = horizontalSegmentsPlusOne * 2 + horizontalSegments; // top center / constant
+
+                    coordinateIndices[bottomTriangleVertexIndex++] = horizontalSegmentsPlusOne * 2 + j;
+                    coordinateIndices[bottomTriangleVertexIndex++] = horizontalSegmentsPlusOne * 2 + ((j + 1) % horizontalSegments);
+                    coordinateIndices[bottomTriangleVertexIndex++] = horizontalSegmentsPlusOne * 2 + horizontalSegments + 1; // bottom center / constant
+                }
+
+                faceVertexAttribues.Add(coordinateName, coordinateIndices);
+                faceVertexAttribues.Add(-coordinateName, coordinates);
             }
 
             return new PolyMesh()
@@ -437,8 +478,6 @@ namespace Aardvark.Geometry
                 {
                     { PolyMesh.Property.Normals, normalIndices },
                     { -PolyMesh.Property.Normals, normals },
-                    { coordinateName, coordinateIndices },
-                    { -coordinateName, coordinates },
                 }
             };
         }
@@ -673,8 +712,8 @@ namespace Aardvark.Geometry
 
             var vertexAttributes = new SymbolDict<Array>()
             {
-                    { PolyMesh.Property.Positions, vertices.ToArray() },
-                    { PolyMesh.Property.Colors, new C4b[vertices.Count()].Set(color)}
+                { PolyMesh.Property.Positions, vertices.ToArray() },
+                { PolyMesh.Property.Colors, new C4b[vertices.Count()].Set(color)}
             };
 
             var pmesh = new PolyMesh()
@@ -1357,6 +1396,51 @@ namespace Aardvark.Geometry
             };
 
             return g;
+        }
+
+        #endregion
+
+        #region Circle
+
+        /// <summary>
+        /// Generates a circle primitive as single face with the specified number of segments. 
+        /// The circle is aligned in the XY-plane and centroid at [0, 0, 0].
+        /// The winding order is counter-clockwise starting at [X, 0] and
+        /// a face normal pointing to [0, 0, 1] direction.
+        /// </summary>
+        /// <param name="tessellation">Number of segments</param>
+        /// <param name="radius">Radius</param>
+        /// <returns>PolyMesh</returns>
+        public static PolyMesh Circle(
+            int tessellation,
+            double radius
+            )
+        {
+            if (tessellation < 3)
+                throw new ArgumentOutOfRangeException("tessellation");
+
+            var positions = new V3d[tessellation].SetByIndex(i =>
+            {
+                var circleCoord = i / (double)tessellation;
+                var longitude = circleCoord * Constant.PiTimesTwo;
+
+                return radius * new V3d(Fun.Cos(longitude), Fun.Sin(longitude), 0.0);
+            });
+
+            // single face with tessellation + 1 vertices
+            var vertexIndices = new int[tessellation].SetByIndex(i => i);
+            var faceIndices = new int[2].SetByIndex(i => i * tessellation);
+            
+            return new PolyMesh()
+            {
+                PositionArray = positions,
+                VertexIndexArray = vertexIndices,
+                FirstIndexArray = faceIndices,
+                FaceAttributes = new SymbolDict<Array>()
+                {
+                    { PolyMesh.Property.Normals, V3d.OOI.IntoArray() },
+                }
+            };
         }
 
         #endregion
