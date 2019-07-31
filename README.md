@@ -4,7 +4,7 @@
 [![license](https://img.shields.io/github/license/aardvark-platform/aardvark.algodat.svg)](https://github.com/aardvark-platform/aardvark.algodat/blob/master/LICENSE)
 
 [The Aardvark Platform](https://aardvarkians.com/) |
-[Wiki](https://github.com/aardvarkplatform/aardvark.docs/wiki) | 
+[Platform Wiki](https://github.com/aardvarkplatform/aardvark.docs/wiki) | 
 [Gallery](https://github.com/aardvarkplatform/aardvark.docs/wiki/Gallery) | 
 [Quickstart](https://github.com/aardvarkplatform/aardvark.docs/wiki/Quickstart-Windows) | 
 [Status](https://github.com/aardvarkplatform/aardvark.docs/wiki/Status)
