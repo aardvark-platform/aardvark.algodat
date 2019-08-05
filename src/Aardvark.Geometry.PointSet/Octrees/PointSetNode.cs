@@ -160,7 +160,7 @@ namespace Aardvark.Geometry.Points
 
             if (HasPositions && (!HasBoundingBoxExactLocal || !HasBoundingBoxExactGlobal))
             {
-                if (!isObsoleteFormat && !HasBoundingBoxExactLocal)
+                if (!HasBoundingBoxExactLocal) // why only for new format? (!isObsoleteFormat && !HasBoundingBoxExactLocal)
                 {
                     var bboxExactLocal = Positions.Value.Length > 0 ? new Box3f(Positions.Value) : Box3f.Invalid;
                     Data = Data.Add(Durable.Octree.BoundingBoxExactLocal, bboxExactLocal);
