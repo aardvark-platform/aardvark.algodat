@@ -33,6 +33,7 @@ module ShapeList =
             zRange = Range1i.Invalid
             renderTrafo = Trafo3d.Identity
             flipViewDependent = true
+            renderStyle = RenderStyle.Normal
         }
 
     let translated (shift : V2d) (l : ShapeList) =
@@ -45,6 +46,7 @@ module ShapeList =
             concreteShapes = l.concreteShapes
             zRange = l.zRange
             flipViewDependent = l.flipViewDependent
+            renderStyle = RenderStyle.Normal
         }
         
     let union (l : ShapeList) (r : ShapeList) =
@@ -73,6 +75,7 @@ module ShapeList =
             concreteShapes = lShapes @ rShapes
             zRange = Range1i.Union(l.zRange, r.zRange)
             flipViewDependent = l.flipViewDependent && r.flipViewDependent
+            renderStyle = RenderStyle.Normal
         }
 
     let appendHorizontal (spacing : float) (l : ShapeList) (r : ShapeList) =
