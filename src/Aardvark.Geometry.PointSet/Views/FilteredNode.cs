@@ -289,6 +289,7 @@ namespace Aardvark.Geometry.Points
             if (m_ensuredPositionsAndDerived) return;
 
             var result = GetSubArray(Octree.PositionsLocal3f, Node.Positions);
+            m_cache[Octree.PositionsLocal3f.Id] = result;
             var psLocal = result.Value;
 
             var c = Center;
