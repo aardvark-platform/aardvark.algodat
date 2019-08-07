@@ -468,6 +468,7 @@ namespace Aardvark.Geometry.Points
             if (m_cache.TryGetValue(def.Id, out var o) && o is PersistentRef<T[]> x) return x;
 
             if (originalValue == null) return null;
+            // should be empty not null, right?
             if (m_activePoints == null) return originalValue;
 
             var key = (Id + originalValue.Id).ToGuid().ToString();
