@@ -137,9 +137,15 @@ namespace Aardvark.Data.Points
             Box3d? bbox = null
             )
         {
-            if (colors != null && colors.Count != positions?.Count) throw new ArgumentException(nameof(colors));
-            if (normals != null && normals.Count != positions?.Count) throw new ArgumentException(nameof(colors));
-            if (intensities != null && intensities.Count != positions?.Count) throw new ArgumentException(nameof(colors));
+            //if (colors != null && colors.Count != positions?.Count) throw new ArgumentException(nameof(colors));
+            if (normals != null && normals.Count != positions?.Count) throw new ArgumentException(nameof(normals));
+            if (intensities != null && intensities.Count != positions?.Count) throw new ArgumentException(nameof(intensities));
+
+            if (positions != null && colors != null && positions.Count != colors.Count)
+            {
+                colors = new C4b[positions.Count];
+                Report.Warn("[Chunk-ctor] inconsistent length: pos.length = {0} vs cs.length = {1}", positions.Count, colors.Count);
+            }
 
             Positions = positions;
             Colors = colors;
