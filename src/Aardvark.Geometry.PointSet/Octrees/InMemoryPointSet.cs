@@ -17,6 +17,7 @@ using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -63,6 +64,9 @@ namespace Aardvark.Geometry.Points
 
         private InMemoryPointSet(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, Cell bounds, long octreeSplitLimit)
         {
+#if DEBUG
+            //if (new Box3d(ps).Size.Length < 0.001) Debugger.Break();
+#endif
             m_ps = ps;
             m_cs = cs;
             m_ns = ns;

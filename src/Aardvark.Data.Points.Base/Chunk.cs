@@ -15,6 +15,7 @@ using Aardvark.Base;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -328,7 +329,7 @@ namespace Aardvark.Data.Points
         /// <summary>
         /// Returns chunk with duplicate point positions removed.
         /// </summary>
-        public Chunk ImmutableDeduplicate()
+        public Chunk ImmutableDeduplicate(bool verbose)
         {
             if (!HasPositions) return this;
 
@@ -348,6 +349,14 @@ namespace Aardvark.Data.Points
                 var ns = HasNormals ? ia.Map(i => self.Normals[i]) : null;
                 var js = HasIntensities ? ia.Map(i => self.Intensities[i]) : null;
                 var ks = HasClassifications ? ia.Map(i => self.Classifications[i]) : null;
+
+                if (verbose)
+                {
+                    var removedCount = Positions.Count - ps.Length;
+                    var removedPercent = (removedCount / (double)Positions.Count) * 100.0;
+                    Report.Line($"removed {removedCount:N0} duplicate points ({removedPercent:0.00}% of {Positions.Count:N0})");
+                }
+
                 return new Chunk(ps, cs, ns, js, ks);
             }
             else

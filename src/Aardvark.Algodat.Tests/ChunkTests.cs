@@ -150,7 +150,7 @@ namespace Aardvark.Geometry.Tests
         public void Chunk_ImmutableDeduplicate_1()
         {
             var a = new Chunk(new[] { new V3d(1, 2, 3), new V3d(4, 5, 6), new V3d(1, 2, 3), new V3d(4, 5, 6) }, null);
-            var b = a.ImmutableDeduplicate();
+            var b = a.ImmutableDeduplicate(verbose: false);
 
             Assert.IsTrue(a.Positions.Count == 4);
             Assert.IsTrue(b.Positions.Count == 2);
@@ -162,7 +162,7 @@ namespace Aardvark.Geometry.Tests
         public void Chunk_ImmutableDeduplicate_2()
         {
             var a = new Chunk(new[] { new V3d(1, 2, 3), new V3d(4, 5, 6), new V3d(4, 5, 7), new V3d(4, 5, 8) }, null);
-            var b = a.ImmutableDeduplicate();
+            var b = a.ImmutableDeduplicate(verbose: false);
 
             Assert.IsTrue(a.Positions.Count == 4);
             Assert.IsTrue(b.Positions.Count == 4);
