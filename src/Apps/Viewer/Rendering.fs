@@ -14,6 +14,7 @@ open Aardvark.Rendering.PointSet
 open Aardvark.Base.Rendering
 open Aardvark.Base.Geometry
 open Aardvark.Geometry.Points
+open Aardvark.Geometry
 
 
 module Util =
@@ -103,7 +104,113 @@ module Util =
     
 
 module Rendering =
+    open Aardvark.Algodat
 
+    let findLargestPlane (eps : float) (pts : V3d[]) =
+        let problem =
+            {
+                neededSamples = 3
+                solve = fun (ps : V3d[]) ->
+                    let p0 = ps.[0]
+                    let p1 = ps.[1]
+                    let p2 = ps.[2]
+                    let u = p1 - p0 |> Vec.normalize
+                    let v = p2 - p0 |> Vec.normalize
+                    let n = Vec.cross u v
+                    let len = Vec.length n
+                    if Fun.IsTiny(len, 1E-6) then
+                        []
+                    else
+                        let n = n / len
+                        [ Plane3d(n, Vec.dot n p0) ]
+                countInliers = fun plane (ps : V3d[]) ->
+                    let mutable i = 0
+                    for p in ps do
+                        let h = abs (plane.Height p)
+                        if h < eps then
+                            i <- i + 1
+                    i
+                getInliers = fun plane (ps : V3d[]) ->
+                    let res = System.Collections.Generic.List<int>()
+                    let mutable i = 0
+                    for p in ps do
+                        let h = abs (plane.Height p)
+                        if h < eps then res.Add i
+                        i <- i + 1
+                    CSharpList.toArray res
+
+                getSolution = fun s -> s.value, s.inliers
+            }
+
+        let config =
+            { 
+                probability = 0.95
+                expectedRelativeCount = 0.15
+            }
+
+        problem.Solve(config, pts, pts) |> Seq.tryHead
+        
+
+    let segmentationTest (pc : ILodTreeNode) =
+        let local2World = pc.DataTrafo
+        let rec getAllPoints (depth : int) (t : ILodTreeNode) =
+            if depth <= 0 || Seq.isEmpty t.Children then
+                let g, _ = t.GetData(Unchecked.defaultof<_>, MapExt.ofList ["Positions", typeof<V3f>])
+                match g.IndexedAttributes.TryGetValue DefaultSemantic.Positions with
+                | (true, (:? array<V3f> as pos)) -> pos |> Array.map (V3d >> local2World.Forward.TransformPos)
+                | _ -> [||]
+            else
+                t.Children |> Seq.toArray |> Array.collect (getAllPoints (depth - 1))
+                
+        let somePoints = pc |> getAllPoints 1000
+
+        match findLargestPlane 0.01 somePoints with
+        | Some res ->
+            let plane,_ = res.value
+            Log.line "%A" plane
+            Log.line "took: %A" res.time
+            Log.line "inliers: %A" res.inliers.Length
+             
+            let hull = Hull3d.Create pc.WorldBoundingBox
+            let hull = Hull3d (Array.append hull.PlaneArray [| plane |])
+
+            let pts = 
+                hull.ComputeCorners()
+                |> Seq.filter (fun p -> Fun.IsTiny (plane.Height(p))) 
+                |> Seq.toArray
+
+            let center = pts.ComputeCentroid()
+            let x1 = pts.[0] - center |> Vec.normalize
+            let z = plane.Normal |> Vec.normalize
+            let y = Vec.cross z x1 |> Vec.normalize
+            let x = Vec.cross y z |> Vec.normalize
+
+            let plane2World = Trafo3d.FromBasis(x, y, z, center)
+
+            let modelTrafo = local2World
+
+            let lpts =
+                pts 
+                |> Array.map (plane2World.Backward.TransformPos >> Vec.xy)
+                |> Array.sortBy (fun p -> atan2 p.Y p.X)
+                |> PolyRegion.ofArray
+                |> PolyRegion.toTriangles
+                |> Array.collect (fun t -> [|t.P0; t.P1; t.P2|])
+                |> Array.map (fun v -> plane2World.Forward.TransformPos(V3d(v, 0.0)))
+                |> Array.map (fun v -> modelTrafo.Backward.TransformPos v |> V3f)
+            
+
+            Sg.draw IndexedGeometryMode.TriangleList
+            |> Sg.vertexAttribute' DefaultSemantic.Positions lpts
+            |> Sg.trafo (Mod.constant modelTrafo)
+            |> Sg.shader {
+                do! DefaultSurfaces.stableTrafo
+                do! DefaultSurfaces.constantColor C4f.Green
+                //do! DefaultSurfaces.stableHeadlight
+            }
+        | _ ->
+            Log.warn "no sln"
+            Sg.empty
 
     let pointClouds (win : IRenderWindow) (msaa : bool) (camera : IMod<CameraView>) (frustum : IMod<Frustum>) (pcs : list<LodTreeInstance>) =
         let picktrees : mmap<ILodTreeNode,SimplePickTree> = MMap.empty
@@ -157,6 +264,8 @@ module Rendering =
 
             ) 
 
+        let planesSg = segmentationTest (List.head(pcs).root)
+
         let pcs =
             pcs |> List.map (fun t ->
                 { t with uniforms = MapExt.add "Overlay" (config.overlayAlpha |> Mod.map ((*) V4d.IIII) :> IMod) t.uniforms }
@@ -168,12 +277,16 @@ module Rendering =
         let trafo = 
             Trafo3d.Translation(-overallBounds.Center) * 
             Trafo3d.Scale(300.0 / overallBounds.Size.NormMax)
+            
 
         let pcs =
             pcs |> List.toArray |> Array.map (LodTreeInstance.transform trafo >> Mod.init)
             
         let cfg =
             RenderConfig.toSg win config
+
+
+
 
 
         let v = (camera |> Mod.map CameraView.viewTrafo)
@@ -277,6 +390,7 @@ module Rendering =
             }
             //|> Sg.andAlso thing
             |> Sg.multisample (Mod.constant true)
+            |> Sg.andAlso (planesSg |> Sg.transform trafo)
             |> Sg.viewTrafo v
             |> Sg.projTrafo p
             |> Sg.andAlso cfg
@@ -304,7 +418,7 @@ module Rendering =
                 let i = pcs.[0].Value
                 match i.root with
                 | :? LodTreeInstance.PointTreeNode as n -> 
-                    match n.Delete (Box3d.FromCenterAndSize(i.root.WorldBoundingBox.Center, V3d(10.0, 10.0, 1000.0))) with
+                    match n.Delete (Box3d.FromCenterAndSize(i.root.WorldBoundingBox.Center, V3d(50.0, 50.0, 1000.0))) with
                     | Some r ->
                         transact (fun () -> 
                             pcs.[0].Value <- { i with root = r }

@@ -34,6 +34,7 @@
     <Compile Include="Args.fs" />
     <Compile Include="Download.fs" />
     <Compile Include="RenderConfig.fs" />
+    <Compile Include="Ransac.fs" />
     <Compile Include="Rendering.fs" />
     <Compile Include="CmdLine.fs" />
     <Compile Include="Program.fs" />
