@@ -15,6 +15,7 @@ using Aardvark.Base;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -137,9 +138,15 @@ namespace Aardvark.Data.Points
             Box3d? bbox = null
             )
         {
-            if (colors != null && colors.Count != positions?.Count) throw new ArgumentException(nameof(colors));
-            if (normals != null && normals.Count != positions?.Count) throw new ArgumentException(nameof(colors));
-            if (intensities != null && intensities.Count != positions?.Count) throw new ArgumentException(nameof(colors));
+            //if (colors != null && colors.Count != positions?.Count) throw new ArgumentException(nameof(colors));
+            if (normals != null && normals.Count != positions?.Count) throw new ArgumentException(nameof(normals));
+            if (intensities != null && intensities.Count != positions?.Count) throw new ArgumentException(nameof(intensities));
+
+            if (positions != null && colors != null && positions.Count != colors.Count)
+            {
+                colors = new C4b[positions.Count];
+                Report.Warn("[Chunk-ctor] inconsistent length: pos.length = {0} vs cs.length = {1}", positions.Count, colors.Count);
+            }
 
             Positions = positions;
             Colors = colors;
@@ -322,7 +329,7 @@ namespace Aardvark.Data.Points
         /// <summary>
         /// Returns chunk with duplicate point positions removed.
         /// </summary>
-        public Chunk ImmutableDeduplicate()
+        public Chunk ImmutableDeduplicate(bool verbose)
         {
             if (!HasPositions) return this;
 
@@ -342,6 +349,14 @@ namespace Aardvark.Data.Points
                 var ns = HasNormals ? ia.Map(i => self.Normals[i]) : null;
                 var js = HasIntensities ? ia.Map(i => self.Intensities[i]) : null;
                 var ks = HasClassifications ? ia.Map(i => self.Classifications[i]) : null;
+
+                if (verbose)
+                {
+                    var removedCount = Positions.Count - ps.Length;
+                    var removedPercent = (removedCount / (double)Positions.Count) * 100.0;
+                    Report.Line($"removed {removedCount:N0} duplicate points ({removedPercent:0.00}% of {Positions.Count:N0})");
+                }
+
                 return new Chunk(ps, cs, ns, js, ks);
             }
             else

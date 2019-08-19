@@ -195,6 +195,11 @@ namespace Aardvark.Geometry.Points
             {
                 var ps = node.PositionsAbsolute;
                 var cs = node?.TryGetColors4b()?.Value;
+                if(ps != null && cs != null && ps.Length != cs.Length)
+                {
+                    cs = new C4b[ps.Length];
+                    Report.Warn("[Chunk] inconsistent length: pos.length = {0} vs cs.length = {1}", ps.Length, cs.Length);
+                }
                 var ns = node?.TryGetNormals3f()?.Value;
                 var js = node?.TryGetIntensities()?.Value;
                 var ks = node?.TryGetClassifications()?.Value;
