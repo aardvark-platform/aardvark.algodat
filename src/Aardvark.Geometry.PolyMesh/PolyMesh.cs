@@ -360,16 +360,18 @@ namespace Aardvark.Geometry
             {
                 m_firstIndexArray = value;
                 this[Property.FirstIndexArray] = value;
-                m_faceCount = value != null ? m_firstIndexArray.Length - 1 : 0;
+                m_faceCount = value != null ? value.Length - 1 : 0;
                 this[Property.FaceCount] = m_faceCount;
 
-
                 var faceVertexCountRange = Range1i.Invalid;
-                for (int fvi = value[0], i = 1; i < m_faceCount + 1; i++)
+                if (m_faceCount > 0)
                 {
-                    int fve = value[i];
-                    faceVertexCountRange.ExtendBy(fve - fvi);
-                    fvi = fve;
+                    for (int fvi = value[0], i = 1; i < m_faceCount + 1; i++)
+                    {
+                        int fve = value[i];
+                        faceVertexCountRange.ExtendBy(fve - fvi);
+                        fvi = fve;
+                    }
                 }
                 this[Property.FaceVertexCountRange]
                         = m_faceVertexCountRange = faceVertexCountRange;
