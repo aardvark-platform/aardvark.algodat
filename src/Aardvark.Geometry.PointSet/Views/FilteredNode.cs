@@ -289,6 +289,7 @@ namespace Aardvark.Geometry.Points
             if (m_ensuredPositionsAndDerived) return;
 
             var result = GetSubArray(Octree.PositionsLocal3f, Node.Positions);
+            m_cache[Octree.PositionsLocal3f.Id] = result;
             var psLocal = result.Value;
 
             var c = Center;
@@ -467,6 +468,7 @@ namespace Aardvark.Geometry.Points
             if (m_cache.TryGetValue(def.Id, out var o) && o is PersistentRef<T[]> x) return x;
 
             if (originalValue == null) return null;
+            // should be empty not null, right?
             if (m_activePoints == null) return originalValue;
 
             var key = (Id + originalValue.Id).ToGuid().ToString();

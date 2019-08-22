@@ -25,7 +25,6 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public static partial class PointCloud
     {
-
         private static IEnumerable<Chunk> MergeSmall(int limit, IEnumerable<Chunk> input)
         {
             Chunk? current = null;
@@ -67,11 +66,15 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PointSet Chunks(IEnumerable<Chunk> chunks, ImportConfig config)
         {
-            chunks = MergeSmall(config.OctreeSplitLimit, chunks);
-
             config?.ProgressCallback(0.0);
 
-            // optionally filter minDist
+            // deduplicate points
+            chunks = chunks.Select(x => x.ImmutableDeduplicate(config.Verbose));
+
+            // merge small chunks
+            chunks = MergeSmall(config.MaxChunkPointCount, chunks);
+
+            // filter minDist
             if (config.MinDist > 0.0)
             {
                 if (config.NormalizePointDensityGlobal)
@@ -84,15 +87,15 @@ namespace Aardvark.Geometry.Points
                 }
             }
 
+            // merge small chunks
+            chunks = MergeSmall(config.MaxChunkPointCount, chunks);
+
             // EXPERIMENTAL
             //Report.BeginTimed("unmix");
             //chunks = chunks.ImmutableUnmixOutOfCore(@"T:\tmp", 1, config);
             //Report.End();
 
-            // deduplicate points
-            chunks = chunks.Select(x => x.ImmutableDeduplicate());
-
-            // optionally reproject positions and/or estimate normals
+            // reproject positions and/or estimate normals
             if (config.Reproject != null)
             {
                 Chunk map(Chunk x, CancellationToken ct)
