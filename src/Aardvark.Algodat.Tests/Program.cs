@@ -290,10 +290,21 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
+            using (var br = new BinaryReader(File.OpenRead(@"C:\Users\sm\Desktop\0113178e-deeb-487b-a597-573fcefcfca9")))
+            {
+                var (def, o) = Data.Codec.Decode(br);
+
+                using (var bw = new BinaryWriter(File.OpenWrite(@"C:\Users\sm\Desktop\0113178e-deeb-487b-a597-573fcefcfca9.new")))
+                {
+                    Data.Codec.Encode(bw, def, o);
+                }
+            }
+
+
             //var path = JObject.Parse(File.ReadAllText(@"T:\OEBB\20190619_Trajektorie_Verbindungsbahn\path.json"));
             //File.WriteAllText(@"T:\OEBB\20190619_Trajektorie_Verbindungsbahn\path2.json", path.ToString(Formatting.Indented));
             //Console.WriteLine(path);
-            PerfTestJuly2019();
+            //PerfTestJuly2019();
 
             //TestLoadOldStore();
 
