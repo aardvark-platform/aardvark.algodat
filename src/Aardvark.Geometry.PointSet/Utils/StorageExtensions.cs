@@ -24,6 +24,8 @@ using System.Text;
 using Uncodium.SimpleStore;
 using System.Collections.Immutable;
 using System.Threading;
+using System.IO.Compression;
+using Newtonsoft.Json;
 
 namespace Aardvark.Geometry.Points
 {
@@ -266,8 +268,28 @@ namespace Aardvark.Geometry.Points
 
         #endregion
 
+        #region string/json
+
+        /// <summary></summary>
+        public static void Add(this Storage storage, Guid key, string s)
+            => Add(storage, key, Encoding.UTF8.GetBytes(s));
+
+        /// <summary></summary>
+        public static void Add(this Storage storage, string key, string s)
+            => Add(storage, key, Encoding.UTF8.GetBytes(s));
+
+        /// <summary></summary>
+        public static void Add(this Storage storage, Guid key, JObject json)
+            => Add(storage, key, Encoding.UTF8.GetBytes(json.ToString(Formatting.Indented)));
+
+        /// <summary></summary>
+        public static void Add(this Storage storage, string key, JObject json)
+            => Add(storage, key, Encoding.UTF8.GetBytes(json.ToString(Formatting.Indented)));
+
+        #endregion
+
         #region V3f[]
-        
+
         /// <summary></summary>
         public static void Add(this Storage storage, Guid key, V3f[] data) => Add(storage, key.ToString(), data);
         
@@ -660,14 +682,15 @@ namespace Aardvark.Geometry.Points
 
         #region Durable
 
-        public static byte[] Add(this Storage storage, string key, Durable.Def def, IEnumerable<KeyValuePair<Durable.Def, object>> data)
+        public static byte[] Add(this Storage storage, string key, Durable.Def def, IEnumerable<KeyValuePair<Durable.Def, object>> data, bool gzipped)
         {
             if (key == null) throw new Exception("Invariant 40e0143a-af01-4e77-b278-abb1a0c182f2.");
             if (def == null) throw new Exception("Invariant a7a6516e-e019-46ea-b7db-69b559a2aad4.");
             if (data == null) throw new Exception("Invariant ec5b1c03-d92c-4b2d-9b5c-a30f935369e5.");
 
             using (var ms = new MemoryStream())
-            using (var bw = new BinaryWriter(ms))
+            using (var zs = gzipped ? new GZipStream(ms, CompressionLevel.Fastest) : (Stream)ms)
+            using (var bw = new BinaryWriter(zs))
             {
                 Data.Codec.Encode(bw, def, data);
 
@@ -677,10 +700,10 @@ namespace Aardvark.Geometry.Points
                 return buffer;
             }
         }
-        public static byte[] Add(this Storage storage, Guid key, Durable.Def def, ImmutableDictionary<Durable.Def, object> data)
-            => Add(storage, key.ToString(), def, data);
-        public static byte[] Add(this Storage storage, Guid key, Durable.Def def, IEnumerable<KeyValuePair<Durable.Def, object>> data)
-            => Add(storage, key.ToString(), def, data);
+        public static byte[] Add(this Storage storage, Guid key, Durable.Def def, ImmutableDictionary<Durable.Def, object> data, bool gzipped)
+            => Add(storage, key.ToString(), def, data, gzipped);
+        public static byte[] Add(this Storage storage, Guid key, Durable.Def def, IEnumerable<KeyValuePair<Durable.Def, object>> data, bool gzipped)
+            => Add(storage, key.ToString(), def, data, gzipped);
 
         public static (Durable.Def, object) GetDurable(this Storage storage, string key)
         {
@@ -753,7 +776,7 @@ namespace Aardvark.Geometry.Points
                 // node
                 var (def, raw) = self.GetDurable(key);
                 var node = raw as IDictionary<Durable.Def, object>;
-                exportStore.Add(key, def, node);
+                exportStore.Add(key, def, node, false);
                 Report.Line($"exported {key} (node)");
 
                 // references
@@ -774,9 +797,6 @@ namespace Aardvark.Geometry.Points
                 }
             }
 
-            /// <summary>
-            /// Gets references to other blobs (except own node id and subnode ids).
-            /// </summary>
             IDictionary<Durable.Def, object> GetReferences(IDictionary<Durable.Def, object> node)
             {
                 var rs = new Dictionary<Durable.Def, object>();
@@ -801,21 +821,21 @@ namespace Aardvark.Geometry.Points
         /// Experimental!
         /// Exports complete pointset (metadata, nodes, referenced blobs) to another store.
         /// </summary>
-        public static void InlinePointSet(this Storage self, string pointSetId, Storage exportStore)
-            => InlinePointSet(self, self.GetPointSet(pointSetId), exportStore);
+        public static void InlinePointSet(this Storage self, string pointSetId, Storage exportStore, bool gzipped)
+            => InlinePointSet(self, self.GetPointSet(pointSetId), exportStore, gzipped);
 
         /// <summary>
         /// Experimental!
         /// Exports complete pointset (metadata, nodes, referenced blobs) to another store.
         /// </summary>
-        public static void InlinePointSet(this Storage self, Guid pointSetId, Storage exportStore)
-            => InlinePointSet(self, self.GetPointSet(pointSetId), exportStore);
+        public static void InlinePointSet(this Storage self, Guid pointSetId, Storage exportStore, bool gzipped)
+            => InlinePointSet(self, self.GetPointSet(pointSetId), exportStore, gzipped);
 
         /// <summary>
         /// Experimental!
         /// Inlines and exports pointset to another store.
         /// </summary>
-        public static void InlinePointSet(this Storage self, PointSet pointset, Storage exportStore)
+        public static void InlinePointSet(this Storage self, PointSet pointset, Storage exportStore, bool gzipped)
         {
             var pointSetId = pointset.Id;
             var root = pointset.Root.Value;
@@ -837,7 +857,7 @@ namespace Aardvark.Geometry.Points
                 var (def, raw) = self.GetDurable(key);
                 var node = raw as IDictionary<Durable.Def, object>;
                 node = self.ConvertToInline(node);
-                exportStore.Add(key, def, node);
+                exportStore.Add(key, def, node, gzipped);
                 Report.Line($"exported {key} (node)");
 
                 // children

@@ -369,7 +369,7 @@ namespace Aardvark.Geometry.Tests
 
                 // write inlined node to store
                 var inlinedNode = store1.ConvertToInline(node);
-                var inlinedBlob = store2.Add(key, Durable.Octree.Node, inlinedNode);
+                var inlinedBlob = store2.Add(key, Durable.Octree.Node, inlinedNode, false);
                 totalBytes += inlinedBlob.Length;
                 //Report.Line($"stored node {key}");
 
@@ -415,7 +415,7 @@ namespace Aardvark.Geometry.Tests
                 using (var storeSource = new SimpleDiskStore(@"T:\Vgm\Stores\copytest1").ToPointCloudStore())
                 using (var storeTarget = new SimpleFolderStore(@"T:\Vgm\Stores\exportInlined").ToPointCloudStore())
                 {
-                    storeSource.InlinePointSet("097358dc-d89a-434c-8a4e-fe03c063d886", storeTarget);
+                    storeSource.InlinePointSet("097358dc-d89a-434c-8a4e-fe03c063d886", storeTarget, false);
                     storeTarget.Flush();
                 }
             }

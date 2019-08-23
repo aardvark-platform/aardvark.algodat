@@ -42,6 +42,12 @@ type Args =
         /// export command: inline arrays referenced by octree nodes 
         inlining            : bool option
 
+        /// export command: gzip nodes 
+        gzipped            : bool option
+
+        /// optionally store metadata JSON with this key
+        metadataKey        : string option
+
         /// normal generation: k-nearest
         kNearest            : int option
 
@@ -63,6 +69,8 @@ module Args =
         minDist = 0.0
         asciiFormat = None
         inlining = None
+        gzipped = None
+        metadataKey = None
         kNearest = None
         files = list.Empty
     }
@@ -119,6 +127,10 @@ module Args =
         | "-minDist" :: []                  ->  failwith "missing argument: -minDist <???>"
 
         | "-inline" :: xs                   ->  parse' { a with inlining = Some true } xs
+
+        | "-z" :: xs                        ->  parse' { a with gzipped = Some true } xs
+
+        | "-meta" :: key :: xs              ->  parse' { a with metadataKey = Some key } xs
 
         | "-kNearest" :: kNearest :: xs     ->  parse' { a with kNearest = Some (Int32.Parse kNearest) } xs
         | "-kNearest" :: []                 ->  failwith "missing argument: -kNearest <???>"

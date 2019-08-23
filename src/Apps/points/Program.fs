@@ -17,6 +17,24 @@ let usage () =
     printfn ""
     printfn "points import -o store ./mystore foo.e57"
 
+let createMetaData (pc : PointSet) (gzipped : bool) =
+    let root = pc.Root.Value
+    let data = {|
+        pointSetId = pc.Id;
+        rootId = root.Id.ToString();
+        pointCount = root.PointCountTree;
+        bounds = root.BoundingBoxExactGlobal;
+        centroid = V3d(root.CentroidLocal) + root.Center;
+        centroidStdDev = root.CentroidLocalStdDev;
+        cell = root.Cell;
+        totalNodes = root.CountNodes(true);
+        gzipped = gzipped
+    |}
+
+    let json = JObject.FromObject(data);
+
+    json
+
 let import (args : Args) =
 
     let outPath =
@@ -51,6 +69,12 @@ let import (args : Args) =
       | _ -> failwith "specify exactly 1 filename to import"
     store.Flush()
     Report.EndTimed() |> ignore
+
+    match args.metadataKey with
+    | Some k -> let meta = createMetaData pc false
+                store.Add(k, meta)
+                store.Flush()
+    | None   -> ()
 
     let info = {|
       pointCountTree = pc.Root.Value.PointCountTree;
@@ -94,12 +118,23 @@ let export args =
         | None, _ -> failwith "missing input point cloud key (-ikey)"
         | _, Some _ -> failwith "must not define output key for export (-okey)" 
 
+    let gzipped = match args.gzipped with | Some x -> x | None -> false
+
     Report.BeginTimed("exporting")
     match args.inlining with
-    | Some true -> inStore.InlinePointSet(key, outStore)
-    | _         -> inStore.ExportPointSet(key, outStore)
+    | Some true -> inStore.InlinePointSet(key, outStore, gzipped)
+    | _         -> if gzipped then printfn "[WARNING] -z is only supported with -inline"
+                   inStore.ExportPointSet(key, outStore)
     outStore.Flush()
     Report.EndTimed() |> ignore
+
+    match args.metadataKey with
+    | Some k -> let pc = inStore.GetPointSet(key)
+                let meta = createMetaData pc false
+                outStore.Add(k, meta)
+                outStore.Flush()
+    | None   -> ()
+
 
 [<EntryPoint>]
 let main argv =
