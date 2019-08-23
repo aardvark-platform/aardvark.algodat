@@ -16,14 +16,6 @@ namespace Aardvark.Data
         private static readonly Dictionary<Guid, object> s_encoders;
         private static readonly Dictionary<Guid, object> s_decoders;
 
-        private static readonly Durable.Def TotalPointCountDouble = new Durable.Def(
-            Guid.Parse("6bef7603-47fa-405f-a330-a1ac1b09c475"),
-            "Octree.TotalPointCount",
-            "Octree. Number of points in this subtree. double.",
-            Durable.Primitives.Float64.Id,
-            isArray: false
-            );
-
         static Codec()
         {
             // force Durable.Octree initializer
@@ -128,8 +120,6 @@ namespace Aardvark.Data
 
                 [Durable.Aardvark.C3b.Id]               = DecodeC3b,
                 [Durable.Aardvark.C3bArray.Id]          = DecodeC3bArray,
-
-                [TotalPointCountDouble.Id]              = DecodeFloat64,
             };
         }
 
@@ -372,6 +362,10 @@ namespace Aardvark.Data
 
         private static readonly Func<BinaryReader, object> DecodeGuidArray = s => DecodeArray<Guid>(s);
 
+        /// <summary>
+        /// </summary>
+        public static Func<BinaryReader, object> GetDecoderFor(Durable.Def def)
+            => (Func<BinaryReader, object>)s_decoders[def.Id];
 
         /// <summary>
         /// </summary>

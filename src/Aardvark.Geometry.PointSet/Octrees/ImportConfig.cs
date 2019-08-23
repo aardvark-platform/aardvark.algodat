@@ -101,6 +101,9 @@ namespace Aardvark.Data.Points
         public ImportConfig WithKey(string x) => new ImportConfig(this) { Key = x };
 
         /// <summary></summary>
+        public ImportConfig WithKey(Guid x) => new ImportConfig(this) { Key = x.ToString() };
+
+        /// <summary></summary>
         public ImportConfig WithRandomKey() => WithKey(Guid.NewGuid().ToString());
 
         /// <summary></summary>

@@ -7,10 +7,13 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
+using System.Threading;
 using Uncodium.SimpleStore;
 
 namespace Aardvark.Geometry.Tests
@@ -288,18 +291,141 @@ namespace Aardvark.Geometry.Tests
             var root = store.GetPointCloudNode("e06a1e87-5ab1-4c73-8c3f-3daf1bdac1d9");
         }
 
-        public static void Main(string[] args)
+        internal static void CopyTest()
         {
-            using (var br = new BinaryReader(File.OpenRead(@"C:\Users\sm\Desktop\0113178e-deeb-487b-a597-573fcefcfca9")))
-            {
-                var (def, o) = Data.Codec.Decode(br);
+            var filename = @"T:\Vgm\Data\JBs_Haus.pts";
+            var rootKey = "097358dc-d89a-434c-8a4e-fe03c063d886";
+            var splitLimit = 65536;
+            var minDist = 0.001;
 
-                using (var bw = new BinaryWriter(File.OpenWrite(@"C:\Users\sm\Desktop\0113178e-deeb-487b-a597-573fcefcfca9.new")))
+            var store1Path = @"T:\Vgm\Stores\copytest1";
+            var store2Path = @"T:\Vgm\Stores\copytest2";
+            var store3Path = @"T:\Vgm\Stores\copytest3";
+            var store4Path = @"T:\Vgm\Stores\JBs_Haus.pts";
+
+            // create stores
+            var store1 = new SimpleDiskStore(store1Path).ToPointCloudStore();
+            var store2 = new SimpleDiskStore(store2Path).ToPointCloudStore();
+
+            // import point cloud into store1
+            Report.BeginTimed("importing");
+            var config = ImportConfig.Default
+                .WithStorage(store1)
+                .WithKey(rootKey)
+                .WithOctreeSplitLimit(splitLimit)
+                .WithMinDist(minDist)
+                .WithNormalizePointDensityGlobal(true)
+                .WithVerbose(true)
+                ;
+            var pointcloud = PointCloud.Import(filename, config);
+
+            Report.EndTimed();
+            store1.Flush();
+
+            return;
+            if (!Directory.Exists(store3Path)) { Directory.CreateDirectory(store3Path); Thread.Sleep(1000); }
+            if (!Directory.Exists(store4Path)) { Directory.CreateDirectory(store4Path); Thread.Sleep(1000); }
+
+            // copy point cloud from store1 to store2
+            var pc1 = store1.GetPointSet(rootKey);
+            var root1 = pc1.Root.Value;
+            var totalNodes = root1.CountNodes(outOfCore: true);
+            store2.Add(rootKey, pc1);
+            Report.BeginTimed("copy");
+            var totalBytes = 0L;
+            //pc1.Root.Value.ForEachNode(outOfCore: true, n => Report.Line($"{n.Id} {n.PointCountCell,12:N0}"));
+            Convert(root1.Id);
+            Report.Line($"{totalNodes}");
+            Report.EndTimed();
+            store2.Flush();
+
+            // meta
+            var rootJson = JObject.FromObject(new
+            {
+                rootId = root1.Id.ToString(),
+                splitLimit = splitLimit,
+                minDist = minDist,
+                pointCount = root1.PointCountTree,
+                bounds = root1.BoundingBoxExactGlobal,
+                centroid = (V3d)root1.CentroidLocal + root1.Center,
+                centroidStdDev = root1.CentroidLocalStdDev,
+                cell = root1.Cell,
+                totalNodes = totalNodes,
+                totalBytes = totalBytes,
+                gzipped = false
+            });
+            File.WriteAllText(Path.Combine(store3Path, "root.json"), rootJson.ToString(Formatting.Indented));
+
+            rootJson["gzipped"] = true;
+            File.WriteAllText(Path.Combine(store4Path, "root.json"), rootJson.ToString(Formatting.Indented));
+
+            void Convert(Guid key)
+            {
+                if (key == Guid.Empty) return;
+
+                var (def, raw) = store1.GetDurable(key);
+                var node = raw as IDictionary<Durable.Def, object>;
+                node.TryGetValue(Durable.Octree.SubnodesGuids, out var subnodeGuids);
+
+                // write inlined node to store
+                var inlinedNode = store1.ConvertToInline(node);
+                var inlinedBlob = store2.Add(key, Durable.Octree.Node, inlinedNode);
+                totalBytes += inlinedBlob.Length;
+                //Report.Line($"stored node {key}");
+
+                // write blob as file
+                File.WriteAllBytes(Path.Combine(store3Path, key.ToString()), inlinedBlob);
+                
+                // write blob as file (gzipped)
+                using (var fs = File.OpenWrite(Path.Combine(store4Path, key.ToString())))
+                using (var zs = new GZipStream(fs, CompressionLevel.Fastest))
                 {
-                    Data.Codec.Encode(bw, def, o);
+                    zs.Write(inlinedBlob, 0, inlinedBlob.Length);
+                }
+
+                // children
+                if (subnodeGuids != null)
+                    foreach (var x in (Guid[])subnodeGuids) Convert(x);
+            }
+        }
+
+        public static void ExportExamples()
+        {
+            // Example 1: export point cloud to folder
+            {
+                using (var storeSource = new SimpleDiskStore(@"T:\Vgm\Stores\copytest1").ToPointCloudStore())
+                using (var storeTarget = new SimpleFolderStore(@"T:\Vgm\Stores\exportFolder").ToPointCloudStore())
+                {
+                    storeSource.ExportPointSet("097358dc-d89a-434c-8a4e-fe03c063d886", storeTarget);
                 }
             }
 
+            // Example 2: export point cloud to another store
+            {
+                using (var storeSource = new SimpleDiskStore(@"T:\Vgm\Stores\copytest1").ToPointCloudStore())
+                using (var storeTarget = new SimpleDiskStore(@"T:\Vgm\Stores\exportStore").ToPointCloudStore())
+                {
+                    storeSource.ExportPointSet("097358dc-d89a-434c-8a4e-fe03c063d886", storeTarget);
+                    storeTarget.Flush();
+                }
+            }
+
+            // Example 3: inline point cloud nodes
+            {
+                using (var storeSource = new SimpleDiskStore(@"T:\Vgm\Stores\copytest1").ToPointCloudStore())
+                using (var storeTarget = new SimpleFolderStore(@"T:\Vgm\Stores\exportInlined").ToPointCloudStore())
+                {
+                    storeSource.InlinePointSet("097358dc-d89a-434c-8a4e-fe03c063d886", storeTarget);
+                    storeTarget.Flush();
+                }
+            }
+        }
+
+        public static void Main(string[] args)
+        {
+            ExportExamples();
+
+            //CopyTest();
 
             //var path = JObject.Parse(File.ReadAllText(@"T:\OEBB\20190619_Trajektorie_Verbindungsbahn\path.json"));
             //File.WriteAllText(@"T:\OEBB\20190619_Trajektorie_Verbindungsbahn\path2.json", path.ToString(Formatting.Indented));
