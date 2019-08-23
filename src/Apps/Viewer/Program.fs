@@ -14,25 +14,25 @@ open Aardvark.Data.Points.Import
 let main args =  
 
     //import @"D:\pts\JBs_haus.pts"  @"D:\store" "a" (Args.parse [||])
-    view @"D:\volumes\referenz_2019_21_store" ["770ed498-5544-4313-9873-5449f2bd823e"] (Args.parse [||])
+    //view @"D:\volumes\referenz_2019_21_store" ["770ed498-5544-4313-9873-5449f2bd823e"] (Args.parse [||])
 
-    //let args = Args.parse args
+    let args = Args.parse args
     
-    //match args.command with
+    match args.command with
 
-    //| Some (Info filename) -> info filename args
+    | Some (Info filename) -> info filename args
 
-    //| Some (Import (filename, store, key)) -> import filename store key args
+    | Some (Import (filename, store, key)) -> import filename store key args
       
-    //| Some (View (store, key)) ->
-    //    view store key args
+    | Some (View (store, key)) ->
+        view store [key] args
       
-    //| Some Gui ->
-    //    failwith "not implemented"
+    | Some Gui ->
+        failwith "not implemented"
       
-    //| Some (Download (baseurl, targetdir)) -> download baseurl targetdir args
+    | Some (Download (baseurl, targetdir)) -> download baseurl targetdir args
       
-    //| None ->
-    //    printUsage()
+    | None ->
+        printUsage()
 
     0

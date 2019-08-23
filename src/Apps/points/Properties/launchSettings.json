@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "points": {
+      "commandName": "Project",
+      "commandLineArgs": "import T:\\Vgm\\Data\\JBs_Haus.pts -o T:\\Vgm\\Stores\\jbshaus -okey mykey"
+    }
+  }
+}
