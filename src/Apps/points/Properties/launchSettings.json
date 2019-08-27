@@ -2,7 +2,7 @@
   "profiles": {
     "points": {
       "commandName": "Project",
-      "commandLineArgs": " export -ikey mykey -i T:\\Vgm\\Stores\\jbshaus -o folder T:\\Vgm\\Stores\\jbshaus4 -inline -z -meta root.json"
+      "commandLineArgs": "export -ikey mykey -i t:\\Vgm\\Stores\\jbshaus -o t:\\vgm\\Stores\\jbshaus_compact"
     }
   }
 }

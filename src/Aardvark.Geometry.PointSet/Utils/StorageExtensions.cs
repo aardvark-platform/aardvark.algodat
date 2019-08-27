@@ -744,7 +744,11 @@ namespace Aardvark.Geometry.Points
         /// Exports complete pointset (metadata, nodes, referenced blobs) to another store.
         /// </summary>
         public static void ExportPointSet(this Storage self, string pointSetId, Storage exportStore)
-            => ExportPointSet(self, self.GetPointSet(pointSetId), exportStore);
+        {
+            var ps = self.GetPointSet(pointSetId);
+            if (ps == null) throw new Exception($"No PointSet with id '{pointSetId}' in store.");
+            ExportPointSet(self, ps, exportStore);
+        }
 
         /// <summary>
         /// Exports complete pointset (metadata, nodes, referenced blobs) to another store.
