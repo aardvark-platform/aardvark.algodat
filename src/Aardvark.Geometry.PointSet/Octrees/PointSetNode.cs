@@ -974,6 +974,9 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public bool TryGetValue(Durable.Def what, out object o) => Data.TryGetValue(what, out o);
 
+        /// <summary></summary>
+        public IReadOnlyDictionary<Durable.Def, object> Properties => Data;
+
         Storage IPointCloudNode.Storage => Storage;
 
         /// <summary></summary>

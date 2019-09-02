@@ -195,6 +195,11 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public bool TryGetValue(Def what, out object o) => Node.TryGetValue(what, out o);
 
+        /// <summary>
+        /// 
+        /// </summary>
+        public IReadOnlyDictionary<Def, object> Properties => Node.Properties;
+
         /// <summary></summary>
         public PersistentRef<IPointCloudNode>[] Subnodes
         {

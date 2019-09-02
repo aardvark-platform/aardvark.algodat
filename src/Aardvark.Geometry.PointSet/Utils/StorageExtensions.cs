@@ -745,9 +745,25 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static void ExportPointSet(this Storage self, string pointSetId, Storage exportStore)
         {
-            var ps = self.GetPointSet(pointSetId);
-            if (ps == null) throw new Exception($"No PointSet with id '{pointSetId}' in store.");
-            ExportPointSet(self, ps, exportStore);
+            var pointSet = self.GetPointSet(pointSetId);
+            if (pointSet == null)
+            {
+                Report.Warn($"No PointSet with id '{pointSetId}' in store. Trying to load node with this id.");
+                var (success, root) = self.TryGetPointCloudNode(pointSetId);
+                if (success)
+                {
+                    var fakePointSet = new PointSet(self, Guid.NewGuid().ToString(), root, 8192);
+                    ExportPointSet(self, fakePointSet, exportStore);
+                }
+                else
+                {
+                    Report.Error($"No node with id '{pointSetId}' in store. Giving up.");
+                }
+            }
+            else
+            {
+                ExportPointSet(self, pointSet, exportStore);
+            }
         }
 
         /// <summary>
@@ -777,14 +793,24 @@ namespace Aardvark.Geometry.Points
             {
                 if (key == Guid.Empty) return;
 
-                // node
-                var (def, raw) = self.GetDurable(key);
-                var node = raw as IDictionary<Durable.Def, object>;
-                exportStore.Add(key, def, node, false);
+                // try to load node
+                Durable.Def def = Durable.Octree.Node;
+                object raw = null;
+                try
+                {
+                    (def, raw) = self.GetDurable(key);
+                }
+                catch
+                {
+                    var n = self.GetPointCloudNode(key);
+                    raw = n.Properties;
+                }
+                var nodeProps = raw as IReadOnlyDictionary<Durable.Def, object>;
+                exportStore.Add(key, def, nodeProps, false);
                 Report.Line($"exported {key} (node)");
 
                 // references
-                var rs = GetReferences(node);
+                var rs = GetReferences(nodeProps);
                 foreach (var kv in rs)
                 {
                     var k = (Guid)kv.Value;
@@ -794,14 +820,14 @@ namespace Aardvark.Geometry.Points
                 }
 
                 // children
-                node.TryGetValue(Durable.Octree.SubnodesGuids, out var subnodeGuids);
+                nodeProps.TryGetValue(Durable.Octree.SubnodesGuids, out var subnodeGuids);
                 if (subnodeGuids != null)
                 {
                     foreach (var x in (Guid[])subnodeGuids) ExportNode(x);
                 }
             }
 
-            IDictionary<Durable.Def, object> GetReferences(IDictionary<Durable.Def, object> node)
+            IDictionary<Durable.Def, object> GetReferences(IReadOnlyDictionary<Durable.Def, object> node)
             {
                 var rs = new Dictionary<Durable.Def, object>();
                 foreach (var kv in node)
@@ -858,7 +884,17 @@ namespace Aardvark.Geometry.Points
                 if (key == Guid.Empty) return;
 
                 // node
-                var (def, raw) = self.GetDurable(key);
+                Durable.Def def = Durable.Octree.Node;
+                object raw = null;
+                try
+                {
+                    (def, raw) = self.GetDurable(key);
+                }
+                catch
+                {
+                    var n = self.GetPointCloudNode(key);
+                    raw = n.Properties;
+                }
                 var node = raw as IDictionary<Durable.Def, object>;
                 node = self.ConvertToInline(node);
                 exportStore.Add(key, def, node, gzipped);

@@ -15,6 +15,7 @@ using Aardvark.Base;
 using Aardvark.Data;
 using Aardvark.Data.Points;
 using System;
+using System.Collections.Generic;
 
 namespace Aardvark.Geometry.Points
 {
@@ -99,8 +100,15 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         bool Has(Durable.Def what);
 
-        /// <summary></summary>
+        /// <summary>
+        /// Gets given property, or returns false if node has no such property.
+        /// </summary>
         bool TryGetValue(Durable.Def what, out object o);
+
+        /// <summary>
+        /// Gets all properties.
+        /// </summary>
+        IReadOnlyDictionary<Durable.Def, object> Properties { get; }
 
         /// <summary>
         /// Returns new node with added/replaced data.
