@@ -102,7 +102,7 @@ namespace Aardvark.Geometry.Points
             Center = bboxCell.Center;
             Corners = bboxCell.ComputeCorners();
 
-#if DEBUG
+#if DEBUG && NEVERMORE
             if (isObsoleteFormat)
             {
                 Report.Line($"new PointSetNode({Id}), obsolete format");

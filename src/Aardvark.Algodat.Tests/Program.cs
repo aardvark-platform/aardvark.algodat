@@ -396,7 +396,7 @@ namespace Aardvark.Geometry.Tests
                 using (var storeSource = new SimpleDiskStore(@"T:\Vgm\Stores\copytest1").ToPointCloudStore())
                 using (var storeTarget = new SimpleFolderStore(@"T:\Vgm\Stores\exportFolder").ToPointCloudStore())
                 {
-                    storeSource.ExportPointSet("097358dc-d89a-434c-8a4e-fe03c063d886", storeTarget);
+                    storeSource.ExportPointSet("097358dc-d89a-434c-8a4e-fe03c063d886", storeTarget, true);
                 }
             }
 
@@ -405,7 +405,7 @@ namespace Aardvark.Geometry.Tests
                 using (var storeSource = new SimpleDiskStore(@"T:\Vgm\Stores\copytest1").ToPointCloudStore())
                 using (var storeTarget = new SimpleDiskStore(@"T:\Vgm\Stores\exportStore").ToPointCloudStore())
                 {
-                    storeSource.ExportPointSet("097358dc-d89a-434c-8a4e-fe03c063d886", storeTarget);
+                    storeSource.ExportPointSet("097358dc-d89a-434c-8a4e-fe03c063d886", storeTarget, true);
                     storeTarget.Flush();
                 }
             }

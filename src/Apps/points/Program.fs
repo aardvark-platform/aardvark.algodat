@@ -124,7 +124,7 @@ let export args =
     match args.inlining with
     | Some true -> inStore.InlinePointSet(key, outStore, gzipped)
     | _         -> if gzipped then printfn "[WARNING] -z is only supported with -inline"
-                   inStore.ExportPointSet(key, outStore)
+                   inStore.ExportPointSet(key, outStore, args.verbose)
     outStore.Flush()
     Report.EndTimed() |> ignore
 

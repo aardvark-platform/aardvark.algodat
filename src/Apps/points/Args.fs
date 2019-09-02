@@ -43,16 +43,19 @@ type Args =
         inlining            : bool option
 
         /// export command: gzip nodes 
-        gzipped            : bool option
+        gzipped             : bool option
 
         /// optionally store metadata JSON with this key
-        metadataKey        : string option
+        metadataKey         : string option
 
         /// normal generation: k-nearest
         kNearest            : int option
 
         /// files
         files               : string list
+
+        /// verbose
+        verbose             : bool
     }
 
 module Args =
@@ -73,6 +76,7 @@ module Args =
         metadataKey = None
         kNearest = None
         files = list.Empty
+        verbose = true
     }
     
     let rec private parseAsciiFormat' xs rs =

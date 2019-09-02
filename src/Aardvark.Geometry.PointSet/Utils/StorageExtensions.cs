@@ -743,7 +743,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Exports complete pointset (metadata, nodes, referenced blobs) to another store.
         /// </summary>
-        public static void ExportPointSet(this Storage self, string pointSetId, Storage exportStore)
+        public static void ExportPointSet(this Storage self, string pointSetId, Storage exportStore, bool verbose)
         {
             var pointSet = self.GetPointSet(pointSetId);
             if (pointSet == null)
@@ -753,7 +753,7 @@ namespace Aardvark.Geometry.Points
                 if (success)
                 {
                     var fakePointSet = new PointSet(self, Guid.NewGuid().ToString(), root, 8192);
-                    ExportPointSet(self, fakePointSet, exportStore);
+                    ExportPointSet(self, fakePointSet, exportStore, verbose);
                 }
                 else
                 {
@@ -762,32 +762,34 @@ namespace Aardvark.Geometry.Points
             }
             else
             {
-                ExportPointSet(self, pointSet, exportStore);
+                ExportPointSet(self, pointSet, exportStore, verbose);
             }
         }
 
         /// <summary>
         /// Exports complete pointset (metadata, nodes, referenced blobs) to another store.
         /// </summary>
-        public static void ExportPointSet(this Storage self, Guid pointSetId, Storage exportStore)
-            => ExportPointSet(self, self.GetPointSet(pointSetId), exportStore);
+        public static void ExportPointSet(this Storage self, Guid pointSetId, Storage exportStore, bool verbose)
+            => ExportPointSet(self, self.GetPointSet(pointSetId), exportStore, verbose);
 
         /// <summary>
         /// Exports complete pointset (metadata, nodes, referenced blobs) to another store.
         /// </summary>
-        public static void ExportPointSet(this Storage self, PointSet pointset, Storage exportStore)
+        public static void ExportPointSet(this Storage self, PointSet pointset, Storage exportStore, bool verbose)
         {
             var pointSetId = pointset.Id;
             var root = pointset.Root.Value;
             var totalNodeCount = root.CountNodes(outOfCore: true);
-            Report.Line($"total node count = {totalNodeCount:N0}");
+            if (verbose) Report.Line($"total node count = {totalNodeCount:N0}");
 
             // export pointset metainfo
             exportStore.Add(pointSetId, pointset.Encode());
-            Report.Line($"exported {pointSetId} (pointset metainfo, json)");
+            // Report.Line($"exported {pointSetId} (pointset metainfo, json)");
 
             // export octree (recursively)
+            var exportedNodeCount = 0L;
             ExportNode(root.Id);
+            if (verbose) Console.Write("\r");
 
             void ExportNode(Guid key)
             {
@@ -807,7 +809,7 @@ namespace Aardvark.Geometry.Points
                 }
                 var nodeProps = raw as IReadOnlyDictionary<Durable.Def, object>;
                 exportStore.Add(key, def, nodeProps, false);
-                Report.Line($"exported {key} (node)");
+                //Report.Line($"exported {key} (node)");
 
                 // references
                 var rs = GetReferences(nodeProps);
@@ -816,8 +818,11 @@ namespace Aardvark.Geometry.Points
                     var k = (Guid)kv.Value;
                     var buffer = self.GetByteArray(k);
                     exportStore.Add(k, buffer);
-                    Report.Line($"exported {k} (reference)");
+                    //Report.Line($"exported {k} (reference)");
                 }
+
+                exportedNodeCount++;
+                if (verbose) Console.Write($"\r{exportedNodeCount}/{totalNodeCount}");
 
                 // children
                 nodeProps.TryGetValue(Durable.Octree.SubnodesGuids, out var subnodeGuids);
