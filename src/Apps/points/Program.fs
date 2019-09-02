@@ -11,7 +11,8 @@ open Newtonsoft.Json
 let usage () =
     printfn "usage: points <command>"
     printfn "  import -o <outarg> <pointcloudfile>"
-    printfn "  export -i <inarg> -o <outarg> "
+    printfn "  export -i <inarg> -o <outarg>"
+    printfn "  info -i <inarg> -ikey <key>"
     printfn "  -o [store|folder] <path>  ... output storage"
     printfn "  -i [store|folder] <path>  ... input storage"
     printfn ""
@@ -135,6 +136,31 @@ let export args =
                 outStore.Flush()
     | None   -> ()
 
+let root args =
+    
+    let inPath =
+        match args.inPath with
+        | Some p -> p
+        | None -> failwith "missing input (-i)"
+
+    let inStore = 
+        match args.inType with
+        | Some Store  -> (new SimpleDiskStore(inPath)).ToPointCloudStore()
+        | Some Folder -> (new SimpleFolderStore(inPath)).ToPointCloudStore()
+        | _           -> failwith "missing input storage (-i)"
+
+    let key =
+        match args.inKey with 
+        | Some k -> k 
+        | None   -> failwith "missing input point cloud key (-ikey)"
+
+    let pointSet = inStore.GetPointSet(key)
+    if pointSet <> null then
+        printfn "PointSet key = %s" key
+        printfn "  root node key = %A" (pointSet.Root.Value.Id)
+    else
+        printfn "No PointSet with key %s." key
+
 
 [<EntryPoint>]
 let main argv =
@@ -148,5 +174,6 @@ let main argv =
     | None          -> failwith "no command"
     | Some Import   -> import args
     | Some Export   -> export args
+    | Some Root     -> root args
 
     0 // return an integer exit code

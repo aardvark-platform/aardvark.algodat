@@ -8,7 +8,7 @@ open System
 open System.Globalization
 open System.IO
 
-type ArgsCommand = Import | Export
+type ArgsCommand = Import | Export | Root
 
 type ArgsStoreType = Store | Folder
   
@@ -111,6 +111,8 @@ module Args =
         | "import" :: xs                    ->  parse' { a with command = Some Import } xs
 
         | "export" :: xs                    ->  parse' { a with command = Some Export } xs
+
+        | "root" :: xs                      ->  parse' { a with command = Some Root } xs
         
         | "-o" :: "store" :: outpath :: xs  ->  parse' { a with outPath = Some outpath; outType = Some Store } xs
         | "-o" :: "folder" :: outpath :: xs ->  parse' { a with outPath = Some outpath; outType = Some Folder } xs
@@ -118,9 +120,9 @@ module Args =
         | "-o" :: []                        ->  failwith "missing argument: -o <outpath>"
         | "-okey" :: key :: xs              ->  parse' { a with outKey = Some key } xs
 
-        | "-i" :: "store" :: inpath :: xs  ->  parse' { a with inPath = Some inpath; inType = Some Store } xs
-        | "-i" :: "folder" :: inpath :: xs ->  parse' { a with inPath = Some inpath; inType = Some Folder } xs
-        | "-i" :: inpath :: xs             ->  parse' { a with inPath = Some inpath; inType = Some Store } xs
+        | "-i" :: "store" :: inpath :: xs   ->  parse' { a with inPath = Some inpath; inType = Some Store } xs
+        | "-i" :: "folder" :: inpath :: xs  ->  parse' { a with inPath = Some inpath; inType = Some Folder } xs
+        | "-i" :: inpath :: xs              ->  parse' { a with inPath = Some inpath; inType = Some Store } xs
         | "-i" :: []                        ->  failwith "missing argument: -i <inpath>"
         | "-ikey" :: key :: xs              ->  parse' { a with inKey = Some key } xs
 

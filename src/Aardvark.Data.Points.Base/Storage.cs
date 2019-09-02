@@ -102,13 +102,13 @@ namespace Aardvark.Data.Points
             {
                 if (s_storages.Contains(storage)) throw new InvalidOperationException();
 
-                if (s_storages.Count == 0)
-                {
-                    Report.Warn("[Storage] created storage cache");
-                }
+                //if (s_storages.Count == 0)
+                //{
+                //    Report.Line("[Storage] created storage cache");
+                //}
 
                 s_storages.Add(storage);
-                Report.Warn($"[Storage] registered store (total {s_storages.Count})");
+                //Report.Line($"[Storage] registered store (total {s_storages.Count})");
             }
         }
 
@@ -119,12 +119,12 @@ namespace Aardvark.Data.Points
                 if (!s_storages.Contains(storage)) throw new InvalidOperationException();
 
                 s_storages.Remove(storage);
-                Report.Warn($"[Storage] unregistered store ({s_storages.Count} left)");
+                //Report.Line($"[Storage] unregistered store ({s_storages.Count} left)");
 
-                if (s_storages.Count == 0)
-                {
-                    Report.Warn("[Storage] disposed storage cache");
-                }
+                //if (s_storages.Count == 0)
+                //{
+                //    Report.Line("[Storage] disposed storage cache");
+                //}
             }
         }
 

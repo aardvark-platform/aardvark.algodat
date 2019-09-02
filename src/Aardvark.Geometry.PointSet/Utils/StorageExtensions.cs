@@ -674,7 +674,14 @@ namespace Aardvark.Geometry.Points
             }
             else
             {
-                return (false, default);
+                try
+                {
+                    return (true, storage.GetPointCloudNode(key));
+                }
+                catch
+                {
+                    return (false, default);
+                }
             }
         }
 
@@ -745,15 +752,31 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static void ExportPointSet(this Storage self, string pointSetId, Storage exportStore, bool verbose)
         {
-            var pointSet = self.GetPointSet(pointSetId);
+            PointSet pointSet = null;
+
+            try
+            {
+                pointSet = self.GetPointSet(pointSetId);
+                if (pointSet == null)
+                {
+                    Report.Warn($"No PointSet with id '{pointSetId}' in store. Trying to load node with this id.");
+                }
+            }
+            catch
+            {
+                Report.Warn($"Entry with id '{pointSetId}' is not a PointSet. Trying to load node with this id.");
+            }
+
             if (pointSet == null)
             {
-                Report.Warn($"No PointSet with id '{pointSetId}' in store. Trying to load node with this id.");
                 var (success, root) = self.TryGetPointCloudNode(pointSetId);
                 if (success)
                 {
-                    var fakePointSet = new PointSet(self, Guid.NewGuid().ToString(), root, 8192);
-                    ExportPointSet(self, fakePointSet, exportStore, verbose);
+                    var ersatzPointSetKey = Guid.NewGuid().ToString();
+                    Report.Warn($"Created PointSet with key '{ersatzPointSetKey}'.");
+                    var ersatzPointSet = new PointSet(self, ersatzPointSetKey, root, 8192);
+                    self.Add(ersatzPointSetKey, ersatzPointSet);
+                    ExportPointSet(self, ersatzPointSet, exportStore, verbose);
                 }
                 else
                 {
