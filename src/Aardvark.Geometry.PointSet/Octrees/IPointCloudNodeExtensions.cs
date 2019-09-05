@@ -12,6 +12,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
+using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
@@ -677,6 +678,18 @@ namespace Aardvark.Geometry.Points
             if (!self.HasMinTreeDepth) throw new InvalidOperationException(
                 "Missing MinTreeDepth. Invariant 2df9fb7b-684a-4103-8f14-07785607d2f4."
                 );
+        }
+
+        /// <summary>
+        /// Converts node to Chunk.
+        /// </summary>
+        public static Chunk ToChunk(this IPointCloudNode self)
+        {
+            var cs = self.HasColors ? self.Colors.Value : null;
+            var ns = self.HasNormals ? self.Normals.Value : null;
+            var js = self.HasIntensities ? self.Intensities.Value : null;
+            var ks = self.HasClassifications ? self.Classifications.Value : null;
+            return new Chunk(self.PositionsAbsolute, cs, ns, js, ks);
         }
     }
 }

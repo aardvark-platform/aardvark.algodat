@@ -60,7 +60,12 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PointSet Chunks(Chunk chunk, ImportConfig config)
             => Chunks(new[] { chunk }, config);
-        
+
+        /// <summary>
+        /// Imports single chunk.
+        /// </summary>
+        public static PointSet Import(Chunk chunk, ImportConfig config) => Chunks(chunk, config);
+
         /// <summary>
         /// Imports sequence of chunks.
         /// </summary>
@@ -134,5 +139,10 @@ namespace Aardvark.Geometry.Points
 
             return final;
         }
+
+        /// <summary>
+        /// Imports sequence of chunks.
+        /// </summary>
+        public static PointSet Import(IEnumerable<Chunk> chunks, ImportConfig config) => Chunks(chunks, config);
     }
 }

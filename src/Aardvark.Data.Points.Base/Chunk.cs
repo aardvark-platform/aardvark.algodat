@@ -27,7 +27,6 @@ namespace Aardvark.Data.Points
     /// </summary>
     public struct Chunk
     {
-
         private static IList<T> Append<T>(IList<T> l, IList<T> r)
         {
             if (l == null || r == null) return null;
