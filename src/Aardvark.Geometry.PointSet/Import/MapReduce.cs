@@ -37,6 +37,7 @@ namespace Aardvark.Geometry.Points
             #region MAP: create one PointSet for each chunk
 
             var pointsets = chunks
+                .Where(chunk => chunk.Count > 0)
                 .MapParallel((chunk, ct2) =>
                 {
                     Interlocked.Add(ref totalPointCountInChunks, chunk.Count);

@@ -10,7 +10,7 @@ open Newtonsoft.Json
 
 let usage () =
     printfn "usage: points <command>"
-    printfn "  import -o <outarg> <pointcloudfile>"
+    printfn "  import -o <outarg> <pointcloudfile> [-okey <key>]"
     printfn "  export -i <inarg> -o <outarg>"
     printfn "  info -i <inarg> -ikey <key>"
     printfn "  -o [store|folder] <path>  ... output storage"

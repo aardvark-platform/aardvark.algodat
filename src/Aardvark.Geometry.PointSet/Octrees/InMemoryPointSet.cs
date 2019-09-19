@@ -75,7 +75,7 @@ namespace Aardvark.Geometry.Points
             m_splitLimit = octreeSplitLimit;
 
             m_root = new Node(this, bounds);
-            m_insertedPointsCount = ps.Count;
+            m_insertedPointsCount = ps != null ? ps.Count : 0;
             for (var i = 0; i < ps.Count; i++) m_root.Insert(i);
         }
 
