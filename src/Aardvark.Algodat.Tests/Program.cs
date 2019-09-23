@@ -421,9 +421,23 @@ namespace Aardvark.Geometry.Tests
             }
         }
 
+        public static void EnumerateCellsTest()
+        {
+            var store = new SimpleDiskStore("T:/Vgm/Stores/kindergarten").ToPointCloudStore(cache: default);
+            var pc = store.GetPointSet("kindergarten");
+            var root = pc.Root.Value;
+
+            foreach (var x in root.QueryCells(0))
+            {
+                Console.WriteLine($"{x.cell,20} {x.chunk.Count,8:N0}    {x.chunk.BoundingBox:0.00}");
+            }
+        }
+
         public static void Main(string[] args)
         {
-            ExportExamples();
+            EnumerateCellsTest();
+
+            //ExportExamples();
 
             //CopyTest();
 
