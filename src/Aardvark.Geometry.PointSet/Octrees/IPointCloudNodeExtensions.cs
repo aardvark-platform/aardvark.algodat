@@ -15,6 +15,7 @@ using Aardvark.Base;
 using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -690,6 +691,55 @@ namespace Aardvark.Geometry.Points
             var js = self.HasIntensities ? self.Intensities.Value : null;
             var ks = self.HasClassifications ? self.Classifications.Value : null;
             return new Chunk(self.PositionsAbsolute, cs, ns, js, ks);
+        }
+
+        /// <summary>
+        /// Collects all points from nodes for which predicate is true.
+        /// Traversal stops at nodes for which predicate is true.  
+        /// </summary>
+        public static Chunk Collect(this IPointCloudNode self, Func<IPointCloudNode, bool> predicate)
+        {
+            if (self == null) return Chunk.Empty;
+            if (self.IsLeaf) return self.ToChunk();
+
+            var ps = new List<V3d>();
+            var cs = new List<C4b>();
+            var ns = new List<V3f>();
+            var js = new List<int>();
+            var ks = new List<byte>();
+
+            CollectRec(self, predicate, ps, cs, ns, js, ks);
+
+            return new Chunk(ps, cs, ns, js, ks);
+
+            void CollectRec(IPointCloudNode n, Func<IPointCloudNode, bool> _collectMe, List<V3d> _ps, List<C4b> _cs, List<V3f> _ns, List<int> _js, List<byte> _ks)
+            {
+                if (n == null) return;
+                
+                if (_collectMe(n))
+                {
+                    if (n.HasPositions && _ps != null)
+                    {
+                        var off = n.Center;
+                        _ps.AddRange(n.Positions.Value.Map(p => off + (V3d)p));
+                    }
+
+                    if (n.HasColors && _cs != null) _cs.AddRange(n.Colors.Value);
+                    if (n.HasNormals && _ns != null) _ns.AddRange(n.Normals.Value);
+                    if (n.HasIntensities && _js != null) _js.AddRange(n.Intensities.Value);
+                    if (n.HasClassifications && _ks != null) _ks.AddRange(n.Classifications.Value);
+                }
+                else
+                {
+                    foreach (var x in n.Subnodes)
+                    {
+                        if (x != null)
+                        {
+                            CollectRec(x.Value, _collectMe, _ps, _cs, _ns, _js, _ks);
+                        }
+                    }
+                }
+            }
         }
     }
 }

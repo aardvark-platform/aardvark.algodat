@@ -400,6 +400,18 @@ namespace Aardvark.Data.Points
         }
 
         /// <summary>
+        /// Returns chunk with points which are inside given box.
+        /// </summary>
+        public Chunk ImmutableFilterByBox3d(Box3d filter) 
+            => ImmutableFilterByPosition(filter.Contains);
+
+        /// <summary>
+        /// Returns chunk with points which are inside given cell.
+        /// </summary>
+        public Chunk ImmutableFilterByCell(Cell filter)
+            => ImmutableFilterByPosition(filter.BoundingBox.Contains);
+
+        /// <summary>
         /// Returns chunk with points for which given predicate is true.
         /// </summary>
         public Chunk ImmutableFilterByColor(Func<C4b, bool> predicate)

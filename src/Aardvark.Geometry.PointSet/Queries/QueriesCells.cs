@@ -37,26 +37,34 @@ namespace Aardvark.Geometry.Points
             public readonly Cell Cell;
 
             /// <summary>
-            /// Points inside cell (from cell's LoD).
+            /// Returns points inside cell from LoD at given relative depth,
+            /// where 0 means points in cell itself, 1 means points from subcells, aso.
             /// </summary>
-            public Chunk Chunk
+            public Chunk GetPoints(int fromRelativeDepth)
             {
-                get
+                if (fromRelativeDepth < 0) throw new ArgumentException(
+                       $"Parameter 'fromRelativeDepth' must not be negative (but is {fromRelativeDepth}). "
+                       + "Invariant 574c0596-82e0-4cc2-91ea-b5153c6d742c.",
+                       nameof(fromRelativeDepth)
+                       );
+
+                if (m_result == null) return Chunk.Empty;
+
+                if (m_cache == null) m_cache = new Dictionary<int, Chunk>();
+                if (!m_cache.TryGetValue(fromRelativeDepth, out var chunk))
                 {
-                    if (m_chunk == null)
+                    var d = Cell.Exponent + fromRelativeDepth;
+                    chunk = m_result.Collect(n => n.IsLeaf || n.Cell.Exponent == d);
+
+                    if (m_result.Cell != Cell)
                     {
-                        if (m_result.Cell == Cell)
-                        {
-                            m_chunk = m_result.ToChunk();
-                        }
-                        else
-                        {
-                            m_chunk = m_result.ToChunk().ImmutableFilterByPosition(Cell.BoundingBox.Contains);
-                        }
+                        chunk = chunk.ImmutableFilterByCell(Cell);
                     }
 
-                    return m_chunk.Value;
+                    m_cache[fromRelativeDepth] = chunk;
                 }
+
+                return chunk;
             }
 
             /// <summary>
@@ -69,13 +77,11 @@ namespace Aardvark.Geometry.Points
                 Cell = resultCell;
                 m_result = resultNode;
 
-                if (resultNode == null) m_chunk = Chunk.Empty;
-
                 if (!root.Cell.Contains(resultNode.Cell)) throw new Exception(
                     $"Root node {root.Cell} must contain resultNode {resultNode.Cell}. Invariant fb8dc278-fa35-4022-8aa8-281855dd41af."
                     );
 
-                if (!resultNode.Cell.Contains(resultCell)) throw new Exception(
+                if (resultNode != null && !resultNode.Cell.Contains(resultCell)) throw new Exception(
                     $"Result node {resultNode.Cell} must contain resultCell {resultCell}. Invariant 62bff5cc-61b1-4cec-a9f8-b2e1136c19d1."
                     );
             }
@@ -89,7 +95,7 @@ namespace Aardvark.Geometry.Points
             /// Cached value.
             /// Subset if result node is parent of result cell.
             /// </summary>
-            private Chunk? m_chunk;
+            private Dictionary<int, Chunk> m_cache;
         }
 
         /// <summary>

@@ -423,8 +423,9 @@ namespace Aardvark.Geometry.Tests
 
         public static void EnumerateCellsTest()
         {
-            var store = new SimpleDiskStore("T:/Vgm/Stores/kindergarten").ToPointCloudStore(cache: default);
-            var pc = store.GetPointSet("kindergarten");
+            var store = new SimpleDiskStore(@"T:\Vgm\Pinter_Dachboden_3Dworx_Store\Pinter_Dachboden_store").ToPointCloudStore(cache: default);
+            var pc = store.GetPointSet("1bd9ab70-0245-4bf2-bbad-8929ae94105e");
+            var foo = store.GetPointCloudNode("1bd9ab70-0245-4bf2-bbad-8929ae94105e");
             var root = pc.Root.Value;
 
             foreach (var x in root.QueryCells(0))
@@ -433,9 +434,37 @@ namespace Aardvark.Geometry.Tests
             }
         }
 
+        internal static void DumpPointSetKeys()
+        {
+            var storeFolder = @"T:\Vgm\Pinter_Dachboden_3Dworx_Store\Pinter_Dachboden_store";
+
+            var sds = new SimpleDiskStore(storeFolder);
+            var keys = sds.SnapshotKeys();
+            var store = sds.ToPointCloudStore(cache: default);
+
+            Console.WriteLine($"mmmh: {keys.SingleOrDefault(x => x == "dd0fe31f-ea1f-4bea-a1b4-f6c8bf314598")}");
+
+            Console.CursorVisible = false;
+            for (var i = 0; i < keys.Length; i++)
+            {
+                var k = keys[i];
+                try
+                {
+                    var pc = store.GetPointSet(k);
+                    Console.WriteLine($"\r{k} (count={pc.PointCount:N0})");
+                }
+                catch { }
+                if (i % 100 == 0) Console.Write($"\r{100.0 * (i + 1) / keys.Length,6:0.00}%");
+            }
+            Console.Write($"\r{100,6:0.00}%");
+            Console.CursorVisible = true;
+        }
+
         public static void Main(string[] args)
         {
-            EnumerateCellsTest();
+            DumpPointSetKeys();
+
+            //EnumerateCellsTest();
 
             //ExportExamples();
 
