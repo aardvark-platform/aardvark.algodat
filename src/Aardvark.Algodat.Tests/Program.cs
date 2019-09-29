@@ -299,13 +299,13 @@ namespace Aardvark.Geometry.Tests
             var minDist = 0.001;
 
             var store1Path = @"T:\Vgm\Stores\copytest1";
-            var store2Path = @"T:\Vgm\Stores\copytest2";
-            var store3Path = @"T:\Vgm\Stores\copytest3";
-            var store4Path = @"T:\Vgm\Stores\JBs_Haus.pts";
+            //var store2Path = @"T:\Vgm\Stores\copytest2";
+            //var store3Path = @"T:\Vgm\Stores\copytest3";
+            //var store4Path = @"T:\Vgm\Stores\JBs_Haus.pts";
 
             // create stores
             var store1 = new SimpleDiskStore(store1Path).ToPointCloudStore();
-            var store2 = new SimpleDiskStore(store2Path).ToPointCloudStore();
+            //var store2 = new SimpleDiskStore(store2Path).ToPointCloudStore();
 
             // import point cloud into store1
             Report.BeginTimed("importing");
@@ -323,70 +323,70 @@ namespace Aardvark.Geometry.Tests
             store1.Flush();
 
             return;
-            if (!Directory.Exists(store3Path)) { Directory.CreateDirectory(store3Path); Thread.Sleep(1000); }
-            if (!Directory.Exists(store4Path)) { Directory.CreateDirectory(store4Path); Thread.Sleep(1000); }
+            //if (!Directory.Exists(store3Path)) { Directory.CreateDirectory(store3Path); Thread.Sleep(1000); }
+            //if (!Directory.Exists(store4Path)) { Directory.CreateDirectory(store4Path); Thread.Sleep(1000); }
 
-            // copy point cloud from store1 to store2
-            var pc1 = store1.GetPointSet(rootKey);
-            var root1 = pc1.Root.Value;
-            var totalNodes = root1.CountNodes(outOfCore: true);
-            store2.Add(rootKey, pc1);
-            Report.BeginTimed("copy");
-            var totalBytes = 0L;
-            //pc1.Root.Value.ForEachNode(outOfCore: true, n => Report.Line($"{n.Id} {n.PointCountCell,12:N0}"));
-            Convert(root1.Id);
-            Report.Line($"{totalNodes}");
-            Report.EndTimed();
-            store2.Flush();
+            //// copy point cloud from store1 to store2
+            //var pc1 = store1.GetPointSet(rootKey);
+            //var root1 = pc1.Root.Value;
+            //var totalNodes = root1.CountNodes(outOfCore: true);
+            //store2.Add(rootKey, pc1);
+            //Report.BeginTimed("copy");
+            //var totalBytes = 0L;
+            ////pc1.Root.Value.ForEachNode(outOfCore: true, n => Report.Line($"{n.Id} {n.PointCountCell,12:N0}"));
+            //Convert(root1.Id);
+            //Report.Line($"{totalNodes}");
+            //Report.EndTimed();
+            //store2.Flush();
 
-            // meta
-            var rootJson = JObject.FromObject(new
-            {
-                rootId = root1.Id.ToString(),
-                splitLimit = splitLimit,
-                minDist = minDist,
-                pointCount = root1.PointCountTree,
-                bounds = root1.BoundingBoxExactGlobal,
-                centroid = (V3d)root1.CentroidLocal + root1.Center,
-                centroidStdDev = root1.CentroidLocalStdDev,
-                cell = root1.Cell,
-                totalNodes = totalNodes,
-                totalBytes = totalBytes,
-                gzipped = false
-            });
-            File.WriteAllText(Path.Combine(store3Path, "root.json"), rootJson.ToString(Formatting.Indented));
+            //// meta
+            //var rootJson = JObject.FromObject(new
+            //{
+            //    rootId = root1.Id.ToString(),
+            //    splitLimit = splitLimit,
+            //    minDist = minDist,
+            //    pointCount = root1.PointCountTree,
+            //    bounds = root1.BoundingBoxExactGlobal,
+            //    centroid = (V3d)root1.CentroidLocal + root1.Center,
+            //    centroidStdDev = root1.CentroidLocalStdDev,
+            //    cell = root1.Cell,
+            //    totalNodes = totalNodes,
+            //    totalBytes = totalBytes,
+            //    gzipped = false
+            //});
+            //File.WriteAllText(Path.Combine(store3Path, "root.json"), rootJson.ToString(Formatting.Indented));
 
-            rootJson["gzipped"] = true;
-            File.WriteAllText(Path.Combine(store4Path, "root.json"), rootJson.ToString(Formatting.Indented));
+            //rootJson["gzipped"] = true;
+            //File.WriteAllText(Path.Combine(store4Path, "root.json"), rootJson.ToString(Formatting.Indented));
 
-            void Convert(Guid key)
-            {
-                if (key == Guid.Empty) return;
+            //void Convert(Guid key)
+            //{
+            //    if (key == Guid.Empty) return;
 
-                var (def, raw) = store1.GetDurable(key);
-                var node = raw as IDictionary<Durable.Def, object>;
-                node.TryGetValue(Durable.Octree.SubnodesGuids, out var subnodeGuids);
+            //    var (def, raw) = store1.GetDurable(key);
+            //    var node = raw as IDictionary<Durable.Def, object>;
+            //    node.TryGetValue(Durable.Octree.SubnodesGuids, out var subnodeGuids);
 
-                // write inlined node to store
-                var inlinedNode = store1.ConvertToInline(node);
-                var inlinedBlob = store2.Add(key, Durable.Octree.Node, inlinedNode, false);
-                totalBytes += inlinedBlob.Length;
-                //Report.Line($"stored node {key}");
+            //    // write inlined node to store
+            //    var inlinedNode = store1.ConvertToInline(node);
+            //    var inlinedBlob = store2.Add(key, Durable.Octree.Node, inlinedNode, false);
+            //    totalBytes += inlinedBlob.Length;
+            //    //Report.Line($"stored node {key}");
 
-                // write blob as file
-                File.WriteAllBytes(Path.Combine(store3Path, key.ToString()), inlinedBlob);
+            //    // write blob as file
+            //    File.WriteAllBytes(Path.Combine(store3Path, key.ToString()), inlinedBlob);
                 
-                // write blob as file (gzipped)
-                using (var fs = File.OpenWrite(Path.Combine(store4Path, key.ToString())))
-                using (var zs = new GZipStream(fs, CompressionLevel.Fastest))
-                {
-                    zs.Write(inlinedBlob, 0, inlinedBlob.Length);
-                }
+            //    // write blob as file (gzipped)
+            //    using (var fs = File.OpenWrite(Path.Combine(store4Path, key.ToString())))
+            //    using (var zs = new GZipStream(fs, CompressionLevel.Fastest))
+            //    {
+            //        zs.Write(inlinedBlob, 0, inlinedBlob.Length);
+            //    }
 
-                // children
-                if (subnodeGuids != null)
-                    foreach (var x in (Guid[])subnodeGuids) Convert(x);
-            }
+            //    // children
+            //    if (subnodeGuids != null)
+            //        foreach (var x in (Guid[])subnodeGuids) Convert(x);
+            //}
         }
 
         public static void ExportExamples()
@@ -430,7 +430,8 @@ namespace Aardvark.Geometry.Tests
 
             foreach (var x in root.QueryCells(0))
             {
-                Console.WriteLine($"{x.cell,20} {x.chunk.Count,8:N0}    {x.chunk.BoundingBox:0.00}");
+                var chunk = x.GetPoints(0);
+                Console.WriteLine($"{x.Cell,20} {chunk.Count,8:N0}    {chunk.BoundingBox:0.00}");
             }
         }
 
@@ -442,6 +443,7 @@ namespace Aardvark.Geometry.Tests
             var keys = sds.SnapshotKeys();
             var store = sds.ToPointCloudStore(cache: default);
 
+            foreach (var k in keys) if (k.StartsWith("dd0f")) Console.WriteLine(k);
             Console.WriteLine($"mmmh: {keys.SingleOrDefault(x => x == "dd0fe31f-ea1f-4bea-a1b4-f6c8bf314598")}");
 
             Console.CursorVisible = false;

@@ -67,6 +67,35 @@ namespace Aardvark.Geometry.Points
                 return chunk;
             }
 
+            ///// <summary>
+            ///// </summary>
+            //public Chunk GetPoints(int fromRelativeDepth, int kernelRadius)
+            //{
+            //    if (fromRelativeDepth < 0) throw new ArgumentException(
+            //           $"Parameter 'fromRelativeDepth' must not be negative (but is {fromRelativeDepth}). "
+            //           + "Invariant 574c0596-82e0-4cc2-91ea-b5153c6d742c.",
+            //           nameof(fromRelativeDepth)
+            //           );
+
+            //    if (m_result == null) return Chunk.Empty;
+
+            //    if (m_cache == null) m_cache = new Dictionary<int, Chunk>();
+            //    if (!m_cache.TryGetValue(fromRelativeDepth, out var chunk))
+            //    {
+            //        var d = Cell.Exponent + fromRelativeDepth;
+            //        chunk = m_result.Collect(n => n.IsLeaf || n.Cell.Exponent == d);
+
+            //        if (m_result.Cell != Cell)
+            //        {
+            //            chunk = chunk.ImmutableFilterByCell(Cell);
+            //        }
+
+            //        m_cache[fromRelativeDepth] = chunk;
+            //    }
+
+            //    return chunk;
+            //}
+
             /// <summary>
             /// Represents a cell 'resultCell' inside an octree ('root'),
             /// where 'resultNode' is root's smallest subnode (incl. root) containing 'resultCell'.
@@ -159,7 +188,7 @@ namespace Aardvark.Geometry.Points
         /// Enumerates all points in chunks of a given cell size (given by cellExponent).
         /// Cell size is 2^cellExponent, e.g. -2 gives 0.25, -1 gives 0.50, 0 gives 1.00, 1 gives 2.00, and so on.
         /// </summary>
-        public static IEnumerable<(Cell cell, Chunk chunk)> QueryCells(this IPointCloudNode root, int cellExponent)
+        public static IEnumerable<CellQueryResult> QueryCells(this IPointCloudNode root, int cellExponent)
         {
             if (root == null)
             {
@@ -176,18 +205,21 @@ namespace Aardvark.Geometry.Points
 
             return EnumerateCellsOfSizeRecursive(root);
 
-            IEnumerable<(Cell cell, Chunk chunk)> EnumerateCellsOfSizeRecursive(IPointCloudNode n)
+            IEnumerable<CellQueryResult> EnumerateCellsOfSizeRecursive(IPointCloudNode n)
             {
                 if (n.Cell.Exponent == cellExponent)
                 {
                     // done (reached requested size)
-                    yield return (n.Cell, n.ToChunk());
+                    yield return new CellQueryResult(root, n.Cell, n);
                 }
                 else if (n.IsLeaf())
                 {
                     // reached leaf which is still too big => split
                     var xs = Split(n.Cell, n.ToChunk());
-                    foreach (var x in xs) yield return x;
+                    foreach (var x in xs)
+                    {
+                        yield return new CellQueryResult(root, x.cell, n);
+                    }
                 }
                 else
                 {
