@@ -120,6 +120,14 @@ namespace Aardvark.Geometry.Points
         /// or null if octree does not cover given cell.
         /// Result chunk contains 0 points, if cell is covered by octree, but no points are inside given cell.
         /// </summary>
+        public static CellQueryResult QueryCell(this PointSet pointset, Cell cell)
+            => pointset.Root.Value != null ? QueryCell(pointset.Root.Value, cell) : null;
+
+        /// <summary>
+        /// Returns points in given cell,
+        /// or null if octree does not cover given cell.
+        /// Result chunk contains 0 points, if cell is covered by octree, but no points are inside given cell.
+        /// </summary>
         public static CellQueryResult QueryCell(this IPointCloudNode root, Cell cell)
         {
             if (root == null)
@@ -165,6 +173,13 @@ namespace Aardvark.Geometry.Points
                 }
             }
         }
+
+        /// <summary>
+        /// Enumerates all points in chunks of a given cell size (given by cellExponent).
+        /// Cell size is 2^cellExponent, e.g. -2 gives 0.25, -1 gives 0.50, 0 gives 1.00, 1 gives 2.00, and so on.
+        /// </summary>
+        public static IEnumerable<CellQueryResult> QueryCells(this PointSet pointset, int cellExponent)
+            => pointset.Root.Value != null ? QueryCells(pointset.Root.Value, cellExponent) : null;
 
         /// <summary>
         /// Enumerates all points in chunks of a given cell size (given by cellExponent).
