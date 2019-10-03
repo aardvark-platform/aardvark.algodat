@@ -22,3 +22,4 @@ obj/
 /src/pointcloud/Aardvark.log
 /.paket/Paket.Restore.targets
 /src/Apps/points/*.user
+/.paket
