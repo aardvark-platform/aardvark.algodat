@@ -977,5 +977,115 @@ namespace Aardvark.Geometry.Tests
         }
 
         #endregion
+
+        #region Cells
+
+        [Test]
+        public void EnumerateSingleCells()
+        {
+            var ps = CreateRandomPointsInUnitCube(8000, 100);
+            var n = ps.Root.Value;
+
+            var r = n.QueryCell(new Cell(1,0,1,-1));
+            Assert.IsTrue(r.Cell == new Cell(1, 0, 1, -1));
+            Assert.IsTrue(r.GetPoints(0).Count == 100);
+            Assert.IsTrue(r.GetPoints(int.MaxValue).Count.ApproximateEquals(1000, 50));
+        }
+
+        [Test]
+        public void EnumerateSingleCells_ViaView()
+        {
+            var ps = CreateRandomPointsInUnitCube(8000, 100);
+            var n = FilteredNode.Create(ps.Root.Value, new FilterInsideBox3d(new Box3d(new V3d(0, 0, 0), new V3d(1, 1, 0.5))));
+
+            var r = n.QueryCell(new Cell(1, 0, 0, -1));
+            Assert.IsTrue(r.Cell == new Cell(1, 0, 0, -1));
+            Assert.IsTrue(r.GetPoints(0).Count == 100);
+            Assert.IsTrue(r.GetPoints(int.MaxValue).Count.ApproximateEquals(1000, 50));
+        }
+
+        [Test]
+        public void EnumerateSingleCells_ViaView_2()
+        {
+            var ps = CreateRandomPointsInUnitCube(8000, 100);
+            var n = FilteredNode.Create(ps.Root.Value, new FilterInsideBox3d(new Box3d(new V3d(0, 0, 0), new V3d(1, 1, 0.5))));
+
+            var r = n.QueryCell(new Cell(1, 0, 1, -1));
+            Assert.IsTrue(r.Cell == new Cell(1, 0, 1, -1));
+            Assert.IsTrue(r.GetPoints(0).Count == 0);
+            Assert.IsTrue(r.GetPoints(int.MaxValue).Count == 0);
+        }
+
+        [Test]
+        public void EnumerateCells()
+        {
+            //for (var i = 0; i < 100; i++)
+            {
+                var ps = CreateRandomPointsInUnitCube(8000, 100);
+                var n = ps.Root.Value;
+
+                var l0 = n.QueryCells(0).ToArray();
+                Assert.IsTrue(l0.Length == 1);
+                Assert.IsTrue(l0.Map(x => x.Cell).Contains(new Cell(0, 0, 0, 0)));
+                Assert.IsTrue(l0[0].Cell == new Cell(0, 0, 0, 0));
+                Assert.IsTrue(l0[0].GetPoints(0).Count == 100);
+                Assert.IsTrue(l0[0].GetPoints(1).Count == 800);
+                Assert.IsTrue(l0[0].GetPoints(int.MaxValue).Count == 8000);
+
+                var l1 = n.QueryCells(-1).ToArray();
+                Assert.IsTrue(l1.Length == 8);
+                Assert.IsTrue(l1.Sum(x => x.GetPoints(0).Count) == 800);
+                Assert.IsTrue(l1.Sum(x => x.GetPoints(int.MaxValue).Count) == 8000);
+                Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 0, 0, -1)));
+                Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(1, 0, 0, -1)));
+                Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 1, 0, -1)));
+                Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(1, 1, 0, -1)));
+                Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 0, 1, -1)));
+                Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(1, 0, 1, -1)));
+                Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 1, 1, -1)));
+                Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(1, 1, 1, -1)));
+            }
+        }
+
+        [Test]
+        public void EnumerateCells_2()
+        {
+            var ps = CreateRandomPointsInUnitCube(8000, 100);
+            var n = ps.Root.Value;
+
+            var l0 = n.QueryCells(1).ToArray();
+            Assert.IsTrue(l0.Length == 1);
+            Assert.IsTrue(l0[0].Cell == new Cell(0,0,0,1));
+            Assert.IsTrue(l0[0].GetPoints(0).Count == 100);
+        }
+
+        [Test]
+        public void EnumerateCells_ViaView()
+        {
+            //for (var i = 0; i < 100; i++)
+            {
+                var ps = CreateRandomPointsInUnitCube(8000, 100);
+                var n = FilteredNode.Create(ps.Root.Value, new FilterInsideBox3d(new Box3d(new V3d(0, 0, 0), new V3d(1, 1, 0.5))));
+
+                var l0 = n.QueryCells(0).ToArray();
+                Assert.IsTrue(l0.Length == 1);
+                Assert.IsTrue(l0.Map(x => x.Cell).Contains(new Cell(0, 0, 0, 0)));
+                Assert.IsTrue(l0[0].Cell == new Cell(0, 0, 0, 0));
+                Assert.IsTrue(l0[0].GetPoints(0).Count.ApproximateEquals(50, 5));
+                Assert.IsTrue(l0[0].GetPoints(1).Count.ApproximateEquals(400, 20));
+                Assert.IsTrue(l0[0].GetPoints(int.MaxValue).Count.ApproximateEquals(4000, 200));
+
+                var l1 = n.QueryCells(-1).ToArray();
+                Assert.IsTrue(l1.Length == 4);
+                Assert.IsTrue(l1.Sum(x => x.GetPoints(0).Count).ApproximateEquals(400, 20));
+                Assert.IsTrue(l1.Sum(x => x.GetPoints(int.MaxValue).Count).ApproximateEquals(4000, 200));
+                Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 0, 0, -1)));
+                Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(1, 0, 0, -1)));
+                Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 1, 0, -1)));
+                Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(1, 1, 0, -1)));
+            }
+        }
+
+        #endregion
     }
 }

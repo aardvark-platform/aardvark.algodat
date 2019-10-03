@@ -695,18 +695,18 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// Collects all points from nodes for which predicate is true.
-        /// Traversal stops at nodes for which predicate is true.  
+        /// Subnodes of nodes for which predicate is true are not traversed.  
         /// </summary>
         public static Chunk Collect(this IPointCloudNode self, Func<IPointCloudNode, bool> predicate)
         {
             if (self == null) return Chunk.Empty;
             if (self.IsLeaf) return self.ToChunk();
 
-            var ps = new List<V3d>();
-            var cs = new List<C4b>();
-            var ns = new List<V3f>();
-            var js = new List<int>();
-            var ks = new List<byte>();
+            var ps = self.HasPositions ? new List<V3d>() : null;
+            var cs = self.HasColors ? new List<C4b>() : null;
+            var ns = self.HasNormals ? new List<V3f>() : null;
+            var js = self.HasIntensities ? new List<int>() : null;
+            var ks = self.HasClassifications ? new List<byte>() : null;
 
             CollectRec(self, predicate, ps, cs, ns, js, ks);
 

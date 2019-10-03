@@ -50,51 +50,51 @@ namespace Aardvark.Geometry.Points
 
                 if (m_result == null) return Chunk.Empty;
 
-                if (m_cache == null) m_cache = new Dictionary<int, Chunk>();
-                if (!m_cache.TryGetValue(fromRelativeDepth, out var chunk))
+                var d = Cell.Exponent - fromRelativeDepth;
+                var chunk = m_result.Collect(n => n.IsLeaf || n.Cell.Exponent <= d);
+
+                if (m_result.Cell != Cell)
                 {
-                    var d = Cell.Exponent + fromRelativeDepth;
-                    chunk = m_result.Collect(n => n.IsLeaf || n.Cell.Exponent == d);
-
-                    if (m_result.Cell != Cell)
-                    {
-                        chunk = chunk.ImmutableFilterByCell(Cell);
-                    }
-
-                    m_cache[fromRelativeDepth] = chunk;
+                    chunk = chunk.ImmutableFilterByCell(Cell);
                 }
 
                 return chunk;
             }
 
-            ///// <summary>
-            ///// </summary>
-            //public Chunk GetPoints(int fromRelativeDepth, int kernelRadius)
-            //{
-            //    if (fromRelativeDepth < 0) throw new ArgumentException(
-            //           $"Parameter 'fromRelativeDepth' must not be negative (but is {fromRelativeDepth}). "
-            //           + "Invariant 574c0596-82e0-4cc2-91ea-b5153c6d742c.",
-            //           nameof(fromRelativeDepth)
-            //           );
+            /// <summary>
+            /// </summary>
+            public Chunk GetPoints(int fromRelativeDepth, Box3i kernel)
+            {
+                if (kernel.Min == V3i.OOO && kernel.Max == V3i.OOO) return GetPoints(fromRelativeDepth);
 
-            //    if (m_result == null) return Chunk.Empty;
+                if (fromRelativeDepth < 0) throw new ArgumentException(
+                       $"Parameter 'fromRelativeDepth' must not be negative (but is {fromRelativeDepth}). "
+                       + "Invariant 02992ae8-22b5-41d0-857a-87e19c9e3db1.",
+                       nameof(fromRelativeDepth)
+                       );
 
-            //    if (m_cache == null) m_cache = new Dictionary<int, Chunk>();
-            //    if (!m_cache.TryGetValue(fromRelativeDepth, out var chunk))
-            //    {
-            //        var d = Cell.Exponent + fromRelativeDepth;
-            //        chunk = m_result.Collect(n => n.IsLeaf || n.Cell.Exponent == d);
+                if (m_result == null) return Chunk.Empty;
 
-            //        if (m_result.Cell != Cell)
-            //        {
-            //            chunk = chunk.ImmutableFilterByCell(Cell);
-            //        }
+                var d = Cell.Exponent + fromRelativeDepth;
+                var chunk = Root.Collect(n =>
+                {
+                    var c = n.Cell;
+                    if (c.Exponent != d) return false;
 
-            //        m_cache[fromRelativeDepth] = chunk;
-            //    }
+                    var o = new V3l(Cell.X, Cell.Y, Cell.Z);
+                    var cmin = o + (V3l)kernel.Min;
+                    var cmax = o + (V3l)kernel.Max;
+                    if (c.X < cmin.X || c.Y < cmin.Y || c.Z < cmin.Z || c.X > cmax.X || c.Y > cmax.Y || c.Z > cmax.Z) return false;
+                    return n.IsLeaf || c.Exponent == d;
+                });
 
-            //    return chunk;
-            //}
+                if (m_result.Cell != Cell)
+                {
+                    chunk = chunk.ImmutableFilterByCell(Cell);
+                }
+
+                return chunk;
+            }
 
             /// <summary>
             /// Represents a cell 'resultCell' inside an octree ('root'),
@@ -109,22 +109,12 @@ namespace Aardvark.Geometry.Points
                 if (!root.Cell.Contains(resultNode.Cell)) throw new Exception(
                     $"Root node {root.Cell} must contain resultNode {resultNode.Cell}. Invariant fb8dc278-fa35-4022-8aa8-281855dd41af."
                     );
-
-                if (resultNode != null && !resultNode.Cell.Contains(resultCell)) throw new Exception(
-                    $"Result node {resultNode.Cell} must contain resultCell {resultCell}. Invariant 62bff5cc-61b1-4cec-a9f8-b2e1136c19d1."
-                    );
             }
 
             /// <summary>
             /// Result node corresponding to result cell (same cell, or parent if octree is not deep enough).
             /// </summary>
             private readonly IPointCloudNode m_result;
-
-            /// <summary>
-            /// Cached value.
-            /// Subset if result node is parent of result cell.
-            /// </summary>
-            private Dictionary<int, Chunk> m_cache;
         }
 
         /// <summary>
@@ -197,10 +187,13 @@ namespace Aardvark.Geometry.Points
 
             if (root.Cell.Exponent < cellExponent)
             {
-                throw new InvalidOperationException(
-                    $"Exponent of given root node ({root.Cell}) must not be smaller than the given minCellExponent ({cellExponent}). " +
-                    "Invariant 4114f7c3-7ca2-4171-9229-d51d4c7e3d98."
-                    );
+                //throw new InvalidOperationException(
+                //    $"Exponent of given root node ({root.Cell}) must not be smaller than the given minCellExponent ({cellExponent}). " +
+                //    "Invariant 4114f7c3-7ca2-4171-9229-d51d4c7e3d98."
+                //    );
+                var c = root.Cell;
+                do { c = c.Parent; } while (c.Exponent < cellExponent);
+                return new[] { new CellQueryResult(root, c, root) };
             }
 
             return EnumerateCellsOfSizeRecursive(root);

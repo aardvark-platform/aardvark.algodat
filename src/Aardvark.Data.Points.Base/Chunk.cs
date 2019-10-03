@@ -15,9 +15,7 @@ using Aardvark.Base;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace Aardvark.Data.Points
@@ -27,6 +25,9 @@ namespace Aardvark.Data.Points
     /// </summary>
     public struct Chunk
     {
+        /// <summary>
+        /// Appends two lists. Also works for null args: a + null -> a, null + b -> b, null + null -> null.
+        /// </summary>
         private static IList<T> Append<T>(IList<T> l, IList<T> r)
         {
             if (l == null || r == null) return null;
