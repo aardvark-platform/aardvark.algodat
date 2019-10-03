@@ -428,7 +428,7 @@ namespace Aardvark.Geometry.Tests
             var foo = store.GetPointCloudNode("1bd9ab70-0245-4bf2-bbad-8929ae94105e");
             var root = pc.Root.Value;
 
-            foreach (var x in root.QueryCells(0))
+            foreach (var x in root.EnumerateCells(0))
             {
                 var chunk = x.GetPoints(0);
                 Console.WriteLine($"{x.Cell,20} {chunk.Count,8:N0}    {chunk.BoundingBox:0.00}");

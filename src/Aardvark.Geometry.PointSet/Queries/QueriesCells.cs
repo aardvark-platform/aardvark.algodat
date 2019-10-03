@@ -178,14 +178,14 @@ namespace Aardvark.Geometry.Points
         /// Enumerates all points in chunks of a given cell size (given by cellExponent).
         /// Cell size is 2^cellExponent, e.g. -2 gives 0.25, -1 gives 0.50, 0 gives 1.00, 1 gives 2.00, and so on.
         /// </summary>
-        public static IEnumerable<CellQueryResult> QueryCells(this PointSet pointset, int cellExponent)
-            => pointset.Root.Value != null ? QueryCells(pointset.Root.Value, cellExponent) : null;
+        public static IEnumerable<CellQueryResult> EnumerateCells(this PointSet pointset, int cellExponent)
+            => pointset.Root.Value != null ? EnumerateCells(pointset.Root.Value, cellExponent) : null;
 
         /// <summary>
         /// Enumerates all points in chunks of a given cell size (given by cellExponent).
         /// Cell size is 2^cellExponent, e.g. -2 gives 0.25, -1 gives 0.50, 0 gives 1.00, 1 gives 2.00, and so on.
         /// </summary>
-        public static IEnumerable<CellQueryResult> QueryCells(this IPointCloudNode root, int cellExponent)
+        public static IEnumerable<CellQueryResult> EnumerateCells(this IPointCloudNode root, int cellExponent)
         {
             if (root == null)
             {
