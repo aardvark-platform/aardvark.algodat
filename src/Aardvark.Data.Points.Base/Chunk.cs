@@ -30,7 +30,8 @@ namespace Aardvark.Data.Points
         /// </summary>
         private static IList<T> Append<T>(IList<T> l, IList<T> r)
         {
-            if (l == null || r == null) return null;
+            if (l == null) return r;
+            if (r == null) return l;
 
             var ll = new List<T>(l);
             ll.AddRange(r);

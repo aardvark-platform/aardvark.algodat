@@ -1016,6 +1016,8 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(r.GetPoints(int.MaxValue).Count == 0);
         }
 
+
+
         [Test]
         public void EnumerateCells()
         {
@@ -1084,6 +1086,69 @@ namespace Aardvark.Geometry.Tests
                 Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 1, 0, -1)));
                 Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(1, 1, 0, -1)));
             }
+        }
+
+
+        [Test]
+        public void EnumerateCells_Linq()
+        {
+            var ps = CreateRandomPointsInUnitCube(8000, 100);
+            var n = ps.Root.Value;
+
+            var l1 = n.QueryCells(-1).Where(x => x.Cell.Z == 0).ToArray();
+            Assert.IsTrue(l1.Length == 4);
+            Assert.IsTrue(l1.Sum(x => x.GetPoints(0).Count).ApproximateEquals(400, 20));
+            Assert.IsTrue(l1.Sum(x => x.GetPoints(int.MaxValue).Count).ApproximateEquals(4000, 200));
+            Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 0, 0, -1)));
+            Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(1, 0, 0, -1)));
+            Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 1, 0, -1)));
+            Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(1, 1, 0, -1)));
+            Assert.IsTrue(!l1.Map(x => x.Cell).Contains(new Cell(0, 0, 1, -1)));
+            Assert.IsTrue(!l1.Map(x => x.Cell).Contains(new Cell(1, 0, 1, -1)));
+            Assert.IsTrue(!l1.Map(x => x.Cell).Contains(new Cell(0, 1, 1, -1)));
+            Assert.IsTrue(!l1.Map(x => x.Cell).Contains(new Cell(1, 1, 1, -1)));
+        }
+
+
+        [Test]
+        public void EnumerateCells_Kernel()
+        {
+            var ps = CreateRandomPointsInUnitCube(8000, 100);
+            var n = ps.Root.Value;
+            var k = new Box3i(new V3i(-1,-1,-1), new V3i(+1,+1,+1));
+
+            var dict = new Dictionary<Cell, Queries.CellQueryResult>(n.QueryCells(-1).Select(x => new KeyValuePair<Cell, Queries.CellQueryResult>(x.Cell, x)));
+            Assert.IsTrue(dict.Count == 8);
+            Assert.IsTrue(dict[new Cell(0, 0, 0, -1)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 800);
+            Assert.IsTrue(dict[new Cell(1, 0, 0, -1)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 800);
+            Assert.IsTrue(dict[new Cell(0, 1, 0, -1)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 800);
+            Assert.IsTrue(dict[new Cell(1, 1, 0, -1)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 800);
+            Assert.IsTrue(dict[new Cell(0, 0, 1, -1)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 800);
+            Assert.IsTrue(dict[new Cell(1, 0, 1, -1)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 800);
+            Assert.IsTrue(dict[new Cell(0, 1, 1, -1)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 800);
+            Assert.IsTrue(dict[new Cell(1, 1, 1, -1)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 800);
+        }
+
+        [Test]
+        public void EnumerateCells_Kernel_2()
+        {
+            var ps = CreateRandomPointsInUnitCube(64000, 100);
+            var n = ps.Root.Value;
+            var k = new Box3i(new V3i(-1, -1, -1), new V3i(+1, +1, +1));
+
+            var dict = new Dictionary<Cell, Queries.CellQueryResult>(n.QueryCells(-2).Select(x => new KeyValuePair<Cell, Queries.CellQueryResult>(x.Cell, x)));
+            Assert.IsTrue(dict.Count == 64);
+            Assert.IsTrue(dict[new Cell(0, 0, 0, -2)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 100 * 8);
+            Assert.IsTrue(dict[new Cell(1, 0, 0, -2)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 100 * 12);
+            Assert.IsTrue(dict[new Cell(0, 1, 0, -2)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 100 * 12);
+            Assert.IsTrue(dict[new Cell(1, 1, 0, -2)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 100 * 18);
+            Assert.IsTrue(dict[new Cell(0, 0, 1, -2)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 100 * 12);
+            Assert.IsTrue(dict[new Cell(1, 0, 1, -2)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 100 * 18);
+            Assert.IsTrue(dict[new Cell(0, 1, 1, -2)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 100 * 18);
+            Assert.IsTrue(dict[new Cell(1, 1, 1, -2)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 100 * 27);
+
+
+            Assert.IsTrue(dict[new Cell(3, 3, 3, -2)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 100 * 8);
         }
 
         #endregion

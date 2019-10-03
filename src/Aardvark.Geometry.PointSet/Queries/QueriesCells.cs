@@ -75,25 +75,23 @@ namespace Aardvark.Geometry.Points
 
                 if (m_result == null) return Chunk.Empty;
 
-                var d = Cell.Exponent + fromRelativeDepth;
-                var chunk = Root.Collect(n =>
+                var result = Chunk.Empty;
+                var min = new V3l(Cell.X, Cell.Y, Cell.Z) + (V3l)kernel.Min;
+                var max = new V3l(Cell.X, Cell.Y, Cell.Z) + (V3l)kernel.Max;
+                for (var x = min.X; x <= max.X; x++)
                 {
-                    var c = n.Cell;
-                    if (c.Exponent != d) return false;
-
-                    var o = new V3l(Cell.X, Cell.Y, Cell.Z);
-                    var cmin = o + (V3l)kernel.Min;
-                    var cmax = o + (V3l)kernel.Max;
-                    if (c.X < cmin.X || c.Y < cmin.Y || c.Z < cmin.Z || c.X > cmax.X || c.Y > cmax.Y || c.Z > cmax.Z) return false;
-                    return n.IsLeaf || c.Exponent == d;
-                });
-
-                if (m_result.Cell != Cell)
-                {
-                    chunk = chunk.ImmutableFilterByCell(Cell);
+                    for (var y = min.Y; y <= max.Y; y++)
+                    {
+                        for (var z = min.Z; z <= max.Z; z++)
+                        {
+                            var c = new Cell(x, y, z, Cell.Exponent);
+                            var r = Root.QueryCell(c);
+                            var chunk = r.GetPoints(fromRelativeDepth);
+                            result = result.Union(chunk);
+                        }
+                    }
                 }
-
-                return chunk;
+                return result;
             }
 
             /// <summary>
@@ -131,10 +129,7 @@ namespace Aardvark.Geometry.Points
 
             if (!root.Cell.Contains(cell))
             {
-                throw new InvalidOperationException(
-                    $"Octree ({root.Cell}) must contain requested cell ({cell}). " +
-                    "Invariant 4d67081e-37de-48d4-87df-5f5022f9051f."
-                    );
+                return new CellQueryResult(root, cell, root);
             }
 
             return QueryCellRecursive(root);
@@ -165,10 +160,7 @@ namespace Aardvark.Geometry.Points
                     }
                     else
                     {
-                        throw new InvalidOperationException(
-                            $"Node ({n.Cell}) must contain requested cell ({cell}). " +
-                            "Invariant fbde10dd-1c07-41c8-9fc0-8a98b74d3948."
-                            );
+                        return new CellQueryResult(root, cell, root);
                     }
                 }
             }
