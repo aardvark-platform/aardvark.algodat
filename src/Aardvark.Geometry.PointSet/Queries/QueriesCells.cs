@@ -29,7 +29,7 @@ namespace Aardvark.Geometry.Points
             /// <summary>
             /// Query root node.
             /// </summary>
-            public readonly IPointCloudNode Root;
+            private readonly IPointCloudNode Root;
 
             /// <summary>
             /// Result cell.
@@ -98,7 +98,7 @@ namespace Aardvark.Geometry.Points
             /// Represents a cell 'resultCell' inside an octree ('root'),
             /// where 'resultNode' is root's smallest subnode (incl. root) containing 'resultCell'.
             /// </summary>
-            public CellQueryResult(IPointCloudNode root, Cell resultCell, IPointCloudNode resultNode)
+            internal CellQueryResult(IPointCloudNode root, Cell resultCell, IPointCloudNode resultNode)
             {
                 Root = root ?? throw new ArgumentNullException(nameof(root));
                 Cell = resultCell;
