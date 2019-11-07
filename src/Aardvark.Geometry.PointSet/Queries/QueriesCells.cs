@@ -61,6 +61,7 @@ namespace Aardvark.Geometry.Points
                 return chunk;
             }
 
+
             /// <summary>
             /// </summary>
             public Chunk GetPoints(int fromRelativeDepth, Box3i kernel)
@@ -92,6 +93,22 @@ namespace Aardvark.Geometry.Points
                     }
                 }
                 return result;
+            }
+
+            /// <summary>
+            /// TODO
+            /// </summary>
+            public Chunk GetPoints(int fromRelativeDepth, Box3i kernel, bool excludeInnerCell)
+            {
+                throw new NotImplementedException();
+            }
+
+            /// <summary>
+            /// TODO
+            /// </summary>
+            public Chunk GetPoints(int fromRelativeDepth, Box3i kernel, Box3d outer, bool excludeKernel)
+            {
+                throw new NotImplementedException();
             }
 
             /// <summary>
@@ -259,6 +276,22 @@ namespace Aardvark.Geometry.Points
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        public static IEnumerable<CellQueryResult> EnumerateCells(this IPointCloudNode root, int cellExponent, V3i stride)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        public static IEnumerable<CellQueryResult> EnumerateCellsXY(this IPointCloudNode root, int z, V2i stride)
+        {
+            throw new NotImplementedException();
         }
     }
 }

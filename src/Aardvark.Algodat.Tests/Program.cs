@@ -48,7 +48,7 @@ namespace Aardvark.Geometry.Tests
             var sw = new Stopwatch();
 
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
-            var filename = @"T:\Vgm\Data\E57\Innenscan_FARO.e57";
+            var filename = @"\\heap.vrvis.lan\sm\rmdata\Data\skipiste_aus_recap.e57";
             var fileSizeInBytes = new FileInfo(filename).Length;
 
             var info = E57.E57Info(filename, ParseConfig.Default);
@@ -464,7 +464,7 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
-            DumpPointSetKeys();
+            //DumpPointSetKeys();
 
             //EnumerateCellsTest();
 
@@ -486,7 +486,7 @@ namespace Aardvark.Geometry.Tests
 
             //new ImportTests().CanImportChunkWithoutColor();
 
-            //TestE57();
+            TestE57();
 
             //var store = PointCloud.OpenStore(@"G:\cells\3280_5503_0_10\pointcloud");
             //var pc = store.GetPointSet("3280_5503_0_10", default);
