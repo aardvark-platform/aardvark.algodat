@@ -16,6 +16,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization;
 using Aardvark.Base;
+using Aardvark.Geometry.Points;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
@@ -24,6 +25,39 @@ namespace Aardvark.Geometry.Tests
     [TestFixture]
     public class CellTests
     {
+        #region cell rasterization
+        
+        [Test]
+        public void GetRasterBoundsTest()
+        {
+            Assert.IsTrue(new Cell(0, 0, 0, 0).GetRasterBounds(0) == new Box3l(new V3l(0, 0, 0), new V3l(1, 1, 1)));
+            Assert.IsTrue(new Cell(0, 0, 0, 0).GetRasterBounds(-1) == new Box3l(new V3l(0, 0, 0), new V3l(2, 2, 2)));
+            Assert.IsTrue(new Cell(1, 2, -1, 1).GetRasterBounds(-2) == new Box3l(new V3l(8, 16, - 8), new V3l(16, 24, 0)));
+        }
+
+        [Test]
+        public void GetRasterBoundsTest_SmallerExponent()
+        {
+            Assert.IsTrue(new Cell(2, 3, -2, -1).GetRasterBounds(0) == new Box3l(new V3l(1, 1, -1), new V3l(2, 2, 0)));
+        }
+
+        [Test]
+        public void GetRasterBoundsTest_Centered()
+        {
+            Assert.IsTrue(new Cell(0).GetRasterBounds(0) == new Box3l(new V3l(-1, -1, -1), new V3l(1, 1, 1)));
+            Assert.IsTrue(new Cell(0).GetRasterBounds(-1) == new Box3l(new V3l(-1, -1, -1), new V3l(1, 1, 1)));
+            Assert.IsTrue(new Cell(0).GetRasterBounds(-2) == new Box3l(new V3l(-2, -2, -2), new V3l(2, 2, 2)));
+        }
+
+        [Test]
+        public void GetRasterBoundsTest_SmallerExponent_Centered()
+        {
+            Assert.IsTrue(new Cell(0).GetRasterBounds(1) == new Box3l(new V3l(-1, -1, -1), new V3l(1, 1, 1)));
+            Assert.IsTrue(new Cell(0).GetRasterBounds(2) == new Box3l(new V3l(-1, -1, -1), new V3l(1, 1, 1)));
+        }
+
+        #endregion
+
         #region box inside/outside tests
 
         [Test]

@@ -15,6 +15,7 @@ using Aardvark.Base;
 using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Aardvark.Geometry.Points
 {
@@ -162,6 +163,64 @@ namespace Aardvark.Geometry.Points
             private readonly IPointCloudNode m_result;
         }
 
+        public struct CellQueryResultXY
+        {
+            public IPointCloudNode Root { get; }
+            public V2l PositionXY { get; }
+
+            public CellQueryResultXY(IPointCloudNode root, V2l positionXY)
+            {
+                Root = root;
+                PositionXY = positionXY;
+            }
+        }
+
+        public static IEnumerable<Chunk> QueryCellColumnZ(this IPointCloudNode root, V2l xy, int exponent)
+        {
+            if (root == null)
+            {
+                throw new ArgumentNullException(nameof(root));
+            }
+
+            // column is fully outside point cloud
+            var rb = root.Cell.GetRasterBounds(exponent);
+            if (xy.X < rb.Min.X || xy.X >= rb.Max.X || xy.Y < rb.Min.Y || xy.Y >= rb.Max.Y)
+            {
+                return Enumerable.Empty<Chunk>();
+            }
+
+            // column fully includes point cloud
+            if (root.Cell.Exponent <= exponent)
+            {
+                return new[] { root.ToChunk() };
+            }
+
+            return QueryRec(root);
+
+            IEnumerable<Chunk> QueryRec(IPointCloudNode r)
+            {
+                if (r.Cell.Exponent < exponent)
+                {
+                    throw new InvalidOperationException("Invariant 4d8cbedf-a86c-43e0-a3d0-75335fa1fadf.");
+                }
+
+                if (r.Cell.Exponent == exponent)
+                {
+                    if (r.Cell.X == xy.X && r.Cell.Y == xy.Y)
+                    {
+                        yield return r.ToChunk();
+                    }
+                    else
+                    {
+                        yield break;
+                    }
+                }
+
+
+            }
+        }
+
+
         /// <summary>
         /// Returns points in given cell,
         /// or null if octree does not cover given cell.
@@ -253,7 +312,7 @@ namespace Aardvark.Geometry.Points
                 );
 
             if (root.Cell.Exponent < cellExponent)
-            {
+            { 
                 var c = root.Cell;
                 do { c = c.Parent; } while (c.Exponent < cellExponent);
                 return new[] { new CellQueryResult(root, c, root) };
@@ -332,8 +391,25 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// TODO
         /// </summary>
-        public static IEnumerable<CellQueryResult> EnumerateCellsXY(this IPointCloudNode root, int cellExponent, V2i stride)
+        public static IEnumerable<CellQueryResultXY> EnumerateCellsXY(this IPointCloudNode root, int cellExponent, V2i stride)
         {
+            if (root == null)
+            {
+                throw new ArgumentNullException(nameof(root));
+            }
+
+            if (stride.X < 1 || stride.Y < 1) throw new InvalidOperationException(
+                $"Stride must be positive, but is {stride}." +
+                " Invariant 255647c5-2d90-4317-831c-1cffb9efa38c."
+                );
+
+            if (root.Cell.Exponent <= cellExponent)
+            {
+                var c = root.Cell;
+                while (c.Exponent < cellExponent) { c = c.Parent; }
+                return new[] { new CellQueryResultXY(root, new V2l(c.X, c.Y)) };
+            }
+
             throw new NotImplementedException();
         }
     }

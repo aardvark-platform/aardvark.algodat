@@ -11,16 +11,51 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-using System;
-using System.Runtime.CompilerServices;
 using Aardvark.Base;
+using System.Runtime.CompilerServices;
 
 namespace Aardvark.Geometry.Points
 {
     /// <summary>
     /// </summary>
-    public static class Box3dExtensions
+    public static class BaseExtensions
     { 
+        /// <summary>
+        /// 
+        /// </summary>
+        public static Box3l GetRasterBounds(this Cell self, int exponent)
+        {
+            while (self.Exponent < exponent)
+            {
+                self = self.Parent;
+            }
+
+            var e = self.Exponent;
+
+            if (self.IsCenteredAtOrigin)
+            {
+                var b = new Box3l(new V3l(-1, -1, -1), new V3l(1, 1, 1));
+                while (e > exponent + 1)
+                {
+                    e--;
+                    b = new Box3l(b.Min * 2, b.Max * 2);
+                }
+                return b;
+            }
+            else
+            {
+                var min = new V3l(self.X, self.Y, self.Z);
+                var max = min + 1;
+                while (e > exponent)
+                {
+                    e--;
+                    min *= 2;
+                    max *= 2;
+                }
+                return new Box3l(min, max);
+            }
+        }
+
         /// <summary>
         /// Projects outline of a box from given position to a plane.
         /// Returns null if position is inside the box.
