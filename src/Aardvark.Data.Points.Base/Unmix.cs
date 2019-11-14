@@ -243,5 +243,15 @@ namespace Aardvark.Data.Points
                 Report.EndTimed();
             }
         }
+
+        /// <summary>
+        /// Creates new chunk which is union of this chunk and other. 
+        /// </summary>
+        public static Chunk Union(this IEnumerable<Chunk> chunks)
+        {
+            var result = Chunk.Empty;
+            foreach (var chunk in chunks) result.Union(chunk);
+            return result;
+        }
     }
 }

@@ -988,8 +988,8 @@ namespace Aardvark.Geometry.Tests
 
             var r = n.QueryCell(new Cell(1,0,1,-1));
             Assert.IsTrue(r.Cell == new Cell(1, 0, 1, -1));
-            Assert.IsTrue(r.GetPoints(0).Count == 100);
-            Assert.IsTrue(r.GetPoints(int.MaxValue).Count.ApproximateEquals(1000, 50));
+            Assert.IsTrue(r.GetPoints(0).Sum(x => x.Count) == 100);
+            Assert.IsTrue(r.GetPoints(int.MaxValue).Sum(x => x.Count).ApproximateEquals(1000, 50));
         }
 
         [Test]
@@ -1000,8 +1000,8 @@ namespace Aardvark.Geometry.Tests
 
             var r = n.QueryCell(new Cell(1, 0, 0, -1));
             Assert.IsTrue(r.Cell == new Cell(1, 0, 0, -1));
-            Assert.IsTrue(r.GetPoints(0).Count == 100);
-            Assert.IsTrue(r.GetPoints(int.MaxValue).Count.ApproximateEquals(1000, 50));
+            Assert.IsTrue(r.GetPoints(0).Union().Count == 100);
+            Assert.IsTrue(r.GetPoints(int.MaxValue).Union().Count.ApproximateEquals(1000, 50));
         }
 
         [Test]
@@ -1012,8 +1012,8 @@ namespace Aardvark.Geometry.Tests
 
             var r = n.QueryCell(new Cell(1, 0, 1, -1));
             Assert.IsTrue(r.Cell == new Cell(1, 0, 1, -1));
-            Assert.IsTrue(r.GetPoints(0).Count == 0);
-            Assert.IsTrue(r.GetPoints(int.MaxValue).Count == 0);
+            Assert.IsTrue(r.GetPoints(0).Union().Count == 0);
+            Assert.IsTrue(r.GetPoints(int.MaxValue).Union().Count == 0);
         }
 
 
@@ -1030,14 +1030,14 @@ namespace Aardvark.Geometry.Tests
                 Assert.IsTrue(l0.Length == 1);
                 Assert.IsTrue(l0.Map(x => x.Cell).Contains(new Cell(0, 0, 0, 0)));
                 Assert.IsTrue(l0[0].Cell == new Cell(0, 0, 0, 0));
-                Assert.IsTrue(l0[0].GetPoints(0).Count == 100);
-                Assert.IsTrue(l0[0].GetPoints(1).Count == 800);
-                Assert.IsTrue(l0[0].GetPoints(int.MaxValue).Count == 8000);
+                Assert.IsTrue(l0[0].GetPoints(0).Union().Count == 100);
+                Assert.IsTrue(l0[0].GetPoints(1).Union().Count == 800);
+                Assert.IsTrue(l0[0].GetPoints(int.MaxValue).Union().Count == 8000);
 
                 var l1 = n.EnumerateCells(-1).ToArray();
                 Assert.IsTrue(l1.Length == 8);
-                Assert.IsTrue(l1.Sum(x => x.GetPoints(0).Count) == 800);
-                Assert.IsTrue(l1.Sum(x => x.GetPoints(int.MaxValue).Count) == 8000);
+                Assert.IsTrue(l1.Sum(x => x.GetPoints(0).Union().Count) == 800);
+                Assert.IsTrue(l1.Sum(x => x.GetPoints(int.MaxValue).Union().Count) == 8000);
                 Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 0, 0, -1)));
                 Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(1, 0, 0, -1)));
                 Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 1, 0, -1)));
@@ -1058,7 +1058,7 @@ namespace Aardvark.Geometry.Tests
             var l0 = n.EnumerateCells(1).ToArray();
             Assert.IsTrue(l0.Length == 1);
             Assert.IsTrue(l0[0].Cell == new Cell(0,0,0,1));
-            Assert.IsTrue(l0[0].GetPoints(0).Count == 100);
+            Assert.IsTrue(l0[0].GetPoints(0).Union().Count == 100);
         }
 
         [Test]
@@ -1073,14 +1073,14 @@ namespace Aardvark.Geometry.Tests
                 Assert.IsTrue(l0.Length == 1);
                 Assert.IsTrue(l0.Map(x => x.Cell).Contains(new Cell(0, 0, 0, 0)));
                 Assert.IsTrue(l0[0].Cell == new Cell(0, 0, 0, 0));
-                Assert.IsTrue(l0[0].GetPoints(0).Count.ApproximateEquals(50, 5));
-                Assert.IsTrue(l0[0].GetPoints(1).Count.ApproximateEquals(400, 20));
-                Assert.IsTrue(l0[0].GetPoints(int.MaxValue).Count.ApproximateEquals(4000, 200));
+                Assert.IsTrue(l0[0].GetPoints(0).Union().Count.ApproximateEquals(50, 5));
+                Assert.IsTrue(l0[0].GetPoints(1).Union().Count.ApproximateEquals(400, 20));
+                Assert.IsTrue(l0[0].GetPoints(int.MaxValue).Union().Count.ApproximateEquals(4000, 200));
 
                 var l1 = n.EnumerateCells(-1).ToArray();
                 Assert.IsTrue(l1.Length == 4);
-                Assert.IsTrue(l1.Sum(x => x.GetPoints(0).Count).ApproximateEquals(400, 20));
-                Assert.IsTrue(l1.Sum(x => x.GetPoints(int.MaxValue).Count).ApproximateEquals(4000, 200));
+                Assert.IsTrue(l1.Sum(x => x.GetPoints(0).Union().Count).ApproximateEquals(400, 20));
+                Assert.IsTrue(l1.Sum(x => x.GetPoints(int.MaxValue).Union().Count).ApproximateEquals(4000, 200));
                 Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 0, 0, -1)));
                 Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(1, 0, 0, -1)));
                 Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 1, 0, -1)));
@@ -1097,8 +1097,8 @@ namespace Aardvark.Geometry.Tests
 
             var l1 = n.EnumerateCells(-1).Where(x => x.Cell.Z == 0).ToArray();
             Assert.IsTrue(l1.Length == 4);
-            Assert.IsTrue(l1.Sum(x => x.GetPoints(0).Count).ApproximateEquals(400, 20));
-            Assert.IsTrue(l1.Sum(x => x.GetPoints(int.MaxValue).Count).ApproximateEquals(4000, 200));
+            Assert.IsTrue(l1.Sum(x => x.GetPoints(0).Union().Count).ApproximateEquals(400, 20));
+            Assert.IsTrue(l1.Sum(x => x.GetPoints(int.MaxValue).Union().Count).ApproximateEquals(4000, 200));
             Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 0, 0, -1)));
             Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(1, 0, 0, -1)));
             Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 1, 0, -1)));
@@ -1119,14 +1119,14 @@ namespace Aardvark.Geometry.Tests
 
             var dict = new Dictionary<Cell, Queries.CellQueryResult>(n.EnumerateCells(-1).Select(x => new KeyValuePair<Cell, Queries.CellQueryResult>(x.Cell, x)));
             Assert.IsTrue(dict.Count == 8);
-            Assert.IsTrue(dict[new Cell(0, 0, 0, -1)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 800);
-            Assert.IsTrue(dict[new Cell(1, 0, 0, -1)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 800);
-            Assert.IsTrue(dict[new Cell(0, 1, 0, -1)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 800);
-            Assert.IsTrue(dict[new Cell(1, 1, 0, -1)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 800);
-            Assert.IsTrue(dict[new Cell(0, 0, 1, -1)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 800);
-            Assert.IsTrue(dict[new Cell(1, 0, 1, -1)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 800);
-            Assert.IsTrue(dict[new Cell(0, 1, 1, -1)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 800);
-            Assert.IsTrue(dict[new Cell(1, 1, 1, -1)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 800);
+            Assert.IsTrue(dict[new Cell(0, 0, 0, -1)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 800);
+            Assert.IsTrue(dict[new Cell(1, 0, 0, -1)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 800);
+            Assert.IsTrue(dict[new Cell(0, 1, 0, -1)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 800);
+            Assert.IsTrue(dict[new Cell(1, 1, 0, -1)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 800);
+            Assert.IsTrue(dict[new Cell(0, 0, 1, -1)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 800);
+            Assert.IsTrue(dict[new Cell(1, 0, 1, -1)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 800);
+            Assert.IsTrue(dict[new Cell(0, 1, 1, -1)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 800);
+            Assert.IsTrue(dict[new Cell(1, 1, 1, -1)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 800);
         }
 
         [Test]
@@ -1138,17 +1138,17 @@ namespace Aardvark.Geometry.Tests
 
             var dict = new Dictionary<Cell, Queries.CellQueryResult>(n.EnumerateCells(-2).Select(x => new KeyValuePair<Cell, Queries.CellQueryResult>(x.Cell, x)));
             Assert.IsTrue(dict.Count == 64);
-            Assert.IsTrue(dict[new Cell(0, 0, 0, -2)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 100 * 8);
-            Assert.IsTrue(dict[new Cell(1, 0, 0, -2)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 100 * 12);
-            Assert.IsTrue(dict[new Cell(0, 1, 0, -2)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 100 * 12);
-            Assert.IsTrue(dict[new Cell(1, 1, 0, -2)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 100 * 18);
-            Assert.IsTrue(dict[new Cell(0, 0, 1, -2)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 100 * 12);
-            Assert.IsTrue(dict[new Cell(1, 0, 1, -2)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 100 * 18);
-            Assert.IsTrue(dict[new Cell(0, 1, 1, -2)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 100 * 18);
-            Assert.IsTrue(dict[new Cell(1, 1, 1, -2)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 100 * 27);
+            Assert.IsTrue(dict[new Cell(0, 0, 0, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 8);
+            Assert.IsTrue(dict[new Cell(1, 0, 0, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 12);
+            Assert.IsTrue(dict[new Cell(0, 1, 0, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 12);
+            Assert.IsTrue(dict[new Cell(1, 1, 0, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 18);
+            Assert.IsTrue(dict[new Cell(0, 0, 1, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 12);
+            Assert.IsTrue(dict[new Cell(1, 0, 1, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 18);
+            Assert.IsTrue(dict[new Cell(0, 1, 1, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 18);
+            Assert.IsTrue(dict[new Cell(1, 1, 1, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 27);
 
 
-            Assert.IsTrue(dict[new Cell(3, 3, 3, -2)].GetPoints(0, k).ImmutableDeduplicate(verbose: false).Count == 100 * 8);
+            Assert.IsTrue(dict[new Cell(3, 3, 3, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 8);
         }
 
         #endregion

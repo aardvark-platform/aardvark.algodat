@@ -697,37 +697,26 @@ namespace Aardvark.Geometry.Points
         /// Collects all points from nodes for which predicate is true.
         /// Subnodes of nodes for which predicate is true are not traversed.  
         /// </summary>
-        public static Chunk Collect(this IPointCloudNode self, Func<IPointCloudNode, bool> predicate)
+        public static IEnumerable<Chunk> Collect(this IPointCloudNode self, Func<IPointCloudNode, bool> predicate)
         {
-            if (self == null) return Chunk.Empty;
-            if (self.IsLeaf) return self.ToChunk();
-
-            var ps = self.HasPositions ? new List<V3d>() : null;
-            var cs = self.HasColors ? new List<C4b>() : null;
-            var ns = self.HasNormals ? new List<V3f>() : null;
-            var js = self.HasIntensities ? new List<int>() : null;
-            var ks = self.HasClassifications ? new List<byte>() : null;
-
-            CollectRec(self, predicate, ps, cs, ns, js, ks);
-
-            return new Chunk(ps, cs, ns, js, ks);
-
-            void CollectRec(IPointCloudNode n, Func<IPointCloudNode, bool> _collectMe, List<V3d> _ps, List<C4b> _cs, List<V3f> _ns, List<int> _js, List<byte> _ks)
+            if (self == null) yield break;
+            if (self.IsLeaf)
             {
-                if (n == null) return;
+                yield return self.ToChunk();
+            }
+            else
+            {
+                var chunks = CollectRec(self, predicate);
+                foreach (var chunk in chunks) yield return chunk;
+            }
+
+            IEnumerable<Chunk> CollectRec(IPointCloudNode n, Func<IPointCloudNode, bool> _collectMe)
+            {
+                if (n == null) yield break;
                 
                 if (_collectMe(n))
                 {
-                    if (n.HasPositions && _ps != null)
-                    {
-                        var off = n.Center;
-                        _ps.AddRange(n.Positions.Value.Map(p => off + (V3d)p));
-                    }
-
-                    if (n.HasColors && _cs != null) _cs.AddRange(n.Colors.Value);
-                    if (n.HasNormals && _ns != null) _ns.AddRange(n.Normals.Value);
-                    if (n.HasIntensities && _js != null) _js.AddRange(n.Intensities.Value);
-                    if (n.HasClassifications && _ks != null) _ks.AddRange(n.Classifications.Value);
+                    yield return n.ToChunk();
                 }
                 else
                 {
@@ -735,7 +724,8 @@ namespace Aardvark.Geometry.Points
                     {
                         if (x != null)
                         {
-                            CollectRec(x.Value, _collectMe, _ps, _cs, _ns, _js, _ks);
+                            var chunks = CollectRec(x.Value, _collectMe);
+                            foreach (var chunk in chunks) yield return chunk;
                         }
                     }
                 }
@@ -746,7 +736,7 @@ namespace Aardvark.Geometry.Points
         /// Collects all points from nodes at given relative depth.
         /// E.g. 0 returns points from self, 1 gets points from children, aso.
         /// </summary>
-        public static Chunk CollectFromRelativeDepth(this IPointCloudNode self, int fromRelativeDepth)
+        public static IEnumerable<Chunk> CollectFromRelativeDepth(this IPointCloudNode self, int fromRelativeDepth)
         {
             var d = self.Cell.Exponent - fromRelativeDepth;
             return self.Collect(x => x.IsLeaf || x.Cell.Exponent <= d);

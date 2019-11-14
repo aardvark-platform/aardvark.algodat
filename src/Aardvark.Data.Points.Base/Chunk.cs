@@ -172,7 +172,6 @@ namespace Aardvark.Data.Points
             );
         }
 
-
         /// <summary>
         /// Immutable update of positions.
         /// </summary>

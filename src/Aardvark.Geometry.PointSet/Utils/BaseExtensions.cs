@@ -21,7 +21,6 @@ namespace Aardvark.Geometry.Points
     public static class BaseExtensions
     { 
         /// <summary>
-        /// 
         /// </summary>
         public static Box3l GetRasterBounds(this Cell self, int exponent)
         {
@@ -40,7 +39,7 @@ namespace Aardvark.Geometry.Points
                     e--;
                     b = new Box3l(b.Min * 2, b.Max * 2);
                 }
-                return b;
+                return new Box3l(b.Min, b.Max - V3l.III);
             }
             else
             {
@@ -52,7 +51,7 @@ namespace Aardvark.Geometry.Points
                     min *= 2;
                     max *= 2;
                 }
-                return new Box3l(min, max);
+                return new Box3l(min, max - V3l.III);
             }
         }
 

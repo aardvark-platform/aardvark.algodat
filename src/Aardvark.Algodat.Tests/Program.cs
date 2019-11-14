@@ -430,8 +430,8 @@ namespace Aardvark.Geometry.Tests
 
             foreach (var x in root.EnumerateCells(0))
             {
-                var chunk = x.GetPoints(0);
-                Console.WriteLine($"{x.Cell,20} {chunk.Count,8:N0}    {chunk.BoundingBox:0.00}");
+                var chunks = x.GetPoints(0).ToArray();
+                Console.WriteLine($"{x.Cell,20} {chunks.Sum(c => c.Count),8:N0}    {new Box3d(chunks.Select(c => c.BoundingBox)):0.00}");
             }
         }
 
@@ -441,18 +441,14 @@ namespace Aardvark.Geometry.Tests
             var pc = store.GetPointSet("kindergarten");
             var root = pc.Root.Value;
 
-            var rbs = root.Cell.GetRasterBounds(0);
-            for (var x = rbs.Min.X; x < rbs.Max.X; x++)
+            foreach (var col in root.EnumerateCellColumns(1, new V2i(1,1)))
             {
-                for (var y = rbs.Min.Y; y < rbs.Max.Y; y++)
-                {
-                    var cs0 = root.QueryCellColumnXY(new Cell2d(x, y, 0), 0).ToArray();
-                    if (cs0.Length == 0) continue;
-                    var cs1 = root.QueryCellColumnXY(new Cell2d(x, y, 0), 1).ToArray();
-                    var cs2 = root.QueryCellColumnXY(new Cell2d(x, y, 0), 2).ToArray();
+                var cs0 = root.QueryCellColumnXY(col, 0).ToArray();
+                if (cs0.Length == 0) continue;
+                var cs1 = root.QueryCellColumnXY(col, 1).ToArray();
+                var cs2 = root.QueryCellColumnXY(col, 2).ToArray();
 
-                    Console.WriteLine($"[{x,3}, {y,3}] {cs0.Sum(c => c.Count),10:N0} {cs1.Sum(c => c.Count),10:N0} {cs2.Sum(c => c.Count),10:N0}");
-                }
+                Console.WriteLine($"[{col.X,3}, {col.Y,3}, {col.Exponent,3}] {cs0.Sum(c => c.Count),10:N0} {cs1.Sum(c => c.Count),10:N0} {cs2.Sum(c => c.Count),10:N0}");
             }
         }
 

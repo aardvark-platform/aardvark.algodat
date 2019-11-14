@@ -41,7 +41,7 @@ namespace Aardvark.Geometry.Points
             /// Returns points inside cell from LoD at given relative depth,
             /// where 0 means points in cell itself, 1 means points from subcells, aso.
             /// </summary>
-            public Chunk GetPoints(int fromRelativeDepth)
+            public IEnumerable<Chunk> GetPoints(int fromRelativeDepth)
             {
                 if (fromRelativeDepth < 0) throw new ArgumentException(
                        $"Parameter 'fromRelativeDepth' must not be negative (but is {fromRelativeDepth}). "
@@ -49,61 +49,31 @@ namespace Aardvark.Geometry.Points
                        nameof(fromRelativeDepth)
                        );
 
-                if (m_result == null) return Chunk.Empty;
+                if (m_result == null) yield break;
 
-                var chunk = m_result.CollectFromRelativeDepth(fromRelativeDepth);
+                var chunks = m_result.CollectFromRelativeDepth(fromRelativeDepth);
 
                 if (m_result.Cell != Cell)
                 {
-                    chunk = chunk.ImmutableFilterByCell(Cell);
+                    chunks = chunks.Select(c => c.ImmutableFilterByCell(Cell));
                 }
 
-                return chunk;
+                foreach (var chunk in chunks) yield return chunk;
             }
 
             /// <summary>
             /// </summary>
-            public Chunk GetPoints(int fromRelativeDepth, Box3i kernel)
-                => GetPoints(fromRelativeDepth, kernel, false);
+            public IEnumerable<Chunk> GetPoints(int fromRelativeDepth, Box3i outer)
+                => GetPoints(fromRelativeDepth, outer, false);
 
             /// <summary>
             /// </summary>
-            public Chunk GetPoints(int fromRelativeDepth, Box3i kernel, bool excludeInnerCell)
-            {
-                if (kernel.Min == V3i.OOO && kernel.Max == V3i.OOO) 
-                    return excludeInnerCell ? Chunk.Empty : GetPoints(fromRelativeDepth);
-
-                if (fromRelativeDepth < 0) throw new ArgumentException(
-                       $"Parameter 'fromRelativeDepth' must not be negative (but is {fromRelativeDepth}). "
-                       + "Invariant 02992ae8-22b5-41d0-857a-87e19c9e3db1.",
-                       nameof(fromRelativeDepth)
-                       );
-
-                if (m_result == null) return Chunk.Empty;
-
-                var result = Chunk.Empty;
-                var min = new V3l(Cell.X, Cell.Y, Cell.Z) + (V3l)kernel.Min;
-                var max = new V3l(Cell.X, Cell.Y, Cell.Z) + (V3l)kernel.Max;
-                for (var x = min.X; x <= max.X; x++)
-                {
-                    for (var y = min.Y; y <= max.Y; y++)
-                    {
-                        for (var z = min.Z; z <= max.Z; z++)
-                        {
-                            if (excludeInnerCell && x == 0 && y == 0 && z == 0) continue;
-                            var c = new Cell(x, y, z, Cell.Exponent);
-                            var r = Root.QueryCell(c);
-                            var chunk = r.GetPoints(fromRelativeDepth);
-                            result = result.Union(chunk);
-                        }
-                    }
-                }
-                return result;
-            }
+            public IEnumerable<Chunk> GetPoints(int fromRelativeDepth, Box3i outer, bool excludeInnerCell)
+                => GetPoints(fromRelativeDepth, outer, new Box3i(V3i.OOO, V3i.OOO), excludeInnerCell);
 
             /// <summary>
             /// </summary>
-            public Chunk GetPoints(int fromRelativeDepth, Box3i kernel, Box3i inner, bool excludeInner)
+            public IEnumerable<Chunk> GetPoints(int fromRelativeDepth, Box3i outer, Box3i inner, bool excludeInner)
             {
                 if (fromRelativeDepth < 0) throw new ArgumentException(
                        $"Parameter 'fromRelativeDepth' must not be negative (but is {fromRelativeDepth}). "
@@ -111,34 +81,33 @@ namespace Aardvark.Geometry.Points
                        nameof(fromRelativeDepth)
                        );
 
-                if (!inner.Contains(kernel)) throw new ArgumentException(
-                        $"Outer box ({inner}) must contain kernel box ({kernel}). "
+                if (!outer.Contains(inner)) throw new ArgumentException(
+                        $"Outer box ({outer}) must contain inner box ({inner}). "
                         + "Invariant 98197924-0aea-454e-be6e-8c73e6c9274e.",
                         nameof(fromRelativeDepth)
                         );
 
-                if (inner.Min == V3i.OOO && inner.Max == V3i.OOO) return GetPoints(fromRelativeDepth);
-
-                if (m_result == null) return Chunk.Empty;
-
-                var result = Chunk.Empty;
-                var min = new V3l(Cell.X, Cell.Y, Cell.Z) + (V3l)inner.Min;
-                var max = new V3l(Cell.X, Cell.Y, Cell.Z) + (V3l)inner.Max;
-                for (var x = min.X; x <= max.X; x++)
+                if (m_result == null)
                 {
-                    for (var y = min.Y; y <= max.Y; y++)
+                    yield break;
+                }
+                else
+                {
+                    for (var x = outer.Min.X; x <= outer.Max.X; x++)
                     {
-                        for (var z = min.Z; z <= max.Z; z++)
+                        for (var y = outer.Min.Y; y <= outer.Max.Y; y++)
                         {
-                            if (excludeInner && kernel.Contains(new V3i(x, y, z))) continue;
-                            var c = new Cell(x, y, z, Cell.Exponent);
-                            var r = Root.QueryCell(c);
-                            var chunk = r.GetPoints(fromRelativeDepth);
-                            result = result.Union(chunk);
+                            for (var z = outer.Min.Z; z <= outer.Max.Z; z++)
+                            {
+                                if (excludeInner && inner.Contains(new V3i(x, y, z))) continue;
+                                var c = new Cell(Cell.X + x, Cell.Y + y, Cell.Z + z, Cell.Exponent);
+                                var r = Root.QueryCell(c);
+                                var chunks = r.GetPoints(fromRelativeDepth);
+                                foreach (var chunk in chunks) yield return chunk;
+                            }
                         }
                     }
                 }
-                return result;
             }
 
             /// <summary>
@@ -162,92 +131,6 @@ namespace Aardvark.Geometry.Points
             private readonly IPointCloudNode m_result;
         }
 
-        /// <summary>
-        /// Returns points in cell column along z-axis at given xy-position.
-        /// </summary>
-        public static IEnumerable<Chunk> QueryCellColumnXY(this IPointCloudNode root, Cell2d columnXY, int fromRelativeDepth)
-        {
-            if (root == null)
-            {
-                throw new ArgumentNullException(nameof(root));
-            }
-
-            if (columnXY.IsCenteredAtOrigin) throw new InvalidOperationException(
-                "Column centered at origin is not supported. Invariant bf3eb487-72d7-4a4a-9203-69c54490f608."
-                );
-
-            if (fromRelativeDepth < 0) throw new ArgumentException(
-                $"Parameter 'fromRelativeDepth' must not be negative (but is {fromRelativeDepth}). "
-                + "Invariant c8f409cd-c8a0-4b3e-ac9b-03d23843ff8b.",
-                nameof(fromRelativeDepth)
-                );
-
-            var cloudXY = new Cell2d(root.Cell.X, root.Cell.Y, root.Cell.Exponent);
-
-            // column fully includes point cloud
-            if (columnXY.Contains(cloudXY))
-            {
-                var x = root.ToChunk();
-                return x.Count > 0 ? new[] { x } : Enumerable.Empty<Chunk>();
-            }
-
-            // column is fully outside point cloud
-            if (!cloudXY.Contains(columnXY))
-            {
-                return Enumerable.Empty<Chunk>();
-            }
-
-            return QueryRec(root);
-
-            IEnumerable<Chunk> QueryRec(IPointCloudNode n)
-            {
-                if (n.Cell.Exponent < columnXY.Exponent)
-                {
-                    // recursion should have stopped at column size ?!
-                    throw new InvalidOperationException("Invariant 4d8cbedf-a86c-43e0-a3d0-75335fa1fadf.");
-                }
-
-                // node is same size as column
-                if (n.Cell.Exponent == columnXY.Exponent)
-                {
-                    if (n.Cell.X == columnXY.X && n.Cell.Y == columnXY.Y)
-                    {
-                        var x = n.CollectFromRelativeDepth(fromRelativeDepth);
-                        if (x.Count > 0) yield return x; else yield break;
-                    }
-                    else
-                    {
-                        yield break;
-                    }
-                }
-
-                // or, node is a leaf, but still bigger than column
-                else if (n.IsLeaf)
-                {
-                    var b = n.Cell.BoundingBox;
-                    var c = columnXY.BoundingBox;
-                    var f = new Box3d(new V3d(c.Min.X, c.Min.Y, b.Min.Z), new V3d(c.Max.X, c.Max.Y, b.Max.Z));
-                    var x = n.ToChunk().ImmutableFilterByBox3d(f);
-                    if (x.Count > 0) yield return x; else yield break;
-                }
-
-                // or finally query subnodes inside column recursively ...
-                else
-                {
-                    foreach (var subnode in n.Subnodes)
-                    {
-                        if (subnode == null) continue;
-                        var c = subnode.Value.Cell;
-                        if (columnXY.Intersects(new Cell2d(c.X, c.Y, c.Exponent)))
-                        {
-                            var xs = QueryRec(subnode.Value);
-                            foreach (var x in xs) yield return x;
-                        }
-                    }
-                }
-            }
-        }
-        
         /// <summary>
         /// Returns points in given cell,
         /// or null if octree does not cover given cell.
@@ -334,8 +217,7 @@ namespace Aardvark.Geometry.Points
             }
 
             if (stride.X < 1 || stride.Y < 1 || stride.Z < 1) throw new InvalidOperationException(
-                $"Stride must be positive, but is {stride}." +
-                " Invariant be88ccad-798f-4f7d-bcea-6d3eb96c4cb2."
+                $"Stride must be positive, but is {stride}. Invariant be88ccad-798f-4f7d-bcea-6d3eb96c4cb2."
                 );
 
             if (root.Cell.Exponent < cellExponent)
@@ -414,5 +296,240 @@ namespace Aardvark.Geometry.Points
                 }
             }
         }
+
+        #region query cell columns
+
+        /// <summary>
+        /// </summary>
+        public class CellQueryResult2d
+        {
+            /// <summary>
+            /// Query root node.
+            /// </summary>
+            private readonly IPointCloudNode Root;
+
+            /// <summary>
+            /// Result cell column.
+            /// </summary>
+            public readonly Cell2d Cell;
+
+            /// <summary>
+            /// Returns points inside cell column from LoD at given relative depth,
+            /// where 0 means points in cell column itself, 1 means points from subcells, aso.
+            /// </summary>
+            public IEnumerable<Chunk> GetPoints(int fromRelativeDepth)
+            {
+                if (fromRelativeDepth < 0) throw new ArgumentException(
+                       $"Parameter 'fromRelativeDepth' must not be negative (but is {fromRelativeDepth}). "
+                       + "Invariant e2548002-ecb4-421f-959f-daeb3293db60.",
+                       nameof(fromRelativeDepth)
+                       );
+
+                return Root.QueryCellColumnXY(Cell, fromRelativeDepth);
+            }
+
+            /// <summary>
+            /// </summary>
+            public IEnumerable<Chunk> GetPoints(int fromRelativeDepth, Box2i kernel)
+                => GetPoints(fromRelativeDepth, kernel, false);
+
+            /// <summary>
+            /// </summary>
+            public IEnumerable<Chunk> GetPoints(int fromRelativeDepth, Box2i kernel, bool excludeInnerCell)
+            {
+                if (fromRelativeDepth < 0) throw new ArgumentException(
+                       $"Parameter 'fromRelativeDepth' must not be negative (but is {fromRelativeDepth}). "
+                       + "Invariant a11da7c9-1b6b-474c-af12-9e6e160f2390.",
+                       nameof(fromRelativeDepth)
+                       );
+
+                if (kernel.Min == V2i.OO && kernel.Max == V2i.OO)
+                {
+                    if (excludeInnerCell)
+                    {
+                        yield break;
+                    }
+                    else
+                    {
+                        var chunks = GetPoints(fromRelativeDepth);
+                        foreach (var chunk in chunks) yield return chunk;
+                    }
+                }
+
+                var min = new V2l(Cell.X, Cell.Y) + (V2l)kernel.Min;
+                var max = new V2l(Cell.X, Cell.Y) + (V2l)kernel.Max;
+                for (var x = min.X; x <= max.X; x++)
+                {
+                    for (var y = min.Y; y <= max.Y; y++)
+                    {
+                        if (excludeInnerCell && x == 0 && y == 0) continue;
+                        var c = new Cell2d(x, y, Cell.Exponent);
+                        var chunks = Root.QueryCellColumnXY(c, fromRelativeDepth);
+                        foreach (var chunk in chunks) yield return chunk;
+                    }
+                }
+            }
+
+            /// <summary>
+            /// </summary>
+            public IEnumerable<Chunk> GetPoints(int fromRelativeDepth, Box2i kernel, Box2i inner, bool excludeInner)
+            {
+                if (fromRelativeDepth < 0) throw new ArgumentException(
+                       $"Parameter 'fromRelativeDepth' must not be negative (but is {fromRelativeDepth}). "
+                       + "Invariant 217d4237-cb64-4a15-ab1f-62566a0c65a9.",
+                       nameof(fromRelativeDepth)
+                       );
+
+                if (!kernel.Contains(inner)) throw new ArgumentException(
+                        $"Outer box ({kernel}) must contain kernel box ({inner}). "
+                        + "Invariant 31e0421e-339f-4354-8193-e508214bc364.",
+                        nameof(fromRelativeDepth)
+                        );
+
+                if (inner.Min == V2i.OO && inner.Max == V2i.OO)
+                {
+                    var chunks = GetPoints(fromRelativeDepth);
+                    foreach (var chunk in chunks) yield return chunk;
+                }
+
+                var min = new V2l(Cell.X, Cell.Y) + (V2l)inner.Min;
+                var max = new V2l(Cell.X, Cell.Y) + (V2l)inner.Max;
+                for (var x = min.X; x <= max.X; x++)
+                {
+                    for (var y = min.Y; y <= max.Y; y++)
+                    {
+                        if (excludeInner && kernel.Contains(new V2i(x, y))) continue;
+                        var c = new Cell2d(x, y, Cell.Exponent);
+                        var chunks = Root.QueryCellColumnXY(c, fromRelativeDepth);
+                        foreach (var chunk in chunks) yield return chunk;
+                    }
+                }
+            }
+
+            /// <summary>
+            /// Represents a cell 'resultCell' inside an octree ('root').
+            /// </summary>
+            internal CellQueryResult2d(IPointCloudNode root, Cell2d resultCell)
+            {
+                Root = root ?? throw new ArgumentNullException(nameof(root));
+                Cell = resultCell;
+            }
+        }
+
+        /// <summary>
+        /// Enumerates all columns of a given cell size (given by cellExponent).
+        /// Cell size is 2^cellExponent, e.g. -2 gives 0.25, -1 gives 0.50, 0 gives 1.00, 1 gives 2.00, and so on.
+        /// Stride is step size (default is V3i.III), which must be greater 0 for each coordinate axis.
+        /// </summary>
+        public static IEnumerable<Cell2d> EnumerateCellColumns(this IPointCloudNode root, int cellExponent, V2i stride)
+        {
+            if (root == null)
+            {
+                throw new ArgumentNullException(nameof(root));
+            }
+
+            if (stride.X < 1 || stride.Y < 1) throw new InvalidOperationException(
+                $"Stride must be positive, but is {stride}. Invariant 6b7a86a4-6bde-41f1-9af8-e7dc75177e68."
+                );
+
+            var bounds = root.Cell.GetRasterBounds(cellExponent);
+            for (var x = bounds.Min.X; x < bounds.Max.X; x++)
+            {
+                if (x % stride.X != 0) continue;
+                for (var y = bounds.Min.Y; y < bounds.Max.Y; y++)
+                {
+                    if (y % stride.Y != 0) continue;
+                    yield return new Cell2d(x, y, cellExponent);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Returns points in cell column along z-axis at given xy-position.
+        /// </summary>
+        public static IEnumerable<Chunk> QueryCellColumnXY(this IPointCloudNode root, Cell2d columnXY, int fromRelativeDepth)
+        {
+            if (root == null)
+            {
+                throw new ArgumentNullException(nameof(root));
+            }
+
+            if (columnXY.IsCenteredAtOrigin) throw new InvalidOperationException(
+                "Column centered at origin is not supported. Invariant bf3eb487-72d7-4a4a-9203-69c54490f608."
+                );
+
+            if (fromRelativeDepth < 0) throw new ArgumentException(
+                $"Parameter 'fromRelativeDepth' must not be negative (but is {fromRelativeDepth}). "
+                + "Invariant c8f409cd-c8a0-4b3e-ac9b-03d23843ff8b.",
+                nameof(fromRelativeDepth)
+                );
+
+            var cloudXY = new Cell2d(root.Cell.X, root.Cell.Y, root.Cell.Exponent);
+
+            // column fully includes point cloud
+            if (columnXY.Contains(cloudXY))
+            {
+                var x = root.ToChunk();
+                return x.Count > 0 ? new[] { x } : Enumerable.Empty<Chunk>();
+            }
+
+            // column is fully outside point cloud
+            if (!cloudXY.Contains(columnXY))
+            {
+                return Enumerable.Empty<Chunk>();
+            }
+
+            return QueryRec(root);
+
+            IEnumerable<Chunk> QueryRec(IPointCloudNode n)
+            {
+                if (n.Cell.Exponent < columnXY.Exponent)
+                {
+                    // recursion should have stopped at column size ?!
+                    throw new InvalidOperationException("Invariant 4d8cbedf-a86c-43e0-a3d0-75335fa1fadf.");
+                }
+
+                // node is same size as column
+                if (n.Cell.Exponent == columnXY.Exponent)
+                {
+                    if (n.Cell.X == columnXY.X && n.Cell.Y == columnXY.Y)
+                    {
+                        var xs = n.CollectFromRelativeDepth(fromRelativeDepth);
+                        foreach (var x in xs) if (x.Count > 0) yield return x;
+                    }
+                    else
+                    {
+                        yield break;
+                    }
+                }
+
+                // or, node is a leaf, but still bigger than column
+                else if (n.IsLeaf)
+                {
+                    var b = n.Cell.BoundingBox;
+                    var c = columnXY.BoundingBox;
+                    var f = new Box3d(new V3d(c.Min.X, c.Min.Y, b.Min.Z), new V3d(c.Max.X, c.Max.Y, b.Max.Z));
+                    var x = n.ToChunk().ImmutableFilterByBox3d(f);
+                    if (x.Count > 0) yield return x; else yield break;
+                }
+
+                // or finally query subnodes inside column recursively ...
+                else
+                {
+                    foreach (var subnode in n.Subnodes)
+                    {
+                        if (subnode == null) continue;
+                        var c = subnode.Value.Cell;
+                        if (columnXY.Intersects(new Cell2d(c.X, c.Y, c.Exponent)))
+                        {
+                            var xs = QueryRec(subnode.Value);
+                            foreach (var x in xs) yield return x;
+                        }
+                    }
+                }
+            }
+        }
+
+        #endregion
     }
 }
