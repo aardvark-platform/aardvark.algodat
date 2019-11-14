@@ -736,10 +736,96 @@ namespace Aardvark.Geometry.Points
         /// Collects all points from nodes at given relative depth.
         /// E.g. 0 returns points from self, 1 gets points from children, aso.
         /// </summary>
-        public static IEnumerable<Chunk> CollectFromRelativeDepth(this IPointCloudNode self, int fromRelativeDepth)
+        public static IEnumerable<Chunk> Collect(this IPointCloudNode self, int fromRelativeDepth)
         {
             var d = self.Cell.Exponent - fromRelativeDepth;
             return self.Collect(x => x.IsLeaf || x.Cell.Exponent <= d);
+        }
+
+        /// <summary>
+        /// Returns points in cell column along z-axis at given xy-position.
+        /// </summary>
+        public static IEnumerable<Chunk> CollectColumnXY(this IPointCloudNode root, Cell2d columnXY, int fromRelativeDepth)
+        {
+            if (root == null)
+            {
+                throw new ArgumentNullException(nameof(root));
+            }
+
+            if (columnXY.IsCenteredAtOrigin) throw new InvalidOperationException(
+                "Column centered at origin is not supported. Invariant bf3eb487-72d7-4a4a-9203-69c54490f608."
+                );
+
+            if (fromRelativeDepth < 0) throw new ArgumentException(
+                $"Parameter 'fromRelativeDepth' must not be negative (but is {fromRelativeDepth}). "
+                + "Invariant c8f409cd-c8a0-4b3e-ac9b-03d23843ff8b.",
+                nameof(fromRelativeDepth)
+                );
+
+            var cloudXY = new Cell2d(root.Cell.X, root.Cell.Y, root.Cell.Exponent);
+
+            // column fully includes point cloud
+            if (columnXY.Contains(cloudXY))
+            {
+                var x = root.ToChunk();
+                return x.Count > 0 ? new[] { x } : Enumerable.Empty<Chunk>();
+            }
+
+            // column is fully outside point cloud
+            if (!cloudXY.Contains(columnXY))
+            {
+                return Enumerable.Empty<Chunk>();
+            }
+
+            return QueryRec(root);
+
+            IEnumerable<Chunk> QueryRec(IPointCloudNode n)
+            {
+                if (n.Cell.Exponent < columnXY.Exponent)
+                {
+                    // recursion should have stopped at column size ?!
+                    throw new InvalidOperationException("Invariant 4d8cbedf-a86c-43e0-a3d0-75335fa1fadf.");
+                }
+
+                // node is same size as column
+                if (n.Cell.Exponent == columnXY.Exponent)
+                {
+                    if (n.Cell.X == columnXY.X && n.Cell.Y == columnXY.Y)
+                    {
+                        var xs = n.Collect(fromRelativeDepth);
+                        foreach (var x in xs) if (x.Count > 0) yield return x;
+                    }
+                    else
+                    {
+                        yield break;
+                    }
+                }
+
+                // or, node is a leaf, but still bigger than column
+                else if (n.IsLeaf)
+                {
+                    var b = n.Cell.BoundingBox;
+                    var c = columnXY.BoundingBox;
+                    var f = new Box3d(new V3d(c.Min.X, c.Min.Y, b.Min.Z), new V3d(c.Max.X, c.Max.Y, b.Max.Z));
+                    var x = n.ToChunk().ImmutableFilterByBox3d(f);
+                    if (x.Count > 0) yield return x; else yield break;
+                }
+
+                // or finally query subnodes inside column recursively ...
+                else
+                {
+                    foreach (var subnode in n.Subnodes)
+                    {
+                        if (subnode == null) continue;
+                        var c = subnode.Value.Cell;
+                        if (columnXY.Intersects(new Cell2d(c.X, c.Y, c.Exponent)))
+                        {
+                            var xs = QueryRec(subnode.Value);
+                            foreach (var x in xs) yield return x;
+                        }
+                    }
+                }
+            }
         }
     }
 }

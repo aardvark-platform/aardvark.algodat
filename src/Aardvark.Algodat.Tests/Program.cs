@@ -441,14 +441,14 @@ namespace Aardvark.Geometry.Tests
             var pc = store.GetPointSet("kindergarten");
             var root = pc.Root.Value;
 
-            foreach (var col in root.EnumerateCellColumns(1, new V2i(1,1)))
+            foreach (var x in root.EnumerateCellColumns(0))
             {
-                var cs0 = root.QueryCellColumnXY(col, 0).ToArray();
+                var cs0 = x.GetPoints(0).ToArray();
                 if (cs0.Length == 0) continue;
-                var cs1 = root.QueryCellColumnXY(col, 1).ToArray();
-                var cs2 = root.QueryCellColumnXY(col, 2).ToArray();
+                var cs1 = x.GetPoints(0, outer: new Box2i(new V2i(-2, -2), new V2i(+2, +2))).ToArray();
+                var cs2 = x.GetPoints(0, outer: new Box2i(new V2i(-2, -2), new V2i(+2, +2)), inner: new Box2i(new V2i(-1, -1), new V2i(+1, +1))).ToArray();
 
-                Console.WriteLine($"[{col.X,3}, {col.Y,3}, {col.Exponent,3}] {cs0.Sum(c => c.Count),10:N0} {cs1.Sum(c => c.Count),10:N0} {cs2.Sum(c => c.Count),10:N0}");
+                Console.WriteLine($"[{x.Cell.X,3}, {x.Cell.Y,3}, {x.Cell.Exponent,3}] {cs0.Sum(c => c.Count),10:N0} {cs1.Sum(c => c.Count),10:N0} {cs2.Sum(c => c.Count),10:N0}");
             }
         }
 
