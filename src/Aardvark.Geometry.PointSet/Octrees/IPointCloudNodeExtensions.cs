@@ -637,61 +637,7 @@ namespace Aardvark.Geometry.Points
 
         #endregion
 
-        /// <summary></summary>
-        public static bool IsLeaf(this IPointCloudNode self) => self.Subnodes == null;
-
-        /// <summary></summary>
-        public static bool IsNotLeaf(this IPointCloudNode self) => self.Subnodes != null;
-
-        /// <summary>
-        /// Throws if node misses any standard derived attributes.
-        /// </summary>
-        public static void CheckDerivedAttributes(this IPointCloudNode self)
-        {
-            var isTmpNode = self.Has(PointSetNode.TemporaryImportNode);
-            if (self.HasPositions)
-            {
-                if (!self.HasKdTree && !isTmpNode) throw new InvalidOperationException(
-                    "Missing KdTree. Invariant ef8b6f10-a5ce-4dfd-826e-78319acd9faa."
-                    );
-                if (!self.HasBoundingBoxExactLocal) throw new InvalidOperationException(
-                    "Missing BoundingBoxExactLocal. Invariant f91b261b-2aa2-41a0-9ada-4d03cbaf0507."
-                    );
-                if (!self.HasBoundingBoxExactGlobal) throw new InvalidOperationException(
-                    "Missing BoundingBoxExactGlobal. Invariant 9bb641c6-ce54-4a1e-9cf9-943b85e3bf81."
-                    );
-                if (!self.HasCentroidLocal) throw new InvalidOperationException(
-                    "Missing CentroidLocal. Invariant 72b18b6e-4c95-4a79-b9dd-11902c097649."
-                    );
-                if (!self.HasCentroidLocalStdDev) throw new InvalidOperationException(
-                    "Missing CentroidLocalStdDev. Invariant 429bb1c1-9a52-4e4c-bab1-f3635e143061."
-                    );
-                //if (!self.HasPointDistanceAverage && !isTmpNode) throw new InvalidOperationException(
-                //    "Missing PointDistanceAverage. Invariant e52003ff-72ca-4fc2-8242-f20d7f039473."
-                //    );
-                //if (!self.HasPointDistanceStandardDeviation && !isTmpNode) throw new InvalidOperationException(
-                //    "Missing PointDistanceStandardDeviation. Invariant 4a03c3f5-a625-4124-91f6-6f79fd1b5d0e."
-                //    );
-            }
-            if (!self.HasMaxTreeDepth) throw new InvalidOperationException(
-                "Missing MaxTreeDepth. Invariant c7c3c337-5404-4773-aae3-01d213e575b0."
-                );
-            if (!self.HasMinTreeDepth) throw new InvalidOperationException(
-                "Missing MinTreeDepth. Invariant 2df9fb7b-684a-4103-8f14-07785607d2f4."
-                );
-        }
-
-        /// <summary>
-        /// Converts node to Chunk.
-        /// </summary>
-        public static Chunk ToChunk(this IPointCloudNode self)
-        {
-            var cs = self.HasColors ? self.Colors.Value : null;
-            var ns = self.HasNormals ? self.Normals.Value : null;
-            var js = self.HasIntensities ? self.Intensities.Value : null;
-            var ks = self.HasClassifications ? self.Classifications.Value : null;
-            return new Chunk(self.PositionsAbsolute, cs, ns, js, ks);
-        }
+        #region Collect points from cells and cell columns
 
         /// <summary>
         /// Collects all points from nodes for which predicate is true.
@@ -743,7 +689,7 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary>
-        /// Returns points in cell column along z-axis at given xy-position.
+        /// Returns points in cells column along z-axis at given xy-position.
         /// </summary>
         public static IEnumerable<Chunk> CollectColumnXY(this IPointCloudNode root, Cell2d columnXY, int fromRelativeDepth)
         {
@@ -826,6 +772,65 @@ namespace Aardvark.Geometry.Points
                     }
                 }
             }
+        }
+
+        #endregion
+
+
+        /// <summary></summary>
+        public static bool IsLeaf(this IPointCloudNode self) => self.Subnodes == null;
+
+        /// <summary></summary>
+        public static bool IsNotLeaf(this IPointCloudNode self) => self.Subnodes != null;
+
+        /// <summary>
+        /// Throws if node misses any standard derived attributes.
+        /// </summary>
+        public static void CheckDerivedAttributes(this IPointCloudNode self)
+        {
+            var isTmpNode = self.Has(PointSetNode.TemporaryImportNode);
+            if (self.HasPositions)
+            {
+                if (!self.HasKdTree && !isTmpNode) throw new InvalidOperationException(
+                    "Missing KdTree. Invariant ef8b6f10-a5ce-4dfd-826e-78319acd9faa."
+                    );
+                if (!self.HasBoundingBoxExactLocal) throw new InvalidOperationException(
+                    "Missing BoundingBoxExactLocal. Invariant f91b261b-2aa2-41a0-9ada-4d03cbaf0507."
+                    );
+                if (!self.HasBoundingBoxExactGlobal) throw new InvalidOperationException(
+                    "Missing BoundingBoxExactGlobal. Invariant 9bb641c6-ce54-4a1e-9cf9-943b85e3bf81."
+                    );
+                if (!self.HasCentroidLocal) throw new InvalidOperationException(
+                    "Missing CentroidLocal. Invariant 72b18b6e-4c95-4a79-b9dd-11902c097649."
+                    );
+                if (!self.HasCentroidLocalStdDev) throw new InvalidOperationException(
+                    "Missing CentroidLocalStdDev. Invariant 429bb1c1-9a52-4e4c-bab1-f3635e143061."
+                    );
+                //if (!self.HasPointDistanceAverage && !isTmpNode) throw new InvalidOperationException(
+                //    "Missing PointDistanceAverage. Invariant e52003ff-72ca-4fc2-8242-f20d7f039473."
+                //    );
+                //if (!self.HasPointDistanceStandardDeviation && !isTmpNode) throw new InvalidOperationException(
+                //    "Missing PointDistanceStandardDeviation. Invariant 4a03c3f5-a625-4124-91f6-6f79fd1b5d0e."
+                //    );
+            }
+            if (!self.HasMaxTreeDepth) throw new InvalidOperationException(
+                "Missing MaxTreeDepth. Invariant c7c3c337-5404-4773-aae3-01d213e575b0."
+                );
+            if (!self.HasMinTreeDepth) throw new InvalidOperationException(
+                "Missing MinTreeDepth. Invariant 2df9fb7b-684a-4103-8f14-07785607d2f4."
+                );
+        }
+
+        /// <summary>
+        /// Converts node to Chunk.
+        /// </summary>
+        public static Chunk ToChunk(this IPointCloudNode self)
+        {
+            var cs = self.HasColors ? self.Colors.Value : null;
+            var ns = self.HasNormals ? self.Normals.Value : null;
+            var js = self.HasIntensities ? self.Intensities.Value : null;
+            var ks = self.HasClassifications ? self.Classifications.Value : null;
+            return new Chunk(self.PositionsAbsolute, cs, ns, js, ks);
         }
     }
 }

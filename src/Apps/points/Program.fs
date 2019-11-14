@@ -5,6 +5,7 @@ open Aardvark.Geometry.Points
 open Aardvark.Data.Points
 open Aardvark.Base
 open System.IO
+open System.Threading
 open Newtonsoft.Json.Linq
 open Newtonsoft.Json
 
@@ -121,11 +122,12 @@ let export args =
 
     let gzipped = match args.gzipped with | Some x -> x | None -> false
 
+    let onProgress = Action<StorageExtensions.ExportPointSetInfo> (fun info -> printfn "%f" (info.Progress))
     Report.BeginTimed("exporting")
     match args.inlining with
     | Some true -> inStore.InlinePointSet(key, outStore, gzipped)
     | _         -> if gzipped then printfn "[WARNING] -z is only supported with -inline"
-                   inStore.ExportPointSet(key, outStore, args.verbose)
+                   inStore.ExportPointSet(key, outStore, onProgress, args.verbose, CancellationToken.None) |> ignore
     outStore.Flush()
     Report.EndTimed() |> ignore
 

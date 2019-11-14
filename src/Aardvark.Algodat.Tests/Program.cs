@@ -393,32 +393,33 @@ namespace Aardvark.Geometry.Tests
         {
             // Example 1: export point cloud to folder
             {
-                using (var storeSource = new SimpleDiskStore(@"T:\Vgm\Stores\copytest1").ToPointCloudStore())
-                using (var storeTarget = new SimpleFolderStore(@"T:\Vgm\Stores\exportFolder").ToPointCloudStore())
+                var ct = new CancellationTokenSource(10000);
+                using (var storeSource = new SimpleDiskStore(@"T:\Vgm\Stores\kindergarten").ToPointCloudStore())
+                using (var storeTarget = new SimpleFolderStore(@"T:\Vgm\Stores\kindergartenExported").ToPointCloudStore())
                 {
-                    storeSource.ExportPointSet("097358dc-d89a-434c-8a4e-fe03c063d886", storeTarget, true);
+                    storeSource.ExportPointSet("kindergarten", storeTarget, info => Console.Write($" ({info.Progress * 100,6:0.00}%)"), true, ct.Token);
                 }
             }
 
-            // Example 2: export point cloud to another store
-            {
-                using (var storeSource = new SimpleDiskStore(@"T:\Vgm\Stores\copytest1").ToPointCloudStore())
-                using (var storeTarget = new SimpleDiskStore(@"T:\Vgm\Stores\exportStore").ToPointCloudStore())
-                {
-                    storeSource.ExportPointSet("097358dc-d89a-434c-8a4e-fe03c063d886", storeTarget, true);
-                    storeTarget.Flush();
-                }
-            }
+            //// Example 2: export point cloud to another store
+            //{
+            //    using (var storeSource = new SimpleDiskStore(@"T:\Vgm\Stores\copytest1").ToPointCloudStore())
+            //    using (var storeTarget = new SimpleDiskStore(@"T:\Vgm\Stores\exportStore").ToPointCloudStore())
+            //    {
+            //        storeSource.ExportPointSet("097358dc-d89a-434c-8a4e-fe03c063d886", storeTarget, info => Console.WriteLine($"{info.Progress:0.00}"), true, CancellationToken.None);
+            //        storeTarget.Flush();
+            //    }
+            //}
 
-            // Example 3: inline point cloud nodes
-            {
-                using (var storeSource = new SimpleDiskStore(@"T:\Vgm\Stores\copytest1").ToPointCloudStore())
-                using (var storeTarget = new SimpleFolderStore(@"T:\Vgm\Stores\exportInlined").ToPointCloudStore())
-                {
-                    storeSource.InlinePointSet("097358dc-d89a-434c-8a4e-fe03c063d886", storeTarget, false);
-                    storeTarget.Flush();
-                }
-            }
+            //// Example 3: inline point cloud nodes
+            //{
+            //    using (var storeSource = new SimpleDiskStore(@"T:\Vgm\Stores\copytest1").ToPointCloudStore())
+            //    using (var storeTarget = new SimpleFolderStore(@"T:\Vgm\Stores\exportInlined").ToPointCloudStore())
+            //    {
+            //        storeSource.InlinePointSet("097358dc-d89a-434c-8a4e-fe03c063d886", storeTarget, false);
+            //        storeTarget.Flush();
+            //    }
+            //}
         }
 
         public static void EnumerateCellsTest()
@@ -481,12 +482,12 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
-            EnumerateCells2dTest();
+            //EnumerateCells2dTest();
             //DumpPointSetKeys();
 
             //EnumerateCellsTest();
 
-            //ExportExamples();
+            ExportExamples();
 
             //CopyTest();
 

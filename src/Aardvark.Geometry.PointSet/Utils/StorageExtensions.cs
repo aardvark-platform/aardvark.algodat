@@ -748,9 +748,46 @@ namespace Aardvark.Geometry.Points
         #region Export
 
         /// <summary>
+        /// </summary>
+        public class ExportPointSetInfo
+        {
+            /// <summary>
+            /// Number of points in exported tree (sum of leaf points).
+            /// </summary>
+            public readonly long PointCountTree;
+
+            /// <summary>
+            /// Number of leaf points already processed.
+            /// </summary>
+            public readonly long ProcessedLeafPointCount;
+
+            /// <summary>
+            /// Error message if status is ExportPointSetStatus.Failed.
+            /// </summary>
+            public readonly string ErrorMessage;
+
+            public ExportPointSetInfo(long pointCountTree, long processedLeafPointCount = 0L)
+            {
+                PointCountTree = pointCountTree;
+                ProcessedLeafPointCount = processedLeafPointCount;
+            }
+
+            /// <summary>
+            /// Progress [0,1].
+            /// </summary>
+            public double Progress => (double)ProcessedLeafPointCount / (double)PointCountTree;
+
+            /// <summary>
+            /// Returns new ExportPointSetInfo with ProcessedLeafPointCount incremented by x. 
+            /// </summary>
+            public ExportPointSetInfo AddProcessedLeafPoints(long x)
+                => new ExportPointSetInfo(PointCountTree, ProcessedLeafPointCount + x);
+        }
+
+        /// <summary>
         /// Exports complete pointset (metadata, nodes, referenced blobs) to another store.
         /// </summary>
-        public static void ExportPointSet(this Storage self, string pointSetId, Storage exportStore, bool verbose)
+        public static ExportPointSetInfo ExportPointSet(this Storage self, string pointSetId, Storage exportStore, Action<ExportPointSetInfo> onProgress, bool verbose, CancellationToken ct)
         {
             PointSet pointSet = null;
 
@@ -776,30 +813,30 @@ namespace Aardvark.Geometry.Points
                     Report.Warn($"Created PointSet with key '{ersatzPointSetKey}'.");
                     var ersatzPointSet = new PointSet(self, ersatzPointSetKey, root, 8192);
                     self.Add(ersatzPointSetKey, ersatzPointSet);
-                    ExportPointSet(self, ersatzPointSet, exportStore, verbose);
+
+                    return ExportPointSet(self, ersatzPointSet, exportStore, onProgress, verbose, ct);
                 }
                 else
                 {
-                    Report.Error($"No node with id '{pointSetId}' in store. Giving up.");
+                    throw new Exception($"No node with id '{pointSetId}' in store. Giving up. Invariant 48028b00-4538-4169-a2fc-ca009d56e012.");
                 }
             }
             else
             {
-                ExportPointSet(self, pointSet, exportStore, verbose);
+                return ExportPointSet(self, pointSet, exportStore, onProgress, verbose, ct);
             }
         }
 
         /// <summary>
         /// Exports complete pointset (metadata, nodes, referenced blobs) to another store.
         /// </summary>
-        public static void ExportPointSet(this Storage self, Guid pointSetId, Storage exportStore, bool verbose)
-            => ExportPointSet(self, self.GetPointSet(pointSetId), exportStore, verbose);
-
-        /// <summary>
-        /// Exports complete pointset (metadata, nodes, referenced blobs) to another store.
-        /// </summary>
-        public static void ExportPointSet(this Storage self, PointSet pointset, Storage exportStore, bool verbose)
+        private static ExportPointSetInfo ExportPointSet(this Storage self, PointSet pointset, Storage exportStore, Action<ExportPointSetInfo> onProgress, bool verbose, CancellationToken ct)
         {
+            ct.ThrowIfCancellationRequested();
+            if (onProgress == null) onProgress = _ => { };
+
+            var info = new ExportPointSetInfo(pointset.Root.Value.PointCountTree);
+
             var pointSetId = pointset.Id;
             var root = pointset.Root.Value;
             var totalNodeCount = root.CountNodes(outOfCore: true);
@@ -813,9 +850,13 @@ namespace Aardvark.Geometry.Points
             var exportedNodeCount = 0L;
             ExportNode(root.Id);
             if (verbose) Console.Write("\r");
+            return info;
 
             void ExportNode(Guid key)
             {
+                ct.ThrowIfCancellationRequested();
+
+                // missing subnode (null) is encoded as Guid.Empty
                 if (key == Guid.Empty) return;
 
                 // try to load node
@@ -852,6 +893,19 @@ namespace Aardvark.Geometry.Points
                 if (subnodeGuids != null)
                 {
                     foreach (var x in (Guid[])subnodeGuids) ExportNode(x);
+                }
+                else
+                {
+                    if (nodeProps.TryGetValue(Durable.Octree.PointCountCell, out var pointCountCell))
+                    {
+                        info = info.AddProcessedLeafPoints((int)pointCountCell);
+                    }
+                    else
+                    {
+                        Report.Warn("Invariant 2f7bb751-e6d4-4d4a-98a3-eabd6fd9b156.");
+                    }
+                    
+                    onProgress(info);
                 }
             }
 
