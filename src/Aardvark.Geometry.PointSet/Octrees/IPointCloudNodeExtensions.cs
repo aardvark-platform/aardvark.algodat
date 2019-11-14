@@ -741,5 +741,15 @@ namespace Aardvark.Geometry.Points
                 }
             }
         }
+
+        /// <summary>
+        /// Collects all points from nodes at given relative depth.
+        /// E.g. 0 returns points from self, 1 gets points from children, aso.
+        /// </summary>
+        public static Chunk CollectFromRelativeDepth(this IPointCloudNode self, int fromRelativeDepth)
+        {
+            var d = self.Cell.Exponent - fromRelativeDepth;
+            return self.Collect(x => x.IsLeaf || x.Cell.Exponent <= d);
+        }
     }
 }

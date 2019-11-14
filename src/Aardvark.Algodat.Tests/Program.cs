@@ -435,6 +435,27 @@ namespace Aardvark.Geometry.Tests
             }
         }
 
+        public static void EnumerateCells2dTest()
+        {
+            var store = new SimpleDiskStore(@"T:\Vgm\Stores\kindergarten").ToPointCloudStore(cache: default);
+            var pc = store.GetPointSet("kindergarten");
+            var root = pc.Root.Value;
+
+            var rbs = root.Cell.GetRasterBounds(0);
+            for (var x = rbs.Min.X; x < rbs.Max.X; x++)
+            {
+                for (var y = rbs.Min.Y; y < rbs.Max.Y; y++)
+                {
+                    var cs0 = root.QueryCellColumnXY(new Cell2d(x, y, 0), 0).ToArray();
+                    if (cs0.Length == 0) continue;
+                    var cs1 = root.QueryCellColumnXY(new Cell2d(x, y, 0), 1).ToArray();
+                    var cs2 = root.QueryCellColumnXY(new Cell2d(x, y, 0), 2).ToArray();
+
+                    Console.WriteLine($"[{x,3}, {y,3}] {cs0.Sum(c => c.Count),10:N0} {cs1.Sum(c => c.Count),10:N0} {cs2.Sum(c => c.Count),10:N0}");
+                }
+            }
+        }
+
         internal static void DumpPointSetKeys()
         {
             var storeFolder = @"T:\Vgm\Pinter_Dachboden_3Dworx_Store\Pinter_Dachboden_store";
@@ -464,6 +485,7 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
+            EnumerateCells2dTest();
             //DumpPointSetKeys();
 
             //EnumerateCellsTest();
@@ -486,7 +508,7 @@ namespace Aardvark.Geometry.Tests
 
             //new ImportTests().CanImportChunkWithoutColor();
 
-            TestE57();
+            //TestE57();
 
             //var store = PointCloud.OpenStore(@"G:\cells\3280_5503_0_10\pointcloud");
             //var pc = store.GetPointSet("3280_5503_0_10", default);
