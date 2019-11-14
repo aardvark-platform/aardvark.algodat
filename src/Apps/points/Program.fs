@@ -122,7 +122,7 @@ let export args =
 
     let gzipped = match args.gzipped with | Some x -> x | None -> false
 
-    let onProgress = Action<StorageExtensions.ExportPointSetInfo> (fun info -> printfn "%f" (info.Progress))
+    let onProgress = null // Action<StorageExtensions.ExportPointSetInfo> (fun info -> printfn "%f" (info.Progress))
     Report.BeginTimed("exporting")
     match args.inlining with
     | Some true -> inStore.InlinePointSet(key, outStore, gzipped)
