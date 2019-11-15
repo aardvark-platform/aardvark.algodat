@@ -27,7 +27,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Maps a sequence of point chunks to point sets, which are then reduced to one single point set.
         /// </summary>
-        public static PointSet MapReduce(this IEnumerable<Chunk> chunks, ImportConfig config)
+        public static IPointCloudNode MapReduce(this IEnumerable<Chunk> chunks, ImportConfig config)
         {
             //var foo = chunks.ToArray();
             var totalChunkCount = 0;
@@ -82,7 +82,7 @@ namespace Aardvark.Geometry.Points
             }
 
             var doneCount = 0;
-            var parts = new HashSet<PointSet>(pointsets);
+            var parts = new HashSet<IPointCloudNode>(pointsets);
             var final = pointsets.MapReduceParallel((first, second, ct2) =>
             {
                 lock (parts)
@@ -124,17 +124,17 @@ namespace Aardvark.Geometry.Points
 
                 lock (parts)
                 {
-                    parts.Add(merged);
+                    parts.Add(merged.Item1);
                 }
 
-                config.Storage.Add(merged.Id, merged);
+                config.Storage.Add(merged.Item1.Id, merged.Item1);
                 if (config.Verbose) Console.WriteLine($"[MapReduce] merged "
-                    + $"{formatCell(first.Root.Value.Cell)} + {formatCell(second.Root.Value.Cell)} -> {formatCell(merged.Root.Value.Cell)} "
-                    + $"({first.Root.Value.PointCountTree:N0} + {second.Root.Value.PointCountTree:N0} -> {merged.Root.Value.PointCountTree:N0})"
+                    + $"{formatCell(first.Root.Value.Cell)} + {formatCell(second.Root.Value.Cell)} -> {formatCell(merged.Item1.Cell)} "
+                    + $"({first.Root.Value.PointCountTree:N0} + {second.Root.Value.PointCountTree:N0} -> {merged.Item1.PointCountTree:N0})"
                     );
 
-                if (merged.Root.Value.PointCountTree == 0) throw new InvalidOperationException();
-                return merged;
+                if (merged.Item1.PointCountTree == 0) throw new InvalidOperationException();
+                return merged.Item1;
             },
             config.MaxDegreeOfParallelism
             );

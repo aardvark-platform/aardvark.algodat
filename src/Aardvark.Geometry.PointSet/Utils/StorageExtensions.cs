@@ -550,39 +550,39 @@ namespace Aardvark.Geometry.Points
 
         #region PointSet
 
-        public static byte[] Encode(this PointSet self)
-        {
-            var json = self.ToJson().ToString();
-            var buffer = Encoding.UTF8.GetBytes(json);
-            return buffer;
-        }
+        //public static byte[] Encode(this PointSet self)
+        //{
+        //    var json = self.ToJson().ToString();
+        //    var buffer = Encoding.UTF8.GetBytes(json);
+        //    return buffer;
+        //}
 
-        /// <summary></summary>
-        public static void Add(this Storage storage, string key, PointSet data)
-        {
-            storage.f_add(key, data, () => data.Encode());
-        }
-        /// <summary></summary>
-        public static void Add(this Storage storage, Guid key, PointSet data)
-            => Add(storage, key.ToString(), data);
+        ///// <summary></summary>
+        //public static void Add(this Storage storage, string key, PointSet data)
+        //{
+        //    storage.f_add(key, data, () => data.Encode());
+        //}
+        ///// <summary></summary>
+        //public static void Add(this Storage storage, Guid key, PointSet data)
+        //    => Add(storage, key.ToString(), data);
 
-        /// <summary></summary>
-        public static PointSet GetPointSet(this Storage storage, string key)
-        {
-            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (PointSet)o;
+        ///// <summary></summary>
+        //public static PointSet GetPointSet(this Storage storage, string key)
+        //{
+        //    if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (PointSet)o;
 
-            var buffer = storage.f_get(key);
-            if (buffer == null) return default;
-            var json = JObject.Parse(Encoding.UTF8.GetString(buffer));
-            var data = PointSet.Parse(json, storage);
+        //    var buffer = storage.f_get(key);
+        //    if (buffer == null) return default;
+        //    var json = JObject.Parse(Encoding.UTF8.GetString(buffer));
+        //    var data = PointSet.Parse(json, storage);
 
-            if (storage.HasCache) storage.Cache.Add(
-                key, data, buffer.Length, onRemove: default
-                );
-            return data;
-        }
-        public static PointSet GetPointSet(this Storage storage, Guid key)
-            => GetPointSet(storage, key.ToString());
+        //    if (storage.HasCache) storage.Cache.Add(
+        //        key, data, buffer.Length, onRemove: default
+        //        );
+        //    return data;
+        //}
+        //public static PointSet GetPointSet(this Storage storage, Guid key)
+        //    => GetPointSet(storage, key.ToString());
 
         #endregion
 
@@ -784,11 +784,11 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static ExportPointSetInfo ExportPointSet(this Storage self, string pointSetId, Storage exportStore, Action<ExportPointSetInfo> onProgress, bool verbose, CancellationToken ct)
         {
-            PointSet pointSet = null;
+            IPointCloudNode pointSet = null;
 
             try
             {
-                pointSet = self.GetPointSet(pointSetId);
+                pointSet = self.GetPointCloudNode(pointSetId);
                 if (pointSet == null)
                 {
                     Report.Warn($"No PointSet with id '{pointSetId}' in store. Trying to load node with this id.");
@@ -825,20 +825,19 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Exports complete pointset (metadata, nodes, referenced blobs) to another store.
         /// </summary>
-        private static ExportPointSetInfo ExportPointSet(this Storage self, PointSet pointset, Storage exportStore, Action<ExportPointSetInfo> onProgress, bool verbose, CancellationToken ct)
+        private static ExportPointSetInfo ExportPointSet(this Storage self, IPointCloudNode root, Storage exportStore, Action<ExportPointSetInfo> onProgress, bool verbose, CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested();
             if (onProgress == null) onProgress = _ => { };
 
-            var info = new ExportPointSetInfo(pointset.Root.Value.PointCountTree);
+            var info = new ExportPointSetInfo(root.PointCountTree);
 
-            var pointSetId = pointset.Id;
-            var root = pointset.Root.Value;
+            var pointSetId = root.Id;
             var totalNodeCount = root.CountNodes(outOfCore: true);
             if (verbose) Report.Line($"total node count = {totalNodeCount:N0}");
 
             // export pointset metainfo
-            exportStore.Add(pointSetId, pointset.Encode());
+            exportStore.Add(pointSetId, root.Encode());
             // Report.Line($"exported {pointSetId} (pointset metainfo, json)");
 
             // export octree (recursively)
@@ -929,28 +928,27 @@ namespace Aardvark.Geometry.Points
         /// Exports complete pointset (metadata, nodes, referenced blobs) to another store.
         /// </summary>
         public static void InlinePointSet(this Storage self, string pointSetId, Storage exportStore, bool gzipped)
-            => InlinePointSet(self, self.GetPointSet(pointSetId), exportStore, gzipped);
+            => InlinePointSet(self, self.GetPointCloudNode(pointSetId), exportStore, gzipped);
 
         /// <summary>
         /// Experimental!
         /// Exports complete pointset (metadata, nodes, referenced blobs) to another store.
         /// </summary>
         public static void InlinePointSet(this Storage self, Guid pointSetId, Storage exportStore, bool gzipped)
-            => InlinePointSet(self, self.GetPointSet(pointSetId), exportStore, gzipped);
+            => InlinePointSet(self, self.GetPointCloudNode(pointSetId), exportStore, gzipped);
 
         /// <summary>
         /// Experimental!
         /// Inlines and exports pointset to another store.
         /// </summary>
-        public static void InlinePointSet(this Storage self, PointSet pointset, Storage exportStore, bool gzipped)
+        public static void InlinePointSet(this Storage self, IPointCloudNode root, Storage exportStore, bool gzipped)
         {
-            var pointSetId = pointset.Id;
-            var root = pointset.Root.Value;
+            var pointSetId = root.Id;
             var totalNodeCount = root.CountNodes(outOfCore: true);
             Report.Line($"total node count = {totalNodeCount:N0}");
 
             // export pointset metainfo
-            exportStore.Add(pointSetId, pointset.Encode());
+            exportStore.Add(pointSetId, root.Encode());
             Report.Line($"exported {pointSetId} (pointset metainfo, json)");
 
             // export octree (recursively)

@@ -144,14 +144,6 @@ namespace Aardvark.Geometry.Points
         /// or null if octree does not cover given cell.
         /// Result chunk contains 0 points, if cell is covered by octree, but no points are inside given cell.
         /// </summary>
-        public static CellQueryResult QueryCell(this PointSet pointset, Cell cell)
-            => pointset.Root.Value != null ? QueryCell(pointset.Root.Value, cell) : null;
-
-        /// <summary>
-        /// Returns points in given cell,
-        /// or null if octree does not cover given cell.
-        /// Result chunk contains 0 points, if cell is covered by octree, but no points are inside given cell.
-        /// </summary>
         public static CellQueryResult QueryCell(this IPointCloudNode root, Cell cell)
         {
             if (root == null)
@@ -202,22 +194,8 @@ namespace Aardvark.Geometry.Points
         /// Enumerates all points in chunks of a given cell size (given by cellExponent).
         /// Cell size is 2^cellExponent, e.g. -2 gives 0.25, -1 gives 0.50, 0 gives 1.00, 1 gives 2.00, and so on.
         /// </summary>
-        public static IEnumerable<CellQueryResult> EnumerateCells(this PointSet pointset, int cellExponent)
-            => pointset.Root.Value != null ? EnumerateCells(pointset.Root.Value, cellExponent) : null;
-
-        /// <summary>
-        /// Enumerates all points in chunks of a given cell size (given by cellExponent).
-        /// Cell size is 2^cellExponent, e.g. -2 gives 0.25, -1 gives 0.50, 0 gives 1.00, 1 gives 2.00, and so on.
-        /// </summary>
         public static IEnumerable<CellQueryResult> EnumerateCells(this IPointCloudNode root, int cellExponent)
             => EnumerateCells(root, cellExponent, V3i.III);
-
-        /// <summary>
-        /// Enumerates all points in chunks of a given cell size (given by cellExponent).
-        /// Cell size is 2^cellExponent, e.g. -2 gives 0.25, -1 gives 0.50, 0 gives 1.00, 1 gives 2.00, and so on.
-        /// </summary>
-        public static IEnumerable<CellQueryResult> EnumerateCells(this PointSet pointset, int cellExponent, V3i stride)
-            => pointset.Root.Value != null ? EnumerateCells(pointset.Root.Value, cellExponent, stride) : null;
 
         /// <summary>
         /// Enumerates all points in chunks of a given cell size (given by cellExponent).
@@ -404,24 +382,8 @@ namespace Aardvark.Geometry.Points
         /// Cell size is 2^cellExponent, e.g. -2 gives 0.25, -1 gives 0.50, 0 gives 1.00, 1 gives 2.00, and so on.
         /// Stride is step size (default is V3i.III), which must be greater 0 for each coordinate axis.
         /// </summary>
-        public static IEnumerable<CellQueryResult2d> EnumerateCellColumns(this PointSet pointset, int cellExponent)
-            => pointset.Root.Value != null ? EnumerateCellColumns(pointset.Root.Value, cellExponent) : null;
-
-        /// <summary>
-        /// Enumerates all columns of a given cell size (given by cellExponent).
-        /// Cell size is 2^cellExponent, e.g. -2 gives 0.25, -1 gives 0.50, 0 gives 1.00, 1 gives 2.00, and so on.
-        /// Stride is step size (default is V3i.III), which must be greater 0 for each coordinate axis.
-        /// </summary>
         public static IEnumerable<CellQueryResult2d> EnumerateCellColumns(this IPointCloudNode root, int cellExponent)
             => EnumerateCellColumns(root, cellExponent, V2i.II);
-
-        /// <summary>
-        /// Enumerates all columns of a given cell size (given by cellExponent).
-        /// Cell size is 2^cellExponent, e.g. -2 gives 0.25, -1 gives 0.50, 0 gives 1.00, 1 gives 2.00, and so on.
-        /// Stride is step size (default is V3i.III), which must be greater 0 for each coordinate axis.
-        /// </summary>
-        public static IEnumerable<CellQueryResult2d> EnumerateCellColumns(this PointSet pointset, int cellExponent, V2i stride)
-            => pointset.Root.Value != null ? EnumerateCellColumns(pointset.Root.Value, cellExponent, stride) : null;
 
         /// <summary>
         /// Enumerates all columns of a given cell size (given by cellExponent).

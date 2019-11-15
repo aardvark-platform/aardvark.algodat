@@ -121,14 +121,11 @@ namespace Aardvark.Geometry.Points
             else return rs;
         }
    
-        private static async Task<PointSet> GenerateLod(this PointSet self, string key, Action callback, CancellationToken ct)
+        private static async Task<IPointCloudNode> GenerateLod(this IPointCloudNode self, string key, Action callback, CancellationToken ct)
         {
             try
             {
-                if (self.IsEmpty) return self;
-
-                var root = self.Root.Value as PointSetNode;
-                if (root == null) throw new InvalidOperationException(
+                if (!(self is PointSetNode root)) throw new InvalidOperationException(
                     "GenerateLod is only valid for PointSetNodes. Invariant 1d530d98-9ea4-4281-894f-bb91a6b8a2cf."
                     );
 
@@ -147,11 +144,11 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Returns new octree with LOD data created.
         /// </summary>
-        public static PointSet GenerateLod(this PointSet self, ImportConfig config)
+        public static IPointCloudNode GenerateLod(this IPointCloudNode self, ImportConfig config)
         {
-            if (self.Root == null) return self;
+            if (self == null) return self;
 
-            var nodeCount = self.Root?.Value?.CountNodes(true) ?? 0;
+            var nodeCount = self.CountNodes(true);
             var loddedNodesCount = 0L;
             var result = self.GenerateLod(config.Key, () =>
             {

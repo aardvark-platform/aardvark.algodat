@@ -25,12 +25,6 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Max tree depth.
         /// </summary>
-        public static int CountOctreeLevels(this PointSet self)
-            => CountOctreeLevels(self.Root.Value);
-
-        /// <summary>
-        /// Max tree depth.
-        /// </summary>
         public static int CountOctreeLevels(this IPointCloudNode root)
         {
             if (root == null) return 0;
@@ -38,16 +32,6 @@ namespace Aardvark.Geometry.Points
             return root.Subnodes.Select(n => CountOctreeLevels(n?.Value)).Max() + 1;
         }
         
-
-
-        /// <summary>
-        /// Finds deepest octree level which still contains less than given number of points. 
-        /// </summary>
-        public static int GetMaxOctreeLevelWithLessThanGivenPointCount(
-            this PointSet self, long maxPointCount
-            )
-            => GetMaxOctreeLevelWithLessThanGivenPointCount(self.Root.Value, maxPointCount);
-
         /// <summary>
         /// Finds deepest octree level which still contains less than given number of points. 
         /// </summary>
@@ -65,16 +49,6 @@ namespace Aardvark.Geometry.Points
             return imax - 1;
         }
 
-
-
-        /// <summary>
-        /// Finds deepest octree level which still contains less than given number of points within given bounds. 
-        /// </summary>
-        public static int GetMaxOctreeLevelWithLessThanGivenPointCount(
-            this PointSet self, long maxPointCount, Box3d bounds
-            )
-            => GetMaxOctreeLevelWithLessThanGivenPointCount(self.Root.Value, maxPointCount, bounds);
-
         /// <summary>
         /// Finds deepest octree level which still contains less than given number of points within given bounds. 
         /// </summary>
@@ -91,16 +65,6 @@ namespace Aardvark.Geometry.Points
 
             return imax - 1;
         }
-
-
-
-        /// <summary>
-        /// Gets total number of points in all cells at given octree level.
-        /// </summary>
-        public static long CountPointsInOctreeLevel(
-            this PointSet self, int level
-            )
-            => CountPointsInOctreeLevel(self.Root.Value, level);
 
         /// <summary>
         /// Gets total number of lod-points in all cells at given octree level.
@@ -128,18 +92,6 @@ namespace Aardvark.Geometry.Points
                 return sum;
             }
         }
-
-
-
-        /// <summary>
-        /// Gets approximate number of points at given octree level within given bounds.
-        /// For cells that only partially overlap the specified bounds all points are counted anyway.
-        /// For performance reasons, in order to avoid per-point bounds checks.
-        /// </summary>
-        public static long CountPointsInOctreeLevel(
-            this PointSet self, int level, Box3d bounds
-            )
-            => CountPointsInOctreeLevel(self.Root.Value, level, bounds);
 
         /// <summary>
         /// Gets approximate number of points at given octree level within given bounds.
@@ -170,16 +122,6 @@ namespace Aardvark.Geometry.Points
                 return sum;
             }
         }
-
-
-
-        /// <summary>
-        /// Returns points in given octree level, where level 0 is the root node.
-        /// </summary>
-        public static IEnumerable<Chunk> QueryPointsInOctreeLevel(
-            this PointSet self, int level
-            )
-            => QueryPointsInOctreeLevel(self.Root.Value, level);
 
         /// <summary>
         /// Returns lod points for given octree depth/front, where level 0 is the root node.
@@ -218,17 +160,6 @@ namespace Aardvark.Geometry.Points
                 }
             }
         }
-
-
-
-        /// <summary>
-        /// Returns lod points for given octree depth/front of cells intersecting given bounds, where level 0 is the root node.
-        /// Front will include leafs higher up than given level.
-        /// </summary>
-        public static IEnumerable<Chunk> QueryPointsInOctreeLevel(
-            this PointSet self, int level, Box3d bounds
-            )
-            => QueryPointsInOctreeLevel(self.Root.Value, level, bounds);
 
         /// <summary>
         /// Returns lod points for given octree depth/front of cells intersecting given bounds, where level 0 is the root node.

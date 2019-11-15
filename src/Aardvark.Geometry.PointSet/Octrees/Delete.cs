@@ -28,23 +28,6 @@ namespace Aardvark.Geometry.Points
     public static class DeleteExtensions
     {
         /// <summary>
-        /// Returns new pointset with all points deleted which are inside.
-        /// </summary>
-        public static PointSet Delete(this PointSet node,
-            Func<IPointCloudNode, bool> isNodeFullyInside,
-            Func<IPointCloudNode, bool> isNodeFullyOutside,
-            Func<V3d, bool> isPositionInside,
-            Storage storage, CancellationToken ct
-            )
-        {
-            var root = Delete(node.Root.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, storage, ct, node.SplitLimit);
-            var newId = Guid.NewGuid().ToString();
-            var result = new PointSet(node.Storage, newId, root?.Id, node.SplitLimit);
-            node.Storage.Add(newId, result);
-            return result;
-        }
-
-        /// <summary>
         /// Returns new tree with all points deleted which are inside.
         /// </summary>
         public static IPointCloudNode Delete(this IPointCloudNode root,
@@ -57,11 +40,9 @@ namespace Aardvark.Geometry.Points
         {
             if (root == null) return null;
 
-            var f = root as FilteredNode;
-            if (f != null)
+            if (root is FilteredNode f)
             {
-                var filter = f.Filter as ISpatialFilter;
-                if (filter != null)
+                if (f.Filter is ISpatialFilter filter)
                 {
                     bool remove(IPointCloudNode n) => filter.IsFullyInside(n) && isNodeFullyInside(n);
                     bool keep(IPointCloudNode n) => filter.IsFullyOutside(n) || isNodeFullyOutside(n);

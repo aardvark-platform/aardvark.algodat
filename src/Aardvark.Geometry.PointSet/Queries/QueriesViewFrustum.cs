@@ -25,7 +25,7 @@ namespace Aardvark.Geometry.Points
         /// Returns points inside view frustum (defined by viewProjection and canonicalViewVolume).
         /// </summary>
         public static IEnumerable<Chunk> QueryPointsInViewFrustum(
-            this PointSet self, M44d viewProjection, Box3d canonicalViewVolume
+            this IPointCloudNode self, M44d viewProjection, Box3d canonicalViewVolume
             )
         {
             var t = viewProjection.Inverse;

@@ -21,12 +21,6 @@ namespace Aardvark.Geometry.Points
     public static partial class Queries
     {
         /// <summary>
-        /// Enumerates (chunked) all points in pointset.
-        /// </summary>
-        public static IEnumerable<Chunk> QueryAllPoints(this PointSet self)
-            => QueryAllPoints(self.Root.Value);
-
-        /// <summary>
         /// Enumerates (chunked) all points in tree.
         /// </summary>
         public static IEnumerable<Chunk> QueryAllPoints(this IPointCloudNode node)

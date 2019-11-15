@@ -51,25 +51,24 @@ namespace Aardvark.Geometry.Points
             if (current.HasValue)
             {
                 yield return current.Value;
-                current = null;
             }
         }
 
         /// <summary>
         /// Imports single chunk.
         /// </summary>
-        public static PointSet Chunks(Chunk chunk, ImportConfig config)
+        public static IPointCloudNode Chunks(Chunk chunk, ImportConfig config)
             => Chunks(new[] { chunk }, config);
 
         /// <summary>
         /// Imports single chunk.
         /// </summary>
-        public static PointSet Import(Chunk chunk, ImportConfig config) => Chunks(chunk, config);
+        public static IPointCloudNode Import(Chunk chunk, ImportConfig config) => Chunks(chunk, config);
 
         /// <summary>
         /// Imports sequence of chunks.
         /// </summary>
-        public static PointSet Chunks(IEnumerable<Chunk> chunks, ImportConfig config)
+        public static IPointCloudNode Chunks(IEnumerable<Chunk> chunks, ImportConfig config)
         {
             config?.ProgressCallback(0.0);
 
@@ -127,13 +126,13 @@ namespace Aardvark.Geometry.Points
             // create LOD data
             Report.BeginTimed("generate lod");
             final = final.GenerateLod(config.WithRandomKey().WithProgressCallback(x => config.ProgressCallback(0.66 + x * 0.34)));
-            if (final.Root != null && config.Storage.GetPointCloudNode(final.Root.Value.Id) == null) throw new InvalidOperationException("Invariant 4d633e55-bf84-45d7-b9c3-c534a799242e.");
+            if (final != null && config.Storage.GetPointCloudNode(final.Id) == null) throw new InvalidOperationException("Invariant 4d633e55-bf84-45d7-b9c3-c534a799242e.");
             Report.End();
 
             // create final point set with specified key (or random key when no key is specified)
             var key = config.Key ?? Guid.NewGuid().ToString();
 #pragma warning disable CS0618 // Type or member is obsolete
-            final = new PointSet(config.Storage, key, final?.Root?.Value?.Id, config.OctreeSplitLimit);
+            final = new PointSet(config.Storage, key, final?.Id, config.OctreeSplitLimit);
 #pragma warning restore CS0618 // Type or member is obsolete
             config.Storage.Add(key, final);
 
@@ -143,6 +142,6 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Imports sequence of chunks.
         /// </summary>
-        public static PointSet Import(IEnumerable<Chunk> chunks, ImportConfig config) => Chunks(chunks, config);
+        public static IPointCloudNode Import(IEnumerable<Chunk> chunks, ImportConfig config) => Chunks(chunks, config);
     }
 }

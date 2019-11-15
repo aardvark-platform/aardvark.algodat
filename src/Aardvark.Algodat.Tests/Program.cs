@@ -41,7 +41,7 @@ namespace Aardvark.Geometry.Tests
 
             Report.EndTimed();
 
-            Report.Line($"count -> {pc.PointCount}");
+            Report.Line($"count -> {pc.PointCountTree}");
         }
         internal static void TestE57()
         {
@@ -270,7 +270,7 @@ namespace Aardvark.Geometry.Tests
             sw.Stop();
             Console.WriteLine($"{ps0.Length,20:N0}     {sw.Elapsed}");
 
-            PointSet CreateRandomPointsInUnitCube(int n, int splitLimit)
+            IPointCloudNode CreateRandomPointsInUnitCube(int n, int splitLimit)
             {
                 var r = new Random();
                 var ps = new V3d[n];
@@ -287,7 +287,7 @@ namespace Aardvark.Geometry.Tests
         internal static void TestLoadOldStore()
         {
             var store = new SimpleDiskStore(@"T:\Vgm\Stores\referenz_2019_21_store").ToPointCloudStore(cache: default);
-            var pc = store.GetPointSet("770ed498-5544-4313-9873-5449f2bd823e");
+            var pc = store.GetPointCloudNode("770ed498-5544-4313-9873-5449f2bd823e");
             var root = store.GetPointCloudNode("e06a1e87-5ab1-4c73-8c3f-3daf1bdac1d9");
         }
 
@@ -425,9 +425,9 @@ namespace Aardvark.Geometry.Tests
         public static void EnumerateCellsTest()
         {
             var store = new SimpleDiskStore(@"T:\Vgm\Pinter_Dachboden_3Dworx_Store\Pinter_Dachboden_store").ToPointCloudStore(cache: default);
-            var pc = store.GetPointSet("1bd9ab70-0245-4bf2-bbad-8929ae94105e");
+            var pc = store.GetPointCloudNode("1bd9ab70-0245-4bf2-bbad-8929ae94105e");
             var foo = store.GetPointCloudNode("1bd9ab70-0245-4bf2-bbad-8929ae94105e");
-            var root = pc.Root.Value;
+            var root = pc;
 
             foreach (var x in root.EnumerateCells(0))
             {
@@ -439,8 +439,8 @@ namespace Aardvark.Geometry.Tests
         public static void EnumerateCells2dTest()
         {
             var store = new SimpleDiskStore(@"T:\Vgm\Stores\kindergarten").ToPointCloudStore(cache: default);
-            var pc = store.GetPointSet("kindergarten");
-            var root = pc.Root.Value;
+            var pc = store.GetPointCloudNode("kindergarten");
+            var root = pc;
 
             foreach (var x in root.EnumerateCellColumns(0))
             {
@@ -470,8 +470,8 @@ namespace Aardvark.Geometry.Tests
                 var k = keys[i];
                 try
                 {
-                    var pc = store.GetPointSet(k);
-                    Console.WriteLine($"\r{k} (count={pc.PointCount:N0})");
+                    var pc = store.GetPointCloudNode(k);
+                    Console.WriteLine($"\r{k} (count={pc.PointCountTree:N0})");
                 }
                 catch { }
                 if (i % 100 == 0) Console.Write($"\r{100.0 * (i + 1) / keys.Length,6:0.00}%");

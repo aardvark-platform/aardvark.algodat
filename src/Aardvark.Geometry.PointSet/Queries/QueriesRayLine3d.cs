@@ -26,11 +26,11 @@ namespace Aardvark.Geometry.Points
         /// Points within given distance of a ray (at most 1000).
         /// </summary>
         public static IEnumerable<PointsNearObject<Line3d>> QueryPointsNearRay(
-            this PointSet self, Ray3d ray, double maxDistanceToRay
+            this IPointCloudNode self, Ray3d ray, double maxDistanceToRay
             )
         {
             ray.Direction = ray.Direction.Normalized;
-            var data = self.Root.Value;
+            var data = self;
             var bbox = data.BoundingBoxExactGlobal;
 
             var line = Clip(bbox, ray);
@@ -38,14 +38,6 @@ namespace Aardvark.Geometry.Points
 
             return self.QueryPointsNearLineSegment(line.Value, maxDistanceToRay);
         }
-
-        /// <summary>
-        /// Points within given distance of a line segment (at most 1000).
-        /// </summary>
-        public static IEnumerable<PointsNearObject<Line3d>> QueryPointsNearLineSegment(
-            this PointSet self, Line3d lineSegment, double maxDistanceToRay
-            )
-            => QueryPointsNearLineSegment(self.Root.Value, lineSegment, maxDistanceToRay);
 
         /// <summary>
         /// Points within given distance of a line segment (at most 1000).

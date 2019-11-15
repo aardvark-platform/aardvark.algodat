@@ -11,240 +11,240 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-using Aardvark.Base;
-using Aardvark.Data.Points;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Threading;
+//using Aardvark.Base;
+//using Aardvark.Data.Points;
+//using Newtonsoft.Json;
+//using Newtonsoft.Json.Linq;
+//using System;
+//using System.Collections.Generic;
+//using System.Threading;
 
-namespace Aardvark.Geometry.Points
-{
-    /// <summary>
-    /// An immutable set of points.
-    /// </summary>
-    public class PointSet
-    {
-        /// <summary>
-        /// The empty pointset.
-        /// </summary>
-        public static readonly PointSet Empty = new PointSet(null, "PointSet.Empty");
+//namespace Aardvark.Geometry.Points
+//{
+//    /// <summary>
+//    /// An immutable set of points.
+//    /// </summary>
+//    public class PointSet
+//    {
+//        /// <summary>
+//        /// The empty pointset.
+//        /// </summary>
+//        public static readonly PointSet Empty = new PointSet(null, "PointSet.Empty");
 
-        #region Construction
+//        #region Construction
 
-        /// <summary>
-        /// Creates PointSet from given points and colors.
-        /// </summary>
-        public static PointSet Create(Storage storage, string key,
-            IList<V3d> positions, IList<C4b> colors, IList<V3f> normals, IList<int> intensities, IList<byte> classifications,
-            int octreeSplitLimit, bool generateLod, bool isTemporaryImportNode, CancellationToken ct
-            )
-        {
-            if (key == null) throw new ArgumentNullException(nameof(key));
-            var bounds = new Box3d(positions);
-            var builder = InMemoryPointSet.Build(positions, colors, normals, intensities, classifications, bounds, octreeSplitLimit);
-            var root = builder.ToPointSetNode(storage, isTemporaryImportNode);
+//        /// <summary>
+//        /// Creates PointSet from given points and colors.
+//        /// </summary>
+//        public static PointSet Create(Storage storage, string key,
+//            IList<V3d> positions, IList<C4b> colors, IList<V3f> normals, IList<int> intensities, IList<byte> classifications,
+//            int octreeSplitLimit, bool generateLod, bool isTemporaryImportNode, CancellationToken ct
+//            )
+//        {
+//            if (key == null) throw new ArgumentNullException(nameof(key));
+//            var bounds = new Box3d(positions);
+//            var builder = InMemoryPointSet.Build(positions, colors, normals, intensities, classifications, bounds, octreeSplitLimit);
+//            var root = builder.ToPointSetNode(storage, isTemporaryImportNode);
 
-            var result = new PointSet(storage, key, root.Id, octreeSplitLimit);
+//            var result = new PointSet(storage, key, root.Id, octreeSplitLimit);
 
-            if (result.Root.Value == null) throw new InvalidOperationException("Invariant 5492d57b-add1-48bf-9721-5087c957d81e.");
+//            if (result.Root.Value == null) throw new InvalidOperationException("Invariant 5492d57b-add1-48bf-9721-5087c957d81e.");
 
-            var config = ImportConfig.Default
-                .WithRandomKey()
-                .WithCancellationToken(ct)
-                ;
+//            var config = ImportConfig.Default
+//                .WithRandomKey()
+//                .WithCancellationToken(ct)
+//                ;
 
-            if (generateLod)
-            {
-                result = result.GenerateLod(config);
-            }
+//            if (generateLod)
+//            {
+//                result = result.GenerateLod(config);
+//            }
 
-            return result;
-        }
+//            return result;
+//        }
 
-        /// <summary>
-        /// Creates pointset from given root cell.
-        /// </summary>
-        public PointSet(Storage storage, string key, Guid? rootCellId, int splitLimit)
-        {
-            Storage = storage;
-            Id = key ?? throw new ArgumentNullException(nameof(key));
-            SplitLimit = splitLimit;
+//        /// <summary>
+//        /// Creates pointset from given root cell.
+//        /// </summary>
+//        public PointSet(Storage storage, string key, Guid? rootCellId, int splitLimit)
+//        {
+//            Storage = storage;
+//            Id = key ?? throw new ArgumentNullException(nameof(key));
+//            SplitLimit = splitLimit;
 
-            if (rootCellId.HasValue)
-            {
-                Root = new PersistentRef<IPointCloudNode>(rootCellId.Value.ToString(), storage.GetPointCloudNode,
-                    k => { var (a, b) = storage.TryGetPointCloudNode(k); return (a, b); }
-                    );
-            }
-        }
+//            if (rootCellId.HasValue)
+//            {
+//                Root = new PersistentRef<IPointCloudNode>(rootCellId.Value.ToString(), storage.GetPointCloudNode,
+//                    k => { var (a, b) = storage.TryGetPointCloudNode(k); return (a, b); }
+//                    );
+//            }
+//        }
 
-        /// <summary>
-        /// Creates pointset from given root cell.
-        /// </summary>
-        public PointSet(Storage storage, string key, IPointCloudNode root, int splitLimit)
-        {
-            if (root == null) throw new ArgumentNullException(nameof(root));
+//        /// <summary>
+//        /// Creates pointset from given root cell.
+//        /// </summary>
+//        public PointSet(Storage storage, string key, IPointCloudNode root, int splitLimit)
+//        {
+//            if (root == null) throw new ArgumentNullException(nameof(root));
 
-            Storage = storage;
-            Id = key ?? throw new ArgumentNullException(nameof(key));
-            SplitLimit = splitLimit;
+//            Storage = storage;
+//            Id = key ?? throw new ArgumentNullException(nameof(key));
+//            SplitLimit = splitLimit;
 
-            if (key != null)
-            {
-                Root = new PersistentRef<IPointCloudNode>(root.Id.ToString(), storage.GetPointCloudNode, storage.TryGetPointCloudNode);
-            }
-        }
+//            if (key != null)
+//            {
+//                Root = new PersistentRef<IPointCloudNode>(root.Id.ToString(), storage.GetPointCloudNode, storage.TryGetPointCloudNode);
+//            }
+//        }
 
-        /// <summary>
-        /// Creates empty pointset.
-        /// </summary>
-        public PointSet(Storage storage, string key)
-        {
-            Storage = storage;
-            Id = key ?? throw new ArgumentNullException(nameof(key));
-            SplitLimit = 0;
-        }
+//        /// <summary>
+//        /// Creates empty pointset.
+//        /// </summary>
+//        public PointSet(Storage storage, string key)
+//        {
+//            Storage = storage;
+//            Id = key ?? throw new ArgumentNullException(nameof(key));
+//            SplitLimit = 0;
+//        }
 
-        #endregion
+//        #endregion
 
-        #region Properties (state to serialize)
+//        #region Properties (state to serialize)
 
-        /// <summary>
-        /// </summary>
-        public string Id { get; }
+//        /// <summary>
+//        /// </summary>
+//        public string Id { get; }
 
-        /// <summary>
-        /// </summary>
-        public int SplitLimit { get; }
-        
-        /// <summary>
-        /// </summary>
-        public PersistentRef<IPointCloudNode> Root { get; }
+//        /// <summary>
+//        /// </summary>
+//        public int SplitLimit { get; }
 
-        #endregion
+//        /// <summary>
+//        /// </summary>
+//        public PersistentRef<IPointCloudNode> Root { get; }
 
-        #region Json
+//        #endregion
 
-        /// <summary>
-        /// </summary>
-        public JObject ToJson()
-        {
-            return JObject.FromObject(new
-            {
-                Id,
-                RootCellId = Root?.Id,
-                OctreeId = Root?.Id,
-                SplitLimit
-            });
-        }
+//        #region Json
 
-        /// <summary>
-        /// </summary>
-        public static PointSet Parse(JObject json, Storage storage)
-        {
-            var octreeId = (string)json["OctreeId"] ?? (string)json["RootCellId"];
-            var octree = octreeId != null
-                ? new PersistentRef<IPointCloudNode>(octreeId, storage.GetPointCloudNode, storage.TryGetPointCloudNode)
-                : null 
-                ;
-            
-            // backwards compatibility: if split limit is not set, guess as number of points in root cell
-            var splitLimitRaw = (string)json["SplitLimit"];
-            var splitLimit = splitLimitRaw != null ? int.Parse(splitLimitRaw) : 8192;
+//        /// <summary>
+//        /// </summary>
+//        public JObject ToJson()
+//        {
+//            return JObject.FromObject(new
+//            {
+//                Id,
+//                RootCellId = Root?.Id,
+//                OctreeId = Root?.Id,
+//                SplitLimit
+//            });
+//        }
 
-            // id
-            var id = (string)json["Id"];
+//        /// <summary>
+//        /// </summary>
+//        public static PointSet Parse(JObject json, Storage storage)
+//        {
+//            var octreeId = (string)json["OctreeId"] ?? (string)json["RootCellId"];
+//            var octree = octreeId != null
+//                ? new PersistentRef<IPointCloudNode>(octreeId, storage.GetPointCloudNode, storage.TryGetPointCloudNode)
+//                : null 
+//                ;
 
-            //
-            return new PointSet(storage, id, octree?.Value ?? PointSetNode.Empty, splitLimit);
-        }
+//            // backwards compatibility: if split limit is not set, guess as number of points in root cell
+//            var splitLimitRaw = (string)json["SplitLimit"];
+//            var splitLimit = splitLimitRaw != null ? int.Parse(splitLimitRaw) : 8192;
 
-        #endregion
+//            // id
+//            var id = (string)json["Id"];
 
-        #region Properties (derived, non-serialized)
+//            //
+//            return new PointSet(storage, id, octree?.Value ?? PointSetNode.Empty, splitLimit);
+//        }
 
-        /// <summary>
-        /// </summary>
-        [JsonIgnore]
-        public readonly Storage Storage;
+//        #endregion
 
-        /// <summary>
-        /// Returns true if pointset is empty.
-        /// </summary>
-        public bool IsEmpty => Root == null || Root.Id == Guid.Empty.ToString();
+//        #region Properties (derived, non-serialized)
 
-        /// <summary>
-        /// Gets total number of points in dataset.
-        /// </summary>
-        public long PointCount => IsEmpty ? 0 : (Root?.Value?.PointCountTree ?? 0);
+//        /// <summary>
+//        /// </summary>
+//        [JsonIgnore]
+//        public readonly Storage Storage;
 
-        /// <summary>
-        /// Gets bounds of dataset root cell.
-        /// </summary>
-        public Box3d Bounds => Root?.Value?.Cell.BoundingBox ?? Box3d.Invalid;
+//        /// <summary>
+//        /// Returns true if pointset is empty.
+//        /// </summary>
+//        public bool IsEmpty => Root == null || Root.Id == Guid.Empty.ToString();
 
-        /// <summary>
-        /// Gets exact bounding box of all points from coarsest LoD.
-        /// </summary>
-        public Box3d BoundingBox
-        {
-            get
-            {
-                try
-                {
-                    return new Box3d(Root.Value.PositionsAbsolute);
-                }
-                catch (NullReferenceException)
-                {
-                    return Box3d.Invalid;
-                }
-            }
-        }
+//        /// <summary>
+//        /// Gets total number of points in dataset.
+//        /// </summary>
+//        public long PointCount => IsEmpty ? 0 : (Root?.Value?.PointCountTree ?? 0);
 
-        /// <summary></summary>
-        public bool HasColors => Root != null ? Root.Value.HasColors : false;
+//        /// <summary>
+//        /// Gets bounds of dataset root cell.
+//        /// </summary>
+//        public Box3d Bounds => Root?.Value?.Cell.BoundingBox ?? Box3d.Invalid;
 
-        /// <summary></summary>
-        public bool HasIntensities => Root != null ? Root.Value.HasIntensities : false;
-        
-        /// <summary></summary>
-        public bool HasClassifications => Root != null ? Root.Value.HasClassifications : false;
+//        /// <summary>
+//        /// Gets exact bounding box of all points from coarsest LoD.
+//        /// </summary>
+//        public Box3d BoundingBox
+//        {
+//            get
+//            {
+//                try
+//                {
+//                    return new Box3d(Root.Value.PositionsAbsolute);
+//                }
+//                catch (NullReferenceException)
+//                {
+//                    return Box3d.Invalid;
+//                }
+//            }
+//        }
 
-        /// <summary></summary>
-        public bool HasKdTree => Root != null ? Root.Value.HasKdTree : false;
-        
-        /// <summary></summary>
-        public bool HasNormals => Root != null ? Root.Value.HasNormals : false;
+//        /// <summary></summary>
+//        public bool HasColors => Root != null ? Root.Value.HasColors : false;
 
-        /// <summary></summary>
-        public bool HasPositions => Root != null ? Root.Value.HasPositions : false;
+//        /// <summary></summary>
+//        public bool HasIntensities => Root != null ? Root.Value.HasIntensities : false;
 
-        #endregion
+//        /// <summary></summary>
+//        public bool HasClassifications => Root != null ? Root.Value.HasClassifications : false;
 
-        #region Immutable operations
+//        /// <summary></summary>
+//        public bool HasKdTree => Root != null ? Root.Value.HasKdTree : false;
 
-        /// <summary>
-        /// </summary>
-        public PointSet Merge(PointSet other, Action<long> pointsMergedCallback, ImportConfig config)
-        {
-            if (other.IsEmpty) return this;
-            if (this.IsEmpty) return other;
-            if (this.Storage != other.Storage) throw new InvalidOperationException("Invariant 3267c283-3192-438b-a219-821d67ac5061.");
+//        /// <summary></summary>
+//        public bool HasNormals => Root != null ? Root.Value.HasNormals : false;
 
-            if (Root.Value is PointSetNode root && other.Root.Value is PointSetNode otherRoot)
-            {
-                var merged = root.Merge(otherRoot, pointsMergedCallback, config);
-                var id = $"{Guid.NewGuid()}.json";
-                return new PointSet(Storage, id, merged.Item1.Id, SplitLimit);
-            }
-            else
-            {
-                throw new InvalidOperationException($"Cannot merge {Root.Value.GetType()} with {other.Root.Value.GetType()}.");
-            }
-        }
+//        /// <summary></summary>
+//        public bool HasPositions => Root != null ? Root.Value.HasPositions : false;
 
-        #endregion
-    }
-}
+//        #endregion
+
+//        #region Immutable operations
+
+//        /// <summary>
+//        /// </summary>
+//        public PointSet Merge(PointSet other, Action<long> pointsMergedCallback, ImportConfig config)
+//        {
+//            if (other.IsEmpty) return this;
+//            if (this.IsEmpty) return other;
+//            if (this.Storage != other.Storage) throw new InvalidOperationException("Invariant 3267c283-3192-438b-a219-821d67ac5061.");
+
+//            if (Root.Value is PointSetNode root && other.Root.Value is PointSetNode otherRoot)
+//            {
+//                var merged = root.Merge(otherRoot, pointsMergedCallback, config);
+//                var id = $"{Guid.NewGuid()}.json";
+//                return new PointSet(Storage, id, merged.Item1.Id, SplitLimit);
+//            }
+//            else
+//            {
+//                throw new InvalidOperationException($"Cannot merge {Root.Value.GetType()} with {other.Root.Value.GetType()}.");
+//            }
+//        }
+
+//        #endregion
+//    }
+//}

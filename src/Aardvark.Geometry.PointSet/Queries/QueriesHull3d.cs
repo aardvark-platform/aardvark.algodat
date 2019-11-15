@@ -28,14 +28,6 @@ namespace Aardvark.Geometry.Points
         /// All points inside convex hull (including boundary).
         /// </summary>
         public static IEnumerable<Chunk> QueryPointsInsideConvexHull(
-            this PointSet self, Hull3d query, int minCellExponent = int.MinValue
-            )
-            => QueryPointsInsideConvexHull(self.Root.Value, query, minCellExponent);
-
-        /// <summary>
-        /// All points inside convex hull (including boundary).
-        /// </summary>
-        public static IEnumerable<Chunk> QueryPointsInsideConvexHull(
             this IPointCloudNode self, Hull3d query, int minCellExponent = int.MinValue
             )
             => QueryPoints(self,
@@ -43,14 +35,6 @@ namespace Aardvark.Geometry.Points
                 n => !query.Intersects(n.BoundingBoxExactGlobal),
                 p => query.Contains(p),
                 minCellExponent);
-
-        /// <summary>
-        /// All points outside convex hull (excluding boundary).
-        /// </summary>
-        public static IEnumerable<Chunk> QueryPointsOutsideConvexHull(
-            this PointSet self, Hull3d query, int minCellExponent = int.MinValue
-            )
-            => QueryPointsOutsideConvexHull(self.Root.Value, query, minCellExponent);
 
         /// <summary>
         /// All points outside convex hull (excluding boundary).
@@ -68,14 +52,6 @@ namespace Aardvark.Geometry.Points
         /// Counts points inside convex hull.
         /// </summary>
         internal static long CountPointsInsideConvexHull(
-            this PointSet self, Hull3d query, int minCellExponent = int.MinValue
-            )
-            => CountPointsInsideConvexHull(self.Root.Value, query, minCellExponent);
-
-        /// <summary>
-        /// Counts points inside convex hull.
-        /// </summary>
-        internal static long CountPointsInsideConvexHull(
             this IPointCloudNode self, Hull3d query, int minCellExponent = int.MinValue
             )
             => CountPoints(self,
@@ -83,14 +59,6 @@ namespace Aardvark.Geometry.Points
                 n => !query.Intersects(n.BoundingBoxExactGlobal),
                 p => query.Contains(p),
                 minCellExponent);
-
-        /// <summary>
-        /// Counts points outside convex hull.
-        /// </summary>
-        internal static long CountPointsOutsideConvexHull(
-            this PointSet self, Hull3d query, int minCellExponent = int.MinValue
-            )
-            => CountPointsOutsideConvexHull(self.Root.Value, query, minCellExponent);
 
         /// <summary>
         /// Counts points outside convex hull.
@@ -109,30 +77,12 @@ namespace Aardvark.Geometry.Points
         /// Result is always equal or greater than exact number.
         /// </summary>
         internal static long CountPointsApproximatelyInsideConvexHull(
-            this PointSet self, Hull3d query, int minCellExponent = int.MinValue
-            )
-            => CountPointsApproximatelyInsideConvexHull(self.Root.Value, query, minCellExponent);
-
-        /// <summary>
-        /// Counts points inside convex hull (approximately).
-        /// Result is always equal or greater than exact number.
-        /// </summary>
-        internal static long CountPointsApproximatelyInsideConvexHull(
             this IPointCloudNode self, Hull3d query, int minCellExponent = int.MinValue
             )
             => CountPointsApproximately(self,
                 n => query.Contains(n.BoundingBoxExactGlobal),
                 n => !query.Intersects(n.BoundingBoxExactGlobal),
                 minCellExponent);
-
-        /// <summary>
-        /// Counts points outside convex hull (approximately).
-        /// Result is always equal or greater than exact number.
-        /// </summary>
-        internal static long CountPointsApproximatelyOutsideConvexHull(
-            this PointSet self, Hull3d query, int minCellExponent = int.MinValue
-            )
-            => CountPointsApproximatelyOutsideConvexHull(self.Root.Value, query, minCellExponent);
 
         /// <summary>
         /// Counts points outside convex hull (approximately).

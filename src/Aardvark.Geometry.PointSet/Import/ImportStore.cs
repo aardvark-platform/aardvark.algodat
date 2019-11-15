@@ -34,19 +34,19 @@ namespace Aardvark.Geometry.Points
             if (!Directory.Exists(storePath)) return new PointFileInfo(storePath, PointCloudFileFormat.Unknown, 0, 0, Box3d.Invalid);
 
             var store = OpenStore(storePath, cache: default);
-            var pointset = store.GetPointSet(key);
-            return new PointFileInfo(storePath, PointCloudFileFormat.Store, 0L, pointset.PointCount, pointset.Bounds);
+            var pointset = store.GetPointCloudNode(key);
+            return new PointFileInfo(storePath, PointCloudFileFormat.Store, 0L, pointset.PointCountTree, pointset.BoundingBoxExactGlobal);
         }
 
         /// <summary>
         /// Loads point cloud from store.
         /// </summary>
-        public static PointSet Load(string key, string storePath, LruDictionary<string, object> cache)
+        public static IPointCloudNode Load(string key, string storePath, LruDictionary<string, object> cache)
         {
             if (!Directory.Exists(storePath)) throw new InvalidOperationException($"Not a store ({storePath}).");
 
             var store = OpenStore(storePath, cache);
-            var result = store.GetPointSet(key);
+            var result = store.GetPointCloudNode(key);
             if (result == null) throw new InvalidOperationException($"Key {key} not found in {storePath}.");
             return result;
         }
@@ -54,10 +54,10 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Loads point cloud from store.
         /// </summary>
-        public static PointSet Load(string key, Storage store)
+        public static IPointCloudNode Load(string key, Storage store)
         {
             if (store == null) throw new ArgumentNullException(nameof(store));
-            var result = store.GetPointSet(key);
+            var result = store.GetPointCloudNode(key);
             if (result == null) throw new InvalidOperationException($"Key {key} not found in store.");
             return result;
         }

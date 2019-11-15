@@ -27,7 +27,7 @@ namespace Aardvark.Geometry.Tests
     [TestFixture]
     public class QueryTests
     {
-        private static PointSet CreateRandomPointsInUnitCube(int n, int splitLimit)
+        private static IPointCloudNode CreateRandomPointsInUnitCube(int n, int splitLimit)
         {
             var r = new Random();
             var ps = new V3d[n];
@@ -40,7 +40,7 @@ namespace Aardvark.Geometry.Tests
             return PointCloud.Chunks(new Chunk(ps, null), config);
         }
 
-        private static PointSet CreateClusteredPointsInUnitCube(int n, int splitLimit)
+        private static IPointCloudNode CreateClusteredPointsInUnitCube(int n, int splitLimit)
         {
             var r = new Random();
             V3d randomPos() => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble());
@@ -55,7 +55,7 @@ namespace Aardvark.Geometry.Tests
             return PointCloud.Chunks(new Chunk(ps, null), config);
         }
 
-        private static PointSet CreateRegularPointsInUnitCube(int n, int splitLimit)
+        private static IPointCloudNode CreateRegularPointsInUnitCube(int n, int splitLimit)
         {
             var ps = new List<V3d>();
             var step = 1.0 / n;
@@ -110,7 +110,7 @@ namespace Aardvark.Geometry.Tests
         public void CanQueryPointsNearPoint_1()
         {
             var pointset = CreateRandomPointsInUnitCube(1024, 1024);
-            Assert.IsTrue(pointset.Root.Value.IsLeaf());
+            Assert.IsTrue(pointset.IsLeaf());
 
             var ps = pointset.QueryPointsNearPoint(new V3d(0.5, 0.5, 0.5), 1.0, 10000);
             Assert.IsTrue(ps.Count == 1024);
@@ -120,7 +120,7 @@ namespace Aardvark.Geometry.Tests
         public void CanQueryPointsNearPoint_2()
         {
             var pointset = CreateRandomPointsInUnitCube(1024, 32);
-            Assert.IsTrue(pointset.Root.Value.IsNotLeaf());
+            Assert.IsTrue(pointset.IsNotLeaf());
 
             var ps = pointset.QueryPointsNearPoint(new V3d(0.5, 0.5, 0.5), 1.0, 10000);
             Assert.IsTrue(ps.Count == 1024);
@@ -202,7 +202,7 @@ namespace Aardvark.Geometry.Tests
             var q = new Plane3d(V3d.ZAxis, new V3d(0.5, 0.5, 0.5));
 
             var ps = pointset.QueryPointsNearPlane(q, 0.1).SelectMany(x => x.Positions).ToList();
-            Assert.IsTrue(pointset.PointCount > ps.Count);
+            Assert.IsTrue(pointset.PointCountTree > ps.Count);
 
             var bb = new Box3d(new V3d(0.0, 0.0, 0.4), new V3d(1.0, 1.0, 0.6));
             foreach (var p in ps) Assert.IsTrue(bb.Contains(p));
@@ -242,7 +242,7 @@ namespace Aardvark.Geometry.Tests
             };
 
             var ps = pointset.QueryPointsNearPlanes(q, 0.1).SelectMany(x => x.Positions).ToList();
-            Assert.IsTrue(pointset.PointCount > ps.Count);
+            Assert.IsTrue(pointset.PointCountTree > ps.Count);
 
             var bb1 = new Box3d(new V3d(0.0, 0.0, 0.4), new V3d(1.0, 1.0, 0.6));
             var bb2 = new Box3d(new V3d(0.6, 0.0, 0.0), new V3d(0.8, 1.0, 1.0));
@@ -288,7 +288,7 @@ namespace Aardvark.Geometry.Tests
             var q = new Plane3d(V3d.ZAxis, new V3d(0.5, 0.5, 0.5));
 
             var ps = pointset.QueryPointsNotNearPlane(q, 0.1).SelectMany(x => x.Positions).ToList();
-            Assert.IsTrue(pointset.PointCount > ps.Count);
+            Assert.IsTrue(pointset.PointCountTree > ps.Count);
 
             var bb = new Box3d(new V3d(0.0, 0.0, 0.4), new V3d(1.0, 1.0, 0.6));
             foreach (var p in ps) Assert.IsTrue(!bb.Contains(p));
@@ -328,7 +328,7 @@ namespace Aardvark.Geometry.Tests
             };
 
             var ps = pointset.QueryPointsNotNearPlanes(q, 0.1).SelectMany(x => x.Positions).ToList();
-            Assert.IsTrue(pointset.PointCount > ps.Count);
+            Assert.IsTrue(pointset.PointCountTree > ps.Count);
 
             var bb1 = new Box3d(new V3d(0.0, 0.0, 0.4), new V3d(1.0, 1.0, 0.6));
             var bb2 = new Box3d(new V3d(0.6, 0.0, 0.0), new V3d(0.8, 1.0, 1.0));
@@ -387,7 +387,7 @@ namespace Aardvark.Geometry.Tests
             var q = new Polygon3d(new V3d(0.4, 0.4, 0.5), new V3d(0.6, 0.4, 0.5), new V3d(0.6, 0.6, 0.5), new V3d(0.4, 0.6, 0.5));
 
             var ps = pointset.QueryPointsNearPolygon(q, 0.1).SelectMany(x => x.Positions).ToList();
-            Assert.IsTrue(pointset.PointCount > ps.Count);
+            Assert.IsTrue(pointset.PointCountTree > ps.Count);
 
             var bb = new Box3d(new V3d(0.4, 0.4, 0.4), new V3d(0.6, 0.6, 0.6));
             foreach (var p in ps) Assert.IsTrue(bb.Contains(p));
@@ -471,7 +471,7 @@ namespace Aardvark.Geometry.Tests
             };
 
             var ps = pointset.QueryPointsNearPolygons(q, 0.1).SelectMany(x => x.Positions).ToList();
-            Assert.IsTrue(pointset.PointCount > ps.Count);
+            Assert.IsTrue(pointset.PointCountTree > ps.Count);
 
             var bb1 = new Box3d(new V3d(0.4, 0.4, 0.4), new V3d(0.6, 0.6, 0.6));
             var bb2 = new Box3d(new V3d(0.4, 0.4, 0.4), new V3d(0.6, 0.6, 0.6));
@@ -520,7 +520,7 @@ namespace Aardvark.Geometry.Tests
             var q = new Polygon3d(new V3d(0.4, 0.4, 0.5), new V3d(0.6, 0.4, 0.5), new V3d(0.6, 0.6, 0.5), new V3d(0.4, 0.6, 0.5));
 
             var ps = pointset.QueryPointsNotNearPolygon(q, 0.1).SelectMany(x => x.Positions).ToList();
-            Assert.IsTrue(pointset.PointCount > ps.Count);
+            Assert.IsTrue(pointset.PointCountTree > ps.Count);
 
             var bb = new Box3d(new V3d(0.4, 0.4, 0.4), new V3d(0.6, 0.6, 0.6));
             foreach (var p in ps) Assert.IsTrue(!bb.Contains(p));
@@ -568,7 +568,7 @@ namespace Aardvark.Geometry.Tests
             };
 
             var ps = pointset.QueryPointsNotNearPolygons(q, 0.1).SelectMany(x => x.Positions).ToList();
-            Assert.IsTrue(pointset.PointCount > ps.Count);
+            Assert.IsTrue(pointset.PointCountTree > ps.Count);
 
             var bb1 = new Box3d(new V3d(0.4, 0.4, 0.4), new V3d(0.6, 0.6, 0.6));
             var bb2 = new Box3d(new V3d(0.4, 0.4, 0.4), new V3d(0.6, 0.6, 0.6));
@@ -630,7 +630,7 @@ namespace Aardvark.Geometry.Tests
             var box = Box3d.FromMinAndSize(new V3d(0.5, 0.5, 0.0), new V3d(0.5, 0.5, 0.5));
             var result = new List<V3d>();
             foreach (var x in pointset.QueryPointsInsideBox(box)) result.AddRange(x.Positions);
-            Assert.IsTrue(result.Count > 0 && result.Count < pointset.PointCount);
+            Assert.IsTrue(result.Count > 0 && result.Count < pointset.PointCountTree);
 
             var resultBounds = new Box3d(result);
             Assert.IsTrue(box.Contains(resultBounds));
@@ -745,7 +745,7 @@ namespace Aardvark.Geometry.Tests
         {
             var storage = PointCloud.CreateInMemoryStore(cache: default);
             var pointcloud = CreateClusteredPointsInUnitCube(1000, 10);
-            var ns = pointcloud.Root.Value.ForEachNodeIntersecting(Hull3d.Create(Box3d.Unit), true).ToArray();
+            var ns = pointcloud.ForEachNodeIntersecting(Hull3d.Create(Box3d.Unit), true).ToArray();
             Assert.IsTrue(ns.Length > 0);
         }
 
@@ -753,7 +753,7 @@ namespace Aardvark.Geometry.Tests
 
         #region Octree levels
 
-        private static PointSet _CreateRandomPointSetForOctreeLevelTests()
+        private static IPointCloudNode _CreateRandomPointSetForOctreeLevelTests()
         {
             var r = new Random();
             var storage = PointSetTests.CreateStorage();
@@ -776,7 +776,7 @@ namespace Aardvark.Geometry.Tests
         {
             var pointset = _CreateRandomPointSetForOctreeLevelTests();
 
-            var depth = pointset.Root.Value.CountOctreeLevels();
+            var depth = pointset.CountOctreeLevels();
             Assert.IsTrue(depth > 0);
 
             for (var i = 0; i < depth; i++)
@@ -795,7 +795,7 @@ namespace Aardvark.Geometry.Tests
             var pointset = _CreateRandomPointSetForOctreeLevelTests();
             var bounds = Box3d.FromMinAndSize(new V3d(0.2, 0.4, 0.8), new V3d(0.2, 0.15, 0.1));
 
-            var depth = pointset.Root.Value.CountOctreeLevels();
+            var depth = pointset.CountOctreeLevels();
             Assert.IsTrue(depth > 0);
 
             for (var i = 1; i < depth; i++)
@@ -816,7 +816,7 @@ namespace Aardvark.Geometry.Tests
         {
             var pointset = _CreateRandomPointSetForOctreeLevelTests();
 
-            var depth = pointset.Root.Value.CountOctreeLevels();
+            var depth = pointset.CountOctreeLevels();
             Assert.IsTrue(depth > 0);
             
             foreach (var _ in pointset.QueryPointsInOctreeLevel(-1)) Assert.Fail();
@@ -827,7 +827,7 @@ namespace Aardvark.Geometry.Tests
         {
             var pointset = _CreateRandomPointSetForOctreeLevelTests();
 
-            var depth = pointset.Root.Value.CountOctreeLevels();
+            var depth = pointset.CountOctreeLevels();
             Assert.IsTrue(depth > 0);
 
             // query octree level depth*2 -> should not crash and give number of original points
@@ -842,7 +842,7 @@ namespace Aardvark.Geometry.Tests
         {
             var pointset = _CreateRandomPointSetForOctreeLevelTests();
 
-            var depth = pointset.Root.Value.CountOctreeLevels();
+            var depth = pointset.CountOctreeLevels();
             Assert.IsTrue(depth > 0);
 
             var countPoints = 0L;
@@ -860,7 +860,7 @@ namespace Aardvark.Geometry.Tests
             var pointset = _CreateRandomPointSetForOctreeLevelTests();
             var bounds = Box3d.FromMinAndSize(new V3d(0.2, 0.4, 0.8), new V3d(0.2, 0.15, 0.1));
 
-            var depth = pointset.Root.Value.CountOctreeLevels();
+            var depth = pointset.CountOctreeLevels();
             Assert.IsTrue(depth > 0);
             
             for (var i = 1; i < depth; i++)
@@ -876,7 +876,7 @@ namespace Aardvark.Geometry.Tests
         {
             var pointset = _CreateRandomPointSetForOctreeLevelTests();
 
-            var depth = pointset.Root.Value.CountOctreeLevels();
+            var depth = pointset.CountOctreeLevels();
             Assert.IsTrue(depth > 0);
 
             // query point count at level depth*2 -> should not crash and give number of original points
@@ -898,7 +898,7 @@ namespace Aardvark.Geometry.Tests
         {
             var pointset = _CreateRandomPointSetForOctreeLevelTests();
 
-            var depth = pointset.Root.Value.CountOctreeLevels();
+            var depth = pointset.CountOctreeLevels();
             Assert.IsTrue(depth > 0);
 
             var l0 = pointset.GetMaxOctreeLevelWithLessThanGivenPointCount(0);
@@ -942,7 +942,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CanQueryPointsWithEverythingInside_Many()
         {
-            var root = CreateRegularPointsInUnitCube(4, 1).Root.Value;
+            var root = CreateRegularPointsInUnitCube(4, 1);
             Assert.IsTrue(root.PointCountTree == 4 * 4 * 4);
 
             var rs1 = root.QueryPoints(cell => true, cell => false, p => true).SelectMany(x => x.Positions).ToArray();
@@ -966,7 +966,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CanQueryPointsWithEverythingOutside_Many()
         {
-            var root = CreateRegularPointsInUnitCube(4, 1).Root.Value;
+            var root = CreateRegularPointsInUnitCube(4, 1);
             Assert.IsTrue(root.PointCountTree == 4 * 4 * 4);
 
             var rs1 = root.QueryPoints(cell => false, cell => true, p => false).SelectMany(x => x.Positions).ToArray();
@@ -983,8 +983,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void EnumerateSingleCells()
         {
-            var ps = CreateRandomPointsInUnitCube(8000, 100);
-            var n = ps.Root.Value;
+            var n = CreateRandomPointsInUnitCube(8000, 100);
 
             var r = n.QueryCell(new Cell(1,0,1,-1));
             Assert.IsTrue(r.Cell == new Cell(1, 0, 1, -1));
@@ -996,7 +995,7 @@ namespace Aardvark.Geometry.Tests
         public void EnumerateSingleCells_ViaView()
         {
             var ps = CreateRandomPointsInUnitCube(8000, 100);
-            var n = FilteredNode.Create(ps.Root.Value, new FilterInsideBox3d(new Box3d(new V3d(0, 0, 0), new V3d(1, 1, 0.5))));
+            var n = FilteredNode.Create(ps, new FilterInsideBox3d(new Box3d(new V3d(0, 0, 0), new V3d(1, 1, 0.5))));
 
             var r = n.QueryCell(new Cell(1, 0, 0, -1));
             Assert.IsTrue(r.Cell == new Cell(1, 0, 0, -1));
@@ -1008,7 +1007,7 @@ namespace Aardvark.Geometry.Tests
         public void EnumerateSingleCells_ViaView_2()
         {
             var ps = CreateRandomPointsInUnitCube(8000, 100);
-            var n = FilteredNode.Create(ps.Root.Value, new FilterInsideBox3d(new Box3d(new V3d(0, 0, 0), new V3d(1, 1, 0.5))));
+            var n = FilteredNode.Create(ps, new FilterInsideBox3d(new Box3d(new V3d(0, 0, 0), new V3d(1, 1, 0.5))));
 
             var r = n.QueryCell(new Cell(1, 0, 1, -1));
             Assert.IsTrue(r.Cell == new Cell(1, 0, 1, -1));
@@ -1023,8 +1022,7 @@ namespace Aardvark.Geometry.Tests
         {
             //for (var i = 0; i < 100; i++)
             {
-                var ps = CreateRandomPointsInUnitCube(8000, 100);
-                var n = ps.Root.Value;
+                var n = CreateRandomPointsInUnitCube(8000, 100);
 
                 var l0 = n.EnumerateCells(0).ToArray();
                 Assert.IsTrue(l0.Length == 1);
@@ -1052,8 +1050,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void EnumerateCells_2()
         {
-            var ps = CreateRandomPointsInUnitCube(8000, 100);
-            var n = ps.Root.Value;
+            var n = CreateRandomPointsInUnitCube(8000, 100);
 
             var l0 = n.EnumerateCells(1).ToArray();
             Assert.IsTrue(l0.Length == 1);
@@ -1067,7 +1064,7 @@ namespace Aardvark.Geometry.Tests
             //for (var i = 0; i < 100; i++)
             {
                 var ps = CreateRandomPointsInUnitCube(8000, 100);
-                var n = FilteredNode.Create(ps.Root.Value, new FilterInsideBox3d(new Box3d(new V3d(0, 0, 0), new V3d(1, 1, 0.5))));
+                var n = FilteredNode.Create(ps, new FilterInsideBox3d(new Box3d(new V3d(0, 0, 0), new V3d(1, 1, 0.5))));
 
                 var l0 = n.EnumerateCells(0).ToArray();
                 Assert.IsTrue(l0.Length == 1);
@@ -1092,8 +1089,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void EnumerateCells_Linq()
         {
-            var ps = CreateRandomPointsInUnitCube(8000, 100);
-            var n = ps.Root.Value;
+            var n = CreateRandomPointsInUnitCube(8000, 100);
 
             var l1 = n.EnumerateCells(-1).Where(x => x.Cell.Z == 0).ToArray();
             Assert.IsTrue(l1.Length == 4);
@@ -1113,8 +1109,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void EnumerateCells_Kernel()
         {
-            var ps = CreateRandomPointsInUnitCube(8000, 100);
-            var n = ps.Root.Value;
+            var n = CreateRandomPointsInUnitCube(8000, 100);
             var k = new Box3i(new V3i(-1,-1,-1), new V3i(+1,+1,+1));
 
             var dict = new Dictionary<Cell, Queries.CellQueryResult>(n.EnumerateCells(-1).Select(x => new KeyValuePair<Cell, Queries.CellQueryResult>(x.Cell, x)));
@@ -1132,8 +1127,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void EnumerateCells_Kernel_2()
         {
-            var ps = CreateRandomPointsInUnitCube(64000, 100);
-            var n = ps.Root.Value;
+            var n = CreateRandomPointsInUnitCube(64000, 100);
             var k = new Box3i(new V3i(-1, -1, -1), new V3i(+1, +1, +1));
 
             var dict = new Dictionary<Cell, Queries.CellQueryResult>(n.EnumerateCells(-2).Select(x => new KeyValuePair<Cell, Queries.CellQueryResult>(x.Cell, x)));

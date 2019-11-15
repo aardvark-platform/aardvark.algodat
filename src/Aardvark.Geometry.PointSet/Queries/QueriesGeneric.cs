@@ -26,16 +26,6 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        public static IEnumerable<Chunk> QueryPoints(this PointSet node,
-            Func<IPointCloudNode, bool> isNodeFullyInside,
-            Func<IPointCloudNode, bool> isNodeFullyOutside,
-            Func<V3d, bool> isPositionInside,
-            int minCellExponent = int.MinValue
-            )
-            => QueryPoints(node.Root.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, minCellExponent);
-
-        /// <summary>
-        /// </summary>
         public static IEnumerable<Chunk> QueryPoints(this IPointCloudNode node,
             Func<IPointCloudNode, bool> isNodeFullyInside,
             Func<IPointCloudNode, bool> isNodeFullyOutside,
@@ -117,17 +107,6 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Exact count.
         /// </summary>
-        public static long CountPoints(this PointSet node,
-            Func<IPointCloudNode, bool> isNodeFullyInside,
-            Func<IPointCloudNode, bool> isNodeFullyOutside,
-            Func<V3d, bool> isPositionInside,
-            int minCellExponent = int.MinValue
-            )
-            => CountPoints(node.Root.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, minCellExponent);
-
-        /// <summary>
-        /// Exact count.
-        /// </summary>
         public static long CountPoints(this IPointCloudNode node,
             Func<IPointCloudNode, bool> isNodeFullyInside,
             Func<IPointCloudNode, bool> isNodeFullyOutside,
@@ -173,17 +152,6 @@ namespace Aardvark.Geometry.Points
         #endregion
 
         #region Count approximately
-
-        /// <summary>
-        /// Approximate count (cell granularity).
-        /// Result is always equal or greater than exact number.
-        /// </summary>
-        public static long CountPointsApproximately(this PointSet node,
-            Func<IPointCloudNode, bool> isNodeFullyInside,
-            Func<IPointCloudNode, bool> isNodeFullyOutside,
-            int minCellExponent = int.MinValue
-            )
-            => CountPointsApproximately(node.Root.Value, isNodeFullyInside, isNodeFullyOutside, minCellExponent);
 
         /// <summary>
         /// Approximate count (cell granularity).

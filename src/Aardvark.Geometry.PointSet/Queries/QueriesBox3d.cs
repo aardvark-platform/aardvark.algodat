@@ -28,14 +28,6 @@ namespace Aardvark.Geometry.Points
         /// All points inside axis-aligned box (including boundary).
         /// </summary>
         public static IEnumerable<Chunk> QueryPointsInsideBox(
-            this PointSet self, Box3d query, int minCellExponent = int.MinValue
-            )
-            => QueryPointsInsideBox(self.Root.Value, query, minCellExponent);
-
-        /// <summary>
-        /// All points inside axis-aligned box (including boundary).
-        /// </summary>
-        public static IEnumerable<Chunk> QueryPointsInsideBox(
             this IPointCloudNode self, Box3d query, int minCellExponent = int.MinValue
             )
             => QueryPoints(self,
@@ -43,14 +35,6 @@ namespace Aardvark.Geometry.Points
                 n => !query.Intersects(n.BoundingBoxExactGlobal),
                 p => query.Contains(p),
                 minCellExponent);
-
-        /// <summary>
-        /// All points outside axis-aligned box (excluding boundary).
-        /// </summary>
-        public static IEnumerable<Chunk> QueryPointsOutsideBox(
-            this PointSet self, Box3d query, int minCellExponent = int.MinValue
-            )
-            => QueryPointsOutsideBox(self.Root.Value, query, minCellExponent);
 
         /// <summary>
         /// All points outside axis-aligned box (excluding boundary).
@@ -72,14 +56,6 @@ namespace Aardvark.Geometry.Points
         /// Counts points inside axis-aligned box.
         /// </summary>
         public static long CountPointsInsideBox(
-            this PointSet self, Box3d query, int minCellExponent = int.MinValue
-            )
-            => CountPointsInsideBox(self.Root.Value, query, minCellExponent);
-
-        /// <summary>
-        /// Counts points inside axis-aligned box.
-        /// </summary>
-        public static long CountPointsInsideBox(
             this IPointCloudNode self, Box3d query, int minCellExponent = int.MinValue
             )
             => CountPoints(self,
@@ -87,14 +63,6 @@ namespace Aardvark.Geometry.Points
                 n => !query.Intersects(n.BoundingBoxExactGlobal),
                 p => query.Contains(p),
                 minCellExponent);
-
-        /// <summary>
-        /// Counts points outside axis-aligned box.
-        /// </summary>
-        public static long CountPointsOutsideBox(
-            this PointSet self, Box3d query, int minCellExponent = int.MinValue
-            )
-            => CountPointsOutsideBox(self.Root.Value, query, minCellExponent);
 
         /// <summary>
         /// Counts points outside axis-aligned box.
@@ -118,32 +86,12 @@ namespace Aardvark.Geometry.Points
         /// Faster than CountPointsInsideBox.
         /// </summary>
         public static long CountPointsApproximatelyInsideBox(
-            this PointSet self, Box3d query, int minCellExponent = int.MinValue
-            )
-            => CountPointsApproximatelyInsideBox(self.Root.Value, query, minCellExponent);
-
-        /// <summary>
-        /// Counts points approximately inside axis-aligned box (cell granularity).
-        /// Result is always equal or greater than exact number.
-        /// Faster than CountPointsInsideBox.
-        /// </summary>
-        public static long CountPointsApproximatelyInsideBox(
             this IPointCloudNode self, Box3d query, int minCellExponent = int.MinValue
             )
             => CountPointsApproximately(self,
                 n => query.Contains(n.BoundingBoxExactGlobal),
                 n => !query.Intersects(n.BoundingBoxExactGlobal),
                 minCellExponent);
-
-        /// <summary>
-        /// Counts points approximately outside axis-aligned box (cell granularity).
-        /// Result is always equal or greater than exact number.
-        /// Faster than CountPointsOutsideBox.
-        /// </summary>
-        public static long CountPointsApproximatelyOutsideBox(
-            this PointSet self, Box3d query, int minCellExponent = int.MinValue
-            )
-            => CountPointsApproximatelyOutsideBox(self.Root.Value, query, minCellExponent);
 
         /// <summary>
         /// Counts points approximately outside axis-aligned box (cell granularity).
