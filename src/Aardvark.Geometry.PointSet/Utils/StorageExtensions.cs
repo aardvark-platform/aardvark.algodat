@@ -761,11 +761,6 @@ namespace Aardvark.Geometry.Points
             /// </summary>
             public readonly long ProcessedLeafPointCount;
 
-            /// <summary>
-            /// Error message if status is ExportPointSetStatus.Failed.
-            /// </summary>
-            public readonly string ErrorMessage;
-
             public ExportPointSetInfo(long pointCountTree, long processedLeafPointCount = 0L)
             {
                 PointCountTree = pointCountTree;
