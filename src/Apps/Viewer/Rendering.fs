@@ -183,77 +183,9 @@ module Rendering =
         let v = (camera |> Mod.map CameraView.viewTrafo)
         let p = (frustum |> Mod.map Frustum.projTrafo)
 
-        let picked = 
-            Mod.custom ( fun a ->
-                let ndc = win.Mouse.Position.GetValue a |> (fun pp -> pp.NormalizedPosition * V2d(2,-2) + V2d(-1,1))
-                
-                match (picktrees |> MMap.toMod).GetValue a |> Seq.tryHead with
-                | None -> 
-                    false, [||]
-                | Some (_,tree) -> 
-                    let s = win.Sizes.GetValue a
-                    let vp = v.GetValue a * p.GetValue a
-                    let loc = vp.Backward.TransformPosProj(V3d(0.0,0.0,-100000000.0))
-                    let npp = vp.Backward.TransformPosProj(V3d(ndc, -1.0))
-                    let l = loc
-                    let n = npp
-
-                    let pixelRadius = 10.0
-                    let e = Ellipse2d(ndc, 2.0 * V2d.IO * pixelRadius / float s.X, 2.0 * V2d.OI * pixelRadius / float s.Y)
-
-                    let d2 (pt : V3d) =
-                        vp.Forward.TransformPosProj(pt).XY - ndc |> Vec.lengthSquared
-
-                    let pts = 
-                        tree.FindPoints(vp, e)
-                        |> Seq.truncate 30
-                        |> Seq.sortBy (fun p -> d2 p.Value.WorldPosition)
-                        |> Seq.truncate 1
-                        |> Seq.map (fun p -> V3f p.Value.WorldPosition)
-                        |> Seq.toArray
-
-                    pts.Length > 0, pts
-            )
-
-        let afterMain = RenderPass.after "aftermain" RenderPassOrder.Arbitrary RenderPass.main
-
-        let thing =
-            Sg.draw IndexedGeometryMode.PointList
-            |> Sg.vertexAttribute DefaultSemantic.Positions (Mod.map snd picked)
-            |> Sg.shader {
-                do! DefaultSurfaces.trafo
-                do! DefaultSurfaces.pointSprite
-                do! DefaultSurfaces.constantColor C4f.Red
-                do! DefaultSurfaces.pointSpriteFragment
-            }
-            |> Sg.uniform "PointSize" (Mod.constant 10.0)
-            |> Sg.uniform "ViewportSize" win.Sizes
-            |> Sg.depthTest (Mod.constant DepthTestMode.None)
-            |> Sg.pass afterMain 
-
         let reset = Mod.init 0 
         //let filter : ModRef<Option<Hull3d>> = Mod.init None
 
-
-        let stupidFilter =
-            let right (center : V3d) (p : V3d) = p.X >= center.X
-            { new ISpatialFilter with
-                member x.Serialize() = failwith ""
-                member x.Contains (pt : V3d) = true
-                member x.IsFullyInside (n : Box3d) = false
-                member x.IsFullyOutside (n : Box3d) = false
-                member x.IsFullyInside (n : IPointCloudNode) = x.IsFullyInside n.BoundingBoxExactGlobal
-                member x.IsFullyOutside (n : IPointCloudNode) = x.IsFullyOutside n.BoundingBoxExactGlobal
-                member x.Clip(bb) = bb
-                member x.FilterPoints(node, _set) =
-                    let ps = node.Positions.Value 
-                    let c = node.Center
-                    let set = System.Collections.Generic.HashSet<int>()
-                    for i in 0 .. ps.Length - 1 do
-                        if right c (c + V3d ps.[i]) then
-                            set.Add i |> ignore
-                    set
-            }
 
         let instances = 
             aset {
@@ -276,7 +208,8 @@ module Rendering =
                 //if msaa then
                 //    do! PointSetShaders.lodPointCircularMSAA
                 //else
-                do! PointSetShaders.lodPointCircular
+                do! DefaultSurfaces.vertexColor
+                //do! PointSetShaders.lodPointCircular
                 //do! PointSetShaders.envMap
             }
             //|> Sg.andAlso thing

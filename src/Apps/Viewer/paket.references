@@ -5,3 +5,4 @@ Aardvark.Application.Slim.GL
 Aardvark.Application.Utilities
 Aardvark.Geometry
 FSharp.Core
+MIConvexHull

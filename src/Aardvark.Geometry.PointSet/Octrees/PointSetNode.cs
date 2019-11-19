@@ -299,60 +299,60 @@ namespace Aardvark.Geometry.Points
 
             #endregion
 
-            //#region PointDistance*
+            #region PointDistance*
 
-            //if (HasPositions && HasKdTree && (!HasPointDistanceAverage || !HasPointDistanceStandardDeviation))
-            //{
-            //    if (isObsoleteFormat)
-            //    {
-            //        Data = Data.Add(Durable.Octree.AveragePointDistance, 0.0f);
-            //        Data = Data.Add(Durable.Octree.AveragePointDistanceStdDev, 0.0f);
-            //    }
-            //    else
-            //    {
-            //        var ps = Positions.Value;
-            //        var kd = KdTree.Value;
-            //        if (ps.Length < 2)
-            //        {
-            //            if (!HasPointDistanceAverage)
-            //            {
-            //                Data = Data.Add(Durable.Octree.AveragePointDistance, 0.0f);
-            //            }
-            //            if (!HasPointDistanceStandardDeviation)
-            //            {
-            //                Data = Data.Add(Durable.Octree.AveragePointDistanceStdDev, 0.0f);
-            //            }
-            //        }
-            //        else if (ps.Length == 3)
-            //        {
-            //            var d = V3f.Distance(ps[0], ps[1]);
-            //            if (!HasPointDistanceAverage)
-            //            {
-            //                Data = Data.Add(Durable.Octree.AveragePointDistance, d);
-            //            }
-            //            if (!HasPointDistanceStandardDeviation)
-            //            {
-            //                Data = Data.Add(Durable.Octree.AveragePointDistanceStdDev, 0.0f);
-            //            }
-            //        }
-            //        else
-            //        {
-            //            var indexDists = ps.Map(p => kd.GetClosest(p, float.MaxValue, 2));
-            //            var ds = indexDists.Map(x => V3f.Distance(ps[x[0].Index], ps[x[1].Index]));
-            //            var (avg, sd) = ds.ComputeAvgAndStdDev();
-            //            if (!HasPointDistanceAverage)
-            //            {
-            //                Data = Data.Add(Durable.Octree.AveragePointDistance, avg);
-            //            }
-            //            if (!HasPointDistanceStandardDeviation)
-            //            {
-            //                Data = Data.Add(Durable.Octree.AveragePointDistanceStdDev, sd);
-            //            }
-            //        }
-            //    }
-            //}
+            if (HasPositions && HasKdTree && (!HasPointDistanceAverage || !HasPointDistanceStandardDeviation))
+            {
+                if (isObsoleteFormat)
+                {
+                    Data = Data.Add(Durable.Octree.AveragePointDistance, 0.0f);
+                    Data = Data.Add(Durable.Octree.AveragePointDistanceStdDev, 0.0f);
+                }
+                else
+                {
+                    var ps = Positions.Value;
+                    var kd = KdTree.Value;
+                    if (ps.Length < 2)
+                    {
+                        if (!HasPointDistanceAverage)
+                        {
+                            Data = Data.Add(Durable.Octree.AveragePointDistance, 0.0f);
+                        }
+                        if (!HasPointDistanceStandardDeviation)
+                        {
+                            Data = Data.Add(Durable.Octree.AveragePointDistanceStdDev, 0.0f);
+                        }
+                    }
+                    else if (ps.Length == 3)
+                    {
+                        var d = V3f.Distance(ps[0], ps[1]);
+                        if (!HasPointDistanceAverage)
+                        {
+                            Data = Data.Add(Durable.Octree.AveragePointDistance, d);
+                        }
+                        if (!HasPointDistanceStandardDeviation)
+                        {
+                            Data = Data.Add(Durable.Octree.AveragePointDistanceStdDev, 0.0f);
+                        }
+                    }
+                    else
+                    {
+                        var indexDists = ps.Map(p => kd.GetClosest(p, float.MaxValue, 2));
+                        var ds = indexDists.Map(x => V3f.Distance(ps[x[0].Index], ps[x[1].Index]));
+                        var (avg, sd) = ds.ComputeAvgAndStdDev();
+                        if (!HasPointDistanceAverage)
+                        {
+                            Data = Data.Add(Durable.Octree.AveragePointDistance, avg);
+                        }
+                        if (!HasPointDistanceStandardDeviation)
+                        {
+                            Data = Data.Add(Durable.Octree.AveragePointDistanceStdDev, sd);
+                        }
+                    }
+                }
+            }
 
-            //#endregion
+            #endregion
 
             if (writeToStore)
             {

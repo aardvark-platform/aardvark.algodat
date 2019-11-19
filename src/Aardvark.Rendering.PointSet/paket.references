@@ -3,3 +3,4 @@ Aardvark.SceneGraph
 Aardvark.Geometry
 Aardvark.Data.Durable
 FSharp.Core
+MIConvexHull

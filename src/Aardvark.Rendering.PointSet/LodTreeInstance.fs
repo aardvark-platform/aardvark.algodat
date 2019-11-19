@@ -11,6 +11,151 @@ open Aardvark.Data.Points.Import
 open Aardvark.Base
 open Aardvark.Base.Incremental
 
+
+module AlphaShapes =
+        
+    open MIConvexHull
+
+    module Kd =
+                
+        let sphereEmpty (c : Sphere3d) (excluded : Set<int>) (tree : PointKdTreeD<array<V3d>, V3d>) (pts : V3d[]) =
+            let data = tree.Data
+            let rSquared = c.Radius * c.Radius
+
+            let rec traverse (ni : int) =
+                if ni < data.PermArray.Length then
+                    let pi = data.PermArray.[ni] |> int
+                    let d = c.Center - pts.[pi]
+                    let isExcluded = Set.contains pi excluded
+
+                    if not isExcluded && d.LengthSquared <= rSquared then
+                        false
+                    elif ni < data.AxisArray.Length then
+                        let ai = data.AxisArray.[ni]
+                        let dimDist = d.[ai]
+
+                        if dimDist > c.Radius then
+                            traverse (2 * ni + 2)
+                        elif dimDist < -c.Radius then
+                            traverse (2 * ni + 1)
+                        elif dimDist < 0.0 then
+                            traverse (2 * ni + 1) &&
+                            traverse (2 * ni + 2)
+                        else
+                            traverse (2 * ni + 2) &&
+                            traverse (2 * ni + 1)
+                    else
+                        true
+                else
+                    true
+               
+            traverse 0
+            
+
+    [<Struct>]
+    type Vertex(i : int, v : V3d) =
+        member x.Index = i
+        member x.Position = v
+        interface IVertex with
+            member x.Position = [| v.X; v.Y; v.Z |]
+
+    let getAlphaShapes3d (alpha : float) (points : V3f[]) =
+        if points.Length < 4 then
+            [||]
+        else
+            let points = points |> Array.map V3d
+        
+            let vertices = List<Vertex>(points.Length)
+            for i in 0 .. points.Length - 1 do vertices.Add(Vertex(i, points.[i]))
+
+            try
+                let mesh =
+                    MIConvexHull.Triangulation.CreateDelaunay<Vertex>(vertices, 1E-20)
+                    //MIConvexHull.DelaunayTriangulation<Vertex, DefaultTriangulationCell<Vertex>>.Create(vertices, 1E-8)
+        
+                let allTriangles = List<struct (int * int * int)>()
+
+
+                let kdTree = points.CreateKdTree(Metric.Euclidean, 1E-9)
+        
+                let inline isEmpty (i0 : int) (i1 : int) (i2 : int) (c : Sphere3d) =
+                    Kd.sphereEmpty c (Set.ofList [i0;i1; i2]) kdTree points
+
+                let r = alpha
+
+                let mutable triangleCount = 0
+                for c in mesh.Cells do
+                    let i0 = c.Vertices.[0].Index
+                    let i1 = c.Vertices.[1].Index
+                    let i2 = c.Vertices.[2].Index
+                    let i3 = c.Vertices.[3].Index
+
+                    triangleCount <- triangleCount + 4
+                    allTriangles.AddRange [|
+                        struct (i0, i1, i2)
+                        struct (i0, i1, i3)
+                        struct (i0, i2, i3)
+                        struct (i1, i2, i3)
+                    |]
+        
+
+                let borderTriangles = List<int>()
+
+                System.Threading.Tasks.Parallel.ForEach(allTriangles, fun struct (i0, i1, i2) ->
+                    let p0 = points.[i0]
+                    let p1 = points.[i1]
+                    let p2 = points.[i2]
+
+                    let u = p1 - p0
+                    let v = p2 - p0
+                    let w = p2 - p1
+
+                    let d = 2.0 * (Vec.cross -u -w).LengthSquared
+            
+                    let alpha = (w.LengthSquared * Vec.dot -u -v) / d
+                    let beta  = (v.LengthSquared * Vec.dot u -w) / d
+                    let gamma = (u.LengthSquared * Vec.dot v w) / d
+                    let n = Vec.cross u v |> Vec.normalize
+
+                    let cc = alpha * p0 + beta * p1 + gamma * p2
+                        //p0 + Vec.cross (u.LengthSquared * v - v.LengthSquared * u) n / 2.0
+
+                    /// dd = (cc - p0)
+                    // (dd + t * n)^2 = r^2
+                    // dd^2 + 2*t*<dd|n> + t^2 = r^2
+                    // t^2 + t*(2*<dd|n>) + (xx^2-r^2) = 0
+                    let dd = cc - p0
+                    let c = dd.LengthSquared - r*r       
+                    let vv = -4.0 * c
+                    if vv >= 0.0 then
+                        let sq = sqrt(vv)
+                        let t0 = sq / 2.0
+                        let t1 = -sq / 2.0
+
+                        let s0 = Sphere3d(cc + t0 * n, r)
+                        let s1 = Sphere3d(cc + t1 * n, r)
+
+                        let e0 = isEmpty i0 i1 i2 s0
+                        let e1 = isEmpty i0 i1 i2 s1
+
+                        if e0 || e1 then
+                            let nn = if t0 < 0.0 then -n else n
+                            lock borderTriangles (fun () ->
+                                borderTriangles.Add i0
+                                borderTriangles.Add i1
+                                borderTriangles.Add i2
+                            )
+
+                ) |> ignore
+
+                //Seq.toArray triangles
+                let res = Seq.toArray borderTriangles
+                Log.warn "done %d" res.Length
+                res
+            with e ->
+                Log.warn "%A" e
+                [||]
+
 module LodTreeInstance =
 
     module Semantic =
@@ -224,8 +369,16 @@ module LodTreeInstance =
                         | _ -> 1
                     let arr = [| depth |] :> System.Array
                     uniforms <- MapExt.add "MinTreeDepth" arr uniforms
+                    
+                let dist =
+                    match self.HasPointDistanceAverage with
+                    | true -> float self.PointDistanceAverage
+                    | _ -> 0.0
 
-                if original.Length = 0 then
+                let index = 
+                    AlphaShapes.getAlphaShapes3d (5.0 * dist) (unbox attributes.[DefaultSemantic.Positions])
+
+                if index.Length = 0 then
                     let geometry =
                         IndexedGeometry(
                             Mode = IndexedGeometryMode.PointList,
@@ -240,11 +393,14 @@ module LodTreeInstance =
                     let res = geometry, uniforms
                     struct (res :> obj, mem)
                 else
+
                     let geometry =
                         IndexedGeometry(
-                            Mode = IndexedGeometryMode.PointList,
+                            Mode = IndexedGeometryMode.TriangleList,
+                            IndexArray = (index :> System.Array),
                             IndexedAttributes = attributes
                         )
+                        |> IndexedGeometry.toNonIndexed
                 
                     let mem = positions.LongLength * vertexSize
                     let res = geometry, uniforms

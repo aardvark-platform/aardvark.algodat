@@ -13,8 +13,8 @@ open Aardvark.Data.Points.Import
 [<EntryPoint>]
 let main args =  
 
-    //import @"D:\pts\JBs_haus.pts"  @"D:\store" "a" (Args.parse [||])
-    //view @"D:\volumes\referenz_2019_21_store" ["770ed498-5544-4313-9873-5449f2bd823e"] (Args.parse [||])
+    //import @"C:\Users\Schorsch\Development\WorkDirectory\Laserscan-P20_Beiglboeck-2015.pts"  @"C:\Users\Schorsch\Development\WorkDirectory\jb" "a" (Args.parse [||])
+    view @"C:\Users\Schorsch\Development\WorkDirectory\tech" ["a"] (Args.parse [||])
 
     let args = Args.parse args
     
