@@ -18,6 +18,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading.Tasks;
 using System.Xml.Linq;
 using Aardvark.Base;
 
@@ -498,7 +499,7 @@ namespace Aardvark.Data.E57
                 return v;
             }
 
-            public IEnumerable<Tuple<V3d,C4b>> ReadData(int[] cartesianXYZ, int[] sphericalRAE, int[] colorRGB, bool verbose = false)
+            public IEnumerable<(V3d[],C4b[])> ReadData(int[] cartesianXYZ, int[] sphericalRAE, int[] colorRGB, E57RigidBodyTransform pose, bool verbose = false)
             {
                 var compressedVectorHeader = E57CompressedVectorHeader.Parse(ReadLogicalBytes(m_stream, FileOffset, 32));
                 if (verbose)
@@ -520,12 +521,8 @@ namespace Aardvark.Data.E57
                 if (compressedVectorHeader.DataStartOffset.Value == 0) throw new Exception($"Unexpected compressedVectorHeader.DataStartOffset (0).");
                 if (compressedVectorHeader.IndexStartOffset.Value != 0) throw new Exception($"Unexpected compressedVectorHeader.IndexStartOffset ({compressedVectorHeader.IndexStartOffset})");
 
-                var cartesianX = new Queue<double>();
-                var cartesianY = new Queue<double>();
-                var cartesianZ = new Queue<double>();
-                var colorR = hasColors ? new Queue<byte>() : null;
-                var colorG = hasColors ? new Queue<byte>() : null;
-                var colorB = hasColors ? new Queue<byte>() : null;
+                var ps = default(V3d[]);
+                var cs = default(C4b[]);
 
                 var offset = (E57LogicalOffset)compressedVectorHeader.DataStartOffset;
                 while (bytesLeftToConsume > 0)
@@ -555,18 +552,30 @@ namespace Aardvark.Data.E57
                         // read bytestream buffers
                         var bytestreamBuffers = new byte[dataPacketHeader.ByteStreamCount][];
                         var buffers = new Array[dataPacketHeader.ByteStreamCount];
-                        for (var i = 0; i < dataPacketHeader.ByteStreamCount; i++)
+
+                        var ts = new List<Task>();
+                        for (var _i = 0; _i < dataPacketHeader.ByteStreamCount; _i++)
                         {
-                            var count = bytestreamBufferLengths[i];
-                            bytestreamBuffers[i] = ReadLogicalBytes(m_stream, offset, count);
-                            //Console.WriteLine($"[E57CompressedVector][OFFSET] {offset}, reading {count} bytes for bytestream {i+1}/{dataPacketHeader.ByteStreamCount}");
-                            offset += count;
+                            var i = _i;
+                            var bitPack = (IBitPack)Prototype.Children[i];
+                            var semantic = bitPack.Semantic;
+                            if (semantic != "rowIndex" && semantic != "columnIndex" && semantic != "cartesianInvalidState")
+                            {
+                                var count = bytestreamBufferLengths[i];
+                                bytestreamBuffers[i] = ReadLogicalBytes(m_stream, offset, count);
+                                //Console.WriteLine($"[E57CompressedVector][OFFSET] {offset}, reading {count} bytes for bytestream {i+1}/{dataPacketHeader.ByteStreamCount}");
+                                offset += count;
 
-                            //buffers[i] = bitpackerPerByteStream[i].UnpackUInts(bytestreamBuffers[i]);
-                            buffers[i] = UnpackByteStream(bytestreamBuffers[i], bitpackerPerByteStream[i], (IBitPack)Prototype.Children[i]);
-
-                            recordsLeftToConsumePerByteStream[i] -= buffers[i].Length;
+                                ts.Add(
+                                    Task.Run(() =>
+                                    {
+                                        buffers[i] = UnpackByteStream(bytestreamBuffers[i], bitpackerPerByteStream[i], bitPack);
+                                        recordsLeftToConsumePerByteStream[i] -= buffers[i].Length;
+                                    })
+                                );
+                            }
                         }
+                        Task.WhenAll(ts).Wait();
 
                         if (verbose) Console.WriteLine(
                             $"[E57CompressedVector][recordsLeftToConsumePerByteStream] {string.Join(", ", recordsLeftToConsumePerByteStream.Select(x => x.ToString()))}"
@@ -582,9 +591,32 @@ namespace Aardvark.Data.E57
                                 var pxs = (buffers[cartesianXYZ[0]] is double[]) ? (double[])buffers[cartesianXYZ[0]] : ((float[])buffers[cartesianXYZ[0]]).Map(x => (double)x);
                                 var pys = (buffers[cartesianXYZ[1]] is double[]) ? (double[])buffers[cartesianXYZ[1]] : ((float[])buffers[cartesianXYZ[1]]).Map(x => (double)x);
                                 var pzs = (buffers[cartesianXYZ[2]] is double[]) ? (double[])buffers[cartesianXYZ[2]] : ((float[])buffers[cartesianXYZ[2]]).Map(x => (double)x);
-                                foreach (var x in pxs) cartesianX.Enqueue(x);
-                                foreach (var y in pys) cartesianY.Enqueue(y);
-                                foreach (var z in pzs) cartesianZ.Enqueue(z);
+
+                                var max = Fun.Min(pxs.Length, pys.Length, pzs.Length);
+                                ps = new V3d[max];
+
+                                if (pose == null)
+                                {
+                                    for (var i = 0; i < max; i++)
+                                    {
+                                        ps[i] = new V3d(pxs[i], pys[i], pzs[i]);
+                                    }
+                                }
+                                else
+                                {
+                                    var r = (M33d)pose.Rotation;
+                                    for (var i = 0; i < max; i++)
+                                    {
+                                        var x = pxs[i];
+                                        var y = pys[i];
+                                        var z = pzs[i];
+                                        ps[i] = new V3d(
+                                            r.M00 * x + r.M01 * y + r.M02 * z + pose.Translation.X,
+                                            r.M10 * x + r.M11 * y + r.M12 * z + pose.Translation.Y,
+                                            r.M20 * x + r.M21 * y + r.M22 * z + pose.Translation.Z
+                                            );
+                                    }
+                                }
                             }
 
                             if (hasSpherical)
@@ -592,9 +624,46 @@ namespace Aardvark.Data.E57
                                 var pxs = (buffers[sphericalRAE[0]] is double[]) ? (double[])buffers[sphericalRAE[0]] : ((float[])buffers[sphericalRAE[0]]).Map(x => (double)x);
                                 var pys = (buffers[sphericalRAE[1]] is double[]) ? (double[])buffers[sphericalRAE[1]] : ((float[])buffers[sphericalRAE[1]]).Map(x => (double)x);
                                 var pzs = (buffers[sphericalRAE[2]] is double[]) ? (double[])buffers[sphericalRAE[2]] : ((float[])buffers[sphericalRAE[2]]).Map(x => (double)x);
-                                foreach (var x in pxs) cartesianX.Enqueue(x);
-                                foreach (var y in pys) cartesianY.Enqueue(y);
-                                foreach (var z in pzs) cartesianZ.Enqueue(z);
+
+                                var max = Fun.Min(pxs.Length, pys.Length, pzs.Length);
+                                ps = new V3d[max];
+
+                                if (pose == null)
+                                {
+                                    for (var i = 0; i < max; i++)
+                                    {
+                                        var x = pxs[i];
+                                        var y = pys[i];
+                                        var z = pzs[i];
+                                        var cosElevation = Math.Cos(z);
+                                        ps[i] = new V3d(
+                                            x * cosElevation * Math.Cos(y),
+                                            x * cosElevation * Math.Sin(y),
+                                            x * Math.Sin(z)
+                                            );
+                                    }
+                                }
+                                else
+                                {
+                                    var r = (M33d)pose.Rotation;
+                                    for (var i = 0; i < max; i++)
+                                    {
+                                        var x = pxs[i];
+                                        var y = pys[i];
+                                        var z = pzs[i];
+                                        var cosElevation = Math.Cos(z);
+
+                                        var xx = x * cosElevation * Math.Cos(y);
+                                        var yy = x * cosElevation * Math.Sin(y);
+                                        var zz = x * Math.Sin(z);
+
+                                        ps[i] = new V3d(
+                                            r.M00 * xx + r.M01 * yy + r.M02 * zz + pose.Translation.X,
+                                            r.M10 * xx + r.M11 * yy + r.M12 * zz + pose.Translation.Y,
+                                            r.M20 * xx + r.M21 * yy + r.M22 * zz + pose.Translation.Z
+                                            );
+                                    }
+                                }
                             }
 
                             if (hasColors)
@@ -602,29 +671,28 @@ namespace Aardvark.Data.E57
                                 var crs = (byte[])buffers[colorRGB[0]];
                                 var cgs = (byte[])buffers[colorRGB[1]];
                                 var cbs = (byte[])buffers[colorRGB[2]];
-                                foreach (var r in crs) colorR.Enqueue(r);
-                                foreach (var g in cgs) colorG.Enqueue(g);
-                                foreach (var b in cbs) colorB.Enqueue(b);
+
+                                var max = Fun.Min(crs.Length, cgs.Length, cbs.Length);
+                                cs = new C4b[max];
+
+                                for (var i = 0; i < max; i++)
+                                {
+                                    cs[i] = new C4b(crs[i], cgs[i], cbs[i]);
+                                }
                             }
 
-                            var imax = Fun.Min(cartesianX.Count, cartesianY.Count, cartesianZ.Count);
-                            if (hasColors) imax = Fun.Min(imax, Fun.Min(colorR.Count, colorG.Count, colorB.Count));
-                            for (var i = 0; i < imax; i++)
+                            var imax = Math.Min(ps.Length, cs.Length);
+                            if (ps.Length != imax)
                             {
-                                var p = new V3d(cartesianX.Dequeue(), cartesianY.Dequeue(), cartesianZ.Dequeue());
-                                if (hasSpherical)
-                                {
-                                    // convert spherical to Cartesian coordinates
-                                    var cosElevation = Math.Cos(p.Z);
-                                    p = new V3d(
-                                        p.X * cosElevation * Math.Cos(p.Y),
-                                        p.X * cosElevation * Math.Sin(p.Y),
-                                        p.X * Math.Sin(p.Z)
-                                        );
-                                }
-                                var c = colorRGB != null ? new C4b(colorR.Dequeue(), colorG.Dequeue(), colorB.Dequeue()) : C4b.Gray;
-                                yield return Tuple.Create(p, c);
+                                ps = ps.TakeToArray(imax);
+                                Report.Warn($"Cartesian coordinates left over ({ps.Length - imax}).");
                             }
+                            if (cs.Length != imax)
+                            {
+                                cs = cs.TakeToArray(imax);
+                                Report.Warn($"Colors left over ({cs.Length - imax}).");
+                            }
+                            yield return (ps, cs);
                         }
 
                         // move to next packet
@@ -646,19 +714,19 @@ namespace Aardvark.Data.E57
                     }
                 }
 
-                if (hasCartesian)
-                {
-                    if (cartesianX.Count > 31 / bitpackerPerByteStream[cartesianXYZ[0]].BitsPerValue) Report.Warn($"Cartesian x coordinates left over ({cartesianX.Count}).");
-                    if (cartesianY.Count > 31 / bitpackerPerByteStream[cartesianXYZ[1]].BitsPerValue) Report.Warn($"Cartesian y coordinates left over ({cartesianY.Count}).");
-                    if (cartesianZ.Count > 31 / bitpackerPerByteStream[cartesianXYZ[2]].BitsPerValue) Report.Warn($"Cartesian z coordinates left over ({cartesianZ.Count}).");
-                }
+                //if (hasCartesian)
+                //{
+                //    if (cartesianX.Count > 31 / bitpackerPerByteStream[cartesianXYZ[0]].BitsPerValue) Report.Warn($"Cartesian x coordinates left over ({cartesianX.Count}).");
+                //    if (cartesianY.Count > 31 / bitpackerPerByteStream[cartesianXYZ[1]].BitsPerValue) Report.Warn($"Cartesian y coordinates left over ({cartesianY.Count}).");
+                //    if (cartesianZ.Count > 31 / bitpackerPerByteStream[cartesianXYZ[2]].BitsPerValue) Report.Warn($"Cartesian z coordinates left over ({cartesianZ.Count}).");
+                //}
 
-                if (hasColors)
-                {
-                    if (colorR.Count > 31 / bitpackerPerByteStream[colorRGB[0]].BitsPerValue) Report.Warn($"Color r values left over ({colorR.Count}).");
-                    if (colorG.Count > 31 / bitpackerPerByteStream[colorRGB[0]].BitsPerValue) Report.Warn($"Color g values left over ({colorG.Count}).");
-                    if (colorB.Count > 31 / bitpackerPerByteStream[colorRGB[0]].BitsPerValue) Report.Warn($"Color b values left over ({colorB.Count}).");
-                }
+                //if (hasColors)
+                //{
+                //    if (colorR.Count > 31 / bitpackerPerByteStream[colorRGB[0]].BitsPerValue) Report.Warn($"Color r values left over ({colorR.Count}).");
+                //    if (colorG.Count > 31 / bitpackerPerByteStream[colorRGB[0]].BitsPerValue) Report.Warn($"Color g values left over ({colorG.Count}).");
+                //    if (colorB.Count > 31 / bitpackerPerByteStream[colorRGB[0]].BitsPerValue) Report.Warn($"Color b values left over ({colorB.Count}).");
+                //}
 
 #region Helpers
                 Array UnpackByteStream(byte[] buffer, BitPacker packer, IBitPack proto)
@@ -729,12 +797,10 @@ namespace Aardvark.Data.E57
                     {
                         switch (proto.NumberOfBitsForBitPack)
                         {
-                            //case 32:
-                            //    //var bp = new BitPacker(proto.NumberOfBitsForBitPack);
-                            //    //return bp.UnpackUInts(buffer).Map(x => proto.Compute(x));
-                            //    return BitPack.OptimizedUnpackUInt32(buffer).Map(x => proto.Compute(x));
-                            //case 64:
-                            //    return BitPack.OptimizedUnpackUInt64(buffer).Map(x => proto.Compute((uint)x));
+                            case 32:
+                                return BitPack.OptimizedUnpackUInt32(buffer).Map(x => proto.Compute(x));
+                            case 64:
+                                return BitPack.OptimizedUnpackUInt64(buffer).Map(x => proto.Compute((uint)x));
                             default:
                                 return packer.UnpackUInts(buffer).Map(x => proto.Compute(x));
                                 //var raw = BitPack.UnpackIntegers(buffer, proto.NumberOfBitsForBitPack);
@@ -1193,19 +1259,15 @@ namespace Aardvark.Data.E57
                 return GetElements(root, "vectorChild").Select(x => Parse(x, stream)).ToArray();
             }
 
-            public IEnumerable<Tuple<V3d, C4b>> StreamPoints(bool verbose = false)
+            public IEnumerable<(V3d[], C4b[])> StreamPoints(bool verbose = false)
             {
                 var result = Points.ReadData(
                     ByteStreamIndicesForCartesianCoordinates,
                     ByteStreamIndicesForSphericalCoordinates,
                     ByteStreamIndicesForColors,
+                    Pose,
                     verbose
                     );
-
-                if (Pose != null)
-                {
-                    result = result.Select(p => Tuple.Create(Pose.Rotation.TransformPos(p.Item1) + Pose.Translation, p.Item2));
-                }
 
                 return result;
             }

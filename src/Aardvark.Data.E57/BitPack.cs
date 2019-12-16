@@ -207,6 +207,7 @@ namespace Aardvark.Base
                 {
                     var x0 = buffer[j++]; var x1 = buffer[j++]; var x2 = buffer[j++];
                     xs[i++] = x0 + (x1 << 8) + (x2 << 8);
+                    //                 Shouldn't this ↑ be 16 instead of 8?
                 }
                 return xs;
             }

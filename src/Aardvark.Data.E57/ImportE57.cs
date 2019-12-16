@@ -56,7 +56,7 @@ namespace Aardvark.Data.Points.Import
             checked
             {
                 // file integrity check
-                ASTM_E57.VerifyChecksums(stream, streamLengthInBytes);
+                //ASTM_E57.VerifyChecksums(stream, streamLengthInBytes);
 
                 var header = ASTM_E57.E57FileHeader.Parse(stream, streamLengthInBytes);
                 if (config.Verbose)
@@ -174,8 +174,8 @@ namespace Aardvark.Data.Points.Import
                 {
                     foreach (var x in data3d.StreamPoints())
                     {
-                        ps.Add(x.Item1); cs.Add(x.Item2);
-                        if (ps.Count == config.MaxChunkPointCount) yield return PrepareChunk();
+                        ps.AddRange(x.Item1); cs.AddRange(x.Item2);
+                        if (ps.Count >= config.MaxChunkPointCount) yield return PrepareChunk();
                     }
                     if (ps.Count > 0) yield return PrepareChunk();
                 }

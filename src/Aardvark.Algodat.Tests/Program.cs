@@ -215,20 +215,25 @@ namespace Aardvark.Geometry.Tests
         internal static void TestImport()
         {
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
-            var filename = @"test.e57";
+            var filename = @"T:\Vgm\Data\Staatsoper.e57";
 
-            var store = new SimpleDiskStore(@"./store").ToPointCloudStore(new LruDictionary<string, object>(1024 * 1024 * 1024));
-
-            var config = ImportConfig.Default
-                .WithStorage(store)
-                .WithKey("mykey")
-                .WithVerbose(true)
-                ;
-
-            Report.BeginTimed("importing");
-            var pointcloud = PointCloud.Import(filename, config);
+            Report.BeginTimed("parsing");
+            var foo = E57.Chunks(filename, ParseConfig.Default).ToArray();
             Report.EndTimed();
-            store.Flush();
+            Console.WriteLine($"point count: {foo.Sum(x => x.Count)}");
+
+            //var store = new SimpleDiskStore(@"C:\Users\sm\Desktop\Staatsoper.store").ToPointCloudStore(new LruDictionary<string, object>(1024 * 1024 * 1024));
+
+            //var config = ImportConfig.Default
+            //    .WithStorage(store)
+            //    .WithKey("staatsoper")
+            //    .WithVerbose(true)
+            //    ;
+
+            //Report.BeginTimed("importing");
+            //var pointcloud = PointCloud.Import(filename, config);
+            //Report.EndTimed();
+            //store.Flush();
         }
 
         internal static void TestImportPts(string filename)
@@ -482,12 +487,14 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
+            TestImport();
+
             //EnumerateCells2dTest();
             //DumpPointSetKeys();
 
             //EnumerateCellsTest();
 
-            ExportExamples();
+            //ExportExamples();
 
             //CopyTest();
 
