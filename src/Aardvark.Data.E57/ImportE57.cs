@@ -159,7 +159,7 @@ namespace Aardvark.Data.Points.Import
                 var ps = new List<V3d>(); var cs = new List<C4b>();
                 Chunk PrepareChunk()
                 {
-                    var chunk = new Chunk(ps, cs);
+                    var chunk = (cs.Count != ps.Count)?new Chunk(ps):new Chunk(ps, cs);
                     yieldedRecordCount += ps.Count;
                     ps = new List<V3d>(); cs = new List<C4b>();
                     if (config.Verbose)
@@ -174,7 +174,7 @@ namespace Aardvark.Data.Points.Import
                 {
                     foreach (var x in data3d.StreamPoints())
                     {
-                        ps.AddRange(x.Item1); cs.AddRange(x.Item2);
+                        ps.AddRange(x.Item1); if(x.Item2 != null) cs.AddRange(x.Item2);
                         if (ps.Count >= config.MaxChunkPointCount) yield return PrepareChunk();
                     }
                     if (ps.Count > 0) yield return PrepareChunk();

@@ -666,6 +666,8 @@ namespace Aardvark.Data.E57
                                 }
                             }
 
+                            var imax = ps.Length;
+
                             if (hasColors)
                             {
                                 var crs = (byte[])buffers[colorRGB[0]];
@@ -679,15 +681,16 @@ namespace Aardvark.Data.E57
                                 {
                                     cs[i] = new C4b(crs[i], cgs[i], cbs[i]);
                                 }
+
+                                if (cs.Length < imax) imax = cs.Length;
                             }
 
-                            var imax = Math.Min(ps.Length, cs.Length);
                             if (ps.Length != imax)
                             {
                                 ps = ps.TakeToArray(imax);
                                 Report.Warn($"Cartesian coordinates left over ({ps.Length - imax}).");
                             }
-                            if (cs.Length != imax)
+                            if (hasColors && cs.Length != imax)
                             {
                                 cs = cs.TakeToArray(imax);
                                 Report.Warn($"Colors left over ({cs.Length - imax}).");
