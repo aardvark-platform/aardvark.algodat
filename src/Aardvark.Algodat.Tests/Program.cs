@@ -14,6 +14,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Uncodium.SimpleStore;
 
 namespace Aardvark.Geometry.Tests
@@ -215,12 +216,121 @@ namespace Aardvark.Geometry.Tests
         internal static void TestImport()
         {
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
-            var filename = @"T:\Vgm\Data\Staatsoper.e57";
+            var filename = @"T:\Vgm\Data\erdgeschoss.e57";
 
-            Report.BeginTimed("parsing");
-            var foo = E57.Chunks(filename, ParseConfig.Default).ToArray();
-            Report.EndTimed();
-            Console.WriteLine($"point count: {foo.Sum(x => x.Count)}");
+            var chunks = E57.Chunks(filename, ParseConfig.Default);
+
+            var queue = new Queue<Chunk>();
+            var parseChunksDone = false;
+
+            Report.BeginTimed("total");
+
+            Task.Run(() =>
+            {
+                foreach (var x in chunks.Take(10))
+                {
+                    lock (queue) queue.Enqueue(x);
+                }
+                Report.Line("set parseChunksDone");
+                parseChunksDone = true;
+            });
+
+            Dictionary<Cell, (List<V3f>, List<C4b>, V3d)> Grid(Chunk x)
+            {
+                var result = new Dictionary<Cell, (List<V3f>, List<C4b>, V3d)>();
+                var dups = new HashSet<V3f>();
+                for (var i = 0; i < x.Count; i++)
+                {
+                    var key = new Cell((V3l)x.Positions[i], 0);
+                    if (!result.TryGetValue(key, out var val))
+                    {
+                        val = (new List<V3f>(), new List<C4b>(), key.GetCenter());
+                        result[key] = val;
+                    }
+
+                    var dupKey = (V3f)(x.Positions[i]).Round(3);
+                    if (dups.Add(dupKey))
+                    {
+                        val.Item1.Add((V3f)(x.Positions[i] - val.Item3));
+                        val.Item2.Add(x.Colors[i]);
+                    }
+                }
+                return result;
+            }
+
+            var global = new Dictionary<Cell, (List<V3f>, List<C4b>, V3d)>();
+
+            void MergeIntoGlobal(Dictionary<Cell, (List<V3f>, List<C4b>, V3d)> x)
+            {
+                lock (global)
+                {
+                    foreach (var kv in x)
+                    {
+                        if (!global.TryGetValue(kv.Key, out var gval))
+                        {
+                            gval = kv.Value;
+                            global[kv.Key] = gval;
+                        }
+                        else
+                        {
+                            gval.Item1.AddRange(kv.Value.Item1);
+                            gval.Item2.AddRange(kv.Value.Item2);
+                        }
+                    }
+                }
+            }
+
+            var globalGridReady = new ManualResetEventSlim();
+
+            Task.Run(async () =>
+            {
+                var processedChunksCount = 0;
+                var processedPointsCount = 0L;
+                var tasks = new List<Task>();
+                while (queue.Count > 0 || !parseChunksDone)
+                {
+                    var c = Chunk.Empty;
+                    bool wait = false;
+                    lock (queue)
+                    {
+                        if (queue.Count > 0) c = queue.Dequeue();
+                        else wait = true;
+                    }
+                    if (wait) { await Task.Delay(1000); continue; }
+
+                    tasks.Add(Task.Run(() =>
+                    {
+                        var grid = Grid(c);
+                        MergeIntoGlobal(grid);
+
+                        var a = Interlocked.Increment(ref processedChunksCount);
+                        var b = Interlocked.Add(ref processedPointsCount, c.Count);
+                        Report.Line($"processed chunk #{a} with {c.Count:N0} points ({b:N0} total points)");
+                    }));
+                }
+
+                await Task.WhenAll(tasks);
+
+                Report.Line("set globalGridReady");
+                globalGridReady.Set();
+            });
+
+            globalGridReady.Wait();
+            Report.Line($"global grid cell  count: {global.Count:N0}");
+            Report.Line($"            point count: {global.Sum(x => x.Value.Item1.Count):N0}");
+
+            Report.EndTimed("total");
+
+            //Report.BeginTimed("parsing");
+            //var foo = chunks.ToArray();
+            //Report.EndTimed();
+
+            //Console.WriteLine($"chunk count: {foo.Length}");
+            //Console.WriteLine($"point count: {foo.Sum(x => x.Count)}");
+
+
+
+
 
             //var store = new SimpleDiskStore(@"C:\Users\sm\Desktop\Staatsoper.store").ToPointCloudStore(new LruDictionary<string, object>(1024 * 1024 * 1024));
 
