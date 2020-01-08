@@ -1,0 +1,7 @@
+type project
+id Aardvark.Data.Photometry
+authors Aardvark Platform Team
+owners Aardvark Platform Team
+description
+    Aardvark.Data.Photometry
+include-pdbs true
