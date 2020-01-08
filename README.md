@@ -24,7 +24,7 @@ Furthermore, there are some importers for file formats.
 
 * **Aardvark.Data.E57** - importer for [E57 (ASTM E2807-11)](https://www.astm.org/Standards/E2807.htm) laserscan files (compatible with `Aardvark.Geometry.PointSet`)
 * **Aardvark.Data.Ascii** - fast and parameterizable importer for text-based laserscan formats, like for example *.pts* (compatible with `Aardvark.Geometry.PointSet`)
-* **Aardvark.Data.Photometry** - importer of IES (IESNA LM-63) and LDT (EULUMDAT) data files; unified data strcuture for photometric measurement data, calculations, utility functions
+* **Aardvark.Data.Photometry** - importer of [IES (IESNA LM-63)](https://www.ies.org/product/standard-file-format-for-electronic-transfer-of-photometric-data/) and [LDT (EULUMDAT)](https://en.wikipedia.org/wiki/EULUMDAT) data files; unified data strcuture for photometric measurement data, calculations, utility functions
 
 Other:
 
