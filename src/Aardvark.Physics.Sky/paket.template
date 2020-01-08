@@ -1,0 +1,7 @@
+type project
+id Aardvark.Physics.Sky
+authors Aardvark Platform Team
+owners Aardvark Platform Team
+description
+    Physical sky models.
+include-pdbs true
