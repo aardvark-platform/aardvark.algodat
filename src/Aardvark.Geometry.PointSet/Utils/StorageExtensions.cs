@@ -973,8 +973,8 @@ namespace Aardvark.Geometry.Points
                     raw = n.Properties;
                 }
                 var node = raw as IDictionary<Durable.Def, object>;
-                node = self.ConvertToInline(node);
-                exportStore.Add(key, def, node, gzipped);
+                var inline = self.ConvertToInline(node);
+                exportStore.Add(key, def, inline, gzipped);
                 Report.Line($"exported {key} (node)");
 
                 // children
@@ -1002,7 +1002,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Experimental!
         /// </summary>
-        public static IDictionary<Durable.Def, object> ConvertToInline(this Storage storage, IDictionary<Durable.Def, object> node)
+        public static IEnumerable<KeyValuePair<Durable.Def, object>> ConvertToInline(this Storage storage, IDictionary<Durable.Def, object> node)
         {
             var cell = (Cell)node[Durable.Octree.Cell];
             var bbExactGlobal = (Box3d)node[Durable.Octree.BoundingBoxExactGlobal];
@@ -1015,20 +1015,20 @@ namespace Aardvark.Geometry.Points
             var csRef = node[Durable.Octree.Colors4bReference];
             var cs = storage.GetC4bArray(((Guid)csRef).ToString());
 
-            var data = ImmutableDictionary<Durable.Def, object>.Empty
-                .Add(Durable.Octree.Cell, cell)
-                .Add(Durable.Octree.BoundingBoxExactGlobal, bbExactGlobal)
-                .Add(Durable.Octree.PointCountCell, pointCountCell)
-                .Add(Durable.Octree.PointCountTreeLeafs, pointCountTree)
-                .Add(Durable.Octree.PointCountTreeLeafsFloat64, (double)pointCountTree)
-                .Add(Durable.Octree.PositionsLocal3f, ps)
-                .Add(Durable.Octree.Colors3b, cs.Map(x => new C3b(x)))
-                ;
+            KeyValuePair<Durable.Def, object> Entry(Durable.Def def, object o) => 
+                new KeyValuePair<Durable.Def, object>(def, o);
+
+            yield return Entry(Durable.Octree.Cell, cell);
+            yield return Entry(Durable.Octree.BoundingBoxExactGlobal, bbExactGlobal);
 
             if (subnodeGuids != null)
-                data = data.Add(Durable.Octree.SubnodesGuids, subnodeGuids);
+                yield return Entry(Durable.Octree.SubnodesGuids, subnodeGuids);
 
-            return data;
+            yield return Entry(Durable.Octree.PointCountCell, pointCountCell);
+            yield return Entry(Durable.Octree.PointCountTreeLeafs, pointCountTree);
+            yield return Entry(Durable.Octree.PointCountTreeLeafsFloat64, (double)pointCountTree);
+            yield return Entry(Durable.Octree.PositionsLocal3f, ps);
+            yield return Entry(Durable.Octree.Colors3b, cs.Map(x => new C3b(x)));
         }
 
         #endregion

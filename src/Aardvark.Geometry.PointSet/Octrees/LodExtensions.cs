@@ -127,8 +127,7 @@ namespace Aardvark.Geometry.Points
             {
                 if (self.IsEmpty) return self;
 
-                var root = self.Root.Value as PointSetNode;
-                if (root == null) throw new InvalidOperationException(
+                if (!(self.Root.Value is PointSetNode root)) throw new InvalidOperationException(
                     "GenerateLod is only valid for PointSetNodes. Invariant 1d530d98-9ea4-4281-894f-bb91a6b8a2cf."
                     );
 

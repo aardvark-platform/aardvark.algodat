@@ -14,6 +14,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Uncodium.SimpleStore;
 
 namespace Aardvark.Geometry.Tests
@@ -215,20 +216,134 @@ namespace Aardvark.Geometry.Tests
         internal static void TestImport()
         {
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
-            var filename = @"test.e57";
+            var filename = @"T:\Vgm\Data\erdgeschoss.e57";
 
-            var store = new SimpleDiskStore(@"./store").ToPointCloudStore(new LruDictionary<string, object>(1024 * 1024 * 1024));
+            var chunks = E57.Chunks(filename, ParseConfig.Default);
 
-            var config = ImportConfig.Default
-                .WithStorage(store)
-                .WithKey("mykey")
-                .WithVerbose(true)
-                ;
+            var queue = new Queue<Chunk>();
+            var parseChunksDone = false;
 
-            Report.BeginTimed("importing");
-            var pointcloud = PointCloud.Import(filename, config);
-            Report.EndTimed();
-            store.Flush();
+            Report.BeginTimed("total");
+
+            Task.Run(() =>
+            {
+                foreach (var x in chunks.Take(10))
+                {
+                    lock (queue) queue.Enqueue(x);
+                }
+                Report.Line("set parseChunksDone");
+                parseChunksDone = true;
+            });
+
+            Dictionary<Cell, (List<V3f>, List<C4b>, V3d)> Grid(Chunk x)
+            {
+                var result = new Dictionary<Cell, (List<V3f>, List<C4b>, V3d)>();
+                var dups = new HashSet<V3f>();
+                for (var i = 0; i < x.Count; i++)
+                {
+                    var key = new Cell((V3l)x.Positions[i], 0);
+                    if (!result.TryGetValue(key, out var val))
+                    {
+                        val = (new List<V3f>(), new List<C4b>(), key.GetCenter());
+                        result[key] = val;
+                    }
+
+                    var dupKey = (V3f)(x.Positions[i]).Round(3);
+                    if (dups.Add(dupKey))
+                    {
+                        val.Item1.Add((V3f)(x.Positions[i] - val.Item3));
+                        val.Item2.Add(x.Colors[i]);
+                    }
+                }
+                return result;
+            }
+
+            var global = new Dictionary<Cell, (List<V3f>, List<C4b>, V3d)>();
+
+            void MergeIntoGlobal(Dictionary<Cell, (List<V3f>, List<C4b>, V3d)> x)
+            {
+                lock (global)
+                {
+                    foreach (var kv in x)
+                    {
+                        if (!global.TryGetValue(kv.Key, out var gval))
+                        {
+                            gval = kv.Value;
+                            global[kv.Key] = gval;
+                        }
+                        else
+                        {
+                            gval.Item1.AddRange(kv.Value.Item1);
+                            gval.Item2.AddRange(kv.Value.Item2);
+                        }
+                    }
+                }
+            }
+
+            var globalGridReady = new ManualResetEventSlim();
+
+            Task.Run(async () =>
+            {
+                var processedChunksCount = 0;
+                var processedPointsCount = 0L;
+                var tasks = new List<Task>();
+                while (queue.Count > 0 || !parseChunksDone)
+                {
+                    var c = Chunk.Empty;
+                    bool wait = false;
+                    lock (queue)
+                    {
+                        if (queue.Count > 0) c = queue.Dequeue();
+                        else wait = true;
+                    }
+                    if (wait) { await Task.Delay(1000); continue; }
+
+                    tasks.Add(Task.Run(() =>
+                    {
+                        var grid = Grid(c);
+                        MergeIntoGlobal(grid);
+
+                        var a = Interlocked.Increment(ref processedChunksCount);
+                        var b = Interlocked.Add(ref processedPointsCount, c.Count);
+                        Report.Line($"processed chunk #{a} with {c.Count:N0} points ({b:N0} total points)");
+                    }));
+                }
+
+                await Task.WhenAll(tasks);
+
+                Report.Line("set globalGridReady");
+                globalGridReady.Set();
+            });
+
+            globalGridReady.Wait();
+            Report.Line($"global grid cell  count: {global.Count:N0}");
+            Report.Line($"            point count: {global.Sum(x => x.Value.Item1.Count):N0}");
+
+            Report.EndTimed("total");
+
+            //Report.BeginTimed("parsing");
+            //var foo = chunks.ToArray();
+            //Report.EndTimed();
+
+            //Console.WriteLine($"chunk count: {foo.Length}");
+            //Console.WriteLine($"point count: {foo.Sum(x => x.Count)}");
+
+
+
+
+
+            //var store = new SimpleDiskStore(@"C:\Users\sm\Desktop\Staatsoper.store").ToPointCloudStore(new LruDictionary<string, object>(1024 * 1024 * 1024));
+
+            //var config = ImportConfig.Default
+            //    .WithStorage(store)
+            //    .WithKey("staatsoper")
+            //    .WithVerbose(true)
+            //    ;
+
+            //Report.BeginTimed("importing");
+            //var pointcloud = PointCloud.Import(filename, config);
+            //Report.EndTimed();
+            //store.Flush();
         }
 
         internal static void TestImportPts(string filename)
@@ -389,17 +504,38 @@ namespace Aardvark.Geometry.Tests
             //}
         }
 
+        public static void TestCreateStore()
+        {
+            var filepath = @"T:\Vgm\Data\JBs_Haus.pts";
+            var filename = Path.GetFileName(filepath);
+            var storename = Path.Combine(@"T:\Vgm\Stores\", filename);
+            var store = new SimpleDiskStore(storename).ToPointCloudStore(new LruDictionary<string, object>(1024 * 1024 * 1024));
+
+            var config = ImportConfig.Default
+                .WithStorage(store)
+                .WithKey(filename)
+                .WithVerbose(true)
+                .WithMinDist(0.1)
+                ;
+
+            Report.BeginTimed("importing");
+            PointCloud.Import(filepath, config);
+            Report.EndTimed();
+            store.Flush();
+            store.Dispose();
+        }
+
         public static void ExportExamples()
         {
-            // Example 1: export point cloud to folder
-            {
-                var ct = new CancellationTokenSource(10000);
-                using (var storeSource = new SimpleDiskStore(@"T:\Vgm\Stores\kindergarten").ToPointCloudStore())
-                using (var storeTarget = new SimpleFolderStore(@"T:\Vgm\Stores\kindergartenExported").ToPointCloudStore())
-                {
-                    storeSource.ExportPointSet("kindergarten", storeTarget, info => Console.Write($" ({info.Progress * 100,6:0.00}%)"), true, ct.Token);
-                }
-            }
+            //// Example 1: export point cloud to folder
+            //{
+            //    var ct = new CancellationTokenSource(10000);
+            //    using (var storeSource = new SimpleDiskStore(@"T:\Vgm\Stores\kindergarten").ToPointCloudStore())
+            //    using (var storeTarget = new SimpleFolderStore(@"T:\Vgm\Stores\kindergartenExported").ToPointCloudStore())
+            //    {
+            //        storeSource.ExportPointSet("kindergarten", storeTarget, info => Console.Write($" ({info.Progress * 100,6:0.00}%)"), true, ct.Token);
+            //    }
+            //}
 
             //// Example 2: export point cloud to another store
             //{
@@ -411,15 +547,40 @@ namespace Aardvark.Geometry.Tests
             //    }
             //}
 
-            //// Example 3: inline point cloud nodes
-            //{
-            //    using (var storeSource = new SimpleDiskStore(@"T:\Vgm\Stores\copytest1").ToPointCloudStore())
-            //    using (var storeTarget = new SimpleFolderStore(@"T:\Vgm\Stores\exportInlined").ToPointCloudStore())
-            //    {
-            //        storeSource.InlinePointSet("097358dc-d89a-434c-8a4e-fe03c063d886", storeTarget, false);
-            //        storeTarget.Flush();
-            //    }
-            //}
+            // Example 3: inline point cloud nodes
+            {
+                var name = "JBs_Haus.pts";
+                var folderStoreName = $@"T:\Vgm\Stores\{name}.upload";
+                using (var storeSource = new SimpleDiskStore($@"T:\Vgm\Stores\{name}").ToPointCloudStore())
+                using (var storeTarget = new SimpleFolderStore(folderStoreName).ToPointCloudStore())
+                {
+                    storeSource.InlinePointSet(name, storeTarget, false);
+                    storeTarget.Flush();
+
+                    // meta
+                    var pointset = storeSource.GetPointSet(name);
+                    var root = pointset.Root.Value;
+                    var rootJson = JObject.FromObject(new
+                    {
+                        Bounds = root.BoundingBoxExactGlobal,
+                        Cell = root.Cell,
+                        Centroid = (V3d)root.CentroidLocal + root.Center,
+                        CentroidStdDev = root.CentroidLocalStdDev,
+                        GZipped = true,
+                        PointCount = root.PointCountTree,
+                        PointSetId = pointset.Id,
+                        RootId = root.Id.ToString(),
+                        TotalNodes = root.CountNodes(true),
+                    });
+
+                    File.WriteAllText(
+                        Path.Combine(folderStoreName, "root.json"), 
+                        rootJson.ToString(Formatting.Indented)
+                        );
+                }
+
+
+            }
         }
 
         public static void EnumerateCellsTest()
@@ -482,12 +643,17 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
+            TestCreateStore();
+            ExportExamples();
+
+            //TestImport();
+
             //EnumerateCells2dTest();
             //DumpPointSetKeys();
 
             //EnumerateCellsTest();
 
-            ExportExamples();
+            //ExportExamples();
 
             //CopyTest();
 

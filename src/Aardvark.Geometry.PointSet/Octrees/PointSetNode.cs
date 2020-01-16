@@ -740,7 +740,7 @@ namespace Aardvark.Geometry.Points
 
         #endregion
 
-            #region TreeDepth
+        #region TreeDepth
 
             /// <summary></summary>
         public bool HasMinTreeDepth => Data.ContainsKey(Durable.Octree.MinTreeDepth);
