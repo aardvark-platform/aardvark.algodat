@@ -1535,31 +1535,31 @@ namespace Aardvark.Geometry
                 { typeof(double[]),
                     (n, i, a) => new Attribute<double>(n, i, (double[])a, Fun.Lerp) },
                 { typeof(float[]),
-                    (n, i, a) => new Attribute<float>(n, i, (float[])a, Fun.Lerp) },
+                    (n, i, a) => new Attribute<float>(n, i, (float[])a, (t,a_,b_) => Fun.Lerp((float)t,a_,b_)) },
                 { typeof(C3b[]),
-                    (n, i, a) => new Attribute<C3b>(n, i, (C3b[])a, ColFun.Lerp) },
+                    (n, i, a) => new Attribute<C3b>(n, i, (C3b[])a, Fun.Lerp) },
                 { typeof(C3f[]),
-                    (n, i, a) => new Attribute<C3f>(n, i, (C3f[])a, ColFun.Lerp) },
+                    (n, i, a) => new Attribute<C3f>(n, i, (C3f[])a, (t,x,y) => Fun.Lerp((float)t,x,y)) },
                 { typeof(C4b[]),
-                    (n, i, a) => new Attribute<C4b>(n, i, (C4b[])a, ColFun.Lerp) },
+                    (n, i, a) => new Attribute<C4b>(n, i, (C4b[])a, Fun.Lerp) },
                 { typeof(C4f[]),
-                    (n, i, a) => new Attribute<C4f>(n, i, (C4f[])a, ColFun.Lerp) },
+                    (n, i, a) => new Attribute<C4f>(n, i, (C4f[])a, (t,x,y) => Fun.Lerp((float)t,x,y)) },
                 { typeof(V2d[]),
-                    (n, i, a) => new Attribute<V2d>(n, i, (V2d[])a, VecFun.Lerp) },
+                    (n, i, a) => new Attribute<V2d>(n, i, (V2d[])a, Fun.Lerp) },
                 { typeof(V2f[]),
-                    (n, i, a) => new Attribute<V2f>(n, i, (V2f[])a, VecFun.Lerp) },
+                    (n, i, a) => new Attribute<V2f>(n, i, (V2f[])a, (t,x,y) => Fun.Lerp((float)t,x,y)) },
                 { typeof(V3d[]),
                     (n, i, a) => n != Property.Normals
-                        ? new Attribute<V3d>(n, i, (V3d[])a, VecFun.Lerp)
+                        ? new Attribute<V3d>(n, i, (V3d[])a, Fun.Lerp)
                         : new Attribute<V3d>(n, i, (V3d[])a, (t, v0, v1) => t.Lerp(v0, v1).Normalized) },
                 { typeof(V3f[]),
                     (n, i, a) => n != Property.Normals
-                        ? new Attribute<V3f>(n, i, (V3f[])a, VecFun.Lerp)
-                        : new Attribute<V3f>(n, i, (V3f[])a, (t, v0, v1) => t.Lerp(v0, v1).Normalized) },
+                        ? new Attribute<V3f>(n, i, (V3f[])a, (t,x,y) => Fun.Lerp((float)t,x,y))
+                        : new Attribute<V3f>(n, i, (V3f[])a, (t, v0, v1) => ((float)t).Lerp(v0, v1).Normalized) },
                 { typeof(V4d[]),
-                    (n, i, a) => new Attribute<V4d>(n, i, (V4d[])a, VecFun.Lerp) },
+                    (n, i, a) => new Attribute<V4d>(n, i, (V4d[])a, Fun.Lerp) },
                 { typeof(V4f[]),
-                    (n, i, a) => new Attribute<V4f>(n, i, (V4f[])a, VecFun.Lerp) },
+                    (n, i, a) => new Attribute<V4f>(n, i, (V4f[])a, (t,x,y) => Fun.Lerp((float)t,x,y)) },
                 { typeof(byte[]),
                     (n, i, a) => new Attribute<byte>(n, i, (byte[])a, Fun.Step) },
                 { typeof(sbyte[]),
@@ -4174,7 +4174,7 @@ namespace Aardvark.Geometry
             var aDirNorm = a.Direction.Normalized;
             var bDirNorm = b.Direction.Normalized;
 
-            if (V3d.ApproxEqual(aDirNorm, bDirNorm.Negated, epsilon))
+            if (Fun.ApproximateEquals(aDirNorm, -bDirNorm, epsilon))
             {
                 b = new Line3d(b.P1, b.P0);
                 bDirNorm = bDirNorm * -1;
@@ -4188,14 +4188,14 @@ namespace Aardvark.Geometry
             }
 
             // completely overlapping
-            if (V3d.ApproxEqual(a.P0, b.P0, epsilon) && V3d.ApproxEqual(a.P1, b.P1, epsilon))
+            if (Fun.ApproximateEquals(a.P0, b.P0, epsilon) && Fun.ApproximateEquals(a.P1, b.P1, epsilon))
             {
                 lines = new Line3d[] { };
                 return true;
             }
 
             // end points touch
-            if (V3d.ApproxEqual(a.P1, b.P0, epsilon) || V3d.ApproxEqual(a.P0, b.P1, epsilon))
+            if (Fun.ApproximateEquals(a.P1, b.P0, epsilon) || Fun.ApproximateEquals(a.P0, b.P1, epsilon))
             {
                 lines = new[] { a, b };
                 return false;

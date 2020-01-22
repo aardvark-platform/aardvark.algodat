@@ -388,7 +388,7 @@ namespace Aardvark.Geometry.Points
                     3, ps.Length, ps,
                     (xs, i) => xs[(int)i], (v, i) => (float)v[i],
                     (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
-                    (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, 1e-6f,
+                    (a, b, c) => VecFun.DistanceToLine(a, b, c), Fun.Lerp, 1e-6f,
                     value
                     );
             }
@@ -402,7 +402,7 @@ namespace Aardvark.Geometry.Points
                     3, ps.Length, ps,
                     (xs, i) => xs[(int)i], (v, i) => (float)v[i],
                     (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
-                    (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, 1e-6f,
+                    (a, b, c) => VecFun.DistanceToLine(a, b, c), Fun.Lerp, 1e-6f,
                     value
                     ));
             }
@@ -415,7 +415,7 @@ namespace Aardvark.Geometry.Points
                     3, ps.Length, ps,
                     (xs, i) => xs[(int)i], (v, i) => (float)v[i],
                     (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
-                    (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, 1e-6f,
+                    (a, b, c) => VecFun.DistanceToLine(a, b, c), Fun.Lerp, 1e-6f,
                     value
                     );
             }
@@ -429,7 +429,7 @@ namespace Aardvark.Geometry.Points
                     3, ps.Length, ps,
                     (xs, i) => xs[(int)i], (v, i) => (float)v[i],
                     (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
-                    (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, 1e-6f,
+                    (a, b, c) => VecFun.DistanceToLine(a, b, c), Fun.Lerp, 1e-6f,
                     value
                     ));
             }
@@ -918,7 +918,7 @@ namespace Aardvark.Geometry.Points
                 3, ps.Length, ps,
                 (xs, i) => xs[(int)i], (v, i) => (float)v[i],
                 (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
-                (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, 0.000001f
+                (a, b, c) => VecFun.DistanceToLine(a, b, c), Fun.Lerp, 0.000001f
                 );
             Guid kdId = Guid.NewGuid();
             storage.Add(kdId, kdTree.Data);

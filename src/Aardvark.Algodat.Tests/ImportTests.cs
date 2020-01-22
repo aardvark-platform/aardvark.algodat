@@ -367,7 +367,7 @@ namespace Aardvark.Geometry.Tests
                 .ToArray()
                 ;
             Assert.IsTrue(ps.Length == 3);
-            Assert.IsTrue(ps[0].ApproxEqual(new V3d(1, 2, 9), 1e-10));
+            Assert.IsTrue(ps[0].ApproximateEquals(new V3d(1, 2, 9), 1e-10));
         }
         
         [Test]
@@ -481,7 +481,7 @@ namespace Aardvark.Geometry.Tests
                 .ToArray()
                 ;
             Assert.IsTrue(ps.Length == 3);
-            Assert.IsTrue(ps[0].ApproxEqual(new V3d(1, 2, 9), 1e-10));
+            Assert.IsTrue(ps[0].ApproximateEquals(new V3d(1, 2, 9), 1e-10));
         }
 
         [Test]

@@ -1,6 +1,6 @@
-﻿namespace Aardvark.Algodat.App.Viewer
+namespace Aardvark.Algodat.App.Viewer
 
-open Aardvark.Base.Incremental
+open FSharp.Data.Adaptive
 open Aardvark.Base
 open Aardvark.SceneGraph
 open Aardvark.Base.Rendering
@@ -21,19 +21,19 @@ type Background =
 
 type RenderConfig =
     {
-        pointSize       : ModRef<float>
-        overlayAlpha    : ModRef<float>
-        maxSplits       : ModRef<int>
-        renderBounds    : ModRef<bool>
-        budget          : ModRef<int64>
-        splitfactor     : ModRef<float>
-        lighting        : ModRef<bool>
-        colors          : ModRef<bool>
-        magicExp        : ModRef<float>
-        background      : ModRef<Background>
-        stats           : ModRef<LodRendererStats>
-        antialias       : ModRef<bool>
-        fancy           : ModRef<bool>
+        pointSize       : cval<float>
+        overlayAlpha    : cval<float>
+        maxSplits       : cval<int>
+        renderBounds    : cval<bool>
+        budget          : cval<int64>
+        splitfactor     : cval<float>
+        lighting        : cval<bool>
+        colors          : cval<bool>
+        magicExp        : cval<float>
+        background      : cval<Background>
+        stats           : cval<LodRendererStats>
+        antialias       : cval<bool>
+        fancy           : cval<bool>
     }
 
 type OverlayPosition =
@@ -49,10 +49,10 @@ type OverlayConfig =
     }
 
 type TableEntry =
-    | Text of value : IMod<string>
-    | Time of value : IMod<MicroTime>
-    | Number of value : IMod<float> * unit : string * digits : int
-    | Progress of value : IMod<float>
+    | Text of value : aval<string>
+    | Time of value : aval<MicroTime>
+    | Number of value : aval<float> * unit : string * digits : int
+    | Progress of value : aval<float>
     | ColSpan of width : int * child : TableEntry
     | Concat of content : list<TableEntry>
     
@@ -190,7 +190,7 @@ module Table =
               
               
     let layoutNew (cfg : TextConfig) (table : Table) =
-        Mod.custom (fun t ->
+        AVal.custom (fun t ->
             let id = ref 0
             let progress = ref Map.empty
             let entries = table.entries |> List.map (List.map (toShapeColSpan cfg t id progress))
@@ -285,7 +285,7 @@ module Table =
         )
 
     let layout (cfg : TextConfig) (table : Table) =
-        Mod.custom (fun t ->
+        AVal.custom (fun t ->
             let id = ref 0
             let progress = ref Map.empty
             let entries = table.entries |> List.map (List.map (toStringColSpan t id progress))
@@ -444,7 +444,7 @@ module Overlay =
             }
 
 
-    let table (cfg : IMod<OverlayConfig>) (viewport : IMod<V2i>) (table : IMod<Table>) =
+    let table (cfg : aval<OverlayConfig>) (viewport : aval<V2i>) (table : aval<Table>) =
         let fgAlpha = byte (255.0 * 1.0)
         let bgAlpha = byte (255.0 * 0.6)
         let config = 
@@ -456,12 +456,12 @@ module Overlay =
             }
         
         let content =
-            table |> Mod.bind (Table.layoutNew config)
+            table |> AVal.bind (Table.layoutNew config)
 
         let shapes =
 
 
-            content |> Mod.map (fun shapes ->
+            content |> AVal.map (fun shapes ->
                 let realBounds = shapes.bounds
                 let bounds = realBounds.EnlargedBy(0.5, 0.5, 0.2, 0.5)
                 let rect = ConcreteShape.fillRoundedRectangle (C4b(0uy,0uy,0uy,bgAlpha)) 0.8 bounds
@@ -470,7 +470,7 @@ module Overlay =
 
 
         let trafo =
-            Mod.custom (fun t ->
+            AVal.custom (fun t ->
                 let s = viewport.GetValue t
                 let shapes = shapes.GetValue t
                 let cfg = cfg.GetValue t
@@ -510,9 +510,9 @@ module Overlay =
 
         Sg.shape shapes
             |> Sg.trafo trafo
-            |> Sg.blendMode (Mod.constant BlendMode.Blend)
-            |> Sg.viewTrafo (Mod.constant Trafo3d.Identity)
-            |> Sg.projTrafo (Mod.constant Trafo3d.Identity)
+            |> Sg.blendMode (AVal.constant BlendMode.Blend)
+            |> Sg.viewTrafo (AVal.constant Trafo3d.Identity)
+            |> Sg.projTrafo (AVal.constant Trafo3d.Identity)
 
 module RenderConfig =
 
@@ -523,11 +523,11 @@ module RenderConfig =
         let pm = "($memo$)"
         let pt = "($pts$$)"
         
-        let totalMem = cfg.stats |> Mod.map (fun s -> sprintf "%A (%A)" s.usedMemory s.allocatedMemory)
-        let counts = cfg.stats |> Mod.map (fun s -> sprintf "%An / %Ap" (Numeric(int64 s.totalNodes)) (Numeric s.totalPrimitives))
+        let totalMem = cfg.stats |> AVal.map (fun s -> sprintf "%A (%A)" s.usedMemory s.allocatedMemory)
+        let counts = cfg.stats |> AVal.map (fun s -> sprintf "%An / %Ap" (Numeric(int64 s.totalNodes)) (Numeric s.totalPrimitives))
         
         let prim =
-            Mod.custom (fun t ->
+            AVal.custom (fun t ->
                 let v = cfg.stats.GetValue(t).totalPrimitives
                 let b = cfg.budget.GetValue t
 
@@ -536,21 +536,21 @@ module RenderConfig =
                 else sprintf "%s %s" pt n
             )
 
-        let renderTime = cfg.stats |> Mod.map (fun s -> string s.renderTime)
+        let renderTime = cfg.stats |> AVal.map (fun s -> string s.renderTime)
 
         let lines =
             [
-                "Scale",            "O", "P", cfg.pointSize |> Mod.map (sprintf "%.2f")
-                "Overlay",          "-", "+", cfg.overlayAlpha |> Mod.map (sprintf "%.1f")
-                "Boxes",            "B", "B", cfg.renderBounds |> Mod.map (function true -> "on" | false -> "off")
-                "Budget",           "X", "C/Y", cfg.budget |> Mod.map (fun v -> if v < 0L then "off" else string (Numeric v))
-                "Light",            "L", "L", cfg.lighting |> Mod.map (function true -> "on" | false -> "off")
-                "Color",            "V", "V", cfg.colors |> Mod.map (function true -> "on" | false -> "off")
-                "Fancy" ,           "1", "1", cfg.fancy |> Mod.map (function true -> "on" | false -> "off")
-                "Antialias",        "2", "2", cfg.antialias |> Mod.map (function true -> "on" | false -> "off")
-                "MagicExp",         "U", "I", cfg.magicExp |> Mod.map (sprintf "%.2f")
+                "Scale",            "O", "P", cfg.pointSize |> AVal.map (sprintf "%.2f")
+                "Overlay",          "-", "+", cfg.overlayAlpha |> AVal.map (sprintf "%.1f")
+                "Boxes",            "B", "B", cfg.renderBounds |> AVal.map (function true -> "on" | false -> "off")
+                "Budget",           "X", "C/Y", cfg.budget |> AVal.map (fun v -> if v < 0L then "off" else string (Numeric v))
+                "Light",            "L", "L", cfg.lighting |> AVal.map (function true -> "on" | false -> "off")
+                "Color",            "V", "V", cfg.colors |> AVal.map (function true -> "on" | false -> "off")
+                "Fancy" ,           "1", "1", cfg.fancy |> AVal.map (function true -> "on" | false -> "off")
+                "Antialias",        "2", "2", cfg.antialias |> AVal.map (function true -> "on" | false -> "off")
+                "MagicExp",         "U", "I", cfg.magicExp |> AVal.map (sprintf "%.2f")
                 "Memory",           " ", " ", totalMem
-                "Quality",          " ", " ", Mod.constant pi
+                "Quality",          " ", " ", AVal.constant pi
                 "Points",           " ", " ", prim
             ]
 
@@ -564,7 +564,7 @@ module RenderConfig =
         let text =
             let lines = lines |> List.map (fun (n,l,h,v) -> pad maxNameLength ": " n, l, h, v)
 
-            Mod.custom (fun t ->
+            AVal.custom (fun t ->
                 let lines =
                     lines |> List.map (fun (n,l,h,v) -> 
                     let v = v.GetValue t
@@ -589,7 +589,7 @@ module RenderConfig =
             )
 
         let trafo =
-            win.Sizes |> Mod.map (fun s ->
+            win.Sizes |> AVal.map (fun s ->
                 Trafo3d.Translation(1.0, -1.5, 0.0) * 
                 Trafo3d.Scale(18.0) *
 
@@ -600,7 +600,7 @@ module RenderConfig =
             
         let config = { TextConfig.Default with align = TextAlignment.Left }
 
-        let active = Mod.init false
+        let active = AVal.init false
 
         let layoutWithBackground (alpha : float) (text : string) =
             let fgAlpha = byte (255.0 * (clamp 0.0 1.0 alpha))
@@ -663,6 +663,6 @@ module RenderConfig =
 
         Sg.shape shapes
             |> Sg.trafo trafo
-            |> Sg.blendMode (Mod.constant BlendMode.Blend)
-            |> Sg.viewTrafo (Mod.constant Trafo3d.Identity)
-            |> Sg.projTrafo (Mod.constant Trafo3d.Identity)
+            |> Sg.blendMode (AVal.constant BlendMode.Blend)
+            |> Sg.viewTrafo (AVal.constant Trafo3d.Identity)
+            |> Sg.projTrafo (AVal.constant Trafo3d.Identity)

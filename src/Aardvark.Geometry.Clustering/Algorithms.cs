@@ -158,7 +158,7 @@ namespace Aardvark.Geometry.Clustering
                 V3d avgNormali = suma[ci].Normalized;
 
                 kdTree.GetClosest(query, avgNormali);
-                kdTree.GetClosest(query, avgNormali.Negated);
+                kdTree.GetClosest(query, -avgNormali);
 
                 foreach (var id in query.List)
                 {
@@ -171,7 +171,7 @@ namespace Aardvark.Geometry.Clustering
                     double avgDot = avgNormali.Dot(avgNormalj);
                     if (avgDot.Abs() < 1.0 - 2.0 * delta) continue;
 
-                    V3d sum = suma[ci] + (avgDot > 0 ? suma[cj] : suma[cj].Negated);
+                    V3d sum = suma[ci] + (avgDot > 0 ? suma[cj] : -suma[cj]);
                     if (si < sj) { ca[ci] = cj; ca[i] = cj; ci = cj; }
                     else { ca[cj] = ci; ca[j] = ci; }
                     si += sj; sa[ci] = si; suma[ci] = sum;

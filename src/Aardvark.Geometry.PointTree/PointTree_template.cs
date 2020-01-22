@@ -1505,7 +1505,7 @@ namespace Aardvark.Geometry
         {
             return array.Create__kd__Tree(__vtype__.Distance,/*# if (!isVp) { if (hasSel) { */ c_dimDistFunArray__cchar__,/*# } else { */ (dim, a, b) => b - a,/*# } } */
                                        //# if (isRkd && t.IsReal) {
-                                       VecFun.DistanceToLine, VecFun.Lerp,
+                                       VecFun.DistanceToLine, Fun.Lerp,
                                        //# }
                                        absoluteEps);
         }

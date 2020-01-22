@@ -1,4 +1,4 @@
-﻿open Aardvark.Base.Incremental
+open FSharp.Data.Adaptive
 open Aardvark.Base
 open Aardvark.SceneGraph
 open Aardvark.Base.Rendering

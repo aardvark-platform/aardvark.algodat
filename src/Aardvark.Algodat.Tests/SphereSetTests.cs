@@ -68,13 +68,13 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(isCloser == true);
             Assert.IsTrue(cp.DistanceSquared.ApproximateEquals(0.25, 1e-8));
             Assert.IsTrue(cp.Distance.ApproximateEquals(0.5, 1e-8));
-            Assert.IsTrue(cp.Point.ApproxEqual(new V3d(0, -0.5, 0), 1e-8));
+            Assert.IsTrue(cp.Point.ApproximateEquals(new V3d(0, -0.5, 0), 1e-8));
 
             isCloser = x.ClosestPoint(new[] { 0, 1, 2, 3 }, 0, 4, new V3d(0, -0.7, 0), null, null, ref cp);
             Assert.IsTrue(isCloser == true);
             Assert.IsTrue(cp.DistanceSquared.ApproximateEquals(0.04, 1e-8));
             Assert.IsTrue(cp.Distance.ApproximateEquals(0.2, 1e-8));
-            Assert.IsTrue(cp.Point.ApproxEqual(new V3d(0, -0.5, 0), 1e-8));
+            Assert.IsTrue(cp.Point.ApproximateEquals(new V3d(0, -0.5, 0), 1e-8));
 
             isCloser = x.ClosestPoint(new[] { 0, 1, 2, 3 }, 0, 4, new V3d(0, -0.8, 0), null, null, ref cp);
             Assert.IsTrue(isCloser == false);

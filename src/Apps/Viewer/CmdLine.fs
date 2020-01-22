@@ -1,4 +1,4 @@
-﻿(*
+(*
     Copied from https://github.com/aardvark-community/hum.
 *)
 namespace Aardvark.Algodat.App.Viewer
@@ -6,7 +6,7 @@ namespace Aardvark.Algodat.App.Viewer
 open Aardvark.Application
 open Aardvark.Application.Slim
 open Aardvark.Base
-open Aardvark.Base.Incremental
+open FSharp.Data.Adaptive
 open Aardvark.Base.Rendering
 open Aardvark.Data.Points
 
@@ -82,7 +82,7 @@ module CmdLine =
                                 let mutable o : int[] = null
                                 if Eigensystems.Dsyevh3asc(&cvm, &q, &w, &o) then
                                     let flatness = 1.0 - w.[o.[0]] / w.[o.[1]]
-                                    let verticality = V3d.Dot(q.Column(o.[0]).Normalized.Abs, V3d.ZAxis)
+                                    let verticality = V3d.Dot(q.Column(o.[0]).Normalized.Abs(), V3d.ZAxis)
                                     if flatness > 0.99 && verticality > 0.7 then C4b(255uy, c.G / 2uy, c.B / 2uy) else c
                                 else
                                     c

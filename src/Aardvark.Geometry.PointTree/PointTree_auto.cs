@@ -4254,7 +4254,7 @@ namespace Aardvark.Geometry
                 this V2f[] array, float absoluteEps)
         {
             return array.CreateRkdTree(V2f.Distance, (dim, a, b) => b - a,
-                                       VecFun.DistanceToLine, VecFun.Lerp,
+                                       VecFun.DistanceToLine, Fun.Lerp,
                                        absoluteEps);
         }
 
@@ -4316,7 +4316,7 @@ namespace Aardvark.Geometry
                 this V3f[] array, float absoluteEps)
         {
             return array.CreateRkdTree(V3f.Distance, (dim, a, b) => b - a,
-                                       VecFun.DistanceToLine, VecFun.Lerp,
+                                       VecFun.DistanceToLine, Fun.Lerp,
                                        absoluteEps);
         }
 
@@ -4378,7 +4378,7 @@ namespace Aardvark.Geometry
                 this V4f[] array, float absoluteEps)
         {
             return array.CreateRkdTree(V4f.Distance, (dim, a, b) => b - a,
-                                       VecFun.DistanceToLine, VecFun.Lerp,
+                                       VecFun.DistanceToLine, Fun.Lerp,
                                        absoluteEps);
         }
 
@@ -4453,7 +4453,7 @@ namespace Aardvark.Geometry
                 this V2f[] array, float absoluteEps)
         {
             return array.CreateRkdTree(V2f.Distance, c_dimDistFunArrayF,
-                                       VecFun.DistanceToLine, VecFun.Lerp,
+                                       VecFun.DistanceToLine, Fun.Lerp,
                                        absoluteEps);
         }
 
@@ -4515,7 +4515,7 @@ namespace Aardvark.Geometry
                 this V3f[] array, float absoluteEps)
         {
             return array.CreateRkdTree(V3f.Distance, c_dimDistFunArrayF,
-                                       VecFun.DistanceToLine, VecFun.Lerp,
+                                       VecFun.DistanceToLine, Fun.Lerp,
                                        absoluteEps);
         }
 
@@ -4577,7 +4577,7 @@ namespace Aardvark.Geometry
                 this V4f[] array, float absoluteEps)
         {
             return array.CreateRkdTree(V4f.Distance, c_dimDistFunArrayF,
-                                       VecFun.DistanceToLine, VecFun.Lerp,
+                                       VecFun.DistanceToLine, Fun.Lerp,
                                        absoluteEps);
         }
 
@@ -4780,7 +4780,7 @@ namespace Aardvark.Geometry
                 this V2d[] array, double absoluteEps)
         {
             return array.CreateRkdTree(V2d.Distance, (dim, a, b) => b - a,
-                                       VecFun.DistanceToLine, VecFun.Lerp,
+                                       VecFun.DistanceToLine, Fun.Lerp,
                                        absoluteEps);
         }
 
@@ -4842,7 +4842,7 @@ namespace Aardvark.Geometry
                 this V3d[] array, double absoluteEps)
         {
             return array.CreateRkdTree(V3d.Distance, (dim, a, b) => b - a,
-                                       VecFun.DistanceToLine, VecFun.Lerp,
+                                       VecFun.DistanceToLine, Fun.Lerp,
                                        absoluteEps);
         }
 
@@ -4904,7 +4904,7 @@ namespace Aardvark.Geometry
                 this V4d[] array, double absoluteEps)
         {
             return array.CreateRkdTree(V4d.Distance, (dim, a, b) => b - a,
-                                       VecFun.DistanceToLine, VecFun.Lerp,
+                                       VecFun.DistanceToLine, Fun.Lerp,
                                        absoluteEps);
         }
 
@@ -4979,7 +4979,7 @@ namespace Aardvark.Geometry
                 this V2d[] array, double absoluteEps)
         {
             return array.CreateRkdTree(V2d.Distance, c_dimDistFunArrayD,
-                                       VecFun.DistanceToLine, VecFun.Lerp,
+                                       VecFun.DistanceToLine, Fun.Lerp,
                                        absoluteEps);
         }
 
@@ -5041,7 +5041,7 @@ namespace Aardvark.Geometry
                 this V3d[] array, double absoluteEps)
         {
             return array.CreateRkdTree(V3d.Distance, c_dimDistFunArrayD,
-                                       VecFun.DistanceToLine, VecFun.Lerp,
+                                       VecFun.DistanceToLine, Fun.Lerp,
                                        absoluteEps);
         }
 
@@ -5103,7 +5103,7 @@ namespace Aardvark.Geometry
                 this V4d[] array, double absoluteEps)
         {
             return array.CreateRkdTree(V4d.Distance, c_dimDistFunArrayD,
-                                       VecFun.DistanceToLine, VecFun.Lerp,
+                                       VecFun.DistanceToLine, Fun.Lerp,
                                        absoluteEps);
         }
 

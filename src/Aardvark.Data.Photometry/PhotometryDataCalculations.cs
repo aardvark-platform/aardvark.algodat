@@ -320,7 +320,7 @@ namespace Aardvark.Data.Photometry
             {
                 var v = RandomSample.Spherical(rndSeries, 0);
 
-                var phi = Fun.AcosC(-v.Z); // 0 to pi [0, 180°]
+                var phi = Fun.AcosClamped(-v.Z); // 0 to pi [0, 180°]
 
                 var zi = Fun.Min((int)(phi * 18 * Constant.PiInv), 17);
 

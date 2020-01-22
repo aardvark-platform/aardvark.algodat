@@ -1,10 +1,10 @@
-﻿(*
+(*
     Copied from https://github.com/aardvark-community/hum.
 *)
 namespace Aardvark.Algodat.App.Viewer
 
-open Aardvark.Base.Incremental
-open Aardvark.Base.Incremental.Operators
+open FSharp.Data.Adaptive
+open FSharp.Data.Adaptive.Operators
 open Aardvark.Base
 open Aardvark.SceneGraph
 open Aardvark.Application
@@ -105,29 +105,29 @@ module Util =
 module Rendering =
 
 
-    let pointClouds (win : IRenderWindow) (msaa : bool) (camera : IMod<CameraView>) (frustum : IMod<Frustum>) (pcs : list<LodTreeInstance>) =
-        let picktrees : mmap<ILodTreeNode,SimplePickTree> = MMap.empty
+    let pointClouds (win : IRenderWindow) (msaa : bool) (camera : aval<CameraView>) (frustum : aval<Frustum>) (pcs : list<LodTreeInstance>) =
+        let picktrees : cmap<ILodTreeNode,SimplePickTree> = cmap()
         let config =
             {
-                pointSize = Mod.init 1.0
-                overlayAlpha = Mod.init 0.0
-                maxSplits = Mod.init 8
-                renderBounds = Mod.init false
-                splitfactor = Mod.init 0.4
-                budget = Mod.init -(256L <<< 10)
-                lighting = Mod.init true
-                colors = Mod.init true
-                magicExp = Mod.init 0.0
-                stats = Mod.init Unchecked.defaultof<_>
-                background = Mod.init (Background.Skybox Skybox.Miramar)
-                antialias = Mod.init true
-                fancy = Mod.init false
+                pointSize = AVal.init 1.0
+                overlayAlpha = AVal.init 0.0
+                maxSplits = AVal.init 8
+                renderBounds = AVal.init false
+                splitfactor = AVal.init 0.4
+                budget = AVal.init -(256L <<< 10)
+                lighting = AVal.init true
+                colors = AVal.init true
+                magicExp = AVal.init 0.0
+                stats = AVal.init Unchecked.defaultof<_>
+                background = AVal.init (Background.Skybox Skybox.Miramar)
+                antialias = AVal.init true
+                fancy = AVal.init false
             }
 
 
 
         let vis = 
-            Mod.custom (fun t ->
+            AVal.custom (fun t ->
                 let l = config.lighting.GetValue t
                 let c = config.colors.GetValue t
                 let aa = config.antialias.GetValue t
@@ -159,7 +159,7 @@ module Rendering =
 
         let pcs =
             pcs |> List.map (fun t ->
-                { t with uniforms = MapExt.add "Overlay" (config.overlayAlpha |> Mod.map ((*) V4d.IIII) :> IMod) t.uniforms }
+                { t with uniforms = MapExt.add "Overlay" (config.overlayAlpha |> AVal.map ((*) V4d.IIII) :> IAdaptiveValue) t.uniforms }
             )
         
         let trafo = Trafo3d.Identity
@@ -174,20 +174,20 @@ module Rendering =
             //Trafo3d.Translation(bb.Center)
 
         let pcs =
-            pcs |> List.toArray |> Array.map (LodTreeInstance.transform trafo >> Mod.init)
+            pcs |> List.toArray |> Array.map (LodTreeInstance.transform trafo >> AVal.init)
             
         let cfg =
             RenderConfig.toSg win config
 
 
-        let v = (camera |> Mod.map CameraView.viewTrafo)
-        let p = (frustum |> Mod.map Frustum.projTrafo)
+        let v = (camera |> AVal.map CameraView.viewTrafo)
+        let p = (frustum |> AVal.map Frustum.projTrafo)
 
         let picked = 
-            Mod.custom ( fun a ->
+            AVal.custom ( fun a ->
                 let ndc = win.Mouse.Position.GetValue a |> (fun pp -> pp.NormalizedPosition * V2d(2,-2) + V2d(-1,1))
                 
-                match (picktrees |> MMap.toMod).GetValue a |> Seq.tryHead with
+                match ((picktrees :> amap<_,_>).Content).GetValue a |> Seq.tryHead with
                 | None -> 
                     false, [||]
                 | Some (_,tree) -> 
@@ -219,20 +219,20 @@ module Rendering =
 
         let thing =
             Sg.draw IndexedGeometryMode.PointList
-            |> Sg.vertexAttribute DefaultSemantic.Positions (Mod.map snd picked)
+            |> Sg.vertexAttribute DefaultSemantic.Positions (AVal.map snd picked)
             |> Sg.shader {
                 do! DefaultSurfaces.trafo
                 do! DefaultSurfaces.pointSprite
                 do! DefaultSurfaces.constantColor C4f.Red
                 do! DefaultSurfaces.pointSpriteFragment
             }
-            |> Sg.uniform "PointSize" (Mod.constant 10.0)
+            |> Sg.uniform "PointSize" (AVal.constant 10.0)
             |> Sg.uniform "ViewportSize" win.Sizes
-            |> Sg.depthTest (Mod.constant DepthTestMode.None)
+            |> Sg.depthTest (AVal.constant DepthTestMode.None)
             |> Sg.pass afterMain 
 
-        let reset = Mod.init 0 
-        //let filter : ModRef<Option<Hull3d>> = Mod.init None
+        let reset = AVal.init 0 
+        //let filter : ModRef<Option<Hull3d>> = AVal.init None
 
 
         let stupidFilter =
@@ -280,12 +280,12 @@ module Rendering =
                 //do! PointSetShaders.envMap
             }
             //|> Sg.andAlso thing
-            |> Sg.multisample (Mod.constant true)
+            |> Sg.multisample (AVal.constant true)
             |> Sg.viewTrafo v
             |> Sg.projTrafo p
             |> Sg.andAlso cfg
             //|> Sg.andAlso bla
-            |> Sg.blendMode (Mod.constant BlendMode.None)
+            |> Sg.blendMode (AVal.constant BlendMode.None)
 
 
         let switchActive = win.Keyboard.IsDown Keys.M
@@ -295,7 +295,7 @@ module Rendering =
                     let rand = RandomSystem()
                     while true do
                         System.Threading.Thread.Sleep(rand.UniformInt(100))
-                        if Mod.force switchActive then
+                        if AVal.force switchActive then
                             transact (fun () -> reset.Value <- reset.Value + 1)
                     
                 ) |> ignore
@@ -402,7 +402,7 @@ module Rendering =
 
     let skybox (name : string) =
         
-        Mod.custom (fun _ ->
+        AVal.custom (fun _ ->
             let env =
                 let trafo t (img : PixImage) = img.Transformed t
                 let load (name : string) =
@@ -442,7 +442,7 @@ module Rendering =
 
     let rftSky =
         let name = "2010.04.29-16.59.11-$.jpg"
-        Mod.custom (fun _ ->
+        AVal.custom (fun _ ->
             let env =
                 let trafo t (img : PixImage) = img.Transformed t
                 let load (name : string) =
@@ -525,7 +525,7 @@ module Rendering =
         //let bb = Box3d.FromCenterAndSize(V3d.Zero, V3d.III * 300.0)
 
         let frustum =
-            Mod.custom (fun t ->
+            AVal.custom (fun t ->
                 let s = win.Sizes.GetValue t
                 let c = camera.GetValue t
 
@@ -546,13 +546,13 @@ module Rendering =
                 pcs
 
                 Util.coordinateBox
-                |> Sg.onOff (config.background |> Mod.map ((=) Background.CoordinateBox))
+                |> Sg.onOff (config.background |> AVal.map ((=) Background.CoordinateBox))
 
                 Sg.ofList (
                     skyboxes |> Map.toList |> List.map (fun (id, tex) ->
                         Sg.farPlaneQuad
                         |> Sg.uniform "EnvMap" tex
-                        |> Sg.onOff (config.background |> Mod.map ((=) (Background.Skybox id)))
+                        |> Sg.onOff (config.background |> AVal.map ((=) (Background.Skybox id)))
                     )
                 )
                 |> Sg.shader {
@@ -561,8 +561,8 @@ module Rendering =
                 }
 
             ]
-            |> Sg.viewTrafo (camera |> Mod.map CameraView.viewTrafo)
-            |> Sg.projTrafo (frustum |> Mod.map Frustum.projTrafo)
+            |> Sg.viewTrafo (camera |> AVal.map CameraView.viewTrafo)
+            |> Sg.projTrafo (frustum |> AVal.map Frustum.projTrafo)
             //|> Sg.uniform "EnvMap" skyboxes.[Skybox.ViolentDays]
     
         win.RenderTask <- Sg.compile app.Runtime win.FramebufferSignature sg

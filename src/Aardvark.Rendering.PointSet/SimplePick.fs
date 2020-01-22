@@ -1,9 +1,9 @@
-﻿namespace Aardvark.Rendering.PointSet
+namespace Aardvark.Rendering.PointSet
 
 
 open Aardvark.Base.Geometry
 open Aardvark.Base
-open Aardvark.Base.Incremental
+open FSharp.Data.Adaptive
 open Aardvark.Base.Rendering
 open Aardvark.Geometry
 open System
