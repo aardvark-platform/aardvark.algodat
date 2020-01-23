@@ -14,7 +14,7 @@ open Aardvark.Rendering.PointSet
 open Aardvark.Base.Rendering
 open Aardvark.Base.Geometry
 open Aardvark.Geometry.Points
-
+open FShade
 
 module Util =
 
@@ -271,6 +271,7 @@ module Rendering =
             |> Sg.uniform "PointVisualization" vis
             |> Sg.uniform "MagicExp" config.magicExp
             |> Sg.shader {
+                //do! fun (v : PointSetShaders.PointVertex) -> vertex { return { v with col = V4d.IIII } }
                 do! PointSetShaders.lodPointSize
                 //do! PointSetShaders.cameraLight
                 //if msaa then
@@ -517,10 +518,16 @@ module Rendering =
             | _ -> 
                 let bb = pc.root.WorldBoundingBox
                 bb.Max, bb.Center
+        let speed = Mod.init 10.0
+        win.Keyboard.DownWithRepeats.Values.Add(function
+            | Keys.PageUp -> transact(fun () -> speed.Value <- speed.Value * 1.5)
+            | Keys.PageDown -> transact(fun () -> speed.Value <- speed.Value / 1.5)
+            | _ -> ()
+        )
 
         let camera =
             CameraView.lookAt loc center V3d.OOI
-            |> DefaultCameraController.control win.Mouse win.Keyboard win.Time
+            |> DefaultCameraController.controlWithSpeed speed win.Mouse win.Keyboard win.Time
 
         //let bb = Box3d.FromCenterAndSize(V3d.Zero, V3d.III * 300.0)
 
@@ -533,7 +540,7 @@ module Rendering =
                 
                 let near = Vec.dot c.Forward (minPt - c.Location)
                 let far = Vec.dot c.Forward (maxPt - c.Location)
-                let near = max (max 0.05 near) (far / 1000.0)
+                let near = max (max 0.05 near) (far / 100000.0)
 
                 Frustum.perspective args.fov near far (float s.X / float s.Y)
             )
