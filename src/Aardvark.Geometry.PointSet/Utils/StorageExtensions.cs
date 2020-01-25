@@ -738,13 +738,21 @@ namespace Aardvark.Geometry.Points
             if (data == null) throw new Exception("Invariant ec5b1c03-d92c-4b2d-9b5c-a30f935369e5.");
 
             using (var ms = new MemoryStream())
-            using (var zs = gzipped ? new GZipStream(ms, CompressionLevel.Fastest) : (Stream)ms)
+            using (var zs = gzipped ? new GZipStream(ms, CompressionLevel.Optimal) : (Stream)ms)
             using (var bw = new BinaryWriter(zs))
             {
                 Data.Codec.Encode(bw, def, data);
 
+                bw.Flush(); 
                 var buffer = ms.ToArray();
                 storage.Add(key, buffer);
+
+                //using (var testms = new MemoryStream(buffer))
+                //using (var testzs = new GZipStream(testms, CompressionMode.Decompress))
+                //using (var testbr = new BinaryReader(testzs))
+                //{
+                //    var test = Data.Codec.Decode(testbr);
+                //}
 
                 return buffer;
             }
