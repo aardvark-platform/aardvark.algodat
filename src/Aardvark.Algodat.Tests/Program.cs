@@ -504,9 +504,8 @@ namespace Aardvark.Geometry.Tests
             //}
         }
 
-        public static void TestCreateStore()
+        public static void TestCreateStore(string filepath, double minDist)
         {
-            var filepath = @"T:\Vgm\Data\JBs_Haus.pts";
             var filename = Path.GetFileName(filepath);
             var storename = Path.Combine(@"T:\Vgm\Stores\", filename);
             var store = new SimpleDiskStore(storename).ToPointCloudStore(new LruDictionary<string, object>(1024 * 1024 * 1024));
@@ -515,7 +514,9 @@ namespace Aardvark.Geometry.Tests
                 .WithStorage(store)
                 .WithKey(filename)
                 .WithVerbose(true)
-                .WithMinDist(0.1)
+                //.WithOctreeSplitLimit(65536)
+                .WithMaxDegreeOfParallelism(0)
+                .WithMinDist(minDist)
                 ;
 
             Report.BeginTimed("importing");
@@ -525,7 +526,7 @@ namespace Aardvark.Geometry.Tests
             store.Dispose();
         }
 
-        public static void ExportExamples()
+        public static void ExportExamples(string filepath)
         {
             //// Example 1: export point cloud to folder
             //{
@@ -549,12 +550,12 @@ namespace Aardvark.Geometry.Tests
 
             // Example 3: inline point cloud nodes
             {
-                var name = "JBs_Haus.pts";
+                var name = Path.GetFileName(filepath);
                 var folderStoreName = $@"T:\Vgm\Stores\{name}.upload";
                 using (var storeSource = new SimpleDiskStore($@"T:\Vgm\Stores\{name}").ToPointCloudStore())
                 using (var storeTarget = new SimpleFolderStore(folderStoreName).ToPointCloudStore())
                 {
-                    storeSource.InlinePointSet(name, storeTarget, false);
+                    storeSource.InlineOctree(name, storeTarget, false);
                     storeTarget.Flush();
 
                     // meta
@@ -643,8 +644,11 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
-            TestCreateStore();
-            ExportExamples();
+            //var filepath = @"T:\Vgm\Data\JBs_Haus.pts";
+            var filepath = @"T:\Vgm\Data\Technologiezentrum_Teil1.pts";
+            //var filepath = @"T:\Vgm\Data\E57\Staatsoper.e57";
+            TestCreateStore(filepath, 0.001);
+            //ExportExamples(filepath);
 
             //TestImport();
 

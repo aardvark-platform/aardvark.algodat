@@ -687,6 +687,48 @@ namespace Aardvark.Geometry.Points
 
         #endregion
 
+        #region Safe octree load
+
+        /// <summary>
+        /// Try to load PointSet or PointCloudNode with given key.
+        /// Returns octree root node when found.
+        /// </summary>
+        public static bool TryGetOctree(this Storage storage, string key, out IPointCloudNode root)
+        {
+            var bs = storage.f_get.Invoke(key);
+            if (bs != null)
+            {
+                try
+                {
+                    var ps = storage.GetPointSet(key);
+                    root = ps.Root.Value;
+                    return true;
+                }
+                catch
+                {
+                    try
+                    {
+                        root = storage.GetPointCloudNode(key);
+                        return true;
+                    }
+                    catch (Exception en)
+                    {
+                        Report.Warn($"Invariant 70012c8d-b994-4ddf-adb6-a5481434561a. {en}.");
+                        root = null;
+                        return false;
+                    }
+                }
+            }
+            else
+            {
+                Report.Warn($"Key {key} does not exist in store. Invariant af97e19a-63e8-46ad-a752-fe1200828ced.");
+                root = null;
+                return false;
+            }
+        }
+
+        #endregion
+
         #region Durable
 
         public static byte[] Add(this Storage storage, string key, Durable.Def def, IEnumerable<KeyValuePair<Durable.Def, object>> data, bool gzipped)
@@ -928,30 +970,35 @@ namespace Aardvark.Geometry.Points
         /// Experimental!
         /// Exports complete pointset (metadata, nodes, referenced blobs) to another store.
         /// </summary>
-        public static void InlinePointSet(this Storage self, string pointSetId, Storage exportStore, bool gzipped)
-            => InlinePointSet(self, self.GetPointSet(pointSetId), exportStore, gzipped);
+        public static void InlineOctree(this Storage self, string key, Storage exportStore, bool gzipped)
+        {
+            if (self.TryGetOctree(key, out var root))
+            {
+                InlineOctree(self, root, exportStore, gzipped);
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    $"Key {key} not found in store. Invariant 0f7a7e31-f6c7-494b-a734-18c00dee3383."
+                    );
+            }
+        }
 
         /// <summary>
         /// Experimental!
         /// Exports complete pointset (metadata, nodes, referenced blobs) to another store.
         /// </summary>
-        public static void InlinePointSet(this Storage self, Guid pointSetId, Storage exportStore, bool gzipped)
-            => InlinePointSet(self, self.GetPointSet(pointSetId), exportStore, gzipped);
+        public static void InlineOctree(this Storage self, Guid key, Storage exportStore, bool gzipped)
+            => InlineOctree(self, key.ToString(), exportStore, gzipped);
 
         /// <summary>
         /// Experimental!
         /// Inlines and exports pointset to another store.
         /// </summary>
-        public static void InlinePointSet(this Storage self, PointSet pointset, Storage exportStore, bool gzipped)
+        public static void InlineOctree(this Storage self, IPointCloudNode root, Storage exportStore, bool gzipped)
         {
-            var pointSetId = pointset.Id;
-            var root = pointset.Root.Value;
             var totalNodeCount = root.CountNodes(outOfCore: true);
             Report.Line($"total node count = {totalNodeCount:N0}");
-
-            // export pointset metainfo
-            exportStore.Add(pointSetId, pointset.Encode());
-            Report.Line($"exported {pointSetId} (pointset metainfo, json)");
 
             // export octree (recursively)
             ExportNode(root.Id);
@@ -1002,7 +1049,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Experimental!
         /// </summary>
-        public static IEnumerable<KeyValuePair<Durable.Def, object>> ConvertToInline(this Storage storage, IDictionary<Durable.Def, object> node)
+        private static IEnumerable<KeyValuePair<Durable.Def, object>> ConvertToInline(this Storage storage, IDictionary<Durable.Def, object> node)
         {
             var cell = (Cell)node[Durable.Octree.Cell];
             var bbExactGlobal = (Box3d)node[Durable.Octree.BoundingBoxExactGlobal];
