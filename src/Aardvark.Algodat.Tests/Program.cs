@@ -550,16 +550,19 @@ namespace Aardvark.Geometry.Tests
 
             // Example 3: inline point cloud nodes
             {
-                var name = Path.GetFileName(filepath);
-                var folderStoreName = $@"T:\Vgm\Stores\{name}.upload";
-                using (var storeSource = new SimpleDiskStore($@"T:\Vgm\Stores\{name}").ToPointCloudStore())
-                using (var storeTarget = new SimpleFolderStore(folderStoreName).ToPointCloudStore())
+                var key = Path.GetFileName(filepath);
+                var targetFolder = $@"T:\Vgm\Stores\{key}.upload2";
+                using (var storeSource = new SimpleDiskStore($@"T:\Vgm\Stores\{key}").ToPointCloudStore())
+                using (var storeTarget = new SimpleFolderStore(targetFolder).ToPointCloudStore())
                 {
-                    storeSource.InlineOctree(name, storeTarget, false);
+                    var foo = storeSource.GetPointSet(key);
+                    var bar = foo.Root.Value.Id;
+
+                    storeSource.InlineOctree(bar, storeTarget, false);
                     storeTarget.Flush();
 
                     // meta
-                    var pointset = storeSource.GetPointSet(name);
+                    var pointset = storeSource.GetPointSet(key);
                     var root = pointset.Root.Value;
                     var rootJson = JObject.FromObject(new
                     {
@@ -575,7 +578,7 @@ namespace Aardvark.Geometry.Tests
                     });
 
                     File.WriteAllText(
-                        Path.Combine(folderStoreName, "root.json"), 
+                        Path.Combine(targetFolder, "root.json"), 
                         rootJson.ToString(Formatting.Indented)
                         );
                 }
@@ -644,11 +647,11 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
-            //var filepath = @"T:\Vgm\Data\JBs_Haus.pts";
-            var filepath = @"T:\Vgm\Data\Technologiezentrum_Teil1.pts";
+            var filepath = @"T:\Vgm\Data\JBs_Haus.pts";
+            //var filepath = @"T:\Vgm\Data\Technologiezentrum_Teil1.pts";
             //var filepath = @"T:\Vgm\Data\E57\Staatsoper.e57";
-            TestCreateStore(filepath, 0.001);
-            //ExportExamples(filepath);
+            //TestCreateStore(filepath, 0.001);
+            ExportExamples(filepath);
 
             //TestImport();
 
