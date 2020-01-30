@@ -12,15 +12,14 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void TestPointClustering()
         {
-            Aardvark.Base.Aardvark.Init();
-            var data = File.ReadAllBytes("C:\\temp\\test.mesh");
-            //var data = File.ReadAllBytes("..\\..\\..\\src\\Aardvark.Algodat.Tests\\PolyMesh\\test.mesh");
-            
-            PolyMesh mesh = data.Decode<PolyMesh>();
+            // for some reson Aardvark.Init() crashes when in UnitTest -> manually register TypeCoder
+            Aardvark.Base.Coder.TypeInfo.Add(typeof(PolyMesh));
 
-            //var mesh = mesh.VertexClusteredCopy(new PointClustering(mesh.PositionArray, 1e-4));
-            mesh.WithoutDegeneratedEdges();
-            mesh.WithoutDegeneratedFaces();
+            var data = File.ReadAllBytes("..\\..\\..\\src\\Aardvark.Algodat.Tests\\PolyMesh\\test.mesh");
+            
+            var mesh = data.Decode<PolyMesh>();
+            mesh = mesh.WithoutDegeneratedEdges();
+            mesh = mesh.WithoutDegeneratedFaces();
             mesh.BuildTopology();
         }
 
