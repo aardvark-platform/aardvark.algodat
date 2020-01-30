@@ -1296,6 +1296,11 @@ namespace Aardvark.Geometry
 
     public partial class PolyMesh
     {
+        /// <summary>
+        /// Collapse vertices with a given clustering
+        /// Note: Edges can degenerate (FromVertexIndex = ToVertexIndex) and
+        ///       creates an invalid topology (may use WithoutDegeneratedEdges)
+        /// </summary>
         public PolyMesh VertexClusteredCopy(
                     Clustering.Clustering vertexClustering
                     )

@@ -16,6 +16,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Uncodium.SimpleStore;
+using Aardvark.Base.Coder;
 
 namespace Aardvark.Geometry.Tests
 {
@@ -230,7 +231,7 @@ namespace Aardvark.Geometry.Tests
                 foreach (var x in chunks.Take(10))
                 {
                     lock (queue) queue.Enqueue(x);
-                }
+        }
                 Report.Line("set parseChunksDone");
                 parseChunksDone = true;
             });
@@ -524,10 +525,10 @@ namespace Aardvark.Geometry.Tests
             Report.EndTimed();
             store.Flush();
             store.Dispose();
-        }
+                }
 
         public static void ExportExamples(string filepath, bool gzipped)
-        {
+            {
             //// Example 1: export point cloud to folder
             //{
             //    var ct = new CancellationTokenSource(10000);
@@ -647,15 +648,34 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
-            var filepath = @"T:\Vgm\Data\JBs_Haus.pts";
+            //DumpPointSetKeys();
+
+            //var filepath = @"T:\Vgm\Data\JBs_Haus.pts";
             //var filepath = @"T:\Vgm\Data\Technologiezentrum_Teil1.pts";
             //var filepath = @"T:\Vgm\Data\E57\Staatsoper.e57";
             //TestCreateStore(filepath, 0.001);
-            ExportExamples(filepath, true);
+            //ExportExamples(filepath, true);
+
 
             //TestImport();
 
             //EnumerateCells2dTest();
+            //DumpPointSetKeys();
+            // polygon topology test
+            new PointClusteringTest().TestPointClustering();
+
+            var data = File.ReadAllBytes("C:\\temp\\test.mesh");
+            PolyMesh mesh = data.Decode<PolyMesh>();
+
+
+            // fix broken edges...
+            //mesh.VertexClusteredCopy(Aardvark.Geometry.Clustering.PointClustering(mesh.PositionArray));
+            mesh.WithoutDegeneratedEdges();
+            //mesh.WithoutDegeneratedFaces();
+            mesh.BuildTopology();
+
+            Report.Line("yeah");
+
             //DumpPointSetKeys();
 
             //EnumerateCellsTest();
