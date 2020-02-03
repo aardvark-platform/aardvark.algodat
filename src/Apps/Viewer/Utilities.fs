@@ -55,18 +55,20 @@ module ShapeList =
         
         let lShapes =
             let l2g = l.renderTrafo * renderTrafo.Inverse
+
+            let m = l2g.Forward
+            let mat = M33d.FromRows(m.R0.XYW,m.R1.XYW,m.R3.XYW)
+
             l.concreteShapes |> List.map (fun (s : ConcreteShape) ->
-                let offset = l2g.Forward.TransformPos (V3d(s.offset, 0.0)) |> Vec.xy
-                let scale = l2g.Forward.TransformDir (V3d(s.scale, 0.0)) |> Vec.xy
-                { offset = offset; scale = scale; color = s.color; shape = s.shape; z = s.z }
+                { trafo = mat * s.trafo; color = s.color; shape = s.shape; z = s.z }
             )
 
         let rShapes =
             let r2g = r.renderTrafo * renderTrafo.Inverse
+            let m = r2g.Forward
+            let mat = M33d.FromRows(m.R0.XYW,m.R1.XYW,m.R3.XYW)
             r.concreteShapes |> List.map (fun (s : ConcreteShape) ->
-                let offset = r2g.Forward.TransformPos (V3d(s.offset, 0.0)) |> Vec.xy
-                let scale = r2g.Forward.TransformDir (V3d(s.scale, 0.0)) |> Vec.xy
-                { offset = offset; scale = scale; color = s.color; shape = s.shape; z = s.z }
+                { trafo = mat * s.trafo; color = s.color; shape = s.shape; z = s.z }
             )
         
         { 
