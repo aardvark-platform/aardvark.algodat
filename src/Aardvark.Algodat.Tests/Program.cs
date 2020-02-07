@@ -527,7 +527,7 @@ namespace Aardvark.Geometry.Tests
             store.Dispose();
                 }
 
-        public static void ExportExamples(string filepath, bool gzipped)
+        public static void ExportExamples(string filepath, bool collapse, bool gzipped)
             {
             //// Example 1: export point cloud to folder
             //{
@@ -559,7 +559,7 @@ namespace Aardvark.Geometry.Tests
                     var foo = storeSource.GetPointSet(key);
                     var bar = foo.Root.Value.Id;
 
-                    storeSource.InlineOctree(bar, storeTarget, gzipped);
+                    storeSource.InlineOctree(bar, storeTarget, new InlineConfig(collapse, gzipped, 3));
                     storeTarget.Flush();
 
                     // meta
@@ -650,11 +650,11 @@ namespace Aardvark.Geometry.Tests
         {
             //DumpPointSetKeys();
 
-            //var filepath = @"T:\Vgm\Data\JBs_Haus.pts";
+            var filepath = @"T:\Vgm\Data\JBs_Haus.pts";
             //var filepath = @"T:\Vgm\Data\Technologiezentrum_Teil1.pts";
             //var filepath = @"T:\Vgm\Data\E57\Staatsoper.e57";
             //TestCreateStore(filepath, 0.001);
-            //ExportExamples(filepath, true);
+            ExportExamples(filepath, collapse: true, gzipped: true);
 
 
             //TestImport();
@@ -662,19 +662,19 @@ namespace Aardvark.Geometry.Tests
             //EnumerateCells2dTest();
             //DumpPointSetKeys();
             // polygon topology test
-            new PointClusteringTest().TestPointClustering();
+            //new PointClusteringTest().TestPointClustering();
 
-            var data = File.ReadAllBytes("C:\\temp\\test.mesh");
-            PolyMesh mesh = data.Decode<PolyMesh>();
+            //var data = File.ReadAllBytes("C:\\temp\\test.mesh");
+            //PolyMesh mesh = data.Decode<PolyMesh>();
 
 
-            // fix broken edges...
-            //mesh.VertexClusteredCopy(Aardvark.Geometry.Clustering.PointClustering(mesh.PositionArray));
-            mesh.WithoutDegeneratedEdges();
-            //mesh.WithoutDegeneratedFaces();
-            mesh.BuildTopology();
+            //// fix broken edges...
+            ////mesh.VertexClusteredCopy(Aardvark.Geometry.Clustering.PointClustering(mesh.PositionArray));
+            //mesh.WithoutDegeneratedEdges();
+            ////mesh.WithoutDegeneratedFaces();
+            //mesh.BuildTopology();
 
-            Report.Line("yeah");
+            //Report.Line("yeah");
 
             //DumpPointSetKeys();
 
