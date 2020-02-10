@@ -153,11 +153,10 @@ namespace Aardvark.Geometry.Points
                 if (subnodeGuids != null)
                 {
                     var cellCenter = cell.GetCenter();
-                    var guids = ((Guid[])subnodeGuids).Where(x => x != Guid.Empty).ToArray();
-                    if (guids.Length == 0) throw new InvalidOperationException(
-                        "No subnodes. Invariant 671f1e0e-332c-46d8-86df-708db504b424."
-                        );
+                    var guids = ((Guid[])subnodeGuids);
+                    
                     ps = guids
+                        .Where(g => g != Guid.Empty)
                         .SelectMany(key =>
                             {
                                 var (_, n) = GetNodeDataFromKey(storage, key);
@@ -170,7 +169,9 @@ namespace Aardvark.Geometry.Points
                                 return xs;
                             })
                         .ToArray();
+                    
                     cs = guids
+                        .Where(g => g != Guid.Empty)
                         .SelectMany(key =>
                         {
                             var (_, n) = GetNodeDataFromKey(storage, key);
@@ -181,6 +182,16 @@ namespace Aardvark.Geometry.Points
                             return xs;
                         })
                         .ToArray();
+
+                    var isNewLeaf = guids
+                        .All(key =>
+                        {
+                            if (key == Guid.Empty) return true;
+                            var (_, n) = GetNodeDataFromKey(storage, key);
+                            n.TryGetValue(Durable.Octree.SubnodesGuids, out var grandChildren);
+                            return grandChildren == null;
+                        });
+                    if (isNewLeaf) subnodeGuids = null;
 
                     if (ps.Length != cs.Length) throw new InvalidOperationException(
                        $"Different number of positions ({ps.Length}) and colors ({cs.Length}). " +
