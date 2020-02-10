@@ -527,7 +527,7 @@ namespace Aardvark.Geometry.Tests
             store.Dispose();
                 }
 
-        public static void ExportExamples(string filepath, bool collapse, bool gzipped)
+        public static void ExportExamples(string filepath, bool collapse, bool gzipped, int? positionsRoundedToNumberOfDigits)
             {
             //// Example 1: export point cloud to folder
             //{
@@ -559,7 +559,7 @@ namespace Aardvark.Geometry.Tests
                     var foo = storeSource.GetPointSet(key);
                     var bar = foo.Root.Value.Id;
 
-                    storeSource.InlineOctree(bar, storeTarget, new InlineConfig(collapse, gzipped, 3));
+                    storeSource.InlineOctree(bar, storeTarget, new InlineConfig(collapse, gzipped, positionsRoundedToNumberOfDigits));
                     storeTarget.Flush();
 
                     // meta
@@ -654,7 +654,7 @@ namespace Aardvark.Geometry.Tests
             //var filepath = @"T:\Vgm\Data\Technologiezentrum_Teil1.pts";
             //var filepath = @"T:\Vgm\Data\E57\Staatsoper.e57";
             //TestCreateStore(filepath, 0.001);
-            ExportExamples(filepath, collapse: true, gzipped: true);
+            ExportExamples(filepath, collapse: false, gzipped: false, positionsRoundedToNumberOfDigits: 3);
 
 
             //TestImport();

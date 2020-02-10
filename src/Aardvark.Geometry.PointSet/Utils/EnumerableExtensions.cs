@@ -62,7 +62,7 @@ namespace Aardvark.Geometry.Points
 
         internal static T[] Append<T>(this T[] self, T[] other)
         {
-            if (self == null || self.Length == 0) return other ?? new T[0];
+            if (self == null || self.Length == 0) return other ?? Array.Empty<T>();
             if (other == null || other.Length == 0) return self;
 
             var xs = new T[self.Length + other.Length];
@@ -74,7 +74,7 @@ namespace Aardvark.Geometry.Points
         internal static T[] Take<T>(this T[] self, int count)
         {
             if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
-            if (self == null || count == 0) return new T[0];
+            if (self == null || count == 0) return Array.Empty<T>();
             if (self.Length <= count) return self;
 
             var xs = new T[count];

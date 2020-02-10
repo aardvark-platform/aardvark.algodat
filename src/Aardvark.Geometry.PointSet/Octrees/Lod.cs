@@ -26,7 +26,7 @@ namespace Aardvark.Geometry.Points
         private static double[] ComputeLodFractions(long[] counts)
         {
             if (counts == null) return null;
-            if (counts.Length != 8) throw new ArgumentOutOfRangeException();
+            if (counts.Length != 8) throw new ArgumentOutOfRangeException(nameof(counts));
 
             var sum = 0L;
             for (var i = 0; i < 8; i++) sum += counts[i];
@@ -40,7 +40,7 @@ namespace Aardvark.Geometry.Points
         internal static double[] ComputeLodFractions(IPointCloudNode[] subnodes)
         {
             if (subnodes == null) return null;
-            if (subnodes.Length != 8) throw new ArgumentOutOfRangeException();
+            if (subnodes.Length != 8) throw new ArgumentOutOfRangeException(nameof(subnodes));
 
             var counts = new long[8];
             for (var i = 0; i < 8; i++) counts[i] = subnodes[i] != null ? subnodes[i].PointCountTree : 0;
@@ -50,7 +50,7 @@ namespace Aardvark.Geometry.Points
         internal static int[] ComputeLodCounts(int splitLimit, double[] fractions)
         {
             if (fractions == null) return null;
-            if (fractions.Length != 8) throw new ArgumentOutOfRangeException();
+            if (fractions.Length != 8) throw new ArgumentOutOfRangeException(nameof(fractions));
 
             var remainder = 0.1;
             var counts = new int[8];

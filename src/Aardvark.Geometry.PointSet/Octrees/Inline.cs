@@ -16,6 +16,7 @@ using Aardvark.Data;
 using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Aardvark.Geometry.Points
 {
@@ -92,20 +93,7 @@ namespace Aardvark.Geometry.Points
             {
                 if (key == Guid.Empty) return;
 
-                // get node from key ...
-                Durable.Def def = Durable.Octree.Node;
-                object raw = null;
-                try
-                {
-                    (def, raw) = storage.GetDurable(key);
-                }
-                catch
-                {
-                    var n = storage.GetPointCloudNode(key);
-                    raw = n.Properties;
-                }
-                
-                var node = raw as IReadOnlyDictionary<Durable.Def, object>;
+                var (def, node) = GetNodeDataFromKey(storage, key);
                 var isInnerNode = node.TryGetValue(Durable.Octree.SubnodesGuids, out var subnodeGuids);
 
                 // when collapsing -> don't export child nodes,
@@ -128,6 +116,23 @@ namespace Aardvark.Geometry.Points
             }
         }
 
+        private static (Durable.Def, IReadOnlyDictionary<Durable.Def, object>) GetNodeDataFromKey(Storage storage, Guid key)
+        {
+            var def = Durable.Octree.Node;
+            var raw = default(object);
+            try
+            {
+                (def, raw) = storage.GetDurable(key);
+            }
+            catch
+            {
+                var n = storage.GetPointCloudNode(key);
+                raw = n.Properties;
+            }
+
+            return (def, raw as IReadOnlyDictionary<Durable.Def, object>);
+        }
+
         private static IEnumerable<KeyValuePair<Durable.Def, object>> ConvertToInline(
             this Storage storage,
             IReadOnlyDictionary<Durable.Def, object> node,
@@ -138,11 +143,66 @@ namespace Aardvark.Geometry.Points
             var bbExactGlobal = (Box3d)node[Durable.Octree.BoundingBoxExactGlobal];
             var pointCountCell = (int)node[Durable.Octree.PointCountCell];
             var pointCountTree = (long)node[Durable.Octree.PointCountTreeLeafs];
-
             node.TryGetValue(Durable.Octree.SubnodesGuids, out var subnodeGuids);
 
-            var psRef = node[Durable.Octree.PositionsLocal3fReference];
-            var ps = storage.GetV3fArray(((Guid)psRef).ToString());
+            var ps = default(V3f[]);
+            var cs = default(C4b[]);
+
+            if (config.Collapse)
+            {
+                if (subnodeGuids != null)
+                {
+                    var cellCenter = cell.GetCenter();
+                    var guids = ((Guid[])subnodeGuids).Where(x => x != Guid.Empty).ToArray();
+                    if (guids.Length == 0) throw new InvalidOperationException(
+                        "No subnodes. Invariant 671f1e0e-332c-46d8-86df-708db504b424."
+                        );
+                    ps = guids
+                        .SelectMany(key =>
+                            {
+                                var (_, n) = GetNodeDataFromKey(storage, key);
+                                var delta = ((Cell)n[Durable.Octree.Cell]).GetCenter() - cellCenter;
+                                var r = n[Durable.Octree.PositionsLocal3fReference];
+                                var xs = storage
+                                    .GetV3fArray(((Guid)r).ToString())
+                                    .Map(x => (V3f)((V3d)x + delta))
+                                ;
+                                return xs;
+                            })
+                        .ToArray();
+                    cs = guids
+                        .SelectMany(key =>
+                        {
+                            var (_, n) = GetNodeDataFromKey(storage, key);
+                            var r = n[Durable.Octree.Colors4bReference];
+                            var xs = storage
+                                .GetC4bArray(((Guid)r).ToString())
+                            ;
+                            return xs;
+                        })
+                        .ToArray();
+
+                    if (ps.Length != cs.Length) throw new InvalidOperationException(
+                       $"Different number of positions ({ps.Length}) and colors ({cs.Length}). " +
+                       "Invariant ac1cdac5-b7a2-4557-9383-ae80929af999."
+                       );
+                }   
+                else
+                {
+                    throw new InvalidOperationException(
+                        "Can't collapse leaf node. " +
+                        "Invariant a055891c-2444-46fb-97f7-5a822a172653."
+                        );
+                }
+            }
+            else
+            {
+                var psRef = node[Durable.Octree.PositionsLocal3fReference];
+                ps = storage.GetV3fArray(((Guid)psRef).ToString());
+
+                var csRef = node[Durable.Octree.Colors4bReference];
+                cs = storage.GetC4bArray(((Guid)csRef).ToString());
+            }
 
             // optionally round positions
             if (config.PositionsRoundedToNumberOfDigits.HasValue)
@@ -150,9 +210,7 @@ namespace Aardvark.Geometry.Points
                 ps = ps.Map(x => x.Round(config.PositionsRoundedToNumberOfDigits.Value));
             }
 
-            var csRef = node[Durable.Octree.Colors4bReference];
-            var cs = storage.GetC4bArray(((Guid)csRef).ToString());
-
+            // result
             KeyValuePair<Durable.Def, object> Entry(Durable.Def def, object o) => 
                 new KeyValuePair<Durable.Def, object>(def, o);
 
