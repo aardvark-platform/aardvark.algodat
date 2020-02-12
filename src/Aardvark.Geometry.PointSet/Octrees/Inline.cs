@@ -107,7 +107,7 @@ namespace Aardvark.Geometry.Points
             {
                 if (key == Guid.Empty) return;
 
-                var (node, storageFound) = GetNodeDataFromKey(key);
+                var node = GetNodeDataFromKey(key);
                 var isLeafNode = !node.TryGetValue(Durable.Octree.SubnodesGuids, out var subnodeGuids);
 
                 // when collapsing -> don't export leaf nodes,
@@ -119,7 +119,7 @@ namespace Aardvark.Geometry.Points
                 }
 
                 // inline node data and export ...
-                var inline = ConvertToInline(storageFound, node).ToArray();
+                var inline = ConvertToInline(node).ToArray();
                 var inlineCount = (int)inline.Single(kv => kv.Key == Durable.Octree.PointCountCell).Value;
                 storageTarget.Add(key, Durable.Octree.Node, inline, config.GZipped);
                 survive.Remove(key);
@@ -136,7 +136,6 @@ namespace Aardvark.Geometry.Points
             }
 
             IEnumerable<KeyValuePair<Durable.Def, object>> ConvertToInline(
-                Storage storage,
                 IReadOnlyDictionary<Durable.Def, object> node
                 )
             {
@@ -150,68 +149,52 @@ namespace Aardvark.Geometry.Points
                 var ps = default(V3f[]);
                 var cs = default(C4b[]);
 
-                if (config.Collapse)
+                if (config.Collapse && subnodeGuids != null)
                 {
-                    if (subnodeGuids != null)
+                    var guids = ((Guid[])subnodeGuids);
+
+                    ps = guids
+                        .Where(g => g != Guid.Empty)
+                        .SelectMany(k =>
+                        {
+                            var n = GetNodeDataFromKey(k);
+                            var nCell = ((Cell)n[Durable.Octree.Cell]);
+                            var nCenter = nCell.GetCenter();
+                            var delta = nCenter - cellCenter;
+                            var xs = GetNodePositions(n).Map(x => (V3d)x + nCenter);
+                            Report.Line($"    {k} -> {xs.Length}");
+                            return xs;
+                        })
+                        .ToArray()
+                        .Map(p => (V3f)(p - cellCenter));
+
+                    cs = guids
+                        .Where(g => g != Guid.Empty)
+                        .Select(GetNodeDataFromKey)
+                        .SelectMany(GetNodeColors)
+                        .ToArray();
+
+                    var guids2 = guids
+                        .Map(k =>
+                        {
+                            if (k == Guid.Empty) return Guid.Empty;
+                            var n = GetNodeDataFromKey(k);
+                            return n.ContainsKey(Durable.Octree.SubnodesGuids) ? k : Guid.Empty;
+                        });
+                    var isNewLeaf = guids2.All(k => k == Guid.Empty);
+                    if (isNewLeaf)
                     {
-                        var guids = ((Guid[])subnodeGuids);
-
-                        ps = guids
-                            .Where(g => g != Guid.Empty)
-                            .SelectMany(k =>
-                            {
-                                var (n, s) = GetNodeDataFromKey(k);
-                                var nCell = ((Cell)n[Durable.Octree.Cell]);
-                                var nCenter = nCell.GetCenter();
-                                var delta = nCenter - cellCenter;
-                                var xs = GetNodePositions(s, n).Map(x => (V3d)x + nCenter);
-                                Report.Line($"    {k} -> {xs.Length}");
-                                return xs;
-                            })
-                            .ToArray()
-                            .Map(p => (V3f)(p - cellCenter));
-
-                        cs = guids
-                            .Where(g => g != Guid.Empty)
-                            .Select(GetNodeDataFromKey)
-                            .SelectMany(x => GetNodeColors(x.Item2, x.Item1))
-                            .ToArray();
-
-                        var guids2 = guids
-                            .Map(k =>
-                            {
-                                if (k == Guid.Empty) return Guid.Empty;
-                                var (n, _) = GetNodeDataFromKey(k);
-                                return n.ContainsKey(Durable.Octree.SubnodesGuids) ? k : Guid.Empty;
-                            });
-                        var isNewLeaf = guids2.All(k => k == Guid.Empty);
-                        if (isNewLeaf)
-                        {
-                            subnodeGuids = null;
-                        }
-                        else
-                        {
-                            foreach (var g in guids) if (g != Guid.Empty) survive.Add(g);
-                        }
-
-                        if (ps.Length != cs.Length) throw new InvalidOperationException(
-                           $"Different number of positions ({ps.Length}) and colors ({cs.Length}). " +
-                           "Invariant ac1cdac5-b7a2-4557-9383-ae80929af999."
-                           );
+                        subnodeGuids = null;
                     }
                     else
                     {
-                        var psRef = node[Durable.Octree.PositionsLocal3fReference];
-                        ps = storage.GetV3fArray(((Guid)psRef).ToString());
-
-                        var csRef = node[Durable.Octree.Colors4bReference];
-                        cs = storage.GetC4bArray(((Guid)csRef).ToString());
-
-                        //throw new InvalidOperationException(
-                        //    "Can't collapse leaf node. " +
-                        //    "Invariant a055891c-2444-46fb-97f7-5a822a172653."
-                        //    );
+                        foreach (var g in guids) if (g != Guid.Empty) survive.Add(g);
                     }
+
+                    if (ps.Length != cs.Length) throw new InvalidOperationException(
+                        $"Different number of positions ({ps.Length}) and colors ({cs.Length}). " +
+                        "Invariant ac1cdac5-b7a2-4557-9383-ae80929af999."
+                        );
                 }
                 else
                 {
@@ -240,12 +223,8 @@ namespace Aardvark.Geometry.Points
 
                 if (subnodeGuids != null)
                 {
-                    Report.Line($"    {string.Join(",", ((Guid[])subnodeGuids).Select(x => x != Guid.Empty ? x.ToString() : "-"))}");
+                    //Report.Line($"    {string.Join(",", ((Guid[])subnodeGuids).Select(x => x != Guid.Empty ? x.ToString() : "-"))}");
                     yield return Entry(Durable.Octree.SubnodesGuids, subnodeGuids);
-                }
-                else
-                {
-                    Report.Line("LEAF");
                 }
 
                 yield return Entry(Durable.Octree.PointCountCell, pointCountCell);
@@ -262,30 +241,22 @@ namespace Aardvark.Geometry.Points
                 yield return Entry(Durable.Octree.Colors3b, cs.Map(x => new C3b(x)));
             }
 
-            // (null, null, null) ... not found
-            // (def, data, storeInWhichDataHasBeenFound)
-            (IReadOnlyDictionary<Durable.Def, object>, Storage) GetNodeDataFromKey(Guid key)
+            IReadOnlyDictionary<Durable.Def, object> GetNodeDataFromKey(Guid key)
             {
-                var (_, raw) = storageTarget.GetDurable(key);
-                if (raw != null) return (raw as IReadOnlyDictionary<Durable.Def, object>, storageTarget);
+                var (_, raw) = storageSource.GetDurable(key);
+                if (raw != null) return (raw as IReadOnlyDictionary<Durable.Def, object>);
 
-                (_, raw) = storageSource.GetDurable(key);
-                if (raw != null) return (raw as IReadOnlyDictionary<Durable.Def, object>, storageSource);
+                var n = storageSource.GetPointCloudNode(key);
+                if (n != null) return (n.Properties);
 
-                var n = storageTarget.GetPointCloudNode(key);
-                if (n != null) return (n.Properties, storageTarget);
-
-                n = storageSource.GetPointCloudNode(key);
-                if (n != null) return (n.Properties, storageSource);
-
-                return (null, null);
+                return null;
             }
 
-            V3f[] GetNodePositions(Storage storage, IReadOnlyDictionary<Durable.Def, object> n)
+            V3f[] GetNodePositions(IReadOnlyDictionary<Durable.Def, object> n)
             {
                 if (n.TryGetValue(Durable.Octree.PositionsLocal3fReference, out var r))
                 {
-                    return storage.GetV3fArray(((Guid)r).ToString());
+                    return storageSource.GetV3fArray(((Guid)r).ToString());
                 }
                 else if (n.TryGetValue(Durable.Octree.PositionsLocal3f, out var ps))
                 {
@@ -297,11 +268,11 @@ namespace Aardvark.Geometry.Points
                 }
             }
 
-            C4b[] GetNodeColors(Storage storage, IReadOnlyDictionary<Durable.Def, object> n)
+            C4b[] GetNodeColors(IReadOnlyDictionary<Durable.Def, object> n)
             {
                 if (n.TryGetValue(Durable.Octree.Colors4bReference, out var r))
                 {
-                    return storage.GetC4bArray(((Guid)r).ToString());
+                    return storageSource.GetC4bArray(((Guid)r).ToString());
                 }
                 else if (n.TryGetValue(Durable.Octree.Colors3b, out var cs))
                 {
