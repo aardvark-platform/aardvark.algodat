@@ -508,7 +508,7 @@ namespace Aardvark.Geometry.Tests
         public static void TestCreateStore(string filepath, double minDist)
         {
             var filename = Path.GetFileName(filepath);
-            var storename = Path.Combine(@"C:\Data\Stores\", filename);
+            var storename = Path.Combine(@"T:\Vgm\Stores\", filename);
             var store = new SimpleDiskStore(storename).ToPointCloudStore(new LruDictionary<string, object>(1024 * 1024 * 1024));
 
             var config = ImportConfig.Default
@@ -552,8 +552,8 @@ namespace Aardvark.Geometry.Tests
             // Example 3: inline point cloud nodes
             {
                 var key = Path.GetFileName(filepath);
-                var targetFolder = $@"C:\Data\Stores\{key}.upload2";
-                using (var storeSource = new SimpleDiskStore($@"C:\Data\Stores\{key}").ToPointCloudStore())
+                var targetFolder = $@"T:\Vgm\Stores\{key}.upload2";
+                using (var storeSource = new SimpleDiskStore($@"T:\Vgm\Stores\{key}").ToPointCloudStore())
                 using (var storeTarget = new SimpleFolderStore(targetFolder).ToPointCloudStore())
                 {
                     var foo = storeSource.GetPointSet(key);
@@ -650,11 +650,11 @@ namespace Aardvark.Geometry.Tests
         {
             //DumpPointSetKeys();
 
-            var filepath = @"C:\Data\Vgm\JBs_Haus.pts";
+            var filepath = @"T:\Vgm\Data\JBs_Haus.pts";
             //var filepath = @"T:\Vgm\Data\Technologiezentrum_Teil1.pts";
             //var filepath = @"T:\Vgm\Data\E57\Staatsoper.e57";
             //TestCreateStore(filepath, 0.001);
-            ExportExamples(filepath, collapse: true, gzipped: false, positionsRoundedToNumberOfDigits: 3);
+            ExportExamples(filepath, collapse: true, gzipped: true, positionsRoundedToNumberOfDigits: 3);
 
 
             //TestImport();

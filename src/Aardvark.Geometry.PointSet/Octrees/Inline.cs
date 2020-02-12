@@ -98,6 +98,7 @@ namespace Aardvark.Geometry.Points
             Report.Line($"total node count  = {totalNodeCount,36:N0}");
 
             // export octree (recursively)
+            var survive = new HashSet<Guid> { root.Id };
             ExportInlinedNode(root.Id);
 
             Report.EndTimed();
@@ -111,7 +112,7 @@ namespace Aardvark.Geometry.Points
 
                 // when collapsing -> don't export leaf nodes,
                 // because data has already been exported with parent node
-                if (config.Collapse && isLeafNode)
+                if (config.Collapse && isLeafNode && !survive.Contains(key))
                 {
                     Report.Line($"skipping leaf {key}");
                     return;
@@ -121,7 +122,8 @@ namespace Aardvark.Geometry.Points
                 var inline = ConvertToInline(storageFound, node).ToArray();
                 var inlineCount = (int)inline.Single(kv => kv.Key == Durable.Octree.PointCountCell).Value;
                 storageTarget.Add(key, Durable.Octree.Node, inline, config.GZipped);
-                Report.Line($"exported node {key}");
+                survive.Remove(key);
+                Report.Line($"exported node {key} (survive = {survive.Count:N0})");
 
                 // export children ...
                 if (subnodeGuids != null)
@@ -131,12 +133,6 @@ namespace Aardvark.Geometry.Points
                         ExportInlinedNode(x);
                     }
                 }
-
-                //// debug
-                //var (foo, s) = GetNodeDataFromKey(key);
-                //if (s != storageTarget) throw new Exception();
-                //var fooCount = (int)foo[Durable.Octree.PointCountCell];
-                //if (inlineCount != fooCount) throw new Exception();
             }
 
             IEnumerable<KeyValuePair<Durable.Def, object>> ConvertToInline(
@@ -160,13 +156,7 @@ namespace Aardvark.Geometry.Points
                     {
                         var guids = ((Guid[])subnodeGuids);
 
-                        //var psRef = node[Durable.Octree.PositionsLocal3fReference];
-                        //ps = storage.GetV3fArray(((Guid)psRef).ToString());
-
-                        //var csRef = node[Durable.Octree.Colors4bReference];
-                        //cs = storage.GetC4bArray(((Guid)csRef).ToString());
-
-                        var psGlobal = guids
+                        ps = guids
                             .Where(g => g != Guid.Empty)
                             .SelectMany(k =>
                             {
@@ -178,19 +168,8 @@ namespace Aardvark.Geometry.Points
                                 Report.Line($"    {k} -> {xs.Length}");
                                 return xs;
                             })
-                            .ToArray();
-
-                        ps = psGlobal.Map(p => (V3f)(p - cellCenter));
-
-                        //bbExactGlobal = new Box3d(ps.Select(p => (V3d)p + cellCenter));
-
-                        //var bb = cell.BoundingBox;
-                        //foreach (var p in ps) if (!bb.Contains(cellCenter + (V3d)p)) throw new Exception();
-                        //foreach (var p in ps)
-                        //{
-                        //    var q = cellCenter + (V3d)p;
-                        //    if (!bbExactGlobal.Contains(q)) Report.Error($"{0}", bbExactGlobal.Distance(q));
-                        //}
+                            .ToArray()
+                            .Map(p => (V3f)(p - cellCenter));
 
                         cs = guids
                             .Where(g => g != Guid.Empty)
@@ -206,8 +185,14 @@ namespace Aardvark.Geometry.Points
                                 return n.ContainsKey(Durable.Octree.SubnodesGuids) ? k : Guid.Empty;
                             });
                         var isNewLeaf = guids2.All(k => k == Guid.Empty);
-                        if (isNewLeaf) guids2 = null;
-                        //subnodeGuids = guids2;
+                        if (isNewLeaf)
+                        {
+                            subnodeGuids = null;
+                        }
+                        else
+                        {
+                            foreach (var g in guids) if (g != Guid.Empty) survive.Add(g);
+                        }
 
                         if (ps.Length != cs.Length) throw new InvalidOperationException(
                            $"Different number of positions ({ps.Length}) and colors ({cs.Length}). " +
@@ -244,12 +229,8 @@ namespace Aardvark.Geometry.Points
                 }
 
                 // result
-
                 Report.Line($"    PointCountCell = {ps.Length}");
-
-                //bbExactGlobal = cell.BoundingBox;
                 pointCountCell = ps.Length;
-
 
                 KeyValuePair<Durable.Def, object> Entry(Durable.Def def, object o) =>
                     new KeyValuePair<Durable.Def, object>(def, o);
