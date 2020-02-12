@@ -763,7 +763,6 @@ namespace Aardvark.Geometry.Points
         public static (Durable.Def, object) GetDurable(this Storage storage, string key)
         {
             if (key == null) return (null, null);
-
             var buffer = storage.f_get(key);
             if (buffer == null) return (null, null);
 
