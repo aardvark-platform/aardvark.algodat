@@ -89,18 +89,17 @@ module LodTreeInstance =
     
         static let cmp = Func<float,float,int>(compare)
 
-        
-        static let nodeId (n : IPointCloudNode) =
-            string n.Id + "PointTreeNode"
-            
         static let simToString (s : Similarity3d) =
             let sb = System.Text.StringBuilder()
             sb.Append( sprintf "%E " s.Scale ) |> ignore
             sb.Append( sprintf "%E %E %E %E " s.Rot.X s.Rot.Y s.Rot.Z s.Rot.W ) |> ignore
             sb.Append( sprintf "%E %E %E" s.Trans.X s.Trans.Y s.Trans.Z ) |> ignore
             sb.ToString()
+        
+        static let nodeId (n : IPointCloudNode) (globalTrafo : Similarity3d) (level : int) =
+            (string n.Id) + (simToString globalTrafo) + (sprintf "%d" level) + "PointTreeNode"
             
-
+            
         static let cacheId (n : IPointCloudNode) (globalTrafo : Similarity3d) (level : int) =
             (string n.Id) + (simToString globalTrafo) + (sprintf "%d" level) + "GeometryData"
 
@@ -111,7 +110,8 @@ module LodTreeInstance =
                         (globalTrafo : Similarity3d)
                         (localBounds : Box3d)
                         (level : int) =
-            cache.GetOrCreate(cacheId self globalTrafo level, fun () ->
+            let cid = cacheId self globalTrafo level
+            cache.GetOrCreate(cid, fun () ->
                 let scale = globalTrafo.Scale
                 let center = self.Center
                 let attributes = SymbolDict<Array>()
@@ -315,7 +315,7 @@ module LodTreeInstance =
                 )
 
             match old with
-            | Some o -> o |> List.iter (fun o -> cache.Add(nodeId (unbox<PointTreeNode> o).Original, o, 1L <<< 10) |> ignore)
+            | Some o -> o |> List.iter (fun o -> cache.Add(nodeId (unbox<PointTreeNode> o).Original globalTrafo level, o, 1L <<< 10) |> ignore)
             | None -> ()
 
         member x.WithPointCloudNode(r : IPointCloudNode) =
@@ -406,7 +406,7 @@ module LodTreeInstance =
                                         if isNull c then
                                             None
                                         else
-                                            let id = nodeId c
+                                            let id = nodeId c globalTrafo level
                                             match cache.TryGetValue id with
                                             | (true, n) ->
                                                 cache.Remove id |> ignore
