@@ -86,61 +86,33 @@ module LodTreeInstance =
     let isOrtho (proj : Trafo3d) = proj.Forward.R3.ApproxEqual(V4d.OOOI,1E-8)
 
     type PointTreeNode private(pointCloudId : System.Guid, world : obj, cache : LruDictionary<string, obj>, source : Symbol, globalTrafo : Similarity3d, root : Option<PointTreeNode>, parent : Option<PointTreeNode>, level : int, self : IPointCloudNode) as this =
+    
         static let cmp = Func<float,float,int>(compare)
-        
-        let globalTrafoTrafo = Trafo3d globalTrafo
-        
-        let worldBounds = self.BoundingBoxExactGlobal  //  todo hackihack
-        let worldCellBounds = self.Cell.BoundingBox //.BoundingBoxExactGlobal
-        let localBounds = worldBounds.Transformed(globalTrafoTrafo)
-        let localCellBounds = worldCellBounds.Transformed(globalTrafoTrafo)
-        let cell = self.Cell
-        let isLeaf = self.IsLeaf
-        let id = self.Id
-        let scale = globalTrafo.Scale
 
-        //let mutable refCount = 0
-        //let mutable livingChildren = 0
-        let mutable children : Option<list<ILodTreeNode>> = None
- 
+        
         static let nodeId (n : IPointCloudNode) =
             string n.Id + "PointTreeNode"
             
-        static let cacheId (n : IPointCloudNode) =
-            string n.Id + "GeometryData"
+        static let simToString (s : Similarity3d) =
+            let sb = System.Text.StringBuilder()
+            sb.Append( sprintf "%E " s.Scale ) |> ignore
+            sb.Append( sprintf "%E %E %E %E " s.Rot.X s.Rot.Y s.Rot.Z s.Rot.W ) |> ignore
+            sb.Append( sprintf "%E %E %E" s.Trans.X s.Trans.Y s.Trans.Z ) |> ignore
+            sb.ToString()
             
-        let getAverageDistance (original : V3f[]) (positions : V3f[]) (tree : PointRkdTreeF<_,_>) =
-            let heap = List<float>(positions.Length)
-            for i in 0 .. original.Length - 1 do
-                let q = tree.CreateClosestToPointQuery(Single.PositiveInfinity, 25)
-                let l = tree.GetClosest(q, original.[i])
-                if l.Count > 1 then
-                    let mutable minDist = Double.PositiveInfinity
-                    for l in l do
-                        let dist = V3f.Distance(positions.[int l.Index], positions.[i])
-                        if dist > 0.0f then
-                            minDist <- min (float dist) minDist
-                    if not (Double.IsInfinity minDist) then
-                        heap.HeapEnqueue(cmp, minDist)
 
-            if heap.Count > 0 then
-                let fstThrd = heap.Count / 3
-                let real = heap.Count - 2 * heap.Count / 3
-                for i in 1 .. fstThrd do heap.HeapDequeue(cmp) |> ignore
+        static let cacheId (n : IPointCloudNode) (globalTrafo : Similarity3d) (level : int) =
+            (string n.Id) + (simToString globalTrafo) + (sprintf "%d" level) + "GeometryData"
 
-                let mutable sum = 0.0
-                for i in 1 .. real do
-                    sum <- sum + heap.HeapDequeue(cmp)
-                    
-                sum / float real
-            elif original.Length > 2 then
-                Log.error "empty heap (%d)" original.Length
-                0.0
-            else 
-                0.0
-
-        let load (ct : CancellationToken) (ips : MapExt<string, Type>) =
-            cache.GetOrCreate(cacheId self, fun () ->
+        static let load (ct : CancellationToken) 
+                        (ips : MapExt<string, Type>) 
+                        (cache : LruDictionary<string, obj>) 
+                        (self : IPointCloudNode)
+                        (globalTrafo : Similarity3d)
+                        (localBounds : Box3d)
+                        (level : int) =
+            cache.GetOrCreate(cacheId self globalTrafo level, fun () ->
+                let scale = globalTrafo.Scale
                 let center = self.Center
                 let attributes = SymbolDict<Array>()
                 let mutable uniforms = MapExt.empty
@@ -251,6 +223,53 @@ module LodTreeInstance =
                     struct (res :> obj, mem)
             )
             |> unbox<IndexedGeometry * MapExt<string, Array>>
+        
+        
+        let globalTrafoTrafo = Trafo3d globalTrafo
+        
+        let worldBounds = self.BoundingBoxExactGlobal  //  todo hackihack
+        let worldCellBounds = self.Cell.BoundingBox //.BoundingBoxExactGlobal
+        let localBounds = worldBounds.Transformed(globalTrafoTrafo)
+        let localCellBounds = worldCellBounds.Transformed(globalTrafoTrafo)
+        let cell = self.Cell
+        let isLeaf = self.IsLeaf
+        let id = self.Id
+
+        //let mutable refCount = 0
+        //let mutable livingChildren = 0
+        let mutable children : Option<list<ILodTreeNode>> = None
+            
+        let getAverageDistance (original : V3f[]) (positions : V3f[]) (tree : PointRkdTreeF<_,_>) =
+            let heap = List<float>(positions.Length)
+            for i in 0 .. original.Length - 1 do
+                let q = tree.CreateClosestToPointQuery(Single.PositiveInfinity, 25)
+                let l = tree.GetClosest(q, original.[i])
+                if l.Count > 1 then
+                    let mutable minDist = Double.PositiveInfinity
+                    for l in l do
+                        let dist = V3f.Distance(positions.[int l.Index], positions.[i])
+                        if dist > 0.0f then
+                            minDist <- min (float dist) minDist
+                    if not (Double.IsInfinity minDist) then
+                        heap.HeapEnqueue(cmp, minDist)
+
+            if heap.Count > 0 then
+                let fstThrd = heap.Count / 3
+                let real = heap.Count - 2 * heap.Count / 3
+                for i in 1 .. fstThrd do heap.HeapDequeue(cmp) |> ignore
+
+                let mutable sum = 0.0
+                for i in 1 .. real do
+                    sum <- sum + heap.HeapDequeue(cmp)
+                    
+                sum / float real
+            elif original.Length > 2 then
+                Log.error "empty heap (%d)" original.Length
+                0.0
+            else 
+                0.0
+
+        
             
         let fov (proj : Trafo3d) =
             2.0 * atan(proj.Backward.M00) * Constant.DegreesPerRadian
@@ -405,7 +424,7 @@ module LodTreeInstance =
         member x.Id = id
 
         member x.GetData(ct, ips) = 
-            load ct ips
+            load ct ips cache self globalTrafo localBounds level
             
         member x.ShouldSplit (splitfactor : float, quality : float, view : Trafo3d, proj : Trafo3d) =
             not isLeaf && equivalentAngle60 view proj > splitfactor / quality
