@@ -745,13 +745,6 @@ namespace Aardvark.Geometry.Points
                 var buffer = ms.ToArray();
                 storage.Add(key, buffer);
 
-                //using (var testms = new MemoryStream(buffer))
-                //using (var testzs = new GZipStream(testms, CompressionMode.Decompress))
-                //using (var testbr = new BinaryReader(testzs))
-                //{
-                //    var test = Data.Codec.Decode(testbr);
-                //}
-
                 return buffer;
             }
         }

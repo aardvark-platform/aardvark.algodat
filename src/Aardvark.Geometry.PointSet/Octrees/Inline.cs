@@ -48,12 +48,137 @@ namespace Aardvark.Geometry.Points
         public InlineConfig(bool collapse, bool gzipped) : this(collapse, gzipped, null) { }
     }
 
+    public class InlinedNode
+    {
+        public Guid NodeId { get; }
+        public Cell Cell { get; }
+        public Box3d BoundingBoxExactGlobal { get; }
+        public Guid[] SubnodesGuids { get; }
+        public int PointCountCell { get; }
+        public long PointCountTreeLeafs { get; }
+        public V3f[] PositionsLocal3f { get; }
+        public C3b[] Colors3b { get; }
+
+        public InlinedNode(
+            Guid nodeId, Cell cell, Box3d boundingBoxExactGlobal, 
+            Guid[] subnodesGuids, 
+            int pointCountCell, long pointCountTreeLeafs,
+            V3f[] positionsLocal3f, C3b[] colors3b
+            )
+        {
+            NodeId = nodeId;
+            Cell = cell;
+            BoundingBoxExactGlobal = boundingBoxExactGlobal;
+            SubnodesGuids = subnodesGuids;
+            PointCountCell = pointCountCell;
+            PointCountTreeLeafs = pointCountTreeLeafs;
+            PositionsLocal3f = positionsLocal3f;
+            Colors3b = colors3b;
+        }
+
+        public InlinedNode WithSubnodesGuids(Guid[] newSubnodesGuids) => new InlinedNode(
+            NodeId, Cell, BoundingBoxExactGlobal, newSubnodesGuids, PointCountCell, PointCountTreeLeafs, PositionsLocal3f, Colors3b
+            );
+
+        public List<KeyValuePair<Durable.Def, object>> ToDurableMap()
+        {
+            var result = new List<KeyValuePair<Durable.Def, object>>();
+
+            void AddResultEntry(Durable.Def def, object o) => result.Add(new KeyValuePair<Durable.Def, object>(def, o));
+
+            AddResultEntry(Durable.Octree.NodeId, NodeId);
+            AddResultEntry(Durable.Octree.Cell, Cell);
+            AddResultEntry(Durable.Octree.BoundingBoxExactGlobal, BoundingBoxExactGlobal);
+
+            if (SubnodesGuids != null)
+            {
+                AddResultEntry(Durable.Octree.SubnodesGuids, SubnodesGuids);
+            }
+
+            AddResultEntry(Durable.Octree.PointCountCell, PointCountCell);
+            AddResultEntry(Durable.Octree.PointCountTreeLeafs, PointCountTreeLeafs);
+            AddResultEntry(Durable.Octree.PointCountTreeLeafsFloat64, (double)PointCountTreeLeafs);
+            AddResultEntry(Durable.Octree.PositionsLocal3f, PositionsLocal3f);
+
+            //if (node.TryGetValue(Durable.Octree.Normals3fReference, out var nsRef))
+            //{
+            //    var ns = storage.GetV3fArray(((Guid)nsRef).ToString());
+            //    yield return Entry(Durable.Octree.Normals3f, ns);
+            //}
+
+            if (Colors3b != null)
+            {
+                AddResultEntry(Durable.Octree.Colors3b, Colors3b);
+            }
+
+            return result;
+        }
+    }
+
     /// <summary>
     /// </summary>
     public static class InlineExtensions
     {
         /// <summary>
-        /// Experimental!
+        /// Enumerate inlined octree nodes.
+        /// </summary>
+        public static IEnumerable<InlinedNode> EnumerateOctreeInlined(
+            this Storage storage, string key, InlineConfig config
+            )
+        {
+            if (storage.TryGetOctree(key, out var root))
+            {
+                return EnumerateOctreeInlined(storage, root, config);
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    $"Key {key} not found in store. Invariant bca69ffa-8a8e-430d-a588-9f2fbbf1c43d."
+                    );
+            }
+        }
+
+        /// <summary>
+        /// Enumerate inlined octree nodes.
+        /// </summary>
+        public static IEnumerable<InlinedNode> EnumerateOctreeInlined(
+            this Storage storage, Guid key, InlineConfig config
+            )
+            => EnumerateOctreeInlined(storage, key.ToString(), config);
+
+        /// <summary>
+        /// Enumerate inlined octree nodes.
+        /// </summary>
+        public static IEnumerable<InlinedNode> EnumerateOctreeInlined(
+            this Storage storage, IPointCloudNode root, InlineConfig config
+            )
+        {
+            var survive = new HashSet<Guid> { root.Id };
+            return EnumerateRec(root.Id);
+
+            IEnumerable<InlinedNode> EnumerateRec(Guid key)
+            {
+                var node = storage.GetNodeDataFromKey(key);
+                var isLeafNode = !node.TryGetValue(Durable.Octree.SubnodesGuids, out var subnodeGuids);
+
+                if (config.Collapse && isLeafNode && !survive.Contains(key)) yield break;
+
+                var inline = storage.ConvertToInline(node, config, survive);
+                survive.Remove(key);
+                yield return inline;
+
+                if (subnodeGuids != null)
+                {
+                    foreach (var g in (Guid[])subnodeGuids)
+                    {
+                        if (g == Guid.Empty) continue;
+                        foreach (var n in EnumerateRec(g)) yield return n;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         /// Inlines and exports pointset to another store.
         /// </summary>
         public static void InlineOctree(this Storage storage, string key, Storage exportStore, InlineConfig config)
@@ -71,14 +196,12 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary>
-        /// Experimental!
         /// Inlines and exports pointset to another store.
         /// </summary>
         public static void InlineOctree(this Storage storage, Guid key, Storage exportStore, InlineConfig config)
             => InlineOctree(storage, key.ToString(), exportStore, config);
 
         /// <summary>
-        /// Experimental!
         /// Inlines and exports pointset to another store.
         /// </summary>
         public static void InlineOctree(
@@ -97,193 +220,153 @@ namespace Aardvark.Geometry.Points
             Report.Line($"split limit (new) = {newSplitLimit,36:N0}");
             Report.Line($"total node count  = {totalNodeCount,36:N0}");
 
-            // export octree (recursively)
-            var survive = new HashSet<Guid> { root.Id };
-            ExportInlinedNode(root.Id);
+            // export octree
+            foreach (var x in EnumerateOctreeInlined(storageSource, root.Id, config))
+            {
+                var inlined = x.ToDurableMap();
+                storageTarget.Add(x.NodeId, Durable.Octree.Node, inlined, config.GZipped);
+            }
 
             Report.EndTimed();
+        }
 
-            void ExportInlinedNode(Guid key)
+
+
+        private static InlinedNode ConvertToInline(
+            this Storage storage,
+            IReadOnlyDictionary<Durable.Def, object> node,
+            InlineConfig config,
+            HashSet<Guid> survive
+            )
+        {
+            var id = (Guid)node[Durable.Octree.NodeId];
+            var cell = (Cell)node[Durable.Octree.Cell];
+            var cellCenter = cell.GetCenter();
+            var bbExactGlobal = (Box3d)node[Durable.Octree.BoundingBoxExactGlobal];
+            var pointCountCell = (int)node[Durable.Octree.PointCountCell];
+            var pointCountTree = (long)node[Durable.Octree.PointCountTreeLeafs];
+            node.TryGetValue(Durable.Octree.SubnodesGuids, out var subnodeGuids);
+            var hasColors = node.ContainsKey(Durable.Octree.Colors4bReference);
+
+            var ps = default(V3f[]);
+            var cs = default(C4b[]);
+
+            if (config.Collapse && subnodeGuids != null)
             {
-                if (key == Guid.Empty) return;
+                var guids = ((Guid[])subnodeGuids);
 
-                var node = GetNodeDataFromKey(key);
-                var isLeafNode = !node.TryGetValue(Durable.Octree.SubnodesGuids, out var subnodeGuids);
-
-                // when collapsing -> don't export leaf nodes,
-                // because data has already been exported with parent node
-                if (config.Collapse && isLeafNode && !survive.Contains(key))
-                {
-                    Report.Line($"skipping leaf {key}");
-                    return;
-                }
-
-                // inline node data and export ...
-                var inline = ConvertToInline(node).ToArray();
-                var inlineCount = (int)inline.Single(kv => kv.Key == Durable.Octree.PointCountCell).Value;
-                storageTarget.Add(key, Durable.Octree.Node, inline, config.GZipped);
-                survive.Remove(key);
-                Report.Line($"exported node {key} (survive = {survive.Count:N0})");
-
-                // export children ...
-                if (subnodeGuids != null)
-                {
-                    foreach (var x in (Guid[])subnodeGuids)
+                ps = guids
+                    .Where(g => g != Guid.Empty)
+                    .SelectMany(k =>
                     {
-                        ExportInlinedNode(x);
-                    }
-                }
-            }
+                        var n = storage.GetNodeDataFromKey(k);
+                        var nCell = ((Cell)n[Durable.Octree.Cell]);
+                        var nCenter = nCell.GetCenter();
+                        var delta = nCenter - cellCenter;
+                        var xs = storage.GetNodePositions(n).Map(x => (V3d)x + nCenter);
+                        //Report.Line($"    {k} -> {xs.Length}");
+                        return xs;
+                    })
+                    .ToArray()
+                    .Map(p => (V3f)(p - cellCenter));
 
-            IEnumerable<KeyValuePair<Durable.Def, object>> ConvertToInline(
-                IReadOnlyDictionary<Durable.Def, object> node
-                )
-            {
-                var cell = (Cell)node[Durable.Octree.Cell];
-                var cellCenter = cell.GetCenter();
-                var bbExactGlobal = (Box3d)node[Durable.Octree.BoundingBoxExactGlobal];
-                var pointCountCell = (int)node[Durable.Octree.PointCountCell];
-                var pointCountTree = (long)node[Durable.Octree.PointCountTreeLeafs];
-                node.TryGetValue(Durable.Octree.SubnodesGuids, out var subnodeGuids);
-
-                var ps = default(V3f[]);
-                var cs = default(C4b[]);
-
-                if (config.Collapse && subnodeGuids != null)
+                if (hasColors)
                 {
-                    var guids = ((Guid[])subnodeGuids);
-
-                    ps = guids
-                        .Where(g => g != Guid.Empty)
-                        .SelectMany(k =>
-                        {
-                            var n = GetNodeDataFromKey(k);
-                            var nCell = ((Cell)n[Durable.Octree.Cell]);
-                            var nCenter = nCell.GetCenter();
-                            var delta = nCenter - cellCenter;
-                            var xs = GetNodePositions(n).Map(x => (V3d)x + nCenter);
-                            Report.Line($"    {k} -> {xs.Length}");
-                            return xs;
-                        })
-                        .ToArray()
-                        .Map(p => (V3f)(p - cellCenter));
-
                     cs = guids
                         .Where(g => g != Guid.Empty)
-                        .Select(GetNodeDataFromKey)
-                        .SelectMany(GetNodeColors)
+                        .Select(k => storage.GetNodeDataFromKey(k))
+                        .SelectMany(n => storage.GetNodeColors(n))
                         .ToArray();
+                }
 
-                    var guids2 = guids
-                        .Map(k =>
-                        {
-                            if (k == Guid.Empty) return Guid.Empty;
-                            var n = GetNodeDataFromKey(k);
-                            return n.ContainsKey(Durable.Octree.SubnodesGuids) ? k : Guid.Empty;
-                        });
-                    var isNewLeaf = guids2.All(k => k == Guid.Empty);
-                    if (isNewLeaf)
+                var guids2 = guids
+                    .Map(k =>
                     {
-                        subnodeGuids = null;
-                    }
-                    else
-                    {
-                        foreach (var g in guids) if (g != Guid.Empty) survive.Add(g);
-                    }
-
-                    if (ps.Length != cs.Length) throw new InvalidOperationException(
-                        $"Different number of positions ({ps.Length}) and colors ({cs.Length}). " +
-                        "Invariant ac1cdac5-b7a2-4557-9383-ae80929af999."
-                        );
+                        if (k == Guid.Empty) return Guid.Empty;
+                        var n = storage.GetNodeDataFromKey(k);
+                        return n.ContainsKey(Durable.Octree.SubnodesGuids) ? k : Guid.Empty;
+                    });
+                var isNewLeaf = guids2.All(k => k == Guid.Empty);
+                if (isNewLeaf)
+                {
+                    subnodeGuids = null;
                 }
                 else
                 {
-                    var psRef = node[Durable.Octree.PositionsLocal3fReference];
-                    ps = storageSource.GetV3fArray(((Guid)psRef).ToString());
+                    foreach (var g in guids) if (g != Guid.Empty) survive.Add(g);
+                }
 
+                if (hasColors && ps.Length != cs.Length) throw new InvalidOperationException(
+                    $"Different number of positions ({ps.Length}) and colors ({cs.Length}). " +
+                    "Invariant ac1cdac5-b7a2-4557-9383-ae80929af999."
+                    );
+            }
+            else
+            {
+                var psRef = node[Durable.Octree.PositionsLocal3fReference];
+                ps = storage.GetV3fArray(((Guid)psRef).ToString());
+
+                if (hasColors)
+                {
                     var csRef = node[Durable.Octree.Colors4bReference];
-                    cs = storageSource.GetC4bArray(((Guid)csRef).ToString());
-                }
-
-                // optionally round positions
-                if (config.PositionsRoundedToNumberOfDigits.HasValue)
-                {
-                    ps = ps.Map(x => x.Round(config.PositionsRoundedToNumberOfDigits.Value));
-                }
-
-                // result
-                Report.Line($"    PointCountCell = {ps.Length}");
-                pointCountCell = ps.Length;
-
-                KeyValuePair<Durable.Def, object> Entry(Durable.Def def, object o) =>
-                    new KeyValuePair<Durable.Def, object>(def, o);
-
-                yield return Entry(Durable.Octree.Cell, cell);
-                yield return Entry(Durable.Octree.BoundingBoxExactGlobal, bbExactGlobal);
-
-                if (subnodeGuids != null)
-                {
-                    //Report.Line($"    {string.Join(",", ((Guid[])subnodeGuids).Select(x => x != Guid.Empty ? x.ToString() : "-"))}");
-                    yield return Entry(Durable.Octree.SubnodesGuids, subnodeGuids);
-                }
-
-                yield return Entry(Durable.Octree.PointCountCell, pointCountCell);
-                yield return Entry(Durable.Octree.PointCountTreeLeafs, pointCountTree);
-                yield return Entry(Durable.Octree.PointCountTreeLeafsFloat64, (double)pointCountTree);
-                yield return Entry(Durable.Octree.PositionsLocal3f, ps);
-
-                //if (node.TryGetValue(Durable.Octree.Normals3fReference, out var nsRef))
-                //{
-                //    var ns = storage.GetV3fArray(((Guid)nsRef).ToString());
-                //    yield return Entry(Durable.Octree.Normals3f, ns);
-                //}
-
-                yield return Entry(Durable.Octree.Colors3b, cs.Map(x => new C3b(x)));
-            }
-
-            IReadOnlyDictionary<Durable.Def, object> GetNodeDataFromKey(Guid key)
-            {
-                var (_, raw) = storageSource.GetDurable(key);
-                if (raw != null) return (raw as IReadOnlyDictionary<Durable.Def, object>);
-
-                var n = storageSource.GetPointCloudNode(key);
-                if (n != null) return (n.Properties);
-
-                return null;
-            }
-
-            V3f[] GetNodePositions(IReadOnlyDictionary<Durable.Def, object> n)
-            {
-                if (n.TryGetValue(Durable.Octree.PositionsLocal3fReference, out var r))
-                {
-                    return storageSource.GetV3fArray(((Guid)r).ToString());
-                }
-                else if (n.TryGetValue(Durable.Octree.PositionsLocal3f, out var ps))
-                {
-                    return (V3f[])ps;
-                }
-                else
-                {
-                    throw new InvalidOperationException("No positions. Invariant 167b491b-8e58-4e28-88ed-f0a69590465e.");
+                    cs = storage.GetC4bArray(((Guid)csRef).ToString());
                 }
             }
 
-            C4b[] GetNodeColors(IReadOnlyDictionary<Durable.Def, object> n)
+            // optionally round positions
+            if (config.PositionsRoundedToNumberOfDigits.HasValue)
             {
-                if (n.TryGetValue(Durable.Octree.Colors4bReference, out var r))
-                {
-                    return storageSource.GetC4bArray(((Guid)r).ToString());
-                }
-                else if (n.TryGetValue(Durable.Octree.Colors3b, out var cs))
-                {
-                    return ((C3b[])cs).Map(c => new C4b(c));
-                }
-                else
-                {
-                    throw new InvalidOperationException("No colors. Invariant 8516dbaf-9765-44ab-949c-79986514f1d1.");
-                }
+                ps = ps.Map(x => x.Round(config.PositionsRoundedToNumberOfDigits.Value));
+            }
+
+            // result
+            pointCountCell = ps.Length;
+            var cs3 = cs?.Map(x => new C3b(x));
+            var result = new InlinedNode(id, cell, bbExactGlobal, (Guid[])subnodeGuids, pointCountCell, pointCountTree, ps, cs3);
+            return result;
+        }
+
+        private static IReadOnlyDictionary<Durable.Def, object> GetNodeDataFromKey(this Storage storage, Guid key)
+        {
+            var (_, raw) = storage.GetDurable(key);
+            if (raw != null) return (raw as IReadOnlyDictionary<Durable.Def, object>);
+
+            var n = storage.GetPointCloudNode(key);
+            if (n != null) return (n.Properties);
+
+            return null;
+        }
+
+        private static V3f[] GetNodePositions(this Storage storage, IReadOnlyDictionary<Durable.Def, object> n)
+        {
+            if (n.TryGetValue(Durable.Octree.PositionsLocal3fReference, out var r))
+            {
+                return storage.GetV3fArray(((Guid)r).ToString());
+            }
+            else if (n.TryGetValue(Durable.Octree.PositionsLocal3f, out var ps))
+            {
+                return (V3f[])ps;
+            }
+            else
+            {
+                throw new InvalidOperationException("No positions. Invariant 167b491b-8e58-4e28-88ed-f0a69590465e.");
             }
         }
 
+        private static C4b[] GetNodeColors(this Storage storage, IReadOnlyDictionary<Durable.Def, object> n)
+        {
+            if (n.TryGetValue(Durable.Octree.Colors4bReference, out var r))
+            {
+                return storage.GetC4bArray(((Guid)r).ToString());
+            }
+            else if (n.TryGetValue(Durable.Octree.Colors3b, out var cs))
+            {
+                return ((C3b[])cs).Map(c => new C4b(c));
+            }
+            else
+            {
+                throw new InvalidOperationException("No colors. Invariant 8516dbaf-9765-44ab-949c-79986514f1d1.");
+            }
+        }
     }
 }
