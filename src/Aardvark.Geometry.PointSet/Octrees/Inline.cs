@@ -38,14 +38,19 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public int? PositionsRoundedToNumberOfDigits { get; }
 
-        public InlineConfig(bool collapse, bool gzipped, int? positionsRoundedToNumberOfDigits)
+        public Action<double> Progress { get; }
+
+        public InlineConfig(bool collapse, bool gzipped, int? positionsRoundedToNumberOfDigits, Action<double> progress)
         {
             Collapse = collapse;
             GZipped = gzipped;
             PositionsRoundedToNumberOfDigits = positionsRoundedToNumberOfDigits;
+            Progress = progress;
         }
 
-        public InlineConfig(bool collapse, bool gzipped) : this(collapse, gzipped, null) { }
+        public InlineConfig(bool collapse, bool gzipped, Action<double> progress) : this(collapse, gzipped, null, progress) { }
+
+        public InlineConfig(bool collapse, bool gzipped) : this(collapse, gzipped, null, null) { }
     }
 
     public class InlinedNode
@@ -153,6 +158,8 @@ namespace Aardvark.Geometry.Points
             this Storage storage, IPointCloudNode root, InlineConfig config
             )
         {
+            var processedNodeCount = 0L;
+            var totalNodeCount = (double)root.CountNodes(outOfCore: true);
             var survive = new HashSet<Guid> { root.Id };
             return EnumerateRec(root.Id);
 
@@ -160,6 +167,8 @@ namespace Aardvark.Geometry.Points
             {
                 var node = storage.GetNodeDataFromKey(key);
                 var isLeafNode = !node.TryGetValue(Durable.Octree.SubnodesGuids, out var subnodeGuids);
+
+                config.Progress?.Invoke(++processedNodeCount / totalNodeCount);
 
                 if (config.Collapse && isLeafNode && !survive.Contains(key)) yield break;
 

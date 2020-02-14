@@ -559,7 +559,11 @@ namespace Aardvark.Geometry.Tests
                     var foo = storeSource.GetPointSet(key);
                     var bar = foo.Root.Value.Id;
 
-                    storeSource.InlineOctree(bar, storeTarget, new InlineConfig(collapse, gzipped, positionsRoundedToNumberOfDigits));
+                    var config = new InlineConfig(
+                        collapse, gzipped, positionsRoundedToNumberOfDigits,
+                        x => Report.Line($"[progress] {x:0.00,6}")
+                        );
+                    storeSource.InlineOctree(bar, storeTarget, config);
                     storeTarget.Flush();
 
                     // meta
