@@ -561,7 +561,7 @@ namespace Aardvark.Geometry.Tests
 
                     var config = new InlineConfig(
                         collapse, gzipped, positionsRoundedToNumberOfDigits,
-                        x => Report.Line($"[progress] {x:0.00,6}")
+                        x => Report.Line($"[progress] {x,7:0.000}")
                         );
                     storeSource.InlineOctree(bar, storeTarget, config);
                     storeTarget.Flush();

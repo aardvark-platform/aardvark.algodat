@@ -118,6 +118,39 @@ namespace Aardvark.Geometry.Points
 
             return result;
         }
+
+        /// <summary>
+        /// Binary encodes (and optionally gzips) this InlinedNode as Durable.Octree.Node.
+        /// </summary>
+        public byte[] Encode(bool gzip) => this.ToDurableMap().Encode(Durable.Octree.Node, gzip);
+    }
+
+    public class InlinedNodes
+    {
+        public InlineConfig Config { get; }
+        public InlinedNode Root { get; }
+        public IEnumerable<InlinedNode> Nodes { get; }
+        public long TotalNodeCount { get; }
+
+        public Box3d BoundingBoxExactGlobal => Root.BoundingBoxExactGlobal;
+        public Cell Cell => Root.Cell;
+        public long PointCountTreeLeafs => Root.PointCountTreeLeafs;
+        public Guid RootId => Root.NodeId;
+        public V3d Centroid { get; }
+        public double CentroidStdDev { get; }
+
+        public InlinedNodes(InlineConfig config, InlinedNode root, IEnumerable<InlinedNode> nodes, long totalNodeCount)
+        {
+            Config = config;
+            Root = root;
+            Nodes = nodes;
+            TotalNodeCount = totalNodeCount;
+
+            var center = root.Cell.GetCenter();
+            var centroid = root.PositionsLocal3f.Average();
+            Centroid = (V3d)centroid + center;
+            CentroidStdDev = (root.PositionsLocal3f.Sum(p => (p - centroid).LengthSquared) / root.PositionsLocal3f.Length).Sqrt();
+        }
     }
 
     /// <summary>
@@ -127,7 +160,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Enumerate inlined octree nodes.
         /// </summary>
-        public static IEnumerable<InlinedNode> EnumerateOctreeInlined(
+        public static InlinedNodes EnumerateOctreeInlined(
             this Storage storage, string key, InlineConfig config
             )
         {
@@ -146,7 +179,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Enumerate inlined octree nodes.
         /// </summary>
-        public static IEnumerable<InlinedNode> EnumerateOctreeInlined(
+        public static InlinedNodes EnumerateOctreeInlined(
             this Storage storage, Guid key, InlineConfig config
             )
             => EnumerateOctreeInlined(storage, key.ToString(), config);
@@ -154,21 +187,27 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Enumerate inlined octree nodes.
         /// </summary>
-        public static IEnumerable<InlinedNode> EnumerateOctreeInlined(
+        public static InlinedNodes EnumerateOctreeInlined(
             this Storage storage, IPointCloudNode root, InlineConfig config
             )
         {
             var processedNodeCount = 0L;
-            var totalNodeCount = (double)root.CountNodes(outOfCore: true);
+            var totalNodeCount = root.CountNodes(outOfCore: true); 
+            var totalNodeCountD = (double)totalNodeCount;
             var survive = new HashSet<Guid> { root.Id };
-            return EnumerateRec(root.Id);
+            var nodes = EnumerateRec(root.Id);
+
+            var r = nodes.First();
+            return new InlinedNodes(
+                config, r, nodes, totalNodeCount
+                ); ;
 
             IEnumerable<InlinedNode> EnumerateRec(Guid key)
             {
                 var node = storage.GetNodeDataFromKey(key);
                 var isLeafNode = !node.TryGetValue(Durable.Octree.SubnodesGuids, out var subnodeGuids);
 
-                config.Progress?.Invoke(++processedNodeCount / totalNodeCount);
+                config.Progress?.Invoke(++processedNodeCount / totalNodeCountD);
 
                 if (config.Collapse && isLeafNode && !survive.Contains(key)) yield break;
 
@@ -230,7 +269,8 @@ namespace Aardvark.Geometry.Points
             Report.Line($"total node count  = {totalNodeCount,36:N0}");
 
             // export octree
-            foreach (var x in EnumerateOctreeInlined(storageSource, root.Id, config))
+            var exported = EnumerateOctreeInlined(storageSource, root.Id, config);
+            foreach (var x in exported.Nodes)
             {
                 var inlined = x.ToDurableMap();
                 storageTarget.Add(x.NodeId, Durable.Octree.Node, inlined, config.GZipped);
