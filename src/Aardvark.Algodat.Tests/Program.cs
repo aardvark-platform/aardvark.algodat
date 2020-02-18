@@ -650,15 +650,35 @@ namespace Aardvark.Geometry.Tests
             Console.CursorVisible = true;
         }
 
+        internal static void LisaTest()
+        {
+            var path2store = @"E:\OEBB\stores\store_wien_small_labels";//store_wien_small_labels - Copy
+            var key = "stream_3899";
+
+            var cache = new LruDictionary<string, object>(1024 * 1024 * 1024);
+            var store = PointCloud.OpenStore(path2store, cache);
+            var pointset = store.GetPointSet(key);
+
+            var ray = new Ray3d(
+                new V3d(-160017.518571374, 246513.963542402, 2372.20790824948),
+                new V3d(0.838664911597797, 0.54451231482662, -0.0121451659855219)
+                );
+
+            var ps = pointset.QueryPointsNearRay(ray, 0.01).SelectMany(x => x.Positions).ToArray();
+            Console.WriteLine($"{ps.Length:N0}");
+        }
+
         public static void Main(string[] args)
         {
+            LisaTest();
+
             //DumpPointSetKeys();
 
-            var filepath = @"T:\Vgm\Data\JBs_Haus.pts";
-            //var filepath = @"T:\Vgm\Data\Technologiezentrum_Teil1.pts";
-            //var filepath = @"T:\Vgm\Data\E57\Staatsoper.e57";
-            //TestCreateStore(filepath, 0.001);
-            ExportExamples(filepath, collapse: true, gzipped: true, positionsRoundedToNumberOfDigits: 3);
+            //var filepath = @"T:\Vgm\Data\JBs_Haus.pts";
+            ////var filepath = @"T:\Vgm\Data\Technologiezentrum_Teil1.pts";
+            ////var filepath = @"T:\Vgm\Data\E57\Staatsoper.e57";
+            ////TestCreateStore(filepath, 0.001);
+            //ExportExamples(filepath, collapse: true, gzipped: true, positionsRoundedToNumberOfDigits: 3);
 
 
             //TestImport();

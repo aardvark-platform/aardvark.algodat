@@ -96,8 +96,8 @@ namespace Aardvark.Geometry.Tests
             var count1 = 0;
             var count2 = 0;
 
-            foreach (var x in pointset.QueryPointsNearRay(ray1, 0.1)) count1 += x.Positions.Length;
-            foreach (var x in pointset.QueryPointsNearRay(ray2, 0.1)) count2 += x.Positions.Length;
+            foreach (var x in pointset.QueryPointsNearRay(ray1, 0.1)) count1 += x.Positions.Count;
+            foreach (var x in pointset.QueryPointsNearRay(ray2, 0.1)) count2 += x.Positions.Count;
 
             Assert.IsTrue(count1 >= count2);
         }
