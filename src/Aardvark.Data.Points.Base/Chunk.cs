@@ -124,6 +124,35 @@ namespace Aardvark.Data.Points
 
         /// <summary>
         /// </summary>
+        public static Chunk ImmutableMerge(params Chunk[] chunks)
+        {
+            if (chunks == null) return Empty;
+
+            chunks = chunks.Where(x => !x.IsEmpty).ToArray();
+            if (chunks.Length == 0) return Empty;
+            if (chunks.Length == 1) return chunks[0];
+
+            var h = chunks.First();
+            var ps = h.HasPositions ? new List<V3d>(h.Positions) : null;
+            var cs = h.HasColors ? new List<C4b>(h.Colors) : null;
+            var ns = h.HasNormals ? new List<V3f>(h.Normals) : null;
+            var js = h.HasIntensities ? new List<int>(h.Intensities) : null;
+            var ks = h.HasClassifications ? new List<byte>(h.Classifications) : null;
+
+            foreach (var chunk in chunks)
+            {
+                if (ps != null) ps.AddRange(chunk.Positions);
+                if (cs != null) cs.AddRange(chunk.Colors);
+                if (ns != null) ns.AddRange(chunk.Normals);
+                if (js != null) js.AddRange(chunk.Intensities);
+                if (ks != null) ks.AddRange(chunk.Classifications);
+            }
+
+            return new Chunk(ps, cs, ns, js, ks, new Box3d(chunks.Select(x => x.BoundingBox)));
+        }
+
+        /// <summary>
+        /// </summary>
         /// <param name="positions">Optional.</param>
         /// <param name="colors">Optional. Either null or same number of elements as positions.</param>
         /// <param name="normals">Optional. Either null or same number of elements as positions.</param>
