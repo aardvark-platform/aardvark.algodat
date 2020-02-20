@@ -193,8 +193,8 @@ namespace Aardvark.Data.E57
                 if (root == null) return null;
                 EnsureElementType(root, "Integer");
                 var value = string.IsNullOrWhiteSpace(root.Value) ? 0 : long.Parse(root.Value);
-                var min = GetOptionalLongAttribute(root, "minimum");
-                var max = GetOptionalLongAttribute(root, "maximum");
+                var min = TryGetLongAttribute(root, "minimum");
+                var max = TryGetLongAttribute(root, "maximum");
                 if (max < min) Ex("Integer.maximum", $">= minimum ({min})", $"{max}");
                 return new E57Integer { Name = root.Name.LocalName, Minimum = min, Maximum = max, Value = value };
             }
@@ -259,11 +259,11 @@ namespace Aardvark.Data.E57
                 if (root == null) return null;
                 EnsureElementType(root, "ScaledInteger");
                 var raw = string.IsNullOrWhiteSpace(root.Value) ? 0 : long.Parse(root.Value);
-                var min = GetOptionalLongAttribute(root, "minimum");
-                var max = GetOptionalLongAttribute(root, "maximum");
+                var min = TryGetLongAttribute(root, "minimum");
+                var max = TryGetLongAttribute(root, "maximum");
                 if (max < min) Ex("ScaledInteger.maximum", $">= minimum ({min})", $"{max}");
-                var scale = GetOptionalFloatAttribute(root, "scale") ?? 1.0;
-                var offset = GetOptionalFloatAttribute(root, "offset") ?? 0.0;
+                var scale = TryGetFloatAttribute(root, "scale") ?? 1.0;
+                var offset = TryGetFloatAttribute(root, "offset") ?? 0.0;
                 return new E57ScaledInteger
                 {
                     Name = root.Name.LocalName,
@@ -319,8 +319,8 @@ namespace Aardvark.Data.E57
                     ? true
                     : (precision == "single" ? false : Ex<bool>("precision", "['double', 'single']", precision))
                     ;
-                var min = GetOptionalFloatAttribute(root, "minimum");
-                var max = GetOptionalFloatAttribute(root, "maximum");
+                var min = TryGetFloatAttribute(root, "minimum");
+                var max = TryGetFloatAttribute(root, "maximum");
                 if (max < min) Ex("Float.maximum", $">= minimum ({min})", $"{max}");
                 return new E57Float { Name = root.Name.LocalName, IsDoublePrecision = isDoublePrecision, Minimum = min, Maximum = max, Value = value };
             }
@@ -435,7 +435,7 @@ namespace Aardvark.Data.E57
                 EnsureElementType(root, "Vector");
                 return new E57Vector
                 {
-                    AllowHeterogenousChildren = GetOptionalLongAttribute(root, "allowHeterogeneousChildren") == 1,
+                    AllowHeterogenousChildren = TryGetLongAttribute(root, "allowHeterogeneousChildren") == 1,
                     Children = root.Elements().Select(x => ParseE57Element(x, stream)).ToArray()
                 };
             }
@@ -682,12 +682,19 @@ namespace Aardvark.Data.E57
                                 try
                                 {
                                     var p = (E57Integer)proto;
-                                    if (p.Minimum < 0) throw new NotImplementedException();
-                                    return UnpackIntegers(buffer, packer, p);
+                                    if (p.Minimum < 0)
+                                    {
+                                        var xs = UnpackIntegers(buffer, packer, p);
+                                        return xs;
+                                    }
+                                    else
+                                    {
+                                        return UnpackIntegers(buffer, packer, p);
+                                    }
                                 }
                                 catch (Exception e)
                                 {
-                                    Console.WriteLine(e);
+                                    Console.WriteLine($"[Semantic={proto.Semantic}; NumberOfBits={proto.NumberOfBitsForBitPack}] {e}");
                                     return new long[0];
                                 }
                             }
@@ -1931,27 +1938,27 @@ namespace Aardvark.Data.E57
             /// Required.
             /// The rowIndex range of any point represented by this IndexBounds object.
             /// </summary>
-            public Range1i Row;
+            public Range1i? Row;
 
             /// <summary>
             /// Required.
             /// The columnIndex range of any point represented by this IndexBounds object.
             /// </summary>
-            public Range1i Column;
+            public Range1i? Column;
 
             /// <summary>
             /// Required.
             /// The returnIndex range of any point represented by this IndexBounds object.
             /// </summary>
-            public Range1i Return;
+            public Range1i? Return;
 
 #endregion
 
             internal static E57IndexBounds Parse(XElement root) => (root == null) ? null : new E57IndexBounds
             {
-                Row = GetIntegerRange(root, "rowMinimum", "rowMaximum"),
-                Column = GetIntegerRange(root, "columnMinimum", "columnMaximum"),
-                Return = GetIntegerRange(root, "returnMinimum", "returnMaximum"),
+                Row = TryGetIntegerRange(root, "rowMinimum", "rowMaximum"),
+                Column = TryGetIntegerRange(root, "columnMinimum", "columnMaximum"),
+                Return = TryGetIntegerRange(root, "returnMinimum", "returnMaximum"),
             };
         }
 
@@ -2376,8 +2383,40 @@ namespace Aardvark.Data.E57
         }
         private static Range1i GetIntegerRange(XElement root, string elementNameMin, string elementNameMax)
             => new Range1i(GetInteger(root, elementNameMin, true).Value, GetInteger(root, elementNameMax, true).Value);
+        private static Range1i? TryGetIntegerRange(XElement root, string elementNameMin, string elementNameMax)
+        {
+            var min = GetInteger(root, elementNameMin, false);
+            var max = GetInteger(root, elementNameMax, false);
+
+            return min.HasValue
+                ? (max.HasValue
+                    ? new Range1i(min.Value, max.Value)
+                    : throw new Exception($"[E57] Element <{elementNameMax}> is required! In {root}.")
+                    )
+                : (max.HasValue
+                    ? throw new Exception($"[E57] Element <{elementNameMin}> is required! In {root}.")
+                    : (Range1i?)null
+                    )
+                ;
+        }
         private static Range1d GetFloatRange(XElement root, string elementNameMin, string elementNameMax)
             => new Range1d(GetFloat(root, elementNameMin, true).Value, GetFloat(root, elementNameMax, true).Value);
+        private static Range1d? TryGetFloatRange(XElement root, string elementNameMin, string elementNameMax)
+        {
+            var min = GetFloat(root, elementNameMin, false);
+            var max = GetFloat(root, elementNameMax, false);
+
+            return min.HasValue
+                ? (max.HasValue
+                    ? new Range1d(min.Value, max.Value)
+                    : throw new Exception($"[E57] Element <{elementNameMax}> is required! In {root}.")
+                    )
+                : (max.HasValue
+                    ? throw new Exception($"[E57] Element <{elementNameMin}> is required! In {root}.")
+                    : (Range1d?)null
+                    )
+                ;
+        }
         private static Range1d GetRange(XElement root, string elementNameMin, string elementNameMax)
             => new Range1d(GetFloatOrInteger(root, elementNameMin, true).Value, GetFloatOrInteger(root, elementNameMax, true).Value);
         private static V3d GetTranslation(XElement root)
@@ -2403,13 +2442,13 @@ namespace Aardvark.Data.E57
 
         private static E57PhysicalOffset GetPhysicalOffsetAttribute(XElement root, string elementName) => new E57PhysicalOffset(long.Parse(root.Attribute(elementName).Value));
         private static long GetLongAttribute(XElement root, string elementName) => long.Parse(root.Attribute(elementName).Value);
-        private static long? GetOptionalLongAttribute(XElement root, string elementName)
+        private static long? TryGetLongAttribute(XElement root, string elementName)
         {
             var a = root.Attribute(elementName);
             return (a != null) ? long.Parse(a.Value) : (long?)null;
         }
         private static double GetFloatAttribute(XElement root, string elementName) => double.Parse(root.Attribute(elementName).Value, CultureInfo.InvariantCulture);
-        private static double? GetOptionalFloatAttribute(XElement root, string elementName)
+        private static double? TryGetFloatAttribute(XElement root, string elementName)
         {
             var a = root.Attribute(elementName);
             return (a != null) ? double.Parse(a.Value, CultureInfo.InvariantCulture) : (double?)null;
