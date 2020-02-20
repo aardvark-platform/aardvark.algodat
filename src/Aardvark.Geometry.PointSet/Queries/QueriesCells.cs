@@ -316,6 +316,23 @@ namespace Aardvark.Geometry.Points
 
         #region query cell columns (2d)
 
+        internal class CellQueryResult2dCache
+        {
+            public Box2i Size { get; private set; }
+            public Dictionary<int, Dictionary<Cell2d, Chunk>> Cache { get; }
+
+            public void UpdateSize(Box2i kernelSize)
+            {
+                Size = Size.ExtendedBy(kernelSize);
+            }
+
+            public CellQueryResult2dCache()
+            {
+                Size = Box2i.Invalid;
+                Cache = new Dictionary<int, Dictionary<Cell2d, Chunk>>();
+            }
+        }
+
         /// <summary>
         /// </summary>
         public class CellQueryResult2d
@@ -377,26 +394,60 @@ namespace Aardvark.Geometry.Points
                         nameof(fromRelativeDepth)
                         );
 
+                Dictionary<Cell2d, Chunk> cache;
+                lock (Cache)
+                {
+                    Cache.UpdateSize(outer);
+                    if (!Cache.Cache.TryGetValue(fromRelativeDepth, out cache))
+                        cache = Cache.Cache[fromRelativeDepth] = new Dictionary<Cell2d, Chunk>();
+                }
+
+                //var cacheHits = 0;
+                //var cacheMisses = 0;
+
+                inner += new V2i(Cell.X, Cell.Y);
+                outer += new V2i(Cell.X, Cell.Y);
                 for (var x = outer.Min.X; x <= outer.Max.X; x++)
                 {
                     for (var y = outer.Min.Y; y <= outer.Max.Y; y++)
                     {
                         if (excludeInnerCells && inner.Contains(new V2i(x, y))) continue;
-                        var c = new Cell2d(Cell.X + x, Cell.Y + y, Cell.Exponent);
-                        var chunks = Root.CollectColumnXY(c, fromRelativeDepth);
-                        foreach (var chunk in chunks) yield return chunk;
+                        var c = new Cell2d(x, y, Cell.Exponent);
+
+                        if (!cache.TryGetValue(c, out var chunks))
+                        {
+                            chunks = Chunk.ImmutableMerge(Root.CollectColumnXY(c, fromRelativeDepth).ToArray());
+                            lock (Cache) cache[c] = chunks;
+                            //cacheMisses++;
+                        }
+                        else
+                        {
+                            //cacheHits++;
+                        }
+
+                        yield return chunks;
                     }
                 }
+                lock (Cache)
+                {
+                    var foo = Cache.Size + new V2i(Cell.X, Cell.Y);
+                    var ks = cache.Keys.Where(k => !foo.Contains(new V2i(k.X, k.Y))).ToArray();
+                    foreach (var k in ks) cache.Remove(k);
+                }
+                //Report.Warn($"hits = {cacheHits,2}, misses = {cacheMisses,2}");
             }
 
             /// <summary>
             /// Represents a cell 'resultCell' inside an octree ('root').
             /// </summary>
-            internal CellQueryResult2d(IPointCloudNode root, Cell2d resultCell)
+            internal CellQueryResult2d(IPointCloudNode root, Cell2d resultCell, CellQueryResult2dCache cache)
             {
                 Root = root ?? throw new ArgumentNullException(nameof(root));
                 Cell = resultCell;
+                Cache = cache ?? throw new ArgumentNullException(nameof(cache));
             }
+
+            private CellQueryResult2dCache Cache { get; }
         }
 
         /// <summary>
@@ -439,6 +490,7 @@ namespace Aardvark.Geometry.Points
                 $"Stride must be positive, but is {stride}. Invariant 6b7a86a4-6bde-41f1-9af8-e7dc75177e68."
                 );
 
+            var cache = new CellQueryResult2dCache();
             var bounds = root.Cell.GetRasterBounds(cellExponent);
             for (var x = bounds.Min.X; x <= bounds.Max.X; x++)
             {
@@ -446,7 +498,7 @@ namespace Aardvark.Geometry.Points
                 for (var y = bounds.Min.Y; y <= bounds.Max.Y; y++)
                 {
                     if (y % stride.Y != 0) continue;
-                    yield return new CellQueryResult2d(root, new Cell2d(x, y, cellExponent));
+                    yield return new CellQueryResult2d(root, new Cell2d(x, y, cellExponent), cache);
                 }
             }
         }

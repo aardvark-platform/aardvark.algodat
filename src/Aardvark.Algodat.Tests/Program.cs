@@ -637,16 +637,21 @@ namespace Aardvark.Geometry.Tests
             var pc = store.GetPointSet(key);
             var root = pc.Root.Value;
 
+            var oSize = 2;
+            var iSize = 1;
+
             Report.BeginTimed("total");
-            foreach (var x in root.EnumerateCellColumns(1))
+            var xs = root.EnumerateCellColumns(2);
+            //var xs = root.EnumerateCellColumns2(2, V2i.II, 0, new Box2i(V2i.OO, V2i.OO), new Box2i(V2i.OO, V2i.OO), false);
+            var i = 0;
+            foreach (var x in xs)
             {
                 //var cs0 = x.GetPoints(0).ToArray();
                 //if (cs0.Length == 0) continue;
-                //var cs1 = x.GetPoints(0, outer: new Box2i(new V2i(-2, -2), new V2i(+2, +2))).ToArray();
-                var cs2 = x.GetPoints(0, outer: new Box2i(new V2i(-2, -2), new V2i(+2, +2)), inner: new Box2i(new V2i(-1, -1), new V2i(+1, +1))).ToArray();
-
+                var cs1 = x.GetPoints(0, outer: new Box2i(new V2i(-iSize, -iSize), new V2i(+iSize, +iSize))).ToArray();
+                var cs2 = x.GetPoints(0, outer: new Box2i(new V2i(-oSize, -oSize), new V2i(+oSize, +oSize)), inner: new Box2i(new V2i(-iSize, -iSize), new V2i(+iSize, +iSize))).ToArray();
                 //Report.Line($"[{x.Cell.X,3}, {x.Cell.Y,3}, {x.Cell.Exponent,3}] {cs0.Sum(c => c.Count),10:N0} {cs1.Sum(c => c.Count),10:N0} {cs2.Sum(c => c.Count),10:N0}");
-                Report.Line($"[{x.Cell.X,3}, {x.Cell.Y,3}, {x.Cell.Exponent,3}] {cs2.Sum(c => c.Count),10:N0}");
+                if (++i % 17 == 0) Report.Line($"[{x.Cell.X,3}, {x.Cell.Y,3}, {x.Cell.Exponent,3}] {cs2.Sum(c => c.Count),10:N0}");
             }
             Report.End();
         }
@@ -698,6 +703,8 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] args)
         {
+            //TestE57();
+
             //LisaTest();
 
             //DumpPointSetKeys();
@@ -712,7 +719,7 @@ namespace Aardvark.Geometry.Tests
 
             //TestImport();
 
-            //EnumerateCells2dTest();
+            EnumerateCells2dTest();
 
             //DumpPointSetKeys();
             // polygon topology test
@@ -751,8 +758,6 @@ namespace Aardvark.Geometry.Tests
             //Console.WriteLine("done");
 
             //new ImportTests().CanImportChunkWithoutColor();
-
-            TestE57();
 
             //var store = PointCloud.OpenStore(@"G:\cells\3280_5503_0_10\pointcloud");
             //var pc = store.GetPointSet("3280_5503_0_10", default);
