@@ -16,6 +16,7 @@ using Aardvark.Data.E57;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Xml.Linq;
 using static System.Console;
 
@@ -154,27 +155,50 @@ namespace Aardvark.Data.Points.Import
                     Report.Line();
                 }
 
+                if (header.E57Root.Data3D.Length == 0) yield break;
+
                 var totalRecordCount = header.E57Root.Data3D.Sum(x => x.Points.RecordCount);
                 var yieldedRecordCount = 0L;
-                var ps = new List<V3d>(); var cs = new List<C4b>();
+
+                var head = header.E57Root.Data3D[0];
+                var hasPositions = head.HasCartesianCoordinates || head.HasSphericalCoordinates;
+                var hasColors = head.HasColors;
+                var hasIntensities = head.HasIntensities;
+
+                var ps = hasPositions ? new List<V3d>() : null;
+                var cs = hasColors ? new List<C4b>() : null;
+                var js = hasIntensities ? new List<int>() : null;
+
                 Chunk PrepareChunk()
                 {
-                    var chunk = new Chunk(ps, cs);
-                    yieldedRecordCount += ps.Count;
-                    ps = new List<V3d>(); cs = new List<C4b>();
+                    var chunk = new Chunk(
+                        positions   : ps, 
+                        colors      : hasColors ? cs : ps.Map(_ => C4b.White),
+                        normals     : null, 
+                        intensities : js
+                        );
+                    Interlocked.Add(ref yieldedRecordCount, ps.Count);
+
+                    if (hasPositions) ps = new List<V3d>(); 
+                    if (hasColors) cs = new List<C4b>();
+                    if (hasIntensities) js = new List<int>();
+
                     if (config.Verbose)
                     {
                         var progress = yieldedRecordCount / (double)totalRecordCount;
                         Write($"\r[E57] yielded {yieldedRecordCount,13:N0}/{totalRecordCount:N0} points [{progress * 100,6:0.00}%]");
                     }
+
                     return chunk;
                 }
 
                 foreach (var data3d in header.E57Root.Data3D)
                 {
-                    foreach (var x in data3d.StreamPoints())
+                    foreach (var (pos, color, intensity) in data3d.StreamPoints())
                     {
-                        ps.Add(x.Item1); cs.Add(x.Item2);
+                        if (hasPositions) ps.Add(pos);
+                        if (hasColors) cs.Add(color);
+                        if (hasIntensities) js.Add(intensity);
                         if (ps.Count == config.MaxChunkPointCount) yield return PrepareChunk();
                     }
                     if (ps.Count > 0) yield return PrepareChunk();

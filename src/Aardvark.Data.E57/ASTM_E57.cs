@@ -498,7 +498,12 @@ namespace Aardvark.Data.E57
                 return v;
             }
 
-            public IEnumerable<Tuple<V3d,C4b>> ReadData(int[] cartesianXYZ, int[] sphericalRAE, int[] colorRGB, bool verbose = false)
+            public IEnumerable<(V3d pos, C4b color, int intensity)> ReadData(
+                int[] cartesianXYZ, int[] sphericalRAE, 
+                int[] colorRGB, 
+                int? intensityIndex, E57IntensityLimits intensityLimits,
+                bool verbose = false
+                )
             {
                 var compressedVectorHeader = E57CompressedVectorHeader.Parse(ReadLogicalBytes(m_stream, FileOffset, 32));
                 if (verbose)
@@ -517,6 +522,7 @@ namespace Aardvark.Data.E57
                 var hasColors = colorRGB != null;
                 var hasCartesian = cartesianXYZ != null;
                 var hasSpherical = sphericalRAE != null;
+                var hasIntensities = intensityIndex.HasValue;
                 if (compressedVectorHeader.DataStartOffset.Value == 0) throw new Exception($"Unexpected compressedVectorHeader.DataStartOffset (0).");
                 if (compressedVectorHeader.IndexStartOffset.Value != 0) throw new Exception($"Unexpected compressedVectorHeader.IndexStartOffset ({compressedVectorHeader.IndexStartOffset})");
 
@@ -526,6 +532,7 @@ namespace Aardvark.Data.E57
                 var colorR = hasColors ? new Queue<byte>() : null;
                 var colorG = hasColors ? new Queue<byte>() : null;
                 var colorB = hasColors ? new Queue<byte>() : null;
+                var intensities = hasIntensities ? new Queue<int>() : null;
 
                 var offset = (E57LogicalOffset)compressedVectorHeader.DataStartOffset;
                 while (bytesLeftToConsume > 0)
@@ -607,6 +614,31 @@ namespace Aardvark.Data.E57
                                 foreach (var b in cbs) colorB.Enqueue(b);
                             }
 
+                            if (hasIntensities)
+                            {
+                                int[] remapWithLimits(float[] xs)
+                                {
+                                    var min = intensityLimits.Intensity.Min;
+                                    var max = intensityLimits.Intensity.Max;
+                                    var d = max - min;
+                                    return xs.Map(x => (int)(((x - min) / d) * 65535.5f));
+                                }
+
+                                var js = buffers[intensityIndex.Value] switch
+                                {
+                                    int[] xs    => xs,
+
+                                    float[] xs when intensityLimits is null 
+                                                => xs.Map(x => (int)(65535 * x)),
+
+                                    float[] xs  => remapWithLimits(xs),
+
+                                    _ => throw new Exception($"Unspecified intensity format {buffers[intensityIndex.Value].GetType()}.")
+                                };
+
+                                foreach (var r in js) intensities.Enqueue(r);
+                            }
+
                             var imax = Fun.Min(cartesianX.Count, cartesianY.Count, cartesianZ.Count);
                             if (hasColors) imax = Fun.Min(imax, Fun.Min(colorR.Count, colorG.Count, colorB.Count));
                             for (var i = 0; i < imax; i++)
@@ -622,8 +654,9 @@ namespace Aardvark.Data.E57
                                         p.X * Math.Sin(p.Z)
                                         );
                                 }
-                                var c = colorRGB != null ? new C4b(colorR.Dequeue(), colorG.Dequeue(), colorB.Dequeue()) : C4b.Gray;
-                                yield return Tuple.Create(p, c);
+                                var c = colorRGB != null ? new C4b(colorR.Dequeue(), colorG.Dequeue(), colorB.Dequeue()) : C4b.Black;
+                                var j = hasIntensities ? intensities.Dequeue() : 0;
+                                yield return (pos: p, color: c, intensity: j);
                             }
                         }
 
@@ -1044,6 +1077,8 @@ namespace Aardvark.Data.E57
             public int[] ByteStreamIndicesForColors { get; private set; }
             public bool HasCartesianInvalidState { get; private set; }
             public bool HasSphericalInvalidState { get; private set; }
+            public bool HasIntensities { get; private set; }
+            public int? ByteStreamIndexForIntensities { get; private set; }
 
             internal static E57Data3D Parse(XElement root, Stream stream)
             {
@@ -1061,9 +1096,11 @@ namespace Aardvark.Data.E57
                 var byteStreamIndicesForColors = default(int[]);
                 var hasCartesianInvalidState = false;
                 var hasSphericalInvalidState = false;
+                var hasIntensities = false;
+                var byteStreamIndexForIntensities = default(int?);
 
 #region 8.4.4.1 (nop)
-#endregion
+                #endregion
 #region 8.4.4.2
                 if (semantics.Contains("cartesianX") || semantics.Contains("cartesianY") || semantics.Contains("cartesianZ"))
                 {
@@ -1100,7 +1137,12 @@ namespace Aardvark.Data.E57
                     hasSpherical = true;
                 }
 #endregion
-#region 8.4.4.5 (nop)
+#region 8.4.4.5
+                if (semantics.Contains("intensity"))
+                {
+                    hasIntensities = true;
+                    byteStreamIndexForIntensities = semantics.IndexOf("intensity");
+                }
 #endregion
 #region 8.4.4.6
                 if (semantics.Contains("colorRed") || semantics.Contains("colorGreen") || semantics.Contains("colorBlue"))
@@ -1155,7 +1197,9 @@ namespace Aardvark.Data.E57
                     HasColors = hasColors,
                     ByteStreamIndicesForColors = byteStreamIndicesForColors,
                     HasCartesianInvalidState = hasCartesianInvalidState,
-                    HasSphericalInvalidState = hasSphericalInvalidState
+                    HasSphericalInvalidState = hasSphericalInvalidState,
+                    HasIntensities = hasIntensities,
+                    ByteStreamIndexForIntensities = byteStreamIndexForIntensities,
                 };
 
 #region 8.4.3.1 (nop)
@@ -1200,18 +1244,24 @@ namespace Aardvark.Data.E57
                 return GetElements(root, "vectorChild").Select(x => Parse(x, stream)).ToArray();
             }
 
-            public IEnumerable<Tuple<V3d, C4b>> StreamPoints(bool verbose = false)
+            public IEnumerable<(V3d pos, C4b color, int intensity)> StreamPoints(bool verbose = false)
             {
                 var result = Points.ReadData(
                     ByteStreamIndicesForCartesianCoordinates,
                     ByteStreamIndicesForSphericalCoordinates,
                     ByteStreamIndicesForColors,
+                    ByteStreamIndexForIntensities,
+                    IntensityLimits,
                     verbose
                     );
 
                 if (Pose != null)
                 {
-                    result = result.Select(p => Tuple.Create(Pose.Rotation.TransformPos(p.Item1) + Pose.Translation, p.Item2));
+                    result = result.Select(p => (
+                        Pose.Rotation.TransformPos(p.pos) + Pose.Translation, 
+                        p.color,
+                        p.intensity
+                        ));
                 }
 
                 return result;
