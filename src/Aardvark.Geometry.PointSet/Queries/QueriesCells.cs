@@ -503,6 +503,44 @@ namespace Aardvark.Geometry.Points
             }
         }
 
+        private static IEnumerable<Cell2d> EnumerateCells2d(this IPointCloudNode root, int cellExponent, V2i stride)
+        {
+            if (root == null) yield break;
+
+            if (root.PointCountTree == 0) 
+                throw new InvalidOperationException("Invariant 8e03ba15-4efd-446b-84da-839cfc1a6c20.");
+
+            if (root.Cell.Exponent < cellExponent) 
+                throw new InvalidOperationException("Invariant 472f1a3f-ce36-432c-b9a4-45273c98f230.");
+
+            if (root.IsLeaf)
+            {
+                if (root.Cell.Exponent > cellExponent)
+                {
+                    // subdivide leaf ...
+                    throw new NotImplementedException("subdivide leaf ...");
+                }
+                else
+                {
+                    if (root.Cell.Exponent != cellExponent)
+                        throw new InvalidOperationException("Invariant 2b1a686d-0e95-4263-ade4-47d1202183be.");
+
+                    if (root.Cell.X % stride.X == 0 && root.Cell.Y % stride.Y == 0)
+                        yield return new Cell2d(root.Cell.X, root.Cell.Y, root.Cell.Exponent);
+                    else
+                        yield break;
+                }
+            }
+            else
+            {
+                // inner node ...
+                var c0a = root.Subnodes[0]?.Value;
+                var c0b = root.Subnodes[4]?.Value;
+
+                throw new NotImplementedException("inner node ...");
+            }
+        }
+
         #endregion
     }
 }

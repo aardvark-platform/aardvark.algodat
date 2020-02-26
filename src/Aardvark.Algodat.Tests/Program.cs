@@ -1,4 +1,5 @@
 ﻿using Aardvark.Base;
+using Aardvark.Base.Coder;
 using Aardvark.Data;
 using Aardvark.Data.Points;
 using Aardvark.Data.Points.Import;
@@ -16,7 +17,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Uncodium.SimpleStore;
-using Aardvark.Base.Coder;
 
 namespace Aardvark.Geometry.Tests
 {
