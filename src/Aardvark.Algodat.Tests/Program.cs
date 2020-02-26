@@ -27,7 +27,7 @@ namespace Aardvark.Geometry.Tests
             using (var store = new SimpleDiskStore(storePath).ToPointCloudStore())
             {
                 var config = ImportConfig.Default
-                    .WithInMemoryStore()
+                    .WithStorage(store)
                     .WithKey(key)
                     .WithVerbose(true)
                     .WithMaxDegreeOfParallelism(0)
@@ -627,11 +627,11 @@ namespace Aardvark.Geometry.Tests
 
         public static void EnumerateCells2dTest()
         {
-            var inputFile = @"T:\Vgm\Data\Kindergarten.pts";
+            var inputFile = @"T:\Vgm\Data\E57\aibotix_ground_points.e57";
 
             var storeName = Path.Combine(@"T:\Vgm\Stores", Path.GetFileName(inputFile));
             var key = Path.GetFileName(storeName);
-            //CreateStore(@"T:\Vgm\Data\Kindergarten.pts", storeName, key, 0.001);
+            CreateStore(inputFile, storeName, key, 0.005);
             
             var store = new SimpleDiskStore(storeName).ToPointCloudStore(cache: default);
             var pc = store.GetPointSet(key);
