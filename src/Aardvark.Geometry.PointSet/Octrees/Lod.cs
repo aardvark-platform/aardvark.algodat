@@ -152,6 +152,7 @@ namespace Aardvark.Geometry.Points
 
             var nodeCount = self.Root?.Value?.CountNodes(true) ?? 0;
             var loddedNodesCount = 0L;
+            if (config.Verbose) Console.WriteLine();
             var result = self.GenerateLod(config.Key, () =>
             {
                 config.CancellationToken.ThrowIfCancellationRequested();
