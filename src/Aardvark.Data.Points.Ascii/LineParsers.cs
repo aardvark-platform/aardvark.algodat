@@ -71,7 +71,7 @@ namespace Aardvark.Data.Points
         /// <summary>
         /// Buffer is expected to contain ASCII. Lines separated by '\n'.
         /// </summary>
-        public static Chunk? Custom(byte[] buffer, int count, double filterDist, Token[] layout)
+        public static Chunk Custom(byte[] buffer, int count, double filterDist, Token[] layout)
         {
             var hasColor = layout.HasColorTokens();
             var hasNormal = layout.HasNormalTokens();
@@ -135,7 +135,7 @@ namespace Aardvark.Data.Points
         /// Buffer is expected to contain ASCII. Lines separated by '\n'.
         /// Expected line format: [double X] [double Y] [double Z] [int I] [byte R] [byte G] [byte B] \n
         /// </summary>
-        public static Chunk? XYZIRGB(byte[] buffer, int count, double filterDist)
+        public static Chunk XYZIRGB(byte[] buffer, int count, double filterDist)
             => Custom(buffer, count, filterDist, new[]
             {
                 Token.PositionX, Token.PositionY, Token.PositionZ,
@@ -147,7 +147,7 @@ namespace Aardvark.Data.Points
         /// Buffer is expected to contain ASCII. Lines separated by '\n'.
         /// Expected line format: [double X] [double Y] [double Z] [SKIP] [byte R] [byte G] [byte B] \n
         /// </summary>
-        public static Chunk? XYZSRGB(byte[] buffer, int count, double filterDist)
+        public static Chunk XYZSRGB(byte[] buffer, int count, double filterDist)
             => Custom(buffer, count, filterDist, new[]
             {
                 Token.PositionX, Token.PositionY, Token.PositionZ,
@@ -159,7 +159,7 @@ namespace Aardvark.Data.Points
         /// Buffer is expected to contain ASCII. Lines separated by '\n'.
         /// Expected line format: [double X] [double Y] [double Z] [byte R] [byte G] [byte B] \n
         /// </summary>
-        public static Chunk? XYZRGB(byte[] buffer, int count, double filterDist)
+        public static Chunk XYZRGB(byte[] buffer, int count, double filterDist)
             => Custom(buffer, count, filterDist, new[]
             {
                 Token.PositionX, Token.PositionY, Token.PositionZ,
@@ -193,7 +193,7 @@ namespace Aardvark.Data.Points
             {
                 switch ((char)*state.p)
                 {
-                    case '0': x = x * 10.0; break;
+                    case '0': x *= 10.0; break;
                     case '1': x = x * 10.0 + 1.0; break;
                     case '2': x = x * 10.0 + 2.0; break;
                     case '3': x = x * 10.0 + 3.0; break;
@@ -220,15 +220,15 @@ namespace Aardvark.Data.Points
                 switch ((char)*state.p)
                 {
                     case '0': break;
-                    case '1': y = y + r; break;
-                    case '2': y = y + r * 2; break;
-                    case '3': y = y + r * 3; break;
-                    case '4': y = y + r * 4; break;
-                    case '5': y = y + r * 5; break;
-                    case '6': y = y + r * 6; break;
-                    case '7': y = y + r * 7; break;
-                    case '8': y = y + r * 8; break;
-                    case '9': y = y + r * 9; break;
+                    case '1': y += r; break;
+                    case '2': y += r * 2; break;
+                    case '3': y += r * 3; break;
+                    case '4': y += r * 4; break;
+                    case '5': y += r * 5; break;
+                    case '6': y += r * 6; break;
+                    case '7': y += r * 7; break;
+                    case '8': y += r * 8; break;
+                    case '9': y += r * 9; break;
                     case '\n':
                     case '\r':
                     case ' ': setResult(minus ? -x - y : x + y); return;
@@ -257,7 +257,7 @@ namespace Aardvark.Data.Points
             {
                 switch ((char)*state.p)
                 {
-                    case '0': x = x * 10.0f; break;
+                    case '0': x *= 10.0f; break;
                     case '1': x = x * 10.0f + 1.0f; break;
                     case '2': x = x * 10.0f + 2.0f; break;
                     case '3': x = x * 10.0f + 3.0f; break;
@@ -282,15 +282,15 @@ namespace Aardvark.Data.Points
                 switch ((char)*state.p)
                 {
                     case '0': break;
-                    case '1': y = y + r; break;
-                    case '2': y = y + r * 2; break;
-                    case '3': y = y + r * 3; break;
-                    case '4': y = y + r * 4; break;
-                    case '5': y = y + r * 5; break;
-                    case '6': y = y + r * 6; break;
-                    case '7': y = y + r * 7; break;
-                    case '8': y = y + r * 8; break;
-                    case '9': y = y + r * 9; break;
+                    case '1': y += r; break;
+                    case '2': y += r * 2; break;
+                    case '3': y += r * 3; break;
+                    case '4': y += r * 4; break;
+                    case '5': y += r * 5; break;
+                    case '6': y += r * 6; break;
+                    case '7': y += r * 7; break;
+                    case '8': y += r * 8; break;
+                    case '9': y += r * 9; break;
                     case ' ': setResult(minus ? -x - y : x + y); return;
                     default: { state.IsInvalid = true; return; }
                 }
@@ -316,7 +316,7 @@ namespace Aardvark.Data.Points
             {
                 switch ((char)*state.p)
                 {
-                    case '0': x = x * 10; break;
+                    case '0': x *= 10; break;
                     case '1': x = x * 10 + 1; break;
                     case '2': x = x * 10 + 2; break;
                     case '3': x = x * 10 + 3; break;
@@ -349,7 +349,7 @@ namespace Aardvark.Data.Points
             {
                 switch ((char)*state.p)
                 {
-                    case '0': x = x * 10; break;
+                    case '0': x *= 10; break;
                     case '1': x = x * 10 + 1; break;
                     case '2': x = x * 10 + 2; break;
                     case '3': x = x * 10 + 3; break;

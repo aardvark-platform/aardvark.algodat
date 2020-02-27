@@ -27,17 +27,17 @@ namespace Aardvark.Geometry.Points
     {
         private static IEnumerable<Chunk> MergeSmall(int limit, IEnumerable<Chunk> input)
         {
-            Chunk? current = null;
+            var current = default(Chunk);
             foreach(var c in input)
             {
                 if(c.Count < limit)
                 {
-                    if (current.HasValue) current = current.Value.Union(c);
+                    if (current != null) current = current.Union(c);
                     else current = c;
 
-                    if (current.Value.Count >= limit)
+                    if (current.Count >= limit)
                     {
-                        yield return current.Value;
+                        yield return current;
                         current = null;
                     }
 
@@ -48,9 +48,9 @@ namespace Aardvark.Geometry.Points
                 }
             }
 
-            if (current.HasValue)
+            if (current != null)
             {
-                yield return current.Value;
+                yield return current;
                 current = null;
             }
         }

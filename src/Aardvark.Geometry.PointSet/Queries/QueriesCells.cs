@@ -503,44 +503,6 @@ namespace Aardvark.Geometry.Points
             }
         }
 
-        private static IEnumerable<Cell2d> EnumerateCells2d(this IPointCloudNode root, int cellExponent, V2i stride)
-        {
-            if (root == null) yield break;
-
-            if (root.PointCountTree == 0) 
-                throw new InvalidOperationException("Invariant 8e03ba15-4efd-446b-84da-839cfc1a6c20.");
-
-            if (root.Cell.Exponent < cellExponent) 
-                throw new InvalidOperationException("Invariant 472f1a3f-ce36-432c-b9a4-45273c98f230.");
-
-            if (root.IsLeaf)
-            {
-                if (root.Cell.Exponent > cellExponent)
-                {
-                    // subdivide leaf ...
-                    throw new NotImplementedException("subdivide leaf ...");
-                }
-                else
-                {
-                    if (root.Cell.Exponent != cellExponent)
-                        throw new InvalidOperationException("Invariant 2b1a686d-0e95-4263-ade4-47d1202183be.");
-
-                    if (root.Cell.X % stride.X == 0 && root.Cell.Y % stride.Y == 0)
-                        yield return new Cell2d(root.Cell.X, root.Cell.Y, root.Cell.Exponent);
-                    else
-                        yield break;
-                }
-            }
-            else
-            {
-                // inner node ...
-                var c0a = root.Subnodes[0]?.Value;
-                var c0b = root.Subnodes[4]?.Value;
-
-                throw new NotImplementedException("inner node ...");
-            }
-        }
-
         #endregion
 
         public class ColZ
@@ -566,13 +528,43 @@ namespace Aardvark.Geometry.Points
                 Cell2d GetFootprintZ(Cell c) => new Cell2d(c.X, c.Y, c.Exponent);
                 if (!nodes.All(n => GetFootprintZ(n.Cell) == footprint)) throw new InvalidOperationException();
                 var bb = footprint.BoundingBox;
-                if (!rest.Positions.All(p => bb.Contains(p.XY))) throw new InvalidOperationException();
+                if (rest.HasPositions && !rest.Positions.All(p => bb.Contains(p.XY))) throw new InvalidOperationException();
 #endif
             }
 
             public bool IsEmpty => Nodes.Length == 0 && Rest.IsEmpty;
 
-            public ColZ[] Split()
+            public IEnumerable<ColZ> EnumerateColumns(int cellExponent)
+            {
+                if (Footprint.Exponent < cellExponent) throw new InvalidOperationException(
+                    $"ColZ is already smaller ({Footprint.Exponent}) then requested cellExponent ({cellExponent}). Invariant b4b914df-2966-440b-8c96-2015ebdcbb64."
+                    );
+
+                if (Footprint.Exponent == cellExponent)
+                {
+                    yield return this;
+                }
+                else
+                {
+                    foreach (var col in Split())
+                    {
+                        if (col == null) continue;
+                        foreach (var x in col.EnumerateColumns(cellExponent)) yield return x;
+                    }
+                }
+            }
+
+            /// <summary>
+            /// Number of points in column at current level.
+            /// </summary>
+            public long Count => Nodes.Sum(n => n.PointCountCell) + Rest.Count;
+
+            /// <summary>
+            /// Number of points in column at most detailed level.
+            /// </summary>
+            public long CountTotal => Nodes.Sum(n => n.PointCountTree) + Rest.Count;
+
+            private ColZ[] Split()
             {
                 var nss = new List<IPointCloudNode>[4].SetByIndex(_ => new List<IPointCloudNode>());
                 foreach (var n in Nodes.Where(n => !n.IsLeaf))
@@ -588,7 +580,7 @@ namespace Aardvark.Geometry.Points
                 var c = Footprint.GetCenter();
                 var rs = Rest
                     .ImmutableMergeWith(Nodes.Where(n => n.IsLeaf).Select(n => n.ToChunk()))
-                    .SplitBy((chunk, i) => oct(c, chunk.Positions[i].XY))
+                    .GroupBy((chunk, i) => oct(c, chunk.Positions[i].XY))
                     ;
 
                 return new ColZ[4].SetByIndex(i =>

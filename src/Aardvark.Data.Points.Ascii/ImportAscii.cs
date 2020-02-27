@@ -155,7 +155,7 @@ namespace Aardvark.Data.Points.Import
         /// </summary>
         public static IEnumerable<Chunk> Chunks(string filename, Token[] lineDefinition, ParseConfig config)
         {
-            Chunk? lineParser(byte[] buffer, int count, double filterDist)
+            Chunk lineParser(byte[] buffer, int count, double filterDist)
                 => LineParsers.Custom(buffer, count, filterDist, lineDefinition);
             return Parsing.AsciiLines(lineParser, filename, config);
         }
@@ -165,7 +165,7 @@ namespace Aardvark.Data.Points.Import
         /// </summary>
         public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, Token[] lineDefinition, ParseConfig config)
         {
-            Chunk? lineParser(byte[] buffer, int count, double filterDist)
+            Chunk lineParser(byte[] buffer, int count, double filterDist)
                 => LineParsers.Custom(buffer, count, filterDist, lineDefinition);
             return Parsing.AsciiLines(lineParser, stream, streamLengthInBytes, config);
         }

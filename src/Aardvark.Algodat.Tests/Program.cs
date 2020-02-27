@@ -631,7 +631,7 @@ namespace Aardvark.Geometry.Tests
 
             var storeName = Path.Combine(@"T:\Vgm\Stores", Path.GetFileName(inputFile));
             var key = Path.GetFileName(storeName);
-            CreateStore(inputFile, storeName, key, 0.005);
+            //CreateStore(inputFile, storeName, key, 0.005);
             
             var store = new SimpleDiskStore(storeName).ToPointCloudStore(cache: default);
             var pc = store.GetPointSet(key);
@@ -639,21 +639,57 @@ namespace Aardvark.Geometry.Tests
 
             var oSize = 2;
             var iSize = 1;
+            var cellExponent = 5;
 
-            Report.BeginTimed("total");
-            var xs = root.EnumerateCellColumns(2);
-            //var xs = root.EnumerateCellColumns2(2, V2i.II, 0, new Box2i(V2i.OO, V2i.OO), new Box2i(V2i.OO, V2i.OO), false);
-            var i = 0;
-            foreach (var x in xs)
+            //Report.BeginTimed("total");
+            //var xs = root.EnumerateCellColumns(cellExponent);
+            //var i = 0;
+            //foreach (var x in xs)
+            //{
+            //    var cs0 = x.GetPoints(int.MaxValue).ToArray();
+            //    //if (cs0.Length == 0) continue;
+            //    //var cs1 = x.GetPoints(0, outer: new Box2i(new V2i(-iSize, -iSize), new V2i(+iSize, +iSize))).ToArray();
+            //    //var cs2 = x.GetPoints(0, outer: new Box2i(new V2i(-oSize, -oSize), new V2i(+oSize, +oSize)), inner: new Box2i(new V2i(-iSize, -iSize), new V2i(+iSize, +iSize))).ToArray();
+            //    //Report.Line($"[{x.Cell.X,3}, {x.Cell.Y,3}, {x.Cell.Exponent,3}] {cs0.Sum(c => c.Count),10:N0} {cs1.Sum(c => c.Count),10:N0} {cs2.Sum(c => c.Count),10:N0}");
+            //    //if (++i % 17 == 0) 
+            //    if (cs0.Sum(c => c.Count) > 0)
+            //        Report.Line($"[{x.Cell.X,3}, {x.Cell.Y,3}, {x.Cell.Exponent,3}] {cs0.Sum(c => c.Count),10:N0}");
+            //}
+            //Report.End();
+
+            for (cellExponent = 11; cellExponent >= 0; cellExponent--)
             {
-                //var cs0 = x.GetPoints(0).ToArray();
-                //if (cs0.Length == 0) continue;
-                var cs1 = x.GetPoints(0, outer: new Box2i(new V2i(-iSize, -iSize), new V2i(+iSize, +iSize))).ToArray();
-                var cs2 = x.GetPoints(0, outer: new Box2i(new V2i(-oSize, -oSize), new V2i(+oSize, +oSize)), inner: new Box2i(new V2i(-iSize, -iSize), new V2i(+iSize, +iSize))).ToArray();
-                //Report.Line($"[{x.Cell.X,3}, {x.Cell.Y,3}, {x.Cell.Exponent,3}] {cs0.Sum(c => c.Count),10:N0} {cs1.Sum(c => c.Count),10:N0} {cs2.Sum(c => c.Count),10:N0}");
-                if (++i % 17 == 0) Report.Line($"[{x.Cell.X,3}, {x.Cell.Y,3}, {x.Cell.Exponent,3}] {cs2.Sum(c => c.Count),10:N0}");
+                Report.BeginTimed($"[old] e = {cellExponent,3}");
+                var xs = root.EnumerateCellColumns(cellExponent);
+                var sum = 0L;
+                var count = 0L;
+                foreach (var x in xs)
+                {
+                    count++;
+                    var cs0 = x.GetPoints(int.MaxValue).ToArray();
+                    var tmp = cs0.Sum(c => c.Count);
+                    sum += tmp;
+                    //Report.Line($"[{x.Cell.X,3}, {x.Cell.Y,3}, {x.Cell.Exponent,3}] {tmp,10:N0}");
+                }
+                //if (sum != root.PointCountTree) throw new Exception();
+                Report.End($" | cols = {count,12:N0}");
             }
-            Report.End();
+
+            for (cellExponent = 11; cellExponent >= -10; cellExponent--)
+            {
+                Report.BeginTimed($"[new] e = {cellExponent,3}");
+                var ys = new Queries.ColZ(root).EnumerateColumns(cellExponent);
+                var sum = 0L;
+                var count = 0L;
+                foreach (var y in ys)
+                {
+                    count++;
+                    sum += y.CountTotal;
+                    //Report.Line($"[{y.Footprint.X,3}, {y.Footprint.Y,3}, {y.Footprint.Exponent,3}] {y.CountTotal,10:N0}");
+                }
+                if (sum != root.PointCountTree) throw new Exception();
+                Report.End($" | cols = {count,12:N0}");
+            }
         }
 
         internal static void DumpPointSetKeys()

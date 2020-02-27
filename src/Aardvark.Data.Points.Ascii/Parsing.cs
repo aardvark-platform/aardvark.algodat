@@ -32,7 +32,7 @@ namespace Aardvark.Data.Points
         /// <summary>
         /// Parses ASCII lines file.
         /// </summary>
-        internal static IEnumerable<Chunk> AsciiLines(Func<byte[], int, double, Chunk?> lineParser,
+        internal static IEnumerable<Chunk> AsciiLines(Func<byte[], int, double, Chunk> lineParser,
             string filename, ParseConfig config
             )
         {
@@ -44,7 +44,7 @@ namespace Aardvark.Data.Points
         /// <summary>
         /// Parses ASCII lines stream.
         /// </summary>
-        internal static IEnumerable<Chunk> AsciiLines(Func<byte[], int, double, Chunk?> lineParser,
+        internal static IEnumerable<Chunk> AsciiLines(Func<byte[], int, double, Chunk> lineParser,
             Stream stream, long streamLengthInBytes, ParseConfig config
             )
         {
@@ -135,7 +135,7 @@ namespace Aardvark.Data.Points
         /// <returns></returns>
         public static IEnumerable<Chunk> ParseBuffers(
             this IEnumerable<Buffer> buffers, long sumOfAllBufferSizesInBytes,
-            Func<byte[], int, double, Chunk?> parser, double minDist,
+            Func<byte[], int, double, Chunk> parser, double minDist,
             int maxLevelOfParallelism, bool verbose,
             CancellationToken ct
             )
@@ -151,8 +151,8 @@ namespace Aardvark.Data.Points
             var result = buffers.MapParallel((buffer, ct2) =>
             {
                 var optionalSamples = parser(buffer.Data, buffer.Count, minDist);
-                if (!optionalSamples.HasValue) return Chunk.Empty;
-                var samples = optionalSamples.Value;
+                if (optionalSamples == null) return Chunk.Empty;
+                var samples = optionalSamples;
                 bounds.ExtendBy(new Box3d(samples.Positions));
                 Interlocked.Add(ref sampleCount, samples.Count);
                 var r = new Chunk(samples.Positions, samples.Colors, samples.Normals, samples.Intensities, samples.Classifications, samples.BoundingBox);
@@ -178,7 +178,7 @@ namespace Aardvark.Data.Points
                     Console.WriteLine($"[Parsing] summary: yielded {sampleCountYielded} point samples");
                     Console.WriteLine($"[Parsing] summary: bounding box is {bounds}");
                 }
-            })
+            }, ct)
             .WhereNotNull()
             ;
 

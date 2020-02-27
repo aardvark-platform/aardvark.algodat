@@ -713,8 +713,7 @@ namespace Aardvark.Geometry.Points
             // column fully includes point cloud
             if (columnXY.Contains(cloudXY))
             {
-                var x = root.ToChunk();
-                return x.Count > 0 ? new[] { x } : Enumerable.Empty<Chunk>();
+                return root.Collect(fromRelativeDepth);
             }
 
             // column is fully outside point cloud
