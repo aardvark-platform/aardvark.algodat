@@ -657,38 +657,38 @@ namespace Aardvark.Geometry.Tests
             //}
             //Report.End();
 
-            for (cellExponent = 11; cellExponent >= 0; cellExponent--)
-            {
-                Report.BeginTimed($"[old] e = {cellExponent,3}");
-                var xs = root.EnumerateCellColumns(cellExponent);
-                var sum = 0L;
-                var count = 0L;
-                foreach (var x in xs)
-                {
-                    count++;
-                    var cs0 = x.GetPoints(int.MaxValue).ToArray();
-                    var tmp = cs0.Sum(c => c.Count);
-                    sum += tmp;
-                    //Report.Line($"[{x.Cell.X,3}, {x.Cell.Y,3}, {x.Cell.Exponent,3}] {tmp,10:N0}");
-                }
-                //if (sum != root.PointCountTree) throw new Exception();
-                Report.End($" | cols = {count,12:N0}");
-            }
+            //for (cellExponent = 11; cellExponent >= 0; cellExponent--)
+            //{
+            //    Report.BeginTimed($"[old] e = {cellExponent,3}");
+            //    var xs = root.EnumerateCellColumns(cellExponent);
+            //    var totalPointCount = 0L;
+            //    var count = 0L;
+            //    foreach (var x in xs)
+            //    {
+            //        count++;
+            //        var cs0 = x.GetPoints(int.MaxValue).ToArray();
+            //        var tmp = cs0.Sum(c => c.Count);
+            //        totalPointCount += tmp;
+            //        //Report.Line($"[{x.Cell.X,3}, {x.Cell.Y,3}, {x.Cell.Exponent,3}] {tmp,10:N0}");
+            //    }
+            //    //if (sum != root.PointCountTree) throw new Exception();
+            //    Report.End($" | cols = {count,12:N0} | points = {totalPointCount,12:N0}");
+            //}
 
             for (cellExponent = 11; cellExponent >= -10; cellExponent--)
             {
                 Report.BeginTimed($"[new] e = {cellExponent,3}");
                 var ys = new Queries.ColZ(root).EnumerateColumns(cellExponent);
-                var sum = 0L;
+                var totalPointCount = 0L;
                 var count = 0L;
                 foreach (var y in ys)
                 {
                     count++;
-                    sum += y.CountTotal;
+                    totalPointCount += y.CountTotal;
                     //Report.Line($"[{y.Footprint.X,3}, {y.Footprint.Y,3}, {y.Footprint.Exponent,3}] {y.CountTotal,10:N0}");
                 }
-                if (sum != root.PointCountTree) throw new Exception();
-                Report.End($" | cols = {count,12:N0}");
+                if (totalPointCount != root.PointCountTree) throw new Exception();
+                Report.End($" | cols = {count,12:N0} | points = {totalPointCount,12:N0}");
             }
         }
 

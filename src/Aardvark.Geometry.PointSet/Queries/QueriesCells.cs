@@ -549,7 +549,11 @@ namespace Aardvark.Geometry.Points
                     foreach (var col in Split())
                     {
                         if (col == null) continue;
-                        foreach (var x in col.EnumerateColumns(cellExponent)) yield return x;
+                        foreach (var x in col.EnumerateColumns(cellExponent))
+                        {
+                            if (x.CountTotal == 0) continue;
+                            yield return x;
+                        }
                     }
                 }
             }
