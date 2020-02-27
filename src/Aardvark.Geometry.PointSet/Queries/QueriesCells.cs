@@ -542,5 +542,71 @@ namespace Aardvark.Geometry.Points
         }
 
         #endregion
+
+        public class ColZ
+        {
+            public Cell2d Footprint { get; }
+            public IPointCloudNode[] Nodes { get; }
+            public Chunk Rest { get; }
+
+            public ColZ(IPointCloudNode n)
+            {
+                Footprint = new Cell2d(n.Cell.X, n.Cell.Y, n.Cell.Exponent);
+                Nodes = new [] { n ?? throw new ArgumentNullException(nameof(n)) };
+                Rest = Chunk.Empty;
+            }
+
+            private ColZ(Cell2d footprint, IPointCloudNode[] nodes, Chunk rest)
+            {
+                Footprint = footprint;
+                Nodes = nodes ?? throw new ArgumentNullException(nameof(nodes));
+                Rest = rest;
+
+#if DEBUG
+                Cell2d GetFootprintZ(Cell c) => new Cell2d(c.X, c.Y, c.Exponent);
+                if (!nodes.All(n => GetFootprintZ(n.Cell) == footprint)) throw new InvalidOperationException();
+                var bb = footprint.BoundingBox;
+                if (!rest.Positions.All(p => bb.Contains(p.XY))) throw new InvalidOperationException();
+#endif
+            }
+
+            public bool IsEmpty => Nodes.Length == 0 && Rest.IsEmpty;
+
+            public ColZ[] Split()
+            {
+                var nss = new List<IPointCloudNode>[4].SetByIndex(_ => new List<IPointCloudNode>());
+                foreach (var n in Nodes.Where(n => !n.IsLeaf))
+                {
+                    for (var i = 0; i < 8; i++)
+                    {
+                        var x = n.Subnodes[i]?.Value;
+                        if (x != null) nss[i & 0b011].Add(x);
+
+                    }
+                }
+
+                var c = Footprint.GetCenter();
+                var rs = Rest
+                    .ImmutableMergeWith(Nodes.Where(n => n.IsLeaf).Select(n => n.ToChunk()))
+                    .SplitBy((chunk, i) => oct(c, chunk.Positions[i].XY))
+                    ;
+
+                return new ColZ[4].SetByIndex(i =>
+                    (nss[i].Count > 0 || rs.ContainsKey(i))
+                    ? new ColZ(
+                        Footprint.GetOctant(i),
+                        nss[i].Count > 0 ? nss[i].ToArray() : Array.Empty<IPointCloudNode>(),
+                        rs.GetValueOrDefault(i, Chunk.Empty)
+                        )
+                    : null
+                    );
+
+                static int oct(V2d center, V2d p)
+                {
+                    var i = p.X > center.X ? 1 : 0;
+                    return p.Y > center.Y ? i | 2 : i;
+                }
+            }
+        }
     }
 }
