@@ -813,7 +813,7 @@ namespace Aardvark.Geometry.Tests
             Report.BeginTimed("flattening");
             var flat = Chunk.ImmutableMerge(pointset.Root.Value.Collect(int.MaxValue));
             var data = ImmutableDictionary<Durable.Def, object>.Empty
-                .Add(Durable.Octree.PositionsGlobal3d, flat.Positions.ToArray())
+                .Add(Durable.Octree.PositionsLocal3f, flat.Positions.Map(p => new V3f(p)))
                 .Add(Durable.Octree.Normals3f, flat.Normals.ToArray())
                 .Add(Durable.Octree.Velocities3f, flat.Velocities.ToArray())
                 ;
@@ -828,24 +828,31 @@ namespace Aardvark.Geometry.Tests
                 Data.Codec.Encode(bw, Durable.Primitives.DurableMap, data);
                 bw.Flush();
                 buffer = ms.ToArray();
+                Report.Line($"blob size = {buffer.Length:N0} bytes");
             }
             Report.EndTimed();
 
-            Report.BeginTimed("deserializing");
-            using (var ms = new MemoryStream(buffer))
-            //using (var zs = new GZipStream(ms, System.IO.Compression.CompressionMode.Decompress))
-            using (var br = new BinaryReader(ms))
+            for (var i = 0; i < 100; i++)
             {
-                var (def, o) = Data.Codec.Decode(br);
-                var dict = (ImmutableDictionary<Durable.Def, object>)o;
-                var ps = (V3d[])dict[Durable.Octree.PositionsGlobal3d];
-                var ns = (V3f[])dict[Durable.Octree.Normals3f];
-                var vs = (V3f[])dict[Durable.Octree.Velocities3f];
-                Report.Line($"positions : {ps.Length}");
-                Report.Line($"normals   : {ns.Length}");
-                Report.Line($"velocities: {vs.Length}");
+                Report.BeginTimed("deserializing");
+                var sw = new Stopwatch(); sw.Start();
+                using (var ms = new MemoryStream(buffer))
+                //using (var zs = new GZipStream(ms, System.IO.Compression.CompressionMode.Decompress))
+                using (var br = new BinaryReader(ms))
+                {
+                    var (def, o) = Data.Codec.Decode(br);
+                    var dict = (ImmutableDictionary<Durable.Def, object>)o;
+                    sw.Stop();
+                    var ps = (V3f[])dict[Durable.Octree.PositionsLocal3f];
+                    var ns = (V3f[])dict[Durable.Octree.Normals3f];
+                    var vs = (V3f[])dict[Durable.Octree.Velocities3f];
+                    //Report.Line($"positions : {ps.Length}");
+                    //Report.Line($"normals   : {ns.Length}");
+                    //Report.Line($"velocities: {vs.Length}");
+                    Report.Line($"{(buffer.Length / sw.Elapsed.TotalSeconds)/(1024*1024*1024):N3} GB/s");
+                }
+                Report.EndTimed();
             }
-            Report.EndTimed();
 
             Report.EndTimed();
         }
