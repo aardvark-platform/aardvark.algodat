@@ -737,6 +737,7 @@ namespace Aardvark.Geometry.Tests
             Console.WriteLine($"{ps.Length:N0}");
         }
 
+
         internal static void HeraTest()
         {
             Report.Line("Hera Test");
@@ -820,16 +821,7 @@ namespace Aardvark.Geometry.Tests
             Report.EndTimed();
 
             Report.BeginTimed("serializing");
-            byte[] buffer;
-            using (var ms = new MemoryStream())
-            //using (var zs = new GZipStream(ms, CompressionLevel.Optimal))
-            using (var bw = new BinaryWriter(ms))
-            {
-                Data.Codec.Encode(bw, Durable.Primitives.DurableMap, data);
-                bw.Flush();
-                buffer = ms.ToArray();
-                Report.Line($"blob size = {buffer.Length:N0} bytes");
-            }
+            var buffer = data.DurableEncode(Durable.Primitives.DurableMap, false);
             Report.EndTimed();
 
             for (var i = 0; i < 100; i++)

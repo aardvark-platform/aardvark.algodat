@@ -733,7 +733,7 @@ namespace Aardvark.Geometry.Points
         /// Binary encodes (and optionally gzips) a durable map with given definition from a sequence of key/value pairs.
         /// Entries are encoded in the same order as given by the data sequence.
         /// </summary>
-        public static byte[] Encode(this IEnumerable<KeyValuePair<Durable.Def, object>> data, Durable.Def def, bool gzipped)
+        public static byte[] DurableEncode(this IEnumerable<KeyValuePair<Durable.Def, object>> data, Durable.Def def, bool gzipped)
         {
             if (data == null) throw new Exception("Invariant c61b7125-b523-4f19-8f51-5e8be5d06dde.");
             if (def == null) throw new Exception("Invariant a126aff5-8352-4e7c-9864-5459bbf0a5d6.");
@@ -747,6 +747,16 @@ namespace Aardvark.Geometry.Points
                 var buffer = ms.ToArray();
                 return buffer;
             }
+        }
+        public static (Durable.Def, object) DurableDecode(this byte[] buffer)
+        {
+            using (var br = new BinaryReader(new MemoryStream(buffer)))
+                return Data.Codec.Decode(br);
+        }
+        public static T DurableDecode<T>(this byte[] buffer)
+        {
+            using (var br = new BinaryReader(new MemoryStream(buffer)))
+                return (T)Data.Codec.Decode(br).Item2;
         }
 
         public static byte[] Add(this Storage storage, string key, Durable.Def def, IEnumerable<KeyValuePair<Durable.Def, object>> data, bool gzipped)

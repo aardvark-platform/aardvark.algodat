@@ -118,17 +118,17 @@ namespace Aardvark.Geometry.Points
             }
 
             // reduce all chunks to single PointSet
-            Report.BeginTimed("map/reduce");
+            if (config.Verbose) Report.BeginTimed("map/reduce");
             var final = chunks
                 .MapReduce(config.WithRandomKey().WithProgressCallback(x => config.ProgressCallback(0.01 + x * 0.65)))
                 ;
-            Report.EndTimed();
+            if (config.Verbose) Report.EndTimed();
 
             // create LOD data
-            Report.BeginTimed("generate lod");
+            if (config.Verbose) Report.BeginTimed("generate lod");
             final = final.GenerateLod(config.WithRandomKey().WithProgressCallback(x => config.ProgressCallback(0.66 + x * 0.34)));
             if (final.Root != null && config.Storage.GetPointCloudNode(final.Root.Value.Id) == null) throw new InvalidOperationException("Invariant 4d633e55-bf84-45d7-b9c3-c534a799242e.");
-            Report.End();
+            if (config.Verbose) Report.End();
 
             // create final point set with specified key (or random key when no key is specified)
             var key = config.Key ?? Guid.NewGuid().ToString();

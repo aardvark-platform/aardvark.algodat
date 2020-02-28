@@ -122,7 +122,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Binary encodes (and optionally gzips) this InlinedNode as Durable.Octree.Node.
         /// </summary>
-        public byte[] Encode(bool gzip) => this.ToDurableMap().Encode(Durable.Octree.Node, gzip);
+        public byte[] Encode(bool gzip) => this.ToDurableMap().DurableEncode(Durable.Octree.Node, gzip);
     }
 
     public class InlinedNodes
