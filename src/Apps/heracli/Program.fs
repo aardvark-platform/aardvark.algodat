@@ -96,13 +96,17 @@ open SharpCompress.Readers
 let main argv =
 
     let tgzfilename = @"D:\Hera\r80_p0_m500_v6000_mbasalt_a1.0_1M.tar.gz"
+    let targetFolder = @"T:\Hera\Output_r80_p0_m500_v6000_mbasalt_a1.0_1M.tar.gz"
+
+    //let tgzfilename = @"T:\Hera\r80_p0_m500_v6000_mbasalt_a1.25_1M.tar.gz"
+    //let targetFolder = @"T:\Hera\Output_r80_p0_m500_v6000_mbasalt_a1.25_1M.tar.gz"
+
     let pattern = Regex("impact\.([0-9]*)$")
     let lineDef = [|
         Ascii.Token.PositionX; Ascii.Token.PositionY; Ascii.Token.PositionZ
         Ascii.Token.VelocityX; Ascii.Token.VelocityY; Ascii.Token.VelocityZ
         |]
 
-    let targetFolder = @"T:\Hera\Output"
 
     if not (Directory.Exists(targetFolder)) then Directory.CreateDirectory(targetFolder) |> ignore
     
