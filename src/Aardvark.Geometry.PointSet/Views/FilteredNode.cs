@@ -401,6 +401,16 @@ namespace Aardvark.Geometry.Points
 
         #endregion
 
+        #region Velocities
+
+        /// <summary></summary>
+        public bool HasVelocities => Node.HasVelocities;
+
+        /// <summary></summary>
+        public PersistentRef<V3f[]> Velocities => GetSubArray(Octree.Velocities3f, Node.Velocities);
+
+        #endregion
+
         #region Classifications
 
         /// <summary></summary>

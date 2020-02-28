@@ -36,7 +36,7 @@ namespace Aardvark.Geometry.Tests
             var cs = ps.Map(_ => C4b.White);
 
             var pointset = PointSet.Create(
-                storage, "test", ps.ToList(), cs.ToList(), null, null, null, 5000,
+                storage, "test", ps.ToList(), cs.ToList(), null, null, null, null, 5000,
                 generateLod: false, isTemporaryImportNode: true, ct: default
                 );
             pointset.Root.Value.ForEachNode(true, cell =>
@@ -65,7 +65,7 @@ namespace Aardvark.Geometry.Tests
             var cs = ps.Map(_ => C4b.White);
 
             var pointset = PointSet.Create(
-                storage, "test", ps.ToList(), cs.ToList(), null, null, null, 5000,
+                storage, "test", ps.ToList(), cs.ToList(), null, null, null, null, 5000,
                 generateLod: true, isTemporaryImportNode: true, default
                 );
             pointset.Root.Value.ForEachNode(true, cell =>

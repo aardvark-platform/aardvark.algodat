@@ -53,7 +53,6 @@ namespace Aardvark.Data.Points
                 .ChunkStreamAtNewlines(streamLengthInBytes, config.ReadBufferSizeInBytes, config.CancellationToken)
                 .ParseBuffers(streamLengthInBytes, lineParser, config.MinDist, config.MaxDegreeOfParallelism, config.Verbose, config.CancellationToken)
                 ;
-            //var foo = result.ToArray();
             return result;
         }
 
@@ -146,8 +145,6 @@ namespace Aardvark.Data.Points
             var totalBytesRead = 0L;
             var bounds = Box3d.Invalid;
 
-            //var foo2 = buffers.ToArray();
-
             var result = buffers.MapParallel((buffer, ct2) =>
             {
                 var optionalSamples = parser(buffer.Data, buffer.Count, minDist);
@@ -155,7 +152,7 @@ namespace Aardvark.Data.Points
                 var samples = optionalSamples;
                 bounds.ExtendBy(new Box3d(samples.Positions));
                 Interlocked.Add(ref sampleCount, samples.Count);
-                var r = new Chunk(samples.Positions, samples.Colors, samples.Normals, samples.Intensities, samples.Classifications, samples.BoundingBox);
+                var r = new Chunk(samples.Positions, samples.Colors, samples.Normals, samples.Intensities, samples.Classifications, samples.Velocities, samples.BoundingBox);
 
                 Interlocked.Add(ref sampleCountYielded, r.Count);
                 Interlocked.Add(ref totalBytesRead, buffer.Count);
@@ -182,7 +179,6 @@ namespace Aardvark.Data.Points
             .WhereNotNull()
             ;
 
-            //var foo = result.ToArray();
             return result;
         }
     }

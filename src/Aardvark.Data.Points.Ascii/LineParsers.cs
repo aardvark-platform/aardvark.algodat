@@ -31,6 +31,7 @@ namespace Aardvark.Data.Points
         public C4b Color = C4b.Black;
         public V3f Normal;
         public int Intensity;
+        public V3f Velocity;
     }
     
     /// <summary>
@@ -64,6 +65,11 @@ namespace Aardvark.Data.Points
             // Intensity
             { Token.Intensity, state => ParseInt(state, i => state.Intensity = i) },
 
+            // Velocity
+            { Token.VelocityX, state => ParseFloat32(state, x => state.Velocity.X = x) },
+            { Token.VelocityY, state => ParseFloat32(state, y => state.Velocity.Y = y) },
+            { Token.VelocityZ, state => ParseFloat32(state, z => state.Velocity.Z = z) },
+
             // Skip
             { Token.Skip, state => ParseSkip(state) },
         };
@@ -76,11 +82,13 @@ namespace Aardvark.Data.Points
             var hasColor = layout.HasColorTokens();
             var hasNormal = layout.HasNormalTokens();
             var hasIntensity = layout.HasIntensityTokens();
+            var hasVelocity = layout.HasVelocityTokens();
 
             var ps = new List<V3d>();
             var cs = hasColor ? new List<C4b>() : null;
             var ns = hasNormal ? new List<V3f>() : null;
             var js = hasIntensity ? new List<int>() : null;
+            var vs = hasVelocity ? new List<V3f>() : null;
 
             var prev = V3d.PositiveInfinity;
             var filterDistM = -filterDist;
@@ -123,12 +131,13 @@ namespace Aardvark.Data.Points
                         if (hasColor) cs.Add(state.Color);
                         if (hasNormal) ns.Add(state.Normal);
                         if (hasIntensity) js.Add(state.Intensity);
+                        if (hasVelocity) vs.Add(state.Velocity);
                     }
                 }
             }
 
             if (ps.Count == 0) return null;
-            return new Chunk(ps, cs, ns, js);
+            return new Chunk(ps, cs, ns, js, classifications: null, velocities: vs);
         }
 
         /// <summary>
@@ -186,6 +195,7 @@ namespace Aardvark.Data.Points
 
             var minus = *state.p == ((byte)'-');
             if (minus) state.p++;
+            else if (*state.p == ((byte)'+')) state.p++;
 
             var x = 0.0;
             var parse = true;
@@ -206,6 +216,7 @@ namespace Aardvark.Data.Points
                     case '.': parse = false; break;
                     case '\n':
                     case '\r':
+                    case '\t':
                     case ' ': setResult(minus ? -x : x); return;
                     default: { state.IsInvalid = true; return; }
                 }
@@ -215,7 +226,8 @@ namespace Aardvark.Data.Points
 
             var y = 0.0;
             var r = 0.1;
-            while (state.p < state.end)
+            var noExponent = true;
+            while (noExponent && state.p < state.end)
             {
                 switch ((char)*state.p)
                 {
@@ -229,14 +241,49 @@ namespace Aardvark.Data.Points
                     case '7': y += r * 7; break;
                     case '8': y += r * 8; break;
                     case '9': y += r * 9; break;
+                    case 'e':
+                    case 'E': noExponent = false; break;
                     case '\n':
                     case '\r':
+                    case '\t':
                     case ' ': setResult(minus ? -x - y : x + y); return;
                     default: { state.IsInvalid = true; return; };
                 }
                 r *= 0.1;
                 state.p++;
             }
+
+            if (!noExponent)
+            {
+                var minusExponent = *state.p == ((byte)'-');
+                if (minusExponent) state.p++;
+                else if (*state.p == ((byte)'+')) state.p++;
+
+                var e = 0;
+                while (state.p < state.end)
+                {
+                    switch ((char)*state.p)
+                    {
+                        case '0': e *= 10; break;
+                        case '1': e = e * 10 + 1; break;
+                        case '2': e = e * 10 + 2; break;
+                        case '3': e = e * 10 + 3; break;
+                        case '4': e = e * 10 + 4; break;
+                        case '5': e = e * 10 + 5; break;
+                        case '6': e = e * 10 + 6; break;
+                        case '7': e = e * 10 + 7; break;
+                        case '8': e = e * 10 + 8; break;
+                        case '9': e = e * 10 + 9; break;
+                        case '\n':
+                        case '\r':
+                        case '\t':
+                        case ' ': setResult((minus ? -x - y : x + y) * Math.Pow(10, minusExponent ? -e : e)); return;
+                        default: { state.IsInvalid = true; return; }
+                    }
+                    state.p++;
+                }
+            }
+
             setResult(minus ? -x - y : x + y);
         }
         
@@ -268,6 +315,7 @@ namespace Aardvark.Data.Points
                     case '8': x = x * 10.0f + 8.0f; break;
                     case '9': x = x * 10.0f + 9.0f; break;
                     case '.': parse = false; break;
+                    case '\t':
                     case ' ': setResult(minus ? -x : x); return;
                     default: { state.IsInvalid = true; return; }
                 }
@@ -291,6 +339,7 @@ namespace Aardvark.Data.Points
                     case '7': y += r * 7; break;
                     case '8': y += r * 8; break;
                     case '9': y += r * 9; break;
+                    case '\t':
                     case ' ': setResult(minus ? -x - y : x + y); return;
                     default: { state.IsInvalid = true; return; }
                 }
@@ -328,6 +377,7 @@ namespace Aardvark.Data.Points
                     case '9': x = x * 10 + 9; break;
                     case '\r':
                     case '\n':
+                    case '\t':
                     case ' ': setResult(minus ? -x : x); return;
                     default: { state.IsInvalid = true; return; }
                 }
@@ -383,6 +433,7 @@ namespace Aardvark.Data.Points
                 {
                     case '\r':
                     case '\n':
+                    case '\t':
                     case ' ': return;
                 }
                 state.p++;

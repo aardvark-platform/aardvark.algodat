@@ -641,6 +641,22 @@ namespace Aardvark.Geometry.Points
 
         #endregion
 
+        #region Velocities
+
+        /// <summary></summary>
+        [JsonIgnore]
+        public bool HasVelocities => Data.ContainsKey(Durable.Octree.Velocities3fReference);
+
+        /// <summary></summary>
+        [JsonIgnore]
+        public Guid? VelocitiesId => Data.TryGetValue(Durable.Octree.Velocities3fReference, out var id) ? (Guid?)id : null;
+
+        /// <summary></summary>
+        [JsonIgnore]
+        public PersistentRef<V3f[]> Velocities => PersistentRefs.TryGetValue(Durable.Octree.Velocities3fReference, out object x) ? (PersistentRef<V3f[]>)x : null;
+
+        #endregion
+
         #region KdTree
 
         /// <summary></summary>

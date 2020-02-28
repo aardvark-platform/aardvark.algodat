@@ -52,7 +52,7 @@ namespace Aardvark.Geometry.Tests
         public void CanCreatePointSetWithNormals()
         {
             var ps = PointSet.Create(CreateInMemoryStore(), Guid.NewGuid().ToString(),
-                new[] { V3d.IOO }, new[] { C4b.White }, new[] { V3f.OIO }, null, null, 8192,
+                new[] { V3d.IOO }, new[] { C4b.White }, new[] { V3f.OIO }, null, null, null, 8192,
                 generateLod: false, isTemporaryImportNode: true, default
                 );
 

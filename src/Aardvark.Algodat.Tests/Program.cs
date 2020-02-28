@@ -637,8 +637,8 @@ namespace Aardvark.Geometry.Tests
             var pc = store.GetPointSet(key);
             var root = pc.Root.Value;
 
-            var oSize = 2;
-            var iSize = 1;
+            //var oSize = 2;
+            //var iSize = 1;
             var cellExponent = 5;
 
             //Report.BeginTimed("total");
@@ -737,8 +737,59 @@ namespace Aardvark.Geometry.Tests
             Console.WriteLine($"{ps.Length:N0}");
         }
 
+        internal static void HeraTest()
+        {
+            Report.Line("Hera Parsing Test");
+
+            var separators = new[] { '\t', ' ' };
+            var culture = CultureInfo.InvariantCulture;
+            var filename = @"T:\Hera\impact.0014";
+
+            Report.Line($"filename = {filename}");
+            Report.Line();
+
+            //Report.BeginTimed("parsing (with string split and double.Parse)");
+            //var lineCount = 0;
+            //foreach (var line in File.ReadLines(filename))
+            //{
+            //    lineCount++;
+            //    var ts = line.Split(separators, StringSplitOptions.RemoveEmptyEntries);
+            //    var p = new V3d(double.Parse(ts[0], culture), double.Parse(ts[1], culture), double.Parse(ts[2], culture));
+            //    var v = new V3d(double.Parse(ts[3], culture), double.Parse(ts[4], culture), double.Parse(ts[5], culture));
+            //    //if (lineCount % 100000 == 0) Report.Line($"[{lineCount}]");
+            //}
+            //Report.Line($"{lineCount} lines");
+            //Report.End();
+
+            var lineDef = new[] { 
+                Ascii.Token.PositionX, Ascii.Token.PositionY, Ascii.Token.PositionZ, 
+                Ascii.Token.VelocityX, Ascii.Token.VelocityY, Ascii.Token.VelocityZ,
+                Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip,
+                Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip,
+                Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip,
+                Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip,
+                Ascii.Token.Skip
+            };
+            var chunks = Ascii.Chunks(filename, lineDef, ParseConfig.Default);
+
+            Report.Line();
+
+            Report.BeginTimed("parsing (with Aardvark.Data.Points.Ascii)");
+            var lineCount = 0;
+            foreach (var chunk in chunks)
+            {
+                lineCount += chunk.Count;
+            }
+            Report.Line($"{lineCount} lines");
+            Report.EndTimed();
+        }
+
         public static void Main(string[] args)
         {
+            HeraTest();
+
+            //EnumerateCells2dTest();
+
             //TestE57();
 
             //LisaTest();
@@ -755,7 +806,6 @@ namespace Aardvark.Geometry.Tests
 
             //TestImport();
 
-            EnumerateCells2dTest();
 
             //DumpPointSetKeys();
             // polygon topology test
