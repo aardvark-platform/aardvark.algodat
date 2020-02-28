@@ -120,6 +120,7 @@ namespace Aardvark.Geometry.Points
                 V3f[] ns = null;
                 int[] js = null;
                 byte[] ks = null;
+                V3f[] vs = null;
                 
                 if (_ia != null)
                 {
@@ -156,6 +157,13 @@ namespace Aardvark.Geometry.Points
                         ks = new byte[count];
                         for (var i = 0; i < count; i++) ks[i] = allKs[_ia[i]];
                     }
+
+                    if (_octree.m_vs != null)
+                    {
+                        var allVs = _octree.m_vs;
+                        vs = new V3f[count];
+                        for (var i = 0; i < count; i++) vs[i] = allVs[_ia[i]];
+                    }
                 }
 
                 Guid? psId = ps != null ? (Guid?)Guid.NewGuid() : null;
@@ -163,7 +171,8 @@ namespace Aardvark.Geometry.Points
                 Guid? nsId = ns != null ? (Guid?)Guid.NewGuid() : null;
                 Guid? isId = js != null ? (Guid?)Guid.NewGuid() : null;
                 Guid? ksId = ks != null ? (Guid?)Guid.NewGuid() : null;
-                
+                Guid? vsId = vs != null ? (Guid?)Guid.NewGuid() : null;
+
                 var subcells = _subnodes?.Map(x => x?.ToPointSetCell(storage, isTemporaryImportNode));
                 var subcellIds = subcells?.Map(x => x?.Id);
                 var isLeaf = _subnodes == null;
@@ -232,6 +241,7 @@ namespace Aardvark.Geometry.Points
                 if (nsId != null) { storage.Add(nsId.ToString(), ns); data = data.Add(Durable.Octree.Normals3fReference, nsId.Value); }
                 if (isId != null) { storage.Add(isId.ToString(), js); data = data.Add(Durable.Octree.Intensities1iReference, isId.Value); }
                 if (ksId != null) { storage.Add(ksId.ToString(), ks); data = data.Add(Durable.Octree.Classifications1bReference, ksId.Value); }
+                if (vsId != null) { storage.Add(vsId.ToString(), vs); data = data.Add(Durable.Octree.Velocities3fReference, vsId.Value); }
 
                 if (isLeaf) // leaf
                 {

@@ -26,7 +26,7 @@ namespace Aardvark.Geometry.Points
     public static class MergeExtensions
     {
         
-        internal static int CollectEverything(IPointCloudNode self, List<V3d> ps, List<C4b> cs, List<V3f> ns, List<int> js, List<byte> ks)
+        internal static int CollectEverything(IPointCloudNode self, List<V3d> ps, List<C4b> cs, List<V3f> ns, List<int> js, List<byte> ks, List<V3f> vs)
         {
             if (self == null) return 0;
             else if(self.IsLeaf)
@@ -41,6 +41,7 @@ namespace Aardvark.Geometry.Points
                 if (self.HasNormals && ns != null) ns.AddRange(self.Normals.Value);
                 if (self.HasIntensities && js != null) js.AddRange(self.Intensities.Value);
                 if (self.HasClassifications && ks != null) ks.AddRange(self.Classifications.Value);
+                if (self.HasVelocities && vs != null) vs.AddRange(self.Velocities.Value);
                 return 1;
             }
             else
@@ -50,7 +51,7 @@ namespace Aardvark.Geometry.Points
                 {
                     if (x != null)
                     {
-                        leafs += CollectEverything(x.Value, ps, cs, ns, js, ks);
+                        leafs += CollectEverything(x.Value, ps, cs, ns, js, ks, vs);
                     }
                 }
                 return leafs;
@@ -76,7 +77,8 @@ namespace Aardvark.Geometry.Points
                 var nsla = new List<V3f>();
                 var jsla = new List<int>();
                 var ksla = new List<byte>();
-                var leaves = CollectEverything(self, psla, csla, nsla, jsla, ksla);
+                var vsla = new List<V3f>();
+                var leaves = CollectEverything(self, psla, csla, nsla, jsla, ksla, vsla);
                 
                 if (leaves <= 1)
                 {
@@ -84,7 +86,14 @@ namespace Aardvark.Geometry.Points
                 }
                 else
                 {
-                    var chunk = new Chunk(psla.Count > 0 ? psla : null, csla.Count > 0 ? csla : null, nsla.Count > 0 ? nsla : null, jsla.Count > 0 ? jsla : null, ksla.Count > 0 ? ksla : null);
+                    var chunk = new Chunk(
+                        psla.Count > 0 ? psla : null,
+                        csla.Count > 0 ? csla : null,
+                        nsla.Count > 0 ? nsla : null,
+                        jsla.Count > 0 ? jsla : null,
+                        ksla.Count > 0 ? ksla : null,
+                        vsla.Count > 0 ? vsla : null
+                        );
                     if (config.NormalizePointDensityGlobal)
                     {
                         chunk = chunk.ImmutableFilterMinDistByCell(self.Cell, config.ParseConfig);
@@ -230,12 +239,20 @@ namespace Aardvark.Geometry.Points
                 var nsla = new List<V3f>();
                 var jsla = new List<int>();
                 var ksla = new List<byte>();
+                var vsla = new List<V3f>();
 
-                CollectEverything(a, psla, csla, nsla, jsla, ksla);
-                CollectEverything(b, psla, csla, nsla, jsla, ksla);
+                CollectEverything(a, psla, csla, nsla, jsla, ksla, vsla);
+                CollectEverything(b, psla, csla, nsla, jsla, ksla, vsla);
 
                 var cell = ParentCell(a.Cell, b.Cell);
-                var chunk = new Chunk(psla.Count > 0 ? psla : null, csla.Count > 0 ? csla : null, nsla.Count > 0 ? nsla : null, jsla.Count > 0 ? jsla : null, ksla.Count > 0 ? ksla : null);
+                var chunk = new Chunk(
+                    psla.Count > 0 ? psla : null,
+                    csla.Count > 0 ? csla : null,
+                    nsla.Count > 0 ? nsla : null,
+                    jsla.Count > 0 ? jsla : null,
+                    ksla.Count > 0 ? ksla : null,
+                    vsla.Count > 0 ? vsla : null
+                    );
                 if(config.NormalizePointDensityGlobal)
                 {
                     chunk = chunk.ImmutableFilterMinDistByCell(cell, config.ParseConfig);
@@ -250,6 +267,7 @@ namespace Aardvark.Geometry.Points
                 var cs = chunk.Colors?.ToArray();
                 var js = chunk.Intensities?.ToArray();
                 var ks = chunk.Classifications?.ToArray();
+                var vs = chunk.Velocities?.ToArray();
                 if (psAbs == null || psAbs.Length == 0) return (null,true);
 
                 var bbExactGlobal = chunk.BoundingBox;
@@ -260,8 +278,9 @@ namespace Aardvark.Geometry.Points
                 Guid? csId = cs != null ? Guid.NewGuid() : (Guid?)null;
                 Guid? jsId = js != null ? Guid.NewGuid() : (Guid?)null;
                 Guid? ksId = ks != null ? Guid.NewGuid() : (Guid?)null;
+                Guid? vsId = vs != null ? Guid.NewGuid() : (Guid?)null;
 
-                
+
                 var center = cell.BoundingBox.Center;
 
                 var ps = psAbs.Map(p => (V3f)(p - center));
@@ -279,6 +298,7 @@ namespace Aardvark.Geometry.Points
                 if (csId.HasValue) { storage.Add(csId.Value, cs); data = data.Add(Durable.Octree.Colors4bReference, csId.Value); }
                 if (jsId.HasValue) { storage.Add(jsId.Value, js); data = data.Add(Durable.Octree.Intensities1iReference, jsId.Value); }
                 if (ksId.HasValue) { storage.Add(ksId.Value, ks); data = data.Add(Durable.Octree.Classifications1bReference, ksId.Value); }
+                if (vsId.HasValue) { storage.Add(vsId.Value, vs); data = data.Add(Durable.Octree.Velocities3fReference, vsId.Value); }
                 //if (kdId.HasValue) { storage.Add(kdId.Value, kd.Data); data = data.Add(Durable.Octree.PointRkdTreeFDataReference, kdId.Value); }
 
                 return (new PointSetNode(data, config.Storage, writeToStore: true), true);

@@ -739,30 +739,38 @@ namespace Aardvark.Geometry.Tests
 
         internal static void HeraTest()
         {
-            Report.Line("Hera Parsing Test");
+            Report.Line("Hera Test");
 
             var separators = new[] { '\t', ' ' };
             var culture = CultureInfo.InvariantCulture;
-            var filename = @"T:\Hera\impact.0014";
+            var inputFile = @"T:\Hera\impact.0014";
 
-            Report.Line($"filename = {filename}");
+            var storePath = Path.Combine(@"T:\Vgm\Stores", Path.GetFileName(inputFile));
+            var key = Path.GetFileName(storePath);
+
+            Report.Line($"inputFile = {inputFile}");
             Report.Line();
 
-            //Report.BeginTimed("parsing (with string split and double.Parse)");
-            //var lineCount = 0;
-            //foreach (var line in File.ReadLines(filename))
-            //{
-            //    lineCount++;
-            //    var ts = line.Split(separators, StringSplitOptions.RemoveEmptyEntries);
-            //    var p = new V3d(double.Parse(ts[0], culture), double.Parse(ts[1], culture), double.Parse(ts[2], culture));
-            //    var v = new V3d(double.Parse(ts[3], culture), double.Parse(ts[4], culture), double.Parse(ts[5], culture));
-            //    //if (lineCount % 100000 == 0) Report.Line($"[{lineCount}]");
-            //}
-            //Report.Line($"{lineCount} lines");
-            //Report.End();
+            Report.BeginTimed("parsing (with string split and double.Parse)");
+            var lineCount = 0;
+            foreach (var line in File.ReadLines(inputFile))
+            {
+                lineCount++;
+                var ts = line.Split(separators, StringSplitOptions.RemoveEmptyEntries);
+                var p = new V3d(double.Parse(ts[0], culture), double.Parse(ts[1], culture), double.Parse(ts[2], culture));
+                var v = new V3d(double.Parse(ts[3], culture), double.Parse(ts[4], culture), double.Parse(ts[5], culture));
+                //if (lineCount % 100000 == 0) Report.Line($"[{lineCount}]");
+            }
+            Report.Line($"{lineCount} lines");
+            Report.End();
 
-            var lineDef = new[] { 
-                Ascii.Token.PositionX, Ascii.Token.PositionY, Ascii.Token.PositionZ, 
+
+            Report.Line();
+
+            Report.BeginTimed("parsing (with Aardvark.Data.Points.Ascii)");
+
+            var lineDef = new[] {
+                Ascii.Token.PositionX, Ascii.Token.PositionY, Ascii.Token.PositionZ,
                 Ascii.Token.VelocityX, Ascii.Token.VelocityY, Ascii.Token.VelocityZ,
                 Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip,
                 Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip,
@@ -770,18 +778,33 @@ namespace Aardvark.Geometry.Tests
                 Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip,
                 Ascii.Token.Skip
             };
-            var chunks = Ascii.Chunks(filename, lineDef, ParseConfig.Default);
+            var chunks = Ascii.Chunks(inputFile, lineDef, ParseConfig.Default).ToArray();
 
-            Report.Line();
-
-            Report.BeginTimed("parsing (with Aardvark.Data.Points.Ascii)");
-            var lineCount = 0;
+            lineCount = 0;
             foreach (var chunk in chunks)
             {
                 lineCount += chunk.Count;
             }
             Report.Line($"{lineCount} lines");
             Report.EndTimed();
+
+            Report.Line();
+
+            Report.BeginTimed("octree, normals, lod");
+            using (var store = new SimpleDiskStore(storePath).ToPointCloudStore())
+            {
+                var config = ImportConfig.Default
+                    .WithStorage(store)
+                    .WithKey(key)
+                    .WithVerbose(false)
+                    .WithMaxDegreeOfParallelism(0)
+                    .WithMinDist(0)
+                    .WithNormalizePointDensityGlobal(true)
+                    ;
+
+                var ps = PointCloud.Import(chunks, config);
+            }
+            Report.End();
         }
 
         public static void Main(string[] args)

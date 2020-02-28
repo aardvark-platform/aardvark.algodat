@@ -158,6 +158,13 @@ namespace Aardvark.Geometry.Points
                 data = data.Add(Octree.Intensities1iReference, id);
             }
 
+            if (HasVelocities)
+            {
+                var id = Guid.NewGuid();
+                Storage.Add(id, Velocities.Value);
+                data = data.Add(Octree.Velocities3fReference, id);
+            }
+
             var result = new PointSetNode(data, Storage, writeToStore: true);
             return result;
         }

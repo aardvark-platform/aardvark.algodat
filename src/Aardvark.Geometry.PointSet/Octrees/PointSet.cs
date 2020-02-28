@@ -213,6 +213,9 @@ namespace Aardvark.Geometry.Points
         public bool HasClassifications => Root != null ? Root.Value.HasClassifications : false;
 
         /// <summary></summary>
+        public bool HasVelocities => Root != null ? Root.Value.HasVelocities : false;
+
+        /// <summary></summary>
         public bool HasKdTree => Root != null ? Root.Value.HasKdTree : false;
         
         /// <summary></summary>

@@ -66,9 +66,9 @@ namespace Aardvark.Data.Points
             { Token.Intensity, state => ParseInt(state, i => state.Intensity = i) },
 
             // Velocity
-            { Token.VelocityX, state => ParseFloat32(state, x => state.Velocity.X = x) },
-            { Token.VelocityY, state => ParseFloat32(state, y => state.Velocity.Y = y) },
-            { Token.VelocityZ, state => ParseFloat32(state, z => state.Velocity.Z = z) },
+            { Token.VelocityX, state => ParseFloat64(state, x => state.Velocity.X = (float)x) },
+            { Token.VelocityY, state => ParseFloat64(state, y => state.Velocity.Y = (float)y) },
+            { Token.VelocityZ, state => ParseFloat64(state, z => state.Velocity.Z = (float)z) },
 
             // Skip
             { Token.Skip, state => ParseSkip(state) },
@@ -190,7 +190,7 @@ namespace Aardvark.Data.Points
         {
             if (state.p >= state.end) { state.IsInvalid = true; return; }
 
-            while (*state.p == ' ' && state.p < state.end) state.p++;
+            while ((*state.p == ' ' || *state.p == '\t') && state.p < state.end) state.p++;
             if (state.p >= state.end || *state.p == '\n' || *state.p == '\r') { state.IsInvalid = true; return; }
 
             var minus = *state.p == ((byte)'-');
@@ -292,11 +292,12 @@ namespace Aardvark.Data.Points
         {
             if (state.p >= state.end) { state.IsInvalid = true; return; }
 
-            while (*state.p == ' ' && state.p < state.end) state.p++;
+            while ((*state.p == ' ' || *state.p == '\t') && state.p < state.end) state.p++;
             if (state.p >= state.end || *state.p == '\n' || *state.p == '\r') { state.IsInvalid = true; return; }
 
             var minus = *state.p == ((byte)'-');
             if (minus) state.p++;
+            else if (*state.p == ((byte)'+')) state.p++;
 
             var x = 0.0f;
             var parse = true;
@@ -354,7 +355,7 @@ namespace Aardvark.Data.Points
         {
             if (state.p >= state.end) { state.IsInvalid = true; return; }
 
-            while (*state.p == ' ' && state.p < state.end) state.p++;
+            while ((*state.p == ' ' || *state.p == '\t') && state.p < state.end) state.p++;
             if (state.p >= state.end || *state.p == '\n' || *state.p == '\r') { state.IsInvalid = true; return; }
 
             var minus = *state.p == ((byte)'-');
@@ -424,7 +425,7 @@ namespace Aardvark.Data.Points
         {
             if (state.p >= state.end) { state.IsInvalid = true; return; }
 
-            while (*state.p == ' ' && state.p < state.end) state.p++;
+            while ((*state.p == ' ' || *state.p == '\t') && state.p < state.end) state.p++;
             if (state.p >= state.end || *state.p == '\n' || *state.p == '\r') { state.IsInvalid = true; return; }
             
             while (state.p < state.end)

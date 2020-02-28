@@ -132,6 +132,7 @@ namespace Aardvark.Geometry.Points
             var nsId = NormalsId;
             var isId = IntensitiesId;
             var ksId = ClassificationsId;
+            var vsId = VelocitiesId;
 
             if (psId != null) PersistentRefs[Durable.Octree.PositionsLocal3fReference] = new PersistentRef<V3f[]>(psId.Value, storage.GetV3fArray, storage.TryGetV3fArray);
             if (csId != null) PersistentRefs[Durable.Octree.Colors4bReference] = new PersistentRef<C4b[]>(csId.Value, storage.GetC4bArray, storage.TryGetC4bArray);
@@ -153,6 +154,7 @@ namespace Aardvark.Geometry.Points
             if (nsId != null) PersistentRefs[Durable.Octree.Normals3fReference] = new PersistentRef<V3f[]>(nsId.Value, storage.GetV3fArray, storage.TryGetV3fArray);
             if (isId != null) PersistentRefs[Durable.Octree.Intensities1iReference] = new PersistentRef<int[]>(isId.Value, storage.GetIntArray, storage.TryGetIntArray);
             if (ksId != null) PersistentRefs[Durable.Octree.Classifications1bReference] = new PersistentRef<byte[]>(ksId.Value, storage.GetByteArray, storage.TryGetByteArray);
+            if (vsId != null) PersistentRefs[Durable.Octree.Velocities3fReference] = new PersistentRef<V3f[]>(vsId.Value, storage.GetV3fArray, storage.TryGetV3fArray);
 
             #endregion
 
