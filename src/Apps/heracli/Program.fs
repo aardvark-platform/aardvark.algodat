@@ -95,41 +95,87 @@ open SharpCompress.Readers
 [<EntryPoint>]
 let main argv =
 
-    let gzfilename = @"D:\Hera\r80_p0_m500_v6000_mbasalt_a1.0_1M.tar.gz"
+    let tgzfilename = @"D:\Hera\r80_p0_m500_v6000_mbasalt_a1.0_1M.tar.gz"
+    let pattern = Regex("impact\.([0-9]*)$")
+    let lineDef = [|
+        Ascii.Token.PositionX; Ascii.Token.PositionY; Ascii.Token.PositionZ
+        Ascii.Token.VelocityX; Ascii.Token.VelocityY; Ascii.Token.VelocityZ
+        |]
+
     let targetFolder = @"T:\Hera\Output"
 
     if not (Directory.Exists(targetFolder)) then Directory.CreateDirectory(targetFolder) |> ignore
-    use fs = File.Open(gzfilename, FileMode.Open, FileAccess.Read, FileShare.Read)
-    use zs = new GZipStream(fs, CompressionMode.Decompress)
-    let reader = ReaderFactory.Open(zs)
-    let impactMatch = Regex("impact\.([0-9]*)$")
-    while reader.MoveToNextEntry() do
+    
+    let tgz (pattern : Regex) tgzfilename = seq {
         
-        let filename =  Path.GetFileName(reader.Entry.Key)
+        use fs = File.Open(tgzfilename, FileMode.Open, FileAccess.Read, FileShare.Read)
+        use zs = new GZipStream(fs, CompressionMode.Decompress)
+        let reader = ReaderFactory.Open(zs)
 
-        printfn ""
-        printfn "[%s]" filename
+        while reader.MoveToNextEntry() do
         
-        let m = impactMatch.Match filename
-        if m.Success then
+            let filename =  Path.GetFileName(reader.Entry.Key)
+
+            printfn "[%s]" filename
         
-            let outputFile = Path.Combine(targetFolder, filename + ".durable") //m.Groups.[1].Value
-            printfn "-> %s" outputFile
+            let m = pattern.Match filename
+            if m.Success then
+        
+                let outputFile = Path.Combine(targetFolder, filename + ".durable")
             
-            use inputStream = reader.OpenEntryStream ()
-            //printfn "   %A" inputStream
+                if not (File.Exists(outputFile)) then
+                    use ms = new MemoryStream()
+                    reader.WriteEntryTo(ms)
+                    let buffer = ms.ToArray()
+                    yield {| Key = reader.Entry.Key; Buffer = buffer; OutputFileName = outputFile |}
+        }
 
-            let data = inputStream |> importHeraDataFromStream 
-            Console.WriteLine("   point count: {0,16:N0}", data.Count)
+    let buffers = tgz pattern tgzfilename
 
-            data
-            |> HeraData.Serialize
-            |> writeBufferToFile outputFile
+    buffers
+        .AsParallel()
+        .WithDegreeOfParallelism(8)
+        .Select(fun fileData ->
 
+            use stream = new MemoryStream(fileData.Buffer)
+            let chunks = Ascii.Chunks(stream, -1L, lineDef, ParseConfig.Default).ToArray()
 
+            try
+                let pointset = 
+                    PointCloud.Import(chunks, ImportConfig.Default
+                        .WithInMemoryStore()
+                        .WithKey("data")
+                        .WithVerbose(false)
+                        .WithMaxDegreeOfParallelism(0)
+                        .WithMinDist(0.0)
+                        .WithNormalizePointDensityGlobal(false)
+                        )
 
+                let allPoints = Chunk.ImmutableMerge(pointset.Root.Value.Collect(Int32.MaxValue))
+
+                let data = 
+                    HeraData(
+                        allPoints.Positions.Map(fun p -> V3f p),
+                        allPoints.Normals.ToArray(),
+                        allPoints.Velocities.ToArray()
+                        )
+
+                data
+                    |> HeraData.Serialize
+                    |> writeBufferToFile fileData.OutputFileName
+
+                Console.WriteLine("-> {0} ... {1,16:N0}", fileData.OutputFileName, data.Count)
+
+                Ok {| OutputFileName = fileData.OutputFileName; PointCount = data.Count |}
+
+            with
+            | e -> 
+                printfn "%s" (e.ToString())
+                Error e
+
+            )
+        .ForEach(fun _ -> ())
         
-
 
     //let inputfile   = @"T:\Hera\impact.0014"
     //let outputfile  = @"T:\Hera\impact.0014.durable"
