@@ -117,11 +117,16 @@ let main argv =
             printfn "-> %s" outputFile
             
             use inputStream = reader.OpenEntryStream ()
-            printfn "   %A" inputStream
+            //printfn "   %A" inputStream
 
-            printf "   converting ... "
-            Hera.convertStream inputStream outputFile
-            printfn "done"
+            let data = inputStream |> importHeraDataFromStream 
+            Console.WriteLine("   point count: {0,16:N0}", data.Count)
+
+            data
+            |> HeraData.Serialize
+            |> writeBufferToFile outputFile
+
+
 
         
 
