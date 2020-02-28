@@ -125,7 +125,7 @@ namespace Aardvark.Data
 
         #region Encode
 
-        private static readonly Action<BinaryWriter, object> EncodeGuid         = (s, o) => s.Write(((Guid)o).ToByteArray(), 0, 16);
+        public  static readonly Action<BinaryWriter, object> EncodeGuid         = (s, o) => s.Write(((Guid)o).ToByteArray(), 0, 16);
         private static readonly Action<BinaryWriter, object> EncodeGuidArray    = (s, o) => EncodeArray(s, (Guid[])o);
         private static readonly Action<BinaryWriter, object> EncodeInt16        = (s, o) => s.Write((short)o);
         private static readonly Action<BinaryWriter, object> EncodeInt16Array   = (s, o) => EncodeArray(s, (short[])o);
@@ -145,7 +145,7 @@ namespace Aardvark.Data
         private static readonly Action<BinaryWriter, object> EncodeFloat64Array = (s, o) => EncodeArray(s, (double[])o);
         private static readonly Action<BinaryWriter, object> EncodeStringUtf8   = (s, o) => EncodeArray(s, Encoding.UTF8.GetBytes((string)o));
 
-        private static readonly Action<BinaryWriter, object> EncodeDurableMap =
+        public  static readonly Action<BinaryWriter, object> EncodeDurableMap =
             (s, o) =>
             {
                 var xs = (IEnumerable<KeyValuePair<Durable.Def, object>>)o;
@@ -299,7 +299,7 @@ namespace Aardvark.Data
         private static readonly Func<BinaryReader, object> DecodeFloat64 = s => s.ReadDouble();
         private static readonly Func<BinaryReader, object> DecodeFloat64Array = s => DecodeArray<double>(s);
 
-        private static readonly Func<BinaryReader, object> DecodeDurableMap =
+        public  static readonly Func<BinaryReader, object> DecodeDurableMap =
             s =>
             {
                 var count = s.ReadInt32();
@@ -389,7 +389,7 @@ namespace Aardvark.Data
             }
             else
             {
-                if (s_encoders.TryGetValue(def.Id, out var decoder))
+                if (s_decoders.TryGetValue(def.Id, out var decoder))
                 {
                     var o = ((Func<BinaryReader, object>)decoder)(stream);
                     return (def, o);

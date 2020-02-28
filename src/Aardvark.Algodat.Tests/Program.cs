@@ -751,36 +751,38 @@ namespace Aardvark.Geometry.Tests
             Report.Line($"inputFile = {inputFile}");
             Report.Line();
 
-            Report.BeginTimed("parsing (with string split and double.Parse)");
-            var lineCount = 0;
-            foreach (var line in File.ReadLines(inputFile))
-            {
-                lineCount++;
-                var ts = line.Split(separators, StringSplitOptions.RemoveEmptyEntries);
-                var p = new V3d(double.Parse(ts[0], culture), double.Parse(ts[1], culture), double.Parse(ts[2], culture));
-                var v = new V3d(double.Parse(ts[3], culture), double.Parse(ts[4], culture), double.Parse(ts[5], culture));
-                //if (lineCount % 100000 == 0) Report.Line($"[{lineCount}]");
-            }
-            Report.Line($"{lineCount} lines");
-            Report.End();
+            //Report.BeginTimed("parsing (with string split and double.Parse)");
+            //var lineCount = 0;
+            //foreach (var line in File.ReadLines(inputFile))
+            //{
+            //    lineCount++;
+            //    var ts = line.Split(separators, StringSplitOptions.RemoveEmptyEntries);
+            //    var p = new V3d(double.Parse(ts[0], culture), double.Parse(ts[1], culture), double.Parse(ts[2], culture));
+            //    var v = new V3d(double.Parse(ts[3], culture), double.Parse(ts[4], culture), double.Parse(ts[5], culture));
+            //    //if (lineCount % 100000 == 0) Report.Line($"[{lineCount}]");
+            //}
+            //Report.Line($"{lineCount} lines");
+            //Report.End();
 
 
             Report.Line();
+
+            Report.BeginTimed($"processing {inputFile}");
 
             Report.BeginTimed("parsing (with Aardvark.Data.Points.Ascii)");
 
             var lineDef = new[] {
                 Ascii.Token.PositionX, Ascii.Token.PositionY, Ascii.Token.PositionZ,
                 Ascii.Token.VelocityX, Ascii.Token.VelocityY, Ascii.Token.VelocityZ,
-                Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip,
-                Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip,
-                Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip,
-                Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip,
-                Ascii.Token.Skip
+                //Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip,
+                //Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip,
+                //Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip,
+                //Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip,
+                //Ascii.Token.Skip
             };
             var chunks = Ascii.Chunks(inputFile, lineDef, ParseConfig.Default).ToArray();
 
-            lineCount = 0;
+            var lineCount = 0;
             foreach (var chunk in chunks)
             {
                 lineCount += chunk.Count;
@@ -791,10 +793,12 @@ namespace Aardvark.Geometry.Tests
             Report.Line();
 
             Report.BeginTimed("octree, normals, lod");
+            PointSet pointset;
             using (var store = new SimpleDiskStore(storePath).ToPointCloudStore())
             {
                 var config = ImportConfig.Default
-                    .WithStorage(store)
+                    //.WithStorage(store)
+                    .WithInMemoryStore()
                     .WithKey(key)
                     .WithVerbose(false)
                     .WithMaxDegreeOfParallelism(0)
@@ -802,9 +806,48 @@ namespace Aardvark.Geometry.Tests
                     .WithNormalizePointDensityGlobal(true)
                     ;
 
-                var ps = PointCloud.Import(chunks, config);
+                pointset = PointCloud.Import(chunks, config);
             }
-            Report.End();
+            Report.EndTimed();
+
+            Report.BeginTimed("flattening");
+            var flat = Chunk.ImmutableMerge(pointset.Root.Value.Collect(int.MaxValue));
+            var data = ImmutableDictionary<Durable.Def, object>.Empty
+                .Add(Durable.Octree.PositionsGlobal3d, flat.Positions.ToArray())
+                .Add(Durable.Octree.Normals3f, flat.Normals.ToArray())
+                .Add(Durable.Octree.Velocities3f, flat.Velocities.ToArray())
+                ;
+            Report.EndTimed();
+
+            Report.BeginTimed("serializing");
+            byte[] buffer;
+            using (var ms = new MemoryStream())
+            //using (var zs = new GZipStream(ms, CompressionLevel.Optimal))
+            using (var bw = new BinaryWriter(ms))
+            {
+                Data.Codec.EncodeDurableMap(bw, data);
+                bw.Flush();
+                buffer = ms.ToArray();
+            }
+            Report.EndTimed();
+
+            Report.BeginTimed("deserializing");
+            using (var ms = new MemoryStream(buffer))
+            //using (var zs = new GZipStream(ms, System.IO.Compression.CompressionMode.Decompress))
+            using (var br = new BinaryReader(ms))
+            {
+                var o = Data.Codec.DecodeDurableMap(br);
+                var dict = (ImmutableDictionary<Durable.Def, object>)o;
+                var ps = (V3d[])dict[Durable.Octree.PositionsGlobal3d];
+                var ns = (V3f[])dict[Durable.Octree.Normals3f];
+                var vs = (V3f[])dict[Durable.Octree.Velocities3f];
+                Report.Line($"positions : {ps.Length}");
+                Report.Line($"normals   : {ns.Length}");
+                Report.Line($"velocities: {vs.Length}");
+            }
+            Report.EndTimed();
+
+            Report.EndTimed();
         }
 
         public static void Main(string[] args)

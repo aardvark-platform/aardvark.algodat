@@ -829,7 +829,8 @@ namespace Aardvark.Geometry.Points
             var ns = self.HasNormals ? self.Normals.Value : null;
             var js = self.HasIntensities ? self.Intensities.Value : null;
             var ks = self.HasClassifications ? self.Classifications.Value : null;
-            return new Chunk(self.PositionsAbsolute, cs, ns, js, ks);
+            var vs = self.HasVelocities ? self.Velocities.Value : null;
+            return new Chunk(self.PositionsAbsolute, cs, ns, js, ks, vs);
         }
     }
 }
