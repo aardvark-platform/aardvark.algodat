@@ -43,7 +43,7 @@ namespace Aardvark.Data
                 [Durable.Primitives.Float64.Id]         = EncodeFloat64,
                 [Durable.Primitives.Float64Array.Id]    = EncodeFloat64Array,
                 [Durable.Primitives.StringUTF8.Id]      = EncodeStringUtf8,
-                [Durable.Primitives.DurableMap.Id]      = EncodeDurableMap,
+                [Durable.Primitives.DurableMap.Id]      = EncodeDurableMapWithoutHeader,
 
                 [Durable.Aardvark.Cell.Id] = EncodeCell,
                 [Durable.Aardvark.CellArray.Id] = EncodeCellArray,
@@ -93,7 +93,7 @@ namespace Aardvark.Data
                 [Durable.Primitives.Float64.Id]         = DecodeFloat64,
                 [Durable.Primitives.Float64Array.Id]    = DecodeFloat64Array,
                 [Durable.Primitives.StringUTF8.Id]      = DecodeStringUtf8,
-                [Durable.Primitives.DurableMap.Id]      = DecodeDurableMap,
+                [Durable.Primitives.DurableMap.Id]      = DecodeDurableMapWithoutHeader,
 
                 [Durable.Aardvark.Cell.Id]              = DecodeCell,
                 [Durable.Aardvark.CellArray.Id]         = DecodeCellArray,
@@ -145,7 +145,7 @@ namespace Aardvark.Data
         private static readonly Action<BinaryWriter, object> EncodeFloat64Array = (s, o) => EncodeArray(s, (double[])o);
         private static readonly Action<BinaryWriter, object> EncodeStringUtf8   = (s, o) => EncodeArray(s, Encoding.UTF8.GetBytes((string)o));
 
-        public  static readonly Action<BinaryWriter, object> EncodeDurableMap =
+        private static readonly Action<BinaryWriter, object> EncodeDurableMapWithoutHeader =
             (s, o) =>
             {
                 var xs = (IEnumerable<KeyValuePair<Durable.Def, object>>)o;
@@ -299,7 +299,7 @@ namespace Aardvark.Data
         private static readonly Func<BinaryReader, object> DecodeFloat64 = s => s.ReadDouble();
         private static readonly Func<BinaryReader, object> DecodeFloat64Array = s => DecodeArray<double>(s);
 
-        public  static readonly Func<BinaryReader, object> DecodeDurableMap =
+        private static readonly Func<BinaryReader, object> DecodeDurableMapWithoutHeader =
             s =>
             {
                 var count = s.ReadInt32();
@@ -372,7 +372,11 @@ namespace Aardvark.Data
         public static (Durable.Def, object) Decode(BinaryReader stream)
         {
             var key = (Guid)DecodeGuid(stream);
-            var def = Durable.Get(key);
+            if (!Durable.TryGet(key, out var def))
+            {
+                stream.BaseStream.Position -= 16;
+                def = Durable.Get(Durable.Primitives.DurableMap.Id);
+            }
 
             if (def.Type != Durable.Primitives.Unit.Id)
             {

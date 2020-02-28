@@ -825,7 +825,7 @@ namespace Aardvark.Geometry.Tests
             //using (var zs = new GZipStream(ms, CompressionLevel.Optimal))
             using (var bw = new BinaryWriter(ms))
             {
-                Data.Codec.EncodeDurableMap(bw, data);
+                Data.Codec.Encode(bw, Durable.Primitives.DurableMap, data);
                 bw.Flush();
                 buffer = ms.ToArray();
             }
@@ -836,7 +836,7 @@ namespace Aardvark.Geometry.Tests
             //using (var zs = new GZipStream(ms, System.IO.Compression.CompressionMode.Decompress))
             using (var br = new BinaryReader(ms))
             {
-                var o = Data.Codec.DecodeDurableMap(br);
+                var (def, o) = Data.Codec.Decode(br);
                 var dict = (ImmutableDictionary<Durable.Def, object>)o;
                 var ps = (V3d[])dict[Durable.Octree.PositionsGlobal3d];
                 var ns = (V3f[])dict[Durable.Octree.Normals3f];
