@@ -3,10 +3,12 @@ open Aardvark.Data
 open Aardvark.Data.Points
 open Aardvark.Data.Points.Import
 open Aardvark.Geometry.Points
+open SharpCompress.Common
 open System
 open System.Collections.Immutable
 open System.IO
 open System.Linq
+open System.Text.RegularExpressions
 
 module Hera =
 
@@ -31,12 +33,12 @@ module Hera =
         static member Serialize(data : HeraData) = data.Serialize()
 
         static member Deserialize(buffer : byte[]) =
-        let d = buffer.DurableDecode<ImmutableDictionary<Durable.Def, obj>>()
-        HeraData(
-            d.[Durable.Octree.PositionsLocal3f] :?> V3f[],
-            d.[Durable.Octree.Normals3f]        :?> V3f[],
-            d.[Durable.Octree.Velocities3f]     :?> V3f[]
-            )
+            let d = buffer.DurableDecode<ImmutableDictionary<Durable.Def, obj>>()
+            HeraData(
+                d.[Durable.Octree.PositionsLocal3f] :?> V3f[],
+                d.[Durable.Octree.Normals3f]        :?> V3f[],
+                d.[Durable.Octree.Velocities3f]     :?> V3f[]
+                )
 
     let importHeraDataFromStream stream =
 
@@ -71,9 +73,15 @@ module Hera =
 
     let writeBufferToFile path buffer = File.WriteAllBytes(path, buffer)
 
-    let convert inputfile outputfile =
+    let convertFile inputfile outputfile =
         inputfile 
         |> importHeraDataFromFile 
+        |> HeraData.Serialize
+        |> writeBufferToFile outputfile
+
+    let convertStream inputstream outputfile =
+        inputstream 
+        |> importHeraDataFromStream 
         |> HeraData.Serialize
         |> writeBufferToFile outputfile
 
@@ -81,18 +89,51 @@ module Hera =
 
 
 open Hera
+open System.IO.Compression
+open SharpCompress.Readers
 
 [<EntryPoint>]
 let main argv =
 
-    let inputfile   = @"T:\Hera\impact.0014"
-    let outputfile  = @"T:\Hera\impact.0014.durable"
-    
-    Report.BeginTimed("convert")
-    convert inputfile outputfile 
-    Report.EndTimed() |> ignore
+    let gzfilename = @"D:\Hera\r80_p0_m500_v6000_mbasalt_a1.0_1M.tar.gz"
+    let targetFolder = @"T:\Hera\Output"
 
-    let test = deserialize outputfile
-    printfn "deserialized file contains %d points" test.Count
+    if not (Directory.Exists(targetFolder)) then Directory.CreateDirectory(targetFolder) |> ignore
+    use fs = File.Open(gzfilename, FileMode.Open, FileAccess.Read, FileShare.Read)
+    use zs = new GZipStream(fs, CompressionMode.Decompress)
+    let reader = ReaderFactory.Open(zs)
+    let impactMatch = Regex("impact\.([0-9]*)$")
+    while reader.MoveToNextEntry() do
+        
+        let filename =  Path.GetFileName(reader.Entry.Key)
+
+        printfn ""
+        printfn "[%s]" filename
+        
+        let m = impactMatch.Match filename
+        if m.Success then
+        
+            let outputFile = Path.Combine(targetFolder, filename + ".durable") //m.Groups.[1].Value
+            printfn "-> %s" outputFile
+            
+            use inputStream = reader.OpenEntryStream ()
+            printfn "   %A" inputStream
+
+            printf "   converting ... "
+            Hera.convertStream inputStream outputFile
+            printfn "done"
+
+        
+
+
+    //let inputfile   = @"T:\Hera\impact.0014"
+    //let outputfile  = @"T:\Hera\impact.0014.durable"
+    
+    //Report.BeginTimed("convert")
+    //convert inputfile outputfile 
+    //Report.EndTimed() |> ignore
+
+    //let test = deserialize outputfile
+    //printfn "deserialized file contains %d points" test.Count
 
     0
