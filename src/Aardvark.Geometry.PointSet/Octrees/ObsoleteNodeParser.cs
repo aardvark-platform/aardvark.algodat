@@ -396,11 +396,9 @@ namespace Aardvark.Geometry.Points
             {
                 if (data == null) return null;
                 var buffer = new byte[data.Length * elementSizeInBytes];
-                using (var ms = new MemoryStream(buffer))
-                using (var bw = new BinaryWriter(ms))
-                {
-                    for (var i = 0; i < data.Length; i++) writeElement(bw, data[i]);
-                }
+                using var ms = new MemoryStream(buffer);
+                using var bw = new BinaryWriter(ms);
+                for (var i = 0; i < data.Length; i++) writeElement(bw, data[i]);
                 return buffer;
             }
 
@@ -409,11 +407,9 @@ namespace Aardvark.Geometry.Points
             {
                 if (data == null) return null;
                 var buffer = new byte[data.Count * elementSizeInBytes];
-                using (var ms = new MemoryStream(buffer))
-                using (var bw = new BinaryWriter(ms))
-                {
-                    for (var i = 0; i < data.Count; i++) writeElement(bw, data[i]);
-                }
+                using var ms = new MemoryStream(buffer);
+                using var bw = new BinaryWriter(ms);
+                for (var i = 0; i < data.Count; i++) writeElement(bw, data[i]);
                 return buffer;
             }
 
@@ -422,11 +418,9 @@ namespace Aardvark.Geometry.Points
             {
                 if (buffer == null) return null;
                 var data = new T[buffer.Length / elementSizeInBytes];
-                using (var ms = new MemoryStream(buffer))
-                using (var br = new BinaryReader(ms))
-                {
-                    for (var i = 0; i < data.Length; i++) data[i] = readElement(br);
-                }
+                using var ms = new MemoryStream(buffer);
+                using var br = new BinaryReader(ms);
+                for (var i = 0; i < data.Length; i++) data[i] = readElement(br);
                 return data;
             }
 
@@ -479,13 +473,13 @@ namespace Aardvark.Geometry.Points
             {
                 if (data == null) return null;
                 var buffer = new byte[data.Length * 4];
-                using (var ms = new MemoryStream(buffer))
+                using var ms = new MemoryStream(buffer);
+                
+                for (var i = 0; i < data.Length; i++)
                 {
-                    for (var i = 0; i < data.Length; i++)
-                    {
-                        ms.WriteByte(data[i].R); ms.WriteByte(data[i].G); ms.WriteByte(data[i].B); ms.WriteByte(data[i].A);
-                    }
+                    ms.WriteByte(data[i].R); ms.WriteByte(data[i].G); ms.WriteByte(data[i].B); ms.WriteByte(data[i].A);
                 }
+                
                 return buffer;
             }
 
@@ -510,10 +504,8 @@ namespace Aardvark.Geometry.Points
             {
                 if (data == null) return null;
                 var ms = new MemoryStream();
-                using (var coder = new BinaryWritingCoder(ms))
-                {
-                    object x = data; coder.Code(ref x);
-                }
+                using var coder = new BinaryWritingCoder(ms);
+                object x = data; coder.Code(ref x);
                 return ms.ToArray();
             }
 
@@ -521,13 +513,11 @@ namespace Aardvark.Geometry.Points
             public static PointRkdTreeDData BufferToPointRkdTreeDData(byte[] buffer)
             {
                 if (buffer == null) return null;
-                using (var ms = new MemoryStream(buffer))
-                using (var coder = new BinaryReadingCoder(ms))
-                {
-                    object o = null;
-                    coder.Code(ref o);
-                    return (PointRkdTreeDData)o;
-                }
+                using var ms = new MemoryStream(buffer);
+                using var coder = new BinaryReadingCoder(ms);
+                object o = null;
+                coder.Code(ref o);
+                return (PointRkdTreeDData)o;
             }
 
             #endregion

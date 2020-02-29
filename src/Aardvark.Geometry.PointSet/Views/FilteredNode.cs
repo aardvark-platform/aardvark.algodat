@@ -552,40 +552,30 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public byte[] Encode()
         {
-            using (var ms = new MemoryStream())
-            using (var bw = new BinaryWriter(ms))
-            {
-                var filter = Filter.Serialize().ToString(Formatting.Indented);
+            var filter = Filter.Serialize().ToString(Formatting.Indented);
 
-                var x = ImmutableDictionary<Def, object>.Empty
-                    .Add(Octree.NodeId, Id)
-                    .Add(Defs.FilteredNodeRootId, Node.Id)
-                    .Add(Defs.FilteredNodeFilter, filter)
-                    ;
+            var x = ImmutableDictionary<Def, object>.Empty
+                .Add(Octree.NodeId, Id)
+                .Add(Defs.FilteredNodeRootId, Node.Id)
+                .Add(Defs.FilteredNodeFilter, filter)
+                ;
 
-                Data.Codec.Encode(bw, Defs.FilteredNode, x);
-                bw.Flush();
-                return ms.ToArray();
-            }
+            return Data.Codec.Serialize(Defs.FilteredNode, x);
         }
 
         /// <summary>
         /// </summary>
         public static FilteredNode Decode(Storage storage, byte[] buffer)
         {
-            using (var ms = new MemoryStream(buffer))
-            using (var br = new BinaryReader(ms))
-            {
-                var r = Data.Codec.Decode(br);
-                if (r.Item1 != Defs.FilteredNode) throw new InvalidOperationException("Invariant c03cfd90-a083-44f2-a00f-cb36b1735f37.");
-                var data = (ImmutableDictionary<Def, object>)r.Item2;
-                var id = (Guid)data.Get(Octree.NodeId);
-                var filterString = (string)data.Get(Defs.FilteredNodeFilter);
-                var filter = Points.Filter.Deserialize(filterString);
-                var rootId = (Guid)data.Get(Defs.FilteredNodeRootId);
-                var root = storage.GetPointCloudNode(rootId);
-                return new FilteredNode(id, false, root, filter);
-            }
+            var r = Data.Codec.Deserialize(buffer);
+            if (r.Item1 != Defs.FilteredNode) throw new InvalidOperationException("Invariant c03cfd90-a083-44f2-a00f-cb36b1735f37.");
+            var data = (ImmutableDictionary<Def, object>)r.Item2;
+            var id = (Guid)data.Get(Octree.NodeId);
+            var filterString = (string)data.Get(Defs.FilteredNodeFilter);
+            var filter = Points.Filter.Deserialize(filterString);
+            var rootId = (Guid)data.Get(Defs.FilteredNodeRootId);
+            var root = storage.GetPointCloudNode(rootId);
+            return new FilteredNode(id, false, root, filter);
         }
 
         #endregion

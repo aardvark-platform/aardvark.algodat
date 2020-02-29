@@ -377,11 +377,9 @@ namespace Aardvark.Base
         public byte[] ToByteArray()
         {
             var buffer = new byte[20];
-            using (var ms = new MemoryStream(buffer))
-            using (var bw = new BinaryWriter(ms))
-            {
-                bw.Write(X); bw.Write(Y); bw.Write(Exponent);
-            }
+            using var ms = new MemoryStream(buffer);
+            using var bw = new BinaryWriter(ms);
+            bw.Write(X); bw.Write(Y); bw.Write(Exponent);
             return buffer;
         }
 
@@ -389,12 +387,10 @@ namespace Aardvark.Base
         /// </summary>
         public static Cell2d Parse(byte[] buffer, int offset = 0)
         {
-            using (var ms = new MemoryStream(buffer, 0, 20))
-            using (var br = new BinaryReader(ms))
-            {
-                var x = br.ReadInt64(); var y = br.ReadInt64(); var e = br.ReadInt32();
-                return new Cell2d(x, y, e);
-            }
+            using var ms = new MemoryStream(buffer, 0, 20);
+            using var br = new BinaryReader(ms);
+            var x = br.ReadInt64(); var y = br.ReadInt64(); var e = br.ReadInt32();
+            return new Cell2d(x, y, e);
         }
 
         #endregion

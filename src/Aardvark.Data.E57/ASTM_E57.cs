@@ -739,35 +739,33 @@ namespace Aardvark.Data.E57
                     }
                     
                 }
-                float[] UnpackFloat32(byte[] buffer, E57Float proto)
+
+                static float[] UnpackFloat32(byte[] buffer, E57Float proto)
                 {
                     if (proto.IsDoublePrecision) throw new ArgumentException($"Expected single precision, but is double.");
                     if (proto.NumberOfBitsForBitPack != 32) throw new ArgumentException($"Expected 32 bits, but is {proto.NumberOfBitsForBitPack}.");
                     if (buffer.Length % 4 != 0) throw new ArgumentException($"Expected buffer length multiple of 4, but is {buffer.Length}.");
-                    using (var br = new BinaryReader(new MemoryStream(buffer)))
-                    {
-                        var xs = new float[buffer.Length / 4];
-                        for (var i = 0; i < xs.Length; i++) xs[i] = br.ReadSingle();
-                        return xs;
-                    }
+                    using var br = new BinaryReader(new MemoryStream(buffer));
+                    var xs = new float[buffer.Length / 4];
+                    for (var i = 0; i < xs.Length; i++) xs[i] = br.ReadSingle();
+                    return xs;
                 }
-                double[] UnpackFloat64(byte[] buffer, E57Float proto)
+
+                static double[] UnpackFloat64(byte[] buffer, E57Float proto)
                 {
                     if (!proto.IsDoublePrecision) throw new ArgumentException($"Expected double precision, but is single.");
                     if (proto.NumberOfBitsForBitPack != 64) throw new ArgumentException($"Expected 64 bits, but is {proto.NumberOfBitsForBitPack}.");
                     if (buffer.Length % 8 != 0) throw new ArgumentException($"Expected buffer length multiple of 8, but is {buffer.Length}.");
-                    using (var br = new BinaryReader(new MemoryStream(buffer)))
-                    {
-                        var xs = new double[buffer.Length / 8];
-                        for (var i = 0; i < xs.Length; i++) xs[i] = br.ReadDouble();
-                        return xs;
-                    }
+                    using var br = new BinaryReader(new MemoryStream(buffer));
+                    var xs = new double[buffer.Length / 8];
+                    for (var i = 0; i < xs.Length; i++) xs[i] = br.ReadDouble();
+                    return xs;
                 }
                 double[] UnpackScaledInteger(byte[] buffer, BitPacker packer, E57ScaledInteger proto)
                 {
                     checked
                     {
-                        switch (proto.NumberOfBitsForBitPack)
+                        return proto.NumberOfBitsForBitPack switch
                         {
                             //case 32:
                             //    //var bp = new BitPacker(proto.NumberOfBitsForBitPack);
@@ -775,16 +773,12 @@ namespace Aardvark.Data.E57
                             //    return BitPack.OptimizedUnpackUInt32(buffer).Map(x => proto.Compute(x));
                             //case 64:
                             //    return BitPack.OptimizedUnpackUInt64(buffer).Map(x => proto.Compute((uint)x));
-                            default:
-                                return packer.UnpackUInts(buffer).Map(x => proto.Compute(x));
-                                //var raw = BitPack.UnpackIntegers(buffer, proto.NumberOfBitsForBitPack);
-                                //if (raw is uint[]) return ((uint[])raw).Map(x => proto.Compute(x));
-                                //if (raw is ulong[]) return ((ulong[])raw).Map(x => proto.Compute((uint)x));
-                                //throw new NotImplementedException();
-                        }
+                            _ => packer.UnpackUInts(buffer).Map(x => proto.Compute(x)),
+                        };
                     }
                 }
-                Array UnpackIntegers(byte[] buffer, BitPacker packer, E57Integer proto)
+
+                static Array UnpackIntegers(byte[] buffer, BitPacker packer, E57Integer proto)
                     //=> packer.UnpackUInts(buffer);
                     => BitPack.UnpackIntegers(buffer, proto.NumberOfBitsForBitPack);
 #endregion

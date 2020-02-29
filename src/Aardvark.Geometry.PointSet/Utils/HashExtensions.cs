@@ -428,13 +428,11 @@ namespace Aardvark.Geometry.Points
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Guid ComputeMd5Hash(Action<BinaryWriter> writeDataToHash)
         {
-            using (var ms = new MemoryStream())
-            using (var bw = new BinaryWriter(ms))
-            {
-                writeDataToHash(bw);
-                ms.Seek(0, SeekOrigin.Begin);
-                return new Guid(MD5.Create().ComputeHash(ms));
-            }
+            using var ms = new MemoryStream();
+            using var bw = new BinaryWriter(ms);
+            writeDataToHash(bw);
+            ms.Seek(0, SeekOrigin.Begin);
+            return new Guid(MD5.Create().ComputeHash(ms));
         }
     }
 }

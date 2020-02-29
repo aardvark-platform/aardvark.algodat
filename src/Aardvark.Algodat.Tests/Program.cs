@@ -24,21 +24,19 @@ namespace Aardvark.Geometry.Tests
     {
         internal static void CreateStore(string filename, string storePath, string key, double minDist)
         {
-            using (var store = new SimpleDiskStore(storePath).ToPointCloudStore())
-            {
-                var config = ImportConfig.Default
-                    .WithStorage(store)
-                    .WithKey(key)
-                    .WithVerbose(true)
-                    .WithMaxDegreeOfParallelism(0)
-                    .WithMinDist(minDist)
-                    .WithNormalizePointDensityGlobal(true)
-                    ;
+            using var store = new SimpleDiskStore(storePath).ToPointCloudStore();
+            var config = ImportConfig.Default
+                .WithStorage(store)
+                .WithKey(key)
+                .WithVerbose(true)
+                .WithMaxDegreeOfParallelism(0)
+                .WithMinDist(minDist)
+                .WithNormalizePointDensityGlobal(true)
+                ;
 
-                Report.BeginTimed($"importing {filename}");
-                var ps = PointCloud.Import(filename, config);
-                Report.EndTimed();
-            }
+            Report.BeginTimed($"importing {filename}");
+            var ps = PointCloud.Import(filename, config);
+            Report.EndTimed();
         }
 
         internal static void PerfTestJuly2019()
@@ -572,40 +570,38 @@ namespace Aardvark.Geometry.Tests
             {
                 var key = Path.GetFileName(filepath);
                 var targetFolder = $@"T:\Vgm\Stores\{key}.upload2";
-                using (var storeSource = new SimpleDiskStore($@"T:\Vgm\Stores\{key}").ToPointCloudStore())
-                using (var storeTarget = new SimpleFolderStore(targetFolder).ToPointCloudStore())
+                using var storeSource = new SimpleDiskStore($@"T:\Vgm\Stores\{key}").ToPointCloudStore();
+                using var storeTarget = new SimpleFolderStore(targetFolder).ToPointCloudStore();
+                var foo = storeSource.GetPointSet(key);
+                var bar = foo.Root.Value.Id;
+
+                var config = new InlineConfig(
+                    collapse, gzipped, positionsRoundedToNumberOfDigits,
+                    x => Report.Line($"[progress] {x,7:0.000}")
+                    );
+                storeSource.InlineOctree(bar, storeTarget, config);
+                storeTarget.Flush();
+
+                // meta
+                var pointset = storeSource.GetPointSet(key);
+                var root = pointset.Root.Value;
+                var rootJson = JObject.FromObject(new
                 {
-                    var foo = storeSource.GetPointSet(key);
-                    var bar = foo.Root.Value.Id;
+                    Bounds = root.BoundingBoxExactGlobal,
+                    Cell = root.Cell,
+                    Centroid = (V3d)root.CentroidLocal + root.Center,
+                    CentroidStdDev = root.CentroidLocalStdDev,
+                    GZipped = gzipped,
+                    PointCount = root.PointCountTree,
+                    PointSetId = pointset.Id,
+                    RootId = root.Id.ToString(),
+                    TotalNodes = root.CountNodes(true),
+                });
 
-                    var config = new InlineConfig(
-                        collapse, gzipped, positionsRoundedToNumberOfDigits,
-                        x => Report.Line($"[progress] {x,7:0.000}")
-                        );
-                    storeSource.InlineOctree(bar, storeTarget, config);
-                    storeTarget.Flush();
-
-                    // meta
-                    var pointset = storeSource.GetPointSet(key);
-                    var root = pointset.Root.Value;
-                    var rootJson = JObject.FromObject(new
-                    {
-                        Bounds = root.BoundingBoxExactGlobal,
-                        Cell = root.Cell,
-                        Centroid = (V3d)root.CentroidLocal + root.Center,
-                        CentroidStdDev = root.CentroidLocalStdDev,
-                        GZipped = gzipped,
-                        PointCount = root.PointCountTree,
-                        PointSetId = pointset.Id,
-                        RootId = root.Id.ToString(),
-                        TotalNodes = root.CountNodes(true),
-                    });
-
-                    File.WriteAllText(
-                        Path.Combine(targetFolder, "root.json"), 
-                        rootJson.ToString(Formatting.Indented)
-                        );
-                }
+                File.WriteAllText(
+                    Path.Combine(targetFolder, "root.json"),
+                    rootJson.ToString(Formatting.Indented)
+                    );
 
 
             }
@@ -828,21 +824,16 @@ namespace Aardvark.Geometry.Tests
             {
                 Report.BeginTimed("deserializing");
                 var sw = new Stopwatch(); sw.Start();
-                using (var ms = new MemoryStream(buffer))
-                //using (var zs = new GZipStream(ms, System.IO.Compression.CompressionMode.Decompress))
-                using (var br = new BinaryReader(ms))
-                {
-                    var (def, o) = Data.Codec.Decode(br);
-                    var dict = (ImmutableDictionary<Durable.Def, object>)o;
-                    sw.Stop();
-                    var ps = (V3f[])dict[Durable.Octree.PositionsLocal3f];
-                    var ns = (V3f[])dict[Durable.Octree.Normals3f];
-                    var vs = (V3f[])dict[Durable.Octree.Velocities3f];
-                    //Report.Line($"positions : {ps.Length}");
-                    //Report.Line($"normals   : {ns.Length}");
-                    //Report.Line($"velocities: {vs.Length}");
-                    Report.Line($"{(buffer.Length / sw.Elapsed.TotalSeconds)/(1024*1024*1024):N3} GB/s");
-                }
+                var (def, o) = Data.Codec.Deserialize(buffer);
+                var dict = (ImmutableDictionary<Durable.Def, object>)o;
+                sw.Stop();
+                var ps = (V3f[])dict[Durable.Octree.PositionsLocal3f];
+                var ns = (V3f[])dict[Durable.Octree.Normals3f];
+                var vs = (V3f[])dict[Durable.Octree.Velocities3f];
+                //Report.Line($"positions : {ps.Length}");
+                //Report.Line($"normals   : {ns.Length}");
+                //Report.Line($"velocities: {vs.Length}");
+                Report.Line($"{(buffer.Length / sw.Elapsed.TotalSeconds) / (1024 * 1024 * 1024):N3} GB/s");
                 Report.EndTimed();
             }
 

@@ -63,22 +63,20 @@ namespace Aardvark.Geometry.Tests
                 var bb = new Box3d(new V3d(-1, -1, -1), new V3d(+1, +1, +1));
                 var bbSize = bb.Size;
                 var r = new Random();
-                Func<V3d> randomV3d = () => new V3d(
+                V3d randomV3d() => new V3d(
                     bb.Min.X + bbSize.X * r.NextDouble(),
                     bb.Min.Y + bbSize.Y * r.NextDouble(),
                     bb.Min.Z + bbSize.Z * r.NextDouble()
                     );
 
                 Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
-                using (var fs = File.Open(TEST_FILE_NAME_PTS, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-                using (var sw = new StreamWriter(fs))
+                using var fs = File.Open(TEST_FILE_NAME_PTS, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+                using var sw = new StreamWriter(fs);
+                sw.WriteLine($"{n}");
+                for (var i = 0; i < n; i++)
                 {
-                    sw.WriteLine($"{n}");
-                    for (var i = 0; i < n; i++)
-                    {
-                        var p = randomV3d();
-                        sw.WriteLine($"{p.X} {p.Y} {p.Z} {-2000 + r.Next(4000)} {r.Next(256)} {r.Next(256)} {r.Next(256)}");
-                    }
+                    var p = randomV3d();
+                    sw.WriteLine($"{p.X} {p.Y} {p.Z} {-2000 + r.Next(4000)} {r.Next(256)} {r.Next(256)} {r.Next(256)}");
                 }
             }
         }

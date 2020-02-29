@@ -949,29 +949,16 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        public byte[] Encode()
-        {
-            using (var ms = new MemoryStream())
-            using (var bw = new BinaryWriter(ms))
-            {
-                Aardvark.Data.Codec.Encode(bw, Durable.Octree.Node, Data);
-                bw.Flush();
-                return ms.ToArray();
-            }
-        }
+        public byte[] Encode() => Aardvark.Data.Codec.Serialize(Durable.Octree.Node, Data);
 
         /// <summary>
         /// </summary>
         public static PointSetNode Decode(Storage storage, byte[] buffer)
         {
-            using (var ms = new MemoryStream(buffer))
-            using (var br = new BinaryReader(ms))
-            {
-                var r = Aardvark.Data.Codec.Decode(br);
-                if (r.Item1 != Durable.Octree.Node) throw new InvalidOperationException("Invariant 5cc4cbfe-07c8-4b92-885d-b1d397210e41.");
-                var data = (ImmutableDictionary<Durable.Def, object>)r.Item2;
-                return new PointSetNode(data, storage, false);
-            }
+            var (def, o) = Aardvark.Data.Codec.Deserialize(buffer);
+            if (def != Durable.Octree.Node) throw new InvalidOperationException("Invariant 5cc4cbfe-07c8-4b92-885d-b1d397210e41.");
+            var data = (ImmutableDictionary<Durable.Def, object>)o;
+            return new PointSetNode(data, storage, false);
         }
 
         #endregion
