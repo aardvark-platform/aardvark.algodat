@@ -125,7 +125,7 @@ namespace Aardvark.Data
 
         #region Encode
 
-        public  static readonly Action<BinaryWriter, object> EncodeGuid         = (s, o) => s.Write(((Guid)o).ToByteArray(), 0, 16);
+        private static readonly Action<BinaryWriter, object> EncodeGuid         = (s, o) => s.Write(((Guid)o).ToByteArray(), 0, 16);
         private static readonly Action<BinaryWriter, object> EncodeGuidArray    = (s, o) => EncodeArray(s, (Guid[])o);
         private static readonly Action<BinaryWriter, object> EncodeInt16        = (s, o) => s.Write((short)o);
         private static readonly Action<BinaryWriter, object> EncodeInt16Array   = (s, o) => EncodeArray(s, (short[])o);
