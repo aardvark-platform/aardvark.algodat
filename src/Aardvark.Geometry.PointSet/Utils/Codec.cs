@@ -264,42 +264,6 @@ namespace Aardvark.Data
             }
         }
 
-        /// <summary>
-        /// Serializes value x to byte array. 
-        /// Can be deserialized with Deserialize.
-        /// </summary>
-        public static byte[] Serialize<T>(Durable.Def def, T x)
-        {
-            using var ms = new MemoryStream();
-            using var bw = new BinaryWriter(ms);
-            if (def.Type == Durable.Primitives.Unit.Id)
-            {
-                // encode type of primitive value, so we can roundtrip with Deserialize
-                // (since it is not encoded by the Encode function called below)
-                EncodeGuid(bw, def.Id);
-            }
-
-            Encode(bw, def, x);
-            bw.Flush();
-            return ms.ToArray();
-        }
-
-        /// <summary>
-        /// Serializes value x to stream. 
-        /// Can be deserialized with Deserialize.
-        /// </summary>
-        public static void Serialize<T>(BinaryWriter stream, Durable.Def def, T x)
-        {
-            if (def.Type == Durable.Primitives.Unit.Id)
-            {
-                // encode type of primitive value, so we can roundtrip with Deserialize
-                // (since it is not encoded by the Encode function called below)
-                EncodeGuid(stream, def.Id);
-            }
-
-            Encode(stream, def, x);
-        }
-
         #endregion
 
         #region Decode
@@ -431,6 +395,62 @@ namespace Aardvark.Data
             }
         }
 
+        #endregion
+
+        #region Serialization
+
+        /// <summary>
+        /// Serializes value x to byte array. 
+        /// Can be deserialized with Deserialize.
+        /// </summary>
+        public static byte[] Serialize<T>(Durable.Def def, T x)
+        {
+            using var ms = new MemoryStream();
+            using var bw = new BinaryWriter(ms);
+            if (def.Type == Durable.Primitives.Unit.Id)
+            {
+                // encode type of primitive value, so we can roundtrip with Deserialize
+                // (since it is not encoded by the Encode function called below)
+                EncodeGuid(bw, def.Id);
+            }
+
+            Encode(bw, def, x);
+            bw.Flush();
+            return ms.ToArray();
+        }
+
+        /// <summary>
+        /// Serializes value x to stream. 
+        /// Can be deserialized with Deserialize.
+        /// </summary>
+        public static void Serialize<T>(BinaryWriter stream, Durable.Def def, T x)
+        {
+            if (def.Type == Durable.Primitives.Unit.Id)
+            {
+                // encode type of primitive value, so we can roundtrip with Deserialize
+                // (since it is not encoded by the Encode function called below)
+                EncodeGuid(stream, def.Id);
+            }
+
+            Encode(stream, def, x);
+        }
+
+
+        /// <summary>
+        /// Deserializes value from stream.
+        /// </summary>
+        public static (Durable.Def, object) Deserialize(BinaryReader stream)
+            => Decode(stream);
+
+        /// <summary>
+        /// Deserializes value from stream.
+        /// </summary>
+        public static (Durable.Def, object) Deserialize(Stream stream)
+        {
+            using var br = new BinaryReader(stream);
+            return Decode(br);
+        }
+
         /// <summary>
         /// Deserializes value from byte array.
         /// </summary>
@@ -442,10 +462,36 @@ namespace Aardvark.Data
         }
 
         /// <summary>
+        /// Deserializes value from file.
+        /// </summary>
+        public static (Durable.Def, object) Deserialize(string filename)
+        {
+            using var ms = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using var br = new BinaryReader(ms);
+            return Decode(br);
+        }
+
+
+
+        /// <summary>
+        /// Deserializes value from stream.
+        /// </summary>
+        public static T DeserializeAs<T>(BinaryReader stream) => (T)Deserialize(stream).Item2;
+
+        /// <summary>
+        /// Deserializes value from stream.
+        /// </summary>
+        public static T DeserializeAs<T>(Stream stream) => (T)Deserialize(stream).Item2;
+
+        /// <summary>
         /// Deserializes value from byte array.
         /// </summary>
-        public static (Durable.Def, object) Deserialize(BinaryReader stream)
-            => Decode(stream);
+        public static T DeserializeAs<T>(byte[] buffer) => (T)Deserialize(buffer).Item2;
+
+        /// <summary>
+        /// Deserializes value from file.
+        /// </summary>
+        public static T DeserializeAs<T>(string filename) => (T)Deserialize(filename).Item2;
 
         #endregion
     }

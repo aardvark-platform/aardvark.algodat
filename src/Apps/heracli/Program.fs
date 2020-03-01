@@ -1,4 +1,6 @@
-﻿open Aardvark.Base
+﻿#nowarn "9"
+
+open Aardvark.Base
 open Aardvark.Data
 open Aardvark.Data.Points
 open Aardvark.Data.Points.Import
@@ -8,6 +10,7 @@ open System
 open System.Collections.Immutable
 open System.IO
 open System.IO.Compression
+open System.IO.MemoryMappedFiles
 open System.Linq
 open System.Text.RegularExpressions
 open System.Collections.Generic
@@ -42,12 +45,73 @@ module Hera =
         static member Serialize(data : HeraData) = data.Serialize()
 
         static member Deserialize(buffer : byte[]) =
-            let d = buffer.DurableDecode<ImmutableDictionary<Durable.Def, obj>>()
+            let d = Aardvark.Data.Codec.DeserializeAs<ImmutableDictionary<Durable.Def, obj>>(buffer)
             HeraData(
                 d.[Durable.Octree.PositionsLocal3f] :?> V3f[],
                 d.[Durable.Octree.Normals3f]        :?> V3f[],
                 d.[Durable.Octree.Velocities3f]     :?> V3f[]
                 )
+
+    type HeraDataRef = {
+        Count : int
+        PtrPositions : nativeptr<byte>
+        PtrNormals : nativeptr<byte>
+        PtrVelocities : nativeptr<byte>
+        }
+    with
+        static member FromFile(filename : string) =
+
+            let mmf = MemoryMappedFile.CreateFromFile(filename, FileMode.Open, null, 0L, MemoryMappedFileAccess.Read)
+            
+            let accessor = mmf.CreateViewAccessor(0L, 0L, MemoryMappedFileAccess.Read)
+            let mutable g = Guid.Empty
+            accessor.Read(0L, &g)
+            printfn "%A" g
+
+            
+            let mutable p : nativeptr<byte> = Unchecked.defaultof<_>
+            accessor.SafeMemoryMappedViewHandle.AcquirePointer(&p)
+
+            printfn "p = %A" p
+
+            let mutable offset = if g = Durable.Primitives.DurableMap.Id then 16L else 0L
+            printfn "offset: %d" offset
+
+            let mutable countEntries = 0
+            accessor.Read(offset, &countEntries)
+            offset <- offset + 4L
+            printfn "count entries %A" countEntries
+
+            let mutable pPs : nativeptr<byte> = Unchecked.defaultof<_>
+            let mutable pNs : nativeptr<byte> = Unchecked.defaultof<_>
+            let mutable pVs : nativeptr<byte> = Unchecked.defaultof<_>
+            let mutable count = 0
+
+            for i = 1 to countEntries do
+                accessor.Read(offset, &g)
+                offset <- offset + 16L
+
+                accessor.Read(offset, &count)
+                offset <- offset + 4L
+
+                if g = Durable.Octree.PositionsLocal3f.Id then
+                    pPs <- NativeInterop.NativePtr.add p (int offset)
+                    offset <- offset + 12L * int64 count
+                elif g = Durable.Octree.Normals3f.Id then
+                    pNs <- NativeInterop.NativePtr.add p (int offset)
+                    offset <- offset + 12L * int64 count
+                elif g = Durable.Octree.Velocities3f.Id then
+                    pVs <- NativeInterop.NativePtr.add p (int offset)
+                    offset <- offset + 12L * int64 count
+                else
+                    failwith (sprintf "what is %A ?" g)
+
+            { 
+                Count = count
+                PtrPositions = pPs
+                PtrNormals = pNs
+                PtrVelocities = pVs
+            }
 
     let importHeraDataFromStream stream =
 
@@ -187,27 +251,49 @@ module Hera =
         ()
 
 
-open Hera
 
-[<EntryPoint>]
-let main argv =
+
+let exampleSingleFileConversion () =
+
+    let inputfile   = @"T:\Hera\impact.0014"
+    let outputfile  = @"T:\Hera\impact.0014.durable"
+       
+    Report.BeginTimed("convert")
+    Hera.convertFile inputfile outputfile 
+    Report.EndTimed() |> ignore
+
+    let test = Hera.deserialize outputfile
+    printfn "deserialized file contains %d points" test.Count
+
+
+
+let exampleTgzConversion () =
 
     let tgzFileName  = @"D:\Hera\Impact_Simulation\r80_p45_m500_v6000_mbasalt_a4.0_1M.tar.gz"
     let targetFolder = @"D:\Hera\Impact_Simulation\tmp"
 
     Hera.convertTgz tgzFileName targetFolder
+
+
+
+let exampleReadPerformanceOld () =
+
+    let filename  = @"T:\Hera\impact.0000.durable.new"
     
+    let sw = Stopwatch()
+    for i = 1 to 100 do
+        sw.Restart()
+        let data = Hera.deserialize filename
+        sw.Stop()
+        printfn "%A" sw.Elapsed
 
-        
 
-    //let inputfile   = @"T:\Hera\impact.0014"
-    //let outputfile  = @"T:\Hera\impact.0014.durable"
-    
-    //Report.BeginTimed("convert")
-    //convert inputfile outputfile 
-    //Report.EndTimed() |> ignore
+[<EntryPoint>]
+let main argv =
 
-    //let test = deserialize outputfile
-    //printfn "deserialized file contains %d points" test.Count
+    //exampleReadPerformanceOld ()
+
+    printfn "%A" (Hera.HeraDataRef.FromFile(@"T:\Hera\impact.0000.durable.old"))
+    printfn "%A" (Hera.HeraDataRef.FromFile(@"T:\Hera\impact.0000.durable.new"))
 
     0
