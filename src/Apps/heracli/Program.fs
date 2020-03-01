@@ -12,6 +12,7 @@ open System.Linq
 open System.Text.RegularExpressions
 open System.Collections.Generic
 open System.Threading.Tasks
+open System.Diagnostics
 
 module Hera =
 
@@ -115,6 +116,8 @@ module Hera =
                 reader.WriteEntryTo(ms)
                 let buffer = ms.ToArray()
                 yield { Key = reader.Entry.Key; Buffer = buffer }
+            else
+                Report.Line("skipped {0}", reader.Entry.Key)
         }
 
     let convertTgz tgzFileName targetFolder =
@@ -132,11 +135,15 @@ module Hera =
 
         let processTgzEntry e =
             try
+                let sw = Stopwatch()
                 let targetFileName = getTargetFileNameFromKey e.Key
                 Report.Line("processing {0}", targetFileName)
+                sw.Start()
                 importHeraDataFromBuffer e.Buffer
                 |> HeraData.Serialize
                 |> writeBufferToFile targetFileName
+                sw.Stop()
+                Report.Line("processing {0} [DONE] {1}", targetFileName, sw.Elapsed)
             with
             | e -> Report.Error("{0}", e.ToString())
 
@@ -152,7 +159,7 @@ module Hera =
                 for x in xs do
                     lock queue (fun () -> queue.Enqueue(x))
                     i <- i + 1
-                    Report.Line("enqueued item {0}", i)
+                    Report.Line("enqueued {0}", x.Key)
 
                 producerIsFinished <- true
                     

@@ -297,7 +297,7 @@ namespace Aardvark.Data
                 EncodeGuid(stream, def.Id);
             }
 
-            Serialize(stream, def, x);
+            Encode(stream, def, x);
         }
 
         #endregion
