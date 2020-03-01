@@ -128,7 +128,7 @@ module Hera =
         let pattern = Regex("impact\.([0-9]*)$")
 
         let getTargetFileNameFromKey (key : string) = 
-            Path.Combine(targetFolder, Path.GetFileName(key))
+            Path.Combine(targetFolder, Path.GetFileName(key) + ".durable")
 
         let predicate key =
             pattern.Match(key).Success && (not (File.Exists(getTargetFileNameFromKey key)))
