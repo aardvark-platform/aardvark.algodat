@@ -57,6 +57,7 @@ module Hera =
         PtrPositions : nativeptr<byte>
         PtrNormals : nativeptr<byte>
         PtrVelocities : nativeptr<byte>
+        Mmf : MemoryMappedFile
         }
     with
         static member FromFile(filename : string) =
@@ -111,6 +112,7 @@ module Hera =
                 PtrPositions = pPs
                 PtrNormals = pNs
                 PtrVelocities = pVs
+                Mmf = mmf
             }
 
     let importHeraDataFromStream stream =
@@ -288,12 +290,20 @@ let exampleReadPerformanceOld () =
         printfn "%A" sw.Elapsed
 
 
+let exampleMmf () =
+    printfn "%A" (Hera.HeraDataRef.FromFile(@"T:\Hera\impact.0000.durable.old"))
+    printfn "%A" (Hera.HeraDataRef.FromFile(@"T:\Hera\impact.0000.durable.new"))
+
+
 [<EntryPoint>]
 let main argv =
 
-    //exampleReadPerformanceOld ()
+    // exampleSingleFileConversion ()
 
-    printfn "%A" (Hera.HeraDataRef.FromFile(@"T:\Hera\impact.0000.durable.old"))
-    printfn "%A" (Hera.HeraDataRef.FromFile(@"T:\Hera\impact.0000.durable.new"))
+    // exampleTgzConversion ()
+
+    // exampleReadPerformanceOld ()
+
+    exampleMmf ()
 
     0
