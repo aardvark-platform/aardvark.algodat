@@ -52,7 +52,11 @@ namespace Aardvark.Geometry.Points
     public class PointsNearObject<T>
     {
         /// <summary></summary>
-        public static PointsNearObject<T> Empty = new PointsNearObject<T>(default, 0.0, new V3d[0], new C4b[0], new V3f[0], new int[0], new byte[0], new double[0]);
+        public static readonly PointsNearObject<T> Empty = new PointsNearObject<T>(
+            default, 0.0, 
+            Array.Empty<V3d>(), Array.Empty<C4b>(), Array.Empty<V3f>(), 
+            Array.Empty<int>(), Array.Empty<byte>(), Array.Empty<double>()
+            );
 
         /// <summary></summary>
         public T Object { get; }

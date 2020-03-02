@@ -45,6 +45,9 @@ type Args =
         /// export command: gzip nodes 
         gzipped             : bool option
 
+        /// export command: collapse nodes 
+        collapse             : bool option
+
         /// optionally store metadata JSON with this key
         metadataKey         : string option
 
@@ -73,6 +76,7 @@ module Args =
         asciiFormat = None
         inlining = None
         gzipped = None
+        collapse = None
         metadataKey = None
         kNearest = None
         files = list.Empty
@@ -135,6 +139,8 @@ module Args =
         | "-inline" :: xs                   ->  parse' { a with inlining = Some true } xs
 
         | "-z" :: xs                        ->  parse' { a with gzipped = Some true } xs
+
+        | "-collapse" :: xs                 ->  parse' { a with collapse = Some true } xs
 
         | "-meta" :: key :: xs              ->  parse' { a with metadataKey = Some key } xs
 

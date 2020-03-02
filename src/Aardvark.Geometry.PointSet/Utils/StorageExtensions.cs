@@ -12,20 +12,18 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
-using Aardvark.Data;
 using Aardvark.Base.Coder;
+using Aardvark.Data;
 using Aardvark.Data.Points;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
-using System.Linq;
+using System.IO.Compression;
 using System.Text;
 using Uncodium.SimpleStore;
-using System.Collections.Immutable;
-using System.Threading;
-using System.IO.Compression;
-using Newtonsoft.Json;
 
 namespace Aardvark.Geometry.Points
 {
@@ -687,7 +685,69 @@ namespace Aardvark.Geometry.Points
 
         #endregion
 
+        #region Safe octree load
+
+        /// <summary>
+        /// Try to load PointSet or PointCloudNode with given key.
+        /// Returns octree root node when found.
+        /// </summary>
+        public static bool TryGetOctree(this Storage storage, string key, out IPointCloudNode root)
+        {
+            var bs = storage.f_get.Invoke(key);
+            if (bs != null)
+            {
+                try
+                {
+                    var ps = storage.GetPointSet(key);
+                    root = ps.Root.Value;
+                    return true;
+                }
+                catch
+                {
+                    try
+                    {
+                        root = storage.GetPointCloudNode(key);
+                        return true;
+                    }
+                    catch (Exception en)
+                    {
+                        Report.Warn($"Invariant 70012c8d-b994-4ddf-adb6-a5481434561a. {en}.");
+                        root = null;
+                        return false;
+                    }
+                }
+            }
+            else
+            {
+                Report.Warn($"Key {key} does not exist in store. Invariant af97e19a-63e8-46ad-a752-fe1200828ced.");
+                root = null;
+                return false;
+            }
+        }
+
+        #endregion
+
         #region Durable
+
+        /// <summary>
+        /// Binary encodes (and optionally gzips) a durable map with given definition from a sequence of key/value pairs.
+        /// Entries are encoded in the same order as given by the data sequence.
+        /// </summary>
+        public static byte[] Encode(this IEnumerable<KeyValuePair<Durable.Def, object>> data, Durable.Def def, bool gzipped)
+        {
+            if (data == null) throw new Exception("Invariant c61b7125-b523-4f19-8f51-5e8be5d06dde.");
+            if (def == null) throw new Exception("Invariant a126aff5-8352-4e7c-9864-5459bbf0a5d6.");
+
+            using (var ms = new MemoryStream())
+            using (var zs = gzipped ? new GZipStream(ms, CompressionLevel.Optimal) : (Stream)ms)
+            using (var bw = new BinaryWriter(zs))
+            {
+                Data.Codec.Encode(bw, def, data);
+                bw.Flush();
+                var buffer = ms.ToArray();
+                return buffer;
+            }
+        }
 
         public static byte[] Add(this Storage storage, string key, Durable.Def def, IEnumerable<KeyValuePair<Durable.Def, object>> data, bool gzipped)
         {
@@ -696,11 +756,12 @@ namespace Aardvark.Geometry.Points
             if (data == null) throw new Exception("Invariant ec5b1c03-d92c-4b2d-9b5c-a30f935369e5.");
 
             using (var ms = new MemoryStream())
-            using (var zs = gzipped ? new GZipStream(ms, CompressionLevel.Fastest) : (Stream)ms)
+            using (var zs = gzipped ? new GZipStream(ms, CompressionLevel.Optimal) : (Stream)ms)
             using (var bw = new BinaryWriter(zs))
             {
                 Data.Codec.Encode(bw, def, data);
 
+                bw.Flush(); 
                 var buffer = ms.ToArray();
                 storage.Add(key, buffer);
 
@@ -715,7 +776,6 @@ namespace Aardvark.Geometry.Points
         public static (Durable.Def, object) GetDurable(this Storage storage, string key)
         {
             if (key == null) return (null, null);
-
             var buffer = storage.f_get(key);
             if (buffer == null) return (null, null);
 
@@ -742,294 +802,6 @@ namespace Aardvark.Geometry.Points
         }
         public static object GetDurable(this Storage storage, Durable.Def def, Guid key)
             => GetDurable(storage, def, key.ToString());
-
-        #endregion
-
-        #region Export
-
-        /// <summary>
-        /// </summary>
-        public class ExportPointSetInfo
-        {
-            /// <summary>
-            /// Number of points in exported tree (sum of leaf points).
-            /// </summary>
-            public readonly long PointCountTree;
-
-            /// <summary>
-            /// Number of leaf points already processed.
-            /// </summary>
-            public readonly long ProcessedLeafPointCount;
-
-            public ExportPointSetInfo(long pointCountTree, long processedLeafPointCount = 0L)
-            {
-                PointCountTree = pointCountTree;
-                ProcessedLeafPointCount = processedLeafPointCount;
-            }
-
-            /// <summary>
-            /// Progress [0,1].
-            /// </summary>
-            public double Progress => (double)ProcessedLeafPointCount / (double)PointCountTree;
-
-            /// <summary>
-            /// Returns new ExportPointSetInfo with ProcessedLeafPointCount incremented by x. 
-            /// </summary>
-            public ExportPointSetInfo AddProcessedLeafPoints(long x)
-                => new ExportPointSetInfo(PointCountTree, ProcessedLeafPointCount + x);
-        }
-
-        /// <summary>
-        /// Exports complete pointset (metadata, nodes, referenced blobs) to another store.
-        /// </summary>
-        public static ExportPointSetInfo ExportPointSet(this Storage self, string pointSetId, Storage exportStore, Action<ExportPointSetInfo> onProgress, bool verbose, CancellationToken ct)
-        {
-            PointSet pointSet = null;
-
-            try
-            {
-                pointSet = self.GetPointSet(pointSetId);
-                if (pointSet == null)
-                {
-                    Report.Warn($"No PointSet with id '{pointSetId}' in store. Trying to load node with this id.");
-                }
-            }
-            catch
-            {
-                Report.Warn($"Entry with id '{pointSetId}' is not a PointSet. Trying to load node with this id.");
-            }
-
-            if (pointSet == null)
-            {
-                var (success, root) = self.TryGetPointCloudNode(pointSetId);
-                if (success)
-                {
-                    var ersatzPointSetKey = Guid.NewGuid().ToString();
-                    Report.Warn($"Created PointSet with key '{ersatzPointSetKey}'.");
-                    var ersatzPointSet = new PointSet(self, ersatzPointSetKey, root, 8192);
-                    self.Add(ersatzPointSetKey, ersatzPointSet);
-
-                    return ExportPointSet(self, ersatzPointSet, exportStore, onProgress, verbose, ct);
-                }
-                else
-                {
-                    throw new Exception($"No node with id '{pointSetId}' in store. Giving up. Invariant 48028b00-4538-4169-a2fc-ca009d56e012.");
-                }
-            }
-            else
-            {
-                return ExportPointSet(self, pointSet, exportStore, onProgress, verbose, ct);
-            }
-        }
-
-        /// <summary>
-        /// Exports complete pointset (metadata, nodes, referenced blobs) to another store.
-        /// </summary>
-        private static ExportPointSetInfo ExportPointSet(this Storage self, PointSet pointset, Storage exportStore, Action<ExportPointSetInfo> onProgress, bool verbose, CancellationToken ct)
-        {
-            ct.ThrowIfCancellationRequested();
-            if (onProgress == null) onProgress = _ => { };
-
-            var info = new ExportPointSetInfo(pointset.Root.Value.PointCountTree);
-
-            var pointSetId = pointset.Id;
-            var root = pointset.Root.Value;
-            var totalNodeCount = root.CountNodes(outOfCore: true);
-            if (verbose) Report.Line($"total node count = {totalNodeCount:N0}");
-
-            // export pointset metainfo
-            exportStore.Add(pointSetId, pointset.Encode());
-            // Report.Line($"exported {pointSetId} (pointset metainfo, json)");
-
-            // export octree (recursively)
-            var exportedNodeCount = 0L;
-            ExportNode(root.Id);
-            if (verbose) Console.Write("\r");
-            return info;
-
-            void ExportNode(Guid key)
-            {
-                ct.ThrowIfCancellationRequested();
-
-                // missing subnode (null) is encoded as Guid.Empty
-                if (key == Guid.Empty) return;
-
-                // try to load node
-                Durable.Def def = Durable.Octree.Node;
-                object raw = null;
-                try
-                {
-                    (def, raw) = self.GetDurable(key);
-                }
-                catch
-                {
-                    var n = self.GetPointCloudNode(key);
-                    raw = n.Properties;
-                }
-                var nodeProps = raw as IReadOnlyDictionary<Durable.Def, object>;
-                exportStore.Add(key, def, nodeProps, false);
-                //Report.Line($"exported {key} (node)");
-
-                // references
-                var rs = GetReferences(nodeProps);
-                foreach (var kv in rs)
-                {
-                    var k = (Guid)kv.Value;
-                    var buffer = self.GetByteArray(k);
-                    exportStore.Add(k, buffer);
-                    //Report.Line($"exported {k} (reference)");
-                }
-
-                exportedNodeCount++;
-                if (verbose) Console.Write($"\r{exportedNodeCount}/{totalNodeCount}");
-
-                // children
-                nodeProps.TryGetValue(Durable.Octree.SubnodesGuids, out var subnodeGuids);
-                if (subnodeGuids != null)
-                {
-                    foreach (var x in (Guid[])subnodeGuids) ExportNode(x);
-                }
-                else
-                {
-                    if (nodeProps.TryGetValue(Durable.Octree.PointCountCell, out var pointCountCell))
-                    {
-                        info = info.AddProcessedLeafPoints((int)pointCountCell);
-                    }
-                    else
-                    {
-                        Report.Warn("Invariant 2f7bb751-e6d4-4d4a-98a3-eabd6fd9b156.");
-                    }
-                    
-                    onProgress(info);
-                }
-            }
-
-            IDictionary<Durable.Def, object> GetReferences(IReadOnlyDictionary<Durable.Def, object> node)
-            {
-                var rs = new Dictionary<Durable.Def, object>();
-                foreach (var kv in node)
-                {
-                    if (kv.Key == Durable.Octree.NodeId) continue;
-
-                    if (kv.Key.Type == Durable.Primitives.GuidDef.Id)
-                    {
-                        rs[kv.Key] = kv.Value;
-                    }
-                }
-                return rs;
-            }
-        }
-
-        #endregion
-
-        #region Inline (experimental)
-
-        /// <summary>
-        /// Experimental!
-        /// Exports complete pointset (metadata, nodes, referenced blobs) to another store.
-        /// </summary>
-        public static void InlinePointSet(this Storage self, string pointSetId, Storage exportStore, bool gzipped)
-            => InlinePointSet(self, self.GetPointSet(pointSetId), exportStore, gzipped);
-
-        /// <summary>
-        /// Experimental!
-        /// Exports complete pointset (metadata, nodes, referenced blobs) to another store.
-        /// </summary>
-        public static void InlinePointSet(this Storage self, Guid pointSetId, Storage exportStore, bool gzipped)
-            => InlinePointSet(self, self.GetPointSet(pointSetId), exportStore, gzipped);
-
-        /// <summary>
-        /// Experimental!
-        /// Inlines and exports pointset to another store.
-        /// </summary>
-        public static void InlinePointSet(this Storage self, PointSet pointset, Storage exportStore, bool gzipped)
-        {
-            var pointSetId = pointset.Id;
-            var root = pointset.Root.Value;
-            var totalNodeCount = root.CountNodes(outOfCore: true);
-            Report.Line($"total node count = {totalNodeCount:N0}");
-
-            // export pointset metainfo
-            exportStore.Add(pointSetId, pointset.Encode());
-            Report.Line($"exported {pointSetId} (pointset metainfo, json)");
-
-            // export octree (recursively)
-            ExportNode(root.Id);
-
-            void ExportNode(Guid key)
-            {
-                if (key == Guid.Empty) return;
-
-                // node
-                Durable.Def def = Durable.Octree.Node;
-                object raw = null;
-                try
-                {
-                    (def, raw) = self.GetDurable(key);
-                }
-                catch
-                {
-                    var n = self.GetPointCloudNode(key);
-                    raw = n.Properties;
-                }
-                var node = raw as IDictionary<Durable.Def, object>;
-                var inline = self.ConvertToInline(node);
-                exportStore.Add(key, def, inline, gzipped);
-                Report.Line($"exported {key} (node)");
-
-                // children
-                node.TryGetValue(Durable.Octree.SubnodesGuids, out var subnodeGuids);
-                if (subnodeGuids != null)
-                {
-                    foreach (var x in (Guid[])subnodeGuids) ExportNode(x);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Experimental!
-        /// </summary>
-        public static IDictionary<Durable.Def, object> WithRoundedPositions(this IDictionary<Durable.Def, object> node, int digits)
-        {
-            var data = ImmutableDictionary<Durable.Def, object>.Empty.AddRange(node);
-
-            var ps = (V3f[])data[Durable.Octree.PositionsLocal3f];
-            ps = ps.Map(x => x.Round(digits));
-
-            return data.SetItem(Durable.Octree.PositionsLocal3f, ps);
-        }
-
-        /// <summary>
-        /// Experimental!
-        /// </summary>
-        public static IEnumerable<KeyValuePair<Durable.Def, object>> ConvertToInline(this Storage storage, IDictionary<Durable.Def, object> node)
-        {
-            var cell = (Cell)node[Durable.Octree.Cell];
-            var bbExactGlobal = (Box3d)node[Durable.Octree.BoundingBoxExactGlobal];
-            var pointCountCell = (int)node[Durable.Octree.PointCountCell];
-            var pointCountTree = (long)node[Durable.Octree.PointCountTreeLeafs];
-            node.TryGetValue(Durable.Octree.SubnodesGuids, out var subnodeGuids);
-
-            var psRef = node[Durable.Octree.PositionsLocal3fReference];
-            var ps = storage.GetV3fArray(((Guid)psRef).ToString());
-            var csRef = node[Durable.Octree.Colors4bReference];
-            var cs = storage.GetC4bArray(((Guid)csRef).ToString());
-
-            KeyValuePair<Durable.Def, object> Entry(Durable.Def def, object o) => 
-                new KeyValuePair<Durable.Def, object>(def, o);
-
-            yield return Entry(Durable.Octree.Cell, cell);
-            yield return Entry(Durable.Octree.BoundingBoxExactGlobal, bbExactGlobal);
-
-            if (subnodeGuids != null)
-                yield return Entry(Durable.Octree.SubnodesGuids, subnodeGuids);
-
-            yield return Entry(Durable.Octree.PointCountCell, pointCountCell);
-            yield return Entry(Durable.Octree.PointCountTreeLeafs, pointCountTree);
-            yield return Entry(Durable.Octree.PointCountTreeLeafsFloat64, (double)pointCountTree);
-            yield return Entry(Durable.Octree.PositionsLocal3f, ps);
-            yield return Entry(Durable.Octree.Colors3b, cs.Map(x => new C3b(x)));
-        }
 
         #endregion
     }

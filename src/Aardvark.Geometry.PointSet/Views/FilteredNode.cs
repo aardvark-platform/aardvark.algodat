@@ -195,9 +195,7 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public bool TryGetValue(Def what, out object o) => Node.TryGetValue(what, out o);
 
-        /// <summary>
-        /// 
-        /// </summary>
+        /// <summary></summary>
         public IReadOnlyDictionary<Def, object> Properties => Node.Properties;
 
         /// <summary></summary>
@@ -341,8 +339,7 @@ namespace Aardvark.Geometry.Points
         {
             get
             {
-                var sf = Filter as ISpatialFilter;
-                if (sf != null) return sf.Clip(Node.BoundingBoxExactGlobal);
+                if (Filter is ISpatialFilter sf) return sf.Clip(Node.BoundingBoxExactGlobal);
                 else return Node.BoundingBoxExactGlobal;
             }
         }
@@ -351,8 +348,7 @@ namespace Aardvark.Geometry.Points
         {
             get
             {
-                var sf = Filter as ISpatialFilter;
-                if (sf != null) return sf.Clip(Node.BoundingBoxApproximate);
+                if (Filter is ISpatialFilter sf) return sf.Clip(Node.BoundingBoxApproximate);
                 else return Node.BoundingBoxApproximate;
             }
         }

@@ -12,6 +12,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
+using System;
 using System.Runtime.CompilerServices;
 
 namespace Aardvark.Geometry.Points
@@ -73,7 +74,7 @@ namespace Aardvark.Geometry.Points
             {
                 if (qs[i].Z < 0.0) behindPositionCount++;
             }
-            if (behindPositionCount == qs.Length) return new V2d[0];
+            if (behindPositionCount == qs.Length) return Array.Empty<V2d>();
             if (behindPositionCount > 0) return null;
 
             return qs.Map(p => p.XY);

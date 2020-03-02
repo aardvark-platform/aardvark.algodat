@@ -114,6 +114,7 @@ namespace Aardvark.Data.Photometry
 
         /// <summary>
         /// Returns the intensity for the given direction vector using linear interpolation in [cd].
+        /// The direction vector is expected to be normalized.
         /// </summary>
         public double GetIntensity(V3d dir)
         {

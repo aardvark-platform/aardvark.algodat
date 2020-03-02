@@ -155,10 +155,10 @@ namespace Aardvark.Data.Points
                 var samples = optionalSamples.Value;
                 bounds.ExtendBy(new Box3d(samples.Positions));
                 Interlocked.Add(ref sampleCount, samples.Count);
-                var r = new Chunk(samples.Positions, samples.Colors, null, null, null, samples.BoundingBox);
+                var r = new Chunk(samples.Positions, samples.Colors, samples.Normals, samples.Intensities, samples.Classifications, samples.BoundingBox);
 
-                sampleCountYielded += r.Count;
-                totalBytesRead += buffer.Count;
+                Interlocked.Add(ref sampleCountYielded, r.Count);
+                Interlocked.Add(ref totalBytesRead, buffer.Count);
                 stats.ReportProgress(totalBytesRead);
                 
                 if (verbose) Console.WriteLine(

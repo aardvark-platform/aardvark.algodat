@@ -1,4 +1,5 @@
 ﻿using Aardvark.Base;
+using Aardvark.Base.Coder;
 using Aardvark.Data;
 using Aardvark.Data.Points;
 using Aardvark.Data.Points.Import;
@@ -21,6 +22,25 @@ namespace Aardvark.Geometry.Tests
 {
     public class Program
     {
+        internal static void CreateStore(string filename, string storePath, string key, double minDist)
+        {
+            using (var store = new SimpleDiskStore(storePath).ToPointCloudStore())
+            {
+                var config = ImportConfig.Default
+                    .WithStorage(store)
+                    .WithKey(key)
+                    .WithVerbose(true)
+                    .WithMaxDegreeOfParallelism(0)
+                    .WithMinDist(minDist)
+                    .WithNormalizePointDensityGlobal(true)
+                    ;
+
+                Report.BeginTimed($"importing {filename}");
+                var ps = PointCloud.Import(filename, config);
+                Report.EndTimed();
+            }
+        }
+
         internal static void PerfTestJuly2019()
         {
             var filename = @"T:\Vgm\Data\2017-10-20_09-44-27_1mm_shade_norm_5pp - Cloud.pts";
@@ -49,7 +69,7 @@ namespace Aardvark.Geometry.Tests
             var sw = new Stopwatch();
 
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
-            var filename = @"\\heap.vrvis.lan\sm\rmdata\Data\skipiste_aus_recap.e57";
+            var filename = @"T:\Vgm\Data\E57\43144_K2_1-0_int_3dWorx_Error_bei-Import.e57";
             var fileSizeInBytes = new FileInfo(filename).Length;
 
             var info = E57.E57Info(filename, ParseConfig.Default);
@@ -230,7 +250,7 @@ namespace Aardvark.Geometry.Tests
                 foreach (var x in chunks.Take(10))
                 {
                     lock (queue) queue.Enqueue(x);
-                }
+        }
                 Report.Line("set parseChunksDone");
                 parseChunksDone = true;
             });
@@ -504,9 +524,8 @@ namespace Aardvark.Geometry.Tests
             //}
         }
 
-        public static void TestCreateStore()
+        public static void TestCreateStore(string filepath, double minDist)
         {
-            var filepath = @"T:\Vgm\Data\JBs_Haus.pts";
             var filename = Path.GetFileName(filepath);
             var storename = Path.Combine(@"T:\Vgm\Stores\", filename);
             var store = new SimpleDiskStore(storename).ToPointCloudStore(new LruDictionary<string, object>(1024 * 1024 * 1024));
@@ -515,7 +534,9 @@ namespace Aardvark.Geometry.Tests
                 .WithStorage(store)
                 .WithKey(filename)
                 .WithVerbose(true)
-                .WithMinDist(0.1)
+                //.WithOctreeSplitLimit(65536)
+                .WithMaxDegreeOfParallelism(0)
+                .WithMinDist(minDist)
                 ;
 
             Report.BeginTimed("importing");
@@ -523,10 +544,10 @@ namespace Aardvark.Geometry.Tests
             Report.EndTimed();
             store.Flush();
             store.Dispose();
-        }
+                }
 
-        public static void ExportExamples()
-        {
+        public static void ExportExamples(string filepath, bool collapse, bool gzipped, int? positionsRoundedToNumberOfDigits)
+            {
             //// Example 1: export point cloud to folder
             //{
             //    var ct = new CancellationTokenSource(10000);
@@ -549,16 +570,23 @@ namespace Aardvark.Geometry.Tests
 
             // Example 3: inline point cloud nodes
             {
-                var name = "JBs_Haus.pts";
-                var folderStoreName = $@"T:\Vgm\Stores\{name}.upload";
-                using (var storeSource = new SimpleDiskStore($@"T:\Vgm\Stores\{name}").ToPointCloudStore())
-                using (var storeTarget = new SimpleFolderStore(folderStoreName).ToPointCloudStore())
+                var key = Path.GetFileName(filepath);
+                var targetFolder = $@"T:\Vgm\Stores\{key}.upload2";
+                using (var storeSource = new SimpleDiskStore($@"T:\Vgm\Stores\{key}").ToPointCloudStore())
+                using (var storeTarget = new SimpleFolderStore(targetFolder).ToPointCloudStore())
                 {
-                    storeSource.InlinePointSet(name, storeTarget, false);
+                    var foo = storeSource.GetPointSet(key);
+                    var bar = foo.Root.Value.Id;
+
+                    var config = new InlineConfig(
+                        collapse, gzipped, positionsRoundedToNumberOfDigits,
+                        x => Report.Line($"[progress] {x,7:0.000}")
+                        );
+                    storeSource.InlineOctree(bar, storeTarget, config);
                     storeTarget.Flush();
 
                     // meta
-                    var pointset = storeSource.GetPointSet(name);
+                    var pointset = storeSource.GetPointSet(key);
                     var root = pointset.Root.Value;
                     var rootJson = JObject.FromObject(new
                     {
@@ -566,7 +594,7 @@ namespace Aardvark.Geometry.Tests
                         Cell = root.Cell,
                         Centroid = (V3d)root.CentroidLocal + root.Center,
                         CentroidStdDev = root.CentroidLocalStdDev,
-                        GZipped = true,
+                        GZipped = gzipped,
                         PointCount = root.PointCountTree,
                         PointSetId = pointset.Id,
                         RootId = root.Id.ToString(),
@@ -574,7 +602,7 @@ namespace Aardvark.Geometry.Tests
                     });
 
                     File.WriteAllText(
-                        Path.Combine(folderStoreName, "root.json"), 
+                        Path.Combine(targetFolder, "root.json"), 
                         rootJson.ToString(Formatting.Indented)
                         );
                 }
@@ -599,19 +627,33 @@ namespace Aardvark.Geometry.Tests
 
         public static void EnumerateCells2dTest()
         {
-            var store = new SimpleDiskStore(@"T:\Vgm\Stores\kindergarten").ToPointCloudStore(cache: default);
-            var pc = store.GetPointSet("kindergarten");
+            var inputFile = @"T:\Vgm\Data\E57\aibotix_ground_points.e57";
+
+            var storeName = Path.Combine(@"T:\Vgm\Stores", Path.GetFileName(inputFile));
+            var key = Path.GetFileName(storeName);
+            CreateStore(inputFile, storeName, key, 0.005);
+            
+            var store = new SimpleDiskStore(storeName).ToPointCloudStore(cache: default);
+            var pc = store.GetPointSet(key);
             var root = pc.Root.Value;
 
-            foreach (var x in root.EnumerateCellColumns(0))
-            {
-                var cs0 = x.GetPoints(0).ToArray();
-                if (cs0.Length == 0) continue;
-                var cs1 = x.GetPoints(0, outer: new Box2i(new V2i(-2, -2), new V2i(+2, +2))).ToArray();
-                var cs2 = x.GetPoints(0, outer: new Box2i(new V2i(-2, -2), new V2i(+2, +2)), inner: new Box2i(new V2i(-1, -1), new V2i(+1, +1))).ToArray();
+            var oSize = 2;
+            var iSize = 1;
 
-                Console.WriteLine($"[{x.Cell.X,3}, {x.Cell.Y,3}, {x.Cell.Exponent,3}] {cs0.Sum(c => c.Count),10:N0} {cs1.Sum(c => c.Count),10:N0} {cs2.Sum(c => c.Count),10:N0}");
+            Report.BeginTimed("total");
+            var xs = root.EnumerateCellColumns(2);
+            //var xs = root.EnumerateCellColumns2(2, V2i.II, 0, new Box2i(V2i.OO, V2i.OO), new Box2i(V2i.OO, V2i.OO), false);
+            var i = 0;
+            foreach (var x in xs)
+            {
+                //var cs0 = x.GetPoints(0).ToArray();
+                //if (cs0.Length == 0) continue;
+                var cs1 = x.GetPoints(0, outer: new Box2i(new V2i(-iSize, -iSize), new V2i(+iSize, +iSize))).ToArray();
+                var cs2 = x.GetPoints(0, outer: new Box2i(new V2i(-oSize, -oSize), new V2i(+oSize, +oSize)), inner: new Box2i(new V2i(-iSize, -iSize), new V2i(+iSize, +iSize))).ToArray();
+                //Report.Line($"[{x.Cell.X,3}, {x.Cell.Y,3}, {x.Cell.Exponent,3}] {cs0.Sum(c => c.Count),10:N0} {cs1.Sum(c => c.Count),10:N0} {cs2.Sum(c => c.Count),10:N0}");
+                if (++i % 17 == 0) Report.Line($"[{x.Cell.X,3}, {x.Cell.Y,3}, {x.Cell.Exponent,3}] {cs2.Sum(c => c.Count),10:N0}");
             }
+            Report.End();
         }
 
         internal static void DumpPointSetKeys()
@@ -641,14 +683,60 @@ namespace Aardvark.Geometry.Tests
             Console.CursorVisible = true;
         }
 
+        internal static void LisaTest()
+        {
+            var path2store = @"E:\OEBB\stores\store_wien_small_labels";//store_wien_small_labels - Copy
+            var key = "stream_3899";
+
+            var cache = new LruDictionary<string, object>(1024 * 1024 * 1024);
+            var store = PointCloud.OpenStore(path2store, cache);
+            var pointset = store.GetPointSet(key);
+
+            var ray = new Ray3d(
+                new V3d(-160017.518571374, 246513.963542402, 2372.20790824948),
+                new V3d(0.838664911597797, 0.54451231482662, -0.0121451659855219)
+                );
+
+            var ps = pointset.QueryPointsNearRay(ray, 0.01).SelectMany(x => x.Positions).ToArray();
+            Console.WriteLine($"{ps.Length:N0}");
+        }
+
         public static void Main(string[] args)
         {
-            TestCreateStore();
-            ExportExamples();
+            //TestE57();
+
+            //LisaTest();
+
+            //DumpPointSetKeys();
+
+            //var filepath = @"T:\Vgm\Data\JBs_Haus.pts";
+            ////var filepath = @"T:\Vgm\Data\Technologiezentrum_Teil1.pts";
+            ////var filepath = @"T:\Vgm\Data\E57\Staatsoper.e57";
+            //var filepath = @"T:\Vgm\Data\Kindergarten.pts";
+            //TestCreateStore(filepath, 0.001);
+            //ExportExamples(filepath, collapse: true, gzipped: true, positionsRoundedToNumberOfDigits: 3);
+
 
             //TestImport();
 
-            //EnumerateCells2dTest();
+            EnumerateCells2dTest();
+
+            //DumpPointSetKeys();
+            // polygon topology test
+            //new PointClusteringTest().TestPointClustering();
+
+            //var data = File.ReadAllBytes("C:\\temp\\test.mesh");
+            //PolyMesh mesh = data.Decode<PolyMesh>();
+
+
+            //// fix broken edges...
+            ////mesh.VertexClusteredCopy(Aardvark.Geometry.Clustering.PointClustering(mesh.PositionArray));
+            //mesh.WithoutDegeneratedEdges();
+            ////mesh.WithoutDegeneratedFaces();
+            //mesh.BuildTopology();
+
+            //Report.Line("yeah");
+
             //DumpPointSetKeys();
 
             //EnumerateCellsTest();
@@ -670,8 +758,6 @@ namespace Aardvark.Geometry.Tests
             //Console.WriteLine("done");
 
             //new ImportTests().CanImportChunkWithoutColor();
-
-            //TestE57();
 
             //var store = PointCloud.OpenStore(@"G:\cells\3280_5503_0_10\pointcloud");
             //var pc = store.GetPointSet("3280_5503_0_10", default);

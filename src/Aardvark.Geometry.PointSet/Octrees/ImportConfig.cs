@@ -119,7 +119,7 @@ namespace Aardvark.Data.Points
         public ImportConfig WithOctreeSplitLimit(int x) => new ImportConfig(this) { OctreeSplitLimit = x };
 
         /// <summary></summary>
-        public ImportConfig WithProgressCallback(Action<double> x) => new ImportConfig(this) { ProgressCallback = x ?? throw new ArgumentNullException() };
+        public ImportConfig WithProgressCallback(Action<double> x) => new ImportConfig(this) { ProgressCallback = x ?? throw new ArgumentNullException(nameof(x)) };
 
         /// <summary></summary>
         public ImportConfig WithReadBufferSizeInBytes(int x) => new ImportConfig(this) { ParseConfig = ParseConfig.WithReadBufferSizeInBytes(x) };

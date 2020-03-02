@@ -124,6 +124,41 @@ namespace Aardvark.Data.Points
 
         /// <summary>
         /// </summary>
+        public static Chunk ImmutableMerge(IEnumerable<Chunk> chunks)
+        {
+            chunks = chunks?.Where(x => !x.IsEmpty);
+            if (chunks.IsEmptyOrNull()) return Empty;
+            
+
+            var head = chunks.First();
+            var rest = chunks.Skip(1);
+            if (rest.IsEmpty()) return head;
+
+            var ps = head.HasPositions ? new List<V3d>(head.Positions) : null;
+            var cs = head.HasColors ? new List<C4b>(head.Colors) : null;
+            var ns = head.HasNormals ? new List<V3f>(head.Normals) : null;
+            var js = head.HasIntensities ? new List<int>(head.Intensities) : null;
+            var ks = head.HasClassifications ? new List<byte>(head.Classifications) : null;
+
+            foreach (var chunk in rest)
+            {
+                if (ps != null) ps.AddRange(chunk.Positions);
+                if (cs != null) cs.AddRange(chunk.Colors);
+                if (ns != null) ns.AddRange(chunk.Normals);
+                if (js != null) js.AddRange(chunk.Intensities);
+                if (ks != null) ks.AddRange(chunk.Classifications);
+            }
+
+            return new Chunk(ps, cs, ns, js, ks, new Box3d(chunks.Select(x => x.BoundingBox)));
+        }
+
+        /// <summary>
+        /// </summary>
+        public static Chunk ImmutableMerge(params Chunk[] args)
+            => ImmutableMerge((IEnumerable<Chunk>)args);
+
+        /// <summary>
+        /// </summary>
         /// <param name="positions">Optional.</param>
         /// <param name="colors">Optional. Either null or same number of elements as positions.</param>
         /// <param name="normals">Optional. Either null or same number of elements as positions.</param>
@@ -370,6 +405,47 @@ namespace Aardvark.Data.Points
         /// </summary>
         public Chunk ImmutableMapPositions(Func<V3d, V3d> mapping)
             => new Chunk(Positions.Map(mapping), Colors, Normals, Intensities, Classifications);
+
+        /// <summary>
+        /// </summary>
+        public Chunk ImmutableMergeWith(IEnumerable<Chunk> others)
+            => ImmutableMerge(this, ImmutableMerge(others));
+
+        /// <summary>
+        /// </summary>
+        public Chunk ImmutableMergeWith(params Chunk[] others)
+            => ImmutableMerge(this, ImmutableMerge(others));
+
+        /// <summary>
+        /// Splits this chunk into multiple chunks according to key of i-th point in chunk.
+        /// </summary>
+        public Dictionary<TKey, Chunk> SplitBy<TKey>(Func<Chunk, int, TKey> keySelector)
+        {
+            var dict = new Dictionary<TKey, List<int>>();
+            for (var i = 0; i < Count; i++)
+            {
+                var k = keySelector(this, i);
+                if (!dict.TryGetValue(k, out var ia)) dict[k] = ia = new List<int>();
+                ia.Add(i);
+            }
+
+            var self = this;
+            var result = new Dictionary<TKey, Chunk>();
+            foreach (var kv in dict)
+            {
+                var ia = kv.Value;
+                result[kv.Key] = new Chunk(
+                    HasPositions ? ia.Map(i => self.Positions[i]) : null,
+                    HasColors ? ia.Map(i => self.Colors[i]) : null,
+                    HasNormals ? ia.Map(i => self.Normals[i]) : null,
+                    HasIntensities ? ia.Map(i => self.Intensities[i]) : null,
+                    HasClassifications ? ia.Map(i => self.Classifications[i]) : null
+                    );
+            }
+            return result;
+        }
+
+
 
         #region ImmutableFilterBy...
 

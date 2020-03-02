@@ -121,11 +121,12 @@ let export args =
         | _, Some _ -> failwith "must not define output key for export (-okey)" 
 
     let gzipped = match args.gzipped with | Some x -> x | None -> false
+    let collapse = match args.collapse with | Some x -> x | None -> false
 
     let onProgress = null // Action<StorageExtensions.ExportPointSetInfo> (fun info -> printfn "%f" (info.Progress))
     Report.BeginTimed("exporting")
     match args.inlining with
-    | Some true -> inStore.InlinePointSet(key, outStore, gzipped)
+    | Some true -> inStore.InlineOctree(key, outStore, InlineConfig(collapse, gzipped))
     | _         -> if gzipped then printfn "[WARNING] -z is only supported with -inline"
                    inStore.ExportPointSet(key, outStore, onProgress, args.verbose, CancellationToken.None) |> ignore
     outStore.Flush()

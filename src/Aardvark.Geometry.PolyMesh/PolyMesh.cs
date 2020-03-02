@@ -1376,7 +1376,7 @@ namespace Aardvark.Geometry
                 IEnumerable<int> faceIndices,
                 bool compactVertices = true)
         {
-            var fBackMap = faceIndices.ToArray();
+            var fBackMap = faceIndices as int[] ?? faceIndices.ToArray();   // avoid unnecessary array.copy
             var fc = fBackMap.Length;
             var ovc = VertexCount;
             int[] vBackMap = null;
@@ -1443,6 +1443,70 @@ namespace Aardvark.Geometry
             };
             return m;
         }
+
+        /// <summary>
+        /// Removes degenerated edges from the vertex index array.
+        /// Faces may degnerated to empty faces (may use NonDegenerateFaceIndices and SubSetOfFaces or WithoutDegeneratedFaces)
+        /// </summary>
+        public PolyMesh WithoutDegeneratedEdges()
+        {
+            var fia = m_firstIndexArray;
+            var via = m_vertexIndexArray;
+
+            var fixedVIA = new int[via.Length];
+            var fixedFIA = new int[fia.Length];
+            var fc = m_faceCount;
+            int fiaDst = 1; // start first face
+            int viaDst = 0;
+
+            var faceVertexCountRange = Range1i.Invalid;
+
+            for (int fvi = fia[0], fi = 0; fi < fc; fi++)
+            {
+                var vfirst = via[fvi++];    // first Vertex-Index (for check with last)
+                var vi0 = vfirst;           // current Vertex-Index
+
+                var dst0 = viaDst;  // start vertex-index
+
+                for (int fve = fia[fi + 1]; fvi < fve; fvi++)
+                {
+                    var vi1 = via[fvi];     // next Vertex-Index
+
+                    if (vi0 != vi1)
+                        fixedVIA[viaDst++] = vi0;   // not equal -> insert into VIA
+
+                    vi0 = vi1;  // move to next vertex index
+                }
+
+                // last check
+                if (vfirst != vi0)
+                    fixedVIA[viaDst++] = vi0;
+
+                var faceVertexCount = viaDst - dst0;
+                if (faceVertexCount < 2)
+                {
+                    viaDst = dst0;  // degenerated face -> reset via-index
+                    faceVertexCountRange.ExtendBy(0);
+                }
+                else
+                    faceVertexCountRange.ExtendBy(faceVertexCount);
+
+                fixedFIA[fiaDst++] = viaDst; // new face-vertex count (can be 0 -> to maintain face-attributes)
+            }
+
+            var result = this.Copy();
+
+            // face count is still the same
+            result.VertexIndexArray = fixedVIA;
+            result.VertexIndexCount = viaDst; // set valid count
+            result.m_firstIndexArray = fixedFIA;
+            result[Property.FirstIndexArray] = fixedFIA;
+            result.m_faceVertexCountRange = faceVertexCountRange;
+            result[Property.FaceVertexCountRange] = faceVertexCountRange;
+
+            return result;
+        }
+
 
         #endregion
 
@@ -4322,6 +4386,20 @@ namespace Aardvark.Geometry
             }
 
             return copy;
+        }
+
+        /// <summary>
+        /// Returns mesh with removed degenerated faces
+        /// Note: Original mesh is returned if there are no degenerated faces
+        /// </summary>
+        /// <param name="mesh">Input mesh</param>
+        /// <param name="compareVertices">check vertex positions equality, otherwise only compare vertex indices</param>
+        /// <param name="checkNormals">check normal length and remove degenerated faces</param>
+        /// <param name="compactVertices">compacts vertices and vertex attribute arrays</param>
+        public static PolyMesh WithoutDegeneratedFaces(this PolyMesh mesh, bool compareVertices = true, bool checkNormals = true, bool compactVertices = true)
+        {
+            var nonDegIndex = mesh.NonDegenerateFaceIndices(compareVertices, checkNormals).ToArray();
+            return nonDegIndex.Length != mesh.FaceCount ? mesh.SubSetOfFaces(nonDegIndex, compactVertices) : mesh;
         }
     }
 

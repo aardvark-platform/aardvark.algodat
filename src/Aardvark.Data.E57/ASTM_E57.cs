@@ -193,8 +193,8 @@ namespace Aardvark.Data.E57
                 if (root == null) return null;
                 EnsureElementType(root, "Integer");
                 var value = string.IsNullOrWhiteSpace(root.Value) ? 0 : long.Parse(root.Value);
-                var min = GetOptionalLongAttribute(root, "minimum");
-                var max = GetOptionalLongAttribute(root, "maximum");
+                var min = TryGetLongAttribute(root, "minimum");
+                var max = TryGetLongAttribute(root, "maximum");
                 if (max < min) Ex("Integer.maximum", $">= minimum ({min})", $"{max}");
                 return new E57Integer { Name = root.Name.LocalName, Minimum = min, Maximum = max, Value = value };
             }
@@ -259,11 +259,11 @@ namespace Aardvark.Data.E57
                 if (root == null) return null;
                 EnsureElementType(root, "ScaledInteger");
                 var raw = string.IsNullOrWhiteSpace(root.Value) ? 0 : long.Parse(root.Value);
-                var min = GetOptionalLongAttribute(root, "minimum");
-                var max = GetOptionalLongAttribute(root, "maximum");
+                var min = TryGetLongAttribute(root, "minimum");
+                var max = TryGetLongAttribute(root, "maximum");
                 if (max < min) Ex("ScaledInteger.maximum", $">= minimum ({min})", $"{max}");
-                var scale = GetOptionalFloatAttribute(root, "scale") ?? 1.0;
-                var offset = GetOptionalFloatAttribute(root, "offset") ?? 0.0;
+                var scale = TryGetFloatAttribute(root, "scale") ?? 1.0;
+                var offset = TryGetFloatAttribute(root, "offset") ?? 0.0;
                 return new E57ScaledInteger
                 {
                     Name = root.Name.LocalName,
@@ -319,8 +319,8 @@ namespace Aardvark.Data.E57
                     ? true
                     : (precision == "single" ? false : Ex<bool>("precision", "['double', 'single']", precision))
                     ;
-                var min = GetOptionalFloatAttribute(root, "minimum");
-                var max = GetOptionalFloatAttribute(root, "maximum");
+                var min = TryGetFloatAttribute(root, "minimum");
+                var max = TryGetFloatAttribute(root, "maximum");
                 if (max < min) Ex("Float.maximum", $">= minimum ({min})", $"{max}");
                 return new E57Float { Name = root.Name.LocalName, IsDoublePrecision = isDoublePrecision, Minimum = min, Maximum = max, Value = value };
             }
@@ -435,7 +435,7 @@ namespace Aardvark.Data.E57
                 EnsureElementType(root, "Vector");
                 return new E57Vector
                 {
-                    AllowHeterogenousChildren = GetOptionalLongAttribute(root, "allowHeterogeneousChildren") == 1,
+                    AllowHeterogenousChildren = TryGetLongAttribute(root, "allowHeterogeneousChildren") == 1,
                     Children = root.Elements().Select(x => ParseE57Element(x, stream)).ToArray()
                 };
             }
@@ -498,7 +498,12 @@ namespace Aardvark.Data.E57
                 return v;
             }
 
-            public IEnumerable<Tuple<V3d,C4b>> ReadData(int[] cartesianXYZ, int[] sphericalRAE, int[] colorRGB, bool verbose = false)
+            public IEnumerable<(V3d pos, C4b color, int intensity)> ReadData(
+                int[] cartesianXYZ, int[] sphericalRAE, 
+                int[] colorRGB, 
+                int? intensityIndex, E57IntensityLimits intensityLimits,
+                bool verbose = false
+                )
             {
                 var compressedVectorHeader = E57CompressedVectorHeader.Parse(ReadLogicalBytes(m_stream, FileOffset, 32));
                 if (verbose)
@@ -517,6 +522,7 @@ namespace Aardvark.Data.E57
                 var hasColors = colorRGB != null;
                 var hasCartesian = cartesianXYZ != null;
                 var hasSpherical = sphericalRAE != null;
+                var hasIntensities = intensityIndex.HasValue;
                 if (compressedVectorHeader.DataStartOffset.Value == 0) throw new Exception($"Unexpected compressedVectorHeader.DataStartOffset (0).");
                 if (compressedVectorHeader.IndexStartOffset.Value != 0) throw new Exception($"Unexpected compressedVectorHeader.IndexStartOffset ({compressedVectorHeader.IndexStartOffset})");
 
@@ -526,6 +532,7 @@ namespace Aardvark.Data.E57
                 var colorR = hasColors ? new Queue<byte>() : null;
                 var colorG = hasColors ? new Queue<byte>() : null;
                 var colorB = hasColors ? new Queue<byte>() : null;
+                var intensities = hasIntensities ? new Queue<int>() : null;
 
                 var offset = (E57LogicalOffset)compressedVectorHeader.DataStartOffset;
                 while (bytesLeftToConsume > 0)
@@ -607,6 +614,31 @@ namespace Aardvark.Data.E57
                                 foreach (var b in cbs) colorB.Enqueue(b);
                             }
 
+                            if (hasIntensities)
+                            {
+                                int[] remapWithLimits(float[] xs)
+                                {
+                                    var min = intensityLimits.Intensity.Min;
+                                    var max = intensityLimits.Intensity.Max;
+                                    var d = max - min;
+                                    return xs.Map(x => (int)(((x - min) / d) * 65535.5f));
+                                }
+
+                                var js = buffers[intensityIndex.Value] switch
+                                {
+                                    int[] xs    => xs,
+
+                                    float[] xs when intensityLimits is null 
+                                                => xs.Map(x => (int)(65535 * x)),
+
+                                    float[] xs  => remapWithLimits(xs),
+
+                                    _ => throw new Exception($"Unspecified intensity format {buffers[intensityIndex.Value].GetType()}.")
+                                };
+
+                                foreach (var r in js) intensities.Enqueue(r);
+                            }
+
                             var imax = Fun.Min(cartesianX.Count, cartesianY.Count, cartesianZ.Count);
                             if (hasColors) imax = Fun.Min(imax, Fun.Min(colorR.Count, colorG.Count, colorB.Count));
                             for (var i = 0; i < imax; i++)
@@ -622,8 +654,9 @@ namespace Aardvark.Data.E57
                                         p.X * Math.Sin(p.Z)
                                         );
                                 }
-                                var c = colorRGB != null ? new C4b(colorR.Dequeue(), colorG.Dequeue(), colorB.Dequeue()) : C4b.Gray;
-                                yield return Tuple.Create(p, c);
+                                var c = colorRGB != null ? new C4b(colorR.Dequeue(), colorG.Dequeue(), colorB.Dequeue()) : C4b.Black;
+                                var j = hasIntensities ? intensities.Dequeue() : 0;
+                                yield return (pos: p, color: c, intensity: j);
                             }
                         }
 
@@ -682,12 +715,19 @@ namespace Aardvark.Data.E57
                                 try
                                 {
                                     var p = (E57Integer)proto;
-                                    if (p.Minimum < 0) throw new NotImplementedException();
-                                    return UnpackIntegers(buffer, packer, p);
+                                    if (p.Minimum < 0)
+                                    {
+                                        var xs = UnpackIntegers(buffer, packer, p);
+                                        return xs;
+                                    }
+                                    else
+                                    {
+                                        return UnpackIntegers(buffer, packer, p);
+                                    }
                                 }
                                 catch (Exception e)
                                 {
-                                    Console.WriteLine(e);
+                                    Console.WriteLine($"[Semantic={proto.Semantic}; NumberOfBits={proto.NumberOfBitsForBitPack}] {e}");
                                     return new long[0];
                                 }
                             }
@@ -1037,6 +1077,8 @@ namespace Aardvark.Data.E57
             public int[] ByteStreamIndicesForColors { get; private set; }
             public bool HasCartesianInvalidState { get; private set; }
             public bool HasSphericalInvalidState { get; private set; }
+            public bool HasIntensities { get; private set; }
+            public int? ByteStreamIndexForIntensities { get; private set; }
 
             internal static E57Data3D Parse(XElement root, Stream stream)
             {
@@ -1054,9 +1096,11 @@ namespace Aardvark.Data.E57
                 var byteStreamIndicesForColors = default(int[]);
                 var hasCartesianInvalidState = false;
                 var hasSphericalInvalidState = false;
+                var hasIntensities = false;
+                var byteStreamIndexForIntensities = default(int?);
 
 #region 8.4.4.1 (nop)
-#endregion
+                #endregion
 #region 8.4.4.2
                 if (semantics.Contains("cartesianX") || semantics.Contains("cartesianY") || semantics.Contains("cartesianZ"))
                 {
@@ -1093,7 +1137,12 @@ namespace Aardvark.Data.E57
                     hasSpherical = true;
                 }
 #endregion
-#region 8.4.4.5 (nop)
+#region 8.4.4.5
+                if (semantics.Contains("intensity"))
+                {
+                    hasIntensities = true;
+                    byteStreamIndexForIntensities = semantics.IndexOf("intensity");
+                }
 #endregion
 #region 8.4.4.6
                 if (semantics.Contains("colorRed") || semantics.Contains("colorGreen") || semantics.Contains("colorBlue"))
@@ -1148,7 +1197,9 @@ namespace Aardvark.Data.E57
                     HasColors = hasColors,
                     ByteStreamIndicesForColors = byteStreamIndicesForColors,
                     HasCartesianInvalidState = hasCartesianInvalidState,
-                    HasSphericalInvalidState = hasSphericalInvalidState
+                    HasSphericalInvalidState = hasSphericalInvalidState,
+                    HasIntensities = hasIntensities,
+                    ByteStreamIndexForIntensities = byteStreamIndexForIntensities,
                 };
 
 #region 8.4.3.1 (nop)
@@ -1193,18 +1244,24 @@ namespace Aardvark.Data.E57
                 return GetElements(root, "vectorChild").Select(x => Parse(x, stream)).ToArray();
             }
 
-            public IEnumerable<Tuple<V3d, C4b>> StreamPoints(bool verbose = false)
+            public IEnumerable<(V3d pos, C4b color, int intensity)> StreamPoints(bool verbose = false)
             {
                 var result = Points.ReadData(
                     ByteStreamIndicesForCartesianCoordinates,
                     ByteStreamIndicesForSphericalCoordinates,
                     ByteStreamIndicesForColors,
+                    ByteStreamIndexForIntensities,
+                    IntensityLimits,
                     verbose
                     );
 
                 if (Pose != null)
                 {
-                    result = result.Select(p => Tuple.Create(Pose.Rotation.TransformPos(p.Item1) + Pose.Translation, p.Item2));
+                    result = result.Select(p => (
+                        Pose.Rotation.TransformPos(p.pos) + Pose.Translation, 
+                        p.color,
+                        p.intensity
+                        ));
                 }
 
                 return result;
@@ -1931,27 +1988,27 @@ namespace Aardvark.Data.E57
             /// Required.
             /// The rowIndex range of any point represented by this IndexBounds object.
             /// </summary>
-            public Range1i Row;
+            public Range1i? Row;
 
             /// <summary>
             /// Required.
             /// The columnIndex range of any point represented by this IndexBounds object.
             /// </summary>
-            public Range1i Column;
+            public Range1i? Column;
 
             /// <summary>
             /// Required.
             /// The returnIndex range of any point represented by this IndexBounds object.
             /// </summary>
-            public Range1i Return;
+            public Range1i? Return;
 
 #endregion
 
             internal static E57IndexBounds Parse(XElement root) => (root == null) ? null : new E57IndexBounds
             {
-                Row = GetIntegerRange(root, "rowMinimum", "rowMaximum"),
-                Column = GetIntegerRange(root, "columnMinimum", "columnMaximum"),
-                Return = GetIntegerRange(root, "returnMinimum", "returnMaximum"),
+                Row = TryGetIntegerRange(root, "rowMinimum", "rowMaximum"),
+                Column = TryGetIntegerRange(root, "columnMinimum", "columnMaximum"),
+                Return = TryGetIntegerRange(root, "returnMinimum", "returnMaximum"),
             };
         }
 
@@ -2376,8 +2433,40 @@ namespace Aardvark.Data.E57
         }
         private static Range1i GetIntegerRange(XElement root, string elementNameMin, string elementNameMax)
             => new Range1i(GetInteger(root, elementNameMin, true).Value, GetInteger(root, elementNameMax, true).Value);
+        private static Range1i? TryGetIntegerRange(XElement root, string elementNameMin, string elementNameMax)
+        {
+            var min = GetInteger(root, elementNameMin, false);
+            var max = GetInteger(root, elementNameMax, false);
+
+            return min.HasValue
+                ? (max.HasValue
+                    ? new Range1i(min.Value, max.Value)
+                    : throw new Exception($"[E57] Element <{elementNameMax}> is required! In {root}.")
+                    )
+                : (max.HasValue
+                    ? throw new Exception($"[E57] Element <{elementNameMin}> is required! In {root}.")
+                    : (Range1i?)null
+                    )
+                ;
+        }
         private static Range1d GetFloatRange(XElement root, string elementNameMin, string elementNameMax)
             => new Range1d(GetFloat(root, elementNameMin, true).Value, GetFloat(root, elementNameMax, true).Value);
+        private static Range1d? TryGetFloatRange(XElement root, string elementNameMin, string elementNameMax)
+        {
+            var min = GetFloat(root, elementNameMin, false);
+            var max = GetFloat(root, elementNameMax, false);
+
+            return min.HasValue
+                ? (max.HasValue
+                    ? new Range1d(min.Value, max.Value)
+                    : throw new Exception($"[E57] Element <{elementNameMax}> is required! In {root}.")
+                    )
+                : (max.HasValue
+                    ? throw new Exception($"[E57] Element <{elementNameMin}> is required! In {root}.")
+                    : (Range1d?)null
+                    )
+                ;
+        }
         private static Range1d GetRange(XElement root, string elementNameMin, string elementNameMax)
             => new Range1d(GetFloatOrInteger(root, elementNameMin, true).Value, GetFloatOrInteger(root, elementNameMax, true).Value);
         private static V3d GetTranslation(XElement root)
@@ -2403,13 +2492,13 @@ namespace Aardvark.Data.E57
 
         private static E57PhysicalOffset GetPhysicalOffsetAttribute(XElement root, string elementName) => new E57PhysicalOffset(long.Parse(root.Attribute(elementName).Value));
         private static long GetLongAttribute(XElement root, string elementName) => long.Parse(root.Attribute(elementName).Value);
-        private static long? GetOptionalLongAttribute(XElement root, string elementName)
+        private static long? TryGetLongAttribute(XElement root, string elementName)
         {
             var a = root.Attribute(elementName);
             return (a != null) ? long.Parse(a.Value) : (long?)null;
         }
         private static double GetFloatAttribute(XElement root, string elementName) => double.Parse(root.Attribute(elementName).Value, CultureInfo.InvariantCulture);
-        private static double? GetOptionalFloatAttribute(XElement root, string elementName)
+        private static double? TryGetFloatAttribute(XElement root, string elementName)
         {
             var a = root.Attribute(elementName);
             return (a != null) ? double.Parse(a.Value, CultureInfo.InvariantCulture) : (double?)null;

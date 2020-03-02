@@ -316,6 +316,23 @@ namespace Aardvark.Geometry.Points
 
         #region query cell columns (2d)
 
+        internal class CellQueryResult2dCache
+        {
+            public Box2i Size { get; private set; }
+            public Dictionary<int, Dictionary<Cell2d, Chunk>> Cache { get; }
+
+            public void UpdateSize(Box2i kernelSize)
+            {
+                Size = Size.ExtendedBy(kernelSize);
+            }
+
+            public CellQueryResult2dCache()
+            {
+                Size = Box2i.Invalid;
+                Cache = new Dictionary<int, Dictionary<Cell2d, Chunk>>();
+            }
+        }
+
         /// <summary>
         /// </summary>
         public class CellQueryResult2d
@@ -377,26 +394,60 @@ namespace Aardvark.Geometry.Points
                         nameof(fromRelativeDepth)
                         );
 
+                Dictionary<Cell2d, Chunk> cache;
+                lock (Cache)
+                {
+                    Cache.UpdateSize(outer);
+                    if (!Cache.Cache.TryGetValue(fromRelativeDepth, out cache))
+                        cache = Cache.Cache[fromRelativeDepth] = new Dictionary<Cell2d, Chunk>();
+                }
+
+                //var cacheHits = 0;
+                //var cacheMisses = 0;
+
+                inner += new V2i(Cell.X, Cell.Y);
+                outer += new V2i(Cell.X, Cell.Y);
                 for (var x = outer.Min.X; x <= outer.Max.X; x++)
                 {
                     for (var y = outer.Min.Y; y <= outer.Max.Y; y++)
                     {
                         if (excludeInnerCells && inner.Contains(new V2i(x, y))) continue;
-                        var c = new Cell2d(Cell.X + x, Cell.Y + y, Cell.Exponent);
-                        var chunks = Root.CollectColumnXY(c, fromRelativeDepth);
-                        foreach (var chunk in chunks) yield return chunk;
+                        var c = new Cell2d(x, y, Cell.Exponent);
+
+                        if (!cache.TryGetValue(c, out var chunks))
+                        {
+                            chunks = Chunk.ImmutableMerge(Root.CollectColumnXY(c, fromRelativeDepth).ToArray());
+                            lock (Cache) cache[c] = chunks;
+                            //cacheMisses++;
+                        }
+                        else
+                        {
+                            //cacheHits++;
+                        }
+
+                        yield return chunks;
                     }
                 }
+                lock (Cache)
+                {
+                    var foo = Cache.Size + new V2i(Cell.X, Cell.Y);
+                    var ks = cache.Keys.Where(k => !foo.Contains(new V2i(k.X, k.Y))).ToArray();
+                    foreach (var k in ks) cache.Remove(k);
+                }
+                //Report.Warn($"hits = {cacheHits,2}, misses = {cacheMisses,2}");
             }
 
             /// <summary>
             /// Represents a cell 'resultCell' inside an octree ('root').
             /// </summary>
-            internal CellQueryResult2d(IPointCloudNode root, Cell2d resultCell)
+            internal CellQueryResult2d(IPointCloudNode root, Cell2d resultCell, CellQueryResult2dCache cache)
             {
                 Root = root ?? throw new ArgumentNullException(nameof(root));
                 Cell = resultCell;
+                Cache = cache ?? throw new ArgumentNullException(nameof(cache));
             }
+
+            private CellQueryResult2dCache Cache { get; }
         }
 
         /// <summary>
@@ -439,6 +490,7 @@ namespace Aardvark.Geometry.Points
                 $"Stride must be positive, but is {stride}. Invariant 6b7a86a4-6bde-41f1-9af8-e7dc75177e68."
                 );
 
+            var cache = new CellQueryResult2dCache();
             var bounds = root.Cell.GetRasterBounds(cellExponent);
             for (var x = bounds.Min.X; x <= bounds.Max.X; x++)
             {
@@ -446,11 +498,115 @@ namespace Aardvark.Geometry.Points
                 for (var y = bounds.Min.Y; y <= bounds.Max.Y; y++)
                 {
                     if (y % stride.Y != 0) continue;
-                    yield return new CellQueryResult2d(root, new Cell2d(x, y, cellExponent));
+                    yield return new CellQueryResult2d(root, new Cell2d(x, y, cellExponent), cache);
                 }
             }
         }
 
+        private static IEnumerable<Cell2d> EnumerateCells2d(this IPointCloudNode root, int cellExponent, V2i stride)
+        {
+            if (root == null) yield break;
+
+            if (root.PointCountTree == 0) 
+                throw new InvalidOperationException("Invariant 8e03ba15-4efd-446b-84da-839cfc1a6c20.");
+
+            if (root.Cell.Exponent < cellExponent) 
+                throw new InvalidOperationException("Invariant 472f1a3f-ce36-432c-b9a4-45273c98f230.");
+
+            if (root.IsLeaf)
+            {
+                if (root.Cell.Exponent > cellExponent)
+                {
+                    // subdivide leaf ...
+                    throw new NotImplementedException("subdivide leaf ...");
+                }
+                else
+                {
+                    if (root.Cell.Exponent != cellExponent)
+                        throw new InvalidOperationException("Invariant 2b1a686d-0e95-4263-ade4-47d1202183be.");
+
+                    if (root.Cell.X % stride.X == 0 && root.Cell.Y % stride.Y == 0)
+                        yield return new Cell2d(root.Cell.X, root.Cell.Y, root.Cell.Exponent);
+                    else
+                        yield break;
+                }
+            }
+            else
+            {
+                // inner node ...
+                var c0a = root.Subnodes[0]?.Value;
+                var c0b = root.Subnodes[4]?.Value;
+
+                throw new NotImplementedException("inner node ...");
+            }
+        }
+
         #endregion
+
+        public class ColZ
+        {
+            public Cell2d Footprint { get; }
+            public IPointCloudNode[] Nodes { get; }
+            public Chunk Rest { get; }
+
+            public ColZ(IPointCloudNode n)
+            {
+                Footprint = new Cell2d(n.Cell.X, n.Cell.Y, n.Cell.Exponent);
+                Nodes = new [] { n ?? throw new ArgumentNullException(nameof(n)) };
+                Rest = Chunk.Empty;
+            }
+
+            private ColZ(Cell2d footprint, IPointCloudNode[] nodes, Chunk rest)
+            {
+                Footprint = footprint;
+                Nodes = nodes ?? throw new ArgumentNullException(nameof(nodes));
+                Rest = rest;
+
+#if DEBUG
+                Cell2d GetFootprintZ(Cell c) => new Cell2d(c.X, c.Y, c.Exponent);
+                if (!nodes.All(n => GetFootprintZ(n.Cell) == footprint)) throw new InvalidOperationException();
+                var bb = footprint.BoundingBox;
+                if (!rest.Positions.All(p => bb.Contains(p.XY))) throw new InvalidOperationException();
+#endif
+            }
+
+            public bool IsEmpty => Nodes.Length == 0 && Rest.IsEmpty;
+
+            public ColZ[] Split()
+            {
+                var nss = new List<IPointCloudNode>[4].SetByIndex(_ => new List<IPointCloudNode>());
+                foreach (var n in Nodes.Where(n => !n.IsLeaf))
+                {
+                    for (var i = 0; i < 8; i++)
+                    {
+                        var x = n.Subnodes[i]?.Value;
+                        if (x != null) nss[i & 0b011].Add(x);
+
+                    }
+                }
+
+                var c = Footprint.GetCenter();
+                var rs = Rest
+                    .ImmutableMergeWith(Nodes.Where(n => n.IsLeaf).Select(n => n.ToChunk()))
+                    .SplitBy((chunk, i) => oct(c, chunk.Positions[i].XY))
+                    ;
+
+                return new ColZ[4].SetByIndex(i =>
+                    (nss[i].Count > 0 || rs.ContainsKey(i))
+                    ? new ColZ(
+                        Footprint.GetOctant(i),
+                        nss[i].Count > 0 ? nss[i].ToArray() : Array.Empty<IPointCloudNode>(),
+                        rs.GetValueOrDefault(i, Chunk.Empty)
+                        )
+                    : null
+                    );
+
+                static int oct(V2d center, V2d p)
+                {
+                    var i = p.X > center.X ? 1 : 0;
+                    return p.Y > center.Y ? i | 2 : i;
+                }
+            }
+        }
     }
 }
