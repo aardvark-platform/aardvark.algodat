@@ -675,8 +675,8 @@ namespace Aardvark.Geometry
             foreach (var id in indexDistList) yield return id.Index;
         }
 
-        public static IEnumerable<Vec<T>> Points<T>(
-                this List<IndexDist<T>> indexDistList, VecArray<T> va)
+        public static IEnumerable<Vector<T>> Points<T>(
+                this List<IndexDist<T>> indexDistList, Vector<T>[] va)
             where T : IComparable<T>
         {
             foreach (var id in indexDistList) yield return va[id.Index];
@@ -694,8 +694,8 @@ namespace Aardvark.Geometry
             return indexDists.Select(v => v.Index);
         }
 
-        public static IEnumerable<Vec<T>> Points<T>(
-                this IEnumerable<IndexDist<T>> indexDists, VecArray<T> va)
+        public static IEnumerable<Vector<T>> Points<T>(
+                this IEnumerable<IndexDist<T>> indexDists, Vector<T>[] va)
             where T : IComparable<T>
         {
             return indexDists.Select(v => va[v.Index]);
@@ -725,13 +725,12 @@ namespace Aardvark.Geometry
             return array;
         }
 
-        public static VecArray<T> PointArray<T>(
-                this List<IndexDist<T>> indexDistList, VecArray<T> va)
+        public static Vector<T>[] PointArray<T>(
+                this List<IndexDist<T>> indexDistList, Vector<T>[] va)
             where T : IComparable<T>
         {
-            var dim = va.Dim;
             var count = indexDistList.Count;
-            var array = new VecArray<T>(dim, count);
+            var array = new Vector<T>[count];
             array.SetByIndex(i => va[indexDistList[(int)i].Index]);
             return array;
         }

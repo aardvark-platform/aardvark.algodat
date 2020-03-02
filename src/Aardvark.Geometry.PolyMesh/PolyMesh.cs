@@ -1966,7 +1966,7 @@ namespace Aardvark.Geometry
 
         #region IBoundingBox3d Members
 
-        public Box3d BoundingBox3d => VertexIndexArray.GetBoundingBox3d(VertexIndexCount, PositionArray);
+        public Box3d BoundingBox3d => VertexIndexArray.GetBoundingBox(VertexIndexCount, PositionArray);
 
         #endregion
 
@@ -3658,7 +3658,7 @@ namespace Aardvark.Geometry
             {
                 V3d p0 = pa[via[fvi++]], p1 = pa[via[fvi++]], p2 = pa[via[fvi++]];
                 V3d e0 = p1 - p0, e1 = p2 - p0;
-                var n0 = V3d.Cross(e0, e1);
+                var n0 = Vec.Cross(e0, e1);
                 var normal = n0;
                 var a0 = n0.Length;
                 var area = a0;
@@ -3667,9 +3667,9 @@ namespace Aardvark.Geometry
                 {
                     p1 = p2; p2 = pa[via[fvi]];
                     e0 = e1; e1 = p2 - p0;
-                    var n = V3d.Cross(e0, e1);
+                    var n = Vec.Cross(e0, e1);
                     normal += n;
-                    var a = V3d.Dot(n0, n) > 0 ? n.Length : -n.Length;
+                    var a = Vec.Dot(n0, n) > 0 ? n.Length : -n.Length;
                     area += a;
                     centroid += (p0 + p1 + p2) * a;
                 }
@@ -3722,7 +3722,7 @@ namespace Aardvark.Geometry
                     for (int fve = fia[fi + 1]; fvi < fve; fvi++)
                     {
                         var e1 = pa[via[fvi]] - p0;
-                        normal += V3d.Cross(e0, e1);
+                        normal += Vec.Cross(e0, e1);
                         e0 = e1;
                     }
                     var len2 = normal.LengthSquared;
@@ -3844,7 +3844,7 @@ namespace Aardvark.Geometry
                                 if (nai >= 0) break;
                                 // check crease angle
                                 V3d nn = faceNormals[fr.Index];
-                                if (V3d.Dot(n, nn) < creaseDotProduct) break;
+                                if (Vec.Dot(n, nn) < creaseDotProduct) break;
                                 // record crease normal
                                 nia[nfvi] = ai;
                                 n = nn;
@@ -3876,7 +3876,7 @@ namespace Aardvark.Geometry
                                 int nai = nia[nfvi];
                                 if (nai >= 0) break;
                                 V3d nn = faceNormals[fr.Index];
-                                if (V3d.Dot(n, nn) < creaseDotProduct) break;
+                                if (Vec.Dot(n, nn) < creaseDotProduct) break;
                                 nia[nfvi] = ai;
                                 n = nn;
                                 er = EdgeRef_PlusOne_OfFaceRef(fr); // next edge in winding order
@@ -3967,9 +3967,9 @@ namespace Aardvark.Geometry
                             && v20len > Constant<double>.PositiveTinyValue
                             && v21len > Constant<double>.PositiveTinyValue)
                         {
-                            alpha0 = Fun.Acos(V3d.Dot(v10, v20) / (v10len * v20len));
-                            alpha1 = Fun.Acos(-V3d.Dot(v10, v21) / (v10len * v21len));
-                            alpha2 = Fun.Acos(V3d.Dot(v20, v21) / (v20len * v21len));
+                            alpha0 = Fun.Acos(Vec.Dot(v10, v20) / (v10len * v20len));
+                            alpha1 = Fun.Acos(-Vec.Dot(v10, v21) / (v10len * v21len));
+                            alpha2 = Fun.Acos(Vec.Dot(v20, v21) / (v20len * v21len));
                         }
                     }
 
@@ -4052,9 +4052,9 @@ namespace Aardvark.Geometry
                             && v20len > Constant<double>.PositiveTinyValue
                             && v21len > Constant<double>.PositiveTinyValue)
                         {
-                            alpha0 = Fun.Acos(V3d.Dot(v10, v20) / (v10len * v20len));
-                            alpha1 = Fun.Acos(-V3d.Dot(v10, v21) / (v10len * v21len));
-                            alpha2 = Fun.Acos(V3d.Dot(v20, v21) / (v20len * v21len));
+                            alpha0 = Fun.Acos(Vec.Dot(v10, v20) / (v10len * v20len));
+                            alpha1 = Fun.Acos(-Vec.Dot(v10, v21) / (v10len * v21len));
+                            alpha2 = Fun.Acos(Vec.Dot(v20, v21) / (v20len * v21len));
                         }
                     }
 
@@ -4092,7 +4092,7 @@ namespace Aardvark.Geometry
     {
         #region Collections
 
-        public static Box3d GetBoundingBox3d(this IEnumerable<PolyMesh> polyMeshes)
+        public static Box3d GetBoundingBox(this IEnumerable<PolyMesh> polyMeshes)
             => new Box3d(polyMeshes.Select(m => m.BoundingBox3d));
 
         public static PolyMesh[] Transformed(

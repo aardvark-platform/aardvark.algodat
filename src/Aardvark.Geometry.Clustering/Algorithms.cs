@@ -66,9 +66,9 @@ namespace Aardvark.Geometry.Clustering
         /// average vec distance is not too much smaller than the given
         /// delta.
         /// </summary>
-        public VecClustering(VecArray<double> va, double delta)
+        public VecClustering(Matrix<double> va, double delta)
         {
-            var count = (int)va.Count;
+            var count = (int)va.Dim.X;
             Alloc(count);
             var ca = m_indexArray;
             var sa = new int[count].Set(1);
@@ -78,7 +78,7 @@ namespace Aardvark.Geometry.Clustering
             {
                 int ci = ca[i]; if (ca[ci] != ci) { do { ci = ca[ci]; } while (ca[ci] != ci); ca[i] = ci; }
                 int si = sa[ci];
-                foreach (var id in kdTree.GetClosest(query, va[i]))
+                foreach (var id in kdTree.GetClosest(query, va.Col(i)))
                 {
                     int j = (int)id.Index;
                     int cj = ca[j]; if (ca[cj] != cj) { do { cj = ca[cj]; } while (ca[cj] != cj); ca[j] = cj; }
@@ -214,7 +214,7 @@ namespace Aardvark.Geometry.Clustering
                     foreach (var j in dict.ValuesWithKey(ha[hi]))
                     {
                         int cj = ca[j]; if (ca[cj] != cj) { do { cj = ca[cj]; } while (ca[cj] != cj); ca[j] = cj; }
-                        if (ci == cj || V3d.DistanceSquared(p, pa[j]) >= eps2) continue;
+                        if (ci == cj || Vec.DistanceSquared(p, pa[j]) >= eps2) continue;
                         bit >>= 1; if (bit == 0) { rndBits = rnd.UniformInt(); bit = 1 << 30; }
                         if ((rndBits & bit) != 0) { ca[ci] = cj; ca[i] = cj; ci = cj; }
                         else { ca[cj] = ci; ca[j] = ci; }
@@ -293,7 +293,7 @@ namespace Aardvark.Geometry.Clustering
                     foreach (var j in dict.ValuesWithKey(ha[hi]))
                     {
                         int cj = ca[j]; if (ca[cj] != cj) { do { cj = ca[cj]; } while (ca[cj] != cj); ca[j] = cj; }
-                        if (ci == cj || V3d.DistanceSquared(p, get(pa, j)) >= eps2) continue;
+                        if (ci == cj || Vec.DistanceSquared(p, get(pa, j)) >= eps2) continue;
                         bit >>= 1; if (bit == 0) { rndBits = rnd.UniformInt(); bit = 1 << 30; }
                         if ((rndBits & bit) != 0) { ca[ci] = cj; ca[i] = cj; ci = cj; }
                         else { ca[cj] = ci; ca[j] = ci; }
@@ -382,7 +382,7 @@ namespace Aardvark.Geometry.Clustering
                         int cj = ca[j]; if (ca[cj] != cj) { do { cj = ca[cj]; } while (ca[cj] != cj); ca[j] = cj; }
                         if (ci == cj) continue;
                         var dd = Fun.Square(di - getDist(pa, j)); if (dd >= de2) continue;
-                        var dn = V3d.DistanceSquared(ni, getNormal(pa, j)); if (dn >= ne2) continue;
+                        var dn = Vec.DistanceSquared(ni, getNormal(pa, j)); if (dn >= ne2) continue;
                         var d = dn + dd; if (d < dmin) dmin = d;
                         bit >>= 1; if (bit == 0) { rnd.UniformInt(); bit = 1 << 30; }
                         if ((rndBits & bit) != 0) { ca[ci] = cj; ca[i] = cj; ci = cj; }

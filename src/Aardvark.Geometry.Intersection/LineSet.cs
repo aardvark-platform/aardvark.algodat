@@ -114,7 +114,7 @@ namespace Aardvark.Geometry
             {
                 int index = objectIndexArray[i];
                 V3d p = query.GetClosestPointOn(Lines[index]);
-                double d2 = V3d.DistanceSquared(query, p);
+                double d2 = Vec.DistanceSquared(query, p);
                 if (d2 < closest.DistanceSquared)
                     result = closest.Set(d2, p, this, index);
             }

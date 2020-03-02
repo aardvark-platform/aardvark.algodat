@@ -5,9 +5,9 @@ source https://api.nuget.org/v3/index.json
 nuget FSharp.Core                       ~> 4.6.2
 
 // aardvark.base
-nuget Aardvark.Base                     ~> 5.0.0-prerelease
-nuget Aardvark.Geometry                 ~> 5.0.0-prerelease
-nuget Aardvark.Base.IO                  ~> 5.0.0-prerelease
+nuget Aardvark.Base                     ~> 5.0.0-prerelease0010
+nuget Aardvark.Geometry                 ~> 5.0.0-prerelease0010
+nuget Aardvark.Base.IO                  ~> 5.0.0-prerelease0010
 
 // aardvark.rendering
 nuget Aardvark.Base.Rendering           ~> 5.0.0-prerelease

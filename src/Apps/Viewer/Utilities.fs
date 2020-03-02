@@ -50,7 +50,7 @@ module ShapeList =
         }
         
     let union (l : ShapeList) (r : ShapeList) =
-        let bounds = Box2d.Union(l.bounds, r.bounds)
+        let bounds = Box.Union(l.bounds, r.bounds)
         let renderTrafo = Trafo3d.Translation(V3d(bounds.Center.X, 0.0, 0.0))
         
         let lShapes =
@@ -75,7 +75,7 @@ module ShapeList =
             bounds = bounds
             renderTrafo = renderTrafo
             concreteShapes = lShapes @ rShapes
-            zRange = Range1i.Union(l.zRange, r.zRange)
+            zRange = Range.Union(l.zRange, r.zRange)
             flipViewDependent = l.flipViewDependent && r.flipViewDependent
             renderStyle = RenderStyle.Normal
         }
@@ -97,7 +97,7 @@ module ShapeList =
                 | h :: rest ->
                     match h.shape with
                     | :? Glyph as g when g.Character = str.[i] ->
-                        tryReplaceFront str (i + 1) (Box2d.Union(current, h.bounds)) rest
+                        tryReplaceFront str (i + 1) (Box.Union(current, h.bounds)) rest
                     | _ ->
                         None
                      

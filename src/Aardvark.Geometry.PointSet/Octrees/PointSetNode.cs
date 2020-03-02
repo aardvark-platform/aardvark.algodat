@@ -325,7 +325,7 @@ namespace Aardvark.Geometry.Points
             //        }
             //        else if (ps.Length == 3)
             //        {
-            //            var d = V3f.Distance(ps[0], ps[1]);
+            //            var d = Vec.Distance(ps[0], ps[1]);
             //            if (!HasPointDistanceAverage)
             //            {
             //                Data = Data.Add(Durable.Octree.AveragePointDistance, d);
@@ -338,7 +338,7 @@ namespace Aardvark.Geometry.Points
             //        else
             //        {
             //            var indexDists = ps.Map(p => kd.GetClosest(p, float.MaxValue, 2));
-            //            var ds = indexDists.Map(x => V3f.Distance(ps[x[0].Index], ps[x[1].Index]));
+            //            var ds = indexDists.Map(x => Vec.Distance(ps[x[0].Index], ps[x[1].Index]));
             //            var (avg, sd) = ds.ComputeAvgAndStdDev();
             //            if (!HasPointDistanceAverage)
             //            {
@@ -387,8 +387,8 @@ namespace Aardvark.Geometry.Points
                 return new PointRkdTreeF<V3f[], V3f>(
                     3, ps.Length, ps,
                     (xs, i) => xs[(int)i], (v, i) => (float)v[i],
-                    (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
-                    (a, b, c) => VecFun.DistanceToLine(a, b, c), Fun.Lerp, 1e-6f,
+                    (a, b) => Vec.Distance(a, b), (i, a, b) => b - a,
+                    (a, b, c) => Vec.DistanceToLine(a, b, c), Fun.Lerp, 1e-6f,
                     value
                     );
             }
@@ -401,8 +401,8 @@ namespace Aardvark.Geometry.Points
                 return (true, new PointRkdTreeF<V3f[], V3f>(
                     3, ps.Length, ps,
                     (xs, i) => xs[(int)i], (v, i) => (float)v[i],
-                    (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
-                    (a, b, c) => VecFun.DistanceToLine(a, b, c), Fun.Lerp, 1e-6f,
+                    (a, b) => Vec.Distance(a, b), (i, a, b) => b - a,
+                    (a, b, c) => Vec.DistanceToLine(a, b, c), Fun.Lerp, 1e-6f,
                     value
                     ));
             }
@@ -414,8 +414,8 @@ namespace Aardvark.Geometry.Points
                 return new PointRkdTreeF<V3f[], V3f>(
                     3, ps.Length, ps,
                     (xs, i) => xs[(int)i], (v, i) => (float)v[i],
-                    (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
-                    (a, b, c) => VecFun.DistanceToLine(a, b, c), Fun.Lerp, 1e-6f,
+                    (a, b) => Vec.Distance(a, b), (i, a, b) => b - a,
+                    (a, b, c) => Vec.DistanceToLine(a, b, c), Fun.Lerp, 1e-6f,
                     value
                     );
             }
@@ -428,8 +428,8 @@ namespace Aardvark.Geometry.Points
                 return (true, new PointRkdTreeF<V3f[], V3f>(
                     3, ps.Length, ps,
                     (xs, i) => xs[(int)i], (v, i) => (float)v[i],
-                    (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
-                    (a, b, c) => VecFun.DistanceToLine(a, b, c), Fun.Lerp, 1e-6f,
+                    (a, b) => Vec.Distance(a, b), (i, a, b) => b - a,
+                    (a, b, c) => Vec.DistanceToLine(a, b, c), Fun.Lerp, 1e-6f,
                     value
                     ));
             }
@@ -917,8 +917,8 @@ namespace Aardvark.Geometry.Points
             var kdTree = new PointRkdTreeF<V3f[], V3f>(
                 3, ps.Length, ps,
                 (xs, i) => xs[(int)i], (v, i) => (float)v[i],
-                (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
-                (a, b, c) => VecFun.DistanceToLine(a, b, c), Fun.Lerp, 0.000001f
+                (a, b) => Vec.Distance(a, b), (i, a, b) => b - a,
+                (a, b, c) => Vec.DistanceToLine(a, b, c), Fun.Lerp, 0.000001f
                 );
             Guid kdId = Guid.NewGuid();
             storage.Add(kdId, kdTree.Data);

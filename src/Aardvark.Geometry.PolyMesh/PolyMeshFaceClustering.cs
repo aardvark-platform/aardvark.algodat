@@ -280,7 +280,7 @@ namespace Aardvark.Geometry
                 pl.Clear();
                 int fve = fia[fi + 1], fvc = fve - fvi;
                 for (int i = fvi; i < fve; i++) pl.Add(pa[via[i++]]);
-                pl.QuickSort(V3d.LexicalCompare);
+                pl.QuickSort(Vec.LexicalCompare);
                 int hashCode = fvc;
                 foreach (var p in pl) hashCode = HashCode.Combine(hashCode, p.HashCode1(epsilon));
                 int ci = ca[fi]; if (ca[ci] != ci) { do { ci = ca[ci]; } while (ca[ci] != ci); ca[fi] = ci; }
@@ -342,7 +342,7 @@ namespace Aardvark.Geometry
             for (int fi = 0; fi < faceCount; fi++)
             {
                 V3d normal = normalArray[fi], centroid = centroidArray[fi];
-                double n_dot_p = V3d.Dot(normal, centroid);
+                double n_dot_p = Vec.Dot(normal, centroid);
 
                 uint normalCode = normalCoder.Encode((V3f)normal);
                 int distanceCode = (int)(distanceScale * n_dot_p);
@@ -471,7 +471,7 @@ namespace Aardvark.Geometry
                 for (int fi = 0; fi < faceCount; fi++)
                 {
                     var sheet = sheetArray[cia[fi]];
-                    if (sheet != null && V3d.Dot(sheet.Normal, faceNormalArray[fi]) < cosLimit)
+                    if (sheet != null && Vec.Dot(sheet.Normal, faceNormalArray[fi]) < cosLimit)
                         sheet.Normal = V3d.FromCubeFaceCode(faceNormalCodeArray[fi]);
                 }
 

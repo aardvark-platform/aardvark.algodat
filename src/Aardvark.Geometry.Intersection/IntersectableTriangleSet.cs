@@ -78,7 +78,7 @@ namespace Aardvark.Geometry
                 {
                     GetTriangle(id, out V3d p0, out V3d p1, out V3d p2);
                     var p = queryPoint.GetClosestPointOnTriangle(p0, p1, p2);
-                    var d = V3d.DistanceSquared(p, queryPoint);
+                    var d = Vec.DistanceSquared(p, queryPoint);
 
                     if (d < minDist2)
                     {

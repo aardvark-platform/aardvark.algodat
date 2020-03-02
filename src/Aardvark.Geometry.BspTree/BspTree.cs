@@ -479,7 +479,7 @@ namespace Aardvark.Geometry
 
             V3d e0 = tr.P1 - tr.P0;
             V3d e1 = tr.P2 - tr.P0;
-            V3d n = V3d.Cross(e0, e1);
+            V3d n = Vec.Cross(e0, e1);
             double len2 = n.LengthSquared;
             if (len2 > 0.0)
                 AddTriangle(builder, tiMul3, ref tr,
@@ -500,9 +500,9 @@ namespace Aardvark.Geometry
         internal void AddTriangle(
             BspTreeBuilder builder, int tiMul3, ref Triangle3d tr, V3d normal)
         {
-            var htr = (V3d.Dot(m_normal, tr.P0 - m_point),
-                       V3d.Dot(m_normal, tr.P1 - m_point),
-                       V3d.Dot(m_normal, tr.P2 - m_point));
+            var htr = (Vec.Dot(m_normal, tr.P0 - m_point),
+                       Vec.Dot(m_normal, tr.P1 - m_point),
+                       Vec.Dot(m_normal, tr.P2 - m_point));
             var signs = new[] { htr.Item1, htr.Item2, htr.Item3 }.AggregateSigns(builder.m_absoluteEpsilon);
 
             if (signs == Signs.Zero)
@@ -544,7 +544,7 @@ namespace Aardvark.Geometry
                     if (startPositive != endPositive)
                     {
                         V3d direction = endPoint - startPoint;
-                        double t = -startHeight / V3d.Dot(m_normal,
+                        double t = -startHeight / Vec.Dot(m_normal,
                                                     direction);
                         V3d newPoint = startPoint + t * direction;
 
@@ -570,7 +570,7 @@ namespace Aardvark.Geometry
                 if (startPositive != firstPositive)
                 {
                     V3d direction = firstPoint - startPoint;
-                    double t = -startHeight / V3d.Dot(m_normal,
+                    double t = -startHeight / Vec.Dot(m_normal,
                                                 direction);
                     V3d newPoint = startPoint + t * direction;
 
@@ -694,7 +694,7 @@ namespace Aardvark.Geometry
             int ti3, V3d eye, bool mainTask, Action<Action> runChild)
         {
             int nti3 = ti3;
-            double height = V3d.Dot(m_normal, eye - m_point);
+            double height = Vec.Dot(m_normal, eye - m_point);
             if (height >= 0.0)
             {
                 ti3 += m_negativeCount;
@@ -760,7 +760,7 @@ namespace Aardvark.Geometry
             int ti3, V3d eye, bool mainTask, Action<Action> runChild)
         {
             int nti3 = ti3;
-            double height = V3d.Dot(m_normal, eye - m_point);
+            double height = Vec.Dot(m_normal, eye - m_point);
             if (height < 0.0)
             {
                 ti3 += m_negativeCount;
@@ -829,7 +829,7 @@ namespace Aardvark.Geometry
             int ti, V3d eye, bool mainTask, Action<Action> runChild)
         {
             int nti = ti;
-            double height = V3d.Dot(m_normal, eye - m_point);
+            double height = Vec.Dot(m_normal, eye - m_point);
             if (height >= 0.0)
             {
                 ti += m_negativeCount;
@@ -899,7 +899,7 @@ namespace Aardvark.Geometry
             int ti, V3d eye, bool mainTask, Action<Action> runChild)
         {
             int nti = ti;
-            double height = V3d.Dot(m_normal, eye - m_point);
+            double height = Vec.Dot(m_normal, eye - m_point);
             if (height < 0.0)
             {
                 ti += m_negativeCount;

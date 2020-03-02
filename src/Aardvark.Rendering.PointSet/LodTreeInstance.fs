@@ -247,7 +247,7 @@ module LodTreeInstance =
                 if l.Count > 1 then
                     let mutable minDist = Double.PositiveInfinity
                     for l in l do
-                        let dist = V3f.Distance(positions.[int l.Index], positions.[i])
+                        let dist = Vec.Distance(positions.[int l.Index], positions.[i])
                         if dist > 0.0f then
                             minDist <- min (float dist) minDist
                     if not (Double.IsInfinity minDist) then
@@ -1352,8 +1352,8 @@ module PointSetShaders =
             let d = uniform.ViewTrafoInv * V4d(v.vp, 0.0) |> Vec.xyz |> Vec.normalize
             //let cp = uniform.ViewTrafoInv.C3.XYZ
             
-            let rc = env.Sample(Vec.reflect d wn).XYZ
-            let tc = env.Sample(Vec.refract d wn 0.9).XYZ
+            let rc = env.Sample(Vec.reflect wn d).XYZ
+            let tc = env.Sample(Vec.refract 0.9 wn d).XYZ
 
             let ec = 0.8 * tc + 0.05 * rc + 0.15 * v.col.XYZ
             

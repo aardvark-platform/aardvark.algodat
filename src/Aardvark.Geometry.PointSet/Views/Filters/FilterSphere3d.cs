@@ -34,7 +34,7 @@ namespace Aardvark.Geometry.Points
 
         public bool Contains(V3d pt)
         {
-            return V3d.DistanceSquared(m_sphere.Center, pt) <= m_radiusSquared;
+            return Vec.DistanceSquared(m_sphere.Center, pt) <= m_radiusSquared;
         }
 
         /// <summary></summary>

@@ -974,8 +974,8 @@ namespace Aardvark.Geometry
 
                     if (inParams.BoxArray != null)
                     {
-                        lObjBox = Box3d.Intersection(lObjBox, lBox);
-                        rObjBox = Box3d.Intersection(rObjBox, rBox);
+                        lObjBox = Box.Intersection(lObjBox, lBox);
+                        rObjBox = Box.Intersection(rObjBox, rBox);
 
                         if (lObjBox.IsValid)
                         {

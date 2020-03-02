@@ -518,7 +518,7 @@ module Rendering =
             | _ -> 
                 let bb = pc.root.WorldBoundingBox
                 bb.Max, bb.Center
-        let speed = Mod.init 10.0
+        let speed = AVal.init 10.0
         win.Keyboard.DownWithRepeats.Values.Add(function
             | Keys.PageUp -> transact(fun () -> speed.Value <- speed.Value * 1.5)
             | Keys.PageDown -> transact(fun () -> speed.Value <- speed.Value / 1.5)

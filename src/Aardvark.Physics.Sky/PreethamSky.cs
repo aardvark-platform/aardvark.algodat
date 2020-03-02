@@ -137,7 +137,7 @@ namespace Aardvark.Physics.Sky
         public C3d Preetham(V3d viewVec)
         {
             var theta = Fun.Acos(viewVec.Z);
-            var gamma = Fun.Acos(Fun.Clamp(V3d.Dot(viewVec, SunVec), -1, 1)); // clamp range: even dot-product of normalized vectors can be >1 caused by numerical inaccuracies -> Acos not defined for >1
+            var gamma = Fun.Acos(Fun.Clamp(Vec.Dot(viewVec, SunVec), -1, 1)); // clamp range: even dot-product of normalized vectors can be >1 caused by numerical inaccuracies -> Acos not defined for >1
 
             // Yz: zenith luminance in kcd/m²
             var Y = m_Yz * F(s_ABCDE_Y, s_ABCDET_Y, m_turbidity, theta, SunTheta, gamma);

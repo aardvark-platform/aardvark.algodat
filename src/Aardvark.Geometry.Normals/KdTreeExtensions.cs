@@ -29,8 +29,8 @@ namespace Aardvark.Geometry
             => new PointRkdTreeF<V3f[], V3f>(
                     3, points.Length, points,
                     (xs, i) => xs[(int)i], (v, i) => (float)v[i],
-                    (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
-                    (a, b, c) => VecFun.DistanceToLine(a, b, c), Fun.Lerp, 1e-6f,
+                    (a, b) => Vec.Distance(a, b), (i, a, b) => b - a,
+                    (a, b, c) => Vec.DistanceToLine(a, b, c), Fun.Lerp, 1e-6f,
                     data
                     );
 
@@ -44,8 +44,8 @@ namespace Aardvark.Geometry
             return new PointRkdTreeF<V3f[], V3f>(
                 3, points.Length, points,
                 (xs, i) => xs[(int)i], (v, i) => (float)v[i],
-                (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
-                (a, b, c) => VecFun.DistanceToLine(a, b, c), Fun.Lerp, kdTreeEps
+                (a, b) => Vec.Distance(a, b), (i, a, b) => b - a,
+                (a, b, c) => Vec.DistanceToLine(a, b, c), Fun.Lerp, kdTreeEps
                 );
         }
 

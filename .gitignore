@@ -15,6 +15,7 @@ bin/
 obj/
 **/Aardvark.log*
 **/*.csproj.user
+**/*_generator.cs
 /src/Aardvark.log
 **/teststore*
 /test.pts
