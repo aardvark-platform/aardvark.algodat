@@ -435,6 +435,16 @@ namespace Aardvark.Data
             Encode(stream, def, x);
         }
 
+        /// <summary>
+        /// Serializes value x to stream. 
+        /// Can be deserialized with Deserialize.
+        /// </summary>
+        public static void Serialize<T>(Stream stream, Durable.Def def, T x)
+        {
+            using var bw = new BinaryWriter(stream);
+            Serialize(bw, def, x);
+        }
+
 
         /// <summary>
         /// Deserializes value from stream.

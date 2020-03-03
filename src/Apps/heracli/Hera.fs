@@ -5,6 +5,7 @@ open Aardvark.Base
 open Aardvark.Data
 open Aardvark.Data.Points
 open Aardvark.Data.Points.Import
+open Aardvark.Geometry
 open Aardvark.Geometry.Points
 open SharpCompress.Readers
 open System
@@ -133,26 +134,14 @@ module Hera =
             Ascii.Token.VelocityX; Ascii.Token.VelocityY; Ascii.Token.VelocityZ
             |]
 
-        let chunks = Ascii.Chunks(stream, -1L, lineDef, ParseConfig.Default)
+        let chunks = Ascii.Chunks(stream, -1L, lineDef, ParseConfig.Default).ToArray()
+        let data = Chunk.ImmutableMerge(chunks)
 
-        let pointset = 
-            PointCloud.Import(chunks, ImportConfig.Default
-                .WithInMemoryStore()
-                .WithKey("data")
-                .WithVerbose(false)
-                .WithMaxDegreeOfParallelism(0)
-                .WithMinDist(0.0)
-                .WithNormalizePointDensityGlobal(false)
-                .WithOctreeSplitLimit(System.Int32.MaxValue)
-                )
+        let ps = data.Positions.Map(fun p -> V3f p)
+        let vs = data.Velocities.ToArray()
+        let ns = ps.EstimateNormals(8)
 
-        let allPoints = Chunk.ImmutableMerge(pointset.Root.Value.Collect(Int32.MaxValue))
-
-        HeraData(
-            allPoints.Positions.Map(fun p -> V3f p),
-            allPoints.Normals.ToArray(),
-            allPoints.Velocities.ToArray()
-            )
+        HeraData(positions = ps, normals = ns, velocities = vs)
 
     let importHeraDataFromFile filename =
         use fs = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read)
