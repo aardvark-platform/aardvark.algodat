@@ -36,6 +36,11 @@ module Hera =
         member this.Velocities with get() = velocities
         member this.Count with get() = positions.Length
 
+        member this.CheckNormals () =
+            for n in this.Normals do
+                if not (n.Length.ApproximateEquals(1.0f, 0.001f)) then
+                    printfn "[unstable normal] %A" n
+
         member this.Serialize() =
             ImmutableDictionary<Durable.Def, obj>.Empty
                 .Add(Durable.Octree.PositionsLocal3f, positions)
@@ -53,6 +58,11 @@ module Hera =
                 d.[Durable.Octree.Velocities3f]     :?> V3f[]
                 )
 
+        static member Deserialize(filename : string) =
+            HeraData.Deserialize(File.ReadAllBytes(filename))
+
+        static member CheckNormals(data : HeraData) = data.CheckNormals ()
+            
     type HeraDataRef = {
         Count : int
         PtrPositions : nativeptr<byte>
@@ -133,6 +143,7 @@ module Hera =
                 .WithMaxDegreeOfParallelism(0)
                 .WithMinDist(0.0)
                 .WithNormalizePointDensityGlobal(false)
+                .WithOctreeSplitLimit(System.Int32.MaxValue)
                 )
 
         let allPoints = Chunk.ImmutableMerge(pointset.Root.Value.Collect(Int32.MaxValue))

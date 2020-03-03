@@ -1,4 +1,6 @@
-﻿#nowarn "9"
+﻿open System.IO
+
+#nowarn "9"
 
 open System
 open System.Diagnostics
@@ -22,7 +24,7 @@ let exampleSingleFileConversion () =
 
 let exampleTgzConversion () =
 
-    let tgzFileName  = @"D:\Hera\Impact_Simulation\r80_p45_m500_v6000_mbasalt_a4.0_1M.tar.gz"
+    let tgzFileName  = @"D:\Hera\Impact_Simulation\r80_p0_m500_v6000_mbasalt_a1.0_1M.tar.gz"
     let targetFolder = @"D:\Hera\Impact_Simulation\tmp"
 
     Hera.convertTgz tgzFileName targetFolder
@@ -45,16 +47,22 @@ let exampleMmf () =
     printfn "%A" (Hera.HeraDataRef.FromFile(@"T:\Hera\impact.0000.durable.old"))
     printfn "%A" (Hera.HeraDataRef.FromFile(@"T:\Hera\impact.0000.durable.new"))
 
+let exampleCheckNormals () =
+    Directory.GetFiles(@"D:\Hera\Impact_Simulation\r80_p0_m500_v6000_mbasalt_a1.0_1M.tar.gz.durable")
+    |> Seq.map Hera.HeraData.Deserialize
+    |> Seq.iter Hera.HeraData.CheckNormals
 
 [<EntryPoint>]
 let main argv =
 
     // exampleSingleFileConversion ()
 
-    // exampleTgzConversion ()
+    exampleTgzConversion ()
 
     // exampleReadPerformanceOld ()
 
-    exampleMmf ()
+    // exampleMmf ()
+
+    // exampleCheckNormals ()
 
     0
