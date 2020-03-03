@@ -143,7 +143,7 @@ NUGET
     Aardvark.Base.Telemetry (4.5.26)
     Aardvark.Base.TypeProviders (4.5.15)
       FSharp.Core (>= 4.2.3)
-    Aardvark.Data.Durable (0.0.14)
+    Aardvark.Data.Durable (0.0.16)
     Aardvark.Geometry (4.5.26)
       Aardvark.Base.FSharp (4.5.26)
       Aardvark.Base.TypeProviders (>= 4.5.15 < 4.6)

@@ -25,7 +25,7 @@ let exampleSingleFileConversion () =
 let exampleTgzConversion () =
 
     let tgzFileName  = @"D:\Hera\Impact_Simulation\r80_p0_m500_v6000_mbasalt_a1.0_1M.tar.gz"
-    let targetFolder = @"D:\Hera\Impact_Simulation\tmp"
+    let targetFolder = @"D:\Hera\Impact_Simulation\r80_p0_m500_v6000_mbasalt_a1.0_1M.tar.gz.betternormals.durable"
 
     Hera.convertTgz tgzFileName targetFolder
 
@@ -55,9 +55,9 @@ let exampleCheckNormals () =
 [<EntryPoint>]
 let main argv =
 
-    // exampleSingleFileConversion ()
+    exampleSingleFileConversion ()
 
-    exampleTgzConversion ()
+    // exampleTgzConversion ()
 
     // exampleReadPerformanceOld ()
 

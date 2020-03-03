@@ -26,7 +26,7 @@ module Hera =
         Ascii.Token.VelocityX; Ascii.Token.VelocityY; Ascii.Token.VelocityZ
         |]
 
-    type HeraData(positions : V3f[], normals : V3f[], velocities : V3f[]) =
+    type HeraData(positions : V3f[], normals : V3f[], velocities : V3f[], densities : float32[]) =
 
         do
             if positions.Length <> normals.Length || positions.Length <> velocities.Length then 
@@ -35,6 +35,7 @@ module Hera =
         member this.Positions with get() = positions
         member this.Normals with get() = normals
         member this.Velocities with get() = velocities
+        member this.Densities with get() = densities
         member this.Count with get() = positions.Length
 
         member this.CheckNormals () =
@@ -47,6 +48,7 @@ module Hera =
                 .Add(Durable.Octree.PositionsLocal3f, positions)
                 .Add(Durable.Octree.Normals3f, normals)
                 .Add(Durable.Octree.Velocities3f, velocities)
+                .Add(Durable.Octree.Densities1f, densities)
                 .DurableEncode(Durable.Primitives.DurableMap, false)
 
         static member Serialize(data : HeraData) = data.Serialize()
@@ -56,7 +58,8 @@ module Hera =
             HeraData(
                 d.[Durable.Octree.PositionsLocal3f] :?> V3f[],
                 d.[Durable.Octree.Normals3f]        :?> V3f[],
-                d.[Durable.Octree.Velocities3f]     :?> V3f[]
+                d.[Durable.Octree.Velocities3f]     :?> V3f[],
+                d.[Durable.Octree.Densities1f]      :?> float32[]
                 )
 
         static member Deserialize(filename : string) =
@@ -139,9 +142,9 @@ module Hera =
 
         let ps = data.Positions.Map(fun p -> V3f p)
         let vs = data.Velocities.ToArray()
-        let ns = ps.EstimateNormals(8)
+        let struct (ns, ds) = ps.EstimateNormalsAndLocalDensity(16)
 
-        HeraData(positions = ps, normals = ns, velocities = vs)
+        HeraData(positions = ps, normals = ns, velocities = vs, densities = ds)
 
     let importHeraDataFromFile filename =
         use fs = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read)

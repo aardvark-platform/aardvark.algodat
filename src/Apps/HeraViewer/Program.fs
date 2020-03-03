@@ -60,7 +60,8 @@ module Shaders =
 let main argv =
     Aardvark.Init()
     //let inputfile   = @"D:\volumes\univie\r80_p0_m500_v6000_mbasalt_a1.0_1M\impact.0400"
-    let outputfile  = @"D:\volumes\univie\r80_p0_m500_v6000_mbasalt_a1.0_1M\impact.0400.durable"
+    //let outputfile  = @"D:\volumes\univie\r80_p0_m500_v6000_mbasalt_a1.0_1M\impact.0400.durable"
+    let outputfile  = @"D:\Hera\Impact_Simulation\r80_p0_m500_v6000_mbasalt_a1.0_1M.tar.gz.betternormals.durable\impact.0039.durable"
    
     //Report.BeginTimed("convert")
     //Hera.convertFile inputfile outputfile 
