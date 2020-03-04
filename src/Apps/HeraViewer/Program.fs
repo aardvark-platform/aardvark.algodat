@@ -15,6 +15,58 @@ open Hera
 module Shaders = 
     open FShade
 
+    let heatMapColors =
+        let fromInt (i : int) =
+            C4b(
+                byte ((i >>> 16) &&& 0xFF),
+                byte ((i >>> 8) &&& 0xFF),
+                byte (i &&& 0xFF),
+                255uy
+            ).ToC4f().ToV4d()
+
+        Array.map fromInt [|
+            0x1639fa
+            0x2050fa
+            0x3275fb
+            0x459afa
+            0x55bdfb
+            0x67e1fc
+            0x72f9f4
+            0x72f8d3
+            0x72f7ad
+            0x71f787
+            0x71f55f
+            0x70f538
+            0x74f530
+            0x86f631
+            0x9ff633
+            0xbbf735
+            0xd9f938
+            0xf7fa3b
+            0xfae238
+            0xf4be31
+            0xf29c2d
+            0xee7627
+            0xec5223
+            0xeb3b22
+        |]
+
+    [<ReflectedDefinition>]
+    let heat (tc : float) =
+        let tc = clamp 0.0 1.0 tc
+        let fid = tc * float heatMapColors.Length - 0.5
+
+        let id = int (floor fid)
+        if id < 0 then 
+            heatMapColors.[0]
+        elif id >= heatMapColors.Length - 1 then
+            heatMapColors.[heatMapColors.Length - 1]
+        else
+            let c0 = heatMapColors.[id]
+            let c1 = heatMapColors.[id + 1]
+            let t = fid - float id
+            (c0 * (1.0 - t) + c1 * t)
+
     type Vertex = 
         {
             [<Position>]
@@ -28,6 +80,9 @@ module Shaders =
 
             [<Color>]
             color : V4d
+
+            [<Semantic("Density")>]
+            density : float
         }
 
 
@@ -43,8 +98,9 @@ module Shaders =
         fragment {
             let c = v.pointCoord * 2.0 - V2d.II
             let f = Vec.dot c c - 1.0
-            if f > 0.0 then discard()
-            return V4d((v.color).XYZ,1.0)
+            if f > 0.0 then discard ()// || v.density > 0.11 then discard()
+            let dHeat = heat (v.density * 10.0)
+            return V4d(dHeat.XYZ * v.color.XYZ,1.0)
         }
 
     let fs2 (v : Vertex) = 
@@ -61,8 +117,9 @@ let main argv =
     Aardvark.Init()
     //let inputfile   = @"D:\volumes\univie\r80_p0_m500_v6000_mbasalt_a1.0_1M\impact.0400"
     //let outputfile  = @"D:\volumes\univie\r80_p0_m500_v6000_mbasalt_a1.0_1M\impact.0400.durable"
-    let outputfile  = @"D:\Hera\Impact_Simulation\r80_p0_m500_v6000_mbasalt_a1.0_1M.tar.gz.betternormals.durable\impact.0039.durable"
-   
+    //let outputfile  = @"D:\Hera\Impact_Simulation\r80_p0_m500_v6000_mbasalt_a1.0_1M.tar.gz.betternormals.durable\impact.0039.durable"
+    let outputfile = @"\\ripperl\T$\Hera\Impact_Simulation\r80_p0_m500_v6000_mbasalt_a1.0_1M.tar.gz.betternormals.densities.durable\impact.0400.durable"
+
     //Report.BeginTimed("convert")
     //Hera.convertFile inputfile outputfile 
     //Report.EndTimed() |> ignore
@@ -75,7 +132,13 @@ let main argv =
     let vertices = data.Positions
     let velocities = data.Velocities
     let normals = data.Normals
+    let densities = data.Densities
 
+    let min = Array.min densities
+    let max = Array.max densities
+    let histo = Histogram(float min,float max,100)
+    histo.AddRange(densities |> Seq.map float)
+    printfn "%A" histo.Slots
     printfn "deserialized file contains %d points" data.Count
 
 
@@ -95,9 +158,9 @@ let main argv =
     let sw = System.Diagnostics.Stopwatch.StartNew()
     let vertices = 
         win.Time |> Mod.map (fun _ -> 
-            let t = (sw.Elapsed.TotalSeconds % 5.0 ) * 1.5
+            let t = (sw.Elapsed.TotalSeconds % 115.0 ) * 1.5
             (vertices, velocities) ||> Array.map2 (fun p v -> 
-                p + float32 t * v |> V3f
+                p //+ float32 t * v |> V3f
             )
     )
 
@@ -151,10 +214,12 @@ let main argv =
         Sg.draw IndexedGeometryMode.PointList
         |> Sg.vertexAttribute DefaultSemantic.Positions vertices
         |> Sg.vertexAttribute DefaultSemantic.Normals (Mod.constant normals)
+        |> Sg.vertexAttribute (Sym.ofString "Density") (Mod.constant densities)
         |> Sg.vertexAttribute' DefaultSemantic.Colors (velocities |> Array.map ( fun v -> ((v.Normalized + V3f.III) * 0.5f) |> V3f ))
         |> Sg.shader {  
              do! DefaultSurfaces.trafo
              do! Shaders.vs
+             do! DefaultSurfaces.constantColor C4f.White
              do! DefaultSurfaces.simpleLighting
              do! Shaders.fs
              //do! DefaultSurfaces.pointSprite
