@@ -131,13 +131,33 @@ namespace Aardvark.Data.Points.Import
 
 
 
+            /// <summary>
+            /// Parses custom byte value.
+            /// </summary>
+            CustomByte,
+
+            /// <summary>
+            /// Parses custom int32 value.
+            /// </summary>
+            CustomInt32,
+
+            /// <summary>
+            /// Parses custom float32 value.
+            /// </summary>
+            CustomFloat32,
+
+            /// <summary>
+            /// Parses custom float64 value.
+            /// </summary>
+            CustomFloat64,
+
+
 
             /// <summary>
             /// Skips value. 
             /// </summary>
             Skip,
         }
-
 
         internal static bool HasColorTokens(this Token[] layout)
             => layout.Contains(Token.ColorR) ||
@@ -164,6 +184,13 @@ namespace Aardvark.Data.Points.Import
             => layout.Contains(Token.VelocityX) ||
                layout.Contains(Token.VelocityY) ||
                layout.Contains(Token.VelocityZ)
+               ;
+
+        internal static bool HasCustomTokens(this Token[] layout)
+            => layout.Contains(Token.CustomByte) ||
+               layout.Contains(Token.CustomInt32) ||
+               layout.Contains(Token.CustomFloat32) ||
+               layout.Contains(Token.CustomFloat64)
                ;
 
         /// <summary>

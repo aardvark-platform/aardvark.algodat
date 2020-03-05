@@ -77,6 +77,72 @@ namespace Aardvark.Data.Points
         /// <summary>
         /// Buffer is expected to contain ASCII. Lines separated by '\n'.
         /// </summary>
+        public static Chunk CustomDurable(byte[] buffer, int count, double filterDist, Token[] layout)
+        {
+            var hasColor = layout.HasColorTokens();
+            var hasNormal = layout.HasNormalTokens();
+            var hasIntensity = layout.HasIntensityTokens();
+            var hasVelocity = layout.HasVelocityTokens();
+
+            var ps = new List<V3d>();
+            var cs = hasColor ? new List<C4b>() : null;
+            var ns = hasNormal ? new List<V3f>() : null;
+            var js = hasIntensity ? new List<int>() : null;
+            var vs = hasVelocity ? new List<V3f>() : null;
+
+            var prev = V3d.PositiveInfinity;
+            var filterDistM = -filterDist;
+            var doFilterDist = filterDist > 0.0;
+
+            var tokenParsers = layout.Map(x => s_parsers[x]);
+
+            unsafe
+            {
+                fixed (byte* begin = buffer)
+                {
+                    var state = new LineParserState
+                    {
+                        p = begin,
+                        end = begin + count
+                    };
+                    while (state.p < state.end)
+                    {
+                        // parse single line
+                        state.IsInvalid = false;
+
+                        for (var i = 0; i < tokenParsers.Length; i++)
+                        {
+                            tokenParsers[i](state);
+                            if (state.IsInvalid) break;
+                        }
+
+                        SkipToNextLine(state);
+                        if (state.IsInvalid) continue;
+
+                        // min dist filtering
+                        if (doFilterDist)
+                        {
+                            if (Utils.DistLessThanL1(ref state.Position, ref prev, filterDist)) continue;
+                            prev = state.Position;
+                        }
+
+                        // add point to chunk
+                        ps.Add(state.Position);
+                        if (hasColor) cs.Add(state.Color);
+                        if (hasNormal) ns.Add(state.Normal);
+                        if (hasIntensity) js.Add(state.Intensity);
+                        if (hasVelocity) vs.Add(state.Velocity);
+                    }
+                }
+            }
+
+            if (ps.Count == 0) return null;
+            return new Chunk(ps, cs, ns, js, classifications: null, velocities: vs);
+        }
+
+        /// <summary>
+        /// Buffer is expected to contain ASCII. Lines separated by '\n'.
+        /// </summary>
         public static Chunk Custom(byte[] buffer, int count, double filterDist, Token[] layout)
         {
             var hasColor = layout.HasColorTokens();
