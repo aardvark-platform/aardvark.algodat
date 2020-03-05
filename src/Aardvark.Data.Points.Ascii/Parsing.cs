@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2019. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2020. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -14,11 +14,8 @@
 using Aardvark.Base;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Aardvark.Data.Points
 {
@@ -72,11 +69,11 @@ namespace Aardvark.Data.Points
                 $"Argument 'maxChunkSizeInBytes' must be greater than 0, but is {maxChunkSizeInBytes}."
                 );
 
-            var estimatedNumberOfChunks = streamLengthInBytes / maxChunkSizeInBytes + 1;
+            //var estimatedNumberOfChunks = streamLengthInBytes / maxChunkSizeInBytes + 1;
             var stats = new ParsingStats(streamLengthInBytes);
 
             var totalBytesRead = 0L;
-            var bounds = Box3d.Invalid;
+            //var bounds = Box3d.Invalid;
             var buffer = new byte[maxChunkSizeInBytes];
 
             var bufferStart = 0;
