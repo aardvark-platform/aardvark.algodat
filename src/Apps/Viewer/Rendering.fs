@@ -490,7 +490,6 @@ module Rendering =
 
 
     let show (args : Args) (pcs : list<LodTreeInstance>) =
-        Ag.initialize()
         Aardvark.Init()
 
         use app = new OpenGlApplication(true, false)

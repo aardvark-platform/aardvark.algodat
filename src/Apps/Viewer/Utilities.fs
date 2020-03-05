@@ -96,7 +96,7 @@ module ShapeList =
                 | [] -> None
                 | h :: rest ->
                     match h.shape with
-                    | :? Glyph as g when g.Character = str.[i] ->
+                    | :? Glyph as g when g.CodePoint.String.[0] = str.[i] ->
                         tryReplaceFront str (i + 1) (Box.Union(current, h.bounds)) rest
                     | _ ->
                         None

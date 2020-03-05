@@ -1269,7 +1269,7 @@ module PointSetShaders =
             let f = Vec.dot c c - 1.0
             if f > 0.0 then discard()
             
-            let t = 1.0 - sqrt (-f)
+            let t = 1.0 - sqrt (max 0.0 -f)
             let depth = v.fc.Z
             let outDepth = depth + v.depthRange * t
             
@@ -1281,7 +1281,8 @@ module PointSetShaders =
                 let dy = ddy(v.c) * 2.0
                 let dfx = 2.0*c.X*dx.X + 2.0*c.Y*dx.Y
                 let dfy = 2.0*c.X*dy.X + 2.0*c.Y*dy.Y
-                let d = abs f / sqrt (dfx * dfx + dfy * dfy)
+                let x = sqrt (dfx * dfx + dfy * dfy)
+                let d = if x < 0.0001 || f >= -0.00001 then 0.0 else abs f / x
                 alpha <- min 1.0 (d / 2.0)
                 
             if uniform.PointVisualization &&& PointVisualization.FancyPoints <> PointVisualization.None then
