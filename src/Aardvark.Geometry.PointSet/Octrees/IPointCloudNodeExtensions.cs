@@ -628,7 +628,7 @@ namespace Aardvark.Geometry.Points
             => self.HasNormals ? self.Normals : null;
 
         /// <summary>Returns null if node has no intensities.</summary>
-        public static PersistentRef<int[]> TryGetIntensities(this IPointCloudNode self)
+        public static PersistentRef<float[]> TryGetIntensities(this IPointCloudNode self)
             => self.HasIntensities ? self.Intensities : null;
 
         /// <summary>Returns null if node has no classifications.</summary>
@@ -828,7 +828,7 @@ namespace Aardvark.Geometry.Points
         {
             var cs = self.HasColors ? self.Colors.Value : null;
             var ns = self.HasNormals ? self.Normals.Value : null;
-            var js = self.HasIntensities ? self.Intensities.Value : null;
+            var js = self.HasIntensities ? self.Intensities.Value.Map(x => (double)x + self.IntensityOffset) : null;
             var ks = self.HasClassifications ? self.Classifications.Value : null;
             return new Chunk(self.PositionsAbsolute, cs, ns, js, ks);
         }

@@ -60,7 +60,7 @@ namespace Aardvark.Geometry.Points
                     var ps = new V3d[ia.Count];
                     var cs = node.HasColors ? new C4b[ia.Count] : null;
                     var ns = node.HasNormals ? new V3f[ia.Count] : null;
-                    var js = node.HasIntensities ? new int[ia.Count] : null;
+                    var js = node.HasIntensities ? new double[ia.Count] : null;
                     var ks = node.HasClassifications ? new byte[ia.Count] : null;
                     var ds = new double[ia.Count];
                     for (var i = 0; i < ia.Count; i++)
@@ -69,7 +69,7 @@ namespace Aardvark.Geometry.Points
                         ps[i] = center + (V3d)node.Positions.Value[index];
                         if (node.HasColors) cs[i] = node.Colors.Value[index];
                         if (node.HasNormals) ns[i] = node.Normals.Value[index];
-                        if (node.HasIntensities) js[i] = node.Intensities.Value[index];
+                        if (node.HasIntensities) js[i] = node.Intensities.Value[index] + node.IntensityOffset;
                         if (node.HasClassifications) ks[i] = node.Classifications.Value[index];
                         ds[i] = ia[i].Dist;
                     }

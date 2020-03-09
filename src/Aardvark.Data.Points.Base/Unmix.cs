@@ -136,7 +136,7 @@ namespace Aardvark.Data.Points
 
                     var _ps = new List<V3d>();
                     var _ns = hasNormals ? new List<V3f>() : null;
-                    var _js = hasIntensities ? new List<int>() : null;
+                    var _js = hasIntensities ? new List<double>() : null;
                     var _cs = hasColors ? new List<C4b>() : null;
                     using (var f = File.Open(path, FileMode.Open, FileAccess.Read))
                     using (var br = new BinaryReader(f))
@@ -183,7 +183,7 @@ namespace Aardvark.Data.Points
                 // return final chunks
                 var ps = new List<V3d>();
                 var ns = hasNormals ? new List<V3f>() : null;
-                var js = hasIntensities ? new List<int>() : null;
+                var js = hasIntensities ? new List<double>() : null;
                 var cs = hasColors ? new List<C4b>() : null;
                 foreach (var path in Directory.EnumerateFiles(tmpdir, "*", SearchOption.AllDirectories))
                 {
@@ -205,7 +205,7 @@ namespace Aardvark.Data.Points
                             Report.Error(e.ToString());
                             ps = new List<V3d>();
                             ns = hasNormals ? new List<V3f>() : null;
-                            js = hasIntensities ? new List<int>() : null;
+                            js = hasIntensities ? new List<double>() : null;
                             cs = hasColors ? new List<C4b>() : null;
                             continue;
                         }
@@ -217,7 +217,7 @@ namespace Aardvark.Data.Points
                         yield return new Chunk(ps, cs, ns, js);
                         ps = new List<V3d>();
                         ns = hasNormals ? new List<V3f>() : null;
-                        js = hasIntensities ? new List<int>() : null;
+                        js = hasIntensities ? new List<double>() : null;
                         cs = hasColors ? new List<C4b>() : null;
                     }
                 }

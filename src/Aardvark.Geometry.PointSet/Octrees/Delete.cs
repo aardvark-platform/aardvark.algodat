@@ -91,7 +91,7 @@ namespace Aardvark.Geometry.Points
                 var ps = root.HasPositions ? new List<V3f>() : null;
                 var cs = root.HasColors ? new List<C4b>() : null;
                 var ns = root.HasNormals ? new List<V3f>() : null;
-                var js = root.HasIntensities ? new List<int>() : null;
+                var js = root.HasIntensities ? new List<float>() : null;
                 var ks = root.HasClassifications ? new List<byte>() : null;
                 var oldPs = root.Positions?.Value;
                 var oldCs = root.Colors?.Value;
@@ -162,7 +162,7 @@ namespace Aardvark.Geometry.Points
                 if (js != null)
                 {
                     storage.Add(isId, js.ToArray());
-                    data = data.Add(Durable.Octree.Intensities1iReference, isId);
+                    data = data.Add(DurableExt.Intensities1fReference, isId);
                 }
                 if (ks != null)
                 {
@@ -186,7 +186,7 @@ namespace Aardvark.Geometry.Points
                     var psabs = root.HasPositions ? new List<V3d>() : null;
                     var cs = root.HasColors ? new List<C4b>() : null;
                     var ns = root.HasNormals ? new List<V3f>() : null;
-                    var js = root.HasIntensities ? new List<int>() : null;
+                    var js = root.HasIntensities ? new List<float>() : null;
                     var ks = root.HasClassifications ? new List<byte>() : null;
                     foreach(var c in subnodes)
                     {
@@ -238,7 +238,7 @@ namespace Aardvark.Geometry.Points
                     if (js != null)
                     {
                         storage.Add(isId, js.ToArray());
-                        data = data.Add(Durable.Octree.Intensities1iReference, isId);
+                        data = data.Add(DurableExt.Intensities1fReference, isId);
                     }
                     if (ks != null)
                     {
@@ -323,7 +323,7 @@ namespace Aardvark.Geometry.Points
                     if (lodIs != null)
                     {
                         storage.Add(isId, lodIs);
-                        data = data.Add(Durable.Octree.Intensities1iReference, isId);
+                        data = data.Add(DurableExt.Intensities1fReference, isId);
                     }
                     if (lodKs != null)
                     {

@@ -263,7 +263,7 @@ namespace Aardvark.Geometry.Points
                 {
                     var key = Guid.NewGuid();
                     self.Storage.Add(key, lodIs);
-                    self = self.WithUpsert(Durable.Octree.Intensities1iReference, key);
+                    self = self.WithUpsert(DurableExt.Intensities1fReference, key);
                 }
 
                 if (needsKs)

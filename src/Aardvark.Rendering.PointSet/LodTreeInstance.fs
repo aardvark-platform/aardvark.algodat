@@ -152,7 +152,7 @@ module LodTreeInstance =
                 if MapExt.containsKey "Intensities" ips then
                     let arr = 
                         if self.HasIntensities then (self.Intensities.Value)
-                        else Array.replicate original.Length 0
+                        else Array.replicate original.Length 0.0f
 
                     attributes.[Semantic.Intensities] <- arr
                     vertexSize <- vertexSize + 4L
@@ -196,6 +196,14 @@ module LodTreeInstance =
                         | _ -> 1
                     let arr = [| depth |] :> System.Array
                     uniforms <- MapExt.add "MinTreeDepth" arr uniforms
+                    
+                if MapExt.containsKey "CellIntensityRange" ips then    
+                    let depth = 
+                        match self.HasIntensities with
+                            | true -> self.IntensityRange
+                            | _ -> Range1f(0.0f,1.0f)
+                    let arr = [| V2f(depth.Min,depth.Max) |] :> System.Array
+                    uniforms <- MapExt.add "CellIntensityRange" arr uniforms
 
                 if original.Length = 0 then
                     let geometry =
@@ -761,13 +769,23 @@ module LodTreeInstance =
 
         let trafo = Similarity3d(1.0, Euclidean3d(Rot3d.Identity, -bounds.Center))
         let source = Symbol.Create sourceName
-        let root = PointTreeNode.Create(System.Guid.NewGuid(), null, store.Cache, source, trafo, None, None, 0, root) 
-        match root with
-        | Some root ->
+
+        let nroot = PointTreeNode.Create(System.Guid.NewGuid(), null, store.Cache, source, trafo, None, None, 0, root) 
+        match nroot with
+        | Some nroot ->
             let uniforms = MapExt.ofList uniforms
             let uniforms = MapExt.add "Scales" (Mod.constant V4d.IIII :> IMod) uniforms
+
+            
+            let uniforms =
+                if root.HasIntensities then 
+                    let r = V2f(root.IntensityRange.Min, root.IntensityRange.Max) |> Mod.constant :> IMod
+                    MapExt.add "IntensityRange" r uniforms
+                else
+                    uniforms
+
             Some { 
-                root = root
+                root = nroot
                 uniforms = uniforms
             }
         | None ->
@@ -797,32 +815,30 @@ module LodTreeInstance =
         importAux import sourceName key key store uniforms
 
 
-
-    let ofPointSet (uniforms : list<string * IMod>) (set : PointSet) =
-        let store = set.Storage
-        let root = PointTreeNode.Create(System.Guid.NewGuid(), null, store.Cache, Symbol.CreateNewGuid(), Similarity3d.Identity, None, None, 0, set.Root.Value)
-        match root with
-        | Some root -> 
-            let uniforms = MapExt.ofList uniforms
-            Some { 
-                root = root
-                uniforms = uniforms
-            }
-        | None ->
-            None
         
     let ofPointCloudNode (uniforms : list<string * IMod>) (root : IPointCloudNode) =
         let store = root.Storage
-        let root = PointTreeNode.Create(System.Guid.NewGuid(), null, store.Cache, Symbol.CreateNewGuid(), Similarity3d.Identity, None, None, 0, root)
-        match root with
-        | Some root -> 
+        let nroot = PointTreeNode.Create(System.Guid.NewGuid(), null, store.Cache, Symbol.CreateNewGuid(), Similarity3d.Identity, None, None, 0, root)
+        match nroot with
+        | Some nroot -> 
             let uniforms = MapExt.ofList uniforms
+
+            let uniforms =
+                if root.HasIntensities then 
+                    let r = V2f(root.IntensityRange.Min, root.IntensityRange.Max) |> Mod.constant :> IMod
+                    MapExt.add "IntensityRange" r uniforms
+                else
+                    uniforms
             Some { 
-                root = root
+                root = nroot
                 uniforms = uniforms
             }
         | None ->
             None
+
+
+    let ofPointSet (uniforms : list<string * IMod>) (set : PointSet) =
+        ofPointCloudNode uniforms set.Root.Value
 
     let filter (filter : IFilter) (i : LodTreeInstance) =
         match i.root with
@@ -979,6 +995,7 @@ module PointSetShaders =
         member x.ModelTrafos : M44d[] = x?StorageBuffer?ModelTrafos
         member x.ModelViewTrafos : M44d[] = x?StorageBuffer?ModelViewTrafos
         member x.Scales : V4d[] = x?StorageBuffer?Scales
+        member x.IntensityRange : V2d[] = x?StorageBuffer?IntensityRange
 
     type Vertex =
         {
@@ -1007,9 +1024,10 @@ module PointSetShaders =
             [<Semantic("PointPixelSize")>] ps : float
             [<PointCoord>] c : V2d
             [<Normal>] n : V4d
-            [<Semantic("TreeId")>] id : int
+            [<Semantic("TreeId"); Interpolation(InterpolationMode.Flat)>] id : int
             [<Semantic("MaxTreeDepth")>] treeDepth : int
             [<FragCoord>] fc : V4d
+            [<Semantic("Intensities")>] intensity : float
             [<SamplePosition>] sp : V2d
         }
 
@@ -1272,9 +1290,11 @@ module PointSetShaders =
             let t = 1.0 - sqrt (-f)
             let depth = v.fc.Z
             let outDepth = depth + v.depthRange * t
+
+            let r = uniform.IntensityRange.[v.id]
             
             let mutable alpha = v.col.W
-            let mutable color = v.col.XYZ
+            let mutable color = heat ((v.intensity - r.X) / (r.Y - r.X)) |> Vec.xyz
 
             if uniform.PointVisualization &&& PointVisualization.Antialias <> PointVisualization.None then
                 let dx = ddx(v.c) * 2.0

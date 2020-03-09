@@ -12,6 +12,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
+using Aardvark.Data;
 using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
@@ -20,6 +21,45 @@ using System.Threading;
 
 namespace Aardvark.Geometry.Points
 {
+    public static class DurableExt
+    {
+        public static readonly Durable.Def Intensities1fReference =
+            new Durable.Def(
+                new Guid("e902a4f8-a30e-4fd4-aeb6-6d527a636595"),
+                "Intensities1fReference",
+                "instaasdfaskldas",
+                Durable.Primitives.GuidDef.Id,
+                false
+            );
+
+        public static readonly Durable.Def Intensities1f  =
+            new Durable.Def(
+                new Guid("eda6909d-99ca-4613-8077-91da47693a48"),
+                "Intensities1f",
+                "instaasdfaskldas",
+                Durable.Primitives.Float32Array.Id,
+                true
+            );
+
+        public static readonly Durable.Def IntensityOffset1d =
+            new Durable.Def(
+                new Guid("5b63af18-843d-42df-9138-507850ad4bbf"),
+                "IntensitieOffset1d",
+                "instaasdfaskldas",
+                Durable.Primitives.Float64.Id,
+                false
+            );
+
+        public static readonly Durable.Def IntensityRange1f =
+            new Durable.Def(
+                new Guid("26d899e0-321d-4f17-884e-ea442ace82e5"),
+                "IntensityRange1f",
+                "instaasdfaskldas",
+                Durable.Aardvark.V2f.Id,
+                false
+            );
+
+    }
     /// <summary>
     /// </summary>
     public static partial class ImportExtensions
@@ -33,17 +73,21 @@ namespace Aardvark.Geometry.Points
             var totalChunkCount = 0;
             var totalPointCountInChunks = 0L;
             Action<double> progress = x => config.ProgressCallback(x * 0.5);
-            
+
+            chunks = Microsoft.FSharp.Collections.SeqModule.Cache(chunks.Where(chunk => chunk.Count > 0));
+            var offsetIntensity = 0.0;
+            var c0 = chunks.FirstOrDefault();
+            if(c0.Count > 0 && c0.HasIntensities) offsetIntensity = c0.Intensities.Average();
+
             #region MAP: create one PointSet for each chunk
 
             var pointsets = chunks
-                .Where(chunk => chunk.Count > 0)
                 .MapParallel((chunk, ct2) =>
                 {
                     Interlocked.Add(ref totalPointCountInChunks, chunk.Count);
                     progress(Math.Sqrt(1.0 - 1.0 / Interlocked.Increment(ref totalChunkCount)));
 
-                    var builder = InMemoryPointSet.Build(chunk, config.OctreeSplitLimit);
+                    var builder = InMemoryPointSet.Build(chunk, config.OctreeSplitLimit, offsetIntensity);
                     var root = builder.ToPointSetNode(config.Storage, isTemporaryImportNode: true);
                     var id = $"Aardvark.Geometry.PointSet.{Guid.NewGuid()}.json";
                     var pointSet = new PointSet(config.Storage, id, root.Id, config.OctreeSplitLimit);

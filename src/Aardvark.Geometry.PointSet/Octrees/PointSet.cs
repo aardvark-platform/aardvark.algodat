@@ -16,6 +16,7 @@ using Aardvark.Data.Points;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Threading;
 
@@ -37,13 +38,16 @@ namespace Aardvark.Geometry.Points
         /// Creates PointSet from given points and colors.
         /// </summary>
         public static PointSet Create(Storage storage, string key,
-            IList<V3d> positions, IList<C4b> colors, IList<V3f> normals, IList<int> intensities, IList<byte> classifications,
+            IList<V3d> positions, IList<C4b> colors, IList<V3f> normals, IList<double> intensities, IList<byte> classifications,
             int octreeSplitLimit, bool generateLod, bool isTemporaryImportNode, CancellationToken ct
             )
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
+
+            var ioff = intensities != null && intensities.Count > 0 ? intensities.Average() : 0.0;
+
             var bounds = new Box3d(positions);
-            var builder = InMemoryPointSet.Build(positions, colors, normals, intensities, classifications, bounds, octreeSplitLimit);
+            var builder = InMemoryPointSet.Build(positions, colors, normals, intensities, classifications, bounds, octreeSplitLimit, ioff);
             var root = builder.ToPointSetNode(storage, isTemporaryImportNode);
 
             var result = new PointSet(storage, key, root.Id, octreeSplitLimit);

@@ -64,7 +64,7 @@ namespace Aardvark.Geometry.Points
                     var ps = new List<V3d>();
                     var cs = csRaw != null ? new List<C4b>() : null;
                     var ns = nsRaw != null ? new List<V3f>() : null;
-                    var js = jsRaw != null ? new List<int>() : null;
+                    var js = jsRaw != null ? new List<float>() : null;
                     var ks = ksRaw != null ? new List<byte>() : null;
 
                     for (var i = 0; i < psRaw.Length; i++)
@@ -81,7 +81,7 @@ namespace Aardvark.Geometry.Points
                     }
                     if (ps.Count > 0)
                     {
-                        yield return new Chunk(ps, cs, ns, js, ks);
+                        yield return new Chunk(ps, cs, ns, js?.Map(a => node.IntensityOffset + a), ks);
                     }
                 }
             }

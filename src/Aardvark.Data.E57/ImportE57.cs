@@ -167,7 +167,7 @@ namespace Aardvark.Data.Points.Import
 
                 var ps = hasPositions ? new List<V3d>() : null;
                 var cs = hasColors ? new List<C4b>() : null;
-                var js = hasIntensities ? new List<int>() : null;
+                var js = hasIntensities ? new List<double>() : null;
 
                 Chunk PrepareChunk()
                 {
@@ -181,7 +181,7 @@ namespace Aardvark.Data.Points.Import
 
                     if (hasPositions) ps = new List<V3d>(); 
                     if (hasColors) cs = new List<C4b>();
-                    if (hasIntensities) js = new List<int>();
+                    if (hasIntensities) js = new List<double>();
 
                     if (config.Verbose)
                     {

@@ -48,7 +48,7 @@ namespace Aardvark.Data.Points
         /// <summary></summary>
         public readonly IList<V3f> Normals;
         /// <summary></summary>
-        public readonly IList<int> Intensities;
+        public readonly IList<double> Intensities;
         /// <summary></summary>
         public readonly IList<byte> Classifications;
 
@@ -103,11 +103,11 @@ namespace Aardvark.Data.Points
                 ns = ns0.AddRange(ns1);
             }
 
-            ImmutableList<int> js = null;
+            ImmutableList<double> js = null;
             if (a.HasIntensities)
             {
-                var js0 = (a.Intensities is ImmutableList<int> x6) ? x6 : ImmutableList<int>.Empty.AddRange(a.Intensities);
-                var js1 = (b.Intensities is ImmutableList<int> x7) ? x7 : ImmutableList<int>.Empty.AddRange(b.Intensities);
+                var js0 = (a.Intensities is ImmutableList<double> x6) ? x6 : ImmutableList<double>.Empty.AddRange(a.Intensities);
+                var js1 = (b.Intensities is ImmutableList<double> x7) ? x7 : ImmutableList<double>.Empty.AddRange(b.Intensities);
                 js = js0.AddRange(js1);
             }
 
@@ -137,7 +137,7 @@ namespace Aardvark.Data.Points
             var ps = head.HasPositions ? new List<V3d>(head.Positions) : null;
             var cs = head.HasColors ? new List<C4b>(head.Colors) : null;
             var ns = head.HasNormals ? new List<V3f>(head.Normals) : null;
-            var js = head.HasIntensities ? new List<int>(head.Intensities) : null;
+            var js = head.HasIntensities ? new List<double>(head.Intensities) : null;
             var ks = head.HasClassifications ? new List<byte>(head.Classifications) : null;
 
             foreach (var chunk in rest)
@@ -169,7 +169,7 @@ namespace Aardvark.Data.Points
             IList<V3d> positions,
             IList<C4b> colors = null,
             IList<V3f> normals = null,
-            IList<int> intensities = null,
+            IList<double> intensities = null,
             IList<byte> classifications = null,
             Box3d? bbox = null
             )
@@ -225,7 +225,7 @@ namespace Aardvark.Data.Points
         /// <summary>
         /// Immutable update of normals.
         /// </summary>
-        public Chunk WithIntensities(IList<int> newIntensities) => new Chunk(Positions, Colors, Normals, newIntensities, Classifications, BoundingBox);
+        public Chunk WithIntensities(IList<double> newIntensities) => new Chunk(Positions, Colors, Normals, newIntensities, Classifications, BoundingBox);
         
         /// <summary>
         /// Immutable update of classifications.
@@ -243,7 +243,7 @@ namespace Aardvark.Data.Points
             var ps = new List<V3d>();
             var cs = Colors != null ? new List<C4b>() : null;
             var ns = Normals != null ? new List<V3f>() : null;
-            var js = Intensities != null ? new List<int>() : null;
+            var js = Intensities != null ? new List<double>() : null;
             var ks = Classifications != null ? new List<byte>() : null;
 
             var last = V3d.MinValue;
@@ -273,7 +273,7 @@ namespace Aardvark.Data.Points
             var ps = new List<V3d>();
             var cs = Colors != null ? new List<C4b>() : null;
             var ns = Normals != null ? new List<V3f>() : null;
-            var js = Intensities != null ? new List<int>() : null;
+            var js = Intensities != null ? new List<double>() : null;
             var ks = Classifications != null ? new List<byte>() : null;
 
             var prev = V3d.MinValue;
@@ -459,7 +459,7 @@ namespace Aardvark.Data.Points
             var ps = new List<V3d>();
             var cs = Colors != null ? new List<C4b>() : null;
             var ns = Normals != null ? new List<V3f>() : null;
-            var js = Intensities != null ? new List<int>() : null;
+            var js = Intensities != null ? new List<double>() : null;
             var ks = Classifications != null ? new List<byte>() : null;
 
             for (var i = 0; i < Positions.Count; i++)
@@ -498,7 +498,7 @@ namespace Aardvark.Data.Points
             var ps = Positions != null ? new List<V3d>() : null;
             var cs = new List<C4b>();
             var ns = Normals != null ? new List<V3f>() : null;
-            var js = Intensities != null ? new List<int>() : null;
+            var js = Intensities != null ? new List<double>() : null;
             var ks = Classifications != null ? new List<byte>() : null;
 
             for (var i = 0; i < Colors.Count; i++)
@@ -525,7 +525,7 @@ namespace Aardvark.Data.Points
             var ps = Positions != null ? new List<V3d>() : null;
             var cs = Colors != null ? new List<C4b>() : null;
             var ns = new List<V3f>();
-            var js = Intensities != null ? new List<int>() : null;
+            var js = Intensities != null ? new List<double>() : null;
             var ks = Classifications != null ? new List<byte>() : null;
 
             for (var i = 0; i < Normals.Count; i++)
@@ -545,14 +545,14 @@ namespace Aardvark.Data.Points
         /// <summary>
         /// Returns chunk with points for which given predicate is true.
         /// </summary>
-        public Chunk ImmutableFilterByIntensity(Func<int, bool> predicate)
+        public Chunk ImmutableFilterByIntensity(Func<double, bool> predicate)
         {
             if (!HasNormals) return this;
 
             var ps = Positions != null ? new List<V3d>() : null;
             var cs = Colors != null ? new List<C4b>() : null;
             var ns = Normals != null ? new List<V3f>() : null;
-            var js = new List<int>();
+            var js = new List<double>();
             var ks = Classifications != null ? new List<byte>() : null;
 
             for (var i = 0; i < Intensities.Count; i++)
@@ -579,7 +579,7 @@ namespace Aardvark.Data.Points
             var ps = Positions != null ? new List<V3d>() : null;
             var cs = Colors != null ? new List<C4b>() : null;
             var ns = Normals != null ? new List<V3f>() : null;
-            var js = Intensities != null ? new List<int>() : null;
+            var js = Intensities != null ? new List<double>() : null;
             var ks = new List<byte>();
 
             for (var i = 0; i < Intensities.Count; i++)

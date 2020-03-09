@@ -13,12 +13,12 @@ namespace Aardvark.Geometry.Points
         public const string Type = "FilterIntensity";
 
         /// <summary></summary>
-        public Range1i Range { get; }
+        public Range1d Range { get; }
 
         /// <summary></summary>
-        public FilterIntensity(Range1i range) { Range = range; }
+        public FilterIntensity(Range1d range) { Range = range; }
 
-        private int[] GetValues(IPointCloudNode node) => node.HasIntensities ? node.Intensities.Value : null;
+        private double[] GetValues(IPointCloudNode node) => node.HasIntensities ? node.Intensities.Value.Map(a => node.IntensityOffset + a) : null;
 
         /// <summary></summary>
         public bool IsFullyInside(IPointCloudNode node) => false;
@@ -50,6 +50,6 @@ namespace Aardvark.Geometry.Points
         public JObject Serialize() => JObject.FromObject(new { Type, Range = Range.ToString() });
 
         /// <summary></summary>
-        public static FilterIntensity Deserialize(JObject json) => new FilterIntensity(Range1i.Parse((string)json["Range"]));
+        public static FilterIntensity Deserialize(JObject json) => new FilterIntensity(Range1d.Parse((string)json["Range"]));
     }
 }

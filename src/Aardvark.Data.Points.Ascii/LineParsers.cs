@@ -13,6 +13,7 @@
 */
 using Aardvark.Base;
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using static Aardvark.Data.Points.Import.Ascii;
@@ -30,7 +31,7 @@ namespace Aardvark.Data.Points
         public V3d Position;
         public C4b Color = C4b.Black;
         public V3f Normal;
-        public int Intensity;
+        public double Intensity;
     }
     
     /// <summary>
@@ -62,7 +63,7 @@ namespace Aardvark.Data.Points
             { Token.ColorAf, state => ParseFloat32(state, a => { if (a >= 0.0 && a <= 1.0) state.Color.A = (byte)(255 * a); else state.IsInvalid = true; }) },
 
             // Intensity
-            { Token.Intensity, state => ParseInt(state, i => state.Intensity = i) },
+            { Token.Intensity, state => ParseFloat64(state, i => state.Intensity = i) },
 
             // Skip
             { Token.Skip, state => ParseSkip(state) },
@@ -80,7 +81,7 @@ namespace Aardvark.Data.Points
             var ps = new List<V3d>();
             var cs = hasColor ? new List<C4b>() : null;
             var ns = hasNormal ? new List<V3f>() : null;
-            var js = hasIntensity ? new List<int>() : null;
+            var js = hasIntensity ? new List<double>() : null;
 
             var prev = V3d.PositiveInfinity;
             var filterDistM = -filterDist;

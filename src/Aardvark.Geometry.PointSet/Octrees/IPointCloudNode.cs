@@ -74,6 +74,18 @@ namespace Aardvark.Geometry.Points
         int PointCountCell { get; }
 
         /// <summary>
+        /// Octree. Number of points in this cell.
+        /// Durable definition TODO.
+        /// </summary>
+        double IntensityOffset { get; }
+
+        /// <summary>
+        /// Octree. Number of points in this cell.
+        /// Durable definition TODO.
+        /// </summary>
+        Range1f IntensityRange { get; }
+
+        /// <summary>
         /// Number of points in this tree (sum of leaf points).
         /// </summary>
         long PointCountTree { get; }
@@ -217,7 +229,7 @@ namespace Aardvark.Geometry.Points
         /// Octree. Per-point int32 intensities..
         /// Durable definition 361027fd-ac58-4de8-89ee-98695f8c5520.
         /// </summary>
-        PersistentRef<int[]> Intensities { get; }
+        PersistentRef<float[]> Intensities { get; }
 
         #endregion
 

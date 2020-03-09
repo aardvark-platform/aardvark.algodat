@@ -81,7 +81,7 @@ namespace Aardvark.Geometry.Points
                         var ps = new V3d[ia.Count];
                         var cs = node.HasColors ? new C4b[ia.Count] : null;
                         var ns = node.HasNormals ? new V3f[ia.Count] : null;
-                        var js = node.HasIntensities ? new int[ia.Count] : null;
+                        var js = node.HasIntensities ? new float[ia.Count] : null;
                         var ks = node.HasClassifications ? new byte[ia.Count] : null;
                         var ds = new double[ia.Count];
                         for (var i = 0; i < ia.Count; i++)
@@ -94,7 +94,7 @@ namespace Aardvark.Geometry.Points
                             if (node.HasClassifications) ks[i] = node.Classifications.Value[index];
                             ds[i] = ia[i].Dist;
                         }
-                        var chunk = new Chunk(ps, cs, ns, js, ks);
+                        var chunk = new Chunk(ps, cs, ns, js?.Map(a => node.IntensityOffset + a), ks);
                         yield return chunk;
                     }
                 }
@@ -106,7 +106,7 @@ namespace Aardvark.Geometry.Points
                     var ps = default(List<V3d>);
                     var cs = default(List<C4b>);
                     var ns = default(List<V3f>);
-                    var js = default(List<int>);
+                    var js = default(List<float>);
                     var ks = default(List<byte>);
 
                     for (var i = 0; i < qs.Length; i++)
@@ -124,7 +124,7 @@ namespace Aardvark.Geometry.Points
 
                     if (ps != null)
                     {
-                        yield return new Chunk(ps, cs, ns, js, ks);
+                        yield return new Chunk(ps, cs, ns, js?.Map(a => node.IntensityOffset + a), ks);
                     }
 
                     void Init()
@@ -132,7 +132,7 @@ namespace Aardvark.Geometry.Points
                         ps = new List<V3d>();
                         cs = node.HasColors ? new List<C4b>() : null;
                         ns = node.HasNormals ? new List<V3f>() : null;
-                        js = node.HasIntensities ? new List<int>() : null;
+                        js = node.HasIntensities ? new List<float>() : null;
                         ks = node.HasClassifications ? new List<byte>() : null;
                     }
                 }

@@ -85,6 +85,18 @@ namespace Aardvark.Geometry.Points
 
         #endregion
 
+        #region float[]
+
+        /// <summary>int[] -> byte[]</summary>
+        public static byte[] FloatArrayToBuffer(float[] data)
+            => ArrayToBuffer(data, sizeof(float), (bw, x) => bw.Write(x));
+
+        /// <summary>byte[] -> int[]</summary>
+        public static float[] BufferToFloatArray(byte[] buffer)
+            => BufferToArray(buffer, sizeof(float), br => br.ReadSingle());
+
+        #endregion
+
         #region V3f[]
 
         /// <summary>V3f[] -> byte[]</summary>
@@ -360,6 +372,44 @@ namespace Aardvark.Geometry.Points
             if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
             {
                 return (true, (int[])o);
+            }
+            else
+            {
+                return (false, default);
+            }
+        }
+
+        #endregion
+
+        #region float[]
+
+        /// <summary></summary>
+        public static void Add(this Storage storage, Guid key, float[] data) => Add(storage, key.ToString(), data);
+
+        /// <summary></summary>
+        public static void Add(this Storage storage, string key, float[] data)
+            => storage.f_add(key, data, () => Codec.FloatArrayToBuffer(data));
+
+        /// <summary></summary>
+        public static float[] GetFloatArray(this Storage storage, string key)
+        {
+            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (float[])o;
+
+            var buffer = storage.f_get(key);
+            var data = Codec.BufferToFloatArray(buffer);
+
+            if (data != null && storage.HasCache)
+                storage.Cache.Add(key, data, buffer.Length, onRemove: default);
+
+            return data;
+        }
+
+        /// <summary></summary>
+        public static (bool, float[]) TryGetFloatArray(this Storage storage, string key)
+        {
+            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
+            {
+                return (true, (float[])o);
             }
             else
             {

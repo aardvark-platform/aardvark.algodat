@@ -30,7 +30,7 @@ namespace Aardvark.Geometry.Tests
         private static V3f RandomPosition() => new V3f(r.NextDouble(), r.NextDouble(), r.NextDouble());
         private static V3f[] RandomPositions(int n) => new V3f[n].SetByIndex(_ => RandomPosition());
 
-        private static IPointCloudNode CreateNode(Storage storage, V3f[] psGlobal, int[] intensities = null)
+        private static IPointCloudNode CreateNode(Storage storage, V3f[] psGlobal, double[] intensities = null)
         {
             var id = Guid.NewGuid();
             var cell = new Cell(psGlobal);
@@ -47,6 +47,9 @@ namespace Aardvark.Geometry.Tests
             var kdLocalId = Guid.NewGuid();
             storage.Add(kdLocalId, kdLocal.Data);
 
+            var off = intensities != null && intensities.Length > 0 ? intensities.Average() : 0.0;
+
+            var range = intensities != null && intensities.Length > 0 ? new Range1f(intensities.Map(x => (float)(x - off))) : Range1f.Invalid ;
             var result = new PointSetNode(storage, writeToStore: true,
                 (Durable.Octree.NodeId, id),
                 (Durable.Octree.Cell, cell),
@@ -54,14 +57,16 @@ namespace Aardvark.Geometry.Tests
                 (Durable.Octree.BoundingBoxExactLocal, bbLocal),
                 (Durable.Octree.PointCountTreeLeafs, psLocal.LongLength),
                 (Durable.Octree.PositionsLocal3fReference, psLocalId),
-                (Durable.Octree.PointRkdTreeFDataReference, kdLocalId)
+                (Durable.Octree.PointRkdTreeFDataReference, kdLocalId),
+                (DurableExt.IntensityOffset1d, off),
+                (DurableExt.IntensityRange1f, new V2f(range.Min, range.Max))
                 );
 
             if (intensities != null)
             {
                 var jsId = Guid.NewGuid();
-                storage.Add(jsId, intensities);
-                result = result.WithUpsert(Durable.Octree.Intensities1iReference, jsId);
+                storage.Add(jsId, intensities.Map(a => (float)(a - off)));
+                result = result.WithUpsert(DurableExt.Intensities1fReference, jsId);
             }
 
             return result;
@@ -176,9 +181,9 @@ namespace Aardvark.Geometry.Tests
         public void FilterIntensity_AllInside()
         {
             var storage = PointCloud.CreateInMemoryStore(cache: default);
-            var a = CreateNode(storage, RandomPositions(100), new[] { -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 });
+            var a = CreateNode(storage, RandomPositions(100), new double[] { -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 });
 
-            var f = FilteredNode.Create(a, new FilterIntensity(new Range1i(-100, +100)));
+            var f = FilteredNode.Create(a, new FilterIntensity(new Range1d(-100, +100)));
             Assert.IsTrue(f.HasIntensities);
             var js = f.Intensities.Value;
             Assert.IsTrue(js.Length == 10);
@@ -188,9 +193,9 @@ namespace Aardvark.Geometry.Tests
         public void FilterIntensity_AllOutside()
         {
             var storage = PointCloud.CreateInMemoryStore(cache: default);
-            var a = CreateNode(storage, RandomPositions(100), new[] { -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 });
+            var a = CreateNode(storage, RandomPositions(100), new double[] { -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 });
 
-            var f = FilteredNode.Create(a, new FilterIntensity(new Range1i(6, 10000)));
+            var f = FilteredNode.Create(a, new FilterIntensity(new Range1d(6, 10000)));
             Assert.IsTrue(f.PointCountCell == 0);
         }
 
@@ -198,9 +203,9 @@ namespace Aardvark.Geometry.Tests
         public void FilterIntensity_Partial()
         {
             var storage = PointCloud.CreateInMemoryStore(cache: default);
-            var a = CreateNode(storage, RandomPositions(100), new[] { -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 });
+            var a = CreateNode(storage, RandomPositions(100), new double[] { -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 });
 
-            var f = FilteredNode.Create(a, new FilterIntensity(new Range1i(-2, +2)));
+            var f = FilteredNode.Create(a, new FilterIntensity(new Range1d(-2, +2)));
             Assert.IsTrue(f.HasIntensities);
             var js = f.Intensities.Value;
             Assert.IsTrue(js.Length == 5);
@@ -228,7 +233,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void Serialize_FilterIntensity()
         {
-            new FilterIntensity(new Range1i(-5, +17)).Serialize();
+            new FilterIntensity(new Range1d(-5, +17)).Serialize();
         }
         [Test]
         public void Serialize_FilterNormalDirection()

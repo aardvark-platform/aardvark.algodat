@@ -155,7 +155,7 @@ namespace Aardvark.Geometry.Points
             {
                 var id = Guid.NewGuid();
                 Storage.Add(id, Intensities.Value);
-                data = data.Add(Octree.Intensities1iReference, id);
+                data = data.Add(DurableExt.Intensities1fReference, id);
             }
 
             var result = new PointSetNode(data, Storage, writeToStore: true);
@@ -397,7 +397,7 @@ namespace Aardvark.Geometry.Points
         public bool HasIntensities => Node.HasIntensities;
 
         /// <summary></summary>
-        public PersistentRef<int[]> Intensities => GetSubArray(Octree.Intensities1i, Node.Intensities);
+        public PersistentRef<float[]> Intensities => GetSubArray(DurableExt.Intensities1f, Node.Intensities);
 
         #endregion
 
@@ -460,6 +460,12 @@ namespace Aardvark.Geometry.Points
         /// Standard deviation of distance of points in this cell.
         /// </summary>
         public float PointDistanceStandardDeviation => Node.PointDistanceStandardDeviation;
+
+        public double IntensityOffset => Node.IntensityOffset;
+
+        public Range1f IntensityRange => Node.IntensityRange;
+
+        PersistentRef<float[]> IPointCloudNode.Intensities => Node.Intensities;
 
         #endregion
 

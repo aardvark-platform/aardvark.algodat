@@ -55,7 +55,7 @@ namespace Aardvark.Geometry.Points
         public static readonly PointsNearObject<T> Empty = new PointsNearObject<T>(
             default, 0.0, 
             Array.Empty<V3d>(), Array.Empty<C4b>(), Array.Empty<V3f>(), 
-            Array.Empty<int>(), Array.Empty<byte>(), Array.Empty<double>()
+            Array.Empty<double>(), Array.Empty<byte>(), Array.Empty<double>()
             );
 
         /// <summary></summary>
@@ -74,7 +74,7 @@ namespace Aardvark.Geometry.Points
         public V3f[] Normals { get; }
 
         /// <summary></summary>
-        public int[] Intensities { get; }
+        public double[] Intensities { get; }
         
         /// <summary></summary>
         public byte[] Classifications { get; }
@@ -83,7 +83,7 @@ namespace Aardvark.Geometry.Points
         public double[] Distances { get; }
 
         /// <summary></summary>
-        public PointsNearObject(T obj, double maxDistance, V3d[] positions, C4b[] colors, V3f[] normals,int[] intensities, byte[] classifications, double[] distances)
+        public PointsNearObject(T obj, double maxDistance, V3d[] positions, C4b[] colors, V3f[] normals,double[] intensities, byte[] classifications, double[] distances)
         {
             if (maxDistance < 0.0) throw new ArgumentOutOfRangeException(nameof(maxDistance), $"Parameter 'maxDistance' must not be less than 0.0, but is {maxDistance}.");
 

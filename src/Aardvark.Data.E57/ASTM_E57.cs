@@ -498,7 +498,7 @@ namespace Aardvark.Data.E57
                 return v;
             }
 
-            public IEnumerable<(V3d pos, C4b color, int intensity)> ReadData(
+            public IEnumerable<(V3d pos, C4b color, double intensity)> ReadData(
                 int[] cartesianXYZ, int[] sphericalRAE, 
                 int[] colorRGB, 
                 int? intensityIndex, E57IntensityLimits intensityLimits,
@@ -532,7 +532,7 @@ namespace Aardvark.Data.E57
                 var colorR = hasColors ? new Queue<byte>() : null;
                 var colorG = hasColors ? new Queue<byte>() : null;
                 var colorB = hasColors ? new Queue<byte>() : null;
-                var intensities = hasIntensities ? new Queue<int>() : null;
+                var intensities = hasIntensities ? new Queue<double>() : null;
 
                 var offset = (E57LogicalOffset)compressedVectorHeader.DataStartOffset;
                 while (bytesLeftToConsume > 0)
@@ -616,20 +616,22 @@ namespace Aardvark.Data.E57
 
                             if (hasIntensities)
                             {
-                                int[] remapWithLimits(float[] xs)
+                                double[] remapWithLimits(float[] xs)
                                 {
                                     var min = intensityLimits.Intensity.Min;
                                     var max = intensityLimits.Intensity.Max;
                                     var d = max - min;
-                                    return xs.Map(x => (int)(((x - min) / d) * 65535.5f));
+                                    return xs.Map(x => (double)(((x - min) / d)));
                                 }
 
                                 var js = buffers[intensityIndex.Value] switch
                                 {
-                                    int[] xs    => xs,
+                                    short[] xs => xs.Map(x => (double)x),
+
+                                    int[] xs    => xs.Map(x => (double)x),
 
                                     float[] xs when intensityLimits is null 
-                                                => xs.Map(x => (int)(65535 * x)),
+                                                => xs.Map(x => (double)x),
 
                                     float[] xs  => remapWithLimits(xs),
 
@@ -1244,7 +1246,7 @@ namespace Aardvark.Data.E57
                 return GetElements(root, "vectorChild").Select(x => Parse(x, stream)).ToArray();
             }
 
-            public IEnumerable<(V3d pos, C4b color, int intensity)> StreamPoints(bool verbose = false)
+            public IEnumerable<(V3d pos, C4b color, double intensity)> StreamPoints(bool verbose = false)
             {
                 var result = Points.ReadData(
                     ByteStreamIndicesForCartesianCoordinates,
