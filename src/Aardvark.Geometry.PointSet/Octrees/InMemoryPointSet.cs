@@ -232,10 +232,10 @@ namespace Aardvark.Geometry.Points
                 if (isId != null) 
                 { 
                     storage.Add(isId.ToString(), js);
-                    data = data.Add(DurableExt.Intensities1fReference, isId.Value);
-                    data = data.Add(DurableExt.IntensityOffset1d, _octree._offsetIntensity);
+                    data = data.Add(Durable.Octree.IntensitiesWithOffset1fReference, isId.Value);
+                    data = data.Add(Durable.Octree.IntensitiesWithOffset1fOffset, _octree._offsetIntensity);
                     var range = new Range1f(js);
-                    data = data.Add(DurableExt.IntensityRange1f, new V2f(range.Min, range.Max));
+                    data = data.Add(Durable.Octree.IntensitiesWithOffset1fRange, range);
                 }
                 if (ksId != null) { storage.Add(ksId.ToString(), ks); data = data.Add(Durable.Octree.Classifications1bReference, ksId.Value); }
 

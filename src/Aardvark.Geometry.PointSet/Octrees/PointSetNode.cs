@@ -151,7 +151,7 @@ namespace Aardvark.Geometry.Points
                 }
             }
             if (nsId != null) PersistentRefs[Durable.Octree.Normals3fReference] = new PersistentRef<V3f[]>(nsId.Value, storage.GetV3fArray, storage.TryGetV3fArray);
-            if (isId != null) PersistentRefs[DurableExt.Intensities1fReference] = new PersistentRef<float[]>(isId.Value, storage.GetFloatArray, storage.TryGetFloatArray);
+            if (isId != null) PersistentRefs[Durable.Octree.IntensitiesWithOffset1fReference] = new PersistentRef<float[]>(isId.Value, storage.GetFloatArray, storage.TryGetFloatArray);
             if (ksId != null) PersistentRefs[Durable.Octree.Classifications1bReference] = new PersistentRef<byte[]>(ksId.Value, storage.GetByteArray, storage.TryGetByteArray);
 
             #endregion
@@ -199,18 +199,18 @@ namespace Aardvark.Geometry.Points
 
             #region DurableExt.IntensityOffset1d
             
-            if (!Has(DurableExt.IntensityRange1f) && HasIntensities)
+            if (!Has(Durable.Octree.IntensitiesWithOffset1fRange) && HasIntensities)
             {
                 Range1f range;
                 if (IsLeaf) { range = new Range1f(Intensities.Value); }
                 else range = Subnodes.Where(x => x != null).Select(x => x.Value.IntensityRange).Aggregate(Range1f.Invalid, (x, y) => Range1f.Union(x, y));
 
-                Data = Data.Add(DurableExt.IntensityRange1f, new V2f(range.Min, range.Max));
+                Data = Data.Add(Durable.Octree.IntensitiesWithOffset1fRange, range);
             }
 
-            if (!Has(DurableExt.IntensityOffset1d) && HasIntensities)
+            if (!Has(Durable.Octree.IntensitiesWithOffset1fOffset) && HasIntensities)
             {
-                Data = Data.Add(DurableExt.IntensityOffset1d, IntensityOffset);
+                Data = Data.Add(Durable.Octree.IntensitiesWithOffset1fOffset, IntensityOffset);
             }
 
             #endregion
@@ -532,7 +532,7 @@ namespace Aardvark.Geometry.Points
         {
             get
             {
-                if (Data.TryGetValue(DurableExt.IntensityOffset1d, out var g)) { return (double)g; } else { return 0.0; }
+                if (Data.TryGetValue(Durable.Octree.IntensitiesWithOffset1fOffset, out var g)) { return (double)g; } else { return 0.0; }
             }
         }
 
@@ -544,7 +544,7 @@ namespace Aardvark.Geometry.Points
         {
             get
             {
-                if (Data.TryGetValue(DurableExt.IntensityRange1f, out var g)) { return new Range1f(((V2f)g).X, ((V2f)g).Y); } else { return Range1f.Invalid; }
+                if (Data.TryGetValue(Durable.Octree.IntensitiesWithOffset1fRange, out var g)) { return (Range1f)g; } else { return Range1f.Invalid; }
             }
         }
 
@@ -656,15 +656,15 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public bool HasIntensities => Data.ContainsKey(DurableExt.Intensities1fReference);
+        public bool HasIntensities => Data.ContainsKey(Durable.Octree.IntensitiesWithOffset1fReference);
 
         /// <summary></summary>
         [JsonIgnore]
-        public Guid? IntensitiesId => Data.TryGetValue(DurableExt.Intensities1fReference, out var id) ? (Guid?)id : null;
+        public Guid? IntensitiesId => Data.TryGetValue(Durable.Octree.IntensitiesWithOffset1fReference, out var id) ? (Guid?)id : null;
 
         /// <summary></summary>
         [JsonIgnore]
-        public PersistentRef<float[]> Intensities => PersistentRefs.TryGetValue(DurableExt.Intensities1fReference, out object x) ? (PersistentRef<float[]>)x : null;
+        public PersistentRef<float[]> Intensities => PersistentRefs.TryGetValue(Durable.Octree.IntensitiesWithOffset1fReference, out object x) ? (PersistentRef<float[]>)x : null;
 
         #endregion
 

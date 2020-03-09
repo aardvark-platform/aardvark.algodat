@@ -1294,7 +1294,7 @@ module PointSetShaders =
             let r = uniform.IntensityRange.[v.id]
             
             let mutable alpha = v.col.W
-            let mutable color = heat ((v.intensity - r.X) / (r.Y - r.X)) |> Vec.xyz
+            let mutable color = v.col.XYZ //heat ((v.intensity - r.X) / (r.Y - r.X)) |> Vec.xyz
 
             if uniform.PointVisualization &&& PointVisualization.Antialias <> PointVisualization.None then
                 let dx = ddx(v.c) * 2.0

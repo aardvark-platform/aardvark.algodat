@@ -59,6 +59,7 @@ namespace Aardvark.Data
                 [Durable.Aardvark.V3dArray.Id] = EncodeV3dArray,
                 [Durable.Aardvark.V4d.Id] = EncodeV4d,
                 [Durable.Aardvark.V4dArray.Id] = EncodeV4dArray,
+                [Durable.Aardvark.Range1f.Id] = EncodeRange1f,
                 [Durable.Aardvark.Box2f.Id] = EncodeBox2f,
                 [Durable.Aardvark.Box2fArray.Id] = EncodeBox2fArray,
                 [Durable.Aardvark.Box2d.Id] = EncodeBox2d,
@@ -109,6 +110,7 @@ namespace Aardvark.Data
                 [Durable.Aardvark.V3dArray.Id]          = DecodeV3dArray,
                 [Durable.Aardvark.V4d.Id]               = DecodeV4d,
                 [Durable.Aardvark.V4dArray.Id]          = DecodeV4dArray,
+                [Durable.Aardvark.Range1f.Id]           = DecodeRange1f,
                 [Durable.Aardvark.Box2f.Id]             = DecodeBox2f,
                 [Durable.Aardvark.Box2fArray.Id]        = DecodeBox2fArray,
                 [Durable.Aardvark.Box2d.Id]             = DecodeBox2d,
@@ -191,6 +193,9 @@ namespace Aardvark.Data
         private static readonly Action<BinaryWriter, object> EncodeV4dArray =
             (s, o) => EncodeArray(s, (V4d[])o);
 
+
+        private static readonly Action<BinaryWriter, object> EncodeRange1f =
+            (s, o) => { var x = (Range1f)o; EncodeFloat32(s, x.Min); EncodeFloat32(s, x.Max); };
 
         private static readonly Action<BinaryWriter, object> EncodeBox2f =
             (s, o) => { var x = (Box2f)o; EncodeV2f(s, x.Min); EncodeV2f(s, x.Max); };
@@ -328,6 +333,8 @@ namespace Aardvark.Data
         private static readonly Func<BinaryReader, object> DecodeV3dArray   = s => DecodeArray<V3d>(s);
         private static readonly Func<BinaryReader, object> DecodeV4d        = s => new V4d(s.ReadDouble(), s.ReadDouble(), s.ReadDouble(), s.ReadDouble());
         private static readonly Func<BinaryReader, object> DecodeV4dArray   = s => DecodeArray<V4d>(s);
+
+        private static readonly Func<BinaryReader, object> DecodeRange1f = s => new Range1f((float)DecodeFloat32(s), (float)DecodeFloat32(s));
 
         private static readonly Func<BinaryReader, object> DecodeBox2f      = s => new Box2f((V2f)DecodeV2f(s), (V2f)DecodeV2f(s));
         private static readonly Func<BinaryReader, object> DecodeBox2fArray = s => DecodeArray<Box2f>(s);

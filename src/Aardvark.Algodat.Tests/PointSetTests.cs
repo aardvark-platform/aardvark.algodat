@@ -73,9 +73,9 @@ namespace Aardvark.Geometry.Tests
             var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
             var cs = new List<C4b> { C4b.White };
             var ns = new List<V3f> { V3f.ZAxis };
-            var js = new List<int> { 123 };
+            var js = new List<double> { 123 };
             var ks = new List<byte> { 42 };
-            var imps = InMemoryPointSet.Build(ps, cs, ns, js, ks, Cell.Unit, 1);
+            var imps = InMemoryPointSet.Build(ps, cs, ns, js, ks, Cell.Unit, 1,0.0);
         }
 
         [Test]
@@ -83,9 +83,9 @@ namespace Aardvark.Geometry.Tests
         {
             var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
             var ns = new List<V3f> { V3f.ZAxis };
-            var js = new List<int> { 123 };
+            var js = new List<double> { 123 };
             var ks = new List<byte> { 42 };
-            var imps = InMemoryPointSet.Build(ps, null, ns, js, ks, Cell.Unit, 1);
+            var imps = InMemoryPointSet.Build(ps, null, ns, js, ks, Cell.Unit, 1,0.0);
         }
 
         [Test]
@@ -93,9 +93,9 @@ namespace Aardvark.Geometry.Tests
         {
             var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
             var cs = new List<C4b> { C4b.White };
-            var js = new List<int> { 123 };
+            var js = new List<double> { 123 };
             var ks = new List<byte> { 42 };
-            var imps = InMemoryPointSet.Build(ps, cs, null, js, ks, Cell.Unit, 1);
+            var imps = InMemoryPointSet.Build(ps, cs, null, js, ks, Cell.Unit, 1,0.0);
         }
 
         [Test]
@@ -105,7 +105,7 @@ namespace Aardvark.Geometry.Tests
             var cs = new List<C4b> { C4b.White };
             var ns = new List<V3f> { V3f.ZAxis };
             var ks = new List<byte> { 42 };
-            var imps = InMemoryPointSet.Build(ps, cs, ns, null, ks, Cell.Unit, 1);
+            var imps = InMemoryPointSet.Build(ps, cs, ns, null, ks, Cell.Unit, 1,0.0);
         }
 
         [Test]
@@ -114,8 +114,8 @@ namespace Aardvark.Geometry.Tests
             var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
             var cs = new List<C4b> { C4b.White };
             var ns = new List<V3f> { V3f.ZAxis };
-            var js = new List<int> { 123 };
-            var imps = InMemoryPointSet.Build(ps, cs, ns, js, null, Cell.Unit, 1);
+            var js = new List<double> { 123 };
+            var imps = InMemoryPointSet.Build(ps, cs, ns, js, null, Cell.Unit, 1,0.0);
         }
 
         [Test]
@@ -134,7 +134,7 @@ namespace Aardvark.Geometry.Tests
 
             Assert.IsTrue(ps.Count == 4 * 4 * 4);
 
-            var imps = InMemoryPointSet.Build(ps, null, ns, null, null, new Cell(0, 0, 0, 0), 1);
+            var imps = InMemoryPointSet.Build(ps, null, ns, null, null, new Cell(0, 0, 0, 0), 1,0.0);
             var root = imps.ToPointSetNode(storage, isTemporaryImportNode: false);
             Assert.IsTrue(root.PointCountTree == 4 * 4 * 4);
             var countNodes = root.CountLeafNodes(true);
@@ -161,7 +161,7 @@ namespace Aardvark.Geometry.Tests
             var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
             var cs = new List<C4b> { C4b.White };
             var ns = new List<V3f> { V3f.ZAxis };
-            var js = new List<int> { 123 };
+            var js = new List<double> { 123 };
             var ks = new List<byte> { 42 };
             var storage = PointCloud.CreateInMemoryStore(cache: default);
             var pointset = PointSet.Create(storage, "test", ps, cs, ns, js, ks, 1, generateLod: true, isTemporaryImportNode: false, default);
@@ -180,7 +180,7 @@ namespace Aardvark.Geometry.Tests
             var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
             var cs = new List<C4b> { C4b.White };
             var ns = new List<V3f> { V3f.ZAxis };
-            var js = new List<int> { 123 };
+            var js = new List<double> { 123 };
             var ks = new List<byte> { 42 };
             var storage = PointCloud.CreateInMemoryStore(cache: default);
             var pointset = PointSet.Create(storage, "test", ps, cs, ns, js, ks, 1, generateLod: false, isTemporaryImportNode: true, default);

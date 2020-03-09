@@ -23,41 +23,41 @@ namespace Aardvark.Geometry.Points
 {
     public static class DurableExt
     {
-        public static readonly Durable.Def Intensities1fReference =
-            new Durable.Def(
-                new Guid("e902a4f8-a30e-4fd4-aeb6-6d527a636595"),
-                "Intensities1fReference",
-                "instaasdfaskldas",
-                Durable.Primitives.GuidDef.Id,
-                false
-            );
+    //    public static readonly Durable.Def Intensities1fReference =
+    //        new Durable.Def(
+    //            new Guid("e902a4f8-a30e-4fd4-aeb6-6d527a636595"),
+    //            "Intensities1fReference",
+    //            "instaasdfaskldas",
+    //            Durable.Primitives.GuidDef.Id,
+    //            false
+    //        );
 
-        public static readonly Durable.Def Intensities1f  =
-            new Durable.Def(
-                new Guid("eda6909d-99ca-4613-8077-91da47693a48"),
-                "Intensities1f",
-                "instaasdfaskldas",
-                Durable.Primitives.Float32Array.Id,
-                true
-            );
+    //public static readonly Durable.Def Intensities1f =
+    //    new Durable.Def(
+    //        new Guid("6753a6e1-9633-4997-b403-661578191f8c"),
+    //        "Octree.IntensitiesWithOffset1f",
+    //        "instaasdfaskldas",
+    //        Durable.Primitives.Float32Array.Id,
+    //        true
+    //    );
 
-        public static readonly Durable.Def IntensityOffset1d =
-            new Durable.Def(
-                new Guid("5b63af18-843d-42df-9138-507850ad4bbf"),
-                "IntensitieOffset1d",
-                "instaasdfaskldas",
-                Durable.Primitives.Float64.Id,
-                false
-            );
+    //    public static readonly Durable.Def IntensityOffset1d =
+    //        new Durable.Def(
+    //            new Guid("5b63af18-843d-42df-9138-507850ad4bbf"),
+    //            "IntensitieOffset1d",
+    //            "instaasdfaskldas",
+    //            Durable.Primitives.Float64.Id,
+    //            false
+    //        );
 
-        public static readonly Durable.Def IntensityRange1f =
-            new Durable.Def(
-                new Guid("26d899e0-321d-4f17-884e-ea442ace82e5"),
-                "IntensityRange1f",
-                "instaasdfaskldas",
-                Durable.Aardvark.V2f.Id,
-                false
-            );
+    //    public static readonly Durable.Def IntensityRange1f =
+    //        new Durable.Def(
+    //            new Guid("26d899e0-321d-4f17-884e-ea442ace82e5"),
+    //            "IntensityRange1f",
+    //            "instaasdfaskldas",
+    //            Durable.Aardvark.V2f.Id,
+    //            false
+    //        );
 
     }
     /// <summary>

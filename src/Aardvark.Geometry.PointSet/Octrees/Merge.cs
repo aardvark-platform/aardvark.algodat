@@ -274,7 +274,7 @@ namespace Aardvark.Geometry.Points
                 if (psId.HasValue) { storage.Add(psId.Value, ps); data = data.Add(Durable.Octree.PositionsLocal3fReference, psId.Value); }
                 if (nsId.HasValue) { storage.Add(nsId.Value, ns); data = data.Add(Durable.Octree.Normals3fReference, nsId.Value); }
                 if (csId.HasValue) { storage.Add(csId.Value, cs); data = data.Add(Durable.Octree.Colors4bReference, csId.Value); }
-                if (jsId.HasValue) { storage.Add(jsId.Value, js); data = data.Add(DurableExt.Intensities1fReference, jsId.Value); }
+                if (jsId.HasValue) { storage.Add(jsId.Value, js); data = data.Add(Durable.Octree.IntensitiesWithOffset1fReference, jsId.Value); }
                 if (ksId.HasValue) { storage.Add(ksId.Value, ks); data = data.Add(Durable.Octree.Classifications1bReference, ksId.Value); }
                 //if (kdId.HasValue) { storage.Add(kdId.Value, kd.Data); data = data.Add(Durable.Octree.PointRkdTreeFDataReference, kdId.Value); }
 

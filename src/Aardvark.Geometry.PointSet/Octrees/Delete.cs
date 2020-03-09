@@ -162,7 +162,7 @@ namespace Aardvark.Geometry.Points
                 if (js != null)
                 {
                     storage.Add(isId, js.ToArray());
-                    data = data.Add(DurableExt.Intensities1fReference, isId);
+                    data = data.Add(Durable.Octree.IntensitiesWithOffset1fReference, isId);
                 }
                 if (ks != null)
                 {
@@ -238,7 +238,7 @@ namespace Aardvark.Geometry.Points
                     if (js != null)
                     {
                         storage.Add(isId, js.ToArray());
-                        data = data.Add(DurableExt.Intensities1fReference, isId);
+                        data = data.Add(Durable.Octree.IntensitiesWithOffset1fReference, isId);
                     }
                     if (ks != null)
                     {
@@ -323,7 +323,7 @@ namespace Aardvark.Geometry.Points
                     if (lodIs != null)
                     {
                         storage.Add(isId, lodIs);
-                        data = data.Add(DurableExt.Intensities1fReference, isId);
+                        data = data.Add(Durable.Octree.IntensitiesWithOffset1fReference, isId);
                     }
                     if (lodKs != null)
                     {

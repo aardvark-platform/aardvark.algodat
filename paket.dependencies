@@ -17,7 +17,7 @@ nuget Aardvark.Application.Slim         ~> 4.12.3
 nuget Aardvark.Application.Slim.GL      ~> 4.12.3
 nuget Aardvark.Application.Slim.Vulkan  ~> 4.12.3
 
-nuget Aardvark.Data.Durable             ~> 0.0.12
+nuget Aardvark.Data.Durable             ~> 0.0.17
 
 // 3rd-party
 #nuget Crc32C.NET                       ~> 1.0.5

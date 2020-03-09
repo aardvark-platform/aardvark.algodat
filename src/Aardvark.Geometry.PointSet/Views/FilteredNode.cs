@@ -155,7 +155,7 @@ namespace Aardvark.Geometry.Points
             {
                 var id = Guid.NewGuid();
                 Storage.Add(id, Intensities.Value);
-                data = data.Add(DurableExt.Intensities1fReference, id);
+                data = data.Add(Durable.Octree.IntensitiesWithOffset1fReference, id);
             }
 
             var result = new PointSetNode(data, Storage, writeToStore: true);
@@ -397,7 +397,7 @@ namespace Aardvark.Geometry.Points
         public bool HasIntensities => Node.HasIntensities;
 
         /// <summary></summary>
-        public PersistentRef<float[]> Intensities => GetSubArray(DurableExt.Intensities1f, Node.Intensities);
+        public PersistentRef<float[]> Intensities => GetSubArray(Durable.Octree.IntensitiesWithOffset1f, Node.Intensities);
 
         #endregion
 

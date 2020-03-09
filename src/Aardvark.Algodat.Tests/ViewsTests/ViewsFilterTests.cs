@@ -58,15 +58,15 @@ namespace Aardvark.Geometry.Tests
                 (Durable.Octree.PointCountTreeLeafs, psLocal.LongLength),
                 (Durable.Octree.PositionsLocal3fReference, psLocalId),
                 (Durable.Octree.PointRkdTreeFDataReference, kdLocalId),
-                (DurableExt.IntensityOffset1d, off),
-                (DurableExt.IntensityRange1f, new V2f(range.Min, range.Max))
+                (Durable.Octree.IntensitiesWithOffset1fOffset, off),
+                (Durable.Octree.IntensitiesWithOffset1fRange, range)
                 );
 
             if (intensities != null)
             {
                 var jsId = Guid.NewGuid();
                 storage.Add(jsId, intensities.Map(a => (float)(a - off)));
-                result = result.WithUpsert(DurableExt.Intensities1fReference, jsId);
+                result = result.WithUpsert(Durable.Octree.IntensitiesWithOffset1fReference, jsId);
             }
 
             return result;
