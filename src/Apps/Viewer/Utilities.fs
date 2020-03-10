@@ -29,6 +29,7 @@ module ShapeList =
     let empty =
         {
             bounds = Box2d.Invalid
+            textBounds = Box2d.Invalid
             concreteShapes = []
             zRange = Range1i.Invalid
             renderTrafo = Trafo3d.Identity
@@ -42,6 +43,7 @@ module ShapeList =
         
         { 
             bounds = bounds
+            textBounds = l.textBounds.Translated shift
             renderTrafo = renderTrafo
             concreteShapes = l.concreteShapes
             zRange = l.zRange
@@ -73,6 +75,7 @@ module ShapeList =
         
         { 
             bounds = bounds
+            textBounds = bounds
             renderTrafo = renderTrafo
             concreteShapes = lShapes @ rShapes
             zRange = Range.Union(l.zRange, r.zRange)

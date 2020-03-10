@@ -142,7 +142,7 @@ module LodTreeInstance =
                         else Array.create original.Length V3f.OOO
 
                     let normals =
-                        let normalMat = (Trafo3d globalTrafo.EuclideanTransformation.Rot).Backward.Transposed |> M33d.op_Explicit
+                        let normalMat = (Trafo3d globalTrafo.Euclidean.Rot).Backward.Transposed.UpperLeftM33()
                         let inline fix (p : V3f) = normalMat * (V3d p) |> V3f
                         normals |> Array.map fix
 

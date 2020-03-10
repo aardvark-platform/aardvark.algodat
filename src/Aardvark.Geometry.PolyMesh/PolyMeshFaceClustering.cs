@@ -54,7 +54,7 @@ namespace Aardvark.Geometry
 
         public V2d GetTextureCoordinate(V3d globalVertex)
         {
-            V2d localVertex = M44d.TransformPos(Global2Local, globalVertex).XY;
+            V2d localVertex = Mat.TransformPos(Global2Local, globalVertex).XY;
 
             V2d normalizedPos = (localVertex - LocalBox.Min) / LocalBox.Size;
 

@@ -3614,12 +3614,12 @@ namespace Aardvark.Geometry
                 { Property.Positions,
                     a => a.Copy<V3d>(p => matrix.TransformPos(p)) },
                 { Property.Normals,
-                    a => a.Copy<V3d>(nd => M44d.TransposedTransformDir(inverse, nd).Normalized,
-                    b => b.Copy<V3f>(nf => M44d.TransposedTransformDir(inverse, nf.ToV3d()).Normalized.ToV3f(),
+                    a => a.Copy<V3d>(nd => Mat.TransposedTransformDir(inverse, nd).Normalized,
+                    b => b.Copy<V3f>(nf => Mat.TransposedTransformDir(inverse, nf.ToV3d()).Normalized.ToV3f(),
                                         indexArray => indexArray)) },
                 { -Property.Normals,
-                    a => a.Copy<V3d>(nd => M44d.TransposedTransformDir(inverse, nd).Normalized,
-                    b => b.Copy<V3f>(nf => M44d.TransposedTransformDir(inverse, nf.ToV3d()).Normalized.ToV3f()))},
+                    a => a.Copy<V3d>(nd => Mat.TransposedTransformDir(inverse, nd).Normalized,
+                    b => b.Copy<V3f>(nf => Mat.TransposedTransformDir(inverse, nf.ToV3d()).Normalized.ToV3f()))},
                                     
             },
             a => a);
