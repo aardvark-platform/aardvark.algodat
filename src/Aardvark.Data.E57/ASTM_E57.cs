@@ -628,6 +628,8 @@ namespace Aardvark.Data.E57
                                 {
                                     int[] xs    => xs,
 
+                                    short[] xs  => xs.Map(x => (int)x),
+
                                     float[] xs when intensityLimits is null 
                                                 => xs.Map(x => (int)(65535 * x)),
 

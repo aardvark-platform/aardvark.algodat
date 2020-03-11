@@ -63,7 +63,7 @@ namespace Aardvark.Data.Points
             { Token.ColorAf, state => ParseFloat32(state, a => { if (a >= 0.0 && a <= 1.0) state.Color.A = (byte)(255 * a); else state.IsInvalid = true; }) },
 
             // Intensity
-            { Token.Intensity, state => ParseInt(state, i => state.Intensity = i) },
+            { Token.Intensity, state => ParseFloat64(state, i => state.Intensity = (int)i) },
 
             // Velocity
             { Token.VelocityX, state => ParseFloat64(state, x => state.Velocity.X = (float)x) },
