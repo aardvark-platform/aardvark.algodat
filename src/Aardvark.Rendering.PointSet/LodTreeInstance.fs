@@ -222,20 +222,12 @@ module LodTreeInstance =
                         let mem = positions.LongLength * vertexSize
                         let res = geometry, uniforms
                         struct (res :> obj, mem)
-                with :? ObjectDisposedException -> 
-                    let geometry = 
-                        IndexedGeometry(
-                            Mode = IndexedGeometryMode.PointList,
-                            IndexedAttributes = SymDict.ofList [
-                                DefaultSemantic.Positions, [||] :> System.Array
-                                DefaultSemantic.Colors, [||] :> System.Array
-                                DefaultSemantic.Normals, [||] :> System.Array
-                            ]
-                        )
-                    let mem = 0L
-                    let res = geometry,uniforms
-                    struct (res :> obj, mem)
-                    
+                with 
+                | :? ObjectDisposedException -> 
+                    struct ((IndexedGeometry(),MapExt.empty) :> obj, 0L)
+                | e -> 
+                    Log.warn "[Lod] Exception during GetValue :\n%A" e
+                    struct ((IndexedGeometry(),MapExt.empty) :> obj, 0L)
             )
             |> unbox<IndexedGeometry * MapExt<string, Array>>
         
@@ -430,7 +422,11 @@ module LodTreeInstance =
                                                 | _ -> 
                                                     //Log.warn "alloc %A" id
                                                     PointTreeNode(pointCloudId, world, cache, source, globalTrafo, Some this.Root, Some this, level + 1, c) :> ILodTreeNode |> Some
-                                        with :? ObjectDisposedException -> 
+                                        with
+                                        | :? ObjectDisposedException -> 
+                                            None
+                                        | e -> 
+                                            Log.warn "[Lod] Exception during GetChildren:\n%A" e
                                             None
                                 )
                         children <- Some c
