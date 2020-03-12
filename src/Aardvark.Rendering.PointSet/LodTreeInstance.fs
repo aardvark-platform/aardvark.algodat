@@ -117,110 +117,117 @@ module LodTreeInstance =
                 let attributes = SymbolDict<Array>()
                 let mutable uniforms = MapExt.empty
                 let mutable vertexSize = 0L
+                try
 
-                let original =
-                    if self.HasPositions then self.Positions.Value
-                    else [| V3f(System.Single.NaN, System.Single.NaN, System.Single.NaN) |]
+                    let original =
+                        if self.HasPositions then self.Positions.Value
+                        else [| V3f(System.Single.NaN, System.Single.NaN, System.Single.NaN) |]
                     
-                let globalTrafo1 = globalTrafo * Euclidean3d(Rot3d.Identity, center)
-                let positions = 
-                    let inline fix (p : V3f) = globalTrafo1.TransformPos (V3d p) |> V3f
-                    original |> Array.map fix
-                attributes.[DefaultSemantic.Positions] <- positions
-                vertexSize <- vertexSize + 12L
-
-                if MapExt.containsKey "Colors" ips then
-                    let colors = 
-                        if self.HasColors  then self.Colors.Value
-                        else Array.create original.Length C4b.White
-                    attributes.[DefaultSemantic.Colors] <- colors
-                    vertexSize <- vertexSize + 4L
-           
-                if MapExt.containsKey "Normals" ips then
-                    let normals = 
-                        if self.HasNormals then self.Normals.Value
-                        else Array.create original.Length V3f.OOO
-
-                    let normals =
-                        let normalMat = (Trafo3d globalTrafo.Euclidean.Rot).Backward.Transposed.UpperLeftM33()
-                        let inline fix (p : V3f) = normalMat * (V3d p) |> V3f
-                        normals |> Array.map fix
-
-                    attributes.[DefaultSemantic.Normals] <- normals
+                    let globalTrafo1 = globalTrafo * Euclidean3d(Rot3d.Identity, center)
+                    let positions = 
+                        let inline fix (p : V3f) = globalTrafo1.TransformPos (V3d p) |> V3f
+                        original |> Array.map fix
+                    attributes.[DefaultSemantic.Positions] <- positions
                     vertexSize <- vertexSize + 12L
 
-                if MapExt.containsKey "Intensities" ips then
-                    let arr = 
-                        if self.HasIntensities then (self.Intensities.Value)
-                        else Array.replicate original.Length 0
+                    if MapExt.containsKey "Colors" ips then
+                        let colors = 
+                            if self.HasColors  then self.Colors.Value
+                            else Array.create original.Length C4b.White
+                        attributes.[DefaultSemantic.Colors] <- colors
+                        vertexSize <- vertexSize + 4L
+           
+                    if MapExt.containsKey "Normals" ips then
+                        let normals = 
+                            if self.HasNormals then self.Normals.Value
+                            else Array.create original.Length V3f.OOO
 
-                    attributes.[Semantic.Intensities] <- arr
-                    vertexSize <- vertexSize + 4L
+                        let normals =
+                            let normalMat = (Trafo3d globalTrafo.Euclidean.Rot).Backward.Transposed.UpperLeftM33()
+                            let inline fix (p : V3f) = normalMat * (V3d p) |> V3f
+                            normals |> Array.map fix 
+
+                        attributes.[DefaultSemantic.Normals] <- normals
+                        vertexSize <- vertexSize + 12L
+
+                    if MapExt.containsKey "Intensities" ips then
+                        let arr = 
+                            if self.HasIntensities then (self.Intensities.Value)
+                            else Array.replicate original.Length 0
+
+                        attributes.[Semantic.Intensities] <- arr
+                        vertexSize <- vertexSize + 4L
                 
-                if MapExt.containsKey "Classifications" ips then
-                    let arr = 
-                        if self.HasClassifications then (self.Classifications.Value |> Array.map int)
-                        else Array.replicate original.Length 0
+                    if MapExt.containsKey "Classifications" ips then
+                        let arr = 
+                            if self.HasClassifications then (self.Classifications.Value |> Array.map int)
+                            else Array.replicate original.Length 0
 
-                    attributes.[Semantic.Classifications] <- arr
-                    vertexSize <- vertexSize + 4L
+                        attributes.[Semantic.Classifications] <- arr
+                        vertexSize <- vertexSize + 4L
                 
-                if MapExt.containsKey "AvgPointDistance" ips then
-                    let dist =
-                        match self.HasPointDistanceAverage with
-                        | true -> float self.PointDistanceAverage
-                        | _ -> 0.0
+                    if MapExt.containsKey "AvgPointDistance" ips then
+                        let dist =
+                            match self.HasPointDistanceAverage with
+                            | true -> float self.PointDistanceAverage
+                            | _ -> 0.0
 
-                    let avgDist = 
-                        //bounds.Size.NormMax / 40.0
-                        if dist <= 0.0 then localBounds.Size.NormMax / 40.0 else dist
+                        let avgDist = 
+                            //bounds.Size.NormMax / 40.0
+                            if dist <= 0.0 then localBounds.Size.NormMax / 40.0 else dist
 
-                    uniforms <- MapExt.add "AvgPointDistance" ([| float32 (scale * avgDist) |] :> System.Array) uniforms
+                        uniforms <- MapExt.add "AvgPointDistance" ([| float32 (scale * avgDist) |] :> System.Array) uniforms
                     
-                if MapExt.containsKey "TreeLevel" ips then    
-                    let arr = [| float32 level |] :> System.Array
-                    uniforms <- MapExt.add "TreeLevel" arr uniforms
+                    if MapExt.containsKey "TreeLevel" ips then    
+                        let arr = [| float32 level |] :> System.Array
+                        uniforms <- MapExt.add "TreeLevel" arr uniforms
                     
-                if MapExt.containsKey "MaxTreeDepth" ips then    
-                    let depth = 
-                        match self.HasMaxTreeDepth with
-                            | true -> self.MaxTreeDepth
+                    if MapExt.containsKey "MaxTreeDepth" ips then    
+                        let depth = 
+                            match self.HasMaxTreeDepth with
+                                | true -> self.MaxTreeDepth
+                                | _ -> 1
+                        let arr = [| depth |] :> System.Array
+                        uniforms <- MapExt.add "MaxTreeDepth" arr uniforms
+                    
+                    if MapExt.containsKey "MinTreeDepth" ips then     
+                        let depth = 
+                            match self.HasMinTreeDepth with
+                            | true -> self.MinTreeDepth
                             | _ -> 1
-                    let arr = [| depth |] :> System.Array
-                    uniforms <- MapExt.add "MaxTreeDepth" arr uniforms
-                    
-                if MapExt.containsKey "MinTreeDepth" ips then     
-                    let depth = 
-                        match self.HasMinTreeDepth with
-                        | true -> self.MinTreeDepth
-                        | _ -> 1
-                    let arr = [| depth |] :> System.Array
-                    uniforms <- MapExt.add "MinTreeDepth" arr uniforms
+                        let arr = [| depth |] :> System.Array
+                        uniforms <- MapExt.add "MinTreeDepth" arr uniforms
 
-                if original.Length = 0 then
-                    let geometry =
-                        IndexedGeometry(
-                            Mode = IndexedGeometryMode.PointList,
-                            IndexedAttributes = 
-                                SymDict.ofList [
-                                    DefaultSemantic.Positions, [| V3f(System.Single.NaN, System.Single.NaN, System.Single.NaN) |] :> System.Array
-                                    DefaultSemantic.Colors, [| C4b.White |] :> System.Array
-                                    DefaultSemantic.Normals, [| V3f.OOI |] :> System.Array
-                                ]
-                        )
-                    let mem = positions.LongLength * vertexSize
-                    let res = geometry, uniforms
-                    struct (res :> obj, mem)
-                else
-                    let geometry =
-                        IndexedGeometry(
-                            Mode = IndexedGeometryMode.PointList,
-                            IndexedAttributes = attributes
-                        )
+                    if original.Length = 0 then
+                        let geometry =
+                            IndexedGeometry(
+                                Mode = IndexedGeometryMode.PointList,
+                                IndexedAttributes = 
+                                    SymDict.ofList [
+                                        DefaultSemantic.Positions, [| V3f(System.Single.NaN, System.Single.NaN, System.Single.NaN) |] :> System.Array
+                                        DefaultSemantic.Colors, [| C4b.White |] :> System.Array
+                                        DefaultSemantic.Normals, [| V3f.OOI |] :> System.Array
+                                    ]
+                            )
+                        let mem = positions.LongLength * vertexSize
+                        let res = geometry, uniforms
+                        struct (res :> obj, mem)
+                    else
+                        let geometry =
+                            IndexedGeometry(
+                                Mode = IndexedGeometryMode.PointList,
+                                IndexedAttributes = attributes
+                            )
                 
-                    let mem = positions.LongLength * vertexSize
-                    let res = geometry, uniforms
-                    struct (res :> obj, mem)
+                        let mem = positions.LongLength * vertexSize
+                        let res = geometry, uniforms
+                        struct (res :> obj, mem)
+                with 
+                | :? ObjectDisposedException -> 
+                    struct ((IndexedGeometry(),MapExt.empty) :> obj, 0L)
+                | e -> 
+                    Log.warn "[Lod] Exception during GetValue :\n%A" e
+                    struct ((IndexedGeometry(),MapExt.empty) :> obj, 0L)
             )
             |> unbox<IndexedGeometry * MapExt<string, Array>>
         
@@ -402,18 +409,25 @@ module LodTreeInstance =
                                     if isNull c then
                                         None
                                     else
-                                        let c = c.Value
-                                        if isNull c then
+                                        try 
+                                            let c = c.Value
+                                            if isNull c then
+                                                None
+                                            else
+                                                let id = nodeId c globalTrafo level
+                                                match cache.TryGetValue id with
+                                                | (true, n) ->
+                                                    cache.Remove id |> ignore
+                                                    unbox<ILodTreeNode> n |> Some
+                                                | _ -> 
+                                                    //Log.warn "alloc %A" id
+                                                    PointTreeNode(pointCloudId, world, cache, source, globalTrafo, Some this.Root, Some this, level + 1, c) :> ILodTreeNode |> Some
+                                        with
+                                        | :? ObjectDisposedException -> 
                                             None
-                                        else
-                                            let id = nodeId c globalTrafo level
-                                            match cache.TryGetValue id with
-                                            | (true, n) ->
-                                                cache.Remove id |> ignore
-                                                unbox<ILodTreeNode> n |> Some
-                                            | _ -> 
-                                                //Log.warn "alloc %A" id
-                                                PointTreeNode(pointCloudId, world, cache, source, globalTrafo, Some this.Root, Some this, level + 1, c) :> ILodTreeNode |> Some
+                                        | e -> 
+                                            Log.warn "[Lod] Exception during GetChildren:\n%A" e
+                                            None
                                 )
                         children <- Some c
                         c :> seq<_>
