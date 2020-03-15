@@ -42,6 +42,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aardvark.Data.Photometry", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aardvark.Physics.Sky", "Aardvark.Physics.Sky\Aardvark.Physics.Sky.csproj", "{00D02F5B-5278-4867-9F55-777ACF03EB1E}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aardvark.Data.Points.LasZip", "Aardvark.Data.Points.LasZip\Aardvark.Data.Points.LasZip.csproj", "{997D436A-6A9F-4C2E-8D71-39410CC1EDF2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -124,6 +126,10 @@ Global
 		{00D02F5B-5278-4867-9F55-777ACF03EB1E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{00D02F5B-5278-4867-9F55-777ACF03EB1E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{00D02F5B-5278-4867-9F55-777ACF03EB1E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{997D436A-6A9F-4C2E-8D71-39410CC1EDF2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{997D436A-6A9F-4C2E-8D71-39410CC1EDF2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{997D436A-6A9F-4C2E-8D71-39410CC1EDF2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{997D436A-6A9F-4C2E-8D71-39410CC1EDF2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -135,7 +141,7 @@ Global
 		{0595D792-52A4-4DE1-A39F-6A99D199471A} = {6CA9BC7A-0123-43E9-A26B-5FF0B9E01B08}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {E996B5E6-49B2-4479-9DDE-455A40509F43}
 		EnterpriseLibraryConfigurationToolBinariesPathV6 = packages\EnterpriseLibrary.TransientFaultHandling.6.0.1304.0\lib\portable-net45+win+wp8;packages\EnterpriseLibrary.TransientFaultHandling.Data.6.0.1304.1\lib\NET45
+		SolutionGuid = {E996B5E6-49B2-4479-9DDE-455A40509F43}
 	EndGlobalSection
 EndGlobal
