@@ -626,9 +626,14 @@ namespace Aardvark.Data.E57
 
                                 var js = buffers[intensityIndex.Value] switch
                                 {
-                                    int[] xs    => xs,
-
+                                    sbyte[] xs  => xs.Map(x => (int)x),
+                                    byte[] xs   => xs.Map(x => (int)x),
                                     short[] xs  => xs.Map(x => (int)x),
+                                    ushort[] xs => xs.Map(x => (int)x),
+                                    int[] xs    => xs,
+                                    uint[] xs   => xs.Map(x => (int)x),
+                                    long[] xs   => xs.Map(x => (int)x),
+                                    ulong[] xs  => xs.Map(x => (int)x),
 
                                     float[] xs when intensityLimits is null 
                                                 => xs.Map(x => (int)(65535 * x)),
