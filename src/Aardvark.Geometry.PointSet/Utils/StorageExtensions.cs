@@ -618,7 +618,7 @@ namespace Aardvark.Geometry.Points
             if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
             {
                 if (o == null) return null;
-                if (!(o is PointSetNode r)) throw new InvalidOperationException("Invariant d1cb769c-36b6-4374-8248-b8c1ca31d495.");
+                if (!(o is IPointCloudNode r)) throw new InvalidOperationException("Invariant d1cb769c-36b6-4374-8248-b8c1ca31d495. [GetPointCloudNode] Store key "+key+" is not IPointCloudNode.");
                 return r;
             }
 
