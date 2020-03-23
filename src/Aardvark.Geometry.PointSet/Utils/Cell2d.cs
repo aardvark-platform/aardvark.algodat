@@ -112,6 +112,10 @@ namespace Aardvark.Base
         }
 
         /// <summary>
+        /// </summary>
+        public V2l XY => new V2l(X, Y);
+
+        /// <summary>
         /// Gets whether this cell is a special cell centered at origin.
         /// </summary>
         public bool IsCenteredAtOrigin => X == long.MaxValue && Y == long.MaxValue;

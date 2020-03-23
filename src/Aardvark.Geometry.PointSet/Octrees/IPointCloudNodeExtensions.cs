@@ -236,7 +236,7 @@ namespace Aardvark.Geometry.Points
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool InsidePositiveHalfSpace(this IPointCloudNode self, in Plane3d plane)
         {
-            self.BoundingBoxExactGlobal.GetMinMaxInDirection(plane.Normal, out V3d min, out V3d max);
+            self.BoundingBoxExactGlobal.GetMinMaxInDirection(plane.Normal, out V3d min, out V3d _);
             return plane.Height(min) > 0;
         }
 
@@ -246,7 +246,7 @@ namespace Aardvark.Geometry.Points
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool InsideNegativeHalfSpace(this IPointCloudNode self, in Plane3d plane)
         {
-            self.BoundingBoxExactGlobal.GetMinMaxInDirection(-plane.Normal, out V3d min, out V3d max);
+            self.BoundingBoxExactGlobal.GetMinMaxInDirection(-plane.Normal, out V3d min, out V3d _);
             return plane.Height(min) < 0;
         }
 
@@ -333,10 +333,10 @@ namespace Aardvark.Geometry.Points
         {
             if (self == null) return 0;
             long sum = 0, count = 0;
-            _GetAverageNodePointCount(self, ref sum, ref count);
+            GetAverageNodePointCountImpl(self, ref sum, ref count);
             return sum / (double)count;
         }
-        private static void _GetAverageNodePointCount(this IPointCloudNode self, ref long sum, ref long count)
+        private static void GetAverageNodePointCountImpl(this IPointCloudNode self, ref long sum, ref long count)
         {
             sum += self.PointCountCell;
             count++;
@@ -346,7 +346,7 @@ namespace Aardvark.Geometry.Points
             for (var i = 0; i < 8; i++)
             {
                 var n = self.Subnodes[i];
-                if (n != null) _GetAverageNodePointCount(n.Value, ref sum, ref count);
+                if (n != null) GetAverageNodePointCountImpl(n.Value, ref sum, ref count);
             }
         }
 
@@ -656,7 +656,7 @@ namespace Aardvark.Geometry.Points
                 foreach (var chunk in chunks) yield return chunk;
             }
 
-            IEnumerable<Chunk> CollectRec(IPointCloudNode n, Func<IPointCloudNode, bool> _collectMe)
+            static IEnumerable<Chunk> CollectRec(IPointCloudNode n, Func<IPointCloudNode, bool> _collectMe)
             {
                 if (n == null) yield break;
                 
@@ -831,6 +831,36 @@ namespace Aardvark.Geometry.Points
             var ks = self.HasClassifications ? self.Classifications.Value : null;
             var vs = self.HasVelocities ? self.Velocities.Value : null;
             return new Chunk(self.PositionsAbsolute, cs, ns, js, ks, vs);
+        }
+
+        /// <summary>
+        /// Converts node to Chunks (by collecting subnodes from given relative depth).
+        /// </summary>
+        public static IEnumerable<Chunk> ToChunk(this IPointCloudNode self, int fromRelativeDepth)
+        {
+            if (fromRelativeDepth < 0) throw new InvalidOperationException(
+                   $"FromRelativeDepth must be positive, but is {fromRelativeDepth}. Invariant f94781c3-cad7-4f46-b2e1-573cd1df227b."
+                   );
+
+            if (fromRelativeDepth == 0 || self.IsLeaf)
+            {
+                var cs = self.HasColors ? self.Colors.Value : null;
+                var ns = self.HasNormals ? self.Normals.Value : null;
+                var js = self.HasIntensities ? self.Intensities.Value : null;
+                var ks = self.HasClassifications ? self.Classifications.Value : null;
+                var vs = self.HasVelocities ? self.Velocities.Value : null;
+                yield return new Chunk(self.PositionsAbsolute, cs, ns, js, ks, vs);
+            }
+            else
+            {
+                foreach (var x in self.Subnodes)
+                {
+                    if (x != null)
+                    {
+                        foreach (var y in x.Value.ToChunk(fromRelativeDepth - 1)) yield return y;
+                    }
+                }
+            }
         }
     }
 }

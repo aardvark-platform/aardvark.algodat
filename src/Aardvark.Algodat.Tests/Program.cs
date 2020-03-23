@@ -64,11 +64,11 @@ namespace Aardvark.Geometry.Tests
         }
         internal static void TestE57()
         {
-            var sw = new Stopwatch();
+            //var sw = new Stopwatch();
 
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
             var filename = @"T:\Vgm\Data\E57\43144_K2_1-0_int_3dWorx_Error_bei-Import.e57";
-            var fileSizeInBytes = new FileInfo(filename).Length;
+            //var fileSizeInBytes = new FileInfo(filename).Length;
 
             var info = E57.E57Info(filename, ParseConfig.Default);
             Report.Line($"total bounds: {info.Bounds}");
@@ -92,7 +92,7 @@ namespace Aardvark.Geometry.Tests
                 //.Select(x => x.ImmutableFilterSequentialMinDistL1(0.01))
                 //.ToArray()
                 ;
-            var pc = PointCloud.Chunks(chunks, config);
+            var _ = PointCloud.Chunks(chunks, config);
 
             Report.EndTimed();
 
@@ -253,7 +253,7 @@ namespace Aardvark.Geometry.Tests
                 parseChunksDone = true;
             });
 
-            Dictionary<Cell, (List<V3f>, List<C4b>, V3d)> Grid(Chunk x)
+            static Dictionary<Cell, (List<V3f>, List<C4b>, V3d)> Grid(Chunk x)
             {
                 var result = new Dictionary<Cell, (List<V3f>, List<C4b>, V3d)>();
                 var dups = new HashSet<V3f>();
@@ -403,7 +403,7 @@ namespace Aardvark.Geometry.Tests
             sw.Stop();
             Console.WriteLine($"{ps0.Length,20:N0}     {sw.Elapsed}");
 
-            PointSet CreateRandomPointsInUnitCube(int n, int splitLimit)
+            static PointSet CreateRandomPointsInUnitCube(int n, int splitLimit)
             {
                 var r = new Random();
                 var ps = new V3d[n];
@@ -420,8 +420,8 @@ namespace Aardvark.Geometry.Tests
         internal static void TestLoadOldStore()
         {
             var store = new SimpleDiskStore(@"T:\Vgm\Stores\referenz_2019_21_store").ToPointCloudStore(cache: default);
-            var pc = store.GetPointSet("770ed498-5544-4313-9873-5449f2bd823e");
-            var root = store.GetPointCloudNode("e06a1e87-5ab1-4c73-8c3f-3daf1bdac1d9");
+            var _ = store.GetPointSet("770ed498-5544-4313-9873-5449f2bd823e");
+            var __ = store.GetPointCloudNode("e06a1e87-5ab1-4c73-8c3f-3daf1bdac1d9");
         }
 
         internal static void CopyTest()
@@ -450,7 +450,7 @@ namespace Aardvark.Geometry.Tests
                 .WithNormalizePointDensityGlobal(true)
                 .WithVerbose(true)
                 ;
-            var pointcloud = PointCloud.Import(filename, config);
+            var _ = PointCloud.Import(filename, config);
 
             Report.EndTimed();
             store1.Flush();
@@ -653,37 +653,39 @@ namespace Aardvark.Geometry.Tests
             //}
             //Report.End();
 
-            //for (cellExponent = 11; cellExponent >= 0; cellExponent--)
-            //{
-            //    Report.BeginTimed($"[old] e = {cellExponent,3}");
-            //    var xs = root.EnumerateCellColumns(cellExponent);
-            //    var totalPointCount = 0L;
-            //    var count = 0L;
-            //    foreach (var x in xs)
-            //    {
-            //        count++;
-            //        var cs0 = x.GetPoints(int.MaxValue).ToArray();
-            //        var tmp = cs0.Sum(c => c.Count);
-            //        totalPointCount += tmp;
-            //        //Report.Line($"[{x.Cell.X,3}, {x.Cell.Y,3}, {x.Cell.Exponent,3}] {tmp,10:N0}");
-            //    }
-            //    //if (sum != root.PointCountTree) throw new Exception();
-            //    Report.End($" | cols = {count,12:N0} | points = {totalPointCount,12:N0}");
-            //}
+            for (cellExponent = 11; cellExponent >= -10; cellExponent--)
+            {
+                Report.BeginTimed($"[old] e = {cellExponent,3}");
+                var xs = root.EnumerateCellColumns(cellExponent);
+                var totalPointCount = 0L;
+                var count = 0L;
+                foreach (var x in xs)
+                {
+                    count++;
+                    var cs0 = x.GetPoints(int.MaxValue).ToArray();
+                    var tmp = cs0.Sum(c => c.Count);
+                    totalPointCount += tmp;
+                    //Report.Line($"[{x.Cell.X,3}, {x.Cell.Y,3}, {x.Cell.Exponent,3}] {tmp,10:N0}");
+                }
+                //if (sum != root.PointCountTree) throw new Exception();
+                Report.End($" | cols = {count,12:N0} | points = {totalPointCount,12:N0}");
+            }
 
             for (cellExponent = 11; cellExponent >= -10; cellExponent--)
             {
                 Report.BeginTimed($"[new] e = {cellExponent,3}");
-                var ys = new Queries.ColZ(root).EnumerateColumns(cellExponent);
+                var ys = new Queries.ColZ(root).EnumerateColumns(cellExponent, new V2i(2,2));
                 var totalPointCount = 0L;
                 var count = 0L;
                 foreach (var y in ys)
                 {
                     count++;
-                    totalPointCount += y.CountTotal;
+                    var cs0 = y.GetPoints(int.MaxValue).ToArray();
+                    totalPointCount += cs0.Sum(c => c.Count);
+                    //totalPointCount += y.CountTotal;
                     //Report.Line($"[{y.Footprint.X,3}, {y.Footprint.Y,3}, {y.Footprint.Exponent,3}] {y.CountTotal,10:N0}");
                 }
-                if (totalPointCount != root.PointCountTree) throw new Exception();
+                //if (totalPointCount != root.PointCountTree) throw new Exception();
                 Report.End($" | cols = {count,12:N0} | points = {totalPointCount,12:N0}");
             }
         }
@@ -732,7 +734,6 @@ namespace Aardvark.Geometry.Tests
             var ps = pointset.QueryPointsNearRay(ray, 0.01).SelectMany(x => x.Positions).ToArray();
             Console.WriteLine($"{ps.Length:N0}");
         }
-
 
         internal static void HeraTest()
         {
@@ -840,11 +841,11 @@ namespace Aardvark.Geometry.Tests
             Report.EndTimed();
         }
 
-        public static void Main(string[] args)
+        public static void Main(string[] _)
         {
-            HeraTest();
+            //HeraTest();
 
-            //EnumerateCells2dTest();
+            EnumerateCells2dTest();
 
             //TestE57();
 
