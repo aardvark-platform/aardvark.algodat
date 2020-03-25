@@ -623,6 +623,13 @@ namespace Aardvark.Data.E57
                                     var d = max - min;
                                     return xs.Map(x => (int)(((x - min) / d) * 65535.5f));
                                 }
+                                int[] remapDoubleWithLimits(double[] xs)
+                                {
+                                    var min = intensityLimits.Intensity.Min;
+                                    var max = intensityLimits.Intensity.Max;
+                                    var d = max - min;
+                                    return xs.Map(x => (int)(((x - min) / d) * 65535.5));
+                                }
 
                                 var js = buffers[intensityIndex.Value] switch
                                 {
@@ -639,6 +646,11 @@ namespace Aardvark.Data.E57
                                                 => xs.Map(x => (int)(65535 * x)),
 
                                     float[] xs  => remapWithLimits(xs),
+
+                                    double[] xs when intensityLimits is null
+                                                => xs.Map(x => (int)(65535 * x)),
+
+                                    double[] xs => remapDoubleWithLimits(xs),
 
                                     _ => throw new Exception($"Unspecified intensity format {buffers[intensityIndex.Value].GetType()}.")
                                 };
@@ -662,7 +674,7 @@ namespace Aardvark.Data.E57
                                         );
                                 }
                                 var c = colorRGB != null ? new C4b(colorR.Dequeue(), colorG.Dequeue(), colorB.Dequeue()) : C4b.Black;
-                                var j = hasIntensities ? intensities.Dequeue() : 0;
+                                var j = (hasIntensities && intensities.Count > 0) ? intensities.Dequeue() : 0;
                                 yield return (pos: p, color: c, intensity: j);
                             }
                         }
