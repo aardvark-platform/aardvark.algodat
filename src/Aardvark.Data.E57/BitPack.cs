@@ -95,6 +95,10 @@ namespace Aardvark.Base
         /// <summary></summary>
         public static Array UnpackIntegers(byte[] buffer, int bits)
         {
+            if (bits < 1 || bits > 64) throw new ArgumentOutOfRangeException(nameof(bits),
+                $"Bits must be in range [1,64], but is {bits}. Invariant 543de6a7-7441-404a-af61-153fa1f080b5."
+                );
+
             switch (bits)
             {
                 case 2: return OptimizedUnpackInt2(buffer);
@@ -114,11 +118,6 @@ namespace Aardvark.Base
                 var count = bits > 0 ? ((buffer.Length * 8) / bits) : 0;
                 var data = bb.ReadUInts(bits, count);
                 return data;
-            }
-
-            if (bits <= 64)
-            {
-                throw new NotImplementedException($"BitPack.UnpackIntegers({bits})");
             }
 
             throw new NotImplementedException($"BitPack.UnpackIntegers({bits})");
@@ -250,10 +249,10 @@ namespace Aardvark.Base
             return xs;
         }
 
-        /// <summary></summary>
-        public static byte[] Pack8(int[] data) => data.Map(x => (byte)x);
-
-        /// <summary></summary>
+        /// <summary>
+        /// Computes number of bytes required to store n bits.
+        /// Last byte may not be fully used (if n is not a multiple of 8).
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int BitCountInBytes(int n)
         {
@@ -262,12 +261,20 @@ namespace Aardvark.Base
             return c;
         }
 
-        /// <summary></summary>
+        /// <summary>
+        /// Gets 'count' bits from 'x', starting at 'start', where count must be in range [1..8].
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static byte GetBits(ulong x, int start, int count)
         {
-            //if (count < 1 || count > 8) throw new ArgumentOutOfRangeException(nameof(count));
-            //if (start < 0 || start + count > 64) throw new ArgumentOutOfRangeException(nameof(start));
+#if DEBUG
+            if (count < 1 || count > 8) throw new ArgumentOutOfRangeException(nameof(count), 
+                $"Count must be in range [1,8], but is {start}. Invariant 515a9840-f03d-400f-bdd7-f2b1300255d6."
+                );
+            if (start < 0 || start + count > 64) throw new ArgumentOutOfRangeException(nameof(start),
+                $"Start must be in range [0, {start - count}], but is {start}. Invariant 3e541f81-bc0a-474e-a1c5-519e6f835d39."
+                );
+#endif
             var y = (uint)(x >> start);
             var mask = (1u << count) - 1;
             var r = y & mask;
@@ -283,6 +290,7 @@ namespace Aardvark.Base
             public readonly int LengthInBits;
             private int _i;
             private int _ibit;
+
             /// <summary></summary>
             public BitBuffer(int lengthInBits)
             {
@@ -290,6 +298,7 @@ namespace Aardvark.Base
                 LengthInBits = lengthInBits;
                 _i = 0; _ibit = 0;
             }
+
             /// <summary></summary>
             public BitBuffer(byte[] buffer, int bits)
             {
@@ -297,6 +306,7 @@ namespace Aardvark.Base
                 LengthInBits = bits > 0 ? (((buffer.Length * 8) / bits) * bits) : 0;
                 _i = 0; _ibit = 0;
             }
+
             /// <summary></summary>
             public void PushBits(byte x, int bitCount)
             {
@@ -318,6 +328,7 @@ namespace Aardvark.Base
                     _ibit = numberOfMostSignificantBitsToTakeFromCurrentBufferByte;
                 }
             }
+
             /// <summary></summary>
             public void PushBits(ulong x, int bitCount)
             {
