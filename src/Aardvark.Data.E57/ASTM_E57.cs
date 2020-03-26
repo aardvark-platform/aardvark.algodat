@@ -252,7 +252,7 @@ namespace Aardvark.Data.E57
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public double Compute(uint rawValue) => (Minimum.HasValue ? (Minimum.Value + rawValue) : rawValue) * Scale + Offset;
 
-#endregion
+            #endregion
 
             internal static E57ScaledInteger Parse(XElement root)
             {
@@ -535,29 +535,30 @@ namespace Aardvark.Data.E57
                 var intensities = hasIntensities ? new Queue<int>() : null;
 
                 var offset = (E57LogicalOffset)compressedVectorHeader.DataStartOffset;
+                var verboseDetail = false; // verbose
                 while (bytesLeftToConsume > 0)
                 {
-                    if (verbose) Console.WriteLine($"[E57CompressedVector] bytesLeftToConsume = {bytesLeftToConsume}");
+                    if (verboseDetail) Console.WriteLine($"[E57CompressedVector] bytesLeftToConsume = {bytesLeftToConsume}");
                     var packetStart = offset;
                     var sectionId = ReadLogicalBytes(m_stream, offset, 1)[0];
-                    if (verbose) Console.WriteLine($"[E57CompressedVector][OFFSET] {offset}, sectionId = {sectionId}");
+                    if (verboseDetail) Console.WriteLine($"[E57CompressedVector][OFFSET] {offset}, sectionId = {sectionId}");
 
                     if (sectionId == E57_COMPRESSED_VECTOR_SECTION)
                     {
-                        if (verbose) Console.WriteLine($"[E57CompressedVector] DATA PACKET");
+                        if (verboseDetail) Console.WriteLine($"[E57CompressedVector] DATA PACKET");
                         var dataPacketHeader = E57DataPacketHeader.Parse(ReadLogicalBytes(m_stream, offset, 6));
-                        if (verbose) Console.WriteLine($"[E57CompressedVector]   ByteStreamCount    = {dataPacketHeader.ByteStreamCount}");
-                        if (verbose) Console.WriteLine($"[E57CompressedVector]   PacketLengthMinus1 = {dataPacketHeader.PacketLengthMinus1}");
+                        if (verboseDetail) Console.WriteLine($"[E57CompressedVector]   ByteStreamCount    = {dataPacketHeader.ByteStreamCount}");
+                        if (verboseDetail) Console.WriteLine($"[E57CompressedVector]   PacketLengthMinus1 = {dataPacketHeader.PacketLengthMinus1}");
 
                         // read bytestream buffer lengths
                         offset += 6;
-                        if (verbose) Console.WriteLine($"[E57CompressedVector][OFFSET] {offset}");
+                        if (verboseDetail) Console.WriteLine($"[E57CompressedVector][OFFSET] {offset}");
                         var bytestreamBufferLengths = ReadLogicalUnsignedShorts(m_stream, offset, dataPacketHeader.ByteStreamCount);
                         
                         offset += dataPacketHeader.ByteStreamCount * sizeof(ushort);
                         //for (var i = 0; i < bytestreamBufferLengths.Length; i++)
                         //    Console.WriteLine($"[E57CompressedVector]  ByteStream {i+1}/{bytestreamBufferLengths.Length}: length = {bytestreamBufferLengths[i]}");
-                        if (verbose) Console.WriteLine($"[E57CompressedVector][OFFSET] {offset}");
+                        if (verboseDetail) Console.WriteLine($"[E57CompressedVector][OFFSET] {offset}");
 
                         // read bytestream buffers
                         var bytestreamBuffers = new byte[dataPacketHeader.ByteStreamCount][];
@@ -606,12 +607,12 @@ namespace Aardvark.Data.E57
 
                             if (hasColors)
                             {
-                                var crs = (byte[])buffers[colorRGB[0]];
-                                var cgs = (byte[])buffers[colorRGB[1]];
-                                var cbs = (byte[])buffers[colorRGB[2]];
-                                foreach (var r in crs) colorR.Enqueue(r);
-                                foreach (var g in cgs) colorG.Enqueue(g);
-                                foreach (var b in cbs) colorB.Enqueue(b);
+                                var crs = (uint[])buffers[colorRGB[0]];
+                                var cgs = (uint[])buffers[colorRGB[1]];
+                                var cbs = (uint[])buffers[colorRGB[2]];
+                                foreach (var r in crs) colorR.Enqueue((byte)r);
+                                foreach (var g in cgs) colorG.Enqueue((byte)g);
+                                foreach (var b in cbs) colorB.Enqueue((byte)b);
                             }
 
                             if (hasIntensities)
@@ -621,7 +622,8 @@ namespace Aardvark.Data.E57
                                     var min = intensityLimits.Intensity.Min;
                                     var max = intensityLimits.Intensity.Max;
                                     var d = max - min;
-                                    return xs.Map(x => (int)(((x - min) / d) * 65535.5f));
+                                    var result = xs.Map(x => (int)(((x - min) / d) * 65535.5f));
+                                    return result;
                                 }
 
                                 var js = buffers[intensityIndex.Value] switch
@@ -640,6 +642,11 @@ namespace Aardvark.Data.E57
 
                                     float[] xs  => remapWithLimits(xs),
 
+                                    double[] xs when intensityLimits is null
+                                                => xs.Map(x => (int)(65535 * x)),
+
+                                    double[] xs => remapWithLimits(xs.Map(x => (float)x)),
+
                                     _ => throw new Exception($"Unspecified intensity format {buffers[intensityIndex.Value].GetType()}.")
                                 };
 
@@ -648,6 +655,7 @@ namespace Aardvark.Data.E57
 
                             var imax = Fun.Min(cartesianX.Count, cartesianY.Count, cartesianZ.Count);
                             if (hasColors) imax = Fun.Min(imax, Fun.Min(colorR.Count, colorG.Count, colorB.Count));
+                            if (hasIntensities) imax = Fun.Min(imax, intensities.Count);
                             for (var i = 0; i < imax; i++)
                             {
                                 var p = new V3d(cartesianX.Dequeue(), cartesianY.Dequeue(), cartesianZ.Dequeue());
@@ -700,8 +708,13 @@ namespace Aardvark.Data.E57
                     if (colorB.Count > 31 / bitpackerPerByteStream[colorRGB[0]].BitsPerValue) Report.Warn($"Color b values left over ({colorB.Count}).");
                 }
 
-#region Helpers
-                Array UnpackByteStream(byte[] buffer, BitPacker packer, IBitPack proto)
+                if (hasIntensities)
+                {
+                    if (intensities.Count > 31 / bitpackerPerByteStream[intensityIndex.Value].BitsPerValue) Report.Warn($"Intensity values left over ({intensities.Count}).");
+                }
+
+                #region Helpers
+                static Array UnpackByteStream(byte[] buffer, BitPacker packer, IBitPack proto)
                 {
                     var bits = proto.NumberOfBitsForBitPack;
                     var semantic = proto.Semantic;
@@ -757,7 +770,6 @@ namespace Aardvark.Data.E57
                     for (var i = 0; i < xs.Length; i++) xs[i] = br.ReadSingle();
                     return xs;
                 }
-
                 static double[] UnpackFloat64(byte[] buffer, E57Float proto)
                 {
                     if (!proto.IsDoublePrecision) throw new ArgumentException($"Expected double precision, but is single.");
@@ -768,26 +780,17 @@ namespace Aardvark.Data.E57
                     for (var i = 0; i < xs.Length; i++) xs[i] = br.ReadDouble();
                     return xs;
                 }
-                double[] UnpackScaledInteger(byte[] buffer, BitPacker packer, E57ScaledInteger proto)
+                static double[] UnpackScaledInteger(byte[] buffer, BitPacker packer, E57ScaledInteger proto)
                 {
                     checked
                     {
-                        return proto.NumberOfBitsForBitPack switch
-                        {
-                            //case 32:
-                            //    //var bp = new BitPacker(proto.NumberOfBitsForBitPack);
-                            //    //return bp.UnpackUInts(buffer).Map(x => proto.Compute(x));
-                            //    return BitPack.OptimizedUnpackUInt32(buffer).Map(x => proto.Compute(x));
-                            //case 64:
-                            //    return BitPack.OptimizedUnpackUInt64(buffer).Map(x => proto.Compute((uint)x));
-                            _ => packer.UnpackUInts(buffer).Map(x => proto.Compute(x)),
-                        };
+                        var xs = packer.UnpackUInts(buffer);
+                        var rs = xs.Map(proto.Compute);
+                        return rs;
                     }
                 }
-
                 static Array UnpackIntegers(byte[] buffer, BitPacker packer, E57Integer proto)
-                    //=> packer.UnpackUInts(buffer);
-                    => BitPack.UnpackIntegers(buffer, proto.NumberOfBitsForBitPack);
+                    => packer.UnpackUInts(buffer);
 #endregion
             }
         }
@@ -2359,7 +2362,7 @@ namespace Aardvark.Data.E57
 #region XML Helpers
 
         private const string DEFAULT_NAMESPACE = "http://www.astm.org/COMMIT/E57/2010-e57-v1.0";
-        private static T Ex<T>(string s, string should, string actual) { Ex(s, should, actual); return default(T); }
+        private static T Ex<T>(string s, string should, string actual) { Ex(s, should, actual); return default; }
         private static void Ex(string s, string should, string actual)
             => throw new Exception($"[E57][XML] Invalid element {s}. Should be \"{should}\", but is \"{actual}\".");
         private static void EnsureElementType(XElement e, string type)
@@ -2390,9 +2393,30 @@ namespace Aardvark.Data.E57
         private static int? GetInteger(XElement root, string elementName, bool required, int? mustBe = null)
             => GetValue<int?>(root, elementName, required, "Integer", x => mustBe.HasValue ? x == mustBe.Value : true,
                 x => x != null ? int.Parse(x) : 0, mustBe, null);
-        private static int? GetScaledInteger(XElement root, string elementName, bool required, int? mustBe = null)
-            => GetValue<int?>(root, elementName, required, "ScaledInteger", x => mustBe.HasValue ? x == mustBe.Value : true,
-                x => x != null ? int.Parse(x) : 0, mustBe, null);
+        private static double? GetScaledInteger(XElement root, string elementName, bool required, int? mustBe = null)
+        {
+            //return GetValue<int?>(root, elementName, required, "ScaledInteger", x => mustBe.HasValue ? x == mustBe.Value : true,
+            //       x => x != null ? int.Parse(x) : 0, mustBe, null);
+
+            var x = GetElement(root, elementName);
+            if (x == null)
+            {
+                if (required) throw new Exception($"[E57] Element <{elementName}> is required! In {root}.");
+                return null;
+            }
+            EnsureElementNameAndType(x, elementName, "ScaledInteger");
+            var isEmpty = string.IsNullOrWhiteSpace(x.Value);
+            var valueRaw = isEmpty ? null : x.Value;
+            var value = valueRaw != null ? int.Parse(valueRaw) : 0;
+            if (!(mustBe.HasValue ? value == mustBe.Value : true)) throw new Exception(
+                $"[E57] Element <{elementName}> shall have value \"{mustBe}\", but has \"{value}\". In {root}."
+                );
+
+            var scale = GetFloatAttribute(x, "scale");
+            var result = value * scale;
+
+            return result;
+        }
         private static long? GetLong(XElement root, string elementName, bool required, int? mustBe = null)
             => GetValue<long?>(root, elementName, required, "Integer", x => mustBe.HasValue ? x == mustBe.Value : true,
                 x => x != null ? long.Parse(x) : 0, mustBe, null);
@@ -2419,18 +2443,13 @@ namespace Aardvark.Data.E57
         private static double? GetFloatOrInteger(XElement root, string elementName, bool required)
         {
             var type = GetElementType(GetElement(root, elementName));
-            switch (type)
+            return type switch
             {
-                case "Float":
-                    return GetFloat(root, elementName, required);
-                case "Integer":
-                    return GetInteger(root, elementName, required);
-                case "ScaledInteger":
-                    return GetScaledInteger(root, elementName, required);
-                default:
-                    throw new NotImplementedException();
-            }
-
+                "Float" => GetFloat(root, elementName, required),
+                "Integer" => GetInteger(root, elementName, required),
+                "ScaledInteger" => GetScaledInteger(root, elementName, required),
+                _ => throw new NotImplementedException($"Unknown type '{type}'. Invariant a55575af-73cc-439f-ba63-a46883b8f6cd."),
+            };
         }
         private static Range1i GetIntegerRange(XElement root, string elementNameMin, string elementNameMax)
             => new Range1i(GetInteger(root, elementNameMin, true).Value, GetInteger(root, elementNameMax, true).Value);
@@ -2507,40 +2526,39 @@ namespace Aardvark.Data.E57
 
         private static IE57Element ParseE57Element(XElement root, Stream stream)
         {
-            switch (GetElementType(root))
+            return (GetElementType(root)) switch
             {
-                case "Integer": return E57Integer.Parse(root);
-                case "ScaledInteger": return E57ScaledInteger.Parse(root);
-                case "Float": return E57Float.Parse(root);
-                case "String": return E57String.Parse(root);
-                case "Blob": return E57Blob.Parse(root);
-                case "Structure": return E57Structure.Parse(root, stream);
-                case "Vector": return E57Vector.Parse(root, stream);
-                case "CompressedVector": return E57CompressedVector.Parse(root, stream);
-                case "Codec": return E57Codec.Parse(root, stream);
-                case "E57Root": return E57Root.Parse(root, stream);
-                case "Data3D": return E57Data3D.Parse(root, stream);
-                case "PointRecord": return E57PointRecord.Parse(root);
-                case "PointGroupingSchemes": return E57PointGroupingSchemes.Parse(root);
-                case "GroupingByLine": return GroupingByLine.Parse(root);
-                case "LineGroupRecord": return E57LineGroupRecord.Parse(root);
-                case "RigidBodyTransform": return E57RigidBodyTransform.Parse(root);
+                "Integer" => E57Integer.Parse(root),
+                "ScaledInteger" => E57ScaledInteger.Parse(root),
+                "Float" => E57Float.Parse(root),
+                "String" => E57String.Parse(root),
+                "Blob" => E57Blob.Parse(root),
+                "Structure" => E57Structure.Parse(root, stream),
+                "Vector" => E57Vector.Parse(root, stream),
+                "CompressedVector" => E57CompressedVector.Parse(root, stream),
+                "Codec" => E57Codec.Parse(root, stream),
+                "E57Root" => E57Root.Parse(root, stream),
+                "Data3D" => E57Data3D.Parse(root, stream),
+                "PointRecord" => E57PointRecord.Parse(root),
+                "PointGroupingSchemes" => E57PointGroupingSchemes.Parse(root),
+                "GroupingByLine" => GroupingByLine.Parse(root),
+                "LineGroupRecord" => E57LineGroupRecord.Parse(root),
+                "RigidBodyTransform" => E57RigidBodyTransform.Parse(root),
                 //case "Quaternion":
                 //case "Translation":
-                case "Image2d": return E57Image2D.Parse(root, stream);
-                case "VisualReferenceRepresentation": return E57VisualReferenceRepresentation.Parse(root,stream);
-                case "PinholeRepresentation": return E57PinholeRepresentation.Parse(root, stream);
-                case "SphericalRepresentation": return E57SphericalRepresentation.Parse(root, stream);
-                case "CylindricalRepresentation": return E57CylindricalRepresentation.Parse(root, stream);
-                case "CartesianBounds": return E57CartesianBounds.Parse(root);
-                case "SphericalBounds": return E57SphericalBounds.Parse(root);
-                case "IndexBounds": return E57IndexBounds.Parse(root);
-                case "IntensityLimits": return E57IntensityLimits.Parse(root);
-                case "ColorLimits": return E57ColorLimits.Parse(root);
-                case "E57DateTime": return E57DateTime.Parse(root);
-                default:
-                    throw new NotImplementedException($"[E57] Unknown E57 type <{GetElementType(root)}>");
-            }
+                "Image2d" => E57Image2D.Parse(root, stream),
+                "VisualReferenceRepresentation" => E57VisualReferenceRepresentation.Parse(root, stream),
+                "PinholeRepresentation" => E57PinholeRepresentation.Parse(root, stream),
+                "SphericalRepresentation" => E57SphericalRepresentation.Parse(root, stream),
+                "CylindricalRepresentation" => E57CylindricalRepresentation.Parse(root, stream),
+                "CartesianBounds" => E57CartesianBounds.Parse(root),
+                "SphericalBounds" => E57SphericalBounds.Parse(root),
+                "IndexBounds" => E57IndexBounds.Parse(root),
+                "IntensityLimits" => E57IntensityLimits.Parse(root),
+                "ColorLimits" => E57ColorLimits.Parse(root),
+                "E57DateTime" => E57DateTime.Parse(root),
+                _ => throw new NotImplementedException($"[E57] Unknown E57 type <{GetElementType(root)}>"),
+            };
         }
 
 #endregion

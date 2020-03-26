@@ -194,7 +194,7 @@ namespace Aardvark.Data.Points.Import
 
                 foreach (var data3d in header.E57Root.Data3D)
                 {
-                    foreach (var (pos, color, intensity) in data3d.StreamPoints())
+                    foreach (var (pos, color, intensity) in data3d.StreamPoints(config.Verbose))
                     {
                         if (hasPositions) ps.Add(pos);
                         if (hasColors) cs.Add(color);

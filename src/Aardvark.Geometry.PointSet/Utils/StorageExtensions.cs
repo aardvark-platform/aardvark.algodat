@@ -505,30 +505,30 @@ namespace Aardvark.Geometry.Points
             }
         }
 
-        /// <summary>
-        /// </summary>
-        public static PointRkdTreeF<V3f[], V3f> GetKdTreeF(this Storage storage, string key, V3f[] positions)
-            => new PointRkdTreeF<V3f[], V3f>(
-                3, positions.Length, positions,
-                (xs, i) => xs[(int)i], (v, i) => (float)v[i],
-                (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
-                (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, 1e-6f,
-                storage.GetPointRkdTreeFData(key)
-                );
+        ///// <summary>
+        ///// </summary>
+        //public static PointRkdTreeF<V3f[], V3f> GetKdTreeF(this Storage storage, string key, V3f[] positions)
+        //    => new PointRkdTreeF<V3f[], V3f>(
+        //        3, positions.Length, positions,
+        //        (xs, i) => xs[(int)i], (v, i) => (float)v[i],
+        //        (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
+        //        (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, 1e-6f,
+        //        storage.GetPointRkdTreeFData(key)
+        //        );
 
-        /// <summary>
-        /// </summary>
-        public static (bool, PointRkdTreeF<V3f[], V3f>) TryGetKdTreeF(this Storage storage, string key, V3f[] positions)
-        {
-            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
-            {
-                return (true, (PointRkdTreeF<V3f[], V3f>)o);
-            }
-            else
-            {
-                return (false, default);
-            }
-        }
+        ///// <summary>
+        ///// </summary>
+        //public static (bool, PointRkdTreeF<V3f[], V3f>) TryGetKdTreeF(this Storage storage, string key, V3f[] positions)
+        //{
+        //    if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
+        //    {
+        //        return (true, (PointRkdTreeF<V3f[], V3f>)o);
+        //    }
+        //    else
+        //    {
+        //        return (false, default);
+        //    }
+        //}
 
         #endregion
 
