@@ -211,6 +211,18 @@ namespace Aardvark.Data.Points
         }
 
         /// <summary>
+        /// </summary>
+        /// <param name="positions">Optional.</param>
+        /// <param name="colors">Optional. Either null or same number of elements as positions.</param>
+        /// <param name="normals">Optional. Either null or same number of elements as positions.</param>
+        /// <param name="intensities">Optional. Either null or same number of elements as positions.</param>
+        /// <param name="classifications">Optional. Either null or same number of elements as positions.</param>
+        /// <param name="bbox">Optional. If null, then bbox will be constructed from positions.</param>
+        public Chunk(IList<V3d> positions, IList<C4b> colors, IList<V3f> normals, IList<int> intensities, IList<byte> classifications, Box3d? bbox) 
+            : this(positions, colors, normals, intensities, classifications, null, bbox)
+        { }
+
+        /// <summary>
         /// Creates new chunk which is union of this chunk and other. 
         /// </summary>
         public Chunk Union(Chunk other)
