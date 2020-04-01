@@ -37,7 +37,7 @@ namespace Aardvark.Geometry.Points
         public static IEnumerable<Chunk> Parse(string filename, ParseConfig config)
         {
             if (filename == null) throw new ArgumentNullException(nameof(filename));
-            if (!File.Exists(filename)) throw new FileNotFoundException($"File does not exit ({filename}).", filename);
+            if (!File.Exists(filename)) throw new FileNotFoundException($"File does not exist ({filename}).", filename);
             return PointCloudFileFormat.FromFileName(filename).ParseFile(filename, config);
         }
 
@@ -48,7 +48,7 @@ namespace Aardvark.Geometry.Points
         public static PointSet Import(string filename, ImportConfig config = null)
         {
             if (filename == null) throw new ArgumentNullException(nameof(filename));
-            if (!File.Exists(filename)) throw new FileNotFoundException("File does not exit.", filename);
+            if (!File.Exists(filename)) throw new FileNotFoundException("File does not exist.", filename);
 
             if (config == null)
             {
@@ -68,7 +68,7 @@ namespace Aardvark.Geometry.Points
         public static PointSet Import(string filename, string storeDirectory, LruDictionary<string, object> cache)
         {
             if (filename == null) throw new ArgumentNullException(nameof(filename));
-            if (!File.Exists(filename)) throw new FileNotFoundException("File does not exit.", filename);
+            if (!File.Exists(filename)) throw new FileNotFoundException("File does not exist.", filename);
 
             var config = ImportConfig.Default
                 .WithStorage(OpenStore(storeDirectory, cache))

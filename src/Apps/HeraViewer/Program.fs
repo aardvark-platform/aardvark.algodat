@@ -7,7 +7,7 @@ open Aardvark.Application.Slim
 open Aardvark.Base.Rendering
 open Aardvark.SceneGraph
 open Aardvark.Application
-open Aardvark.Base.Incremental
+open FSharp.Data.Adaptive
 
 open Hera
 
@@ -146,18 +146,18 @@ let main argv =
 
     // creates a new game window with samples = 8 (not showing it). neeeds to be disposed.
 
-    let win = new Aardvark.Application.Slim.GameWindow(app.Runtime, false, 4, true)
+    let win = app.CreateGameWindow(4)
 
     let t = Trafo3d.Translation -bb.Center * Trafo3d.Scale (20.0 / bb.Size.NormMax)
     let initialCam = CameraView.lookAt (V3d.III * 30.0) V3d.Zero V3d.OOI
     let c = DefaultCameraController.control win.Mouse win.Keyboard win.Time initialCam
 
-    let f = win.Sizes |> Mod.map (fun s -> Frustum.perspective 60.0 0.01 100.0 (float s.X / float s.Y))
+    let f = win.Sizes |> AVal.map (fun s -> Frustum.perspective 60.0 0.01 100.0 (float s.X / float s.Y))
 
 
     let sw = System.Diagnostics.Stopwatch.StartNew()
     let vertices = 
-        win.Time |> Mod.map (fun _ -> 
+        win.Time |> AVal.map (fun _ -> 
             let t = (sw.Elapsed.TotalSeconds % 115.0 ) * 1.5
             (vertices, velocities) ||> Array.map2 (fun p v -> 
                 p //+ float32 t * v |> V3f
@@ -168,7 +168,7 @@ let main argv =
 
     let stereoViews =
         let half = eyeSeparation * 0.5
-        c  |> Mod.map (fun v -> 
+        c  |> AVal.map (fun v -> 
             let t = CameraView.viewTrafo v
             [|
                 t * Trafo3d.Translation(-half)
@@ -180,7 +180,7 @@ let main argv =
         win.Sizes 
         // construct a standard perspective frustum (60 degrees horizontal field of view,
         // near plane 0.1, far plane 50.0 and aspect ratio x/y.
-        |> Mod.map (fun s -> 
+        |> AVal.map (fun s -> 
             let ac = 30.0
             let ao = 30.0
             let near = 0.01
@@ -213,8 +213,8 @@ let main argv =
     win.RenderTask <-
         Sg.draw IndexedGeometryMode.PointList
         |> Sg.vertexAttribute DefaultSemantic.Positions vertices
-        |> Sg.vertexAttribute DefaultSemantic.Normals (Mod.constant normals)
-        |> Sg.vertexAttribute (Sym.ofString "Density") (Mod.constant densities)
+        |> Sg.vertexAttribute DefaultSemantic.Normals (AVal.constant normals)
+        |> Sg.vertexAttribute (Sym.ofString "Density") (AVal.constant densities)
         |> Sg.vertexAttribute' DefaultSemantic.Colors (velocities |> Array.map ( fun v -> ((v.Normalized + V3f.III) * 0.5f) |> V3f ))
         |> Sg.shader {  
              do! DefaultSurfaces.trafo
@@ -225,11 +225,11 @@ let main argv =
              //do! DefaultSurfaces.pointSprite
              //do! DefaultSurfaces.pointSpriteFragment
            }
-        |> Sg.uniform "PointSize" (Mod.constant 8.0)
+        |> Sg.uniform "PointSize" (AVal.constant 8.0)
 
         |> Sg.transform t
-        |> Sg.viewTrafo (c |> Mod.map CameraView.viewTrafo)
-        |> Sg.projTrafo (f |> Mod.map Frustum.projTrafo)
+        |> Sg.viewTrafo (c |> AVal.map CameraView.viewTrafo)
+        |> Sg.projTrafo (f |> AVal.map Frustum.projTrafo)
         |> Sg.uniform "ViewTrafo" stereoViews
         |> Sg.uniform "ProjTrafo" stereoProjs
         //|> Sg.blendMode (Mod.constant blend)
