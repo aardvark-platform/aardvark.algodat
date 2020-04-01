@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2019. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2020. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -34,6 +34,7 @@ namespace Aardvark.Geometry.Points
         private readonly IList<V3f> m_ns;
         private readonly IList<int> m_is;
         private readonly IList<byte> m_ks;
+        private readonly IList<V3f> m_vs;
         private readonly Node m_root;
         private readonly long m_insertedPointsCount = 0;
         private long m_duplicatePointsCount = 0;
@@ -41,28 +42,28 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// </summary>
         public static InMemoryPointSet Build(Chunk chunk, long octreeSplitLimit)
-            => Build(chunk.Positions, chunk.Colors, chunk.Normals, chunk.Intensities, chunk.Classifications, chunk.BoundingBox, octreeSplitLimit);
+            => Build(chunk.Positions, chunk.Colors, chunk.Normals, chunk.Intensities, chunk.Classifications, chunk.Velocities, chunk.BoundingBox, octreeSplitLimit);
 
         /// <summary>
         /// </summary>
-        public static InMemoryPointSet Build(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, Box3d bounds, long octreeSplitLimit)
-            => new InMemoryPointSet(ps, cs, ns, js, ks, bounds, octreeSplitLimit);
+        public static InMemoryPointSet Build(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, IList<V3f> vs, Box3d bounds, long octreeSplitLimit)
+            => new InMemoryPointSet(ps, cs, ns, js, ks, vs, bounds, octreeSplitLimit);
 
         /// <summary>
         /// </summary>
         public static InMemoryPointSet Build(Chunk chunk, Cell rootBounds, long octreeSplitLimit)
-            => Build(chunk.Positions, chunk.Colors, chunk.Normals, chunk.Intensities, chunk.Classifications, rootBounds, octreeSplitLimit);
+            => Build(chunk.Positions, chunk.Colors, chunk.Normals, chunk.Intensities, chunk.Classifications, chunk.Velocities, rootBounds, octreeSplitLimit);
 
         /// <summary>
         /// </summary>
-        public static InMemoryPointSet Build(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, Cell bounds, long octreeSplitLimit)
-            => new InMemoryPointSet(ps, cs, ns, js, ks, bounds, octreeSplitLimit);
+        public static InMemoryPointSet Build(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, IList<V3f> vs, Cell bounds, long octreeSplitLimit)
+            => new InMemoryPointSet(ps, cs, ns, js, ks, vs, bounds, octreeSplitLimit);
 
-        private InMemoryPointSet(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, Box3d bounds, long octreeSplitLimit)
-            : this(ps, cs, ns, js, ks, new Cell(bounds), octreeSplitLimit)
+        private InMemoryPointSet(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, IList<V3f> vs, Box3d bounds, long octreeSplitLimit)
+            : this(ps, cs, ns, js, ks, vs, new Cell(bounds), octreeSplitLimit)
             { }
 
-        private InMemoryPointSet(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, Cell bounds, long octreeSplitLimit)
+        private InMemoryPointSet(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, IList<V3f> vs, Cell bounds, long octreeSplitLimit)
         {
 #if DEBUG
             //if (new Box3d(ps).Size.Length < 0.001) Debugger.Break();
@@ -72,6 +73,7 @@ namespace Aardvark.Geometry.Points
             m_ns = ns;
             m_is = js;
             m_ks = ks;
+            m_vs = vs;
             m_splitLimit = octreeSplitLimit;
 
             m_root = new Node(this, bounds);
@@ -118,6 +120,7 @@ namespace Aardvark.Geometry.Points
                 V3f[] ns = null;
                 int[] js = null;
                 byte[] ks = null;
+                V3f[] vs = null;
                 
                 if (_ia != null)
                 {
@@ -154,6 +157,13 @@ namespace Aardvark.Geometry.Points
                         ks = new byte[count];
                         for (var i = 0; i < count; i++) ks[i] = allKs[_ia[i]];
                     }
+
+                    if (_octree.m_vs != null)
+                    {
+                        var allVs = _octree.m_vs;
+                        vs = new V3f[count];
+                        for (var i = 0; i < count; i++) vs[i] = allVs[_ia[i]];
+                    }
                 }
 
                 Guid? psId = ps != null ? (Guid?)Guid.NewGuid() : null;
@@ -161,7 +171,8 @@ namespace Aardvark.Geometry.Points
                 Guid? nsId = ns != null ? (Guid?)Guid.NewGuid() : null;
                 Guid? isId = js != null ? (Guid?)Guid.NewGuid() : null;
                 Guid? ksId = ks != null ? (Guid?)Guid.NewGuid() : null;
-                
+                Guid? vsId = vs != null ? (Guid?)Guid.NewGuid() : null;
+
                 var subcells = _subnodes?.Map(x => x?.ToPointSetCell(storage, isTemporaryImportNode));
                 var subcellIds = subcells?.Map(x => x?.Id);
                 var isLeaf = _subnodes == null;
@@ -230,6 +241,7 @@ namespace Aardvark.Geometry.Points
                 if (nsId != null) { storage.Add(nsId.ToString(), ns); data = data.Add(Durable.Octree.Normals3fReference, nsId.Value); }
                 if (isId != null) { storage.Add(isId.ToString(), js); data = data.Add(Durable.Octree.Intensities1iReference, isId.Value); }
                 if (ksId != null) { storage.Add(ksId.ToString(), ks); data = data.Add(Durable.Octree.Classifications1bReference, ksId.Value); }
+                if (vsId != null) { storage.Add(vsId.ToString(), vs); data = data.Add(Durable.Octree.Velocities3fReference, vsId.Value); }
 
                 if (isLeaf) // leaf
                 {

@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2019. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2020. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -14,11 +14,8 @@
 using Aardvark.Base;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Aardvark.Data.Points
 {
@@ -32,7 +29,7 @@ namespace Aardvark.Data.Points
         /// <summary>
         /// Parses ASCII lines file.
         /// </summary>
-        internal static IEnumerable<Chunk> AsciiLines(Func<byte[], int, double, Chunk?> lineParser,
+        internal static IEnumerable<Chunk> AsciiLines(Func<byte[], int, double, Chunk> lineParser,
             string filename, ParseConfig config
             )
         {
@@ -44,7 +41,7 @@ namespace Aardvark.Data.Points
         /// <summary>
         /// Parses ASCII lines stream.
         /// </summary>
-        internal static IEnumerable<Chunk> AsciiLines(Func<byte[], int, double, Chunk?> lineParser,
+        internal static IEnumerable<Chunk> AsciiLines(Func<byte[], int, double, Chunk> lineParser,
             Stream stream, long streamLengthInBytes, ParseConfig config
             )
         {
@@ -53,7 +50,6 @@ namespace Aardvark.Data.Points
                 .ChunkStreamAtNewlines(streamLengthInBytes, config.ReadBufferSizeInBytes, config.CancellationToken)
                 .ParseBuffers(streamLengthInBytes, lineParser, config.MinDist, config.MaxDegreeOfParallelism, config.Verbose, config.CancellationToken)
                 ;
-            //var foo = result.ToArray();
             return result;
         }
 
@@ -73,11 +69,11 @@ namespace Aardvark.Data.Points
                 $"Argument 'maxChunkSizeInBytes' must be greater than 0, but is {maxChunkSizeInBytes}."
                 );
 
-            var estimatedNumberOfChunks = streamLengthInBytes / maxChunkSizeInBytes + 1;
+            //var estimatedNumberOfChunks = streamLengthInBytes / maxChunkSizeInBytes + 1;
             var stats = new ParsingStats(streamLengthInBytes);
 
             var totalBytesRead = 0L;
-            var bounds = Box3d.Invalid;
+            //var bounds = Box3d.Invalid;
             var buffer = new byte[maxChunkSizeInBytes];
 
             var bufferStart = 0;
@@ -135,7 +131,7 @@ namespace Aardvark.Data.Points
         /// <returns></returns>
         public static IEnumerable<Chunk> ParseBuffers(
             this IEnumerable<Buffer> buffers, long sumOfAllBufferSizesInBytes,
-            Func<byte[], int, double, Chunk?> parser, double minDist,
+            Func<byte[], int, double, Chunk> parser, double minDist,
             int maxLevelOfParallelism, bool verbose,
             CancellationToken ct
             )
@@ -146,16 +142,14 @@ namespace Aardvark.Data.Points
             var totalBytesRead = 0L;
             var bounds = Box3d.Invalid;
 
-            //var foo2 = buffers.ToArray();
-
             var result = buffers.MapParallel((buffer, ct2) =>
             {
                 var optionalSamples = parser(buffer.Data, buffer.Count, minDist);
-                if (!optionalSamples.HasValue) return Chunk.Empty;
-                var samples = optionalSamples.Value;
+                if (optionalSamples == null) return Chunk.Empty;
+                var samples = optionalSamples;
                 bounds.ExtendBy(new Box3d(samples.Positions));
                 Interlocked.Add(ref sampleCount, samples.Count);
-                var r = new Chunk(samples.Positions, samples.Colors, samples.Normals, samples.Intensities, samples.Classifications, samples.BoundingBox);
+                var r = new Chunk(samples.Positions, samples.Colors, samples.Normals, samples.Intensities, samples.Classifications, samples.Velocities, samples.BoundingBox);
 
                 Interlocked.Add(ref sampleCountYielded, r.Count);
                 Interlocked.Add(ref totalBytesRead, buffer.Count);
@@ -178,11 +172,10 @@ namespace Aardvark.Data.Points
                     Console.WriteLine($"[Parsing] summary: yielded {sampleCountYielded} point samples");
                     Console.WriteLine($"[Parsing] summary: bounding box is {bounds}");
                 }
-            })
+            }, ct)
             .WhereNotNull()
             ;
 
-            //var foo = result.ToArray();
             return result;
         }
     }

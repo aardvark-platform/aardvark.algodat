@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2019. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2020. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -57,7 +57,7 @@ namespace Aardvark.Geometry.Tests
             var ps = new List<V3d> { new V3d(0.1, 0.2, 0.3) };
             var cs = new List<C4b> { C4b.White };
             var pointset = PointSet.Create(
-                store, "id", ps, cs, null, null, null, 1000,
+                store, "id", ps, cs, null, null, null, null, 1000,
                 generateLod: false, isTemporaryImportNode: true, default
                 );
             Assert.IsTrue(pointset.PointCount == 1);
@@ -75,7 +75,7 @@ namespace Aardvark.Geometry.Tests
             var ns = new List<V3f> { V3f.ZAxis };
             var js = new List<int> { 123 };
             var ks = new List<byte> { 42 };
-            var imps = InMemoryPointSet.Build(ps, cs, ns, js, ks, Cell.Unit, 1);
+            var imps = InMemoryPointSet.Build(ps, cs, ns, js, ks, null, Cell.Unit, 1);
         }
 
         [Test]
@@ -85,7 +85,7 @@ namespace Aardvark.Geometry.Tests
             var ns = new List<V3f> { V3f.ZAxis };
             var js = new List<int> { 123 };
             var ks = new List<byte> { 42 };
-            var imps = InMemoryPointSet.Build(ps, null, ns, js, ks, Cell.Unit, 1);
+            var imps = InMemoryPointSet.Build(ps, null, ns, js, ks, null, Cell.Unit, 1);
         }
 
         [Test]
@@ -95,7 +95,7 @@ namespace Aardvark.Geometry.Tests
             var cs = new List<C4b> { C4b.White };
             var js = new List<int> { 123 };
             var ks = new List<byte> { 42 };
-            var imps = InMemoryPointSet.Build(ps, cs, null, js, ks, Cell.Unit, 1);
+            var imps = InMemoryPointSet.Build(ps, cs, null, js, ks, null, Cell.Unit, 1);
         }
 
         [Test]
@@ -105,7 +105,7 @@ namespace Aardvark.Geometry.Tests
             var cs = new List<C4b> { C4b.White };
             var ns = new List<V3f> { V3f.ZAxis };
             var ks = new List<byte> { 42 };
-            var imps = InMemoryPointSet.Build(ps, cs, ns, null, ks, Cell.Unit, 1);
+            var imps = InMemoryPointSet.Build(ps, cs, ns, null, ks, null, Cell.Unit, 1);
         }
 
         [Test]
@@ -115,7 +115,7 @@ namespace Aardvark.Geometry.Tests
             var cs = new List<C4b> { C4b.White };
             var ns = new List<V3f> { V3f.ZAxis };
             var js = new List<int> { 123 };
-            var imps = InMemoryPointSet.Build(ps, cs, ns, js, null, Cell.Unit, 1);
+            var imps = InMemoryPointSet.Build(ps, cs, ns, js, null, null, Cell.Unit, 1);
         }
 
         [Test]
@@ -134,7 +134,7 @@ namespace Aardvark.Geometry.Tests
 
             Assert.IsTrue(ps.Count == 4 * 4 * 4);
 
-            var imps = InMemoryPointSet.Build(ps, null, ns, null, null, new Cell(0, 0, 0, 0), 1);
+            var imps = InMemoryPointSet.Build(ps, null, ns, null, null, null, new Cell(0, 0, 0, 0), 1);
             var root = imps.ToPointSetNode(storage, isTemporaryImportNode: false);
             Assert.IsTrue(root.PointCountTree == 4 * 4 * 4);
             var countNodes = root.CountLeafNodes(true);
@@ -164,7 +164,7 @@ namespace Aardvark.Geometry.Tests
             var js = new List<int> { 123 };
             var ks = new List<byte> { 42 };
             var storage = PointCloud.CreateInMemoryStore(cache: default);
-            var pointset = PointSet.Create(storage, "test", ps, cs, ns, js, ks, 1, generateLod: true, isTemporaryImportNode: false, default);
+            var pointset = PointSet.Create(storage, "test", ps, cs, ns, js, ks, null, 1, generateLod: true, isTemporaryImportNode: false, default);
             Assert.IsTrue(pointset.HasColors == true);
             Assert.IsTrue(pointset.HasIntensities == true);
             Assert.IsTrue(pointset.HasClassifications == true);
@@ -183,7 +183,7 @@ namespace Aardvark.Geometry.Tests
             var js = new List<int> { 123 };
             var ks = new List<byte> { 42 };
             var storage = PointCloud.CreateInMemoryStore(cache: default);
-            var pointset = PointSet.Create(storage, "test", ps, cs, ns, js, ks, 1, generateLod: false, isTemporaryImportNode: true, default);
+            var pointset = PointSet.Create(storage, "test", ps, cs, ns, js, ks, null, 1, generateLod: false, isTemporaryImportNode: true, default);
             Assert.IsTrue(pointset.HasColors == true);
             Assert.IsTrue(pointset.HasIntensities == true);
             Assert.IsTrue(pointset.HasClassifications == true);
@@ -199,7 +199,7 @@ namespace Aardvark.Geometry.Tests
             var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
             var cs = new List<C4b> { C4b.White };
             var storage = PointCloud.CreateInMemoryStore(cache: default);
-            var pointset = PointSet.Create(storage, "test", ps, cs, null, null, null, 1, generateLod: true, isTemporaryImportNode: true, default);
+            var pointset = PointSet.Create(storage, "test", ps, cs, null, null, null, null, 1, generateLod: true, isTemporaryImportNode: true, default);
             Assert.IsTrue(pointset.HasColors == true);
             Assert.IsTrue(pointset.HasIntensities == false);
             Assert.IsTrue(pointset.HasKdTree == true);

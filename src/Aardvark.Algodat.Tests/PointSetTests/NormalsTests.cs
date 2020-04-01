@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2019. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2020. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -52,7 +52,7 @@ namespace Aardvark.Geometry.Tests
         public void CanCreatePointSetWithNormals()
         {
             var ps = PointSet.Create(CreateInMemoryStore(), Guid.NewGuid().ToString(),
-                new[] { V3d.IOO }, new[] { C4b.White }, new[] { V3f.OIO }, null, null, 8192,
+                new[] { V3d.IOO }, new[] { C4b.White }, new[] { V3f.OIO }, null, null, null, 8192,
                 generateLod: false, isTemporaryImportNode: true, default
                 );
 

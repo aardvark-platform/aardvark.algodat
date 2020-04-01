@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2019. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2020. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -348,6 +348,11 @@ namespace Aardvark.Geometry.Points
             public readonly Cell2d Cell;
 
             /// <summary>
+            /// Result (central) column.
+            /// </summary>
+            public readonly ColZ ColZ;
+
+            /// <summary>
             /// Returns points inside cell column from LoD at given relative depth,
             /// where 0 means points in cell column itself, 1 means points from subcells, aso.
             /// </summary>
@@ -359,7 +364,7 @@ namespace Aardvark.Geometry.Points
                        nameof(fromRelativeDepth)
                        );
 
-                return Root.CollectColumnXY(Cell, fromRelativeDepth);
+                return ColZ.GetPoints(fromRelativeDepth);
             }
 
             /// <summary>
@@ -440,10 +445,11 @@ namespace Aardvark.Geometry.Points
             /// <summary>
             /// Represents a cell 'resultCell' inside an octree ('root').
             /// </summary>
-            internal CellQueryResult2d(IPointCloudNode root, Cell2d resultCell, CellQueryResult2dCache cache)
+            internal CellQueryResult2d(IPointCloudNode root, Cell2d resultCell, ColZ colz, CellQueryResult2dCache cache)
             {
                 Root = root ?? throw new ArgumentNullException(nameof(root));
                 Cell = resultCell;
+                ColZ = colz;
                 Cache = cache ?? throw new ArgumentNullException(nameof(cache));
             }
 
@@ -491,53 +497,24 @@ namespace Aardvark.Geometry.Points
                 );
 
             var cache = new CellQueryResult2dCache();
-            var bounds = root.Cell.GetRasterBounds(cellExponent);
-            for (var x = bounds.Min.X; x <= bounds.Max.X; x++)
+
+            //// old-style
+            //var bounds = root.Cell.GetRasterBounds(cellExponent);
+            //for (var x = bounds.Min.X; x <= bounds.Max.X; x++)
+            //{
+            //    if (x % stride.X != 0) continue;
+            //    for (var y = bounds.Min.Y; y <= bounds.Max.Y; y++)
+            //    {
+            //        if (y % stride.Y != 0) continue;
+            //        yield return new CellQueryResult2d(root, new Cell2d(x, y, cellExponent), cache);
+            //    }
+            //}
+
+            // new-style
+            var cs = new ColZ(root).EnumerateColumns(cellExponent, stride);
+            foreach (var c in cs)
             {
-                if (x % stride.X != 0) continue;
-                for (var y = bounds.Min.Y; y <= bounds.Max.Y; y++)
-                {
-                    if (y % stride.Y != 0) continue;
-                    yield return new CellQueryResult2d(root, new Cell2d(x, y, cellExponent), cache);
-                }
-            }
-        }
-
-        private static IEnumerable<Cell2d> EnumerateCells2d(this IPointCloudNode root, int cellExponent, V2i stride)
-        {
-            if (root == null) yield break;
-
-            if (root.PointCountTree == 0) 
-                throw new InvalidOperationException("Invariant 8e03ba15-4efd-446b-84da-839cfc1a6c20.");
-
-            if (root.Cell.Exponent < cellExponent) 
-                throw new InvalidOperationException("Invariant 472f1a3f-ce36-432c-b9a4-45273c98f230.");
-
-            if (root.IsLeaf)
-            {
-                if (root.Cell.Exponent > cellExponent)
-                {
-                    // subdivide leaf ...
-                    throw new NotImplementedException("subdivide leaf ...");
-                }
-                else
-                {
-                    if (root.Cell.Exponent != cellExponent)
-                        throw new InvalidOperationException("Invariant 2b1a686d-0e95-4263-ade4-47d1202183be.");
-
-                    if (root.Cell.X % stride.X == 0 && root.Cell.Y % stride.Y == 0)
-                        yield return new Cell2d(root.Cell.X, root.Cell.Y, root.Cell.Exponent);
-                    else
-                        yield break;
-                }
-            }
-            else
-            {
-                // inner node ...
-                var c0a = root.Subnodes[0]?.Value;
-                var c0b = root.Subnodes[4]?.Value;
-
-                throw new NotImplementedException("inner node ...");
+                yield return new CellQueryResult2d(root, c.Footprint, c, cache);
             }
         }
 
@@ -548,7 +525,6 @@ namespace Aardvark.Geometry.Points
             public Cell2d Footprint { get; }
             public IPointCloudNode[] Nodes { get; }
             public Chunk Rest { get; }
-
             public ColZ(IPointCloudNode n)
             {
                 Footprint = new Cell2d(n.Cell.X, n.Cell.Y, n.Cell.Exponent);
@@ -563,17 +539,81 @@ namespace Aardvark.Geometry.Points
                 Rest = rest;
 
 #if DEBUG
-                Cell2d GetFootprintZ(Cell c) => new Cell2d(c.X, c.Y, c.Exponent);
+                static Cell2d GetFootprintZ(Cell c) => new Cell2d(c.X, c.Y, c.Exponent);
                 if (!nodes.All(n => GetFootprintZ(n.Cell) == footprint)) throw new InvalidOperationException();
                 var bb = footprint.BoundingBox;
-                if (!rest.Positions.All(p => bb.Contains(p.XY))) throw new InvalidOperationException();
+                if (rest.HasPositions && !rest.Positions.All(p => bb.Contains(p.XY))) throw new InvalidOperationException();
 #endif
             }
 
             public bool IsEmpty => Nodes.Length == 0 && Rest.IsEmpty;
 
-            public ColZ[] Split()
+            public IEnumerable<ColZ> EnumerateColumns(int cellExponent)
+                => EnumerateColumns(cellExponent, V2i.II);
+
+            public IEnumerable<ColZ> EnumerateColumns(int cellExponent, V2i stride)
             {
+                if (Footprint.Exponent < cellExponent) throw new InvalidOperationException(
+                    $"ColZ is already smaller ({Footprint.Exponent}) then requested cellExponent ({cellExponent}). Invariant 00a70058-0cd8-42fa-ae11-b28de9986984."
+                    );
+
+                if (Footprint.Exponent == cellExponent)
+                {
+                    if (Footprint.X % stride.X == 0 && Footprint.Y % stride.Y == 0)
+                    {
+                        yield return this;
+                    }
+                }
+                else
+                {
+                    foreach (var col in Split())
+                    {
+                        if (col == null) continue;
+                        foreach (var x in col.EnumerateColumns(cellExponent, stride))
+                        {
+                            if (x.Footprint.X % stride.X != 0 || x.Footprint.Y % stride.Y != 0) continue;
+                            if (x.CountTotal == 0) continue;
+                            yield return x;
+                        }
+                    }
+                }
+            }
+
+            /// <summary>
+            /// Number of points in column at current level.
+            /// </summary>
+            public long Count => Nodes.Sum(n => n.PointCountCell) + Rest.Count;
+
+            /// <summary>
+            /// Number of points in column at most detailed level.
+            /// </summary>
+            public long CountTotal => Nodes.Sum(n => n.PointCountTree) + Rest.Count;
+
+            /// <summary>
+            /// Returns points inside cell column from LoD at given relative depth,
+            /// where 0 means points in cell column itself, 1 means points from subcells, aso.
+            /// </summary>
+            public IEnumerable<Chunk> GetPoints(int fromRelativeDepth)
+            {
+                if (fromRelativeDepth < 0) throw new ArgumentException(
+                       $"Parameter 'fromRelativeDepth' must not be negative (but is {fromRelativeDepth}). "
+                       + "Invariant 99e46eef-0c0f-4279-8c98-8f01e29788b3.",
+                       nameof(fromRelativeDepth)
+                       );
+
+                foreach (var n in Nodes)
+                {
+                    foreach (var x in n.ToChunk(fromRelativeDepth))
+                    {
+                        yield return x;
+                    }
+                }
+                yield return Rest;
+            }
+
+            private ColZ[] Split()
+            {
+                // inner ...
                 var nss = new List<IPointCloudNode>[4].SetByIndex(_ => new List<IPointCloudNode>());
                 foreach (var n in Nodes.Where(n => !n.IsLeaf))
                 {
@@ -585,12 +625,14 @@ namespace Aardvark.Geometry.Points
                     }
                 }
 
+                // leafs ...
                 var c = Footprint.GetCenter();
                 var rs = Rest
                     .ImmutableMergeWith(Nodes.Where(n => n.IsLeaf).Select(n => n.ToChunk()))
-                    .SplitBy((chunk, i) => oct(c, chunk.Positions[i].XY))
+                    .GroupBy((chunk, i) => oct(c, chunk.Positions[i].XY))
                     ;
 
+                // create sub-columns ...
                 return new ColZ[4].SetByIndex(i =>
                     (nss[i].Count > 0 || rs.ContainsKey(i))
                     ? new ColZ(

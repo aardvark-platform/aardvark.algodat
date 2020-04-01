@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2019. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2020. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -31,6 +31,7 @@ namespace Aardvark.Data.Points
         public C4b Color = C4b.Black;
         public V3f Normal;
         public int Intensity;
+        public V3f Velocity;
     }
     
     /// <summary>
@@ -64,6 +65,11 @@ namespace Aardvark.Data.Points
             // Intensity
             { Token.Intensity, state => ParseFloat64(state, i => state.Intensity = (int)i) },
 
+            // Velocity
+            { Token.VelocityX, state => ParseFloat64(state, x => state.Velocity.X = (float)x) },
+            { Token.VelocityY, state => ParseFloat64(state, y => state.Velocity.Y = (float)y) },
+            { Token.VelocityZ, state => ParseFloat64(state, z => state.Velocity.Z = (float)z) },
+
             // Skip
             { Token.Skip, state => ParseSkip(state) },
         };
@@ -71,16 +77,84 @@ namespace Aardvark.Data.Points
         /// <summary>
         /// Buffer is expected to contain ASCII. Lines separated by '\n'.
         /// </summary>
-        public static Chunk? Custom(byte[] buffer, int count, double filterDist, Token[] layout)
+        public static Chunk CustomDurable(byte[] buffer, int count, double filterDist, Token[] layout)
         {
             var hasColor = layout.HasColorTokens();
             var hasNormal = layout.HasNormalTokens();
             var hasIntensity = layout.HasIntensityTokens();
+            var hasVelocity = layout.HasVelocityTokens();
 
             var ps = new List<V3d>();
             var cs = hasColor ? new List<C4b>() : null;
             var ns = hasNormal ? new List<V3f>() : null;
             var js = hasIntensity ? new List<int>() : null;
+            var vs = hasVelocity ? new List<V3f>() : null;
+
+            var prev = V3d.PositiveInfinity;
+            var filterDistM = -filterDist;
+            var doFilterDist = filterDist > 0.0;
+
+            var tokenParsers = layout.Map(x => s_parsers[x]);
+
+            unsafe
+            {
+                fixed (byte* begin = buffer)
+                {
+                    var state = new LineParserState
+                    {
+                        p = begin,
+                        end = begin + count
+                    };
+                    while (state.p < state.end)
+                    {
+                        // parse single line
+                        state.IsInvalid = false;
+
+                        for (var i = 0; i < tokenParsers.Length; i++)
+                        {
+                            tokenParsers[i](state);
+                            if (state.IsInvalid) break;
+                        }
+
+                        SkipToNextLine(state);
+                        if (state.IsInvalid) continue;
+
+                        // min dist filtering
+                        if (doFilterDist)
+                        {
+                            if (Utils.DistLessThanL1(ref state.Position, ref prev, filterDist)) continue;
+                            prev = state.Position;
+                        }
+
+                        // add point to chunk
+                        ps.Add(state.Position);
+                        if (hasColor) cs.Add(state.Color);
+                        if (hasNormal) ns.Add(state.Normal);
+                        if (hasIntensity) js.Add(state.Intensity);
+                        if (hasVelocity) vs.Add(state.Velocity);
+                    }
+                }
+            }
+
+            if (ps.Count == 0) return null;
+            return new Chunk(ps, cs, ns, js, classifications: null, velocities: vs);
+        }
+
+        /// <summary>
+        /// Buffer is expected to contain ASCII. Lines separated by '\n'.
+        /// </summary>
+        public static Chunk Custom(byte[] buffer, int count, double filterDist, Token[] layout)
+        {
+            var hasColor = layout.HasColorTokens();
+            var hasNormal = layout.HasNormalTokens();
+            var hasIntensity = layout.HasIntensityTokens();
+            var hasVelocity = layout.HasVelocityTokens();
+
+            var ps = new List<V3d>();
+            var cs = hasColor ? new List<C4b>() : null;
+            var ns = hasNormal ? new List<V3f>() : null;
+            var js = hasIntensity ? new List<int>() : null;
+            var vs = hasVelocity ? new List<V3f>() : null;
 
             var prev = V3d.PositiveInfinity;
             var filterDistM = -filterDist;
@@ -123,19 +197,20 @@ namespace Aardvark.Data.Points
                         if (hasColor) cs.Add(state.Color);
                         if (hasNormal) ns.Add(state.Normal);
                         if (hasIntensity) js.Add(state.Intensity);
+                        if (hasVelocity) vs.Add(state.Velocity);
                     }
                 }
             }
 
             if (ps.Count == 0) return null;
-            return new Chunk(ps, cs, ns, js);
+            return new Chunk(ps, cs, ns, js, classifications: null, velocities: vs);
         }
 
         /// <summary>
         /// Buffer is expected to contain ASCII. Lines separated by '\n'.
         /// Expected line format: [double X] [double Y] [double Z] [int I] [byte R] [byte G] [byte B] \n
         /// </summary>
-        public static Chunk? XYZIRGB(byte[] buffer, int count, double filterDist)
+        public static Chunk XYZIRGB(byte[] buffer, int count, double filterDist)
             => Custom(buffer, count, filterDist, new[]
             {
                 Token.PositionX, Token.PositionY, Token.PositionZ,
@@ -147,7 +222,7 @@ namespace Aardvark.Data.Points
         /// Buffer is expected to contain ASCII. Lines separated by '\n'.
         /// Expected line format: [double X] [double Y] [double Z] [SKIP] [byte R] [byte G] [byte B] \n
         /// </summary>
-        public static Chunk? XYZSRGB(byte[] buffer, int count, double filterDist)
+        public static Chunk XYZSRGB(byte[] buffer, int count, double filterDist)
             => Custom(buffer, count, filterDist, new[]
             {
                 Token.PositionX, Token.PositionY, Token.PositionZ,
@@ -159,7 +234,7 @@ namespace Aardvark.Data.Points
         /// Buffer is expected to contain ASCII. Lines separated by '\n'.
         /// Expected line format: [double X] [double Y] [double Z] [byte R] [byte G] [byte B] \n
         /// </summary>
-        public static Chunk? XYZRGB(byte[] buffer, int count, double filterDist)
+        public static Chunk XYZRGB(byte[] buffer, int count, double filterDist)
             => Custom(buffer, count, filterDist, new[]
             {
                 Token.PositionX, Token.PositionY, Token.PositionZ,
@@ -181,11 +256,12 @@ namespace Aardvark.Data.Points
         {
             if (state.p >= state.end) { state.IsInvalid = true; return; }
 
-            while (*state.p == ' ' && state.p < state.end) state.p++;
+            while ((*state.p == ' ' || *state.p == '\t') && state.p < state.end) state.p++;
             if (state.p >= state.end || *state.p == '\n' || *state.p == '\r') { state.IsInvalid = true; return; }
 
             var minus = *state.p == ((byte)'-');
             if (minus) state.p++;
+            else if (*state.p == ((byte)'+')) state.p++;
 
             var x = 0.0;
             var parse = true;
@@ -193,7 +269,7 @@ namespace Aardvark.Data.Points
             {
                 switch ((char)*state.p)
                 {
-                    case '0': x = x * 10.0; break;
+                    case '0': x *= 10.0; break;
                     case '1': x = x * 10.0 + 1.0; break;
                     case '2': x = x * 10.0 + 2.0; break;
                     case '3': x = x * 10.0 + 3.0; break;
@@ -206,6 +282,7 @@ namespace Aardvark.Data.Points
                     case '.': parse = false; break;
                     case '\n':
                     case '\r':
+                    case '\t':
                     case ' ': setResult(minus ? -x : x); return;
                     default: { state.IsInvalid = true; return; }
                 }
@@ -215,28 +292,64 @@ namespace Aardvark.Data.Points
 
             var y = 0.0;
             var r = 0.1;
-            while (state.p < state.end)
+            var noExponent = true;
+            while (noExponent && state.p < state.end)
             {
                 switch ((char)*state.p)
                 {
                     case '0': break;
-                    case '1': y = y + r; break;
-                    case '2': y = y + r * 2; break;
-                    case '3': y = y + r * 3; break;
-                    case '4': y = y + r * 4; break;
-                    case '5': y = y + r * 5; break;
-                    case '6': y = y + r * 6; break;
-                    case '7': y = y + r * 7; break;
-                    case '8': y = y + r * 8; break;
-                    case '9': y = y + r * 9; break;
+                    case '1': y += r; break;
+                    case '2': y += r * 2; break;
+                    case '3': y += r * 3; break;
+                    case '4': y += r * 4; break;
+                    case '5': y += r * 5; break;
+                    case '6': y += r * 6; break;
+                    case '7': y += r * 7; break;
+                    case '8': y += r * 8; break;
+                    case '9': y += r * 9; break;
+                    case 'e':
+                    case 'E': noExponent = false; break;
                     case '\n':
                     case '\r':
+                    case '\t':
                     case ' ': setResult(minus ? -x - y : x + y); return;
                     default: { state.IsInvalid = true; return; };
                 }
                 r *= 0.1;
                 state.p++;
             }
+
+            if (!noExponent)
+            {
+                var minusExponent = *state.p == ((byte)'-');
+                if (minusExponent) state.p++;
+                else if (*state.p == ((byte)'+')) state.p++;
+
+                var e = 0;
+                while (state.p < state.end)
+                {
+                    switch ((char)*state.p)
+                    {
+                        case '0': e *= 10; break;
+                        case '1': e = e * 10 + 1; break;
+                        case '2': e = e * 10 + 2; break;
+                        case '3': e = e * 10 + 3; break;
+                        case '4': e = e * 10 + 4; break;
+                        case '5': e = e * 10 + 5; break;
+                        case '6': e = e * 10 + 6; break;
+                        case '7': e = e * 10 + 7; break;
+                        case '8': e = e * 10 + 8; break;
+                        case '9': e = e * 10 + 9; break;
+                        case '\n':
+                        case '\r':
+                        case '\t':
+                        case ' ': setResult((minus ? -x - y : x + y) * Math.Pow(10, minusExponent ? -e : e)); return;
+                        default: { state.IsInvalid = true; return; }
+                    }
+                    state.p++;
+                }
+            }
+
             setResult(minus ? -x - y : x + y);
         }
         
@@ -245,11 +358,12 @@ namespace Aardvark.Data.Points
         {
             if (state.p >= state.end) { state.IsInvalid = true; return; }
 
-            while (*state.p == ' ' && state.p < state.end) state.p++;
+            while ((*state.p == ' ' || *state.p == '\t') && state.p < state.end) state.p++;
             if (state.p >= state.end || *state.p == '\n' || *state.p == '\r') { state.IsInvalid = true; return; }
 
             var minus = *state.p == ((byte)'-');
             if (minus) state.p++;
+            else if (*state.p == ((byte)'+')) state.p++;
 
             var x = 0.0f;
             var parse = true;
@@ -257,7 +371,7 @@ namespace Aardvark.Data.Points
             {
                 switch ((char)*state.p)
                 {
-                    case '0': x = x * 10.0f; break;
+                    case '0': x *= 10.0f; break;
                     case '1': x = x * 10.0f + 1.0f; break;
                     case '2': x = x * 10.0f + 2.0f; break;
                     case '3': x = x * 10.0f + 3.0f; break;
@@ -268,6 +382,7 @@ namespace Aardvark.Data.Points
                     case '8': x = x * 10.0f + 8.0f; break;
                     case '9': x = x * 10.0f + 9.0f; break;
                     case '.': parse = false; break;
+                    case '\t':
                     case ' ': setResult(minus ? -x : x); return;
                     default: { state.IsInvalid = true; return; }
                 }
@@ -282,15 +397,16 @@ namespace Aardvark.Data.Points
                 switch ((char)*state.p)
                 {
                     case '0': break;
-                    case '1': y = y + r; break;
-                    case '2': y = y + r * 2; break;
-                    case '3': y = y + r * 3; break;
-                    case '4': y = y + r * 4; break;
-                    case '5': y = y + r * 5; break;
-                    case '6': y = y + r * 6; break;
-                    case '7': y = y + r * 7; break;
-                    case '8': y = y + r * 8; break;
-                    case '9': y = y + r * 9; break;
+                    case '1': y += r; break;
+                    case '2': y += r * 2; break;
+                    case '3': y += r * 3; break;
+                    case '4': y += r * 4; break;
+                    case '5': y += r * 5; break;
+                    case '6': y += r * 6; break;
+                    case '7': y += r * 7; break;
+                    case '8': y += r * 8; break;
+                    case '9': y += r * 9; break;
+                    case '\t':
                     case ' ': setResult(minus ? -x - y : x + y); return;
                     default: { state.IsInvalid = true; return; }
                 }
@@ -305,7 +421,7 @@ namespace Aardvark.Data.Points
         {
             if (state.p >= state.end) { state.IsInvalid = true; return; }
 
-            while (*state.p == ' ' && state.p < state.end) state.p++;
+            while ((*state.p == ' ' || *state.p == '\t') && state.p < state.end) state.p++;
             if (state.p >= state.end || *state.p == '\n' || *state.p == '\r') { state.IsInvalid = true; return; }
 
             var minus = *state.p == ((byte)'-');
@@ -316,7 +432,7 @@ namespace Aardvark.Data.Points
             {
                 switch ((char)*state.p)
                 {
-                    case '0': x = x * 10; break;
+                    case '0': x *= 10; break;
                     case '1': x = x * 10 + 1; break;
                     case '2': x = x * 10 + 2; break;
                     case '3': x = x * 10 + 3; break;
@@ -328,6 +444,7 @@ namespace Aardvark.Data.Points
                     case '9': x = x * 10 + 9; break;
                     case '\r':
                     case '\n':
+                    case '\t':
                     case ' ': setResult(minus ? -x : x); return;
                     default: { state.IsInvalid = true; return; }
                 }
@@ -349,7 +466,7 @@ namespace Aardvark.Data.Points
             {
                 switch ((char)*state.p)
                 {
-                    case '0': x = x * 10; break;
+                    case '0': x *= 10; break;
                     case '1': x = x * 10 + 1; break;
                     case '2': x = x * 10 + 2; break;
                     case '3': x = x * 10 + 3; break;
@@ -374,7 +491,7 @@ namespace Aardvark.Data.Points
         {
             if (state.p >= state.end) { state.IsInvalid = true; return; }
 
-            while (*state.p == ' ' && state.p < state.end) state.p++;
+            while ((*state.p == ' ' || *state.p == '\t') && state.p < state.end) state.p++;
             if (state.p >= state.end || *state.p == '\n' || *state.p == '\r') { state.IsInvalid = true; return; }
             
             while (state.p < state.end)
@@ -383,6 +500,7 @@ namespace Aardvark.Data.Points
                 {
                     case '\r':
                     case '\n':
+                    case '\t':
                     case ' ': return;
                 }
                 state.p++;

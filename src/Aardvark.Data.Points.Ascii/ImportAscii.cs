@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2019. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2020. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -115,11 +115,49 @@ namespace Aardvark.Data.Points.Import
 
 
             /// <summary>
+            /// Parses Velocity.X from float value.
+            /// </summary>
+            VelocityX,
+
+            /// <summary>
+            /// Parses Velocity.Y from float value.
+            /// </summary>
+            VelocityY,
+
+            /// <summary>
+            /// Parses Velocity.Z from float value.
+            /// </summary>
+            VelocityZ,
+
+
+
+            /// <summary>
+            /// Parses custom byte value.
+            /// </summary>
+            CustomByte,
+
+            /// <summary>
+            /// Parses custom int32 value.
+            /// </summary>
+            CustomInt32,
+
+            /// <summary>
+            /// Parses custom float32 value.
+            /// </summary>
+            CustomFloat32,
+
+            /// <summary>
+            /// Parses custom float64 value.
+            /// </summary>
+            CustomFloat64,
+
+
+
+            /// <summary>
             /// Skips value. 
             /// </summary>
             Skip,
         }
-
 
         internal static bool HasColorTokens(this Token[] layout)
             => layout.Contains(Token.ColorR) ||
@@ -142,6 +180,19 @@ namespace Aardvark.Data.Points.Import
             => layout.Contains(Token.Intensity)
                ;
 
+        internal static bool HasVelocityTokens(this Token[] layout)
+            => layout.Contains(Token.VelocityX) ||
+               layout.Contains(Token.VelocityY) ||
+               layout.Contains(Token.VelocityZ)
+               ;
+
+        internal static bool HasCustomTokens(this Token[] layout)
+            => layout.Contains(Token.CustomByte) ||
+               layout.Contains(Token.CustomInt32) ||
+               layout.Contains(Token.CustomFloat32) ||
+               layout.Contains(Token.CustomFloat64)
+               ;
+
         /// <summary>
         /// </summary>
         public static PointCloudFileFormat CreateFormat(string description, Token[] lineDefinition)
@@ -155,7 +206,7 @@ namespace Aardvark.Data.Points.Import
         /// </summary>
         public static IEnumerable<Chunk> Chunks(string filename, Token[] lineDefinition, ParseConfig config)
         {
-            Chunk? lineParser(byte[] buffer, int count, double filterDist)
+            Chunk lineParser(byte[] buffer, int count, double filterDist)
                 => LineParsers.Custom(buffer, count, filterDist, lineDefinition);
             return Parsing.AsciiLines(lineParser, filename, config);
         }
@@ -165,7 +216,7 @@ namespace Aardvark.Data.Points.Import
         /// </summary>
         public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, Token[] lineDefinition, ParseConfig config)
         {
-            Chunk? lineParser(byte[] buffer, int count, double filterDist)
+            Chunk lineParser(byte[] buffer, int count, double filterDist)
                 => LineParsers.Custom(buffer, count, filterDist, lineDefinition);
             return Parsing.AsciiLines(lineParser, stream, streamLengthInBytes, config);
         }

@@ -24,21 +24,19 @@ namespace Aardvark.Geometry.Tests
     {
         internal static void CreateStore(string filename, string storePath, string key, double minDist)
         {
-            using (var store = new SimpleDiskStore(storePath).ToPointCloudStore())
-            {
-                var config = ImportConfig.Default
-                    .WithStorage(store)
-                    .WithKey(key)
-                    .WithVerbose(true)
-                    .WithMaxDegreeOfParallelism(0)
-                    .WithMinDist(minDist)
-                    .WithNormalizePointDensityGlobal(true)
-                    ;
+            using var store = new SimpleDiskStore(storePath).ToPointCloudStore();
+            var config = ImportConfig.Default
+                .WithStorage(store)
+                .WithKey(key)
+                .WithVerbose(true)
+                .WithMaxDegreeOfParallelism(0)
+                .WithMinDist(minDist)
+                .WithNormalizePointDensityGlobal(true)
+                ;
 
-                Report.BeginTimed($"importing {filename}");
-                var ps = PointCloud.Import(filename, config);
-                Report.EndTimed();
-            }
+            Report.BeginTimed($"importing {filename}");
+            var ps = PointCloud.Import(filename, config);
+            Report.EndTimed();
         }
 
         internal static void PerfTestJuly2019()
@@ -66,11 +64,11 @@ namespace Aardvark.Geometry.Tests
         }
         internal static void TestE57()
         {
-            var sw = new Stopwatch();
+            //var sw = new Stopwatch();
 
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
-            var filename = @"T:\Vgm\Data\E57\43144_K2_1-0_int_3dWorx_Error_bei-Import.e57";
-            var fileSizeInBytes = new FileInfo(filename).Length;
+            var filename = @"T:\Vgm\Data\E57\100pct_1mm_zebcam_shade_zebcam_world.e57";
+            //var fileSizeInBytes = new FileInfo(filename).Length;
 
             var info = E57.E57Info(filename, ParseConfig.Default);
             Report.Line($"total bounds: {info.Bounds}");
@@ -94,7 +92,7 @@ namespace Aardvark.Geometry.Tests
                 //.Select(x => x.ImmutableFilterSequentialMinDistL1(0.01))
                 //.ToArray()
                 ;
-            var pc = PointCloud.Chunks(chunks, config);
+            var _ = PointCloud.Chunks(chunks, config);
 
             Report.EndTimed();
 
@@ -255,7 +253,7 @@ namespace Aardvark.Geometry.Tests
                 parseChunksDone = true;
             });
 
-            Dictionary<Cell, (List<V3f>, List<C4b>, V3d)> Grid(Chunk x)
+            static Dictionary<Cell, (List<V3f>, List<C4b>, V3d)> Grid(Chunk x)
             {
                 var result = new Dictionary<Cell, (List<V3f>, List<C4b>, V3d)>();
                 var dups = new HashSet<V3f>();
@@ -405,7 +403,7 @@ namespace Aardvark.Geometry.Tests
             sw.Stop();
             Console.WriteLine($"{ps0.Length,20:N0}     {sw.Elapsed}");
 
-            PointSet CreateRandomPointsInUnitCube(int n, int splitLimit)
+            static PointSet CreateRandomPointsInUnitCube(int n, int splitLimit)
             {
                 var r = new Random();
                 var ps = new V3d[n];
@@ -422,8 +420,8 @@ namespace Aardvark.Geometry.Tests
         internal static void TestLoadOldStore()
         {
             var store = new SimpleDiskStore(@"T:\Vgm\Stores\referenz_2019_21_store").ToPointCloudStore(cache: default);
-            var pc = store.GetPointSet("770ed498-5544-4313-9873-5449f2bd823e");
-            var root = store.GetPointCloudNode("e06a1e87-5ab1-4c73-8c3f-3daf1bdac1d9");
+            _ = store.GetPointSet("770ed498-5544-4313-9873-5449f2bd823e");
+            _ = store.GetPointCloudNode("e06a1e87-5ab1-4c73-8c3f-3daf1bdac1d9");
         }
 
         internal static void CopyTest()
@@ -452,7 +450,7 @@ namespace Aardvark.Geometry.Tests
                 .WithNormalizePointDensityGlobal(true)
                 .WithVerbose(true)
                 ;
-            var pointcloud = PointCloud.Import(filename, config);
+            var _ = PointCloud.Import(filename, config);
 
             Report.EndTimed();
             store1.Flush();
@@ -572,40 +570,38 @@ namespace Aardvark.Geometry.Tests
             {
                 var key = Path.GetFileName(filepath);
                 var targetFolder = $@"T:\Vgm\Stores\{key}.upload2";
-                using (var storeSource = new SimpleDiskStore($@"T:\Vgm\Stores\{key}").ToPointCloudStore())
-                using (var storeTarget = new SimpleFolderStore(targetFolder).ToPointCloudStore())
+                using var storeSource = new SimpleDiskStore($@"T:\Vgm\Stores\{key}").ToPointCloudStore();
+                using var storeTarget = new SimpleFolderStore(targetFolder).ToPointCloudStore();
+                var foo = storeSource.GetPointSet(key);
+                var bar = foo.Root.Value.Id;
+
+                var config = new InlineConfig(
+                    collapse, gzipped, positionsRoundedToNumberOfDigits,
+                    x => Report.Line($"[progress] {x,7:0.000}")
+                    );
+                storeSource.InlineOctree(bar, storeTarget, config);
+                storeTarget.Flush();
+
+                // meta
+                var pointset = storeSource.GetPointSet(key);
+                var root = pointset.Root.Value;
+                var rootJson = JObject.FromObject(new
                 {
-                    var foo = storeSource.GetPointSet(key);
-                    var bar = foo.Root.Value.Id;
+                    Bounds = root.BoundingBoxExactGlobal,
+                    Cell = root.Cell,
+                    Centroid = (V3d)root.CentroidLocal + root.Center,
+                    CentroidStdDev = root.CentroidLocalStdDev,
+                    GZipped = gzipped,
+                    PointCount = root.PointCountTree,
+                    PointSetId = pointset.Id,
+                    RootId = root.Id.ToString(),
+                    TotalNodes = root.CountNodes(true),
+                });
 
-                    var config = new InlineConfig(
-                        collapse, gzipped, positionsRoundedToNumberOfDigits,
-                        x => Report.Line($"[progress] {x,7:0.000}")
-                        );
-                    storeSource.InlineOctree(bar, storeTarget, config);
-                    storeTarget.Flush();
-
-                    // meta
-                    var pointset = storeSource.GetPointSet(key);
-                    var root = pointset.Root.Value;
-                    var rootJson = JObject.FromObject(new
-                    {
-                        Bounds = root.BoundingBoxExactGlobal,
-                        Cell = root.Cell,
-                        Centroid = (V3d)root.CentroidLocal + root.Center,
-                        CentroidStdDev = root.CentroidLocalStdDev,
-                        GZipped = gzipped,
-                        PointCount = root.PointCountTree,
-                        PointSetId = pointset.Id,
-                        RootId = root.Id.ToString(),
-                        TotalNodes = root.CountNodes(true),
-                    });
-
-                    File.WriteAllText(
-                        Path.Combine(targetFolder, "root.json"), 
-                        rootJson.ToString(Formatting.Indented)
-                        );
-                }
+                File.WriteAllText(
+                    Path.Combine(targetFolder, "root.json"),
+                    rootJson.ToString(Formatting.Indented)
+                    );
 
 
             }
@@ -631,29 +627,67 @@ namespace Aardvark.Geometry.Tests
 
             var storeName = Path.Combine(@"T:\Vgm\Stores", Path.GetFileName(inputFile));
             var key = Path.GetFileName(storeName);
-            CreateStore(inputFile, storeName, key, 0.005);
+            //CreateStore(inputFile, storeName, key, 0.005);
             
             var store = new SimpleDiskStore(storeName).ToPointCloudStore(cache: default);
             var pc = store.GetPointSet(key);
             var root = pc.Root.Value;
 
-            var oSize = 2;
-            var iSize = 1;
+            //var oSize = 2;
+            //var iSize = 1;
+            var cellExponent = 5;
 
-            Report.BeginTimed("total");
-            var xs = root.EnumerateCellColumns(2);
-            //var xs = root.EnumerateCellColumns2(2, V2i.II, 0, new Box2i(V2i.OO, V2i.OO), new Box2i(V2i.OO, V2i.OO), false);
-            var i = 0;
-            foreach (var x in xs)
+            //Report.BeginTimed("total");
+            //var xs = root.EnumerateCellColumns(cellExponent);
+            //var i = 0;
+            //foreach (var x in xs)
+            //{
+            //    var cs0 = x.GetPoints(int.MaxValue).ToArray();
+            //    //if (cs0.Length == 0) continue;
+            //    //var cs1 = x.GetPoints(0, outer: new Box2i(new V2i(-iSize, -iSize), new V2i(+iSize, +iSize))).ToArray();
+            //    //var cs2 = x.GetPoints(0, outer: new Box2i(new V2i(-oSize, -oSize), new V2i(+oSize, +oSize)), inner: new Box2i(new V2i(-iSize, -iSize), new V2i(+iSize, +iSize))).ToArray();
+            //    //Report.Line($"[{x.Cell.X,3}, {x.Cell.Y,3}, {x.Cell.Exponent,3}] {cs0.Sum(c => c.Count),10:N0} {cs1.Sum(c => c.Count),10:N0} {cs2.Sum(c => c.Count),10:N0}");
+            //    //if (++i % 17 == 0) 
+            //    if (cs0.Sum(c => c.Count) > 0)
+            //        Report.Line($"[{x.Cell.X,3}, {x.Cell.Y,3}, {x.Cell.Exponent,3}] {cs0.Sum(c => c.Count),10:N0}");
+            //}
+            //Report.End();
+
+            for (cellExponent = 11; cellExponent >= -10; cellExponent--)
             {
-                //var cs0 = x.GetPoints(0).ToArray();
-                //if (cs0.Length == 0) continue;
-                var cs1 = x.GetPoints(0, outer: new Box2i(new V2i(-iSize, -iSize), new V2i(+iSize, +iSize))).ToArray();
-                var cs2 = x.GetPoints(0, outer: new Box2i(new V2i(-oSize, -oSize), new V2i(+oSize, +oSize)), inner: new Box2i(new V2i(-iSize, -iSize), new V2i(+iSize, +iSize))).ToArray();
-                //Report.Line($"[{x.Cell.X,3}, {x.Cell.Y,3}, {x.Cell.Exponent,3}] {cs0.Sum(c => c.Count),10:N0} {cs1.Sum(c => c.Count),10:N0} {cs2.Sum(c => c.Count),10:N0}");
-                if (++i % 17 == 0) Report.Line($"[{x.Cell.X,3}, {x.Cell.Y,3}, {x.Cell.Exponent,3}] {cs2.Sum(c => c.Count),10:N0}");
+                Report.BeginTimed($"[old] e = {cellExponent,3}");
+                var xs = root.EnumerateCellColumns(cellExponent);
+                var totalPointCount = 0L;
+                var count = 0L;
+                foreach (var x in xs)
+                {
+                    count++;
+                    var cs0 = x.GetPoints(int.MaxValue).ToArray();
+                    var tmp = cs0.Sum(c => c.Count);
+                    totalPointCount += tmp;
+                    //Report.Line($"[{x.Cell.X,3}, {x.Cell.Y,3}, {x.Cell.Exponent,3}] {tmp,10:N0}");
+                }
+                //if (sum != root.PointCountTree) throw new Exception();
+                Report.End($" | cols = {count,12:N0} | points = {totalPointCount,12:N0}");
             }
-            Report.End();
+
+            for (cellExponent = 11; cellExponent >= -10; cellExponent--)
+            {
+                Report.BeginTimed($"[new] e = {cellExponent,3}");
+                var ys = new Queries.ColZ(root).EnumerateColumns(cellExponent, new V2i(2,2));
+                var totalPointCount = 0L;
+                var count = 0L;
+                foreach (var y in ys)
+                {
+                    count++;
+                    var cs0 = y.GetPoints(int.MaxValue).ToArray();
+                    totalPointCount += cs0.Sum(c => c.Count);
+                    //totalPointCount += y.CountTotal;
+                    //Report.Line($"[{y.Footprint.X,3}, {y.Footprint.Y,3}, {y.Footprint.Exponent,3}] {y.CountTotal,10:N0}");
+                }
+                //if (totalPointCount != root.PointCountTree) throw new Exception();
+                Report.End($" | cols = {count,12:N0} | points = {totalPointCount,12:N0}");
+            }
         }
 
         internal static void DumpPointSetKeys()
@@ -701,9 +735,119 @@ namespace Aardvark.Geometry.Tests
             Console.WriteLine($"{ps.Length:N0}");
         }
 
-        public static void Main(string[] args)
+        internal static void HeraTest()
         {
-            //TestE57();
+            Report.Line("Hera Test");
+
+            var separators = new[] { '\t', ' ' };
+            var culture = CultureInfo.InvariantCulture;
+            var inputFile = @"T:\Hera\impact.0014";
+
+            var storePath = Path.Combine(@"T:\Vgm\Stores", Path.GetFileName(inputFile));
+            var key = Path.GetFileName(storePath);
+
+            Report.Line($"inputFile = {inputFile}");
+            Report.Line();
+
+            //Report.BeginTimed("parsing (with string split and double.Parse)");
+            //var lineCount = 0;
+            //foreach (var line in File.ReadLines(inputFile))
+            //{
+            //    lineCount++;
+            //    var ts = line.Split(separators, StringSplitOptions.RemoveEmptyEntries);
+            //    var p = new V3d(double.Parse(ts[0], culture), double.Parse(ts[1], culture), double.Parse(ts[2], culture));
+            //    var v = new V3d(double.Parse(ts[3], culture), double.Parse(ts[4], culture), double.Parse(ts[5], culture));
+            //    //if (lineCount % 100000 == 0) Report.Line($"[{lineCount}]");
+            //}
+            //Report.Line($"{lineCount} lines");
+            //Report.End();
+
+
+            Report.Line();
+
+            Report.BeginTimed($"processing {inputFile}");
+
+            Report.BeginTimed("parsing (with Aardvark.Data.Points.Ascii)");
+
+            var lineDef = new[] {
+                Ascii.Token.PositionX, Ascii.Token.PositionY, Ascii.Token.PositionZ,
+                Ascii.Token.VelocityX, Ascii.Token.VelocityY, Ascii.Token.VelocityZ,
+                //Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip,
+                //Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip,
+                //Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip,
+                //Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip,
+                //Ascii.Token.Skip
+            };
+            var chunks = Ascii.Chunks(inputFile, lineDef, ParseConfig.Default).ToArray();
+
+            var lineCount = 0;
+            foreach (var chunk in chunks)
+            {
+                lineCount += chunk.Count;
+            }
+            Report.Line($"{lineCount} lines");
+            Report.EndTimed();
+
+            Report.Line();
+
+            Report.BeginTimed("octree, normals, lod");
+            PointSet pointset;
+            using (var store = new SimpleDiskStore(storePath).ToPointCloudStore())
+            {
+                var config = ImportConfig.Default
+                    //.WithStorage(store)
+                    .WithInMemoryStore()
+                    .WithKey(key)
+                    .WithVerbose(false)
+                    .WithMaxDegreeOfParallelism(0)
+                    .WithMinDist(0)
+                    .WithNormalizePointDensityGlobal(true)
+                    ;
+
+                pointset = PointCloud.Import(chunks, config);
+            }
+            Report.EndTimed();
+
+            Report.BeginTimed("flattening");
+            var flat = Chunk.ImmutableMerge(pointset.Root.Value.Collect(int.MaxValue));
+            var data = ImmutableDictionary<Durable.Def, object>.Empty
+                .Add(Durable.Octree.PositionsLocal3f, flat.Positions.Map(p => new V3f(p)))
+                .Add(Durable.Octree.Normals3f, flat.Normals.ToArray())
+                .Add(Durable.Octree.Velocities3f, flat.Velocities.ToArray())
+                ;
+            Report.EndTimed();
+
+            Report.BeginTimed("serializing");
+            var buffer = data.DurableEncode(Durable.Primitives.DurableMap, false);
+            Report.EndTimed();
+
+            for (var i = 0; i < 100; i++)
+            {
+                Report.BeginTimed("deserializing");
+                var sw = new Stopwatch(); sw.Start();
+                var (def, o) = Data.Codec.Deserialize(buffer);
+                var dict = (ImmutableDictionary<Durable.Def, object>)o;
+                sw.Stop();
+                var ps = (V3f[])dict[Durable.Octree.PositionsLocal3f];
+                var ns = (V3f[])dict[Durable.Octree.Normals3f];
+                var vs = (V3f[])dict[Durable.Octree.Velocities3f];
+                //Report.Line($"positions : {ps.Length}");
+                //Report.Line($"normals   : {ns.Length}");
+                //Report.Line($"velocities: {vs.Length}");
+                Report.Line($"{(buffer.Length / sw.Elapsed.TotalSeconds) / (1024 * 1024 * 1024):N3} GB/s");
+                Report.EndTimed();
+            }
+
+            Report.EndTimed();
+        }
+
+        public static void Main(string[] _)
+        {
+            //HeraTest();
+
+            //EnumerateCells2dTest();
+
+            TestE57();
 
             //LisaTest();
 
@@ -719,7 +863,6 @@ namespace Aardvark.Geometry.Tests
 
             //TestImport();
 
-            EnumerateCells2dTest();
 
             //DumpPointSetKeys();
             // polygon topology test

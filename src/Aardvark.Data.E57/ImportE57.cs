@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2019. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2020. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -194,7 +194,7 @@ namespace Aardvark.Data.Points.Import
 
                 foreach (var data3d in header.E57Root.Data3D)
                 {
-                    foreach (var (pos, color, intensity) in data3d.StreamPoints())
+                    foreach (var (pos, color, intensity) in data3d.StreamPoints(config.Verbose))
                     {
                         if (hasPositions) ps.Add(pos);
                         if (hasColors) cs.Add(color);

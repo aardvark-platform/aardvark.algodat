@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2019. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2020. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -428,13 +428,11 @@ namespace Aardvark.Geometry.Points
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Guid ComputeMd5Hash(Action<BinaryWriter> writeDataToHash)
         {
-            using (var ms = new MemoryStream())
-            using (var bw = new BinaryWriter(ms))
-            {
-                writeDataToHash(bw);
-                ms.Seek(0, SeekOrigin.Begin);
-                return new Guid(MD5.Create().ComputeHash(ms));
-            }
+            using var ms = new MemoryStream();
+            using var bw = new BinaryWriter(ms);
+            writeDataToHash(bw);
+            ms.Seek(0, SeekOrigin.Begin);
+            return new Guid(MD5.Create().ComputeHash(ms));
         }
     }
 }

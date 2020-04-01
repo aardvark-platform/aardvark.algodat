@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2019. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2020. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -36,7 +36,7 @@ namespace Aardvark.Geometry.Tests
             var cs = ps.Map(_ => C4b.White);
 
             var pointset = PointSet.Create(
-                storage, "test", ps.ToList(), cs.ToList(), null, null, null, 5000,
+                storage, "test", ps.ToList(), cs.ToList(), null, null, null, null, 5000,
                 generateLod: false, isTemporaryImportNode: true, ct: default
                 );
             pointset.Root.Value.ForEachNode(true, cell =>
@@ -65,7 +65,7 @@ namespace Aardvark.Geometry.Tests
             var cs = ps.Map(_ => C4b.White);
 
             var pointset = PointSet.Create(
-                storage, "test", ps.ToList(), cs.ToList(), null, null, null, 5000,
+                storage, "test", ps.ToList(), cs.ToList(), null, null, null, null, 5000,
                 generateLod: true, isTemporaryImportNode: true, default
                 );
             pointset.Root.Value.ForEachNode(true, cell =>

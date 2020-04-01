@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2019. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2020. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -132,6 +132,7 @@ namespace Aardvark.Geometry.Points
             var nsId = NormalsId;
             var isId = IntensitiesId;
             var ksId = ClassificationsId;
+            var vsId = VelocitiesId;
 
             if (psId != null) PersistentRefs[Durable.Octree.PositionsLocal3fReference] = new PersistentRef<V3f[]>(psId.Value, storage.GetV3fArray, storage.TryGetV3fArray);
             if (csId != null) PersistentRefs[Durable.Octree.Colors4bReference] = new PersistentRef<C4b[]>(csId.Value, storage.GetC4bArray, storage.TryGetC4bArray);
@@ -153,6 +154,7 @@ namespace Aardvark.Geometry.Points
             if (nsId != null) PersistentRefs[Durable.Octree.Normals3fReference] = new PersistentRef<V3f[]>(nsId.Value, storage.GetV3fArray, storage.TryGetV3fArray);
             if (isId != null) PersistentRefs[Durable.Octree.Intensities1iReference] = new PersistentRef<int[]>(isId.Value, storage.GetIntArray, storage.TryGetIntArray);
             if (ksId != null) PersistentRefs[Durable.Octree.Classifications1bReference] = new PersistentRef<byte[]>(ksId.Value, storage.GetByteArray, storage.TryGetByteArray);
+            if (vsId != null) PersistentRefs[Durable.Octree.Velocities3fReference] = new PersistentRef<V3f[]>(vsId.Value, storage.GetV3fArray, storage.TryGetV3fArray);
 
             #endregion
 
@@ -641,6 +643,22 @@ namespace Aardvark.Geometry.Points
 
         #endregion
 
+        #region Velocities
+
+        /// <summary></summary>
+        [JsonIgnore]
+        public bool HasVelocities => Data.ContainsKey(Durable.Octree.Velocities3fReference);
+
+        /// <summary></summary>
+        [JsonIgnore]
+        public Guid? VelocitiesId => Data.TryGetValue(Durable.Octree.Velocities3fReference, out var id) ? (Guid?)id : null;
+
+        /// <summary></summary>
+        [JsonIgnore]
+        public PersistentRef<V3f[]> Velocities => PersistentRefs.TryGetValue(Durable.Octree.Velocities3fReference, out object x) ? (PersistentRef<V3f[]>)x : null;
+
+        #endregion
+
         #region KdTree
 
         /// <summary></summary>
@@ -931,29 +949,16 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        public byte[] Encode()
-        {
-            using (var ms = new MemoryStream())
-            using (var bw = new BinaryWriter(ms))
-            {
-                Aardvark.Data.Codec.Encode(bw, Durable.Octree.Node, Data);
-                bw.Flush();
-                return ms.ToArray();
-            }
-        }
+        public byte[] Encode() => Aardvark.Data.Codec.Serialize(Durable.Octree.Node, Data);
 
         /// <summary>
         /// </summary>
         public static PointSetNode Decode(Storage storage, byte[] buffer)
         {
-            using (var ms = new MemoryStream(buffer))
-            using (var br = new BinaryReader(ms))
-            {
-                var r = Aardvark.Data.Codec.Decode(br);
-                if (r.Item1 != Durable.Octree.Node) throw new InvalidOperationException("Invariant 5cc4cbfe-07c8-4b92-885d-b1d397210e41.");
-                var data = (ImmutableDictionary<Durable.Def, object>)r.Item2;
-                return new PointSetNode(data, storage, false);
-            }
+            var (def, o) = Aardvark.Data.Codec.Deserialize(buffer);
+            if (def != Durable.Octree.Node) throw new InvalidOperationException("Invariant 5cc4cbfe-07c8-4b92-885d-b1d397210e41.");
+            var data = (ImmutableDictionary<Durable.Def, object>)o;
+            return new PointSetNode(data, storage, false);
         }
 
         #endregion

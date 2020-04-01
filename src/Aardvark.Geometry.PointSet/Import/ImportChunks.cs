@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2019. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2020. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -27,17 +27,17 @@ namespace Aardvark.Geometry.Points
     {
         private static IEnumerable<Chunk> MergeSmall(int limit, IEnumerable<Chunk> input)
         {
-            Chunk? current = null;
+            var current = default(Chunk);
             foreach(var c in input)
             {
                 if(c.Count < limit)
                 {
-                    if (current.HasValue) current = current.Value.Union(c);
+                    if (current != null) current = current.Union(c);
                     else current = c;
 
-                    if (current.Value.Count >= limit)
+                    if (current.Count >= limit)
                     {
-                        yield return current.Value;
+                        yield return current;
                         current = null;
                     }
 
@@ -48,10 +48,9 @@ namespace Aardvark.Geometry.Points
                 }
             }
 
-            if (current.HasValue)
+            if (current != null)
             {
-                yield return current.Value;
-                current = null;
+                yield return current;
             }
         }
 
@@ -118,17 +117,17 @@ namespace Aardvark.Geometry.Points
             }
 
             // reduce all chunks to single PointSet
-            Report.BeginTimed("map/reduce");
+            if (config.Verbose) Report.BeginTimed("map/reduce");
             var final = chunks
                 .MapReduce(config.WithRandomKey().WithProgressCallback(x => config.ProgressCallback(0.01 + x * 0.65)))
                 ;
-            Report.EndTimed();
+            if (config.Verbose) Report.EndTimed();
 
             // create LOD data
-            Report.BeginTimed("generate lod");
+            if (config.Verbose) Report.BeginTimed("generate lod");
             final = final.GenerateLod(config.WithRandomKey().WithProgressCallback(x => config.ProgressCallback(0.66 + x * 0.34)));
             if (final.Root != null && config.Storage.GetPointCloudNode(final.Root.Value.Id) == null) throw new InvalidOperationException("Invariant 4d633e55-bf84-45d7-b9c3-c534a799242e.");
-            Report.End();
+            if (config.Verbose) Report.End();
 
             // create final point set with specified key (or random key when no key is specified)
             var key = config.Key ?? Guid.NewGuid().ToString();

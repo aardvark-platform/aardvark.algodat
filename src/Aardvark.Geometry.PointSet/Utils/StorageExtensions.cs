@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2019. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2020. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -37,11 +37,9 @@ namespace Aardvark.Geometry.Points
         {
             if (data == null) return null;
             var buffer = new byte[data.Length * elementSizeInBytes];
-            using (var ms = new MemoryStream(buffer))
-            using (var bw = new BinaryWriter(ms))
-            {
-                for (var i = 0; i < data.Length; i++) writeElement(bw, data[i]);
-            }
+            using var ms = new MemoryStream(buffer);
+            using var bw = new BinaryWriter(ms);
+            for (var i = 0; i < data.Length; i++) writeElement(bw, data[i]);
             return buffer;
         }
 
@@ -50,11 +48,9 @@ namespace Aardvark.Geometry.Points
         {
             if (data == null) return null;
             var buffer = new byte[data.Count * elementSizeInBytes];
-            using (var ms = new MemoryStream(buffer))
-            using (var bw = new BinaryWriter(ms))
-            {
-                for (var i = 0; i < data.Count; i++) writeElement(bw, data[i]);
-            }
+            using var ms = new MemoryStream(buffer);
+            using var bw = new BinaryWriter(ms);
+            for (var i = 0; i < data.Count; i++) writeElement(bw, data[i]);
             return buffer;
         }
 
@@ -63,11 +59,9 @@ namespace Aardvark.Geometry.Points
         {
             if (buffer == null) return null;
             var data = new T[buffer.Length / elementSizeInBytes];
-            using (var ms = new MemoryStream(buffer))
-            using (var br = new BinaryReader(ms))
-            {
-                for (var i = 0; i < data.Length; i++) data[i] = readElement(br);
-            }
+            using var ms = new MemoryStream(buffer);
+            using var br = new BinaryReader(ms);
+            for (var i = 0; i < data.Length; i++) data[i] = readElement(br);
             return data;
         }
 
@@ -120,13 +114,13 @@ namespace Aardvark.Geometry.Points
         {
             if (data == null) return null;
             var buffer = new byte[data.Length * 4];
-            using (var ms = new MemoryStream(buffer))
+            using var ms = new MemoryStream(buffer);
+            
+            for (var i = 0; i < data.Length; i++)
             {
-                for (var i = 0; i < data.Length; i++)
-                {
-                    ms.WriteByte(data[i].R); ms.WriteByte(data[i].G); ms.WriteByte(data[i].B); ms.WriteByte(data[i].A);
-                }
+                ms.WriteByte(data[i].R); ms.WriteByte(data[i].G); ms.WriteByte(data[i].B); ms.WriteByte(data[i].A);
             }
+            
             return buffer;
         }
 
@@ -151,10 +145,8 @@ namespace Aardvark.Geometry.Points
         {
             if (data == null) return null;
             var ms = new MemoryStream();
-            using (var coder = new BinaryWritingCoder(ms))
-            {
-                object x = data; coder.Code(ref x);
-            }
+            using var coder = new BinaryWritingCoder(ms);
+            object x = data; coder.Code(ref x);
             return ms.ToArray();
         }
 
@@ -162,13 +154,11 @@ namespace Aardvark.Geometry.Points
         public static PointRkdTreeDData BufferToPointRkdTreeDData(byte[] buffer)
         {
             if (buffer == null) return null;
-            using (var ms = new MemoryStream(buffer))
-            using (var coder = new BinaryReadingCoder(ms))
-            {
-                object o = null;
-                coder.Code(ref o);
-                return (PointRkdTreeDData)o;
-            }
+            using var ms = new MemoryStream(buffer);
+            using var coder = new BinaryReadingCoder(ms);
+            object o = null;
+            coder.Code(ref o);
+            return (PointRkdTreeDData)o;
         }
 
         #endregion
@@ -180,10 +170,8 @@ namespace Aardvark.Geometry.Points
         {
             if (data == null) return null;
             var ms = new MemoryStream();
-            using (var coder = new BinaryWritingCoder(ms))
-            {
-                object x = data; coder.Code(ref x);
-            }
+            using var coder = new BinaryWritingCoder(ms);
+            object x = data; coder.Code(ref x);
             return ms.ToArray();
         }
 
@@ -191,13 +179,11 @@ namespace Aardvark.Geometry.Points
         public static PointRkdTreeFData BufferToPointRkdTreeFData(byte[] buffer)
         {
             if (buffer == null) return null;
-            using (var ms = new MemoryStream(buffer))
-            using (var coder = new BinaryReadingCoder(ms))
-            {
-                object o = null;
-                coder.Code(ref o);
-                return (PointRkdTreeFData)o;
-            }
+            using var ms = new MemoryStream(buffer);
+            using var coder = new BinaryReadingCoder(ms);
+            object o = null;
+            coder.Code(ref o);
+            return (PointRkdTreeFData)o;
         }
 
         #endregion
@@ -519,30 +505,30 @@ namespace Aardvark.Geometry.Points
             }
         }
 
-        /// <summary>
-        /// </summary>
-        public static PointRkdTreeF<V3f[], V3f> GetKdTreeF(this Storage storage, string key, V3f[] positions)
-            => new PointRkdTreeF<V3f[], V3f>(
-                3, positions.Length, positions,
-                (xs, i) => xs[(int)i], (v, i) => (float)v[i],
-                (a, b) => Vec.Distance(a, b), (i, a, b) => b - a,
-                (a, b, c) => Vec.DistanceToLine(a, b, c), Fun.Lerp, 1e-6f,
-                storage.GetPointRkdTreeFData(key)
-                );
+        ///// <summary>
+        ///// </summary>
+        //public static PointRkdTreeF<V3f[], V3f> GetKdTreeF(this Storage storage, string key, V3f[] positions)
+        //    => new PointRkdTreeF<V3f[], V3f>(
+        //        3, positions.Length, positions,
+        //        (xs, i) => xs[(int)i], (v, i) => (float)v[i],
+        //        (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
+        //        (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, 1e-6f,
+        //        storage.GetPointRkdTreeFData(key)
+        //        );
 
-        /// <summary>
-        /// </summary>
-        public static (bool, PointRkdTreeF<V3f[], V3f>) TryGetKdTreeF(this Storage storage, string key, V3f[] positions)
-        {
-            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
-            {
-                return (true, (PointRkdTreeF<V3f[], V3f>)o);
-            }
-            else
-            {
-                return (false, default);
-            }
-        }
+        ///// <summary>
+        ///// </summary>
+        //public static (bool, PointRkdTreeF<V3f[], V3f>) TryGetKdTreeF(this Storage storage, string key, V3f[] positions)
+        //{
+        //    if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
+        //    {
+        //        return (true, (PointRkdTreeF<V3f[], V3f>)o);
+        //    }
+        //    else
+        //    {
+        //        return (false, default);
+        //    }
+        //}
 
         #endregion
 
@@ -733,20 +719,18 @@ namespace Aardvark.Geometry.Points
         /// Binary encodes (and optionally gzips) a durable map with given definition from a sequence of key/value pairs.
         /// Entries are encoded in the same order as given by the data sequence.
         /// </summary>
-        public static byte[] Encode(this IEnumerable<KeyValuePair<Durable.Def, object>> data, Durable.Def def, bool gzipped)
+        public static byte[] DurableEncode(this IEnumerable<KeyValuePair<Durable.Def, object>> data, Durable.Def def, bool gzipped)
         {
             if (data == null) throw new Exception("Invariant c61b7125-b523-4f19-8f51-5e8be5d06dde.");
             if (def == null) throw new Exception("Invariant a126aff5-8352-4e7c-9864-5459bbf0a5d6.");
 
-            using (var ms = new MemoryStream())
-            using (var zs = gzipped ? new GZipStream(ms, CompressionLevel.Optimal) : (Stream)ms)
-            using (var bw = new BinaryWriter(zs))
-            {
-                Data.Codec.Encode(bw, def, data);
-                bw.Flush();
-                var buffer = ms.ToArray();
-                return buffer;
-            }
+            using var ms = new MemoryStream();
+            using var zs = gzipped ? new GZipStream(ms, CompressionLevel.Optimal) : (Stream)ms;
+            using var bw = new BinaryWriter(zs);
+            Data.Codec.Serialize(bw, def, data);
+            bw.Flush();
+            var buffer = ms.ToArray();
+            return buffer;
         }
 
         public static byte[] Add(this Storage storage, string key, Durable.Def def, IEnumerable<KeyValuePair<Durable.Def, object>> data, bool gzipped)
@@ -755,53 +739,36 @@ namespace Aardvark.Geometry.Points
             if (def == null) throw new Exception("Invariant a7a6516e-e019-46ea-b7db-69b559a2aad4.");
             if (data == null) throw new Exception("Invariant ec5b1c03-d92c-4b2d-9b5c-a30f935369e5.");
 
-            using (var ms = new MemoryStream())
-            using (var zs = gzipped ? new GZipStream(ms, CompressionLevel.Optimal) : (Stream)ms)
-            using (var bw = new BinaryWriter(zs))
-            {
-                Data.Codec.Encode(bw, def, data);
+            using var ms = new MemoryStream();
+            using var zs = gzipped ? new GZipStream(ms, CompressionLevel.Optimal) : (Stream)ms;
+            using var bw = new BinaryWriter(zs);
+            Data.Codec.Serialize(bw, def, data);
 
-                bw.Flush(); 
-                var buffer = ms.ToArray();
-                storage.Add(key, buffer);
+            bw.Flush();
+            var buffer = ms.ToArray();
+            storage.Add(key, buffer);
 
-                return buffer;
-            }
+            return buffer;
         }
         public static byte[] Add(this Storage storage, Guid key, Durable.Def def, ImmutableDictionary<Durable.Def, object> data, bool gzipped)
             => Add(storage, key.ToString(), def, data, gzipped);
         public static byte[] Add(this Storage storage, Guid key, Durable.Def def, IEnumerable<KeyValuePair<Durable.Def, object>> data, bool gzipped)
             => Add(storage, key.ToString(), def, data, gzipped);
 
+        public static (Durable.Def, object) DurableDecode(this byte[] buffer)
+            => Data.Codec.Deserialize(buffer);
+        public static T DurableDecode<T>(this byte[] buffer)
+            => (T)Data.Codec.Deserialize(buffer).Item2;
+
         public static (Durable.Def, object) GetDurable(this Storage storage, string key)
         {
             if (key == null) return (null, null);
             var buffer = storage.f_get(key);
             if (buffer == null) return (null, null);
-
-            using (var br = new BinaryReader(new MemoryStream(buffer)))
-            {
-                return Data.Codec.Decode(br);
-            }
+            return Data.Codec.Deserialize(buffer);
         }
         public static (Durable.Def, object) GetDurable(this Storage storage, Guid key)
             => GetDurable(storage, key.ToString());
-
-        public static object GetDurable(this Storage storage, Durable.Def def, string key)
-        {
-            if (key == null) return null;
-
-            var buffer = storage.f_get(key);
-            if (buffer == null) return null;
-
-            var decoder = Data.Codec.GetDecoderFor(def);
-            using (var br = new BinaryReader(new MemoryStream(buffer)))
-            {
-                return decoder(br);
-            }
-        }
-        public static object GetDurable(this Storage storage, Durable.Def def, Guid key)
-            => GetDurable(storage, def, key.ToString());
 
         #endregion
     }

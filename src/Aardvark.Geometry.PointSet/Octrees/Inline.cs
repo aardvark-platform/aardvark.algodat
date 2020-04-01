@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2019. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2020. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -122,7 +122,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Binary encodes (and optionally gzips) this InlinedNode as Durable.Octree.Node.
         /// </summary>
-        public byte[] Encode(bool gzip) => this.ToDurableMap().Encode(Durable.Octree.Node, gzip);
+        public byte[] Encode(bool gzip) => this.ToDurableMap().DurableEncode(Durable.Octree.Node, gzip);
     }
 
     public class InlinedNodes

@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2019. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2020. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -93,11 +93,13 @@ namespace Aardvark.Geometry.Points
                 var ns = root.HasNormals ? new List<V3f>() : null;
                 var js = root.HasIntensities ? new List<int>() : null;
                 var ks = root.HasClassifications ? new List<byte>() : null;
+                var vs = root.HasVelocities ? new List<V3f>() : null;
                 var oldPs = root.Positions?.Value;
                 var oldCs = root.Colors?.Value;
                 var oldNs = root.Normals?.Value;
                 var oldIs = root.Intensities?.Value;
                 var oldKs = root.Classifications?.Value;
+                var oldVs = root.Velocities?.Value;
                 var bbabs = Box3d.Invalid;
                 var bbloc = Box3f.Invalid;
 
@@ -111,6 +113,7 @@ namespace Aardvark.Geometry.Points
                         if (oldNs != null) ns.Add(oldNs[i]);
                         if (oldIs != null) js.Add(oldIs[i]);
                         if (oldKs != null) ks.Add(oldKs[i]);
+                        if (oldVs != null) vs.Add(oldVs[i]);
                         bbabs.ExtendBy(pabs);
                         bbloc.ExtendBy(oldPs[i]);
                     }
@@ -128,6 +131,7 @@ namespace Aardvark.Geometry.Points
                 Guid nsId = ns != null ? Guid.NewGuid() : Guid.Empty;
                 Guid isId = js != null ? Guid.NewGuid() : Guid.Empty;
                 Guid ksId = ks != null ? Guid.NewGuid() : Guid.Empty;
+                Guid vsId = vs != null ? Guid.NewGuid() : Guid.Empty;
 
                 storage.Add(psId, psa);
 
@@ -169,6 +173,11 @@ namespace Aardvark.Geometry.Points
                     storage.Add(ksId, ks.ToArray());
                     data = data.Add(Durable.Octree.Classifications1bReference, ksId);
                 }
+                if (vs != null)
+                {
+                    storage.Add(vsId, vs.ToArray());
+                    data = data.Add(Durable.Octree.Velocities3fReference, ksId);
+                }
 
                 // MinTreeDepth MaxTreeDepth SubNodeIds??
                 return new PointSetNode(data, storage, writeToStore: true);
@@ -188,9 +197,10 @@ namespace Aardvark.Geometry.Points
                     var ns = root.HasNormals ? new List<V3f>() : null;
                     var js = root.HasIntensities ? new List<int>() : null;
                     var ks = root.HasClassifications ? new List<byte>() : null;
-                    foreach(var c in subnodes)
+                    var vs = root.HasVelocities ? new List<V3f>() : null;
+                    foreach (var c in subnodes)
                     {
-                        if (c != null) MergeExtensions.CollectEverything(c, psabs, cs, ns, js, ks);
+                        if (c != null) MergeExtensions.CollectEverything(c, psabs, cs, ns, js, ks, vs);
                     }
                     Debug.Assert(psabs.Count == pointCountTree);
                     var psa = psabs.MapToArray((p) => (V3f)(p - root.Center));
@@ -203,6 +213,7 @@ namespace Aardvark.Geometry.Points
                     Guid nsId = ns != null ? Guid.NewGuid() : Guid.Empty;
                     Guid isId = js != null ? Guid.NewGuid() : Guid.Empty;
                     Guid ksId = ks != null ? Guid.NewGuid() : Guid.Empty;
+                    Guid vsId = ks != null ? Guid.NewGuid() : Guid.Empty;
 
                     var bbabs = new Box3d(psabs);
 
@@ -245,6 +256,11 @@ namespace Aardvark.Geometry.Points
                         storage.Add(ksId, ks.ToArray());
                         data = data.Add(Durable.Octree.Classifications1bReference, ksId);
                     }
+                    if (vs != null)
+                    {
+                        storage.Add(vsId, vs.ToArray());
+                        data = data.Add(Durable.Octree.Classifications1bReference, vsId);
+                    }
 
                     // MinTreeDepth MaxTreeDepth SubNodeIds??
                     return new PointSetNode(data, storage, writeToStore: true);
@@ -267,12 +283,14 @@ namespace Aardvark.Geometry.Points
                     var needsNs = subnodes.Any(x => x != null ? x.HasNormals : false);
                     var needsIs = subnodes.Any(x => x != null ? x.HasIntensities : false);
                     var needsKs = subnodes.Any(x => x != null ? x.HasClassifications : false);
+                    var needsVs = subnodes.Any(x => x != null ? x.HasVelocities : false);
 
                     var subcenters = subnodes.Map(x => x?.Center);
                     var lodPs = LodExtensions.AggregateSubPositions(counts, octreeSplitLimit, root.Center, subcenters, subnodes.Map(x => x?.Positions?.Value));
                     var lodCs = needsCs ? LodExtensions.AggregateSubArrays(counts, octreeSplitLimit, subnodes.Map(x => x?.Colors?.Value)) : null;
                     var lodIs = needsIs ? LodExtensions.AggregateSubArrays(counts, octreeSplitLimit, subnodes.Map(x => x?.Intensities?.Value)) : null;
                     var lodKs = needsKs ? LodExtensions.AggregateSubArrays(counts, octreeSplitLimit, subnodes.Map(x => x?.Classifications?.Value)) : null;
+                    var lodVs = needsVs ? LodExtensions.AggregateSubArrays(counts, octreeSplitLimit, subnodes.Map(x => x?.Velocities?.Value)) : null;
                     var lodNs = needsNs ? LodExtensions.AggregateSubArrays(counts, octreeSplitLimit, subnodes.Map(x => x?.Normals?.Value)) : null;
                     var lodKd = lodPs.Length < 1 ? null : lodPs.BuildKdTree();
 
@@ -283,8 +301,9 @@ namespace Aardvark.Geometry.Points
                     Guid nsId = lodNs != null ? Guid.NewGuid() : Guid.Empty;
                     Guid isId = lodIs != null ? Guid.NewGuid() : Guid.Empty;
                     Guid ksId = lodKs != null ? Guid.NewGuid() : Guid.Empty;
+                    Guid vsId = lodVs != null ? Guid.NewGuid() : Guid.Empty;
 
-                    
+
                     var newId = Guid.NewGuid();
                     storage.Add(psId, lodPs);
 
@@ -329,6 +348,11 @@ namespace Aardvark.Geometry.Points
                     {
                         storage.Add(ksId, lodKs);
                         data = data.Add(Durable.Octree.Classifications1bReference, ksId);
+                    }
+                    if (lodVs != null)
+                    {
+                        storage.Add(vsId, lodVs);
+                        data = data.Add(Durable.Octree.Velocities3fReference, ksId);
                     }
 
                     // MinTreeDepth MaxTreeDepth SubNodeIds??

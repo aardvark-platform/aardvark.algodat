@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2019. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2020. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -228,9 +228,22 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// Octree. Per-point uint8 classifications.
-        /// Durable definition bf0975e4-43bd-4742-9e61-c7469d81805d.
+        /// Durable definition d25cff0e-ea80-445b-ab72-d0a5a1013818.
         /// </summary>
         PersistentRef<byte[]> Classifications { get; }
+
+        #endregion
+
+        #region Velocities
+
+        /// <summary></summary>
+        bool HasVelocities { get; }
+
+        /// <summary>
+        /// Octree. Per-point V3f velocities.
+        /// Durable definition c8db5f0a-1ddf-47ab-8266-f8e929cf98c5.
+        /// </summary>
+        PersistentRef<V3f[]> Velocities { get; }
 
         #endregion
 

@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2019. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2020. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -37,13 +37,13 @@ namespace Aardvark.Geometry.Points
         /// Creates PointSet from given points and colors.
         /// </summary>
         public static PointSet Create(Storage storage, string key,
-            IList<V3d> positions, IList<C4b> colors, IList<V3f> normals, IList<int> intensities, IList<byte> classifications,
+            IList<V3d> positions, IList<C4b> colors, IList<V3f> normals, IList<int> intensities, IList<byte> classifications, IList<V3f> velocities,
             int octreeSplitLimit, bool generateLod, bool isTemporaryImportNode, CancellationToken ct
             )
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
             var bounds = new Box3d(positions);
-            var builder = InMemoryPointSet.Build(positions, colors, normals, intensities, classifications, bounds, octreeSplitLimit);
+            var builder = InMemoryPointSet.Build(positions, colors, normals, intensities, classifications, velocities, bounds, octreeSplitLimit);
             var root = builder.ToPointSetNode(storage, isTemporaryImportNode);
 
             var result = new PointSet(storage, key, root.Id, octreeSplitLimit);
@@ -211,6 +211,9 @@ namespace Aardvark.Geometry.Points
         
         /// <summary></summary>
         public bool HasClassifications => Root != null ? Root.Value.HasClassifications : false;
+
+        /// <summary></summary>
+        public bool HasVelocities => Root != null ? Root.Value.HasVelocities : false;
 
         /// <summary></summary>
         public bool HasKdTree => Root != null ? Root.Value.HasKdTree : false;
