@@ -433,8 +433,8 @@ namespace Aardvark.Geometry.Points
             => new PointRkdTreeD<V3f[], V3f>(
                 3, positions.Length, positions,
                 (xs, i) => xs[(int)i], (v, i) => (float)v[i],
-                (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
-                (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, 1e-9,
+                (a, b) => Vec.Distance(a, b), (i, a, b) => b - a,
+                (a, b, c) => Vec.DistanceToLine(a, b, c), (t,a,b) => Fun.Lerp((float)t,a,b), 1e-9,
                 storage.GetPointRkdTreeDData(key)
                 );
 

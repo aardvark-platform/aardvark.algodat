@@ -43,7 +43,7 @@ namespace Aardvark.Geometry
                 if (ios_index_objectFilter(this, id))
                 {
                     var p = m_boxes[id].GetClosestPointOn(queryPoint);
-                    var d = V3d.DistanceSquared(p, queryPoint);
+                    var d = Vec.DistanceSquared(p, queryPoint);
 
                     if (d < minDist2)
                     {

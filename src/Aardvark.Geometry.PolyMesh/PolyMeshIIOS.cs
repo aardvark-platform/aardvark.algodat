@@ -26,7 +26,7 @@ namespace Aardvark.Geometry
         public Box3d ObjectBoundingBox(int objectIndex)
         {
             if (objectIndex < 0)
-                return VertexIndexArray.GetBoundingBox3d(
+                return VertexIndexArray.GetBoundingBox(
                             VertexIndexCount, PositionArray);
             return BoundingBoxOfFace(objectIndex);
         }
@@ -121,7 +121,7 @@ namespace Aardvark.Geometry
                 {
                     var p2 = pa[via[fvi++]];
                     V3d p = queryPoint.GetClosestPointOnTriangle(p0, p1, p2);
-                    double d2 = V3d.DistanceSquared(queryPoint, p);
+                    double d2 = Vec.DistanceSquared(queryPoint, p);
                     if (d2 < closestPoint.DistanceSquared)
                         result = closestPoint.Set(d2, p, this, oi);
                     p1 = p2;

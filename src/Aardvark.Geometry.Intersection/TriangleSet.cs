@@ -55,7 +55,7 @@ namespace Aardvark.Geometry
         public Box3d ObjectBoundingBox(int objectIndex = -1)
         {
             var plist = Position3dList;
-            if (objectIndex < 0) return plist.GetBoundingBox3d();
+            if (objectIndex < 0) return plist.GetBoundingBox();
             int pi = objectIndex * 3;
             return new Box3d(plist[pi], plist[pi + 1], plist[pi + 2]);
         }
@@ -123,7 +123,7 @@ namespace Aardvark.Geometry
             V3d e01 = info.Points[1]-info.Points[0];
             V3d e02 = info.Points[2]-info.Points[0];
             info.Edges = new V3d[2] { e01, e02 };
-            info.Normal = V3d.Cross(e01, e02).Normalized;
+            info.Normal = Vec.Cross(e01, e02).Normalized;
         }
 
         public bool ClosestPoint(
@@ -141,7 +141,7 @@ namespace Aardvark.Geometry
                 int pi = index * 3;
                 V3d p = query.GetClosestPointOnTriangle(
                                 plist[pi], plist[pi + 1], plist[pi + 2]);
-                double d2 = V3d.DistanceSquared(query, p);
+                double d2 = Vec.DistanceSquared(query, p);
                 if (d2 < closest.DistanceSquared)
                     result = closest.Set(d2, p, this, index);
             }

@@ -46,14 +46,14 @@ namespace Aardvark.Geometry.Points
 
             if (selected != null)
             {
-                return new HashSet<int>(selected.Where(i => V3f.Cross(Direction, xs[i].Normalized).LengthSquared <= m_eps));
+                return new HashSet<int>(selected.Where(i => Vec.Cross(Direction, xs[i].Normalized).LengthSquared <= m_eps));
             }
             else
             {
                 var result = new HashSet<int>();
                 for (var i = 0; i < xs.Length; i++)
                 {
-                    if (V3f.Cross(Direction, xs[i].Normalized).LengthSquared <= m_eps) result.Add(i);
+                    if (Vec.Cross(Direction, xs[i].Normalized).LengthSquared <= m_eps) result.Add(i);
                 }
                 return result;
             }

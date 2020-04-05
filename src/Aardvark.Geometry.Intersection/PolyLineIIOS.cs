@@ -25,7 +25,7 @@ namespace Aardvark.Geometry
         public Box3d ObjectBoundingBox(int objectIndex = -1)
         {
             var pa = m_positionArray;
-            if (objectIndex < 0) return pa.GetBoundingBox3d(m_vertexCount);
+            if (objectIndex < 0) return pa.GetBoundingBox(m_vertexCount);
             return Box3d.FromPoints(pa[objectIndex], pa[objectIndex + 1]);
         }
 
@@ -50,7 +50,7 @@ namespace Aardvark.Geometry
             {
                 int li = objectIndexArray[i];
                 V3d p = queryPoint.GetClosestPointOnLine(pa[li], pa[li + 1]);
-                double d2 = V3d.DistanceSquared(queryPoint, p);
+                double d2 = Vec.DistanceSquared(queryPoint, p);
                 if (d2 < closestPoint.DistanceSquared)
                     result = closestPoint.Set(d2, p, this, li);
             }

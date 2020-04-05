@@ -191,7 +191,7 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(n.HasCentroidLocal);
             Assert.IsTrue(n.HasCentroidLocalStdDev);
 
-            Assert.IsTrue(n.CentroidLocal.ApproxEqual(V3f.Zero, 1e-5f));
+            Assert.IsTrue(n.CentroidLocal.ApproximateEquals(V3f.Zero, 1e-5f));
             Assert.IsTrue(n.CentroidLocalStdDev.ApproximateEquals(0.0f, 1e-5f));
         }
 
@@ -219,8 +219,8 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(n.BoundingBoxExactLocal == new Box3f(new V3f(-0.4f), new V3f(0.4f)));
 
             Assert.IsTrue(n.HasBoundingBoxExactGlobal);
-            Assert.IsTrue(n.BoundingBoxExactGlobal.Min.ApproxEqual(new V3d(0.1), 1e-6));
-            Assert.IsTrue(n.BoundingBoxExactGlobal.Max.ApproxEqual(new V3d(0.9), 1e-6));
+            Assert.IsTrue(n.BoundingBoxExactGlobal.Min.ApproximateEquals(new V3d(0.1), 1e-6));
+            Assert.IsTrue(n.BoundingBoxExactGlobal.Max.ApproximateEquals(new V3d(0.9), 1e-6));
 
         }
 

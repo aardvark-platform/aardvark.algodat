@@ -147,7 +147,7 @@ namespace Aardvark.Geometry.Points
             TotalNodeCount = totalNodeCount;
 
             var center = root.Cell.GetCenter();
-            var centroid = root.PositionsLocal3f.Average();
+            var centroid = root.PositionsLocal3f.ComputeCentroid();
             Centroid = (V3d)centroid + center;
             CentroidStdDev = (root.PositionsLocal3f.Sum(p => (p - centroid).LengthSquared) / root.PositionsLocal3f.Length).Sqrt();
         }

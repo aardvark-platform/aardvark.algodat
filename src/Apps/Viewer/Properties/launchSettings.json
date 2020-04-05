@@ -1,7 +1,8 @@
 {
   "profiles": {
     "Viewer": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "commandLineArgs": "view \\\\heap\\steinlechner\\rmdata\\Data\\stores\\KaunertalStore kaunertal"
     }
   }
 }

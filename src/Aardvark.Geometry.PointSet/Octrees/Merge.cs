@@ -684,7 +684,7 @@ namespace Aardvark.Geometry.Points
 
         private static Cell ParentCell(Cell a, Cell b)
         {
-            return new Cell(Box3d.Union(a.BoundingBox, b.BoundingBox));
+            return new Cell(Box.Union(a.BoundingBox, b.BoundingBox));
             //if (a == b) return a;
             //if (a.IsCenteredAtOrigin && b.IsCenteredAtOrigin)  return new Cell(Fun.Max(a.Exponent, b.Exponent));
 

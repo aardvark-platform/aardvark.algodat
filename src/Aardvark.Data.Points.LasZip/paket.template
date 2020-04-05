@@ -1,0 +1,9 @@
+type project
+id Aardvark.Data.Points.LasZip
+authors Stefan Maierhofer
+owners Stefan Maierhofer
+projectUrl http://github.com/aardvark-platform/aardvark.algodat
+licenseUrl http://www.gnu.org/licenses/agpl.txt
+description
+    A simple parser for LAS/LAZ point cloud data (based on laszip.net).
+include-pdbs true

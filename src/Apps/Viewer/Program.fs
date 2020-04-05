@@ -1,4 +1,4 @@
-﻿open Aardvark.Base.Incremental
+open FSharp.Data.Adaptive
 open Aardvark.Base
 open Aardvark.SceneGraph
 open Aardvark.Base.Rendering
@@ -13,8 +13,8 @@ open Aardvark.Data.Points.Import
 [<EntryPoint>]
 let main args =  
 
-    //import @"D:\pts\JBs_haus.pts"  @"D:\store" "a" (Args.parse [||])
-    //view @"\\heap\aszabo\oebb\oebb_wien" ["oebb_wien"] (Args.parse [||])
+    //import @"Y:\pts\Betriebsgebaeude.e57"  @"Y:\store123" "a" (Args.parse [||])
+    view @"Y:\store123" ["a"] (Args.parse [||])
 
     let args = Args.parse args
     

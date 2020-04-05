@@ -1290,10 +1290,11 @@ namespace Aardvark.Geometry
         //#     var cchar = t.Char.ToUpper();
         //#     var ctypecap = ctype.Capitalized();
         //#     var ccast = ctype == "float" ? "(float)" : "";
-        #region VecArray<__ctype__> Trees
+        //#     var czero = ctype == "float" ? "0.0f" : "0.0";
+        #region Matrix<__ctype__> Trees
 
-        public static Point__kd__Tree__cchar__<VecArray<__ctype__>, Vec<__ctype__>> Create__kd__Tree(
-                this VecArray<__ctype__> array, Metric metric, __ctype__ absoluteEps)
+        public static Point__kd__Tree__cchar__<Matrix<__ctype__>, Vector<__ctype__>> Create__kd__Tree(
+                this Matrix<__ctype__> array, Metric metric, __ctype__ absoluteEps)
         {
             switch (metric)
             {
@@ -1304,53 +1305,53 @@ namespace Aardvark.Geometry
             }
         }
 
-        public static Point__kd__Tree__cchar__<VecArray<__ctype__>, Vec<__ctype__>> Create__kd__TreeDist1(
-                this VecArray<__ctype__> array, __ctype__ absoluteEps)
+        public static Point__kd__Tree__cchar__<Matrix<__ctype__>, Vector<__ctype__>> Create__kd__TreeDist1(
+                this Matrix<__ctype__> array, __ctype__ absoluteEps)
         {
-            return array.Create__kd__Tree(Vec__ctypecap__.Dist1,
+            return array.Create__kd__Tree((a, b) => a.Dist1(b),
                                       /*# if (!isVp) { */(dim, a, b) => b - a, /*# } */absoluteEps);
         }
 
-        public static Point__kd__Tree__cchar__<VecArray<__ctype__>, Vec<__ctype__>> Create__kd__TreeDist2(
-                this VecArray<__ctype__> array, __ctype__ absoluteEps)
+        public static Point__kd__Tree__cchar__<Matrix<__ctype__>, Vector<__ctype__>> Create__kd__TreeDist2(
+                this Matrix<__ctype__> array, __ctype__ absoluteEps)
         {
-            return array.Create__kd__Tree(Vec__ctypecap__.Dist2,
+            return array.Create__kd__Tree((a, b) => a.Dist2(b),
                                       /*# if (!isVp) { */(dim, a, b) => b - a, /*# } */absoluteEps);
         }
 
         //# if (isKd) {
-        public static Point__kd__Tree__cchar__<VecArray<__ctype__>, Vec<__ctype__>> Create__kd__TreeDist2Squared(
-                this VecArray<__ctype__> array, __ctype__ absoluteEps)
+        public static Point__kd__Tree__cchar__<Matrix<__ctype__>, Vector<__ctype__>> Create__kd__TreeDist2Squared(
+                this Matrix<__ctype__> array, __ctype__ absoluteEps)
         {
-            return array.Create__kd__Tree((a, b) => __ccast__Vec__ctypecap__.Dist2Squared(a, b),
+            return array.Create__kd__Tree((a, b) => a.Dist2Squared(b),
                                       /*# if (!isVp) { */(dim, a, b) => __ccast__Fun.Square(b - a), /*# } */absoluteEps);
         }
 
         //# } // isKd
-        public static Point__kd__Tree__cchar__<VecArray<__ctype__>, Vec<__ctype__>> Create__kd__TreeDistMax(
-                this VecArray<__ctype__> array, __ctype__ absoluteEps)
+        public static Point__kd__Tree__cchar__<Matrix<__ctype__>, Vector<__ctype__>> Create__kd__TreeDistMax(
+                this Matrix<__ctype__> array, __ctype__ absoluteEps)
         {
-            return array.Create__kd__Tree(Vec__ctypecap__.DistMax,
+            return array.Create__kd__Tree((a, b) => a.DistMax(b),
                                       /*# if (!isVp) { */(dim, a, b) => b - a, /*# } */absoluteEps);
         }
 
-        public static Point__kd__Tree__cchar__<VecArray<__ctype__>, Vec<__ctype__>> Create__kd__Tree(
-                this VecArray<__ctype__> array,
-                Func<Vec<__ctype__>, Vec<__ctype__>, __ctype__> distanceFun,
+        public static Point__kd__Tree__cchar__<Matrix<__ctype__>, Vector<__ctype__>> Create__kd__Tree(
+                this Matrix<__ctype__> array,
+                Func<Vector<__ctype__>, Vector<__ctype__>, __ctype__> distanceFun,
                 //# if (!isVp) {
                 Func<long, __ctype__, __ctype__, __ctype__> dimMaxDistanceFun,
                 //# }
                 __ctype__ absoluteEps)
         {
-            return new Point__kd__Tree__cchar__<VecArray<__ctype__>, Vec<__ctype__>>(
-                    array.Dim, array.Count, array,
-                    VecArray<__ctype__>.Getter, Vec<__ctype__>.Getter,
+            return new Point__kd__Tree__cchar__<Matrix<__ctype__>, Vector<__ctype__>>(
+                    array.Dim.Y, array.Dim.X, array,
+                    (m, i) => m.Col(i), (v, i) => v[i],
                     distanceFun,/*# if (!isVp) { */ dimMaxDistanceFun,/*# } */
                     /*# if (isRkd && t.IsReal) { */null, null, /*# } */absoluteEps);
         }
 
-        public static Point__kd__Tree__cchar__<VecArray<__ctype__>, Vec<__ctype__>> Create__kd__Tree(
-                this VecArray<__ctype__> array, Metric metric, __ctype__ absoluteEps,
+        public static Point__kd__Tree__cchar__<Matrix<__ctype__>, Vector<__ctype__>> Create__kd__Tree(
+                this Matrix<__ctype__> array, Metric metric, __ctype__ absoluteEps,
                 Point__kd__Tree__cchar__Data data)
         {
             switch (metric)
@@ -1362,47 +1363,47 @@ namespace Aardvark.Geometry
             }
         }
 
-        public static Point__kd__Tree__cchar__<VecArray<__ctype__>, Vec<__ctype__>> Create__kd__TreeDist1(
-                this VecArray<__ctype__> array, __ctype__ absoluteEps, Point__kd__Tree__cchar__Data data)
+        public static Point__kd__Tree__cchar__<Matrix<__ctype__>, Vector<__ctype__>> Create__kd__TreeDist1(
+                this Matrix<__ctype__> array, __ctype__ absoluteEps, Point__kd__Tree__cchar__Data data)
         {
-            return array.Create__kd__Tree(Vec__ctypecap__.Dist1,
+            return array.Create__kd__Tree((a, b) => a.InnerProduct(b, (x0, x1) => Fun.Abs(x1 - x0), __czero__, (s, p) => s + p),
                                       /*# if (!isVp) { */(dim, a, b) => b - a, /*# } */absoluteEps, data);
         }
 
-        public static Point__kd__Tree__cchar__<VecArray<__ctype__>, Vec<__ctype__>> Create__kd__TreeDist2(
-                this VecArray<__ctype__> array, __ctype__ absoluteEps, Point__kd__Tree__cchar__Data data)
+        public static Point__kd__Tree__cchar__<Matrix<__ctype__>, Vector<__ctype__>> Create__kd__TreeDist2(
+                this Matrix<__ctype__> array, __ctype__ absoluteEps, Point__kd__Tree__cchar__Data data)
         {
-            return array.Create__kd__Tree(Vec__ctypecap__.Dist2,
+            return array.Create__kd__Tree((a, b) => a.Dist2(b),
                                       /*# if (!isVp) { */(dim, a, b) => b - a, /*# } */absoluteEps, data);
         }
 
         //# if (isKd) {
-        public static Point__kd__Tree__cchar__<VecArray<__ctype__>, Vec<__ctype__>> Create__kd__TreeDist2Squared(
-                this VecArray<__ctype__> array, __ctype__ absoluteEps, Point__kd__Tree__cchar__Data data)
+        public static Point__kd__Tree__cchar__<Matrix<__ctype__>, Vector<__ctype__>> Create__kd__TreeDist2Squared(
+                this Matrix<__ctype__> array, __ctype__ absoluteEps, Point__kd__Tree__cchar__Data data)
         {
-            return array.Create__kd__Tree((a, b) => __ccast__Vec__ctypecap__.Dist2Squared(a, b),
+            return array.Create__kd__Tree((a, b) => a.Dist2Squared(b),
                                       /*# if (!isVp) { */(dim, a, b) => __ccast__Fun.Square(b - a), /*# } */absoluteEps, data);
         }
 
         //# } // isKd
-        public static Point__kd__Tree__cchar__<VecArray<__ctype__>, Vec<__ctype__>> Create__kd__TreeDistMax(
-                this VecArray<__ctype__> array, __ctype__ absoluteEps, Point__kd__Tree__cchar__Data data)
+        public static Point__kd__Tree__cchar__<Matrix<__ctype__>, Vector<__ctype__>> Create__kd__TreeDistMax(
+                this Matrix<__ctype__> array, __ctype__ absoluteEps, Point__kd__Tree__cchar__Data data)
         {
-            return array.Create__kd__Tree(Vec__ctypecap__.DistMax,
+            return array.Create__kd__Tree((a, b) => a.DistMax(b),
                                       /*# if (!isVp) { */(dim, a, b) => b - a, /*# } */absoluteEps, data);
         }
 
-        public static Point__kd__Tree__cchar__<VecArray<__ctype__>, Vec<__ctype__>> Create__kd__Tree(
-                this VecArray<__ctype__> array,
-                Func<Vec<__ctype__>, Vec<__ctype__>, __ctype__> distanceFun,
+        public static Point__kd__Tree__cchar__<Matrix<__ctype__>, Vector<__ctype__>> Create__kd__Tree(
+                this Matrix<__ctype__> array,
+                Func<Vector<__ctype__>, Vector<__ctype__>, __ctype__> distanceFun,
                 //# if (!isVp) {
                 Func<long, __ctype__, __ctype__, __ctype__> dimMaxDistanceFun,
                 //# }
                 __ctype__ absoluteEps, Point__kd__Tree__cchar__Data data)
         {
-            return new Point__kd__Tree__cchar__<VecArray<__ctype__>, Vec<__ctype__>>(
-                    array.Dim, array.Count, array,
-                    VecArray<__ctype__>.Getter, Vec<__ctype__>.Getter,
+            return new Point__kd__Tree__cchar__<Matrix<__ctype__>, Vector<__ctype__>>(
+                    array.Dim.Y, array.Dim.X, array,
+                    (m, i) => m.Col(i), (v, i) => v[i],
                     distanceFun,/*# if (!isVp) { */ dimMaxDistanceFun,/*# } */
                     /*# if (isRkd && t.IsReal) { */null, null, /*# } */absoluteEps, data);
         }
@@ -1496,16 +1497,16 @@ namespace Aardvark.Geometry
         public static Point__kd__Tree__cchar____sel__<__vtype__[], __vtype__> Create__kd__Tree__sel__Dist1(
                 this __vtype__[] array, __ctype__ absoluteEps)
         {
-            return array.Create__kd__Tree(__vtype__.Distance1,/*# if (!isVp) { if (hasSel) { */ c_dimDistFunArray__cchar__,/*# } else { */ (dim, a, b) => b - a,/*# } } */
+            return array.Create__kd__Tree(Vec.Distance1,/*# if (!isVp) { if (hasSel) { */ c_dimDistFunArray__cchar__,/*# } else { */ (dim, a, b) => b - a,/*# } } */
                                        /*# if (isRkd && t.IsReal) { */null, null, /*# } */absoluteEps);
         }
 
         public static Point__kd__Tree__cchar____sel__<__vtype__[], __vtype__> Create__kd__Tree__sel__Dist2(
                 this __vtype__[] array, __ctype__ absoluteEps)
         {
-            return array.Create__kd__Tree(__vtype__.Distance,/*# if (!isVp) { if (hasSel) { */ c_dimDistFunArray__cchar__,/*# } else { */ (dim, a, b) => b - a,/*# } } */
+            return array.Create__kd__Tree(Vec.Distance,/*# if (!isVp) { if (hasSel) { */ c_dimDistFunArray__cchar__,/*# } else { */ (dim, a, b) => b - a,/*# } } */
                                        //# if (isRkd && t.IsReal) {
-                                       VecFun.DistanceToLine, VecFun.Lerp,
+                                       Vec.DistanceToLine, Fun.Lerp,
                                        //# }
                                        absoluteEps);
         }
@@ -1514,7 +1515,7 @@ namespace Aardvark.Geometry
         public static Point__kd__Tree__cchar____sel__<__vtype__[], __vtype__> Create__kd__Tree__sel__Dist2Squared(
                 this __vtype__[] array, __ctype__ absoluteEps)
         {
-            return array.Create__kd__Tree((a, b) => __ccast____vtype__.DistanceSquared(a, b),
+            return array.Create__kd__Tree((a, b) => __ccast__Vec.DistanceSquared(a, b),
                                           (dim, a, b) => __ccast__Fun.Square(b - a), absoluteEps);
         }
 
@@ -1522,7 +1523,7 @@ namespace Aardvark.Geometry
         public static Point__kd__Tree__cchar____sel__<__vtype__[], __vtype__> Create__kd__Tree__sel__DistMax(
                 this __vtype__[] array, __ctype__ absoluteEps)
         {
-            return array.Create__kd__Tree(__vtype__.DistanceMax,/*# if (!isVp) { if (hasSel) { */ c_dimDistFunArray__cchar__,/*# } else { */ (dim, a, b) => b - a,/*# } } */
+            return array.Create__kd__Tree(Vec.DistanceMax,/*# if (!isVp) { if (hasSel) { */ c_dimDistFunArray__cchar__,/*# } else { */ (dim, a, b) => b - a,/*# } } */
                                        /*# if (isRkd && t.IsReal) { */null, null, /*# } */absoluteEps);
         }
 
@@ -1530,7 +1531,7 @@ namespace Aardvark.Geometry
                 this __vtype__[] array, __ctype__ absoluteEps)
         {
             return array.Create__kd__Tree(
-                (a, b) => (__ctype__)1.0 - Fun.Abs(__vtype__.Dot(a, b)),
+                (a, b) => (__ctype__)1.0 - Fun.Abs(Vec.Dot(a, b)),
                 //# if (!isVp) {
                 /*# if (hasSel) { */c_dimDistConst1FunArray__cchar__,/*# } else { */(dim, a, b) => 1,/*# } */
                 //# }

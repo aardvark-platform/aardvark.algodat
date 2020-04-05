@@ -29,7 +29,7 @@ namespace Aardvark.Geometry.Points
             )
         {
             var t = viewProjection.Inverse;
-            var cs = canonicalViewVolume.ComputeCorners().Map(t.TransformPosProj);
+            var cs = canonicalViewVolume.ComputeCorners().Map(v => t.TransformPosProj(v));
             var hull = new Hull3d(new[]
             {
                 new Plane3d(cs[0], cs[2], cs[1]), // near

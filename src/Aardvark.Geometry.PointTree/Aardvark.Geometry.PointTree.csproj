@@ -15,10 +15,11 @@
     <NoWarn>1701;1702;1705;1591</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="PointTree_template.cs" />
+    <Compile Remove="**\*_template.cs" />
+    <Compile Remove="**\*_generator.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="PointTree_template.cs" />
+    <None Include="**\*_template.cs" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

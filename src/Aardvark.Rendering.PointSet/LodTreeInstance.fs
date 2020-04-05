@@ -9,7 +9,7 @@ open Aardvark.Geometry.Points
 open Aardvark.Data.Points
 open Aardvark.Data.Points.Import
 open Aardvark.Base
-open Aardvark.Base.Incremental
+open FSharp.Data.Adaptive
 
 module LodTreeInstance =
 
@@ -83,7 +83,7 @@ module LodTreeInstance =
         
 
 
-    let isOrtho (proj : Trafo3d) = proj.Forward.R3.ApproxEqual(V4d.OOOI,1E-8)
+    let isOrtho (proj : Trafo3d) = proj.Forward.R3.ApproximateEquals(V4d.OOOI,1E-8)
 
     type PointTreeNode private(pointCloudId : System.Guid, world : obj, cache : LruDictionary<string, obj>, source : Symbol, globalTrafo : Similarity3d, root : Option<PointTreeNode>, parent : Option<PointTreeNode>, level : int, self : IPointCloudNode) as this =
     
@@ -143,9 +143,9 @@ module LodTreeInstance =
                             else Array.create original.Length V3f.OOO
 
                         let normals =
-                            let normalMat = (Trafo3d globalTrafo.EuclideanTransformation.Rot).Backward.Transposed |> M33d.op_Explicit
+                            let normalMat = (Trafo3d globalTrafo.Euclidean.Rot).Backward.Transposed.UpperLeftM33()
                             let inline fix (p : V3f) = normalMat * (V3d p) |> V3f
-                            normals |> Array.map fix
+                            normals |> Array.map fix 
 
                         attributes.[DefaultSemantic.Normals] <- normals
                         vertexSize <- vertexSize + 12L
@@ -254,7 +254,7 @@ module LodTreeInstance =
                 if l.Count > 1 then
                     let mutable minDist = Double.PositiveInfinity
                     for l in l do
-                        let dist = V3f.Distance(positions.[int l.Index], positions.[i])
+                        let dist = Vec.Distance(positions.[int l.Index], positions.[i])
                         if dist > 0.0f then
                             minDist <- min (float dist) minDist
                     if not (Double.IsInfinity minDist) then
@@ -732,7 +732,7 @@ module LodTreeInstance =
 
     let private cache = LruDictionary(1L <<< 30)
 
-    let private importAux (import : string -> Aardvark.Data.Points.ImportConfig -> PointSet) (sourceName : string) (file : string) (key : string) (store : string) (uniforms : list<string * IMod>) =
+    let private importAux (import : string -> Aardvark.Data.Points.ImportConfig -> PointSet) (sourceName : string) (file : string) (key : string) (store : string) (uniforms : list<string * IAdaptiveValue>) =
         init()
 
         let store = PointCloud.OpenStore(store, cache)
@@ -779,7 +779,7 @@ module LodTreeInstance =
         match root with
         | Some root ->
             let uniforms = MapExt.ofList uniforms
-            let uniforms = MapExt.add "Scales" (Mod.constant V4d.IIII :> IMod) uniforms
+            let uniforms = MapExt.add "Scales" (AVal.constant V4d.IIII :> IAdaptiveValue) uniforms
             Some { 
                 root = root
                 uniforms = uniforms
@@ -788,13 +788,13 @@ module LodTreeInstance =
             None
         
     /// imports a file into the given store (guessing the format by extension)
-    let import (sourceName : string) (file : string) (store : string) (uniforms : list<string * IMod>) =
+    let import (sourceName : string) (file : string) (store : string) (uniforms : list<string * IAdaptiveValue>) =
         let key = System.IO.Path.GetFileNameWithoutExtension(file).ToLower()
         importAux (fun file cfg -> PointCloud.Import(file, cfg)) sourceName file key store uniforms
 
     /// imports an ASCII file into the given store
     /// valid tokens: nx|ny|nz|px|py|pz|rf|gf|bf|af|x|y|z|r|g|b|a|i|_
-    let importAscii (sourceName : string) (fmt : string) (file : string) (store : string) (uniforms : list<string * IMod>) =
+    let importAscii (sourceName : string) (fmt : string) (file : string) (store : string) (uniforms : list<string * IAdaptiveValue>) =
         let fmt = AsciiFormatParser.parseTokens fmt
         let key = System.IO.Path.GetFileNameWithoutExtension(file).ToLower()
         let import (file : string) (cfg : ImportConfig) =
@@ -804,7 +804,7 @@ module LodTreeInstance =
         importAux import sourceName file key store uniforms
         
     /// loads the specified key from the store
-    let load (sourceName : string) (key : string) (store : string) (uniforms : list<string * IMod>) =
+    let load (sourceName : string) (key : string) (store : string) (uniforms : list<string * IAdaptiveValue>) =
         let import (file : string) (cfg : ImportConfig) =
             failwithf "key not found: %A" key
 
@@ -812,7 +812,7 @@ module LodTreeInstance =
 
 
 
-    let ofPointSet (uniforms : list<string * IMod>) (set : PointSet) =
+    let ofPointSet (uniforms : list<string * IAdaptiveValue>) (set : PointSet) =
         let store = set.Storage
         let root = PointTreeNode.Create(System.Guid.NewGuid(), null, store.Cache, Symbol.CreateNewGuid(), Similarity3d.Identity, None, None, 0, set.Root.Value)
         match root with
@@ -825,7 +825,7 @@ module LodTreeInstance =
         | None ->
             None
         
-    let ofPointCloudNode (uniforms : list<string * IMod>) (root : IPointCloudNode) =
+    let ofPointCloudNode (uniforms : list<string * IAdaptiveValue>) (root : IPointCloudNode) =
         let store = root.Storage
         let root = PointTreeNode.Create(System.Guid.NewGuid(), null, store.Cache, Symbol.CreateNewGuid(), Similarity3d.Identity, None, None, 0, root)
         match root with
@@ -860,8 +860,8 @@ module LodTreeInstance =
             Trafo3d.Scale scale.X
 
         let uniforms = instance.uniforms
-        let uniforms = MapExt.add "Scales" (Mod.constant scale :> IMod) uniforms
-        let uniforms = MapExt.add "ModelTrafo" (Mod.constant t :> IMod) uniforms
+        let uniforms = MapExt.add "Scales" (AVal.constant scale :> IAdaptiveValue) uniforms
+        let uniforms = MapExt.add "ModelTrafo" (AVal.constant t :> IAdaptiveValue) uniforms
 
 
         {
@@ -872,7 +872,7 @@ module LodTreeInstance =
     let normalize (maxSize : float) (instance : LodTreeInstance) =
         normalizeTo (Box3d.FromCenterAndSize(V3d.Zero, V3d.III * maxSize)) instance
     
-    let trafo (t : IMod<Trafo3d>) (instance : LodTreeInstance) =
+    let trafo (t : aval<Trafo3d>) (instance : LodTreeInstance) =
         let uniforms = instance.uniforms
 
         let inline getScale (m : M44d) =
@@ -883,32 +883,32 @@ module LodTreeInstance =
 
         let uniforms =
             match MapExt.tryFind "ModelTrafo" uniforms with
-            | Some (:? IMod<Trafo3d> as old) -> 
-                let n = Mod.map2 (*) old t
-                MapExt.add "ModelTrafo" (n :> IMod) uniforms
+            | Some (:? aval<Trafo3d> as old) -> 
+                let n = AVal.map2 (*) old t
+                MapExt.add "ModelTrafo" (n :> IAdaptiveValue) uniforms
             | _ ->
-                MapExt.add "ModelTrafo" (t :> IMod) uniforms
+                MapExt.add "ModelTrafo" (t :> IAdaptiveValue) uniforms
 
         let uniforms =
             match MapExt.tryFind "Scales" uniforms with
-            | Some (:? IMod<V4d> as sOld) -> 
-                let sNew = t |> Mod.map (fun o -> getScale o.Forward)
-                let sFin = Mod.map2 (*) sOld sNew
-                MapExt.add "Scales" (sFin :> IMod) uniforms
+            | Some (:? aval<V4d> as sOld) -> 
+                let sNew = t |> AVal.map (fun o -> getScale o.Forward)
+                let sFin = AVal.map2 (*) sOld sNew
+                MapExt.add "Scales" (sFin :> IAdaptiveValue) uniforms
             | _ ->
-                let sNew = t |> Mod.map (fun o -> V4d.IIII * (getScale o.Forward))
-                MapExt.add "Scales" (sNew :> IMod) uniforms
+                let sNew = t |> AVal.map (fun o -> V4d.IIII * (getScale o.Forward))
+                MapExt.add "Scales" (sNew :> IAdaptiveValue) uniforms
                 
         { instance with uniforms = uniforms }
         
     let translate (shift : V3d) (instance : LodTreeInstance) =
-        trafo (Mod.constant (Trafo3d.Translation(shift))) instance
+        trafo (AVal.constant (Trafo3d.Translation(shift))) instance
         
     let scale (scale : float) (instance : LodTreeInstance) =
-        trafo (Mod.constant (Trafo3d.Scale(scale))) instance
+        trafo (AVal.constant (Trafo3d.Scale(scale))) instance
         
     let transform (t : Trafo3d) (instance : LodTreeInstance) =
-        trafo (Mod.constant t) instance
+        trafo (AVal.constant t) instance
 
 [<Flags>]
 type PointVisualization =
@@ -1283,7 +1283,7 @@ module PointSetShaders =
             let f = Vec.dot c c - 1.0
             if f > 0.0 then discard()
             
-            let t = 1.0 - sqrt (-f)
+            let t = 1.0 - sqrt (max 0.0 -f)
             let depth = v.fc.Z
             let outDepth = depth + v.depthRange * t
             
@@ -1295,7 +1295,8 @@ module PointSetShaders =
                 let dy = ddy(v.c) * 2.0
                 let dfx = 2.0*c.X*dx.X + 2.0*c.Y*dx.Y
                 let dfy = 2.0*c.X*dy.X + 2.0*c.Y*dy.Y
-                let d = abs f / sqrt (dfx * dfx + dfy * dfy)
+                let x = sqrt (dfx * dfx + dfy * dfy)
+                let d = if x < 0.0001 || f >= -0.00001 then 0.0 else abs f / x
                 alpha <- min 1.0 (d / 2.0)
                 
             if uniform.PointVisualization &&& PointVisualization.FancyPoints <> PointVisualization.None then
@@ -1366,8 +1367,8 @@ module PointSetShaders =
             let d = uniform.ViewTrafoInv * V4d(v.vp, 0.0) |> Vec.xyz |> Vec.normalize
             //let cp = uniform.ViewTrafoInv.C3.XYZ
             
-            let rc = env.Sample(Vec.reflect d wn).XYZ
-            let tc = env.Sample(Vec.refract d wn 0.9).XYZ
+            let rc = env.Sample(Vec.reflect wn d).XYZ
+            let tc = env.Sample(Vec.refract 0.9 wn d).XYZ
 
             let ec = 0.8 * tc + 0.05 * rc + 0.15 * v.col.XYZ
             

@@ -3378,10 +3378,10 @@ namespace Aardvark.Geometry
 
     public static class PointKdTreeExtensions
     {
-        #region VecArray<float> Trees
+        #region Matrix<float> Trees
 
-        public static PointKdTreeF<VecArray<float>, Vec<float>> CreateKdTree(
-                this VecArray<float> array, Metric metric, float absoluteEps)
+        public static PointKdTreeF<Matrix<float>, Vector<float>> CreateKdTree(
+                this Matrix<float> array, Metric metric, float absoluteEps)
         {
             switch (metric)
             {
@@ -3392,49 +3392,49 @@ namespace Aardvark.Geometry
             }
         }
 
-        public static PointKdTreeF<VecArray<float>, Vec<float>> CreateKdTreeDist1(
-                this VecArray<float> array, float absoluteEps)
+        public static PointKdTreeF<Matrix<float>, Vector<float>> CreateKdTreeDist1(
+                this Matrix<float> array, float absoluteEps)
         {
-            return array.CreateKdTree(VecFloat.Dist1,
+            return array.CreateKdTree((a, b) => a.Dist1(b),
                                       (dim, a, b) => b - a, absoluteEps);
         }
 
-        public static PointKdTreeF<VecArray<float>, Vec<float>> CreateKdTreeDist2(
-                this VecArray<float> array, float absoluteEps)
+        public static PointKdTreeF<Matrix<float>, Vector<float>> CreateKdTreeDist2(
+                this Matrix<float> array, float absoluteEps)
         {
-            return array.CreateKdTree(VecFloat.Dist2,
+            return array.CreateKdTree((a, b) => a.Dist2(b),
                                       (dim, a, b) => b - a, absoluteEps);
         }
 
-        public static PointKdTreeF<VecArray<float>, Vec<float>> CreateKdTreeDist2Squared(
-                this VecArray<float> array, float absoluteEps)
+        public static PointKdTreeF<Matrix<float>, Vector<float>> CreateKdTreeDist2Squared(
+                this Matrix<float> array, float absoluteEps)
         {
-            return array.CreateKdTree((a, b) => (float)VecFloat.Dist2Squared(a, b),
+            return array.CreateKdTree((a, b) => a.Dist2Squared(b),
                                       (dim, a, b) => (float)Fun.Square(b - a), absoluteEps);
         }
 
-        public static PointKdTreeF<VecArray<float>, Vec<float>> CreateKdTreeDistMax(
-                this VecArray<float> array, float absoluteEps)
+        public static PointKdTreeF<Matrix<float>, Vector<float>> CreateKdTreeDistMax(
+                this Matrix<float> array, float absoluteEps)
         {
-            return array.CreateKdTree(VecFloat.DistMax,
+            return array.CreateKdTree((a, b) => a.DistMax(b),
                                       (dim, a, b) => b - a, absoluteEps);
         }
 
-        public static PointKdTreeF<VecArray<float>, Vec<float>> CreateKdTree(
-                this VecArray<float> array,
-                Func<Vec<float>, Vec<float>, float> distanceFun,
+        public static PointKdTreeF<Matrix<float>, Vector<float>> CreateKdTree(
+                this Matrix<float> array,
+                Func<Vector<float>, Vector<float>, float> distanceFun,
                 Func<long, float, float, float> dimMaxDistanceFun,
                 float absoluteEps)
         {
-            return new PointKdTreeF<VecArray<float>, Vec<float>>(
-                    array.Dim, array.Count, array,
-                    VecArray<float>.Getter, Vec<float>.Getter,
+            return new PointKdTreeF<Matrix<float>, Vector<float>>(
+                    array.Dim.Y, array.Dim.X, array,
+                    (m, i) => m.Col(i), (v, i) => v[i],
                     distanceFun, dimMaxDistanceFun,
                     absoluteEps);
         }
 
-        public static PointKdTreeF<VecArray<float>, Vec<float>> CreateKdTree(
-                this VecArray<float> array, Metric metric, float absoluteEps,
+        public static PointKdTreeF<Matrix<float>, Vector<float>> CreateKdTree(
+                this Matrix<float> array, Metric metric, float absoluteEps,
                 PointKdTreeFData data)
         {
             switch (metric)
@@ -3446,43 +3446,43 @@ namespace Aardvark.Geometry
             }
         }
 
-        public static PointKdTreeF<VecArray<float>, Vec<float>> CreateKdTreeDist1(
-                this VecArray<float> array, float absoluteEps, PointKdTreeFData data)
+        public static PointKdTreeF<Matrix<float>, Vector<float>> CreateKdTreeDist1(
+                this Matrix<float> array, float absoluteEps, PointKdTreeFData data)
         {
-            return array.CreateKdTree(VecFloat.Dist1,
+            return array.CreateKdTree((a, b) => a.InnerProduct(b, (x0, x1) => Fun.Abs(x1 - x0), 0.0f, (s, p) => s + p),
                                       (dim, a, b) => b - a, absoluteEps, data);
         }
 
-        public static PointKdTreeF<VecArray<float>, Vec<float>> CreateKdTreeDist2(
-                this VecArray<float> array, float absoluteEps, PointKdTreeFData data)
+        public static PointKdTreeF<Matrix<float>, Vector<float>> CreateKdTreeDist2(
+                this Matrix<float> array, float absoluteEps, PointKdTreeFData data)
         {
-            return array.CreateKdTree(VecFloat.Dist2,
+            return array.CreateKdTree((a, b) => a.Dist2(b),
                                       (dim, a, b) => b - a, absoluteEps, data);
         }
 
-        public static PointKdTreeF<VecArray<float>, Vec<float>> CreateKdTreeDist2Squared(
-                this VecArray<float> array, float absoluteEps, PointKdTreeFData data)
+        public static PointKdTreeF<Matrix<float>, Vector<float>> CreateKdTreeDist2Squared(
+                this Matrix<float> array, float absoluteEps, PointKdTreeFData data)
         {
-            return array.CreateKdTree((a, b) => (float)VecFloat.Dist2Squared(a, b),
+            return array.CreateKdTree((a, b) => a.Dist2Squared(b),
                                       (dim, a, b) => (float)Fun.Square(b - a), absoluteEps, data);
         }
 
-        public static PointKdTreeF<VecArray<float>, Vec<float>> CreateKdTreeDistMax(
-                this VecArray<float> array, float absoluteEps, PointKdTreeFData data)
+        public static PointKdTreeF<Matrix<float>, Vector<float>> CreateKdTreeDistMax(
+                this Matrix<float> array, float absoluteEps, PointKdTreeFData data)
         {
-            return array.CreateKdTree(VecFloat.DistMax,
+            return array.CreateKdTree((a, b) => a.DistMax(b),
                                       (dim, a, b) => b - a, absoluteEps, data);
         }
 
-        public static PointKdTreeF<VecArray<float>, Vec<float>> CreateKdTree(
-                this VecArray<float> array,
-                Func<Vec<float>, Vec<float>, float> distanceFun,
+        public static PointKdTreeF<Matrix<float>, Vector<float>> CreateKdTree(
+                this Matrix<float> array,
+                Func<Vector<float>, Vector<float>, float> distanceFun,
                 Func<long, float, float, float> dimMaxDistanceFun,
                 float absoluteEps, PointKdTreeFData data)
         {
-            return new PointKdTreeF<VecArray<float>, Vec<float>>(
-                    array.Dim, array.Count, array,
-                    VecArray<float>.Getter, Vec<float>.Getter,
+            return new PointKdTreeF<Matrix<float>, Vector<float>>(
+                    array.Dim.Y, array.Dim.X, array,
+                    (m, i) => m.Col(i), (v, i) => v[i],
                     distanceFun, dimMaxDistanceFun,
                     absoluteEps, data);
         }
@@ -3550,28 +3550,28 @@ namespace Aardvark.Geometry
         public static PointKdTreeF<V2f[], V2f> CreateKdTreeDist1(
                 this V2f[] array, float absoluteEps)
         {
-            return array.CreateKdTree(V2f.Distance1, (dim, a, b) => b - a,
+            return array.CreateKdTree(Vec.Distance1, (dim, a, b) => b - a,
                                        absoluteEps);
         }
 
         public static PointKdTreeF<V2f[], V2f> CreateKdTreeDist2(
                 this V2f[] array, float absoluteEps)
         {
-            return array.CreateKdTree(V2f.Distance, (dim, a, b) => b - a,
+            return array.CreateKdTree(Vec.Distance, (dim, a, b) => b - a,
                                        absoluteEps);
         }
 
         public static PointKdTreeF<V2f[], V2f> CreateKdTreeDist2Squared(
                 this V2f[] array, float absoluteEps)
         {
-            return array.CreateKdTree((a, b) => (float)V2f.DistanceSquared(a, b),
+            return array.CreateKdTree((a, b) => (float)Vec.DistanceSquared(a, b),
                                           (dim, a, b) => (float)Fun.Square(b - a), absoluteEps);
         }
 
         public static PointKdTreeF<V2f[], V2f> CreateKdTreeDistMax(
                 this V2f[] array, float absoluteEps)
         {
-            return array.CreateKdTree(V2f.DistanceMax, (dim, a, b) => b - a,
+            return array.CreateKdTree(Vec.DistanceMax, (dim, a, b) => b - a,
                                        absoluteEps);
         }
 
@@ -3579,7 +3579,7 @@ namespace Aardvark.Geometry
                 this V2f[] array, float absoluteEps)
         {
             return array.CreateKdTree(
-                (a, b) => (float)1.0 - Fun.Abs(V2f.Dot(a, b)),
+                (a, b) => (float)1.0 - Fun.Abs(Vec.Dot(a, b)),
                 (dim, a, b) => 1,
                 absoluteEps);
         }
@@ -3616,28 +3616,28 @@ namespace Aardvark.Geometry
         public static PointKdTreeF<V3f[], V3f> CreateKdTreeDist1(
                 this V3f[] array, float absoluteEps)
         {
-            return array.CreateKdTree(V3f.Distance1, (dim, a, b) => b - a,
+            return array.CreateKdTree(Vec.Distance1, (dim, a, b) => b - a,
                                        absoluteEps);
         }
 
         public static PointKdTreeF<V3f[], V3f> CreateKdTreeDist2(
                 this V3f[] array, float absoluteEps)
         {
-            return array.CreateKdTree(V3f.Distance, (dim, a, b) => b - a,
+            return array.CreateKdTree(Vec.Distance, (dim, a, b) => b - a,
                                        absoluteEps);
         }
 
         public static PointKdTreeF<V3f[], V3f> CreateKdTreeDist2Squared(
                 this V3f[] array, float absoluteEps)
         {
-            return array.CreateKdTree((a, b) => (float)V3f.DistanceSquared(a, b),
+            return array.CreateKdTree((a, b) => (float)Vec.DistanceSquared(a, b),
                                           (dim, a, b) => (float)Fun.Square(b - a), absoluteEps);
         }
 
         public static PointKdTreeF<V3f[], V3f> CreateKdTreeDistMax(
                 this V3f[] array, float absoluteEps)
         {
-            return array.CreateKdTree(V3f.DistanceMax, (dim, a, b) => b - a,
+            return array.CreateKdTree(Vec.DistanceMax, (dim, a, b) => b - a,
                                        absoluteEps);
         }
 
@@ -3645,7 +3645,7 @@ namespace Aardvark.Geometry
                 this V3f[] array, float absoluteEps)
         {
             return array.CreateKdTree(
-                (a, b) => (float)1.0 - Fun.Abs(V3f.Dot(a, b)),
+                (a, b) => (float)1.0 - Fun.Abs(Vec.Dot(a, b)),
                 (dim, a, b) => 1,
                 absoluteEps);
         }
@@ -3682,28 +3682,28 @@ namespace Aardvark.Geometry
         public static PointKdTreeF<V4f[], V4f> CreateKdTreeDist1(
                 this V4f[] array, float absoluteEps)
         {
-            return array.CreateKdTree(V4f.Distance1, (dim, a, b) => b - a,
+            return array.CreateKdTree(Vec.Distance1, (dim, a, b) => b - a,
                                        absoluteEps);
         }
 
         public static PointKdTreeF<V4f[], V4f> CreateKdTreeDist2(
                 this V4f[] array, float absoluteEps)
         {
-            return array.CreateKdTree(V4f.Distance, (dim, a, b) => b - a,
+            return array.CreateKdTree(Vec.Distance, (dim, a, b) => b - a,
                                        absoluteEps);
         }
 
         public static PointKdTreeF<V4f[], V4f> CreateKdTreeDist2Squared(
                 this V4f[] array, float absoluteEps)
         {
-            return array.CreateKdTree((a, b) => (float)V4f.DistanceSquared(a, b),
+            return array.CreateKdTree((a, b) => (float)Vec.DistanceSquared(a, b),
                                           (dim, a, b) => (float)Fun.Square(b - a), absoluteEps);
         }
 
         public static PointKdTreeF<V4f[], V4f> CreateKdTreeDistMax(
                 this V4f[] array, float absoluteEps)
         {
-            return array.CreateKdTree(V4f.DistanceMax, (dim, a, b) => b - a,
+            return array.CreateKdTree(Vec.DistanceMax, (dim, a, b) => b - a,
                                        absoluteEps);
         }
 
@@ -3711,7 +3711,7 @@ namespace Aardvark.Geometry
                 this V4f[] array, float absoluteEps)
         {
             return array.CreateKdTree(
-                (a, b) => (float)1.0 - Fun.Abs(V4f.Dot(a, b)),
+                (a, b) => (float)1.0 - Fun.Abs(Vec.Dot(a, b)),
                 (dim, a, b) => 1,
                 absoluteEps);
         }
@@ -3731,10 +3731,10 @@ namespace Aardvark.Geometry
 
         #endregion
 
-        #region VecArray<double> Trees
+        #region Matrix<double> Trees
 
-        public static PointKdTreeD<VecArray<double>, Vec<double>> CreateKdTree(
-                this VecArray<double> array, Metric metric, double absoluteEps)
+        public static PointKdTreeD<Matrix<double>, Vector<double>> CreateKdTree(
+                this Matrix<double> array, Metric metric, double absoluteEps)
         {
             switch (metric)
             {
@@ -3745,49 +3745,49 @@ namespace Aardvark.Geometry
             }
         }
 
-        public static PointKdTreeD<VecArray<double>, Vec<double>> CreateKdTreeDist1(
-                this VecArray<double> array, double absoluteEps)
+        public static PointKdTreeD<Matrix<double>, Vector<double>> CreateKdTreeDist1(
+                this Matrix<double> array, double absoluteEps)
         {
-            return array.CreateKdTree(VecDouble.Dist1,
+            return array.CreateKdTree((a, b) => a.Dist1(b),
                                       (dim, a, b) => b - a, absoluteEps);
         }
 
-        public static PointKdTreeD<VecArray<double>, Vec<double>> CreateKdTreeDist2(
-                this VecArray<double> array, double absoluteEps)
+        public static PointKdTreeD<Matrix<double>, Vector<double>> CreateKdTreeDist2(
+                this Matrix<double> array, double absoluteEps)
         {
-            return array.CreateKdTree(VecDouble.Dist2,
+            return array.CreateKdTree((a, b) => a.Dist2(b),
                                       (dim, a, b) => b - a, absoluteEps);
         }
 
-        public static PointKdTreeD<VecArray<double>, Vec<double>> CreateKdTreeDist2Squared(
-                this VecArray<double> array, double absoluteEps)
+        public static PointKdTreeD<Matrix<double>, Vector<double>> CreateKdTreeDist2Squared(
+                this Matrix<double> array, double absoluteEps)
         {
-            return array.CreateKdTree((a, b) => VecDouble.Dist2Squared(a, b),
+            return array.CreateKdTree((a, b) => a.Dist2Squared(b),
                                       (dim, a, b) => Fun.Square(b - a), absoluteEps);
         }
 
-        public static PointKdTreeD<VecArray<double>, Vec<double>> CreateKdTreeDistMax(
-                this VecArray<double> array, double absoluteEps)
+        public static PointKdTreeD<Matrix<double>, Vector<double>> CreateKdTreeDistMax(
+                this Matrix<double> array, double absoluteEps)
         {
-            return array.CreateKdTree(VecDouble.DistMax,
+            return array.CreateKdTree((a, b) => a.DistMax(b),
                                       (dim, a, b) => b - a, absoluteEps);
         }
 
-        public static PointKdTreeD<VecArray<double>, Vec<double>> CreateKdTree(
-                this VecArray<double> array,
-                Func<Vec<double>, Vec<double>, double> distanceFun,
+        public static PointKdTreeD<Matrix<double>, Vector<double>> CreateKdTree(
+                this Matrix<double> array,
+                Func<Vector<double>, Vector<double>, double> distanceFun,
                 Func<long, double, double, double> dimMaxDistanceFun,
                 double absoluteEps)
         {
-            return new PointKdTreeD<VecArray<double>, Vec<double>>(
-                    array.Dim, array.Count, array,
-                    VecArray<double>.Getter, Vec<double>.Getter,
+            return new PointKdTreeD<Matrix<double>, Vector<double>>(
+                    array.Dim.Y, array.Dim.X, array,
+                    (m, i) => m.Col(i), (v, i) => v[i],
                     distanceFun, dimMaxDistanceFun,
                     absoluteEps);
         }
 
-        public static PointKdTreeD<VecArray<double>, Vec<double>> CreateKdTree(
-                this VecArray<double> array, Metric metric, double absoluteEps,
+        public static PointKdTreeD<Matrix<double>, Vector<double>> CreateKdTree(
+                this Matrix<double> array, Metric metric, double absoluteEps,
                 PointKdTreeDData data)
         {
             switch (metric)
@@ -3799,43 +3799,43 @@ namespace Aardvark.Geometry
             }
         }
 
-        public static PointKdTreeD<VecArray<double>, Vec<double>> CreateKdTreeDist1(
-                this VecArray<double> array, double absoluteEps, PointKdTreeDData data)
+        public static PointKdTreeD<Matrix<double>, Vector<double>> CreateKdTreeDist1(
+                this Matrix<double> array, double absoluteEps, PointKdTreeDData data)
         {
-            return array.CreateKdTree(VecDouble.Dist1,
+            return array.CreateKdTree((a, b) => a.InnerProduct(b, (x0, x1) => Fun.Abs(x1 - x0), 0.0, (s, p) => s + p),
                                       (dim, a, b) => b - a, absoluteEps, data);
         }
 
-        public static PointKdTreeD<VecArray<double>, Vec<double>> CreateKdTreeDist2(
-                this VecArray<double> array, double absoluteEps, PointKdTreeDData data)
+        public static PointKdTreeD<Matrix<double>, Vector<double>> CreateKdTreeDist2(
+                this Matrix<double> array, double absoluteEps, PointKdTreeDData data)
         {
-            return array.CreateKdTree(VecDouble.Dist2,
+            return array.CreateKdTree((a, b) => a.Dist2(b),
                                       (dim, a, b) => b - a, absoluteEps, data);
         }
 
-        public static PointKdTreeD<VecArray<double>, Vec<double>> CreateKdTreeDist2Squared(
-                this VecArray<double> array, double absoluteEps, PointKdTreeDData data)
+        public static PointKdTreeD<Matrix<double>, Vector<double>> CreateKdTreeDist2Squared(
+                this Matrix<double> array, double absoluteEps, PointKdTreeDData data)
         {
-            return array.CreateKdTree((a, b) => VecDouble.Dist2Squared(a, b),
+            return array.CreateKdTree((a, b) => a.Dist2Squared(b),
                                       (dim, a, b) => Fun.Square(b - a), absoluteEps, data);
         }
 
-        public static PointKdTreeD<VecArray<double>, Vec<double>> CreateKdTreeDistMax(
-                this VecArray<double> array, double absoluteEps, PointKdTreeDData data)
+        public static PointKdTreeD<Matrix<double>, Vector<double>> CreateKdTreeDistMax(
+                this Matrix<double> array, double absoluteEps, PointKdTreeDData data)
         {
-            return array.CreateKdTree(VecDouble.DistMax,
+            return array.CreateKdTree((a, b) => a.DistMax(b),
                                       (dim, a, b) => b - a, absoluteEps, data);
         }
 
-        public static PointKdTreeD<VecArray<double>, Vec<double>> CreateKdTree(
-                this VecArray<double> array,
-                Func<Vec<double>, Vec<double>, double> distanceFun,
+        public static PointKdTreeD<Matrix<double>, Vector<double>> CreateKdTree(
+                this Matrix<double> array,
+                Func<Vector<double>, Vector<double>, double> distanceFun,
                 Func<long, double, double, double> dimMaxDistanceFun,
                 double absoluteEps, PointKdTreeDData data)
         {
-            return new PointKdTreeD<VecArray<double>, Vec<double>>(
-                    array.Dim, array.Count, array,
-                    VecArray<double>.Getter, Vec<double>.Getter,
+            return new PointKdTreeD<Matrix<double>, Vector<double>>(
+                    array.Dim.Y, array.Dim.X, array,
+                    (m, i) => m.Col(i), (v, i) => v[i],
                     distanceFun, dimMaxDistanceFun,
                     absoluteEps, data);
         }
@@ -3903,28 +3903,28 @@ namespace Aardvark.Geometry
         public static PointKdTreeD<V2d[], V2d> CreateKdTreeDist1(
                 this V2d[] array, double absoluteEps)
         {
-            return array.CreateKdTree(V2d.Distance1, (dim, a, b) => b - a,
+            return array.CreateKdTree(Vec.Distance1, (dim, a, b) => b - a,
                                        absoluteEps);
         }
 
         public static PointKdTreeD<V2d[], V2d> CreateKdTreeDist2(
                 this V2d[] array, double absoluteEps)
         {
-            return array.CreateKdTree(V2d.Distance, (dim, a, b) => b - a,
+            return array.CreateKdTree(Vec.Distance, (dim, a, b) => b - a,
                                        absoluteEps);
         }
 
         public static PointKdTreeD<V2d[], V2d> CreateKdTreeDist2Squared(
                 this V2d[] array, double absoluteEps)
         {
-            return array.CreateKdTree((a, b) => V2d.DistanceSquared(a, b),
+            return array.CreateKdTree((a, b) => Vec.DistanceSquared(a, b),
                                           (dim, a, b) => Fun.Square(b - a), absoluteEps);
         }
 
         public static PointKdTreeD<V2d[], V2d> CreateKdTreeDistMax(
                 this V2d[] array, double absoluteEps)
         {
-            return array.CreateKdTree(V2d.DistanceMax, (dim, a, b) => b - a,
+            return array.CreateKdTree(Vec.DistanceMax, (dim, a, b) => b - a,
                                        absoluteEps);
         }
 
@@ -3932,7 +3932,7 @@ namespace Aardvark.Geometry
                 this V2d[] array, double absoluteEps)
         {
             return array.CreateKdTree(
-                (a, b) => (double)1.0 - Fun.Abs(V2d.Dot(a, b)),
+                (a, b) => (double)1.0 - Fun.Abs(Vec.Dot(a, b)),
                 (dim, a, b) => 1,
                 absoluteEps);
         }
@@ -3969,28 +3969,28 @@ namespace Aardvark.Geometry
         public static PointKdTreeD<V3d[], V3d> CreateKdTreeDist1(
                 this V3d[] array, double absoluteEps)
         {
-            return array.CreateKdTree(V3d.Distance1, (dim, a, b) => b - a,
+            return array.CreateKdTree(Vec.Distance1, (dim, a, b) => b - a,
                                        absoluteEps);
         }
 
         public static PointKdTreeD<V3d[], V3d> CreateKdTreeDist2(
                 this V3d[] array, double absoluteEps)
         {
-            return array.CreateKdTree(V3d.Distance, (dim, a, b) => b - a,
+            return array.CreateKdTree(Vec.Distance, (dim, a, b) => b - a,
                                        absoluteEps);
         }
 
         public static PointKdTreeD<V3d[], V3d> CreateKdTreeDist2Squared(
                 this V3d[] array, double absoluteEps)
         {
-            return array.CreateKdTree((a, b) => V3d.DistanceSquared(a, b),
+            return array.CreateKdTree((a, b) => Vec.DistanceSquared(a, b),
                                           (dim, a, b) => Fun.Square(b - a), absoluteEps);
         }
 
         public static PointKdTreeD<V3d[], V3d> CreateKdTreeDistMax(
                 this V3d[] array, double absoluteEps)
         {
-            return array.CreateKdTree(V3d.DistanceMax, (dim, a, b) => b - a,
+            return array.CreateKdTree(Vec.DistanceMax, (dim, a, b) => b - a,
                                        absoluteEps);
         }
 
@@ -3998,7 +3998,7 @@ namespace Aardvark.Geometry
                 this V3d[] array, double absoluteEps)
         {
             return array.CreateKdTree(
-                (a, b) => (double)1.0 - Fun.Abs(V3d.Dot(a, b)),
+                (a, b) => (double)1.0 - Fun.Abs(Vec.Dot(a, b)),
                 (dim, a, b) => 1,
                 absoluteEps);
         }
@@ -4035,28 +4035,28 @@ namespace Aardvark.Geometry
         public static PointKdTreeD<V4d[], V4d> CreateKdTreeDist1(
                 this V4d[] array, double absoluteEps)
         {
-            return array.CreateKdTree(V4d.Distance1, (dim, a, b) => b - a,
+            return array.CreateKdTree(Vec.Distance1, (dim, a, b) => b - a,
                                        absoluteEps);
         }
 
         public static PointKdTreeD<V4d[], V4d> CreateKdTreeDist2(
                 this V4d[] array, double absoluteEps)
         {
-            return array.CreateKdTree(V4d.Distance, (dim, a, b) => b - a,
+            return array.CreateKdTree(Vec.Distance, (dim, a, b) => b - a,
                                        absoluteEps);
         }
 
         public static PointKdTreeD<V4d[], V4d> CreateKdTreeDist2Squared(
                 this V4d[] array, double absoluteEps)
         {
-            return array.CreateKdTree((a, b) => V4d.DistanceSquared(a, b),
+            return array.CreateKdTree((a, b) => Vec.DistanceSquared(a, b),
                                           (dim, a, b) => Fun.Square(b - a), absoluteEps);
         }
 
         public static PointKdTreeD<V4d[], V4d> CreateKdTreeDistMax(
                 this V4d[] array, double absoluteEps)
         {
-            return array.CreateKdTree(V4d.DistanceMax, (dim, a, b) => b - a,
+            return array.CreateKdTree(Vec.DistanceMax, (dim, a, b) => b - a,
                                        absoluteEps);
         }
 
@@ -4064,7 +4064,7 @@ namespace Aardvark.Geometry
                 this V4d[] array, double absoluteEps)
         {
             return array.CreateKdTree(
-                (a, b) => (double)1.0 - Fun.Abs(V4d.Dot(a, b)),
+                (a, b) => (double)1.0 - Fun.Abs(Vec.Dot(a, b)),
                 (dim, a, b) => 1,
                 absoluteEps);
         }
@@ -4088,10 +4088,10 @@ namespace Aardvark.Geometry
 
     public static class PointRkdTreeExtensions
     {
-        #region VecArray<float> Trees
+        #region Matrix<float> Trees
 
-        public static PointRkdTreeF<VecArray<float>, Vec<float>> CreateRkdTree(
-                this VecArray<float> array, Metric metric, float absoluteEps)
+        public static PointRkdTreeF<Matrix<float>, Vector<float>> CreateRkdTree(
+                this Matrix<float> array, Metric metric, float absoluteEps)
         {
             switch (metric)
             {
@@ -4102,42 +4102,42 @@ namespace Aardvark.Geometry
             }
         }
 
-        public static PointRkdTreeF<VecArray<float>, Vec<float>> CreateRkdTreeDist1(
-                this VecArray<float> array, float absoluteEps)
+        public static PointRkdTreeF<Matrix<float>, Vector<float>> CreateRkdTreeDist1(
+                this Matrix<float> array, float absoluteEps)
         {
-            return array.CreateRkdTree(VecFloat.Dist1,
+            return array.CreateRkdTree((a, b) => a.Dist1(b),
                                       (dim, a, b) => b - a, absoluteEps);
         }
 
-        public static PointRkdTreeF<VecArray<float>, Vec<float>> CreateRkdTreeDist2(
-                this VecArray<float> array, float absoluteEps)
+        public static PointRkdTreeF<Matrix<float>, Vector<float>> CreateRkdTreeDist2(
+                this Matrix<float> array, float absoluteEps)
         {
-            return array.CreateRkdTree(VecFloat.Dist2,
+            return array.CreateRkdTree((a, b) => a.Dist2(b),
                                       (dim, a, b) => b - a, absoluteEps);
         }
 
-        public static PointRkdTreeF<VecArray<float>, Vec<float>> CreateRkdTreeDistMax(
-                this VecArray<float> array, float absoluteEps)
+        public static PointRkdTreeF<Matrix<float>, Vector<float>> CreateRkdTreeDistMax(
+                this Matrix<float> array, float absoluteEps)
         {
-            return array.CreateRkdTree(VecFloat.DistMax,
+            return array.CreateRkdTree((a, b) => a.DistMax(b),
                                       (dim, a, b) => b - a, absoluteEps);
         }
 
-        public static PointRkdTreeF<VecArray<float>, Vec<float>> CreateRkdTree(
-                this VecArray<float> array,
-                Func<Vec<float>, Vec<float>, float> distanceFun,
+        public static PointRkdTreeF<Matrix<float>, Vector<float>> CreateRkdTree(
+                this Matrix<float> array,
+                Func<Vector<float>, Vector<float>, float> distanceFun,
                 Func<long, float, float, float> dimMaxDistanceFun,
                 float absoluteEps)
         {
-            return new PointRkdTreeF<VecArray<float>, Vec<float>>(
-                    array.Dim, array.Count, array,
-                    VecArray<float>.Getter, Vec<float>.Getter,
+            return new PointRkdTreeF<Matrix<float>, Vector<float>>(
+                    array.Dim.Y, array.Dim.X, array,
+                    (m, i) => m.Col(i), (v, i) => v[i],
                     distanceFun, dimMaxDistanceFun,
                     null, null, absoluteEps);
         }
 
-        public static PointRkdTreeF<VecArray<float>, Vec<float>> CreateRkdTree(
-                this VecArray<float> array, Metric metric, float absoluteEps,
+        public static PointRkdTreeF<Matrix<float>, Vector<float>> CreateRkdTree(
+                this Matrix<float> array, Metric metric, float absoluteEps,
                 PointRkdTreeFData data)
         {
             switch (metric)
@@ -4149,36 +4149,36 @@ namespace Aardvark.Geometry
             }
         }
 
-        public static PointRkdTreeF<VecArray<float>, Vec<float>> CreateRkdTreeDist1(
-                this VecArray<float> array, float absoluteEps, PointRkdTreeFData data)
+        public static PointRkdTreeF<Matrix<float>, Vector<float>> CreateRkdTreeDist1(
+                this Matrix<float> array, float absoluteEps, PointRkdTreeFData data)
         {
-            return array.CreateRkdTree(VecFloat.Dist1,
+            return array.CreateRkdTree((a, b) => a.InnerProduct(b, (x0, x1) => Fun.Abs(x1 - x0), 0.0f, (s, p) => s + p),
                                       (dim, a, b) => b - a, absoluteEps, data);
         }
 
-        public static PointRkdTreeF<VecArray<float>, Vec<float>> CreateRkdTreeDist2(
-                this VecArray<float> array, float absoluteEps, PointRkdTreeFData data)
+        public static PointRkdTreeF<Matrix<float>, Vector<float>> CreateRkdTreeDist2(
+                this Matrix<float> array, float absoluteEps, PointRkdTreeFData data)
         {
-            return array.CreateRkdTree(VecFloat.Dist2,
+            return array.CreateRkdTree((a, b) => a.Dist2(b),
                                       (dim, a, b) => b - a, absoluteEps, data);
         }
 
-        public static PointRkdTreeF<VecArray<float>, Vec<float>> CreateRkdTreeDistMax(
-                this VecArray<float> array, float absoluteEps, PointRkdTreeFData data)
+        public static PointRkdTreeF<Matrix<float>, Vector<float>> CreateRkdTreeDistMax(
+                this Matrix<float> array, float absoluteEps, PointRkdTreeFData data)
         {
-            return array.CreateRkdTree(VecFloat.DistMax,
+            return array.CreateRkdTree((a, b) => a.DistMax(b),
                                       (dim, a, b) => b - a, absoluteEps, data);
         }
 
-        public static PointRkdTreeF<VecArray<float>, Vec<float>> CreateRkdTree(
-                this VecArray<float> array,
-                Func<Vec<float>, Vec<float>, float> distanceFun,
+        public static PointRkdTreeF<Matrix<float>, Vector<float>> CreateRkdTree(
+                this Matrix<float> array,
+                Func<Vector<float>, Vector<float>, float> distanceFun,
                 Func<long, float, float, float> dimMaxDistanceFun,
                 float absoluteEps, PointRkdTreeFData data)
         {
-            return new PointRkdTreeF<VecArray<float>, Vec<float>>(
-                    array.Dim, array.Count, array,
-                    VecArray<float>.Getter, Vec<float>.Getter,
+            return new PointRkdTreeF<Matrix<float>, Vector<float>>(
+                    array.Dim.Y, array.Dim.X, array,
+                    (m, i) => m.Col(i), (v, i) => v[i],
                     distanceFun, dimMaxDistanceFun,
                     null, null, absoluteEps, data);
         }
@@ -4246,22 +4246,22 @@ namespace Aardvark.Geometry
         public static PointRkdTreeF<V2f[], V2f> CreateRkdTreeDist1(
                 this V2f[] array, float absoluteEps)
         {
-            return array.CreateRkdTree(V2f.Distance1, (dim, a, b) => b - a,
+            return array.CreateRkdTree(Vec.Distance1, (dim, a, b) => b - a,
                                        null, null, absoluteEps);
         }
 
         public static PointRkdTreeF<V2f[], V2f> CreateRkdTreeDist2(
                 this V2f[] array, float absoluteEps)
         {
-            return array.CreateRkdTree(V2f.Distance, (dim, a, b) => b - a,
-                                       VecFun.DistanceToLine, VecFun.Lerp,
+            return array.CreateRkdTree(Vec.Distance, (dim, a, b) => b - a,
+                                       Vec.DistanceToLine, Fun.Lerp,
                                        absoluteEps);
         }
 
         public static PointRkdTreeF<V2f[], V2f> CreateRkdTreeDistMax(
                 this V2f[] array, float absoluteEps)
         {
-            return array.CreateRkdTree(V2f.DistanceMax, (dim, a, b) => b - a,
+            return array.CreateRkdTree(Vec.DistanceMax, (dim, a, b) => b - a,
                                        null, null, absoluteEps);
         }
 
@@ -4269,7 +4269,7 @@ namespace Aardvark.Geometry
                 this V2f[] array, float absoluteEps)
         {
             return array.CreateRkdTree(
-                (a, b) => (float)1.0 - Fun.Abs(V2f.Dot(a, b)),
+                (a, b) => (float)1.0 - Fun.Abs(Vec.Dot(a, b)),
                 (dim, a, b) => 1,
                 null, null, absoluteEps);
         }
@@ -4308,22 +4308,22 @@ namespace Aardvark.Geometry
         public static PointRkdTreeF<V3f[], V3f> CreateRkdTreeDist1(
                 this V3f[] array, float absoluteEps)
         {
-            return array.CreateRkdTree(V3f.Distance1, (dim, a, b) => b - a,
+            return array.CreateRkdTree(Vec.Distance1, (dim, a, b) => b - a,
                                        null, null, absoluteEps);
         }
 
         public static PointRkdTreeF<V3f[], V3f> CreateRkdTreeDist2(
                 this V3f[] array, float absoluteEps)
         {
-            return array.CreateRkdTree(V3f.Distance, (dim, a, b) => b - a,
-                                       VecFun.DistanceToLine, VecFun.Lerp,
+            return array.CreateRkdTree(Vec.Distance, (dim, a, b) => b - a,
+                                       Vec.DistanceToLine, Fun.Lerp,
                                        absoluteEps);
         }
 
         public static PointRkdTreeF<V3f[], V3f> CreateRkdTreeDistMax(
                 this V3f[] array, float absoluteEps)
         {
-            return array.CreateRkdTree(V3f.DistanceMax, (dim, a, b) => b - a,
+            return array.CreateRkdTree(Vec.DistanceMax, (dim, a, b) => b - a,
                                        null, null, absoluteEps);
         }
 
@@ -4331,7 +4331,7 @@ namespace Aardvark.Geometry
                 this V3f[] array, float absoluteEps)
         {
             return array.CreateRkdTree(
-                (a, b) => (float)1.0 - Fun.Abs(V3f.Dot(a, b)),
+                (a, b) => (float)1.0 - Fun.Abs(Vec.Dot(a, b)),
                 (dim, a, b) => 1,
                 null, null, absoluteEps);
         }
@@ -4370,22 +4370,22 @@ namespace Aardvark.Geometry
         public static PointRkdTreeF<V4f[], V4f> CreateRkdTreeDist1(
                 this V4f[] array, float absoluteEps)
         {
-            return array.CreateRkdTree(V4f.Distance1, (dim, a, b) => b - a,
+            return array.CreateRkdTree(Vec.Distance1, (dim, a, b) => b - a,
                                        null, null, absoluteEps);
         }
 
         public static PointRkdTreeF<V4f[], V4f> CreateRkdTreeDist2(
                 this V4f[] array, float absoluteEps)
         {
-            return array.CreateRkdTree(V4f.Distance, (dim, a, b) => b - a,
-                                       VecFun.DistanceToLine, VecFun.Lerp,
+            return array.CreateRkdTree(Vec.Distance, (dim, a, b) => b - a,
+                                       Vec.DistanceToLine, Fun.Lerp,
                                        absoluteEps);
         }
 
         public static PointRkdTreeF<V4f[], V4f> CreateRkdTreeDistMax(
                 this V4f[] array, float absoluteEps)
         {
-            return array.CreateRkdTree(V4f.DistanceMax, (dim, a, b) => b - a,
+            return array.CreateRkdTree(Vec.DistanceMax, (dim, a, b) => b - a,
                                        null, null, absoluteEps);
         }
 
@@ -4393,7 +4393,7 @@ namespace Aardvark.Geometry
                 this V4f[] array, float absoluteEps)
         {
             return array.CreateRkdTree(
-                (a, b) => (float)1.0 - Fun.Abs(V4f.Dot(a, b)),
+                (a, b) => (float)1.0 - Fun.Abs(Vec.Dot(a, b)),
                 (dim, a, b) => 1,
                 null, null, absoluteEps);
         }
@@ -4445,22 +4445,22 @@ namespace Aardvark.Geometry
         public static PointRkdTreeFSelector<V2f[], V2f> CreateRkdTreeSelectorDist1(
                 this V2f[] array, float absoluteEps)
         {
-            return array.CreateRkdTree(V2f.Distance1, c_dimDistFunArrayF,
+            return array.CreateRkdTree(Vec.Distance1, c_dimDistFunArrayF,
                                        null, null, absoluteEps);
         }
 
         public static PointRkdTreeFSelector<V2f[], V2f> CreateRkdTreeSelectorDist2(
                 this V2f[] array, float absoluteEps)
         {
-            return array.CreateRkdTree(V2f.Distance, c_dimDistFunArrayF,
-                                       VecFun.DistanceToLine, VecFun.Lerp,
+            return array.CreateRkdTree(Vec.Distance, c_dimDistFunArrayF,
+                                       Vec.DistanceToLine, Fun.Lerp,
                                        absoluteEps);
         }
 
         public static PointRkdTreeFSelector<V2f[], V2f> CreateRkdTreeSelectorDistMax(
                 this V2f[] array, float absoluteEps)
         {
-            return array.CreateRkdTree(V2f.DistanceMax, c_dimDistFunArrayF,
+            return array.CreateRkdTree(Vec.DistanceMax, c_dimDistFunArrayF,
                                        null, null, absoluteEps);
         }
 
@@ -4468,7 +4468,7 @@ namespace Aardvark.Geometry
                 this V2f[] array, float absoluteEps)
         {
             return array.CreateRkdTree(
-                (a, b) => (float)1.0 - Fun.Abs(V2f.Dot(a, b)),
+                (a, b) => (float)1.0 - Fun.Abs(Vec.Dot(a, b)),
                 c_dimDistConst1FunArrayF,
                 null, null, absoluteEps);
         }
@@ -4507,22 +4507,22 @@ namespace Aardvark.Geometry
         public static PointRkdTreeFSelector<V3f[], V3f> CreateRkdTreeSelectorDist1(
                 this V3f[] array, float absoluteEps)
         {
-            return array.CreateRkdTree(V3f.Distance1, c_dimDistFunArrayF,
+            return array.CreateRkdTree(Vec.Distance1, c_dimDistFunArrayF,
                                        null, null, absoluteEps);
         }
 
         public static PointRkdTreeFSelector<V3f[], V3f> CreateRkdTreeSelectorDist2(
                 this V3f[] array, float absoluteEps)
         {
-            return array.CreateRkdTree(V3f.Distance, c_dimDistFunArrayF,
-                                       VecFun.DistanceToLine, VecFun.Lerp,
+            return array.CreateRkdTree(Vec.Distance, c_dimDistFunArrayF,
+                                       Vec.DistanceToLine, Fun.Lerp,
                                        absoluteEps);
         }
 
         public static PointRkdTreeFSelector<V3f[], V3f> CreateRkdTreeSelectorDistMax(
                 this V3f[] array, float absoluteEps)
         {
-            return array.CreateRkdTree(V3f.DistanceMax, c_dimDistFunArrayF,
+            return array.CreateRkdTree(Vec.DistanceMax, c_dimDistFunArrayF,
                                        null, null, absoluteEps);
         }
 
@@ -4530,7 +4530,7 @@ namespace Aardvark.Geometry
                 this V3f[] array, float absoluteEps)
         {
             return array.CreateRkdTree(
-                (a, b) => (float)1.0 - Fun.Abs(V3f.Dot(a, b)),
+                (a, b) => (float)1.0 - Fun.Abs(Vec.Dot(a, b)),
                 c_dimDistConst1FunArrayF,
                 null, null, absoluteEps);
         }
@@ -4569,22 +4569,22 @@ namespace Aardvark.Geometry
         public static PointRkdTreeFSelector<V4f[], V4f> CreateRkdTreeSelectorDist1(
                 this V4f[] array, float absoluteEps)
         {
-            return array.CreateRkdTree(V4f.Distance1, c_dimDistFunArrayF,
+            return array.CreateRkdTree(Vec.Distance1, c_dimDistFunArrayF,
                                        null, null, absoluteEps);
         }
 
         public static PointRkdTreeFSelector<V4f[], V4f> CreateRkdTreeSelectorDist2(
                 this V4f[] array, float absoluteEps)
         {
-            return array.CreateRkdTree(V4f.Distance, c_dimDistFunArrayF,
-                                       VecFun.DistanceToLine, VecFun.Lerp,
+            return array.CreateRkdTree(Vec.Distance, c_dimDistFunArrayF,
+                                       Vec.DistanceToLine, Fun.Lerp,
                                        absoluteEps);
         }
 
         public static PointRkdTreeFSelector<V4f[], V4f> CreateRkdTreeSelectorDistMax(
                 this V4f[] array, float absoluteEps)
         {
-            return array.CreateRkdTree(V4f.DistanceMax, c_dimDistFunArrayF,
+            return array.CreateRkdTree(Vec.DistanceMax, c_dimDistFunArrayF,
                                        null, null, absoluteEps);
         }
 
@@ -4592,7 +4592,7 @@ namespace Aardvark.Geometry
                 this V4f[] array, float absoluteEps)
         {
             return array.CreateRkdTree(
-                (a, b) => (float)1.0 - Fun.Abs(V4f.Dot(a, b)),
+                (a, b) => (float)1.0 - Fun.Abs(Vec.Dot(a, b)),
                 c_dimDistConst1FunArrayF,
                 null, null, absoluteEps);
         }
@@ -4614,10 +4614,10 @@ namespace Aardvark.Geometry
 
         #endregion
 
-        #region VecArray<double> Trees
+        #region Matrix<double> Trees
 
-        public static PointRkdTreeD<VecArray<double>, Vec<double>> CreateRkdTree(
-                this VecArray<double> array, Metric metric, double absoluteEps)
+        public static PointRkdTreeD<Matrix<double>, Vector<double>> CreateRkdTree(
+                this Matrix<double> array, Metric metric, double absoluteEps)
         {
             switch (metric)
             {
@@ -4628,42 +4628,42 @@ namespace Aardvark.Geometry
             }
         }
 
-        public static PointRkdTreeD<VecArray<double>, Vec<double>> CreateRkdTreeDist1(
-                this VecArray<double> array, double absoluteEps)
+        public static PointRkdTreeD<Matrix<double>, Vector<double>> CreateRkdTreeDist1(
+                this Matrix<double> array, double absoluteEps)
         {
-            return array.CreateRkdTree(VecDouble.Dist1,
+            return array.CreateRkdTree((a, b) => a.Dist1(b),
                                       (dim, a, b) => b - a, absoluteEps);
         }
 
-        public static PointRkdTreeD<VecArray<double>, Vec<double>> CreateRkdTreeDist2(
-                this VecArray<double> array, double absoluteEps)
+        public static PointRkdTreeD<Matrix<double>, Vector<double>> CreateRkdTreeDist2(
+                this Matrix<double> array, double absoluteEps)
         {
-            return array.CreateRkdTree(VecDouble.Dist2,
+            return array.CreateRkdTree((a, b) => a.Dist2(b),
                                       (dim, a, b) => b - a, absoluteEps);
         }
 
-        public static PointRkdTreeD<VecArray<double>, Vec<double>> CreateRkdTreeDistMax(
-                this VecArray<double> array, double absoluteEps)
+        public static PointRkdTreeD<Matrix<double>, Vector<double>> CreateRkdTreeDistMax(
+                this Matrix<double> array, double absoluteEps)
         {
-            return array.CreateRkdTree(VecDouble.DistMax,
+            return array.CreateRkdTree((a, b) => a.DistMax(b),
                                       (dim, a, b) => b - a, absoluteEps);
         }
 
-        public static PointRkdTreeD<VecArray<double>, Vec<double>> CreateRkdTree(
-                this VecArray<double> array,
-                Func<Vec<double>, Vec<double>, double> distanceFun,
+        public static PointRkdTreeD<Matrix<double>, Vector<double>> CreateRkdTree(
+                this Matrix<double> array,
+                Func<Vector<double>, Vector<double>, double> distanceFun,
                 Func<long, double, double, double> dimMaxDistanceFun,
                 double absoluteEps)
         {
-            return new PointRkdTreeD<VecArray<double>, Vec<double>>(
-                    array.Dim, array.Count, array,
-                    VecArray<double>.Getter, Vec<double>.Getter,
+            return new PointRkdTreeD<Matrix<double>, Vector<double>>(
+                    array.Dim.Y, array.Dim.X, array,
+                    (m, i) => m.Col(i), (v, i) => v[i],
                     distanceFun, dimMaxDistanceFun,
                     null, null, absoluteEps);
         }
 
-        public static PointRkdTreeD<VecArray<double>, Vec<double>> CreateRkdTree(
-                this VecArray<double> array, Metric metric, double absoluteEps,
+        public static PointRkdTreeD<Matrix<double>, Vector<double>> CreateRkdTree(
+                this Matrix<double> array, Metric metric, double absoluteEps,
                 PointRkdTreeDData data)
         {
             switch (metric)
@@ -4675,36 +4675,36 @@ namespace Aardvark.Geometry
             }
         }
 
-        public static PointRkdTreeD<VecArray<double>, Vec<double>> CreateRkdTreeDist1(
-                this VecArray<double> array, double absoluteEps, PointRkdTreeDData data)
+        public static PointRkdTreeD<Matrix<double>, Vector<double>> CreateRkdTreeDist1(
+                this Matrix<double> array, double absoluteEps, PointRkdTreeDData data)
         {
-            return array.CreateRkdTree(VecDouble.Dist1,
+            return array.CreateRkdTree((a, b) => a.InnerProduct(b, (x0, x1) => Fun.Abs(x1 - x0), 0.0, (s, p) => s + p),
                                       (dim, a, b) => b - a, absoluteEps, data);
         }
 
-        public static PointRkdTreeD<VecArray<double>, Vec<double>> CreateRkdTreeDist2(
-                this VecArray<double> array, double absoluteEps, PointRkdTreeDData data)
+        public static PointRkdTreeD<Matrix<double>, Vector<double>> CreateRkdTreeDist2(
+                this Matrix<double> array, double absoluteEps, PointRkdTreeDData data)
         {
-            return array.CreateRkdTree(VecDouble.Dist2,
+            return array.CreateRkdTree((a, b) => a.Dist2(b),
                                       (dim, a, b) => b - a, absoluteEps, data);
         }
 
-        public static PointRkdTreeD<VecArray<double>, Vec<double>> CreateRkdTreeDistMax(
-                this VecArray<double> array, double absoluteEps, PointRkdTreeDData data)
+        public static PointRkdTreeD<Matrix<double>, Vector<double>> CreateRkdTreeDistMax(
+                this Matrix<double> array, double absoluteEps, PointRkdTreeDData data)
         {
-            return array.CreateRkdTree(VecDouble.DistMax,
+            return array.CreateRkdTree((a, b) => a.DistMax(b),
                                       (dim, a, b) => b - a, absoluteEps, data);
         }
 
-        public static PointRkdTreeD<VecArray<double>, Vec<double>> CreateRkdTree(
-                this VecArray<double> array,
-                Func<Vec<double>, Vec<double>, double> distanceFun,
+        public static PointRkdTreeD<Matrix<double>, Vector<double>> CreateRkdTree(
+                this Matrix<double> array,
+                Func<Vector<double>, Vector<double>, double> distanceFun,
                 Func<long, double, double, double> dimMaxDistanceFun,
                 double absoluteEps, PointRkdTreeDData data)
         {
-            return new PointRkdTreeD<VecArray<double>, Vec<double>>(
-                    array.Dim, array.Count, array,
-                    VecArray<double>.Getter, Vec<double>.Getter,
+            return new PointRkdTreeD<Matrix<double>, Vector<double>>(
+                    array.Dim.Y, array.Dim.X, array,
+                    (m, i) => m.Col(i), (v, i) => v[i],
                     distanceFun, dimMaxDistanceFun,
                     null, null, absoluteEps, data);
         }
@@ -4772,22 +4772,22 @@ namespace Aardvark.Geometry
         public static PointRkdTreeD<V2d[], V2d> CreateRkdTreeDist1(
                 this V2d[] array, double absoluteEps)
         {
-            return array.CreateRkdTree(V2d.Distance1, (dim, a, b) => b - a,
+            return array.CreateRkdTree(Vec.Distance1, (dim, a, b) => b - a,
                                        null, null, absoluteEps);
         }
 
         public static PointRkdTreeD<V2d[], V2d> CreateRkdTreeDist2(
                 this V2d[] array, double absoluteEps)
         {
-            return array.CreateRkdTree(V2d.Distance, (dim, a, b) => b - a,
-                                       VecFun.DistanceToLine, VecFun.Lerp,
+            return array.CreateRkdTree(Vec.Distance, (dim, a, b) => b - a,
+                                       Vec.DistanceToLine, Fun.Lerp,
                                        absoluteEps);
         }
 
         public static PointRkdTreeD<V2d[], V2d> CreateRkdTreeDistMax(
                 this V2d[] array, double absoluteEps)
         {
-            return array.CreateRkdTree(V2d.DistanceMax, (dim, a, b) => b - a,
+            return array.CreateRkdTree(Vec.DistanceMax, (dim, a, b) => b - a,
                                        null, null, absoluteEps);
         }
 
@@ -4795,7 +4795,7 @@ namespace Aardvark.Geometry
                 this V2d[] array, double absoluteEps)
         {
             return array.CreateRkdTree(
-                (a, b) => (double)1.0 - Fun.Abs(V2d.Dot(a, b)),
+                (a, b) => (double)1.0 - Fun.Abs(Vec.Dot(a, b)),
                 (dim, a, b) => 1,
                 null, null, absoluteEps);
         }
@@ -4834,22 +4834,22 @@ namespace Aardvark.Geometry
         public static PointRkdTreeD<V3d[], V3d> CreateRkdTreeDist1(
                 this V3d[] array, double absoluteEps)
         {
-            return array.CreateRkdTree(V3d.Distance1, (dim, a, b) => b - a,
+            return array.CreateRkdTree(Vec.Distance1, (dim, a, b) => b - a,
                                        null, null, absoluteEps);
         }
 
         public static PointRkdTreeD<V3d[], V3d> CreateRkdTreeDist2(
                 this V3d[] array, double absoluteEps)
         {
-            return array.CreateRkdTree(V3d.Distance, (dim, a, b) => b - a,
-                                       VecFun.DistanceToLine, VecFun.Lerp,
+            return array.CreateRkdTree(Vec.Distance, (dim, a, b) => b - a,
+                                       Vec.DistanceToLine, Fun.Lerp,
                                        absoluteEps);
         }
 
         public static PointRkdTreeD<V3d[], V3d> CreateRkdTreeDistMax(
                 this V3d[] array, double absoluteEps)
         {
-            return array.CreateRkdTree(V3d.DistanceMax, (dim, a, b) => b - a,
+            return array.CreateRkdTree(Vec.DistanceMax, (dim, a, b) => b - a,
                                        null, null, absoluteEps);
         }
 
@@ -4857,7 +4857,7 @@ namespace Aardvark.Geometry
                 this V3d[] array, double absoluteEps)
         {
             return array.CreateRkdTree(
-                (a, b) => (double)1.0 - Fun.Abs(V3d.Dot(a, b)),
+                (a, b) => (double)1.0 - Fun.Abs(Vec.Dot(a, b)),
                 (dim, a, b) => 1,
                 null, null, absoluteEps);
         }
@@ -4896,22 +4896,22 @@ namespace Aardvark.Geometry
         public static PointRkdTreeD<V4d[], V4d> CreateRkdTreeDist1(
                 this V4d[] array, double absoluteEps)
         {
-            return array.CreateRkdTree(V4d.Distance1, (dim, a, b) => b - a,
+            return array.CreateRkdTree(Vec.Distance1, (dim, a, b) => b - a,
                                        null, null, absoluteEps);
         }
 
         public static PointRkdTreeD<V4d[], V4d> CreateRkdTreeDist2(
                 this V4d[] array, double absoluteEps)
         {
-            return array.CreateRkdTree(V4d.Distance, (dim, a, b) => b - a,
-                                       VecFun.DistanceToLine, VecFun.Lerp,
+            return array.CreateRkdTree(Vec.Distance, (dim, a, b) => b - a,
+                                       Vec.DistanceToLine, Fun.Lerp,
                                        absoluteEps);
         }
 
         public static PointRkdTreeD<V4d[], V4d> CreateRkdTreeDistMax(
                 this V4d[] array, double absoluteEps)
         {
-            return array.CreateRkdTree(V4d.DistanceMax, (dim, a, b) => b - a,
+            return array.CreateRkdTree(Vec.DistanceMax, (dim, a, b) => b - a,
                                        null, null, absoluteEps);
         }
 
@@ -4919,7 +4919,7 @@ namespace Aardvark.Geometry
                 this V4d[] array, double absoluteEps)
         {
             return array.CreateRkdTree(
-                (a, b) => (double)1.0 - Fun.Abs(V4d.Dot(a, b)),
+                (a, b) => (double)1.0 - Fun.Abs(Vec.Dot(a, b)),
                 (dim, a, b) => 1,
                 null, null, absoluteEps);
         }
@@ -4971,22 +4971,22 @@ namespace Aardvark.Geometry
         public static PointRkdTreeDSelector<V2d[], V2d> CreateRkdTreeSelectorDist1(
                 this V2d[] array, double absoluteEps)
         {
-            return array.CreateRkdTree(V2d.Distance1, c_dimDistFunArrayD,
+            return array.CreateRkdTree(Vec.Distance1, c_dimDistFunArrayD,
                                        null, null, absoluteEps);
         }
 
         public static PointRkdTreeDSelector<V2d[], V2d> CreateRkdTreeSelectorDist2(
                 this V2d[] array, double absoluteEps)
         {
-            return array.CreateRkdTree(V2d.Distance, c_dimDistFunArrayD,
-                                       VecFun.DistanceToLine, VecFun.Lerp,
+            return array.CreateRkdTree(Vec.Distance, c_dimDistFunArrayD,
+                                       Vec.DistanceToLine, Fun.Lerp,
                                        absoluteEps);
         }
 
         public static PointRkdTreeDSelector<V2d[], V2d> CreateRkdTreeSelectorDistMax(
                 this V2d[] array, double absoluteEps)
         {
-            return array.CreateRkdTree(V2d.DistanceMax, c_dimDistFunArrayD,
+            return array.CreateRkdTree(Vec.DistanceMax, c_dimDistFunArrayD,
                                        null, null, absoluteEps);
         }
 
@@ -4994,7 +4994,7 @@ namespace Aardvark.Geometry
                 this V2d[] array, double absoluteEps)
         {
             return array.CreateRkdTree(
-                (a, b) => (double)1.0 - Fun.Abs(V2d.Dot(a, b)),
+                (a, b) => (double)1.0 - Fun.Abs(Vec.Dot(a, b)),
                 c_dimDistConst1FunArrayD,
                 null, null, absoluteEps);
         }
@@ -5033,22 +5033,22 @@ namespace Aardvark.Geometry
         public static PointRkdTreeDSelector<V3d[], V3d> CreateRkdTreeSelectorDist1(
                 this V3d[] array, double absoluteEps)
         {
-            return array.CreateRkdTree(V3d.Distance1, c_dimDistFunArrayD,
+            return array.CreateRkdTree(Vec.Distance1, c_dimDistFunArrayD,
                                        null, null, absoluteEps);
         }
 
         public static PointRkdTreeDSelector<V3d[], V3d> CreateRkdTreeSelectorDist2(
                 this V3d[] array, double absoluteEps)
         {
-            return array.CreateRkdTree(V3d.Distance, c_dimDistFunArrayD,
-                                       VecFun.DistanceToLine, VecFun.Lerp,
+            return array.CreateRkdTree(Vec.Distance, c_dimDistFunArrayD,
+                                       Vec.DistanceToLine, Fun.Lerp,
                                        absoluteEps);
         }
 
         public static PointRkdTreeDSelector<V3d[], V3d> CreateRkdTreeSelectorDistMax(
                 this V3d[] array, double absoluteEps)
         {
-            return array.CreateRkdTree(V3d.DistanceMax, c_dimDistFunArrayD,
+            return array.CreateRkdTree(Vec.DistanceMax, c_dimDistFunArrayD,
                                        null, null, absoluteEps);
         }
 
@@ -5056,7 +5056,7 @@ namespace Aardvark.Geometry
                 this V3d[] array, double absoluteEps)
         {
             return array.CreateRkdTree(
-                (a, b) => (double)1.0 - Fun.Abs(V3d.Dot(a, b)),
+                (a, b) => (double)1.0 - Fun.Abs(Vec.Dot(a, b)),
                 c_dimDistConst1FunArrayD,
                 null, null, absoluteEps);
         }
@@ -5095,22 +5095,22 @@ namespace Aardvark.Geometry
         public static PointRkdTreeDSelector<V4d[], V4d> CreateRkdTreeSelectorDist1(
                 this V4d[] array, double absoluteEps)
         {
-            return array.CreateRkdTree(V4d.Distance1, c_dimDistFunArrayD,
+            return array.CreateRkdTree(Vec.Distance1, c_dimDistFunArrayD,
                                        null, null, absoluteEps);
         }
 
         public static PointRkdTreeDSelector<V4d[], V4d> CreateRkdTreeSelectorDist2(
                 this V4d[] array, double absoluteEps)
         {
-            return array.CreateRkdTree(V4d.Distance, c_dimDistFunArrayD,
-                                       VecFun.DistanceToLine, VecFun.Lerp,
+            return array.CreateRkdTree(Vec.Distance, c_dimDistFunArrayD,
+                                       Vec.DistanceToLine, Fun.Lerp,
                                        absoluteEps);
         }
 
         public static PointRkdTreeDSelector<V4d[], V4d> CreateRkdTreeSelectorDistMax(
                 this V4d[] array, double absoluteEps)
         {
-            return array.CreateRkdTree(V4d.DistanceMax, c_dimDistFunArrayD,
+            return array.CreateRkdTree(Vec.DistanceMax, c_dimDistFunArrayD,
                                        null, null, absoluteEps);
         }
 
@@ -5118,7 +5118,7 @@ namespace Aardvark.Geometry
                 this V4d[] array, double absoluteEps)
         {
             return array.CreateRkdTree(
-                (a, b) => (double)1.0 - Fun.Abs(V4d.Dot(a, b)),
+                (a, b) => (double)1.0 - Fun.Abs(Vec.Dot(a, b)),
                 c_dimDistConst1FunArrayD,
                 null, null, absoluteEps);
         }
@@ -5144,10 +5144,10 @@ namespace Aardvark.Geometry
 
     public static class PointVpTreeExtensions
     {
-        #region VecArray<float> Trees
+        #region Matrix<float> Trees
 
-        public static PointVpTreeF<VecArray<float>, Vec<float>> CreateVpTree(
-                this VecArray<float> array, Metric metric, float absoluteEps)
+        public static PointVpTreeF<Matrix<float>, Vector<float>> CreateVpTree(
+                this Matrix<float> array, Metric metric, float absoluteEps)
         {
             switch (metric)
             {
@@ -5158,41 +5158,41 @@ namespace Aardvark.Geometry
             }
         }
 
-        public static PointVpTreeF<VecArray<float>, Vec<float>> CreateVpTreeDist1(
-                this VecArray<float> array, float absoluteEps)
+        public static PointVpTreeF<Matrix<float>, Vector<float>> CreateVpTreeDist1(
+                this Matrix<float> array, float absoluteEps)
         {
-            return array.CreateVpTree(VecFloat.Dist1,
+            return array.CreateVpTree((a, b) => a.Dist1(b),
                                       absoluteEps);
         }
 
-        public static PointVpTreeF<VecArray<float>, Vec<float>> CreateVpTreeDist2(
-                this VecArray<float> array, float absoluteEps)
+        public static PointVpTreeF<Matrix<float>, Vector<float>> CreateVpTreeDist2(
+                this Matrix<float> array, float absoluteEps)
         {
-            return array.CreateVpTree(VecFloat.Dist2,
+            return array.CreateVpTree((a, b) => a.Dist2(b),
                                       absoluteEps);
         }
 
-        public static PointVpTreeF<VecArray<float>, Vec<float>> CreateVpTreeDistMax(
-                this VecArray<float> array, float absoluteEps)
+        public static PointVpTreeF<Matrix<float>, Vector<float>> CreateVpTreeDistMax(
+                this Matrix<float> array, float absoluteEps)
         {
-            return array.CreateVpTree(VecFloat.DistMax,
+            return array.CreateVpTree((a, b) => a.DistMax(b),
                                       absoluteEps);
         }
 
-        public static PointVpTreeF<VecArray<float>, Vec<float>> CreateVpTree(
-                this VecArray<float> array,
-                Func<Vec<float>, Vec<float>, float> distanceFun,
+        public static PointVpTreeF<Matrix<float>, Vector<float>> CreateVpTree(
+                this Matrix<float> array,
+                Func<Vector<float>, Vector<float>, float> distanceFun,
                 float absoluteEps)
         {
-            return new PointVpTreeF<VecArray<float>, Vec<float>>(
-                    array.Dim, array.Count, array,
-                    VecArray<float>.Getter, Vec<float>.Getter,
+            return new PointVpTreeF<Matrix<float>, Vector<float>>(
+                    array.Dim.Y, array.Dim.X, array,
+                    (m, i) => m.Col(i), (v, i) => v[i],
                     distanceFun,
                     absoluteEps);
         }
 
-        public static PointVpTreeF<VecArray<float>, Vec<float>> CreateVpTree(
-                this VecArray<float> array, Metric metric, float absoluteEps,
+        public static PointVpTreeF<Matrix<float>, Vector<float>> CreateVpTree(
+                this Matrix<float> array, Metric metric, float absoluteEps,
                 PointVpTreeFData data)
         {
             switch (metric)
@@ -5204,35 +5204,35 @@ namespace Aardvark.Geometry
             }
         }
 
-        public static PointVpTreeF<VecArray<float>, Vec<float>> CreateVpTreeDist1(
-                this VecArray<float> array, float absoluteEps, PointVpTreeFData data)
+        public static PointVpTreeF<Matrix<float>, Vector<float>> CreateVpTreeDist1(
+                this Matrix<float> array, float absoluteEps, PointVpTreeFData data)
         {
-            return array.CreateVpTree(VecFloat.Dist1,
+            return array.CreateVpTree((a, b) => a.InnerProduct(b, (x0, x1) => Fun.Abs(x1 - x0), 0.0f, (s, p) => s + p),
                                       absoluteEps, data);
         }
 
-        public static PointVpTreeF<VecArray<float>, Vec<float>> CreateVpTreeDist2(
-                this VecArray<float> array, float absoluteEps, PointVpTreeFData data)
+        public static PointVpTreeF<Matrix<float>, Vector<float>> CreateVpTreeDist2(
+                this Matrix<float> array, float absoluteEps, PointVpTreeFData data)
         {
-            return array.CreateVpTree(VecFloat.Dist2,
+            return array.CreateVpTree((a, b) => a.Dist2(b),
                                       absoluteEps, data);
         }
 
-        public static PointVpTreeF<VecArray<float>, Vec<float>> CreateVpTreeDistMax(
-                this VecArray<float> array, float absoluteEps, PointVpTreeFData data)
+        public static PointVpTreeF<Matrix<float>, Vector<float>> CreateVpTreeDistMax(
+                this Matrix<float> array, float absoluteEps, PointVpTreeFData data)
         {
-            return array.CreateVpTree(VecFloat.DistMax,
+            return array.CreateVpTree((a, b) => a.DistMax(b),
                                       absoluteEps, data);
         }
 
-        public static PointVpTreeF<VecArray<float>, Vec<float>> CreateVpTree(
-                this VecArray<float> array,
-                Func<Vec<float>, Vec<float>, float> distanceFun,
+        public static PointVpTreeF<Matrix<float>, Vector<float>> CreateVpTree(
+                this Matrix<float> array,
+                Func<Vector<float>, Vector<float>, float> distanceFun,
                 float absoluteEps, PointVpTreeFData data)
         {
-            return new PointVpTreeF<VecArray<float>, Vec<float>>(
-                    array.Dim, array.Count, array,
-                    VecArray<float>.Getter, Vec<float>.Getter,
+            return new PointVpTreeF<Matrix<float>, Vector<float>>(
+                    array.Dim.Y, array.Dim.X, array,
+                    (m, i) => m.Col(i), (v, i) => v[i],
                     distanceFun,
                     absoluteEps, data);
         }
@@ -5299,21 +5299,21 @@ namespace Aardvark.Geometry
         public static PointVpTreeF<V2f[], V2f> CreateVpTreeDist1(
                 this V2f[] array, float absoluteEps)
         {
-            return array.CreateVpTree(V2f.Distance1,
+            return array.CreateVpTree(Vec.Distance1,
                                        absoluteEps);
         }
 
         public static PointVpTreeF<V2f[], V2f> CreateVpTreeDist2(
                 this V2f[] array, float absoluteEps)
         {
-            return array.CreateVpTree(V2f.Distance,
+            return array.CreateVpTree(Vec.Distance,
                                        absoluteEps);
         }
 
         public static PointVpTreeF<V2f[], V2f> CreateVpTreeDistMax(
                 this V2f[] array, float absoluteEps)
         {
-            return array.CreateVpTree(V2f.DistanceMax,
+            return array.CreateVpTree(Vec.DistanceMax,
                                        absoluteEps);
         }
 
@@ -5321,7 +5321,7 @@ namespace Aardvark.Geometry
                 this V2f[] array, float absoluteEps)
         {
             return array.CreateVpTree(
-                (a, b) => (float)1.0 - Fun.Abs(V2f.Dot(a, b)),
+                (a, b) => (float)1.0 - Fun.Abs(Vec.Dot(a, b)),
                 absoluteEps);
         }
 
@@ -5356,21 +5356,21 @@ namespace Aardvark.Geometry
         public static PointVpTreeF<V3f[], V3f> CreateVpTreeDist1(
                 this V3f[] array, float absoluteEps)
         {
-            return array.CreateVpTree(V3f.Distance1,
+            return array.CreateVpTree(Vec.Distance1,
                                        absoluteEps);
         }
 
         public static PointVpTreeF<V3f[], V3f> CreateVpTreeDist2(
                 this V3f[] array, float absoluteEps)
         {
-            return array.CreateVpTree(V3f.Distance,
+            return array.CreateVpTree(Vec.Distance,
                                        absoluteEps);
         }
 
         public static PointVpTreeF<V3f[], V3f> CreateVpTreeDistMax(
                 this V3f[] array, float absoluteEps)
         {
-            return array.CreateVpTree(V3f.DistanceMax,
+            return array.CreateVpTree(Vec.DistanceMax,
                                        absoluteEps);
         }
 
@@ -5378,7 +5378,7 @@ namespace Aardvark.Geometry
                 this V3f[] array, float absoluteEps)
         {
             return array.CreateVpTree(
-                (a, b) => (float)1.0 - Fun.Abs(V3f.Dot(a, b)),
+                (a, b) => (float)1.0 - Fun.Abs(Vec.Dot(a, b)),
                 absoluteEps);
         }
 
@@ -5413,21 +5413,21 @@ namespace Aardvark.Geometry
         public static PointVpTreeF<V4f[], V4f> CreateVpTreeDist1(
                 this V4f[] array, float absoluteEps)
         {
-            return array.CreateVpTree(V4f.Distance1,
+            return array.CreateVpTree(Vec.Distance1,
                                        absoluteEps);
         }
 
         public static PointVpTreeF<V4f[], V4f> CreateVpTreeDist2(
                 this V4f[] array, float absoluteEps)
         {
-            return array.CreateVpTree(V4f.Distance,
+            return array.CreateVpTree(Vec.Distance,
                                        absoluteEps);
         }
 
         public static PointVpTreeF<V4f[], V4f> CreateVpTreeDistMax(
                 this V4f[] array, float absoluteEps)
         {
-            return array.CreateVpTree(V4f.DistanceMax,
+            return array.CreateVpTree(Vec.DistanceMax,
                                        absoluteEps);
         }
 
@@ -5435,7 +5435,7 @@ namespace Aardvark.Geometry
                 this V4f[] array, float absoluteEps)
         {
             return array.CreateVpTree(
-                (a, b) => (float)1.0 - Fun.Abs(V4f.Dot(a, b)),
+                (a, b) => (float)1.0 - Fun.Abs(Vec.Dot(a, b)),
                 absoluteEps);
         }
 
@@ -5453,10 +5453,10 @@ namespace Aardvark.Geometry
 
         #endregion
 
-        #region VecArray<double> Trees
+        #region Matrix<double> Trees
 
-        public static PointVpTreeD<VecArray<double>, Vec<double>> CreateVpTree(
-                this VecArray<double> array, Metric metric, double absoluteEps)
+        public static PointVpTreeD<Matrix<double>, Vector<double>> CreateVpTree(
+                this Matrix<double> array, Metric metric, double absoluteEps)
         {
             switch (metric)
             {
@@ -5467,41 +5467,41 @@ namespace Aardvark.Geometry
             }
         }
 
-        public static PointVpTreeD<VecArray<double>, Vec<double>> CreateVpTreeDist1(
-                this VecArray<double> array, double absoluteEps)
+        public static PointVpTreeD<Matrix<double>, Vector<double>> CreateVpTreeDist1(
+                this Matrix<double> array, double absoluteEps)
         {
-            return array.CreateVpTree(VecDouble.Dist1,
+            return array.CreateVpTree((a, b) => a.Dist1(b),
                                       absoluteEps);
         }
 
-        public static PointVpTreeD<VecArray<double>, Vec<double>> CreateVpTreeDist2(
-                this VecArray<double> array, double absoluteEps)
+        public static PointVpTreeD<Matrix<double>, Vector<double>> CreateVpTreeDist2(
+                this Matrix<double> array, double absoluteEps)
         {
-            return array.CreateVpTree(VecDouble.Dist2,
+            return array.CreateVpTree((a, b) => a.Dist2(b),
                                       absoluteEps);
         }
 
-        public static PointVpTreeD<VecArray<double>, Vec<double>> CreateVpTreeDistMax(
-                this VecArray<double> array, double absoluteEps)
+        public static PointVpTreeD<Matrix<double>, Vector<double>> CreateVpTreeDistMax(
+                this Matrix<double> array, double absoluteEps)
         {
-            return array.CreateVpTree(VecDouble.DistMax,
+            return array.CreateVpTree((a, b) => a.DistMax(b),
                                       absoluteEps);
         }
 
-        public static PointVpTreeD<VecArray<double>, Vec<double>> CreateVpTree(
-                this VecArray<double> array,
-                Func<Vec<double>, Vec<double>, double> distanceFun,
+        public static PointVpTreeD<Matrix<double>, Vector<double>> CreateVpTree(
+                this Matrix<double> array,
+                Func<Vector<double>, Vector<double>, double> distanceFun,
                 double absoluteEps)
         {
-            return new PointVpTreeD<VecArray<double>, Vec<double>>(
-                    array.Dim, array.Count, array,
-                    VecArray<double>.Getter, Vec<double>.Getter,
+            return new PointVpTreeD<Matrix<double>, Vector<double>>(
+                    array.Dim.Y, array.Dim.X, array,
+                    (m, i) => m.Col(i), (v, i) => v[i],
                     distanceFun,
                     absoluteEps);
         }
 
-        public static PointVpTreeD<VecArray<double>, Vec<double>> CreateVpTree(
-                this VecArray<double> array, Metric metric, double absoluteEps,
+        public static PointVpTreeD<Matrix<double>, Vector<double>> CreateVpTree(
+                this Matrix<double> array, Metric metric, double absoluteEps,
                 PointVpTreeDData data)
         {
             switch (metric)
@@ -5513,35 +5513,35 @@ namespace Aardvark.Geometry
             }
         }
 
-        public static PointVpTreeD<VecArray<double>, Vec<double>> CreateVpTreeDist1(
-                this VecArray<double> array, double absoluteEps, PointVpTreeDData data)
+        public static PointVpTreeD<Matrix<double>, Vector<double>> CreateVpTreeDist1(
+                this Matrix<double> array, double absoluteEps, PointVpTreeDData data)
         {
-            return array.CreateVpTree(VecDouble.Dist1,
+            return array.CreateVpTree((a, b) => a.InnerProduct(b, (x0, x1) => Fun.Abs(x1 - x0), 0.0, (s, p) => s + p),
                                       absoluteEps, data);
         }
 
-        public static PointVpTreeD<VecArray<double>, Vec<double>> CreateVpTreeDist2(
-                this VecArray<double> array, double absoluteEps, PointVpTreeDData data)
+        public static PointVpTreeD<Matrix<double>, Vector<double>> CreateVpTreeDist2(
+                this Matrix<double> array, double absoluteEps, PointVpTreeDData data)
         {
-            return array.CreateVpTree(VecDouble.Dist2,
+            return array.CreateVpTree((a, b) => a.Dist2(b),
                                       absoluteEps, data);
         }
 
-        public static PointVpTreeD<VecArray<double>, Vec<double>> CreateVpTreeDistMax(
-                this VecArray<double> array, double absoluteEps, PointVpTreeDData data)
+        public static PointVpTreeD<Matrix<double>, Vector<double>> CreateVpTreeDistMax(
+                this Matrix<double> array, double absoluteEps, PointVpTreeDData data)
         {
-            return array.CreateVpTree(VecDouble.DistMax,
+            return array.CreateVpTree((a, b) => a.DistMax(b),
                                       absoluteEps, data);
         }
 
-        public static PointVpTreeD<VecArray<double>, Vec<double>> CreateVpTree(
-                this VecArray<double> array,
-                Func<Vec<double>, Vec<double>, double> distanceFun,
+        public static PointVpTreeD<Matrix<double>, Vector<double>> CreateVpTree(
+                this Matrix<double> array,
+                Func<Vector<double>, Vector<double>, double> distanceFun,
                 double absoluteEps, PointVpTreeDData data)
         {
-            return new PointVpTreeD<VecArray<double>, Vec<double>>(
-                    array.Dim, array.Count, array,
-                    VecArray<double>.Getter, Vec<double>.Getter,
+            return new PointVpTreeD<Matrix<double>, Vector<double>>(
+                    array.Dim.Y, array.Dim.X, array,
+                    (m, i) => m.Col(i), (v, i) => v[i],
                     distanceFun,
                     absoluteEps, data);
         }
@@ -5608,21 +5608,21 @@ namespace Aardvark.Geometry
         public static PointVpTreeD<V2d[], V2d> CreateVpTreeDist1(
                 this V2d[] array, double absoluteEps)
         {
-            return array.CreateVpTree(V2d.Distance1,
+            return array.CreateVpTree(Vec.Distance1,
                                        absoluteEps);
         }
 
         public static PointVpTreeD<V2d[], V2d> CreateVpTreeDist2(
                 this V2d[] array, double absoluteEps)
         {
-            return array.CreateVpTree(V2d.Distance,
+            return array.CreateVpTree(Vec.Distance,
                                        absoluteEps);
         }
 
         public static PointVpTreeD<V2d[], V2d> CreateVpTreeDistMax(
                 this V2d[] array, double absoluteEps)
         {
-            return array.CreateVpTree(V2d.DistanceMax,
+            return array.CreateVpTree(Vec.DistanceMax,
                                        absoluteEps);
         }
 
@@ -5630,7 +5630,7 @@ namespace Aardvark.Geometry
                 this V2d[] array, double absoluteEps)
         {
             return array.CreateVpTree(
-                (a, b) => (double)1.0 - Fun.Abs(V2d.Dot(a, b)),
+                (a, b) => (double)1.0 - Fun.Abs(Vec.Dot(a, b)),
                 absoluteEps);
         }
 
@@ -5665,21 +5665,21 @@ namespace Aardvark.Geometry
         public static PointVpTreeD<V3d[], V3d> CreateVpTreeDist1(
                 this V3d[] array, double absoluteEps)
         {
-            return array.CreateVpTree(V3d.Distance1,
+            return array.CreateVpTree(Vec.Distance1,
                                        absoluteEps);
         }
 
         public static PointVpTreeD<V3d[], V3d> CreateVpTreeDist2(
                 this V3d[] array, double absoluteEps)
         {
-            return array.CreateVpTree(V3d.Distance,
+            return array.CreateVpTree(Vec.Distance,
                                        absoluteEps);
         }
 
         public static PointVpTreeD<V3d[], V3d> CreateVpTreeDistMax(
                 this V3d[] array, double absoluteEps)
         {
-            return array.CreateVpTree(V3d.DistanceMax,
+            return array.CreateVpTree(Vec.DistanceMax,
                                        absoluteEps);
         }
 
@@ -5687,7 +5687,7 @@ namespace Aardvark.Geometry
                 this V3d[] array, double absoluteEps)
         {
             return array.CreateVpTree(
-                (a, b) => (double)1.0 - Fun.Abs(V3d.Dot(a, b)),
+                (a, b) => (double)1.0 - Fun.Abs(Vec.Dot(a, b)),
                 absoluteEps);
         }
 
@@ -5722,21 +5722,21 @@ namespace Aardvark.Geometry
         public static PointVpTreeD<V4d[], V4d> CreateVpTreeDist1(
                 this V4d[] array, double absoluteEps)
         {
-            return array.CreateVpTree(V4d.Distance1,
+            return array.CreateVpTree(Vec.Distance1,
                                        absoluteEps);
         }
 
         public static PointVpTreeD<V4d[], V4d> CreateVpTreeDist2(
                 this V4d[] array, double absoluteEps)
         {
-            return array.CreateVpTree(V4d.Distance,
+            return array.CreateVpTree(Vec.Distance,
                                        absoluteEps);
         }
 
         public static PointVpTreeD<V4d[], V4d> CreateVpTreeDistMax(
                 this V4d[] array, double absoluteEps)
         {
-            return array.CreateVpTree(V4d.DistanceMax,
+            return array.CreateVpTree(Vec.DistanceMax,
                                        absoluteEps);
         }
 
@@ -5744,7 +5744,7 @@ namespace Aardvark.Geometry
                 this V4d[] array, double absoluteEps)
         {
             return array.CreateVpTree(
-                (a, b) => (double)1.0 - Fun.Abs(V4d.Dot(a, b)),
+                (a, b) => (double)1.0 - Fun.Abs(Vec.Dot(a, b)),
                 absoluteEps);
         }
 

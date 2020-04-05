@@ -1599,31 +1599,31 @@ namespace Aardvark.Geometry
                 { typeof(double[]),
                     (n, i, a) => new Attribute<double>(n, i, (double[])a, Fun.Lerp) },
                 { typeof(float[]),
-                    (n, i, a) => new Attribute<float>(n, i, (float[])a, Fun.Lerp) },
+                    (n, i, a) => new Attribute<float>(n, i, (float[])a, (t,a_,b_) => Fun.Lerp((float)t,a_,b_)) },
                 { typeof(C3b[]),
-                    (n, i, a) => new Attribute<C3b>(n, i, (C3b[])a, ColFun.Lerp) },
+                    (n, i, a) => new Attribute<C3b>(n, i, (C3b[])a, Fun.Lerp) },
                 { typeof(C3f[]),
-                    (n, i, a) => new Attribute<C3f>(n, i, (C3f[])a, ColFun.Lerp) },
+                    (n, i, a) => new Attribute<C3f>(n, i, (C3f[])a, (t,x,y) => Fun.Lerp((float)t,x,y)) },
                 { typeof(C4b[]),
-                    (n, i, a) => new Attribute<C4b>(n, i, (C4b[])a, ColFun.Lerp) },
+                    (n, i, a) => new Attribute<C4b>(n, i, (C4b[])a, Fun.Lerp) },
                 { typeof(C4f[]),
-                    (n, i, a) => new Attribute<C4f>(n, i, (C4f[])a, ColFun.Lerp) },
+                    (n, i, a) => new Attribute<C4f>(n, i, (C4f[])a, (t,x,y) => Fun.Lerp((float)t,x,y)) },
                 { typeof(V2d[]),
-                    (n, i, a) => new Attribute<V2d>(n, i, (V2d[])a, VecFun.Lerp) },
+                    (n, i, a) => new Attribute<V2d>(n, i, (V2d[])a, Fun.Lerp) },
                 { typeof(V2f[]),
-                    (n, i, a) => new Attribute<V2f>(n, i, (V2f[])a, VecFun.Lerp) },
+                    (n, i, a) => new Attribute<V2f>(n, i, (V2f[])a, (t,x,y) => Fun.Lerp((float)t,x,y)) },
                 { typeof(V3d[]),
                     (n, i, a) => n != Property.Normals
-                        ? new Attribute<V3d>(n, i, (V3d[])a, VecFun.Lerp)
+                        ? new Attribute<V3d>(n, i, (V3d[])a, Fun.Lerp)
                         : new Attribute<V3d>(n, i, (V3d[])a, (t, v0, v1) => t.Lerp(v0, v1).Normalized) },
                 { typeof(V3f[]),
                     (n, i, a) => n != Property.Normals
-                        ? new Attribute<V3f>(n, i, (V3f[])a, VecFun.Lerp)
-                        : new Attribute<V3f>(n, i, (V3f[])a, (t, v0, v1) => t.Lerp(v0, v1).Normalized) },
+                        ? new Attribute<V3f>(n, i, (V3f[])a, (t,x,y) => Fun.Lerp((float)t,x,y))
+                        : new Attribute<V3f>(n, i, (V3f[])a, (t, v0, v1) => ((float)t).Lerp(v0, v1).Normalized) },
                 { typeof(V4d[]),
-                    (n, i, a) => new Attribute<V4d>(n, i, (V4d[])a, VecFun.Lerp) },
+                    (n, i, a) => new Attribute<V4d>(n, i, (V4d[])a, Fun.Lerp) },
                 { typeof(V4f[]),
-                    (n, i, a) => new Attribute<V4f>(n, i, (V4f[])a, VecFun.Lerp) },
+                    (n, i, a) => new Attribute<V4f>(n, i, (V4f[])a, (t,x,y) => Fun.Lerp((float)t,x,y)) },
                 { typeof(byte[]),
                     (n, i, a) => new Attribute<byte>(n, i, (byte[])a, Fun.Step) },
                 { typeof(sbyte[]),
@@ -1966,7 +1966,7 @@ namespace Aardvark.Geometry
 
         #region IBoundingBox3d Members
 
-        public Box3d BoundingBox3d => VertexIndexArray.GetBoundingBox3d(VertexIndexCount, PositionArray);
+        public Box3d BoundingBox3d => VertexIndexArray.GetBoundingBox(VertexIndexCount, PositionArray);
 
         #endregion
 
@@ -3614,12 +3614,12 @@ namespace Aardvark.Geometry
                 { Property.Positions,
                     a => a.Copy<V3d>(p => matrix.TransformPos(p)) },
                 { Property.Normals,
-                    a => a.Copy<V3d>(nd => M44d.TransposedTransformDir(inverse, nd).Normalized,
-                    b => b.Copy<V3f>(nf => M44d.TransposedTransformDir(inverse, nf.ToV3d()).Normalized.ToV3f(),
+                    a => a.Copy<V3d>(nd => Mat.TransposedTransformDir(inverse, nd).Normalized,
+                    b => b.Copy<V3f>(nf => Mat.TransposedTransformDir(inverse, nf.ToV3d()).Normalized.ToV3f(),
                                         indexArray => indexArray)) },
                 { -Property.Normals,
-                    a => a.Copy<V3d>(nd => M44d.TransposedTransformDir(inverse, nd).Normalized,
-                    b => b.Copy<V3f>(nf => M44d.TransposedTransformDir(inverse, nf.ToV3d()).Normalized.ToV3f()))},
+                    a => a.Copy<V3d>(nd => Mat.TransposedTransformDir(inverse, nd).Normalized,
+                    b => b.Copy<V3f>(nf => Mat.TransposedTransformDir(inverse, nf.ToV3d()).Normalized.ToV3f()))},
                                     
             },
             a => a);
@@ -3658,7 +3658,7 @@ namespace Aardvark.Geometry
             {
                 V3d p0 = pa[via[fvi++]], p1 = pa[via[fvi++]], p2 = pa[via[fvi++]];
                 V3d e0 = p1 - p0, e1 = p2 - p0;
-                var n0 = V3d.Cross(e0, e1);
+                var n0 = Vec.Cross(e0, e1);
                 var normal = n0;
                 var a0 = n0.Length;
                 var area = a0;
@@ -3667,9 +3667,9 @@ namespace Aardvark.Geometry
                 {
                     p1 = p2; p2 = pa[via[fvi]];
                     e0 = e1; e1 = p2 - p0;
-                    var n = V3d.Cross(e0, e1);
+                    var n = Vec.Cross(e0, e1);
                     normal += n;
-                    var a = V3d.Dot(n0, n) > 0 ? n.Length : -n.Length;
+                    var a = Vec.Dot(n0, n) > 0 ? n.Length : -n.Length;
                     area += a;
                     centroid += (p0 + p1 + p2) * a;
                 }
@@ -3722,7 +3722,7 @@ namespace Aardvark.Geometry
                     for (int fve = fia[fi + 1]; fvi < fve; fvi++)
                     {
                         var e1 = pa[via[fvi]] - p0;
-                        normal += V3d.Cross(e0, e1);
+                        normal += Vec.Cross(e0, e1);
                         e0 = e1;
                     }
                     var len2 = normal.LengthSquared;
@@ -3844,7 +3844,7 @@ namespace Aardvark.Geometry
                                 if (nai >= 0) break;
                                 // check crease angle
                                 V3d nn = faceNormals[fr.Index];
-                                if (V3d.Dot(n, nn) < creaseDotProduct) break;
+                                if (Vec.Dot(n, nn) < creaseDotProduct) break;
                                 // record crease normal
                                 nia[nfvi] = ai;
                                 n = nn;
@@ -3876,7 +3876,7 @@ namespace Aardvark.Geometry
                                 int nai = nia[nfvi];
                                 if (nai >= 0) break;
                                 V3d nn = faceNormals[fr.Index];
-                                if (V3d.Dot(n, nn) < creaseDotProduct) break;
+                                if (Vec.Dot(n, nn) < creaseDotProduct) break;
                                 nia[nfvi] = ai;
                                 n = nn;
                                 er = EdgeRef_PlusOne_OfFaceRef(fr); // next edge in winding order
@@ -3967,9 +3967,9 @@ namespace Aardvark.Geometry
                             && v20len > Constant<double>.PositiveTinyValue
                             && v21len > Constant<double>.PositiveTinyValue)
                         {
-                            alpha0 = Fun.Acos(V3d.Dot(v10, v20) / (v10len * v20len));
-                            alpha1 = Fun.Acos(-V3d.Dot(v10, v21) / (v10len * v21len));
-                            alpha2 = Fun.Acos(V3d.Dot(v20, v21) / (v20len * v21len));
+                            alpha0 = Fun.Acos(Vec.Dot(v10, v20) / (v10len * v20len));
+                            alpha1 = Fun.Acos(-Vec.Dot(v10, v21) / (v10len * v21len));
+                            alpha2 = Fun.Acos(Vec.Dot(v20, v21) / (v20len * v21len));
                         }
                     }
 
@@ -4052,9 +4052,9 @@ namespace Aardvark.Geometry
                             && v20len > Constant<double>.PositiveTinyValue
                             && v21len > Constant<double>.PositiveTinyValue)
                         {
-                            alpha0 = Fun.Acos(V3d.Dot(v10, v20) / (v10len * v20len));
-                            alpha1 = Fun.Acos(-V3d.Dot(v10, v21) / (v10len * v21len));
-                            alpha2 = Fun.Acos(V3d.Dot(v20, v21) / (v20len * v21len));
+                            alpha0 = Fun.Acos(Vec.Dot(v10, v20) / (v10len * v20len));
+                            alpha1 = Fun.Acos(-Vec.Dot(v10, v21) / (v10len * v21len));
+                            alpha2 = Fun.Acos(Vec.Dot(v20, v21) / (v20len * v21len));
                         }
                     }
 
@@ -4092,7 +4092,7 @@ namespace Aardvark.Geometry
     {
         #region Collections
 
-        public static Box3d GetBoundingBox3d(this IEnumerable<PolyMesh> polyMeshes)
+        public static Box3d GetBoundingBox(this IEnumerable<PolyMesh> polyMeshes)
             => new Box3d(polyMeshes.Select(m => m.BoundingBox3d));
 
         public static PolyMesh[] Transformed(
@@ -4238,7 +4238,7 @@ namespace Aardvark.Geometry
             var aDirNorm = a.Direction.Normalized;
             var bDirNorm = b.Direction.Normalized;
 
-            if (V3d.ApproxEqual(aDirNorm, bDirNorm.Negated, epsilon))
+            if (Fun.ApproximateEquals(aDirNorm, -bDirNorm, epsilon))
             {
                 b = new Line3d(b.P1, b.P0);
                 bDirNorm = bDirNorm * -1;
@@ -4252,14 +4252,14 @@ namespace Aardvark.Geometry
             }
 
             // completely overlapping
-            if (V3d.ApproxEqual(a.P0, b.P0, epsilon) && V3d.ApproxEqual(a.P1, b.P1, epsilon))
+            if (Fun.ApproximateEquals(a.P0, b.P0, epsilon) && Fun.ApproximateEquals(a.P1, b.P1, epsilon))
             {
                 lines = new Line3d[] { };
                 return true;
             }
 
             // end points touch
-            if (V3d.ApproxEqual(a.P1, b.P0, epsilon) || V3d.ApproxEqual(a.P0, b.P1, epsilon))
+            if (Fun.ApproximateEquals(a.P1, b.P0, epsilon) || Fun.ApproximateEquals(a.P0, b.P1, epsilon))
             {
                 lines = new[] { a, b };
                 return false;

@@ -1269,7 +1269,7 @@ namespace Aardvark.Data.E57
                 if (Pose != null)
                 {
                     result = result.Select(p => (
-                        Pose.Rotation.TransformPos(p.pos) + Pose.Translation, 
+                        Pose.Rotation.Transform(p.pos) + Pose.Translation,
                         p.color,
                         p.intensity
                         ));

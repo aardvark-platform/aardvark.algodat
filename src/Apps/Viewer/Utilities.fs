@@ -1,7 +1,7 @@
-﻿namespace Aardvark.Algodat.App.Viewer
+namespace Aardvark.Algodat.App.Viewer
 
 
-open Aardvark.Base.Incremental
+open FSharp.Data.Adaptive
 open Aardvark.Base
 open Aardvark.SceneGraph
 open Aardvark.Base.Rendering
@@ -29,6 +29,7 @@ module ShapeList =
     let empty =
         {
             bounds = Box2d.Invalid
+            textBounds = Box2d.Invalid
             concreteShapes = []
             zRange = Range1i.Invalid
             renderTrafo = Trafo3d.Identity
@@ -42,6 +43,7 @@ module ShapeList =
         
         { 
             bounds = bounds
+            textBounds = l.textBounds.Translated shift
             renderTrafo = renderTrafo
             concreteShapes = l.concreteShapes
             zRange = l.zRange
@@ -50,30 +52,33 @@ module ShapeList =
         }
         
     let union (l : ShapeList) (r : ShapeList) =
-        let bounds = Box2d.Union(l.bounds, r.bounds)
+        let bounds = Box.Union(l.bounds, r.bounds)
         let renderTrafo = Trafo3d.Translation(V3d(bounds.Center.X, 0.0, 0.0))
         
         let lShapes =
             let l2g = l.renderTrafo * renderTrafo.Inverse
+
+            let m = l2g.Forward
+            let mat = M33d.FromRows(m.R0.XYW,m.R1.XYW,m.R3.XYW)
+
             l.concreteShapes |> List.map (fun (s : ConcreteShape) ->
-                let offset = l2g.Forward.TransformPos (V3d(s.offset, 0.0)) |> Vec.xy
-                let scale = l2g.Forward.TransformDir (V3d(s.scale, 0.0)) |> Vec.xy
-                { offset = offset; scale = scale; color = s.color; shape = s.shape; z = s.z }
+                { trafo = mat * s.trafo; color = s.color; shape = s.shape; z = s.z }
             )
 
         let rShapes =
             let r2g = r.renderTrafo * renderTrafo.Inverse
+            let m = r2g.Forward
+            let mat = M33d.FromRows(m.R0.XYW,m.R1.XYW,m.R3.XYW)
             r.concreteShapes |> List.map (fun (s : ConcreteShape) ->
-                let offset = r2g.Forward.TransformPos (V3d(s.offset, 0.0)) |> Vec.xy
-                let scale = r2g.Forward.TransformDir (V3d(s.scale, 0.0)) |> Vec.xy
-                { offset = offset; scale = scale; color = s.color; shape = s.shape; z = s.z }
+                { trafo = mat * s.trafo; color = s.color; shape = s.shape; z = s.z }
             )
         
         { 
             bounds = bounds
+            textBounds = bounds
             renderTrafo = renderTrafo
             concreteShapes = lShapes @ rShapes
-            zRange = Range1i.Union(l.zRange, r.zRange)
+            zRange = Range.Union(l.zRange, r.zRange)
             flipViewDependent = l.flipViewDependent && r.flipViewDependent
             renderStyle = RenderStyle.Normal
         }
@@ -94,8 +99,8 @@ module ShapeList =
                 | [] -> None
                 | h :: rest ->
                     match h.shape with
-                    | :? Glyph as g when g.Character = str.[i] ->
-                        tryReplaceFront str (i + 1) (Box2d.Union(current, h.bounds)) rest
+                    | :? Glyph as g when g.CodePoint.String.[0] = str.[i] ->
+                        tryReplaceFront str (i + 1) (Box.Union(current, h.bounds)) rest
                     | _ ->
                         None
                      

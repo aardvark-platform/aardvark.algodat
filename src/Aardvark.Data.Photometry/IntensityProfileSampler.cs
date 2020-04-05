@@ -135,7 +135,7 @@ namespace Aardvark.Data.Photometry
 
             var uv = (new V2d(u, v) * m_scale); // the +1 offset in Y because m_matrixWithBorder contains border is handled by the matrix FirstIndex (FX, FY)
             
-            return m_matrixWithBorder.Sample4Clamped(uv, Fun.Lerp, Fun.Lerp);
+            return m_matrixWithBorder.Sample4Clamped(uv, (t,a,b) => Fun.Lerp((float)t,a,b), (t, a, b) => Fun.Lerp((float)t, a, b));
         }
     }
 }

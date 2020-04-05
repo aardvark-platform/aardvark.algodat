@@ -1,5 +1,7 @@
-[![Build status](https://ci.appveyor.com/api/projects/status/g9a042ab01txnf4a?svg=true)](https://ci.appveyor.com/project/stefanmaierhofer/aardvark-algodat)
-[![Build status](https://travis-ci.org/aardvark-platform/aardvark.algodat.svg)](https://travis-ci.org/aardvark-platform/aardvark.algodat)
+![Windows](https://github.com/aardvark-platform/aardvark.algodat/workflows/Windows/badge.svg)
+![MacOS](https://github.com/aardvark-platform/aardvark.algodat/workflows/MacOS/badge.svg)
+![Linux](https://github.com/aardvark-platform/aardvark.algodat/workflows/Linux/badge.svg)
+
 [![Join the chat at https://gitter.im/aardvark-platform/Lobby](https://img.shields.io/badge/gitter-join%20chat-blue.svg)](https://gitter.im/aardvark-platform/Lobby)
 [![license](https://img.shields.io/github/license/aardvark-platform/aardvark.algodat.svg)](https://github.com/aardvark-platform/aardvark.algodat/blob/master/LICENSE)
 

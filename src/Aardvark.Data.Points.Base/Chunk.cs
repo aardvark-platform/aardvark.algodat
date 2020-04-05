@@ -234,7 +234,7 @@ namespace Aardvark.Data.Points
                 Append(Intensities, other.Intensities),
                 Append(Classifications, other.Classifications),
                 Append(Velocities, other.Velocities),
-                Box3d.Union(BoundingBox, other.BoundingBox)
+                Box.Union(BoundingBox, other.BoundingBox)
             );
         }
 

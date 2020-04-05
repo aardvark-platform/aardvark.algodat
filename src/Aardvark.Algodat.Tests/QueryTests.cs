@@ -785,7 +785,7 @@ namespace Aardvark.Geometry.Tests
                 var countPoints = 0;
                 foreach (var x in pointset.QueryPointsInOctreeLevel(i)) { countNodes++; countPoints += x.Count; }
                 Assert.IsTrue(countPoints > 0);
-                Assert.IsTrue(countNodes <= Math.Pow(8, i));
+                Assert.IsTrue(countNodes <= System.Math.Pow(8, i));
             }
         }
 
