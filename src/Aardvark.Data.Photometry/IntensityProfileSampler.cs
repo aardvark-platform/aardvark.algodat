@@ -115,27 +115,84 @@ namespace Aardvark.Data.Photometry
         /// <summary>
         /// Returns the intensity for the given direction vector using linear interpolation in [cd].
         /// The direction vector is expected to be normalized.
+        /// The coordinate system is assumed to be:
+        /// [ 0, 0,-1] = Gamma 0°
+        /// [ 0, 0, 1] = Gamma 180°
+        /// [ 1, 0, 0] = C0
+        /// [ 0, 1, 0] = C90
+        /// [-1, 1, 0] = C180
+        /// [ 0,-1, 0] = C270
         /// </summary>
         public double GetIntensity(V3d dir)
         {
-            // Vertical Texture coords
-            var phi = (1 - Fun.Acos(Fun.Clamp(dir.Z, -1, 1)) * Constant.PiInv); // map to 0..1
+            var (c, gamma) = CartesianToSpherical(dir);
+            return GetIntensity(c, gamma);
+        }
 
-            var u = Fun.Clamp((phi + m_addressingParams.X) * m_addressingParams.Y, 0, 1);
+        /// <summary>
+        /// Returns the intensity for the angles using linear interpolation in [cd].
+        /// The angles are assumed to be in radians and within their specified ranges.
+        /// c: [0, 2pi]
+        /// gamma: [0, pi]
+        /// </summary>
+        public double GetIntensity(double cInRadians, double gammaInRadians)
+        {
+            // Vertical angle: texture u coordinate
+            var vert = cInRadians * Constant.PiInv; // map to 0..1
+            var u = Fun.Saturate((vert + m_addressingParams.X) * m_addressingParams.Y);
 
-            // Horizontal Texture coords
+            // Horizontal angle: texture v coordinate
+            var horz = gammaInRadians * Constant.PiInv * 0.5; // map to 0..1
+            var v = (1.0 - Fun.Abs(1.0 - Fun.Abs(((horz + m_addressingParams.Z) * m_addressingParams.W) % 2.0)));
+
+            var uv = new V2d(u, v) * m_scale; // the +1 offset in Y because m_matrixWithBorder contains border is handled by the matrix FirstIndex (FX, FY)
+            
+            return m_matrixWithBorder.Sample4Clamped(uv, (t,a,b) => Fun.Lerp((float)t,a,b), (t, a, b) => Fun.Lerp((float)t, a, b));
+        }
+
+        /// <summary>
+        /// Returns the direction vector of the given c and gamma angles.
+        /// The angles are expected to be in radians.
+        /// The coordinate system is defined as:
+        /// [ 0, 0,-1] = Gamma 0°
+        /// [ 0, 0, 1] = Gamma 180°
+        /// [ 1, 0, 0] = C0
+        /// [ 0, 1, 0] = C90
+        /// [-1, 1, 0] = C180
+        /// [ 0,-1, 0] = C270
+        /// NOTE: gamma/theta is mapped defined differntly than in Aardvark Conversion.CartesianFromSpherical
+        /// </summary>
+        public static V3d SphericalToCartesian(double cInRadians, double gammaInRadians)
+        {
+            var s = gammaInRadians.Sin();
+            return new V3d(cInRadians.Cos() * s, cInRadians.Sin() * s, -gammaInRadians.Cos());
+        }
+
+        /// <summary>
+        /// Returns (c, gamma) angles in radians of the direction vector.
+        /// The coordinate system is defined as:
+        /// [ 0, 0,-1] = Gamma 0°
+        /// [ 0, 0, 1] = Gamma 180°
+        /// [ 1, 0, 0] = C0
+        /// [ 0, 1, 0] = C90
+        /// [-1, 1, 0] = C180
+        /// [ 0,-1, 0] = C270
+        /// NOTE: gamma/theta is mapped defined differntly than in Aardvark Conversion.CartesianFromSpherical
+        /// </summary>
+        public static (double, double) CartesianToSpherical(V3d v)
+        {
+            // [0,0,-1] = 0°
+            // [0,0, 1] = 180°
+            var gamma = Constant.Pi - Fun.AcosClamped(v.Z);
+
             // C0:   atan2( 0  1)  =   0
             // C90:  atan2( 1  0)  =  90
             // C180: atan2( 0 -1)  = 180/-180
             // C270: atan2(-1  0)  = -90
-            // normalize [-pi..pi] to [0..1] -> invert vector and add 180°/0.5
-            var theta = Fun.Atan2(-dir.Y, -dir.X) * Constant.PiInv * 0.5 + 0.5;
+            // normalize [-pi..pi] to [0..1] -> invert vector and add 180°
+            var c = Fun.Atan2(-v.Y, -v.X) + Constant.Pi; // atan2: -pi..pi -> 0..2pi
 
-            var v = (1.0 - Fun.Abs(1.0f - Fun.Abs(((theta + m_addressingParams.Z) * m_addressingParams.W) % 2.0)));
-
-            var uv = (new V2d(u, v) * m_scale); // the +1 offset in Y because m_matrixWithBorder contains border is handled by the matrix FirstIndex (FX, FY)
-            
-            return m_matrixWithBorder.Sample4Clamped(uv, (t,a,b) => Fun.Lerp((float)t,a,b), (t, a, b) => Fun.Lerp((float)t, a, b));
+            return (c, gamma);
         }
     }
 }

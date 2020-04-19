@@ -198,5 +198,47 @@ namespace Aardvark.Data.Photometry
             Assert.True(ratioCalcEq.ApproximateEquals(1, 0.12), "Luminous flux calculation broken or photometry file contains invalid data");
             Assert.True(ratioSample.ApproximateEquals(1, 0.05), "Luminous flux calculation broken or photometry file contains invalid data");
         }
+
+        public static void TestDirection(double gamma, double c, V3d dir)
+        {
+            var (c2, g2) = IntensityProfileSampler.CartesianToSpherical(dir);
+            if (!c2.ApproximateEquals(c, 1e-7) || !g2.ApproximateEquals(gamma, 1e-7))
+                Report.Line("FAIL");
+            var v = IntensityProfileSampler.SphericalToCartesian(c, gamma);
+            if (!v.ApproximateEquals(dir, 1e-7))
+                Report.Line("FAIL");
+        }
+
+        [Test]
+        public static void CoordinateSystem()
+        {
+            // gamma 0° / -Z-Axis
+            TestDirection(0, Constant.Pi, -V3d.ZAxis); // c angle is undefined, but outcome will be 180°
+                                                        // gamma 180° / Z-Axis
+            TestDirection(Constant.Pi, 0, V3d.ZAxis); // c angle is undefined, but outcome will be 0°
+
+            // gamma 90° + C=0° / X-Axis
+            TestDirection(Constant.PiHalf, 0, V3d.XAxis);
+            // gamma 90° + C=90° / Y-Axis
+            TestDirection(Constant.PiHalf, Constant.PiHalf, V3d.YAxis);
+            // gamma 90° + C=180° / -X-Axis
+            TestDirection(Constant.PiHalf, Constant.Pi, -V3d.XAxis);
+            // gamma 90° + C=270° / -Y-Axis
+            TestDirection(Constant.PiHalf, Constant.Pi * 3 / 2, -V3d.YAxis);
+
+            var rnd = new RandomSystem(2143);
+            for (int i = 0; i < 1000; i++)
+            {
+                var v = RandomSample.Spherical(rnd.UniformDouble(), rnd.UniformDouble());
+
+                var (c, gamma) = IntensityProfileSampler.CartesianToSpherical(v);
+                var v2 = IntensityProfileSampler.SphericalToCartesian(c, gamma);
+
+                if (!v.ApproximateEquals(v2, 1e-3))
+                    Report.Line("FAIL");
+                else
+                    Report.Line("OK");
+            }
+        }
     }
 }

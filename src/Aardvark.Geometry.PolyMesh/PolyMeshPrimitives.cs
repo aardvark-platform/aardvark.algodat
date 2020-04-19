@@ -263,7 +263,7 @@ namespace Aardvark.Geometry
             {
                     { PolyMesh.Property.Positions, vertices.ToArray() },
                     { PolyMesh.Property.Normals, normals.ToArray() },
-                    { PolyMesh.Property.Colors, new C4b[vertices.Count()].Set(color)}
+                    { PolyMesh.Property.Colors, new C4b[vertices.Count].Set(color)}
             };
 
             var pmesh = new PolyMesh()
