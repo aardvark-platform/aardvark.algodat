@@ -32,11 +32,13 @@ namespace Aardvark.Data.E57
     /// </summary>
     public static class ASTM_E57
     {
+#pragma warning disable IDE0051 // Remove unused private members
         private const int E57_BLOB_SECTION = 0;
         private const int E57_COMPRESSED_VECTOR_SECTION = 1;
         private const int E57_INDEX_PACKET = 0;
         private const int E57_DATA_PACKET = 1;
         private const int E57_IGNORED_PACKET = 2;
+#pragma warning restore IDE0051 // Remove unused private members
 
         /// <summary>
         /// Physical E57 file offset.
