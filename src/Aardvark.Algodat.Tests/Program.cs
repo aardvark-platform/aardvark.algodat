@@ -1,5 +1,6 @@
 ﻿using Aardvark.Base;
 using Aardvark.Base.Coder;
+using Aardvark.Base.IL;
 using Aardvark.Data;
 using Aardvark.Data.Points;
 using Aardvark.Data.Points.Import;
@@ -841,20 +842,28 @@ namespace Aardvark.Geometry.Tests
             Report.EndTimed();
         }
 
-        public static void Main(string[] _)
+        internal static void RasterTest()
         {
-            var data = new Dictionary<Guid, object>()
-            {
-                { Raster.Defs.NodeId.Id, Guid.NewGuid() },
-                { Raster.Defs.Bounds.Id, new Cell2d(0, 0, 0) },
-                { Raster.Defs.ResolutionPowerOfTwo.Id, 1 },
-                { Raster.Defs.GlobalHeightOffset.Id, 100.0 },
-                { Raster.Defs.LocalHeights.Id, new float[] { 1, 2, 3, 4 } },
-            };
+            var data = Raster.CreateData(
+               id: Guid.NewGuid(),
+               bounds: new Cell2d(0, 0, 0),
+               resolutionPowerOfTwo: 1,
+               globalHeightOffset: 100.0,
+               localHeights: new float[] { 1, 2, 3, 4 },
+               heightStdDevs: null,
+               colors4b: null,
+               intensities1i: null
+               );
+
             var store = new Dictionary<Guid, Dictionary<Guid, object>>();
 
             var foo = new Raster.RasterNode2d(data, id => store[id]);
             Console.WriteLine(foo);
+        }
+
+        public static void Main(string[] _)
+        {
+            RasterTest();
 
             //HeraTest();
 

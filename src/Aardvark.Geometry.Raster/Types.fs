@@ -6,9 +6,11 @@ open System
 open System.Collections.Generic
 
 module Raster =
+   
+    type private Def = Durable.Def
 
     module Defs =
-        let private def id name description (typ : Durable.Def) = Durable.Def(Guid.Parse(id), name, description, typ.Id, false)
+        let private def id name description (typ : Def) = Def(Guid.Parse(id), name, description, typ.Id, false)
 
         let Cell2d               = def "9d580e5d-a559-4c5e-9413-7675f1dfe93c" "Durable.Aardvark.Cell2d" "A 2^Exponent sized cube positioned at (X,Y,Z) * 2^Exponent." Durable.Primitives.Unit
         let NodeId               = def "e46c4163-dd28-43a4-8254-bc21dc3f766b" "RasterNode2d.Id" "Unique id of a RasterNode2d. Guid." Durable.Primitives.GuidDef
@@ -24,14 +26,28 @@ module Raster =
     open Defs
 
     let inline private sqr x = x * x
-   
+
+    let CreateData(id : Guid, bounds : Cell2d, resolutionPowerOfTwo : int, globalHeightOffset : float, localHeights : float32[],
+                   heightStdDevs : float32[] option, colors4b : C4b[] option, intensities1i : int[] option ) =
+        let add (def : Durable.Def) (value : 'a) (data : Map<Guid, obj>) = data |> Map.add def.Id (value :> obj)
+        let tryAdd (def : Durable.Def) (value : 'a option) (data : Map<Guid, obj>) = if value.IsSome then data |> Map.add def.Id (value.Value :> obj) else data
+        Map.empty
+        |> add Defs.NodeId                  id
+        |> add Defs.Bounds                  bounds
+        |> add Defs.ResolutionPowerOfTwo    resolutionPowerOfTwo
+        |> add Defs.GlobalHeightOffset      globalHeightOffset
+        |> add Defs.LocalHeights            localHeights
+        |> tryAdd Defs.HeightStdDevs        heightStdDevs
+        |> tryAdd Defs.Colors4b             colors4b
+        |> tryAdd Defs.Intensities1i        intensities1i
+
     type RasterNode2d(data : IReadOnlyDictionary<Guid, obj>, getData : Func<Guid, IReadOnlyDictionary<Guid, obj>>) =
 
-        let contains (def : Durable.Def) = data.ContainsKey(def.Id)
-        let check' (def : Durable.Def) = if not (contains def) then invalidArg "data" (sprintf "Data does not contain %s." def.Name)
-        let check (defs : Durable.Def list) = defs |> List.iter check'
-        let get (def : Durable.Def) = data.[def.Id] :?> 'a
-        let tryGet (def : Durable.Def) = match data.TryGetValue(def.Id) with | false, _ -> None | true, x -> Some (x :?> 'a)
+        let contains (def : Def) = data.ContainsKey(def.Id)
+        let check' (def : Def) = if not (contains def) then invalidArg "data" (sprintf "Data does not contain %s." def.Name)
+        let check (defs : Def list) = defs |> List.iter check'
+        let get (def : Def) = data.[def.Id] :?> 'a
+        let tryGet (def : Def) = match data.TryGetValue(def.Id) with | false, _ -> None | true, x -> Some (x :?> 'a)
         let loadNode (id : Guid) : RasterNode2d option = if id = Guid.Empty then None else RasterNode2d(getData.Invoke id, getData) |> Some
    
         do
@@ -67,3 +83,6 @@ module Raster =
 
         member this.GlobalHeights with get() = this.LocalHeights |> Array.map (fun z -> this.GlobalHeightOffset + float z)
 
+        override this.ToString() = sprintf "RasterNode2d(%A, %A, %d x %d)" this.Id this.Bounds this.Resolution this.Resolution
+
+    
