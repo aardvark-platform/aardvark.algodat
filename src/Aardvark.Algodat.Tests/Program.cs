@@ -843,11 +843,24 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] _)
         {
+            var data = new Dictionary<Guid, object>()
+            {
+                { Raster.Defs.NodeId.Id, Guid.NewGuid() },
+                { Raster.Defs.Bounds.Id, new Cell2d(0, 0, 0) },
+                { Raster.Defs.ResolutionPowerOfTwo.Id, 1 },
+                { Raster.Defs.GlobalHeightOffset.Id, 100.0 },
+                { Raster.Defs.LocalHeights.Id, new float[] { 1, 2, 3, 4 } },
+            };
+            var store = new Dictionary<Guid, Dictionary<Guid, object>>();
+
+            var foo = new Raster.RasterNode2d(data, id => store[id]);
+            Console.WriteLine(foo);
+
             //HeraTest();
 
             //EnumerateCells2dTest();
 
-            TestE57();
+            //TestE57();
 
             //LisaTest();
 

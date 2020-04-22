@@ -22,6 +22,7 @@
     <ProjectReference Include="..\Aardvark.Geometry.Clustering\Aardvark.Geometry.Clustering.csproj" />
     <ProjectReference Include="..\Aardvark.Geometry.PointSet\Aardvark.Geometry.PointSet.csproj" />
     <ProjectReference Include="..\Aardvark.Geometry.PolyMesh\Aardvark.Geometry.PolyMesh.csproj" />
+    <ProjectReference Include="..\Aardvark.Geometry.Raster\Aardvark.Geometry.Raster.fsproj" />
     <ProjectReference Include="..\Aardvark.Physics.Sky\Aardvark.Physics.Sky.csproj" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />

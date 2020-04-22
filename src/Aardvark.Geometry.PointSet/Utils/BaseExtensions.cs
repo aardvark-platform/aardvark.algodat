@@ -13,6 +13,7 @@
 */
 using Aardvark.Base;
 using System;
+using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace Aardvark.Geometry.Points
@@ -128,14 +129,12 @@ namespace Aardvark.Geometry.Points
         {
             var planes = self.PlaneArray;
             var imax = self.PlaneCount;
-            for (var i = 0; i < imax; i++) if (planes[i].Height(box.Min) > 0) return false;
-            for (var i = 0; i < imax; i++) if (planes[i].Height(box.Max) > 0) return false;
-            for (var i = 0; i < imax; i++) if (planes[i].Height(new V3d(box.Max.X, box.Min.Y, box.Min.Z)) > 0) return false;
-            for (var i = 0; i < imax; i++) if (planes[i].Height(new V3d(box.Max.X, box.Max.Y, box.Min.Z)) > 0) return false;
-            for (var i = 0; i < imax; i++) if (planes[i].Height(new V3d(box.Min.X, box.Max.Y, box.Min.Z)) > 0) return false;
-            for (var i = 0; i < imax; i++) if (planes[i].Height(new V3d(box.Min.X, box.Min.Y, box.Max.Z)) > 0) return false;
-            for (var i = 0; i < imax; i++) if (planes[i].Height(new V3d(box.Max.X, box.Min.Y, box.Max.Z)) > 0) return false;
-            for (var i = 0; i < imax; i++) if (planes[i].Height(new V3d(box.Min.X, box.Max.Y, box.Max.Z)) > 0) return false;
+            var corners = box.Corners.ToArray();
+            for (var i = 0; i < imax; i++)
+            {
+                var plane = planes[i];
+                for (var j = 0; j < 8; i++) if (plane.Height(corners[j]) > 0) return false;
+            }
             return true;
         }
     }
