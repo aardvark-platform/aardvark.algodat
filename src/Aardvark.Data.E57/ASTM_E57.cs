@@ -627,13 +627,13 @@ namespace Aardvark.Data.E57
                                     var result = xs.Map(x => (int)(((x - min) / d) * 65535.5f));
                                     return result;
                                 }
-                                int[] remapDoubleWithLimits(double[] xs)
-                                {
-                                    var min = intensityLimits.Intensity.Min;
-                                    var max = intensityLimits.Intensity.Max;
-                                    var d = max - min;
-                                    return xs.Map(x => (int)(((x - min) / d) * 65535.5));
-                                }
+                                //int[] remapDoubleWithLimits(double[] xs)
+                                //{
+                                //    var min = intensityLimits.Intensity.Min;
+                                //    var max = intensityLimits.Intensity.Max;
+                                //    var d = max - min;
+                                //    return xs.Map(x => (int)(((x - min) / d) * 65535.5));
+                                //}
 
                                 var js = buffers[intensityIndex.Value] switch
                                 {
