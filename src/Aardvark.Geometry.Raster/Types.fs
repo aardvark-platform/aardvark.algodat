@@ -27,6 +27,7 @@ module Raster =
 
     let inline private sqr x = x * x
 
+    /// Create data map for RasterNode2d.
     let CreateData(id : Guid, bounds : Cell2d, resolutionPowerOfTwo : int, globalHeightOffset : float, localHeights : float32[],
                    heightStdDevs : float32[] option, colors4b : C4b[] option, intensities1i : int[] option ) =
         let add (def : Durable.Def) (value : 'a) (data : Map<Guid, obj>) = data |> Map.add def.Id (value :> obj)
@@ -41,6 +42,7 @@ module Raster =
         |> tryAdd Defs.Colors4b             colors4b
         |> tryAdd Defs.Intensities1i        intensities1i
 
+    /// Quadtree raster tile.
     type RasterNode2d(data : IReadOnlyDictionary<Guid, obj>, getData : Func<Guid, IReadOnlyDictionary<Guid, obj>>) =
 
         let contains (def : Def) = data.ContainsKey(def.Id)
