@@ -589,7 +589,9 @@ namespace Aardvark.Geometry.Tests
                 var rootJson = JObject.FromObject(new
                 {
                     Bounds = root.BoundingBoxExactGlobal,
+#pragma warning disable IDE0037 // use inferred member name
                     Cell = root.Cell,
+#pragma warning restore IDE0037 // use inferred member name
                     Centroid = (V3d)root.CentroidLocal + root.Center,
                     CentroidStdDev = root.CentroidLocalStdDev,
                     GZipped = gzipped,
@@ -844,21 +846,54 @@ namespace Aardvark.Geometry.Tests
 
         internal static void RasterTest()
         {
-            var data = Raster.CreateData(
-               id: Guid.NewGuid(),
-               bounds: new Cell2d(0, 0, 0),
-               resolutionPowerOfTwo: 1,
-               globalHeightOffset: 100.0,
-               localHeights: new float[] { 1, 2, 3, 4 },
-               heightStdDevs: null,
-               colors4b: null,
-               intensities1i: null
-               );
+            //var data = Raster.CreateData(
+            //   id: Guid.NewGuid(),
+            //   bounds: new Cell2d(0, 0, 0),
+            //   resolutionPowerOfTwo: 1,
+            //   globalHeightOffset: 100.0,
+            //   localHeights: new float[] { 1, 2, 3, 4 },
+            //   heightStdDevs: null,
+            //   colors4b: null,
+            //   intensities1i: null
+            //   );
 
-            var store = new Dictionary<Guid, Dictionary<Guid, object>>();
+            //var store = new Dictionary<Guid, Dictionary<Guid, object>>();
 
-            var foo = new Raster.RasterNode2d(data, id => store[id]);
-            Console.WriteLine(foo);
+            //var foo = new Raster.RasterNode2d(data, id => store[id]);
+            //Console.WriteLine(foo);
+
+            
+
+            var rnd = new Random();
+            Report.BeginTimed("init source data");
+            var randomData = new int[4096 * 4096].SetByIndex(_ => rnd.Next(1000));
+            Report.EndTimed();
+
+            var v = TileData.OfArray(Box2i.FromSize(4096, 4096), randomData);
+            Report.BeginTimed("get window");
+            var randomDataWindow = TileData.Window(Box2i.FromMinAndSize(1000, 1500, 2048, 2048), v);
+            Report.EndTimed();
+
+            Report.BeginTimed("materialize");
+            var materialized = TileData.Materialize(randomDataWindow);
+            Report.EndTimed();
+
+            var data = new[] {
+                1,  2,  3,  4,
+                5,  6,  7,  8,
+                9, 10, 11, 12,
+                13,14, 15, 16
+            };
+
+            var tile0 = TileData.OfArray(Box2i.FromSize(4, 4), data);
+            var tile1 = TileData.Window(Box2i.FromMinAndSize(2, 1, 2, 3), tile0);
+            var tile2 = TileData.Materialize(tile1);
+
+            //var r = new Raster.ArrayView<int>(data, 4, 4);
+            //var s = r.GetWindow(Box2i.FromMinAndSize(2, 1, 2, 3));
+            //Console.WriteLine(s);
+
+            //Console.ReadLine();
         }
 
         public static void Main(string[] _)

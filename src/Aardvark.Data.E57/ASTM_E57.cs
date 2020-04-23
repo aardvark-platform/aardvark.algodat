@@ -2460,7 +2460,9 @@ namespace Aardvark.Data.E57
                 _ => throw new NotImplementedException($"Unknown type '{type}'. Invariant a55575af-73cc-439f-ba63-a46883b8f6cd."),
             };
         }
+#pragma warning disable IDE0051 // Remove unused private members
         private static Range1i GetIntegerRange(XElement root, string elementNameMin, string elementNameMax)
+#pragma warning restore IDE0051 // Remove unused private members
             => new Range1i(GetInteger(root, elementNameMin, true).Value, GetInteger(root, elementNameMax, true).Value);
         private static Range1i? TryGetIntegerRange(XElement root, string elementNameMin, string elementNameMax)
         {
@@ -2480,7 +2482,9 @@ namespace Aardvark.Data.E57
         }
         private static Range1d GetFloatRange(XElement root, string elementNameMin, string elementNameMax)
             => new Range1d(GetFloat(root, elementNameMin, true).Value, GetFloat(root, elementNameMax, true).Value);
+#pragma warning disable IDE0051 // Remove unused private members
         private static Range1d? TryGetFloatRange(XElement root, string elementNameMin, string elementNameMax)
+#pragma warning restore IDE0051 // Remove unused private members
         {
             var min = GetFloat(root, elementNameMin, false);
             var max = GetFloat(root, elementNameMax, false);

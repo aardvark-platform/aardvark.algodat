@@ -12,7 +12,7 @@
     <DocumentationFile>..\..\bin\Debug\Aardvark.Geometry.Raster.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Types.fs" />
+    <Compile Include="Raster.fs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="paket.references" />
