@@ -5,10 +5,22 @@ open Aardvark.Data
 open System
 open System.Collections.Generic
 
+[<AutoOpen>]
+module RasterExtensions =
+    type Box2l with
+        member this.IsSizePowerOfTwoSquare with get() = this.SizeX = this.SizeY && this.SizeX.IsPowerOfTwo()
+        member this.SplitAtCenter () =
+            let c = this.Center
+            [|
+                Box2l(this.Min.X, this.Min.Y,        c.X,        c.Y)
+                Box2l(       c.X, this.Min.Y, this.Max.X,        c.Y)
+                Box2l(this.Min.X,        c.Y,        c.X, this.Max.Y)
+                Box2l(       c.X,        c.Y, this.Max.X, this.Max.Y)
+            |]
 
 type TileData<'a> =
-    | ArrayData of 'a[] * Box2i
-    | WindowedArrayData of 'a[] * Box2i * Box2i
+    | ArrayData of 'a[] * Box2l
+    | WindowedArrayData of 'a[] * Box2l * Box2l
     | CellAlignedTile of TileData<'a> * Cell2d
 
 module TileData =
@@ -17,7 +29,7 @@ module TileData =
     let OfArray mapping data = ArrayData (data, mapping)
 
     /// Creates windowed tile data.
-    let rec Window (window : Box2i) tile =
+    let rec Window (window : Box2l) tile =
         match tile with
 
         | ArrayData (data, mapping) ->
@@ -38,24 +50,55 @@ module TileData =
         | ArrayData _ -> tile
 
         | WindowedArrayData (data, mapping, window) ->
-            let local = window - mapping.Min
-            let xs : 'a[] = Array.zeroCreate (window.Area)
+            let xs : 'a[] = Array.zeroCreate (int window.Area)
+            let widthMapping = int (mapping.Max.X - mapping.Min.X)
+            let widthWindow = int (window.Max.X - window.Min.X)
+            let heightWindow = int (window.Max.Y - window.Min.Y)
+            let originWindowLocal = V2i(window.Min - mapping.Min)
             let mutable i = 0
-            let wMapping = mapping.Max.X - mapping.Min.X
-            let mutable j0 = window.Min.Y * wMapping + window.Min.X
-            let ymax = window.Max.Y - window.Min.Y - 1
-            for _ = 0 to ymax do
-                let jmax = j0 + window.Max.X - window.Min.X - 1
+            let mutable j0 = originWindowLocal.Y * widthMapping + originWindowLocal.X
+            for _ = 1 to heightWindow do
+                let jmax = j0 + widthWindow - 1
+                let mutable j = j0
                 for j = j0 to jmax do
                     xs.[i] <- data.[j]
                     i <- i + 1
-                j0 <- j0 + wMapping
+                j0 <- j0 + widthMapping
             ArrayData (xs, window)
 
         | CellAlignedTile (tile, cell) ->
             CellAlignedTile (tile |> Materialize, cell)
 
+    let rec Bounds tile = match tile with | ArrayData (_, m) -> m | WindowedArrayData (_, _, w) -> w | CellAlignedTile (t, _) -> Bounds t
+
+    let rec Size tile = match tile with | ArrayData (_, m) -> m.Size | WindowedArrayData (_, _, w) -> w.Size | CellAlignedTile (t, _) -> Size t
+
+    let rec IsPowerOfTwoSquare tile = (tile |> Bounds).IsSizePowerOfTwoSquare
+
+    let CellAlign cell tile =
+        if IsPowerOfTwoSquare tile then CellAlignedTile (tile, cell)
+        else invalidArg "tile" "Tile is not power-of-two square."
+
+    let rec Split tile =
+        match tile with
+        | ArrayData (data, mapping) -> 
+            mapping.SplitAtCenter() |> Array.map (fun box -> WindowedArrayData (data, mapping, box))
+        | WindowedArrayData (data, mapping, window) -> 
+            window.SplitAtCenter()  |> Array.map (fun box -> WindowedArrayData (data, mapping, box))
+        | CellAlignedTile (tile, cell) -> 
+            tile |> Split  |> Array.map (fun t   -> CellAlignedTile (t, cell))
+
     ()
+
+type TileData<'a> with
+    member this.Window window = TileData.Window window this
+    member this.Window (window : Box2i) = TileData.Window (Box2l window) this
+    member this.Materialize () = TileData.Materialize this
+    member this.Bounds with get() = TileData.Bounds this
+    member this.Size with get() = TileData.Size this
+    member this.IsPowerOfTwoSquare with get() = TileData.IsPowerOfTwoSquare this
+    member this.CellAlign cell = TileData.CellAlign cell this
+    member this.Split () = TileData.Split this
 
 module Raster =
 
@@ -147,67 +190,3 @@ module Raster =
             | Some xs -> xs |> Array.map loadNode |> Some
 
         override this.ToString() = sprintf "RasterNode2d(%A, %A, %d x %d)" this.Id this.Bounds this.Resolution this.Resolution
-
-
-
-
-    //type ArrayView<'a>(data : 'a[], mapping : Box2i, window : Box2i) =
-        
-    //    let _width = window.Max.X - window.Min.X
-    //    let _height = window.Max.Y - window.Min.Y
-
-    //    do
-    //        if not mapping.IsValid then sprintf "Mapping must be valid, but is %A." mapping |> invalidArg "mapping"
-    //        if not window.IsValid then sprintf "Window must be valid, but is %A." window |> invalidArg "window"
-    //        if not (mapping.Contains(window)) then sprintf "Window must be contained in mapping %A, but is %A." mapping window |> invalidArg "window"
-    //        if mapping.Area <> data.Length then sprintf "Data must have %d x %d entries, but has %d." mapping.Size.X mapping.Size.Y data.Length |> invalidArg "data"
-
-    //    new(data : 'a[], width : int, height : int) =
-    //        let b = Box2i(V2i.OO, V2i(width, height))
-    //        ArrayView(data, mapping = b, window = b)
-
-    //    member ____.Data with get() = data
-
-    //    member ____.Mapping with get() = mapping
-
-    //    member ____.Window with get() = window
-        
-    //    member this.Width with get() = _width
-        
-    //    member this.Height with get() = _height
-        
-    //    member inline private ____.Index(x : int, y : int) = 
-    //        #if DEBUG
-    //        if x < 0 || x >= _width  then sprintf "Value x = %d is outside of range [0, %d)." x _width  |> invalidArg "x"
-    //        if y < 0 || y >= _height then sprintf "Value x = %d is outside of range [0, %d)." x _height |> invalidArg "x"
-    //        #endif
-    //        (window.Min.Y + y) * _width + (window.Min.X + x)
-        
-    //    member inline private this.Index(xy : V2i) = this.Index(xy.X, xy.Y)
-
-    //    member this.Item with get(x, y) = data.[this.Index(x,y)]
-        
-    //    /// Min incl., max excl.
-    //    member ____.GetWindow(window : Box2i) =
-    //        if not window.IsValid then sprintf "Window must be valid, but is %A." window |> invalidArg "window"
-    //        if not (mapping.Contains(window)) then sprintf "Window must be contained in mapping %A, but is %A." mapping window |> invalidArg "window"
-    //        ArrayView(data, mapping, window)
-            
-    //    /// Min incl., max excl.
-    //    member this.Materialize() =
-    //        if mapping = window then
-    //            this
-    //        else
-    //            let local = window - mapping.Min
-    //            let xs : 'a[] = Array.zeroCreate (window.Area)
-    //            let mutable i = 0
-    //            let mutable j0 = this.Index(local.Min)
-    //            let dj = mapping.Max.X - mapping.Min.X
-    //            let ymax = window.Max.Y - window.Min.Y - 1
-    //            for _ = 0 to ymax do
-    //                let jmax = j0 + window.Max.X - window.Min.X - 1
-    //                for j = j0 to jmax do
-    //                    xs.[i] <- data.[j]
-    //                    i <- i + 1
-    //                j0 <- j0 + dj
-    //            ArrayView(xs, window, window)

@@ -862,21 +862,31 @@ namespace Aardvark.Geometry.Tests
             //var foo = new Raster.RasterNode2d(data, id => store[id]);
             //Console.WriteLine(foo);
 
-            
+
+
+            int n = 8192;
 
             var rnd = new Random();
             Report.BeginTimed("init source data");
-            var randomData = new int[4096 * 4096].SetByIndex(_ => rnd.Next(1000));
+            var randomData = new int[n * n].SetByIndex(_ => rnd.Next(1000));
             Report.EndTimed();
 
-            var v = TileData.OfArray(Box2i.FromSize(4096, 4096), randomData);
+            var tile = TileData.OfArray(Box2l.FromSize(n, n), randomData);
+
             Report.BeginTimed("get window");
-            var randomDataWindow = TileData.Window(Box2i.FromMinAndSize(1000, 1500, 2048, 2048), v);
+            var randomDataWindow = tile.Window(Box2i.FromMinAndSize(1000, 1500, 2048, 2048));
             Report.EndTimed();
 
             Report.BeginTimed("materialize");
-            var materialized = TileData.Materialize(randomDataWindow);
+            var materialized = randomDataWindow.Materialize();
             Report.EndTimed();
+
+            for (var i = 0; i < 100; i++)
+            {
+                Report.BeginTimed("split + materialize");
+                var splitTiles = tile.Split().Map(TileData.Materialize);
+                Report.EndTimed();
+            }
 
             var data = new[] {
                 1,  2,  3,  4,
@@ -885,8 +895,8 @@ namespace Aardvark.Geometry.Tests
                 13,14, 15, 16
             };
 
-            var tile0 = TileData.OfArray(Box2i.FromSize(4, 4), data);
-            var tile1 = TileData.Window(Box2i.FromMinAndSize(2, 1, 2, 3), tile0);
+            var tile0 = TileData.OfArray(Box2l.FromSize(4, 4), data);
+            var tile1 = TileData.Window(Box2l.FromMinAndSize(2, 1, 2, 3), tile0);
             var tile2 = TileData.Materialize(tile1);
 
             //var r = new Raster.ArrayView<int>(data, 4, 4);
