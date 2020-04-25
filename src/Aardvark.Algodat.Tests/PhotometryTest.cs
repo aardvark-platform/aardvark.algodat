@@ -58,7 +58,7 @@ namespace Aardvark.Data.Photometry
             }
         }
 
-        [Test]
+        [Test, Ignore("Requires Data Files")]
         public void ZonesTest()
         {
             //{
@@ -160,7 +160,7 @@ namespace Aardvark.Data.Photometry
             Report.Line("RMS Error={0:0.00000}", (rmsError / 18).Sqrt());
         }
 
-        [Test]
+        [Test, Ignore("Requires Data Files")]
         public void LumFluxTest()
         {
             foreach (var f in Directory.GetFiles(PhotometryDataPath, "*.ldt"))
