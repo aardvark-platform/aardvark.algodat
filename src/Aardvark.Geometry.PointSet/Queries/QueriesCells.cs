@@ -636,7 +636,7 @@ namespace Aardvark.Geometry.Points
                 return new ColZ[4].SetByIndex(i =>
                     (nss[i].Count > 0 || rs.ContainsKey(i))
                     ? new ColZ(
-                        Footprint.GetOctant(i),
+                        Footprint.GetQuadrant(i),
                         nss[i].Count > 0 ? nss[i].ToArray() : Array.Empty<IPointCloudNode>(),
                         rs.GetValueOrDefault(i, Chunk.Empty)
                         )

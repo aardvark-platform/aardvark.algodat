@@ -252,7 +252,7 @@ namespace Aardvark.Base
         /// 0th and 1st bit encodes x-, y-axis, respectively.
         /// E.g. 0 is quadrant at origin, 3 is quadrant oposite from origin.
         /// </summary>
-        public Cell2d GetOctant(int i)
+        public Cell2d GetQuadrant(int i)
         {
             if (i < 0 || i > 3) throw new IndexOutOfRangeException();
 
@@ -278,7 +278,7 @@ namespace Aardvark.Base
         /// Returns the quadrant of this cell, in which the other cell is contained.
         /// If the other cell is not contained in any quadrant, then no value is returned.
         /// </summary>
-        public int? GetOctant(Cell2d other)
+        public int? GetQuadrant(Cell2d other)
         {
             // if other cell is bigger or same size, 
             // then it cannot be contained in any octant
@@ -389,7 +389,7 @@ namespace Aardvark.Base
 
         /// <summary>
         /// </summary>
-        public static Cell2d Parse(byte[] buffer, int offset = 0)
+        public static Cell2d Parse(byte[] buffer)
         {
             using var ms = new MemoryStream(buffer, 0, 20);
             using var br = new BinaryReader(ms);
