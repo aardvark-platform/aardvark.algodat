@@ -883,7 +883,14 @@ namespace Aardvark.Geometry.Tests
             Report.EndTimed();
 
             Console.WriteLine(materialized.Bounds);
-            TileData.splitIntoTiles(new V2l(512, 512), materialized);
+            foreach (var x in materialized.SplitIntoTiles(new V2l(1024)))
+            { }
+            Console.WriteLine("----------------------------------------------------");
+
+            foreach (var x in materialized.SplitIntoCells(10, 0).Select(x => x.Materialize()))
+            {
+                Console.WriteLine(x.ToString());
+            }
 
             //for (var i = 0; i < 100; i++)
             //{
