@@ -58,7 +58,7 @@ namespace Aardvark.Data.Photometry
             }
         }
 
-        [Test]
+        [Test, Ignore("Requires Data Files")]
         public void ZonesTest()
         {
             //{
@@ -160,7 +160,7 @@ namespace Aardvark.Data.Photometry
             Report.Line("RMS Error={0:0.00000}", (rmsError / 18).Sqrt());
         }
 
-        [Test]
+        [Test, Ignore("Requires Data Files")]
         public void LumFluxTest()
         {
             foreach (var f in Directory.GetFiles(PhotometryDataPath, "*.ldt"))
@@ -201,10 +201,10 @@ namespace Aardvark.Data.Photometry
 
         public static void TestDirection(double gamma, double c, V3d dir)
         {
-            var (c2, g2) = IntensityProfileSampler.CartesianToSpherical(dir);
+            var (c2, g2) = Photometry.CartesianToSpherical(dir);
             if (!c2.ApproximateEquals(c, 1e-7) || !g2.ApproximateEquals(gamma, 1e-7))
                 Report.Line("FAIL");
-            var v = IntensityProfileSampler.SphericalToCartesian(c, gamma);
+            var v = Photometry.SphericalToCartesian(c, gamma);
             if (!v.ApproximateEquals(dir, 1e-7))
                 Report.Line("FAIL");
         }
@@ -231,8 +231,8 @@ namespace Aardvark.Data.Photometry
             {
                 var v = RandomSample.Spherical(rnd.UniformDouble(), rnd.UniformDouble());
 
-                var (c, gamma) = IntensityProfileSampler.CartesianToSpherical(v);
-                var v2 = IntensityProfileSampler.SphericalToCartesian(c, gamma);
+                var (c, gamma) = Photometry.CartesianToSpherical(v);
+                var v2 = Photometry.SphericalToCartesian(c, gamma);
 
                 if (!v.ApproximateEquals(v2, 1e-3))
                     Report.Line("FAIL");
