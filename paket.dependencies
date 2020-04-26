@@ -5,9 +5,9 @@ source https://api.nuget.org/v3/index.json
 nuget FSharp.Core                       ~> 4.6.2
 
 // aardvark.base
-nuget Aardvark.Base                     ~> 5.0.4
-nuget Aardvark.Geometry                 ~> 5.0.4
-nuget Aardvark.Base.IO                  ~> 5.0.4
+nuget Aardvark.Base                     ~> 5.0.7
+nuget Aardvark.Geometry                 ~> 5.0.7
+nuget Aardvark.Base.IO                  ~> 5.0.7
 
 // aardvark.rendering
 nuget Aardvark.Base.Rendering           ~> 5.0.1
@@ -17,7 +17,7 @@ nuget Aardvark.Application.Slim         ~> 5.0.1
 nuget Aardvark.Application.Slim.GL      ~> 5.0.1
 nuget Aardvark.Application.Slim.Vulkan  ~> 5.0.1
 
-nuget Aardvark.Data.Durable             ~> 0.0.16
+nuget Aardvark.Data.Durable             ~> 0.1.1
 
 // 3rd-party
 #nuget Crc32C.NET                       ~> 1.0.5

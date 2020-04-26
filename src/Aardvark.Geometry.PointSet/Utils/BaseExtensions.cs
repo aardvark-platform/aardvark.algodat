@@ -21,48 +21,48 @@ namespace Aardvark.Geometry.Points
     /// <summary>
     /// </summary>
     public static class BaseExtensions
-    { 
-        /// <summary>
-        /// </summary>
-        public static Box3l GetRasterBounds(this Cell self, int exponent)
-        {
-            while (self.Exponent < exponent)
-            {
-                self = self.Parent;
-            }
+    {
+        ///// <summary>
+        ///// </summary>
+        //public static Box3l GetRasterBounds(this Cell self, int exponent)
+        //{
+        //    while (self.Exponent < exponent)
+        //    {
+        //        self = self.Parent;
+        //    }
 
-            var e = self.Exponent;
+        //    var e = self.Exponent;
 
-            if (self.IsCenteredAtOrigin)
-            {
-                var b = new Box3l(new V3l(-1, -1, -1), new V3l(1, 1, 1));
-                while (e > exponent + 1)
-                {
-                    e--;
-                    b = new Box3l(b.Min * 2, b.Max * 2);
-                }
-                return new Box3l(b.Min, b.Max - V3l.III);
-            }
-            else
-            {
-                var min = new V3l(self.X, self.Y, self.Z);
-                var max = min + 1;
-                while (e > exponent)
-                {
-                    e--;
-                    min *= 2;
-                    max *= 2;
-                }
-                return new Box3l(min, max - V3l.III);
-            }
-        }
+        //    if (self.IsCenteredAtOrigin)
+        //    {
+        //        var b = new Box3l(new V3l(-1, -1, -1), new V3l(1, 1, 1));
+        //        while (e > exponent + 1)
+        //        {
+        //            e--;
+        //            b = new Box3l(b.Min * 2, b.Max * 2);
+        //        }
+        //        return new Box3l(b.Min, b.Max - V3l.III);
+        //    }
+        //    else
+        //    {
+        //        var min = new V3l(self.X, self.Y, self.Z);
+        //        var max = min + 1;
+        //        while (e > exponent)
+        //        {
+        //            e--;
+        //            min *= 2;
+        //            max *= 2;
+        //        }
+        //        return new Box3l(min, max - V3l.III);
+        //    }
+        //}
 
         /// <summary>
         /// Projects outline of a box from given position to a plane.
         /// Returns null if position is inside the box.
         /// </summary>
-        /// <param name="box"></param>
-        /// <param name="fromPosition"></param>
+        /// <param name="box">Box to project.</param>
+        /// <param name="fromPosition">Project from.</param>
         /// <param name="box2plane">Transformation from world/box-space to plane z=0</param>
         public static V2d[] GetOutlineProjected(this Box3d box, V3d fromPosition, M44d box2plane)
         {

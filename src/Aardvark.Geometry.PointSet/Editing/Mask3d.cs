@@ -24,9 +24,9 @@ namespace Aardvark.Geometry.Points
     public class Mask3d
     {
         private V3d m_camPosition;
-        private IMask2d m_mask;
-        private Trafo3d m_model2mask;
-        private Triangle2d[] m_triangulation;
+        private readonly IMask2d m_mask;
+        private readonly Trafo3d m_model2mask;
+        private readonly Triangle2d[] m_triangulation;
 
         /// <summary>
         /// </summary>
