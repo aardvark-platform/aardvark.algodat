@@ -343,7 +343,7 @@ namespace Aardvark.Geometry.Points
             private readonly IPointCloudNode Root;
 
             /// <summary>
-            /// Result cell column.
+            /// Result (central) column.
             /// </summary>
             public readonly Cell2d Cell;
 
@@ -353,10 +353,10 @@ namespace Aardvark.Geometry.Points
             public readonly ColZ ColZ;
 
             /// <summary>
-            /// Returns points inside cell column from LoD at given relative depth,
+            /// Collects points inside column from LoD at given relative depth,
             /// where 0 means points in cell column itself, 1 means points from subcells, aso.
             /// </summary>
-            public IEnumerable<Chunk> GetPoints(int fromRelativeDepth)
+            public ColumnPointsXY CollectPoints(int fromRelativeDepth)
             {
                 if (fromRelativeDepth < 0) throw new ArgumentException(
                        $"Parameter 'fromRelativeDepth' must not be negative (but is {fromRelativeDepth}). "
@@ -364,28 +364,41 @@ namespace Aardvark.Geometry.Points
                        nameof(fromRelativeDepth)
                        );
 
-                return ColZ.GetPoints(fromRelativeDepth);
+                return new ColumnPointsXY(this.Cell, Chunk.ImmutableMerge(ColZ.GetPoints(fromRelativeDepth)));
             }
 
             /// <summary>
+            /// Collects points from columns relative to center column.
+            /// E.g. if outer is Box2i(-2,-2,+2,+2) then 5x5 results (at most) are returned.
+            /// Results with no points are not returned.
             /// </summary>
-            public IEnumerable<Chunk> GetPoints(int fromRelativeDepth, Box2i outer)
-                => GetPoints(fromRelativeDepth, outer, false);
+            public IEnumerable<ColumnPointsXY> CollectPoints(int fromRelativeDepth, Box2i outer)
+                => CollectPoints(fromRelativeDepth, outer, false);
 
             /// <summary>
+            /// Collects points from columns relative to center column. The center column (inner cell) is excluded.
+            /// E.g. if outer is Box2i(-2,-2,+2,+2) then 5x5-1 results (at most) are returned.
+            /// Results with no points are not returned.
             /// </summary>
-            public IEnumerable<Chunk> GetPoints(int fromRelativeDepth, Box2i outer, bool excludeInnerCell)
-                => GetPoints(fromRelativeDepth, outer, new Box2i(V2i.OO, V2i.OO), excludeInnerCell);
+            public IEnumerable<ColumnPointsXY> CollectPoints(int fromRelativeDepth, Box2i outer, bool excludeInnerCell)
+                => CollectPoints(fromRelativeDepth, outer, new Box2i(V2i.OO, V2i.OO), excludeInnerCell);
 
             /// <summary>
+            /// Collects points from columns relative to center column. 
             /// Inner cells are excluded.
+            /// E.g. if outer is Box2i(-2,-2,+2,+2) and inner is Box2i(-1,-1,+1,+1) then 5x5-3x3=16 results (at most) are returned.
+            /// Results with no points are not returned.
             /// </summary>
-            public IEnumerable<Chunk> GetPoints(int fromRelativeDepth, Box2i outer, Box2i inner)
-                => GetPoints(fromRelativeDepth, outer, inner, true);
+            public IEnumerable<ColumnPointsXY> CollectPoints(int fromRelativeDepth, Box2i outer, Box2i inner)
+                => CollectPoints(fromRelativeDepth, outer, inner, true);
 
             /// <summary>
+            /// Collects points from columns relative to center column. 
+            /// Inner cells are excluded if excludeInnerCells is true.
+            /// E.g. if outer is Box2i(-2,-2,+2,+2) and inner is Box2i(-1,-1,+1,+1) then 5x5-3x3=16 results (at most) are returned.
+            /// Results with no points are not returned.
             /// </summary>
-            public IEnumerable<Chunk> GetPoints(int fromRelativeDepth, Box2i outer, Box2i inner, bool excludeInnerCells)
+            public IEnumerable<ColumnPointsXY> CollectPoints(int fromRelativeDepth, Box2i outer, Box2i inner, bool excludeInnerCells)
             {
                 if (fromRelativeDepth < 0) throw new ArgumentException(
                        $"Parameter 'fromRelativeDepth' must not be negative (but is {fromRelativeDepth}). "
@@ -412,9 +425,9 @@ namespace Aardvark.Geometry.Points
 
                 inner += new V2i(Cell.X, Cell.Y);
                 outer += new V2i(Cell.X, Cell.Y);
-                for (var x = outer.Min.X; x <= outer.Max.X; x++)
+                for (var y = outer.Min.Y; y <= outer.Max.Y; y++)
                 {
-                    for (var y = outer.Min.Y; y <= outer.Max.Y; y++)
+                    for (var x = outer.Min.X; x <= outer.Max.X; x++)
                     {
                         if (excludeInnerCells && inner.Contains(new V2i(x, y))) continue;
                         var c = new Cell2d(x, y, Cell.Exponent);
@@ -430,7 +443,10 @@ namespace Aardvark.Geometry.Points
                             //cacheHits++;
                         }
 
-                        yield return chunks;
+                        if (chunks.Count > 0)
+                        {
+                            yield return new ColumnPointsXY(c, chunks);
+                        }
                     }
                 }
                 lock (Cache)
@@ -440,6 +456,29 @@ namespace Aardvark.Geometry.Points
                     foreach (var k in ks) cache.Remove(k);
                 }
                 //Report.Warn($"hits = {cacheHits,2}, misses = {cacheMisses,2}");
+            }
+
+
+
+            /// <summary>
+            /// Points in a column with given footprint.
+            /// </summary>
+            public class ColumnPointsXY
+            {
+                /// <summary>
+                /// Footprint of column.
+                /// </summary>
+                public Cell2d Footprint { get; }
+                /// <summary>
+                /// All points in the column with given footprint.
+                /// </summary>
+                public Chunk Points { get; }
+
+                internal ColumnPointsXY(Cell2d footprint, Chunk points)
+                {
+                    Footprint = footprint;
+                    Points = points;
+                }
             }
 
             /// <summary>
@@ -454,6 +493,44 @@ namespace Aardvark.Geometry.Points
             }
 
             private CellQueryResult2dCache Cache { get; }
+
+
+
+            /// <summary>
+            /// Deprecated. Use CollectPoints instead.
+            /// This method will be removed in future version.
+            /// </summary>
+            [Obsolete]
+            public IEnumerable<Chunk> GetPoints(int fromRelativeDepth) => new[] { CollectPoints(fromRelativeDepth).Points };
+
+            /// <summary>
+            /// Deprecated. Use CollectPoints instead.
+            /// This method will be removed in future version.
+            /// </summary>
+            [Obsolete]
+            public IEnumerable<Chunk> GetPoints(int fromRelativeDepth, Box2i outer) => CollectPoints(fromRelativeDepth, outer).Select(x => x.Points);
+
+            /// <summary>
+            /// Deprecated. Use CollectPoints instead.
+            /// This method will be removed in future version.
+            /// </summary>
+            [Obsolete]
+            public IEnumerable<Chunk> GetPoints(int fromRelativeDepth, Box2i outer, bool excludeInnerCell) => CollectPoints(fromRelativeDepth, outer, excludeInnerCell).Select(x => x.Points);
+
+            /// <summary>
+            /// Deprecated. Use CollectPoints instead.
+            /// This method will be removed in future version.
+            /// </summary>
+            [Obsolete]
+            public IEnumerable<Chunk> GetPoints(int fromRelativeDepth, Box2i outer, Box2i inner) => CollectPoints(fromRelativeDepth, outer, inner).Select(x => x.Points);
+
+            /// <summary>
+            /// Deprecated. Use CollectPoints instead.
+            /// This method will be removed in future version.
+            /// </summary>
+            [Obsolete]
+            public IEnumerable<Chunk> GetPoints(int fromRelativeDepth, Box2i outer, Box2i inner, bool excludeInnerCells) => CollectPoints(fromRelativeDepth, outer, inner, excludeInnerCells).Select(x => x.Points);
+
         }
 
         /// <summary>
@@ -497,18 +574,6 @@ namespace Aardvark.Geometry.Points
                 );
 
             var cache = new CellQueryResult2dCache();
-
-            //// old-style
-            //var bounds = root.Cell.GetRasterBounds(cellExponent);
-            //for (var x = bounds.Min.X; x <= bounds.Max.X; x++)
-            //{
-            //    if (x % stride.X != 0) continue;
-            //    for (var y = bounds.Min.Y; y <= bounds.Max.Y; y++)
-            //    {
-            //        if (y % stride.Y != 0) continue;
-            //        yield return new CellQueryResult2d(root, new Cell2d(x, y, cellExponent), cache);
-            //    }
-            //}
 
             // new-style
             var cs = new ColZ(root).EnumerateColumns(cellExponent, stride);
@@ -605,10 +670,17 @@ namespace Aardvark.Geometry.Points
                 {
                     foreach (var x in n.ToChunk(fromRelativeDepth))
                     {
-                        yield return x;
+                        if (x.Count > 0)
+                        {
+                            yield return x;
+                        }
                     }
                 }
-                yield return Rest;
+
+                if (Rest.Count > 0)
+                {
+                    yield return Rest;
+                }
             }
 
             private ColZ[] Split()

@@ -35,30 +35,17 @@ module RasterExtensions =
     type Cell2d with
         static member Create(xy : V2l, e : int<potexp>) = Cell2d(xy, int e)
 
-type ITileData =
-    //abstract member Materialize : unit -> ITileData
-    abstract member Data : Array with get
-
 /// A two-dim raster of values.
 type TileData<'a> =
     /// (data, mapping), where mapping places the samples globally.
     | ArrayTile of 'a[] * Box2l
     /// (data, mapping, window), where window is absolute (not relative to mapping).
     | WindowedTile of 'a[] * Box2l * Box2l
-    /// (tile, cell, e), where e specifies the sample size as 2^e.
-    /// E.g. for cell.Exponent=8 and e=2 the cell contains a raster of 64x64 samples (which may only be partially covered, as specified by raster bounds).
-    /// Coords (x,y) of 'cell.Bounds' now live in space Cell2d(x, y, cell.Exponent - e), and must be contained in 'cell'.
-    | CellTile of TileData<'a> * Cell2d * int<potexp>
 with
     override this.ToString() =
         match this with
         | ArrayTile (data, mapping) -> sprintf "ArrayTile(%d, %A)" data.Length mapping
         | WindowedTile (data, mapping, window) -> sprintf "WindowedTile(%d, %A, %A)" data.Length mapping window
-        | CellTile (tile, cell, e) -> sprintf "CellTile(%A, %A, %d)" (tile.ToString()) cell e
-
-    interface ITileData with
-        //member this.Materialize() = TileData.materialize this
-        member this.Data with get() = match this with | ArrayTile (data, _) -> data :> Array | WindowedTile (data, _, _) -> data :> Array | CellTile (t, _, _) -> (t :> ITileData).Data
 
 module TileData =
 
@@ -69,7 +56,7 @@ module TileData =
     let OfArray(mapping, data) = ofArray mapping data
 
     /// Creates windowed tile data.
-    let rec withWindow (window : Box2l) tile =
+    let withWindow (window : Box2l) tile =
         match tile with
 
         | ArrayTile (data, mapping) ->
@@ -81,11 +68,8 @@ module TileData =
             if window = mapping || window = oldWindow then tile
             else WindowedTile (data, mapping, window)
 
-        | CellTile (tile, cell, e) ->
-            CellTile (tile |> withWindow window, cell, e)
-
     /// Ensure that tile is not windowed, i.e. copy out windowed data.
-    let rec materialize tile =
+    let materialize tile =
         match tile with
 
         | ArrayTile _ -> tile
@@ -107,37 +91,22 @@ module TileData =
                 j0 <- j0 + widthMapping
             ArrayTile (xs, window)
 
-        | CellTile (tile, cell, e) ->
-            CellTile (tile |> materialize, cell, e)
+    /// Get raw data array of tile.
+    let data tile = match tile with | ArrayTile (data, _) -> data | WindowedTile (data, _, _) -> data
 
     /// Get bounds of tile.
-    let rec bounds tile = match tile with | ArrayTile (_, m) -> m | WindowedTile (_, _, w) -> w | CellTile (t, _, _) -> bounds t
+    let bounds tile = match tile with | ArrayTile (_, m) -> m | WindowedTile (_, _, w) -> w
 
     /// Get size (columns x rows) of tile. 
-    let rec size tile = match tile with | ArrayTile (_, m) -> m.Size | WindowedTile (_, _, w) -> w.Size | CellTile (t, _, _) -> size t
-
-    ///// Get raw data of tile.
-    //let rec data tile = match tile with | ArrayTile (data, _) -> data | WindowedTile (data, _, _) -> data | CellTile (t, _, _) -> data t
-
-    /// Create a tile aligned with a Cell2d with sample size = 2^sampleExp.
-    let withCell (cell : Cell2d) (sampleExp : int<potexp>) tile  =
-        let bb = tile |> bounds
-        let maxRes = potexp2pot (cell.Exponent * 1<potexp> - sampleExp)
-        if bb.Size.AnyGreater(int64 maxRes) then invalidArg "tile" "Tile size too large."
-        let foo = V2l(cell.X * int64 maxRes, cell.Y * int64 maxRes)
-        if bb.Min.AnySmaller(foo) then invalidArg "tile" "Tile not aligned"
-        if bb.Max.AnyGreater(foo + int64 maxRes) then invalidArg "tile" "Tile not aligned"
-        CellTile (tile, cell, sampleExp)
+    let size tile = match tile with | ArrayTile (_, m) -> m.Size | WindowedTile (_, _, w) -> w.Size
 
     /// Split tile into quadrants (at center).
-    let rec splitIntoQuadrants tile =
+    let splitIntoQuadrants tile =
         match tile with
         | ArrayTile (data, mapping) -> 
             mapping.SplitAtCenter() |> Array.map (fun box -> WindowedTile (data, mapping, box))
         | WindowedTile (data, mapping, window) -> 
             window.SplitAtCenter()  |> Array.map (fun box -> WindowedTile (data, mapping, box))
-        | CellTile (tile, cell, e) -> 
-            tile |> splitIntoQuadrants |> Array.mapi (fun i t -> CellTile (t, cell.GetQuadrant(i), e))
 
     // (tilecoords, tilewindow) seq
     let splitIntoTiles (tilesize : V2l) tile =
@@ -161,16 +130,16 @@ module TileData =
                 y <- y + 1L
         }
 
-    /// Splits a 'source' tile into cells with given size ('targetCellExponent'), where
-    /// each sample of the source tile is defined to have size 'sourceSampleExponent'.
-    /// E.g. for sourceSampleExponent = -2 (size 0.25 x 0.25) and targetCellExponent = 7 (size 128.0 x 128.0)
-    /// the function will return a sequence of cell tiles with 512x512 samples, aligned at multiples of 512 with respect to the source raster.
-    /// Border cells may have fewer samples.
-    let splitIntoCells (targetCellExponent : int<potexp>) (sourceSampleExponent : int<potexp>) (source : TileData<'a>) =
-        let targetResolution = potexp2pot (targetCellExponent - sourceSampleExponent)
-        source
-        |> splitIntoTiles (V2l(int64 targetResolution)) 
-        |> Seq.map (fun (xy, t) -> t |> withCell (Cell2d.Create(xy, targetCellExponent)) sourceSampleExponent) 
+    ///// Splits a 'source' tile into cells with given size ('targetCellExponent'), where
+    ///// each sample of the source tile is defined to have size 'sourceSampleExponent'.
+    ///// E.g. for sourceSampleExponent = -2 (size 0.25 x 0.25) and targetCellExponent = 7 (size 128.0 x 128.0)
+    ///// the function will return a sequence of cell tiles with 512x512 samples, aligned at multiples of 512 with respect to the source raster.
+    ///// Border cells may have fewer samples.
+    //let splitIntoCells (targetCellExponent : int<potexp>) (sourceSampleExponent : int<potexp>) (source : TileData<'a>) =
+    //    let targetResolution = potexp2pot (targetCellExponent - sourceSampleExponent)
+    //    source
+    //    |> splitIntoTiles (V2l(int64 targetResolution)) 
+    //    |> Seq.map (fun (xy, t) -> t |> withCell (Cell2d.Create(xy, targetCellExponent)) sourceSampleExponent) 
 
     ()
 
@@ -178,12 +147,12 @@ type TileData<'a> with
     member this.WithWindow (window : Box2l) = TileData.withWindow window this
     member this.WithWindow (window : Box2i) = TileData.withWindow (Box2l window) this
     member this.Materialize () = TileData.materialize this
+    member this.Data with get() = TileData.data this
     member this.Bounds with get() = TileData.bounds this
     member this.Size with get() = TileData.size this
-    member this.WithCell cell sampleExp = TileData.withCell cell sampleExp this
     member this.SplitIntoQuadrants () = TileData.splitIntoQuadrants this
     member this.SplitIntoTiles (tileSize : V2l) = TileData.splitIntoTiles tileSize this
-    member this.SplitIntoCells (targetCellExponent : int<potexp>) (sourceSampleExponent : int<potexp>) = TileData.splitIntoCells targetCellExponent sourceSampleExponent this
+    //member this.SplitIntoCells (targetCellExponent : int<potexp>) (sourceSampleExponent : int<potexp>) = TileData.splitIntoCells targetCellExponent sourceSampleExponent this
 
     
 
@@ -197,30 +166,10 @@ module Raster =
     module Defs =
         let private def id name description (typ : Def) = Def(Guid.Parse(id), name, description, typ.Id, false)
 
-        module Primitives =
-
-            let Cell2d                          = def "9d580e5d-a559-4c5e-9413-7675f1dfe93c" "Cell2d" "A 2^Exponent sized cube positioned at (X,Y,Z) * 2^Exponent." Durable.Primitives.Unit
-
-            let Float32ArrayWithFloat64Offset   = def "aab1d3e2-80f9-4f12-895c-81cd5fc5d096" "Float32ArrayWithFloat64Offset" "Float64[] data stored as Int32[] plus Float64 offset." Durable.Primitives.Unit
-
-            let Int32ArrayWithInt64Offset       = def "8061bb56-3076-4afd-865d-c9a7701d225a" "Int32ArrayWithInt64Offset" "Int64[] data stored as Int32[] plus Int64 offset." Durable.Primitives.Unit
-            let Int16ArrayWithInt64Offset       = def "f200bcb7-e462-4d42-88e8-d8bfcb10c265" "Int16ArrayWithInt64Offset" "Int64[] data stored as Int16[] plus Int64 offset." Durable.Primitives.Unit
-            let Int8ArrayWithInt64Offset        = def "46cc0b8e-c4e4-4626-940f-d2adc28c0c00" "Int8ArrayWithInt64Offset" "Int64[] data stored as Int8[] plus Int64 offset." Durable.Primitives.Unit
-            let Int16ArrayWithInt32Offset       = def "8daf811d-3d1c-4219-8f2e-22c6c49de6cd" "Int16ArrayWithInt32Offset" "Int32[] data stored as Int16[] plus Int32 offset." Durable.Primitives.Unit
-            let Int8ArrayWithInt32Offset        = def "fd4db85a-5b2c-4390-aeb3-9f2162034ebb" "Int8ArrayWithInt32Offset" "Int32[] data stored as Int8[] plus Int32 offset." Durable.Primitives.Unit
-            let Int8ArrayWithInt16Offset        = def "2a9f5350-02d3-45e7-84db-5ec55d105787" "Int8ArrayWithInt16Offset" "Int16[] data stored as Int8[] plus Int16 offset." Durable.Primitives.Unit
-
-            let UInt32ArrayWithUInt64Offset     = def "3f3d719a-5a3b-4a97-b9f6-a821c063374f" "UInt32ArrayWithUInt64Offset" "UInt64[] data stored as UInt32[] plus UInt64 offset." Durable.Primitives.Unit
-            let UInt16ArrayWithUInt64Offset     = def "f4387c8f-92de-4af7-96fe-5b1e0e3ff935" "UInt16ArrayWithUInt64Offset" "UInt64[] data stored as UInt16[] plus UInt64 offset." Durable.Primitives.Unit
-            let UInt8ArrayWithUInt64Offset      = def "166f9886-61a9-4d81-b072-b86bab4e3ba3" "UInt8ArrayWithUInt64Offset" "UInt64[] data stored as UInt8[] plus UInt64 offset." Durable.Primitives.Unit
-            let UInt16ArrayWithUInt32Offset     = def "2477f185-8c5b-4f5c-b3d0-21e63f361304" "UInt16ArrayWithUInt32Offset" "UInt32[] data stored as UInt16[] plus UInt32 offset." Durable.Primitives.Unit
-            let UInt8ArrayWithUInt32Offset      = def "92355e69-b783-45cd-bf6b-cd5fb978ea33" "UInt8ArrayWithUInt32Offset" "UInt32[] data stored as UInt8[] plus UInt32 offset." Durable.Primitives.Unit
-            let UInt8ArrayWithUInt16Offset      = def "625a813d-f2bd-4034-a69c-d967fef3da50" "UInt8ArrayWithUInt16Offset" "UInt16[] data stored as UInt8[] plus UInt16 offset." Durable.Primitives.Unit
-
         module Quadtree =
             let Node                    = def "e497f9c1-c903-41c4-91de-32bf76e009da" "Quadtree.Node" "A quadtree node. DurableMapAligned16." Durable.Primitives.DurableMapAligned16
             let NodeId                  = def "e46c4163-dd28-43a4-8254-bc21dc3f766b" "Quadtree.NodeId" "Quadtree. Unique id of a node. Guid." Durable.Primitives.GuidDef
-            let CellBounds              = def "59258849-5765-4d11-b760-538282063a55" "Quadtree.CellBounds" "Quadtree. Node bounds in cell space. Cell2d." Primitives.Cell2d
+            let CellBounds              = def "59258849-5765-4d11-b760-538282063a55" "Quadtree.CellBounds" "Quadtree. Node bounds in cell space. Cell2d." Durable.Aardvark.Cell2d
             let SampleMapping           = def "2f363f2a-2e52-4a86-a620-d8689db511ad" "Quadtree.SampleMapping" "Quadtree. Mapping of sample values to cell space. Box2l." Durable.Aardvark.Box2l
             let SampleSizePotExp        = def "1aa56aca-de4c-4705-9baf-11f8766a0892" "Quadtree.SampleSizePotExp" "Quadtree. Size of a sample is 2^SampleSizePotExp. Int32." Durable.Primitives.Int32
             let SubnodeIds              = def "a2841629-e4e2-4b90-bdd1-7a1a5a41bded" "Quadtree.SubnodeIds" "Quadtree. Subnodes as array of guids. Array length is 4 for inner nodes (where Guid.Empty means no subnode) and no array for leaf nodes. Guid[]." Durable.Primitives.GuidArray
@@ -231,7 +180,7 @@ module Raster =
             let Heights1d               = def "c66a4240-00ef-44f9-b377-0667f279b97e" "Quadtree.Heights1d" "Quadtree. Height values. Float64[]." Durable.Primitives.Float64Array
             let Heights1dRef            = def "baa8ed40-57e3-4f88-8d11-0b547494c8cb" "Quadtree.Heights1d.Reference" "Quadtree. Reference to Quadtree.Heights1d. Guid." Durable.Primitives.GuidDef
 
-            let Heights1dWithOffset     = def "924ae8a2-7b9b-4e4d-a609-7b0381858499" "Quadtree.Heights1dWithOffset" "Quadtree. Height values. Float64 offset + Float32[] values." Primitives.Float32ArrayWithFloat64Offset
+            let Heights1dWithOffset     = def "924ae8a2-7b9b-4e4d-a609-7b0381858499" "Quadtree.Heights1dWithOffset" "Quadtree. Height values. Float64 offset + Float32[] values." Durable.Primitives.Float32ArrayWithFloat64Offset
             let Heights1dWithOffsetRef  = def "2815c5a7-48bf-48b6-ba7d-5f4e98f6bc47" "Quadtree.Heights1dWithOffset.Reference" "Quadtree. Reference to Quadtree.Heights1dWithOffset. Guid." Durable.Primitives.GuidDef
 
             let HeightStdDevs1f         = def "74bfe324-98ad-4f57-8163-120361e1e68e" "Quadtree.HeightStdDevs1f" "Quadtree. Standard deviation per height value. Float32[]." Durable.Primitives.Float32Array
@@ -249,29 +198,36 @@ module Raster =
 
     /// Create data map for RasterNode2d.
     let CreateData(id : Guid, 
-                   cellBounds : Cell2d,
-                   sampleMapping : Box2l option,
+                   cellBounds       : Cell2d,
+                   sampleMapping    : Box2l option,
                    sampleSizePotExp : int<potexp> option,
-                   globalHeights1d  : TileData<float> option,
+                   heights1d        : TileData<float> option,
                    heightStdDevs1f  : TileData<float32> option,
                    colors4b         : TileData<C4b> option,
                    intensities1i    : TileData<int> option 
                    ) =
         let add (def : Durable.Def) (value : 'a) (data : Map<Guid, obj>) = data |> Map.add def.Id (value :> obj)
         let tryAdd (def : Durable.Def) (value : 'a option) (data : Map<Guid, obj>) = if value.IsSome then data |> Map.add def.Id (value.Value :> obj) else data
-        let tryAddTile (def : Durable.Def) (value : TileData<'a> option) (data : Map<Guid, obj>) = 
-            if value.IsSome then
-                match value.Value with
-                | CellTile (tile, _, _) -> data |> Map.add def.Id ((tile.Materialize() :> ITileData).Data :> obj)
-                | _ -> failwith "Must be CellTile."
-            else 
-                data
+        let tryAddTile (def : Durable.Def) (value : TileData<'a> option) (data : Map<Guid, obj>) =
+            match value, sampleSizePotExp with
+            | Some tile, Some sampleSizePotExp ->
+                /// create a tile aligned with a Cell2d with sample size = 2^sampleExp ...
+                let bb = tile |> TileData.bounds
+                let maxRes = potexp2pot (cellBounds.Exponent * 1<potexp> - sampleSizePotExp)
+                if bb.Size.AnyGreater(int64 maxRes) then invalidArg "tile" "Tile size too large."
+                let foo = V2l(cellBounds.X * int64 maxRes, cellBounds.Y * int64 maxRes)
+                if bb.Min.AnySmaller(foo) then invalidArg "tile" "Tile not aligned"
+                if bb.Max.AnyGreater(foo + int64 maxRes) then invalidArg "tile" "Tile not aligned"
+                data |> Map.add def.Id (tile |> TileData.materialize |> TileData.data :> obj)
+            | None, None -> data
+            | _          -> failwith "Inconsistent parameters."
+            
         Map.empty
         |> add Quadtree.NodeId                  id
         |> add Quadtree.CellBounds              cellBounds
         |> tryAdd Quadtree.SampleMapping        sampleMapping
         |> tryAdd Quadtree.SampleSizePotExp     sampleSizePotExp
-        |> tryAddTile Quadtree.Heights1d        globalHeights1d
+        |> tryAddTile Quadtree.Heights1d        heights1d
         |> tryAddTile Quadtree.HeightStdDevs1f  heightStdDevs1f
         |> tryAddTile Quadtree.Colors4b         colors4b
         |> tryAddTile Quadtree.Intensities1i    intensities1i

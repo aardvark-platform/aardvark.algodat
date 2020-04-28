@@ -136,31 +136,31 @@ namespace Aardvark.Data.Points
 
         /// <summary>
         /// </summary>
-        public static Chunk ImmutableMerge(IEnumerable<Chunk> chunks)
+        public static Chunk ImmutableMerge(params Chunk[] chunks)
         {
-            chunks = chunks?.Where(x => !x.IsEmpty);
-            if (chunks.IsEmptyOrNull()) return Empty;
-            
+            if (chunks == null || chunks.Length == 0) return Empty;
+            if (chunks.Length == 1) return chunks[0];
 
-            var head = chunks.First();
-            var rest = chunks.Skip(1);
-            if (rest.IsEmpty()) return head;
+            var head = chunks[0];
+            var totalCount = chunks.Sum(c => c.Count);
 
-            var ps = head.HasPositions ? new List<V3d>(head.Positions) : null;
-            var cs = head.HasColors ? new List<C4b>(head.Colors) : null;
-            var ns = head.HasNormals ? new List<V3f>(head.Normals) : null;
-            var js = head.HasIntensities ? new List<int>(head.Intensities) : null;
-            var ks = head.HasClassifications ? new List<byte>(head.Classifications) : null;
-            var vs = head.HasVelocities ? new List<V3f>(head.Velocities) : null;
+            var ps = head.HasPositions ? new V3d[totalCount] : null;
+            var cs = head.HasColors ? new C4b[totalCount] : null;
+            var ns = head.HasNormals ? new V3f[totalCount] : null;
+            var js = head.HasIntensities ? new int[totalCount] : null;
+            var ks = head.HasClassifications ? new byte[totalCount] : null;
+            var vs = head.HasVelocities ? new V3f[totalCount] : null;
 
-            foreach (var chunk in rest)
+            var offset = 0;
+            foreach (var chunk in chunks)
             {
-                if (ps != null) ps.AddRange(chunk.Positions);
-                if (cs != null) cs.AddRange(chunk.Colors);
-                if (ns != null) ns.AddRange(chunk.Normals);
-                if (js != null) js.AddRange(chunk.Intensities);
-                if (ks != null) ks.AddRange(chunk.Classifications);
-                if (vs != null) vs.AddRange(chunk.Velocities);
+                if (ps != null) chunk.Positions.CopyTo(ps, offset);
+                if (cs != null) chunk.Colors.CopyTo(cs, offset);
+                if (ns != null) chunk.Normals.CopyTo(ns, offset);
+                if (js != null) chunk.Intensities.CopyTo(js, offset);
+                if (ks != null) chunk.Classifications.CopyTo(ks, offset);
+                if (vs != null) chunk.Velocities.CopyTo(vs, offset);
+                offset += chunk.Count;
             }
 
             return new Chunk(ps, cs, ns, js, ks, vs, new Box3d(chunks.Select(x => x.BoundingBox)));
@@ -168,8 +168,8 @@ namespace Aardvark.Data.Points
 
         /// <summary>
         /// </summary>
-        public static Chunk ImmutableMerge(params Chunk[] args)
-            => ImmutableMerge((IEnumerable<Chunk>)args);
+        public static Chunk ImmutableMerge(IEnumerable<Chunk> chunks)
+            => ImmutableMerge(chunks.ToArray());
 
         /// <summary>
         /// </summary>

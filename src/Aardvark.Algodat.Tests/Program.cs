@@ -638,7 +638,7 @@ namespace Aardvark.Geometry.Tests
 
             //var oSize = 2;
             //var iSize = 1;
-            var cellExponent = 5;
+            //var cellExponent = 5;
 
             //Report.BeginTimed("total");
             //var xs = root.EnumerateCellColumns(cellExponent);
@@ -656,41 +656,55 @@ namespace Aardvark.Geometry.Tests
             //}
             //Report.End();
 
-            for (cellExponent = 11; cellExponent >= -10; cellExponent--)
-            {
-                Report.BeginTimed($"[old] e = {cellExponent,3}");
-                var xs = root.EnumerateCellColumns(cellExponent);
-                var totalPointCount = 0L;
-                var count = 0L;
-                foreach (var x in xs)
-                {
-                    count++;
-                    var cs0 = x.GetPoints(int.MaxValue).ToArray();
-                    var tmp = cs0.Sum(c => c.Count);
-                    totalPointCount += tmp;
-                    //Report.Line($"[{x.Cell.X,3}, {x.Cell.Y,3}, {x.Cell.Exponent,3}] {tmp,10:N0}");
-                }
-                //if (sum != root.PointCountTree) throw new Exception();
-                Report.End($" | cols = {count,12:N0} | points = {totalPointCount,12:N0}");
-            }
+            //for (cellExponent = 11; cellExponent >= -10; cellExponent--)
+            //{
+            //    Report.BeginTimed($"[old] e = {cellExponent,3}");
+            //    var xs = root.EnumerateCellColumns(cellExponent);
+            //    var totalPointCount = 0L;
+            //    var count = 0L;
+            //    foreach (var x in xs)
+            //    {
+            //        count++;
+            //        var cs0 = x.GetPoints(int.MaxValue).ToArray();
+            //        var tmp = cs0.Sum(c => c.Count);
+            //        totalPointCount += tmp;
+            //        //Report.Line($"[{x.Cell.X,3}, {x.Cell.Y,3}, {x.Cell.Exponent,3}] {tmp,10:N0}");
+            //    }
+            //    //if (sum != root.PointCountTree) throw new Exception();
+            //    Report.End($" | cols = {count,12:N0} | points = {totalPointCount,12:N0}");
+            //}
 
-            for (cellExponent = 11; cellExponent >= -10; cellExponent--)
+            for (var cellExponent = 11; cellExponent >= -10; cellExponent--)
             {
                 Report.BeginTimed($"[new] e = {cellExponent,3}");
-                var ys = new Queries.ColZ(root).EnumerateColumns(cellExponent, new V2i(2,2));
+                var ys = root.EnumerateCellColumns(cellExponent);
                 var totalPointCount = 0L;
                 var count = 0L;
                 foreach (var y in ys)
                 {
                     count++;
-                    var cs0 = y.GetPoints(int.MaxValue).ToArray();
-                    totalPointCount += cs0.Sum(c => c.Count);
+                    var cs0 = y.CollectPoints(int.MaxValue);
+                    totalPointCount += cs0.Points.Count;
                     //totalPointCount += y.CountTotal;
                     //Report.Line($"[{y.Footprint.X,3}, {y.Footprint.Y,3}, {y.Footprint.Exponent,3}] {y.CountTotal,10:N0}");
                 }
                 //if (totalPointCount != root.PointCountTree) throw new Exception();
                 Report.End($" | cols = {count,12:N0} | points = {totalPointCount,12:N0}");
             }
+
+            //Console.WriteLine($"BoundingBoxExactGlobal: {root.BoundingBoxExactGlobal:0.00}");
+            //Console.WriteLine($"Cell.BoundingBox:       {root.Cell.BoundingBox:0.00}");
+            //Console.WriteLine($"Cell:                   {root.Cell}");
+            //var columns = root.EnumerateCellColumns(6, new V2i(1,1));
+            //Console.WriteLine("for each column:");
+            //foreach (var column in columns)
+            //{
+            //    Console.WriteLine($"    {column.Cell}");
+            //    foreach (var chunk in column.GetPoints(4, new Box2i(-1,-1,+1,+1)))
+            //    {
+            //        Console.WriteLine($"        {chunk.Footprint}  {chunk.Points.Count}");
+            //    }
+            //}
         }
 
         internal static void DumpPointSetKeys()
@@ -887,7 +901,7 @@ namespace Aardvark.Geometry.Tests
             { }
             Console.WriteLine("----------------------------------------------------");
 
-            foreach (var x in materialized.SplitIntoCells(10, 0).Select(x => x.Materialize()))
+            foreach (var x in materialized.SplitIntoTiles(new V2l(1024L)).Select(x => x.Item2.Materialize()))
             {
                 Console.WriteLine(x.ToString());
             }
@@ -919,11 +933,11 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] _)
         {
-            RasterTest();
+            //RasterTest();
+
+            EnumerateCells2dTest();
 
             //HeraTest();
-
-            //EnumerateCells2dTest();
 
             //TestE57();
 
