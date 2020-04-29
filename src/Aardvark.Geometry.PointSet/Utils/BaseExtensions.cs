@@ -133,7 +133,7 @@ namespace Aardvark.Geometry.Points
             for (var i = 0; i < imax; i++)
             {
                 var plane = planes[i];
-                for (var j = 0; j < 8; i++) if (plane.Height(corners[j]) > 0) return false;
+                for (var j = 0; j < 8; j++) if (plane.Height(corners[j]) > 0) return false;
             }
             return true;
         }
