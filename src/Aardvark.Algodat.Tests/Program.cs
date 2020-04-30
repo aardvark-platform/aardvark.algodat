@@ -931,11 +931,38 @@ namespace Aardvark.Geometry.Tests
             //Console.ReadLine();
         }
 
+        internal static bool IntersectsNew(Plane2d plane, Ray2d ray, out V2d point)
+        {
+            var nd = Vec.Dot(plane.Normal, ray.Direction);
+            if (nd.IsTiny())
+            {
+                point = V2d.NaN;
+                return false;
+            }
+            else
+            {
+                var t = (plane.Distance - Vec.Dot(plane.Normal, ray.Origin)) / nd;
+                point = ray.Origin + t * ray.Direction;
+                return true;
+            }
+        }
+
         public static void Main(string[] _)
         {
+            //var plane = new Plane2d(new V2d(-3.6701585479226354E-16, 1), 1.5236516412689705);
+            //var ray = new Ray2d(new V2d(1.8373474556174547, 1.5236516412689713), new V2d(1.8299999713048472, -2.2204460492503131E-16));
+            //var result = IntersectsNew(plane, ray, out var hit);
+            //Console.WriteLine($"{result}    {hit}");
+
+            var plane = new Plane2d(new V2d(-3.6701585479226354E-16, 1), 1.5236516412689705);
+            var ray = new Ray2d(new V2d(1.8373474556174547, 1.5236516412689713), new V2d(1.8299999713048472, -2.2204460492503131E-16));
+            var result = IntersectsNew(plane, ray, out var hit);
+            Console.WriteLine($"{result}    {hit}");
+
+
             //RasterTest();
 
-            EnumerateCells2dTest();
+            //EnumerateCells2dTest();
 
             //HeraTest();
 
