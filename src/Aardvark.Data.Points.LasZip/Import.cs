@@ -1,5 +1,7 @@
 ﻿/*
     Copyright (C) 2017. Stefan Maierhofer.
+    Copied from https://github.com/stefanmaierhofer/LASzip.
+
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -18,13 +20,13 @@ using System.Linq;
 namespace Aardvark.Data.Points.Import
 {
     /// <summary>
-    /// Importer for PTS format.
+    /// Importer for Laszip format.
     /// </summary>
     [PointCloudFileFormatAttribute]
     public static class Laszip
     {
         /// <summary>
-        /// Pts file format.
+        /// Laszip file format.
         /// </summary>
         public static readonly PointCloudFileFormat LaszipFormat;
 
@@ -41,12 +43,22 @@ namespace Aardvark.Data.Points.Import
             => LASZip.Parser.ReadPoints(filename, config.MaxChunkPointCount)
             .Select(x => new Chunk(x.Positions, x.Colors, null, null, x.Classifications));
 
+
         /// <summary>
         /// Parses LASzip (.las, .laz) stream.
         /// </summary>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Default signature.")]
         public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, ParseConfig config)
             => LASZip.Parser.ReadPoints(stream, config.MaxChunkPointCount)
             .Select(x => new Chunk(x.Positions, x.Colors, null, null, x.Classifications));
+
+        /// <summary>
+        /// Parses LASzip (.las, .laz) stream.
+        /// </summary>
+        public static IEnumerable<Chunk> Chunks(this Stream stream, ParseConfig config)
+            => LASZip.Parser.ReadPoints(stream, config.MaxChunkPointCount)
+            .Select(x => new Chunk(x.Positions, x.Colors, null, null, x.Classifications));
+
 
         /// <summary>
         /// Gets general info for LASzip (.las, .laz) file.

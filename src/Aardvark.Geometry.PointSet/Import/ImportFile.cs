@@ -58,7 +58,15 @@ namespace Aardvark.Geometry.Points
                     ;
             }
 
-            return PointCloudFileFormat.FromFileName(filename).ImportFile(filename, config);
+            var format = PointCloudFileFormat.FromFileName(filename);
+            if (format != PointCloudFileFormat.Unknown)
+            {
+                return format.ImportFile(filename, config);
+            }
+            else
+            {
+                throw new Exception($"Did not find parser for file '{filename}'.");
+            }
         }
 
         /// <summary>

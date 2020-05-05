@@ -16,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace Aardvark.Data.Points
@@ -37,6 +38,11 @@ namespace Aardvark.Data.Points
     public class PointCloudFileFormat
     {
         static PointCloudFileFormat()
+        {
+            RegisterViaIntrospection();
+        }
+
+        private static void RegisterViaIntrospection()
         {
             var xs = Introspection.GetAllTypesWithAttribute<PointCloudFileFormatAttributeAttribute>().ToArray();
             foreach (var x in xs)
@@ -116,22 +122,73 @@ namespace Aardvark.Data.Points
         /// </summary>
         public static PointCloudFileFormat FromFileName(string filename)
         {
-            lock (s_registry)
+            var result = Lookup();
+            
+            if (result == Unknown)
             {
-                var ext = GetExt(filename);
-                var formats = s_registry
-                    .SelectMany(kv => kv.Value.FileExtensions.Select(x => Tuple.Create(x, kv.Value)))
-                    .Where(x => x.Item1 == ext)
-                    .ToArray()
-                    ;
-                if (formats.Length == 0) return Unknown;
-                if (formats.Length > 1) throw new Exception($"More than 1 file format registered for '{filename}' ({string.Join(", ", formats.Select(x => $"'{x.Item2.Description}'"))}).");
-                return formats.Single().Item2;
+                RegisterParsersFromAssembliesAlongsideExecutingAssembly();
+                result = Lookup();
+            }
+
+            return result;
+
+            PointCloudFileFormat Lookup()
+            {
+                lock (s_registry)
+                {
+                    var ext = GetExt(filename);
+                    var formats = s_registry
+                        .SelectMany(kv => kv.Value.FileExtensions.Select(x => Tuple.Create(x, kv.Value)))
+                        .Where(x => x.Item1 == ext)
+                        .ToArray()
+                        ;
+                    if (formats.Length == 0)
+                    {
+                        return Unknown;
+                    }
+                    else if (formats.Length > 1)
+                    {
+                        throw new Exception($"More than 1 file format registered for '{filename}' ({string.Join(", ", formats.Select(x => $"'{x.Item2.Description}'"))}).");
+                    }
+                    else
+                    {
+                        return formats.Single().Item2;
+                    }
+                }
+            }
+        }
+
+        private static void RegisterParsersFromAssembliesAlongsideExecutingAssembly()
+        {
+            try
+            {
+                var folder = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                var assemblies = Directory.EnumerateFiles(folder)
+                    .Where(p => { var ext = Path.GetExtension(p).ToLowerInvariant(); return ext == ".dll" || ext == ".exe"; })
+                    .Select(Path.GetFullPath)
+                    .ToArray();
+                foreach (var x in assemblies)
+                {
+                    try
+                    {
+                        var a = Assembly.LoadFrom(x);
+                        Introspection.RegisterAssembly(a);
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                RegisterViaIntrospection();
+            }
+            catch (Exception e)
+            {
+                Report.Warn($"{e}");
             }
         }
 
         private static string GetExt(string filename) => Path.GetExtension(filename).ToLowerInvariant();
-        private static Dictionary<string, PointCloudFileFormat> s_registry = new Dictionary<string, PointCloudFileFormat>();
+        private static readonly Dictionary<string, PointCloudFileFormat> s_registry = new Dictionary<string, PointCloudFileFormat>();
 
         #endregion
     }

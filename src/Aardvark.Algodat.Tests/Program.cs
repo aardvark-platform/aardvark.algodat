@@ -63,6 +63,7 @@ namespace Aardvark.Geometry.Tests
 
             Report.Line($"count -> {pc.PointCount}");
         }
+
         internal static void TestE57()
         {
             //var sw = new Stopwatch();
@@ -546,7 +547,7 @@ namespace Aardvark.Geometry.Tests
                 }
 
         public static void ExportExamples(string filepath, bool collapse, bool gzipped, int? positionsRoundedToNumberOfDigits)
-            {
+        {
             //// Example 1: export point cloud to folder
             //{
             //    var ct = new CancellationTokenSource(10000);
@@ -947,7 +948,7 @@ namespace Aardvark.Geometry.Tests
             }
         }
 
-        public static void Main(string[] _)
+        internal static void IntersectsNewTest()
         {
             //var plane = new Plane2d(new V2d(-3.6701585479226354E-16, 1), 1.5236516412689705);
             //var ray = new Ray2d(new V2d(1.8373474556174547, 1.5236516412689713), new V2d(1.8299999713048472, -2.2204460492503131E-16));
@@ -958,7 +959,17 @@ namespace Aardvark.Geometry.Tests
             var ray = new Ray2d(new V2d(1.8373474556174547, 1.5236516412689713), new V2d(1.8299999713048472, -2.2204460492503131E-16));
             var result = IntersectsNew(plane, ray, out var hit);
             Console.WriteLine($"{result}    {hit}");
+        }
 
+        internal static void PointCloudImportCleanup()
+        {
+            var filename = @"T:\Vgm\Data\E57\JBs_Haus.e57";
+            var cloud = PointCloud.Import(filename);
+        }
+
+        public static void Main(string[] _)
+        {
+            PointCloudImportCleanup();
 
             //RasterTest();
 
