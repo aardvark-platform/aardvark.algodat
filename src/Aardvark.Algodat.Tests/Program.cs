@@ -4,6 +4,7 @@ using Aardvark.Base.IL;
 using Aardvark.Data;
 using Aardvark.Data.Points;
 using Aardvark.Data.Points.Import;
+using Aardvark.Geometry;
 using Aardvark.Geometry.Points;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -15,9 +16,11 @@ using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Runtime.InteropServices.ComTypes;
 using System.Threading;
 using System.Threading.Tasks;
 using Uncodium.SimpleStore;
+using static Aardvark.Geometry.Points.Queries;
 
 namespace Aardvark.Geometry.Tests
 {
@@ -634,8 +637,25 @@ namespace Aardvark.Geometry.Tests
             //CreateStore(inputFile, storeName, key, 0.005);
             
             var store = new SimpleDiskStore(storeName).ToPointCloudStore(cache: default);
-            var pc = store.GetPointSet(key);
-            var root = pc.Root.Value;
+            var pc = store.GetPointSet(key).Root.Value;
+            Console.WriteLine($"total points: {pc.PointCountTree}");
+
+            // enumerateCells2d
+            var stride = 3;
+            var columns = pc.EnumerateCellColumns(cellExponent: 8, stride: new V2i(stride));
+
+            var total = 0L;
+            foreach (var c in columns)
+            {
+                Console.WriteLine($"{c.Cell,-20} {c.ColZ.CountTotal,15:N0}");
+                var halfstride = (stride - 1) / 2;
+                var xs = c.CollectPoints(int.MaxValue, new Box2i(-halfstride, -halfstride, +halfstride, +halfstride));
+                var sum = xs.Sum(x => x.Points.Count);
+                total += sum;
+                foreach (var x in xs) Console.WriteLine($"  {x.Footprint,-20} {x.Points.Count,15:N0}");
+                //Console.ReadLine();
+            }
+
 
             //var oSize = 2;
             //var iSize = 1;
@@ -675,23 +695,23 @@ namespace Aardvark.Geometry.Tests
             //    Report.End($" | cols = {count,12:N0} | points = {totalPointCount,12:N0}");
             //}
 
-            for (var cellExponent = 11; cellExponent >= -10; cellExponent--)
-            {
-                Report.BeginTimed($"[new] e = {cellExponent,3}");
-                var ys = root.EnumerateCellColumns(cellExponent);
-                var totalPointCount = 0L;
-                var count = 0L;
-                foreach (var y in ys)
-                {
-                    count++;
-                    var cs0 = y.CollectPoints(int.MaxValue);
-                    totalPointCount += cs0.Points.Count;
-                    //totalPointCount += y.CountTotal;
-                    //Report.Line($"[{y.Footprint.X,3}, {y.Footprint.Y,3}, {y.Footprint.Exponent,3}] {y.CountTotal,10:N0}");
-                }
-                //if (totalPointCount != root.PointCountTree) throw new Exception();
-                Report.End($" | cols = {count,12:N0} | points = {totalPointCount,12:N0}");
-            }
+            //for (var cellExponent = 11; cellExponent >= -10; cellExponent--)
+            //{
+            //    Report.BeginTimed($"[new] e = {cellExponent,3}");
+            //    var ys = root.EnumerateCellColumns(cellExponent);
+            //    var totalPointCount = 0L;
+            //    var count = 0L;
+            //    foreach (var y in ys)
+            //    {
+            //        count++;
+            //        var cs0 = y.CollectPoints(int.MaxValue);
+            //        totalPointCount += cs0.Points.Count;
+            //        //totalPointCount += y.CountTotal;
+            //        //Report.Line($"[{y.Footprint.X,3}, {y.Footprint.Y,3}, {y.Footprint.Exponent,3}] {y.CountTotal,10:N0}");
+            //    }
+            //    //if (totalPointCount != root.PointCountTree) throw new Exception();
+            //    Report.End($" | cols = {count,12:N0} | points = {totalPointCount,12:N0}");
+            //}
 
             //Console.WriteLine($"BoundingBoxExactGlobal: {root.BoundingBoxExactGlobal:0.00}");
             //Console.WriteLine($"Cell.BoundingBox:       {root.Cell.BoundingBox:0.00}");
@@ -964,16 +984,16 @@ namespace Aardvark.Geometry.Tests
         internal static void PointCloudImportCleanup()
         {
             var filename = @"T:\Vgm\Data\E57\JBs_Haus.e57";
-            var cloud = PointCloud.Import(filename);
+            _ = PointCloud.Import(filename);
         }
 
         public static void Main(string[] _)
         {
-            PointCloudImportCleanup();
+            //PointCloudImportCleanup();
 
             //RasterTest();
 
-            //EnumerateCells2dTest();
+            EnumerateCells2dTest();
 
             //HeraTest();
 

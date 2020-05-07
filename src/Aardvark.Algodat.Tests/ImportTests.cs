@@ -413,7 +413,7 @@ namespace Aardvark.Geometry.Tests
                 .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 ;
-            var pointset = PointCloud.Import(filename, config);
+            _ = PointCloud.Import(filename, config);
             var pointset2 = config.Storage.GetPointSet("test");
             Assert.IsTrue(pointset2 != null);
             Assert.IsTrue(pointset2.PointCount == 3);
@@ -521,7 +521,7 @@ namespace Aardvark.Geometry.Tests
                 .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 ;
-            var pointset = PointCloud.Import(filename, config);
+            _ = PointCloud.Import(filename, config);
             var pointset2 = config.Storage.GetPointSet("test");
             Assert.IsTrue(pointset2 != null);
             Assert.IsTrue(pointset2.PointCount == 3);

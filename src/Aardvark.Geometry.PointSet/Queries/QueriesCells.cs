@@ -576,7 +576,13 @@ namespace Aardvark.Geometry.Points
             var cache = new CellQueryResult2dCache();
 
             // new-style
-            var cs = new ColZ(root).EnumerateColumns(cellExponent, stride);
+            var dx = Fun.PowerOfTwo(cellExponent) * (stride.X - 1 / 2);
+            var dy = Fun.PowerOfTwo(cellExponent) * (stride.Y - 1 / 2);
+            var bbCell = new Cell2d(root.Cell.X, root.Cell.X, root.Cell.Exponent).BoundingBox;
+            var bb = new Box2d(bbCell.Min - new V2d(dx, dy), bbCell.Max + new V2d(dx, dy));
+            var enlargedFootprint = new Cell2d(bb);
+
+            var cs = new ColZ(root, enlargedFootprint).EnumerateColumns(cellExponent, stride);
             foreach (var c in cs)
             {
                 yield return new CellQueryResult2d(root, c.Footprint, c, cache);
@@ -596,6 +602,12 @@ namespace Aardvark.Geometry.Points
                 Nodes = new [] { n ?? throw new ArgumentNullException(nameof(n)) };
                 Rest = Chunk.Empty;
             }
+            public ColZ(IPointCloudNode n, Cell2d footprint)
+            {
+                Footprint = footprint;
+                Nodes = new[] { n ?? throw new ArgumentNullException(nameof(n)) };
+                Rest = Chunk.Empty;
+            }
 
             private ColZ(Cell2d footprint, IPointCloudNode[] nodes, Chunk rest)
             {
@@ -605,7 +617,7 @@ namespace Aardvark.Geometry.Points
 
 #if DEBUG
                 static Cell2d GetFootprintZ(Cell c) => new Cell2d(c.X, c.Y, c.Exponent);
-                if (!nodes.All(n => GetFootprintZ(n.Cell) == footprint)) throw new InvalidOperationException();
+                if (!nodes.All(n => footprint.Contains(GetFootprintZ(n.Cell)))) throw new InvalidOperationException();
                 var bb = footprint.BoundingBox;
                 if (rest.HasPositions && !rest.Positions.All(p => bb.Contains(p.XY))) throw new InvalidOperationException();
 #endif

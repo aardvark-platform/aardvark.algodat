@@ -22,7 +22,7 @@ module PowersOfTwo =
 module RasterExtensions =
 
     type Box2l with
-        member this.IsSizePowerOfTwoSquare with get() = this.SizeX = this.SizeY && this.SizeX.IsPowerOfTwo()
+        member this.IsSizePowerOfTwoSquared with get() = this.SizeX = this.SizeY && this.SizeX.IsPowerOfTwo()
         member this.SplitAtCenter () =
             let c = this.Center
             [|
@@ -100,13 +100,39 @@ module TileData =
     /// Get size (columns x rows) of tile. 
     let size tile = match tile with | ArrayTile (_, m) -> m.Size | WindowedTile (_, _, w) -> w.Size
 
-    /// Split tile into quadrants (at center).
-    let splitIntoQuadrants tile =
+    /// Get raster value at absolute position.
+    let getValue (posAbsolute : V2l) tile =
         match tile with
-        | ArrayTile (data, mapping) -> 
-            mapping.SplitAtCenter() |> Array.map (fun box -> WindowedTile (data, mapping, box))
-        | WindowedTile (data, mapping, window) -> 
-            window.SplitAtCenter()  |> Array.map (fun box -> WindowedTile (data, mapping, box))
+        | ArrayTile (data, mapping) ->
+            if posAbsolute.X >= mapping.Min.X && posAbsolute.Y >= mapping.Min.Y && posAbsolute.X < mapping.Max.X && posAbsolute.Y < mapping.Max.Y then 
+                let x = posAbsolute.X - mapping.Min.X
+                let y = posAbsolute.Y - mapping.Min.Y
+                let i = int (y * mapping.SizeX + x)
+                data.[i]
+            else
+                raise (IndexOutOfRangeException())
+        | WindowedTile (data, mapping, window) ->
+            if posAbsolute.X >= window.Min.X && posAbsolute.Y >= window.Min.Y && posAbsolute.X < window.Max.X && posAbsolute.Y < window.Max.Y then 
+                let x = posAbsolute.X - mapping.Min.X
+                let y = posAbsolute.Y - mapping.Min.Y
+                let i = int (y * mapping.SizeX + x)
+                data.[i]
+            else
+                raise (IndexOutOfRangeException())
+
+    /// Get raster value at relative position.
+    let getValueRelative (posRelative : V2i) tile =
+        match tile with
+        | ArrayTile (_, mapping)      -> tile |> getValue (mapping.Min + V2l posRelative)
+        | WindowedTile (_, _, window) -> tile |> getValue (window.Min  + V2l posRelative)
+
+    ///// Split tile into quadrants (at center).
+    //let splitIntoQuadrants tile =
+    //    match tile with
+    //    | ArrayTile (data, mapping) -> 
+    //        mapping.SplitAtCenter() |> Array.map (fun box -> WindowedTile (data, mapping, box))
+    //    | WindowedTile (data, mapping, window) -> 
+    //        window.SplitAtCenter()  |> Array.map (fun box -> WindowedTile (data, mapping, box))
 
     // (tilecoords, tilewindow) seq
     let splitIntoTiles (tilesize : V2l) tile =
@@ -150,8 +176,12 @@ type TileData<'a> with
     member this.Data with get() = TileData.data this
     member this.Bounds with get() = TileData.bounds this
     member this.Size with get() = TileData.size this
-    member this.SplitIntoQuadrants () = TileData.splitIntoQuadrants this
     member this.SplitIntoTiles (tileSize : V2l) = TileData.splitIntoTiles tileSize this
+    member this.GetValue (posAbsolute : V2l) = TileData.getValue posAbsolute this
+    member this.GetValue (posAbsoluteX : int64, posAbsoluteY : int64) = TileData.getValue (V2l(posAbsoluteX, posAbsoluteY)) this
+    member this.GetValueRelative (posRelative : V2i) = TileData.getValueRelative posRelative this
+    member this.GetValueRelative (posRelativeX : int, posRelativeY : int) = TileData.getValueRelative (V2i(posRelativeX, posRelativeY)) this
+    //member this.SplitIntoQuadrants () = TileData.splitIntoQuadrants this
     //member this.SplitIntoCells (targetCellExponent : int<potexp>) (sourceSampleExponent : int<potexp>) = TileData.splitIntoCells targetCellExponent sourceSampleExponent this
 
     
@@ -233,14 +263,16 @@ module Raster =
         |> tryAddTile Quadtree.Intensities1i    intensities1i
 
     /// Quadtree raster tile.
-    type RasterNode2d(data : IReadOnlyDictionary<Guid, obj>, getData : Func<Guid, IReadOnlyDictionary<Guid, obj>>) =
+    type RasterNode2d(data : IReadOnlyDictionary<Guid, obj>, getData : Guid -> obj) =
 
         let contains (def : Def) = data.ContainsKey(def.Id)
         let check' (def : Def) = if not (contains def) then invalidArg "data" (sprintf "Data does not contain %s." def.Name)
         let check (defs : Def list) = defs |> List.iter check'
         let get (def : Def) = data.[def.Id] :?> 'a
         let tryGet (def : Def) = match data.TryGetValue(def.Id) with | false, _ -> None | true, x -> Some (x :?> 'a)
-        let loadNode (id : Guid) : RasterNode2d option = if id = Guid.Empty then None else RasterNode2d(getData.Invoke id, getData) |> Some
+        let loadNode (id : Guid) : RasterNode2d option = 
+            if id = Guid.Empty then None 
+            else RasterNode2d((getData id) :?> IReadOnlyDictionary<Guid, obj>, getData) |> Some
    
         do
             check [Quadtree.NodeId; Quadtree.CellBounds; Quadtree.SampleSizePotExp]
@@ -263,9 +295,10 @@ module Raster =
 
         member ____.Id                      with get() : Guid               = Quadtree.NodeId               |> get
         member ____.CellBounds              with get() : Cell2d             = Quadtree.CellBounds           |> get
+        member ____.SampleMapping           with get() : Box2l              = Quadtree.SampleMapping        |> get
         member ____.SampleSizePotExp        with get() : int<potexp>        = Quadtree.SampleSizePotExp     |> get
         member ____.SubnodeIds              with get() : Guid[] option      = Quadtree.SubnodeIds           |> tryGet
-        member ____.Heights1d               with get() : float[]            = Quadtree.Heights1d            |> get
+        member ____.Heights1d               with get() : float[] option     = Quadtree.Heights1d            |> tryGet
         member ____.HeightStdDevs1f         with get() : float32[] option   = Quadtree.HeightStdDevs1f      |> tryGet
         member ____.Colors4b                with get() : C4b[] option       = Quadtree.Colors4b             |> tryGet
         member ____.Intensities1i           with get() : int[] option       = Quadtree.Intensities1i        |> tryGet
@@ -278,5 +311,10 @@ module Raster =
             match this.SubnodeIds with
             | None -> None
             | Some xs -> xs |> Array.map loadNode |> Some
+
+        member this.Split () : RasterNode2d =
+            if this.SubnodeIds.IsSome then failwith "Cannot split inner node. Invariant 85500a67-2df6-4549-8632-384f89bed051."
+
+            failwith ""
 
         override this.ToString() = sprintf "RasterNode2d(%A, %A, %d x %d)" this.Id this.CellBounds this.Resolution this.Resolution

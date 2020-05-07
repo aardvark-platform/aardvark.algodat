@@ -48,7 +48,9 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "heracli", "Apps\heracli\her
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "HeraViewer", "Apps\HeraViewer\HeraViewer.fsproj", "{85F64ED4-AAA6-4EEF-BC97-ED5E65839FD7}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Aardvark.Geometry.Raster", "Aardvark.Geometry.Raster\Aardvark.Geometry.Raster.fsproj", "{D5E695EE-9313-4C82-BCF9-8E5D498200FA}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Aardvark.Geometry.Raster", "Aardvark.Geometry.Raster\Aardvark.Geometry.Raster.fsproj", "{D5E695EE-9313-4C82-BCF9-8E5D498200FA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Scratch", "Apps\Scratch\Scratch.csproj", "{5CA8E4F4-E30B-4FC8-A510-A0FFD8A9880B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -148,6 +150,10 @@ Global
 		{D5E695EE-9313-4C82-BCF9-8E5D498200FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D5E695EE-9313-4C82-BCF9-8E5D498200FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D5E695EE-9313-4C82-BCF9-8E5D498200FA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5CA8E4F4-E30B-4FC8-A510-A0FFD8A9880B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5CA8E4F4-E30B-4FC8-A510-A0FFD8A9880B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5CA8E4F4-E30B-4FC8-A510-A0FFD8A9880B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5CA8E4F4-E30B-4FC8-A510-A0FFD8A9880B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -159,9 +165,10 @@ Global
 		{0595D792-52A4-4DE1-A39F-6A99D199471A} = {6CA9BC7A-0123-43E9-A26B-5FF0B9E01B08}
 		{99385BC2-B716-47EF-96F0-090D82E4F506} = {6CA9BC7A-0123-43E9-A26B-5FF0B9E01B08}
 		{85F64ED4-AAA6-4EEF-BC97-ED5E65839FD7} = {6CA9BC7A-0123-43E9-A26B-5FF0B9E01B08}
+		{5CA8E4F4-E30B-4FC8-A510-A0FFD8A9880B} = {6CA9BC7A-0123-43E9-A26B-5FF0B9E01B08}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {E996B5E6-49B2-4479-9DDE-455A40509F43}
 		EnterpriseLibraryConfigurationToolBinariesPathV6 = packages\EnterpriseLibrary.TransientFaultHandling.6.0.1304.0\lib\portable-net45+win+wp8;packages\EnterpriseLibrary.TransientFaultHandling.Data.6.0.1304.1\lib\NET45
+		SolutionGuid = {E996B5E6-49B2-4479-9DDE-455A40509F43}
 	EndGlobalSection
 EndGlobal
