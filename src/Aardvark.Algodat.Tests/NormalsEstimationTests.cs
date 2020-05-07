@@ -38,6 +38,38 @@ namespace Aardvark.Geometry.Tests
         }
 
         [Test]
+        public void CanEstimateNormals_FromZeroToThreePoints_List()
+        {
+            var r = new Random();
+            for (var n = 0; n < 4; n++)
+            {
+                var ps = new V3f[n].SetByIndex(_ => new V3f(r.NextDouble(), r.NextDouble(), r.NextDouble())).ToList();
+
+                var kd = ps.BuildKdTree();
+
+                var ns = Normals.EstimateNormals(ps, 16, kd);
+                Assert.IsTrue(ns.Length == n);
+            }
+        }
+
+        [Test]
+        public void CanEstimateNormalsD_FromZeroToThreePoints()
+        {
+            var r = new Random();
+            for (var n = 0; n < 4; n++)
+            {
+                var ps = new V3d[n].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
+
+                var kd = ps.BuildKdTree();
+
+                var ns = Normals.EstimateNormals(ps, 16, kd);
+                Assert.IsTrue(ns.Length == n);
+            }
+        }
+
+
+
+        [Test]
         public void CanEstimateNormalsAsync_FromZeroToThreePoints()
         {
             var r = new Random();
@@ -51,6 +83,23 @@ namespace Aardvark.Geometry.Tests
                 Assert.IsTrue(ns.Length == n);
             }
         }
+
+        [Test]
+        public void CanEstimateNormalsAsyncD_FromZeroToThreePoints()
+        {
+            var r = new Random();
+            for (var n = 0; n < 4; n++)
+            {
+                var ps = new V3d[n].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
+
+                var kd = ps.BuildKdTreeAsync().Result;
+
+                var ns = Normals.EstimateNormalsAsync(ps, 16, kd).Result;
+                Assert.IsTrue(ns.Length == n);
+            }
+        }
+
+
 
         [Test]
         public void CanEstimateNormals()
@@ -71,6 +120,26 @@ namespace Aardvark.Geometry.Tests
         }
 
         [Test]
+        public void CanEstimateNormalsD()
+        {
+            var ps = new[]
+            {
+                new V3d(0, 0, 0),
+                new V3d(1, 0, 0),
+                new V3d(1, 1, 0),
+                new V3d(0, 1, 0),
+            };
+
+            var kd = ps.BuildKdTree();
+
+            var ns = Normals.EstimateNormals(ps, 16, kd);
+            Assert.IsTrue(ns.Length == 4);
+            Assert.IsTrue(ns.All(n => n == V3f.ZAxis));
+        }
+
+
+
+        [Test]
         public void CanEstimateNormalsAsync()
         {
             var ps = new[]
@@ -87,6 +156,27 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(ns.Length == 4);
             Assert.IsTrue(ns.All(n => n == V3f.ZAxis));
         }
+
+        [Test]
+        public void CanEstimateNormalsAsyncD()
+        {
+            var ps = new[]
+            {
+                new V3d(0, 0, 0),
+                new V3d(1, 0, 0),
+                new V3d(1, 1, 0),
+                new V3d(0, 1, 0),
+            };
+
+            var kd = ps.BuildKdTreeAsync().Result;
+
+            var ns = Normals.EstimateNormalsAsync(ps, 16, kd).Result;
+            Assert.IsTrue(ns.Length == 4);
+            Assert.IsTrue(ns.All(n => n == V3f.ZAxis));
+        }
+
+
+
         [Test]
         public void CanEstimateNormalsWithoutKdTree()
         {
@@ -104,6 +194,24 @@ namespace Aardvark.Geometry.Tests
         }
 
         [Test]
+        public void CanEstimateNormalsWithoutKdTreeD()
+        {
+            var ps = new[]
+            {
+                new V3d(0, 0, 0),
+                new V3d(1, 0, 0),
+                new V3d(1, 1, 0),
+                new V3d(0, 1, 0),
+            };
+
+            var ns = Normals.EstimateNormals(ps, 16);
+            Assert.IsTrue(ns.Length == 4);
+            Assert.IsTrue(ns.All(n => n == V3f.ZAxis));
+        }
+
+
+
+        [Test]
         public void CanEstimateNormalsWithoutKdTreeAsync()
         {
             var ps = new[]
@@ -112,6 +220,22 @@ namespace Aardvark.Geometry.Tests
                 new V3f(1, 0, 0),
                 new V3f(1, 1, 0),
                 new V3f(0, 1, 0),
+            };
+
+            var ns = Normals.EstimateNormalsAsync(ps, 16).Result;
+            Assert.IsTrue(ns.Length == 4);
+            Assert.IsTrue(ns.All(n => n == V3f.ZAxis));
+        }
+
+        [Test]
+        public void CanEstimateNormalsWithoutKdTreeAsyncD()
+        {
+            var ps = new[]
+            {
+                new V3d(0, 0, 0),
+                new V3d(1, 0, 0),
+                new V3d(1, 1, 0),
+                new V3d(0, 1, 0),
             };
 
             var ns = Normals.EstimateNormalsAsync(ps, 16).Result;
