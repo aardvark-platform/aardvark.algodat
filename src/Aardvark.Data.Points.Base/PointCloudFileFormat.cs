@@ -126,7 +126,9 @@ namespace Aardvark.Data.Points
             
             if (result == Unknown)
             {
-                RegisterParsersFromAssembliesAlongsideExecutingAssembly();
+                var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                Introspection.RegisterAllAssembliesInPath(path);
+                RegisterViaIntrospection();
                 result = Lookup();
             }
 
@@ -155,35 +157,6 @@ namespace Aardvark.Data.Points
                         return formats.Single().Item2;
                     }
                 }
-            }
-        }
-
-        private static void RegisterParsersFromAssembliesAlongsideExecutingAssembly()
-        {
-            try
-            {
-                var folder = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-                var assemblies = Directory.EnumerateFiles(folder)
-                    .Where(p => { var ext = Path.GetExtension(p).ToLowerInvariant(); return ext == ".dll" || ext == ".exe"; })
-                    .Select(Path.GetFullPath)
-                    .ToArray();
-                foreach (var x in assemblies)
-                {
-                    try
-                    {
-                        var a = Assembly.LoadFrom(x);
-                        Introspection.RegisterAssembly(a);
-                    }
-                    catch
-                    {
-                    }
-                }
-
-                RegisterViaIntrospection();
-            }
-            catch (Exception e)
-            {
-                Report.Warn($"{e}");
             }
         }
 
