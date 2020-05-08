@@ -6,6 +6,7 @@ using Aardvark.Data.Points;
 using Aardvark.Data.Points.Import;
 using Aardvark.Geometry;
 using Aardvark.Geometry.Points;
+using Microsoft.FSharp.Collections;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -881,6 +882,14 @@ namespace Aardvark.Geometry.Tests
 
         internal static void RasterTest()
         {
+            var layers = new Raster.NodeDataLayers(
+                new Box2l(new V2l(0, 0), new V2l(100, 100)), -1,
+                (Raster.Defs.Quadtree.Heights1f.Id, new float[100 * 100]),
+                (Raster.Defs.Quadtree.Colors4b.Id, new C4b[100 * 100])
+                );
+
+            Raster.buildQuadtree(layers);
+
             //var data = Raster.CreateData(
             //   id: Guid.NewGuid(),
             //   bounds: new Cell2d(0, 0, 0),
@@ -899,33 +908,35 @@ namespace Aardvark.Geometry.Tests
 
 
 
-            int n = 8192;
+            //int n = 8192;
 
-            var rnd = new Random();
-            Report.BeginTimed("init source data");
-            var randomData = new int[n * n].SetByIndex(_ => rnd.Next(1000));
-            Report.EndTimed();
+            //var rnd = new Random();
+            //Report.BeginTimed("init source data");
+            //var randomData = new int[n * n].SetByIndex(_ => rnd.Next(1000));
+            //Report.EndTimed();
 
-            var o = new V2l(20000, 10000);
-            var tile = TileData.OfArray(Box2l.FromMinAndSize(o, n, n), randomData);
+            //var o = new V2l(20000, 10000);
+            //var tile = TileData.OfArray(Box2l.FromMinAndSize(o, n, n), randomData);
 
-            Report.BeginTimed("get window");
-            var randomDataWindow = tile.WithWindow(Box2l.FromMinAndSize(o + new V2l(1000, 1500), 2048, 2048));
-            Report.EndTimed();
+            //Report.BeginTimed("get window");
+            //var randomDataWindow = tile.WithWindow(Box2l.FromMinAndSize(o + new V2l(1000, 1500), 2048, 2048));
+            //Report.EndTimed();
 
-            Report.BeginTimed("materialize");
-            var materialized = randomDataWindow.Materialize();
-            Report.EndTimed();
+            //Report.BeginTimed("materialize");
+            //var materialized = randomDataWindow.Materialize();
+            //Report.EndTimed();
 
-            Console.WriteLine(materialized.Bounds);
-            foreach (var x in materialized.SplitIntoTiles(new V2l(1024)))
-            { }
-            Console.WriteLine("----------------------------------------------------");
+            //Console.WriteLine(materialized.Bounds);
+            //foreach (var x in materialized.SplitIntoTiles(new V2l(1024)))
+            //{ }
+            //Console.WriteLine("----------------------------------------------------");
 
-            foreach (var x in materialized.SplitIntoTiles(new V2l(1024L)).Select(x => x.Item2.Materialize()))
-            {
-                Console.WriteLine(x.ToString());
-            }
+            //foreach (var x in materialized.SplitIntoTiles(new V2l(1024L)).Select(x => x.Item2.Materialize()))
+            //{
+            //    Console.WriteLine(x.ToString());
+            //}
+
+
 
             //for (var i = 0; i < 100; i++)
             //{
@@ -991,9 +1002,9 @@ namespace Aardvark.Geometry.Tests
         {
             //PointCloudImportCleanup();
 
-            //RasterTest();
+            RasterTest();
 
-            EnumerateCells2dTest();
+            //EnumerateCells2dTest();
 
             //HeraTest();
 
