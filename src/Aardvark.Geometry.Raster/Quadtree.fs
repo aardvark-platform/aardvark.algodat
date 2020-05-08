@@ -77,23 +77,30 @@ module Raster =
                 | _ -> ()
             }
 
-    type NodeDataLayers(sampleMapping : Box2l, sampleSizePotExp : PowerOfTwoExp, data : NodeData) =
+    type Box2c(min : V2l, max : V2l, exponent : PowerOfTwoExp) =
+        
+        new (box : Box2l, exponent : PowerOfTwoExp) = Box2c(box.Min, box.Max, exponent)
+        member ____.Min with get() = min
+        member ____.Max with get() = max
+        member ____.Exponent with get() = exponent
+        member ____.BoundingBox with get() =
+            let d = Math.Pow(2.0, float exponent)
+            Box2d(d * V2d min, d * V2d max)
+        member ____.Width with get() = max.X - min.X
+        member ____.Height with get() = max.Y - min.Y
+        member this.Area with get() = this.Width * this.Height
 
-        let d = Math.Pow(2.0, float sampleSizePotExp)
-        let bb = Box2d(d * V2d sampleMapping.Min, d * V2d sampleMapping.Max)
-
+    type NodeDataLayers(mapping : Box2c, data : NodeData) =
+    
         do
             for (id, array) in data |> layers do
-                if int64 array.Length <> sampleMapping.Area then 
+                if int64 array.Length <> mapping.Area then 
                     invalidArg "data" (sprintf "Layer %A has invalid size." id)
 
-        new (sampleMapping : Box2l, sampleSizePotExp : PowerOfTwoExp, [<ParamArray>] layers : ValueTuple<Guid,obj>[]) =
-            NodeDataLayers(sampleMapping, sampleSizePotExp, Map(layers |> Array.map (fun struct (k, v) -> (k, v))))
-            
+        new (mapping : Box2c, [<ParamArray>] layers : ValueTuple<Guid,obj>[]) =
+            NodeDataLayers(mapping, Map(layers |> Array.map (fun struct (k, v) -> (k, v))))
 
-        member this.SampleMapping       with get() = sampleMapping
-        member this.SampleMappingBounds with get() = bb
-        member this.SampleSizePotExp    with get() = sampleSizePotExp
+        member this.Mapping with get() = mapping
 
         member this.Layers with get() = seq {
             for kv in data do
@@ -148,9 +155,11 @@ module Raster =
         let checkMany (defs : Def list) = defs |> List.iter check
         
         let loadNode (id : Guid) : RasterNode2d option = 
-            if id = Guid.Empty then None 
-            else RasterNode2d((getData id) :?> NodeData, getData) |> Some
-   
+            if id = Guid.Empty then None
+            else match getData id with
+                 | :? NodeData as n -> RasterNode2d(n, getData) |> Some
+                 | _ -> None
+      
         do
             checkMany [Quadtree.NodeId; Quadtree.CellBounds; Quadtree.SampleSizePotExp]
 
@@ -174,6 +183,7 @@ module Raster =
         member ____.CellBounds              with get() : Cell2d             = data |> get Quadtree.CellBounds
         member ____.SampleMapping           with get() : Box2l              = data |> get Quadtree.SampleMapping
         member ____.SampleSizePotExp        with get() : PowerOfTwoExp      = data |> get Quadtree.SampleSizePotExp
+        member this.Mapping                 with get() : Box2c              = Box2c(this.SampleMapping, this.SampleSizePotExp)
         member ____.SubnodeIds              with get() : Guid[] option      = data |> tryGet Quadtree.SubnodeIds
         
         member ____.TryGetLayerData<'a> (def : Def)    : 'a[] option        = data |> tryGet def
@@ -183,7 +193,7 @@ module Raster =
         member ____.Colors4b                with get() : C4b[] option       = data |> tryGet Quadtree.Colors4b
         member ____.Intensities1i           with get() : int[] option       = data |> tryGet Quadtree.Intensities1i
 
-        member this.Layers                  with get() = NodeDataLayers(this.SampleMapping, this.SampleSizePotExp, data)
+        member this.Layers                  with get() = NodeDataLayers(this.Mapping, data)
         member this.Resolution              with get() = potexp2pot this.SampleSizePotExp
         member this.IsLeafNode              with get() = this.SubnodeIds.IsNone
         member this.IsInnerNode             with get() = this.SubnodeIds.IsSome
@@ -203,8 +213,8 @@ module Raster =
 
     let buildQuadtree (layers : NodeDataLayers) =
 
-        printfn "mapping bb: %A" layers.SampleMappingBounds
-        let rootCell = Cell2d(layers.SampleMappingBounds)
+        printfn "mapping bb: %A" layers.Mapping.BoundingBox
+        let rootCell = Cell2d(layers.Mapping.BoundingBox)
         printfn "root cell : %A" rootCell
 
         ()

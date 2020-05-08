@@ -883,7 +883,7 @@ namespace Aardvark.Geometry.Tests
         internal static void RasterTest()
         {
             var layers = new Raster.NodeDataLayers(
-                new Box2l(new V2l(0, 0), new V2l(100, 100)), -1,
+                new Raster.Box2c(new V2l(0, 0), new V2l(100, 100), -1),
                 (Raster.Defs.Quadtree.Heights1f.Id, new float[100 * 100]),
                 (Raster.Defs.Quadtree.Colors4b.Id, new C4b[100 * 100])
                 );
