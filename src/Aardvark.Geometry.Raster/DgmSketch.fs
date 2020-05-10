@@ -1,8 +1,7 @@
-﻿namespace Aardvark.Geometry
+﻿namespace Aardvark.Geometry.Quadtree
 
 open Aardvark.Base
 open Aardvark.Data
-open Raster
 open System
 open Uncodium.SimpleStore
 

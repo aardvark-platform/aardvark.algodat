@@ -1,19 +1,14 @@
-﻿namespace Aardvark.Geometry
+﻿namespace Aardvark.Geometry.Quadtree
 
 open Aardvark.Base
 open Aardvark.Data
 open System
-open System.Collections.Generic
 
-module Raster =
-
-    type Map<'k,'v when 'k : comparison> with
-        static member ofDictionary(dict : IReadOnlyDictionary<'k,'v>) = dict |> Seq.map (fun e -> (e.Key, e.Value)) |> Map.ofSeq
-
-    type private Def = Durable.Def
+[<AutoOpen>]
+module Quadtree =
 
     module Defs =
-        let private def id name description (typ : Def) = Def(Guid.Parse(id), name, description, typ.Id, false)
+        let private def id name description (typ : Durable.Def) = Durable.Def(Guid.Parse(id), name, description, typ.Id, false)
 
         module Quadtree =
             let Node                    = def "e497f9c1-c903-41c4-91de-32bf76e009da" "Quadtree.Node" "A quadtree node. DurableMapAligned16." Durable.Primitives.DurableMapAligned16
@@ -22,16 +17,16 @@ module Raster =
             let SampleMapping           = def "2f363f2a-2e52-4a86-a620-d8689db511ad" "Quadtree.SampleMapping" "Quadtree. Mapping of sample values to cell space. Box2l." Durable.Aardvark.Box2l
             let SampleSizePotExp        = def "1aa56aca-de4c-4705-9baf-11f8766a0892" "Quadtree.SampleSizePotExp" "Quadtree. Size of a sample is 2^SampleSizePotExp. Int32." Durable.Primitives.Int32
             let SubnodeIds              = def "a2841629-e4e2-4b90-bdd1-7a1a5a41bded" "Quadtree.SubnodeIds" "Quadtree. Subnodes as array of guids. Array length is 4 for inner nodes (where Guid.Empty means no subnode) and no array for leaf nodes. Guid[]." Durable.Primitives.GuidArray
-            
+        
             let Heights1f               = def "4cb689c5-b627-4bcd-9db7-5dbd24d7545a" "Quadtree.Heights1f" "Quadtree. Height value per sample. Float32[]." Durable.Primitives.Float32Array
             let Heights1fRef            = def "fcf042b4-fe33-4e28-9aea-f5526600f8a4" "Quadtree.Heights1f.Reference" "Quadtree. Reference to Quadtree.Heights1f. Guid." Durable.Primitives.GuidDef
 
             let Heights1d               = def "c66a4240-00ef-44f9-b377-0667f279b97e" "Quadtree.Heights1d" "Quadtree. Height value per sample. Float64[]." Durable.Primitives.Float64Array
             let Heights1dRef            = def "baa8ed40-57e3-4f88-8d11-0b547494c8cb" "Quadtree.Heights1d.Reference" "Quadtree. Reference to Quadtree.Heights1d. Guid." Durable.Primitives.GuidDef
-            
+        
             let Normals3f               = def "d5166ae4-7bea-4ebe-a3bf-cae8072f8951" "Quadtree.Normals3f" "Quadtree. Normal vector per sample. V3f[]." Durable.Aardvark.V3fArray
             let Normals3fRef            = def "817ecbb6-1e86-41a2-b1ee-53884a27ea97" "Quadtree.Normals3f.Reference" "Quadtree. Reference to Quadtree.Normals3f. Guid." Durable.Primitives.GuidDef
-            
+        
             let Heights1dWithOffset     = def "924ae8a2-7b9b-4e4d-a609-7b0381858499" "Quadtree.Heights1dWithOffset" "Quadtree. Height value per sample. Float64 offset + Float32[] values." Durable.Primitives.Float32ArrayWithFloat64Offset
             let Heights1dWithOffsetRef  = def "2815c5a7-48bf-48b6-ba7d-5f4e98f6bc47" "Quadtree.Heights1dWithOffset.Reference" "Quadtree. Reference to Quadtree.Heights1dWithOffset. Guid." Durable.Primitives.GuidDef
 
@@ -47,174 +42,179 @@ module Raster =
             let Intensities1i           = def "da564b5d-c5a4-4274-806a-acd04fa206b2" "Quadtree.Intensities1i" "Quadtree. Intensity value per sample. Int32[]." Durable.Primitives.Int32Array
             let Intensities1iRef        = def "b44484ba-e9a6-4e0a-a26a-3641a91ee9cf" "Quadtree.Intensities1i.Reference" "Quadtree. Reference to Quadtree.Intensities1i. Guid." Durable.Primitives.GuidDef
 
-    open Defs
 
-    let inline private sqr x = x * x
-
-    type NodeData = Map<Guid,obj>
+    type ITileData =
+        abstract member Def : Durable.Def
+        abstract member Data : Array
+        abstract member Location : CellRange2
+        abstract member Window : Box2l option
+        abstract member Merge : ITileData -> ITileData
 
     [<AutoOpen>]
-    module private NodeData =
+    module ITileDataExtensions =
+        type ITileData with
+            member this.IsPowerOfTwoSquare with get() = this.Location.Size.X = this.Location.Size.Y && this.Location.Size.X.IsPowerOfTwo()
+            member this.SampleExponent with get() = this.Location.Origin.Exponent
 
-        let contains (def : Def) (data : NodeData) = data.ContainsKey(def.Id)
+    type TileData<'a>(def : Durable.Def, data : 'a[], location : CellRange2, window : Box2l option) =
 
-        let add (def : Durable.Def) (value : 'a) (data : NodeData) : NodeData = 
-            data |> Map.add def.Id (value :> obj)
-
-        let tryAdd (def : Durable.Def) (value : 'a option) (data : NodeData) : NodeData =
-            if value.IsSome then data |> Map.add def.Id (value.Value :> obj) else data
-
-        let inline get (def : Def) (data : NodeData) =
-            data.[def.Id] :?> 'a
-
-        let tryGet (def : Def) (data : NodeData) =
-            match data.TryGetValue(def.Id) with | false, _ -> None | true, x -> Some (x :?> 'a)
-
-        let layers (data : NodeData) = seq {
-            for kv in data do
-                match kv.Value with
-                | :? Array as a -> yield (kv.Key, a)
-                | _ -> ()
-            }
-
-    type Box2c(min : V2l, max : V2l, exponent : PowerOfTwoExp) =
-        
-        new (box : Box2l, exponent : PowerOfTwoExp) = Box2c(box.Min, box.Max, exponent)
-        member ____.Min with get() = min
-        member ____.Max with get() = max
-        member ____.Exponent with get() = exponent
-        member ____.BoundingBox with get() =
-            let d = Math.Pow(2.0, float exponent)
-            Box2d(d * V2d min, d * V2d max)
-        member ____.Width with get() = max.X - min.X
-        member ____.Height with get() = max.Y - min.Y
-        member this.Area with get() = this.Width * this.Height
-
-    type NodeDataLayers(mapping : Box2c, data : NodeData) =
-    
         do
-            for (id, array) in data |> layers do
-                if int64 array.Length <> mapping.Area then 
-                    invalidArg "data" (sprintf "Layer %A has invalid size." id)
+            if location.Size.X * location.Size.Y <> data.LongLength then 
+                invalidArg "data" "Mismatch of data.Length and location.Size. Invariant b9b09994-2d8e-4e94-9bde-c46b1b6b87ec."
 
-        new (mapping : Box2c, [<ParamArray>] layers : ValueTuple<Guid,obj>[]) =
-            NodeDataLayers(mapping, Map(layers |> Array.map (fun struct (k, v) -> (k, v))))
-
-        member this.Mapping with get() = mapping
-
-        member this.Layers with get() = seq {
-            for kv in data do
-                match kv.Value with
-                | :? Array as a -> yield (kv.Key, a)
-                | _ -> ()
-            }
+        interface ITileData with
+            member _.Def with get() = def
+            member _.Data with get() = data :> Array
+            member _.Location with get() = location
+            member _.Window with get() = window
+            member this.Merge other : ITileData = failwith "NOT IMPLEMENTED"
 
 
-    /// Create data map for RasterNode2d.
-    let CreateNodeData
-        (
-            id : Guid, 
-            cellBounds       : Cell2d,
-            sampleMapping    : Box2l,
-            sampleSizePotExp : PowerOfTwoExp,
-            heights1d        : TileData<float> option,
-            heightStdDevs1f  : TileData<float32> option,
-            colors4b         : TileData<C4b> option,
-            intensities1i    : TileData<int> option 
-        ) : NodeData =
-        
-        let tryAddLayer (def : Durable.Def) (value : TileData<'a> option) (data : Map<Guid, obj>) =
-            match value with
-            | Some tile ->
-                /// create a tile aligned with a Cell2d with sample size = 2^sampleExp ...
-                let bb = tile |> TileData.bounds
-                let maxRes = potexp2pot (cellBounds.Exponent * 1<potexp> - sampleSizePotExp)
-                if bb.Size.AnyGreater(int64 maxRes) then invalidArg "tile" "Tile size too large."
-                let foo = V2l(cellBounds.X * int64 maxRes, cellBounds.Y * int64 maxRes)
-                if bb.Min.AnySmaller(foo) then invalidArg "tile" "Tile not aligned"
-                if bb.Max.AnyGreater(foo + int64 maxRes) then invalidArg "tile" "Tile not aligned"
-                data |> Map.add def.Id (tile |> TileData.materialize |> TileData.data :> obj)
-            | None -> data
+    type IQuadtreeNode =
+        abstract member Cell : Cell2d
+        abstract member Layers : ITileData[] option
+        abstract member SubNodes : IQuadtreeNode option[] option
+
+    [<AutoOpen>]
+    module IQuadtreeNodeExtensions =
+        type IQuadtreeNode with
+            member this.IsInnerNode with get() = this.SubNodes.IsSome
+            member this.IsLeafNode  with get() = this.SubNodes.IsNone
+
+    type QuadtreeNode(cell : Cell2d, layers : ITileData[] option, subNodes : IQuadtreeNode option[] option) =
+
+        do
+            if layers.IsSome then
+                let bb = cell.BoundingBox
+                for layer in layers.Value do
+                if not(bb.Contains(layer.Location.BoundingBox)) then 
+                    invalidArg "layers" (sprintf "Layer %A is outside node bounds." layer.Def.Id)
             
-        Map.empty
-        |> add Quadtree.NodeId                   id
-        |> add Quadtree.CellBounds               cellBounds
-        |> add Quadtree.SampleMapping         sampleMapping
-        |> add Quadtree.SampleSizePotExp      sampleSizePotExp
-        |> tryAddLayer Quadtree.Heights1d        heights1d
-        |> tryAddLayer Quadtree.HeightStdDevs1f  heightStdDevs1f
-        |> tryAddLayer Quadtree.Colors4b         colors4b
-        |> tryAddLayer Quadtree.Intensities1i    intensities1i
+            if subNodes.IsSome && subNodes.Value.Length <> 4 then 
+                invalidArg "subNodes" "Invariant 20baf723-cf32-46a6-9729-3b4e062ceee5."
 
-    
+        /// Create leaf node.
+        new (cell : Cell2d, layers : ITileData[] option) = QuadtreeNode(cell, layers, None)
 
-    /// Quadtree raster tile.
-    type RasterNode2d(data : NodeData, getData : Guid -> obj) =
+        interface IQuadtreeNode with
+            member _.Cell with get() = cell
+            member _.Layers with get() = layers
+            member _.SubNodes with get() = subNodes
 
-        let check (def : Def) = if not (data |> contains def) then invalidArg "data" (sprintf "Data does not contain %s." def.Name)
-        let checkMany (defs : Def list) = defs |> List.iter check
-        
-        let loadNode (id : Guid) : RasterNode2d option = 
-            if id = Guid.Empty then None
-            else match getData id with
-                 | :? NodeData as n -> RasterNode2d(n, getData) |> Some
-                 | _ -> None
-      
-        do
-            checkMany [Quadtree.NodeId; Quadtree.CellBounds; Quadtree.SampleSizePotExp]
+    module Quadtree =
 
-            let e : PowerOfTwoExp = data |> get Quadtree.SampleSizePotExp
-            let l = sqr (potexp2pot e)
+        let inline private invariant condition id =
+            if not condition then failwith <| sprintf "Invariant %s" id
 
-            let checkArray (def : Def) =
-                let xs : Array option = data |> tryGet def
-                if xs.IsSome && xs.Value.Length <> int l then invalidArg "data" (sprintf "%s[] must have length %d, but has length %d." def.Name l xs.Value.Length)
+        let inline private intersecting (a : IQuadtreeNode) (b : IQuadtreeNode) = a.Cell.Intersects(b.Cell)
 
-            checkArray Quadtree.Heights1d
-            checkArray Quadtree.HeightStdDevs1f
-            checkArray Quadtree.Colors4b
-            checkArray Quadtree.Intensities1i
-
-            ()
-
-    with
-
-        member ____.Id                      with get() : Guid               = data |> get Quadtree.NodeId
-        member ____.CellBounds              with get() : Cell2d             = data |> get Quadtree.CellBounds
-        member ____.SampleMapping           with get() : Box2l              = data |> get Quadtree.SampleMapping
-        member ____.SampleSizePotExp        with get() : PowerOfTwoExp      = data |> get Quadtree.SampleSizePotExp
-        member this.Mapping                 with get() : Box2c              = Box2c(this.SampleMapping, this.SampleSizePotExp)
-        member ____.SubnodeIds              with get() : Guid[] option      = data |> tryGet Quadtree.SubnodeIds
-        
-        member ____.TryGetLayerData<'a> (def : Def)    : 'a[] option        = data |> tryGet def
-        
-        member ____.Heights1d               with get() : float[] option     = data |> tryGet Quadtree.Heights1d
-        member ____.HeightStdDevs1f         with get() : float32[] option   = data |> tryGet Quadtree.HeightStdDevs1f
-        member ____.Colors4b                with get() : C4b[] option       = data |> tryGet Quadtree.Colors4b
-        member ____.Intensities1i           with get() : int[] option       = data |> tryGet Quadtree.Intensities1i
-
-        member this.Layers                  with get() = NodeDataLayers(this.Mapping, data)
-        member this.Resolution              with get() = potexp2pot this.SampleSizePotExp
-        member this.IsLeafNode              with get() = this.SubnodeIds.IsNone
-        member this.IsInnerNode             with get() = this.SubnodeIds.IsSome
-
-        member this.Subnodes with get() : RasterNode2d option[] option  = 
-            match this.SubnodeIds with
+        let private extendUpTo (root : Cell2d) (node : IQuadtreeNode option) : IQuadtreeNode option =
+            match node with
             | None -> None
-            | Some xs -> xs |> Array.map loadNode |> Some
+            | Some node ->
+                invariant (not(root.Contains(node.Cell)))          "a48ca4ab-3f20-45ff-bd3c-c08f2a8fcc15."
+                invariant (root.Exponent < node.Cell.Exponent)     "cda4b28d-4449-4db2-80b8-40c0617ecf22."
 
-        member this.Split () : RasterNode2d =
-            if this.SubnodeIds.IsSome then failwith "Cannot split inner node. Invariant 85500a67-2df6-4549-8632-384f89bed051."
+                if root.Exponent = node.Cell.Exponent then
+                    Some node
+                else
+                    invariant (root.Exponent > node.Cell.Exponent) "56251fd0-5344-4d0a-b76b-815cdd5a7607."
+                    let parentCell = node.Cell.Parent
+                    let qi = root.GetQuadrant(parentCell)
+                    invariant qi.HasValue                          "09575aa7-38b3-4afa-bb63-389af3301fc0."
+                    let subnodes = Array.create 4 None
+                    subnodes.[qi.Value] <- Some node
+                    QuadtreeNode(parentCell, None, Some subnodes) :> IQuadtreeNode |> Some
 
-            failwith ""
+        let private mergeLayers (a : ITileData[] option) (b : ITileData[] option) : ITileData[] option =
+            match a, b with
+            | Some a', Some b' ->
+                let mutable merged = Map.empty
+                let merge (x : ITileData) : unit =
+                    match Map.tryFind x.Def.Id merged with
 
-        override this.ToString() = sprintf "RasterNode2d(%A, %A, %d x %d)" this.Id this.CellBounds this.Resolution this.Resolution
+                    | Some (y : ITileData) ->
 
+                        let handleCollision () =
+                            let z = x.Merge y
+                            merged <- merged |> Map.add z.Def.Id z
 
-    let buildQuadtree (layers : NodeDataLayers) =
+                        if x.Location = y.Location then
+                            if   x.SampleExponent < y.SampleExponent then merged <- merged |> Map.add x.Def.Id x
+                            elif y.SampleExponent < x.SampleExponent then merged <- merged |> Map.add y.Def.Id y
+                            else handleCollision()
+                        else
+                            handleCollision()
 
-        printfn "mapping bb: %A" layers.Mapping.BoundingBox
-        let rootCell = Cell2d(layers.Mapping.BoundingBox)
-        printfn "root cell : %A" rootCell
+                    | None   -> merged <- merged |> Map.add x.Def.Id x
 
-        ()
+                for x in a' do merge x
+                for y in b' do merge y
+                merged |> Map.toArray |> Array.map (fun (_, v) -> v) |> Some
+            | Some _,  None    -> a
+            | None,    Some _  -> b
+            | None,    None    -> None
+
+        let rec private mergeSameRoot (a : IQuadtreeNode option) (b : IQuadtreeNode option) : IQuadtreeNode option =
+            match a, b with
+            | Some a, Some b ->
+                invariant (a.Cell = b.Cell) "641da2e5-a7ea-4692-a96b-94440453ff1e."
+                let cell = a.Cell
+                match a.SubNodes, b.SubNodes with
+                | Some xs, Some ys -> // inner/inner
+                    let zs = Array.map2 mergeSameRoot xs ys
+                    QuadtreeNode(cell, None, Some zs) :> IQuadtreeNode |> Some
+                | Some xs, None    -> // inner/leaf
+                    QuadtreeNode(cell, None, Some xs) :> IQuadtreeNode |> Some
+                | None,    Some ys -> // leaf/inner
+                    QuadtreeNode(cell, None, Some ys) :> IQuadtreeNode |> Some
+                | None,    None    -> // leaf/leaf
+                    let layers = mergeLayers a.Layers b.Layers
+                    QuadtreeNode(cell, layers, None) :> IQuadtreeNode |> Some
+            | Some a, None   -> Some a
+            | None,   Some b -> Some b
+            | None,   None   -> None
+    
+        /// Sets/merges i-th subnode of an inner node.
+        let private setOrMergeIthSubnode (i : int) (node : IQuadtreeNode) (newSubnode : IQuadtreeNode option) : IQuadtreeNode =
+            invariant node.SubNodes.IsSome "f74ba958-cf53-4336-944f-46ef2c2b8893"
+            if newSubnode.IsSome then invariant (node.Cell.GetQuadrant(i) = newSubnode.Value.Cell) "f5b92710-39de-4054-a67d-e2fbb1c9212c"
+            let nss = node.SubNodes.Value |> Array.copy
+            nss.[i] <- mergeSameRoot nss.[i] newSubnode
+            QuadtreeNode(node.Cell, node.Layers, Some nss) :> IQuadtreeNode
+
+        let rec private mergeIntersecting (a : IQuadtreeNode option) (b : IQuadtreeNode option) : IQuadtreeNode option =
+            match a, b with
+            | Some a', Some b' ->
+                if   a'.Cell.Exponent = b'.Cell.Exponent then mergeSameRoot     a b
+                elif a'.Cell.Exponent < b'.Cell.Exponent then mergeIntersecting a b
+                else
+                    invariant (a'.Cell.Exponent > b'.Cell.Exponent) "4b40bc08-b19d-4f49-b6e5-f321bf1e7dd0."
+                    invariant (not(a'.Cell.Contains(b'.Cell)))      "9a44a9ea-2996-46ff-9cc6-c9de1992465d."
+                    invariant (b'.Cell.Contains(a'.Cell))           "7d3465b9-90c7-4e7d-99aa-67e5383fb124."
+
+                    let qi = a'.Cell.GetQuadrant(b'.Cell).Value
+                    let qcell = a'.Cell.GetQuadrant(qi)
+
+                    let a'' = if a'.IsLeafNode then QuadtreeNode(a'.Cell, a'.Layers, Some <| Array.create 4 None) :> IQuadtreeNode else a'
+                    b |> extendUpTo qcell |> setOrMergeIthSubnode qi a'' |> Some
+
+            | Some _, None   -> a
+            | None,   Some _ -> b
+            | None,   None   -> None
+
+        let private mergeNonIntersecting (a : IQuadtreeNode option) (b : IQuadtreeNode option) : IQuadtreeNode option =
+            match a, b with
+            | Some a', Some b' ->
+                let withCommonRoot = extendUpTo <| Cell2d(Box2d(a'.Cell.BoundingBox, b'.Cell.BoundingBox)) 
+                mergeSameRoot (a |> withCommonRoot) (b |> withCommonRoot)
+            | Some _,  None    -> a
+            | None,    Some _  -> b
+            | None,    None    -> None
+
+        let Merge (a : IQuadtreeNode option) ( b : IQuadtreeNode option) : IQuadtreeNode option =
+            match a, b with
+            | Some a', Some b' -> (if intersecting a' b' then mergeIntersecting else mergeNonIntersecting) a b
+            | Some _,  None    -> a
+            | None,    Some _  -> b
+            | None,    None    -> None

@@ -13,8 +13,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Prelude.fs" />
-    <Compile Include="TileData.fs" />
     <Compile Include="Quadtree.fs" />
+    <Compile Include="TileData.fs" />
+    <Compile Include="QuadtreeOld.fs" />
     <Compile Include="DgmSketch.fs" />
   </ItemGroup>
   <ItemGroup>
