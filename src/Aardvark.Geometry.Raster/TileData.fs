@@ -3,6 +3,9 @@
 open Aardvark.Base
 open System
 
+type ITileData = 
+    abstract member Data : Array
+
 /// A two-dim raster of values.
 type TileData<'a> =
     /// (data, mapping), where mapping places the samples globally.
