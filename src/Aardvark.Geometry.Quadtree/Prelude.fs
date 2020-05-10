@@ -40,12 +40,4 @@ module RasterExtensions =
     //    static member Create(xy : V2l, e : PowerOfTwoExp) = Cell2d(xy, int e)
     //    member this.SideLength with get() = Math.Pow(2.0, float this.Exponent)
 
-    type CellRange2 = {
-        Origin : Cell2d
-        Size : V2l
-    }
-    with
-        member this.BoundingBox with get() =
-            let min = this.Origin.BoundingBox.Min
-            let max = Cell2d(this.Origin.XY + this.Size, this.Origin.Exponent).BoundingBox.Min
-            Box2d(min, max)
+    

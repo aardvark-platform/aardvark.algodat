@@ -1,4 +1,4 @@
-﻿namespace Aardvark.Data.Quadtree
+﻿namespace Aardvark.Geometry.Quadtree
 
 open Aardvark.Data
 open System

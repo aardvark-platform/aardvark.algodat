@@ -8,6 +8,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Aardvark.Data.E57\Aardvark.Data.E57.csproj" />
     <ProjectReference Include="..\..\Aardvark.Geometry.PointSet\Aardvark.Geometry.PointSet.csproj" />
+    <ProjectReference Include="..\..\Aardvark.Geometry.Quadtree\Aardvark.Geometry.Quadtree.fsproj" />
   </ItemGroup>
 
 </Project>

@@ -102,5 +102,18 @@ module ApiSketch =
     //let computeDifferenceVolume (integrator : HeightDeltas -> float<length^3>) (a : IRasterNode2d) (b : IRasterNode2d) : float<length^3> =
     //    failwith "not implemented"
 
+
+    let data = [| 
+        1.0; 1.0; 2.0; 2.0
+        1.5; 1.6; 1.7; 1.8
+        1.6; 1.7; 2.0; 2.2
+        |]
+
+    let mapping = LayerMapping(origin = Cell2d(500_000L, 2_000L, 0), width = 4, height = 3)
+
+    let layer = Layer.Create Defs.Quadtree.Heights1d data mapping
+
+    let w = layer |> Layer.Window (Box2l(V2l(1, 0), V2l(3, 2)))
+
     ()
 
