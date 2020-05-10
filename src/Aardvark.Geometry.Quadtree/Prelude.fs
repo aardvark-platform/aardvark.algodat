@@ -3,24 +3,24 @@
 open Aardvark.Base
 open System
 
-[<AutoOpen>]
-module PowersOfTwo =
+//[<AutoOpen>]
+//module PowersOfTwo =
 
-    /// power-of-two exponent
-    [<Measure>] type potexp
+//    /// power-of-two exponent
+//    [<Measure>] type potexp
 
-    /// power-of-two exponent
-    type PowerOfTwoExp = int<potexp>
+//    /// power-of-two exponent
+//    type PowerOfTwoExp = int<potexp>
 
-    /// power-of-two
-    [<Measure>] type pot
+//    /// power-of-two
+//    [<Measure>] type pot
 
-    /// length
-    [<Measure>] type length
+//    /// length
+//    [<Measure>] type length
 
-    let potexp2pot (e : PowerOfTwoExp) =
-        if e < 0<potexp> then invalidArg "e" "Exponent must not be negative."
-        (1L <<< int e) * 1L<pot>
+//    let potexp2pot (e : PowerOfTwoExp) =
+//        if e < 0<potexp> then invalidArg "e" "Exponent must not be negative."
+//        (1L <<< int e) * 1L<pot>
 
 [<AutoOpen>]
 module RasterExtensions =
@@ -36,9 +36,9 @@ module RasterExtensions =
                 Box2l(       c.X,        c.Y, this.Max.X, this.Max.Y)
             |]
 
-    type Cell2d with
-        static member Create(xy : V2l, e : PowerOfTwoExp) = Cell2d(xy, int e)
-        member this.SideLength with get() = Math.Pow(2.0, float this.Exponent)
+    //type Cell2d with
+    //    static member Create(xy : V2l, e : PowerOfTwoExp) = Cell2d(xy, int e)
+    //    member this.SideLength with get() = Math.Pow(2.0, float this.Exponent)
 
     type CellRange2 = {
         Origin : Cell2d

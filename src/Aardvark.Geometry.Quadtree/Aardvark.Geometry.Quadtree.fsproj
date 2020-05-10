@@ -5,14 +5,15 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <OutputPath>..\..\bin\Release</OutputPath>
-    <DocumentationFile>..\..\bin\Release\Aardvark.Geometry.Raster.xml</DocumentationFile>
+    <DocumentationFile>..\..\bin\Release\Aardvark.Geometry.Quadtree.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <OutputPath>..\..\bin\Debug</OutputPath>
-    <DocumentationFile>..\..\bin\Debug\Aardvark.Geometry.Raster.xml</DocumentationFile>
+    <DocumentationFile>..\..\bin\Debug\Aardvark.Geometry.Quadtree.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Prelude.fs" />
+    <Compile Include="Defs.fs" />
     <Compile Include="Quadtree.fs" />
     <Compile Include="TileData.fs" />
     <Compile Include="QuadtreeOld.fs" />
