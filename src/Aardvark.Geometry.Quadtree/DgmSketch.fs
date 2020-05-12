@@ -113,7 +113,12 @@ module ApiSketch =
 
     let layer = Layer.Create Defs.Quadtree.Heights1d data mapping
 
-    let w = layer |> Layer.Window (Box2l(V2l(1, 0), V2l(3, 2)))
+    let w = (layer :> ILayer).WithWindow(Box2l(V2l(500_000, 2_000), V2l(500_003, 2_002)))
+
+    let q = Quadtree.Create [| layer |]
+
+
+
 
     ()
 

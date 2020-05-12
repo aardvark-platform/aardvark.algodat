@@ -19,11 +19,13 @@ type LayerMapping(origin : Cell2d, size : V2i) =
     new (originX : int64, originY : int64, width : int, height : int, exponent : int) =
         LayerMapping(Cell2d(originX, originY, exponent), V2i(width, height))
 
-    member this.Origin with get() = origin
-    member this.Size with get() = size
-    member this.Width with get() = size.X
-    member this.Height with get() = size.Y
-    member this.Max with get() = origin.XY + V2l size
+    member ____.Origin with get() = origin
+    member ____.Size with get() = size
+    member ____.Width with get() = size.X
+    member ____.Height with get() = size.Y
+    member ____.Min with get() = origin.XY
+    member ____.Max with get() = origin.XY + V2l size
+    member this.Box with get() = Box2l(this.Min, this.Max)
 
     member this.Contains (box : Box2l) =
         let max = this.Max
@@ -40,6 +42,7 @@ type ILayer =
     abstract member Location : LayerMapping
     abstract member Window : Box2l option
     abstract member Merge : ILayer -> ILayer
+    abstract member WithWindow : Box2l -> ILayer option
 
 type Layer<'a> = {
     Def : Durable.Def
@@ -54,6 +57,13 @@ with
         member this.Location with get() = this.Location
         member this.Window with get() = this.Window
         member this.Merge other : ILayer = failwith "NOT IMPLEMENTED"
+        member this.WithWindow (w : Box2l) =
+            let box = match this.Window with | Some w -> w | None -> this.Location.Box
+            let o = box.Intersection(w)
+            if o.IsInvalid || o.Area = 0L then
+                None
+            else
+                { this with Window = Some o } :> ILayer |> Some
 
 module Layer =
 
@@ -62,10 +72,15 @@ module Layer =
             invalidArg "data" "Mismatch of data.Length and location.Size. Invariant b9b09994-2d8e-4e94-9bde-c46b1b6b87ec."
         { Def = def; Data = data; Location = location; Window = None }
 
-    let Window newWindow layerData =
-        if not(layerData.Location.Contains(newWindow)) then
-            invalidArg "window" "New window is not fully contained in layer. Invariant 032e0790-8e84-4967-b767-e8373abf2348."
-        { layerData with Window = Some newWindow }
+    let BoundingBox (layer : ILayer) =
+        match layer.Window with
+        | None -> layer.Location.BoundingBox
+        | Some w ->
+            let min = Cell2d(w.Min, layer.Location.Origin.Exponent).BoundingBox.Min
+            let max = Cell2d(w.Max, layer.Location.Origin.Exponent).BoundingBox.Min
+            Box2d(min, max)
+
+    let Box (layer : ILayer) = match layer.Window with | Some w -> w | None -> layer.Location.Box
 
     
 [<AutoOpen>]
@@ -73,7 +88,7 @@ module ILayerExtensions =
     type ILayer with
         member this.IsPowerOfTwoSquare with get() = this.Location.Size.X = this.Location.Size.Y && this.Location.Size.X.IsPowerOfTwo()
         member this.SampleExponent with get() = this.Location.Origin.Exponent
-
+        member this.Box with get() = Layer.Box this
 
 (*
     Node.
@@ -96,13 +111,17 @@ type Node(cell : Cell2d, layers : ILayer[] option, subNodes : INode option[] opt
         if layers.IsSome then
             let bb = cell.BoundingBox
             for layer in layers.Value do
-            if not(bb.Contains(layer.Location.BoundingBox)) then 
+            if not(bb.Contains(Layer.BoundingBox layer)) then 
                 invalidArg "layers" (sprintf "Layer %A is outside node bounds." layer.Def.Id)
             
         if subNodes.IsSome && subNodes.Value.Length <> 4 then 
             invalidArg "subNodes" "Invariant 20baf723-cf32-46a6-9729-3b4e062ceee5."
 
     new (cell : Cell2d, layers : ILayer[] option) = Node(cell, layers, None)
+
+    new (cell : Cell2d, layers : ILayer[]) = Node(cell, Some layers, None)
+
+    new (cell : Cell2d) = Node(cell, None, None)
 
     interface INode with
         member _.Cell with get() = cell
@@ -229,3 +248,74 @@ module Merge =
         | Some _,  None    -> a
         | None,    Some _  -> b
         | None,    None    -> None
+
+
+(*
+    Quadtree.
+*)
+[<AutoOpen>]
+module Quadtree =
+
+    let rec private count a b (root : INode option) =
+        match root with 
+        | None -> 0 
+        | Some r -> match r.SubNodes with 
+                    | None -> a 
+                    | Some ns -> b + (ns |> Array.sumBy (count a b))
+
+    let rec Count root      = root |> count 1 1
+    let rec CountLeafs root = root |> count 1 0
+    let rec CountInner root = root |> count 0 1
+
+    let private SPLIT_LIMIT = 256L
+
+    let rec private create (cell : Cell2d) (layers : ILayer[]) : INode =
+    
+        //printfn "[CELL CREATE] %A" cell
+        let minExp = layers |> Array.map (fun l -> l.Location.Origin.Exponent) |> Array.min
+        
+        //printfn "min exp ......... %A" minExp
+        
+        let needToSplit = layers |> Array.map Layer.Box |> Array.exists (fun box -> 
+            box.SizeX > SPLIT_LIMIT || box.SizeY > SPLIT_LIMIT
+            )
+        
+        if needToSplit then
+                    
+            //printfn "cell box ........ %A" (cell.GetBoundsForExponent(minExp))
+            //for layer in layers do
+            //    printfn "layer %-20s %A" layer.Def.Name layer.Box
+            //if cell.Exponent = 8 then 
+            //    printfn "what?????????????????????????????????????????????????????????????????????????????????????????????????"
+
+            let subLayers = cell.Children |> Array.map (fun subCell ->
+                let subBox = subCell.GetBoundsForExponent(minExp)
+                let subLayers = layers |> Array.map (fun l -> l.WithWindow subBox) |> Array.choose id
+                (subCell, subLayers) 
+                )
+                    
+            let subNodes = subLayers |> Array.map (fun (subCell, subLayers) ->
+                match subLayers.Length with
+                | 0 -> None
+                | _ -> Some <| create subCell subLayers
+                    //printfn "  sub cell %A"  subCell
+                    //for layer in subLayers do
+                    //    printfn "    layer %-20s" layer.Def.Name
+                    //    printfn "          %A with area %A" layer.Box layer.Box.Area
+                    
+                )
+                        
+            Node(cell, None, Some subNodes) :> INode
+        
+        else
+        
+            Node(cell, layers) :> INode
+
+    let Create ([<ParamArray>] layers : ILayer[]) : INode =
+        let globalBounds = layers |> Array.map Layer.BoundingBox |> Box2d
+        let rootCell = Cell2d(globalBounds)
+        //printfn "global bounds ... %A" globalBounds
+        //printfn "root cell ....... %A" rootCell
+        create rootCell layers
+
+    ()
