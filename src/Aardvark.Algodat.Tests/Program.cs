@@ -9,6 +9,7 @@ using Aardvark.Geometry.Points;
 using Microsoft.FSharp.Collections;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using NUnit.Framework.Constraints;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -73,19 +74,35 @@ namespace Aardvark.Geometry.Tests
             //var sw = new Stopwatch();
 
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
-            var filename = @"T:\Vgm\Data\E57\100pct_1mm_zebcam_shade_zebcam_world.e57";
+            var filename = @"T:\Vgm\Data\E57\Villnachern.e57";
             //var fileSizeInBytes = new FileInfo(filename).Length;
+
+            var key = Path.GetFileName(filename);
 
             var info = E57.E57Info(filename, ParseConfig.Default);
             Report.Line($"total bounds: {info.Bounds}");
             Report.Line($"total count : {info.PointCount:N0}");
 
+            var storePath = $@"T:\Vgm\Stores\{key}";
+            using var store = new SimpleDiskStore(storePath).ToPointCloudStore();
+
+            var count = 0L;
+            var i = 0;
+            store.GetPointSet(key).Root.Value.ForEachNode(true, n =>
+            {
+                if (++i % 2000 == 0) Report.Line($"[{i,8:N0}] {count,20:N0}");
+                count += n.ToChunk().Count;
+            });
+            Report.Line($"[{i,8:N0}] {count,20:N0}");
+            return;
+
             var config = ImportConfig.Default
-                .WithInMemoryStore()
-                .WithRandomKey()
+                //.WithInMemoryStore()
+                .WithStorage(store)
+                .WithKey(key)
                 .WithVerbose(true)
                 .WithMaxDegreeOfParallelism(0)
-                .WithMinDist(0.01)
+                .WithMinDist(0.0)
                 ;
             
             Report.BeginTimed("total");
@@ -729,6 +746,244 @@ namespace Aardvark.Geometry.Tests
             //}
         }
 
+        public static void EnumerateCells2dTestNew()
+        {
+            //var inputFile = @"T:\Vgm\Data\E57\KG1__002.e57";
+            var inputFile = @"T:\Vgm\Data\E57\aibotix_ground_points.e57";
+            
+            var storeName = Path.Combine(@"T:\Vgm\Stores", Path.GetFileName(inputFile));
+            var key = Path.GetFileName(storeName);
+            //CreateStore(inputFile, storeName, key, 0.005);
+
+            var store = new SimpleDiskStore(storeName).ToPointCloudStore(cache: default);
+            var pc = store.GetPointSet(key).Root.Value;
+            Console.WriteLine($"total points: {pc.PointCountTree,10:N0}"); 
+            //Console.WriteLine($"total points: {pc.QueryAllPoints().Sum(c => c.Count),10:N0}");
+            //Console.WriteLine($"total points: {new HashSet<V3d>(pc.QueryAllPoints().SelectMany(c => c.Positions)).Count,10:N0}");
+            
+            //Console.WriteLine($"total points: {pc.CountPoints()}");
+            Console.WriteLine($"bounding box: {pc.BoundingBoxExactGlobal:N2}");
+
+
+            for (var e = 11; e >= -11; e--)
+            {
+                var d = Math.Pow(2.0, e);
+                var bb = pc.BoundingBoxExactGlobal;
+                long f(double x, double d) => x < 0 ? (long)(x / d) - 1L : (long)(x / d);
+                V2l f2(V2d x, double d) => new V2l(f(x.X, d), f(x.Y, d));
+                Box2l f2b(Box2d x, double d) => new Box2l(f2(x.Min, d), f2(x.Max, d) + V2l.II);
+                var rbb = f2b(bb.XY, d);
+                Console.WriteLine($"raster bounds: {rbb:N0}");
+                var total = 0L;
+
+                rbb = new Box2l(rbb.Min, rbb.Min + new V2l((rbb.SizeX > rbb.SizeY) ? rbb.SizeX : rbb.SizeY));
+                Console.WriteLine($"raster bounds: {new Box2d((V2d)rbb.Min * d, (V2d)rbb.Max * d):N2}");
+                Box2l[] SplitCenter(Box2l bb)
+                {
+                    var c = bb.Center;
+                    return new Box2l[]
+                    {
+                    new Box2l(bb.Min.X, bb.Min.Y, c.X, c.Y),
+                    new Box2l(c.X, bb.Min.Y, bb.Max.X, c.Y),
+                    new Box2l(bb.Min.X, c.Y, c.X, bb.Max.Y),
+                    new Box2l(c.X, c.Y, bb.Max.X, bb.Max.Y)
+                    };
+                }
+                void DoIt2(Box2l bb, Chunk points)
+                {
+                    var area = bb.Area;
+                    if (area == 0) return;
+
+                    var q = new Box2d(bb.Min.X * d, bb.Min.Y * d, bb.Max.X * d, bb.Max.Y * d);
+                    var chunk = points.ImmutableFilterByBoxXY(q);
+                    if (chunk.Count == 0) return;
+
+                    if (area == 1)
+                    {
+                        if (chunk.Count == 0) return;
+                        total += chunk.Count;
+                    }
+                    else
+                    {
+                        var sbb = SplitCenter(bb);
+                        for (var i = 0; i < 4; i++) DoIt2(sbb[i], chunk);
+                    }
+                }
+                void DoIt(Box2l bb, List<IPointCloudNode> roots)
+                {
+                    var area = bb.Area;
+                    if (area == 0) return;
+
+                    var q = new Box2d(bb.Min.X * d, bb.Min.Y * d, bb.Max.X * d, bb.Max.Y * d);
+                    if (area == 1)
+                    {
+                        var chunk = Chunk.ImmutableMerge(roots.SelectMany(root => root.QueryPointsInsideBoxXY(q)));
+                        if (chunk.Count == 0) return;
+                        total += chunk.Count;
+                        //Console.WriteLine($"{q,-50:N2}   {chunk.Count,10:N0}");
+                    }
+                    else
+                    {
+                        var rs = new List<IPointCloudNode>();
+                        foreach (var r in roots)
+                        {
+                            if (r.IsLeaf) rs.Add(r);
+                            else
+                            {
+                                var _bb = r.BoundingBoxExactGlobal.XY;
+                                if (!q.Intersects(_bb)) { }
+                                else if (q.Contains(_bb)) rs.Add(r);
+                                else
+                                {
+                                    var sub = r.Subnodes;
+                                    void add(int i) { if (sub[i] != null) { rs.Add(sub[i].Value); } }
+                                    var c = r.Center.XY;
+                                    if (q.Max.X < c.X)
+                                    {
+                                        // left cells
+                                        if (q.Max.Y < c.Y) { add(0); add(4); } // left/bottom
+                                        else if (q.Min.Y >= c.Y) { add(2); add(6); } // left/top
+                                        else { add(0); add(4); add(2); add(6); }
+                                    }
+                                    else if (q.Min.X >= c.X)
+                                    {
+                                        // right cells
+                                        if (q.Max.Y < c.Y) { add(1); add(5); } // right/bottom
+                                        else if (q.Min.Y >= c.Y) { add(3); add(7); } // right/top
+                                        else { add(1); add(5); add(3); add(7); }
+                                    }
+                                    else
+                                    {
+                                        // left/right cells
+                                        if (q.Max.Y <= c.Y) { add(0); add(1); add(4); add(5); } // bottom
+                                        else if (q.Min.Y >= c.Y) { add(2); add(3); add(6); add(7); } // top
+                                        else { rs.Add(r); }
+                                    }
+                                }
+                            }
+                        }
+
+                        var total = rs.Sum(r => r.PointCountTree);
+                        var sbb = SplitCenter(bb);
+                        if (total < 1024 * 1024)
+                        {
+                            var chunk = Chunk.ImmutableMerge(rs.SelectMany(r => r.QueryPointsInsideBoxXY(q)));
+                            for (var i = 0; i < 4; i++) DoIt2(sbb[i], chunk);
+                        }
+                        else
+                        {
+                            for (var i = 0; i < 4; i++) DoIt(sbb[i], rs);
+                        }
+                    }
+                }
+
+                Report.BeginTimed($"[{e}] enumerate");
+                DoIt(rbb, new List<IPointCloudNode> { pc });
+
+                //for (var y = rbb.Min.Y; y < rbb.Max.Y; y++)
+                //{
+                //    for (var x = rbb.Min.X; x < rbb.Max.X; x++)
+                //    {
+                //        var q = new Box2d(x * d, y * d, x * d + d, y * d + d);
+                //        var chunk = Chunk.ImmutableMerge(pc.QueryPointsInsideBoxXY(q));
+                //        if (chunk.Count == 0) continue;
+                //        total += chunk.Count;
+                //        //Console.WriteLine($"{q,-50:N2}   {chunk.Count,10:N0}");
+                //    }
+                //    //Console.WriteLine($"{total,10:N0} / {pc.PointCountTree,10:N0}");
+                //}
+                Report.End();
+                Console.WriteLine($"total count = {total:N0}");
+            }
+            //// enumerateCells2d
+            //var stride = 3;
+            //var columns = pc.EnumerateCellColumns(cellExponent: 8, stride: new V2i(stride));
+
+            //var total = 0L;
+            //foreach (var c in columns)
+            //{
+            //    Console.WriteLine($"{c.Cell,-20} {c.ColZ.CountTotal,15:N0}");
+            //    var halfstride = (stride - 1) / 2;
+            //    var xs = c.CollectPoints(int.MaxValue, new Box2i(-halfstride, -halfstride, +halfstride, +halfstride));
+            //    var sum = xs.Sum(x => x.Points.Count);
+            //    total += sum;
+            //    foreach (var x in xs) Console.WriteLine($"  {x.Footprint,-20} {x.Points.Count,15:N0}");
+            //    //Console.ReadLine();
+            //}
+
+
+            //var oSize = 2;
+            //var iSize = 1;
+            //var cellExponent = 5;
+
+            //Report.BeginTimed("total");
+            //var xs = root.EnumerateCellColumns(cellExponent);
+            //var i = 0;
+            //foreach (var x in xs)
+            //{
+            //    var cs0 = x.GetPoints(int.MaxValue).ToArray();
+            //    //if (cs0.Length == 0) continue;
+            //    //var cs1 = x.GetPoints(0, outer: new Box2i(new V2i(-iSize, -iSize), new V2i(+iSize, +iSize))).ToArray();
+            //    //var cs2 = x.GetPoints(0, outer: new Box2i(new V2i(-oSize, -oSize), new V2i(+oSize, +oSize)), inner: new Box2i(new V2i(-iSize, -iSize), new V2i(+iSize, +iSize))).ToArray();
+            //    //Report.Line($"[{x.Cell.X,3}, {x.Cell.Y,3}, {x.Cell.Exponent,3}] {cs0.Sum(c => c.Count),10:N0} {cs1.Sum(c => c.Count),10:N0} {cs2.Sum(c => c.Count),10:N0}");
+            //    //if (++i % 17 == 0) 
+            //    if (cs0.Sum(c => c.Count) > 0)
+            //        Report.Line($"[{x.Cell.X,3}, {x.Cell.Y,3}, {x.Cell.Exponent,3}] {cs0.Sum(c => c.Count),10:N0}");
+            //}
+            //Report.End();
+
+            //for (cellExponent = 11; cellExponent >= -10; cellExponent--)
+            //{
+            //    Report.BeginTimed($"[old] e = {cellExponent,3}");
+            //    var xs = root.EnumerateCellColumns(cellExponent);
+            //    var totalPointCount = 0L;
+            //    var count = 0L;
+            //    foreach (var x in xs)
+            //    {
+            //        count++;
+            //        var cs0 = x.GetPoints(int.MaxValue).ToArray();
+            //        var tmp = cs0.Sum(c => c.Count);
+            //        totalPointCount += tmp;
+            //        //Report.Line($"[{x.Cell.X,3}, {x.Cell.Y,3}, {x.Cell.Exponent,3}] {tmp,10:N0}");
+            //    }
+            //    //if (sum != root.PointCountTree) throw new Exception();
+            //    Report.End($" | cols = {count,12:N0} | points = {totalPointCount,12:N0}");
+            //}
+
+            //for (var cellExponent = 11; cellExponent >= -10; cellExponent--)
+            //{
+            //    Report.BeginTimed($"[new] e = {cellExponent,3}");
+            //    var ys = root.EnumerateCellColumns(cellExponent);
+            //    var totalPointCount = 0L;
+            //    var count = 0L;
+            //    foreach (var y in ys)
+            //    {
+            //        count++;
+            //        var cs0 = y.CollectPoints(int.MaxValue);
+            //        totalPointCount += cs0.Points.Count;
+            //        //totalPointCount += y.CountTotal;
+            //        //Report.Line($"[{y.Footprint.X,3}, {y.Footprint.Y,3}, {y.Footprint.Exponent,3}] {y.CountTotal,10:N0}");
+            //    }
+            //    //if (totalPointCount != root.PointCountTree) throw new Exception();
+            //    Report.End($" | cols = {count,12:N0} | points = {totalPointCount,12:N0}");
+            //}
+
+            //Console.WriteLine($"BoundingBoxExactGlobal: {root.BoundingBoxExactGlobal:0.00}");
+            //Console.WriteLine($"Cell.BoundingBox:       {root.Cell.BoundingBox:0.00}");
+            //Console.WriteLine($"Cell:                   {root.Cell}");
+            //var columns = root.EnumerateCellColumns(6, new V2i(1,1));
+            //Console.WriteLine("for each column:");
+            //foreach (var column in columns)
+            //{
+            //    Console.WriteLine($"    {column.Cell}");
+            //    foreach (var chunk in column.GetPoints(4, new Box2i(-1,-1,+1,+1)))
+            //    {
+            //        Console.WriteLine($"        {chunk.Footprint}  {chunk.Points.Count}");
+            //    }
+            //}
+        }
+
+
         internal static void DumpPointSetKeys()
         {
             var storeFolder = @"T:\Vgm\Pinter_Dachboden_3Dworx_Store\Pinter_Dachboden_store";
@@ -1000,9 +1255,16 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] _)
         {
+            EnumerateCells2dTestNew();
+
+            //var inputFile = @"T:\Vgm\Data\E57\KG1__002.e57";
+            //var storeName = Path.Combine(@"T:\Vgm\Stores", Path.GetFileName(inputFile));
+            //var key = Path.GetFileName(storeName);
+            //CreateStore(inputFile, storeName, key, 0.005);
+
             //PointCloudImportCleanup();
 
-            RasterTest();
+            //RasterTest();
 
             //EnumerateCells2dTest();
 

@@ -217,5 +217,64 @@ namespace Aardvark.Geometry.Points
         }
 
         #endregion
+
+        #region QueryContainsPoints
+
+        /// <summary>
+        /// Exact count.
+        /// </summary>
+        public static bool QueryContainsPoints(this PointSet node,
+            Func<IPointCloudNode, bool> isNodeFullyInside,
+            Func<IPointCloudNode, bool> isNodeFullyOutside,
+            Func<V3d, bool> isPositionInside,
+            int minCellExponent = int.MinValue
+            )
+            => QueryContainsPoints(node.Root.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, minCellExponent);
+
+        /// <summary>
+        /// Exact count.
+        /// </summary>
+        public static bool QueryContainsPoints(this IPointCloudNode node,
+            Func<IPointCloudNode, bool> isNodeFullyInside,
+            Func<IPointCloudNode, bool> isNodeFullyOutside,
+            Func<V3d, bool> isPositionInside,
+            int minCellExponent = int.MinValue
+            )
+        {
+            if (node.Cell.Exponent < minCellExponent) return false;
+
+            if (isNodeFullyOutside(node)) return false;
+
+            if (node.IsLeaf() || node.Cell.Exponent == minCellExponent)
+            {
+                if (isNodeFullyInside(node))
+                {
+                    return true;
+                }
+                else // partially inside
+                {
+                    var psRaw = node.PositionsAbsolute;
+                    for (var i = 0; i < psRaw.Length; i++)
+                    {
+                        var p = psRaw[i];
+                        if (isPositionInside(p)) return true;
+                    }
+                    return false;
+                }
+            }
+            else
+            {
+                var sum = 0L;
+                for (var i = 0; i < 8; i++)
+                {
+                    var n = node.Subnodes[i];
+                    if (n == null) continue;
+                    if (QueryContainsPoints(n.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, minCellExponent)) return true;
+                }
+                return false;
+            }
+        }
+
+        #endregion
     }
 }

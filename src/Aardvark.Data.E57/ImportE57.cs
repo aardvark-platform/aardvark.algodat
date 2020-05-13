@@ -186,7 +186,7 @@ namespace Aardvark.Data.Points.Import
                     if (config.Verbose)
                     {
                         var progress = yieldedRecordCount / (double)totalRecordCount;
-                        Write($"\r[E57] yielded {yieldedRecordCount,13:N0}/{totalRecordCount:N0} points [{progress * 100,6:0.00}%]");
+                        Report.Line($"\r[E57] yielded {yieldedRecordCount,13:N0}/{totalRecordCount:N0} points [{progress * 100,6:0.00}%]");
                     }
 
                     return chunk;

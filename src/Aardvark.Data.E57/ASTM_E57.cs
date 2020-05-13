@@ -578,9 +578,9 @@ namespace Aardvark.Data.E57
                             recordsLeftToConsumePerByteStream[i] -= buffers[i].Length;
                         }
 
-                        if (verbose) Console.WriteLine(
-                            $"[E57CompressedVector][recordsLeftToConsumePerByteStream] {string.Join(", ", recordsLeftToConsumePerByteStream.Select(x => x.ToString()))}"
-                            );
+                        //if (verbose) Console.WriteLine(
+                        //    $"[E57CompressedVector][recordsLeftToConsumePerByteStream] {string.Join(", ", recordsLeftToConsumePerByteStream.Select(x => x.ToString()))}"
+                        //    );
 
                         // build
                         {

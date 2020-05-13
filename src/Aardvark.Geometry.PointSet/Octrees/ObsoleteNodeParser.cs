@@ -321,69 +321,62 @@ namespace Aardvark.Geometry.Points
         private static object Read(byte[] src, ref int index)
         {
             var typeId = src[index++];
-            switch (typeId)
+            return typeId switch
             {
-                case 0: return null;
-                case 1: return Read<byte>(src, ref index);
-                case 2: return Read<sbyte>(src, ref index);
-                case 3: return Read<ushort>(src, ref index);
-                case 4: return Read<short>(src, ref index);
-                case 5: return Read<uint>(src, ref index);
-                case 6: return Read<int>(src, ref index);
-                case 7: return Read<ulong>(src, ref index);
-                case 8: return Read<long>(src, ref index);
-
-                case 9: return Read<float>(src, ref index);
-                case 10: return Read<double>(src, ref index);
-                case 11: return Read<decimal>(src, ref index);
-
-                case 12: return Read<char>(src, ref index);
-                case 13: return Read<byte>(src, ref index) != 0;
-
+                0 => null,
+                1 => Read<byte>(src, ref index),
+                2 => Read<sbyte>(src, ref index),
+                3 => Read<ushort>(src, ref index),
+                4 => Read<short>(src, ref index),
+                5 => Read<uint>(src, ref index),
+                6 => Read<int>(src, ref index),
+                7 => Read<ulong>(src, ref index),
+                8 => Read<long>(src, ref index),
+                9 => Read<float>(src, ref index),
+                10 => Read<double>(src, ref index),
+                11 => Read<decimal>(src, ref index),
+                12 => Read<char>(src, ref index),
+                13 => Read<byte>(src, ref index) != 0,
                 // ids broken
-                case 14: return Read<V2i>(src, ref index);
-                case 15: return Read<V3i>(src, ref index);
-                case 16: return Read<V4i>(src, ref index);
-                case 17: return Read<V2l>(src, ref index);
-                case 18: return Read<V3l>(src, ref index);
-                case 19: return Read<V4l>(src, ref index);
-                case 20: return Read<V2f>(src, ref index);
-                case 21: return Read<V3f>(src, ref index);
-                case 22: return Read<V4f>(src, ref index);
-                case 23: return Read<V2d>(src, ref index);
-                case 24: return Read<V3d>(src, ref index);
-                case 25: return Read<V4d>(src, ref index);
-
-                case 26: return Read<C3b>(src, ref index);
-                case 27: return Read<C4b>(src, ref index);
-                case 28: return Read<C3us>(src, ref index);
-                case 29: return Read<C4us>(src, ref index);
-                case 30: return Read<C3ui>(src, ref index);
-                case 31: return Read<C4ui>(src, ref index);
-                case 32: return Read<C3f>(src, ref index);
-                case 33: return Read<C4f>(src, ref index);
-                case 34: return Read<C3d>(src, ref index);
-                case 35: return Read<C4d>(src, ref index);
-
-                case 36: return Read<Range1i>(src, ref index);
-                case 37: return Read<Range1l>(src, ref index);
-                case 38: return Read<Range1f>(src, ref index);
-                case 39: return Read<Range1d>(src, ref index);
-                case 40: return Read<Box2i>(src, ref index);
-                case 41: return Read<Box2l>(src, ref index);
-                case 42: return Read<Box2f>(src, ref index);
-                case 43: return Read<Box2d>(src, ref index);
-                case 44: return Read<Box3i>(src, ref index);
-                case 45: return Read<Box3l>(src, ref index);
-                case 46: return Read<Box3f>(src, ref index);
-                case 47: return Read<Box3d>(src, ref index);
-
-                case 48: return (UIntPtr)Read<ulong>(src, ref index);
-                case 49: return (IntPtr)Read<long>(src, ref index);
-                case 50: return Read<Guid>(src, ref index);
-
-                default: throw new NotImplementedException();
-            }
+                14 => Read<V2i>(src, ref index),
+                15 => Read<V3i>(src, ref index),
+                16 => Read<V4i>(src, ref index),
+                17 => Read<V2l>(src, ref index),
+                18 => Read<V3l>(src, ref index),
+                19 => Read<V4l>(src, ref index),
+                20 => Read<V2f>(src, ref index),
+                21 => Read<V3f>(src, ref index),
+                22 => Read<V4f>(src, ref index),
+                23 => Read<V2d>(src, ref index),
+                24 => Read<V3d>(src, ref index),
+                25 => Read<V4d>(src, ref index),
+                26 => Read<C3b>(src, ref index),
+                27 => Read<C4b>(src, ref index),
+                28 => Read<C3us>(src, ref index),
+                29 => Read<C4us>(src, ref index),
+                30 => Read<C3ui>(src, ref index),
+                31 => Read<C4ui>(src, ref index),
+                32 => Read<C3f>(src, ref index),
+                33 => Read<C4f>(src, ref index),
+                34 => Read<C3d>(src, ref index),
+                35 => Read<C4d>(src, ref index),
+                36 => Read<Range1i>(src, ref index),
+                37 => Read<Range1l>(src, ref index),
+                38 => Read<Range1f>(src, ref index),
+                39 => Read<Range1d>(src, ref index),
+                40 => Read<Box2i>(src, ref index),
+                41 => Read<Box2l>(src, ref index),
+                42 => Read<Box2f>(src, ref index),
+                43 => Read<Box2d>(src, ref index),
+                44 => Read<Box3i>(src, ref index),
+                45 => Read<Box3l>(src, ref index),
+                46 => Read<Box3f>(src, ref index),
+                47 => Read<Box3d>(src, ref index),
+                48 => (UIntPtr)Read<ulong>(src, ref index),
+                49 => (IntPtr)Read<long>(src, ref index),
+                50 => Read<Guid>(src, ref index),
+                _ => throw new NotImplementedException(),
+            };
         }
 
         /// <summary></summary>
