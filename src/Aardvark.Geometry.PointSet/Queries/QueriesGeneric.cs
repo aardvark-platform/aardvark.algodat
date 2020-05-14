@@ -264,7 +264,6 @@ namespace Aardvark.Geometry.Points
             }
             else
             {
-                var sum = 0L;
                 for (var i = 0; i < 8; i++)
                 {
                     var n = node.Subnodes[i];

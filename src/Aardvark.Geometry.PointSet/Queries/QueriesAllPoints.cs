@@ -31,5 +31,11 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static IEnumerable<Chunk> QueryAllPoints(this IPointCloudNode node)
             => node.QueryPoints(_ => true, _ => false, _ => true);
+
+        /// <summary>
+        /// Enumerates (chunked) all points in tree.
+        /// </summary>
+        public static IEnumerable<Chunk> QueryAllPoints(this IPointCloudNode node, int minCellExponent)
+            => node.QueryPoints(_ => true, _ => false, _ => true, minCellExponent);
     }
 }

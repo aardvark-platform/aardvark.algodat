@@ -765,17 +765,36 @@ namespace Aardvark.Geometry.Tests
             Console.WriteLine($"bounding box: {pc.BoundingBoxExactGlobal:N2}");
 
 
-            for (var e = 11; e >= -11; e--)
-            {
-                var d = Math.Pow(2.0, e);
-                var stride = new V2d(d);
+            //for (var e = 11; e >= -11; e--)
+            //{
+            //    var d = Math.Pow(2.0, e);
+            //    var stride = new V2d(d);
                 
-                Report.BeginTimed($"[{e}] enumerate");
-                var grid = pc.QueryGridXY(stride, 1 << 20, int.MinValue);
-                var count = grid.Sum(x => x.Points.Sum(y => y.Count));
-                Report.End();
-                Console.WriteLine($"total count = {count:N0}");
+            //    Report.BeginTimed($"[{e}] enumerate");
+            //    var grid = pc.QueryGridXY(stride, 1 << 20, int.MinValue);
+            //    var count = grid.Sum(x => x.Points.Sum(y => y.Count));
+            //    Report.End();
+            //    Console.WriteLine($"total count = {count:N0}");
+            //}
+
+            for (var e = 11; e > -11; e--)
+            {
+                Report.BeginTimed($"[{e,2}] enumerate grid cells 2^{e,-3}");
+                var q = new GridQueryXY(pc, e);
+                var countPoints = 0L; 
+                var countCells = 0L;
+                foreach (var x in q.GridCells())
+                {
+                    if (x.Footprint.Exponent != e) throw new InvalidOperationException();
+                    countCells++;
+                    countPoints += x.Count;
+                }
+                //Report.Line($"points {countPoints,15:N0}");
+                //Report.Line($"cells  {countCells,15:N0}");
+                Report.EndTimed($"{countCells,15:N0} cells");
             }
+
+
             //// enumerateCells2d
             //var stride = 3;
             //var columns = pc.EnumerateCellColumns(cellExponent: 8, stride: new V2i(stride));
