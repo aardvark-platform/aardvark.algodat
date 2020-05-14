@@ -86,15 +86,15 @@ namespace Aardvark.Geometry.Tests
             var storePath = $@"T:\Vgm\Stores\{key}";
             using var store = new SimpleDiskStore(storePath).ToPointCloudStore();
 
-            var count = 0L;
-            var i = 0;
-            store.GetPointSet(key).Root.Value.ForEachNode(true, n =>
-            {
-                if (++i % 2000 == 0) Report.Line($"[{i,8:N0}] {count,20:N0}");
-                count += n.ToChunk().Count;
-            });
-            Report.Line($"[{i,8:N0}] {count,20:N0}");
-            return;
+            //var count = 0L;
+            //var i = 0;
+            //store.GetPointSet(key).Root.Value.ForEachNode(true, n =>
+            //{
+            //    if (++i % 2000 == 0) Report.Line($"[{i,8:N0}] {count,20:N0}");
+            //    count += n.ToChunk().Count;
+            //});
+            //Report.Line($"[{i,8:N0}] {count,20:N0}");
+            //return;
 
             var config = ImportConfig.Default
                 //.WithInMemoryStore()
@@ -755,21 +755,23 @@ namespace Aardvark.Geometry.Tests
             var key = Path.GetFileName(storeName);
             //CreateStore(inputFile, storeName, key, 0.005);
 
+            Report.Line($"filename    : {key}");
+
             var store = new SimpleDiskStore(storeName).ToPointCloudStore(cache: default);
             var pc = store.GetPointSet(key).Root.Value;
-            Console.WriteLine($"total points: {pc.PointCountTree,10:N0}"); 
+            Report.Line($"total points: {pc.PointCountTree,10:N0}");
             //Console.WriteLine($"total points: {pc.QueryAllPoints().Sum(c => c.Count),10:N0}");
             //Console.WriteLine($"total points: {new HashSet<V3d>(pc.QueryAllPoints().SelectMany(c => c.Positions)).Count,10:N0}");
-            
+
             //Console.WriteLine($"total points: {pc.CountPoints()}");
-            Console.WriteLine($"bounding box: {pc.BoundingBoxExactGlobal:N2}");
+            Report.Line($"bounding box: {pc.BoundingBoxExactGlobal:N2}");
 
 
             //for (var e = 11; e >= -11; e--)
             //{
             //    var d = Math.Pow(2.0, e);
             //    var stride = new V2d(d);
-                
+
             //    Report.BeginTimed($"[{e}] enumerate");
             //    var grid = pc.QueryGridXY(stride, 1 << 20, int.MinValue);
             //    var count = grid.Sum(x => x.Points.Sum(y => y.Count));
@@ -777,22 +779,52 @@ namespace Aardvark.Geometry.Tests
             //    Console.WriteLine($"total count = {count:N0}");
             //}
 
-            for (var e = 11; e > -11; e--)
+            //for (var e = pc.Cell.Exponent; e > -11; e--)
+            //{
+            //    Report.BeginTimed($"[{e,2}] enumerate grid cells 2^{e,-3}");
+            //    var q = new GridQueryXY(pc, e);
+            //    var countPoints = 0L;
+            //    var countCells = 0L;
+            //    foreach (var x in q.GridCells())
+            //    {
+            //        if (x.Footprint.Exponent != e) throw new InvalidOperationException();
+            //        countCells++;
+            //        countPoints += x.Count;
+            //    }
+            //    //Report.Line($"points {countPoints,15:N0}");
+            //    //Report.Line($"cells  {countCells,15:N0}");
+            //    Report.EndTimed($"{countCells,15:N0} cells");
+            //}
+
+            Report.Line();
+            Report.BeginTimed("performing GridQueryXY");
+            var gridCellExponent = 4;
+            var subCellExponent = -3;
+            Report.Line();
+            Report.Line($"gridCellExponent = {gridCellExponent,3}");
+            Report.Line($"subCellExponent  = {subCellExponent,3}");
+            Report.Line();
+            Report.Line($"EnumerateGridCells({gridCellExponent}) :");
+            Report.Line();
+            foreach (var x in pc.EnumerateGridCellsXY(gridCellExponent))
             {
-                Report.BeginTimed($"[{e,2}] enumerate grid cells 2^{e,-3}");
-                var q = new GridQueryXY(pc, e);
-                var countPoints = 0L; 
-                var countCells = 0L;
-                foreach (var x in q.GridCells())
+                Report.Line($"  {x.Footprint,-25}       {x.Count,15:N0} points");
+                var countSubCells = 0L;
+                var countSubPoints = 0L;
+                foreach (var y in x.EnumerateGridCellsXY(subCellExponent))
                 {
-                    if (x.Footprint.Exponent != e) throw new InvalidOperationException();
-                    countCells++;
-                    countPoints += x.Count;
+                    countSubCells++;
+                    countSubPoints += y.CollectPoints().Sum(z => z.Count);
+                    if (countSubCells <= 3)
+                        Report.Line($"    {y.Footprint,-25}     {y.Count,15:N0}");
+                    else if (countSubCells == 4)
+                        Report.Line($"    ...");
                 }
-                //Report.Line($"points {countPoints,15:N0}");
-                //Report.Line($"cells  {countCells,15:N0}");
-                Report.EndTimed($"{countCells,15:N0} cells");
+                Report.Line($"    total: {countSubCells,9:N0} subcells  {countSubPoints,18:N0} points");
+                Report.Line($"    ------------------------------------------------------");
+                Report.Line();
             }
+            Report.EndTimed();
 
 
             //// enumerateCells2d

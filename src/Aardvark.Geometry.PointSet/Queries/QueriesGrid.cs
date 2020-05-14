@@ -25,24 +25,41 @@ namespace Aardvark.Geometry.Points
     {
         #region grid query (cell stride)
 
+        /// <summary>
+        /// Enumerate over point cloud in a grid of cells of size gridCellExponent. 
+        /// </summary>
+        public static IEnumerable<GridQueryXY> EnumerateGridCellsXY(
+            this PointSet self, int gridCellExponent
+            )
+            => new GridQueryXY(self.Root.Value).EnumerateGridCellsXY(gridCellExponent);
+
+        /// <summary>
+        /// Enumerate over point cloud in a grid of cells of size gridCellExponent.
+        /// Empty grid cells are skipped.
+        /// </summary>
+        public static IEnumerable<GridQueryXY> EnumerateGridCellsXY(
+            this IPointCloudNode self, int gridCellExponent
+            )
+            => new GridQueryXY(self).EnumerateGridCellsXY(gridCellExponent);
+
         public class GridQueryXY
         {
             private IPointCloudNode[] Roots { get; }
             private Chunk Rest { get; }
             public Cell2d Footprint { get; }
-            public int GridCellExponent { get; }
+            //public int GridCellExponent { get; }
             public long Count { get; }
 
-            public GridQueryXY(IPointCloudNode root, int gridCellExponent)
+            public GridQueryXY(IPointCloudNode root)
             {
                 Footprint = new Cell2d(root.Cell.X, root.Cell.Y, root.Cell.Exponent);
                 Roots = new[] { root };
                 Rest = Chunk.Empty;
                 Count = root.PointCountTree;
-                GridCellExponent = gridCellExponent;
+                //GridCellExponent = gridCellExponent;
             }
 
-            private GridQueryXY(Cell2d footprint, IPointCloudNode[] roots, Chunk rest, int gridCellExponent)
+            private GridQueryXY(Cell2d footprint, IPointCloudNode[] roots, Chunk rest)
             {
                 if ((roots == null || roots.Length == 0) && (rest == null || rest.Count == 0))
                     throw new InvalidOperationException("Invariant 0ee8c852-9580-44fb-9c19-a9f2f2dd7c93.");
@@ -50,11 +67,14 @@ namespace Aardvark.Geometry.Points
                 Footprint = footprint;
                 Roots = roots ?? Array.Empty<IPointCloudNode>();
                 Rest = rest ?? Chunk.Empty;
-                GridCellExponent = gridCellExponent;
+                //GridCellExponent = gridCellExponent;
                 Count = Roots.Sum(r => r.PointCountTree) + Rest.Count;
             }
 
-            public IEnumerable<Chunk> CollectAllPoints(int minCellExponent = int.MinValue)
+            /// <summary>
+            /// Get all points in this grid cell.
+            /// </summary>
+            public IEnumerable<Chunk> CollectPoints(int minCellExponent = int.MinValue)
             {
                 if (Rest.Count > 0)
                 {
@@ -71,11 +91,11 @@ namespace Aardvark.Geometry.Points
             }
 
             /// <summary>
-            /// Enumerate non-empty grid cells of size <param>gridCellExponent</param>.
+            /// Enumerate over this grid cell in a grid of subcells of size subgridCellExponent. 
             /// </summary>
-            public IEnumerable<GridQueryXY> GridCells()
+            public IEnumerable<GridQueryXY> EnumerateGridCellsXY(int subgridCellExponent)
             {
-                if (Footprint.Exponent <= GridCellExponent)
+                if (Footprint.Exponent <= subgridCellExponent)
                 {
                     yield return this;
                 }
@@ -86,16 +106,16 @@ namespace Aardvark.Geometry.Points
 
                     if (!hasRoots && Rest.Count == 1)
                     {
-                        
+
                         var fp = Footprint;
-                        while (fp.Exponent > GridCellExponent)
+                        while (fp.Exponent > subgridCellExponent)
                         {
                             var c = fp.GetCenter();
                             var p = Rest.Positions[0].XY;
                             var i = (p.X < c.X) ? (p.Y < c.Y ? 0 : 2) : (p.Y < c.Y ? 1 : 3);
                             fp = fp.GetQuadrant(i);
                         }
-                        yield return new GridQueryXY(fp, Roots, Rest, GridCellExponent);
+                        yield return new GridQueryXY(fp, Roots, Rest);
                     }
                     else
                     {
@@ -140,8 +160,8 @@ namespace Aardvark.Geometry.Points
                             var a = newRoots?[i]?.ToArray();
                             var b = newRests[i];
                             if (a == null && b.Count == 0) continue;
-                            var qgrid = new GridQueryXY(qs[i], a, b, GridCellExponent);
-                            foreach (var x in qgrid.GridCells()) yield return x;
+                            var qgrid = new GridQueryXY(qs[i], a, b);
+                            foreach (var x in qgrid.EnumerateGridCellsXY(subgridCellExponent)) yield return x;
                         }
                     }
                 }

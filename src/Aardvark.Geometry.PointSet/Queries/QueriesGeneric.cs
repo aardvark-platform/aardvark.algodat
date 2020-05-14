@@ -107,7 +107,8 @@ namespace Aardvark.Geometry.Points
                 node, 
                 _ => true, 
                 _ => throw new InvalidOperationException("Invariant 482cbeed-88f2-46af-9cc0-6b0f6f1fc61a."),
-                _ => throw new InvalidOperationException("Invariant 31b005a8-f65d-406f-b2a1-96f133d357d3.")
+                _ => throw new InvalidOperationException("Invariant 31b005a8-f65d-406f-b2a1-96f133d357d3."),
+                minCellExponent
                 );
 
         #endregion
