@@ -765,125 +765,16 @@ namespace Aardvark.Geometry.Tests
             Console.WriteLine($"bounding box: {pc.BoundingBoxExactGlobal:N2}");
 
 
-            for (var e = 6; e >= -11; e--)
+            for (var e = 11; e >= -11; e--)
             {
                 var d = Math.Pow(2.0, e);
-                var bb = pc.BoundingBoxExactGlobal;
-                long f(double x, double d) => x < 0 ? (long)(x / d) - 1L : (long)(x / d);
-                V2l f2(V2d x, double d) => new V2l(f(x.X, d), f(x.Y, d));
-                Box2l f2b(Box2d x, double d) => new Box2l(f2(x.Min, d), f2(x.Max, d) + V2l.II);
-                var rbb = f2b(bb.XY, d);
-                Console.WriteLine($"raster bounds: {rbb:N0}");
-                var total = 0L;
-
-                rbb = new Box2l(rbb.Min, rbb.Min + new V2l((rbb.SizeX > rbb.SizeY) ? rbb.SizeX : rbb.SizeY));
-                Console.WriteLine($"raster bounds: {new Box2d((V2d)rbb.Min * d, (V2d)rbb.Max * d):N2}");
+                var stride = new V2d(d);
                 
-                void DoIt2(Box2l bb, Chunk points)
-                {
-                    var area = bb.Area;
-                    if (area == 0) return;
-
-                    var q = new Box2d(bb.Min.X * d, bb.Min.Y * d, bb.Max.X * d, bb.Max.Y * d);
-                    var chunk = points.ImmutableFilterByBoxXY(q);
-                    if (chunk.Count == 0) return;
-
-                    if (area == 1)
-                    {
-                        if (chunk.Count == 0) return;
-                        total += chunk.Count;
-                    }
-                    else
-                    {
-                        var sbb = bb.SplitAtCenter();
-                        for (var i = 0; i < 4; i++) DoIt2(sbb[i], chunk);
-                    }
-                }
-                void DoIt(Box2l bb, List<IPointCloudNode> roots)
-                {
-                    var area = bb.Area;
-                    if (area == 0) return;
-
-                    var q = new Box2d(bb.Min.X * d, bb.Min.Y * d, bb.Max.X * d, bb.Max.Y * d);
-                    if (area == 1)
-                    {
-                        var chunk = Chunk.ImmutableMerge(roots.SelectMany(root => root.QueryPointsInsideBoxXY(q)));
-                        if (chunk.Count == 0) return;
-                        total += chunk.Count;
-                        //Console.WriteLine($"{q,-50:N2}   {chunk.Count,10:N0}");
-                    }
-                    else
-                    {
-                        var rs = new List<IPointCloudNode>();
-                        foreach (var r in roots)
-                        {
-                            if (r.IsLeaf) rs.Add(r);
-                            else
-                            {
-                                var _bb = r.BoundingBoxExactGlobal.XY;
-                                if (!q.Intersects(_bb)) { }
-                                else if (q.Contains(_bb)) rs.Add(r);
-                                else
-                                {
-                                    var sub = r.Subnodes;
-                                    void add(int i) { if (sub[i] != null) { rs.Add(sub[i].Value); } }
-                                    var c = r.Center.XY;
-                                    if (q.Max.X < c.X)
-                                    {
-                                        // left cells
-                                        if (q.Max.Y < c.Y) { add(0); add(4); } // left/bottom
-                                        else if (q.Min.Y >= c.Y) { add(2); add(6); } // left/top
-                                        else { add(0); add(4); add(2); add(6); }
-                                    }
-                                    else if (q.Min.X >= c.X)
-                                    {
-                                        // right cells
-                                        if (q.Max.Y < c.Y) { add(1); add(5); } // right/bottom
-                                        else if (q.Min.Y >= c.Y) { add(3); add(7); } // right/top
-                                        else { add(1); add(5); add(3); add(7); }
-                                    }
-                                    else
-                                    {
-                                        // left/right cells
-                                        if (q.Max.Y <= c.Y) { add(0); add(1); add(4); add(5); } // bottom
-                                        else if (q.Min.Y >= c.Y) { add(2); add(3); add(6); add(7); } // top
-                                        else { rs.Add(r); }
-                                    }
-                                }
-                            }
-                        }
-
-                        var total = rs.Sum(r => r.PointCountTree);
-                        var sbb = bb.SplitAtCenter();
-                        if (total < 10 * 1024 * 1024)
-                        {
-                            var chunk = Chunk.ImmutableMerge(rs.SelectMany(r => r.QueryPointsInsideBoxXY(q)));
-                            for (var i = 0; i < 4; i++) DoIt2(sbb[i], chunk);
-                        }
-                        else
-                        {
-                            for (var i = 0; i < 4; i++) DoIt(sbb[i], rs);
-                        }
-                    }
-                }
-
                 Report.BeginTimed($"[{e}] enumerate");
-                DoIt(rbb, new List<IPointCloudNode> { pc });
-
-                //for (var y = rbb.Min.Y; y < rbb.Max.Y; y++)
-                //{
-                //    for (var x = rbb.Min.X; x < rbb.Max.X; x++)
-                //    {
-                //        var q = new Box2d(x * d, y * d, x * d + d, y * d + d);
-                //        var chunk = Chunk.ImmutableMerge(pc.QueryPointsInsideBoxXY(q));
-                //        if (chunk.Count == 0) continue;
-                //        total += chunk.Count;
-                //        //Console.WriteLine($"{q,-50:N2}   {chunk.Count,10:N0}");
-                //    }
-                //    //Console.WriteLine($"{total,10:N0} / {pc.PointCountTree,10:N0}");
-                //}
+                var grid = pc.QueryGridXY(stride, 1 << 20, int.MinValue);
+                var count = grid.Sum(x => x.Points.Sum(y => y.Count));
                 Report.End();
-                Console.WriteLine($"total count = {total:N0}");
+                Console.WriteLine($"total count = {count:N0}");
             }
             //// enumerateCells2d
             //var stride = 3;

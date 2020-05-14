@@ -129,7 +129,7 @@ namespace Aardvark.Geometry.Points
                             else
                             {
                                 // left/right cells
-                                if (q.Max.Y <= c.Y) { add(0); add(1); add(4); add(5); } // bottom
+                                if (q.Max.Y < c.Y) { add(0); add(1); add(4); add(5); } // bottom
                                 else if (q.Min.Y >= c.Y) { add(2); add(3); add(6); add(7); } // top
                                 else { newRoots.Add(r); }
                             }
@@ -142,7 +142,12 @@ namespace Aardvark.Geometry.Points
                 if (total <= maxInMemoryPointCount)
                 {
                     var chunk = Chunk.ImmutableMerge(newRoots.SelectMany(r => r.QueryPointsInsideBoxXY(q)));
-                    foreach (var sbb in sbbs) QueryGridRecInMemoryXY(sbb, stride, chunk);
+                    foreach (var sbb in sbbs)
+                    {
+                        if (sbb.Min.X == sbb.Max.X || sbb.Min.Y == sbb.Max.Y) continue;
+                        var xs = QueryGridRecInMemoryXY(sbb, stride, chunk);
+                        foreach (var x in xs) yield return x;
+                    }
                 }
                 else
                 {

@@ -518,7 +518,7 @@ namespace Aardvark.Data.Points
         /// Returns chunk with points p.XY which are inside given box.
         /// </summary>
         public Chunk ImmutableFilterByBoxXY(Box2d filter)
-            => ImmutableFilter((c, i) => filter.Contains(c.Positions[i].XY));
+            => ImmutableFilter((c, i) => { var p = c.Positions[i]; return p.X >= filter.Min.X && p.X < filter.Max.X && p.Y >= filter.Min.Y && p.Y < filter.Max.Y; });
 
         /// <summary>
         /// Returns chunk with points which are inside given cell.
