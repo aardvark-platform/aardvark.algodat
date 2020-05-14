@@ -765,7 +765,7 @@ namespace Aardvark.Geometry.Tests
             Console.WriteLine($"bounding box: {pc.BoundingBoxExactGlobal:N2}");
 
 
-            for (var e = 11; e >= -11; e--)
+            for (var e = 6; e >= -11; e--)
             {
                 var d = Math.Pow(2.0, e);
                 var bb = pc.BoundingBoxExactGlobal;
@@ -778,17 +778,7 @@ namespace Aardvark.Geometry.Tests
 
                 rbb = new Box2l(rbb.Min, rbb.Min + new V2l((rbb.SizeX > rbb.SizeY) ? rbb.SizeX : rbb.SizeY));
                 Console.WriteLine($"raster bounds: {new Box2d((V2d)rbb.Min * d, (V2d)rbb.Max * d):N2}");
-                Box2l[] SplitCenter(Box2l bb)
-                {
-                    var c = bb.Center;
-                    return new Box2l[]
-                    {
-                    new Box2l(bb.Min.X, bb.Min.Y, c.X, c.Y),
-                    new Box2l(c.X, bb.Min.Y, bb.Max.X, c.Y),
-                    new Box2l(bb.Min.X, c.Y, c.X, bb.Max.Y),
-                    new Box2l(c.X, c.Y, bb.Max.X, bb.Max.Y)
-                    };
-                }
+                
                 void DoIt2(Box2l bb, Chunk points)
                 {
                     var area = bb.Area;
@@ -805,7 +795,7 @@ namespace Aardvark.Geometry.Tests
                     }
                     else
                     {
-                        var sbb = SplitCenter(bb);
+                        var sbb = bb.SplitAtCenter();
                         for (var i = 0; i < 4; i++) DoIt2(sbb[i], chunk);
                     }
                 }
@@ -864,8 +854,8 @@ namespace Aardvark.Geometry.Tests
                         }
 
                         var total = rs.Sum(r => r.PointCountTree);
-                        var sbb = SplitCenter(bb);
-                        if (total < 1024 * 1024)
+                        var sbb = bb.SplitAtCenter();
+                        if (total < 10 * 1024 * 1024)
                         {
                             var chunk = Chunk.ImmutableMerge(rs.SelectMany(r => r.QueryPointsInsideBoxXY(q)));
                             for (var i = 0; i < 4; i++) DoIt2(sbb[i], chunk);

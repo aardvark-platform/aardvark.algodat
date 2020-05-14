@@ -38,19 +38,9 @@ namespace Aardvark.Geometry.Points
             this IPointCloudNode self, Box2d query, int minCellExponent = int.MinValue
             )
             => QueryPoints(self,
-                n =>
-                {
-                    var bb = n.Cell.BoundingBox.XY;
-                    return query.Min.X <= bb.Min.X && query.Min.Y <= bb.Min.Y && query.Max.X > bb.Max.X && query.Max.Y > bb.Max.Y;
-                    //return query.Contains(n.Cell.BoundingBox.XY);
-                },
-                n =>
-                {
-                    var bb = n.Cell.BoundingBox.XY;
-                    return bb.Max.X < query.Min.X || bb.Min.X >= query.Max.X || bb.Max.Y < query.Min.Y || bb.Min.Y >= query.Max.Y;
-                    //return !query.Intersects(n.Cell.BoundingBox.XY);
-                },
-                p => p.X >= query.Min.X && p.X <= query.Max.X && p.Y >= query.Min.Y && p.Y <= query.Max.Y, //query.Contains(p.XY),
+                n => query.Contains(n.Cell.BoundingBox.XY),
+                n => !query.Intersects(n.Cell.BoundingBox.XY),
+                p => query.Contains(p.XY),
                 minCellExponent);
 
         /// <summary>
@@ -60,19 +50,9 @@ namespace Aardvark.Geometry.Points
             this IPointCloudNode self, Box2d query, int minCellExponent = int.MinValue
             )
             => QueryContainsPoints(self,
-                n =>
-                {
-                    var bb = n.Cell.BoundingBox.XY;
-                    return query.Min.X <= bb.Min.X && query.Min.Y <= bb.Min.Y && query.Max.X > bb.Max.X && query.Max.Y > bb.Max.Y;
-                    //return query.Contains(n.Cell.BoundingBox.XY);
-                },
-                n =>
-                {
-                    var bb = n.Cell.BoundingBox.XY;
-                    return bb.Max.X < query.Min.X || bb.Min.X >= query.Max.X || bb.Max.Y < query.Min.Y || bb.Min.Y >= query.Max.Y;
-                    //return !query.Intersects(n.Cell.BoundingBox.XY);
-                },
-                p => p.X >= query.Min.X && p.X <= query.Max.X && p.Y >= query.Min.Y && p.Y <= query.Max.Y, //query.Contains(p.XY),
+                n => query.Contains(n.Cell.BoundingBox.XY),
+                n => !query.Intersects(n.Cell.BoundingBox.XY),
+                p => query.Contains(p.XY),
                 minCellExponent);
 
         /// <summary>
