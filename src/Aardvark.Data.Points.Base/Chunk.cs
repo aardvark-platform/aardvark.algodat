@@ -291,6 +291,9 @@ namespace Aardvark.Data.Points
                     var removedCount = Positions.Count - ps.Length;
                     var removedPercent = (removedCount / (double)Positions.Count) * 100.0;
                     Report.Line($"removed {removedCount:N0} duplicate points ({removedPercent:0.00}% of {Positions.Count:N0})");
+#if DEBUG
+                    if (ps.Length == 1) Report.Warn($"Bam! Complete chunk collapsed to a single point.");
+#endif
                 }
 
                 return new Chunk(ps, cs, ns, js, ks);
@@ -440,7 +443,7 @@ namespace Aardvark.Data.Points
         /// </summary>
         public Chunk ImmutableFilterMinDistByCell(Cell bounds, ParseConfig config)
         {
-            if (!HasPositions) return this;
+            if (!HasPositions || Positions.Count <= 1) return this;
 
             var smallestCellExponent = Fun.Log2(config.MinDist).Ceiling();
             var positions = Positions;

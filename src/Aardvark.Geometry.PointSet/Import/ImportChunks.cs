@@ -83,7 +83,13 @@ namespace Aardvark.Geometry.Points
             {
                 if (config.NormalizePointDensityGlobal)
                 {
-                    chunks = chunks.Select(x => x.ImmutableFilterMinDistByCell(new Cell(x.BoundingBox), config.ParseConfig));
+                    var smallestPossibleCellExponent = Fun.Log2(config.MinDist).Ceiling();
+                    chunks = chunks.Select(x =>
+                    {
+                        var c = new Cell(x.BoundingBox);
+                        while (c.Exponent < smallestPossibleCellExponent) c = c.Parent;
+                        return x.ImmutableFilterMinDistByCell(c, config.ParseConfig);
+                    });
                 }
                 else
                 {
