@@ -1,24 +1,17 @@
 ﻿using Aardvark.Base;
-using Aardvark.Base.Coder;
-using Aardvark.Base.IL;
 using Aardvark.Data;
 using Aardvark.Data.Points;
 using Aardvark.Data.Points.Import;
-using Aardvark.Geometry;
 using Aardvark.Geometry.Points;
-using Microsoft.FSharp.Collections;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using NUnit.Framework.Constraints;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
-using System.Runtime.InteropServices.ComTypes;
 using System.Threading;
 using System.Threading.Tasks;
 using Uncodium.SimpleStore;
@@ -545,7 +538,7 @@ namespace Aardvark.Geometry.Tests
             //}
         }
 
-        public static void TestCreateStore(string filepath, double minDist)
+        internal static void TestCreateStore(string filepath, double minDist)
         {
             var filename = Path.GetFileName(filepath);
             var storename = Path.Combine(@"T:\Vgm\Stores\", filename);
@@ -567,7 +560,7 @@ namespace Aardvark.Geometry.Tests
             store.Dispose();
                 }
 
-        public static void ExportExamples(string filepath, bool collapse, bool gzipped, int? positionsRoundedToNumberOfDigits)
+        internal static void ExportExamples(string filepath, bool collapse, bool gzipped, int? positionsRoundedToNumberOfDigits)
         {
             //// Example 1: export point cloud to folder
             //{
@@ -632,7 +625,7 @@ namespace Aardvark.Geometry.Tests
             }
         }
 
-        public static void EnumerateCellsTest()
+        internal static void EnumerateCellsTest()
         {
             var store = new SimpleDiskStore(@"T:\Vgm\Pinter_Dachboden_3Dworx_Store\Pinter_Dachboden_store").ToPointCloudStore(cache: default);
             var pc = store.GetPointSet("1bd9ab70-0245-4bf2-bbad-8929ae94105e");
@@ -646,7 +639,7 @@ namespace Aardvark.Geometry.Tests
             }
         }
 
-        public static void EnumerateCells2dTest()
+        internal static void EnumerateCells2dTest()
         {
             var inputFile = @"T:\Vgm\Data\E57\aibotix_ground_points.e57";
 
@@ -746,7 +739,7 @@ namespace Aardvark.Geometry.Tests
             //}
         }
 
-        public static void EnumerateCells2dTestNew()
+        internal static void EnumerateCells2dTestNew()
         {
             //var inputFile = @"T:\Vgm\Data\E57\KG1__002.e57";
             var inputFile = @"T:\Vgm\Data\E57\aibotix_ground_points.e57";
@@ -914,7 +907,6 @@ namespace Aardvark.Geometry.Tests
             //    }
             //}
         }
-
 
         internal static void DumpPointSetKeys()
         {
@@ -1187,12 +1179,12 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] _)
         {
-            EnumerateCells2dTestNew();
+            //EnumerateCells2dTestNew();
 
-            //var inputFile = @"T:\Vgm\Data\E57\KG1__002.e57";
-            //var storeName = Path.Combine(@"T:\Vgm\Stores", Path.GetFileName(inputFile));
-            //var key = Path.GetFileName(storeName);
-            //CreateStore(inputFile, storeName, key, 0.005);
+            var inputFile = @"T:\Vgm\Data\E57\43515_P10_Fassade_neu-2.e57";
+            var storeName = Path.Combine(@"T:\Vgm\Stores", Path.GetFileName(inputFile));
+            var key = Path.GetFileName(storeName);
+            CreateStore(inputFile, storeName, key, 0.005);
 
             //PointCloudImportCleanup();
 
