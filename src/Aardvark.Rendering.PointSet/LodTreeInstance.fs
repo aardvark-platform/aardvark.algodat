@@ -748,29 +748,33 @@ module LodTreeInstance =
             else
                 key
         
-        let set = store.GetPointSet(key)
+        let root =
+            try
+                let set = store.GetPointSet(key)
 
-        let points = 
-            if isNull set then
-                Log.startTimed "import"
-                let config = 
-                    Aardvark.Data.Points.ImportConfig.Default
-                        .WithStorage(store)
-                        .WithKey(key)
-                        .WithVerbose(true)
-                        .WithMaxChunkPointCount(10000000)
-                        //.WithEstimateKdNormals(Func<_,_,_>(fun (t : PointRkdTreeD<_,_>) (a : V3f[]) -> a.EstimateNormals(t, 5)))
+                let points = 
+                    if isNull set then
+                        Log.startTimed "import"
+                        let config = 
+                            Aardvark.Data.Points.ImportConfig.Default
+                                .WithStorage(store)
+                                .WithKey(key)
+                                .WithVerbose(true)
+                                .WithMaxChunkPointCount(10000000)
+                                //.WithEstimateKdNormals(Func<_,_,_>(fun (t : PointRkdTreeD<_,_>) (a : V3f[]) -> a.EstimateNormals(t, 5)))
         
-                let res = import file config
-                store.Add("Index", System.Text.Encoding.Unicode.GetBytes key)
+                        let res = import file config
+                        store.Add("Index", System.Text.Encoding.Unicode.GetBytes key)
 
-                store.Flush()
-                Log.stop()
-                res
-            else
-                set
+                        store.Flush()
+                        Log.stop()
+                        res
+                    else
+                        set
 
-        let root = points.Root.Value
+                points.Root.Value
+            with _ ->
+                store.GetPointCloudNode key
         let bounds = root.Cell.BoundingBox
 
         let trafo = Similarity3d(1.0, Euclidean3d(Rot3d.Identity, -bounds.Center))
@@ -1020,7 +1024,7 @@ module PointSetShaders =
             [<PointSize>] s : float
             [<Semantic("PointPixelSize")>] ps : float
             [<PointCoord>] c : V2d
-            [<Normal>] n : V4d
+            [<Normal>] n : V3d
             [<Semantic("TreeId")>] id : int
             [<Semantic("MaxTreeDepth")>] treeDepth : int
             [<FragCoord>] fc : V4d
@@ -1116,8 +1120,6 @@ module PointSetShaders =
         
     let div (v : V4d) = v.XYZ / v.W
 
-    
-
     let lodPointSize (v : PointVertex) =
         vertex { 
             let mv = uniform.ModelViewTrafos.[v.id]
@@ -1166,7 +1168,7 @@ module PointSetShaders =
                 if uniform.PointVisualization &&& PointVisualization.Color <> PointVisualization.None then
                     v.col.XYZ
                 else
-                    v.n.XYZ * 0.5 + 0.5
+                    V3d.III //v.n.XYZ * 0.5 + 0.5
 
             let o = uniform.Overlay.[v.id].X
             let h = heat (float v.treeDepth / 6.0)
@@ -1197,6 +1199,7 @@ module PointSetShaders =
             //let f = if magic then 0.07 else 1.0 / 0.3
 
             let vp = mv * v.pos
+            let vn = mv * V4d(v.n, 0.0) |> Vec.xyz
             let pp = div (uniform.ProjTrafo * vp)
 
             let pixelSize = uniform.Scales.[v.id].X  * uniform.PointSize
@@ -1237,7 +1240,7 @@ module PointSetShaders =
                 if uniform.PointVisualization &&& PointVisualization.Antialias <> PointVisualization.None then pixelSize + 1.0
                 else pixelSize
 
-            return { v with ps = float (int pixelSize); s = pixelSize; pos = fpp; depthRange = depthRange; vp = vpz.XYZ; vc = vpz.XYZ; col = V4d(col, v.col.W) }
+            return { v with ps = float (int pixelSize); n = vn; s = pixelSize; pos = fpp; depthRange = depthRange; vp = vpz.XYZ; vc = vpz.XYZ; col = V4d(col, v.col.W) }
         }
 
 

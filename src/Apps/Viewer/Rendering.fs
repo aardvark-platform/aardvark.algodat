@@ -113,49 +113,19 @@ module Rendering =
                 overlayAlpha = AVal.init 0.0
                 maxSplits = AVal.init 8
                 renderBounds = AVal.init false
-                splitfactor = AVal.init 0.4
+                sort = AVal.init false
+                splitfactor = AVal.init 0.45
                 budget = AVal.init -(256L <<< 10)
                 lighting = AVal.init true
                 colors = AVal.init true
-                magicExp = AVal.init 0.0
+                gamma = AVal.init 1.0
                 stats = AVal.init Unchecked.defaultof<_>
                 background = AVal.init (Background.Skybox Skybox.Miramar)
-                antialias = AVal.init true
-                fancy = AVal.init false
+                ssao = AVal.init false
+                planeFit = AVal.init false
             }
 
 
-
-        let vis = 
-            AVal.custom (fun t ->
-                let l = config.lighting.GetValue t
-                let c = config.colors.GetValue t
-                let aa = config.antialias.GetValue t
-                let fancy = config.fancy.GetValue t
-
-                let vis = PointVisualization.OverlayLod
-                let vis = 
-                    if l then PointVisualization.Lighting ||| vis
-                    else vis
-
-                let vis =
-                    if c then PointVisualization.Color ||| vis
-                    else PointVisualization.Normals ||| vis
-                    
-                let vis =
-                    if aa then PointVisualization.Antialias ||| vis
-                    else vis
-
-                let vis =
-                    if fancy then PointVisualization.FancyPoints ||| vis
-                    else vis
-                //let vis =
-                //    if s then PointVisualization.MagicSqrt ||| vis
-                //    else vis
-
-                vis
-
-            ) 
 
         let pcs =
             pcs |> List.map (fun t ->
@@ -183,77 +153,8 @@ module Rendering =
         let v = (camera |> AVal.map CameraView.viewTrafo)
         let p = (frustum |> AVal.map Frustum.projTrafo)
 
-        let picked = 
-            AVal.custom ( fun a ->
-                let ndc = win.Mouse.Position.GetValue a |> (fun pp -> pp.NormalizedPosition * V2d(2,-2) + V2d(-1,1))
-                
-                match ((picktrees :> amap<_,_>).Content).GetValue a |> Seq.tryHead with
-                | None -> 
-                    false, [||]
-                | Some (_,tree) -> 
-                    let s = win.Sizes.GetValue a
-                    let vp = v.GetValue a * p.GetValue a
-                    let loc = vp.Backward.TransformPosProj(V3d(0.0,0.0,-100000000.0))
-                    let npp = vp.Backward.TransformPosProj(V3d(ndc, -1.0))
-                    let l = loc
-                    let n = npp
-
-                    let pixelRadius = 10.0
-                    let e = Ellipse2d(ndc, 2.0 * V2d.IO * pixelRadius / float s.X, 2.0 * V2d.OI * pixelRadius / float s.Y)
-
-                    let d2 (pt : V3d) =
-                        vp.Forward.TransformPosProj(pt).XY - ndc |> Vec.lengthSquared
-
-                    let pts = 
-                        tree.FindPoints(vp, e)
-                        |> Seq.truncate 30
-                        |> Seq.sortBy (fun p -> d2 p.Value.WorldPosition)
-                        |> Seq.truncate 1
-                        |> Seq.map (fun p -> V3f p.Value.WorldPosition)
-                        |> Seq.toArray
-
-                    pts.Length > 0, pts
-            )
-
-        let afterMain = RenderPass.after "aftermain" RenderPassOrder.Arbitrary RenderPass.main
-
-        let thing =
-            Sg.draw IndexedGeometryMode.PointList
-            |> Sg.vertexAttribute DefaultSemantic.Positions (AVal.map snd picked)
-            |> Sg.shader {
-                do! DefaultSurfaces.trafo
-                do! DefaultSurfaces.pointSprite
-                do! DefaultSurfaces.constantColor C4f.Red
-                do! DefaultSurfaces.pointSpriteFragment
-            }
-            |> Sg.uniform "PointSize" (AVal.constant 10.0)
-            |> Sg.uniform "ViewportSize" win.Sizes
-            |> Sg.depthTest (AVal.constant DepthTestMode.None)
-            |> Sg.pass afterMain 
-
         let reset = AVal.init 0 
         //let filter : ModRef<Option<Hull3d>> = AVal.init None
-
-
-        let stupidFilter =
-            let right (center : V3d) (p : V3d) = p.X >= center.X
-            { new ISpatialFilter with
-                member x.Serialize() = failwith ""
-                member x.Contains (pt : V3d) = true
-                member x.IsFullyInside (n : Box3d) = false
-                member x.IsFullyOutside (n : Box3d) = false
-                member x.IsFullyInside (n : IPointCloudNode) = x.IsFullyInside n.BoundingBoxExactGlobal
-                member x.IsFullyOutside (n : IPointCloudNode) = x.IsFullyOutside n.BoundingBoxExactGlobal
-                member x.Clip(bb) = bb
-                member x.FilterPoints(node, _set) =
-                    let ps = node.Positions.Value 
-                    let c = node.Center
-                    let set = System.Collections.Generic.HashSet<int>()
-                    for i in 0 .. ps.Length - 1 do
-                        if right c (c + V3d ps.[i]) then
-                            set.Add i |> ignore
-                    set
-            }
 
         let instances = 
             aset {
@@ -264,29 +165,59 @@ module Rendering =
 
             }
 
-        let sg =
-            Sg.LodTreeNode(config.stats, picktrees, true, config.budget, config.splitfactor, config.renderBounds, config.maxSplits, win.Time, instances) :> ISg
-            |> Sg.uniform "PointSize" config.pointSize
-            |> Sg.uniform "ViewportSize" win.Sizes
-            |> Sg.uniform "PointVisualization" vis
-            |> Sg.uniform "MagicExp" config.magicExp
-            |> Sg.shader {
-                //do! fun (v : PointSetShaders.PointVertex) -> vertex { return { v with col = V4d.IIII } }
-                do! PointSetShaders.lodPointSize
-                //do! PointSetShaders.cameraLight
-                //if msaa then
-                //    do! PointSetShaders.lodPointCircularMSAA
-                //else
-                do! PointSetShaders.lodPointCircular
-                //do! PointSetShaders.envMap
+        let renderConfig : PointSetRenderConfig =
+            {
+                runtime = win.Runtime
+                viewTrafo = v
+                projTrafo = p
+                size = win.Sizes
+                colors = config.colors
+                pointSize = config.pointSize |> AVal.map ((*) 10.0)
+                planeFit = config.planeFit
+                planeFitTol = AVal.constant 0.01
+                planeFitRadius = AVal.constant 7.0
+                ssao = config.ssao
+                diffuse = config.lighting
+                gamma = config.gamma
+                lodConfig =
+                    {
+                        time = win.Time
+                        renderBounds = config.renderBounds
+                        stats = config.stats
+                        pickTrees = Some picktrees
+                        alphaToCoverage = false
+                        maxSplits = config.maxSplits
+                        splitfactor = config.splitfactor
+                        budget = config.budget
+                    }
             }
-            //|> Sg.andAlso thing
-            |> Sg.multisample (AVal.constant true)
-            |> Sg.viewTrafo v
-            |> Sg.projTrafo p
+
+        let sg =
+            Sg.pointSets renderConfig instances
             |> Sg.andAlso cfg
-            //|> Sg.andAlso bla
-            |> Sg.blendMode (AVal.constant BlendMode.None)
+            |> Sg.uniform "ViewportSize" win.Sizes
+            //Sg.LodTreeNode(config.stats, picktrees, true, config.budget, config.splitfactor, config.renderBounds, config.maxSplits, win.Time, instances) :> ISg
+            //|> Sg.uniform "PointSize" config.pointSize
+            //|> Sg.uniform "ViewportSize" win.Sizes
+            //|> Sg.uniform "PointVisualization" vis
+            //|> Sg.uniform "MagicExp" config.magicExp
+            //|> Sg.shader {
+            //    //do! fun (v : PointSetShaders.PointVertex) -> vertex { return { v with col = V4d.IIII } }
+            //    do! PointSetShaders.lodPointSize
+            //    //do! PointSetShaders.cameraLight
+            //    //if msaa then
+            //    //    do! PointSetShaders.lodPointCircularMSAA
+            //    //else
+            //    do! PointSetShaders.lodPointCircular
+            //    //do! PointSetShaders.envMap
+            //}
+            ////|> Sg.andAlso thing
+            //|> Sg.multisample (AVal.constant true)
+            //|> Sg.viewTrafo v
+            //|> Sg.projTrafo p
+            //|> Sg.andAlso cfg
+            ////|> Sg.andAlso bla
+            //|> Sg.blendMode (AVal.constant BlendMode.None)
 
 
         let switchActive = win.Keyboard.IsDown Keys.M
@@ -345,9 +276,9 @@ module Rendering =
                   
                 )
             | Keys.I ->
-                transact (fun () -> config.magicExp.Value <- min 4.0 (config.magicExp.Value + 0.01))
+                transact (fun () -> config.gamma.Value <- min 4.0 (config.gamma.Value + 0.1))
             | Keys.U ->
-                transact (fun () -> config.magicExp.Value <- max 0.0 (config.magicExp.Value - 0.01))
+                transact (fun () -> config.gamma.Value <- max 0.0 (config.gamma.Value - 0.1))
             | Keys.V ->
                 transact (fun () ->
                     config.colors.Value <- not config.colors.Value
@@ -367,13 +298,15 @@ module Rendering =
             | Keys.Subtract | Keys.OemMinus -> transact (fun () -> config.overlayAlpha.Value <- max 0.0 (config.overlayAlpha.Value - 0.1))
             | Keys.Add | Keys.OemPlus -> transact (fun () -> config.overlayAlpha.Value <- min 1.0 (config.overlayAlpha.Value + 0.1))
         
-            | Keys.Up -> transact (fun () -> config.maxSplits.Value <- config.maxSplits.Value + 1); printfn "splits: %A" config.maxSplits.Value
-            | Keys.Down -> transact (fun () -> config.maxSplits.Value <- max 1 (config.maxSplits.Value - 1)); printfn "splits: %A" config.maxSplits.Value
+            //| Keys.Up -> transact (fun () -> config.maxSplits.Value <- config.maxSplits.Value + 1); printfn "splits: %A" config.maxSplits.Value
+            //| Keys.Down -> transact (fun () -> config.maxSplits.Value <- max 1 (config.maxSplits.Value - 1)); printfn "splits: %A" config.maxSplits.Value
             | Keys.F -> transact (fun () -> if config.maxSplits.Value = 0 then printfn "unfreeze"; config.maxSplits.Value <- 12 else printfn "freeze"; config.maxSplits.Value <- 0)
             | Keys.C -> transact (fun () -> if config.budget.Value > 0L && config.budget.Value < (1L <<< 30) then config.budget.Value <- 2L * config.budget.Value); Log.line "budget: %A" config.budget.Value
             | Keys.X -> transact (fun () -> if config.budget.Value > (256L <<< 10) then config.budget.Value <- max (config.budget.Value / 2L) (256L <<< 10)); Log.line "budget: %A" config.budget.Value
         
             | Keys.B -> transact (fun () -> config.renderBounds.Value <- not config.renderBounds.Value); Log.line "bounds: %A" config.renderBounds.Value
+            
+            | Keys.N -> transact (fun () -> config.sort.Value <- not config.sort.Value); Log.line "sort: %A" config.sort.Value
 
             | Keys.Y -> transact (fun () -> config.budget.Value <- -config.budget.Value)
             
@@ -389,10 +322,10 @@ module Rendering =
                     | Background.Black -> config.background.Value <- Background.Skybox Skybox.Miramar
                 )
 
-            | Keys.D1 -> transact (fun () -> config.fancy.Value <- not config.fancy.Value)
-            | Keys.D2 -> transact (fun () -> config.antialias.Value <- not config.antialias.Value)
+            | Keys.D1 -> transact (fun () -> config.planeFit.Value <- not config.planeFit.Value)
+            | Keys.D2 -> transact (fun () -> config.ssao.Value <- not config.ssao.Value)
 
-            | Keys.N -> transact (fun () -> reset.Value <- reset.Value + 1)
+            //| Keys.N -> transact (fun () -> reset.Value <- reset.Value + 1)
             | Keys.Return -> Log.line "%A" config.stats.Value
 
             | k -> 
@@ -492,11 +425,13 @@ module Rendering =
     let show (args : Args) (pcs : list<LodTreeInstance>) =
         Aardvark.Init()
 
-        use app = new OpenGlApplication(true, false)
+        use app = new OpenGlApplication(true, true)
         use win = app.CreateGameWindow(8)
         
 
-        
+        win.DropFiles.Add(fun e ->
+            ()
+        )
             
         let bb = 
             pcs |> List.map (fun i -> 
@@ -519,8 +454,8 @@ module Rendering =
                 bb.Max, bb.Center
         let speed = AVal.init 10.0
         win.Keyboard.DownWithRepeats.Values.Add(function
-            | Keys.PageUp -> transact(fun () -> speed.Value <- speed.Value * 1.5)
-            | Keys.PageDown -> transact(fun () -> speed.Value <- speed.Value / 1.5)
+            | Keys.PageUp | Keys.Up -> transact(fun () -> speed.Value <- speed.Value * 1.5)
+            | Keys.PageDown | Keys.Down -> transact(fun () -> speed.Value <- speed.Value / 1.5)
             | _ -> ()
         )
 

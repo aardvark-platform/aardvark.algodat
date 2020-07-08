@@ -25,15 +25,16 @@ type RenderConfig =
         overlayAlpha    : cval<float>
         maxSplits       : cval<int>
         renderBounds    : cval<bool>
+        sort            : cval<bool>
         budget          : cval<int64>
         splitfactor     : cval<float>
         lighting        : cval<bool>
         colors          : cval<bool>
-        magicExp        : cval<float>
+        gamma           : cval<float>
         background      : cval<Background>
         stats           : cval<LodRendererStats>
-        antialias       : cval<bool>
-        fancy           : cval<bool>
+        ssao            : cval<bool>
+        planeFit        : cval<bool>
     }
 
 type OverlayPosition =
@@ -546,9 +547,9 @@ module RenderConfig =
                 "Budget",           "X", "C/Y", cfg.budget |> AVal.map (fun v -> if v < 0L then "off" else string (Numeric v))
                 "Light",            "L", "L", cfg.lighting |> AVal.map (function true -> "on" | false -> "off")
                 "Color",            "V", "V", cfg.colors |> AVal.map (function true -> "on" | false -> "off")
-                "Fancy" ,           "1", "1", cfg.fancy |> AVal.map (function true -> "on" | false -> "off")
-                "Antialias",        "2", "2", cfg.antialias |> AVal.map (function true -> "on" | false -> "off")
-                "MagicExp",         "U", "I", cfg.magicExp |> AVal.map (sprintf "%.2f")
+                "PlaneFit" ,        "1", "1", cfg.planeFit |> AVal.map (function true -> "on" | false -> "off")
+                "SSAO",             "2", "2", cfg.ssao |> AVal.map (function true -> "on" | false -> "off")
+                "Gamma",            "U", "I", cfg.gamma |> AVal.map (sprintf "%.2f")
                 "Memory",           " ", " ", totalMem
                 "Quality",          " ", " ", AVal.constant pi
                 "Points",           " ", " ", prim
