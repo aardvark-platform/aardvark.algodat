@@ -77,7 +77,7 @@ module internal SSAO =
                 filter Filter.MinMagLinear
             }
          
-        [<ReflectedDefinition>]
+        [<ReflectedDefinition; Inline>]
         let getAmbient (ndc : V2d) =
             let tc = 0.5 * (ndc + V2d.II)
             ambient.SampleLevel(tc, 0.0)
@@ -136,8 +136,6 @@ module internal SSAO =
                     return V4d.IIII
                 else
                     let vn = vn / l
-                
-
                     let pp = V4d(ndc.X, ndc.Y, z, 1.0)
             
                     let vp = 
@@ -176,7 +174,7 @@ module internal SSAO =
         //let blurFunction (ndc : V2d) (r : float) (centerC : V4d) (centerD : V4d) (w : float) =
             
 
-        [<ReflectedDefinition>]
+        [<ReflectedDefinition; Inline>]
         let getLinearDepth (ndc : V2d) =
             let tc = 0.5 * (ndc + V2d.II)
             let z = 2.0 * depth.SampleLevel(tc, 0.0).X - 1.0
@@ -199,25 +197,28 @@ module internal SSAO =
                     let sigmaPos2 = sigmaPos * sigmaPos
                     let sharpness = uniform.Sharpness
                     let sharpness2 = sharpness * sharpness
-                    let r = 4
+                    let r = int (ceil sigmaPos) * 2 + 1
+                    let r2 = r * r
                     let d0 = getLinearDepth ndc
                     let mutable sum = V4d.Zero
                     let mutable wsum = 0.0
                     for x in -r .. r do
                         for y in -r .. r do
-                            let deltaPos = V2d(x,y) * s
-                            let pos = ndc + deltaPos
+                            let l2 = x*x + y*y
+                            if l2 <= r2 then
+                                let deltaPos = V2d(x,y) * s
+                                let pos = ndc + deltaPos
 
-                            let deltaDepth = getLinearDepth pos - d0
-                            let value = getAmbient pos
+                                let deltaDepth = getLinearDepth pos - d0
+                                let value = getAmbient pos
 
-                            let wp = exp (-V2d(x,y).LengthSquared / sigmaPos2)
-                            let wd = exp (-deltaDepth*deltaDepth * sharpness2)
+                                let wp = exp (-float l2 / sigmaPos2)
+                                let wd = exp (-deltaDepth*deltaDepth * sharpness2)
 
-                            let w = wp * wd
+                                let w = wp * wd
 
-                            sum <- sum + w * value
-                            wsum <- wsum + w
+                                sum <- sum + w * value
+                                wsum <- wsum + w
 
 
 
@@ -239,14 +240,18 @@ module internal SSAO =
 
         let compose (v : Effects.Vertex) =
             fragment {
-                let d = depth.SampleLevel(v.tc, 0.0).X
+                
+                let tt : M33d = uniform?TextureTrafo
+                let tc = tt * V3d(v.tc, 1.0) |> Vec.xy
+
+                let d = depth.SampleLevel(tc, 0.0).X
                 if d > 0.99999 then discard()
 
-                let a = if uniform?SSAO then ambient.Sample(v.tc).X else 1.0
+                let a = if uniform?SSAO then ambient.Sample(tc).X else 1.0
 
                 let c =
                     color.SampleLevelFXAA(
-                        v.tc, 0.0,
+                        tc, 0.0,
                         FXAA.PRESET.Quality29,
                         (float (FXAA.getEdgeThreshold FXAA.EDGETHRESHOLD.DEFAULT)),
                         (float (FXAA.getEdgeThresholdMin FXAA.EDGETHRESHOLDMIN.DEFAULT)),
@@ -257,7 +262,7 @@ module internal SSAO =
                 return { color = V4d(a * c.XYZ, c.W); depth = d }
             }
 
-    let getAmbient (enabled : aval<bool>) (config : SSAOConfig) (runtime : IRuntime) (proj : aval<Trafo3d>) (depth : IOutputMod<ITexture>) (normals : IOutputMod<ITexture>) (colors : IOutputMod<ITexture>) (size : aval<V2i>)  =
+    let getAmbient (texCoords : aval<Trafo2d>) (enabled : aval<bool>) (config : SSAOConfig) (runtime : IRuntime) (proj : aval<Trafo3d>) (depth : IOutputMod<ITexture>) (normals : IOutputMod<ITexture>) (colors : IOutputMod<ITexture>) (size : aval<V2i>)  =
         let ambientSignature =
             runtime.CreateFramebufferSignature [
                 DefaultSemantic.Colors, RenderbufferFormat.Rgba8
@@ -323,6 +328,7 @@ module internal SSAO =
         |> Sg.shader {
             do! Shader.compose                    
         }
+        |> Sg.uniform "TextureTrafo" (texCoords |> AVal.map (fun t -> t.Forward))
         |> Sg.texture DefaultSemantic.Depth depth
         |> Sg.diffuseTexture colors
         |> Sg.texture Semantic.Ambient blurredAmbient

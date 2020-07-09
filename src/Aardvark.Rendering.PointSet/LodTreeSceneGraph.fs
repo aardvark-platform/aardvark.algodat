@@ -126,6 +126,7 @@ module private DeferredPointSetShaders =
         {
             [<Color>] c : V4d
             [<Depth>] d : float
+            [<Semantic("PointId")>] id : float
         }
 
     let blit (v : FillSphereVertex) =
@@ -174,10 +175,13 @@ module private DeferredPointSetShaders =
                                     minDepth <- d
                                     minTc <- tc
 
+
             if minDepth > 1.0  then
-                return { c = cSam.SampleLevel(tc0, 0.0); d = 1.0 }
+                return { c = cSam.SampleLevel(tc0, 0.0); d = 1.0; id = -1.0 }
             else 
-                return { c = cSam.SampleLevel(minTc, 0.0); d = 0.5 * minDepth + 0.5 }
+                let pixel = minTc * size |> round |> V2i
+                let id = float pixel.X + float pixel.Y * size.X
+                return { c = cSam.SampleLevel(minTc, 0.0); d = 0.5 * minDepth + 0.5; id = id }
                     
         }
 
@@ -192,12 +196,19 @@ module private DeferredPointSetShaders =
         let shift = 1.0/3.0 * c2
         d <- q2 * q2 + p3c
         if d < 0.0 then
-            let phi = 1.0 / 3.0 * acos (-q2 / sqrt(-p3c));
-            let t = 2.0 * sqrt(-p3);
-            let r0 = t * cos phi - shift;
-            let r1 = -t * cos (phi + Constant.Pi / 3.0) - shift;
-            let r2 = -t * cos (phi - Constant.Pi / 3.0) - shift;
-            min r0 (min r1 r2)
+            if p3c > 0.0 || p3 > 0.0 then
+                -1.0
+            else
+                let v = -q2 / sqrt(-p3c)
+                if v < -1.0 || v > 1.0 then
+                    -1.0
+                else
+                    let phi = 1.0 / 3.0 * acos v
+                    let t = 2.0 * sqrt(-p3)
+                    let r0 = t * cos phi - shift
+                    let r1 = -t * cos (phi + Constant.Pi / 3.0) - shift
+                    let r2 = -t * cos (phi - Constant.Pi / 3.0) - shift
+                    min r0 (min r1 r2)
         
         else
             d <- sqrt d
@@ -309,7 +320,7 @@ module private DeferredPointSetShaders =
 
     let sampleViewPos (tc : V2d) =
         let z = sampleDepth tc
-        if z >= 1.0 then
+        if z >= 0.99999 then
             V3d.Zero
         else
             let ndc = 2.0 * tc - 1.0
@@ -355,6 +366,16 @@ module private DeferredPointSetShaders =
             addressV WrapMode.Wrap
         }
 
+    
+    let pidSam =
+        sampler2d {
+            texture uniform?PointId
+            filter Filter.MinMagPoint
+            addressU WrapMode.Clamp
+            addressV WrapMode.Clamp
+        }
+
+
     let sampleNormal (vp : V3d) (tc : V2d) =
         let nf = uniform.NearFar
         let ld = -vp.Z
@@ -362,9 +383,12 @@ module private DeferredPointSetShaders =
         if ld > 0.0 && ld < nf.Y && uniform.PlaneFit then
             let vn = sampleSimpleNormal vp tc 
             if vn = V3d.Zero then   
-                V4d(vn, vp.Z)
+                V4d(V3d.OOI, nf.Y + 10.0)
             else
                 let size = viewPosSize()
+                //let id0 = pidSam.SampleLevel(tc, 0.0).X |> abs |> round |> int
+                //let mutable id1 = -1
+                //let mutable id2 = -1
 
                 let plane = V4d(vn, -Vec.dot vn vp)
 
@@ -378,16 +402,25 @@ module private DeferredPointSetShaders =
 
                 for o in samples24 do
                     let tc = tc + uniform.PlaneFitRadius * (x*o.X + y*o.Y) / size
-
                     let p = sampleViewPos tc
+                    
                     if p.Z <> 0.0 && abs (Vec.dot plane (V4d(p, 1.0))) <= uniform.PlaneFitTolerance then
+                        
+                        //if id1 < 0 then
+                        //    let o = pidSam.SampleLevel(tc, 0.0).X |> abs |> round |> int
+                        //    if o <> id0 then id1 <- o
+                        //elif id2 < 0 then
+                        //    let o = pidSam.SampleLevel(tc, 0.0).X |> abs |> round |> int
+                        //    if o <> id0 && o <> id1 then id2 <- o
+                            
+
                         let pt = p - vp
                         sum <- sum + pt
                         sumSq <- sumSq + sqr pt
                         off <- off + V3d(pt.Y*pt.Z, pt.X*pt.Z, pt.X*pt.Y)
                         cnt <- cnt + 1
 
-                if cnt >= 3 then
+                if cnt >= 8 then
 
                     let n = float cnt
                     let avg = sum / n
@@ -406,22 +439,34 @@ module private DeferredPointSetShaders =
 
 
                     let l = realRootsOfNormed b c d
+                    if l < 0.0 then
+                        V4d(vn, -Vec.dot vn vp)
+                    else
+                        let c0 = V3d(xx - l, xy, xz)
+                        let c1 = V3d(xy, yy - l, yz)
+                        let c2 = V3d(xz, yz, zz - l)
+                        let len0 = Vec.lengthSquared c0
+                        let len1 = Vec.lengthSquared c1
+                        let len2 = Vec.lengthSquared c2
 
-                    let c0 = V3d(xx - l, xy, xz)
-                    let c1 = V3d(xy, yy - l, yz)
-                    let c2 = V3d(xz, yz, zz - l)
-                    let len0 = Vec.lengthSquared c0
-                    let len1 = Vec.lengthSquared c1
-                    let len2 = Vec.lengthSquared c2
+                        let normal =
+                            if len0 > len1 then
+                                if len2 > len1 then Vec.cross c0 c2
+                                else Vec.cross c0 c1
+                            else
+                                if len2 > len0 then Vec.cross c1 c2
+                                else Vec.cross c0 c1
 
-                    let normal =
-                        if len0 > len1 then
-                            if len2 > len1 then Vec.cross c0 c2 |> Vec.normalize
-                            else Vec.cross c0 c1 |> Vec.normalize
+                        let len = Vec.length normal
+
+                        if len > 0.0 then
+                            let normal = 
+                                if normal.Z < 0.0 then -normal / len
+                                else normal / len
+
+                            V4d(normal, -Vec.dot normal (vp + avg))
                         else
-                            if len2 > len0 then Vec.cross c1 c2 |> Vec.normalize
-                            else Vec.cross c0 c1 |> Vec.normalize
-                    V4d(normal, -Vec.dot normal (vp + avg))
+                            V4d(vn, -Vec.dot vn vp)
                 else
                     V4d(vn, -Vec.dot vn vp)
 
@@ -456,7 +501,7 @@ module private DeferredPointSetShaders =
             let n = plane.XYZ
 
             let diffuse = 
-                if uniform?Diffuse then (Vec.dot (Vec.normalize (vp.XYZ - V3d.Zero)) n) |> abs
+                if uniform?Diffuse then (Vec.dot (Vec.normalize vp.XYZ) n) |> abs
                 else 1.0
 
             let col = c.XYZ * (0.2 + 0.8*diffuse)
@@ -472,6 +517,11 @@ module private DeferredPointSetShaders =
                 finalDepth <- pp.Z / pp.W
             else
                 finalDepth <- sampleDepth v.tc
+
+
+            //let id = pidSam.SampleLevel(v.tc, 0.0).X |> round |> abs |> int
+            //let pixel = V2i(id % uniform.ViewportSize.X, id / uniform.ViewportSize.X)
+            //let tc = (V2d pixel + V2d.Half) / V2d uniform.ViewportSize
 
             return {
                 color = V4d(col, 1.0)
@@ -505,6 +555,29 @@ module Sg =
     let pointSets (config : PointSetRenderConfig) (pointClouds : aset<LodTreeInstance>) =
         let runtime = config.runtime
 
+        let largeSize = 
+            (config.size, config.pointSize) ||> AVal.map2 (fun s ps -> 
+                let ps = int (ceil ps)
+                s + V2i(ps, ps)
+            )
+
+        let largeProj = 
+            (config.projTrafo, config.size, largeSize) |||> AVal.map3 (fun p os ns ->
+                let old = Frustum.ofTrafo p
+                let factor = V2d ns / V2d os
+
+                let frustum = 
+                    { old with
+                        left = factor.X * old.left
+                        right = factor.X * old.right
+                        top = factor.Y * old.top
+                        bottom = factor.Y * old.bottom
+                    }
+                Frustum.projTrafo frustum
+            )
+
+
+
         let textures = 
             let signature =
                 runtime.CreateFramebufferSignature [
@@ -528,49 +601,52 @@ module Sg =
                 |> Sg.blendMode (AVal.constant BlendMode.None)
                 |> Sg.uniform "ShowColors" config.colors
                 |> Sg.uniform "PointSize" config.pointSize
-                |> Sg.uniform "ViewportSize" config.size
+                |> Sg.uniform "ViewportSize" largeSize
                 |> Sg.viewTrafo config.viewTrafo
-                |> Sg.projTrafo config.projTrafo
+                |> Sg.projTrafo largeProj
                 |> Sg.compile runtime signature
 
             let clear =
                 runtime.CompileClear(signature, AVal.constant (Map.ofList [DefaultSemantic.Positions, C4f(0.0f, 0.0f, 2.0f, 0.0f)]), AVal.constant (Some 1.0))
 
             RenderTask.ofList [clear; render]
-            |> RenderTask.renderSemantics sems config.size
+            |> RenderTask.renderSemantics sems largeSize
 
         
         let color = textures.[DefaultSemantic.Colors]
         let position = textures.[DefaultSemantic.Positions]
         let depth = textures.[DefaultSemantic.Depth]
 
+        //let pointIdSym = Symbol.Create "PointId"
 
         let sphereTextures =
             let signature =
                 runtime.CreateFramebufferSignature [
                     DefaultSemantic.Colors, RenderbufferFormat.Rgba8
+                    //pointIdSym, RenderbufferFormat.R32f
                     DefaultSemantic.Depth, RenderbufferFormat.Depth24Stencil8
                 ]
             let sems =
                 Set.ofList [
-                    DefaultSemantic.Colors; DefaultSemantic.Depth
+                    DefaultSemantic.Colors; DefaultSemantic.Depth; //pointIdSym
                 ]
             Sg.fullScreenQuad
             |> Sg.shader {
                 do! DeferredPointSetShaders.fillSpheres
             }
             |> Sg.uniform "PointSize" config.pointSize
-            |> Sg.uniform "ViewportSize" config.size
+            |> Sg.uniform "ViewportSize" largeSize
             |> Sg.texture DefaultSemantic.Positions position
             |> Sg.texture DefaultSemantic.Colors color
             |> Sg.texture DefaultSemantic.Depth depth
             |> Sg.viewTrafo config.viewTrafo
-            |> Sg.projTrafo config.projTrafo
+            |> Sg.projTrafo largeProj
             |> Sg.compile runtime signature
-            |> RenderTask.renderSemantics sems config.size
+            |> RenderTask.renderSemantics sems largeSize
 
 
         let color = sphereTextures.[DefaultSemantic.Colors]
+        //let pointId = sphereTextures.[pointIdSym]
         let depth = sphereTextures.[DefaultSemantic.Depth]
 
         let nearFar =
@@ -606,6 +682,7 @@ module Sg =
             Sg.fullScreenQuad
             |> Sg.texture DefaultSemantic.Colors color
             |> Sg.texture DefaultSemantic.Depth depth
+            //|> Sg.texture pointIdSym pointId
             |> Sg.uniform "NearFar" nearFar
             |> Sg.uniform "PlaneFit" config.planeFit
             |> Sg.uniform "SSAO" config.ssao
@@ -614,33 +691,41 @@ module Sg =
                 do! DeferredPointSetShaders.blitPlaneFit
             }
             |> Sg.viewTrafo config.viewTrafo
-            |> Sg.projTrafo config.projTrafo
+            |> Sg.projTrafo largeProj
             |> Sg.uniform "Diffuse" config.diffuse
-            |> Sg.uniform "ViewportSize" config.size
+            |> Sg.uniform "ViewportSize" largeSize
             |> Sg.uniform "PlaneFitTolerance" config.planeFitTol
             |> Sg.uniform "PlaneFitRadius" config.planeFitRadius
             |> Sg.uniform "Gamma" config.gamma
             |> Sg.compile runtime signature
-            |> RenderTask.renderSemantics sems config.size
+            |> RenderTask.renderSemantics sems largeSize
               
         let normals = sceneTextures.[DefaultSemantic.Normals]
         let colors = sceneTextures.[DefaultSemantic.Colors]
         let depth = sceneTextures.[DefaultSemantic.Depth]
 
             
+        let tt = 
+            (config.size, largeSize) ||> AVal.map2 (fun os ns ->
+                Trafo2d.Scale(V2d os) *
+                Trafo2d.Translation(V2d (ns - os) / 2.0) * 
+                Trafo2d.Scale(1.0 / V2d ns)
+            )
+            
+
         let finalSg =
             let cfg =
                 {
                     radius = AVal.constant 0.04
-                    threshold = AVal.constant 0.8
-                    sigma = AVal.constant 3.0
+                    threshold = AVal.constant 0.1
+                    sigma = AVal.constant 1.0
                     sharpness = AVal.constant 1.0
-                    samples = AVal.constant 16
+                    samples = AVal.constant 24
                 }
 
-            let s = config.size |> AVal.map (fun s -> max V2i.II (s / 2))
+            let s = largeSize |> AVal.map (fun s -> max V2i.II (s / 2))
 
-            SSAO.getAmbient config.ssao cfg runtime config.projTrafo depth normals colors s
+            SSAO.getAmbient tt config.ssao cfg runtime largeProj depth normals colors s
             |> Sg.uniform "SSAO" config.ssao
             |> Sg.uniform "ViewportSize" config.size
 

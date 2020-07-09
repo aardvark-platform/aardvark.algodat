@@ -174,7 +174,7 @@ module Rendering =
                 colors = config.colors
                 pointSize = config.pointSize |> AVal.map ((*) 10.0)
                 planeFit = config.planeFit
-                planeFitTol = AVal.constant 0.01
+                planeFitTol = AVal.constant 0.009
                 planeFitRadius = AVal.constant 7.0
                 ssao = config.ssao
                 diffuse = config.lighting
@@ -425,11 +425,11 @@ module Rendering =
     let show (args : Args) (pcs : list<LodTreeInstance>) =
         Aardvark.Init()
 
-        use app = new OpenGlApplication(true, true)
+        use app = new OpenGlApplication(true, false)
         use win = app.CreateGameWindow(8)
-        
-
+        win.VSync <- false
         win.DropFiles.Add(fun e ->
+            Log.warn "dropped: %A" e
             ()
         )
             
