@@ -557,7 +557,7 @@ module Sg =
 
         let largeSize = 
             (config.size, config.pointSize) ||> AVal.map2 (fun s ps -> 
-                let ps = int (ceil ps)
+                let ps = max 32 (int (ceil ps))
                 s + V2i(ps, ps)
             )
 
@@ -718,9 +718,9 @@ module Sg =
                 {
                     radius = AVal.constant 0.04
                     threshold = AVal.constant 0.1
-                    sigma = AVal.constant 1.0
+                    sigma = AVal.constant 3.0
                     sharpness = AVal.constant 1.0
-                    samples = AVal.constant 24
+                    samples = AVal.constant 16
                 }
 
             let s = largeSize |> AVal.map (fun s -> max V2i.II (s / 2))

@@ -184,22 +184,98 @@ module internal SSAO =
             temp.Z / temp.W
             
 
-        let blur (v : Effects.Vertex) =
+        let blurX (v : Effects.Vertex) =
             fragment {
-                let s = 2.0 / V2d ambient.Size
-                let ndc = v.pos.XY / v.pos.W
+                let s = 2.0 / float ambient.Size.X
+                let tc = v.pos.XY / v.pos.W
                 
 
                 let sigmaPos = uniform.Sigma
                 if sigmaPos <= 0.0 then
-                    return getAmbient ndc
+                    return getAmbient tc
+                else
+                    let sigmaPos2 = sigmaPos * sigmaPos
+                    let sharpness = uniform.Sharpness
+                    let sharpness2 = sharpness * sharpness
+                    let r = int (ceil sigmaPos) * 2 + 1
+                    let d0 = getLinearDepth tc
+                    let mutable sum = V4d.Zero
+                    let mutable wsum = 0.0
+                    for x in -r .. r do
+                        let x = float x
+                        let pos = tc + V2d(x * s, 0.0)
+
+                        let deltaDepth = getLinearDepth pos - d0
+                        let value = getAmbient pos
+
+                        let wp = exp (-x*x / sigmaPos2)
+                        let wd = exp (-deltaDepth*deltaDepth * sharpness2)
+
+                        let w = wp * wd
+
+                        sum <- sum + w * value
+                        wsum <- wsum + w
+
+
+
+                    return sum / wsum
+            }
+            
+        let blurY (v : Effects.Vertex) =
+            fragment {
+                let s = 2.0 / float ambient.Size.Y
+                let tc = v.pos.XY / v.pos.W
+                
+
+                let sigmaPos = uniform.Sigma
+                if sigmaPos <= 0.0 then
+                    return getAmbient tc
+                else
+                    let sigmaPos2 = sigmaPos * sigmaPos
+                    let sharpness = uniform.Sharpness
+                    let sharpness2 = sharpness * sharpness
+                    let r = int (ceil sigmaPos) * 2 + 1
+                    let d0 = getLinearDepth tc
+                    let mutable sum = V4d.Zero
+                    let mutable wsum = 0.0
+                    for y in -r .. r do
+                        let y = float y
+                        let pos = tc + V2d(0.0, y * s)
+
+                        let deltaDepth = getLinearDepth pos - d0
+                        let value = getAmbient pos
+
+                        let wp = exp (-y*y / sigmaPos2)
+                        let wd = exp (-deltaDepth*deltaDepth * sharpness2)
+
+                        let w = wp * wd
+
+                        sum <- sum + w * value
+                        wsum <- wsum + w
+
+
+
+                    return sum / wsum
+            }
+            
+
+
+        let blur (v : Effects.Vertex) =
+            fragment {
+                let s = 2.0 / V2d ambient.Size
+                let tc = v.pos.XY / v.pos.W
+                
+
+                let sigmaPos = uniform.Sigma
+                if sigmaPos <= 0.0 then
+                    return getAmbient tc
                 else
                     let sigmaPos2 = sigmaPos * sigmaPos
                     let sharpness = uniform.Sharpness
                     let sharpness2 = sharpness * sharpness
                     let r = int (ceil sigmaPos) * 2 + 1
                     let r2 = r * r
-                    let d0 = getLinearDepth ndc
+                    let d0 = getLinearDepth tc
                     let mutable sum = V4d.Zero
                     let mutable wsum = 0.0
                     for x in -r .. r do
@@ -207,7 +283,7 @@ module internal SSAO =
                             let l2 = x*x + y*y
                             if l2 <= r2 then
                                 let deltaPos = V2d(x,y) * s
-                                let pos = ndc + deltaPos
+                                let pos = tc + deltaPos
 
                                 let deltaDepth = getLinearDepth pos - d0
                                 let value = getAmbient pos
@@ -295,11 +371,11 @@ module internal SSAO =
                 |> Sg.compile runtime ambientSignature
                 |> RenderTask.renderToColor size
 
-        let blurredAmbient =
+        let blurredX =
             let task = 
                 Sg.fullScreenQuad
                 |> Sg.shader {
-                    do! Shader.blur                    
+                    do! Shader.blurX                    
                 }
                 |> Sg.texture DefaultSemantic.Depth depth
                 |> Sg.texture Semantic.Ambient ambient
@@ -311,19 +387,39 @@ module internal SSAO =
                 |> Sg.uniform "ViewportSize" size
                 |> Sg.compile runtime ambientSignature
 
-            let clear =
-                runtime.CompileClear(ambientSignature, AVal.constant C4f.White)
-
-            RenderTask.ofList [
-                clear
-
-                RenderTask.custom (fun (t, rt, o) ->
-                    if enabled.GetValue t then
-                        task.Run(t, rt, o)
-                )
-            ]
-            |> RenderTask.renderToColor size
+            task |> RenderTask.renderToColor size
                 
+        let blurredY =
+            let task = 
+                Sg.fullScreenQuad
+                |> Sg.shader {
+                    do! Shader.blurY                    
+                }
+                |> Sg.texture DefaultSemantic.Depth depth
+                |> Sg.texture Semantic.Ambient blurredX
+                |> Sg.projTrafo proj
+                |> Sg.uniform "Radius" config.radius
+                |> Sg.uniform "Threshold" config.threshold
+                |> Sg.uniform "Sigma" config.sigma
+                |> Sg.uniform "Sharpness" config.sharpness
+                |> Sg.uniform "ViewportSize" size
+                |> Sg.compile runtime ambientSignature
+
+            task |> RenderTask.renderToColor size
+          
+        let result =
+            { 
+                new AbstractOutputMod<ITexture>() with
+                    member x.Create() = blurredY.Acquire()
+                    member x.Destroy() = blurredY.Release()
+                    member x.Compute(t, rt) =
+                        if enabled.GetValue t then
+                            blurredY.GetValue(t, rt)
+                        else
+                            NullTexture() :> ITexture
+                    
+            }
+
         Sg.fullScreenQuad
         |> Sg.shader {
             do! Shader.compose                    
@@ -331,5 +427,5 @@ module internal SSAO =
         |> Sg.uniform "TextureTrafo" (texCoords |> AVal.map (fun t -> t.Forward))
         |> Sg.texture DefaultSemantic.Depth depth
         |> Sg.diffuseTexture colors
-        |> Sg.texture Semantic.Ambient blurredAmbient
+        |> Sg.texture Semantic.Ambient result
         |> Sg.projTrafo proj

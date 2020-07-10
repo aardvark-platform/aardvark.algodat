@@ -105,7 +105,7 @@ module Util =
 module Rendering =
 
 
-    let pointClouds (win : IRenderWindow) (msaa : bool) (camera : aval<CameraView>) (frustum : aval<Frustum>) (pcs : list<LodTreeInstance>) =
+    let pointClouds (win : IRenderWindow) (msaa : bool) (camera : aval<CameraView>) (frustum : aval<Frustum>) (pcs : aset<LodTreeInstance>) =
         let picktrees : cmap<ILodTreeNode,SimplePickTree> = cmap()
         let config =
             {
@@ -128,7 +128,7 @@ module Rendering =
 
 
         let pcs =
-            pcs |> List.map (fun t ->
+            pcs |> ASet.map (fun t ->
                 { t with uniforms = MapExt.add "Overlay" (config.overlayAlpha |> AVal.map ((*) V4d.IIII) :> IAdaptiveValue) t.uniforms }
             )
         
@@ -144,7 +144,7 @@ module Rendering =
             //Trafo3d.Translation(bb.Center)
 
         let pcs =
-            pcs |> List.toArray |> Array.map (LodTreeInstance.transform trafo >> AVal.init)
+            pcs |> ASet.map (LodTreeInstance.transform trafo >> AVal.init)
             
         let cfg =
             RenderConfig.toSg win config
@@ -156,14 +156,7 @@ module Rendering =
         let reset = AVal.init 0 
         //let filter : ModRef<Option<Hull3d>> = AVal.init None
 
-        let instances = 
-            aset {
-                if pcs.Length > 0 then
-                    let! i = reset
-                    let! pc = pcs.[i%pcs.Length]
-                    yield pc
-
-            }
+        let instances = pcs |> ASet.mapA (fun a -> a :> aval<_>)
 
         let renderConfig : PointSetRenderConfig =
             {
@@ -234,6 +227,7 @@ module Rendering =
 
 
         win.Keyboard.DownWithRepeats.Values.Add(fun k ->
+            let pcs = pcs |> ASet.force |> FSharp.Data.Adaptive.HashSet.toArray
             match k with
 
             | Keys.Delete ->
@@ -421,37 +415,64 @@ module Rendering =
             Skybox.Wasserleonburg, rftSky
         ]
 
+    open System.IO
 
     let show (args : Args) (pcs : list<LodTreeInstance>) =
         Aardvark.Init()
+
+
+        let pcs = cset pcs
+
 
         use app = new OpenGlApplication(true, false)
         use win = app.CreateGameWindow(8)
         win.VSync <- false
         win.DropFiles.Add(fun e ->
-            Log.warn "dropped: %A" e
-            ()
+            match e with
+            | [| e |] when Directory.Exists e -> 
+                let key = Path.combine [e; "key.txt"]
+                if File.Exists key then 
+                    let kk = File.ReadAllText(key).Trim()
+                    match LodTreeInstance.load "asdasdasd" kk e [] with
+                    | Some inst ->
+                        transact (fun () ->
+                            pcs.Value <- HashSet.single inst
+                        )
+                    | None ->
+                        ()
+            
+                Log.warn "dropped: %A" e
+            | _ ->
+                ()
         )
             
         let bb = 
-            pcs |> List.map (fun i -> 
-                match i.root with
-                | :? LodTreeInstance.PointTreeNode as n -> n.Original.BoundingBoxApproximate
-                | _ -> i.root.WorldBoundingBox
-            ) |> Box3d
+            pcs |> ASet.toAVal |> AVal.map (fun pcs ->
+                pcs |> Seq.map (fun i -> 
+                    match i.root with
+                    | :? LodTreeInstance.PointTreeNode as n -> n.Original.BoundingBoxApproximate
+                    | _ -> i.root.WorldBoundingBox
+                ) |> Box3d
+            )
 
-        let loc, center =
-            let pc = pcs |> List.head
+        let locAndCenter =
+            pcs |> ASet.toAVal |> AVal.map (fun pcs ->
+                let pc = pcs |> Seq.tryHead
         
-            let rand = RandomSystem()
-            match pc.root with
-            | :? LodTreeInstance.PointTreeNode as n -> 
-                let c = n.Original.Center + V3d n.Original.CentroidLocal
-                let pos = c + rand.UniformV3dDirection() * 2.0 * float n.Original.CentroidLocalStdDev
-                pos, c
-            | _ -> 
-                let bb = pc.root.WorldBoundingBox
-                bb.Max, bb.Center
+                match pc with
+                | Some pc ->
+                    let rand = RandomSystem()
+                    match pc.root with
+                    | :? LodTreeInstance.PointTreeNode as n -> 
+                        let c = n.Original.Center + V3d n.Original.CentroidLocal
+                        let pos = c + rand.UniformV3dDirection() * 2.0 * float n.Original.CentroidLocalStdDev
+                        pos, c
+                    | _ -> 
+                        let bb = pc.root.WorldBoundingBox
+                        bb.Max, bb.Center
+                | None  ->
+                    V3d.III * 6.0, V3d.Zero
+            )
         let speed = AVal.init 10.0
         win.Keyboard.DownWithRepeats.Values.Add(function
             | Keys.PageUp | Keys.Up -> transact(fun () -> speed.Value <- speed.Value * 1.5)
@@ -460,15 +481,17 @@ module Rendering =
         )
 
         let camera =
-            CameraView.lookAt loc center V3d.OOI
-            |> DefaultCameraController.controlWithSpeed speed win.Mouse win.Keyboard win.Time
-
+            locAndCenter |> AVal.bind (fun (loc, center) ->
+                CameraView.lookAt loc center V3d.OOI
+                |> DefaultCameraController.controlWithSpeed speed win.Mouse win.Keyboard win.Time
+            )
         //let bb = Box3d.FromCenterAndSize(V3d.Zero, V3d.III * 300.0)
 
         let frustum =
             AVal.custom (fun t ->
                 let s = win.Sizes.GetValue t
                 let c = camera.GetValue t
+                let bb = bb.GetValue t
 
                 let (minPt, maxPt) = bb.GetMinMaxInDirection(c.Forward)
                 
