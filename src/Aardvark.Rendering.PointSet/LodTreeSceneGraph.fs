@@ -723,7 +723,7 @@ module Sg =
                     samples = AVal.constant 16
                 }
 
-            let s = largeSize |> AVal.map (fun s -> max V2i.II (s / 2))
+            let s = largeSize //|> AVal.map (fun s -> max V2i.II (s / 2))
 
             SSAO.getAmbient tt config.ssao cfg runtime largeProj depth normals colors s
             |> Sg.uniform "SSAO" config.ssao
