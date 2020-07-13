@@ -547,6 +547,8 @@ type PointSetRenderConfig =
         planeFitRadius  : aval<float>
         gamma           : aval<float>
 
+        ssaoConfig      : SSAOConfig
+
         lodConfig       : LodTreeRenderConfig
 
     }
@@ -714,18 +716,9 @@ module Sg =
             
 
         let finalSg =
-            let cfg =
-                {
-                    radius = AVal.constant 0.04
-                    threshold = AVal.constant 0.1
-                    sigma = AVal.constant 3.0
-                    sharpness = AVal.constant 1.0
-                    samples = AVal.constant 16
-                }
+            let s = largeSize // |> AVal.map (fun s -> max V2i.II (s / 2))
 
-            let s = largeSize //|> AVal.map (fun s -> max V2i.II (s / 2))
-
-            SSAO.getAmbient tt config.ssao cfg runtime largeProj depth normals colors s
+            SSAO.getAmbient tt config.ssao config.ssaoConfig runtime largeProj depth normals colors s
             |> Sg.uniform "SSAO" config.ssao
             |> Sg.uniform "ViewportSize" config.size
 

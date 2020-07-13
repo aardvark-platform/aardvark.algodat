@@ -6,13 +6,14 @@ open Aardvark.Base.Rendering
 open FSharp.Data.Adaptive
 open Aardvark.SceneGraph
 
-type internal SSAOConfig =
+type SSAOConfig =
     {
-        radius          : aval<float>
-        threshold       : aval<float>
-        sigma           : aval<float>
-        sharpness       : aval<float>
-        samples         : aval<int>
+        radius              : aval<float>
+        threshold           : aval<float>
+        sigma               : aval<float>
+        sharpness           : aval<float>
+        sampleDirections    : aval<int>
+        samples             : aval<int>
     }
 
 module internal SSAO =
@@ -35,7 +36,7 @@ module internal SSAO =
             member x.Light : V3d = uniform?Light
             member x.SampleDirections : V4d[] = uniform?StorageBuffer?SampleDirections
    
-            member x.FilterWeights : float[] = uniform?StorageBuffer?FilterWeights
+            member x.FilterWeights : V4d[] = uniform?StorageBuffer?FilterWeights
             member x.FilterRadius : int = uniform?SSAO?FilterRadius
             member x.FilterDirection : V2d = uniform?SSAO?FilterDirection
 
@@ -204,74 +205,80 @@ module internal SSAO =
                 let invSize = 1.0 / size
                 let tc = v.fc.XY * invSize
                 let ndc = 2.0 * tc - V2d.II
-                let vp = getViewPos tc
 
-                let p0 = 
-                    let pp = uniform.ProjTrafo * V4d(vp + V3d(uniform.Radius, 0.0, 0.0), 1.0)
-                    0.5 * (pp.XY / pp.W - ndc) * size
+                let d = depth.SampleLevel(tc, 0.0).X
+                if d >= 0.99999 then
+                    return V4d.IIII
+                else
+                    let pp = 2.0 * V3d(tc, d) - V3d.III
+                    let vp = uniform.ProjTrafoInv * V4d(pp, 1.0)
+                    let vp = vp.XYZ / vp.W
+
+                    let p0 = 
+                        let pp = uniform.ProjTrafo * V4d(vp + V3d(uniform.Radius, 0.0, 0.0), 1.0)
+                        0.5 * (pp.XY / pp.W - ndc) * size
                     
-                let p1 = 
-                    let pp = uniform.ProjTrafo * V4d(vp + V3d(0.0, uniform.Radius, 0.0), 1.0) 
-                    0.5 * (pp.XY / pp.W - ndc) * size
+                    let p1 = 
+                        let pp = uniform.ProjTrafo * V4d(vp + V3d(0.0, uniform.Radius, 0.0), 1.0) 
+                        0.5 * (pp.XY / pp.W - ndc) * size
 
-                let radius = 0.5 * (Vec.length p0 + Vec.length p1)
-                let step = radius / float uniform.Samples
+                    let radius = 0.5 * (Vec.length p0 + Vec.length p1)
+                    let step = radius / float uniform.Samples
 
-                let normal = normal.SampleLevel(tc, 0.0).XYZ |> Vec.normalize
-
-
+                    let normal = normal.SampleLevel(tc, 0.0).XYZ |> Vec.normalize
 
 
+                    let rand = random.SampleLevel(v.fc.XY / V2d random.Size, 0.0)
+                    let mutable sum = 0.0
 
-                let rand = random.SampleLevel(v.fc.XY / V2d random.Size, 0.0)
-                let mutable sum = 0.0
+                    for di in 0 .. uniform.SampleDirectionCount - 1 do
+                        let dir = uniform.SampleDirections.[di].XY
+                        let dir = rand.XY * dir.X + rand.ZW * dir.Y
 
-                for di in 0 .. uniform.SampleDirectionCount - 1 do
-                    let dir = uniform.SampleDirections.[di].XY
-                    let dir = rand.XY * dir.X + rand.ZW * dir.Y
+                        let mutable h0 = -Constant.Pi
+                        let mutable h1 = -Constant.Pi
 
-                    let mutable h0 = -Constant.Pi
-                    let mutable h1 = -Constant.Pi
+                        //let stepPixel = dir * step
+                        //let stepPixel = 
+                        //    if stepPixel.X < 1.0 && stepPixel.Y < 1.0 then
+                        //        stepPixel / max stepPixel.X stepPixel.Y
+                        //    else
+                        //        stepPixel
 
-                    let stepPixel = dir * step
-                    let stepPixel = 
-                        if stepPixel.X < 1.0 && stepPixel.Y < 1.0 then
-                            stepPixel / max stepPixel.X stepPixel.Y
-                        else
-                            stepPixel
+                        //let step = stepPixel * invSize
 
-                    let step = stepPixel * invSize
+                        let step = dir * step * invSize
 
-                    for o in 1 .. uniform.Samples do 
-                        let tco = tc + float o * step
-                        let vpo = getViewPos tco
+                        for o in 1 .. uniform.Samples do 
+                            let tco = tc + float o * step
+                            let vpo = getViewPos tco
 
-                        let delta = vpo - vp
-                        let dz = Vec.dot normal delta
+                            let delta = vpo - vp
+                            let dz = Vec.dot normal delta
 
-                        if dz > 0.0 && dz <= uniform.Threshold then
-                            let angle = atan (delta.Z / Vec.length delta.XY)
-                            h1 <- max h1 angle
+                            if dz > 0.0 && dz <= uniform.Threshold then
+                                let angle = atan (delta.Z / Vec.length delta.XY)
+                                h1 <- max h1 angle
 
-                    for o in 1 .. uniform.Samples do 
-                        let tco = tc - float o * step
-                        let vpo = getViewPos tco
+                        for o in 1 .. uniform.Samples do 
+                            let tco = tc - float o * step
+                            let vpo = getViewPos tco
 
-                        let delta = vpo - vp
-                        let dz = Vec.dot normal delta
+                            let delta = vpo - vp
+                            let dz = Vec.dot normal delta
 
-                        if dz > 0.0 && dz <= uniform.Threshold then
-                            let angle = atan (delta.Z / Vec.length delta.XY)
-                            h0 <- max h0 angle
+                            if dz > 0.0 && dz <= uniform.Threshold then
+                                let angle = atan (delta.Z / Vec.length delta.XY)
+                                h0 <- max h0 angle
 
                         
-                    let occ = (Constant.Pi - h0 - h1) / Constant.Pi
+                        let occ = (Constant.Pi - h0 - h1) / Constant.Pi
 
-                    sum <- sum + clamp 0.0 1.0 occ
+                        sum <- sum + clamp 0.0 1.0 occ
 
 
-                let res = sum / float uniform.SampleDirectionCount
-                return V4d(res, res, res, 1.0)
+                    let res = sum / float uniform.SampleDirectionCount
+                    return V4d(res, res, res, 1.0)
             }
 
             
@@ -314,28 +321,29 @@ module internal SSAO =
                 else    
                     let sharpness2 = uniform.Sharpness * uniform.Sharpness
 
-                    let cd = depth.SampleLevel(tc, 0.0).X
+                    let cd = getLinearDepth tc
                     let mutable sum = getAmbient tc
                     let mutable wsum = 1.0
+
+                    let mutable tc1 = tc + uniform.FilterDirection
                     for oi in 1 .. uniform.FilterRadius do
-                        let o = float oi
-                        let tc1 = tc + o * uniform.FilterDirection
-                        let deltaDepth = depth.SampleLevel(tc1, 0.0).X - cd
+                        let deltaDepth = getLinearDepth tc1 - cd
                         let value = getAmbient tc1
-                        let w = uniform.FilterWeights.[oi] * exp (-deltaDepth*deltaDepth * sharpness2)
+                        let w = uniform.FilterWeights.[oi].X * exp (-deltaDepth*deltaDepth * sharpness2)
                         
                         sum <- sum + w * value
                         wsum <- wsum + w
+                        tc1 <- tc1 + uniform.FilterDirection
                         
+                    tc1 <- tc - uniform.FilterDirection
                     for oi in 1 .. uniform.FilterRadius do
-                        let o = float oi
-                        let tc1 = tc - o * uniform.FilterDirection
-                        let deltaDepth = depth.SampleLevel(tc1, 0.0).X - cd
+                        let deltaDepth = getLinearDepth tc1 - cd
                         let value = getAmbient tc1
-                        let w = uniform.FilterWeights.[oi] * exp (-deltaDepth*deltaDepth * sharpness2)
+                        let w = uniform.FilterWeights.[oi].X * exp (-deltaDepth*deltaDepth * sharpness2)
                         
                         sum <- sum + w * value
                         wsum <- wsum + w
+                        tc1 <- tc1 - uniform.FilterDirection
                         
                     let res = sum / wsum
                     return V4d(res, res, res, 1.0)
@@ -550,6 +558,9 @@ module internal SSAO =
             runtime.CreateFramebufferSignature [
                 DefaultSemantic.Colors, RenderbufferFormat.R8
             ]
+
+
+
         let ambient = 
             Sg.fullScreenQuad
                 |> Sg.shader {  
@@ -562,38 +573,39 @@ module internal SSAO =
                 |> Sg.uniform "Random" (AVal.constant (randomTex :> ITexture))
                 |> Sg.uniform "Radius" config.radius
                 |> Sg.uniform "Threshold" config.threshold
-                |> Sg.uniform "Samples" (AVal.constant 2)
-                |> Sg.uniform "SampleDirectionCount" (AVal.constant 2)
+                |> Sg.uniform "Samples" config.samples
+                |> Sg.uniform "SampleDirectionCount" config.sampleDirections
                 |> Sg.uniform "ViewportSize" size
                 |> Sg.compile runtime ambientSignature
                 |> RenderTask.renderToColor size
 
 
-        let linearDepth =
-            let linearDepthSignature =
-                runtime.CreateFramebufferSignature [
-                    DefaultSemantic.Colors, RenderbufferFormat.R32f
-                ]
-            Sg.fullScreenQuad
-            |> Sg.shader {  
-                do! Shader.linearizeDepth
-            }
-            |> Sg.texture DefaultSemantic.Depth depth
-            |> Sg.projTrafo proj
-            |> Sg.compile runtime linearDepthSignature
-            |> RenderTask.renderToColor (depth |> AVal.map (fun d -> (unbox<IBackendTexture> d).Size.XY))
+        //let linearDepth =
+        //    let linearDepthSignature =
+        //        runtime.CreateFramebufferSignature [
+        //            DefaultSemantic.Colors, RenderbufferFormat.R32f
+        //        ]
+        //    Sg.fullScreenQuad
+        //    |> Sg.shader {  
+        //        do! Shader.linearizeDepth
+        //    }
+        //    |> Sg.texture DefaultSemantic.Depth depth
+        //    |> Sg.projTrafo proj
+        //    |> Sg.compile runtime linearDepthSignature
+        //    |> RenderTask.renderToColor (depth |> AVal.map (fun d -> (unbox<IBackendTexture> d).Size.XY))
             
 
 
         let filterRadius =
             config.sigma |> AVal.map (fun s ->
-                ceil (2.0 * s) |> int
+                ceil (2.0 * s + 1.0) |> int
             )
 
         let filterWeights =
             (config.sigma, filterRadius) ||> AVal.map2 (fun s r ->
                 Array.init (r + 1) (fun i ->
-                    exp (-float (sqr i) / sqr s)
+                    let v = exp (-float (sqr i) / sqr s)
+                    V4f(v,v,v,v)
                 )
             )
 
@@ -609,7 +621,7 @@ module internal SSAO =
                 |> Sg.shader {
                     do! Shader.blur                    
                 }
-                |> Sg.texture DefaultSemantic.Depth linearDepth
+                |> Sg.texture DefaultSemantic.Depth depth
                 |> Sg.texture Semantic.Ambient ambient
                 |> Sg.projTrafo proj
                 |> Sg.uniform "FilterRadius" filterRadius
@@ -630,7 +642,7 @@ module internal SSAO =
                 |> Sg.shader {
                     do! Shader.blur                  
                 }
-                |> Sg.texture DefaultSemantic.Depth linearDepth
+                |> Sg.texture DefaultSemantic.Depth depth
                 |> Sg.texture Semantic.Ambient blurredX
                 |> Sg.projTrafo proj
                 |> Sg.uniform "FilterRadius" filterRadius

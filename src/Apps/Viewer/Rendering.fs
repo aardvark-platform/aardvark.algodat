@@ -123,6 +123,13 @@ module Rendering =
                 background = AVal.init (Background.Skybox Skybox.Miramar)
                 ssao = AVal.init false
                 planeFit = AVal.init false
+
+                ssaoSamples = AVal.init 3
+                ssaoSampleDirections = AVal.init 1
+                ssaoRadius = AVal.init 0.04
+                ssaoThreshold = AVal.init 0.1
+                ssaoSigma = AVal.init 2.9
+                ssaoSharpness = AVal.init 1.0
             }
 
 
@@ -182,6 +189,15 @@ module Rendering =
                         maxSplits = config.maxSplits
                         splitfactor = config.splitfactor
                         budget = config.budget
+                    }
+                ssaoConfig = 
+                    {
+                        radius = config.ssaoRadius
+                        threshold = config.ssaoThreshold
+                        sigma = config.ssaoSigma
+                        sharpness = config.ssaoSharpness
+                        sampleDirections = config.ssaoSampleDirections
+                        samples = config.ssaoSamples
                     }
             }
 
@@ -278,6 +294,21 @@ module Rendering =
                     config.colors.Value <- not config.colors.Value
                 )
 
+                
+            | Keys.D0 -> transact (fun () -> config.ssaoSigma.Value <- min 5.0 (config.ssaoSigma.Value + 0.1)); Log.line "sigma: %A" config.ssaoSigma.Value
+            | Keys.D9 -> transact (fun () -> config.ssaoSigma.Value <- max 0.0 (config.ssaoSigma.Value - 0.1)); Log.line "sigma: %A" config.ssaoSigma.Value
+            
+            | Keys.D8 -> transact (fun () -> config.ssaoSamples.Value <- min 8 (config.ssaoSamples.Value + 1)); Log.line "samples: %A" config.ssaoSamples.Value
+            | Keys.D7 -> transact (fun () -> config.ssaoSamples.Value <- max 1 (config.ssaoSamples.Value - 1)); Log.line "samples: %A" config.ssaoSamples.Value
+            
+            | Keys.D6 -> transact (fun () -> config.ssaoSampleDirections.Value <- min 8 (config.ssaoSampleDirections.Value + 1)); Log.line "dirs: %A" config.ssaoSampleDirections.Value
+            | Keys.D5 -> transact (fun () -> config.ssaoSampleDirections.Value <- max 1 (config.ssaoSampleDirections.Value - 1)); Log.line "dirs: %A" config.ssaoSampleDirections.Value
+            
+            | Keys.D4 -> transact (fun () -> config.ssaoRadius.Value <- min 2.0 (config.ssaoRadius.Value + 0.01)); Log.line "radius: %A" config.ssaoRadius.Value
+            | Keys.D3 -> transact (fun () -> config.ssaoRadius.Value <- max 0.01 (config.ssaoRadius.Value - 0.01)); Log.line "radius: %A" config.ssaoRadius.Value
+            
+            | Keys.D2 -> transact (fun () -> config.ssaoThreshold.Value <- min 2.0 (config.ssaoThreshold.Value + 0.01)); Log.line "threshold: %A" config.ssaoThreshold.Value
+            | Keys.D1 -> transact (fun () -> config.ssaoThreshold.Value <- max 0.01 (config.ssaoThreshold.Value - 0.01)); Log.line "threshold: %A" config.ssaoThreshold.Value
 
 
             | Keys.L ->
@@ -316,8 +347,8 @@ module Rendering =
                     | Background.Black -> config.background.Value <- Background.Skybox Skybox.Miramar
                 )
 
-            | Keys.D1 -> transact (fun () -> config.planeFit.Value <- not config.planeFit.Value)
-            | Keys.D2 -> transact (fun () -> config.ssao.Value <- not config.ssao.Value)
+            | Keys.J -> transact (fun () -> config.planeFit.Value <- not config.planeFit.Value)
+            | Keys.K -> transact (fun () -> config.ssao.Value <- not config.ssao.Value)
 
             //| Keys.N -> transact (fun () -> reset.Value <- reset.Value + 1)
             | Keys.Return -> Log.line "%A" config.stats.Value

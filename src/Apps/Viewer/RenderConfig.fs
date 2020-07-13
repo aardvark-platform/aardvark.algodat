@@ -35,6 +35,14 @@ type RenderConfig =
         stats           : cval<LodRendererStats>
         ssao            : cval<bool>
         planeFit        : cval<bool>
+
+        ssaoSamples             : cval<int>
+        ssaoSampleDirections    : cval<int>
+        ssaoSigma               : cval<float>
+        ssaoSharpness           : cval<float>
+        ssaoRadius              : cval<float>
+        ssaoThreshold           : cval<float>
+
     }
 
 type OverlayPosition =
