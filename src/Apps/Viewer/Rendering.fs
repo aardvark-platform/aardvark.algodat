@@ -124,12 +124,12 @@ module Rendering =
                 ssao = AVal.init false
                 planeFit = AVal.init false
 
-                ssaoSamples = AVal.init 3
-                ssaoSampleDirections = AVal.init 1
+                ssaoSamples = AVal.init 4
+                ssaoSampleDirections = AVal.init 2
                 ssaoRadius = AVal.init 0.04
                 ssaoThreshold = AVal.init 0.1
-                ssaoSigma = AVal.init 2.9
-                ssaoSharpness = AVal.init 1.0
+                ssaoSigma = AVal.init 5.0
+                ssaoSharpness = AVal.init 4.0
             }
 
 
@@ -307,8 +307,8 @@ module Rendering =
             | Keys.D4 -> transact (fun () -> config.ssaoRadius.Value <- min 2.0 (config.ssaoRadius.Value + 0.01)); Log.line "radius: %A" config.ssaoRadius.Value
             | Keys.D3 -> transact (fun () -> config.ssaoRadius.Value <- max 0.01 (config.ssaoRadius.Value - 0.01)); Log.line "radius: %A" config.ssaoRadius.Value
             
-            | Keys.D2 -> transact (fun () -> config.ssaoThreshold.Value <- min 2.0 (config.ssaoThreshold.Value + 0.01)); Log.line "threshold: %A" config.ssaoThreshold.Value
-            | Keys.D1 -> transact (fun () -> config.ssaoThreshold.Value <- max 0.01 (config.ssaoThreshold.Value - 0.01)); Log.line "threshold: %A" config.ssaoThreshold.Value
+            | Keys.D2 -> transact (fun () -> config.ssaoSharpness.Value <- min 4.0 (config.ssaoSharpness.Value + 0.1)); Log.line "sharpness: %A" config.ssaoSharpness.Value
+            | Keys.D1 -> transact (fun () -> config.ssaoSharpness.Value <- max 0.01 (config.ssaoSharpness.Value - 0.1)); Log.line "sharpness: %A" config.ssaoSharpness.Value
 
 
             | Keys.L ->

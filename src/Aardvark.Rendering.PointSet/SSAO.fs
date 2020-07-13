@@ -228,12 +228,12 @@ module internal SSAO =
                     let normal = normal.SampleLevel(tc, 0.0).XYZ |> Vec.normalize
 
 
-                    let rand = random.SampleLevel(v.fc.XY / V2d random.Size, 0.0)
+                    //let rand = random.SampleLevel(v.fc.XY / V2d random.Size, 0.0)
                     let mutable sum = 0.0
 
                     for di in 0 .. uniform.SampleDirectionCount - 1 do
                         let dir = uniform.SampleDirections.[di].XY
-                        let dir = rand.XY * dir.X + rand.ZW * dir.Y
+                        //let dir = rand.XY * dir.X + rand.ZW * dir.Y
 
                         let mutable h0 = -Constant.Pi
                         let mutable h1 = -Constant.Pi
@@ -489,7 +489,7 @@ module internal SSAO =
                 let d = depth.SampleLevel(tc, 0.0).X
                 if d > 0.99999 then discard()
 
-                let a = if uniform?SSAO then ambient.Sample(tc).X else 1.0
+                let a = if uniform?SSAO then ambient.Sample(tc).X ** 1.5 else 1.0
 
                 let c =
                     color.SampleLevelFXAA(
