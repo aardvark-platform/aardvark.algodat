@@ -292,17 +292,17 @@ namespace Aardvark.Physics.Sky
 
         static M33d RotationZ(double a)
         {
-            //  cos sin 0
-            // -sin cos 0
-            //    0   0 1
-            return M33d.Rotation(a);
+            var ca = Fun.Cos(a);
+            var sa = Fun.Sin(a);
+            return new M33d(ca, sa, 0,
+                           -sa, ca, 0,
+                             0,  0, 1);
         }
 
         static M33d RotationY(double a)
         {
             var ca = Fun.Cos(a);
             var sa = Fun.Sin(a);
-
             return new M33d(ca, 0, -sa,
                              0, 1,   0,
                             sa, 0,  ca);
