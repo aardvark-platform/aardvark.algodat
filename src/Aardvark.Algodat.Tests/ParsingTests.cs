@@ -197,10 +197,6 @@ namespace Aardvark.Geometry.Tests
             ParseAscii_Int_Test("2147483647", int.MaxValue);
             ParseAscii_Int_Test("-2147483647", -int.MaxValue);
             ParseAscii_Int_Test("-2147483648", int.MinValue);
-
-
-            ParseAscii_Int_Test("2147483648", int.MinValue);
-            ParseAscii_Int_Test("-2147483649", int.MaxValue);
         }
 
         #endregion

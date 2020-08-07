@@ -88,7 +88,7 @@ namespace Aardvark.Geometry.Tests
             var a = CreateNode(storage, RandomPositions(100));
 
             var f = FilteredNode.Create(a, new FilterInsideBox3d(a.BoundingBoxExactGlobal + V3d.IOO));
-            Assert.IsTrue(f == null);
+            Assert.IsTrue(f.PointCountCell == 0);
         }
 
         [Test]
@@ -152,7 +152,7 @@ namespace Aardvark.Geometry.Tests
             var a = CreateNode(storage, RandomPositions(100));
 
             var f = FilteredNode.Create(a, new FilterOutsideBox3d(a.BoundingBoxExactGlobal));
-            Assert.IsTrue(f == null);
+            Assert.IsTrue(f.PointCountCell == 0);
         }
 
         [Test]

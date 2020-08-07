@@ -1030,7 +1030,8 @@ namespace Aardvark.Geometry.Tests
                 Assert.IsTrue(l0.Length == 1);
                 Assert.IsTrue(l0.Map(x => x.Cell).Contains(new Cell(0, 0, 0, 0)));
                 Assert.IsTrue(l0[0].Cell == new Cell(0, 0, 0, 0));
-                Assert.IsTrue(l0[0].GetPoints(0).Union().Count == 100);
+                var foo = l0[0].GetPoints(0).Union().Count;
+                Assert.IsTrue(foo == 100);
                 Assert.IsTrue(l0[0].GetPoints(1).Union().Count == 800);
                 Assert.IsTrue(l0[0].GetPoints(int.MaxValue).Union().Count == 8000);
 

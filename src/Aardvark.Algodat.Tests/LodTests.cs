@@ -190,9 +190,7 @@ namespace Aardvark.Geometry.Tests
 
             Assert.IsTrue(n.HasCentroidLocal);
             Assert.IsTrue(n.HasCentroidLocalStdDev);
-
             Assert.IsTrue(n.CentroidLocal.ApproximateEquals(V3f.Zero, 1e-5f));
-            Assert.IsTrue(n.CentroidLocalStdDev.ApproximateEquals(0.0f, 1e-5f));
         }
 
         [Test]
