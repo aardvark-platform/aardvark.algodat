@@ -245,12 +245,12 @@ namespace Aardvark.Data.Points
         }
 
         /// <summary>
-        /// Creates new chunk which is union of this chunk and other. 
+        /// Merges many chunks into a single chunk. 
         /// </summary>
         public static Chunk Union(this IEnumerable<Chunk> chunks)
         {
             var result = Chunk.Empty;
-            foreach (var chunk in chunks) result.Union(chunk);
+            foreach (var chunk in chunks) result = result.Union(chunk);
             return result;
         }
     }
