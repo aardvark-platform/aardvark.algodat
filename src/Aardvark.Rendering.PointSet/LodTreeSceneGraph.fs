@@ -594,7 +594,10 @@ module Sg =
                 ]
 
             let render = 
-                Sg.lodTree config.lodConfig pointClouds
+                let cfg = config.lodConfig
+                Sg.LodTreeNode(cfg.stats, cfg.pickTrees, cfg.alphaToCoverage, cfg.budget, cfg.splitfactor, cfg.renderBounds, cfg.maxSplits, cfg.time, pointClouds) :> ISg
+
+                //Sg.lodTree config.lodConfig pointClouds
                 |> Sg.shader {
                     do! DeferredPointSetShaders.colorOrWhite
                     do! DeferredPointSetShaders.lodPointSize
