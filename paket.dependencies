@@ -37,6 +37,10 @@ nuget Microsoft.NET.Test.Sdk            ~> 16.1.1
 
 group Build
 framework: netstandard2.0
-content: none
+source https://api.nuget.org/v3/index.json
+github aardvark-platform/aardvark.fake:v5
+
+group Build
+framework: netstandard2.0
 source https://api.nuget.org/v3/index.json
 github aardvark-platform/aardvark.fake:v5
