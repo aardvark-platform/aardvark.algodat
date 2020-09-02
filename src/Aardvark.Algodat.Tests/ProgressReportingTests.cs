@@ -44,8 +44,7 @@ namespace Aardvark.Geometry.Tests
 
             Assert.IsTrue(countProgressCallbacks > 1);
 
-
-            IEnumerable<Chunk> GenerateChunks(int numberOfPointsPerChunk)
+            static IEnumerable<Chunk> GenerateChunks(int numberOfPointsPerChunk)
             {
                 var r = new Random();
                 while (true)

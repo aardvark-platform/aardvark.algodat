@@ -19,6 +19,7 @@
     <ProjectReference Include="..\Aardvark.Data.Photometry\Aardvark.Data.Photometry.csproj" />
     <ProjectReference Include="..\Aardvark.Data.Points.Ascii\Aardvark.Data.Points.Ascii.csproj" />
     <ProjectReference Include="..\Aardvark.Data.Points.Base\Aardvark.Data.Points.Base.csproj" />
+    <ProjectReference Include="..\Aardvark.Data.Points.LasZip\Aardvark.Data.Points.LasZip.csproj" />
     <ProjectReference Include="..\Aardvark.Geometry.Clustering\Aardvark.Geometry.Clustering.csproj" />
     <ProjectReference Include="..\Aardvark.Geometry.PointSet\Aardvark.Geometry.PointSet.csproj" />
     <ProjectReference Include="..\Aardvark.Geometry.PolyMesh\Aardvark.Geometry.PolyMesh.csproj" />

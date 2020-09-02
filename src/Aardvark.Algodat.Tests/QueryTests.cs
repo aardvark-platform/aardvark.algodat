@@ -743,7 +743,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void ForEachNodeIntersecting_Works()
         {
-            var storage = PointCloud.CreateInMemoryStore(cache: default);
+            //var storage = PointCloud.CreateInMemoryStore(cache: default);
             var pointcloud = CreateClusteredPointsInUnitCube(1000, 10);
             var ns = pointcloud.Root.Value.ForEachNodeIntersecting(Hull3d.Create(Box3d.Unit), true).ToArray();
             Assert.IsTrue(ns.Length > 0);
@@ -753,7 +753,7 @@ namespace Aardvark.Geometry.Tests
 
         #region Octree levels
 
-        private static PointSet _CreateRandomPointSetForOctreeLevelTests()
+        private static PointSet InternalCreateRandomPointSetForOctreeLevelTests()
         {
             var r = new Random();
             var storage = PointSetTests.CreateStorage();
@@ -774,7 +774,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void QueryOctreeLevel()
         {
-            var pointset = _CreateRandomPointSetForOctreeLevelTests();
+            var pointset = InternalCreateRandomPointSetForOctreeLevelTests();
 
             var depth = pointset.Root.Value.CountOctreeLevels();
             Assert.IsTrue(depth > 0);
@@ -792,7 +792,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void QueryOctreeLevelWithBounds()
         {
-            var pointset = _CreateRandomPointSetForOctreeLevelTests();
+            var pointset = InternalCreateRandomPointSetForOctreeLevelTests();
             var bounds = Box3d.FromMinAndSize(new V3d(0.2, 0.4, 0.8), new V3d(0.2, 0.15, 0.1));
 
             var depth = pointset.Root.Value.CountOctreeLevels();
@@ -814,7 +814,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void QueryOctreeLevel_NegativeLevel()
         {
-            var pointset = _CreateRandomPointSetForOctreeLevelTests();
+            var pointset = InternalCreateRandomPointSetForOctreeLevelTests();
 
             var depth = pointset.Root.Value.CountOctreeLevels();
             Assert.IsTrue(depth > 0);
@@ -825,7 +825,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void QueryOctreeLevel_StopsAtLeafs()
         {
-            var pointset = _CreateRandomPointSetForOctreeLevelTests();
+            var pointset = InternalCreateRandomPointSetForOctreeLevelTests();
 
             var depth = pointset.Root.Value.CountOctreeLevels();
             Assert.IsTrue(depth > 0);
@@ -840,7 +840,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CountPointsInOctreeLevel()
         {
-            var pointset = _CreateRandomPointSetForOctreeLevelTests();
+            var pointset = InternalCreateRandomPointSetForOctreeLevelTests();
 
             var depth = pointset.Root.Value.CountOctreeLevels();
             Assert.IsTrue(depth > 0);
@@ -857,7 +857,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CountPointsInOctreeLevelWithBounds()
         {
-            var pointset = _CreateRandomPointSetForOctreeLevelTests();
+            var pointset = InternalCreateRandomPointSetForOctreeLevelTests();
             var bounds = Box3d.FromMinAndSize(new V3d(0.2, 0.4, 0.8), new V3d(0.2, 0.15, 0.1));
 
             var depth = pointset.Root.Value.CountOctreeLevels();
@@ -874,7 +874,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CountPointsInOctreeLevel_StopsAtLeafs()
         {
-            var pointset = _CreateRandomPointSetForOctreeLevelTests();
+            var pointset = InternalCreateRandomPointSetForOctreeLevelTests();
 
             var depth = pointset.Root.Value.CountOctreeLevels();
             Assert.IsTrue(depth > 0);
@@ -887,7 +887,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CountPointsInOctreeLevel_NegativeLevel()
         {
-            var pointset = _CreateRandomPointSetForOctreeLevelTests();
+            var pointset = InternalCreateRandomPointSetForOctreeLevelTests();
             
             var countPoints = pointset.CountPointsInOctreeLevel(-1);
             Assert.IsTrue(countPoints == 0);
@@ -896,7 +896,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void GetMaxOctreeLevelWithLessThanGivenPointCount()
         {
-            var pointset = _CreateRandomPointSetForOctreeLevelTests();
+            var pointset = InternalCreateRandomPointSetForOctreeLevelTests();
 
             var depth = pointset.Root.Value.CountOctreeLevels();
             Assert.IsTrue(depth > 0);

@@ -31,6 +31,8 @@ namespace Aardvark.Geometry.Tests
                 .WithMaxDegreeOfParallelism(0)
                 .WithMinDist(minDist)
                 .WithNormalizePointDensityGlobal(true)
+                //.WithMaxChunkPointCount(32 * 1024 * 1024)
+                //.WithOctreeSplitLimit(8192*4)
                 ;
 
             Report.BeginTimed($"importing {filename}");
@@ -604,9 +606,9 @@ namespace Aardvark.Geometry.Tests
                 var rootJson = JObject.FromObject(new
                 {
                     Bounds = root.BoundingBoxExactGlobal,
-#pragma warning disable IDE0037 // use inferred member name
+#pragma warning disable IDE0037 // Use inferred member name
                     Cell = root.Cell,
-#pragma warning restore IDE0037 // use inferred member name
+#pragma warning restore IDE0037 // Use inferred member name
                     Centroid = (V3d)root.CentroidLocal + root.Center,
                     CentroidStdDev = root.CentroidLocalStdDev,
                     GZipped = gzipped,
@@ -1177,14 +1179,88 @@ namespace Aardvark.Geometry.Tests
             _ = PointCloud.Import(filename);
         }
 
+        class ApprInsidePolygon
+        {
+            #region Polygon2d contains V2d (haaser)
+
+            internal static V3i InsideTriangleFlags(ref V2d p0, ref V2d p1, ref V2d p2, ref V2d point)
+            {
+                var n0 = new V2d(p0.Y - p1.Y, p1.X - p0.X);
+                var n1 = new V2d(p1.Y - p2.Y, p2.X - p1.X);
+                var n2 = new V2d(p2.Y - p0.Y, p0.X - p2.X);
+
+                var t0 = Math.Sign(n0.Dot(point - p0)); if (t0 == 0) t0 = 1;
+                var t1 = Math.Sign(n1.Dot(point - p1)); if (t1 == 0) t1 = 1;
+                var t2 = Math.Sign(n2.Dot(point - p2)); if (t2 == 0) t2 = 1;
+
+                return new V3i(t0, t1, t2);
+            }
+
+            internal static V3i InsideTriangleFlags(ref V2d p0, ref V2d p1, ref V2d p2, ref V2d point, int t0)
+            {
+                var n1 = new V2d(p1.Y - p2.Y, p2.X - p1.X);
+                var n2 = new V2d(p2.Y - p0.Y, p0.X - p2.X);
+
+                var t1 = Math.Sign(n1.Dot(point - p1)); if (t1 == 0) t1 = 1;
+                var t2 = Math.Sign(n2.Dot(point - p2)); if (t2 == 0) t2 = 1;
+
+                return new V3i(t0, t1, t2);
+            }
+
+            /// <summary>
+            /// Returns true if the Polygon2d contains the given point.
+            /// Works with all (convex and non-convex) Polygons.
+            /// Assumes that the Vertices of the Polygon are sorted counter clockwise
+            /// </summary>
+            public static bool Contains(Polygon2d poly, V2d point)
+            {
+                return poly.Contains(point, true);
+            }
+
+            /// <summary>
+            /// Returns true if the Polygon2d contains the given point.
+            /// Works with all (convex and non-convex) Polygons.
+            /// CCW represents the sorting order of the Polygon-Vertices (true -> CCW, false -> CW)
+            /// </summary>
+            public static bool Contains(Polygon2d poly, V2d point, bool CCW)
+            {
+                int pc = poly.PointCount;
+                if (pc < 3)
+                    return false;
+                int counter = 0;
+                V2d p0 = poly[0], p1 = poly[1], p2 = poly[2];
+                V3i temp = InsideTriangleFlags(ref p0, ref p1, ref p2, ref point);
+                int t2_cache = temp.Z;
+                if (temp.X == temp.Y && temp.Y == temp.Z) counter += temp.X;
+                for (int pi = 3; pi < pc; pi++)
+                {
+                    p1 = p2; p2 = poly[pi];
+                    temp = InsideTriangleFlags(ref p0, ref p1, ref p2, ref point, -t2_cache);
+                    t2_cache = temp.Z;
+                    if (temp.X == temp.Y && temp.Y == temp.Z) counter += temp.X;
+                }
+                if (CCW) return counter > 0;
+                else return counter < 0;
+            }
+
+            public static bool OnBorder(Polygon2d poly, V2d point, double eps)
+                => poly.EdgeLines.Any(e => e.IsDistanceToPointSmallerThan(point, eps));
+
+            #endregion
+        }
+
         public static void Main(string[] _)
         {
+            //var poly = new Polygon2d(V2d.OO, V2d.IO, V2d.II, V2d.OI);
+            //Console.WriteLine(ApprInsidePolygon.Contains(poly, new V2d(0.5, 0.0)));
+            //Console.WriteLine(ApprInsidePolygon.OnBorder(poly, new V2d(0.5, 0.0), 0.0));
+
             //EnumerateCells2dTestNew();
 
-            var inputFile = @"T:\Vgm\Data\E57\43515_P10_Fassade_neu-2.e57";
+            var inputFile = @"C:\Users\sm\Downloads\C_30DN2.LAZ";
             var storeName = Path.Combine(@"T:\Vgm\Stores", Path.GetFileName(inputFile));
             var key = Path.GetFileName(storeName);
-            CreateStore(inputFile, storeName, key, 0.005);
+            CreateStore(inputFile, storeName, key, 0.0);
 
             //PointCloudImportCleanup();
 

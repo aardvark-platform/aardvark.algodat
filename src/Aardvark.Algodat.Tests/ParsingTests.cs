@@ -102,7 +102,7 @@ namespace Aardvark.Geometry.Tests
             var buffer = new byte[10] { 1, 1, 10, 2, 2, 10, 3, 3, 10, 4 };
             var ms = new MemoryStream(buffer);
 
-            Func<byte[], int, double, Chunk> parse = (_, __, ___) => new Chunk(new[] { V3d.Zero });
+            static Chunk parse(byte[] _, int __, double ___) => new Chunk(new[] { V3d.Zero });
 
             var xs = ms
                 .ChunkStreamAtNewlines(10, 5, CancellationToken.None)
