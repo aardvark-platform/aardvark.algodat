@@ -95,7 +95,7 @@ namespace Aardvark.Data.Points
                 }
                 else
                 {
-                    item = default(T);
+                    item = default;
                     return false;
                 }
             }

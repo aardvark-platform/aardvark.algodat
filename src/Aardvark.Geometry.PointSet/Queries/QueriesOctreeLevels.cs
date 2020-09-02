@@ -203,7 +203,8 @@ namespace Aardvark.Geometry.Points
                 var ns = node?.TryGetNormals3f()?.Value;
                 var js = node?.TryGetIntensities()?.Value;
                 var ks = node?.TryGetClassifications()?.Value;
-                var chunk = new Chunk(ps, cs, ns, js, ks);
+                var vs = node?.TryGetVelocities()?.Value;
+                var chunk = new Chunk(ps, cs, ns, js, ks, vs);
                 yield return chunk;
             }
             else
@@ -248,7 +249,8 @@ namespace Aardvark.Geometry.Points
                 var ns = node?.TryGetNormals3f()?.Value;
                 var js = node?.TryGetIntensities()?.Value;
                 var ks = node?.TryGetClassifications()?.Value;
-                var chunk = new Chunk(ps, cs, ns, js, ks);
+                var vs = node?.TryGetVelocities()?.Value;
+                var chunk = new Chunk(ps, cs, ns, js, ks, vs);
                 yield return chunk;
             }
             else

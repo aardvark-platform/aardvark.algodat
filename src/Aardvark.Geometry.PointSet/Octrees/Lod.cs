@@ -218,11 +218,11 @@ namespace Aardvark.Geometry.Points
                 var counts = ComputeLodCounts(octreeSplitLimit, fractions);
 
                 // generate LoD data ...
-                var needsCs = subcells.Any(x => x != null ? x.HasColors : false);
-                var needsNs = subcells.Any(x => x != null ? x.HasNormals : false);
-                var needsIs = subcells.Any(x => x != null ? x.HasIntensities : false);
-                var needsKs = subcells.Any(x => x != null ? x.HasClassifications : false);
-                var needsVs = subcells.Any(x => x != null ? x.HasVelocities : false);
+                var needsCs = subcells.Any(x => x != null && x.HasColors);
+                var needsNs = subcells.Any(x => x != null && x.HasNormals);
+                var needsIs = subcells.Any(x => x != null && x.HasIntensities);
+                var needsKs = subcells.Any(x => x != null && x.HasClassifications);
+                var needsVs = subcells.Any(x => x != null && x.HasVelocities);
 
                 var subcenters = subcells.Map(x => x?.Center);
                 var lodPs = AggregateSubPositions(counts, octreeSplitLimit, self.Center, subcenters, subcells.Map(x => x?.Positions?.Value));

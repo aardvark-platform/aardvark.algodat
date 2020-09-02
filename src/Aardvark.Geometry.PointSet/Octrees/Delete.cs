@@ -57,11 +57,9 @@ namespace Aardvark.Geometry.Points
         {
             if (root == null) return null;
 
-            var f = root as FilteredNode;
-            if (f != null)
+            if (root is FilteredNode f)
             {
-                var filter = f.Filter as ISpatialFilter;
-                if (filter != null)
+                if (f.Filter is ISpatialFilter filter)
                 {
                     bool remove(IPointCloudNode n) => filter.IsFullyInside(n) && isNodeFullyInside(n);
                     bool keep(IPointCloudNode n) => filter.IsFullyOutside(n) || isNodeFullyOutside(n);
@@ -279,19 +277,19 @@ namespace Aardvark.Geometry.Points
                     var counts = LodExtensions.ComputeLodCounts(octreeSplitLimit, fractions);
 
                     // generate LoD data ...
-                    var needsCs = subnodes.Any(x => x != null ? x.HasColors : false);
-                    var needsNs = subnodes.Any(x => x != null ? x.HasNormals : false);
-                    var needsIs = subnodes.Any(x => x != null ? x.HasIntensities : false);
-                    var needsKs = subnodes.Any(x => x != null ? x.HasClassifications : false);
-                    var needsVs = subnodes.Any(x => x != null ? x.HasVelocities : false);
+                    var needsCs = subnodes.Any(x => x != null && x.HasColors);
+                    var needsNs = subnodes.Any(x => x != null && x.HasNormals);
+                    var needsIs = subnodes.Any(x => x != null && x.HasIntensities);
+                    var needsKs = subnodes.Any(x => x != null && x.HasClassifications);
+                    var needsVs = subnodes.Any(x => x != null && x.HasVelocities);
 
                     var subcenters = subnodes.Map(x => x?.Center);
                     var lodPs = LodExtensions.AggregateSubPositions(counts, octreeSplitLimit, root.Center, subcenters, subnodes.Map(x => x?.Positions?.Value));
                     var lodCs = needsCs ? LodExtensions.AggregateSubArrays(counts, octreeSplitLimit, subnodes.Map(x => x?.Colors?.Value)) : null;
+                    var lodNs = needsNs ? LodExtensions.AggregateSubArrays(counts, octreeSplitLimit, subnodes.Map(x => x?.Normals?.Value)) : null;
                     var lodIs = needsIs ? LodExtensions.AggregateSubArrays(counts, octreeSplitLimit, subnodes.Map(x => x?.Intensities?.Value)) : null;
                     var lodKs = needsKs ? LodExtensions.AggregateSubArrays(counts, octreeSplitLimit, subnodes.Map(x => x?.Classifications?.Value)) : null;
                     var lodVs = needsVs ? LodExtensions.AggregateSubArrays(counts, octreeSplitLimit, subnodes.Map(x => x?.Velocities?.Value)) : null;
-                    var lodNs = needsNs ? LodExtensions.AggregateSubArrays(counts, octreeSplitLimit, subnodes.Map(x => x?.Normals?.Value)) : null;
                     var lodKd = lodPs.Length < 1 ? null : lodPs.BuildKdTree();
 
 

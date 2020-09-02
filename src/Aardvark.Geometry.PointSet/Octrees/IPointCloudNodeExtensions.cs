@@ -635,6 +635,10 @@ namespace Aardvark.Geometry.Points
         public static PersistentRef<byte[]> TryGetClassifications(this IPointCloudNode self)
             => self.HasClassifications ? self.Classifications : null;
 
+        /// <summary>Returns null if node has no classifications.</summary>
+        public static PersistentRef<V3f[]> TryGetVelocities(this IPointCloudNode self)
+            => self.HasVelocities ? self.Velocities : null;
+
         #endregion
 
         #region Collect points from cells and cell columns

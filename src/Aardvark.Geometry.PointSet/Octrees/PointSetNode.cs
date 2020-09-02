@@ -96,6 +96,8 @@ namespace Aardvark.Geometry.Points
             Storage = storage;
             Data = data;
 
+            //if (IsLeaf && !HasClassifications) Debugger.Break();
+
             //if (!IsTemporaryImportNode) Debugger.Break();
 
             var bboxCell = Cell.BoundingBox;

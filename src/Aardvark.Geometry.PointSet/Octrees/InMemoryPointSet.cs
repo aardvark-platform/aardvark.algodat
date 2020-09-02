@@ -36,8 +36,10 @@ namespace Aardvark.Geometry.Points
         private readonly IList<byte> m_ks;
         private readonly IList<V3f> m_vs;
         private readonly Node m_root;
+#pragma warning disable IDE0052 // Remove unread private members
         private readonly long m_insertedPointsCount = 0;
         private long m_duplicatePointsCount = 0;
+#pragma warning restore IDE0052 // Remove unread private members
 
         /// <summary>
         /// </summary>

@@ -83,6 +83,7 @@ namespace Aardvark.Geometry.Points
                         var ns = node.HasNormals ? new V3f[ia.Count] : null;
                         var js = node.HasIntensities ? new int[ia.Count] : null;
                         var ks = node.HasClassifications ? new byte[ia.Count] : null;
+                        var vs = node.HasVelocities ? new V3f[ia.Count] : null;
                         var ds = new double[ia.Count];
                         for (var i = 0; i < ia.Count; i++)
                         {
@@ -92,9 +93,10 @@ namespace Aardvark.Geometry.Points
                             if (node.HasNormals) ns[i] = node.Normals.Value[index];
                             if (node.HasIntensities) js[i] = node.Intensities.Value[index];
                             if (node.HasClassifications) ks[i] = node.Classifications.Value[index];
+                            if (node.HasVelocities) vs[i] = node.Velocities.Value[index];
                             ds[i] = ia[i].Dist;
                         }
-                        var chunk = new Chunk(ps, cs, ns, js, ks);
+                        var chunk = new Chunk(ps, cs, ns, js, ks, vs);
                         yield return chunk;
                     }
                 }
@@ -108,6 +110,7 @@ namespace Aardvark.Geometry.Points
                     var ns = default(List<V3f>);
                     var js = default(List<int>);
                     var ks = default(List<byte>);
+                    var vs = default(List<V3f>);
 
                     for (var i = 0; i < qs.Length; i++)
                     {
@@ -120,11 +123,12 @@ namespace Aardvark.Geometry.Points
                         if (node.HasNormals) ns.Add(node.Normals.Value[i]);
                         if (node.HasIntensities) js.Add(node.Intensities.Value[i]);
                         if (node.HasClassifications) ks.Add(node.Classifications.Value[i]);
+                        if (node.HasVelocities) vs.Add(node.Velocities.Value[i]);
                     }
 
                     if (ps != null)
                     {
-                        yield return new Chunk(ps, cs, ns, js, ks);
+                        yield return new Chunk(ps, cs, ns, js, ks, vs);
                     }
 
                     void Init()
@@ -134,6 +138,7 @@ namespace Aardvark.Geometry.Points
                         ns = node.HasNormals ? new List<V3f>() : null;
                         js = node.HasIntensities ? new List<int>() : null;
                         ks = node.HasClassifications ? new List<byte>() : null;
+                        vs = node.HasVelocities ? new List<V3f>() : null;
                     }
                 }
             }

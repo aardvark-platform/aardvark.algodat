@@ -204,25 +204,25 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public bool HasColors => Root != null ? Root.Value.HasColors : false;
+        public bool HasColors => Root != null && Root.Value.HasColors;
 
         /// <summary></summary>
-        public bool HasIntensities => Root != null ? Root.Value.HasIntensities : false;
+        public bool HasIntensities => Root != null && Root.Value.HasIntensities;
         
         /// <summary></summary>
-        public bool HasClassifications => Root != null ? Root.Value.HasClassifications : false;
+        public bool HasClassifications => Root != null && Root.Value.HasClassifications;
 
         /// <summary></summary>
-        public bool HasVelocities => Root != null ? Root.Value.HasVelocities : false;
+        public bool HasVelocities => Root != null && Root.Value.HasVelocities;
 
         /// <summary></summary>
-        public bool HasKdTree => Root != null ? Root.Value.HasKdTree : false;
+        public bool HasKdTree => Root != null && Root.Value.HasKdTree;
         
         /// <summary></summary>
-        public bool HasNormals => Root != null ? Root.Value.HasNormals : false;
+        public bool HasNormals => Root != null && Root.Value.HasNormals;
 
         /// <summary></summary>
-        public bool HasPositions => Root != null ? Root.Value.HasPositions : false;
+        public bool HasPositions => Root != null && Root.Value.HasPositions;
 
         #endregion
 

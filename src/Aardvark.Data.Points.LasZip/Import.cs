@@ -41,7 +41,7 @@ namespace Aardvark.Data.Points.Import
         /// </summary>
         public static IEnumerable<Chunk> Chunks(string filename, ParseConfig config)
             => LASZip.Parser.ReadPoints(filename, config.MaxChunkPointCount)
-            .Select(x => new Chunk(x.Positions, x.Colors, null, null, x.Classifications));
+            .Select(x => new Chunk(x.Positions, x.Colors, normals: null, intensities: null, x.Classifications, velocities: null));
 
 
         /// <summary>
@@ -50,14 +50,14 @@ namespace Aardvark.Data.Points.Import
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Default signature.")]
         public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, ParseConfig config)
             => LASZip.Parser.ReadPoints(stream, config.MaxChunkPointCount)
-            .Select(x => new Chunk(x.Positions, x.Colors, null, null, x.Classifications));
+            .Select(x => new Chunk(x.Positions, x.Colors, normals: null, intensities: null, x.Classifications, velocities: null));
 
         /// <summary>
         /// Parses LASzip (.las, .laz) stream.
         /// </summary>
         public static IEnumerable<Chunk> Chunks(this Stream stream, ParseConfig config)
             => LASZip.Parser.ReadPoints(stream, config.MaxChunkPointCount)
-            .Select(x => new Chunk(x.Positions, x.Colors, null, null, x.Classifications));
+            .Select(x => new Chunk(x.Positions, x.Colors, normals: null, intensities: null, x.Classifications, velocities: null));
 
 
         /// <summary>

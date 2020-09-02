@@ -177,12 +177,29 @@ namespace Aardvark.Geometry.Points
                 if (!self.Cell.Contains(subCell)) throw new InvalidOperationException();
                 if (self.Cell.Exponent != subCell.Exponent + 1) throw new InvalidOperationException();
 
-                var chunk = new Chunk(subnodesPoints[i], subnodesColors?[i], subnodesNormals?[i], subnodesIntensities?[i], subnodesClassifications?[i], subnodesVelocities?[i], subCell.BoundingBox);
+                var chunk = new Chunk(
+                    subnodesPoints[i],
+                    subnodesColors?[i],
+                    subnodesNormals?[i],
+                    subnodesIntensities?[i],
+                    subnodesClassifications?[i],
+                    subnodesVelocities?[i],
+                    subCell.BoundingBox
+                    );
                 if (config.NormalizePointDensityGlobal)
                 {
                     chunk = chunk.ImmutableFilterMinDistByCell(subCell, config.ParseConfig);
                 }
-                var builder = InMemoryPointSet.Build(subnodesPoints[i], subnodesColors?[i], subnodesNormals?[i], subnodesIntensities?[i], subnodesClassifications?[i], subnodesVelocities?[i], subCell, int.MaxValue);
+                var builder = InMemoryPointSet.Build(
+                    subnodesPoints[i],
+                    subnodesColors?[i],
+                    subnodesNormals?[i],
+                    subnodesIntensities?[i],
+                    subnodesClassifications?[i],
+                    subnodesVelocities?[i],
+                    subCell,
+                    int.MaxValue
+                    );
                 var subnode = builder.ToPointSetNode(config.Storage, isTemporaryImportNode: true);
                 if (subnode.PointCountTree > subnodesPoints[i].Count) throw new InvalidOperationException();
                 if (!self.Cell.Contains(subnode.Cell)) throw new InvalidOperationException();
@@ -212,13 +229,13 @@ namespace Aardvark.Geometry.Points
             return result;
         }
 
-        private static T[] Append<T>(T[] left, T[] right)
-        {
-            var res = new T[left.Length + right.Length];
-            left.CopyTo(0, left.Length, res, 0);
-            right.CopyTo(0, right.Length, res, left.Length);
-            return res;
-        }
+        //private static T[] Append<T>(T[] left, T[] right)
+        //{
+        //    var res = new T[left.Length + right.Length];
+        //    left.CopyTo(0, left.Length, res, 0);
+        //    right.CopyTo(0, right.Length, res, left.Length);
+        //    return res;
+        //}
 
         /// <summary>
         /// Returns union of trees as new tree (immutable operation).
@@ -385,11 +402,13 @@ namespace Aardvark.Geometry.Points
                 var rootCellBounds = new Box3d(a.Cell.BoundingBox, b.Cell.BoundingBox);
                 var rootCell = new Cell(rootCellBounds);
                 var roots = new IPointCloudNode[8];
-                int octant(Cell x)
+
+                static int octant(Cell x)
                 {
                     if (x.IsCenteredAtOrigin) throw new InvalidOperationException();
                     return (x.X >= 0 ? 1 : 0) + (x.Y >= 0 ? 2 : 0) + (x.Z >= 0 ? 4 : 0);
                 }
+
                 foreach (var x in parts)
                 {
                     var oi = octant(x.Cell);

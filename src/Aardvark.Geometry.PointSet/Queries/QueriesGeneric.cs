@@ -59,13 +59,15 @@ namespace Aardvark.Geometry.Points
                     var csRaw = node.HasColors ? node.Colors.Value : null;
                     var nsRaw = node.HasNormals ? node.Normals.Value : null;
                     var jsRaw = node.HasIntensities ? node.Intensities.Value : null;
-                    var ksRaw = node.HasClassifications ? node.Classifications.Value : null ;
+                    var ksRaw = node.HasClassifications ? node.Classifications.Value : null;
+                    var vsRaw = node.HasVelocities ? node.Velocities.Value : null;
 
                     var ps = new List<V3d>();
                     var cs = csRaw != null ? new List<C4b>() : null;
                     var ns = nsRaw != null ? new List<V3f>() : null;
                     var js = jsRaw != null ? new List<int>() : null;
                     var ks = ksRaw != null ? new List<byte>() : null;
+                    var vs = vsRaw != null ? new List<V3f>() : null;
 
                     for (var i = 0; i < psRaw.Length; i++)
                     {
@@ -77,11 +79,12 @@ namespace Aardvark.Geometry.Points
                             if (nsRaw != null) ns.Add(nsRaw[i]);
                             if (jsRaw != null) js.Add(jsRaw[i]);
                             if (ksRaw != null) ks.Add(ksRaw[i]);
+                            if (vsRaw != null) vs.Add(vsRaw[i]);
                         }
                     }
                     if (ps.Count > 0)
                     {
-                        yield return new Chunk(ps, cs, ns, js, ks);
+                        yield return new Chunk(ps, cs, ns, js, ks, vs);
                     }
                 }
             }

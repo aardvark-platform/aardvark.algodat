@@ -62,6 +62,7 @@ namespace Aardvark.Geometry.Points
                     var ns = node.HasNormals ? new V3f[ia.Count] : null;
                     var js = node.HasIntensities ? new int[ia.Count] : null;
                     var ks = node.HasClassifications ? new byte[ia.Count] : null;
+                    var vs = node.HasVelocities ? new V3f[ia.Count] : null;
                     var ds = new double[ia.Count];
                     for (var i = 0; i < ia.Count; i++)
                     {
@@ -71,9 +72,10 @@ namespace Aardvark.Geometry.Points
                         if (node.HasNormals) ns[i] = node.Normals.Value[index];
                         if (node.HasIntensities) js[i] = node.Intensities.Value[index];
                         if (node.HasClassifications) ks[i] = node.Classifications.Value[index];
+                        if (node.HasVelocities) vs[i] = node.Velocities.Value[index];
                         ds[i] = ia[i].Dist;
                     }
-                    var chunk = new PointsNearObject<V3d>(query, maxDistanceToPoint, ps, cs, ns, js, ks, ds);
+                    var chunk = new PointsNearObject<V3d>(query, maxDistanceToPoint, ps, cs, ns, js, ks, vs, ds);
                     return chunk;
                 }
                 else
