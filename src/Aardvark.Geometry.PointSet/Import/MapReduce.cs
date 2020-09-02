@@ -151,7 +151,7 @@ namespace Aardvark.Geometry.Points
             config.ProgressCallback(1.0);
             return final;
 
-            string formatCell(Cell c) => c.IsCenteredAtOrigin ? $"[centered, {c.Exponent}]" : c.ToString();
+            static string formatCell(Cell c) => c.IsCenteredAtOrigin ? $"[centered, {c.Exponent}]" : c.ToString();
         }
     }
 }

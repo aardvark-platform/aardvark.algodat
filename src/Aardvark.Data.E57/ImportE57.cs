@@ -172,10 +172,12 @@ namespace Aardvark.Data.Points.Import
                 Chunk PrepareChunk()
                 {
                     var chunk = new Chunk(
-                        positions   : ps, 
-                        colors      : hasColors ? cs : ps.Map(_ => C4b.White),
-                        normals     : null, 
-                        intensities : js
+                        positions      : ps, 
+                        colors         : hasColors ? cs : ps.Map(_ => C4b.White),
+                        normals        : null, 
+                        intensities    : js,
+                        classifications: null,
+                        velocities     : null
                         );
                     Interlocked.Add(ref yieldedRecordCount, ps.Count);
 

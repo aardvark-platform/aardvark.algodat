@@ -318,8 +318,7 @@ namespace Aardvark.Data.E57
                 var value = string.IsNullOrWhiteSpace(root.Value) ? 0 : double.Parse(root.Value, CultureInfo.InvariantCulture);
                 var precision = root.Attribute("precision")?.Value;
                 var isDoublePrecision = (precision == null || precision == "double")
-                    ? true
-                    : (precision == "single" ? false : Ex<bool>("precision", "['double', 'single']", precision))
+                    || (precision != "single" && Ex<bool>("precision", "['double', 'single']", precision))
                     ;
                 var min = TryGetFloatAttribute(root, "minimum");
                 var max = TryGetFloatAttribute(root, "maximum");
@@ -589,9 +588,9 @@ namespace Aardvark.Data.E57
 
                             if (hasCartesian)
                             {
-                                var pxs = (buffers[cartesianXYZ[0]] is double[]) ? (double[])buffers[cartesianXYZ[0]] : ((float[])buffers[cartesianXYZ[0]]).Map(x => (double)x);
-                                var pys = (buffers[cartesianXYZ[1]] is double[]) ? (double[])buffers[cartesianXYZ[1]] : ((float[])buffers[cartesianXYZ[1]]).Map(x => (double)x);
-                                var pzs = (buffers[cartesianXYZ[2]] is double[]) ? (double[])buffers[cartesianXYZ[2]] : ((float[])buffers[cartesianXYZ[2]]).Map(x => (double)x);
+                                var pxs = (buffers[cartesianXYZ[0]] is double[] xs) ? xs : ((float[])buffers[cartesianXYZ[0]]).Map(x => (double)x);
+                                var pys = (buffers[cartesianXYZ[1]] is double[] ys) ? ys : ((float[])buffers[cartesianXYZ[1]]).Map(x => (double)x);
+                                var pzs = (buffers[cartesianXYZ[2]] is double[] zs) ? zs : ((float[])buffers[cartesianXYZ[2]]).Map(x => (double)x);
                                 foreach (var x in pxs) cartesianX.Enqueue(x);
                                 foreach (var y in pys) cartesianY.Enqueue(y);
                                 foreach (var z in pzs) cartesianZ.Enqueue(z);
@@ -599,9 +598,9 @@ namespace Aardvark.Data.E57
 
                             if (hasSpherical)
                             {
-                                var pxs = (buffers[sphericalRAE[0]] is double[]) ? (double[])buffers[sphericalRAE[0]] : ((float[])buffers[sphericalRAE[0]]).Map(x => (double)x);
-                                var pys = (buffers[sphericalRAE[1]] is double[]) ? (double[])buffers[sphericalRAE[1]] : ((float[])buffers[sphericalRAE[1]]).Map(x => (double)x);
-                                var pzs = (buffers[sphericalRAE[2]] is double[]) ? (double[])buffers[sphericalRAE[2]] : ((float[])buffers[sphericalRAE[2]]).Map(x => (double)x);
+                                var pxs = (buffers[sphericalRAE[0]] is double[] xs) ? xs : ((float[])buffers[sphericalRAE[0]]).Map(x => (double)x);
+                                var pys = (buffers[sphericalRAE[1]] is double[] ys) ? ys : ((float[])buffers[sphericalRAE[1]]).Map(x => (double)x);
+                                var pzs = (buffers[sphericalRAE[2]] is double[] zs) ? zs : ((float[])buffers[sphericalRAE[2]]).Map(x => (double)x);
                                 foreach (var x in pxs) cartesianX.Enqueue(x);
                                 foreach (var y in pys) cartesianY.Enqueue(y);
                                 foreach (var z in pzs) cartesianZ.Enqueue(z);
@@ -2398,9 +2397,9 @@ namespace Aardvark.Data.E57
         private static IEnumerable<XElement> GetElements(XElement e, string name)
             => e.Elements(XName.Get(name, DEFAULT_NAMESPACE));
         private static string GetString(XElement root, string elementName, bool required, string mustBe = null)
-            => GetValue(root, elementName, required, "String", x => mustBe != null ? x == mustBe : true, x => x, mustBe, null);
+            => GetValue(root, elementName, required, "String", x => mustBe == null || x == mustBe, x => x, mustBe, null);
         private static int? GetInteger(XElement root, string elementName, bool required, int? mustBe = null)
-            => GetValue<int?>(root, elementName, required, "Integer", x => mustBe.HasValue ? x == mustBe.Value : true,
+            => GetValue<int?>(root, elementName, required, "Integer", x => !mustBe.HasValue || x == mustBe.Value,
                 x => x != null ? int.Parse(x) : 0, mustBe, null);
         private static double? GetScaledInteger(XElement root, string elementName, bool required, int? mustBe = null)
         {
@@ -2417,7 +2416,7 @@ namespace Aardvark.Data.E57
             var isEmpty = string.IsNullOrWhiteSpace(x.Value);
             var valueRaw = isEmpty ? null : x.Value;
             var value = valueRaw != null ? int.Parse(valueRaw) : 0;
-            if (!(mustBe.HasValue ? value == mustBe.Value : true)) throw new Exception(
+            if (!(!mustBe.HasValue || value == mustBe.Value)) throw new Exception(
                 $"[E57] Element <{elementName}> shall have value \"{mustBe}\", but has \"{value}\". In {root}."
                 );
 
@@ -2427,12 +2426,12 @@ namespace Aardvark.Data.E57
             return result;
         }
         private static long? GetLong(XElement root, string elementName, bool required, int? mustBe = null)
-            => GetValue<long?>(root, elementName, required, "Integer", x => mustBe.HasValue ? x == mustBe.Value : true,
+            => GetValue<long?>(root, elementName, required, "Integer", x => !mustBe.HasValue || x == mustBe.Value,
                 x => x != null ? long.Parse(x) : 0, mustBe, null);
         private static bool? GetBool(XElement root, string elementName, bool required, int? mustBe = null)
             => GetInteger(root, elementName, required, mustBe) == 1;
         private static double? GetFloat(XElement root, string elementName, bool required, double? mustBe = null)
-            => GetValue<double?>(root, elementName, required, "Float", x => mustBe.HasValue ? x == mustBe.Value : true,
+            => GetValue<double?>(root, elementName, required, "Float", x => !mustBe.HasValue || x == mustBe.Value,
                 x => x != null ? double.Parse(x, CultureInfo.InvariantCulture) : 0.0, mustBe, null);
         private static byte[] GetImageBytes(XElement root, string elementName, Stream stream)
         {

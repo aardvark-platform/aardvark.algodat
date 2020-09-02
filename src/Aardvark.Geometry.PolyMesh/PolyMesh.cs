@@ -112,11 +112,10 @@ namespace Aardvark.Geometry
             : base(other, overrides)
         {
             Awake(false);
-            object ec;
             if (overrides != null &&
-                overrides.TryGetValue(Property.EulerCharacteristic, out ec))
+                overrides.TryGetValue(Property.EulerCharacteristic, out object ec))
             {
-                if (ec is int && (int)ec == int.MinValue) return;
+                if (ec is int i && i == int.MinValue) return;
             }
             CopyTopologyFrom(other);
         }
@@ -237,7 +236,7 @@ namespace Aardvark.Geometry
                 var changes = from a in m_faceAttributes
                               where a.Key.IsPositive
                               select (a.Key, a.Value.Resized(value));
-                foreach (var change in changes.ToList()) m_faceAttributes[change.Item1] = change.Item2;
+                foreach (var change in changes.ToList()) m_faceAttributes[change.Key] = change.Item2;
             }
         }
         public int VertexIndexCapacity
@@ -250,7 +249,7 @@ namespace Aardvark.Geometry
                 var changes = from a in m_faceVertexAttributes
                               where a.Key.IsPositive
                               select (a.Key, a.Value.Resized(value));
-                foreach (var change in changes.ToList()) m_faceVertexAttributes[change.Item1] = change.Item2;
+                foreach (var change in changes.ToList()) m_faceVertexAttributes[change.Key] = change.Item2;
             }
         }
 
@@ -262,7 +261,7 @@ namespace Aardvark.Geometry
                 var changes = from a in m_vertexAttributes
                               where a.Key.IsPositive
                               select (a.Key, a.Value.Resized(value));
-                foreach (var change in changes.ToList()) m_vertexAttributes[change.Item1] = change.Item2;
+                foreach (var change in changes.ToList()) m_vertexAttributes[change.Key] = change.Item2;
 
                 m_positionArray =  m_vertexAttributes.GetOrDefault(Property.Positions) as V3d[];
                 m_normalArray = m_vertexAttributes.GetOrDefault(Property.Normals) as V3d[];
@@ -280,7 +279,7 @@ namespace Aardvark.Geometry
                 var changes = from a in m_edgeAttributes
                               where a.Key.IsPositive
                               select (a.Key, a.Value.Resized(value));
-                foreach (var change in changes.ToList()) m_edgeAttributes[change.Item1] = change.Item2;
+                foreach (var change in changes.ToList()) m_edgeAttributes[change.Key] = change.Item2;
             }
         }
 
@@ -649,7 +648,7 @@ namespace Aardvark.Geometry
                 VertexAttributes[Property.Positions] = m_positionArray;
             }
             else if (m_vertexCount + 1 > VertexCapacity)
-                VertexCapacity = VertexCapacity * 2;
+                VertexCapacity *= 2;
             m_positionArray[m_vertexCount] = position;
             this[Property.VertexCount] = ++m_vertexCount;
             return m_vertexCount - 1;
@@ -668,7 +667,7 @@ namespace Aardvark.Geometry
                 VertexAttributes[Property.Normals] = m_normalArray;
             }
             else if (m_vertexCount + 1 > VertexCapacity)
-                VertexCapacity = VertexCapacity * 2;
+                VertexCapacity *= 2;
             m_positionArray[m_vertexCount] = position;
             m_normalArray[m_vertexCount] = normal;
             this[Property.VertexCount] = ++m_vertexCount;
@@ -690,7 +689,7 @@ namespace Aardvark.Geometry
                 VertexAttributes[Property.Colors] = m_colorArray;
             }
             else if (m_vertexCount + 1 > VertexCapacity)
-                VertexCapacity = VertexCapacity * 2;
+                VertexCapacity *= 2;
             m_positionArray[m_vertexCount] = position;
             m_normalArray[m_vertexCount] = normal;
             m_colorArray[m_vertexCount] = color;
@@ -707,7 +706,7 @@ namespace Aardvark.Geometry
             }
             else if (m_faceCount + 1 > FaceCapacity)
             {
-                FaceCapacity = FaceCapacity * 2;
+                FaceCapacity *= 2;
             }
             var requiredCapacity = m_vertexIndexCount + faceVertexCount;
             if (m_vertexIndexCount == 0)
@@ -1089,7 +1088,7 @@ namespace Aardvark.Geometry
         /// </summary>
         public PolyMesh ManifoldCopy()
         {
-            var cc = Analyze(out uint[] faceComponentIndexArray, out bool[] faceReverseArray);
+            _ = Analyze(out _, out bool[] faceReverseArray);
             return FaceReversedCopy(faceReverseArray);
         }
 
@@ -1283,8 +1282,7 @@ namespace Aardvark.Geometry
                     if (fr.Index < 0)
                     {
                         if (ffa == null || !fr.IsNonManifoldEdgeRef) continue;
-                        bool flip;
-                        var er = fr.NonManifoldEdgeRef(out flip);
+                        var er = fr.NonManifoldEdgeRef(out bool flip);
                         if (!flip) continue;
                         erf.Reversion = !erf.Reversion;
                         fr = FaceRef_One_OfEdgeRef(er);
@@ -1567,8 +1565,7 @@ namespace Aardvark.Geometry
 
             public Array BackMappedConvertedCopy(int[] backMap, int count, bool floatVecs, bool byteCols)
             {
-                Func<Array, int[], int[], int, bool, bool, Array> fun;
-                if (s_backMappedConvertedCopyFunMap.TryGetValue(ValueArray.GetType(), out fun))
+                if (s_backMappedConvertedCopyFunMap.TryGetValue(ValueArray.GetType(), out var fun))
                     return fun(ValueArray, IndexArray, backMap, count, floatVecs, byteCols);
                 return null;
             }
@@ -1644,7 +1641,7 @@ namespace Aardvark.Geometry
                     (n, i, a) => new Attribute<WindingOrder>(n, i, (WindingOrder[])a, Fun.Step)},
             };
 
-        private static object s_iAttributeMapLock = new object();
+        //private static readonly object s_iAttributeMapLock = new object();
 
         private static Func<Symbol, int[], Array, IAttribute> GetIAttributeCreator(Type arrayType)
         {
@@ -1673,10 +1670,10 @@ namespace Aardvark.Geometry
                     if (creator != null) return creator(name, null, array);
                 }
             }
-            return default(IAttribute);
+            return default;
         }
 
-        private static Dictionary<Type, Func<Array, int[], int[], int, bool, bool, Array>>
+        private static readonly Dictionary<Type, Func<Array, int[], int[], int, bool, bool, Array>>
                 s_backMappedConvertedCopyFunMap =
             new Dictionary<Type, Func<Array, int[], int[], int, bool, bool, Array>>
             {
@@ -1820,10 +1817,12 @@ namespace Aardvark.Geometry
             foreach (var a in faceVertexAttributes)
                 vaDict[a.Name] = a.BackMappedCopy(vfvBackMap, vc);
 
-            var m = new PolyMesh();
-            m.FirstIndexArray = firstIndexArray;
-            m.VertexIndexArray = vertexIndexArray;
-            m.VertexAttributes = vaDict;
+            var m = new PolyMesh
+            {
+                FirstIndexArray = firstIndexArray,
+                VertexIndexArray = vertexIndexArray,
+                VertexAttributes = vaDict
+            };
             return m;
         }
 
@@ -2225,15 +2224,9 @@ namespace Aardvark.Geometry
 
             #region Overrides
 
-            public override int GetHashCode()
-            {
-                return HashCode.Combine(Mesh.GetHashCode(), Index);
-            }
+            public override int GetHashCode() => HashCode.Combine(Mesh.GetHashCode(), Index);
 
-            public override bool Equals(object obj)
-            {
-                return obj is Polygon ? this == (Polygon)obj : false;
-            }
+            public override bool Equals(object obj) => obj is Polygon polygon && this == polygon;
 
             #endregion
 
@@ -2586,15 +2579,9 @@ namespace Aardvark.Geometry
 
             #region Overrides
 
-            public override int GetHashCode()
-            {
-                return HashCode.Combine(Mesh.GetHashCode(), Index);
-            }
+            public override int GetHashCode() => HashCode.Combine(Mesh.GetHashCode(), Index);
 
-            public override bool Equals(object obj)
-            {
-                return obj is Vertex ? this == (Vertex)obj : false;
-            }
+            public override bool Equals(object obj) => obj is Vertex v && this == v;
 
             #endregion
 
@@ -2942,15 +2929,9 @@ namespace Aardvark.Geometry
 
             #region Overrides
 
-            public override int GetHashCode()
-            {
-                return HashCode.Combine(Mesh.GetHashCode(), Ref.GetHashCode());
-            }
+            public override int GetHashCode() => HashCode.Combine(Mesh.GetHashCode(), Ref.GetHashCode());
 
-            public override bool Equals(object obj)
-            {
-                return obj is Face ? this == (Face)obj : false;
-            }
+            public override bool Equals(object obj) => obj is Face f && this == f;
 
             #endregion
 
@@ -2986,7 +2967,7 @@ namespace Aardvark.Geometry
             public readonly PolyMesh Mesh;
             public readonly int Ref;
 
-            public static readonly Edge Invalid = default(Edge);
+            public static readonly Edge Invalid = default;
 
             #region Constructors
 
@@ -3564,15 +3545,9 @@ namespace Aardvark.Geometry
 
             #region Overrides
 
-            public override int GetHashCode()
-            {
-                return HashCode.Combine(Mesh.GetHashCode(), Ref);
-            }
+            public override int GetHashCode() => HashCode.Combine(Mesh.GetHashCode(), Ref);
 
-            public override bool Equals(object obj)
-            {
-                return obj is Edge ? this == (Edge)obj : false;
-            }
+            public override bool Equals(object obj) => obj is Edge e && this == e;
 
             #endregion
 
@@ -3809,7 +3784,7 @@ namespace Aardvark.Geometry
             if (!FaceAttributes.ContainsKey(Property.Normals)) AddPerFaceNormals(); // try to use normals attribute if already there
             var faceNormalsAttribute = FaceAttributes[Property.Normals];
             // face normal attribute is supposed to be non-indexed and of V3d -> compute otherwise (do not store if computed as original attributes should not be touched)
-            var faceNormals = (faceNormalsAttribute is V3d[]) ? (V3d[])faceNormalsAttribute : ComputeFaceNormalArray();
+            var faceNormals = (faceNormalsAttribute is V3d[] ns) ? ns : ComputeFaceNormalArray();
             var fia = m_firstIndexArray;
             var nia = new int[VertexIndexCount].Set(-1); // a per face-verted index array to track shared and processed normals
             int attributeCount = 0;
@@ -4110,7 +4085,7 @@ namespace Aardvark.Geometry
 
             foreach (var a in attributes)
             {
-                if (a.Name == default(Symbol)) continue;
+                if (a.Name == default) continue;
                 if (a == null) continue;
                 if (a.IndexArray == null)
                 {
@@ -4241,7 +4216,7 @@ namespace Aardvark.Geometry
             if (Fun.ApproximateEquals(aDirNorm, -bDirNorm, epsilon))
             {
                 b = new Line3d(b.P1, b.P0);
-                bDirNorm = bDirNorm * -1;
+                bDirNorm *= -1;
             }
 
             // different directions
@@ -4330,10 +4305,10 @@ namespace Aardvark.Geometry
         #region Coordinates
 
         public static void NormalizeUVs(
-                this PolyMesh m, Symbol property = default(Symbol)
+                this PolyMesh m, Symbol property = default
             )
         {
-            if (property == default(Symbol))
+            if (property == default)
                 property = PolyMesh.Property.DiffuseColorCoordinates;
             var coords = m.VertexAttributeArray<V2d>(property);
             var box = new Box2d(m.VertexIndexArray.Select(vi => coords[vi]));
