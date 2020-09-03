@@ -14,7 +14,7 @@ open Aardvark.Data.Points.Import
 let main args =  
 
     //import @"C:\Users\Schorsch\Development\WorkDirectory\jbhaus-innen_erdgeschoss_blk.e57"  @"C:\Users\Schorsch\Development\WorkDirectory\jb_innen" "jb_innen" (Args.parse [||])
-    view @"C:\Users\Schorsch\Development\WorkDirectory\jb_innen" ["jb_innen"] (Args.parse [||])
+    view @"T:\Vgm\Stores\C_30DN2.LAZ" ["C_30DN2.LAZ"] (Args.parse [||])
 
     let args = Args.parse args
     

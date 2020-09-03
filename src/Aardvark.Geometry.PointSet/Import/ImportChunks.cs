@@ -72,6 +72,12 @@ namespace Aardvark.Geometry.Points
         {
             config?.ProgressCallback(0.0);
 
+            if (config.Verbose)
+            {
+                var chunkCount = 0;
+                chunks = chunks.Do(chunk => { Report.Line($"[PointCloud.Chunks] processing chunk {Interlocked.Increment(ref chunkCount)}"); });
+            }
+
             // deduplicate points
             chunks = chunks.Select(x => x.ImmutableDeduplicate(config.Verbose));
 

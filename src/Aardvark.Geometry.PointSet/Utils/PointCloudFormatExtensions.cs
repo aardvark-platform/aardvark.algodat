@@ -21,6 +21,6 @@ namespace Aardvark.Geometry.Points
     {
         /// <summary></summary>
         public static PointSet ImportFile(this PointCloudFileFormat self, string filename, ImportConfig config)
-            => PointCloud.Chunks(self.ParseFile(filename, config.ParseConfig), config);
+            => PointCloud.Chunks(self.ParseFile(filename, config.ParseConfig)/*.Take(4)*/, config);
     }
 }

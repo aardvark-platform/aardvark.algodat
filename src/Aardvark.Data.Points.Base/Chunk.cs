@@ -386,7 +386,7 @@ namespace Aardvark.Data.Points
         /// </summary>
         public Chunk ImmutableFilterSequentialMinDistL2(double minDist)
         {
-            if (minDist < 0.0) throw new ArgumentOutOfRangeException(nameof(minDist));
+            if (minDist <= 0.0 || !HasPositions || Positions.Count <= 1) return this;
             var minDistSquared = minDist * minDist;
 
             var ps = new List<V3d>();
@@ -419,7 +419,7 @@ namespace Aardvark.Data.Points
         /// </summary>
         public Chunk ImmutableFilterSequentialMinDistL1(double minDist)
         {
-            if (minDist <= 0.0 || Positions == null) return this;
+            if (minDist <= 0.0 || !HasPositions || Positions.Count <= 1) return this;
 
             var ps = new List<V3d>();
             var cs = Colors != null ? new List<C4b>() : null;
@@ -451,7 +451,7 @@ namespace Aardvark.Data.Points
         /// </summary>
         public Chunk ImmutableFilterMinDistByCell(Cell bounds, ParseConfig config)
         {
-            if (!HasPositions || Positions.Count <= 1) return this;
+            if (config.MinDist <= 0.0 || !HasPositions || Positions.Count <= 1) return this;
 
             var smallestCellExponent = Fun.Log2(config.MinDist).Ceiling();
             var positions = Positions;

@@ -17,6 +17,7 @@ using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
 
 namespace Aardvark.Geometry.Points
@@ -229,14 +230,6 @@ namespace Aardvark.Geometry.Points
             return result;
         }
 
-        //private static T[] Append<T>(T[] left, T[] right)
-        //{
-        //    var res = new T[left.Length + right.Length];
-        //    left.CopyTo(0, left.Length, res, 0);
-        //    right.CopyTo(0, right.Length, res, left.Length);
-        //    return res;
-        //}
-
         /// <summary>
         /// Returns union of trees as new tree (immutable operation).
         /// </summary>
@@ -248,6 +241,14 @@ namespace Aardvark.Geometry.Points
 
             if (a == null || a.PointCountTree == 0) { pointsMergedCallback?.Invoke(b?.PointCountTree ?? 0); return (b,true); }
             if (b == null || b.PointCountTree == 0) { pointsMergedCallback?.Invoke(a?.PointCountTree ?? 0); return (a,true); }
+
+#if DEBUG && NEVERMORE
+            if (config.Verbose) Report.Line($"[Merge] a = {a.Cell}, b = {b.Cell}");
+#endif
+
+            //// [4862, 28518, 0, 4], b = [4862, 28518, 0, 4]
+            //if (a.Cell == new Cell(4862, 28518, 0, 4) && b.Cell == new Cell(4862, 28518, 0, 4)) Debugger.Break();
+
 
             if (a.PointCountTree + b.PointCountTree <= config.OctreeSplitLimit)
             {
