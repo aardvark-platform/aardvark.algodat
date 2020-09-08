@@ -387,6 +387,7 @@ namespace Aardvark.Data.Photometry
         /// </summary>
         private static double AngleDifference(double a, double b)
         {
+            // TODO: move to Aardvark.Base
             var diff = a - b;
             var mod = diff - 360 * Fun.Round(diff / 360);
             return mod;
