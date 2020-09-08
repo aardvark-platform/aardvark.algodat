@@ -20,19 +20,28 @@ namespace Aardvark.Data.Photometry
         V2d m_scale;
 
         /// <summary>
-        /// Image for GPU sampling
+        /// Image for GPU sampling: Measuement data (re-sampled if not equidistance)
         /// </summary>
         public PixImage<float> Image { get { return m_image; } }
 
         /// <summary>
-        /// Addressing parameters for GPU sampling
+        /// Addressing parameters for GPU sampling:
+        /// Vector containing normalized scales and offsets: (vertical offset, vertical scale, horizontal offset, horizontal scale)
+        /// Vertical (Data Columns) = Gamma
+        /// Horizontal (Data Rows) = C-Plane
         /// </summary>
         public V4f AddressingParameters { get { return m_addressingParams; } }
 
         /// <summary>
-        /// Image offset and scale for GPU sampling
+        /// Image offset and scale for GPU sampling:
+        /// Offset and scale from normlized vertical/horizontal spherical coordinates to texture coordinate with proper sub-pixel addressing
         /// </summary>
         public V4f ImageOffsetScale { get { return m_imageOffsetScale; } }
+
+        /// <summary>
+        /// Returns the according measurement data
+        /// </summary>
+        public LightMeasurementData Data { get { return m_data; } }
 
         /// <summary>
         /// Creates an IntensityProfileSampler for a LightMeasurementData
