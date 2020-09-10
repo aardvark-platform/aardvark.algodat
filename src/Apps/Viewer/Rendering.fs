@@ -496,7 +496,8 @@ module Rendering =
                     match pc.root with
                     | :? LodTreeInstance.PointTreeNode as n -> 
                         let c = n.Original.Center + V3d n.Original.CentroidLocal
-                        let pos = c + rand.UniformV3dDirection() * 2.0 * float n.Original.CentroidLocalStdDev
+                        let clstddev = max 1.0 (float n.Original.CentroidLocalStdDev)
+                        let pos = c + rand.UniformV3dDirection() * 2.0 * clstddev
                         pos, c
                     | _ -> 
                         let bb = pc.root.WorldBoundingBox
