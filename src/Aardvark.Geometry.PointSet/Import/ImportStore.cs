@@ -74,7 +74,16 @@ namespace Aardvark.Geometry.Points
                     if (!cached.IsDisposed) return cached;
                 }
 
-                var store = new SimpleDiskStore(storePath).ToPointCloudStore(cache);
+                Storage store;
+                if (Directory.Exists(storePath) && !File.Exists(Path.Combine(storePath, "index.bin")))
+                {
+                    store = new SimpleFolderStore(storePath).ToPointCloudStore(cache);
+                }
+                else
+                {
+                    store = new SimpleDiskStore(storePath).ToPointCloudStore(cache);
+                }
+
                 s_stores[storePath] = new WeakReference<Storage>(store);
                 return store;
             }
