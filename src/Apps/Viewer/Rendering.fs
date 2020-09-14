@@ -165,7 +165,7 @@ module Rendering =
         //let filter : ModRef<Option<Hull3d>> = AVal.init None
 
         let instances = pcs |> ASet.mapA (fun a -> a :> aval<_>)
-        let pick = ref (fun _ _ -> [||])
+        let pick = ref (fun _ _ _ -> [||])
         let renderConfig : PointSetRenderConfig =
             {
                 runtime = win.Runtime
@@ -248,25 +248,27 @@ module Rendering =
             (camera, frustum, win.Mouse.Position) 
             |||> AVal.bind3 (fun c f p -> 
                 win.Sizes |> AVal.map (fun s -> 
-                    let pts = !pick p.Position 20
-                    if pts.Length = 0 then V3d.III
-                    elif pts.Length < 3 then V3d.III
-                    else 
-                        let z = pts.Median(fun a b -> compare a.Ndc.Z b.Ndc.Z).Ndc.Z
-                        let view = CameraView.viewTrafo c
-                        let proj = Frustum.projTrafo f
-                        let vp = view * proj
-                        let closest = pts |> Array.minBy (fun o -> Vec.distanceSquared o.Pixel p.Position)
-                        V3d(closest.Ndc.XY,z) |> vp.Backward.TransformPosProj
+                    let pts = !pick p.Position 200 800
+                    pts |> Array.map (fun p -> p.World |> Trafo3d.Translation)
+                    
+                    //if pts.Length = 0 then V3d.III
+                    //elif pts.Length < 3 then V3d.III
+                    //else 
+                    //    let z = pts.Median(fun a b -> compare a.Ndc.Z b.Ndc.Z).Ndc.Z
+                    //    let view = CameraView.viewTrafo c
+                    //    let proj = Frustum.projTrafo f
+                    //    let vp = view * proj
+                    //    let closest = pts |> Array.minBy (fun o -> Vec.distanceSquared o.Pixel p.Position)
+                    //    V3d(closest.Ndc.XY,z) |> vp.Backward.TransformPosProj
                 )
             )
 
         let psg = 
-            Sg.sphere' 3 C4b.Maroon 0.1
-            //|> Sg.trafo (p |> AVal.map Trafo3d.Translation)
+            Sg.sphere' 3 C4b.Maroon 0.01
+            |> Sg.instanced p
             |> Sg.shader {
-                do! DefaultSurfaces.stableTrafo
-                do! DefaultSurfaces.stableHeadlight
+                do! DefaultSurfaces.trafo
+                do! DefaultSurfaces.simpleLighting
             }
 
         win.Keyboard.DownWithRepeats.Values.Add(fun k ->

@@ -11,52 +11,176 @@ module Readback =
     open OpenTK.Graphics.OpenGL4
     open Aardvark.Rendering.GL
     open Microsoft.FSharp.NativeInterop
+    
+    [<AutoOpen>]
+    module DitherMatrix =
+        type private A = A
 
-    let readDepth (depth : IBackendTexture) (offset : V2i) (size : V2i) =
-        let depth = unbox<Texture> depth
-        use __ = depth.Context.ResourceLock
+        let dither1024 =
+            let ass = typeof<A>.Assembly
+            let name = ass.GetName().Name
+            use stream = ass.GetManifestResourceStream (sprintf "%s.resource.forced-1024.bin" name)
+            let r = new System.IO.BinaryReader(stream)
+            let data = Array.init (1024 * 1024) (fun _ -> r.ReadInt32())
+            Matrix<int>(data, V2l(1024, 1024)).Map(fun v -> float32 v / 1048576.0f)
+            
+    module Shader =
+        open FShade
+
+        let depthSam =
+            sampler2d {
+                texture uniform?Depth
+                addressU WrapMode.Clamp
+                addressV WrapMode.Clamp
+                filter Filter.MinMagPoint
+            }
+        let ditherSam =
+            sampler2d {
+                texture uniform?Dither
+                addressU WrapMode.Wrap
+                addressV WrapMode.Wrap
+                filter Filter.MinMagPoint
+            }
+
+        [<GLSLIntrinsic("atomicAdd({0}, {1})"); KeepCall>]
+        let atomicAdd (l : int) (v : int) : int = onlyInShaderCode "atomicAdd"
+
+        [<LocalSize(X = 8, Y = 8)>]
+        let computer (ndcs : V4d[]) (cnt : int[]) (center : V2i) (radius : int) (offset : V2i) (size : V2i) = 
+            compute {
+                let o = getGlobalId().XY - V2i(radius,radius)
+
+                if (V2d o).Length < float radius then
+                    let id = o + center + offset
+                    let s = depthSam.Size
+
+                    if id.X < s.X && id.Y < s.Y && id.X >= 0 && id.Y >= 0 then
+                        let dither = ditherSam.SampleLevel((V2d(id)+V2d.Half) / V2d ditherSam.Size, 0.0).X 
+                        let thresh = uniform?Threshold
+                    
+                        if dither <= thresh then 
+                            let d = depthSam.[id].X
+                            if d > 0.0 && d < 1.0 then 
+                                let tc = (V2d (id - offset) + V2d.Half) / V2d size
+                                let ndc = V3d(tc.X * 2.0 - 1.0, tc.Y * 2.0 - 1.0, d * 2.0 - 1.0)
+                                let idx = atomicAdd cnt.[0] 1
+                                ndcs.[idx] <- V4d(ndc, dither)
+            }
+
+    type DepthReader(rt : IRuntime) =
+        let ditherTex = 
+            let tex = rt.CreateTexture(V2i dither1024.Size, TextureFormat.R32f, 1, 1)
+            let img = PixImage<float32>(Col.Format.Gray, dither1024)
+            rt.Upload(tex,img)
+            tex
+
+        let computerShader = rt.CreateComputeShader(Shader.computer)
+
+
+        member x.Run(depth : IBackendTexture, center : V2i, radius : int, offset : V2i, texSize : V2i, wantedCt : int) =
+            let size = 2 * radius + 1 
+
+            let ca = float radius * float radius * Constant.Pi 
+            let threshold = float wantedCt / ca
+            use cntBuffer = rt.CreateBuffer<int> 1
+            use ndcsBuffer = rt.CreateBuffer<V4f>(max (wantedCt*2) 64)
+
+            use ip = rt.NewInputBinding(computerShader)
+            ip.["Depth"] <- depth
+            ip.["Dither"] <- ditherTex
+            ip.["center"] <- center
+            ip.["radius"] <- radius
+            ip.["offset"] <- offset
+            ip.["size"] <- texSize
+            ip.["Threshold"] <- threshold
+            ip.["cnt"] <- cntBuffer
+            ip.["ndcs"] <- ndcsBuffer
+            ip.Flush()
+
+            let groups =
+                let inline ceilDiv a b =
+                    if a % b = 0 then a / b
+                    else 1 + a / b
+                V2i (
+                    ceilDiv size 8,
+                    ceilDiv size 8
+                )
+
+            let cntArr = [|0|]
+            cntBuffer.Upload cntArr
+            rt.Run [
+                //ComputeCommand.Copy(cntArr, cntBuffer)
+                ComputeCommand.Bind computerShader
+                ComputeCommand.SetInput ip
+                ComputeCommand.Dispatch groups
+                ComputeCommand.Sync cntBuffer.Buffer
+                //ComputeCommand.Copy(cntBuffer, cntArr)
+            ]
+            cntBuffer.Download cntArr
+
+            let cnt = cntArr.[0]
+            if cnt > 0 then 
+                ndcsBuffer.[0..cnt-1].Download()
+            else 
+                [||]
+
+
+
+
+    let cachy = System.Collections.Concurrent.ConcurrentDictionary<IRuntime, DepthReader>()
+
+    let readDepth (depth : IBackendTexture) (center : V2i) (radius : int) (offset : V2i) (size : V2i) (maxCt : int) = //(offset : V2i) (size : V2i) =
+        let reader = cachy.GetOrAdd(unbox depth.Runtime, fun r -> DepthReader(r))
+
+        let ptr = reader.Run(depth, center, radius, offset, size, maxCt)
+
+
+        //Log.warn "%A" ptr
+        ptr
+        //let depth = unbox<Texture> depth
+        //use __ = depth.Context.ResourceLock
         
-        let cnt = size.X * size.Y
-        let f = GL.GenFramebuffer()
-        GL.Check "GenFramebuffer"
-        //let pbo = GL.GenBuffer()
-        //GL.Check "GenBuffer"
-        try
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, f)
-            GL.Check "BindFramebuffer"
-            GL.FramebufferTexture(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthStencilAttachment, depth.Handle, 0)
-            GL.Check "FramebufferTexture"
+        //let cnt = size.X * size.Y
+        //let f = GL.GenFramebuffer()
+        //GL.Check "GenFramebuffer"
+        ////let pbo = GL.GenBuffer()
+        ////GL.Check "GenBuffer"
+        //try
+        //    GL.BindFramebuffer(FramebufferTarget.Framebuffer, f)
+        //    GL.Check "BindFramebuffer"
+        //    GL.FramebufferTexture(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthStencilAttachment, depth.Handle, 0)
+        //    GL.Check "FramebufferTexture"
 
-            let s = GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer)
-            if s <> FramebufferErrorCode.FramebufferComplete then failwithf "FBO: %A" s
+        //    let s = GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer)
+        //    if s <> FramebufferErrorCode.FramebufferComplete then failwithf "FBO: %A" s
 
-            //GL.BindBuffer(BufferTarget.PixelPackBuffer, pbo)
-            //GL.Check "BindBuffer"
-            //GL.BufferStorage(BufferTarget.PixelPackBuffer, nativeint (cnt * sizeof<float32>), 0n, BufferStorageFlags.MapReadBit)
-            //GL.Check "BufferStorage"
-            //GL.ReadBuffer(ReadBufferMode.ColorAttachment0)
+        //    //GL.BindBuffer(BufferTarget.PixelPackBuffer, pbo)
+        //    //GL.Check "BindBuffer"
+        //    //GL.BufferStorage(BufferTarget.PixelPackBuffer, nativeint (cnt * sizeof<float32>), 0n, BufferStorageFlags.MapReadBit)
+        //    //GL.Check "BufferStorage"
+        //    //GL.ReadBuffer(ReadBufferMode.ColorAttachment0)
 
-            let arr = Array.zeroCreate<float32> cnt
-            //use ptr = fixed arr
+        //    let arr = Array.zeroCreate<float32> cnt
+        //    //use ptr = fixed arr
 
-            GL.ReadPixels(offset.X, offset.Y, size.X, size.Y, PixelFormat.DepthComponent, PixelType.Float, arr)
-            GL.Check "ReadPixels"
+        //    GL.ReadPixels(offset.X, offset.Y, size.X, size.Y, PixelFormat.DepthComponent, PixelType.Float, arr)
+        //    GL.Check "ReadPixels"
 
-            //let ptr = GL.MapNamedBuffer(pbo, BufferAccess.ReadOnly)
-            //for i in 0 .. arr.Length - 1 do
-            //    arr.[i] <- NativeInt.read (ptr + nativeint sizeof<uint32> * nativeint i)
-            //GL.UnmapNamedBuffer(pbo) |> ignore
+        //    //let ptr = GL.MapNamedBuffer(pbo, BufferAccess.ReadOnly)
+        //    //for i in 0 .. arr.Length - 1 do
+        //    //    arr.[i] <- NativeInt.read (ptr + nativeint sizeof<uint32> * nativeint i)
+        //    //GL.UnmapNamedBuffer(pbo) |> ignore
 
-            //GL.BindBuffer(BufferTarget.PixelPackBuffer, 0)
-            //GL.Check "BindBuffer 0"
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
-            GL.Check "BindFramebuffer 0"
-            Matrix(arr, V2l size)
-        finally
-            //GL.DeleteBuffer pbo
-            GL.Check "DeleteBuffer"
-            GL.DeleteFramebuffer f
-            GL.Check "DeleteFramebuffer"
+        //    //GL.BindBuffer(BufferTarget.PixelPackBuffer, 0)
+        //    //GL.Check "BindBuffer 0"
+        //    GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
+        //    GL.Check "BindFramebuffer 0"
+        //    Matrix(arr, V2l size)
+        //finally
+        //    //GL.DeleteBuffer pbo
+        //    GL.Check "DeleteBuffer"
+        //    GL.DeleteFramebuffer f
+        //    GL.Check "DeleteFramebuffer"
 
 [<ReflectedDefinition>]
 module private DeferredPointSetShaders =
@@ -612,7 +736,7 @@ type PointSetRenderConfig =
 
         lodConfig       : LodTreeRenderConfig
 
-        pickCallback    : Option<ref<V2i -> int -> PickPoint[]>>
+        pickCallback    : Option<ref<V2i -> int -> int -> PickPoint[]>>
     }
 
 module Sg =
@@ -783,7 +907,7 @@ module Sg =
         let depth =
             { new AbstractOutputMod<ITexture>() with
                 override x.Compute(t, rt) = 
-                    let d = singlePixelDepth.GetValue(t, rt)
+                    let d = depth.GetValue(t, rt)
                     lastDepth <- Some d
                     depth.GetValue(t, rt)
                 override x.Create() = depth.Acquire()
@@ -806,43 +930,59 @@ module Sg =
             |> Sg.uniform "SSAO" config.ssao
             |> Sg.uniform "ViewportSize" config.size
 
-        let pick (px : V2i) (r : int) = 
+        let pick (px : V2i) (r : int) (maxCt : int) = 
             //let normals = normals.GetValue() |> unbox<IBackendTexture>
             let depth = 
                 match lastDepth with
                 | Some d -> d |> unbox<IBackendTexture>
-                | _ -> singlePixelDepth.GetValue() |> unbox<IBackendTexture>
+                | _ -> depth.GetValue() |> unbox<IBackendTexture>
 
             let s = config.size.GetValue()
             let ls = largeSize.GetValue()
             let view = config.viewTrafo.GetValue()
             let proj = config.projTrafo.GetValue()
 
-            let mat = 
-                let center = px + (ls - s) / 2
-                let size = V2i(r,r) * 2 + V2i.II
-                Readback.readDepth depth (V2i(center.X, ls.Y - center.Y - 1) - size / 2) size
-            let mat = mat.Transformed(ImageTrafo.MirrorY)
+            
 
-            let best = System.Collections.Generic.List()
-            for x in -r .. r do
-                for y in -r .. r do
-                    let o = V2i(x,y)
-                    let d = mat.[r + x,r + y]
-                    if d < 0.999999f && d > 0.01f && x*x + y*y <= r*r then
-                        let px = px + o
-                        let tc = V2d px / V2d s
-                        let ndc = V3d(2.0 * tc.X - 1.0, 1.0 - 2.0*tc.Y, 2.0 * float d - 1.0)
-                        let vp = proj.Backward.TransformPosProj ndc
-                        let wp = view.Backward.TransformPosProj vp
-                        best.Add {
-                            World = wp
-                            View  = vp
-                            Ndc   = ndc
-                            Pixel = px
-                        }
+            let ndcs = 
+                let px = V2i(px.X, s.Y - 1 - px.Y)
+                let offset = (ls - s) / 2
+                let size = s
+                let center = px 
 
-            best |> CSharpList.toArray
+                Readback.readDepth depth center r offset size maxCt 
+            //let mat = mat.Transformed(ImageTrafo.MirrorY)
+
+            ndcs |> Array.map (fun ndc -> 
+                let ndc = (V3d ndc.XYZ)
+                let tc = V2d(ndc.X * 0.5 + 0.5, 0.5 - ndc.Y * 0.5)
+                let px = tc * V2d(s) |> V2i
+                let vp = proj.Backward.TransformPosProj ndc
+                let wp = view.Backward.TransformPosProj vp
+                {
+                    World = wp
+                    View  = vp
+                    Ndc   = ndc
+                    Pixel = px
+                }
+            )
+            //for x in -r .. r do
+            //    for y in -r .. r do
+            //        let o = V2i(x,y)
+            //        let d = mat.[r + x,r + y]
+            //        if d < 0.999999f && d > 0.01f && x*x + y*y <= r*r then
+            //            let px = px + o
+            //            let tc = V2d px / V2d s
+            //            let ndc = V3d(2.0 * tc.X - 1.0, 1.0 - 2.0*tc.Y, 2.0 * float d - 1.0)
+            //            let vp = proj.Backward.TransformPosProj ndc
+            //            let wp = view.Backward.TransformPosProj vp
+            //            best.Add {
+            //                World = wp
+            //                View  = vp
+            //                Ndc   = ndc
+            //                Pixel = px
+            //            }
+
 
 
         match config.pickCallback with 

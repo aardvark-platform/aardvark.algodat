@@ -11,6 +11,7 @@
     <OutputPath>..\..\bin\Release\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="resource\forced-1024.bin" />
     <Compile Include="Utilities.fs" />
     <Compile Include="LodTreeInstance.fs" />
     <Compile Include="SimplePick.fs" />
