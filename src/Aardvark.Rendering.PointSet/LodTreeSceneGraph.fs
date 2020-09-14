@@ -5,6 +5,59 @@ open Aardvark.Base
 open Aardvark.Base.Rendering
 open Aardvark.SceneGraph
 
+#nowarn "9"
+module Readback =
+    open OpenTK
+    open OpenTK.Graphics.OpenGL4
+    open Aardvark.Rendering.GL
+    open Microsoft.FSharp.NativeInterop
+
+    let readDepth (depth : IBackendTexture) (offset : V2i) (size : V2i) =
+        let depth = unbox<Texture> depth
+        use __ = depth.Context.ResourceLock
+        
+        let cnt = size.X * size.Y
+        let f = GL.GenFramebuffer()
+        GL.Check "GenFramebuffer"
+        //let pbo = GL.GenBuffer()
+        //GL.Check "GenBuffer"
+        try
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, f)
+            GL.Check "BindFramebuffer"
+            GL.FramebufferTexture(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthStencilAttachment, depth.Handle, 0)
+            GL.Check "FramebufferTexture"
+
+            let s = GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer)
+            if s <> FramebufferErrorCode.FramebufferComplete then failwithf "FBO: %A" s
+
+            //GL.BindBuffer(BufferTarget.PixelPackBuffer, pbo)
+            //GL.Check "BindBuffer"
+            //GL.BufferStorage(BufferTarget.PixelPackBuffer, nativeint (cnt * sizeof<float32>), 0n, BufferStorageFlags.MapReadBit)
+            //GL.Check "BufferStorage"
+            //GL.ReadBuffer(ReadBufferMode.ColorAttachment0)
+
+            let arr = Array.zeroCreate<float32> cnt
+            //use ptr = fixed arr
+
+            GL.ReadPixels(offset.X, offset.Y, size.X, size.Y, PixelFormat.DepthComponent, PixelType.Float, arr)
+            GL.Check "ReadPixels"
+
+            //let ptr = GL.MapNamedBuffer(pbo, BufferAccess.ReadOnly)
+            //for i in 0 .. arr.Length - 1 do
+            //    arr.[i] <- NativeInt.read (ptr + nativeint sizeof<uint32> * nativeint i)
+            //GL.UnmapNamedBuffer(pbo) |> ignore
+
+            //GL.BindBuffer(BufferTarget.PixelPackBuffer, 0)
+            //GL.Check "BindBuffer 0"
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
+            GL.Check "BindFramebuffer 0"
+            Matrix(arr, V2l size)
+        finally
+            //GL.DeleteBuffer pbo
+            GL.Check "DeleteBuffer"
+            GL.DeleteFramebuffer f
+            GL.Check "DeleteFramebuffer"
+
 [<ReflectedDefinition>]
 module private DeferredPointSetShaders =
     open FShade
@@ -530,6 +583,14 @@ module private DeferredPointSetShaders =
             }
         }
 
+[<Struct>]
+type PickPoint =
+    {
+        World : V3d
+        View  : V3d
+        Pixel : V2i
+        Ndc   : V3d
+    }
 
 type PointSetRenderConfig =
     {
@@ -551,15 +612,22 @@ type PointSetRenderConfig =
 
         lodConfig       : LodTreeRenderConfig
 
+        pickCallback    : Option<ref<V2i -> int -> PickPoint[]>>
     }
 
 module Sg =
+    
     let pointSets (config : PointSetRenderConfig) (pointClouds : aset<LodTreeInstance>) =
         let runtime = config.runtime
 
         let largeSize = 
             (config.size, config.pointSize) ||> AVal.map2 (fun s ps -> 
-                let ps = max 32 (int (ceil ps))
+                let psi = int (ceil ps)
+                let psi =
+                    if psi &&& 1 <> 0 then psi + 1
+                    else psi
+
+                let ps = max 32 psi
                 s + V2i(ps, ps)
             )
 
@@ -621,6 +689,7 @@ module Sg =
         let color = textures.[DefaultSemantic.Colors]
         let position = textures.[DefaultSemantic.Positions]
         let depth = textures.[DefaultSemantic.Depth]
+        let singlePixelDepth = depth
 
         //let pointIdSym = Symbol.Create "PointId"
 
@@ -659,7 +728,6 @@ module Sg =
                 let f = Frustum.ofTrafo t
                 V2d(f.near, f.far)
             )
-
 
         let randomTex = 
             let img = PixImage<float32>(Col.Format.RGB, V2i.II * 512)
@@ -705,9 +773,22 @@ module Sg =
             |> Sg.compile runtime signature
             |> RenderTask.renderSemantics sems largeSize
               
+
+
         let normals = sceneTextures.[DefaultSemantic.Normals]
         let colors = sceneTextures.[DefaultSemantic.Colors]
         let depth = sceneTextures.[DefaultSemantic.Depth]
+
+        let mutable lastDepth = None
+        let depth =
+            { new AbstractOutputMod<ITexture>() with
+                override x.Compute(t, rt) = 
+                    let d = singlePixelDepth.GetValue(t, rt)
+                    lastDepth <- Some d
+                    depth.GetValue(t, rt)
+                override x.Create() = depth.Acquire()
+                override x.Destroy() = depth.Release()
+            }
 
             
         let tt = 
@@ -724,6 +805,50 @@ module Sg =
             SSAO.getAmbient tt config.ssao config.ssaoConfig runtime largeProj depth normals colors s
             |> Sg.uniform "SSAO" config.ssao
             |> Sg.uniform "ViewportSize" config.size
+
+        let pick (px : V2i) (r : int) = 
+            //let normals = normals.GetValue() |> unbox<IBackendTexture>
+            let depth = 
+                match lastDepth with
+                | Some d -> d |> unbox<IBackendTexture>
+                | _ -> singlePixelDepth.GetValue() |> unbox<IBackendTexture>
+
+            let s = config.size.GetValue()
+            let ls = largeSize.GetValue()
+            let view = config.viewTrafo.GetValue()
+            let proj = config.projTrafo.GetValue()
+
+            let mat = 
+                let center = px + (ls - s) / 2
+                let size = V2i(r,r) * 2 + V2i.II
+                Readback.readDepth depth (V2i(center.X, ls.Y - center.Y - 1) - size / 2) size
+            let mat = mat.Transformed(ImageTrafo.MirrorY)
+
+            let best = System.Collections.Generic.List()
+            for x in -r .. r do
+                for y in -r .. r do
+                    let o = V2i(x,y)
+                    let d = mat.[r + x,r + y]
+                    if d < 0.999999f && d > 0.01f && x*x + y*y <= r*r then
+                        let px = px + o
+                        let tc = V2d px / V2d s
+                        let ndc = V3d(2.0 * tc.X - 1.0, 1.0 - 2.0*tc.Y, 2.0 * float d - 1.0)
+                        let vp = proj.Backward.TransformPosProj ndc
+                        let wp = view.Backward.TransformPosProj vp
+                        best.Add {
+                            World = wp
+                            View  = vp
+                            Ndc   = ndc
+                            Pixel = px
+                        }
+
+            best |> CSharpList.toArray
+
+
+        match config.pickCallback with 
+        | Some r -> 
+            r := pick
+        | None -> ()
 
         finalSg
 

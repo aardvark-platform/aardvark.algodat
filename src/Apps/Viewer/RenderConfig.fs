@@ -555,8 +555,8 @@ module RenderConfig =
                 "Budget",           "X", "C/Y", cfg.budget |> AVal.map (fun v -> if v < 0L then "off" else string (Numeric v))
                 "Light",            "L", "L", cfg.lighting |> AVal.map (function true -> "on" | false -> "off")
                 "Color",            "V", "V", cfg.colors |> AVal.map (function true -> "on" | false -> "off")
-                "PlaneFit" ,        "1", "1", cfg.planeFit |> AVal.map (function true -> "on" | false -> "off")
-                "SSAO",             "2", "2", cfg.ssao |> AVal.map (function true -> "on" | false -> "off")
+                "PlaneFit" ,        "J", "J", cfg.planeFit |> AVal.map (function true -> "on" | false -> "off")
+                "SSAO",             "K", "K", cfg.ssao |> AVal.map (function true -> "on" | false -> "off")
                 "Gamma",            "U", "I", cfg.gamma |> AVal.map (sprintf "%.2f")
                 "Memory",           " ", " ", totalMem
                 "Quality",          " ", " ", AVal.constant pi

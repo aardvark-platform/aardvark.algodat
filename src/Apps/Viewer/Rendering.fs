@@ -103,13 +103,14 @@ module Util =
     
 
 module Rendering =
+    open Aardvark.Geometry
 
 
     let pointClouds (win : IRenderWindow) (msaa : bool) (camera : aval<CameraView>) (frustum : aval<Frustum>) (pcs : aset<LodTreeInstance>) =
         let picktrees : cmap<ILodTreeNode,SimplePickTree> = cmap()
         let config =
             {
-                pointSize = AVal.init 1.0
+                pointSize = AVal.init 0.8
                 overlayAlpha = AVal.init 0.0
                 maxSplits = AVal.init 8
                 renderBounds = AVal.init false
@@ -117,12 +118,12 @@ module Rendering =
                 splitfactor = AVal.init 0.45
                 budget = AVal.init -(256L <<< 10)
                 lighting = AVal.init true
-                colors = AVal.init true
-                gamma = AVal.init 1.0
+                colors = AVal.init false
+                gamma = AVal.init 1.4
                 stats = AVal.init Unchecked.defaultof<_>
                 background = AVal.init (Background.Skybox Skybox.Miramar)
-                ssao = AVal.init false
-                planeFit = AVal.init false
+                ssao = AVal.init true
+                planeFit = AVal.init true
 
                 ssaoSamples = AVal.init 4
                 ssaoSampleDirections = AVal.init 2
@@ -164,7 +165,7 @@ module Rendering =
         //let filter : ModRef<Option<Hull3d>> = AVal.init None
 
         let instances = pcs |> ASet.mapA (fun a -> a :> aval<_>)
-
+        let pick = ref (fun _ _ -> [||])
         let renderConfig : PointSetRenderConfig =
             {
                 runtime = win.Runtime
@@ -199,10 +200,12 @@ module Rendering =
                         sampleDirections = config.ssaoSampleDirections
                         samples = config.ssaoSamples
                     }
+                pickCallback = Some pick
             }
 
+        let sg = Sg.pointSets renderConfig instances
         let sg =
-            Sg.pointSets renderConfig instances
+            sg
             |> Sg.andAlso cfg
             |> Sg.uniform "ViewportSize" win.Sizes
             //Sg.LodTreeNode(config.stats, picktrees, true, config.budget, config.splitfactor, config.renderBounds, config.maxSplits, win.Time, instances) :> ISg
@@ -241,11 +244,34 @@ module Rendering =
                     
                 ) |> ignore
 
+        let p = 
+            (camera, frustum, win.Mouse.Position) 
+            |||> AVal.bind3 (fun c f p -> 
+                win.Sizes |> AVal.map (fun s -> 
+                    let pts = !pick p.Position 20
+                    if pts.Length = 0 then V3d.III
+                    elif pts.Length < 3 then V3d.III
+                    else 
+                        let z = pts.Median(fun a b -> compare a.Ndc.Z b.Ndc.Z).Ndc.Z
+                        let view = CameraView.viewTrafo c
+                        let proj = Frustum.projTrafo f
+                        let vp = view * proj
+                        let closest = pts |> Array.minBy (fun o -> Vec.distanceSquared o.Pixel p.Position)
+                        V3d(closest.Ndc.XY,z) |> vp.Backward.TransformPosProj
+                )
+            )
+
+        let psg = 
+            Sg.sphere' 3 C4b.Maroon 0.1
+            //|> Sg.trafo (p |> AVal.map Trafo3d.Translation)
+            |> Sg.shader {
+                do! DefaultSurfaces.stableTrafo
+                do! DefaultSurfaces.stableHeadlight
+            }
 
         win.Keyboard.DownWithRepeats.Values.Add(fun k ->
             let pcs = pcs |> ASet.force |> FSharp.Data.Adaptive.HashSet.toArray
             match k with
-
             | Keys.Delete ->
                 let i = pcs.[0].Value
                 match i.root with
@@ -259,8 +285,6 @@ module Rendering =
                         ()
                 | _ ->
                     ()
-
-
             | Keys.Escape ->
                 transact (fun () ->
                     let pc = pcs.[0].Value
@@ -283,7 +307,6 @@ module Rendering =
                             pcs.[0].Value <- pc
                         | None -> 
                             Log.warn "hinig"
-                  
                 )
             | Keys.I ->
                 transact (fun () -> config.gamma.Value <- min 4.0 (config.gamma.Value + 0.1))
@@ -293,8 +316,6 @@ module Rendering =
                 transact (fun () ->
                     config.colors.Value <- not config.colors.Value
                 )
-
-                
             | Keys.D0 -> transact (fun () -> config.ssaoSigma.Value <- min 5.0 (config.ssaoSigma.Value + 0.1)); Log.line "sigma: %A" config.ssaoSigma.Value
             | Keys.D9 -> transact (fun () -> config.ssaoSigma.Value <- max 0.0 (config.ssaoSigma.Value - 0.1)); Log.line "sigma: %A" config.ssaoSigma.Value
             
@@ -309,7 +330,6 @@ module Rendering =
             
             | Keys.D2 -> transact (fun () -> config.ssaoSharpness.Value <- min 4.0 (config.ssaoSharpness.Value + 0.1)); Log.line "sharpness: %A" config.ssaoSharpness.Value
             | Keys.D1 -> transact (fun () -> config.ssaoSharpness.Value <- max 0.01 (config.ssaoSharpness.Value - 0.1)); Log.line "sharpness: %A" config.ssaoSharpness.Value
-
 
             | Keys.L ->
                 transact (fun () ->
@@ -356,11 +376,9 @@ module Rendering =
             | k -> 
                 ()
         )
-
-        config, sg
+        config, Sg.ofList [sg; psg]
 
     let skybox (name : string) =
-        
         AVal.custom (fun _ ->
             let env =
                 let trafo t (img : PixImage) = img.Transformed t
@@ -504,7 +522,7 @@ module Rendering =
                 | None  ->
                     V3d.III * 6.0, V3d.Zero
             )
-        let speed = AVal.init 10.0
+        let speed = AVal.init 2.0
         win.Keyboard.DownWithRepeats.Values.Add(function
             | Keys.PageUp | Keys.Up -> transact(fun () -> speed.Value <- speed.Value * 1.5)
             | Keys.PageDown | Keys.Down -> transact(fun () -> speed.Value <- speed.Value / 1.5)

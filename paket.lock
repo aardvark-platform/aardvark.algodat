@@ -618,7 +618,6 @@ NUGET
       System.Numerics.Vectors (>= 4.5)
 
 GROUP Build
-CONTENT: NONE
 RESTRICTION: == netstandard2.0
 NUGET
   remote: https://api.nuget.org/v3/index.json
@@ -1140,6 +1139,17 @@ NUGET
       System.Runtime.Handles (>= 4.3)
 GITHUB
   remote: aardvark-platform/aardvark.fake
+    FULLPROJECT (d00676647d255f05bb43bd9d62a692545925d0f8)
+      Argu (>= 5.5 < 5.6)
+      fake-cli (>= 5.20.1 < 5.21)
+      Fake.Core.Target (>= 5.20.1 < 5.21)
+      Fake.DotNet.Cli (>= 5.20.1 < 5.21)
+      Fake.DotNet.MSBuild (>= 5.20.1 < 5.21)
+      Fake.IO.FileSystem (>= 5.20.1 < 5.21)
+      Fake.Tools.Git (>= 5.20.1 < 5.21)
+      Mono.Cecil (>= 0.10.4 < 0.11)
+      SourceLink.Fake (>= 1.1 < 1.2)
+      System.IO.Compression.ZipFile (>= 4.3 < 4.4)
     FULLPROJECT (d00676647d255f05bb43bd9d62a692545925d0f8)
       Argu (>= 5.5 < 5.6)
       fake-cli (>= 5.20.1 < 5.21)

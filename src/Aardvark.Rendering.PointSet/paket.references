@@ -2,4 +2,5 @@ Aardvark.Base.Rendering
 Aardvark.SceneGraph
 Aardvark.Geometry
 Aardvark.Data.Durable
+Aardvark.Rendering.GL
 FSharp.Core
