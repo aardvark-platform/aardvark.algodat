@@ -1,6 +1,7 @@
 ﻿using Aardvark.Base;
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 
 namespace Aardvark.Data.Photometry
@@ -351,6 +352,34 @@ namespace Aardvark.Data.Photometry
             lumFlux *= Constant.PiTimesFour / sampleCount;
 
             return lumFlux;
+        }
+
+        /// <summary>
+        /// Creates a cube texture representing the photometric measurement.
+        /// The cubemap resolution will be approximately twice the sampling rate of the original data.
+        /// The cubemap layout will be right-handed, z-up, with [XN YP XP YN ZP ZN]
+        /// </summary>
+        public static PixCube GetCubeTexture(this IntensityProfileSampler sampler)
+        {
+            var data = sampler.Data;
+            var space = Fun.Min(data.MinVerticalMeasureDistance, data.MinHorizontalMeasureDistance);
+
+            int cubeRes;
+            if (space >= 45.0)
+            {
+                cubeRes = 1;
+            }
+            else
+            {
+                var h2 = space.RadiansFromDegrees().Atan(); // fraction of data sample on half cube
+                var hres = (int)(1.0 / h2).Round();
+                cubeRes = Fun.Min(2048, 4 * hres); // x2 sampling rate
+            }
+
+            // TODO: use monochrome CreateCubeMapSide function of next Aardvark.Base version
+            var cubeFaces = new PixImage[6].SetByIndex(i => (PixImage)PixImage.CreateCubeMapSide<float, C4f>(i, cubeRes, 4, v => new C4f(sampler.GetIntensity(v))));
+            var cubeFaces1Ch = cubeFaces.Map(p => (PixImage)new PixImage<float>(p.ToPixImage<float>().GetChannel(0L).AsVolume()));
+            return new PixCube(cubeFaces1Ch);
         }
     }
 }

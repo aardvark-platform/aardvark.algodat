@@ -175,6 +175,30 @@ namespace Aardvark.Data.Photometry
             LumFlux = ldt.LampSets.Sum(x => x.TotalFlux) * lor;
         }
 
+        /// <summary>
+        /// Checks wheter the measurment data is equidistant.
+        /// </summary>
+        public bool IsEquidistant
+        {
+            get { return !IsNonEquidistant(HorizontalAngles) && !IsNonEquidistant(VerticalAngles); }
+        }
+
+        /// <summary>
+        /// Calculates the minimal angular vertical measure distance in degrees
+        /// </summary>
+        public double MinVerticalMeasureDistance
+        {
+            get { return CalcMinAngleStep(VerticalAngles); }
+        }
+
+        /// <summary>
+        /// Calculates the minimal angular horizontal measure distance in degrees
+        /// </summary>
+        public double MinHorizontalMeasureDistance
+        {
+            get { return CalcMinAngleStep(HorizontalAngles); }
+        }
+
         private int GetPlaneIndex(double plane)
         {
             // NOTE: throw IndexNotFound exception
@@ -249,6 +273,7 @@ namespace Aardvark.Data.Photometry
         /// <summary>
         /// Builds an equidistant measurement data matrix. 
         /// NOTE: The symmetry type is the same.
+        /// NOTE: Data will be re-sampled at the smallest horizontal and vertical angular measured distance
         /// </summary>
         /// <returns>Equidistant measurement data or original in case it is already equidistant</returns>
         public Matrix<double> BuildEquidistantMatrix()
@@ -261,7 +286,7 @@ namespace Aardvark.Data.Photometry
             return result;
         }
 
-        private Matrix<double> FixNonEquidistantAngleStep(double[] angles, Matrix<double> data, bool horizontalFix)
+        private static double CalcMinAngleStep(double[] angles)
         {
             var minStep = Double.MaxValue;
 
@@ -273,6 +298,13 @@ namespace Aardvark.Data.Photometry
 
             if (minStep <= 0)
                 throw new Exception();
+
+            return minStep;
+        }
+
+        private Matrix<double> FixNonEquidistantAngleStep(double[] angles, Matrix<double> data, bool horizontalFix)
+        {
+            var minStep = CalcMinAngleStep(angles);
 
             var valuesPerPlane = data.SX;
             var planeCount = data.SY;
@@ -350,8 +382,12 @@ namespace Aardvark.Data.Photometry
             return tempMatrix;
         }
 
-        private double AngleDifference(double a, double b)
+        /// <summary>
+        /// Calculate the signed angular distance between a and b
+        /// </summary>
+        private static double AngleDifference(double a, double b)
         {
+            // TODO: move to Aardvark.Base
             var diff = a - b;
             var mod = diff - 360 * Fun.Round(diff / 360);
             return mod;

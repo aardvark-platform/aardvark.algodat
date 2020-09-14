@@ -189,6 +189,8 @@ namespace Aardvark.Geometry.Points
                 .Add(Durable.Octree.PointCountTreeLeafs, pointCountTree)
                 ;
 
+            if (psId.HasValue && !storage.Exists(psId.Value)) throw new Exception("Invalid format. Invariant 29215445-2a5e-42bb-a679-970ec8b7479a.");
+
             if (psId.HasValue) data = data.Add(Durable.Octree.PositionsLocal3fReference, psId.Value);
             if (csId.HasValue) data = data.Add(Durable.Octree.Colors4bReference, csId.Value);
             if (kdId.HasValue) data = data.Add(Durable.Octree.PointRkdTreeDDataReference, kdId.Value);

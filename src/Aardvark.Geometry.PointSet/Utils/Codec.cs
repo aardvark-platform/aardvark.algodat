@@ -76,6 +76,8 @@ namespace Aardvark.Data
             {
                 [Durable.Primitives.GuidDef.Id] = DecodeGuid,
                 [Durable.Primitives.GuidArray.Id] = DecodeGuidArray,
+                [Durable.Primitives.UInt8.Id] = DecodeUInt8,
+                [Durable.Primitives.UInt8Array.Id] = DecodeUInt8Array,
                 [Durable.Primitives.Int16.Id] = DecodeInt16,
                 [Durable.Primitives.Int16Array.Id] = DecodeInt16Array,
                 [Durable.Primitives.UInt16.Id] = DecodeUInt16,
@@ -270,6 +272,9 @@ namespace Aardvark.Data
 
         private static readonly Func<BinaryReader, object> DecodeGuid = s => new Guid(s.ReadBytes(16));
         private static readonly Func<BinaryReader, object> DecodeStringUtf8 = s => Encoding.UTF8.GetString(DecodeArray<byte>(s));
+
+        private static readonly Func<BinaryReader, object> DecodeUInt8 = s => s.ReadByte();
+        private static readonly Func<BinaryReader, object> DecodeUInt8Array = s => DecodeArray<byte>(s);
 
         private static readonly Func<BinaryReader, object> DecodeInt16 = s => s.ReadInt16();
         private static readonly Func<BinaryReader, object> DecodeInt16Array = s => DecodeArray<short>(s);

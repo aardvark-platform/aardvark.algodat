@@ -13,6 +13,7 @@
 */
 
 //#define PEDANTIC
+//#define READONLY
 
 using Aardvark.Base;
 using Aardvark.Data;
@@ -24,6 +25,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+
 
 namespace Aardvark.Geometry.Points
 {
@@ -96,8 +98,9 @@ namespace Aardvark.Geometry.Points
             Storage = storage;
             Data = data;
 
+            //Report.Line($"{this.Id} {this.Cell}");
+            //if (Id == Guid.Empty) Debugger.Break();
             //if (IsLeaf && !HasClassifications) Debugger.Break();
-
             //if (!IsTemporaryImportNode) Debugger.Break();
 
             var bboxCell = Cell.BoundingBox;
@@ -127,6 +130,10 @@ namespace Aardvark.Geometry.Points
                     if (pRef.Value.Cell.Exponent + 1 != Cell.Exponent) throw new InvalidOperationException("Invariant a5308834-2509-4af5-8986-c717da792611.");
 #endif
                 }
+            }
+            else
+            {
+                //Debugger.Break();
             }
 
 #endregion
@@ -299,16 +306,20 @@ namespace Aardvark.Geometry.Points
 
             if (HasPositions && !HasKdTree && !IsTemporaryImportNode)
             {
+#if !READONLY
                 kdId = ComputeAndStoreKdTree(Storage, Positions.Value);
                 Data = Data.Add(Durable.Octree.PointRkdTreeFDataReference, kdId);
                 PersistentRefs[Durable.Octree.PointRkdTreeFDataReference] =
                     new PersistentRef<PointRkdTreeF<V3f[], V3f>>(kdId.Value, LoadKdTree, TryLoadKdTree)
                     ;
+#else
+                //Debugger.Break();
+#endif
             }
 
 #endregion
 
-            //#region PointDistance*
+#region PointDistance*
 
             //if (HasPositions && HasKdTree && (!HasPointDistanceAverage || !HasPointDistanceStandardDeviation))
             //{
@@ -361,7 +372,7 @@ namespace Aardvark.Geometry.Points
             //    }
             //}
 
-            //#endregion
+#endregion
 
             if (writeToStore)
             {
@@ -375,14 +386,23 @@ namespace Aardvark.Geometry.Points
                 if (PointCountCell != PointCountTree)
                     throw new InvalidOperationException("Invariant 9464f38c-dc98-4d68-a8ac-0baed9f182b4.");
 
-                if (!Has(Durable.Octree.PositionsLocal3fReference))
+                if (!(
+                    Has(Durable.Octree.PositionsLocal3fReference) ||
+                    Has(Durable.Octree.PositionsLocal3f) ||
+                    Has(Durable.Octree.PositionsLocal3b) ||
+                    Has(Durable.Octree.PositionsLocal3us) ||
+                    Has(Durable.Octree.PositionsLocal3ui) ||
+                    Has(Durable.Octree.PositionsLocal3ul)
+                    ))
                     throw new ArgumentException("Invariant 663c45a4-1286-45ba-870c-fb4ceebdf318.");
 
-                if (PositionsId == null)
+                if (Has(Durable.Octree.PositionsLocal3fReference) && PositionsId == null)
                     throw new InvalidOperationException("Invariant ba64ffe9-ada4-4fff-a4e9-0916c1cc9992.");
 
+#if !READONLY
                 if (KdTreeId == null && !Has(TemporaryImportNode))
                     throw new InvalidOperationException("Invariant 606e8a7b-6e75-496a-bc2a-dfbe6e2c9b10.");
+#endif
             }
 #if PEDANTIC
             if (PositionsId != null && Positions.Value.Length != PointCount) throw new InvalidOperationException("Invariant 926ca077-845d-44ba-a1db-07dfe06e7cc3.");
@@ -540,17 +560,87 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public bool HasPositions => Data.ContainsKey(Durable.Octree.PositionsLocal3fReference);
+        public bool HasPositions => 
+            Data.ContainsKey(Durable.Octree.PositionsLocal3fReference) ||
+            Data.ContainsKey(Durable.Octree.PositionsLocal3f) ||
+            Data.ContainsKey(Durable.Octree.PositionsLocal3b) ||
+            Data.ContainsKey(Durable.Octree.PositionsLocal3us) ||
+            Data.ContainsKey(Durable.Octree.PositionsLocal3ui) ||
+            Data.ContainsKey(Durable.Octree.PositionsLocal3ul)
+            ;
 
         /// <summary></summary>
         [JsonIgnore]
         public Guid? PositionsId => Data.TryGetValue(Durable.Octree.PositionsLocal3fReference, out var id) ? (Guid?)id : null;
 
+        private static readonly string GuidEmptyString = Guid.Empty.ToString();
+
         /// <summary>
         /// Point positions relative to cell's center, or null if no positions.
         /// </summary>
         [JsonIgnore]
-        public PersistentRef<V3f[]> Positions => PersistentRefs.TryGetValue(Durable.Octree.PositionsLocal3fReference, out object x) ? (PersistentRef<V3f[]>)x : null;
+        public PersistentRef<V3f[]> Positions
+        {
+            get
+            {
+                object o;
+                if (PersistentRefs.TryGetValue(Durable.Octree.PositionsLocal3fReference, out o) && ((PersistentRef<V3f[]>)o).Id != GuidEmptyString)
+                {
+                    return (PersistentRef<V3f[]>)o;
+                }
+                else if (Data.TryGetValue(Durable.Octree.PositionsLocal3f, out o))
+                {
+                    var ps = (V3f[])o;
+                    return new PersistentRef<V3f[]>(Guid.Empty, _ => ps, _ => (true, ps));
+                }
+                else if (Data.TryGetValue(Durable.Octree.PositionsLocal3b, out o))
+                {
+                    var qs = (byte[])o;
+                    var hsize = Math.Pow(2.0, Cell.Exponent - 1);
+                    var step = (2.0 * hsize) / (byte.MaxValue + 1);
+                    var pCount = PointCountCell;
+                    var ps = new V3f[pCount];
+                    for (int i = 0, j = 0; i < pCount; i++)
+                        ps[i] = new V3f(qs[j++] * step - hsize, qs[j++] * step - hsize, qs[j++] * step - hsize);
+                    return new PersistentRef<V3f[]>(Guid.Empty, _ => ps, _ => (true, ps));
+                }
+                else if (Data.TryGetValue(Durable.Octree.PositionsLocal3us, out o))
+                {
+                    var qs = (ushort[])o;
+                    var hsize = Math.Pow(2.0, Cell.Exponent - 1);
+                    var step = (2.0 * hsize) / (ushort.MaxValue + 1);
+                    var pCount = PointCountCell;
+                    var ps = new V3f[pCount];
+                    for (int i = 0, j = 0; i < pCount; i++)
+                        ps[i] = new V3f(qs[j++] * step - hsize, qs[j++] * step - hsize, qs[j++] * step - hsize);
+                    return new PersistentRef<V3f[]>(Guid.Empty, _ => ps, _ => (true, ps));
+                }
+                else if (Data.TryGetValue(Durable.Octree.PositionsLocal3ui, out o))
+                {
+                    var qs = (uint[])o;
+                    var hsize = Math.Pow(2.0, Cell.Exponent - 1);
+                    var step = (2.0 * hsize) / ((ulong)uint.MaxValue + 1);
+                    var pCount = PointCountCell;
+                    var ps = new V3f[pCount];
+                    for (int i = 0, j = 0; i < pCount; i++)
+                        ps[i] = new V3f(qs[j++] * step - hsize, qs[j++] * step - hsize, qs[j++] * step - hsize);
+                    return new PersistentRef<V3f[]>(Guid.Empty, _ => ps, _ => (true, ps));
+                }
+                else if (Data.TryGetValue(Durable.Octree.PositionsLocal3ul, out o))
+                {
+                    var qs = (ulong[])o;
+                    var hsize = Math.Pow(2.0, Cell.Exponent - 1);
+                    var step = (2.0 * hsize) / ((double)ulong.MaxValue + 1);
+                    var pCount = PointCountCell;
+                    var ps = new V3f[pCount];
+                    for (int i = 0, j = 0; i < pCount; i++)
+                        ps[i] = new V3f(qs[j++] * step - hsize, qs[j++] * step - hsize, qs[j++] * step - hsize);
+                    return new PersistentRef<V3f[]>(Guid.Empty, _ => ps, _ => (true, ps));
+                }
+                else
+                    return null;
+            }
+        }
 
         /// <summary>
         /// Point positions (absolute), or null if no positions.

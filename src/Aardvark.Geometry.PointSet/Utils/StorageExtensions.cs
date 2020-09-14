@@ -613,6 +613,24 @@ namespace Aardvark.Geometry.Points
 
             try
             {
+                return TryDecodeBuffer(buffer);
+            }
+            catch 
+            {
+                try
+                {
+                    return TryDecodeBuffer(UnGzipBuffer(buffer));
+                }
+                catch //(Exception e)
+                {
+                    //Report.Warn("Failed to decode PointSetNode. Unknown format.");
+                    //Report.Warn($"{e}");
+                    return ObsoleteNodeParser.Parse(storage, buffer);
+                }
+            }
+
+            IPointCloudNode TryDecodeBuffer(byte[] buffer)
+            {
                 var guid = new Guid(buffer.TakeToArray(16));
                 if (guid == Durable.Octree.Node.Id)
                 {
@@ -624,7 +642,7 @@ namespace Aardvark.Geometry.Points
                         );
                     return data;
                 }
-                else if(guid == FilteredNode.Defs.FilteredNode.Id)
+                else if (guid == FilteredNode.Defs.FilteredNode.Id)
                 {
                     var fn = FilteredNode.Decode(storage, buffer);
                     if (key != fn.Id.ToString()) throw new InvalidOperationException("Invariant 14511080-b605-4f6b-ac49-2495899ccdec.");
@@ -638,14 +656,26 @@ namespace Aardvark.Geometry.Points
                 }
                 else
                 {
+                    // if all fails, may be obsolete node format ...
                     return ObsoleteNodeParser.Parse(storage, buffer);
                 }
             }
-            catch //(Exception e)
+
+            byte[] UnGzipBuffer(byte[] buffer)
             {
-                //Report.Warn("Failed to decode PointSetNode. Maybe obsolete format?");
-                //Report.Warn($"{e}");
-                return ObsoleteNodeParser.Parse(storage, buffer);
+                using var stream = new GZipStream(new MemoryStream(buffer), CompressionMode.Decompress);
+                var size = 4096 * 4;
+                var tmp = new byte[size];
+                using var memory = new MemoryStream();
+                var count = -1;
+                while (count != 0)
+                {
+                    count = stream.Read(tmp, 0, size);
+                    if (count > 0) memory.Write(tmp, 0, count);
+                }
+
+                var result = memory.ToArray();
+                return result;
             }
         }
 
