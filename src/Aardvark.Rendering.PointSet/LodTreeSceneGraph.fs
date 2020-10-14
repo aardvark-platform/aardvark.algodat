@@ -2,7 +2,7 @@
 
 open FSharp.Data.Adaptive
 open Aardvark.Base
-open Aardvark.Base.Rendering
+open Aardvark.Rendering
 open Aardvark.SceneGraph
 
 #nowarn "9"
@@ -905,7 +905,7 @@ module Sg =
 
         let mutable lastDepth = None
         let depth =
-            { new AbstractOutputMod<ITexture>() with
+            { new AdaptiveResource<IBackendTexture>() with
                 override x.Compute(t, rt) = 
                     let d = depth.GetValue(t, rt)
                     lastDepth <- Some d

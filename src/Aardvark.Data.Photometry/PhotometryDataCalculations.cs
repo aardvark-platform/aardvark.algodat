@@ -376,6 +376,7 @@ namespace Aardvark.Data.Photometry
                 cubeRes = Fun.Min(2048, 4 * hres); // x2 sampling rate
             }
 
+            new V3f(0.0);
             // TODO: use monochrome CreateCubeMapSide function of next Aardvark.Base version
             var cubeFaces = new PixImage[6].SetByIndex(i => (PixImage)PixImage.CreateCubeMapSide<float, C4f>(i, cubeRes, 4, v => new C4f(sampler.GetIntensity(v))));
             var cubeFaces1Ch = cubeFaces.Map(p => (PixImage)new PixImage<float>(p.ToPixImage<float>().GetChannel(0L).AsVolume()));

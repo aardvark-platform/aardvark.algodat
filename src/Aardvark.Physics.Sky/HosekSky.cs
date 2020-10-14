@@ -56,7 +56,7 @@ namespace Aardvark.Physics.Sky
                            cieYVec.DotProduct(specVec),
                            cieZVec.DotProduct(specVec));
 
-            return color * 0.01;
+            return color * 0.01f;
         }
     }
 
@@ -84,7 +84,7 @@ namespace Aardvark.Physics.Sky
 
         public C3f GetColor(V3d viewVec)
         {
-            return XYZTosRGBScaledToFit(GetRadiance(viewVec) / 1000 * 0.01);
+            return XYZTosRGBScaledToFit(GetRadiance(viewVec) / 1000 * 0.01f);
         }
 
         /// <summary>

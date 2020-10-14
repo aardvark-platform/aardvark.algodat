@@ -13,6 +13,7 @@
 */
 using Aardvark.Base;
 using Aardvark.Base.Coder;
+using Aardvark.Rendering;
 using System;
 using System.Collections.Generic;
 using System.Linq;

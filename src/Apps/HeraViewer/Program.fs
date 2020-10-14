@@ -4,7 +4,7 @@ open System
 
 open Aardvark.Base
 open Aardvark.Application.Slim
-open Aardvark.Base.Rendering
+open Aardvark.Rendering
 open Aardvark.SceneGraph
 open Aardvark.Application
 open FSharp.Data.Adaptive
@@ -199,16 +199,6 @@ let main argv =
                 //Frustum.projTrafo rightEye
             |]
         )
-
-    let mutable blend = 
-        BlendMode(true)
-
-    blend.AlphaOperation <- BlendOperation.Add
-    blend.Operation <- BlendOperation.Add
-    blend.SourceAlphaFactor <- BlendFactor.One
-    blend.DestinationAlphaFactor <- BlendFactor.One
-    blend.SourceFactor <- BlendFactor.One
-    blend.DestinationFactor <- BlendFactor.One
 
     win.RenderTask <-
         Sg.draw IndexedGeometryMode.PointList

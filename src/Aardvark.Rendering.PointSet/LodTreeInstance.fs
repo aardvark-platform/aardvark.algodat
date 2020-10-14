@@ -9,6 +9,7 @@ open Aardvark.Geometry.Points
 open Aardvark.Data.Points
 open Aardvark.Data.Points.Import
 open Aardvark.Base
+open Aardvark.Rendering
 open FSharp.Data.Adaptive
 
 module LodTreeInstance =
@@ -928,7 +929,7 @@ type PointVisualization =
 [<ReflectedDefinition>]
 module PointSetShaders =
     open FShade
-    open Aardvark.Base.Rendering
+    open Aardvark.Rendering
 
 
     let constantColor (c : C4f) (v : Effects.Vertex) =

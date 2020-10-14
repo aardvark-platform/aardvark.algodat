@@ -3,7 +3,7 @@ namespace Aardvark.Algodat.App.Viewer
 open FSharp.Data.Adaptive
 open Aardvark.Base
 open Aardvark.SceneGraph
-open Aardvark.Base.Rendering
+open Aardvark.Rendering
 open Aardvark.Rendering.PointSet
 open Aardvark.Application
 open Aardvark.Application.Slim

@@ -11,7 +11,7 @@ open Aardvark.Application
 open Aardvark.Application.Slim
 open Aardvark.Rendering.Text
 open Aardvark.Rendering.PointSet
-open Aardvark.Base.Rendering
+open Aardvark.Rendering
 open Aardvark.Base.Geometry
 open Aardvark.Geometry.Points
 open FShade

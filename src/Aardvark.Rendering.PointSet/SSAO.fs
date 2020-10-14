@@ -2,7 +2,7 @@
 
 open System
 open Aardvark.Base
-open Aardvark.Base.Rendering
+open Aardvark.Rendering
 open FSharp.Data.Adaptive
 open Aardvark.SceneGraph
 
@@ -504,7 +504,7 @@ module internal SSAO =
                 return { color = V4d(a * c.XYZ, c.W); depth = d }
             }
 
-    let getAmbient (texCoords : aval<Trafo2d>) (enabled : aval<bool>) (config : SSAOConfig) (runtime : IRuntime) (proj : aval<Trafo3d>) (depth : IOutputMod<ITexture>) (normals : IOutputMod<ITexture>) (colors : IOutputMod<ITexture>) (size : aval<V2i>)  =
+    let inline getAmbient (texCoords : aval<Trafo2d>) (enabled : aval<bool>) (config : SSAOConfig) (runtime : IRuntime) (proj : aval<Trafo3d>) (depth : aval<#ITexture>) (normals : aval<#ITexture>) (colors : aval<#ITexture>) (size : aval<V2i>)  =
         
         
         let fullSize = depth |> AVal.map (fun d -> (unbox<IBackendTexture> d).Size.XY)
@@ -659,12 +659,12 @@ module internal SSAO =
           
         let result =
             { 
-                new AbstractOutputMod<ITexture>() with
+                new AdaptiveResource<ITexture>() with
                     member x.Create() = blurredY.Acquire()
                     member x.Destroy() = blurredY.Release()
                     member x.Compute(t, rt) =
                         if enabled.GetValue t then
-                            blurredY.GetValue(t, rt)
+                            blurredY.GetValue(t, rt) :> ITexture
                         else
                             NullTexture() :> ITexture
                     

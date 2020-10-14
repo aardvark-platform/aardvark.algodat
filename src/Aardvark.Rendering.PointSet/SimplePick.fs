@@ -4,7 +4,7 @@ namespace Aardvark.Rendering.PointSet
 open Aardvark.Base.Geometry
 open Aardvark.Base
 open FSharp.Data.Adaptive
-open Aardvark.Base.Rendering
+open Aardvark.Rendering
 open Aardvark.Geometry
 open System
 open System.Runtime.InteropServices

@@ -225,7 +225,7 @@ namespace Aardvark.Physics.Sky
         /// </summary>
         public C3f GetColor(V3d viewVec)
         {
-            return XYZTosRGBScaledToFit(GetRadiance(viewVec) * 0.0006 / 318.0);
+            return XYZTosRGBScaledToFit(GetRadiance(viewVec) * 0.0006f / 318.0f);
         }
 
         /// <summary>
@@ -268,13 +268,13 @@ namespace Aardvark.Physics.Sky
             //Yxy = value.ColTemperatureToYxyInC3f();
             var XYZ = Yxy.FromYxyToXYZ();
             //var temp = XYZ.XYZinC3fToCIERGB(); // http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
-            var blue = XYZ * 0.01;//
+            var blue = XYZ * 0.01f;//
             //var testvalue = blue.XYZinC3fToSRGB() * 180;
             
             // add color (random blue)
             //var blue = new C3f(160/255.0, 200/255.0, 250/255.0).SRGBToXYZinC3f();
 
-            return (luminance * blue * (1.0 / blue.G));
+            return ((float) luminance * blue * (1.0f / blue.G));
         }
 
         #endregion

@@ -190,7 +190,7 @@ namespace Aardvark.Geometry.Clustering
                 int[] clusterIndexArray)
         {
             return array.ClusterCentroidArray(clusterCountArray, clusterIndexArray,
-                                              C4f.Black, (v0, v1) => v0 + v1, (v, s) => v * s);
+                                              C4f.Black, (v0, v1) => v0 + v1, (v, s) => v * (float) s);
         }
 
         public static T[] ClusterCentroidArray<T>(
@@ -393,7 +393,7 @@ namespace Aardvark.Geometry.Clustering
         public C4f[] CentroidArray(C4f[] array)
         {
             return array.ClusterCentroidArray(m_countArray, m_indexArray,
-                                              C4f.Black, (v0, v1) => v0 + v1, (v, s) => v * s);
+                                              C4f.Black, (v0, v1) => v0 + v1, (v, s) => v * (float) s);
         }
 
         public T[] ClusteredArray<T>(
