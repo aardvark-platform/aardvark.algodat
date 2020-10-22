@@ -446,7 +446,7 @@ namespace Aardvark.Data.Photometry
         public static LightMeasurementData FromFile(string fileName)
         {
             if (!File.Exists(fileName))
-                throw new Exception(String.Format("could not find light intensity profile: \"{0}\"", Path.GetFileName(fileName)));
+                throw new Exception(String.Format("Photometry file does not exist: \"{0}\"", fileName));
 
             if (fileName.ToLowerInvariant().EndsWith("ldt")) 
             {
@@ -458,7 +458,7 @@ namespace Aardvark.Data.Photometry
             }
             else
             {
-                throw new Exception(String.Format("light intensity profile: \"{0}\" has invalid format", Path.GetFileName(fileName)));
+                throw new Exception(String.Format("Photometry format of \"{0}\" is not supported.", Path.GetFileName(fileName)));
             }
         }
 
