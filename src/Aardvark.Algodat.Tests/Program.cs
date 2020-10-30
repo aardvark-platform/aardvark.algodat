@@ -1,4 +1,5 @@
 ﻿using Aardvark.Base;
+using Aardvark.Base.Coder;
 using Aardvark.Data;
 using Aardvark.Data.Points;
 using Aardvark.Data.Points.Import;
@@ -11,6 +12,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -1257,10 +1259,10 @@ namespace Aardvark.Geometry.Tests
 
             //EnumerateCells2dTestNew();
 
-            var inputFile = @"C:\Users\sm\Downloads\C_30DN2.LAZ";
-            var storeName = Path.Combine(@"T:\Vgm\Stores", Path.GetFileName(inputFile));
-            var key = Path.GetFileName(storeName);
-            CreateStore(inputFile, storeName, key, 0.0);
+            //var inputFile = @"C:\Users\sm\Downloads\C_25GN1.LAZ";
+            //var storeName = Path.Combine(@"T:\Vgm\Stores", Path.GetFileName(inputFile));
+            //var key = Path.GetFileName(storeName);
+            //CreateStore(inputFile, storeName, key, 0.0);
 
             //PointCloudImportCleanup();
 

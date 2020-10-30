@@ -30,6 +30,9 @@ namespace Aardvark.Data.Points
         public readonly Func<string, byte[]> f_get;
 
         /// <summary></summary>
+        public readonly Func<string, long, int, byte[]> f_getSlice;
+
+        /// <summary></summary>
         public readonly Action<string> f_remove;
         
         /// <summary></summary>
@@ -45,6 +48,7 @@ namespace Aardvark.Data.Points
         public Storage(
             Action<string, object, Func<byte[]>> add,
             Func<string, byte[]> get,
+            Func<string, long, int, byte[]> getSlice,
             Action<string> remove,
             Action dispose,
             Action flush,
@@ -53,6 +57,7 @@ namespace Aardvark.Data.Points
         {
             f_add = add;
             f_get = get;
+            f_getSlice = getSlice;
             f_remove = remove;
             f_dispose = dispose;
             f_flush = flush;
