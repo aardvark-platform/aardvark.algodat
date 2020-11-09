@@ -8,6 +8,7 @@ open Aardvark.Base.Rendering
 open Aardvark.SceneGraph
 open Aardvark.Application
 open FSharp.Data.Adaptive
+open Aardvark.Geometry.Points
 
 open Hera
 
@@ -100,7 +101,7 @@ module Shaders =
             let f = Vec.dot c c - 1.0
             if f > 0.0 then discard ()// || v.density > 0.11 then discard()
             let dHeat = heat (v.density * 10.0)
-            return V4d(dHeat.XYZ * v.color.XYZ,1.0)
+            return V4d(dHeat.XYZ * v.color.XYZ,0.01)
         }
 
     let fs2 (v : Vertex) = 
@@ -115,10 +116,10 @@ module Shaders =
 [<EntryPoint>]
 let main argv =
     Aardvark.Init()
-    //let inputfile   = @"D:\volumes\univie\r80_p0_m500_v6000_mbasalt_a1.0_1M\impact.0400"
+    let inputfile   = @"\\heap\steinlechner\hera\r80_p0_m500_v6000_mbasalt_a1.0_1M.tar\r80_p0_m500_v6000_mbasalt_a1.0_1M\impact.0400"
     //let outputfile  = @"D:\volumes\univie\r80_p0_m500_v6000_mbasalt_a1.0_1M\impact.0400.durable"
     //let outputfile  = @"D:\Hera\Impact_Simulation\r80_p0_m500_v6000_mbasalt_a1.0_1M.tar.gz.betternormals.durable\impact.0039.durable"
-    let outputfile = @"\\ripperl\T$\Hera\Impact_Simulation\r80_p0_m500_v6000_mbasalt_a1.0_1M.tar.gz.betternormals.densities.durable\impact.0400.durable"
+    let outputfile = @"\\heap\steinlechner\hera\converted\impact.0400.durable"
 
     //Report.BeginTimed("convert")
     //Hera.convertFile inputfile outputfile 
@@ -133,6 +134,12 @@ let main argv =
     let velocities = data.Velocities
     let normals = data.Normals
     let densities = data.Densities
+
+    let storage = Aardvark.Geometry.Points.PointCloud.CreateInMemoryStore(Unchecked.defaultof<_>)
+    // easier way to construct.
+    // why? want to do queries on data.
+    let p = Aardvark.Geometry.Points.PointSet.Create(storage, "p", data.Positions |> Array.map V3d, null, data.Normals, null, null, data.Velocities, 32768, false, false, (new System.Threading.CancellationTokenSource()).Token)
+    
 
     let min = Array.min densities
     let max = Array.max densities
@@ -210,7 +217,35 @@ let main argv =
     blend.SourceFactor <- BlendFactor.One
     blend.DestinationFactor <- BlendFactor.One
 
-    win.RenderTask <-
+    let selected = cval [||]
+
+    win.Mouse.Down.Values.Add(fun e -> 
+        let view = c |> AVal.force
+        let f = f |> AVal.force
+        let camera = Camera.create view f
+        let pixelPos = PixelPosition(V2i win.MousePosition, Box2i.FromMinAndSize(V2i.Zero, win.Sizes |> AVal.force))
+        let ray = Camera.pickRay camera pixelPos
+        let result = p.QueryPointsNearRay(ray,5.0)
+        let n = 
+            result |> Seq.toArray |> Array.collect (fun c -> 
+                if c.HasPositions && c.Positions.Count > 0 then c.Positions |> Seq.map V3f |> Seq.toArray
+                else [||]
+            ) |> Seq.toArray
+        transact (fun _ -> selected.Value <- n)
+    )
+
+    let selectedSg = 
+        Sg.draw IndexedGeometryMode.PointList
+        |> Sg.vertexAttribute DefaultSemantic.Positions selected    
+        |> Sg.shader {  
+             do! DefaultSurfaces.trafo
+             do! DefaultSurfaces.constantColor C4f.White
+             do! DefaultSurfaces.pointSprite
+             do! DefaultSurfaces.pointSpriteFragment
+           }
+        |> Sg.uniform "PointSize" (AVal.constant 8.0)
+
+    let scene = 
         Sg.draw IndexedGeometryMode.PointList
         |> Sg.vertexAttribute DefaultSemantic.Positions vertices
         |> Sg.vertexAttribute DefaultSemantic.Normals (AVal.constant normals)
@@ -226,12 +261,16 @@ let main argv =
              //do! DefaultSurfaces.pointSpriteFragment
            }
         |> Sg.uniform "PointSize" (AVal.constant 8.0)
+        |> Sg.blendMode (AVal.constant blend)
 
-        |> Sg.transform t
+
+    win.RenderTask <-
+        Sg.ofSeq [ scene; selectedSg ]
+        //|> Sg.transform t
         |> Sg.viewTrafo (c |> AVal.map CameraView.viewTrafo)
         |> Sg.projTrafo (f |> AVal.map Frustum.projTrafo)
-        |> Sg.uniform "ViewTrafo" stereoViews
-        |> Sg.uniform "ProjTrafo" stereoProjs
+        //|> Sg.uniform "ViewTrafo" stereoViews
+        //|> Sg.uniform "ProjTrafo" stereoProjs
         //|> Sg.blendMode (Mod.constant blend)
         //|> Sg.depthTest (Mod.constant DepthTestMode.None)
         |> Sg.compile app.Runtime win.FramebufferSignature
