@@ -85,7 +85,17 @@ module LodTreeInstance =
 
     let isOrtho (proj : Trafo3d) = proj.Forward.R3.ApproximateEquals(V4d.OOOI,1E-8)
 
-    type PointTreeNode private(pointCloudId : System.Guid, world : obj, cache : LruDictionary<string, obj>, source : Symbol, globalTrafo : Similarity3d, root : Option<PointTreeNode>, parent : Option<PointTreeNode>, level : int, self : IPointCloudNode) as this =
+    type PointTreeNode private(
+                                pointCloudId : System.Guid, 
+                                world : obj, 
+                                cache : LruDictionary<string, obj>, 
+                                source : Symbol, 
+                                getCustomIndexedAttributes :  IPointCloudNode -> MapExt<Symbol,int64 * System.Array>, 
+                                globalTrafo : Similarity3d, 
+                                root : Option<PointTreeNode>, 
+                                parent : Option<PointTreeNode>, 
+                                level : int, 
+                                self : IPointCloudNode) as this =
     
         static let cmp = Func<float,float,int>(compare)
 
@@ -106,6 +116,7 @@ module LodTreeInstance =
         static let load (ct : CancellationToken) 
                         (ips : MapExt<string, Type>) 
                         (cache : LruDictionary<string, obj>) 
+                        (customIndexedAttributes : MapExt<Symbol,int64 * System.Array>)
                         (self : IPointCloudNode)
                         (globalTrafo : Similarity3d)
                         (localBounds : Box3d)
@@ -118,7 +129,7 @@ module LodTreeInstance =
                 let mutable uniforms = MapExt.empty
                 let mutable vertexSize = 0L
                 try
-
+                    
                     let original =
                         if self.HasPositions then self.Positions.Value
                         else [| V3f(System.Single.NaN, System.Single.NaN, System.Single.NaN) |]
@@ -166,6 +177,12 @@ module LodTreeInstance =
                         attributes.[Semantic.Classifications] <- arr
                         vertexSize <- vertexSize + 4L
                 
+                    customIndexedAttributes |> MapExt.iter (fun sym (size, arr) ->
+                        if MapExt.containsKey (sym.ToString()) ips then 
+                            attributes.[sym] <- arr
+                            vertexSize <- vertexSize + size
+                    )
+
                     if MapExt.containsKey "AvgPointDistance" ips then
                         let dist =
                             match self.HasPointDistanceAverage with
@@ -199,15 +216,28 @@ module LodTreeInstance =
                         uniforms <- MapExt.add "MinTreeDepth" arr uniforms
 
                     if original.Length = 0 then
+                        let someAttributes =
+                            SymDict.ofList [
+                                DefaultSemantic.Positions, [| V3f(System.Single.NaN, System.Single.NaN, System.Single.NaN) |] :> System.Array
+                                DefaultSemantic.Colors, [| C4b.White |] :> System.Array
+                                DefaultSemantic.Normals, [| V3f.OOI |] :> System.Array
+                                Semantic.Intensities, [| 0 |] :> System.Array
+                                Semantic.Classifications, [| 0 |] :> System.Array
+                            ]
+                        let remaining =
+                            Set.difference
+                                (Set.ofSeq attributes.Keys)
+                                (Set.ofSeq someAttributes.Keys)
+                        let allAttributes = 
+                            let res = 
+                                remaining 
+                                |> Set.toSeq |> Seq.map (fun name -> name, [|V4f.Zero|] :> System.Array) 
+                                |> SymDict.ofSeq
+                            SymDict.union [someAttributes; res]
                         let geometry =
                             IndexedGeometry(
                                 Mode = IndexedGeometryMode.PointList,
-                                IndexedAttributes = 
-                                    SymDict.ofList [
-                                        DefaultSemantic.Positions, [| V3f(System.Single.NaN, System.Single.NaN, System.Single.NaN) |] :> System.Array
-                                        DefaultSemantic.Colors, [| C4b.White |] :> System.Array
-                                        DefaultSemantic.Normals, [| V3f.OOI |] :> System.Array
-                                    ]
+                                IndexedAttributes = allAttributes
                             )
                         let mem = positions.LongLength * vertexSize
                         let res = geometry, uniforms
@@ -306,12 +336,14 @@ module LodTreeInstance =
         //member x.AcquireChild() =
         //    Interlocked.Increment(&livingChildren) |> ignore
     
-        static member Create(pointCloudId : System.Guid, world : obj, cache : LruDictionary<string, obj>, source : Symbol, globalTrafo : Similarity3d, root : Option<PointTreeNode>, parent : Option<PointTreeNode>, level : int, self : IPointCloudNode) =
+        static member Create(pointCloudId : System.Guid, world : obj, cache : LruDictionary<string, obj>, source : Symbol, getCustomIndexedAttributes : IPointCloudNode -> MapExt<Symbol,int64 * System.Array>, globalTrafo : Similarity3d, root : Option<PointTreeNode>, parent : Option<PointTreeNode>, level : int, self : IPointCloudNode) =
             if isNull self then
                 None
             else
-                PointTreeNode(pointCloudId, world, cache, source, globalTrafo, root, parent, level, self) |> Some
+                PointTreeNode(pointCloudId, world, cache, source, getCustomIndexedAttributes, globalTrafo, root, parent, level, self) |> Some
             
+        static member Create(pointCloudId : System.Guid, world : obj, cache : LruDictionary<string, obj>, source : Symbol, globalTrafo : Similarity3d, root : Option<PointTreeNode>, parent : Option<PointTreeNode>, level : int, self : IPointCloudNode) =
+            PointTreeNode.Create(pointCloudId, world, cache, source, (fun _ -> MapExt.empty), globalTrafo, root, parent, level, self)
 
         member x.ReleaseChildren() =
             let old = 
@@ -335,6 +367,7 @@ module LodTreeInstance =
                     world,
                     cache,
                     source,
+                    getCustomIndexedAttributes,
                     globalTrafo,
                     None,
                     None,
@@ -351,7 +384,7 @@ module LodTreeInstance =
             if isNull n then
                 None
             else
-                PointTreeNode(System.Guid.NewGuid(), world, cache, source, globalTrafo, root, parent, level, n) |> Some
+                PointTreeNode(System.Guid.NewGuid(), world, cache, source, getCustomIndexedAttributes, globalTrafo, root, parent, level, n) |> Some
 
         member x.Acquire() =
             ()
@@ -421,7 +454,7 @@ module LodTreeInstance =
                                                     unbox<ILodTreeNode> n |> Some
                                                 | _ -> 
                                                     //Log.warn "alloc %A" id
-                                                    PointTreeNode(pointCloudId, world, cache, source, globalTrafo, Some this.Root, Some this, level + 1, c) :> ILodTreeNode |> Some
+                                                    PointTreeNode(pointCloudId, world, cache, source, getCustomIndexedAttributes, globalTrafo, Some this.Root, Some this, level + 1, c) :> ILodTreeNode |> Some
                                         with
                                         | :? ObjectDisposedException -> 
                                             None
@@ -438,7 +471,7 @@ module LodTreeInstance =
         member x.Id = id
 
         member x.GetData(ct, ips) = 
-            load ct ips cache self globalTrafo localBounds level
+            load ct ips cache (getCustomIndexedAttributes self) self globalTrafo localBounds level
             
         member x.ShouldSplit (splitfactor : float, quality : float, view : Trafo3d, proj : Trafo3d) =
             not isLeaf && equivalentAngle60 view proj > splitfactor / quality
