@@ -5,12 +5,14 @@ open System
 open Aardvark.Base
 open Aardvark.Application.Slim
 open Aardvark.Base.Rendering
+open Aardvark.Data.Points
 open Aardvark.SceneGraph
 open Aardvark.Application
 open FSharp.Data.Adaptive
 open Aardvark.Geometry.Points
 
 open Hera
+open Microsoft.FSharp.Control
 
 
 module Shaders = 
@@ -116,10 +118,10 @@ module Shaders =
 [<EntryPoint>]
 let main argv =
     Aardvark.Init()
-    let inputfile   = @"\\heap\steinlechner\hera\r80_p0_m500_v6000_mbasalt_a1.0_1M.tar\r80_p0_m500_v6000_mbasalt_a1.0_1M\impact.0400"
+    let inputfile   = @"\\heap\sm\hera\r80_p0_m500_v6000_mbasalt_a1.0_1M.tar\r80_p0_m500_v6000_mbasalt_a1.0_1M\impact.0400"
     //let outputfile  = @"D:\volumes\univie\r80_p0_m500_v6000_mbasalt_a1.0_1M\impact.0400.durable"
     //let outputfile  = @"D:\Hera\Impact_Simulation\r80_p0_m500_v6000_mbasalt_a1.0_1M.tar.gz.betternormals.durable\impact.0039.durable"
-    let outputfile = @"\\heap\steinlechner\hera\converted\impact.0400.durable"
+    let outputfile = @"\\heap\sm\hera\converted\impact.0400.durable"
 
     //Report.BeginTimed("convert")
     //Hera.convertFile inputfile outputfile 
@@ -135,10 +137,26 @@ let main argv =
     let normals = data.Normals
     let densities = data.Densities
 
-    let storage = Aardvark.Geometry.Points.PointCloud.CreateInMemoryStore(Unchecked.defaultof<_>)
+    let harriChunk = Aardvark.Data.Points.Chunk(vertices |> Array.map V3d, null, normals, null, null);
+
+    let config = 
+      ImportConfig.Default
+        .WithInMemoryStore()
+        .WithRandomKey()
+        .WithVerbose(true)
+        .WithMaxDegreeOfParallelism(0)
+        .WithMinDist(0.0)
+        .WithOctreeSplitLimit(4096)
+        .WithNormalizePointDensityGlobal(false)
+             
+    let p = PointCloud.Chunks(harriChunk, config)
+    
+    printfn "raw data bounds: %A" bb
+    printfn "pointcloud bounds: %A" p.BoundingBox
+
     // easier way to construct.
     // why? want to do queries on data.
-    let p = Aardvark.Geometry.Points.PointSet.Create(storage, "p", data.Positions |> Array.map V3d, null, data.Normals, null, null, data.Velocities, 32768, false, false, (new System.Threading.CancellationTokenSource()).Token)
+    //let p = Aardvark.Geometry.Points.PointSet.Create(storage, "p", data.Positions |> Array.map V3d, null, data.Normals, null, null, data.Velocities, 32768, false, false, System.Threading.CancellationToken.None)
     
 
     let min = Array.min densities
@@ -225,12 +243,13 @@ let main argv =
         let camera = Camera.create view f
         let pixelPos = PixelPosition(V2i win.MousePosition, Box2i.FromMinAndSize(V2i.Zero, win.Sizes |> AVal.force))
         let ray = Camera.pickRay camera pixelPos
-        let result = p.QueryPointsNearRay(ray,5.0)
+        let result = p.QueryPointsNearRay(ray, 0.25)
         let n = 
-            result |> Seq.toArray |> Array.collect (fun c -> 
-                if c.HasPositions && c.Positions.Count > 0 then c.Positions |> Seq.map V3f |> Seq.toArray
+            result |> Seq.toArray |> Seq.collect (fun c -> 
+                if c.HasPositions then c.Positions |> Seq.map V3f |> Seq.toArray
                 else [||]
             ) |> Seq.toArray
+        printfn "n.Length = %d; %A" n.Length (n |> Array.tryHead)
         transact (fun _ -> selected.Value <- n)
     )
 
