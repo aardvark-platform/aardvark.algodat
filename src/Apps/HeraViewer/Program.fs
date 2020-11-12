@@ -131,13 +131,13 @@ let main argv =
 
     let vertices = data.Positions
     let velocities = data.Velocities
-    let normals = data.Normals
-    let densities = data.Densities
+    let normals = data.EstimatedNormals
+    let averageSquaredDistances = data.AverageSquaredDistances
 
-    let min = Array.min densities
-    let max = Array.max densities
+    let min = Array.min averageSquaredDistances
+    let max = Array.max averageSquaredDistances
     let histo = Histogram(float min,float max,100)
-    histo.AddRange(densities |> Seq.map float)
+    histo.AddRange(averageSquaredDistances |> Seq.map float)
     printfn "%A" histo.Slots
     printfn "deserialized file contains %d points" data.Count
 
@@ -214,7 +214,7 @@ let main argv =
         Sg.draw IndexedGeometryMode.PointList
         |> Sg.vertexAttribute DefaultSemantic.Positions vertices
         |> Sg.vertexAttribute DefaultSemantic.Normals (AVal.constant normals)
-        |> Sg.vertexAttribute (Sym.ofString "Density") (AVal.constant densities)
+        |> Sg.vertexAttribute (Sym.ofString "AverageSquaredDistance") (AVal.constant averageSquaredDistances)
         |> Sg.vertexAttribute' DefaultSemantic.Colors (velocities |> Array.map ( fun v -> ((v.Normalized + V3f.III) * 0.5f) |> V3f ))
         |> Sg.shader {  
              do! DefaultSurfaces.trafo

@@ -58,7 +58,7 @@ let exampleImportHeraDataFromFileEx () =
     let particles = Hera.importHeraDataFromFileFull "T:\Hera\impact.0400"
     sw.Stop()
     printfn "%A" sw.Elapsed
-
+    ()
 
 [<EntryPoint>]
 let main argv =
