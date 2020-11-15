@@ -52,7 +52,7 @@ let exampleCheckNormals () =
     |> Seq.map Hera.HeraData.Deserialize
     |> Seq.iter Hera.HeraData.CheckNormals
 
-let exampleImportHeraDataFromFileEx () =
+let exampleImportHeraDataFromFileFull () =
     let sw = Stopwatch()
     sw.Start()
     let particles = Hera.importHeraDataFromFileFull "T:\Hera\impact.0400"
@@ -63,7 +63,7 @@ let exampleImportHeraDataFromFileEx () =
 [<EntryPoint>]
 let main argv =
 
-    exampleImportHeraDataFromFileEx ()
+    exampleImportHeraDataFromFileFull ()
 
     // exampleSingleFileConversion ()
 

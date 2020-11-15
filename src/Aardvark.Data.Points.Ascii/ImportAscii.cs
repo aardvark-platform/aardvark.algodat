@@ -224,7 +224,9 @@ namespace Aardvark.Data.Points.Import
         /// <summary>
         /// Gets general info for custom ASCII file.
         /// </summary>
+#pragma warning disable IDE0060
         public static PointFileInfo CustomAsciiInfo(string filename, Token[] lineDefinition, ParseConfig config)
+#pragma warning restore IDE0060
         {
             var filesize = new FileInfo(filename).Length;
             var pointCount = 0L;
