@@ -203,14 +203,14 @@ namespace Aardvark.Geometry.Points
         /// Wraps Uncodium.ISimpleStore into Storage.
         /// </summary>
         public static Storage ToPointCloudStore(this ISimpleStore x, LruDictionary<string, object> cache) => new Storage(
-            x.Add, x.Get, x.Remove, x.Dispose, x.Flush, cache
+            x.Add, x.Get, x.GetSlice, x.Remove, x.Dispose, x.Flush, cache
             );
 
         /// <summary>
         /// Wraps Uncodium.ISimpleStore into Storage with default 1GB cache.
         /// </summary>
         public static Storage ToPointCloudStore(this ISimpleStore x) => new Storage(
-            x.Add, x.Get, x.Remove, x.Dispose, x.Flush, new LruDictionary<string, object>(1024 * 1024 * 1024)
+            x.Add, x.Get, x.GetSlice, x.Remove, x.Dispose, x.Flush, new LruDictionary<string, object>(1024 * 1024 * 1024)
             );
 
         #endregion
@@ -248,6 +248,24 @@ namespace Aardvark.Geometry.Points
         {
             var buffer = storage.f_get(key);
             return (buffer != null, buffer);
+        }
+
+        public static byte[] UnGZip(this byte[] gzip)
+        {
+            using var stream = new GZipStream(new MemoryStream(gzip), CompressionMode.Decompress);
+
+            const int size = 4096;
+            byte[] buffer = new byte[size];
+            using var ms = new MemoryStream();
+
+            int count = 0;
+            do
+            {
+                count = stream.Read(buffer, 0, size);
+                if (count > 0) ms.Write(buffer, 0, count);
+            }
+            while (count > 0);
+            return ms.ToArray();
         }
 
         #endregion
@@ -653,6 +671,16 @@ namespace Aardvark.Geometry.Points
                         );
 
                     return fn;
+                }
+                else if (guid == Durable.Octree.MultiNodeIndex.Id)
+                {
+                    var index = MultiNodeIndex.Decode(buffer);
+                    var (offset, size) = index.GetOffsetAndSize(index.RootNodeId);
+                    var bufferRootNode = storage.f_getSlice(index.TreeBlobId, offset, size).UnGZip();
+                    //var rootNode = DurableCodec.Deserialize(bufferRootNode);
+                    var rootNode = PointSetNode.Decode(storage, bufferRootNode);
+                    var multiNode = new MultiNode(index, rootNode);
+                    return multiNode;
                 }
                 else
                 {

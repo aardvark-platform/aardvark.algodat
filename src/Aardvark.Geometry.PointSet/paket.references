@@ -1,6 +1,7 @@
 Aardvark.Base
 Aardvark.Base.IO
 Aardvark.Data.Durable
+Aardvark.Data.Durable.Codec
 Newtonsoft.Json
 Uncodium.SimpleStore
 Uncodium.Eigensystems

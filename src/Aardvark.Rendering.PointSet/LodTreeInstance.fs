@@ -426,6 +426,7 @@ module LodTreeInstance =
                                         | :? ObjectDisposedException -> 
                                             None
                                         | e -> 
+                                            //let debug = c.Value
                                             Log.warn "[Lod] Exception during GetChildren:\n%A" e
                                             None
                                 )
