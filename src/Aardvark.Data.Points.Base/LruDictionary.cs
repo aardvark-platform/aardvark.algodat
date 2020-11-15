@@ -40,14 +40,14 @@ namespace Aardvark.Base
 
         private class Entry
         {
-            public Entry Prev;
-            public Entry Next;
+            public Entry? Prev;
+            public Entry? Next;
             public K Key;
             public V Value;
             public long Size;
-            public Action<K, V, long> OnRemove;
+            public Action<K, V, long>? OnRemove;
 
-            public Entry(K key, V value, long size, Action<K, V, long> onRemove)
+            public Entry(K key, V value, long size, Action<K, V, long>? onRemove)
             {
                 Key = key;
                 Value = value;
@@ -55,9 +55,9 @@ namespace Aardvark.Base
                 OnRemove = onRemove;
             }
         }
-        private Entry m_first = null;
-        private Entry m_last = null;
-        private readonly Dictionary<K, Entry> m_k2e = new Dictionary<K, Entry>();
+        private Entry? m_first = null;
+        private Entry? m_last = null;
+        private readonly Dictionary<K, Entry> m_k2e = new();
 
         private void Unlink(Entry e)
         {
@@ -81,7 +81,7 @@ namespace Aardvark.Base
         }
         private void RemoveLast()
         {
-            Entry removed = null;
+            Entry? removed = null;
             lock (m_k2e)
             {
                 if (CurrentSize <= MaxSize) return;
@@ -90,6 +90,7 @@ namespace Aardvark.Base
                 m_k2e.Remove(removed.Key);
                 CurrentSize -= m_last.Size;
                 m_last = m_last.Prev;
+                if (m_last == null) throw new InvalidOperationException();
                 m_last.Next = null;
             }
 
@@ -120,11 +121,11 @@ namespace Aardvark.Base
         /// Adds or refreshes key/value pair.
         /// Returns true if key did not exist.
         /// </summary>
-        public bool Add(K key, V value, long size, Action<K, V, long> onRemove = null)
+        public bool Add(K key, V value, long size, Action<K, V, long>? onRemove = null)
         {
             if (size > MaxSize || size < 0) throw new ArgumentOutOfRangeException(nameof(size));
 
-            Entry e = null;
+            Entry? e = null;
             lock (m_k2e)
             {
                 if (m_k2e.TryGetValue(key, out e))
@@ -156,7 +157,7 @@ namespace Aardvark.Base
         /// </summary>
         public bool Remove(K key, bool callOnRemove)
         {
-            Entry e = null;
+            Entry? e = null;
 
             lock (m_k2e)
             {
@@ -203,7 +204,9 @@ namespace Aardvark.Base
                 }
                 else
                 {
+#pragma warning disable CS8601
                     value = default;
+#pragma warning restore CS8601
                     return false;
                 }
             }
@@ -211,7 +214,7 @@ namespace Aardvark.Base
 
         /// <summary>
         /// </summary>
-        public V GetOrCreate(K key, Func<(V, long)> create, Action<K, V, long> onRemove = null)
+        public V GetOrCreate(K key, Func<(V, long)> create, Action<K, V, long>? onRemove = null)
         {
             if (TryGetValue(key, out V value)) return value;
 
@@ -276,7 +279,8 @@ namespace Aardvark.Base
         {
             if (TryGetValue(item.Key, out V value))
             {
-                return item.Value.Equals(value);
+                if (item.Value != null) return item.Value.Equals(value);
+                else return value == null;
             }
             return false;
         }

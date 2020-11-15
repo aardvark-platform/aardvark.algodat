@@ -50,6 +50,11 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "HeraViewer", "Apps\HeraView
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Scratch", "Apps\Scratch\Scratch.csproj", "{5CA8E4F4-E30B-4FC8-A510-A0FFD8A9880B}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{94A7BC5F-B1F0-4A95-A3C7-F0EE5395CED4}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -162,7 +167,7 @@ Global
 		{5CA8E4F4-E30B-4FC8-A510-A0FFD8A9880B} = {6CA9BC7A-0123-43E9-A26B-5FF0B9E01B08}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		EnterpriseLibraryConfigurationToolBinariesPathV6 = packages\EnterpriseLibrary.TransientFaultHandling.6.0.1304.0\lib\portable-net45+win+wp8;packages\EnterpriseLibrary.TransientFaultHandling.Data.6.0.1304.1\lib\NET45
 		SolutionGuid = {E996B5E6-49B2-4479-9DDE-455A40509F43}
+		EnterpriseLibraryConfigurationToolBinariesPathV6 = packages\EnterpriseLibrary.TransientFaultHandling.6.0.1304.0\lib\portable-net45+win+wp8;packages\EnterpriseLibrary.TransientFaultHandling.Data.6.0.1304.1\lib\NET45
 	EndGlobalSection
 EndGlobal

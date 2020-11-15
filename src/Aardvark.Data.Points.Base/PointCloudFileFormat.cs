@@ -70,39 +70,41 @@ namespace Aardvark.Data.Points
         public string[] FileExtensions { get; }
 
         /// <summary></summary>
-        public PointFileInfo ParseFileInfo(string filename, ParseConfig config) => f_parseFileInfo(filename, config);
+        public PointFileInfo ParseFileInfo(string filename, ParseConfig config)
+            => f_parseFileInfo != null ? f_parseFileInfo(filename, config) : throw new Exception("No info parser defined.");
 
         /// <summary></summary>
-        public IEnumerable<Chunk> ParseFile(string filename, ParseConfig config) => f_parseFile(filename, config);
+        public IEnumerable<Chunk> ParseFile(string filename, ParseConfig config)
+            => f_parseFile != null ? f_parseFile(filename, config) : throw new Exception("No parser defined.");
 
         /// <summary></summary>
         public PointCloudFileFormat(
             string description,
             string[] fileExtensions,
-            Func<string, ParseConfig, PointFileInfo> parseFileInfo,
-            Func<string, ParseConfig, IEnumerable<Chunk>> parseFile
+            Func<string, ParseConfig, PointFileInfo>? parseFileInfo,
+            Func<string, ParseConfig, IEnumerable<Chunk>>? parseFile
             )
         { 
             Description = description ?? throw new ArgumentNullException(nameof(description));
-            FileExtensions = fileExtensions?.Map(x => x.ToLowerInvariant()) ?? throw new ArgumentNullException(nameof(fileExtensions));
+            FileExtensions = fileExtensions?.MapToArray(x => x.ToLowerInvariant()) ?? throw new ArgumentNullException(nameof(fileExtensions));
             f_parseFileInfo = parseFileInfo;
             f_parseFile = parseFile;
         }
 
-        private readonly Func<string, ParseConfig, PointFileInfo> f_parseFileInfo;
-        private readonly Func<string, ParseConfig, IEnumerable<Chunk>> f_parseFile;
+        private readonly Func<string, ParseConfig, PointFileInfo>? f_parseFileInfo;
+        private readonly Func<string, ParseConfig, IEnumerable<Chunk>>? f_parseFile;
 
         #region Registry
 
         /// <summary>
         /// Unknown file format.
         /// </summary>
-        public static readonly PointCloudFileFormat Unknown = new PointCloudFileFormat("unknown", new string[0], null, null);
+        public static readonly PointCloudFileFormat Unknown = new("unknown", new string[0], null, null);
 
         /// <summary>
         /// Unknown file format.
         /// </summary>
-        public static readonly PointCloudFileFormat Store = new PointCloudFileFormat("store", new string[0], null, null);
+        public static readonly PointCloudFileFormat Store = new("store", new string[0], null, null);
 
         /// <summary>
         /// </summary>
@@ -161,7 +163,7 @@ namespace Aardvark.Data.Points
         }
 
         private static string GetExt(string filename) => Path.GetExtension(filename).ToLowerInvariant();
-        private static readonly Dictionary<string, PointCloudFileFormat> s_registry = new Dictionary<string, PointCloudFileFormat>();
+        private static readonly Dictionary<string, PointCloudFileFormat> s_registry = new();
 
         #endregion
     }

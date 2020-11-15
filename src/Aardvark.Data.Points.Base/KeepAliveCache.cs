@@ -87,7 +87,7 @@ namespace Aardvark.Base
         /// </summary>
         public void Flush()
         {
-            var x = new Command(CommandType.Flush, null, 0);
+            var x = new Command(CommandType.Flush, string.Empty, 0);
             lock (m_lock) { m_clientQueue.Add(x); }
         }
         
@@ -125,10 +125,10 @@ namespace Aardvark.Base
         }
         
         private long m_nextTimestamp = 0;
-        private readonly Dictionary<object, Entry> m_entries = new Dictionary<object, Entry>();
-        private List<Command> m_clientQueue = new List<Command>();
-        private List<Command> m_internalQueue = new List<Command>();
-        private readonly object m_lock = new object();
+        private readonly Dictionary<object, Entry> m_entries = new();
+        private List<Command> m_clientQueue = new();
+        private List<Command> m_internalQueue = new();
+        private readonly object m_lock = new();
 
         private void SwapQueues()
         {
@@ -164,7 +164,7 @@ namespace Aardvark.Base
 
 
 
-        private readonly static HashSet<KeepAliveCache> s_allCaches = new HashSet<KeepAliveCache>();
+        private readonly static HashSet<KeepAliveCache> s_allCaches = new();
         private static bool s_active = false;
 
         private static void Register(KeepAliveCache cache)

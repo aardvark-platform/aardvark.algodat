@@ -28,31 +28,31 @@ namespace Aardvark.Data.Points
         /// <summary>
         /// Appends two lists. Also works for null args: a + null -> a, null + b -> b, null + null -> null.
         /// </summary>
-        private static IList<T> Append<T>(IList<T> l, IList<T> r)
+        private static IList<T>? Append<T>(IList<T>? l, IList<T>? r)
         {
             if (l == null) return r;
             if (r == null) return l;
 
             var ll = new List<T>(l);
             ll.AddRange(r);
-            return (List<T>)ll;
+            return ll;
         }
 
         /// <summary></summary>
-        public static readonly Chunk Empty = new Chunk(null, null, null, null, null, null);
+        public static readonly Chunk Empty = new(null, null, null, null, null, null);
 
         /// <summary></summary>
-        public readonly IList<V3d> Positions;
+        public readonly IList<V3d>? Positions;
         /// <summary></summary>
-        public readonly IList<C4b> Colors;
+        public readonly IList<C4b>? Colors;
         /// <summary></summary>
-        public readonly IList<V3f> Normals;
+        public readonly IList<V3f>? Normals;
         /// <summary></summary>
-        public readonly IList<int> Intensities;
+        public readonly IList<int>? Intensities;
         /// <summary></summary>
-        public readonly IList<byte> Classifications;
+        public readonly IList<byte>? Classifications;
         /// <summary></summary>
-        public readonly IList<V3f> Velocities;
+        public readonly IList<V3f>? Velocities;
 
         /// <summary></summary>
         public readonly Box3d BoundingBox;
@@ -83,7 +83,7 @@ namespace Aardvark.Data.Points
             if (a.IsEmpty) return b;
             if (b.IsEmpty) return a;
 
-            ImmutableList<V3d> ps = null;
+            ImmutableList<V3d>? ps = null;
             if (a.HasPositions)
             {
                 var ps0 = (a.Positions is ImmutableList<V3d> x0) ? x0 : ImmutableList<V3d>.Empty.AddRange(a.Positions);
@@ -91,7 +91,7 @@ namespace Aardvark.Data.Points
                 ps = ps0.AddRange(ps1);
             }
 
-            ImmutableList<C4b> cs = null;
+            ImmutableList<C4b>? cs = null;
             if (a.HasColors)
             {
                 var cs0 = (a.Colors is ImmutableList<C4b> x2) ? x2 : ImmutableList<C4b>.Empty.AddRange(a.Colors);
@@ -99,7 +99,7 @@ namespace Aardvark.Data.Points
                 cs = cs0.AddRange(cs1);
             }
 
-            ImmutableList<V3f> ns = null;
+            ImmutableList<V3f>? ns = null;
             if (a.HasNormals)
             {
                 var ns0 = (a.Normals is ImmutableList<V3f> x4) ? x4 : ImmutableList<V3f>.Empty.AddRange(a.Normals);
@@ -107,7 +107,7 @@ namespace Aardvark.Data.Points
                 ns = ns0.AddRange(ns1);
             }
 
-            ImmutableList<int> js = null;
+            ImmutableList<int>? js = null;
             if (a.HasIntensities)
             {
                 var js0 = (a.Intensities is ImmutableList<int> x6) ? x6 : ImmutableList<int>.Empty.AddRange(a.Intensities);
@@ -115,7 +115,7 @@ namespace Aardvark.Data.Points
                 js = js0.AddRange(js1);
             }
 
-            ImmutableList<byte> ks = null;
+            ImmutableList<byte>? ks = null;
             if (a.HasClassifications)
             {
                 var ks0 = (a.Classifications is ImmutableList<byte> x8) ? x8 : ImmutableList<byte>.Empty.AddRange(a.Classifications);
@@ -123,7 +123,7 @@ namespace Aardvark.Data.Points
                 ks = ks0.AddRange(ks1);
             }
 
-            ImmutableList<V3f> vs = null;
+            ImmutableList<V3f>? vs = null;
             if (a.HasVelocities)
             {
                 var vs0 = (a.Velocities is ImmutableList<V3f> x10) ? x10 : ImmutableList<V3f>.Empty.AddRange(a.Velocities);
@@ -154,12 +154,14 @@ namespace Aardvark.Data.Points
             var offset = 0;
             foreach (var chunk in chunks)
             {
+#pragma warning disable CS8602
                 if (ps != null) chunk.Positions.CopyTo(ps, offset);
                 if (cs != null) chunk.Colors.CopyTo(cs, offset);
                 if (ns != null) chunk.Normals.CopyTo(ns, offset);
                 if (js != null) chunk.Intensities.CopyTo(js, offset);
                 if (ks != null) chunk.Classifications.CopyTo(ks, offset);
                 if (vs != null) chunk.Velocities.CopyTo(vs, offset);
+#pragma warning restore CS8602
                 offset += chunk.Count;
             }
 
@@ -181,12 +183,12 @@ namespace Aardvark.Data.Points
         /// <param name="velocities">Optional. Either null or same number of elements as positions.</param>
         /// <param name="bbox">Optional. If null, then bbox will be constructed from positions.</param>
         public Chunk(
-            IList<V3d> positions,
-            IList<C4b> colors = null,
-            IList<V3f> normals = null,
-            IList<int> intensities = null,
-            IList<byte> classifications = null,
-            IList<V3f> velocities = null,
+            IList<V3d>? positions,
+            IList<C4b>? colors = null,
+            IList<V3f>? normals = null,
+            IList<int>? intensities = null,
+            IList<byte>? classifications = null,
+            IList<V3f>? velocities = null,
             Box3d? bbox = null
             )
         {
@@ -218,7 +220,7 @@ namespace Aardvark.Data.Points
         /// <param name="intensities">Optional. Either null or same number of elements as positions.</param>
         /// <param name="classifications">Optional. Either null or same number of elements as positions.</param>
         /// <param name="bbox">Optional. If null, then bbox will be constructed from positions.</param>
-        public Chunk(IList<V3d> positions, IList<C4b> colors, IList<V3f> normals, IList<int> intensities, IList<byte> classifications, Box3d? bbox) 
+        public Chunk(IList<V3d>? positions, IList<C4b>? colors, IList<V3f>? normals, IList<int>? intensities, IList<byte>? classifications, Box3d? bbox)
             : this(positions, colors, normals, intensities, classifications, velocities: null, bbox)
         { }
 
@@ -241,34 +243,34 @@ namespace Aardvark.Data.Points
         /// <summary>
         /// Immutable update of positions.
         /// </summary>
-        public Chunk WithPositions(IList<V3d> newPositions) => new Chunk(newPositions, Colors, Normals, Intensities, Classifications, Velocities);
-        
+        public Chunk WithPositions(IList<V3d> newPositions) => new(newPositions, Colors, Normals, Intensities, Classifications, Velocities);
+
         /// <summary>
         /// Immutable update of colors.
         /// </summary>
-        public Chunk WithColors(IList<C4b> newColors) => new Chunk(Positions, newColors, Normals, Intensities, Classifications, Velocities, BoundingBox);
+        public Chunk WithColors(IList<C4b> newColors) => new(Positions, newColors, Normals, Intensities, Classifications, Velocities, BoundingBox);
 
         /// <summary>
         /// Immutable update of normals.
         /// </summary>
-        public Chunk WithNormals(IList<V3f> newNormals) => new Chunk(Positions, Colors, newNormals, Intensities, Classifications, Velocities, BoundingBox);
-        
+        public Chunk WithNormals(IList<V3f> newNormals) => new(Positions, Colors, newNormals, Intensities, Classifications, Velocities, BoundingBox);
+
         /// <summary>
         /// Immutable update of normals.
         /// </summary>
-        public Chunk WithIntensities(IList<int> newIntensities) => new Chunk(Positions, Colors, Normals, newIntensities, Classifications, Velocities, BoundingBox);
-        
+        public Chunk WithIntensities(IList<int> newIntensities) => new(Positions, Colors, Normals, newIntensities, Classifications, Velocities, BoundingBox);
+
         /// <summary>
         /// Immutable update of classifications.
         /// </summary>
-        public Chunk WithClassifications(IList<byte> newClassifications) => new Chunk(Positions, Colors, Normals, Intensities, newClassifications, Velocities, BoundingBox);
-        
+        public Chunk WithClassifications(IList<byte> newClassifications) => new(Positions, Colors, Normals, Intensities, newClassifications, Velocities, BoundingBox);
+
         /// <summary>
         /// Returns chunk with duplicate point positions removed.
         /// </summary>
         public Chunk ImmutableDeduplicate(bool verbose)
         {
-            if (!HasPositions) return this;
+            if (!HasPositions || Positions == null) return this;
 
             var dedup = new HashSet<V3d>();
             var ia = new List<int>();
@@ -280,8 +282,8 @@ namespace Aardvark.Data.Points
 
             if (hasDuplicates)
             {
-                T[] f<T>(bool has, IList<T> xs) => has ? ia.Map(i => xs[i]) : null;
-                var ps = f(HasPositions, Positions);
+                T[]? f<T>(bool has, IList<T>? xs) => (has && xs != null) ? ia.MapToArray(i => xs[i]) : null;
+                var ps = f(HasPositions, Positions); if (ps == null) throw new InvalidOperationException();
                 var cs = f(HasColors, Colors);
                 var ns = f(HasNormals, Normals);
                 var js = f(HasIntensities, Intensities);
@@ -305,11 +307,11 @@ namespace Aardvark.Data.Points
                 return this;
             }
         }
-        
+
         /// <summary>
         /// </summary>
         public Chunk ImmutableMapPositions(Func<V3d, V3d> mapping)
-            => new Chunk(Positions.Map(mapping), Colors, Normals, Intensities, Classifications, Velocities);
+            => new(Positions.Map(mapping), Colors, Normals, Intensities, Classifications, Velocities);
 
         /// <summary>
         /// </summary>
@@ -339,12 +341,12 @@ namespace Aardvark.Data.Points
             {
                 var ia = kv.Value;
                 result[kv.Key] = new Chunk(
-                    HasPositions ? ia.Map(i => Positions[i]) : null,
-                    HasColors ? ia.Map(i => Colors[i]) : null,
-                    HasNormals ? ia.Map(i => Normals[i]) : null,
-                    HasIntensities ? ia.Map(i => Intensities[i]) : null,
-                    HasClassifications ? ia.Map(i => Classifications[i]) : null,
-                    HasVelocities ? ia.Map(i => Velocities[i]) : null
+                    Positions       != null ? ia.Map(i => Positions[i])       : null,
+                    Colors          != null ? ia.Map(i => Colors[i])          : null,
+                    Normals         != null ? ia.Map(i => Normals[i])         : null,
+                    Intensities     != null ? ia.Map(i => Intensities[i])     : null,
+                    Classifications != null ? ia.Map(i => Classifications[i]) : null,
+                    Velocities      != null ? ia.Map(i => Velocities[i])      : null
                     );
             }
             return result;
@@ -370,12 +372,14 @@ namespace Aardvark.Data.Points
             {
                 if (predicate(this, i))
                 {
+#pragma warning disable CS8602
                     if (ps != null) ps.Add(Positions[i]);
                     if (cs != null) cs.Add(Colors[i]);
                     if (ns != null) ns.Add(Normals[i]);
                     if (js != null) js.Add(Intensities[i]);
                     if (ks != null) ks.Add(Classifications[i]);
                     if (vs != null) vs.Add(Velocities[i]);
+#pragma warning restore CS8602
                 }
             }
             return new Chunk(ps, cs, ns, js, ks, vs);
@@ -386,7 +390,7 @@ namespace Aardvark.Data.Points
         /// </summary>
         public Chunk ImmutableFilterSequentialMinDistL2(double minDist)
         {
-            if (minDist <= 0.0 || !HasPositions || Positions.Count <= 1) return this;
+            if (minDist <= 0.0 || !HasPositions || Positions?.Count <= 1) return this;
             var minDistSquared = minDist * minDist;
 
             var ps = new List<V3d>();
@@ -397,6 +401,7 @@ namespace Aardvark.Data.Points
             var vs = Velocities != null ? new List<V3f>() : null;
 
             var last = V3d.MinValue;
+            if (Positions == null) throw new InvalidOperationException();
             for (var i = 0; i < Positions.Count; i++)
             {
                 var p = Positions[i];
@@ -405,11 +410,13 @@ namespace Aardvark.Data.Points
 
                 last = p;
                 ps.Add(p);
+#pragma warning disable CS8602
                 if (cs != null) cs.Add(Colors[i]);
                 if (ns != null) ns.Add(Normals[i]);
                 if (js != null) js.Add(Intensities[i]);
                 if (ks != null) ks.Add(Classifications[i]);
                 if (vs != null) vs.Add(Velocities[i]);
+#pragma warning restore CS8602
             }
             return new Chunk(ps, cs, ns, js, ks, vs);
         }
@@ -419,7 +426,7 @@ namespace Aardvark.Data.Points
         /// </summary>
         public Chunk ImmutableFilterSequentialMinDistL1(double minDist)
         {
-            if (minDist <= 0.0 || !HasPositions || Positions.Count <= 1) return this;
+            if (minDist <= 0.0 || !HasPositions || Positions?.Count <= 1) return this;
 
             var ps = new List<V3d>();
             var cs = Colors != null ? new List<C4b>() : null;
@@ -429,6 +436,7 @@ namespace Aardvark.Data.Points
             var vs = Velocities != null ? new List<V3f>() : null;
 
             var prev = V3d.MinValue;
+            if (Positions == null) throw new InvalidOperationException();
             for (var i = 0; i < Positions.Count; i++)
             {
                 var p = Positions[i];
@@ -437,11 +445,13 @@ namespace Aardvark.Data.Points
 
                 prev = p;
                 ps.Add(p);
+#pragma warning disable CS8602
                 if (cs != null) cs.Add(Colors[i]);
                 if (ns != null) ns.Add(Normals[i]);
                 if (js != null) js.Add(Intensities[i]);
                 if (ks != null) ks.Add(Classifications[i]);
                 if (vs != null) vs.Add(Velocities[i]);
+#pragma warning restore CS8602
             }
             return new Chunk(ps, cs, ns, js, ks, vs);
         }
@@ -451,7 +461,8 @@ namespace Aardvark.Data.Points
         /// </summary>
         public Chunk ImmutableFilterMinDistByCell(Cell bounds, ParseConfig config)
         {
-            if (config.MinDist <= 0.0 || !HasPositions || Positions.Count <= 1) return this;
+            if (config.MinDist <= 0.0 || !HasPositions || Positions?.Count <= 1) return this;
+            if (Positions == null) throw new InvalidOperationException();
 
             var smallestCellExponent = Fun.Log2(config.MinDist).Ceiling();
             var positions = Positions;
@@ -498,7 +509,7 @@ namespace Aardvark.Data.Points
                 await Task.WhenAll(ts);
             }
 
-            List<T> f<T>(bool has, IList<T> xs) => has ? xs.Where((_, i) => take[i]).ToList() : null;
+            List<T>? f<T>(bool has, IList<T>? xs) => has ? xs.Where((_, i) => take[i]).ToList() : null;
             var ps = f(HasPositions, Positions);
             var cs = f(HasColors, Colors);
             var ns = f(HasNormals, Normals);
@@ -508,7 +519,7 @@ namespace Aardvark.Data.Points
 
             if (config.Verbose)
             {
-                var removedCount = Count - ps.Count;
+                var removedCount = Count - ps?.Count;
                 if (removedCount > 0)
                 {
                     //Report.Line($"[ImmutableFilterMinDistByCell] {this.Count:N0} - {removedCount:N0} -> {ps.Count:N0}");
@@ -517,23 +528,25 @@ namespace Aardvark.Data.Points
             return new Chunk(ps, cs, ns, js, ks, vs);
         }
 
+#pragma warning disable CS8602
+
         /// <summary>
         /// Returns chunk with points for which given predicate is true.
         /// </summary>
         public Chunk ImmutableFilterByPosition(Func<V3d, bool> predicate)
-            => ImmutableFilter((c, i) => predicate(c.Positions[i]));
+            => Positions != null ? ImmutableFilter((c, i) => predicate(c.Positions[i])) : this;
 
         /// <summary>
         /// Returns chunk with points which are inside given box.
         /// </summary>
         public Chunk ImmutableFilterByBox3d(Box3d filter)
-            => ImmutableFilter((c, i) => filter.Contains(c.Positions[i]));
+            => Positions != null ? ImmutableFilter((c, i) => filter.Contains(c.Positions[i])) : this;
 
         /// <summary>
         /// Returns chunk with points p.XY which are inside given box.
         /// </summary>
         public Chunk ImmutableFilterByBoxXY(Box2d filter)
-            => ImmutableFilter((c, i) => { var p = c.Positions[i]; return p.X >= filter.Min.X && p.X < filter.Max.X && p.Y >= filter.Min.Y && p.Y < filter.Max.Y; });
+            => Positions != null ? ImmutableFilter((c, i) => { var p = c.Positions[i]; return p.X >= filter.Min.X && p.X < filter.Max.X && p.Y >= filter.Min.Y && p.Y < filter.Max.Y; }) : this;
 
         /// <summary>
         /// Returns chunk with points which are inside given cell.
@@ -541,32 +554,34 @@ namespace Aardvark.Data.Points
         public Chunk ImmutableFilterByCell(Cell filter)
         {
             var bb = filter.BoundingBox;
-            return ImmutableFilter((c, i) => bb.Contains(c.Positions[i]));
+            return Positions != null ? ImmutableFilter((c, i) => bb.Contains(c.Positions[i])) : this;
         }
 
         /// <summary>
         /// Returns chunk with points for which given predicate is true.
         /// </summary>
         public Chunk ImmutableFilterByColor(Func<C4b, bool> predicate)
-            => ImmutableFilter((c, i) => predicate(c.Colors[i]));
+            => Colors != null ? ImmutableFilter((c, i) => predicate(c.Colors[i])) : this;
 
         /// <summary>
         /// Returns chunk with points for which given predicate is true.
         /// </summary>
         public Chunk ImmutableFilterByNormal(Func<V3f, bool> predicate)
-            => ImmutableFilter((c, i) => predicate(c.Normals[i]));
+            => Normals != null ? ImmutableFilter((c, i) => predicate(c.Normals[i])) : this;
 
         /// <summary>
         /// Returns chunk with points for which given predicate is true.
         /// </summary>
         public Chunk ImmutableFilterByIntensity(Func<int, bool> predicate)
-            => ImmutableFilter((c, i) => predicate(c.Intensities[i]));
+            => Intensities != null ? ImmutableFilter((c, i) => predicate(c.Intensities[i])) : this;
 
         /// <summary>
         /// Returns chunk with points for which given predicate is true.
         /// </summary>
         public Chunk ImmutableFilterByClassification(Func<byte, bool> predicate)
-            => ImmutableFilter((c, i) => predicate(c.Classifications[i]));
+            => Classifications != null ? ImmutableFilter((c, i) => predicate(c.Classifications[i])) : this;
+
+#pragma warning restore CS8602
 
         #endregion
     }

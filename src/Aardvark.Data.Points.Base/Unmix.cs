@@ -16,6 +16,9 @@ namespace Aardvark.Data.Points
         /// </summary>
         public static IEnumerable<Chunk> ImmutableUnmixOutOfCore(this IEnumerable<Chunk> chunks, string tmpdir, int binsExponent, ParseConfig config)
         {
+            throw new NotImplementedException();
+
+#if TODO
             var binsExponentFactor = 1.0 / Math.Pow(2.0, binsExponent);
             try
             {
@@ -265,6 +268,8 @@ namespace Aardvark.Data.Points
 
                 Report.EndTimed();
             }
+
+#endif // TODO
         }
 
         /// <summary>

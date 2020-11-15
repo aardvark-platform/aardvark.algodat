@@ -1,3 +1,5 @@
 Aardvark.Base
+Aardvark.Data.Durable
+Aardvark.Data.Durable.Codec
 FSharp.Core
 Uncodium.SimpleStore

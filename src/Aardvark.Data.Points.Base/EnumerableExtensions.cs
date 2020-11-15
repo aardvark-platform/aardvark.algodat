@@ -23,7 +23,7 @@ namespace Aardvark.Data.Points
     /// </summary>
     public static class EnumerableExtensions
     {
-        internal static R[] Map<T, R>(this IList<T> xs, Func<T, R> map)
+        internal static R[] MapToArray<T, R>(this IList<T> xs, Func<T, R> map)
         {
             var rs = new R[xs.Count];
             for (var i = 0; i < rs.Length; i++) rs[i] = map(xs[i]);
@@ -32,17 +32,17 @@ namespace Aardvark.Data.Points
 
         /// <summary>
         /// </summary>
-        public static IEnumerable<R> MapParallel<T, R>(this IEnumerable<T> items,
+        public static IEnumerable<R?> MapParallel<T, R>(this IEnumerable<T> items,
             Func<T, CancellationToken, R> map,
             int maxLevelOfParallelism,
-            Action<TimeSpan> onFinish = null,
+            Action<TimeSpan>? onFinish = null,
             CancellationToken ct = default
-            )
+            ) where R : class
         {
             if (map == null) throw new ArgumentNullException(nameof(map));
             if (maxLevelOfParallelism < 1) maxLevelOfParallelism = Environment.ProcessorCount;
 
-            var queue = new Queue<R>();
+            var queue = new Queue<R?>();
             var queueSemapore = new SemaphoreSlim(maxLevelOfParallelism);
 
             var inFlightCount = 0;
@@ -71,12 +71,12 @@ namespace Aardvark.Data.Points
                     }
                 });
 
-                while (queue.TryDequeue(out R r)) { ct.ThrowIfCancellationRequested(); yield return r; }
+                while (queue.TryDequeue(out R? r)) { ct.ThrowIfCancellationRequested(); yield return r; }
             }
 
             while (inFlightCount > 0 || queue.Count > 0)
             {
-                while (queue.TryDequeue(out R r)) { ct.ThrowIfCancellationRequested(); yield return r; }
+                while (queue.TryDequeue(out R? r)) { ct.ThrowIfCancellationRequested(); yield return r; }
                 Task.Delay(100).Wait();
             }
 
@@ -84,7 +84,7 @@ namespace Aardvark.Data.Points
             onFinish?.Invoke(sw.Elapsed);
         }
 
-        private static bool TryDequeue<T>(this Queue<T> queue, out T item)
+        private static bool TryDequeue<T>(this Queue<T?> queue, out T? item) where T : class
         {
             lock (queue)
             {
