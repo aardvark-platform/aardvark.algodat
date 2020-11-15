@@ -71,7 +71,7 @@ namespace Aardvark.Geometry.Tests
             //var sw = new Stopwatch();
 
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
-            var filename = @"T:\Vgm\Data\E57\Villnachern.e57";
+            var filename = @"T:\Vgm\Data\E57\2020-11-13-Walenta\2020452-B-3-5.e57";
             //var fileSizeInBytes = new FileInfo(filename).Length;
 
             var key = Path.GetFileName(filename);
@@ -94,25 +94,46 @@ namespace Aardvark.Geometry.Tests
             //return;
 
             var config = ImportConfig.Default
-                //.WithInMemoryStore()
                 .WithStorage(store)
                 .WithKey(key)
                 .WithVerbose(true)
                 .WithMaxDegreeOfParallelism(0)
-                .WithMinDist(0.0)
+                .WithMinDist(0.025)
+                .WithNormalizePointDensityGlobal(true)
                 ;
             
             Report.BeginTimed("total");
 
-            var chunks = E57
-                .Chunks(filename, config.ParseConfig)
-                //.Take(10)
-                //.AsParallel()
-                //.Select(x => x.ImmutableFilterMinDistByCell(new Cell(x.BoundingBox), config))
-                //.Select(x => x.ImmutableFilterSequentialMinDistL1(0.01))
-                //.ToArray()
-                ;
-            var _ = PointCloud.Chunks(chunks, config);
+            var chunks = E57.Chunks(filename, config.ParseConfig);
+
+            //var total = 0L;
+            //foreach (var chunk in chunks)
+            //{
+            //    total += chunk.Count;
+            //    Report.WarnNoPrefix($"[Chunk] {chunk.Count,16:N0}; {total,16:N0}; {chunk.HasPositions} {chunk.HasColors} {chunk.HasIntensities}");
+            //}
+
+
+            //var cloud = PointCloud.Chunks(chunks, config);
+
+            var pcl = store.GetPointSet(key);
+            var maxCount = pcl.PointCount / 30;
+            var level = pcl.GetMaxOctreeLevelWithLessThanGivenPointCount(maxCount);
+            var foo = pcl.QueryPointsInOctreeLevel(level);
+            var fooCount = 0;
+            foreach (var chunk in foo) 
+            {
+                Report.WarnNoPrefix($"{++fooCount}");
+            }
+            //var intensityRange =
+            //    foo
+            //    |> Seq.fold(fun intMaxima chunk-> if chunk.HasIntensities then
+            //          let struct(currentMin, currentMax) = intMaxima |> Option.defaultValue((Int32.MaxValue, Int32.MinValue))
+            //           let minInt = min currentMin(chunk.Intensities |> Seq.min)
+            //            let maxInt = max currentMax(chunk.Intensities |> Seq.max)
+            //            Some struct(minInt, maxInt)
+            //        else
+            //            None ) None
 
             Report.EndTimed();
 
@@ -1272,7 +1293,7 @@ namespace Aardvark.Geometry.Tests
 
             //HeraTest();
 
-            //TestE57();
+            TestE57();
 
             //LisaTest();
 

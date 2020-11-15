@@ -194,8 +194,10 @@ namespace Aardvark.Data.Points.Import
                     return chunk;
                 }
 
+                //var j = 0;
                 foreach (var data3d in header.E57Root.Data3D)
                 {
+                    //Report.WarnNoPrefix($"[header.E57Root.Data3D][{++j}/{header.E57Root.Data3D.Length}] recordCount: {data3d.Points.RecordCount,16:N0}; hasColors: {data3d.HasColors}; hasIntensities: {data3d.HasIntensities}");
                     foreach (var (pos, color, intensity) in data3d.StreamPoints(config.Verbose))
                     {
                         if (hasPositions) ps.Add(pos);
