@@ -134,8 +134,8 @@ let main argv =
 
     let vertices = data.Positions
     let velocities = data.Velocities
-    let normals = data.Normals
-    let densities = data.Densities
+    let normals = data.EstimatedNormals
+    let densities = data.AverageSquaredDistances
 
     let harriChunk = Aardvark.Data.Points.Chunk(vertices |> Array.map V3d, null, normals, null, null);
 

@@ -25,3 +25,5 @@ obj/
 /src/Apps/points/*.user
 /.paket
 /src/Apps/HeraViewer/HeraViewer.fsproj.user
+
+.ionide

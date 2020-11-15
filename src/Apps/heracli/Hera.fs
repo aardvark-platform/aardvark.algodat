@@ -190,7 +190,17 @@ module Hera =
 
     type HeraData(data : IDictionary<Durable.Def, obj>) =
 
+        let data = Dictionary<_,_>(data)
         do
+            // backwards compatibility
+            let update olddef newdef = match data.TryGetValue(olddef) with | true, xs -> data.Add(newdef, xs) | _ -> ()
+            update Durable.Octree.PositionsLocal3f Defs.PositionArray
+            update Durable.Octree.Normals3f Defs.EstimatedNormalArray
+            update Durable.Octree.Velocities3f Defs.VelocityArray
+            update Durable.Octree.Densities1f Defs.AverageSquaredDistanceArray
+
+
+
             let (hasPositions, ps) = data.TryGetValue(Defs.PositionArray)
             if not hasPositions then failwith "Data must contain Defs.PositionArray."
             let ps = ps :?> V3f[]
