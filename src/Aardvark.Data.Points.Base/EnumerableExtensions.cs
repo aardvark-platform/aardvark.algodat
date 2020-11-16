@@ -15,16 +15,56 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+using Aardvark.Base;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
+#pragma warning disable CS1591
+
 namespace Aardvark.Data.Points
 {
-    /// <summary>
-    /// </summary>
+    public static class ArrayExtensions
+    {
+        private static T[] Subset<T>(T[] xs, List<int> subsetIndices) => subsetIndices.MapToArray(i => xs[i]);
+
+        public static Array Subset(this object array, List<int> subsetIndices) => array switch
+        {
+            byte[] xs => Subset(xs, subsetIndices),
+            sbyte[] xs => Subset(xs, subsetIndices),
+            short[] xs => Subset(xs, subsetIndices),
+            ushort[] xs => Subset(xs, subsetIndices),
+            int[] xs => Subset(xs, subsetIndices),
+            uint[] xs => Subset(xs, subsetIndices),
+            long[] xs => Subset(xs, subsetIndices),
+            ulong[] xs => Subset(xs, subsetIndices),
+            decimal[] xs => Subset(xs, subsetIndices),
+            float[] xs => Subset(xs, subsetIndices),
+            double[] xs => Subset(xs, subsetIndices),
+            V2f[] xs => Subset(xs, subsetIndices),
+            V2d[] xs => Subset(xs, subsetIndices),
+            V3f[] xs => Subset(xs, subsetIndices),
+            V3d[] xs => Subset(xs, subsetIndices),
+            C3b[] xs => Subset(xs, subsetIndices),
+            C3f[] xs => Subset(xs, subsetIndices),
+            C4b[] xs => Subset(xs, subsetIndices),
+            C4f[] xs => Subset(xs, subsetIndices),
+            M44f[] xs => Subset(xs, subsetIndices),
+            M44d[] xs => Subset(xs, subsetIndices),
+            M33f[] xs => Subset(xs, subsetIndices),
+            M33d[] xs => Subset(xs, subsetIndices),
+            M22f[] xs => Subset(xs, subsetIndices),
+            M22d[] xs => Subset(xs, subsetIndices),
+            Trafo3f[] xs => Subset(xs, subsetIndices),
+            Trafo3d[] xs => Subset(xs, subsetIndices),
+            Trafo2f[] xs => Subset(xs, subsetIndices),
+            Trafo2d[] xs => Subset(xs, subsetIndices),
+            _ => throw new Exception($"Type {array.GetType()} is not supported.")
+        };
+    }
+
     public static class EnumerableExtensions
     {
         internal static R[] MapToArray<T, R>(this IList<T> xs, Func<T, R> map)
@@ -34,8 +74,6 @@ namespace Aardvark.Data.Points
             return rs;
         }
 
-        /// <summary>
-        /// </summary>
         public static IEnumerable<R?> MapParallel<T, R>(this IEnumerable<T> items,
             Func<T, CancellationToken, R> map,
             int maxLevelOfParallelism,

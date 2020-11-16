@@ -480,36 +480,12 @@ namespace Aardvark.Data.Points
         public GenericChunk Union(GenericChunk other)
             => ImmutableMerge(this, other);
 
-        private static T[] Subset<T>(T[] xs, List<int> subsetIndices) => subsetIndices.MapToArray(i => xs[i]);
-        private static Array Subset(object array, List<int> subsetIndices) => array switch
-        {
-            byte[] xs       => Subset(xs, subsetIndices),
-            sbyte[] xs      => Subset(xs, subsetIndices),
-            short[] xs      => Subset(xs, subsetIndices),
-            ushort[] xs     => Subset(xs, subsetIndices),
-            int[] xs        => Subset(xs, subsetIndices),
-            uint[] xs       => Subset(xs, subsetIndices),
-            long[] xs       => Subset(xs, subsetIndices),
-            ulong[] xs      => Subset(xs, subsetIndices),
-            decimal[] xs    => Subset(xs, subsetIndices),
-            float[] xs      => Subset(xs, subsetIndices),
-            double[] xs     => Subset(xs, subsetIndices),
-            V2f[] xs        => Subset(xs, subsetIndices),
-            V2d[] xs        => Subset(xs, subsetIndices),
-            V3f[] xs        => Subset(xs, subsetIndices),
-            V3d[] xs        => Subset(xs, subsetIndices),
-            C3b[] xs        => Subset(xs, subsetIndices),
-            C3f[] xs        => Subset(xs, subsetIndices),
-            C4b[] xs        => Subset(xs, subsetIndices),
-            C4f[] xs        => Subset(xs, subsetIndices),
-            _ => throw new Exception($"Type {array.GetType()} is not supported.")
-        };
         private GenericChunk Subset(List<int> subsetIndices)
         {
             var data = ImmutableDictionary<Durable.Def, object>.Empty;
             foreach (var kv in Data)
             {
-                data = data.Add(kv.Key, Subset(kv.Value, subsetIndices));
+                data = data.Add(kv.Key, kv.Value.Subset(subsetIndices));
             }
             return new GenericChunk(data, BoundingBox);
         }
