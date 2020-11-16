@@ -277,13 +277,13 @@ module Hera =
         let data = Chunk.ImmutableMerge(chunks)
 
         let ps = data.Positions.Map(fun p -> V3f p)
-        let vs = data.Velocities.ToArray()
+        //let vs = data.Velocities.ToArray()
         let struct (ns, ds) = ps.EstimateNormalsAndLocalDensity(16)
 
         let data = ImmutableDictionary<Durable.Def, obj>.Empty
                     .Add(Defs.Positions, ps)
                     .Add(Defs.EstimatedNormals, ns)
-                    .Add(Defs.Velocities, vs)
+                    //.Add(Defs.Velocities, vs)
                     .Add(Defs.AverageSquaredDistances, ds)
         HeraData(data)
 
@@ -295,7 +295,7 @@ module Hera =
         let particles = 
           File
             .ReadLines(filename)
-            //.Take(100)
+            .Take(50000)
             .AsParallel()
             .Select(fun line ->
                 let ts = line.SplitOnWhitespace()

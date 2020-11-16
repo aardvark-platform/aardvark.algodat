@@ -1056,7 +1056,7 @@ namespace Aardvark.Geometry.Tests
             var data = ImmutableDictionary<Durable.Def, object>.Empty
                 .Add(Durable.Octree.PositionsLocal3f, flat.Positions.Map(p => new V3f(p)))
                 .Add(Durable.Octree.Normals3f, flat.Normals.ToArray())
-                .Add(Durable.Octree.Velocities3f, flat.Velocities.ToArray())
+                //.Add(Durable.Octree.Velocities3f, flat.Velocities.ToArray())
                 ;
             Report.EndTimed();
 

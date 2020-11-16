@@ -181,18 +181,60 @@ namespace Aardvark.Data.Points
 
         public Durable.Def PositionsDef { get; }
         public bool HasPositions => true;
+        public object Positions => Data[PositionsDef];
+        public V3d[] PositionsAsV3d => Positions switch
+        {
+            V2f[] xs => xs.Map(x => (V3d)x.XYO),
+            V2d[] xs => xs.Map(x => x.XYO),
+            V3f[] xs => xs.Map(x => (V3d)x),
+            V3d[] xs => xs,
+            _ => throw new Exception($"Unsupported positions type {Positions.GetType()}.")
+        };
 
         public Durable.Def? ColorsDef { get; }
         public bool HasColors => ColorsDef != null;
+        public object? Colors => ColorsDef != null ? Data[ColorsDef] : null;
+        public C4b[]? ColorsAsC4b => Colors switch
+        {
+            null => null,
+            C3b[] xs => xs.Map(x => new C4b(x.R, x.G, x.B)),
+            C4b[] xs => xs,
+            _ => throw new Exception($"Unsupported colors type {Positions.GetType()}.")
+        };
 
         public Durable.Def? NormalsDef { get; }
         public bool HasNormals => NormalsDef != null;
+        public object? Normals => NormalsDef != null ? Data[NormalsDef] : null;
+        public V3f[]? NormalsAsV3f => Normals switch
+        {
+            null => null,
+            V3f[] xs => xs,
+            _ => throw new Exception($"Unsupported normals type {Positions.GetType()}.")
+        };
 
         public Durable.Def? IntensitiesDef { get; }
         public bool HasIntensities => IntensitiesDef != null;
+        public object? Intensities => IntensitiesDef != null ? Data[IntensitiesDef] : null;
+        public int[]? IntensitiesAsInt32 => Intensities switch
+        {
+            null => null,
+            sbyte[] xs => xs.Map(x => (int)x),
+            byte[] xs => xs.Map(x => (int)x),
+            short[] xs => xs.Map(x => (int)x),
+            ushort[] xs => xs.Map(x => (int)x),
+            int[] xs => xs,
+            _ => throw new Exception($"Unsupported intensities type {Positions.GetType()}.")
+        };
 
         public Durable.Def? ClassificationsDef { get; }
         public bool HasClassifications => ClassificationsDef != null;
+        public object? Classifications => ClassificationsDef != null ? Data[ClassificationsDef] : null;
+        public byte[]? ClassificationsAsByte => Classifications switch
+        {
+            null => null,
+            byte[] xs => xs,
+            _ => throw new Exception($"Unsupported classifications type {Positions.GetType()}.")
+        };
 
         #endregion
 

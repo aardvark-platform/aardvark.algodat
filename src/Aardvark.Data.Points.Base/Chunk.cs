@@ -22,6 +22,8 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Threading.Tasks;
 
+#pragma warning disable CS1591
+
 namespace Aardvark.Data.Points
 {
     /// <summary>
@@ -42,46 +44,39 @@ namespace Aardvark.Data.Points
             return ll;
         }
 
-        /// <summary></summary>
-        public static readonly Chunk Empty = new(null, null, null, null, null, null);
+        public static readonly Chunk Empty = new(Array.Empty<V3d>(), null, null, null, null, null);
 
-        /// <summary></summary>
-        public readonly IList<V3d>? Positions;
-        /// <summary></summary>
+        public readonly IList<V3d> Positions;
         public readonly IList<C4b>? Colors;
-        /// <summary></summary>
         public readonly IList<V3f>? Normals;
-        /// <summary></summary>
         public readonly IList<int>? Intensities;
-        /// <summary></summary>
         public readonly IList<byte>? Classifications;
-        /// <summary></summary>
-        public readonly IList<V3f>? Velocities;
 
-        /// <summary></summary>
+        public GenericChunk ToGenericChunk()
+        {
+            var data = ImmutableDictionary<Durable.Def, object>.Empty
+                .Add(GenericChunk.Defs.Positions3d, Positions.ToArray())
+                ;
+            if (Colors != null) data = data.Add(GenericChunk.Defs.Colors4b, Colors);
+            if (Normals != null) data = data.Add(GenericChunk.Defs.Normals3f, Normals);
+            if (Intensities != null) data = data.Add(GenericChunk.Defs.Intensities1i, Intensities);
+            if (Classifications != null) data = data.Add(GenericChunk.Defs.Classifications1b, Classifications);
+            return new GenericChunk(data, BoundingBox);
+        }
+
         public readonly Box3d BoundingBox;
 
-        /// <summary></summary>
         public int Count => Positions != null ? Positions.Count : 0;
 
-        /// <summary></summary>
         public bool IsEmpty => Count == 0;
 
-        /// <summary></summary>
         public bool HasPositions => Positions != null && Positions.Count > 0;
-        /// <summary></summary>
         public bool HasColors => Colors != null && Colors.Count > 0;
-        /// <summary></summary>
         public bool HasNormals => Normals != null && Normals.Count > 0;
-        /// <summary></summary>
         public bool HasIntensities => Intensities != null && Intensities.Count > 0;
-        /// <summary></summary>
         public bool HasClassifications => Classifications != null && Classifications.Count > 0;
-        /// <summary></summary>
-        public bool HasVelocities => Velocities != null && Velocities.Count > 0;
+        public bool HasVelocities => false;
 
-        /// <summary>
-        /// </summary>
         public static Chunk ImmutableMerge(Chunk a, Chunk b)
         {
             if (a.IsEmpty) return b;
@@ -127,19 +122,10 @@ namespace Aardvark.Data.Points
                 ks = ks0.AddRange(ks1);
             }
 
-            ImmutableList<V3f>? vs = null;
-            if (a.HasVelocities)
-            {
-                var vs0 = (a.Velocities is ImmutableList<V3f> x10) ? x10 : ImmutableList<V3f>.Empty.AddRange(a.Velocities);
-                var vs1 = (b.Velocities is ImmutableList<V3f> x11) ? x11 : ImmutableList<V3f>.Empty.AddRange(b.Velocities);
-                vs = vs0.AddRange(vs1);
-            }
-
-            return new Chunk(ps, cs, ns, js, ks, vs, new Box3d(a.BoundingBox, b.BoundingBox));
+            if (ps == null) throw new Exception("Invariant 1415ad7b-262a-49aa-839d-4bd0a80cd141.");
+            return new Chunk(ps, cs, ns, js, ks, null, new Box3d(a.BoundingBox, b.BoundingBox));
         }
 
-        /// <summary>
-        /// </summary>
         public static Chunk ImmutableMerge(params Chunk[] chunks)
         {
             if (chunks == null || chunks.Length == 0) return Empty;
@@ -153,7 +139,6 @@ namespace Aardvark.Data.Points
             var ns = head.HasNormals ? new V3f[totalCount] : null;
             var js = head.HasIntensities ? new int[totalCount] : null;
             var ks = head.HasClassifications ? new byte[totalCount] : null;
-            var vs = head.HasVelocities ? new V3f[totalCount] : null;
 
             var offset = 0;
             foreach (var chunk in chunks)
@@ -164,16 +149,14 @@ namespace Aardvark.Data.Points
                 if (ns != null) chunk.Normals.CopyTo(ns, offset);
                 if (js != null) chunk.Intensities.CopyTo(js, offset);
                 if (ks != null) chunk.Classifications.CopyTo(ks, offset);
-                if (vs != null) chunk.Velocities.CopyTo(vs, offset);
 #pragma warning restore CS8602
                 offset += chunk.Count;
             }
 
-            return new Chunk(ps, cs, ns, js, ks, vs, new Box3d(chunks.Select(x => x.BoundingBox)));
+            if (ps == null) throw new Exception("Invariant 4cc7d585-9a46-4ba2-892a-95fce9ed06da.");
+            return new Chunk(ps, cs, ns, js, ks, null, new Box3d(chunks.Select(x => x.BoundingBox)));
         }
 
-        /// <summary>
-        /// </summary>
         public static Chunk ImmutableMerge(IEnumerable<Chunk> chunks)
             => ImmutableMerge(chunks.ToArray());
 
@@ -187,7 +170,7 @@ namespace Aardvark.Data.Points
         /// <param name="velocities">Optional. Either null or same number of elements as positions.</param>
         /// <param name="bbox">Optional. If null, then bbox will be constructed from positions.</param>
         public Chunk(
-            IList<V3d>? positions,
+            IList<V3d> positions,
             IList<C4b>? colors = null,
             IList<V3f>? normals = null,
             IList<int>? intensities = null,
@@ -207,12 +190,11 @@ namespace Aardvark.Data.Points
                 Report.Warn("[Chunk-ctor] inconsistent length: pos.length = {0} vs cs.length = {1}", positions.Count, colors.Count);
             }
 
-            Positions = positions != null && positions.Count > 0 ? positions : null;
+            Positions = positions ?? throw new Exception("Invariant ad93ff8e-d1a9-4c96-a626-43c69617371e.");
             Colors = colors != null && colors.Count > 0 ? colors : null;
             Normals = normals != null && normals.Count > 0 ? normals : null;
             Intensities = intensities != null && intensities.Count > 0 ? intensities : null;
             Classifications = classifications != null && classifications.Count > 0 ? classifications : null;
-            Velocities = velocities != null && velocities.Count > 0 ? velocities : null;
             BoundingBox = bbox ?? (positions != null ? new Box3d(positions) : Box3d.Invalid);
         }
 
@@ -224,7 +206,7 @@ namespace Aardvark.Data.Points
         /// <param name="intensities">Optional. Either null or same number of elements as positions.</param>
         /// <param name="classifications">Optional. Either null or same number of elements as positions.</param>
         /// <param name="bbox">Optional. If null, then bbox will be constructed from positions.</param>
-        public Chunk(IList<V3d>? positions, IList<C4b>? colors, IList<V3f>? normals, IList<int>? intensities, IList<byte>? classifications, Box3d? bbox)
+        public Chunk(IList<V3d> positions, IList<C4b>? colors, IList<V3f>? normals, IList<int>? intensities, IList<byte>? classifications, Box3d? bbox)
             : this(positions, colors, normals, intensities, classifications, velocities: null, bbox)
         { }
 
@@ -233,13 +215,14 @@ namespace Aardvark.Data.Points
         /// </summary>
         public Chunk Union(Chunk other)
         {
+            var ps = Append(Positions, other.Positions);
+            if (ps == null) throw new Exception("Invariant c799ccc6-4edf-4530-b1eb-59d93ef69727.");
             return new Chunk(
-                Append(Positions, other.Positions),
+                ps,
                 Append(Colors, other.Colors),
                 Append(Normals, other.Normals),
                 Append(Intensities, other.Intensities),
                 Append(Classifications, other.Classifications),
-                Append(Velocities, other.Velocities),
                 Box.Union(BoundingBox, other.BoundingBox)
             );
         }
@@ -247,27 +230,27 @@ namespace Aardvark.Data.Points
         /// <summary>
         /// Immutable update of positions.
         /// </summary>
-        public Chunk WithPositions(IList<V3d> newPositions) => new(newPositions, Colors, Normals, Intensities, Classifications, Velocities);
+        public Chunk WithPositions(IList<V3d> newPositions) => new(newPositions, Colors, Normals, Intensities, Classifications);
 
         /// <summary>
         /// Immutable update of colors.
         /// </summary>
-        public Chunk WithColors(IList<C4b> newColors) => new(Positions, newColors, Normals, Intensities, Classifications, Velocities, BoundingBox);
+        public Chunk WithColors(IList<C4b> newColors) => new(Positions, newColors, Normals, Intensities, Classifications, BoundingBox);
 
         /// <summary>
         /// Immutable update of normals.
         /// </summary>
-        public Chunk WithNormals(IList<V3f> newNormals) => new(Positions, Colors, newNormals, Intensities, Classifications, Velocities, BoundingBox);
+        public Chunk WithNormals(IList<V3f> newNormals) => new(Positions, Colors, newNormals, Intensities, Classifications, BoundingBox);
 
         /// <summary>
         /// Immutable update of normals.
         /// </summary>
-        public Chunk WithIntensities(IList<int> newIntensities) => new(Positions, Colors, Normals, newIntensities, Classifications, Velocities, BoundingBox);
+        public Chunk WithIntensities(IList<int> newIntensities) => new(Positions, Colors, Normals, newIntensities, Classifications, BoundingBox);
 
         /// <summary>
         /// Immutable update of classifications.
         /// </summary>
-        public Chunk WithClassifications(IList<byte> newClassifications) => new(Positions, Colors, Normals, Intensities, newClassifications, Velocities, BoundingBox);
+        public Chunk WithClassifications(IList<byte> newClassifications) => new(Positions, Colors, Normals, Intensities, newClassifications, BoundingBox);
 
         /// <summary>
         /// Returns chunk with duplicate point positions removed.
@@ -292,7 +275,6 @@ namespace Aardvark.Data.Points
                 var ns = f(HasNormals, Normals);
                 var js = f(HasIntensities, Intensities);
                 var ks = f(HasClassifications, Classifications);
-                var vs = f(HasVelocities, Velocities);
 
                 if (verbose)
                 {
@@ -304,7 +286,7 @@ namespace Aardvark.Data.Points
 #endif
                 }
 
-                return new Chunk(ps, cs, ns, js, ks, vs);
+                return new Chunk(ps, cs, ns, js, ks);
             }
             else
             {
@@ -312,18 +294,12 @@ namespace Aardvark.Data.Points
             }
         }
 
-        /// <summary>
-        /// </summary>
         public Chunk ImmutableMapPositions(Func<V3d, V3d> mapping)
-            => new(Positions.Map(mapping), Colors, Normals, Intensities, Classifications, Velocities);
+            => new(Positions.Map(mapping), Colors, Normals, Intensities, Classifications);
 
-        /// <summary>
-        /// </summary>
         public Chunk ImmutableMergeWith(IEnumerable<Chunk> others)
             => ImmutableMerge(this, ImmutableMerge(others));
 
-        /// <summary>
-        /// </summary>
         public Chunk ImmutableMergeWith(params Chunk[] others)
             => ImmutableMerge(this, ImmutableMerge(others));
 
@@ -345,18 +321,15 @@ namespace Aardvark.Data.Points
             {
                 var ia = kv.Value;
                 result[kv.Key] = new Chunk(
-                    Positions       != null ? ia.Map(i => Positions[i])       : null,
+                    ia.Map(i => Positions[i]),
                     Colors          != null ? ia.Map(i => Colors[i])          : null,
                     Normals         != null ? ia.Map(i => Normals[i])         : null,
                     Intensities     != null ? ia.Map(i => Intensities[i])     : null,
-                    Classifications != null ? ia.Map(i => Classifications[i]) : null,
-                    Velocities      != null ? ia.Map(i => Velocities[i])      : null
+                    Classifications != null ? ia.Map(i => Classifications[i]) : null
                     );
             }
             return result;
         }
-
-
 
         #region ImmutableFilter...
 
@@ -370,7 +343,6 @@ namespace Aardvark.Data.Points
             var ns = HasNormals ? new List<V3f>() : null;
             var js = HasIntensities ? new List<int>() : null;
             var ks = HasClassifications ? new List<byte>() : null;
-            var vs = HasVelocities ? new List<V3f>() : null;
 
             for (var i = 0; i < Count; i++)
             {
@@ -382,11 +354,12 @@ namespace Aardvark.Data.Points
                     if (ns != null) ns.Add(Normals[i]);
                     if (js != null) js.Add(Intensities[i]);
                     if (ks != null) ks.Add(Classifications[i]);
-                    if (vs != null) vs.Add(Velocities[i]);
 #pragma warning restore CS8602
                 }
             }
-            return new Chunk(ps, cs, ns, js, ks, vs);
+
+            if (ps == null) throw new Exception("Invariant bc49afa3-ea57-42a8-ac1c-ee1c439a48d3.");
+            return new Chunk(ps, cs, ns, js, ks);
         }
 
         /// <summary>
@@ -402,7 +375,6 @@ namespace Aardvark.Data.Points
             var ns = Normals != null ? new List<V3f>() : null;
             var js = Intensities != null ? new List<int>() : null;
             var ks = Classifications != null ? new List<byte>() : null;
-            var vs = Velocities != null ? new List<V3f>() : null;
 
             var last = V3d.MinValue;
             if (Positions == null) throw new InvalidOperationException();
@@ -419,10 +391,9 @@ namespace Aardvark.Data.Points
                 if (ns != null) ns.Add(Normals[i]);
                 if (js != null) js.Add(Intensities[i]);
                 if (ks != null) ks.Add(Classifications[i]);
-                if (vs != null) vs.Add(Velocities[i]);
 #pragma warning restore CS8602
             }
-            return new Chunk(ps, cs, ns, js, ks, vs);
+            return new Chunk(ps, cs, ns, js, ks);
         }
 
         /// <summary>
@@ -437,7 +408,6 @@ namespace Aardvark.Data.Points
             var ns = Normals != null ? new List<V3f>() : null;
             var js = Intensities != null ? new List<int>() : null;
             var ks = Classifications != null ? new List<byte>() : null;
-            var vs = Velocities != null ? new List<V3f>() : null;
 
             var prev = V3d.MinValue;
             if (Positions == null) throw new InvalidOperationException();
@@ -454,10 +424,9 @@ namespace Aardvark.Data.Points
                 if (ns != null) ns.Add(Normals[i]);
                 if (js != null) js.Add(Intensities[i]);
                 if (ks != null) ks.Add(Classifications[i]);
-                if (vs != null) vs.Add(Velocities[i]);
 #pragma warning restore CS8602
             }
-            return new Chunk(ps, cs, ns, js, ks, vs);
+            return new Chunk(ps, cs, ns, js, ks);
         }
 
         /// <summary>
@@ -519,7 +488,6 @@ namespace Aardvark.Data.Points
             var ns = f(HasNormals, Normals);
             var js = f(HasIntensities, Intensities);
             var ks = f(HasClassifications, Classifications);
-            var vs = f(HasVelocities, Velocities);
 
             if (config.Verbose)
             {
@@ -529,7 +497,9 @@ namespace Aardvark.Data.Points
                     //Report.Line($"[ImmutableFilterMinDistByCell] {this.Count:N0} - {removedCount:N0} -> {ps.Count:N0}");
                 }
             }
-            return new Chunk(ps, cs, ns, js, ks, vs);
+
+            if (ps == null) throw new Exception("Invariant 84440204-5496-479f-ad3e-9e45e5dd16c1.");
+            return new Chunk(ps, cs, ns, js, ks);
         }
 
 #pragma warning disable CS8602

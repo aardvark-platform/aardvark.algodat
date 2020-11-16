@@ -17,55 +17,54 @@ using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Threading;
 
 namespace Aardvark.Geometry.Points
 {
-    /// <summary>
-    /// </summary>
     public class InMemoryPointSet
     {
-        private readonly long m_splitLimit;
+        private readonly int m_splitLimit;
         private readonly IList<V3d> m_ps;
         private readonly IList<C4b> m_cs;
         private readonly IList<V3f> m_ns;
         private readonly IList<int> m_is;
         private readonly IList<byte> m_ks;
-        private readonly IList<V3f> m_vs;
         private readonly Node m_root;
-#pragma warning disable IDE0052 // Remove unread private members
-        private readonly long m_insertedPointsCount = 0;
-        private long m_duplicatePointsCount = 0;
-#pragma warning restore IDE0052 // Remove unread private members
 
-        /// <summary>
-        /// </summary>
-        public static InMemoryPointSet Build(Chunk chunk, long octreeSplitLimit)
-            => Build(chunk.Positions, chunk.Colors, chunk.Normals, chunk.Intensities, chunk.Classifications, chunk.Velocities, chunk.BoundingBox, octreeSplitLimit);
+        public static InMemoryPointSet Build(Chunk chunk, int octreeSplitLimit)
+            => Build(chunk.Positions, chunk.Colors, chunk.Normals, chunk.Intensities, chunk.Classifications, chunk.BoundingBox, octreeSplitLimit);
 
-        /// <summary>
-        /// </summary>
-        public static InMemoryPointSet Build(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, IList<V3f> vs, Box3d bounds, long octreeSplitLimit)
+        public static InMemoryPointSet Build(GenericChunk chunk, int octreeSplitLimit)
+            => new InMemoryPointSet(chunk, octreeSplitLimit);
+
+        public static InMemoryPointSet Build(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, Box3d bounds, int octreeSplitLimit)
+            => new InMemoryPointSet(ps, cs, ns, js, ks, bounds, octreeSplitLimit);
+
+        [Obsolete("Velocities no longer supported.")]
+        public static InMemoryPointSet Build(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, IList<V3f> vs, Box3d bounds, int octreeSplitLimit)
             => new InMemoryPointSet(ps, cs, ns, js, ks, vs, bounds, octreeSplitLimit);
 
-        /// <summary>
-        /// </summary>
-        public static InMemoryPointSet Build(Chunk chunk, Cell rootBounds, long octreeSplitLimit)
-            => Build(chunk.Positions, chunk.Colors, chunk.Normals, chunk.Intensities, chunk.Classifications, chunk.Velocities, rootBounds, octreeSplitLimit);
+        public static InMemoryPointSet Build(Chunk chunk, Cell rootBounds, int octreeSplitLimit)
+            => new InMemoryPointSet(chunk.Positions, chunk.Colors, chunk.Normals, chunk.Intensities, chunk.Classifications, rootBounds, octreeSplitLimit);
 
-        /// <summary>
-        /// </summary>
-        public static InMemoryPointSet Build(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, IList<V3f> vs, Cell bounds, long octreeSplitLimit)
-            => new InMemoryPointSet(ps, cs, ns, js, ks, vs, bounds, octreeSplitLimit);
+        [Obsolete("Velocities no longer supported.")]
+        public static InMemoryPointSet Build(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, IList<V3f> vs, Cell bounds, int octreeSplitLimit)
+            => new InMemoryPointSet(ps, cs, ns, js, ks, bounds, octreeSplitLimit);
 
-        private InMemoryPointSet(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, IList<V3f> vs, Box3d bounds, long octreeSplitLimit)
-            : this(ps, cs, ns, js, ks, vs, new Cell(bounds), octreeSplitLimit)
-            { }
+        public static InMemoryPointSet Build(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, Cell bounds, int octreeSplitLimit)
+            => new InMemoryPointSet(ps, cs, ns, js, ks, bounds, octreeSplitLimit);
 
-        private InMemoryPointSet(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, IList<V3f> vs, Cell bounds, long octreeSplitLimit)
+        private InMemoryPointSet(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, Box3d bounds, int octreeSplitLimit)
+            : this(ps, cs, ns, js, ks, new Cell(bounds), octreeSplitLimit)
+        { }
+
+        [Obsolete("Velocities no longer supported.")]
+        private InMemoryPointSet(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, IList<V3f> vs, Box3d bounds, int octreeSplitLimit)
+            : this(ps, cs, ns, js, ks, new Cell(bounds), octreeSplitLimit)
+        { }
+
+        private InMemoryPointSet(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, Cell bounds, int octreeSplitLimit)
         {
 #if DEBUG
             //if (new Box3d(ps).Size.Length < 0.001) Debugger.Break();
@@ -75,15 +74,27 @@ namespace Aardvark.Geometry.Points
             m_ns = ns;
             m_is = js;
             m_ks = ks;
-            m_vs = vs;
             m_splitLimit = octreeSplitLimit;
 
             m_root = new Node(this, bounds);
-            m_insertedPointsCount = ps != null ? ps.Count : 0;
+            //m_insertedPointsCount = ps != null ? ps.Count : 0;
             for (var i = 0; i < ps.Count; i++) m_root.Insert(i);
         }
 
-        /// <summary></summary>
+        private InMemoryPointSet(GenericChunk chunk, int octreeSplitLimit)
+        {
+            m_ps = chunk.PositionsAsV3d;
+            m_cs = chunk.ColorsAsC4b;
+            m_ns = chunk.NormalsAsV3f;
+            m_is = chunk.IntensitiesAsInt32;
+            m_ks = chunk.ClassificationsAsByte;
+            m_splitLimit = octreeSplitLimit;
+
+            m_root = new Node(this, new Cell(chunk.BoundingBox));
+            //m_insertedPointsCount = m_ps != null ? m_ps.Count : 0;
+            for (var i = 0; i < m_ps.Count; i++) m_root.Insert(i);
+        }
+
         public PointSetNode ToPointSetNode(Storage storage, bool isTemporaryImportNode)
         {
             var result = m_root.ToPointSetCell(storage, isTemporaryImportNode);
@@ -122,7 +133,6 @@ namespace Aardvark.Geometry.Points
                 V3f[] ns = null;
                 int[] js = null;
                 byte[] ks = null;
-                V3f[] vs = null;
                 
                 if (_ia != null)
                 {
@@ -159,13 +169,6 @@ namespace Aardvark.Geometry.Points
                         ks = new byte[count];
                         for (var i = 0; i < count; i++) ks[i] = allKs[_ia[i]];
                     }
-
-                    if (_octree.m_vs != null)
-                    {
-                        var allVs = _octree.m_vs;
-                        vs = new V3f[count];
-                        for (var i = 0; i < count; i++) vs[i] = allVs[_ia[i]];
-                    }
                 }
 
                 Guid? psId = ps != null ? (Guid?)Guid.NewGuid() : null;
@@ -173,7 +176,6 @@ namespace Aardvark.Geometry.Points
                 Guid? nsId = ns != null ? (Guid?)Guid.NewGuid() : null;
                 Guid? isId = js != null ? (Guid?)Guid.NewGuid() : null;
                 Guid? ksId = ks != null ? (Guid?)Guid.NewGuid() : null;
-                Guid? vsId = vs != null ? (Guid?)Guid.NewGuid() : null;
 
                 var subcells = _subnodes?.Map(x => x?.ToPointSetCell(storage, isTemporaryImportNode));
                 var subcellIds = subcells?.Map(x => x?.Id);
@@ -243,7 +245,6 @@ namespace Aardvark.Geometry.Points
                 if (nsId != null) { storage.Add(nsId.ToString(), ns); data = data.Add(Durable.Octree.Normals3fReference, nsId.Value); }
                 if (isId != null) { storage.Add(isId.ToString(), js); data = data.Add(Durable.Octree.Intensities1iReference, isId.Value); }
                 if (ksId != null) { storage.Add(ksId.ToString(), ks); data = data.Add(Durable.Octree.Classifications1bReference, ksId.Value); }
-                if (vsId != null) { storage.Add(vsId.ToString(), vs); data = data.Add(Durable.Octree.Velocities3fReference, vsId.Value); }
 
                 if (isLeaf) // leaf
                 {
@@ -293,7 +294,7 @@ namespace Aardvark.Geometry.Points
                         if (_octree.m_ps[index] == _octree.m_ps[_ia[0]])
                         {
                             // duplicate -> do not add
-                            _octree.m_duplicatePointsCount++;
+                            //_octree.m_duplicatePointsCount++;
                             return this;
                         }
                     }

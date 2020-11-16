@@ -1,5 +1,6 @@
 ﻿open System.IO
 open Aardvark.Data.Points
+open Aardvark.Geometry.Points
 
 #nowarn "9"
 
@@ -83,7 +84,23 @@ let exampleImportHeraDataFromFileFull () =
         |> Map.ofList
         |> GenericChunk
 
-    printfn "chunk.Count = %d" chunk.Count
+    printfn "chunk.Count       = %d" chunk.Count
+    printfn "chunk.BoundingBox = %A" chunk.BoundingBox
+
+    let config = 
+        ImportConfig.Default
+          .WithInMemoryStore()
+          .WithRandomKey()
+          .WithVerbose(true)
+          .WithMaxDegreeOfParallelism(0)
+          .WithMinDist(0.0)
+          .WithOctreeSplitLimit(8192)
+          .WithNormalizePointDensityGlobal(false)
+               
+    let oldChunk = Chunk(particles.Positions |> Array.map V3d, null, particles.EstimatedNormals, null, null);
+    let p = PointCloud.Import(oldChunk, config)
+      
+    printfn "pointcloud bounds: %A" p.BoundingBox
 
     ()
 

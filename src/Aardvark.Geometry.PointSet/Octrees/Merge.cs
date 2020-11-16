@@ -197,7 +197,6 @@ namespace Aardvark.Geometry.Points
                     subnodesNormals?[i],
                     subnodesIntensities?[i],
                     subnodesClassifications?[i],
-                    subnodesVelocities?[i],
                     subCell,
                     int.MaxValue
                     );
@@ -285,7 +284,6 @@ namespace Aardvark.Geometry.Points
                 var cs = chunk.Colors?.ToArray();
                 var js = chunk.Intensities?.ToArray();
                 var ks = chunk.Classifications?.ToArray();
-                var vs = chunk.Velocities?.ToArray();
                 if (psAbs == null || psAbs.Length == 0) return (null,true);
 
                 var bbExactGlobal = chunk.BoundingBox;
@@ -296,7 +294,6 @@ namespace Aardvark.Geometry.Points
                 Guid? csId = cs != null ? Guid.NewGuid() : (Guid?)null;
                 Guid? jsId = js != null ? Guid.NewGuid() : (Guid?)null;
                 Guid? ksId = ks != null ? Guid.NewGuid() : (Guid?)null;
-                Guid? vsId = vs != null ? Guid.NewGuid() : (Guid?)null;
 
 
                 var center = cell.BoundingBox.Center;
@@ -316,7 +313,6 @@ namespace Aardvark.Geometry.Points
                 if (csId.HasValue) { storage.Add(csId.Value, cs); data = data.Add(Durable.Octree.Colors4bReference, csId.Value); }
                 if (jsId.HasValue) { storage.Add(jsId.Value, js); data = data.Add(Durable.Octree.Intensities1iReference, jsId.Value); }
                 if (ksId.HasValue) { storage.Add(ksId.Value, ks); data = data.Add(Durable.Octree.Classifications1bReference, ksId.Value); }
-                if (vsId.HasValue) { storage.Add(vsId.Value, vs); data = data.Add(Durable.Octree.Velocities3fReference, vsId.Value); }
                 //if (kdId.HasValue) { storage.Add(kdId.Value, kd.Data); data = data.Add(Durable.Octree.PointRkdTreeFDataReference, kdId.Value); }
 
                 return (new PointSetNode(data, config.Storage, writeToStore: true), true);
