@@ -1,3 +1,4 @@
+version 6.0.0-alpha050
 framework: netcoreapp3.1, netstandard2.0
 
 source https://api.nuget.org/v3/index.json
@@ -35,11 +36,6 @@ nuget FShade                            ~> 5.1.3
 nuget Unofficial.DotSpatial.Projections ~> 0.0.4
 
 nuget Microsoft.NET.Test.Sdk            ~> 16.1.1
-
-group Build
-framework: netstandard2.0
-source https://api.nuget.org/v3/index.json
-github aardvark-platform/aardvark.fake:v5
 
 group Build
 framework: netstandard2.0

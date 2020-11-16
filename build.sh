@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ ! -f .paket/paket ]; then
-    dotnet tool install Paket --tool-path .paket
+    dotnet tool install Paket --tool-path .paket --version 6.0.0-alpha050
 fi
 
 ./.paket/paket restore 
