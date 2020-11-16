@@ -1,15 +1,19 @@
 ﻿/*
-    Copyright (C) 2006-2020. Aardvark Platform Team. http://github.com/aardvark-platform.
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Affero General Public License for more details.
-    You should have received a copy of the GNU Affero General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Aardvark Platform
+   Copyright (C) 2006-2020  Aardvark Platform Team
+   https://aardvark.graphics
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 */
 using System.Threading;
 
@@ -54,7 +58,7 @@ namespace Aardvark.Data.Points
         /// Default configuration.
         /// </summary>
         public static readonly ParseConfig Default =
-            new ParseConfig(
+            new(
                 maxChunkPointCount: 5242880,        // 5 MPoints
                 verbose: false,                     
                 ct: default,
@@ -90,21 +94,21 @@ namespace Aardvark.Data.Points
         }
 
         /// <summary></summary>
-        public ParseConfig WithMaxChunkPointCount(int c) => new ParseConfig(this) { MaxChunkPointCount = c };
+        public ParseConfig WithMaxChunkPointCount(int c) => new(this) { MaxChunkPointCount = c };
 
         /// <summary></summary>
-        public ParseConfig WithCancellationToken(CancellationToken v) => new ParseConfig(this) { CancellationToken = v };
+        public ParseConfig WithCancellationToken(CancellationToken v) => new(this) { CancellationToken = v };
 
         /// <summary></summary>
-        public ParseConfig WithMaxDegreeOfParallelism(int v) => new ParseConfig(this) { MaxDegreeOfParallelism = v };
+        public ParseConfig WithMaxDegreeOfParallelism(int v) => new(this) { MaxDegreeOfParallelism = v };
 
         /// <summary></summary>
-        public ParseConfig WithMinDist(double v) => new ParseConfig(this) { MinDist = v };
+        public ParseConfig WithMinDist(double v) => new(this) { MinDist = v };
 
         /// <summary></summary>
-        public ParseConfig WithReadBufferSizeInBytes(int v) => new ParseConfig(this) { ReadBufferSizeInBytes = v };
+        public ParseConfig WithReadBufferSizeInBytes(int v) => new(this) { ReadBufferSizeInBytes = v };
 
         /// <summary></summary>
-        public ParseConfig WithVerbose(bool v) => new ParseConfig(this) { Verbose = v };
+        public ParseConfig WithVerbose(bool v) => new(this) { Verbose = v };
     }
 }
