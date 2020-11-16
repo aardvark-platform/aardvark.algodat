@@ -1,4 +1,5 @@
 ﻿open System.IO
+open Aardvark.Data.Points
 
 #nowarn "9"
 
@@ -58,6 +59,32 @@ let exampleImportHeraDataFromFileFull () =
     let particles = Hera.importHeraDataFromFileFull "T:\Hera\impact.0400"
     sw.Stop()
     printfn "%A" sw.Elapsed
+
+    let chunk = 
+        [
+            (GenericChunk.Defs.Positions3f,         particles.Positions :> obj)
+            (GenericChunk.Defs.Normals3f,           particles.EstimatedNormals :> obj)
+            (Hera.Defs.AlphaJutzi,                  particles.AlphaJutzi :> obj)
+            (Hera.Defs.AverageSquaredDistances,     particles.AverageSquaredDistances :> obj)
+            (Hera.Defs.CubicRootsOfDamage,          particles.CubicRootOfDamage :> obj)
+            (Hera.Defs.Densities,                   particles.Densities :> obj)
+            (Hera.Defs.InternalEnergies,            particles.InternalEnergies :> obj)
+            (Hera.Defs.LocalStrains,                particles.LocalStrains :> obj)
+            (Hera.Defs.Masses,                      particles.Masses :> obj)
+            (Hera.Defs.MaterialTypes,               particles.MaterialTypes :> obj)
+            (Hera.Defs.NumbersOfActivatedFlaws,     particles.NumberOfActivatedFlaws :> obj)
+            (Hera.Defs.NumbersOfFlaws,              particles.NumberOfFlaws :> obj)
+            (Hera.Defs.NumberOfInteractionPartners, particles.NumberOfInteractionPartners :> obj)
+            (Hera.Defs.Pressures,                   particles.Pressures :> obj)
+            (Hera.Defs.Sigmas,                      particles.Sigmas :> obj)
+            (Hera.Defs.SmoothingLengths,            particles.SmoothingLengths :> obj)
+            (Hera.Defs.Velocities,                  particles.Velocities :> obj)
+        ]
+        |> Map.ofList
+        |> GenericChunk
+
+    printfn "chunk.Count = %d" chunk.Count
+
     ()
 
 [<EntryPoint>]

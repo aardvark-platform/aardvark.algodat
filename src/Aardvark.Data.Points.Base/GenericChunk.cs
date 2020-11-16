@@ -137,17 +137,17 @@ namespace Aardvark.Data.Points
             #region Classifications
 
             /// <summary>Classifications. byte[].</summary>
-            public static readonly Durable.Def Classifications1b = Def("3b2dddb6-6d5e-4d92-877c-d046ed026b8a", "Aardvark.Chunk.Classifications1b", "Classifications. byte[].", Durable.Primitives.UInt8Array);
+            public static readonly Durable.Def Classifications1b = Def("3cf3a1b8-1000-4b2f-a674-f0718c60de72", "Aardvark.Chunk.Classifications1b", "Classifications. byte[].", Durable.Primitives.UInt8Array);
             /// <summary>Classifications. Int16[].</summary>
-            public static readonly Durable.Def Classifications1s = Def("71f63c81-9cd4-437d-801b-d2a012ea120c", "Aardvark.Chunk.Classifications1s", "Classifications. Int16[].", Durable.Primitives.Int16Array);
+            public static readonly Durable.Def Classifications1s = Def("8673504a-5100-4dbc-87b6-0ca4f2382bcc", "Aardvark.Chunk.Classifications1s", "Classifications. Int16[].", Durable.Primitives.Int16Array);
             /// <summary>Classifications. UInt16[].</summary>
-            public static readonly Durable.Def Classifications1us = Def("75e9e5c3-b510-4e00-bb80-866976ef7df2", "Aardvark.Chunk.Classifications1us", "Classifications. UInt16[].", Durable.Primitives.UInt16Array);
+            public static readonly Durable.Def Classifications1us = Def("4cae2709-c86e-4d24-bba8-086d4845c817", "Aardvark.Chunk.Classifications1us", "Classifications. UInt16[].", Durable.Primitives.UInt16Array);
             /// <summary>Classifications. Int32[].</summary>
-            public static readonly Durable.Def Classifications1i = Def("d97c8f2e-8e47-4bea-a226-e655b8520dd7", "Aardvark.Chunk.Classifications1i", "Classifications. Int32[].", Durable.Primitives.Int32Array);
+            public static readonly Durable.Def Classifications1i = Def("61fea872-aa6e-4249-ae9f-ad8fe75f8638", "Aardvark.Chunk.Classifications1i", "Classifications. Int32[].", Durable.Primitives.Int32Array);
             /// <summary>Classifications. UInt32[].</summary>
-            public static readonly Durable.Def Classifications1ui = Def("cc43d018-e67d-4d50-be74-989cb2a296c2", "Aardvark.Chunk.Classifications1ui", "Classifications. UInt32[].", Durable.Primitives.UInt32Array);
+            public static readonly Durable.Def Classifications1ui = Def("3434e3d8-8812-4f7f-9f35-8150de42922c", "Aardvark.Chunk.Classifications1ui", "Classifications. UInt32[].", Durable.Primitives.UInt32Array);
             /// <summary>Classifications. string[].</summary>
-            public static readonly Durable.Def ClassificationsString = Def("b3ec8a5f-cd6f-4e02-a0b6-c2a6028a896d", "Aardvark.Chunk.ClassificationsString", "Classifications. string[].", Durable.Primitives.StringUTF8Array);
+            public static readonly Durable.Def ClassificationsString = Def("05d57d11-86a1-4bd4-bb6d-219a47fd9193", "Aardvark.Chunk.ClassificationsString", "Classifications. string[].", Durable.Primitives.StringUTF8Array);
 
             /// <summary>All durable defs interpreted as colors.</summary>
             public static readonly ImmutableHashSet<Durable.Def> ClassificationsSupportedDefs = ImmutableHashSet<Durable.Def>.Empty
@@ -175,7 +175,7 @@ namespace Aardvark.Data.Points
         public Box3d BoundingBox { get; }
 
         /// <summary>
-        /// Number of points.
+        /// Number of points in this chunk.
         /// </summary>
         public int Count { get; }
 

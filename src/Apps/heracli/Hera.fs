@@ -30,124 +30,72 @@ module Hera =
                                               "Set of Hera particles."
                                               Durable.Primitives.DurableMap false
 
-        let Position                    = def "e613884f-4c4d-448d-a4bf-7d22f7da7d49" "Hera.Particle.Position"
+        let Positions                   = def "3fcec3fa-282d-4255-b541-94c6d4f8a14c" "Hera.Particle.Positions"
                                               "Spatial position of SPH particle."
-                                              Durable.Aardvark.V3f false
-        let PositionArray               = def "3fcec3fa-282d-4255-b541-94c6d4f8a14c" "Hera.Particle.PositionArray"
-                                              "Hera.Particle.Position array."
                                               Durable.Aardvark.V3fArray true
 
-        let EstimatedNormal             = def "b11e3d42-bc5f-459c-8776-1efbef00853c" "Hera.Particle.EstimatedNormal"
+        let EstimatedNormals            = def "b2bb7961-0422-4f1c-8d64-0d4bf049083d" "Hera.Particle.EstimatedNormals"
                                               "Estimated normal vector (from k-nearest neighbours positions) of SPH particle."
-                                              Durable.Aardvark.V3f false
-        let EstimatedNormalArray        = def "b2bb7961-0422-4f1c-8d64-0d4bf049083d" "Hera.Particle.EstimatedNormalArray"
-                                              "Hera.Particle.EstimatedNormal array."
                                               Durable.Aardvark.V3fArray true
 
-        let Velocity                    = def "71bd64d9-b18b-44a6-b52f-bcbc811005fe" "Hera.Particle.Velocity"
+        let Velocities                  = def "2b2c08af-d81a-4d2e-a174-74b49ea231f3" "Hera.Particle.Velocities"
                                               "Velocity of SPH particle."
-                                              Durable.Aardvark.V3f false
-        let VelocityArray               = def "2b2c08af-d81a-4d2e-a174-74b49ea231f3" "Hera.Particle.VelocityArray"
-                                              "Hera.Particle.Velocity array."
                                               Durable.Aardvark.V3fArray true
         
-        let Mass                        = def "aea3be45-708e-4657-8b89-7c888630c7a9" "Hera.Particle.Mass"
+        let Masses                      = def "8b47ae79-aacc-4f72-9652-cf60d6ffe948" "Hera.Particle.Masses"
                                               "Mass of SPH particle."
-                                              Durable.Primitives.Float32 false
-        let MassArray                   = def "8b47ae79-aacc-4f72-9652-cf60d6ffe948" "Hera.Particle.MassArray"
-                                              "Hera.Particle.Mass array."
                                               Durable.Primitives.Float32Array true
         
-        let Density                     = def "7654dbb4-09d6-4b1b-ba20-c9d12a2895e4" "Hera.Particle.Density"
+        let Densities                   = def "f9da3db2-3e3e-4d62-97e7-c46e0d979be9" "Hera.Particle.Densities"
                                               "Density of SPH particle."
-                                              Durable.Primitives.Float32 false
-        let DensityArray                = def "f9da3db2-3e3e-4d62-97e7-c46e0d979be9" "Hera.Particle.DensityArray"
-                                              "Hera.Particle.Density array."
                                               Durable.Primitives.Float32Array true
         
-        let InternalEnergy              = def "df469fa5-5ff8-45be-917a-d19bc31655f2" "Hera.Particle.InternalEnergy"
+        let InternalEnergies            = def "47a77854-8397-410f-aa41-58a5ce7695e7" "Hera.Particle.InternalEnergies"
                                               "Internal energy of SPH particle."
-                                              Durable.Primitives.Float32 false
-        let InternalEnergyArray         = def "47a77854-8397-410f-aa41-58a5ce7695e7" "Hera.Particle.InternalEnergyArray"
-                                              "Hera.Particle.InternalEnergy array."
                                               Durable.Primitives.Float32Array true
         
-        let SmoothingLength             = def "8cec485b-1d82-4ba8-b198-7b3635cd4fe5" "Hera.Particle.SmoothingLength"
+        let SmoothingLengths            = def "b5e0c915-34c4-4bab-ae48-f43726d72726" "Hera.Particle.SmoothingLengths"
                                               "Smoothing length (always the same)."
-                                              Durable.Primitives.Float32 false
-        let SmoothingLengthArray        = def "b5e0c915-34c4-4bab-ae48-f43726d72726" "Hera.Particle.SmoothingLengthArray"
-                                              "Hera.Particle.SmoothingLength array."
                                               Durable.Primitives.Float32Array true
         
-        let NumberOfInteractionPartners = def "025a2ad0-19cf-4ee2-90a3-2aca8924aa80" "Hera.Particle.NumberOfInteractionPartners"
+        let NumberOfInteractionPartners = def "6cb36a49-b3ac-4c94-9869-7f0eb09950ac" "Hera.Particle.NumberOfInteractionPartners"
                                               "Number of interaction partners of SPH particle."
-                                              Durable.Primitives.Int32 false
-        let NumberOfInteractionPartnersArray =
-                                          def "6cb36a49-b3ac-4c94-9869-7f0eb09950ac" "Hera.Particle.NumberOfInteractionPartnersArray"
-                                              "Hera.Particle.NumberOfInteractionPartners array."
                                               Durable.Primitives.Int32Array true
         
-        let MaterialType                = def "d7e8a38f-d406-4970-b51e-934938d1ba98" "Hera.Particle.MaterialType"
+        let MaterialTypes               = def "1da0927e-6b72-4a47-8d89-c58d8876e954" "Hera.Particle.MaterialTypes"
                                               "Material type of SPH particle."
-                                              Durable.Primitives.Int32 false
-        let MaterialTypeArray           = def "1da0927e-6b72-4a47-8d89-c58d8876e954" "Hera.Particle.MaterialTypeArray"
-                                              "Hera.Particle.MaterialType array."
                                               Durable.Primitives.Int32Array true
         
-        let NumberOfFlaws               = def "97dd2bef-5664-4755-9ab3-88568be093b5" "Hera.Particle.NumberOfFlaws"
+        let NumbersOfFlaws              = def "467008f9-2ad8-4aa3-a6ff-cb412b59e70d" "Hera.Particle.NumbersOfFlaws"
                                               "Number of flaws of SPH particle (Grady-Kipp damage model)."
-                                              Durable.Primitives.Int32 false
-        let NumberOfFlawsArray          = def "467008f9-2ad8-4aa3-a6ff-cb412b59e70d" "Hera.Particle.NumberOfFlawsArray"
-                                              "Hera.Particle.NumberOfFlaws array."
                                               Durable.Primitives.Int32Array true
         
-        let NumberOfActivatedFlaws      = def "c7c8e397-3f8c-4df0-b803-518c413fb552" "Hera.Particle.NumberOfActivatedFlaws"
+        let NumbersOfActivatedFlaws     = def "4833966e-a2ec-4f6a-94f8-76fbebb9d97f" "Hera.Particle.NumbersOfActivatedFlaws"
                                               "Number of activated flaws of SPH particle."
-                                              Durable.Primitives.Int32 false
-        let NumberOfActivatedFlawsArray = def "4833966e-a2ec-4f6a-94f8-76fbebb9d97f" "Hera.Particle.NumberOfActivatedFlawsArray"
-                                              "Hera.Particle.NumberOfActivatedFlaws array."
                                               Durable.Primitives.Int32Array true
         
-        let CubicRootOfDamage           = def "49254ad8-9e3e-4427-ad38-d1d0fcda7512" "Hera.Particle.CubicRootOfDamage"
+        let CubicRootsOfDamage          = def "0fb53221-5bd7-4caa-8c72-b9f0cc7b8d9c" "Hera.Particle.CubicRootsOfDamage"
                                               "Cubic root of damage of SPH particle."
-                                              Durable.Primitives.Float32 false
-        let CubicRootOfDamageArray      = def "0fb53221-5bd7-4caa-8c72-b9f0cc7b8d9c" "Hera.Particle.CubicRootOfDamageArray"
-                                              "Hera.Particle.CubicRootOfDamage array."
                                               Durable.Primitives.Float32Array true
         
-        let LocalStrain                 = def "7c4957d1-42d1-411d-9ccd-6db89acab579" "Hera.Particle.LocalStrain"
+        let LocalStrains                = def "993162f5-ad29-45af-a653-b57dc8ee31a1" "Hera.Particle.LocalStrains"
                                               "Local_strain of SPH particle."
-                                              Durable.Primitives.Float32 false
-        let LocalStrainArray            = def "993162f5-ad29-45af-a653-b57dc8ee31a1" "Hera.Particle.LocalStrainArray"
-                                              "Hera.Particle.LocalStrain array."
                                               Durable.Primitives.Float32Array true
         
-        let Sigma                       = def "c37db1d5-21b8-4264-97e7-fd17bb051296" "Hera.Particle.Sigma"
+        let Sigmas                      = def "9c3c64a7-cb96-45a3-aa6b-ab6da3316128" "Hera.Particle.Sigmas"
                                               "Stress tensor component of SPH particle."
-                                              Durable.Aardvark.M33f false
-        let SigmaArray                  = def "9c3c64a7-cb96-45a3-aa6b-ab6da3316128" "Hera.Particle.SigmaArray"
-                                              "Hera.Particle.Sigma array."
                                               Durable.Aardvark.M33fArray true
         
-        let AlphaJutzi                  = def "4934c779-38ac-472c-a0ba-4edb3bebef1e" "Hera.Particle.AlphaJutzi"
+        let AlphaJutzi                  = def "4cc0437b-a096-4794-ba24-5175fdd54095" "Hera.Particle.AlphaJutzi"
                                               "alpha_jutzi = density_compact / density_porous of SPH particle."
-                                              Durable.Primitives.Float32 false
-        let AlphaJutziArray             = def "4cc0437b-a096-4794-ba24-5175fdd54095" "Hera.Particle.AlphaJutziArray"
-                                              "Hera.Particle.AlphaJutzi array."
                                               Durable.Primitives.Float32Array true
         
-        let Pressure                    = def "33258bed-9d43-4d86-89bf-9f38cabd3640" "Hera.Particle.Pressure"
+        let Pressures                   = def "1cb212a4-d33f-4f02-b38d-8cf69eafb6dc" "Hera.Particle.Pressures"
                                               "pressure 28->28+number of flaws:activation thresholds for this particle."
-                                              Durable.Primitives.Float32 false
-        let PressureArray               = def "1cb212a4-d33f-4f02-b38d-8cf69eafb6dc" "Hera.Particle.PressureArray"
-                                              "Hera.Particle.Pressure array."
                                               Durable.Primitives.Float32Array true
 
-        let AverageSquaredDistance      = def "5859a470-976b-49fd-9133-eab9d53d52d3" "Hera.Particle.AverageSquaredDistance"
+        let AverageSquaredDistances     = def "23354127-f93f-4216-a0af-b26f29e6e8fa" "Hera.Particle.AverageSquaredDistances"
                                               "Average squared distance of k-nearest points to their centroid."
-                                              Durable.Primitives.Float32 false
-        let AverageSquaredDistanceArray = def "23354127-f93f-4216-a0af-b26f29e6e8fa" "Hera.Particle.AverageSquaredDistanceArray"
-                                              "Hera.Particle.AverageSquaredDistance array."
                                               Durable.Primitives.Float32Array true
 
     let lineDef = [|
@@ -188,51 +136,51 @@ module Hera =
         Pressure                    : float32  
         }
 
-    type HeraData(data : IDictionary<Durable.Def, obj>) =
+    type HeraData(data : IReadOnlyDictionary<Durable.Def, obj>) =
 
         let data = Dictionary<_,_>(data)
         do
             // backwards compatibility
             let update olddef newdef = match data.TryGetValue(olddef) with | true, xs -> data.Add(newdef, xs) | _ -> ()
-            update Durable.Octree.PositionsLocal3f Defs.PositionArray
-            update Durable.Octree.Normals3f Defs.EstimatedNormalArray
-            update Durable.Octree.Velocities3f Defs.VelocityArray
-            update Durable.Octree.Densities1f Defs.AverageSquaredDistanceArray
+            update Durable.Octree.PositionsLocal3f Defs.Positions
+            update Durable.Octree.Normals3f Defs.EstimatedNormals
+            update Durable.Octree.Velocities3f Defs.Velocities
+            update Durable.Octree.Densities1f Defs.AverageSquaredDistances
 
 
 
-            let (hasPositions, ps) = data.TryGetValue(Defs.PositionArray)
+            let (hasPositions, ps) = data.TryGetValue(Defs.Positions)
             if not hasPositions then failwith "Data must contain Defs.PositionArray."
             let ps = ps :?> V3f[]
 
-            let (hasNormals, ns) = data.TryGetValue(Defs.EstimatedNormalArray)
+            let (hasNormals, ns) = data.TryGetValue(Defs.EstimatedNormals)
             if not hasNormals then failwith "Data must contain Defs.EstimatedNormalArray."
             let ns = ns :?> V3f[]
 
-            let (hasVelocities, vs) = data.TryGetValue(Defs.VelocityArray)
+            let (hasVelocities, vs) = data.TryGetValue(Defs.Velocities)
             if not hasVelocities then failwith "Data must contain Hera.Defs.VelocityArray."
             let vs = vs :?> V3f[]
 
             if ps.Length <> ns.Length || ps.Length <> vs.Length then 
                 failwith "All arrays must be of same length."
 
-        member this.Positions                   with get() = data.[Defs.PositionArray]                      :?> V3f[]
-        member this.EstimatedNormals            with get() = data.[Defs.EstimatedNormalArray]               :?> V3f[]
-        member this.AverageSquaredDistances     with get() = data.[Defs.AverageSquaredDistanceArray]        :?> float32[]
-        member this.Velocities                  with get() = data.[Defs.VelocityArray]                      :?> V3f[]
-        member this.Masses                      with get() = data.[Defs.MassArray]                          :?> float32[]
-        member this.Densities                   with get() = data.[Defs.DensityArray]                       :?> float32[]
-        member this.InternalEnergies            with get() = data.[Defs.InternalEnergyArray]                :?> float32[]
-        member this.SmoothingLengths            with get() = data.[Defs.SmoothingLengthArray]               :?> float32[]
-        member this.NumberOfInteractionPartners with get() = data.[Defs.NumberOfInteractionPartnersArray]   :?> int32[]
-        member this.MaterialTypes               with get() = data.[Defs.MaterialTypeArray]                  :?> int32[]
-        member this.NumberOfFlaws               with get() = data.[Defs.NumberOfFlawsArray]                 :?> int32[]
-        member this.NumberOfActivatedFlaws      with get() = data.[Defs.NumberOfActivatedFlawsArray]        :?> int32[]
-        member this.CubicRootOfDamage           with get() = data.[Defs.CubicRootOfDamageArray]             :?> float32[]
-        member this.LocalStrains                with get() = data.[Defs.LocalStrainArray]                   :?> float32[]
-        member this.Sigmas                      with get() = data.[Defs.SigmaArray]                         :?> M33f[]
-        member this.AlphaJutzi                  with get() = data.[Defs.AlphaJutziArray]                    :?> float32[]
-        member this.Pressures                   with get() = data.[Defs.PressureArray]                      :?> float32[]
+        member this.Positions                   with get() = data.[Defs.Positions]                      :?> V3f[]
+        member this.EstimatedNormals            with get() = data.[Defs.EstimatedNormals]               :?> V3f[]
+        member this.AverageSquaredDistances     with get() = data.[Defs.AverageSquaredDistances]        :?> float32[]
+        member this.Velocities                  with get() = data.[Defs.Velocities]                     :?> V3f[]
+        member this.Masses                      with get() = data.[Defs.Masses]                         :?> float32[]
+        member this.Densities                   with get() = data.[Defs.Densities]                      :?> float32[]
+        member this.InternalEnergies            with get() = data.[Defs.InternalEnergies]               :?> float32[]
+        member this.SmoothingLengths            with get() = data.[Defs.SmoothingLengths]               :?> float32[]
+        member this.NumberOfInteractionPartners with get() = data.[Defs.NumberOfInteractionPartners]    :?> int32[]
+        member this.MaterialTypes               with get() = data.[Defs.MaterialTypes]                  :?> int32[]
+        member this.NumberOfFlaws               with get() = data.[Defs.NumbersOfFlaws]                 :?> int32[]
+        member this.NumberOfActivatedFlaws      with get() = data.[Defs.NumbersOfActivatedFlaws]        :?> int32[]
+        member this.CubicRootOfDamage           with get() = data.[Defs.CubicRootsOfDamage]             :?> float32[]
+        member this.LocalStrains                with get() = data.[Defs.LocalStrains]                   :?> float32[]
+        member this.Sigmas                      with get() = data.[Defs.Sigmas]                         :?> M33f[]
+        member this.AlphaJutzi                  with get() = data.[Defs.AlphaJutzi]                     :?> float32[]
+        member this.Pressures                   with get() = data.[Defs.Pressures]                      :?> float32[]
 
         member this.Count                       with get() = this.Positions.Length
 
@@ -333,10 +281,10 @@ module Hera =
         let struct (ns, ds) = ps.EstimateNormalsAndLocalDensity(16)
 
         let data = ImmutableDictionary<Durable.Def, obj>.Empty
-                    .Add(Defs.PositionArray, ps)
-                    .Add(Defs.EstimatedNormalArray, ns)
-                    .Add(Defs.VelocityArray, vs)
-                    .Add(Defs.AverageSquaredDistanceArray, ds)
+                    .Add(Defs.Positions, ps)
+                    .Add(Defs.EstimatedNormals, ns)
+                    .Add(Defs.Velocities, vs)
+                    .Add(Defs.AverageSquaredDistances, ds)
         HeraData(data)
 
     let importHeraDataFromFile filename =
@@ -380,23 +328,23 @@ module Hera =
         let data = 
           ImmutableDictionary<Durable.Def, obj>
             .Empty
-            .Add(Defs.PositionArray,                    ps)
-            .Add(Defs.EstimatedNormalArray,             ns)
-            .Add(Defs.AverageSquaredDistanceArray,      ds)
-            .Add(Defs.VelocityArray,                    particles |> Array.map (fun p -> p.Velocity))
-            .Add(Defs.MassArray,                        particles |> Array.map (fun p -> p.Mass))
-            .Add(Defs.DensityArray,                     particles |> Array.map (fun p -> p.Density))
-            .Add(Defs.InternalEnergyArray,              particles |> Array.map (fun p -> p.InternalEnergy))
-            .Add(Defs.SmoothingLengthArray,             particles |> Array.map (fun p -> p.SmoothingLength))
-            .Add(Defs.NumberOfInteractionPartnersArray, particles |> Array.map (fun p -> p.NumberOfInteractionPartners))
-            .Add(Defs.MaterialTypeArray,                particles |> Array.map (fun p -> p.MaterialType))
-            .Add(Defs.NumberOfFlawsArray,               particles |> Array.map (fun p -> p.NumberOfFlaws))
-            .Add(Defs.NumberOfActivatedFlawsArray,      particles |> Array.map (fun p -> p.NumberOfActivatedFlaws))
-            .Add(Defs.CubicRootOfDamageArray,           particles |> Array.map (fun p -> p.CubicRootOfDamage))
-            .Add(Defs.LocalStrainArray,                 particles |> Array.map (fun p -> p.LocalStrain))
-            .Add(Defs.SigmaArray,                       particles |> Array.map (fun p -> p.Sigma))
-            .Add(Defs.AlphaJutziArray,                  particles |> Array.map (fun p -> p.AlphaJutzi))
-            .Add(Defs.PressureArray,                    particles |> Array.map (fun p -> p.Pressure))
+            .Add(Defs.Positions,                    ps)
+            .Add(Defs.EstimatedNormals,             ns)
+            .Add(Defs.AverageSquaredDistances,      ds)
+            .Add(Defs.Velocities,                   particles |> Array.map (fun p -> p.Velocity))
+            .Add(Defs.Masses,                       particles |> Array.map (fun p -> p.Mass))
+            .Add(Defs.Densities,                    particles |> Array.map (fun p -> p.Density))
+            .Add(Defs.InternalEnergies,             particles |> Array.map (fun p -> p.InternalEnergy))
+            .Add(Defs.SmoothingLengths,             particles |> Array.map (fun p -> p.SmoothingLength))
+            .Add(Defs.NumberOfInteractionPartners,  particles |> Array.map (fun p -> p.NumberOfInteractionPartners))
+            .Add(Defs.MaterialTypes,                particles |> Array.map (fun p -> p.MaterialType))
+            .Add(Defs.NumbersOfFlaws,               particles |> Array.map (fun p -> p.NumberOfFlaws))
+            .Add(Defs.NumbersOfActivatedFlaws,      particles |> Array.map (fun p -> p.NumberOfActivatedFlaws))
+            .Add(Defs.CubicRootsOfDamage,           particles |> Array.map (fun p -> p.CubicRootOfDamage))
+            .Add(Defs.LocalStrains,                 particles |> Array.map (fun p -> p.LocalStrain))
+            .Add(Defs.Sigmas,                       particles |> Array.map (fun p -> p.Sigma))
+            .Add(Defs.AlphaJutzi,                   particles |> Array.map (fun p -> p.AlphaJutzi))
+            .Add(Defs.Pressures,                    particles |> Array.map (fun p -> p.Pressure))
 
         HeraData(data)
         
