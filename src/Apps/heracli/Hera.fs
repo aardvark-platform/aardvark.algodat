@@ -293,7 +293,7 @@ module Hera =
         let particles = 
           File
             .ReadLines(filename)
-            //.Take(50000)
+            .Take(50000)
             .AsParallel()
             .Select(fun line ->
                 let ts = line.SplitOnWhitespace()

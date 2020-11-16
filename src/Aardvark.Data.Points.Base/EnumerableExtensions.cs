@@ -28,7 +28,9 @@ namespace Aardvark.Data.Points
 {
     public static class ArrayExtensions
     {
-        private static T[] Subset<T>(T[] xs, List<int> subsetIndices) => subsetIndices.MapToArray(i => xs[i]);
+        public static T[] Subset<T>(this T[] xs, List<int> subsetIndices) => subsetIndices.MapToArray(i => xs[i]);
+
+        public static T[] Subset<T>(this IList<T> xs, List<int> subsetIndices) => subsetIndices.MapToArray(i => xs[i]);
 
         public static Array Subset(this object array, List<int> subsetIndices) => array switch
         {

@@ -59,6 +59,10 @@ namespace Aardvark.Data
                 [Durable.Aardvark.V3dArray.Id] = EncodeV3dArray,
                 [Durable.Aardvark.V4d.Id] = EncodeV4d,
                 [Durable.Aardvark.V4dArray.Id] = EncodeV4dArray,
+                [Durable.Aardvark.M33f.Id] = EncodeM33f,
+                [Durable.Aardvark.M33fArray.Id] = EncodeM33fArray,
+                [Durable.Aardvark.M33d.Id] = EncodeM33d,
+                [Durable.Aardvark.M33dArray.Id] = EncodeM33dArray,
                 [Durable.Aardvark.Box2f.Id] = EncodeBox2f,
                 [Durable.Aardvark.Box2fArray.Id] = EncodeBox2fArray,
                 [Durable.Aardvark.Box2d.Id] = EncodeBox2d,
@@ -111,6 +115,10 @@ namespace Aardvark.Data
                 [Durable.Aardvark.V3dArray.Id] = DecodeV3dArray,
                 [Durable.Aardvark.V4d.Id] = DecodeV4d,
                 [Durable.Aardvark.V4dArray.Id] = DecodeV4dArray,
+                [Durable.Aardvark.M33f.Id] = DecodeM33f,
+                [Durable.Aardvark.M33fArray.Id] = DecodeM33fArray,
+                [Durable.Aardvark.M33d.Id] = DecodeM33d,
+                [Durable.Aardvark.M33dArray.Id] = DecodeM33dArray,
                 [Durable.Aardvark.Box2f.Id] = DecodeBox2f,
                 [Durable.Aardvark.Box2fArray.Id] = DecodeBox2fArray,
                 [Durable.Aardvark.Box2d.Id] = DecodeBox2d,
@@ -192,6 +200,18 @@ namespace Aardvark.Data
             (s, o) => { var x = (V4d)o; s.Write(x.X); s.Write(x.Y); s.Write(x.Z); s.Write(x.W); };
         private static readonly Action<BinaryWriter, object> EncodeV4dArray =
             (s, o) => EncodeArray(s, (V4d[])o);
+
+
+
+        private static readonly Action<BinaryWriter, object> EncodeM33f =
+            (s, o) => { var x = (M33f)o; s.Write(x.M00); s.Write(x.M01); s.Write(x.M02); s.Write(x.M10); s.Write(x.M11); s.Write(x.M12); s.Write(x.M20); s.Write(x.M21); s.Write(x.M22); };
+        private static readonly Action<BinaryWriter, object> EncodeM33fArray =
+            (s, o) => EncodeArray(s, (M33f[])o);
+
+        private static readonly Action<BinaryWriter, object> EncodeM33d =
+            (s, o) => { var x = (M33d)o; s.Write(x.M00); s.Write(x.M01); s.Write(x.M02); s.Write(x.M10); s.Write(x.M11); s.Write(x.M12); s.Write(x.M20); s.Write(x.M21); s.Write(x.M22); };
+        private static readonly Action<BinaryWriter, object> EncodeM33dArray =
+            (s, o) => EncodeArray(s, (M33d[])o);
 
 
         private static readonly Action<BinaryWriter, object> EncodeBox2f =
@@ -329,6 +349,11 @@ namespace Aardvark.Data
         private static readonly Func<BinaryReader, object> DecodeV3dArray = s => DecodeArray<V3d>(s);
         private static readonly Func<BinaryReader, object> DecodeV4d = s => new V4d(s.ReadDouble(), s.ReadDouble(), s.ReadDouble(), s.ReadDouble());
         private static readonly Func<BinaryReader, object> DecodeV4dArray = s => DecodeArray<V4d>(s);
+
+        private static readonly Func<BinaryReader, object> DecodeM33f = s => new M33f(s.ReadSingle(), s.ReadSingle(), s.ReadSingle(), s.ReadSingle(), s.ReadSingle(), s.ReadSingle(), s.ReadSingle(), s.ReadSingle(), s.ReadSingle());
+        private static readonly Func<BinaryReader, object> DecodeM33fArray = s => DecodeArray<M33f>(s);
+        private static readonly Func<BinaryReader, object> DecodeM33d = s => new M33d(s.ReadDouble(), s.ReadDouble(), s.ReadDouble(), s.ReadDouble(), s.ReadDouble(), s.ReadDouble(), s.ReadDouble(), s.ReadDouble(), s.ReadDouble());
+        private static readonly Func<BinaryReader, object> DecodeM33dArray = s => DecodeArray<M33d>(s);
 
         private static readonly Func<BinaryReader, object> DecodeBox2f = s => new Box2f((V2f)DecodeV2f(s), (V2f)DecodeV2f(s));
         private static readonly Func<BinaryReader, object> DecodeBox2fArray = s => DecodeArray<Box2f>(s);

@@ -92,7 +92,7 @@ let exampleImportHeraDataFromFileFull () =
           .WithInMemoryStore()
           .WithRandomKey()
           .WithVerbose(true)
-          .WithMaxDegreeOfParallelism(0)
+          .WithMaxDegreeOfParallelism(1)
           .WithMinDist(0.0)
           .WithOctreeSplitLimit(8192)
           .WithNormalizePointDensityGlobal(false)

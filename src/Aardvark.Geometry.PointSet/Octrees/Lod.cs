@@ -120,7 +120,51 @@ namespace Aardvark.Geometry.Points
             }
             else return rs;
         }
-   
+
+        internal static Array AggregateSubArrays(int[] counts, int splitLimit, object[] arrays)
+        {
+            var t = arrays.First(x => x != null).GetType().GetElementType();
+            return arrays.First(x => x != null) switch
+            {
+                Guid[] _    => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (Guid[])x)),
+                string[] _  => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (string[])x)),
+                byte[] _    => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (byte[])x)),
+                sbyte[] _   => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (sbyte[])x)),
+                short[] _   => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (short[])x)),
+                ushort[] _  => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (ushort[])x)),
+                int[] _     => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (int[])x)),
+                uint[] _    => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (uint[])x)),
+                long[] _    => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (long[])x)),
+                ulong[] _   => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (ulong[])x)),
+                float[] _   => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (float[])x)),
+                double[] _  => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (double[])x)),
+                decimal[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (decimal[])x)),
+                V2d[] _     => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V2d[])x)),
+                V2f[] _     => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V2f[])x)),
+                V2i[] _     => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V2i[])x)),
+                V2l[] _     => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V2l[])x)),
+                V3d[] _     => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V3d[])x)),
+                V3f[] _     => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V3f[])x)),
+                V3i[] _     => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V3i[])x)),
+                V3l[] _     => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V3l[])x)),
+                V4d[] _     => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V4d[])x)),
+                V4f[] _     => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V4f[])x)),
+                V4i[] _     => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V4i[])x)),
+                V4l[] _     => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V4l[])x)),
+                M22f[] _    => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M22f[])x)),
+                M22d[] _    => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M22d[])x)),
+                M33f[] _    => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M33f[])x)),
+                M33d[] _    => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M33d[])x)),
+                M44f[] _    => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M44f[])x)),
+                M44d[] _    => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M44d[])x)),
+                Trafo2d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (Trafo2d[])x)),
+                Trafo2f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (Trafo2f[])x)),
+                Trafo3d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (Trafo3d[])x)),
+                Trafo3f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (Trafo3f[])x)),
+                _           => throw new Exception($"LoD aggregation for type {t} not supported. Error 13c77814-f323-41fb-a7b6-c164973b7b02.")
+            };
+        }
+
         private static async Task<PointSet> GenerateLod(this PointSet self, string key, Action callback, CancellationToken ct)
         {
             try
@@ -218,18 +262,24 @@ namespace Aardvark.Geometry.Points
                 var counts = ComputeLodCounts(octreeSplitLimit, fractions);
 
                 // generate LoD data ...
-                var needsCs = subcells.Any(x => x != null && x.HasColors);
-                var needsNs = subcells.Any(x => x != null && x.HasNormals);
-                var needsIs = subcells.Any(x => x != null && x.HasIntensities);
-                var needsKs = subcells.Any(x => x != null && x.HasClassifications);
 
+                var firstNonEmptySubnode = subcells.First(n => n != null);
+                var lodAttributeCandidates = firstNonEmptySubnode.Properties.Keys.Where(x => x.IsArray).ToArray();
+
+                // ... shift relative positions
+                //     and from lod-positions build kd-tree and generate normals ...
                 var subcenters = subcells.Map(x => x?.Center);
                 var lodPs = AggregateSubPositions(counts, octreeSplitLimit, self.Center, subcenters, subcells.Map(x => x?.Positions?.Value));
-                var lodCs = needsCs ? AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Colors?.Value)) : null;
-                var lodIs = needsIs ? AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Intensities?.Value)) : null;
-                var lodKs = needsKs ? AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Classifications?.Value)) : null;
                 var lodKd = await lodPs.BuildKdTreeAsync();
                 var lodNs = await lodPs.EstimateNormalsAsync(16, lodKd); // Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.GetNormals3f()?.Value))
+                
+                // ... generate lod for all other attributes
+                foreach (var def in lodAttributeCandidates)
+                {
+                    if (def == Durable.Octree.SubnodesGuids) continue;
+                    var lod = AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Properties[def]));
+                    self = self.WithUpsert(def, lod);
+                }
 
                 var subnodeIds = subcells.Map(x => x != null ? x.Id : Guid.Empty);
                 self = self.WithUpsert(Durable.Octree.SubnodesGuids, subnodeIds);
@@ -244,34 +294,6 @@ namespace Aardvark.Geometry.Points
                     .WithUpsert(Durable.Octree.PointRkdTreeFDataReference, lodKdKey)
                     .WithUpsert(Durable.Octree.PositionsLocal3fReference, lodPsKey)
                     ;
-
-                if (needsCs)
-                {
-                    var key = Guid.NewGuid();
-                    self.Storage.Add(key, lodCs);
-                    self = self.WithUpsert(Durable.Octree.Colors4bReference, key);
-                }
-
-                if (needsNs)
-                {
-                    var key = Guid.NewGuid();
-                    self.Storage.Add(key, lodNs);
-                    self = self.WithUpsert(Durable.Octree.Normals3fReference, key);
-                }
-
-                if (needsIs)
-                {
-                    var key = Guid.NewGuid();
-                    self.Storage.Add(key, lodIs);
-                    self = self.WithUpsert(Durable.Octree.Intensities1iReference, key);
-                }
-
-                if (needsKs)
-                {
-                    var key = Guid.NewGuid();
-                    self.Storage.Add(key, lodKs);
-                    self = self.WithUpsert(Durable.Octree.Classifications1bReference, key);
-                }
 
                 self = self.Without(PointSetNode.TemporaryImportNode);
 
