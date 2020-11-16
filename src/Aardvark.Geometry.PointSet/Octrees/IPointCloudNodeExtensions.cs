@@ -635,10 +635,6 @@ namespace Aardvark.Geometry.Points
         public static PersistentRef<byte[]> TryGetClassifications(this IPointCloudNode self)
             => self.HasClassifications ? self.Classifications : null;
 
-        /// <summary>Returns null if node has no classifications.</summary>
-        public static PersistentRef<V3f[]> TryGetVelocities(this IPointCloudNode self)
-            => self.HasVelocities ? self.Velocities : null;
-
         #endregion
 
         #region Collect points from cells and cell columns
@@ -833,8 +829,7 @@ namespace Aardvark.Geometry.Points
             var ns = self.HasNormals ? self.Normals.Value : null;
             var js = self.HasIntensities ? self.Intensities.Value : null;
             var ks = self.HasClassifications ? self.Classifications.Value : null;
-            var vs = self.HasVelocities ? self.Velocities.Value : null;
-            return new Chunk(self.PositionsAbsolute, cs, ns, js, ks, vs);
+            return new Chunk(self.PositionsAbsolute, cs, ns, js, ks);
         }
 
         /// <summary>
@@ -852,8 +847,7 @@ namespace Aardvark.Geometry.Points
                 var ns = self.HasNormals ? self.Normals.Value : null;
                 var js = self.HasIntensities ? self.Intensities.Value : null;
                 var ks = self.HasClassifications ? self.Classifications.Value : null;
-                var vs = self.HasVelocities ? self.Velocities.Value : null;
-                yield return new Chunk(self.PositionsAbsolute, cs, ns, js, ks, vs);
+                yield return new Chunk(self.PositionsAbsolute, cs, ns, js, ks);
             }
             else
             {

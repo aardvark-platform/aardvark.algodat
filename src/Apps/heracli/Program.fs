@@ -98,9 +98,11 @@ let exampleImportHeraDataFromFileFull () =
           .WithNormalizePointDensityGlobal(false)
                
     let oldChunk = Chunk(particles.Positions |> Array.map V3d, null, particles.EstimatedNormals, null, null);
-    let p = PointCloud.Import(oldChunk, config)
-      
-    printfn "pointcloud bounds: %A" p.BoundingBox
+    let oldPointcloud = PointCloud.Import(oldChunk, config)      
+    printfn "pointcloud bounds (old): %A" oldPointcloud.BoundingBox
+
+    let pointcloud = PointCloud.Import(chunk, config)      
+    printfn "pointcloud bounds (new): %A" pointcloud.BoundingBox
 
     ()
 

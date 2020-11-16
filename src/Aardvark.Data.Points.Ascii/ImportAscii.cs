@@ -114,22 +114,6 @@ namespace Aardvark.Data.Points.Import
 
 
 
-            /// <summary>
-            /// Parses Velocity.X from float value.
-            /// </summary>
-            VelocityX,
-
-            /// <summary>
-            /// Parses Velocity.Y from float value.
-            /// </summary>
-            VelocityY,
-
-            /// <summary>
-            /// Parses Velocity.Z from float value.
-            /// </summary>
-            VelocityZ,
-
-
 
             /// <summary>
             /// Parses custom byte value.
@@ -178,12 +162,6 @@ namespace Aardvark.Data.Points.Import
 
         internal static bool HasIntensityTokens(this Token[] layout)
             => layout.Contains(Token.Intensity)
-               ;
-
-        internal static bool HasVelocityTokens(this Token[] layout)
-            => layout.Contains(Token.VelocityX) ||
-               layout.Contains(Token.VelocityY) ||
-               layout.Contains(Token.VelocityZ)
                ;
 
         internal static bool HasCustomTokens(this Token[] layout)

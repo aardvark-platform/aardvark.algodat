@@ -65,7 +65,6 @@ namespace Aardvark.Data.Points.Import
                 normals: null,
                 intensities: Map(x.Intensities, i => (int)i),
                 classifications: x.Classifications,
-                velocities: null,
                 bbox: null
                 )
             );

@@ -100,7 +100,6 @@ module Hera =
 
     let lineDef = [|
         Ascii.Token.PositionX; Ascii.Token.PositionY; Ascii.Token.PositionZ
-        Ascii.Token.VelocityX; Ascii.Token.VelocityY; Ascii.Token.VelocityZ
         |]
 
     type Particle = {
@@ -270,7 +269,6 @@ module Hera =
 
         let lineDef = [|
             Ascii.Token.PositionX; Ascii.Token.PositionY; Ascii.Token.PositionZ
-            Ascii.Token.VelocityX; Ascii.Token.VelocityY; Ascii.Token.VelocityZ
             |]
 
         let chunks = Ascii.Chunks(stream, -1L, lineDef, ParseConfig.Default).ToArray()

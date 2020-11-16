@@ -176,8 +176,7 @@ namespace Aardvark.Data.Points.Import
                         colors         : hasColors ? cs : ps.Map(_ => C4b.White),
                         normals        : null, 
                         intensities    : js,
-                        classifications: null,
-                        velocities     : null
+                        classifications: null
                         );
                     Interlocked.Add(ref yieldedRecordCount, ps.Count);
 

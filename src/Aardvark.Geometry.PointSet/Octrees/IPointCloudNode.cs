@@ -234,19 +234,6 @@ namespace Aardvark.Geometry.Points
 
         #endregion
 
-        #region Velocities
-
-        /// <summary></summary>
-        bool HasVelocities { get; }
-
-        /// <summary>
-        /// Octree. Per-point V3f velocities.
-        /// Durable definition c8db5f0a-1ddf-47ab-8266-f8e929cf98c5.
-        /// </summary>
-        PersistentRef<V3f[]> Velocities { get; }
-
-        #endregion
-
         #region CentroidLocal
 
         /// <summary></summary>

@@ -222,14 +222,12 @@ namespace Aardvark.Geometry.Points
                 var needsNs = subcells.Any(x => x != null && x.HasNormals);
                 var needsIs = subcells.Any(x => x != null && x.HasIntensities);
                 var needsKs = subcells.Any(x => x != null && x.HasClassifications);
-                var needsVs = subcells.Any(x => x != null && x.HasVelocities);
 
                 var subcenters = subcells.Map(x => x?.Center);
                 var lodPs = AggregateSubPositions(counts, octreeSplitLimit, self.Center, subcenters, subcells.Map(x => x?.Positions?.Value));
                 var lodCs = needsCs ? AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Colors?.Value)) : null;
                 var lodIs = needsIs ? AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Intensities?.Value)) : null;
                 var lodKs = needsKs ? AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Classifications?.Value)) : null;
-                var lodVs = needsVs ? AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Velocities?.Value)) : null;
                 var lodKd = await lodPs.BuildKdTreeAsync();
                 var lodNs = await lodPs.EstimateNormalsAsync(16, lodKd); // Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.GetNormals3f()?.Value))
 
@@ -273,13 +271,6 @@ namespace Aardvark.Geometry.Points
                     var key = Guid.NewGuid();
                     self.Storage.Add(key, lodKs);
                     self = self.WithUpsert(Durable.Octree.Classifications1bReference, key);
-                }
-
-                if (needsVs)
-                {
-                    var key = Guid.NewGuid();
-                    self.Storage.Add(key, lodVs);
-                    self = self.WithUpsert(Durable.Octree.Velocities3fReference, key);
                 }
 
                 self = self.Without(PointSetNode.TemporaryImportNode);

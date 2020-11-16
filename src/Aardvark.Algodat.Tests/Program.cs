@@ -1013,13 +1013,7 @@ namespace Aardvark.Geometry.Tests
             Report.BeginTimed("parsing (with Aardvark.Data.Points.Ascii)");
 
             var lineDef = new[] {
-                Ascii.Token.PositionX, Ascii.Token.PositionY, Ascii.Token.PositionZ,
-                Ascii.Token.VelocityX, Ascii.Token.VelocityY, Ascii.Token.VelocityZ,
-                //Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip,
-                //Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip,
-                //Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip,
-                //Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip,
-                //Ascii.Token.Skip
+                Ascii.Token.PositionX, Ascii.Token.PositionY, Ascii.Token.PositionZ
             };
             var chunks = Ascii.Chunks(inputFile, lineDef, ParseConfig.Default).ToArray();
 
@@ -1056,7 +1050,6 @@ namespace Aardvark.Geometry.Tests
             var data = ImmutableDictionary<Durable.Def, object>.Empty
                 .Add(Durable.Octree.PositionsLocal3f, flat.Positions.Map(p => new V3f(p)))
                 .Add(Durable.Octree.Normals3f, flat.Normals.ToArray())
-                //.Add(Durable.Octree.Velocities3f, flat.Velocities.ToArray())
                 ;
             Report.EndTimed();
 
@@ -1073,10 +1066,8 @@ namespace Aardvark.Geometry.Tests
                 sw.Stop();
                 var ps = (V3f[])dict[Durable.Octree.PositionsLocal3f];
                 var ns = (V3f[])dict[Durable.Octree.Normals3f];
-                var vs = (V3f[])dict[Durable.Octree.Velocities3f];
                 //Report.Line($"positions : {ps.Length}");
                 //Report.Line($"normals   : {ns.Length}");
-                //Report.Line($"velocities: {vs.Length}");
                 Report.Line($"{(buffer.Length / sw.Elapsed.TotalSeconds) / (1024 * 1024 * 1024):N3} GB/s");
                 Report.EndTimed();
             }

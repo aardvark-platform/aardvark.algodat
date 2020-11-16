@@ -44,7 +44,7 @@ namespace Aardvark.Data.Points
             return ll;
         }
 
-        public static readonly Chunk Empty = new(Array.Empty<V3d>(), null, null, null, null, null);
+        public static readonly Chunk Empty = new(Array.Empty<V3d>(), null, null, null, null);
 
         public readonly IList<V3d> Positions;
         public readonly IList<C4b>? Colors;
@@ -75,7 +75,6 @@ namespace Aardvark.Data.Points
         public bool HasNormals => Normals != null && Normals.Count > 0;
         public bool HasIntensities => Intensities != null && Intensities.Count > 0;
         public bool HasClassifications => Classifications != null && Classifications.Count > 0;
-        public bool HasVelocities => false;
 
         public static Chunk ImmutableMerge(Chunk a, Chunk b)
         {
@@ -123,7 +122,7 @@ namespace Aardvark.Data.Points
             }
 
             if (ps == null) throw new Exception("Invariant 1415ad7b-262a-49aa-839d-4bd0a80cd141.");
-            return new Chunk(ps, cs, ns, js, ks, null, new Box3d(a.BoundingBox, b.BoundingBox));
+            return new Chunk(ps, cs, ns, js, ks, new Box3d(a.BoundingBox, b.BoundingBox));
         }
 
         public static Chunk ImmutableMerge(params Chunk[] chunks)
@@ -154,7 +153,7 @@ namespace Aardvark.Data.Points
             }
 
             if (ps == null) throw new Exception("Invariant 4cc7d585-9a46-4ba2-892a-95fce9ed06da.");
-            return new Chunk(ps, cs, ns, js, ks, null, new Box3d(chunks.Select(x => x.BoundingBox)));
+            return new Chunk(ps, cs, ns, js, ks, new Box3d(chunks.Select(x => x.BoundingBox)));
         }
 
         public static Chunk ImmutableMerge(IEnumerable<Chunk> chunks)
@@ -167,7 +166,6 @@ namespace Aardvark.Data.Points
         /// <param name="normals">Optional. Either null or same number of elements as positions.</param>
         /// <param name="intensities">Optional. Either null or same number of elements as positions.</param>
         /// <param name="classifications">Optional. Either null or same number of elements as positions.</param>
-        /// <param name="velocities">Optional. Either null or same number of elements as positions.</param>
         /// <param name="bbox">Optional. If null, then bbox will be constructed from positions.</param>
         public Chunk(
             IList<V3d> positions,
@@ -175,14 +173,12 @@ namespace Aardvark.Data.Points
             IList<V3f>? normals = null,
             IList<int>? intensities = null,
             IList<byte>? classifications = null,
-            IList<V3f>? velocities = null,
             Box3d? bbox = null
             )
         {
             //if (colors != null && colors.Count != positions?.Count) throw new ArgumentException(nameof(colors));
             if (normals != null && normals.Count != positions?.Count) throw new ArgumentException(nameof(normals));
             if (intensities != null && intensities.Count != positions?.Count) throw new ArgumentException(nameof(intensities));
-            if (velocities != null && velocities.Count != positions?.Count) throw new ArgumentException(nameof(velocities));
 
             if (positions != null && colors != null && positions.Count != colors.Count)
             {
@@ -197,18 +193,6 @@ namespace Aardvark.Data.Points
             Classifications = classifications != null && classifications.Count > 0 ? classifications : null;
             BoundingBox = bbox ?? (positions != null ? new Box3d(positions) : Box3d.Invalid);
         }
-
-        /// <summary>
-        /// </summary>
-        /// <param name="positions">Optional.</param>
-        /// <param name="colors">Optional. Either null or same number of elements as positions.</param>
-        /// <param name="normals">Optional. Either null or same number of elements as positions.</param>
-        /// <param name="intensities">Optional. Either null or same number of elements as positions.</param>
-        /// <param name="classifications">Optional. Either null or same number of elements as positions.</param>
-        /// <param name="bbox">Optional. If null, then bbox will be constructed from positions.</param>
-        public Chunk(IList<V3d> positions, IList<C4b>? colors, IList<V3f>? normals, IList<int>? intensities, IList<byte>? classifications, Box3d? bbox)
-            : this(positions, colors, normals, intensities, classifications, velocities: null, bbox)
-        { }
 
         /// <summary>
         /// Creates new chunk which is union of this chunk and other. 

@@ -158,13 +158,6 @@ namespace Aardvark.Geometry.Points
                 data = data.Add(Octree.Intensities1iReference, id);
             }
 
-            if (HasVelocities)
-            {
-                var id = Guid.NewGuid();
-                Storage.Add(id, Velocities.Value);
-                data = data.Add(Octree.Velocities3fReference, id);
-            }
-
             var result = new PointSetNode(data, Storage, writeToStore: true);
             return result;
         }
@@ -405,16 +398,6 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public PersistentRef<int[]> Intensities => GetSubArray(Octree.Intensities1i, Node.Intensities);
-
-        #endregion
-
-        #region Velocities
-
-        /// <summary></summary>
-        public bool HasVelocities => Node.HasVelocities;
-
-        /// <summary></summary>
-        public PersistentRef<V3f[]> Velocities => GetSubArray(Octree.Velocities3f, Node.Velocities);
 
         #endregion
 
