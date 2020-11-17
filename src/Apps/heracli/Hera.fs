@@ -401,6 +401,8 @@ module Hera =
         let particles = importHeraDataFromFileFull datafile
         Report.EndTimed() |> ignore
 
+        //let bb = particles.Positions |> Box3f
+
         Report.BeginTimed("building octree")
         use store = (new SimpleDiskStore(storepath)).ToPointCloudStore()
         let pointcloud = particles.SaveToStore store verbose
@@ -415,13 +417,13 @@ module Hera =
 
         File.WriteAllText(storepath + ".key", pointcloud.Id)
 
-        let root = pointcloud.Root.Value
-        root.ForEachNode(true, fun n ->
-            let isLeaf = if n.IsLeaf then "leaf" else "    "
-            let pl3f    = if n.Has(Durable.Octree.PositionsLocal3f) then "PositionsLocal3f" else "                "
-            let pl3fref = if n.Has(Durable.Octree.PositionsLocal3fReference) then "PositionsLocal3fReference" else "                         "
-            printfn "node %A    %s    %s    %s" n.Id isLeaf pl3f pl3fref
-        )
+        //let root = pointcloud.Root.Value
+        //root.ForEachNode(true, fun n ->
+        //    let isLeaf = if n.IsLeaf then "leaf" else "    "
+        //    let pl3f    = if n.Has(Durable.Octree.PositionsLocal3f) then "PositionsLocal3f" else "                "
+        //    let pl3fref = if n.Has(Durable.Octree.PositionsLocal3fReference) then "PositionsLocal3fReference" else "                         "
+        //    printfn "node %A    %s    %s    %s" n.Id isLeaf pl3f pl3fref
+        //)
 
         pointcloud.Id
 

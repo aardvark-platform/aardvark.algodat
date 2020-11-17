@@ -142,12 +142,17 @@ let main argv =
     let storepath = datafile + ".store"
 
     let (p, store) = loadOctreeFromStore storepath
-    let bb = p.BoundingBox
+    let bb = p.Root.Value.BoundingBoxExactGlobal
     let root = p.Root.Value
-    let vertices   = root.PositionsAbsolute |> Array.map V3f
-    let normals    = root.Normals.Value
-    let velocities = root.Properties.[Hera.Defs.Velocities]              :?> V3f[]
-    let densities  = root.Properties.[Hera.Defs.AverageSquaredDistances] :?> float32[]
+
+    let collectLeafData (extract : IPointCloudNode -> 'a[]) (root : IPointCloudNode) : 'a[] =
+        root.EnumerateNodes () |> Seq.filter (fun n -> n.IsLeaf) |> Seq.map extract |> Array.concat
+
+    let vertices   = root |> collectLeafData (fun n -> n.PositionsAbsolute |> Array.map V3f)
+    let bb2 = Box3f(vertices)
+    let normals    = root |> collectLeafData (fun n -> n.Normals.Value)
+    let velocities = root |> collectLeafData (fun n -> n.Properties.[Hera.Defs.Velocities] :?> V3f[])
+    let densities  = root |> collectLeafData (fun n -> n.Properties.[Hera.Defs.AverageSquaredDistances] :?> float32[])
 
     //let bb = Box3f data.Positions |> Box3d
     //let vertices = data.Positions

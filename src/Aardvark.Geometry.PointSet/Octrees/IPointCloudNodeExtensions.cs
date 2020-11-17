@@ -25,6 +25,27 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public static class IPointCloudNodeExtensions
     {
+        #region enumerate nodes
+
+        /// <summary>
+        /// Enumerates all nodes depth-first.
+        /// </summary>
+        public static IEnumerable<IPointCloudNode> EnumerateNodes(this IPointCloudNode root)
+        {
+            if (root.Subnodes != null)
+            {
+                foreach (var subnode in root.Subnodes)
+                {
+                    if (subnode == null) continue;
+                    foreach (var n in EnumerateNodes(subnode.Value)) yield return n;
+                }
+            }
+
+            yield return root;
+        }
+
+        #endregion
+
         #region ForEach (optionally traversing out-of-core nodes) 
 
         /// <summary>

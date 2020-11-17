@@ -186,7 +186,7 @@ namespace Aardvark.Geometry.Points
         public Box3d Bounds => Root?.Value?.Cell.BoundingBox ?? Box3d.Invalid;
 
         /// <summary>
-        /// Gets exact bounding box of all points from coarsest LoD.
+        /// Gets exact bounding box of all points in pointcloud.
         /// </summary>
         public Box3d BoundingBox
         {
@@ -194,7 +194,7 @@ namespace Aardvark.Geometry.Points
             {
                 try
                 {
-                    return new Box3d(Root.Value.PositionsAbsolute);
+                    return Root.Value.BoundingBoxExactGlobal;
                 }
                 catch (NullReferenceException)
                 {
