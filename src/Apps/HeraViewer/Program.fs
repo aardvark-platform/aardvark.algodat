@@ -265,14 +265,15 @@ let main argv =
         let camera = Camera.create view f
         let pixelPos = PixelPosition(V2i win.MousePosition, Box2i.FromMinAndSize(V2i.Zero, win.Sizes |> AVal.force))
         let ray = Camera.pickRay camera pixelPos
-        let result = p.QueryPointsNearRay(ray, 0.25)
-        let n = 
-            result |> Seq.toArray |> Seq.collect (fun c -> 
-                if c.HasPositions then c.Positions |> Seq.map V3f |> Seq.toArray
-                else [||]
-            ) |> Seq.toArray
-        printfn "n.Length = %d; %A" n.Length (n |> Array.tryHead)
-        transact (fun _ -> selected.Value <- n)
+
+        let result = p.QueryPointsNearRayCustom(ray, 0.25, Hera.Defs.Velocities, Hera.Defs.Pressures) |> Seq.toArray
+        let extract f = result |> Array.map f |> Array.concat
+        let positions  = extract (fun c -> c.PositionsAsV3d |> Array.map V3f)
+        let velocities = extract (fun c -> c.Data.[Hera.Defs.Velocities] :?> V3f[])
+        let pressures  = extract (fun c -> c.Data.[Hera.Defs.Pressures] :?> float32[])
+
+        printfn "n.Length = %d; %A" positions.Length (positions |> Array.tryHead)
+        transact (fun _ -> selected.Value <- positions)
     )
 
     let selectedSg = 

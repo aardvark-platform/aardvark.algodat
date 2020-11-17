@@ -13,9 +13,12 @@
 */
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using Aardvark.Base;
+using Aardvark.Data;
 using Aardvark.Data.Points;
+using Microsoft.FSharp.Core;
 
 namespace Aardvark.Geometry.Points
 {
@@ -41,12 +44,54 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary>
+        /// Points within given distance of a ray.
+        /// </summary>
+        public static IEnumerable<GenericChunk> QueryPointsNearRayCustom(
+            this PointSet self, Ray3d ray, double maxDistanceToRay, params Durable.Def[] customAttributes
+            )
+            => QueryPointsNearRayCustom(self, ray, maxDistanceToRay, int.MinValue, customAttributes);
+
+        /// <summary>
+        /// Points within given distance of a ray.
+        /// </summary>
+        public static IEnumerable<GenericChunk> QueryPointsNearRayCustom(
+            this PointSet self, Ray3d ray, double maxDistanceToRay, int minCellExponent, params Durable.Def[] customAttributes
+            )
+        {
+            ray.Direction = ray.Direction.Normalized;
+            var data = self.Root.Value;
+            var bbox = data.BoundingBoxExactGlobal;
+
+            var line = Clip(bbox, ray);
+            if (!line.HasValue) return Enumerable.Empty<GenericChunk>();
+
+            return self.QueryPointsNearLineSegmentCustom(line.Value, maxDistanceToRay, minCellExponent, customAttributes);
+        }
+
+        /// <summary>
         /// Points within given distance of a line segment (at most 1000).
         /// </summary>
         public static IEnumerable<Chunk> QueryPointsNearLineSegment(
             this PointSet self, Line3d lineSegment, double maxDistanceToRay, int minCellExponent = int.MinValue
             )
             => QueryPointsNearLineSegment(self.Root.Value, lineSegment, maxDistanceToRay, minCellExponent);
+
+        /// <summary>
+        /// Points within given distance of a line segment (at most 1000).
+        /// </summary>
+        public static IEnumerable<GenericChunk> QueryPointsNearLineSegmentCustom(
+            this PointSet self, Line3d lineSegment, double maxDistanceToRay, params Durable.Def[] customAttributes
+            )
+            => QueryPointsNearLineSegmentCustom(self, lineSegment, maxDistanceToRay, int.MinValue, customAttributes);
+        
+        /// <summary>
+        /// Points within given distance of a line segment (at most 1000).
+        /// </summary>
+        public static IEnumerable<GenericChunk> QueryPointsNearLineSegmentCustom(
+            this PointSet self, Line3d lineSegment, double maxDistanceToRay, int minCellExponent, params Durable.Def[] customAttributes
+            )
+            => QueryPointsNearLineSegmentCustom(self.Root.Value, lineSegment, maxDistanceToRay, minCellExponent, customAttributes);
+
 
         /// <summary>
         /// Points within given distance of a line segment (at most 1000).
@@ -143,7 +188,75 @@ namespace Aardvark.Geometry.Points
                 {
                     var n = node.Subnodes[i];
                     if (n == null) continue;
-                    var xs = QueryPointsNearLineSegment(n.Value, lineSegment, maxDistanceToRay);
+                    var xs = QueryPointsNearLineSegment(n.Value, lineSegment, maxDistanceToRay, minCellExponent);
+                    foreach (var x in xs) yield return x;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Points within given distance of a line segment (at most 1000).
+        /// </summary>
+        public static IEnumerable<GenericChunk> QueryPointsNearLineSegmentCustom(
+            this IPointCloudNode node, Line3d lineSegment, double maxDistanceToRay, params Durable.Def[] customAttributes
+            )
+            => QueryPointsNearLineSegmentCustom(node, lineSegment, maxDistanceToRay, int.MinValue, customAttributes);
+
+        /// <summary>
+        /// Points within given distance of a line segment (at most 1000).
+        /// </summary>
+        public static IEnumerable<GenericChunk> QueryPointsNearLineSegmentCustom(
+            this IPointCloudNode node, Line3d lineSegment, double maxDistanceToRay, int minCellExponent, params Durable.Def[] customAttributes
+            )
+        {
+            if (!node.HasPositions) yield break;
+
+            var centerGlobal = node.Center;
+            var s0Local = lineSegment.P0 - centerGlobal;
+            var s1Local = lineSegment.P1 - centerGlobal;
+            var rayLocal = new Ray3d(s0Local, (s1Local - s0Local).Normalized);
+
+            var worstCaseDist = node.BoundingBoxExactLocal.Size3d.Length * 0.5 + maxDistanceToRay;
+            var d0 = rayLocal.GetMinimalDistanceTo((V3d)node.BoundingBoxExactLocal.Center);
+            if (d0 > worstCaseDist) yield break;
+
+            if (node.IsLeaf || node.Cell.Exponent == minCellExponent)
+            {
+                if (!node.HasKdTree) throw new Exception("No kd-tree. Error 575ebf66-6fdf-4656-85d6-b2a9e387fea9.");
+                
+                var closest = node.KdTree.Value.GetClosestToLine(
+                    (V3f)s0Local, (V3f)s1Local,
+                    (float)maxDistanceToRay,
+                    node.PointCountCell
+                    );
+
+                if (closest.Count > 0)
+                {
+                    var ia = closest.Map(x => (int)x.Index);
+                    var ps = node.PositionsAbsolute.Subset(ia);
+                    var data =
+                        ImmutableDictionary<Durable.Def, object>.Empty
+                        .Add(GenericChunk.Defs.Positions3d, ps)
+                        ;
+
+                    var attributes = customAttributes.Where(node.Has).Select(def => (def, value: node.Properties[def]));
+                    foreach (var (def, value) in attributes)
+                    {
+                        data = data.Add(def, value.Subset(ia));
+                    }
+
+                    var chunk = new GenericChunk(data);
+
+                    yield return chunk;
+                }
+            }
+            else // inner node
+            {
+                for (var i = 0; i < 8; i++)
+                {
+                    var n = node.Subnodes[i];
+                    if (n == null) continue;
+                    var xs = QueryPointsNearLineSegmentCustom(n.Value, lineSegment, maxDistanceToRay, minCellExponent, customAttributes);
                     foreach (var x in xs) yield return x;
                 }
             }

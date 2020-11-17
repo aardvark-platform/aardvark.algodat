@@ -931,19 +931,5 @@ namespace Aardvark.Data.Points
         }
 
         #endregion
-
-
-        ///// <summary>
-        ///// Appends two lists. Also works for null args: a + null -> a, null + b -> b, null + null -> null.
-        ///// </summary>
-        //private static IList<T> Append<T>(IList<T> l, IList<T> r)
-        //{
-        //    if (l == null) return r;
-        //    if (r == null) return l;
-
-        //    var ll = new List<T>(l);
-        //    ll.AddRange(r);
-        //    return ll;
-        //}
     }
 }
