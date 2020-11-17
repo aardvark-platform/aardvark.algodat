@@ -221,7 +221,6 @@ namespace Aardvark.Geometry.Points
 
             try
             {
-
                 var originalId = self.Id;
 
                 if (self.IsLeaf)
@@ -264,7 +263,7 @@ namespace Aardvark.Geometry.Points
                 // generate LoD data ...
 
                 var firstNonEmptySubnode = subcells.First(n => n != null);
-                var lodAttributeCandidates = firstNonEmptySubnode.Properties.Keys.Where(x => x.IsArray).ToArray();
+                var lodAttributeCandidates = firstNonEmptySubnode.Properties.Keys.Where(x => x.IsArray && x != Durable.Octree.PositionsLocal3f).ToArray();
 
                 // ... shift relative positions
                 //     and from lod-positions build kd-tree and generate normals ...
@@ -285,14 +284,15 @@ namespace Aardvark.Geometry.Points
                 self = self.WithUpsert(Durable.Octree.SubnodesGuids, subnodeIds);
 
                 // store LoD data ...
-                var lodPsKey = Guid.NewGuid();
-                self.Storage.Add(lodPsKey, lodPs);
+                //var lodPsKey = Guid.NewGuid();
+                //self.Storage.Add(lodPsKey, lodPs);
                 var lodKdKey = Guid.NewGuid();
                 self.Storage.Add(lodKdKey, lodKd.Data);
                 self = self
+                    .WithUpsert(Durable.Octree.PositionsLocal3f, lodPs)
                     .WithUpsert(Durable.Octree.PointCountCell, lodPs.Length)
                     .WithUpsert(Durable.Octree.PointRkdTreeFDataReference, lodKdKey)
-                    .WithUpsert(Durable.Octree.PositionsLocal3fReference, lodPsKey)
+                    //.WithUpsert(Durable.Octree.PositionsLocal3fReference, lodPsKey)
                     ;
 
                 self = self.Without(PointSetNode.TemporaryImportNode);

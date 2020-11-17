@@ -13,6 +13,8 @@ open Aardvark.Geometry.Points
 
 open Hera
 open Microsoft.FSharp.Control
+open Uncodium.SimpleStore
+open Aardvark.Data
 
 
 module Shaders = 
@@ -115,56 +117,72 @@ module Shaders =
         }
 
 
+let loadOctreeFromStore storepath =
+    let id = storepath + ".key" |> File.readAllText
+    let store = (new SimpleDiskStore(storepath)).ToPointCloudStore()
+    let pointcloud = store.GetPointSet(id)
+    (pointcloud, store)
+
 [<EntryPoint>]
 let main argv =
     Aardvark.Init()
-    let inputfile   = @"\\heap\sm\hera\r80_p0_m500_v6000_mbasalt_a1.0_1M.tar\r80_p0_m500_v6000_mbasalt_a1.0_1M\impact.0400"
+
+    //let inputfile   = @"\\heap\sm\hera\r80_p0_m500_v6000_mbasalt_a1.0_1M.tar\r80_p0_m500_v6000_mbasalt_a1.0_1M\impact.0400"
     //let outputfile  = @"D:\volumes\univie\r80_p0_m500_v6000_mbasalt_a1.0_1M\impact.0400.durable"
     //let outputfile  = @"D:\Hera\Impact_Simulation\r80_p0_m500_v6000_mbasalt_a1.0_1M.tar.gz.betternormals.durable\impact.0039.durable"
-    let outputfile = @"\\heap\sm\hera\converted\impact.0400.durable"
+    //let outputfile = @"\\heap\sm\hera\converted\impact.0400.durable"
 
     //Report.BeginTimed("convert")
     //Hera.convertFile inputfile outputfile 
     //Report.EndTimed() |> ignore
 
-    let data = Hera.deserialize outputfile
+    //let data = Hera.deserialize outputfile
 
+    let datafile  = @"T:\Hera\impact.0400"
+    let storepath = datafile + ".store"
 
-    let bb = Box3f data.Positions |> Box3d
+    let (p, store) = loadOctreeFromStore storepath
+    let bb = p.BoundingBox
+    let root = p.Root.Value
+    let vertices   = root.PositionsAbsolute |> Array.map V3f
+    let normals    = root.Normals.Value
+    let velocities = root.Properties.[Hera.Defs.Velocities]              :?> V3f[]
+    let densities  = root.Properties.[Hera.Defs.AverageSquaredDistances] :?> float32[]
 
-    let vertices = data.Positions
-    let velocities = data.Velocities
-    let normals = data.EstimatedNormals
-    let densities = data.AverageSquaredDistances
+    //let bb = Box3f data.Positions |> Box3d
+    //let vertices = data.Positions
+    //let velocities = data.Velocities
+    //let normals = data.EstimatedNormals
+    //let densities = data.AverageSquaredDistances
 
-    let harriChunk = Aardvark.Data.Points.Chunk(vertices |> Array.map V3d, null, normals, null, null);
+    //let harriChunk = Aardvark.Data.Points.Chunk(vertices |> Array.map V3d, null, normals, null, null);
 
-    let config = 
-      ImportConfig.Default
-        .WithInMemoryStore()
-        .WithRandomKey()
-        .WithVerbose(true)
-        .WithMaxDegreeOfParallelism(0)
-        .WithMinDist(0.0)
-        .WithOctreeSplitLimit(4096)
-        .WithNormalizePointDensityGlobal(false)
+    //let config = 
+    //  ImportConfig.Default
+    //    .WithInMemoryStore()
+    //    .WithRandomKey()
+    //    .WithVerbose(true)
+    //    .WithMaxDegreeOfParallelism(0)
+    //    .WithMinDist(0.0)
+    //    .WithOctreeSplitLimit(4096)
+    //    .WithNormalizePointDensityGlobal(false)
              
-    let p = PointCloud.Chunks(harriChunk, config)
+    //let p = PointCloud.Chunks(harriChunk, config)
     
-    printfn "raw data bounds: %A" bb
+    //printfn "raw data bounds: %A" bb
     printfn "pointcloud bounds: %A" p.BoundingBox
 
     // easier way to construct.
     // why? want to do queries on data.
     //let p = Aardvark.Geometry.Points.PointSet.Create(storage, "p", data.Positions |> Array.map V3d, null, data.Normals, null, null, data.Velocities, 32768, false, false, System.Threading.CancellationToken.None)
     
-
+    
     let min = Array.min densities
     let max = Array.max densities
     let histo = Histogram(float min,float max,100)
     histo.AddRange(densities |> Seq.map float)
     printfn "%A" histo.Slots
-    printfn "deserialized file contains %d points" data.Count
+    printfn "octree contains %d points" root.PointCountTree
 
 
     let app = new OpenGlApplication()

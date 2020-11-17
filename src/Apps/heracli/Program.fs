@@ -51,7 +51,7 @@ let exampleCheckNormals () =
 let exampleImportHeraDataFromFileFull () =
 
     let datafile  = @"T:\Hera\impact.0400"
-    let storepath = @"T:\Vgm\Stores\hera\impact.0400"
+    let storepath = datafile + ".store"
 
     let id = Hera.importHeraDataIntoStore datafile storepath false
     printfn "%s" id

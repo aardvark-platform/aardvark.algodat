@@ -146,7 +146,6 @@ namespace Aardvark.Geometry.Points
             var nsId = NormalsId;
             var isId = IntensitiesId;
             var ksId = ClassificationsId;
-            var vsId = VelocitiesId;
 
             if (psId != null) PersistentRefs[Durable.Octree.PositionsLocal3fReference] = new PersistentRef<V3f[]>(psId.Value, storage.GetV3fArray, storage.TryGetV3fArray);
             if (csId != null) PersistentRefs[Durable.Octree.Colors4bReference] = new PersistentRef<C4b[]>(csId.Value, storage.GetC4bArray, storage.TryGetC4bArray);
@@ -168,7 +167,6 @@ namespace Aardvark.Geometry.Points
             if (nsId != null) PersistentRefs[Durable.Octree.Normals3fReference] = new PersistentRef<V3f[]>(nsId.Value, storage.GetV3fArray, storage.TryGetV3fArray);
             if (isId != null) PersistentRefs[Durable.Octree.Intensities1iReference] = new PersistentRef<int[]>(isId.Value, storage.GetIntArray, storage.TryGetIntArray);
             if (ksId != null) PersistentRefs[Durable.Octree.Classifications1bReference] = new PersistentRef<byte[]>(ksId.Value, storage.GetByteArray, storage.TryGetByteArray);
-            if (vsId != null) PersistentRefs[Durable.Octree.Velocities3fReference] = new PersistentRef<V3f[]>(vsId.Value, storage.GetV3fArray, storage.TryGetV3fArray);
 
 #endregion
 
@@ -677,7 +675,10 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public bool HasColors => Data.ContainsKey(Durable.Octree.Colors4bReference);
+        public bool HasColors =>
+            Data.ContainsKey(Durable.Octree.Colors4bReference) ||
+            Data.ContainsKey(Durable.Octree.Colors4b)
+            ;
 
         /// <summary></summary>
         [JsonIgnore]
@@ -687,15 +688,36 @@ namespace Aardvark.Geometry.Points
         /// Point colors, or null if no points.
         /// </summary>
         [JsonIgnore]
-        public PersistentRef<C4b[]> Colors => PersistentRefs.TryGetValue(Durable.Octree.Colors4bReference, out object x) ? (PersistentRef<C4b[]>)x : null;
+        public PersistentRef<C4b[]> Colors
+        {
+            get
+            {
+                if (PersistentRefs.TryGetValue(Durable.Octree.Colors4bReference, out object o) && ((PersistentRef<C4b[]>)o).Id != GuidEmptyString)
+                {
+                    return (PersistentRef<C4b[]>)o;
+                }
+                else if (Data.TryGetValue(Durable.Octree.Colors4b, out o))
+                {
+                    var xs = (C4b[])o;
+                    return new PersistentRef<C4b[]>(Guid.Empty, _ => xs, _ => (true, xs));
+                }
+                else
+                {
+                    return null;
+                }
+            }
+        }
 
-#endregion
+        #endregion
 
 #region Normals
 
         /// <summary></summary>
         [JsonIgnore]
-        public bool HasNormals => Data.ContainsKey(Durable.Octree.Normals3fReference);
+        public bool HasNormals =>
+            Data.ContainsKey(Durable.Octree.Normals3fReference) ||
+            Data.ContainsKey(Durable.Octree.Normals3f)
+            ;
 
         /// <summary></summary>
         [JsonIgnore]
@@ -703,7 +725,25 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public PersistentRef<V3f[]> Normals => PersistentRefs.TryGetValue(Durable.Octree.Normals3fReference, out object x) ? (PersistentRef<V3f[]>)x : null;
+        public PersistentRef<V3f[]> Normals
+        {
+            get
+            {
+                if (PersistentRefs.TryGetValue(Durable.Octree.Normals3fReference, out object o) && ((PersistentRef<V3f[]>)o).Id != GuidEmptyString)
+                {
+                    return (PersistentRef<V3f[]>)o;
+                }
+                else if (Data.TryGetValue(Durable.Octree.Normals3f, out o))
+                {
+                    var xs = (V3f[])o;
+                    return new PersistentRef<V3f[]>(Guid.Empty, _ => xs, _ => (true, xs));
+                }
+                else
+                {
+                    return null;
+                }
+            }
+        }
 
 #endregion
 
@@ -711,7 +751,10 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public bool HasIntensities => Data.ContainsKey(Durable.Octree.Intensities1iReference);
+        public bool HasIntensities =>
+            Data.ContainsKey(Durable.Octree.Intensities1iReference) ||
+            Data.ContainsKey(Durable.Octree.Intensities1i)
+            ;
 
         /// <summary></summary>
         [JsonIgnore]
@@ -719,7 +762,25 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public PersistentRef<int[]> Intensities => PersistentRefs.TryGetValue(Durable.Octree.Intensities1iReference, out object x) ? (PersistentRef<int[]>)x : null;
+        public PersistentRef<int[]> Intensities
+        {
+            get
+            {
+                if (PersistentRefs.TryGetValue(Durable.Octree.Intensities1iReference, out object o) && ((PersistentRef<int[]>)o).Id != GuidEmptyString)
+                {
+                    return (PersistentRef<int[]>)o;
+                }
+                else if (Data.TryGetValue(Durable.Octree.Intensities1i, out o))
+                {
+                    var xs = (int[])o;
+                    return new PersistentRef<int[]>(Guid.Empty, _ => xs, _ => (true, xs));
+                }
+                else
+                {
+                    return null;
+                }
+            }
+        }
 
 #endregion
 
@@ -727,7 +788,10 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public bool HasClassifications => Data.ContainsKey(Durable.Octree.Classifications1bReference);
+        public bool HasClassifications =>
+            Data.ContainsKey(Durable.Octree.Classifications1bReference) ||
+            Data.ContainsKey(Durable.Octree.Classifications1b)
+            ;
 
         /// <summary></summary>
         [JsonIgnore]
@@ -735,23 +799,25 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public PersistentRef<byte[]> Classifications => PersistentRefs.TryGetValue(Durable.Octree.Classifications1bReference, out object x) ? (PersistentRef<byte[]>)x : null;
-
-#endregion
-
-#region Velocities
-
-        /// <summary></summary>
-        [JsonIgnore]
-        public bool HasVelocities => Data.ContainsKey(Durable.Octree.Velocities3fReference);
-
-        /// <summary></summary>
-        [JsonIgnore]
-        public Guid? VelocitiesId => Data.TryGetValue(Durable.Octree.Velocities3fReference, out var id) ? (Guid?)id : null;
-
-        /// <summary></summary>
-        [JsonIgnore]
-        public PersistentRef<V3f[]> Velocities => PersistentRefs.TryGetValue(Durable.Octree.Velocities3fReference, out object x) ? (PersistentRef<V3f[]>)x : null;
+        public PersistentRef<byte[]> Classifications
+        {
+            get
+            {
+                if (PersistentRefs.TryGetValue(Durable.Octree.Classifications1bReference, out object o) && ((PersistentRef<byte[]>)o).Id != GuidEmptyString)
+                {
+                    return (PersistentRef<byte[]>)o;
+                }
+                else if (Data.TryGetValue(Durable.Octree.Classifications1b, out o))
+                {
+                    var xs = (byte[])o;
+                    return new PersistentRef<byte[]>(Guid.Empty, _ => xs, _ => (true, xs));
+                }
+                else
+                {
+                    return null;
+                }
+            }
+        }
 
 #endregion
 

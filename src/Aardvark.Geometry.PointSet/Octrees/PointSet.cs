@@ -33,13 +33,6 @@ namespace Aardvark.Geometry.Points
 
         #region Construction
 
-        [Obsolete("Velocities no longer supported.")]
-        public static PointSet Create(Storage storage, string key,
-            IList<V3d> positions, IList<C4b> colors, IList<V3f> normals, IList<int> intensities, IList<byte> classifications, IList<V3f> velocities,
-            int octreeSplitLimit, bool generateLod, bool isTemporaryImportNode, CancellationToken ct
-            )
-            => Create(storage, key, positions, colors, normals, intensities, classifications, octreeSplitLimit, generateLod, isTemporaryImportNode, ct);
-
         /// <summary>
         /// Creates PointSet from given points and colors.
         /// </summary>

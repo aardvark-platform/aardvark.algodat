@@ -41,7 +41,7 @@ namespace Aardvark.Geometry.Points
 
         public IPointCloudNode GetNode(string key, Func<string, PossiblyGZippedBuffer> getBlob, Func<string, long, int, PossiblyGZippedBuffer> getBlobPartial)
         {
-            var buffer = GetNodeBlobGzipped(key, getBlobPartial);
+            //var buffer = GetNodeBlobGzipped(key, getBlobPartial);
             //var result = QuantizedOctreeNode.Decode(buffer, getBlob, getBlobPartial);
             //return result;
             throw new NotImplementedException();
@@ -91,7 +91,7 @@ namespace Aardvark.Geometry.Points
 
         public static MultiNodeIndex Decode(byte[] buffer)
         {
-            var (_def, obj) = DurableCodec.Deserialize(buffer);
+            var (_, obj) = DurableCodec.Deserialize(buffer);
             var map = (IDictionary<string, (Durable.Def key, object value)>)obj;
             return Decode(map);
         }
@@ -165,8 +165,6 @@ namespace Aardvark.Geometry.Points
         public PersistentRef<int[]> Intensities => Node.Intensities;
         public bool HasClassifications => Node.HasClassifications;
         public PersistentRef<byte[]> Classifications => Node.Classifications;
-        public bool HasVelocities => Node.HasVelocities;
-        public PersistentRef<V3f[]> Velocities => Node.Velocities;
         public bool HasCentroidLocal => Node.HasCentroidLocal;
         public V3f CentroidLocal => Node.CentroidLocal;
         public bool HasCentroidLocalStdDev => Node.HasCentroidLocalStdDev;

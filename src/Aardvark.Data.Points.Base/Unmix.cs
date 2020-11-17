@@ -15,8 +15,11 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+using Aardvark.Base;
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace Aardvark.Data.Points
 {
@@ -43,7 +46,6 @@ namespace Aardvark.Data.Points
                 var hasColors = false;
                 var hasIntensities = false;
                 var hasClassifications = false;
-                var hasVelocities = false;
 
                 var countChunks = 0L;
                 var countOriginal = 0L;
@@ -58,14 +60,12 @@ namespace Aardvark.Data.Points
                     hasColors = chunk.HasColors;
                     hasIntensities = chunk.HasIntensities;
                     hasClassifications = chunk.HasClassifications;
-                    hasVelocities = chunk.HasVelocities;
 
                     var _ps = chunk.Positions;
                     var _ns = chunk.Normals;
                     var _js = chunk.Intensities;
                     var _cs = chunk.Colors;
                     var _ks = chunk.Classifications;
-                    var _vs = chunk.Velocities;
 
                     // binning
                     var map = new Dictionary<V3l, List<int>>();
@@ -104,7 +104,6 @@ namespace Aardvark.Data.Points
                                 if (hasIntensities) { var j = _js[i]; bw.Write(j); }
                                 if (hasColors) { var c = _cs[i]; var x = c.R + c.G << 8 + c.B << 16; bw.Write(x); }
                                 if (hasClassifications) { var k = _ks[i]; bw.Write(k); }
-                                if (hasVelocities) { var v = _vs[i]; bw.Write(v.X); bw.Write(v.Y); bw.Write(v.Z); }
                             }
                         }
                         lock (lockedFilenames)
@@ -162,7 +161,6 @@ namespace Aardvark.Data.Points
                     var _js = hasIntensities ? new List<int>() : null;
                     var _cs = hasColors ? new List<C4b>() : null;
                     var _ks = hasClassifications ? new List<byte>() : null;
-                    var _vs = hasVelocities ? new List<V3f>() : null;
 
                     using (var f = File.Open(path, FileMode.Open, FileAccess.Read))
                     using (var br = new BinaryReader(f))
@@ -176,7 +174,6 @@ namespace Aardvark.Data.Points
                                 if (hasIntensities) _js.Add(br.ReadInt32());
                                 if (hasColors) { var x = br.ReadInt32(); _cs.Add(new C4b(x & 0xff, (x >> 8) & 0xff, (x >> 16) & 0xff)); }
                                 if (hasClassifications) _ks.Add(br.ReadByte());
-                                if (hasVelocities) _vs.Add(new V3f(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()));
                             }
                         }
                         catch (Exception e)
@@ -186,7 +183,7 @@ namespace Aardvark.Data.Points
                         }
                     }
 
-                    var chunk = new Chunk(_ps, _cs, _ns, _js, _ks, _vs);
+                    var chunk = new Chunk(_ps, _cs, _ns, _js, _ks);
                     var chunkFiltered = chunk.ImmutableFilterMinDistByCell(cell, config);
                     countFiltered += chunkFiltered.Count;
 
@@ -203,7 +200,6 @@ namespace Aardvark.Data.Points
                             if (hasIntensities) { var j = chunkFiltered.Intensities[i]; bw.Write(j); }
                             if (hasColors) { var c = chunkFiltered.Colors[i]; var x = c.R + c.G << 8 + c.B << 16; bw.Write(x); }
                             if (hasClassifications) { var k = chunkFiltered.Classifications[i]; bw.Write(k); }
-                            if (hasVelocities) { var v = chunkFiltered.Velocities[i]; bw.Write(v.X); bw.Write(v.Y); bw.Write(v.Z); }
                         }
                     }
                 });
@@ -216,7 +212,6 @@ namespace Aardvark.Data.Points
                 var js = hasIntensities ? new List<int>() : null;
                 var cs = hasColors ? new List<C4b>() : null;
                 var ks = hasClassifications ? new List<byte>() : null;
-                var vs = hasVelocities ? new List<V3f>() : null;
                 foreach (var path in Directory.EnumerateFiles(tmpdir, "*", SearchOption.AllDirectories))
                 {
                     using (var f = File.Open(path, FileMode.Open, FileAccess.Read))
@@ -231,7 +226,6 @@ namespace Aardvark.Data.Points
                                 if (hasIntensities) js.Add(br.ReadInt32());
                                 if (hasColors) { var x = br.ReadInt32(); cs.Add(new C4b(x & 0xff, (x >> 8) & 0xff, (x >> 16) & 0xff)); }
                                 if (hasClassifications) ks.Add(br.ReadByte());
-                                if (hasVelocities) vs.Add(new V3f(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()));
                             }
                         }
                         catch (Exception e)
@@ -242,7 +236,6 @@ namespace Aardvark.Data.Points
                             js = hasIntensities ? new List<int>() : null;
                             cs = hasColors ? new List<C4b>() : null;
                             ks = hasClassifications ? new List<byte>() : null;
-                            vs = hasVelocities ? new List<V3f>() : null;
                             continue;
                         }
                     }
@@ -250,19 +243,18 @@ namespace Aardvark.Data.Points
 
                     if (ps.Count >= config.MaxChunkPointCount)
                     {
-                        yield return new Chunk(ps, cs, ns, js, ks, vs);
+                        yield return new Chunk(ps, cs, ns, js, ks);
                         ps = new List<V3d>();
                         ns = hasNormals ? new List<V3f>() : null;
                         js = hasIntensities ? new List<int>() : null;
                         cs = hasColors ? new List<C4b>() : null;
                         ks = hasClassifications ? new List<byte>() : null;
-                        vs = hasVelocities ? new List<V3f>() : null;
                     }
                 }
                 // rest?
                 if (ps.Count >= 0)
                 {
-                    yield return new Chunk(ps, cs, ns, js, ks, vs);
+                    yield return new Chunk(ps, cs, ns, js, ks);
                 }
             }
             finally

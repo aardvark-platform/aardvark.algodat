@@ -1,4 +1,7 @@
 ﻿namespace Hera
+
+open System.Runtime.CompilerServices
+
 #nowarn "9"
 
 open Aardvark.Base
@@ -98,6 +101,12 @@ module Hera =
         let AverageSquaredDistances     = def "23354127-f93f-4216-a0af-b26f29e6e8fa" "Hera.Particle.AverageSquaredDistances"
                                               "Average squared distance of k-nearest points to their centroid."
                                               Durable.Primitives.Float32Array true
+
+        [<MethodImpl(MethodImplOptions.NoInlining ||| MethodImplOptions.NoOptimization)>]
+        let private keep (_ : 'a) = ()
+
+        [<OnAardvarkInit;CompilerMessage("Internal only",1337,IsHidden=true)>]
+        let init () = keep ParticleSet
 
     let lineDef = [|
         Ascii.Token.PositionX; Ascii.Token.PositionY; Ascii.Token.PositionZ
@@ -221,7 +230,7 @@ module Hera =
                   .WithStorage(store)
                   .WithRandomKey()
                   .WithVerbose(verbose)
-                  .WithMaxDegreeOfParallelism(0)
+                  .WithMaxDegreeOfParallelism(1)
                   .WithMinDist(0.0)
                   .WithOctreeSplitLimit(8192)
                   .WithNormalizePointDensityGlobal(false)
@@ -403,6 +412,16 @@ module Hera =
             printfn "pointcloud.Root.Id : %A" pointcloud.Root.Value.Id
         
         Report.EndTimed() |> ignore
+
+        File.WriteAllText(storepath + ".key", pointcloud.Id)
+
+        let root = pointcloud.Root.Value
+        root.ForEachNode(true, fun n ->
+            let isLeaf = if n.IsLeaf then "leaf" else "    "
+            let pl3f    = if n.Has(Durable.Octree.PositionsLocal3f) then "PositionsLocal3f" else "                "
+            let pl3fref = if n.Has(Durable.Octree.PositionsLocal3fReference) then "PositionsLocal3fReference" else "                         "
+            printfn "node %A    %s    %s    %s" n.Id isLeaf pl3f pl3fref
+        )
 
         pointcloud.Id
 
