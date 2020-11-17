@@ -149,7 +149,6 @@ let main argv =
         root.EnumerateNodes () |> Seq.filter (fun n -> n.IsLeaf) |> Seq.map extract |> Array.concat
 
     let vertices   = root |> collectLeafData (fun n -> n.PositionsAbsolute |> Array.map V3f)
-    let bb2 = Box3f(vertices)
     let normals    = root |> collectLeafData (fun n -> n.Normals.Value)
     let velocities = root |> collectLeafData (fun n -> n.Properties.[Hera.Defs.Velocities] :?> V3f[])
     let densities  = root |> collectLeafData (fun n -> n.Properties.[Hera.Defs.AverageSquaredDistances] :?> float32[])
