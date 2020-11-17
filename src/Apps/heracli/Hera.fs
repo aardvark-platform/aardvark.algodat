@@ -18,6 +18,7 @@ open System.Text.RegularExpressions
 open System.Collections.Generic
 open System.Threading.Tasks
 open System.Diagnostics
+open Uncodium.SimpleStore
 
 module Hera =
 
@@ -188,8 +189,45 @@ module Hera =
                 if not (n.Length.ApproximateEquals(1.0f, 0.001f)) then
                     printfn "[unstable normal] %A" n
 
-        member this.Serialize() =
+        member this.Serialize () =
             data.DurableEncode(Defs.ParticleSet, false)
+
+        member this.ToGenericChunk () =
+            [
+                (GenericChunk.Defs.Positions3f,    this.Positions :> obj)
+                (GenericChunk.Defs.Normals3f,      this.EstimatedNormals :> obj)
+                (Defs.AlphaJutzi,                  this.AlphaJutzi :> obj)
+                (Defs.AverageSquaredDistances,     this.AverageSquaredDistances :> obj)
+                (Defs.CubicRootsOfDamage,          this.CubicRootOfDamage :> obj)
+                (Defs.Densities,                   this.Densities :> obj)
+                (Defs.InternalEnergies,            this.InternalEnergies :> obj)
+                (Defs.LocalStrains,                this.LocalStrains :> obj)
+                (Defs.Masses,                      this.Masses :> obj)
+                (Defs.MaterialTypes,               this.MaterialTypes :> obj)
+                (Defs.NumbersOfActivatedFlaws,     this.NumberOfActivatedFlaws :> obj)
+                (Defs.NumbersOfFlaws,              this.NumberOfFlaws :> obj)
+                (Defs.NumberOfInteractionPartners, this.NumberOfInteractionPartners :> obj)
+                (Defs.Pressures,                   this.Pressures :> obj)
+                (Defs.Sigmas,                      this.Sigmas :> obj)
+                (Defs.SmoothingLengths,            this.SmoothingLengths :> obj)
+                (Defs.Velocities,                  this.Velocities :> obj)
+            ]
+            |> Map.ofList
+            |> GenericChunk
+
+        member this.SaveToStore store verbose =
+            let config = 
+                ImportConfig.Default
+                  .WithStorage(store)
+                  .WithRandomKey()
+                  .WithVerbose(verbose)
+                  .WithMaxDegreeOfParallelism(0)
+                  .WithMinDist(0.0)
+                  .WithOctreeSplitLimit(8192)
+                  .WithNormalizePointDensityGlobal(false)
+            let chunk = this.ToGenericChunk ()
+            let pointcloud = PointCloud.Import(chunk, config)   
+            pointcloud
 
         static member Serialize(data : HeraData) = data.Serialize()
 
@@ -293,7 +331,7 @@ module Hera =
         let particles = 
           File
             .ReadLines(filename)
-            .Take(50000)
+            //.Take(50000)
             .AsParallel()
             .Select(fun line ->
                 let ts = line.SplitOnWhitespace()
@@ -346,6 +384,28 @@ module Hera =
 
         HeraData(data)
         
+    let importHeraDataIntoStore datafile storepath verbose : string =
+
+        Report.BeginTimed("importing " + datafile)
+
+        Report.BeginTimed("parsing")
+        let particles = importHeraDataFromFileFull datafile
+        Report.EndTimed() |> ignore
+
+        Report.BeginTimed("building octree")
+        use store = (new SimpleDiskStore(storepath)).ToPointCloudStore()
+        let pointcloud = particles.SaveToStore store verbose
+        Report.EndTimed() |> ignore
+
+        if verbose then
+            printfn "pointcloud bounds  : %A" pointcloud.BoundingBox
+            printfn "pointcloud.Id      : %s" pointcloud.Id
+            printfn "pointcloud.Root.Id : %A" pointcloud.Root.Value.Id
+        
+        Report.EndTimed() |> ignore
+
+        pointcloud.Id
+
     let importHeraDataFromBuffer (buffer : byte[]) =
         use stream = new MemoryStream(buffer)
         importHeraDataFromStream stream
