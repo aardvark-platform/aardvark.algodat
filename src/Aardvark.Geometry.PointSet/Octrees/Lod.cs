@@ -15,6 +15,7 @@ using Aardvark.Base;
 using Aardvark.Data;
 using Aardvark.Data.Points;
 using System;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -177,31 +178,30 @@ namespace Aardvark.Geometry.Points
 
             try
             {
-
                 var originalId = self.Id;
+                var upsertData = ImmutableDictionary<Durable.Def, object>.Empty;
 
                 if (self.IsLeaf)
                 {
-                    if (!self.HasKdTree)
+                    var kd = self.KdTree?.Value;
+
+                    if (kd == null)
                     {
-                        var kd = await self.Positions.Value.BuildKdTreeAsync();
+                        kd = await self.Positions.Value.BuildKdTreeAsync();
                         var kdKey = Guid.NewGuid();
                         self.Storage.Add(kdKey, kd.Data);
-                        self = self
-                            .WithUpsert(Durable.Octree.PointRkdTreeFDataReference, kdKey)
-                            ;
+                        upsertData = upsertData.Add(Durable.Octree.PointRkdTreeFDataReference, kdKey);
                     }
 
                     if (!self.HasNormals)
                     {
-                        var ns = await self.Positions.Value.EstimateNormalsAsync(16, self.KdTree.Value);
+                        var ns = await self.Positions.Value.EstimateNormalsAsync(16, kd);
                         var nsId = Guid.NewGuid();
                         self.Storage.Add(nsId, ns);
-                        self = self
-                            .WithUpsert(Durable.Octree.Normals3fReference, nsId)
-                            ;
+                        upsertData = upsertData.Add(Durable.Octree.Normals3fReference, nsId);
                     }
 
+                    if (upsertData.Count > 0) self = self.With(upsertData);
                     self = self.Without(PointSetNode.TemporaryImportNode);
                     if (self.Id != originalId) self = self.WriteToStore();
 
@@ -225,63 +225,89 @@ namespace Aardvark.Geometry.Points
                 var needsVs = subcells.Any(x => x != null && x.HasVelocities);
 
                 var subcenters = subcells.Map(x => x?.Center);
+
                 var lodPs = AggregateSubPositions(counts, octreeSplitLimit, self.Center, subcenters, subcells.Map(x => x?.Positions?.Value));
+                if (lodPs.Length > self.PointCountTree) throw new InvalidOperationException(
+                    $"lodPs={lodPs.Length} > PointCountTree={self.PointCountTree}. Invariant 2afa700b-debc-4106-8d42-1e84b6917752."
+                    );
+                
                 var lodCs = needsCs ? AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Colors?.Value)) : null;
+                if (lodCs != null && lodCs.Length != lodPs.Length) throw new InvalidOperationException(
+                     $"lodCs={lodCs.Length} != lodPs={lodPs.Length}. Invariant 492478e2-6f2c-42c2-a120-b23286bea5d7."
+                     );
+
                 var lodIs = needsIs ? AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Intensities?.Value)) : null;
+                if (lodIs != null && lodIs.Length != lodPs.Length) throw new InvalidOperationException(
+                     $"lodIs={lodIs.Length} != lodPs={lodPs.Length}. Invariant 8271d4dc-4773-471d-bd96-0b885c14787f."
+                     );
+
                 var lodKs = needsKs ? AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Classifications?.Value)) : null;
+                if (lodKs != null && lodKs.Length != lodPs.Length) throw new InvalidOperationException(
+                     $"lodKs={lodKs.Length} != lodPs={lodPs.Length}. Invariant 41fc3d78-b0c1-40ff-907a-1545b25225df."
+                     );
+
                 var lodVs = needsVs ? AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Velocities?.Value)) : null;
+                if (lodVs != null && lodVs.Length != lodPs.Length) throw new InvalidOperationException(
+                     $"lodVs={lodVs.Length} != lodPs={lodPs.Length}. Invariant 76cd123d-4e33-4161-b0d2-291c54536e77."
+                     );
+
                 var lodKd = await lodPs.BuildKdTreeAsync();
-                var lodNs = await lodPs.EstimateNormalsAsync(16, lodKd); // Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.GetNormals3f()?.Value))
+                var lodNs = await lodPs.EstimateNormalsAsync(16, lodKd);
+                if (lodNs != null && lodNs.Length != lodPs.Length) throw new InvalidOperationException(
+                     $"lodNs={lodNs.Length} != lodPs={lodPs.Length}. Invariant 1f64a8e2-67b4-412d-bd04-3447ad08d180."
+                     );
+
 
                 var subnodeIds = subcells.Map(x => x != null ? x.Id : Guid.Empty);
-                self = self.WithUpsert(Durable.Octree.SubnodesGuids, subnodeIds);
+                upsertData = upsertData.Add(Durable.Octree.SubnodesGuids, subnodeIds);
 
                 // store LoD data ...
+                upsertData = upsertData.Add(Durable.Octree.PointCountCell, lodPs.Length);
+
                 var lodPsKey = Guid.NewGuid();
                 self.Storage.Add(lodPsKey, lodPs);
+                upsertData = upsertData.Add(Durable.Octree.PositionsLocal3fReference, lodPsKey);
+
                 var lodKdKey = Guid.NewGuid();
                 self.Storage.Add(lodKdKey, lodKd.Data);
-                self = self
-                    .WithUpsert(Durable.Octree.PointCountCell, lodPs.Length)
-                    .WithUpsert(Durable.Octree.PointRkdTreeFDataReference, lodKdKey)
-                    .WithUpsert(Durable.Octree.PositionsLocal3fReference, lodPsKey)
-                    ;
+                upsertData = upsertData.Add(Durable.Octree.PointRkdTreeFDataReference, lodKdKey);
 
                 if (needsCs)
                 {
                     var key = Guid.NewGuid();
                     self.Storage.Add(key, lodCs);
-                    self = self.WithUpsert(Durable.Octree.Colors4bReference, key);
+                    upsertData = upsertData.Add(Durable.Octree.Colors4bReference, key);
                 }
 
                 if (needsNs)
                 {
                     var key = Guid.NewGuid();
                     self.Storage.Add(key, lodNs);
-                    self = self.WithUpsert(Durable.Octree.Normals3fReference, key);
+                    upsertData = upsertData.Add(Durable.Octree.Normals3fReference, key);
                 }
 
                 if (needsIs)
                 {
                     var key = Guid.NewGuid();
                     self.Storage.Add(key, lodIs);
-                    self = self.WithUpsert(Durable.Octree.Intensities1iReference, key);
+                    upsertData = upsertData.Add(Durable.Octree.Intensities1iReference, key);
                 }
 
                 if (needsKs)
                 {
                     var key = Guid.NewGuid();
                     self.Storage.Add(key, lodKs);
-                    self = self.WithUpsert(Durable.Octree.Classifications1bReference, key);
+                    upsertData = upsertData.Add(Durable.Octree.Classifications1bReference, key);
                 }
 
                 if (needsVs)
                 {
                     var key = Guid.NewGuid();
                     self.Storage.Add(key, lodVs);
-                    self = self.WithUpsert(Durable.Octree.Velocities3fReference, key);
+                    upsertData = upsertData.Add(Durable.Octree.Velocities3fReference, key);
                 }
 
+                self = self.With(upsertData);
                 self = self.Without(PointSetNode.TemporaryImportNode);
 
                 if (self.Id != originalId)

@@ -12,7 +12,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-//#define PEDANTIC
 //#define READONLY
 
 using Aardvark.Base;
@@ -25,7 +24,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-
+using System.Threading;
 
 namespace Aardvark.Geometry.Points
 {
@@ -34,6 +33,8 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public class PointSetNode : IPointCloudNode
     {
+        private static readonly string GuidEmptyString = Guid.Empty.ToString();
+
         /// <summary>
         /// This node has been stored during out-of-core import, without derived properties, like kd-trees, etc.
         /// The value of this attribute has no meaning.
@@ -114,7 +115,7 @@ namespace Aardvark.Geometry.Points
             }
 #endif
 
-            #region Subnodes
+#region Subnodes
 
             if (Data.TryGetValue(Durable.Octree.SubnodesGuids, out object o) && o is Guid[] subNodeIds)
             {
@@ -317,62 +318,27 @@ namespace Aardvark.Geometry.Points
 #endif
             }
 
-#endregion
+            #endregion
 
-#region PointDistance*
+            if ((HasPositions && Positions.Value.Length != PointCountCell) ||
+                (HasColors && Colors.Value.Length != PointCountCell) ||
+                (HasNormals && Normals.Value.Length != PointCountCell) ||
+                (HasIntensities && Intensities.Value.Length != PointCountCell) ||
+                (HasClassifications && Classifications.Value.Length != PointCountCell)
+                )
+            {
+                throw new InvalidOperationException(
+                    $"[PointSetNode] Inconsistent counts. " +
+                    $"PointCountCell={PointCountCell}, " +
+                    $"Positions={Positions?.Value?.Length}, " +
+                    $"Colors={Colors?.Value?.Length}, " +
+                    $"Normals={Normals?.Value?.Length}, " +
+                    $"Intensities={Intensities?.Value?.Length}, " +
+                    $"Classifications={Classifications?.Value?.Length}, " +
+                    $"Invariant b714b13e-35fb-4186-9c6c-ca6abbc46a4d."
+                    );
+            }
 
-            //if (HasPositions && HasKdTree && (!HasPointDistanceAverage || !HasPointDistanceStandardDeviation))
-            //{
-            //    if (isObsoleteFormat)
-            //    {
-            //        Data = Data.Add(Durable.Octree.AveragePointDistance, 0.0f);
-            //        Data = Data.Add(Durable.Octree.AveragePointDistanceStdDev, 0.0f);
-            //    }
-            //    else
-            //    {
-            //        var ps = Positions.Value;
-            //        var kd = KdTree.Value;
-            //        if (ps.Length < 2)
-            //        {
-            //            if (!HasPointDistanceAverage)
-            //            {
-            //                Data = Data.Add(Durable.Octree.AveragePointDistance, 0.0f);
-            //            }
-            //            if (!HasPointDistanceStandardDeviation)
-            //            {
-            //                Data = Data.Add(Durable.Octree.AveragePointDistanceStdDev, 0.0f);
-            //            }
-            //        }
-            //        else if (ps.Length == 3)
-            //        {
-            //            var d = Vec.Distance(ps[0], ps[1]);
-            //            if (!HasPointDistanceAverage)
-            //            {
-            //                Data = Data.Add(Durable.Octree.AveragePointDistance, d);
-            //            }
-            //            if (!HasPointDistanceStandardDeviation)
-            //            {
-            //                Data = Data.Add(Durable.Octree.AveragePointDistanceStdDev, 0.0f);
-            //            }
-            //        }
-            //        else
-            //        {
-            //            var indexDists = ps.Map(p => kd.GetClosest(p, float.MaxValue, 2));
-            //            var ds = indexDists.Map(x => Vec.Distance(ps[x[0].Index], ps[x[1].Index]));
-            //            var (avg, sd) = ds.ComputeAvgAndStdDev();
-            //            if (!HasPointDistanceAverage)
-            //            {
-            //                Data = Data.Add(Durable.Octree.AveragePointDistance, avg);
-            //            }
-            //            if (!HasPointDistanceStandardDeviation)
-            //            {
-            //                Data = Data.Add(Durable.Octree.AveragePointDistanceStdDev, sd);
-            //            }
-            //        }
-            //    }
-            //}
-
-#endregion
 
             if (writeToStore)
             {
@@ -399,14 +365,11 @@ namespace Aardvark.Geometry.Points
                 if (Has(Durable.Octree.PositionsLocal3fReference) && PositionsId == null)
                     throw new InvalidOperationException("Invariant ba64ffe9-ada4-4fff-a4e9-0916c1cc9992.");
 
-#if !READONLY
+                #if !READONLY
                 if (KdTreeId == null && !Has(TemporaryImportNode))
                     throw new InvalidOperationException("Invariant 606e8a7b-6e75-496a-bc2a-dfbe6e2c9b10.");
-#endif
+                #endif
             }
-#if PEDANTIC
-            if (PositionsId != null && Positions.Value.Length != PointCount) throw new InvalidOperationException("Invariant 926ca077-845d-44ba-a1db-07dfe06e7cc3.");
-#endif
 #endif
 
             PointRkdTreeF<V3f[], V3f> LoadKdTree(string key)
@@ -573,8 +536,6 @@ namespace Aardvark.Geometry.Points
         [JsonIgnore]
         public Guid? PositionsId => Data.TryGetValue(Durable.Octree.PositionsLocal3fReference, out var id) ? (Guid?)id : null;
 
-        private static readonly string GuidEmptyString = Guid.Empty.ToString();
-
         /// <summary>
         /// Point positions relative to cell's center, or null if no positions.
         /// </summary>
@@ -583,9 +544,17 @@ namespace Aardvark.Geometry.Points
         {
             get
             {
-                if (PersistentRefs.TryGetValue(Durable.Octree.PositionsLocal3fReference, out object o) && ((PersistentRef<V3f[]>)o).Id != GuidEmptyString)
+                if (PersistentRefs.TryGetValue(Durable.Octree.PositionsLocal3fReference, out object o))
                 {
-                    return (PersistentRef<V3f[]>)o;
+                    if (((PersistentRef<V3f[]>)o).Id != GuidEmptyString)
+                    {
+                        return (PersistentRef<V3f[]>)o;
+                    }
+                    else
+                    {
+                        var ps = Array.Empty<V3f>();
+                        return new PersistentRef<V3f[]>(Guid.Empty, _ => ps, _ => (true, ps));
+                    }
                 }
                 else if (Data.TryGetValue(Durable.Octree.PositionsLocal3f, out o))
                 {
@@ -967,31 +936,22 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary>
-        /// Returns new node with added/replaced data.
-        /// If existing entry is replaced, then the node gets a new id.
-        /// Node is NOT written to store. Use WriteToStore if you want this.
+        /// Returns new node (with new id) with added/replaced data.
+        /// Node is NOT written to store.
+        /// Call WriteToStore on the result if you want this.
         /// </summary>
-        public PointSetNode WithUpsert(Durable.Def def, object x)
+        public PointSetNode With(IReadOnlyDictionary<Durable.Def, object> replacements)
         {
-            if (def == Durable.Octree.NodeId)
-            {
-                var data = Data
-                    .RemoveRange(new[] { Durable.Octree.NodeId })
-                    .Add(Durable.Octree.NodeId, x)
-                    ;
+            if (replacements.ContainsKey(Durable.Octree.NodeId))
+                throw new InvalidOperationException($"Node id must not be assigned manually. Error 20855582-cbbc-496a-8730-fa49d7af8f5b.");
 
-                return new PointSetNode(data, Storage, false);
-            }
-            else
-            {
-                var data = Data
-                    .RemoveRange(new[] { def, Durable.Octree.NodeId })
-                    .Add(Durable.Octree.NodeId, Guid.NewGuid())
-                    .Add(def, x)
-                    ;
+            var data = Data
+                .Remove(Durable.Octree.NodeId)
+                .Add(Durable.Octree.NodeId, Guid.NewGuid())
+                ;
+            foreach (var kv in replacements) data = data.SetItem(kv.Key, kv.Value);
 
-                return new PointSetNode(data, Storage, false);
-            }
+            return new PointSetNode(data, Storage, false);
         }
 
         /// <summary>
@@ -1018,8 +978,7 @@ namespace Aardvark.Geometry.Points
             if (HasKdTree) return this;
 
             var kdId = ComputeAndStoreKdTree(Storage, Positions.Value);
-            var result = WithUpsert(Durable.Octree.PointRkdTreeFDataReference, kdId);
-            return result;
+            return With(ImmutableDictionary<Durable.Def, object>.Empty.Add(Durable.Octree.PointRkdTreeFDataReference, kdId));
         }
 
         /// <summary>
@@ -1114,7 +1073,7 @@ namespace Aardvark.Geometry.Points
             }        
         }
 
-        IPointCloudNode IPointCloudNode.WithUpsert(Durable.Def def, object x) => WithUpsert(def, x);
+        IPointCloudNode IPointCloudNode.With(IReadOnlyDictionary<Durable.Def, object> replacements) => With(replacements);
 
 #endregion
     }

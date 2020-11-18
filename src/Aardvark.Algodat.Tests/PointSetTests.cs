@@ -75,7 +75,7 @@ namespace Aardvark.Geometry.Tests
             var ns = new List<V3f> { V3f.ZAxis };
             var js = new List<int> { 123 };
             var ks = new List<byte> { 42 };
-            var imps = InMemoryPointSet.Build(ps, cs, ns, js, ks, null, Cell.Unit, 1);
+            _ = InMemoryPointSet.Build(ps, cs, ns, js, ks, null, Cell.Unit, 1);
         }
 
         [Test]
@@ -85,7 +85,7 @@ namespace Aardvark.Geometry.Tests
             var ns = new List<V3f> { V3f.ZAxis };
             var js = new List<int> { 123 };
             var ks = new List<byte> { 42 };
-            var imps = InMemoryPointSet.Build(ps, null, ns, js, ks, null, Cell.Unit, 1);
+            _ = InMemoryPointSet.Build(ps, null, ns, js, ks, null, Cell.Unit, 1);
         }
 
         [Test]
@@ -95,7 +95,7 @@ namespace Aardvark.Geometry.Tests
             var cs = new List<C4b> { C4b.White };
             var js = new List<int> { 123 };
             var ks = new List<byte> { 42 };
-            var imps = InMemoryPointSet.Build(ps, cs, null, js, ks, null, Cell.Unit, 1);
+            _ = InMemoryPointSet.Build(ps, cs, null, js, ks, null, Cell.Unit, 1);
         }
 
         [Test]
@@ -105,7 +105,7 @@ namespace Aardvark.Geometry.Tests
             var cs = new List<C4b> { C4b.White };
             var ns = new List<V3f> { V3f.ZAxis };
             var ks = new List<byte> { 42 };
-            var imps = InMemoryPointSet.Build(ps, cs, ns, null, ks, null, Cell.Unit, 1);
+            _ = InMemoryPointSet.Build(ps, cs, ns, null, ks, null, Cell.Unit, 1);
         }
 
         [Test]
@@ -115,7 +115,7 @@ namespace Aardvark.Geometry.Tests
             var cs = new List<C4b> { C4b.White };
             var ns = new List<V3f> { V3f.ZAxis };
             var js = new List<int> { 123 };
-            var imps = InMemoryPointSet.Build(ps, cs, ns, js, null, null, Cell.Unit, 1);
+            _ = InMemoryPointSet.Build(ps, cs, ns, js, null, null, Cell.Unit, 1);
         }
 
         [Test]

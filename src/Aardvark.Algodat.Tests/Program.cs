@@ -1290,18 +1290,27 @@ namespace Aardvark.Geometry.Tests
                 .WithStorage(store)
                 .WithKey(key)
                 .WithVerbose(false)
-                .WithMaxDegreeOfParallelism(0)
-                .WithMinDist(0.025)
+                .WithMaxDegreeOfParallelism(1)
+                .WithMinDist(0.005)
                 .WithNormalizePointDensityGlobal(true)
-                .WithProgressCallback(p => { Thread.Sleep(2000); Report.Line($"{p:0.00}"); })
+                .WithProgressCallback(p => { /*Thread.Sleep(2000);*/ Report.Line($"{p:0.00}"); })
                 ;
 
             Report.BeginTimed("total");
 
             var import = Task.Run(() =>
             {
-                var chunks = E57.Chunks(filename, config.ParseConfig);
-                var pcl = PointCloud.Chunks(chunks/*.Take(50)*/, config);
+                var runningCount = 0L;
+                var chunks = E57
+                    .Chunks(filename, config.ParseConfig)
+                    .TakeWhile(chunk =>
+                    {
+                        var n = Interlocked.Add(ref runningCount, chunk.Count);
+                        Report.WarnNoPrefix($"[Chunks] {n:N0} / {info.PointCount:N0}");
+                        return n < info.PointCount * (0.125 + 0.125 / 2);
+                    })
+                    ;
+                var pcl = PointCloud.Chunks(chunks, config);
                 return pcl;
             });
 
@@ -1315,7 +1324,7 @@ namespace Aardvark.Geometry.Tests
             {
                 if (chunk.HasIntensities)
                 {
-                    var (currentMin, currentMax) = intMaxima.HasValue ? intMaxima.Value : (int.MaxValue, int.MinValue);
+                    var (currentMin, currentMax) = intMaxima ?? (int.MaxValue, int.MinValue);
                     var minInt = Math.Min(currentMin, chunk.Intensities.Min());
                     var maxInt = Math.Max(currentMax, chunk.Intensities.Max());
                     return (minInt, maxInt);

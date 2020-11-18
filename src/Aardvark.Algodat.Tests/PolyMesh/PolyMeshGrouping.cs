@@ -10,6 +10,7 @@ namespace Aardvark.Geometry.Tests
     public class PolyMeshGrouping
     {
         [Test]
+        [Ignore("@lui: please fix or remove.")]
         public void TestPolyMeshGrouping()
         {
             var mesh = PolyMeshPrimitives.Cone(12, 1, 0.5, C4b.Red);
