@@ -1293,7 +1293,7 @@ namespace Aardvark.Geometry.Tests
                 .WithMaxDegreeOfParallelism(0)
                 .WithMinDist(0.025)
                 .WithNormalizePointDensityGlobal(true)
-                .WithProgressCallback(p => Report.Line($"{p:0.00}"))
+                .WithProgressCallback(p => { Thread.Sleep(2000); Report.Line($"{p:0.00}"); })
                 ;
 
             Report.BeginTimed("total");
@@ -1301,7 +1301,7 @@ namespace Aardvark.Geometry.Tests
             var import = Task.Run(() =>
             {
                 var chunks = E57.Chunks(filename, config.ParseConfig);
-                var pcl = PointCloud.Chunks(chunks.Take(50), config);
+                var pcl = PointCloud.Chunks(chunks/*.Take(50)*/, config);
                 return pcl;
             });
 
