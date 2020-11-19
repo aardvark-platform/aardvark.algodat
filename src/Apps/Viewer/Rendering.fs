@@ -291,7 +291,7 @@ module Rendering =
                 transact (fun () ->
                     let pc = pcs.[0].Value
                     let bb = pc.root.WorldBoundingBox
-                    let f1 = Hull3d.Create (Box3d.FromMinAndSize(bb.Min, bb.Size * V3d(1.0, 1.0, 0.15)))
+                    let f1 = new Hull3d(Box3d.FromMinAndSize(bb.Min, bb.Size * V3d(1.0, 1.0, 0.15)))
 
                     let root = pc.root |> unbox<LodTreeInstance.PointTreeNode>
                     match root.Original with

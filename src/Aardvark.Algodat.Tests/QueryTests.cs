@@ -745,7 +745,7 @@ namespace Aardvark.Geometry.Tests
         {
             //var storage = PointCloud.CreateInMemoryStore(cache: default);
             var pointcloud = CreateClusteredPointsInUnitCube(1000, 10);
-            var ns = pointcloud.Root.Value.ForEachNodeIntersecting(Hull3d.Create(Box3d.Unit), true).ToArray();
+            var ns = pointcloud.Root.Value.ForEachNodeIntersecting(new Hull3d(Box3d.Unit), true).ToArray();
             Assert.IsTrue(ns.Length > 0);
         }
 

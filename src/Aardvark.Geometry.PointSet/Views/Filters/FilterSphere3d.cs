@@ -13,7 +13,7 @@ namespace Aardvark.Geometry.Points
         {
             if (box.IsInvalid) return box;
 
-            var bh = Hull3d.Create(box);
+            var bh = new Hull3d(box);
             var pp = new Plane3d[6 + hull.PlaneCount];
             bh.PlaneArray.CopyTo(pp, 0);
             hull.PlaneArray.CopyTo(pp, 6);

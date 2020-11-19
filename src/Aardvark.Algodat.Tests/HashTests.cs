@@ -55,16 +55,16 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void HashOfHull3d_FromBox_Equals_FromSameBox()
         {
-            var a = Hull3d.Create(new Box3d(new V3d(1, 2, 3), new V3d(2, 3, 4.1)));
-            var b = Hull3d.Create(new Box3d(new V3d(1, 2, 3), new V3d(2, 3, 4.1)));
+            var a = new Hull3d(new Box3d(new V3d(1, 2, 3), new V3d(2, 3, 4.1)));
+            var b = new Hull3d(new Box3d(new V3d(1, 2, 3), new V3d(2, 3, 4.1)));
             Assert.IsTrue(a.ComputeMd5Hash() == b.ComputeMd5Hash());
         }
 
         [Test]
         public void HashOfHull3d_FromBox_NotEquals_FromDifferentBox()
         {
-            var a = Hull3d.Create(new Box3d(new V3d(1, 2, 3), new V3d(2, 3, 4.1)));
-            var b = Hull3d.Create(new Box3d(new V3d(1, 2, 3), new V3d(2, 3, 4.2)));
+            var a = new Hull3d(new Box3d(new V3d(1, 2, 3), new V3d(2, 3, 4.1)));
+            var b = new Hull3d(new Box3d(new V3d(1, 2, 3), new V3d(2, 3, 4.2)));
             Assert.IsTrue(a.ComputeMd5Hash() != b.ComputeMd5Hash());
         }
 

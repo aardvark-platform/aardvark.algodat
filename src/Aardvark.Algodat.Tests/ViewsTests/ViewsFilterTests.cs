@@ -97,7 +97,7 @@ namespace Aardvark.Geometry.Tests
             var storage = PointCloud.CreateInMemoryStore(cache: default);
             var a = CreateNode(storage, RandomPositions(100));
 
-            var f = FilteredNode.Create(a, new FilterInsideConvexHull3d(Hull3d.Create(a.BoundingBoxExactGlobal + V3d.IOO * 0.1)));
+            var f = FilteredNode.Create(a, new FilterInsideConvexHull3d(new Hull3d(a.BoundingBoxExactGlobal + V3d.IOO * 0.1)));
             var g = f.Id;
             var k = g.ToString();
             storage.Add(k, f);
