@@ -583,8 +583,7 @@ namespace Aardvark.Geometry.Points
         {
             get
             {
-                object o;
-                if (PersistentRefs.TryGetValue(Durable.Octree.PositionsLocal3fReference, out o) && ((PersistentRef<V3f[]>)o).Id != GuidEmptyString)
+                if (PersistentRefs.TryGetValue(Durable.Octree.PositionsLocal3fReference, out object o) && ((PersistentRef<V3f[]>)o).Id != GuidEmptyString)
                 {
                     return (PersistentRef<V3f[]>)o;
                 }

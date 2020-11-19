@@ -65,7 +65,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Opens or creates a store at the specified location.
         /// </summary>
-        public static Storage OpenStore(string storePath, LruDictionary<string, object> cache)
+        public static Storage OpenStore(string storePath, LruDictionary<string, object> cache, Action<string[]> logLines = null)
         {
             lock (s_stores)
             {
@@ -81,7 +81,14 @@ namespace Aardvark.Geometry.Points
                 }
                 else
                 {
-                    store = new SimpleDiskStore(storePath).ToPointCloudStore(cache);
+                    if (logLines == null)
+                    {
+                        store = new SimpleDiskStore(storePath).ToPointCloudStore(cache);
+                    }
+                    else
+                    {
+                        store = new SimpleDiskStore(storePath, logLines).ToPointCloudStore(cache);
+                    }
                 }
 
                 s_stores[storePath] = new WeakReference<Storage>(store);
