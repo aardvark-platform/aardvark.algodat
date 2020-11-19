@@ -86,18 +86,29 @@ module LodTreeInstance =
 
     let isOrtho (proj : Trafo3d) = proj.Forward.R3.ApproximateEquals(V4d.OOOI,1E-8)
 
+    type CustomIndexedAttribute =
+        {
+            Id : System.Guid
+            AttribSize : int64
+            Attrib : System.Array
+        }
+
     type PointTreeNode private(
                                 pointCloudId : System.Guid, 
                                 world : obj, 
                                 cache : LruDictionary<string, obj>, 
                                 source : Symbol, 
-                                getCustomIndexedAttributes :  IPointCloudNode -> MapExt<Symbol,int64 * System.Array>, 
+                                getCustomIndexedAttributes :  Guid * (IPointCloudNode -> MapExt<Symbol, CustomIndexedAttribute>), 
                                 globalTrafo : Similarity3d, 
                                 root : Option<PointTreeNode>, 
                                 parent : Option<PointTreeNode>, 
                                 level : int, 
                                 self : IPointCloudNode) as this =
     
+        let customAttributeId = fst getCustomIndexedAttributes
+        let getCustomIndexedAttributes = snd getCustomIndexedAttributes
+        
+
         static let cmp = Func<float,float,int>(compare)
 
         static let simToString (s : Similarity3d) =
@@ -107,22 +118,25 @@ module LodTreeInstance =
             sb.Append( sprintf "%E %E %E" s.Trans.X s.Trans.Y s.Trans.Z ) |> ignore
             sb.ToString()
         
-        static let nodeId (n : IPointCloudNode) (globalTrafo : Similarity3d) (level : int) =
-            (string n.Id) + (simToString globalTrafo) + (sprintf "%d" level) + "PointTreeNode"
+        static let nodeId (n : IPointCloudNode) (customIndexedAttributeId : Guid) (globalTrafo : Similarity3d) (level : int) =
+            (string n.Id) + (string customIndexedAttributeId) + (simToString globalTrafo) + (sprintf "%d" level) + "PointTreeNode"
             
             
-        static let cacheId (n : IPointCloudNode) (globalTrafo : Similarity3d) (level : int) =
-            (string n.Id) + (simToString globalTrafo) + (sprintf "%d" level) + "GeometryData"
+        static let cacheId (n : IPointCloudNode) (customIndexedAttributeVersion : string) (globalTrafo : Similarity3d) (level : int) =
+            (string n.Id) + (customIndexedAttributeVersion) + (simToString globalTrafo) + (sprintf "%d" level) + "GeometryData"
 
         static let load (ct : CancellationToken) 
                         (ips : MapExt<string, Type>) 
                         (cache : LruDictionary<string, obj>) 
-                        (customIndexedAttributes : MapExt<Symbol,int64 * System.Array>)
+                        (customIndexedAttributes : MapExt<Symbol,CustomIndexedAttribute>)
                         (self : IPointCloudNode)
                         (globalTrafo : Similarity3d)
                         (localBounds : Box3d)
                         (level : int) =
-            let cid = cacheId self globalTrafo level
+            let cid = 
+                let customIndexedAttributeId = customIndexedAttributes |> MapExt.values |> Seq.map (fun ci -> string ci.Id) |> String.concat "."
+                cacheId self customIndexedAttributeId globalTrafo level
+
             cache.GetOrCreate(cid, fun () ->
                 let scale = globalTrafo.Scale
                 let center = self.Center
@@ -178,7 +192,7 @@ module LodTreeInstance =
                         attributes.[Semantic.Classifications] <- arr
                         vertexSize <- vertexSize + 4L
                 
-                    customIndexedAttributes |> MapExt.iter (fun sym (size, arr) ->
+                    customIndexedAttributes |> MapExt.iter (fun sym { AttribSize = size; Attrib = arr } ->
                         if MapExt.containsKey (sym.ToString()) ips then 
                             attributes.[sym] <- arr
                             vertexSize <- vertexSize + size
@@ -337,14 +351,14 @@ module LodTreeInstance =
         //member x.AcquireChild() =
         //    Interlocked.Increment(&livingChildren) |> ignore
     
-        static member Create(pointCloudId : System.Guid, world : obj, cache : LruDictionary<string, obj>, source : Symbol, getCustomIndexedAttributes : IPointCloudNode -> MapExt<Symbol,int64 * System.Array>, globalTrafo : Similarity3d, root : Option<PointTreeNode>, parent : Option<PointTreeNode>, level : int, self : IPointCloudNode) =
+        static member Create(pointCloudId : System.Guid, world : obj, cache : LruDictionary<string, obj>, source : Symbol, getCustomIndexedAttributes : Guid * (IPointCloudNode -> MapExt<Symbol,CustomIndexedAttribute>), globalTrafo : Similarity3d, root : Option<PointTreeNode>, parent : Option<PointTreeNode>, level : int, self : IPointCloudNode) =
             if isNull self then
                 None
             else
                 PointTreeNode(pointCloudId, world, cache, source, getCustomIndexedAttributes, globalTrafo, root, parent, level, self) |> Some
             
         static member Create(pointCloudId : System.Guid, world : obj, cache : LruDictionary<string, obj>, source : Symbol, globalTrafo : Similarity3d, root : Option<PointTreeNode>, parent : Option<PointTreeNode>, level : int, self : IPointCloudNode) =
-            PointTreeNode.Create(pointCloudId, world, cache, source, (fun _ -> MapExt.empty), globalTrafo, root, parent, level, self)
+            PointTreeNode.Create(pointCloudId, world, cache, source, (Guid.NewGuid(),(fun _ -> MapExt.empty)), globalTrafo, root, parent, level, self)
 
         member x.ReleaseChildren() =
             let old = 
@@ -355,7 +369,7 @@ module LodTreeInstance =
                 )
 
             match old with
-            | Some o -> o |> List.iter (fun o -> cache.Add(nodeId (unbox<PointTreeNode> o).Original globalTrafo level, o, 1L <<< 10) |> ignore)
+            | Some o -> o |> List.iter (fun o -> cache.Add(nodeId (unbox<PointTreeNode> o).Original customAttributeId globalTrafo level, o, 1L <<< 10) |> ignore)
             | None -> ()
 
         member x.WithPointCloudNode(r : IPointCloudNode) =
@@ -368,7 +382,7 @@ module LodTreeInstance =
                     world,
                     cache,
                     source,
-                    getCustomIndexedAttributes,
+                    (customAttributeId,getCustomIndexedAttributes),
                     globalTrafo,
                     None,
                     None,
@@ -385,7 +399,7 @@ module LodTreeInstance =
             if isNull n then
                 None
             else
-                PointTreeNode(System.Guid.NewGuid(), world, cache, source, getCustomIndexedAttributes, globalTrafo, root, parent, level, n) |> Some
+                PointTreeNode(System.Guid.NewGuid(), world, cache, source, (customAttributeId,getCustomIndexedAttributes), globalTrafo, root, parent, level, n) |> Some
 
         member x.Acquire() =
             ()
@@ -448,14 +462,14 @@ module LodTreeInstance =
                                             if isNull c then
                                                 None
                                             else
-                                                let id = nodeId c globalTrafo level
+                                                let id = nodeId c customAttributeId globalTrafo level
                                                 match cache.TryGetValue id with
                                                 | (true, n) ->
                                                     cache.Remove id |> ignore
                                                     unbox<ILodTreeNode> n |> Some
                                                 | _ -> 
                                                     //Log.warn "alloc %A" id
-                                                    PointTreeNode(pointCloudId, world, cache, source, getCustomIndexedAttributes, globalTrafo, Some this.Root, Some this, level + 1, c) :> ILodTreeNode |> Some
+                                                    PointTreeNode(pointCloudId, world, cache, source, (customAttributeId,getCustomIndexedAttributes), globalTrafo, Some this.Root, Some this, level + 1, c) :> ILodTreeNode |> Some
                                         with
                                         | :? ObjectDisposedException -> 
                                             None
