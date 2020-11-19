@@ -48,7 +48,7 @@ namespace Aardvark.Geometry.Points
             return ComputeLodFractions(counts);
         }
 
-        internal static int[] ComputeLodCounts(int splitLimit, double[] fractions)
+        internal static int[] ComputeLodCounts(int aggregateCount, double[] fractions)
         {
             if (fractions == null) return null;
             if (fractions.Length != 8) throw new ArgumentOutOfRangeException(nameof(fractions));
@@ -57,21 +57,21 @@ namespace Aardvark.Geometry.Points
             var counts = new int[8];
             for (var i = 0; i < 8; i++)
             {
-                var fn = splitLimit * fractions[i] + remainder;
+                var fn = aggregateCount * fractions[i] + remainder;
                 var n = (int)fn;
                 remainder = fn - n;
                 counts[i] = n;
             };
 
-            var e = splitLimit - counts.Sum();
+            var e = aggregateCount - counts.Sum();
             if (e != 0) throw new InvalidOperationException();
 
             return counts;
         }
 
-        internal static V3f[] AggregateSubPositions(int[] counts, int splitLimit, V3d center, V3d?[] subCenters, V3f[][] xss)
+        internal static V3f[] AggregateSubPositions(int[] counts, int aggregateCount, V3d center, V3d?[] subCenters, V3f[][] xss)
         {
-            var rs = new V3f[splitLimit];
+            var rs = new V3f[aggregateCount];
             var i = 0;
             for (var ci = 0; ci < 8; ci++)
             {
@@ -89,9 +89,9 @@ namespace Aardvark.Geometry.Points
             return rs;
         }
 
-        internal static T[] AggregateSubArrays<T>(int[] counts, int splitLimit, T[][] xss)
+        internal static T[] AggregateSubArrays<T>(int[] counts, int aggregateCount, T[][] xss)
         {
-            var rs = new T[splitLimit];
+            var rs = new T[aggregateCount];
             var i = 0;
             for (var ci = 0; ci < 8; ci++)
             {
@@ -114,7 +114,7 @@ namespace Aardvark.Geometry.Points
                 }
             }
 
-            if(i < splitLimit)
+            if (i < aggregateCount)
             {
                 Array.Resize(ref rs, i);
                 return rs;
@@ -213,9 +213,9 @@ namespace Aardvark.Geometry.Points
                 var subcellsAsync = self.Subnodes.Map(x => (x?.Value as PointSetNode)?.GenerateLod(octreeSplitLimit, callback, ct));
                 await Task.WhenAll(subcellsAsync.Where(x => x != null));
                 var subcells = subcellsAsync.Map(x => x?.Result);
-                var subcellsTotalCount = (long)subcells.Sum(x => x?.PointCountTree);
                 var fractions = ComputeLodFractions(subcells);
-                var counts = ComputeLodCounts(octreeSplitLimit, fractions);
+                var aggregateCount = Math.Min(octreeSplitLimit, subcells.Sum(x => x?.PointCountCell) ?? 0);
+                var counts = ComputeLodCounts(aggregateCount, fractions);
 
                 // generate LoD data ...
                 var needsCs = subcells.Any(x => x != null && x.HasColors);
@@ -226,33 +226,31 @@ namespace Aardvark.Geometry.Points
 
                 var subcenters = subcells.Map(x => x?.Center);
 
-                var lodPs = AggregateSubPositions(counts, octreeSplitLimit, self.Center, subcenters, subcells.Map(x => x?.Positions?.Value));
+                // generate lod data ...
+                var lodPs = AggregateSubPositions(counts, aggregateCount, self.Center, subcenters, subcells.Map(x => x?.Positions?.Value));
+                var lodCs = needsCs ? AggregateSubArrays(counts, aggregateCount, subcells.Map(x => x?.Colors?.Value)) : null;
+                var lodIs = needsIs ? AggregateSubArrays(counts, aggregateCount, subcells.Map(x => x?.Intensities?.Value)) : null;
+                var lodKs = needsKs ? AggregateSubArrays(counts, aggregateCount, subcells.Map(x => x?.Classifications?.Value)) : null;
+                var lodVs = needsVs ? AggregateSubArrays(counts, aggregateCount, subcells.Map(x => x?.Velocities?.Value)) : null;
+                var lodKd = await lodPs.BuildKdTreeAsync();
+                var lodNs = await lodPs.EstimateNormalsAsync(16, lodKd);
+
+                // check if counts are consistent ...
                 if (lodPs.Length > self.PointCountTree) throw new InvalidOperationException(
                     $"lodPs={lodPs.Length} > PointCountTree={self.PointCountTree}. Invariant 2afa700b-debc-4106-8d42-1e84b6917752."
                     );
-                
-                var lodCs = needsCs ? AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Colors?.Value)) : null;
                 if (lodCs != null && lodCs.Length != lodPs.Length) throw new InvalidOperationException(
                      $"lodCs={lodCs.Length} != lodPs={lodPs.Length}. Invariant 492478e2-6f2c-42c2-a120-b23286bea5d7."
                      );
-
-                var lodIs = needsIs ? AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Intensities?.Value)) : null;
                 if (lodIs != null && lodIs.Length != lodPs.Length) throw new InvalidOperationException(
                      $"lodIs={lodIs.Length} != lodPs={lodPs.Length}. Invariant 8271d4dc-4773-471d-bd96-0b885c14787f."
                      );
-
-                var lodKs = needsKs ? AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Classifications?.Value)) : null;
                 if (lodKs != null && lodKs.Length != lodPs.Length) throw new InvalidOperationException(
                      $"lodKs={lodKs.Length} != lodPs={lodPs.Length}. Invariant 41fc3d78-b0c1-40ff-907a-1545b25225df."
                      );
-
-                var lodVs = needsVs ? AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Velocities?.Value)) : null;
                 if (lodVs != null && lodVs.Length != lodPs.Length) throw new InvalidOperationException(
                      $"lodVs={lodVs.Length} != lodPs={lodPs.Length}. Invariant 76cd123d-4e33-4161-b0d2-291c54536e77."
                      );
-
-                var lodKd = await lodPs.BuildKdTreeAsync();
-                var lodNs = await lodPs.EstimateNormalsAsync(16, lodKd);
                 if (lodNs != null && lodNs.Length != lodPs.Length) throw new InvalidOperationException(
                      $"lodNs={lodNs.Length} != lodPs={lodPs.Length}. Invariant 1f64a8e2-67b4-412d-bd04-3447ad08d180."
                      );

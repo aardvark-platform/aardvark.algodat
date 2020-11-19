@@ -1290,7 +1290,7 @@ namespace Aardvark.Geometry.Tests
                 .WithStorage(store)
                 .WithKey(key)
                 .WithVerbose(false)
-                .WithMaxDegreeOfParallelism(1)
+                .WithMaxDegreeOfParallelism(0)
                 .WithMinDist(0.005)
                 .WithNormalizePointDensityGlobal(true)
                 .WithProgressCallback(p => { /*Thread.Sleep(2000);*/ Report.Line($"{p:0.00}"); })
@@ -1303,12 +1303,12 @@ namespace Aardvark.Geometry.Tests
                 var runningCount = 0L;
                 var chunks = E57
                     .Chunks(filename, config.ParseConfig)
-                    .TakeWhile(chunk =>
-                    {
-                        var n = Interlocked.Add(ref runningCount, chunk.Count);
-                        Report.WarnNoPrefix($"[Chunks] {n:N0} / {info.PointCount:N0}");
-                        return n < info.PointCount * (0.125 + 0.125 / 2);
-                    })
+                    //.TakeWhile(chunk =>
+                    //{
+                    //    var n = Interlocked.Add(ref runningCount, chunk.Count);
+                    //    Report.WarnNoPrefix($"[Chunks] {n:N0} / {info.PointCount:N0}");
+                    //    return n < info.PointCount * (0.125 + 0.125 / 2);
+                    //})
                     ;
                 var pcl = PointCloud.Chunks(chunks, config);
                 return pcl;
