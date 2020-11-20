@@ -55,12 +55,12 @@ namespace Aardvark.Geometry.Points
             if (ps == null) throw new ArgumentNullException(nameof(ps));
 
             var data = ImmutableDictionary<Durable.Def, object>.Empty
-                .Add(Durable.Octree.PositionsGlobal3d, ps)
+                .Add(Durable.Octree.PositionsGlobal3d, ps.ToArray())
                 ;
-            if (cs != null) data = data.Add(Durable.Octree.Colors4b, cs);
-            if (ns != null) data = data.Add(Durable.Octree.Normals3f, ns);
-            if (js != null) data = data.Add(Durable.Octree.Intensities1i, js);
-            if (ks != null) data = data.Add(Durable.Octree.Classifications1b, ks);
+            if (cs != null) data = data.Add(Durable.Octree.Colors4b, cs.ToArray());
+            if (ns != null) data = data.Add(Durable.Octree.Normals3f, ns.ToArray());
+            if (js != null) data = data.Add(Durable.Octree.Intensities1i, js.ToArray());
+            if (ks != null) data = data.Add(Durable.Octree.Classifications1b, ks.ToArray());
 
             return new InMemoryPointSet(data, rootBounds, octreeSplitLimit);
         }
@@ -71,6 +71,11 @@ namespace Aardvark.Geometry.Points
         private InMemoryPointSet(ImmutableDictionary<Durable.Def, object> data, Cell cell, int octreeSplitLimit)
         {
             if (data == null) throw new ArgumentNullException(nameof(data));
+            
+            foreach (var kv in data)
+            {
+                if (!(kv.Value is Array)) throw new ArgumentException($"Entry {kv.Key} must be array.");
+            }
 
             void TryRename(Durable.Def from, Durable.Def to)
             {

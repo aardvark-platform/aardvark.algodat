@@ -176,22 +176,24 @@ namespace Aardvark.Data.Points
             Box3d? bbox = null
             )
         {
-            //if (colors != null && colors.Count != positions?.Count) throw new ArgumentException(nameof(colors));
-            if (normals != null && normals.Count != positions?.Count) throw new ArgumentException(nameof(normals));
-            if (intensities != null && intensities.Count != positions?.Count) throw new ArgumentException(nameof(intensities));
+            if (positions == null) throw new ArgumentNullException(nameof(positions), "Invariant ad93ff8e-d1a9-4c96-a626-43c69617371e.");
+            if (colors          != null && colors.Count          != positions.Count) throw new ArgumentException(nameof(colors));
+            if (normals         != null && normals.Count         != positions.Count) throw new ArgumentException(nameof(normals));
+            if (intensities     != null && intensities.Count     != positions.Count) throw new ArgumentException(nameof(intensities));
+            if (classifications != null && classifications.Count != positions.Count) throw new ArgumentException(nameof(classifications));
 
-            if (positions != null && colors != null && positions.Count != colors.Count)
+            if (colors != null && positions.Count != colors.Count)
             {
                 colors = new C4b[positions.Count];
                 Report.Warn("[Chunk-ctor] inconsistent length: pos.length = {0} vs cs.length = {1}", positions.Count, colors.Count);
             }
 
-            Positions = positions ?? throw new Exception("Invariant ad93ff8e-d1a9-4c96-a626-43c69617371e.");
-            Colors = colors != null && colors.Count > 0 ? colors : null;
-            Normals = normals != null && normals.Count > 0 ? normals : null;
-            Intensities = intensities != null && intensities.Count > 0 ? intensities : null;
-            Classifications = classifications != null && classifications.Count > 0 ? classifications : null;
-            BoundingBox = bbox ?? (positions != null ? new Box3d(positions) : Box3d.Invalid);
+            Positions       = positions;
+            Colors          = colors             != null && colors.Count          > 0 ? colors          : null;
+            Normals         = normals            != null && normals.Count         > 0 ? normals         : null;
+            Intensities     = intensities        != null && intensities.Count     > 0 ? intensities     : null;
+            Classifications = classifications    != null && classifications.Count > 0 ? classifications : null;
+            BoundingBox     = bbox ?? (positions != null ? new Box3d(positions) : Box3d.Invalid);
         }
 
         /// <summary>
