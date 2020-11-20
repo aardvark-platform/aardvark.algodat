@@ -15,6 +15,7 @@ using Aardvark.Base;
 using Aardvark.Data;
 using Aardvark.Data.Points;
 using System;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -47,7 +48,7 @@ namespace Aardvark.Geometry.Points
             return ComputeLodFractions(counts);
         }
 
-        internal static int[] ComputeLodCounts(int splitLimit, double[] fractions)
+        internal static int[] ComputeLodCounts(int aggregateCount, double[] fractions)
         {
             if (fractions == null) return null;
             if (fractions.Length != 8) throw new ArgumentOutOfRangeException(nameof(fractions));
@@ -56,21 +57,21 @@ namespace Aardvark.Geometry.Points
             var counts = new int[8];
             for (var i = 0; i < 8; i++)
             {
-                var fn = splitLimit * fractions[i] + remainder;
+                var fn = aggregateCount * fractions[i] + remainder;
                 var n = (int)fn;
                 remainder = fn - n;
                 counts[i] = n;
             };
 
-            var e = splitLimit - counts.Sum();
+            var e = aggregateCount - counts.Sum();
             if (e != 0) throw new InvalidOperationException();
 
             return counts;
         }
 
-        internal static V3f[] AggregateSubPositions(int[] counts, int splitLimit, V3d center, V3d?[] subCenters, V3f[][] xss)
+        internal static V3f[] AggregateSubPositions(int[] counts, int aggregateCount, V3d center, V3d?[] subCenters, V3f[][] xss)
         {
-            var rs = new V3f[splitLimit];
+            var rs = new V3f[aggregateCount];
             var i = 0;
             for (var ci = 0; ci < 8; ci++)
             {
@@ -88,9 +89,9 @@ namespace Aardvark.Geometry.Points
             return rs;
         }
 
-        internal static T[] AggregateSubArrays<T>(int[] counts, int splitLimit, T[][] xss)
+        internal static T[] AggregateSubArrays<T>(int[] counts, int aggregateCount, T[][] xss)
         {
-            var rs = new T[splitLimit];
+            var rs = new T[aggregateCount];
             var i = 0;
             for (var ci = 0; ci < 8; ci++)
             {
@@ -113,7 +114,7 @@ namespace Aardvark.Geometry.Points
                 }
             }
 
-            if(i < splitLimit)
+            if (i < aggregateCount)
             {
                 Array.Resize(ref rs, i);
                 return rs;
@@ -126,42 +127,42 @@ namespace Aardvark.Geometry.Points
             var t = arrays.First(x => x != null).GetType().GetElementType();
             return arrays.First(x => x != null) switch
             {
-                Guid[] _    => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (Guid[])x)),
-                string[] _  => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (string[])x)),
-                byte[] _    => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (byte[])x)),
-                sbyte[] _   => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (sbyte[])x)),
-                short[] _   => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (short[])x)),
-                ushort[] _  => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (ushort[])x)),
-                int[] _     => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (int[])x)),
-                uint[] _    => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (uint[])x)),
-                long[] _    => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (long[])x)),
-                ulong[] _   => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (ulong[])x)),
-                float[] _   => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (float[])x)),
-                double[] _  => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (double[])x)),
+                Guid[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (Guid[])x)),
+                string[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (string[])x)),
+                byte[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (byte[])x)),
+                sbyte[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (sbyte[])x)),
+                short[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (short[])x)),
+                ushort[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (ushort[])x)),
+                int[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (int[])x)),
+                uint[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (uint[])x)),
+                long[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (long[])x)),
+                ulong[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (ulong[])x)),
+                float[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (float[])x)),
+                double[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (double[])x)),
                 decimal[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (decimal[])x)),
-                V2d[] _     => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V2d[])x)),
-                V2f[] _     => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V2f[])x)),
-                V2i[] _     => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V2i[])x)),
-                V2l[] _     => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V2l[])x)),
-                V3d[] _     => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V3d[])x)),
-                V3f[] _     => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V3f[])x)),
-                V3i[] _     => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V3i[])x)),
-                V3l[] _     => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V3l[])x)),
-                V4d[] _     => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V4d[])x)),
-                V4f[] _     => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V4f[])x)),
-                V4i[] _     => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V4i[])x)),
-                V4l[] _     => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V4l[])x)),
-                M22d[] _    => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M22f[])x)),
-                M22f[] _    => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M22d[])x)),
-                M33d[] _    => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M33f[])x)),
-                M33f[] _    => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M33d[])x)),
-                M44d[] _    => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M44f[])x)),
-                M44f[] _    => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M44d[])x)),
+                V2d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V2d[])x)),
+                V2f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V2f[])x)),
+                V2i[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V2i[])x)),
+                V2l[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V2l[])x)),
+                V3d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V3d[])x)),
+                V3f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V3f[])x)),
+                V3i[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V3i[])x)),
+                V3l[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V3l[])x)),
+                V4d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V4d[])x)),
+                V4f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V4f[])x)),
+                V4i[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V4i[])x)),
+                V4l[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V4l[])x)),
+                M22d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M22f[])x)),
+                M22f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M22d[])x)),
+                M33d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M33f[])x)),
+                M33f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M33d[])x)),
+                M44d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M44f[])x)),
+                M44f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M44d[])x)),
                 Trafo2d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (Trafo2d[])x)),
                 Trafo2f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (Trafo2f[])x)),
                 Trafo3d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (Trafo3d[])x)),
                 Trafo3f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (Trafo3f[])x)),
-                _           => throw new Exception($"LoD aggregation for type {t} not supported. Error 13c77814-f323-41fb-a7b6-c164973b7b02.")
+                _ => throw new Exception($"LoD aggregation for type {t} not supported. Error 13c77814-f323-41fb-a7b6-c164973b7b02.")
             };
         }
 
@@ -222,29 +223,29 @@ namespace Aardvark.Geometry.Points
             try
             {
                 var originalId = self.Id;
+                var upsertData = ImmutableDictionary<Durable.Def, object>.Empty;
 
                 if (self.IsLeaf)
                 {
-                    if (!self.HasKdTree)
+                    var kd = self.KdTree?.Value;
+
+                    if (kd == null)
                     {
-                        var kd = await self.Positions.Value.BuildKdTreeAsync();
+                        kd = await self.Positions.Value.BuildKdTreeAsync();
                         var kdKey = Guid.NewGuid();
                         self.Storage.Add(kdKey, kd.Data);
-                        self = self
-                            .WithUpsert(Durable.Octree.PointRkdTreeFDataReference, kdKey)
-                            ;
+                        upsertData = upsertData.Add(Durable.Octree.PointRkdTreeFDataReference, kdKey);
                     }
 
                     if (!self.HasNormals)
                     {
-                        var ns = await self.Positions.Value.EstimateNormalsAsync(16, self.KdTree.Value);
+                        var ns = await self.Positions.Value.EstimateNormalsAsync(16, kd);
                         var nsId = Guid.NewGuid();
                         self.Storage.Add(nsId, ns);
-                        self = self
-                            .WithUpsert(Durable.Octree.Normals3fReference, nsId)
-                            ;
+                        upsertData = upsertData.Add(Durable.Octree.Normals3fReference, nsId);
                     }
 
+                    if (upsertData.Count > 0) self = self.With(upsertData);
                     self = self.Without(PointSetNode.TemporaryImportNode);
                     if (self.Id != originalId) self = self.WriteToStore();
 
@@ -256,9 +257,9 @@ namespace Aardvark.Geometry.Points
                 var subcellsAsync = self.Subnodes.Map(x => (x?.Value as PointSetNode)?.GenerateLod(octreeSplitLimit, callback, ct));
                 await Task.WhenAll(subcellsAsync.Where(x => x != null));
                 var subcells = subcellsAsync.Map(x => x?.Result);
-                var subcellsTotalCount = (long)subcells.Sum(x => x?.PointCountTree);
                 var fractions = ComputeLodFractions(subcells);
-                var counts = ComputeLodCounts(octreeSplitLimit, fractions);
+                var aggregateCount = Math.Min(octreeSplitLimit, subcells.Sum(x => x?.PointCountCell) ?? 0);
+                var counts = ComputeLodCounts(aggregateCount, fractions);
 
                 // generate LoD data ...
 
@@ -268,32 +269,33 @@ namespace Aardvark.Geometry.Points
                 // ... shift relative positions
                 //     and from lod-positions build kd-tree and generate normals ...
                 var subcenters = subcells.Map(x => x?.Center);
-                var lodPs = AggregateSubPositions(counts, octreeSplitLimit, self.Center, subcenters, subcells.Map(x => x?.Positions?.Value));
+                var lodPs = AggregateSubPositions(counts, aggregateCount, self.Center, subcenters, subcells.Map(x => x?.Positions?.Value));
                 var lodKd = await lodPs.BuildKdTreeAsync();
                 var lodNs = await lodPs.EstimateNormalsAsync(16, lodKd); // Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.GetNormals3f()?.Value))
-                
+
                 // ... generate lod for all other attributes
                 foreach (var def in lodAttributeCandidates)
                 {
                     if (def == Durable.Octree.SubnodesGuids) continue;
                     var lod = AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Properties[def]));
-                    self = self.WithUpsert(def, lod);
+                    upsertData = upsertData.Add(def, lod);
                 }
 
                 var subnodeIds = subcells.Map(x => x != null ? x.Id : Guid.Empty);
-                self = self.WithUpsert(Durable.Octree.SubnodesGuids, subnodeIds);
+                upsertData = upsertData.Add(Durable.Octree.SubnodesGuids, subnodeIds);
 
                 // store LoD data ...
                 //var lodPsKey = Guid.NewGuid();
                 //self.Storage.Add(lodPsKey, lodPs);
                 var lodKdKey = Guid.NewGuid();
                 self.Storage.Add(lodKdKey, lodKd.Data);
-                self = self
-                    .WithUpsert(Durable.Octree.PositionsLocal3f, lodPs)
-                    .WithUpsert(Durable.Octree.PointCountCell, lodPs.Length)
-                    .WithUpsert(Durable.Octree.PointRkdTreeFDataReference, lodKdKey)
-                    //.WithUpsert(Durable.Octree.PositionsLocal3fReference, lodPsKey)
+                upsertData = upsertData
+                    .Add(Durable.Octree.PositionsLocal3f, lodPs)
+                    .Add(Durable.Octree.PointCountCell, lodPs.Length)
+                    .Add(Durable.Octree.PointRkdTreeFDataReference, lodKdKey)
+                    //.Add(Durable.Octree.PositionsLocal3fReference, lodPsKey)
                     ;
+
 
                 self = self.Without(PointSetNode.TemporaryImportNode);
 

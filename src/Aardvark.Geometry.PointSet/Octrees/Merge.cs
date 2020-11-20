@@ -56,7 +56,7 @@ namespace Aardvark.Geometry.Points
             }
         }
 
-        public static (IPointCloudNode,bool) CollapseLeafNodes(this IPointCloudNode self, ImportConfig config)
+        public static (IPointCloudNode, bool) CollapseLeafNodes(this IPointCloudNode self, ImportConfig config)
         {
             if (!self.IsTemporaryImportNode) throw new InvalidOperationException(
                 "CollapseLeafNodes is only valid for temporary import nodes. Invariant 4aa0809d-4cb0-422b-97ee-fa5b6dc4785e."
@@ -848,12 +848,12 @@ namespace Aardvark.Geometry.Points
                 }
             }
 
-            var result = a
-                .WithUpsert(Durable.Octree.PointCountTreeLeafs, pointCountTree)
-                .WithUpsert(Durable.Octree.SubnodesGuids, subcells.Map(x => x?.Id ?? Guid.Empty))
-                .WithUpsert(Durable.Octree.BoundingBoxExactGlobal, new Box3d(subcells.Where(n => n != null).Select(n => n.BoundingBoxExactGlobal)))
-                .CollapseLeafNodes(config).Item1
+            var replacements = ImmutableDictionary<Durable.Def, object>.Empty
+                .Add(Durable.Octree.PointCountTreeLeafs, pointCountTree)
+                .Add(Durable.Octree.SubnodesGuids, subcells.Map(x => x?.Id ?? Guid.Empty))
+                .Add(Durable.Octree.BoundingBoxExactGlobal, new Box3d(subcells.Where(n => n != null).Select(n => n.BoundingBoxExactGlobal)))
                 ;
+            var result = a.With(replacements).CollapseLeafNodes(config).Item1;
 
             //pointsMergedCallback?.Invoke(result.PointCountTree);
             //if (a.PointCountTree + b.PointCountTree != pointCountTree) throw new InvalidOperationException("Invariant 3db845c1-9d20-42b9-beb4-81684d47b1eb.");

@@ -484,12 +484,14 @@ namespace Aardvark.Geometry.Points
         #region Not supported ...
 
         /// <summary>
-        /// Filtered not does not support WithUpsert.
+        /// FilteredNode does not support With.
         /// </summary>
-        public IPointCloudNode WithUpsert(Durable.Def def, object x)
+        public IPointCloudNode With(IReadOnlyDictionary<Durable.Def, object> replacements)
             => throw new InvalidOperationException("Invariant 3de7dad1-668d-4104-838b-552eae03f7a8.");
 
-        /// <summary></summary>
+        /// <summary>
+        /// FilteredNode does not support WithSubNodes.
+        /// </summary>
         public IPointCloudNode WithSubNodes(IPointCloudNode[] subnodes)
             => throw new InvalidOperationException("Invariant 62e6dab8-133a-452d-8d8c-f0b0eb5f286c.");
 

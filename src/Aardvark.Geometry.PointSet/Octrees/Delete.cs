@@ -258,7 +258,8 @@ namespace Aardvark.Geometry.Points
 
                     var octreeSplitLimit = splitLimit;
                     var fractions = LodExtensions.ComputeLodFractions(subnodes);
-                    var counts = LodExtensions.ComputeLodCounts(octreeSplitLimit, fractions);
+                    var aggregateCount = Math.Min(octreeSplitLimit, subnodes.Sum(x => x?.PointCountCell) ?? 0);
+                    var counts = LodExtensions.ComputeLodCounts(aggregateCount, fractions);
 
                     // generate LoD data ...
                     var needsCs = subnodes.Any(x => x != null && x.HasColors);
@@ -267,11 +268,11 @@ namespace Aardvark.Geometry.Points
                     var needsKs = subnodes.Any(x => x != null && x.HasClassifications);
 
                     var subcenters = subnodes.Map(x => x?.Center);
-                    var lodPs = LodExtensions.AggregateSubPositions(counts, octreeSplitLimit, root.Center, subcenters, subnodes.Map(x => x?.Positions?.Value));
-                    var lodCs = needsCs ? LodExtensions.AggregateSubArrays(counts, octreeSplitLimit, subnodes.Map(x => x?.Colors?.Value)) : null;
-                    var lodNs = needsNs ? LodExtensions.AggregateSubArrays(counts, octreeSplitLimit, subnodes.Map(x => x?.Normals?.Value)) : null;
-                    var lodIs = needsIs ? LodExtensions.AggregateSubArrays(counts, octreeSplitLimit, subnodes.Map(x => x?.Intensities?.Value)) : null;
-                    var lodKs = needsKs ? LodExtensions.AggregateSubArrays(counts, octreeSplitLimit, subnodes.Map(x => x?.Classifications?.Value)) : null;
+                    var lodPs = LodExtensions.AggregateSubPositions(counts, aggregateCount, root.Center, subcenters, subnodes.Map(x => x?.Positions?.Value));
+                    var lodCs = needsCs ? LodExtensions.AggregateSubArrays(counts, aggregateCount, subnodes.Map(x => x?.Colors?.Value)) : null;
+                    var lodNs = needsNs ? LodExtensions.AggregateSubArrays(counts, aggregateCount, subnodes.Map(x => x?.Normals?.Value)) : null;
+                    var lodIs = needsIs ? LodExtensions.AggregateSubArrays(counts, aggregateCount, subnodes.Map(x => x?.Intensities?.Value)) : null;
+                    var lodKs = needsKs ? LodExtensions.AggregateSubArrays(counts, aggregateCount, subnodes.Map(x => x?.Classifications?.Value)) : null;
                     var lodKd = lodPs.Length < 1 ? null : lodPs.BuildKdTree();
 
 

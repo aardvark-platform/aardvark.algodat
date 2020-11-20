@@ -181,10 +181,29 @@ namespace Aardvark.Geometry.Points
         public IPointCloudNode Materialize() => Node.Materialize();
         public bool TryGetValue(Durable.Def what, out object o) => Node.TryGetValue(what, out o);
 
+        #region Not supported ...
+
+        /// <summary>
+        /// MultiNode does not support Encode.
+        /// </summary>
         public byte[] Encode() => throw new NotImplementedException();
+
+        /// <summary>
+        /// MultiNode does not support WithSubNodes.
+        /// </summary>
         public IPointCloudNode WithSubNodes(IPointCloudNode[] subnodes) => throw new NotImplementedException();
-        public IPointCloudNode WithUpsert(Durable.Def def, object x) => throw new NotImplementedException();
+
+        /// <summary>
+        /// MultiNode does not support WriteToStore.
+        /// </summary>
         public IPointCloudNode WriteToStore() => throw new NotImplementedException();
+
+        /// <summary>
+        /// MultiNode does not support With.
+        /// </summary>
+        public IPointCloudNode With(IReadOnlyDictionary<Durable.Def, object> replacements) => throw new NotImplementedException();
+
+        #endregion
     }
 
     public class PossiblyGZippedBuffer

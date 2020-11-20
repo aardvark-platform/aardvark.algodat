@@ -105,6 +105,36 @@ namespace Aardvark.Geometry.Tests
         }
 
         [Test]
+        public void CanUpdatePointSetNode()
+        {
+            var storage = CreateStorage();
+
+            var id = Guid.NewGuid();
+            var cell = new Cell(1, 2, 3, 0);
+
+            var psId = Guid.NewGuid();
+            var ps = new[] { new V3f(1.1f, 2.2f, 3.3f) };
+            storage.Add(psId, ps);
+
+            var data = EmptyData
+                .Add(Durable.Octree.NodeId, id)
+                .Add(Durable.Octree.Cell, cell)
+                .Add(Durable.Octree.PointCountTreeLeafs, ps.LongLength)
+                .Add(Durable.Octree.PositionsLocal3fReference, psId)
+                .Add(Durable.Octree.BoundingBoxExactLocal, new Box3f(ps))
+                ;
+
+            var node = new PointSetNode(data, storage, writeToStore: true);
+
+            var replacements = ImmutableDictionary<Durable.Def, object>.Empty
+                .Add(Durable.Octree.BoundingBoxExactGlobal, ((Box3d)new Box3f(ps)) + cell.GetCenter())
+                ;
+            var node2 = node.With(replacements);
+
+            Assert.AreNotEqual(node.Id, node2.Id);
+        }
+
+        [Test]
         public void CanEncodePointSetNode()
         {
             var storage = CreateStorage();

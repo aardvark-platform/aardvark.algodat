@@ -125,6 +125,7 @@ namespace Aardvark.Geometry.Tests
             {
                 Report.WarnNoPrefix($"{++fooCount}");
             }
+
             //var intensityRange =
             //    foo
             //    |> Seq.fold(fun intMaxima chunk-> if chunk.HasIntensities then
@@ -1263,8 +1264,79 @@ namespace Aardvark.Geometry.Tests
             #endregion
         }
 
+        internal static void Test_20201113_Hannes()
+        {
+            var filename = @"T:\Vgm\Data\E57\2020-11-13-Walenta\2020452-B-3-5.e57";
+
+            var key = Path.GetFileName(filename);
+
+            var storePath = $@"T:\Vgm\Stores\{key}";
+            using var store = new SimpleDiskStore(storePath).ToPointCloudStore();
+
+
+            var info = E57.E57Info(filename, ParseConfig.Default);
+            Report.Line($"total bounds: {info.Bounds}");
+            Report.Line($"total count : {info.PointCount:N0}");
+
+
+            var config = ImportConfig.Default
+                .WithStorage(store)
+                .WithKey(key)
+                .WithVerbose(false)
+                .WithMaxDegreeOfParallelism(0)
+                .WithMinDist(0.005)
+                .WithNormalizePointDensityGlobal(true)
+                .WithProgressCallback(p => { /*Thread.Sleep(2000);*/ Report.Line($"{p:0.00}"); })
+                ;
+
+            Report.BeginTimed("total");
+
+            var import = Task.Run(() =>
+            {
+                //var runningCount = 0L;
+                var chunks = E57
+                    .Chunks(filename, config.ParseConfig)
+                    //.TakeWhile(chunk =>
+                    //{
+                    //    var n = Interlocked.Add(ref runningCount, chunk.Count);
+                    //    Report.WarnNoPrefix($"[Chunks] {n:N0} / {info.PointCount:N0}");
+                    //    return n < info.PointCount * (0.125 + 0.125 / 2);
+                    //})
+                    ;
+                var pcl = PointCloud.Chunks(chunks, config);
+                return pcl;
+            });
+
+            var pcl = import.Result;
+
+            var maxCount = pcl.PointCount / 30;
+            var level = pcl.GetMaxOctreeLevelWithLessThanGivenPointCount(maxCount);
+            var queryChunks = pcl.QueryPointsInOctreeLevel(level);
+
+            var intensityRange = queryChunks.Aggregate<Chunk, (int, int)?>(null, (intMaxima, chunk) =>
+            {
+                if (chunk.HasIntensities)
+                {
+                    var (currentMin, currentMax) = intMaxima ?? (int.MaxValue, int.MinValue);
+                    var minInt = Math.Min(currentMin, chunk.Intensities.Min());
+                    var maxInt = Math.Max(currentMax, chunk.Intensities.Max());
+                    return (minInt, maxInt);
+                }
+                else
+                {
+                    return null;
+                }
+            });
+
+            Report.Line($"intensityRange {intensityRange}");
+
+            Report.EndTimed();
+        }
+
         public static void Main(string[] _)
         {
+            Test_20201113_Hannes();
+
             //var poly = new Polygon2d(V2d.OO, V2d.IO, V2d.II, V2d.OI);
             //Console.WriteLine(ApprInsidePolygon.Contains(poly, new V2d(0.5, 0.0)));
             //Console.WriteLine(ApprInsidePolygon.OnBorder(poly, new V2d(0.5, 0.0), 0.0));
@@ -1284,7 +1356,7 @@ namespace Aardvark.Geometry.Tests
 
             //HeraTest();
 
-            TestE57();
+            //TestE57();
 
             //LisaTest();
 
