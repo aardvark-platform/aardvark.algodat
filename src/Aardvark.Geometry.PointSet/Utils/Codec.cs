@@ -74,6 +74,12 @@ namespace Aardvark.Data
 
                 [Durable.Aardvark.C3b.Id] = EncodeC3b,
                 [Durable.Aardvark.C3bArray.Id] = EncodeC3bArray,
+                [Durable.Aardvark.C3f.Id] = EncodeC3f,
+                [Durable.Aardvark.C3fArray.Id] = EncodeC3fArray,
+                [Durable.Aardvark.C4b.Id] = EncodeC4b,
+                [Durable.Aardvark.C4bArray.Id] = EncodeC4bArray,
+                [Durable.Aardvark.C4f.Id] = EncodeC4f,
+                [Durable.Aardvark.C4fArray.Id] = EncodeC4fArray,
             };
 
             s_decoders = new Dictionary<Guid, object>
@@ -130,6 +136,12 @@ namespace Aardvark.Data
 
                 [Durable.Aardvark.C3b.Id] = DecodeC3b,
                 [Durable.Aardvark.C3bArray.Id] = DecodeC3bArray,
+                [Durable.Aardvark.C3f.Id] = DecodeC3f,
+                [Durable.Aardvark.C3fArray.Id] = DecodeC3fArray,
+                [Durable.Aardvark.C4b.Id] = DecodeC4b,
+                [Durable.Aardvark.C4bArray.Id] = DecodeC4bArray,
+                [Durable.Aardvark.C4f.Id] = DecodeC4f,
+                [Durable.Aardvark.C4fArray.Id] = DecodeC4fArray,
             };
         }
 
@@ -235,10 +247,35 @@ namespace Aardvark.Data
         private static readonly Action<BinaryWriter, object> EncodeBox3dArray =
             (s, o) => EncodeArray(s, (Box3d[])o);
 
+        /// <summary>
+        /// Wrong implemention (should be serialized as BGR, not RGB) according to Durable definition.
+        /// For backwards compatibility, this should be fixed with magic, by obsoleting Aardvark.C3b durable definition used by this implemention and creating new Aardvark.C3b durable def.
+        /// </summary>
         private static readonly Action<BinaryWriter, object> EncodeC3b =
             (s, o) => { var x = (C3b)o; s.Write(x.R); s.Write(x.G); s.Write(x.B); };
+        /// <summary>
+        /// This should be correctly serialized, since the array is serialzed in memory layout, which is BGR. See EncodeC3b.
+        /// </summary>
         private static readonly Action<BinaryWriter, object> EncodeC3bArray =
             (s, o) => EncodeArray(s, (C3b[])o);
+
+        private static readonly Action<BinaryWriter, object> EncodeC3f =
+            (s, o) => { var x = (C3f)o; s.Write(x.R); s.Write(x.G); s.Write(x.B); };
+        private static readonly Action<BinaryWriter, object> EncodeC3fArray =
+            (s, o) => EncodeArray(s, (C3f[])o);
+
+        /// <summary>
+        /// Correct implemention, serialized as BGRA (because it was added later after the problem was known).
+        /// </summary>
+        private static readonly Action<BinaryWriter, object> EncodeC4b =
+            (s, o) => { var x = (C4b)o; s.Write(x.B); s.Write(x.G); s.Write(x.R); s.Write(x.A); };
+        private static readonly Action<BinaryWriter, object> EncodeC4bArray =
+            (s, o) => EncodeArray(s, (C4b[])o);
+
+        private static readonly Action<BinaryWriter, object> EncodeC4f =
+            (s, o) => { var x = (C4f)o; s.Write(x.R); s.Write(x.G); s.Write(x.B); s.Write(x.A); };
+        private static readonly Action<BinaryWriter, object> EncodeC4fArray =
+            (s, o) => EncodeArray(s, (C4f[])o);
 
         private static unsafe void EncodeArray<T>(BinaryWriter s, params T[] xs) where T : struct
         {
@@ -365,8 +402,35 @@ namespace Aardvark.Data
         private static readonly Func<BinaryReader, object> DecodeBox3d = s => new Box3d((V3d)DecodeV3d(s), (V3d)DecodeV3d(s));
         private static readonly Func<BinaryReader, object> DecodeBox3dArray = s => DecodeArray<Box3d>(s);
 
+        /// <summary>
+        /// Wrong implemention (should be serialized as BGR, not RGB) according to Durable definition.
+        /// For backwards compatibility, this should be fixed with magic, by obsoleting Aardvark.C3b durable definition used by this implemention and creating new Aardvark.C3b durable def.
+        /// </summary>
         private static readonly Func<BinaryReader, object> DecodeC3b = s => new C3b(s.ReadByte(), s.ReadByte(), s.ReadByte());
+        /// <summary>
+        /// This should be correctly deserialized, since the array is serialized in memory layout, which is BGR. See EncodeC3b.
+        /// </summary>
         private static readonly Func<BinaryReader, object> DecodeC3bArray = s => DecodeArray<C3b>(s);
+
+        private static readonly Func<BinaryReader, object> DecodeC3f = s => new C3f(s.ReadSingle(), s.ReadSingle(), s.ReadSingle());
+        private static readonly Func<BinaryReader, object> DecodeC3fArray = s => DecodeArray<C3f>(s);
+
+        /// <summary>
+        /// Correct implemention, serialized as BGRA (because it was added later after the problem was known).
+        /// </summary>
+        private static readonly Func<BinaryReader, object> DecodeC4b = s =>
+        {
+            var b = s.ReadByte();
+            var g = s.ReadByte();
+            var r = s.ReadByte();
+            var a = s.ReadByte();
+            return new C4b(r, g, b, a);
+        };
+        private static readonly Func<BinaryReader, object> DecodeC4bArray = s => DecodeArray<C4b>(s);
+
+        private static readonly Func<BinaryReader, object> DecodeC4f = s => new C4f(s.ReadSingle(), s.ReadSingle(), s.ReadSingle(), s.ReadSingle());
+        private static readonly Func<BinaryReader, object> DecodeC4fArray = s => DecodeArray<C4f>(s);
+
 
         private static unsafe T[] DecodeArray<T>(BinaryReader s) where T : struct
         {
