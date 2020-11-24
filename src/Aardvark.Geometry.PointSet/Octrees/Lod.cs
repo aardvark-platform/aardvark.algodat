@@ -169,6 +169,10 @@ namespace Aardvark.Geometry.Points
                 Trafo2f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (Trafo2f[])x)),
                 Trafo3d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (Trafo3d[])x)),
                 Trafo3f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (Trafo3f[])x)),
+                C3b[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (C3b[])x)),
+                C3f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (C3f[])x)),
+                C4b[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (C4b[])x)),
+                C4f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (C4f[])x)),
                 _ => throw new Exception($"LoD aggregation for type {t} not supported. Error 13c77814-f323-41fb-a7b6-c164973b7b02.")
             };
         }
