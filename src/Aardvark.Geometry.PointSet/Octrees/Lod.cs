@@ -127,6 +127,7 @@ namespace Aardvark.Geometry.Points
             var t = arrays.First(x => x != null).GetType().GetElementType();
             return arrays.First(x => x != null) switch
             {
+                bool[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (bool[])x)),
                 Guid[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (Guid[])x)),
                 string[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (string[])x)),
                 byte[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (byte[])x)),
@@ -152,12 +153,18 @@ namespace Aardvark.Geometry.Points
                 V4f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V4f[])x)),
                 V4i[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V4i[])x)),
                 V4l[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V4l[])x)),
-                M22d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M22f[])x)),
-                M22f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M22d[])x)),
-                M33d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M33f[])x)),
-                M33f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M33d[])x)),
-                M44d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M44f[])x)),
-                M44f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M44d[])x)),
+                M22d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M22d[])x)),
+                M22f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M22f[])x)),
+                M22i[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M22i[])x)),
+                M22l[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M22l[])x)),
+                M33d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M33d[])x)),
+                M33f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M33f[])x)),
+                M33i[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M33i[])x)),
+                M33l[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M33l[])x)),
+                M44d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M44d[])x)),
+                M44f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M44f[])x)),
+                M44i[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M44i[])x)),
+                M44l[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M44l[])x)),
                 Trafo2d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (Trafo2d[])x)),
                 Trafo2f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (Trafo2f[])x)),
                 Trafo3d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (Trafo3d[])x)),
@@ -222,9 +229,13 @@ namespace Aardvark.Geometry.Points
 
             try
             {
+                var store = self.Storage;
                 var originalId = self.Id;
                 var upsertData = ImmutableDictionary<Durable.Def, object>.Empty;
 
+                //////////////////////////////////////////////////////////////////
+                // for leafs we need no LoD generation (contain original data)
+                // just build kd-tree and estimate normals ...
                 if (self.IsLeaf)
                 {
                     var kd = self.KdTree?.Value;
@@ -233,7 +244,7 @@ namespace Aardvark.Geometry.Points
                     {
                         kd = await self.Positions.Value.BuildKdTreeAsync();
                         var kdKey = Guid.NewGuid();
-                        self.Storage.Add(kdKey, kd.Data);
+                        store.Add(kdKey, kd.Data);
                         upsertData = upsertData.Add(Durable.Octree.PointRkdTreeFDataReference, kdKey);
                     }
 
@@ -241,7 +252,7 @@ namespace Aardvark.Geometry.Points
                     {
                         var ns = await self.Positions.Value.EstimateNormalsAsync(16, kd);
                         var nsId = Guid.NewGuid();
-                        self.Storage.Add(nsId, ns);
+                        store.Add(nsId, ns);
                         upsertData = upsertData.Add(Durable.Octree.Normals3fReference, nsId);
                     }
 
@@ -252,6 +263,8 @@ namespace Aardvark.Geometry.Points
                     return self;
                 }
 
+                //////////////////////////////////////////////////////////////////
+                // how much data should we take from each subode ...
                 if (self.Subnodes == null || self.Subnodes.Length != 8) throw new InvalidOperationException();
 
                 var subcellsAsync = self.Subnodes.Map(x => (x?.Value as PointSetNode)?.GenerateLod(octreeSplitLimit, callback, ct));
@@ -261,19 +274,19 @@ namespace Aardvark.Geometry.Points
                 var aggregateCount = Math.Min(octreeSplitLimit, subcells.Sum(x => x?.PointCountCell) ?? 0);
                 var counts = ComputeLodCounts(aggregateCount, fractions);
 
+                //////////////////////////////////////////////////////////////////
                 // generate LoD data ...
 
                 var firstNonEmptySubnode = subcells.First(n => n != null);
                 var lodAttributeCandidates = firstNonEmptySubnode.Properties.Keys.Where(x => x.IsArray && x != Durable.Octree.PositionsLocal3f).ToArray();
 
-                // ... shift relative positions
-                //     and from lod-positions build kd-tree and generate normals ...
+                // ... for positions (and generate kd-tree and normals)
                 var subcenters = subcells.Map(x => x?.Center);
                 var lodPs = AggregateSubPositions(counts, aggregateCount, self.Center, subcenters, subcells.Map(x => x?.Positions?.Value));
                 var lodKd = await lodPs.BuildKdTreeAsync();
-                var lodNs = await lodPs.EstimateNormalsAsync(16, lodKd); // Lod.AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.GetNormals3f()?.Value))
+                var lodNs = await lodPs.EstimateNormalsAsync(16, lodKd);
 
-                // ... generate lod for all other attributes
+                // ... for all other attributes
                 foreach (var def in lodAttributeCandidates)
                 {
                     if (def == Durable.Octree.SubnodesGuids) continue;
@@ -284,25 +297,23 @@ namespace Aardvark.Geometry.Points
                 var subnodeIds = subcells.Map(x => x != null ? x.Id : Guid.Empty);
                 upsertData = upsertData.Add(Durable.Octree.SubnodesGuids, subnodeIds);
 
+                //////////////////////////////////////////////////////////////////
                 // store LoD data ...
-                //var lodPsKey = Guid.NewGuid();
-                //self.Storage.Add(lodPsKey, lodPs);
                 var lodKdKey = Guid.NewGuid();
-                self.Storage.Add(lodKdKey, lodKd.Data);
+                store.Add(lodKdKey, lodKd.Data);
                 upsertData = upsertData
                     .Add(Durable.Octree.PositionsLocal3f, lodPs)
                     .Add(Durable.Octree.PointCountCell, lodPs.Length)
                     .Add(Durable.Octree.PointRkdTreeFDataReference, lodKdKey)
-                    //.Add(Durable.Octree.PositionsLocal3fReference, lodPsKey)
                     ;
 
 
-                self = self.Without(PointSetNode.TemporaryImportNode);
+                self = self
+                    .With(upsertData)
+                    .Without(PointSetNode.TemporaryImportNode)
+                    ;
 
-                if (self.Id != originalId)
-                {
-                    self = self.WriteToStore();
-                }
+                if (self.Id != originalId) self = self.WriteToStore();
 
                 return self;
             }
