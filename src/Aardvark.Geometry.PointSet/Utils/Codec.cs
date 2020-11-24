@@ -26,6 +26,8 @@ namespace Aardvark.Data
                 [Durable.Primitives.GuidDef.Id] = EncodeGuid,
                 [Durable.Primitives.GuidArray.Id] = EncodeGuidArray,
 
+                [Durable.Primitives.UInt8.Id] = EncodeUInt8,
+                [Durable.Primitives.UInt8Array.Id] = EncodeUInt8Array,
                 [Durable.Primitives.Int16.Id] = EncodeInt16,
                 [Durable.Primitives.Int16Array.Id] = EncodeInt16Array,
                 [Durable.Primitives.UInt16.Id] = EncodeUInt16,
@@ -149,6 +151,8 @@ namespace Aardvark.Data
 
         private static readonly Action<BinaryWriter, object> EncodeGuid = (s, o) => s.Write(((Guid)o).ToByteArray(), 0, 16);
         private static readonly Action<BinaryWriter, object> EncodeGuidArray = (s, o) => EncodeArray(s, (Guid[])o);
+        private static readonly Action<BinaryWriter, object> EncodeUInt8 = (s, o) => s.Write((byte)o);
+        private static readonly Action<BinaryWriter, object> EncodeUInt8Array = (s, o) => EncodeArray(s, (byte[])o);
         private static readonly Action<BinaryWriter, object> EncodeInt16 = (s, o) => s.Write((short)o);
         private static readonly Action<BinaryWriter, object> EncodeInt16Array = (s, o) => EncodeArray(s, (short[])o);
         private static readonly Action<BinaryWriter, object> EncodeUInt16 = (s, o) => s.Write((ushort)o);
