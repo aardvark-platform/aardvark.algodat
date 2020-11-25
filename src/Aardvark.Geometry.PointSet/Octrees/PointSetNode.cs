@@ -131,6 +131,22 @@ namespace Aardvark.Geometry.Points
                     if (pRef.Value.Cell.Exponent + 1 != Cell.Exponent) throw new InvalidOperationException("Invariant a5308834-2509-4af5-8986-c717da792611.");
 #endif
                 }
+
+#if DEBUG
+                //var n0count = 0;
+                //var n1count = 0;
+                //foreach (var n in Subnodes)
+                //{
+                //    if (n == null) continue;
+                //    if (n.Value.HasNormals) n1count++; else n0count++;
+                //}
+                //if (n0count > 0 && n1count > 0)
+                //{
+                //    var foo1 = Subnodes.Map(n => n?.Value?.HasNormals);
+                //    var foo2 = Subnodes.Map(n => n?.Value?.IsLeaf);
+                //    throw new Exception();
+                //}
+#endif
             }
             else
             {
