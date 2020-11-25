@@ -234,6 +234,22 @@ namespace Aardvark.Geometry.Points
 
         #endregion
 
+        #region Velocities
+
+        /// <summary>
+        /// Deprecated. Always returns false. Use custom attributes instead.
+        /// </summary>
+        [Obsolete("Use custom attributes instead.")]
+        bool HasVelocities { get; }
+
+        /// <summary>
+        /// Deprecated. Always returns null. Use custom attributes instead.
+        /// </summary>
+        [Obsolete("Use custom attributes instead.")]
+        PersistentRef<V3f[]> Velocities { get; }
+
+        #endregion
+
         #region CentroidLocal
 
         /// <summary></summary>

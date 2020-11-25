@@ -165,6 +165,23 @@ namespace Aardvark.Geometry.Points
         public PersistentRef<int[]> Intensities => Node.Intensities;
         public bool HasClassifications => Node.HasClassifications;
         public PersistentRef<byte[]> Classifications => Node.Classifications;
+
+        #region Velocities
+
+        /// <summary>
+        /// Deprecated. Always returns false. Use custom attributes instead.
+        /// </summary>
+        [Obsolete("Use custom attributes instead.")]
+        public bool HasVelocities => Node.HasVelocities;
+
+        /// <summary>
+        /// Deprecated. Always returns null. Use custom attributes instead.
+        /// </summary>
+        [Obsolete("Use custom attributes instead.")]
+        public PersistentRef<V3f[]> Velocities => Node.Velocities;
+
+        #endregion
+
         public bool HasCentroidLocal => Node.HasCentroidLocal;
         public V3f CentroidLocal => Node.CentroidLocal;
         public bool HasCentroidLocalStdDev => Node.HasCentroidLocalStdDev;

@@ -804,6 +804,22 @@ namespace Aardvark.Geometry.Points
             }
         }
 
+        #endregion
+
+#region Velocities
+
+        /// <summary>
+        /// Deprecated. Always returns false. Use custom attributes instead.
+        /// </summary>
+        [Obsolete("Use custom attributes instead.")]
+        public bool HasVelocities => false;
+
+        /// <summary>
+        /// Deprecated. Always returns null. Use custom attributes instead.
+        /// </summary>
+        [Obsolete("Use custom attributes instead.")]
+        public PersistentRef<V3f[]> Velocities => null;
+
 #endregion
 
 #region KdTree
