@@ -1266,12 +1266,17 @@ namespace Aardvark.Geometry.Tests
 
         internal static void Test_20201113_Hannes()
         {
-            var filename = @"T:\Vgm\Data\E57\2020-11-13-Walenta\2020452-B-3-5.e57";
+            //var filename = @"T:\Vgm\Data\E57\2020-11-13-Walenta\2020452-B-3-5.e57";
+            //var filename = @"T:\Vgm\Data\E57\aibotix_ground_points.e57";
+            //var filename = @"T:\Vgm\Data\E57\Register360_Berlin Office_1.e57";
+            //var filename = @"T:\Vgm\Data\E57\Staatsoper.e57";
+            var filename = @"T:\Vgm\Data\E57\Innenscan_FARO.e57";
 
             var key = Path.GetFileName(filename);
 
             var storePath = $@"T:\Vgm\Stores\{key}";
-            using var store = new SimpleDiskStore(storePath).ToPointCloudStore();
+            using var storeRaw = new SimpleDiskStore(storePath);
+            var store = storeRaw.ToPointCloudStore();
 
 
             var info = E57.E57Info(filename, ParseConfig.Default);
@@ -1296,6 +1301,7 @@ namespace Aardvark.Geometry.Tests
                 //var runningCount = 0L;
                 var chunks = E57
                     .Chunks(filename, config.ParseConfig)
+                    //.Take(50)
                     //.TakeWhile(chunk =>
                     //{
                     //    var n = Interlocked.Add(ref runningCount, chunk.Count);
@@ -1308,29 +1314,32 @@ namespace Aardvark.Geometry.Tests
             });
 
             var pcl = import.Result;
+            File.WriteAllText(Path.Combine(storePath, "key.txt"), pcl.Id);
 
-            var maxCount = pcl.PointCount / 30;
-            var level = pcl.GetMaxOctreeLevelWithLessThanGivenPointCount(maxCount);
-            var queryChunks = pcl.QueryPointsInOctreeLevel(level);
+            //var maxCount = pcl.PointCount / 30;
+            //var level = pcl.GetMaxOctreeLevelWithLessThanGivenPointCount(maxCount);
+            //var queryChunks = pcl.QueryPointsInOctreeLevel(level);
 
-            var intensityRange = queryChunks.Aggregate<Chunk, (int, int)?>(null, (intMaxima, chunk) =>
-            {
-                if (chunk.HasIntensities)
-                {
-                    var (currentMin, currentMax) = intMaxima ?? (int.MaxValue, int.MinValue);
-                    var minInt = Math.Min(currentMin, chunk.Intensities.Min());
-                    var maxInt = Math.Max(currentMax, chunk.Intensities.Max());
-                    return (minInt, maxInt);
-                }
-                else
-                {
-                    return null;
-                }
-            });
+            //var intensityRange = queryChunks.Aggregate<Chunk, (int, int)?>(null, (intMaxima, chunk) =>
+            //{
+            //    if (chunk.HasIntensities)
+            //    {
+            //        var (currentMin, currentMax) = intMaxima ?? (int.MaxValue, int.MinValue);
+            //        var minInt = Math.Min(currentMin, chunk.Intensities.Min());
+            //        var maxInt = Math.Max(currentMax, chunk.Intensities.Max());
+            //        return (minInt, maxInt);
+            //    }
+            //    else
+            //    {
+            //        return null;
+            //    }
+            //});
 
-            Report.Line($"intensityRange {intensityRange}");
+            //Report.Line($"intensityRange {intensityRange}");
 
             Report.EndTimed();
+
+            Report.Line($"number of keys: {storeRaw.SnapshotKeys().Length:N0}");
         }
 
         public static void Main(string[] _)
