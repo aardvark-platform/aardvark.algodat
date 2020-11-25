@@ -124,7 +124,7 @@ namespace Aardvark.Geometry.Points
 
         internal static Array AggregateSubArrays(int[] counts, int splitLimit, object[] arrays)
         {
-            var t = arrays.First(x => x != null).GetType().GetElementType();
+            //var t = arrays.First(x => x != null).GetType().GetElementType();
             return arrays.First(x => x != null) switch
             {
                 bool[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (bool[])x)),
@@ -173,7 +173,7 @@ namespace Aardvark.Geometry.Points
                 C3f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (C3f[])x)),
                 C4b[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (C4b[])x)),
                 C4f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (C4f[])x)),
-                _ => throw new Exception($"LoD aggregation for type {t} not supported. Error 13c77814-f323-41fb-a7b6-c164973b7b02.")
+                _ => throw new Exception($"LoD aggregation for type {arrays.First(x => x != null)} not supported. Error 13c77814-f323-41fb-a7b6-c164973b7b02.")
             };
         }
 
@@ -287,11 +287,26 @@ namespace Aardvark.Geometry.Points
                 //////////////////////////////////////////////////////////////////
                 // generate LoD data ...
 
+                bool getHasAttribute(Func<IPointCloudNode, bool> check)
+                {
+                    var has = 0; var hasNot = 0;
+                    foreach (var n in subcells)
+                    {
+                        if (n == null) continue;
+                        if (check(n)) has++; else hasNot++;
+                    }
+                    if (has > 0 && hasNot > 0) throw new Exception("");
+                    return has > 0;
+                }
+
                 var firstNonEmptySubnode = subcells.First(n => n != null);
                 var lodAttributeCandidates = firstNonEmptySubnode.Properties.Keys.Where(x => x.IsArray &&
                     x != Durable.Octree.SubnodesGuids &&
                     x != Durable.Octree.PositionsLocal3f &&
-                    x != Durable.Octree.Normals3f
+                    x != Durable.Octree.Normals3f &&
+                    x != Durable.Octree.Classifications1b &&
+                    x != Durable.Octree.Colors4b &&
+                    x != Durable.Octree.Intensities1i
                     ).ToArray();
 
                 // ... for positions (and generate kd-tree and normals)
@@ -300,20 +315,7 @@ namespace Aardvark.Geometry.Points
                 var lodKd = await lodPs.BuildKdTreeAsync();
                 var lodNs = await lodPs.EstimateNormalsAsync(16, lodKd);
                 if (lodNs.Length != lodPs.Length) throw new Exception();
-
-                // ... for all other attributes
-                foreach (var def in lodAttributeCandidates)
-                {
-                    var lod = AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Properties[def]));
-                    if (lod.Length != lodPs.Length) throw new Exception();
-                    upsertData = upsertData.Add(def, lod);
-                }
-
-                var subnodeIds = subcells.Map(x => x != null ? x.Id : Guid.Empty);
-                upsertData = upsertData.Add(Durable.Octree.SubnodesGuids, subnodeIds);
-
-                //////////////////////////////////////////////////////////////////
-                // store LoD data ...
+                
                 var lodKdKey = Guid.NewGuid();
                 store.Add(lodKdKey, lodKd.Data);
                 upsertData = upsertData
@@ -323,7 +325,54 @@ namespace Aardvark.Geometry.Points
                     .Add(Durable.Octree.Normals3f, lodNs)
                     ;
 
+                // for classifications ...
+                var hasClassifications = getHasAttribute(n => n.HasClassifications);
+                if (hasClassifications)
+                {
+                    var lod = AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Classifications.Value));
+                    if (lod.Length != lodPs.Length) throw new Exception($"Inconsistent lod-classifications length {lod.Length}. Should be {lodPs.Length}.");
+                    upsertData = upsertData.Add(Durable.Octree.Classifications1b, lod);
+                }
 
+                // for colors ...
+                var hasColors = getHasAttribute(n => n.HasColors);
+                if (hasColors)
+                {
+                    var lod = AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Colors.Value));
+                    if (lod.Length != lodPs.Length) throw new Exception($"Inconsistent lod-colors length {lod.Length}. Should be {lodPs.Length}.");
+                    upsertData = upsertData.Add(Durable.Octree.Colors4b, lod);
+                }
+
+                // for intensities ...
+                var hasIntensities = getHasAttribute(n => n.HasIntensities);
+                if (hasIntensities)
+                {
+                    var lod = AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Intensities.Value));
+                    if (lod.Length != lodPs.Length) throw new Exception($"Inconsistent lod-intensities length {lod.Length}. Should be {lodPs.Length}.");
+                    upsertData = upsertData.Add(Durable.Octree.Intensities1i, lod);
+                }
+
+                // ... for all other attributes
+                foreach (var def in lodAttributeCandidates)
+                {
+                    try
+                    {
+                        var lod = AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Properties[def]));
+                        if (lod.Length != lodPs.Length) throw new Exception($"Inconsistent lod-array length {lod.Length}. Should be {lodPs.Length}.");
+                        upsertData = upsertData.Add(def, lod);
+                    }
+                    catch
+                    {
+                        Report.Error($"Failure to aggregate subnode data for custom attribute {def}");
+                        throw;
+                    }
+                }
+
+                var subnodeIds = subcells.Map(x => x != null ? x.Id : Guid.Empty);
+                upsertData = upsertData.Add(Durable.Octree.SubnodesGuids, subnodeIds);
+
+                //////////////////////////////////////////////////////////////////
+                // store LoD data ...
                 self = self
                     .With(upsertData)
                     .Without(PointSetNode.TemporaryImportNode)
