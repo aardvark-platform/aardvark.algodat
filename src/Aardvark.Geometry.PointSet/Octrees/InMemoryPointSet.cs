@@ -224,7 +224,7 @@ namespace Aardvark.Geometry.Points
                 // save attribute arrays to store ...
                 foreach (var kv in attributes)
                 {
-                    if (false && StoreAsReference.TryGetValue(kv.Key, out var refdef))
+                    if (StoreAsReference.TryGetValue(kv.Key, out var refdef))
                     {
                         // store separately and reference by id ...
                         var id = Guid.NewGuid();

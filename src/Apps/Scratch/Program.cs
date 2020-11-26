@@ -108,7 +108,7 @@ namespace Scratch
             Durable.Octree.Velocities3fReference,
         };
 
-        static void PointCloudStats(string storePath, bool scan)
+        static void PointCloudStats(string storePath, bool detailedNodeScan)
         {
             Report.Line();
             Report.BeginTimed($"{storePath}");
@@ -152,7 +152,12 @@ namespace Scratch
                 }
             }
 
-            if (scan)
+            Report.Begin("root node properties");
+            var i = 0;
+            foreach (var k in root.Properties.Keys.OrderBy(x => x.Name)) Report.Line($"[{i++}] {k.Name}");
+            Report.End();
+
+            if (detailedNodeScan)
             {
                 Report.BeginTimed($"scanning nodes");
                 var nodeCount = 0L;
@@ -164,6 +169,11 @@ namespace Scratch
 
                 root.ForEachNode(outOfCore: true, node =>
                 {
+                    if (node.Properties.ContainsKey(Durable.Octree.Colors4b)) throw new Exception();
+                    if (node.Properties.ContainsKey(Durable.Octree.Intensities1i)) throw new Exception();
+                    if (node.Properties.ContainsKey(Durable.Octree.Normals3f)) throw new Exception();
+                    if (node.Properties.ContainsKey(Durable.Octree.PositionsLocal3f)) throw new Exception();
+
                     nodeCount++;
                     if (node.IsLeaf) leafCount++;
 
@@ -219,25 +229,31 @@ namespace Scratch
             {
                 //@"E:\rmdata\aibotix_ground_points.e57_5.0.24",
                 //@"E:\rmdata\aibotix_ground_points.e57_5.1.0-prerelease0004",
+                //@"E:\rmdata\aibotix_ground_points.e57_5.1.0-prerelease0005",
                 //@"E:\rmdata\Register360_Berlin Office_1.e57_5.0.24",
                 //@"E:\rmdata\Register360_Berlin Office_1.e57_5.1.0-prerelease0004",
+                @"E:\rmdata\Register360_Berlin Office_1.e57_5.1.0-prerelease0005",
                 //@"E:\rmdata\Staatsoper.e57_5.0.24",
                 //@"E:\rmdata\Staatsoper.e57_5.1.0-prerelease0004",
+                //@"E:\rmdata\Staatsoper.e57_5.1.0-prerelease0005",
                 //@"E:\rmdata\Innenscan_FARO.e57_5.0.24",
                 //@"E:\rmdata\Innenscan_FARO.e57_5.1.0-prerelease0004",
+                //@"E:\rmdata\Innenscan_FARO.e57_5.1.0-prerelease0005",
                 //@"E:\rmdata\1190_31_test_Frizzo.e57_5.0.24",
                 //@"E:\rmdata\1190_31_test_Frizzo.e57_5.1.0-prerelease0004",
+                //@"E:\rmdata\1190_31_test_Frizzo.e57_5.1.0-prerelease0005",
                 //@"E:\rmdata\Neuhäusl-Hörschwang.e57_5.0.24",
                 //@"E:\rmdata\Neuhäusl-Hörschwang.e57_5.1.0-prerelease0004",
+                //@"E:\rmdata\Neuhäusl-Hörschwang.e57_5.1.0-prerelease0005",
 
                 // 2020-11-13-Walenta
-                @"E:\rmdata\2020452-B-3-5.e57_5.0.24",
+                //@"E:\rmdata\2020452-B-3-5.e57_5.0.24",
                 //@"E:\rmdata\2020452-B-3-5.e57_5.1.0-prerelease0004",
             };
 
             foreach (var x in storePaths)
             {
-                PointCloudStats(storePath: x, scan: true);
+                PointCloudStats(storePath: x, detailedNodeScan: true);
             }
             
         }

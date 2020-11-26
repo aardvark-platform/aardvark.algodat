@@ -287,7 +287,7 @@ namespace Aardvark.Geometry.Points
                 //////////////////////////////////////////////////////////////////
                 // generate LoD data ...
 
-                bool getHasAttribute(Func<IPointCloudNode, bool> check)
+                bool subnodesHaveAttribute(Func<IPointCloudNode, bool> check, string kind)
                 {
                     var has = 0; var hasNot = 0;
                     foreach (var n in subcells)
@@ -295,7 +295,21 @@ namespace Aardvark.Geometry.Points
                         if (n == null) continue;
                         if (check(n)) has++; else hasNot++;
                     }
-                    if (has > 0 && hasNot > 0) throw new Exception("");
+                    
+                    if (has > 0 && hasNot > 0)
+                    {
+                        var info = "Subnodes: [" + string.Join("; ", subcells.Select((n, i) =>
+                        {
+                            if (n == null)      return $"{i}: null";
+                            else if (check(n))  return $"{i}: exists";
+                            else                return $"{i}: n/a";
+                        })) + "]";
+
+                        throw new Exception(
+                            $"Inconsistent {kind} attribute in subnodes of node id={self.Id}. Invariant 6454e7ab-0b39-4f3e-b158-c3f9cbc24953. {info}."
+                            );
+                    }
+
                     return has > 0;
                 }
 
@@ -309,61 +323,73 @@ namespace Aardvark.Geometry.Points
                     x != Durable.Octree.Intensities1i
                     ).ToArray();
 
-                // ... for positions (and generate kd-tree and normals)
+                // ... positions ...
                 var subcenters = subcells.Map(x => x?.Center);
                 var lodPs = AggregateSubPositions(counts, aggregateCount, self.Center, subcenters, subcells.Map(x => x?.Positions?.Value));
-                var lodKd = await lodPs.BuildKdTreeAsync();
-                var lodNs = await lodPs.EstimateNormalsAsync(16, lodKd);
-                if (lodNs.Length != lodPs.Length) throw new Exception();
-                
-                var lodKdKey = Guid.NewGuid();
-                store.Add(lodKdKey, lodKd.Data);
+                var lodPsKey = Guid.NewGuid();
+                store.Add(lodPsKey, lodPs);
                 upsertData = upsertData
-                    .Add(Durable.Octree.PositionsLocal3f, lodPs)
+                    .Add(Durable.Octree.PositionsLocal3fReference, lodPsKey)
                     .Add(Durable.Octree.PointCountCell, lodPs.Length)
-                    .Add(Durable.Octree.PointRkdTreeFDataReference, lodKdKey)
-                    .Add(Durable.Octree.Normals3f, lodNs)
                     ;
 
-                // for classifications ...
-                var hasClassifications = getHasAttribute(n => n.HasClassifications);
-                if (hasClassifications)
+                // ... kd-tree ...
+                var lodKd = await lodPs.BuildKdTreeAsync();
+                var lodKdKey = Guid.NewGuid();
+                store.Add(lodKdKey, lodKd.Data);
+                upsertData = upsertData.Add(Durable.Octree.PointRkdTreeFDataReference, lodKdKey);
+
+                // .. normals ...
+                var lodNs = await lodPs.EstimateNormalsAsync(16, lodKd);
+                if (lodNs.Length != lodPs.Length) throw new Exception(
+                    $"Inconsistent lod-normals length {lodNs.Length}. Should be {lodPs.Length}. Error 806dfe30-4faa-46b1-a2a3-f50e336cbe67."
+                    );
+                var lodNsKey = Guid.NewGuid();
+                store.Add(lodNsKey, lodNs);
+                upsertData = upsertData.Add(Durable.Octree.Normals3fReference, lodNsKey);
+
+                void addAttributeByRef<T>(string kind, Durable.Def def, Func<IPointCloudNode, bool> has, Func<IPointCloudNode, T[]> getData)
                 {
-                    var lod = AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Classifications.Value));
-                    if (lod.Length != lodPs.Length) throw new Exception($"Inconsistent lod-classifications length {lod.Length}. Should be {lodPs.Length}.");
-                    upsertData = upsertData.Add(Durable.Octree.Classifications1b, lod);
+                    var hasAttribute = subnodesHaveAttribute(has, kind);
+                    if (hasAttribute)
+                    {
+                        var lod = AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(getData));
+                        if (lod.Length != lodPs.Length) throw new Exception(
+                            $"Inconsistent lod {kind} length {lod.Length}. Should be {lodPs.Length}. Error 1aa7a00f-cb3a-42a6-ad38-6c03fcd6ea9f."
+                            );
+                        // add attribute by ref to separate blob
+                        var key = Guid.NewGuid();
+                        store.Add(key, lod);
+                        upsertData = upsertData.Add(def, key);
+                    }
                 }
 
-                // for colors ...
-                var hasColors = getHasAttribute(n => n.HasColors);
-                if (hasColors)
-                {
-                    var lod = AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Colors.Value));
-                    if (lod.Length != lodPs.Length) throw new Exception($"Inconsistent lod-colors length {lod.Length}. Should be {lodPs.Length}.");
-                    upsertData = upsertData.Add(Durable.Octree.Colors4b, lod);
-                }
+                // ... classifications ...
+                addAttributeByRef("classifications", Durable.Octree.Classifications1bReference, n => n.HasClassifications, n => n?.Classifications.Value);
 
-                // for intensities ...
-                var hasIntensities = getHasAttribute(n => n.HasIntensities);
-                if (hasIntensities)
-                {
-                    var lod = AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Intensities.Value));
-                    if (lod.Length != lodPs.Length) throw new Exception($"Inconsistent lod-intensities length {lod.Length}. Should be {lodPs.Length}.");
-                    upsertData = upsertData.Add(Durable.Octree.Intensities1i, lod);
-                }
+                // ... colors ...
+                addAttributeByRef("colors", Durable.Octree.Colors4bReference, n => n.HasColors, n => n?.Colors.Value);
 
-                // ... for all other attributes
+                // ... intensities ...
+                addAttributeByRef("intensities", Durable.Octree.Intensities1iReference, n => n.HasIntensities, n => n?.Intensities.Value);
+
+                // ... for all other attributes ...
                 foreach (var def in lodAttributeCandidates)
                 {
                     try
                     {
                         var lod = AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Properties[def]));
-                        if (lod.Length != lodPs.Length) throw new Exception($"Inconsistent lod-array length {lod.Length}. Should be {lodPs.Length}.");
+                        if (lod.Length != lodPs.Length) throw new Exception(
+                            $"Inconsistent lod-array length {lod.Length}. Should be {lodPs.Length}. Error e3f0398a-b0ae-4e57-95ab-b5d83922ec6e."
+                            );
+
+                        // add attribute inside node (for custom attributes we don't know which type (Durable.Def)
+                        // to use for referencing the attribute data as a blob outside this node)
                         upsertData = upsertData.Add(def, lod);
                     }
                     catch
                     {
-                        Report.Error($"Failure to aggregate subnode data for custom attribute {def}");
+                        Report.Error($"Failure to aggregate subnode data for custom attribute {def}. Error d74d2b84-58ec-482b-9971-750f8c50324e.");
                         throw;
                     }
                 }
