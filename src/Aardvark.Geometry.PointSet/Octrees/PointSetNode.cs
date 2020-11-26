@@ -341,8 +341,12 @@ namespace Aardvark.Geometry.Points
                 (HasClassifications && Classifications.Value.Length != PointCountCell)
                 )
             {
+#if DEBUG
                 throw new InvalidOperationException(
-                    $"[PointSetNode] Inconsistent counts. " +
+#else
+                Report.Error(
+#endif
+                    $"[PointSetNode] Inconsistent counts. Id = {Id}. " +
                     $"PointCountCell={PointCountCell}, " +
                     $"Positions={Positions?.Value?.Length}, " +
                     $"Colors={Colors?.Value?.Length}, " +
@@ -693,7 +697,7 @@ namespace Aardvark.Geometry.Points
             }
         }
 
-        #endregion
+#endregion
 
 #region Normals
 
@@ -804,7 +808,7 @@ namespace Aardvark.Geometry.Points
             }
         }
 
-        #endregion
+#endregion
 
 #region Velocities
 
