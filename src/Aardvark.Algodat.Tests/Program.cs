@@ -1293,7 +1293,7 @@ namespace Aardvark.Geometry.Tests
                 .WithMaxDegreeOfParallelism(0)
                 .WithMinDist(0.025)
                 .WithNormalizePointDensityGlobal(true)
-                .WithProgressCallback(p => { Thread.Sleep(2000); Report.Line($"{p:0.00}"); })
+                .WithProgressCallback(p => { Report.Line($"{p:0.00}"); })
                 ;
 
             Report.BeginTimed("total");
