@@ -108,7 +108,7 @@ namespace Scratch
             Durable.Octree.Velocities3fReference,
         };
 
-        static void PointCloudStats(string storePath)
+        static void PointCloudStats(string storePath, bool scan)
         {
             Report.Line();
             Report.BeginTimed($"{storePath}");
@@ -125,8 +125,13 @@ namespace Scratch
             Report.Line($"root: {root.Id}");
 
             Report.Line($"point count");
-            Report.Line($"    root node: {root.PointCountCell,20:N0}");
-            Report.Line($"    tree     : {root.PointCountTree,20:N0}");
+            Report.Line($"    root node     : {root.PointCountCell,20:N0}");
+            Report.Line($"    tree          : {root.PointCountTree,20:N0}");
+
+            Report.Line($"storage");
+            Report.Line($"    version       : SimpleDiskStore {storeRaw.Version}");
+            Report.Line($"    used     bytes: {storeRaw.GetUsedBytes(),20:N0}");
+            Report.Line($"    reserved bytes: {storeRaw.GetReservedBytes(),20:N0}");
 
             static void CheckDuplicateProperties(IPointCloudNode node, IEnumerable<Durable.Def> defs)
             {
@@ -147,61 +152,63 @@ namespace Scratch
                 }
             }
 
-            Report.BeginTimed($"scanning nodes");
-            var nodeCount           = 0L;
-            var leafCount           = 0L;
-            var nodeBlobsCount      = 0L;
-            var nodeBlobsTotalBytes = 0L;
-            var refBlobsCount       = 0L;
-            var refBlobsTotalBytes  = 0L;
-
-            root.ForEachNode(outOfCore: true, node =>
+            if (scan)
             {
-                nodeCount++;
-                if (node.IsLeaf) leafCount++;
+                Report.BeginTimed($"scanning nodes");
+                var nodeCount = 0L;
+                var leafCount = 0L;
+                var nodeBlobsCount = 0L;
+                var nodeBlobsTotalBytes = 0L;
+                var refBlobsCount = 0L;
+                var refBlobsTotalBytes = 0L;
 
-                CheckDuplicateProperties(node, DefsClassifications);
-                CheckDuplicateProperties(node, DefsColors);
-                CheckDuplicateProperties(node, DefsIntensities);
-                CheckDuplicateProperties(node, DefsNormals);
-                CheckDuplicateProperties(node, DefsPositions);
-
-                nodeBlobsCount++;
-                nodeBlobsTotalBytes += storeRaw.Get(node.Id.ToString()).Length;
-
-                var foo = new HashSet<Durable.Def>(node.Properties.Keys.Where(k => k.Name.EndsWith("Reference")));
-                foreach (var k in foo)
+                root.ForEachNode(outOfCore: true, node =>
                 {
-                    if (!DefsRefs.Contains(k)) throw new Exception($"DefsRefs does not contain {k}.");
-                    var o = node.Properties[k];
-                    var key = o switch
+                    nodeCount++;
+                    if (node.IsLeaf) leafCount++;
+
+                    CheckDuplicateProperties(node, DefsClassifications);
+                    CheckDuplicateProperties(node, DefsColors);
+                    CheckDuplicateProperties(node, DefsIntensities);
+                    CheckDuplicateProperties(node, DefsNormals);
+                    CheckDuplicateProperties(node, DefsPositions);
+
+                    nodeBlobsCount++;
+                    nodeBlobsTotalBytes += storeRaw.Get(node.Id.ToString()).Length;
+
+                    var foo = new HashSet<Durable.Def>(node.Properties.Keys.Where(k => k.Name.EndsWith("Reference")));
+                    foreach (var k in foo)
                     {
-                        Guid x => x.ToString(),
-                        string x => x,
-                        _ => throw new Exception($"Unknown reference of type {o?.GetType()}")
-                    };
+                        if (!DefsRefs.Contains(k)) throw new Exception($"DefsRefs does not contain {k}.");
+                        var o = node.Properties[k];
+                        var key = o switch
+                        {
+                            Guid x => x.ToString(),
+                            string x => x,
+                            _ => throw new Exception($"Unknown reference of type {o?.GetType()}")
+                        };
 
-                    refBlobsCount++;
-                    refBlobsTotalBytes += storeRaw.Get(key).Length;
-                }
-            });
-            Report.EndTimed();
+                        refBlobsCount++;
+                        refBlobsTotalBytes += storeRaw.Get(key).Length;
+                    }
+                });
+                Report.EndTimed();
 
-            Report.Line();
-            Report.Line($"node blobs");
-            Report.Line($"    count       : {nodeBlobsCount,20:N0}");
-            Report.Line($"    total bytes : {nodeBlobsTotalBytes,20:N0}");
-            Report.Line($"ref blobs");
-            Report.Line($"    count       : {refBlobsCount,20:N0}");
-            Report.Line($"    total bytes : {refBlobsTotalBytes,20:N0}");
-            Report.Line($"TOTAL");
-            Report.Line($"    count       : {nodeBlobsCount + refBlobsCount,20:N0}");
-            Report.Line($"    total bytes : {nodeBlobsTotalBytes + refBlobsTotalBytes,20:N0}");
-            Report.Line();
-            Report.Line($"node counts");
-            Report.Line($"    total       : {nodeCount,20:N0}");
-            Report.Line($"    leafs       : {leafCount,20:N0}");
-
+                Report.Line();
+                Report.Line($"node blobs");
+                Report.Line($"    count       : {nodeBlobsCount,20:N0}");
+                Report.Line($"    total bytes : {nodeBlobsTotalBytes,20:N0}");
+                Report.Line($"ref blobs");
+                Report.Line($"    count       : {refBlobsCount,20:N0}");
+                Report.Line($"    total bytes : {refBlobsTotalBytes,20:N0}");
+                Report.Line($"TOTAL");
+                Report.Line($"    count       : {nodeBlobsCount + refBlobsCount,20:N0}");
+                Report.Line($"    total bytes : {nodeBlobsTotalBytes + refBlobsTotalBytes,20:N0}");
+                Report.Line();
+                Report.Line($"node counts");
+                Report.Line($"    total       : {nodeCount,20:N0}");
+                Report.Line($"    leafs       : {leafCount,20:N0}");
+            }
 
             Report.EndTimed();
         }
@@ -210,13 +217,27 @@ namespace Scratch
         {
             var storePaths = new[]
             {
-                @"T:\Vgm\Stores\Innenscan_FARO.e57_5.0.24",
-                @"T:\Vgm\Stores\Innenscan_FARO.e57_5.0.28-prerelease0005"
+                //@"E:\rmdata\aibotix_ground_points.e57_5.0.24",
+                //@"E:\rmdata\aibotix_ground_points.e57_5.1.0-prerelease0004",
+                //@"E:\rmdata\Register360_Berlin Office_1.e57_5.0.24",
+                //@"E:\rmdata\Register360_Berlin Office_1.e57_5.1.0-prerelease0004",
+                //@"E:\rmdata\Staatsoper.e57_5.0.24",
+                //@"E:\rmdata\Staatsoper.e57_5.1.0-prerelease0004",
+                //@"E:\rmdata\Innenscan_FARO.e57_5.0.24",
+                //@"E:\rmdata\Innenscan_FARO.e57_5.1.0-prerelease0004",
+                //@"E:\rmdata\1190_31_test_Frizzo.e57_5.0.24",
+                //@"E:\rmdata\1190_31_test_Frizzo.e57_5.1.0-prerelease0004",
+                //@"E:\rmdata\Neuhäusl-Hörschwang.e57_5.0.24",
+                //@"E:\rmdata\Neuhäusl-Hörschwang.e57_5.1.0-prerelease0004",
+
+                // 2020-11-13-Walenta
+                @"E:\rmdata\2020452-B-3-5.e57_5.0.24",
+                //@"E:\rmdata\2020452-B-3-5.e57_5.1.0-prerelease0004",
             };
 
             foreach (var x in storePaths)
             {
-                PointCloudStats(storePath: x);
+                PointCloudStats(storePath: x, scan: true);
             }
             
         }

@@ -1266,15 +1266,17 @@ namespace Aardvark.Geometry.Tests
 
         internal static void Test_20201113_Hannes()
         {
-            //var filename = @"T:\Vgm\Data\E57\2020-11-13-Walenta\2020452-B-3-5.e57";
+            var filename = @"T:\Vgm\Data\E57\2020-11-13-Walenta\2020452-B-3-5.e57";
             //var filename = @"T:\Vgm\Data\E57\aibotix_ground_points.e57";
             //var filename = @"T:\Vgm\Data\E57\Register360_Berlin Office_1.e57";
             //var filename = @"T:\Vgm\Data\E57\Staatsoper.e57";
-            var filename = @"T:\Vgm\Data\E57\Innenscan_FARO.e57";
+            //var filename = @"T:\Vgm\Data\E57\Innenscan_FARO.e57";
+            //var filename = @"T:\Vgm\Data\E57\1190_31_test_Frizzo.e57";
+            //var filename = @"T:\Vgm\Data\E57\Neuhäusl-Hörschwang.e57";
 
             var key = Path.GetFileName(filename);
 
-            var storePath = $@"T:\Vgm\Stores\{key}";
+            var storePath = $@"E:\rmdata\{key}";
             using var storeRaw = new SimpleDiskStore(storePath);
             var store = storeRaw.ToPointCloudStore();
 
@@ -1291,7 +1293,7 @@ namespace Aardvark.Geometry.Tests
                 .WithMaxDegreeOfParallelism(0)
                 .WithMinDist(0.005)
                 .WithNormalizePointDensityGlobal(true)
-                .WithProgressCallback(p => { /*Thread.Sleep(2000);*/ Report.Line($"{p:0.00}"); })
+                .WithProgressCallback(p => { Report.Line($"{p:0.00}"); })
                 ;
 
             Report.BeginTimed("total");
