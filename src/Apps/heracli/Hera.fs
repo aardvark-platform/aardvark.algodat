@@ -108,6 +108,12 @@ module Hera =
         [<OnAardvarkInit;CompilerMessage("Internal only",1337,IsHidden=true)>]
         let init () = keep ParticleSet
 
+
+        let all = 
+            [|  ParticleSet;Positions;EstimatedNormals;Velocities;Masses;Densities;InternalEnergies;SmoothingLengths;
+                NumberOfInteractionPartners;MaterialTypes;NumbersOfFlaws;NumbersOfActivatedFlaws;CubicRootsOfDamage;LocalStrains;
+                Sigmas;AlphaJutzi;Pressures;AverageSquaredDistances|]
+
     let lineDef = [|
         Ascii.Token.PositionX; Ascii.Token.PositionY; Ascii.Token.PositionZ
         |]
