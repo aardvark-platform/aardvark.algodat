@@ -1223,15 +1223,13 @@ namespace Aardvark.Data.E57
 #region 8.4.3.4
                 if (data3d.HasCartesianCoordinates && data3d.CartesianBounds == null)
                 {
-                    #if DEBUG
-                    Console.WriteLine("[Warning][8.4.3.4] CartesianBounds must be defined (if cartesian coordinates are defined).");
-                    #endif
+                    Report.Warn("[8.4.3.4] CartesianBounds must be defined (if cartesian coordinates are defined).");
                 }
 #endregion
 #region 8.4.3.5
                 if (data3d.HasSphericalCoordinates && data3d.SphericalBounds == null)
                 {
-                    throw new ArgumentException("[8.4.3.5] SphericalBounds must be defined (if spherical coordinates are defined).");
+                    Report.Warn("[8.4.3.5] SphericalBounds must be defined (if spherical coordinates are defined).");
                 }
 #endregion
 #region 8.4.3.6
