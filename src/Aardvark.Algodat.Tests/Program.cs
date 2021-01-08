@@ -64,6 +64,51 @@ namespace Aardvark.Geometry.Tests
             Report.Line($"count -> {pc.PointCount}");
         }
 
+        internal static void TestLaszip()
+        {
+            CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+            var basedir = @"T:\OEBB\datasets\stream_3893\lasFiles";
+            var filename = @"T:\OEBB\datasets\stream_3893\lasFiles\469_0-0.las";
+            //var fileSizeInBytes = new FileInfo(filename).Length;
+
+            var key = Path.GetFileName(filename);
+
+            var info = Laszip.LaszipInfo(filename, ParseConfig.Default);
+            Report.Line($"total bounds: {info.Bounds}");
+            Report.Line($"total count : {info.PointCount:N0}");
+
+            var storePath = $@"T:\Vgm\Stores\{key}";
+            using var store = new SimpleDiskStore(storePath).ToPointCloudStore();
+
+            var config = ImportConfig.Default
+                .WithStorage(store)
+                .WithKey(key)
+                .WithVerbose(true)
+                .WithMaxDegreeOfParallelism(0)
+                .WithMinDist(0.025)
+                .WithNormalizePointDensityGlobal(true)
+                ;
+
+            Report.BeginTimed("total");
+
+            //var chunks = Laszip.Chunks(filename, config.ParseConfig);
+            var chunks = Directory.EnumerateFiles(basedir, "*.las").SelectMany(f => Laszip.Chunks(f, config.ParseConfig));
+
+            var total = 0L;
+            foreach (var chunk in chunks)
+            {
+                total += chunk.Count;
+                Report.WarnNoPrefix($"[Chunk] {chunk.Count,16:N0}; {total,16:N0}; {chunk.HasPositions} {chunk.HasColors} {chunk.HasIntensities}");
+            }
+
+
+            var cloud = PointCloud.Chunks(chunks, config);
+            var pcl = store.GetPointSet(key);
+            Report.Line($"{storePath}:{key} : {pcl.PointCount:N0} points");
+
+            Report.EndTimed();
+        }
+
         internal static void TestE57()
         {
             //var sw = new Stopwatch();
@@ -1334,6 +1379,8 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] _)
         {
+            TestLaszip();
+
             //Test_20201113_Hannes();
 
             //var poly = new Polygon2d(V2d.OO, V2d.IO, V2d.II, V2d.OI);
@@ -1355,7 +1402,7 @@ namespace Aardvark.Geometry.Tests
 
             //HeraTest();
 
-            TestE57();
+            //TestE57();
 
             //LisaTest();
 
