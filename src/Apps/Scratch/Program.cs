@@ -152,10 +152,10 @@ namespace Scratch
                 }
             }
 
-            Report.Begin("root node properties");
-            var i = 0;
-            foreach (var k in root.Properties.Keys.OrderBy(x => x.Name)) Report.Line($"[{i++}] {k.Name}");
-            Report.End();
+            //Report.Begin("root node properties");
+            //var i = 0;
+            //foreach (var k in root.Properties.Keys.OrderBy(x => x.Name)) Report.Line($"[{i++}] {k.Name}");
+            //Report.End();
 
             if (detailedNodeScan)
             {
@@ -229,26 +229,27 @@ namespace Scratch
             {
                 //@"E:\rmdata\aibotix_ground_points.e57_5.0.24",
                 //@"E:\rmdata\aibotix_ground_points.e57_5.1.0-prerelease0004",
-                //@"E:\rmdata\aibotix_ground_points.e57_5.1.0-prerelease0005",
+                @"E:\rmdata\aibotix_ground_points.e57_5.1.0-prerelease0005",
                 //@"E:\rmdata\Register360_Berlin Office_1.e57_5.0.24",
                 //@"E:\rmdata\Register360_Berlin Office_1.e57_5.1.0-prerelease0004",
                 @"E:\rmdata\Register360_Berlin Office_1.e57_5.1.0-prerelease0005",
                 //@"E:\rmdata\Staatsoper.e57_5.0.24",
                 //@"E:\rmdata\Staatsoper.e57_5.1.0-prerelease0004",
-                //@"E:\rmdata\Staatsoper.e57_5.1.0-prerelease0005",
+                @"E:\rmdata\Staatsoper.e57_5.1.0-prerelease0005",
                 //@"E:\rmdata\Innenscan_FARO.e57_5.0.24",
                 //@"E:\rmdata\Innenscan_FARO.e57_5.1.0-prerelease0004",
-                //@"E:\rmdata\Innenscan_FARO.e57_5.1.0-prerelease0005",
+                @"E:\rmdata\Innenscan_FARO.e57_5.1.0-prerelease0005",
                 //@"E:\rmdata\1190_31_test_Frizzo.e57_5.0.24",
                 //@"E:\rmdata\1190_31_test_Frizzo.e57_5.1.0-prerelease0004",
-                //@"E:\rmdata\1190_31_test_Frizzo.e57_5.1.0-prerelease0005",
+                @"E:\rmdata\1190_31_test_Frizzo.e57_5.1.0-prerelease0005",
                 //@"E:\rmdata\Neuhäusl-Hörschwang.e57_5.0.24",
                 //@"E:\rmdata\Neuhäusl-Hörschwang.e57_5.1.0-prerelease0004",
-                //@"E:\rmdata\Neuhäusl-Hörschwang.e57_5.1.0-prerelease0005",
+                @"E:\rmdata\Neuhäusl-Hörschwang.e57_5.1.0-prerelease0005",
 
                 // 2020-11-13-Walenta
                 //@"E:\rmdata\2020452-B-3-5.e57_5.0.24",
                 //@"E:\rmdata\2020452-B-3-5.e57_5.1.0-prerelease0004",
+                @"E:\rmdata\2020452-B-3-5.e57_5.1.0-prerelease0005",
             };
 
             foreach (var x in storePaths)

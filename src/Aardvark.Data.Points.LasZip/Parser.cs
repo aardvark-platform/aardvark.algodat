@@ -18,6 +18,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Aardvark.Base;
 using laszip.net;
 
@@ -133,26 +134,36 @@ namespace LASZip
         /// <summary>
         /// Reads point data from file and returns chunks of given size.
         /// </summary>
-        public static IEnumerable<Points> ReadPoints(string filename, int numberOfPointsPerChunk)
+        public static IEnumerable<Points> ReadPoints(string filename, int numberOfPointsPerChunk, bool verbose)
         {
             var reader = new laszip_dll();
             var isCompressed = false;
             reader.laszip_open_reader(filename, ref isCompressed);
-            return ReadPoints(reader, numberOfPointsPerChunk);
+            return ReadPoints(reader, numberOfPointsPerChunk, verbose);
         }
+        /// <summary>
+        /// Reads point data from file and returns chunks of given size.
+        /// </summary>
+        public static IEnumerable<Points> ReadPoints(string filename, int numberOfPointsPerChunk)
+            => ReadPoints(filename, numberOfPointsPerChunk, verbose: false);
 
         /// <summary>
         /// Reads point data from stream and returns chunks of given size.
         /// </summary>
-        public static IEnumerable<Points> ReadPoints(Stream stream, int numberOfPointsPerChunk)
+        public static IEnumerable<Points> ReadPoints(Stream stream, int numberOfPointsPerChunk, bool verbose)
         {
             var reader = new laszip_dll();
             var isCompressed = false;
             reader.laszip_open_reader(stream, ref isCompressed);
-            return ReadPoints(reader, numberOfPointsPerChunk);
+            return ReadPoints(reader, numberOfPointsPerChunk, verbose);
         }
+        /// <summary>
+        /// Reads point data from stream and returns chunks of given size.
+        /// </summary>
+        public static IEnumerable<Points> ReadPoints(Stream stream, int numberOfPointsPerChunk)
+            => ReadPoints(stream, numberOfPointsPerChunk, verbose: false);
 
-        private static IEnumerable<Points> ReadPoints(laszip_dll reader, int numberOfPointsPerChunk)
+        private static IEnumerable<Points> ReadPoints(laszip_dll reader, int numberOfPointsPerChunk, bool verbose)
         {
             var n = reader.header.number_of_point_records;
             //var numberOfChunks = n / numberOfPointsPerChunk;
@@ -226,6 +237,27 @@ namespace LASZip
                         yts[i] = BitConverter.ToSingle(buffer, 21);
                         zts[i] = BitConverter.ToSingle(buffer, 25);
                     }
+                }
+
+                if (verbose)
+                {
+                    if (ps?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] positions");
+                    if (intensities?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] intensities");
+                    if (returnNumbers?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] returnNumbers");
+                    if (numberOfReturnsOfPulses?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] numberOfReturnsOfPulses");
+                    if (classifications?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] classifications");
+                    if (scanAngleRanks?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] scanAngleRanks");
+                    if (userDatas?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] userDatas");
+                    if (pointSourceIds?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] pointSourceIds");
+                    if (gpsTimes?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] gpsTimes");
+                    if (colors?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] colors");
+                    if (wavePacketDescriptorIndices?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] wavePacketDescriptorIndices");
+                    if (bytesOffsetToWaveformDatas?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] bytesOffsetToWaveformDatas");
+                    if (waveformPacketSizesInBytes?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] waveformPacketSizesInBytes");
+                    if (returnPointWaveformLocations?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] returnPointWaveformLocations");
+                    if (xts?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] xts");
+                    if (yts?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] yts");
+                    if (zts?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] zts");
                 }
 
                 yield return new Points
