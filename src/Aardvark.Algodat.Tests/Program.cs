@@ -116,7 +116,7 @@ namespace Aardvark.Geometry.Tests
             //var sw = new Stopwatch();
 
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
-            var filename = @"T:\Vgm\Data\E57\2020-11-13-Walenta\2020452-B-3-5.e57";
+            var filename = @"T:\Vgm\Data\E57\2020-12-14_Trimble_Scan.e57";
             //var fileSizeInBytes = new FileInfo(filename).Length;
 
             var key = Path.GetFileName(filename);
@@ -162,14 +162,15 @@ namespace Aardvark.Geometry.Tests
             //var cloud = PointCloud.Chunks(chunks, config);
 
             var pcl = store.GetPointSet(key);
-            var maxCount = pcl.PointCount / 30;
-            var level = pcl.GetMaxOctreeLevelWithLessThanGivenPointCount(maxCount);
-            var foo = pcl.QueryPointsInOctreeLevel(level);
-            var fooCount = 0;
-            foreach (var chunk in foo) 
-            {
-                Report.WarnNoPrefix($"{++fooCount}");
-            }
+            Report.Line($"{storePath}:{key} : {pcl.PointCount:N0} points");
+            //var maxCount = pcl.PointCount / 30;
+            //var level = pcl.GetMaxOctreeLevelWithLessThanGivenPointCount(maxCount);
+            //var foo = pcl.QueryPointsInOctreeLevel(level);
+            //var fooCount = 0;
+            //foreach (var chunk in foo) 
+            //{
+            //    Report.WarnNoPrefix($"{++fooCount}");
+            //}
 
             //var intensityRange =
             //    foo

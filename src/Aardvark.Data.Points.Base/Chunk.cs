@@ -184,8 +184,8 @@ namespace Aardvark.Data.Points
 
             if (colors != null && positions.Count != colors.Count)
             {
-                colors = new C4b[positions.Count];
                 Report.Warn("[Chunk-ctor] inconsistent length: pos.length = {0} vs cs.length = {1}", positions.Count, colors.Count);
+                colors = new C4b[positions.Count];
             }
 
             Positions       = positions;
