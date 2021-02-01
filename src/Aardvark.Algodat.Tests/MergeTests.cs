@@ -45,7 +45,7 @@ namespace Aardvark.Geometry.Tests
             var is1 = ps1.Map(_ => 123);
             var ks1 = ps1.Map(_ => (byte)0);
             var pointset1 = PointSet.Create(
-                storage, "test1", ps1, cs1, ns1, is1, ks1, null, splitLimit,
+                storage, "test1", ps1, cs1, ns1, is1, ks1, splitLimit,
                 generateLod: false, isTemporaryImportNode: true, default
                 );
             var pointset1Count = pointset1.Root.Value.CountPoints();
@@ -57,7 +57,7 @@ namespace Aardvark.Geometry.Tests
             var is2 = ps2.Map(_ => 456);
             var ks2 = ps2.Map(_ => (byte)1);
             var pointset2 = PointSet.Create(
-                storage, "test2", ps2, cs2, ns2, is2, ks2, null, splitLimit,
+                storage, "test2", ps2, cs2, ns2, is2, ks2, splitLimit,
                 generateLod: false, isTemporaryImportNode: true, default
                 );
             var pointset2Count = pointset2.Root.Value.CountPoints();
@@ -91,7 +91,7 @@ namespace Aardvark.Geometry.Tests
             var is1 = ps1.Map(_ => 123);
             var ks1 = ps1.Map(_ => (byte)42);
             var pointset1 = PointSet.Create(
-                storage, "test1", ps1, cs1, ns1, is1, ks1, null, 1000,
+                storage, "test1", ps1, cs1, ns1, is1, ks1, 1000,
                 generateLod: false, isTemporaryImportNode: true, default
                 );
 
@@ -101,7 +101,7 @@ namespace Aardvark.Geometry.Tests
             var is2 = ps2.Map(_ => 456);
             var ks2 = ps1.Map(_ => (byte)7);
             var pointset2 = PointSet.Create(
-                storage, "test2", ps2, cs2, ns2, is2, ks2, null, 1000,
+                storage, "test2", ps2, cs2, ns2, is2, ks2, 1000,
                 generateLod: false, isTemporaryImportNode: true, default
                 );
 
@@ -131,7 +131,7 @@ namespace Aardvark.Geometry.Tests
             var is1 = ps1.Map(_ => 123);
             var ks1 = ps1.Map(_ => (byte)42);
             var pointset1 = PointSet.Create(
-                storage, "test1", ps1, null, ns1, is1, ks1, null, 1000,
+                storage, "test1", ps1, null, ns1, is1, ks1, 1000,
                 generateLod: false, isTemporaryImportNode: true, default
                 );
 
@@ -140,7 +140,7 @@ namespace Aardvark.Geometry.Tests
             var is2 = ps2.Map(_ => 456);
             var ks2 = ps1.Map(_ => (byte)7);
             var pointset2 = PointSet.Create(
-                storage, "test2", ps2, null, ns2, is2, ks2, null, 1000,
+                storage, "test2", ps2, null, ns2, is2, ks2, 1000,
                 generateLod: false, isTemporaryImportNode: true, default
                 );
 
@@ -170,7 +170,7 @@ namespace Aardvark.Geometry.Tests
             var is1 = ps1.Map(_ => 123);
             var ks1 = ps1.Map(_ => (byte)42);
             var pointset1 = PointSet.Create(
-                storage, "test1", ps1, cs1, null, is1, ks1, null, 1000,
+                storage, "test1", ps1, cs1, null, is1, ks1, 1000,
                 generateLod: false, isTemporaryImportNode: true, default
                 );
 
@@ -179,7 +179,7 @@ namespace Aardvark.Geometry.Tests
             var is2 = ps2.Map(_ => 456);
             var ks2 = ps2.Map(_ => (byte)7);
             var pointset2 = PointSet.Create(
-                storage, "test2", ps2, cs2, null, is2, ks2, null, 1000,
+                storage, "test2", ps2, cs2, null, is2, ks2, 1000,
                 generateLod: false, isTemporaryImportNode: true, default
                 );
 

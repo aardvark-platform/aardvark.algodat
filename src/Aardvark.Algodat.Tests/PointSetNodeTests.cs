@@ -31,13 +31,13 @@ namespace Aardvark.Geometry.Tests
         internal static Storage CreateStorage()
         {
             var x = new SimpleMemoryStore();
-            return new Storage(x.Add, x.Get, x.Remove, x.Dispose, x.Flush, cache: default);
+            return new Storage(x.Add, x.Get, x.GetSlice, x.Remove, x.Dispose, x.Flush, cache: default);
         }
 
         internal static Storage CreateDiskStorage(string dbDiskLocation)
         {
             var x = new SimpleDiskStore(dbDiskLocation);
-            return new Storage(x.Add, x.Get, x.Remove, x.Dispose, x.Flush, cache: default);
+            return new Storage(x.Add, x.Get, x.GetSlice, x.Remove, x.Dispose, x.Flush, cache: default);
         }
 
         internal static readonly ImmutableDictionary<Durable.Def, object> EmptyData = ImmutableDictionary<Durable.Def, object>.Empty;
@@ -102,6 +102,36 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(node.PointCountTree == ps.LongLength);
             Assert.IsTrue(node.Cell.BoundingBox == cell.BoundingBox);
             Assert.IsTrue(node.BoundingBoxExactLocal == new Box3f(ps));
+        }
+
+        [Test]
+        public void CanUpdatePointSetNode()
+        {
+            var storage = CreateStorage();
+
+            var id = Guid.NewGuid();
+            var cell = new Cell(1, 2, 3, 0);
+
+            var psId = Guid.NewGuid();
+            var ps = new[] { new V3f(1.1f, 2.2f, 3.3f) };
+            storage.Add(psId, ps);
+
+            var data = EmptyData
+                .Add(Durable.Octree.NodeId, id)
+                .Add(Durable.Octree.Cell, cell)
+                .Add(Durable.Octree.PointCountTreeLeafs, ps.LongLength)
+                .Add(Durable.Octree.PositionsLocal3fReference, psId)
+                .Add(Durable.Octree.BoundingBoxExactLocal, new Box3f(ps))
+                ;
+
+            var node = new PointSetNode(data, storage, writeToStore: true);
+
+            var replacements = ImmutableDictionary<Durable.Def, object>.Empty
+                .Add(Durable.Octree.BoundingBoxExactGlobal, ((Box3d)new Box3f(ps)) + cell.GetCenter())
+                ;
+            var node2 = node.With(replacements);
+
+            Assert.AreNotEqual(node.Id, node2.Id);
         }
 
         [Test]

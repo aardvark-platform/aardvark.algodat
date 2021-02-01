@@ -25,6 +25,27 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public static class IPointCloudNodeExtensions
     {
+        #region enumerate nodes
+
+        /// <summary>
+        /// Enumerates all nodes depth-first.
+        /// </summary>
+        public static IEnumerable<IPointCloudNode> EnumerateNodes(this IPointCloudNode root)
+        {
+            if (root.Subnodes != null)
+            {
+                foreach (var subnode in root.Subnodes)
+                {
+                    if (subnode == null) continue;
+                    foreach (var n in EnumerateNodes(subnode.Value)) yield return n;
+                }
+            }
+
+            yield return root;
+        }
+
+        #endregion
+
         #region ForEach (optionally traversing out-of-core nodes) 
 
         /// <summary>
@@ -635,10 +656,6 @@ namespace Aardvark.Geometry.Points
         public static PersistentRef<byte[]> TryGetClassifications(this IPointCloudNode self)
             => self.HasClassifications ? self.Classifications : null;
 
-        /// <summary>Returns null if node has no classifications.</summary>
-        public static PersistentRef<V3f[]> TryGetVelocities(this IPointCloudNode self)
-            => self.HasVelocities ? self.Velocities : null;
-
         #endregion
 
         #region Collect points from cells and cell columns
@@ -833,8 +850,7 @@ namespace Aardvark.Geometry.Points
             var ns = self.HasNormals ? self.Normals.Value : null;
             var js = self.HasIntensities ? self.Intensities.Value : null;
             var ks = self.HasClassifications ? self.Classifications.Value : null;
-            var vs = self.HasVelocities ? self.Velocities.Value : null;
-            return new Chunk(self.PositionsAbsolute, cs, ns, js, ks, vs);
+            return new Chunk(self.PositionsAbsolute, cs, ns, js, ks);
         }
 
         /// <summary>
@@ -852,8 +868,7 @@ namespace Aardvark.Geometry.Points
                 var ns = self.HasNormals ? self.Normals.Value : null;
                 var js = self.HasIntensities ? self.Intensities.Value : null;
                 var ks = self.HasClassifications ? self.Classifications.Value : null;
-                var vs = self.HasVelocities ? self.Velocities.Value : null;
-                yield return new Chunk(self.PositionsAbsolute, cs, ns, js, ks, vs);
+                yield return new Chunk(self.PositionsAbsolute, cs, ns, js, ks);
             }
             else
             {

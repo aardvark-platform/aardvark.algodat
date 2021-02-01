@@ -22,6 +22,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.IO.Compression;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Uncodium.SimpleStore;
 
@@ -76,6 +77,38 @@ namespace Aardvark.Geometry.Points
         /// <summary>byte[] -> int[]</summary>
         public static int[] BufferToIntArray(byte[] buffer)
             => BufferToArray(buffer, sizeof(int), br => br.ReadInt32());
+
+        #endregion
+
+        #region V2f[]
+
+        /// <summary>V2f[] -> byte[]</summary>
+        public static byte[] V2fArrayToBuffer(V2f[] data)
+            => ArrayToBuffer(data, 8, (bw, x) => { bw.Write(x.X); bw.Write(x.Y); });
+
+        /// <summary>IList&lt;V2f[]&gt; -> byte[]</summary>
+        public static byte[] V2fArrayToBuffer(IList<V2f> data)
+            => ArrayToBuffer(data, 8, (bw, x) => { bw.Write(x.X); bw.Write(x.Y); });
+
+        /// <summary>byte[] -> V2f[]</summary>
+        public static V2f[] BufferToV2fArray(byte[] buffer)
+            => BufferToArray(buffer, 8, br => new V2f(br.ReadSingle(), br.ReadSingle()));
+
+        #endregion
+
+        #region V2d[]
+
+        /// <summary>V2d[] -> byte[]</summary>
+        public static byte[] V2dArrayToBuffer(V2d[] data)
+            => ArrayToBuffer(data, 16, (bw, x) => { bw.Write(x.X); bw.Write(x.Y); });
+
+        /// <summary>IList&lt;V2d[]&gt; -> byte[]</summary>
+        public static byte[] V2dArrayToBuffer(IList<V2d> data)
+            => ArrayToBuffer(data, 16, (bw, x) => { bw.Write(x.X); bw.Write(x.Y); });
+
+        /// <summary>byte[] -> V2d[]</summary>
+        public static V2d[] BufferToV2dArray(byte[] buffer)
+            => BufferToArray(buffer, 16, br => new V2d(br.ReadDouble(), br.ReadDouble()));
 
         #endregion
 
@@ -203,14 +236,14 @@ namespace Aardvark.Geometry.Points
         /// Wraps Uncodium.ISimpleStore into Storage.
         /// </summary>
         public static Storage ToPointCloudStore(this ISimpleStore x, LruDictionary<string, object> cache) => new Storage(
-            x.Add, x.Get, x.Remove, x.Dispose, x.Flush, cache
+            x.Add, x.Get, x.GetSlice, x.Remove, x.Dispose, x.Flush, cache
             );
 
         /// <summary>
         /// Wraps Uncodium.ISimpleStore into Storage with default 1GB cache.
         /// </summary>
         public static Storage ToPointCloudStore(this ISimpleStore x) => new Storage(
-            x.Add, x.Get, x.Remove, x.Dispose, x.Flush, new LruDictionary<string, object>(1024 * 1024 * 1024)
+            x.Add, x.Get, x.GetSlice, x.Remove, x.Dispose, x.Flush, new LruDictionary<string, object>(1024 * 1024 * 1024)
             );
 
         #endregion
@@ -228,7 +261,27 @@ namespace Aardvark.Geometry.Points
         public static bool Exists(this Storage storage, string key) => storage.f_get(key) != null;
 
         #endregion
-        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Add(this Storage storage, Guid key, Array data)
+            => Add(storage, key.ToString(), data);
+
+        public static void Add(this Storage storage, string key, Array data)
+        {
+            switch (data)
+            {
+                case null: throw new ArgumentNullException(nameof(data));
+                case byte[] xs: storage.f_add(key, xs, () => xs); break;
+                case int[]  xs: storage.f_add(key, xs, () => Codec.IntArrayToBuffer(xs)); break;
+                case V2f[]  xs: storage.f_add(key, xs, () => Codec.V2fArrayToBuffer(xs)); break;
+                case V2d[]  xs: storage.f_add(key, xs, () => Codec.V2dArrayToBuffer(xs)); break;
+                case V3f[]  xs: storage.f_add(key, xs, () => Codec.V3fArrayToBuffer(xs)); break;
+                case V3d[]  xs: storage.f_add(key, xs, () => Codec.V3dArrayToBuffer(xs)); break;
+                case C4b[]  xs: storage.f_add(key, xs, () => Codec.C4bArrayToBuffer(xs)); break;
+                default: throw new Exception($"Type {data.GetType()} not supported.");
+            }
+        }
+
         #region byte[]
 
         /// <summary></summary>
@@ -248,6 +301,24 @@ namespace Aardvark.Geometry.Points
         {
             var buffer = storage.f_get(key);
             return (buffer != null, buffer);
+        }
+
+        public static byte[] UnGZip(this byte[] gzip)
+        {
+            using var stream = new GZipStream(new MemoryStream(gzip), CompressionMode.Decompress);
+
+            const int size = 4096;
+            byte[] buffer = new byte[size];
+            using var ms = new MemoryStream();
+
+            int count = 0;
+            do
+            {
+                count = stream.Read(buffer, 0, size);
+                if (count > 0) ms.Write(buffer, 0, count);
+            }
+            while (count > 0);
+            return ms.ToArray();
         }
 
         #endregion
@@ -653,6 +724,16 @@ namespace Aardvark.Geometry.Points
                         );
 
                     return fn;
+                }
+                else if (guid == Durable.Octree.MultiNodeIndex.Id)
+                {
+                    var index = MultiNodeIndex.Decode(buffer);
+                    var (offset, size) = index.GetOffsetAndSize(index.RootNodeId);
+                    var bufferRootNode = storage.f_getSlice(index.TreeBlobId, offset, size).UnGZip();
+                    //var rootNode = DurableCodec.Deserialize(bufferRootNode);
+                    var rootNode = PointSetNode.Decode(storage, bufferRootNode);
+                    var multiNode = new MultiNode(index, rootNode);
+                    return multiNode;
                 }
                 else
                 {

@@ -158,13 +158,6 @@ namespace Aardvark.Geometry.Points
                 data = data.Add(Octree.Intensities1iReference, id);
             }
 
-            if (HasVelocities)
-            {
-                var id = Guid.NewGuid();
-                Storage.Add(id, Velocities.Value);
-                data = data.Add(Octree.Velocities3fReference, id);
-            }
-
             var result = new PointSetNode(data, Storage, writeToStore: true);
             return result;
         }
@@ -408,16 +401,6 @@ namespace Aardvark.Geometry.Points
 
         #endregion
 
-        #region Velocities
-
-        /// <summary></summary>
-        public bool HasVelocities => Node.HasVelocities;
-
-        /// <summary></summary>
-        public PersistentRef<V3f[]> Velocities => GetSubArray(Octree.Velocities3f, Node.Velocities);
-
-        #endregion
-
         #region Classifications
 
         /// <summary></summary>
@@ -425,6 +408,22 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public PersistentRef<byte[]> Classifications => GetSubArray(Octree.Classifications1b, Node.Classifications);
+
+        #endregion
+
+        #region Velocities
+
+        /// <summary>
+        /// Deprecated. Always returns false. Use custom attributes instead.
+        /// </summary>
+        [Obsolete("Use custom attributes instead.")]
+        public bool HasVelocities => false;
+
+        /// <summary>
+        /// Deprecated. Always returns null. Use custom attributes instead.
+        /// </summary>
+        [Obsolete("Use custom attributes instead.")]
+        public PersistentRef<V3f[]> Velocities => null;
 
         #endregion
 
@@ -501,12 +500,14 @@ namespace Aardvark.Geometry.Points
         #region Not supported ...
 
         /// <summary>
-        /// Filtered not does not support WithUpsert.
+        /// FilteredNode does not support With.
         /// </summary>
-        public IPointCloudNode WithUpsert(Durable.Def def, object x)
+        public IPointCloudNode With(IReadOnlyDictionary<Durable.Def, object> replacements)
             => throw new InvalidOperationException("Invariant 3de7dad1-668d-4104-838b-552eae03f7a8.");
 
-        /// <summary></summary>
+        /// <summary>
+        /// FilteredNode does not support WithSubNodes.
+        /// </summary>
         public IPointCloudNode WithSubNodes(IPointCloudNode[] subnodes)
             => throw new InvalidOperationException("Invariant 62e6dab8-133a-452d-8d8c-f0b0eb5f286c.");
 

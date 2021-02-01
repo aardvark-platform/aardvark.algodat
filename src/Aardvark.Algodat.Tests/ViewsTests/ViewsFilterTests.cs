@@ -18,6 +18,7 @@ using Aardvark.Geometry.Points;
 using Newtonsoft.Json;
 using NUnit.Framework;
 using System;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 
@@ -29,6 +30,7 @@ namespace Aardvark.Geometry.Tests
         private static readonly Random r = new Random();
         private static V3f RandomPosition() => new V3f(r.NextDouble(), r.NextDouble(), r.NextDouble());
         private static V3f[] RandomPositions(int n) => new V3f[n].SetByIndex(_ => RandomPosition());
+        private static int[] RandomIntensities(int n) => new int[n].SetByIndex(_ => -999 + r.Next(1998));
 
         private static IPointCloudNode CreateNode(Storage storage, V3f[] psGlobal, int[] intensities = null)
         {
@@ -47,23 +49,24 @@ namespace Aardvark.Geometry.Tests
             var kdLocalId = Guid.NewGuid();
             storage.Add(kdLocalId, kdLocal.Data);
 
-            var result = new PointSetNode(storage, writeToStore: true,
-                (Durable.Octree.NodeId, id),
-                (Durable.Octree.Cell, cell),
-                (Durable.Octree.BoundingBoxExactGlobal, bbGlobal),
-                (Durable.Octree.BoundingBoxExactLocal, bbLocal),
-                (Durable.Octree.PointCountTreeLeafs, psLocal.LongLength),
-                (Durable.Octree.PositionsLocal3fReference, psLocalId),
-                (Durable.Octree.PointRkdTreeFDataReference, kdLocalId)
-                );
+            var data = ImmutableDictionary<Durable.Def, object>.Empty
+                .Add(Durable.Octree.NodeId, id)
+                .Add(Durable.Octree.Cell, cell)
+                .Add(Durable.Octree.BoundingBoxExactGlobal, bbGlobal)
+                .Add(Durable.Octree.BoundingBoxExactLocal, bbLocal)
+                .Add(Durable.Octree.PointCountTreeLeafs, psLocal.LongLength)
+                .Add(Durable.Octree.PositionsLocal3fReference, psLocalId)
+                .Add(Durable.Octree.PointRkdTreeFDataReference, kdLocalId)
+                ;
 
             if (intensities != null)
             {
                 var jsId = Guid.NewGuid();
                 storage.Add(jsId, intensities);
-                result = result.WithUpsert(Durable.Octree.Intensities1iReference, jsId);
+                data = data.Add(Durable.Octree.Intensities1iReference, jsId);
             }
 
+            var result = new PointSetNode(data, storage, writeToStore: true);
             return result;
         }
 
@@ -176,21 +179,22 @@ namespace Aardvark.Geometry.Tests
         public void FilterIntensity_AllInside()
         {
             var storage = PointCloud.CreateInMemoryStore(cache: default);
-            var a = CreateNode(storage, RandomPositions(100), new[] { -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 });
+            var intensities = RandomIntensities(100);
+            var a = CreateNode(storage, RandomPositions(100), intensities);
 
-            var f = FilteredNode.Create(a, new FilterIntensity(new Range1i(-100, +100)));
+            var f = FilteredNode.Create(a, new FilterIntensity(new Range1i(-1000, +1000)));
             Assert.IsTrue(f.HasIntensities);
             var js = f.Intensities.Value;
-            Assert.IsTrue(js.Length == 10);
+            Assert.IsTrue(js.Length == 100);
         }
         
         [Test]
         public void FilterIntensity_AllOutside()
         {
             var storage = PointCloud.CreateInMemoryStore(cache: default);
-            var a = CreateNode(storage, RandomPositions(100), new[] { -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 });
+            var a = CreateNode(storage, RandomPositions(100), RandomIntensities(100));
 
-            var f = FilteredNode.Create(a, new FilterIntensity(new Range1i(6, 10000)));
+            var f = FilteredNode.Create(a, new FilterIntensity(new Range1i(-30000, -10000)));
             Assert.IsTrue(f.PointCountCell == 0);
         }
 
@@ -198,12 +202,17 @@ namespace Aardvark.Geometry.Tests
         public void FilterIntensity_Partial()
         {
             var storage = PointCloud.CreateInMemoryStore(cache: default);
-            var a = CreateNode(storage, RandomPositions(100), new[] { -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 });
+            var intensities = RandomIntensities(100);
+            intensities[17] = 10000;
+            intensities[42] = 20000;
+            var a = CreateNode(storage, RandomPositions(100), intensities);
 
-            var f = FilteredNode.Create(a, new FilterIntensity(new Range1i(-2, +2)));
+            var f = FilteredNode.Create(a, new FilterIntensity(new Range1i(10000, 30000)));
             Assert.IsTrue(f.HasIntensities);
             var js = f.Intensities.Value;
-            Assert.IsTrue(js.Length == 5);
+            Assert.IsTrue(js.Length == 2);
+            Assert.IsTrue(js[0] == 10000);
+            Assert.IsTrue(js[1] == 20000);
         }
 
         #endregion

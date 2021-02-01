@@ -24,7 +24,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void Chunk_EmptyChunk1()
         {
-            var x = new Chunk(null, null);
+            var x = Chunk.Empty;
             Assert.IsTrue(x.IsEmpty);
             Assert.IsTrue(!x.HasPositions);
             Assert.IsTrue(!x.HasColors);
@@ -77,30 +77,27 @@ namespace Aardvark.Geometry.Tests
         }
 
         [Test]
-        [Ignore("Color array with length 0 is now interpreted like no colors at all (null).")]
         public void Chunk_MismatchingNumberOfColorsFails1()
         {
-            Assert.Throws<ArgumentException>(() =>
+            Assert.Catch(() =>
             {
                 new Chunk(new[] { new V3d(1, 2, 3), new V3d(4, 5, 6) }, new C4b[0]);
             });
         }
 
         [Test]
-        [Ignore("HS commented out the check in Chunk constructor?")]
         public void Chunk_MismatchingNumberOfColorsFails2()
         {
-            Assert.Throws<ArgumentException>(() =>
+            Assert.Catch(() =>
             {
                 new Chunk(new[] { new V3d(1, 2, 3), new V3d(4, 5, 6) }, new C4b[123]);
             });
         }
 
         [Test]
-        [Ignore("Positions are no longer required to be non-empty.")]
         public void Chunk_MismatchingNumberOfColorsFails3()
         {
-            Assert.Throws<ArgumentException>(() =>
+            Assert.Catch(() =>
             {
                 new Chunk(null, new C4b[123]);
             });
@@ -113,10 +110,9 @@ namespace Aardvark.Geometry.Tests
         }
 
         [Test]
-        [Ignore("Positions are no longer required to be non-empty.")]
         public void Chunk_EmptyPositionsButNonEmptyColorsFails()
         {
-            Assert.Throws<ArgumentException>(() =>
+            Assert.Catch(() =>
             {
                 new Chunk(null, new C4b[1]);
             });

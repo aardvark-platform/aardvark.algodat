@@ -98,7 +98,7 @@ module LodTreeInstance =
                                 world : obj, 
                                 cache : LruDictionary<string, obj>, 
                                 source : Symbol, 
-                                getCustomIndexedAttributes :  Guid * (IPointCloudNode -> MapExt<Symbol, CustomIndexedAttribute>), 
+                                getCustomIndexedAttributes :  Guid * (IPointCloudNode -> int -> MapExt<Symbol, CustomIndexedAttribute>), 
                                 globalTrafo : Similarity3d, 
                                 root : Option<PointTreeNode>, 
                                 parent : Option<PointTreeNode>, 
@@ -351,14 +351,14 @@ module LodTreeInstance =
         //member x.AcquireChild() =
         //    Interlocked.Increment(&livingChildren) |> ignore
     
-        static member Create(pointCloudId : System.Guid, world : obj, cache : LruDictionary<string, obj>, source : Symbol, getCustomIndexedAttributes : Guid * (IPointCloudNode -> MapExt<Symbol,CustomIndexedAttribute>), globalTrafo : Similarity3d, root : Option<PointTreeNode>, parent : Option<PointTreeNode>, level : int, self : IPointCloudNode) =
+        static member Create(pointCloudId : System.Guid, world : obj, cache : LruDictionary<string, obj>, source : Symbol, getCustomIndexedAttributes : Guid * (IPointCloudNode -> int -> MapExt<Symbol,CustomIndexedAttribute>), globalTrafo : Similarity3d, root : Option<PointTreeNode>, parent : Option<PointTreeNode>, level : int, self : IPointCloudNode) =
             if isNull self then
                 None
             else
                 PointTreeNode(pointCloudId, world, cache, source, getCustomIndexedAttributes, globalTrafo, root, parent, level, self) |> Some
             
         static member Create(pointCloudId : System.Guid, world : obj, cache : LruDictionary<string, obj>, source : Symbol, globalTrafo : Similarity3d, root : Option<PointTreeNode>, parent : Option<PointTreeNode>, level : int, self : IPointCloudNode) =
-            PointTreeNode.Create(pointCloudId, world, cache, source, (Guid.NewGuid(),(fun _ -> MapExt.empty)), globalTrafo, root, parent, level, self)
+            PointTreeNode.Create(pointCloudId, world, cache, source, (Guid.NewGuid(),(fun _ _ -> MapExt.empty)), globalTrafo, root, parent, level, self)
 
         member x.ReleaseChildren() =
             let old = 
@@ -474,6 +474,7 @@ module LodTreeInstance =
                                         | :? ObjectDisposedException -> 
                                             None
                                         | e -> 
+                                            //let debug = c.Value
                                             Log.warn "[Lod] Exception during GetChildren:\n%A" e
                                             None
                                 )
@@ -486,7 +487,7 @@ module LodTreeInstance =
         member x.Id = id
 
         member x.GetData(ct, ips) = 
-            load ct ips cache (getCustomIndexedAttributes self) self globalTrafo localBounds level
+            load ct ips cache (getCustomIndexedAttributes self level) self globalTrafo localBounds level
             
         member x.ShouldSplit (splitfactor : float, quality : float, view : Trafo3d, proj : Trafo3d) =
             not isLeaf && equivalentAngle60 view proj > splitfactor / quality

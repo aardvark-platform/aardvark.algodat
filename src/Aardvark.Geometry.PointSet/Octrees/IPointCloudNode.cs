@@ -111,11 +111,11 @@ namespace Aardvark.Geometry.Points
         IReadOnlyDictionary<Durable.Def, object> Properties { get; }
 
         /// <summary>
-        /// Returns new node with added/replaced data.
-        /// If existing entry is replaced, then the node gets a new id.
-        /// Node is NOT written to store. Use WriteToStore if you want this.
+        /// Returns new node (with new id) with added/replaced data.
+        /// Node is NOT written to store.
+        /// Call WriteToStore on the result if you want this.
         /// </summary>
-        IPointCloudNode WithUpsert(Durable.Def def, object x);
+        IPointCloudNode With(IReadOnlyDictionary<Durable.Def, object> replacements);
 
         #region Positions
 
@@ -236,13 +236,16 @@ namespace Aardvark.Geometry.Points
 
         #region Velocities
 
-        /// <summary></summary>
+        /// <summary>
+        /// Deprecated. Always returns false. Use custom attributes instead.
+        /// </summary>
+        [Obsolete("Use custom attributes instead.")]
         bool HasVelocities { get; }
 
         /// <summary>
-        /// Octree. Per-point V3f velocities.
-        /// Durable definition c8db5f0a-1ddf-47ab-8266-f8e929cf98c5.
+        /// Deprecated. Always returns null. Use custom attributes instead.
         /// </summary>
+        [Obsolete("Use custom attributes instead.")]
         PersistentRef<V3f[]> Velocities { get; }
 
         #endregion

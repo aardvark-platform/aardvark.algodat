@@ -37,13 +37,13 @@ namespace Aardvark.Geometry.Points
         /// Creates PointSet from given points and colors.
         /// </summary>
         public static PointSet Create(Storage storage, string key,
-            IList<V3d> positions, IList<C4b> colors, IList<V3f> normals, IList<int> intensities, IList<byte> classifications, IList<V3f> velocities,
+            IList<V3d> positions, IList<C4b> colors, IList<V3f> normals, IList<int> intensities, IList<byte> classifications,
             int octreeSplitLimit, bool generateLod, bool isTemporaryImportNode, CancellationToken ct
             )
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
             var bounds = new Box3d(positions);
-            var builder = InMemoryPointSet.Build(positions, colors, normals, intensities, classifications, velocities, bounds, octreeSplitLimit);
+            var builder = InMemoryPointSet.Build(positions, colors, normals, intensities, classifications, new Cell(bounds), octreeSplitLimit);
             var root = builder.ToPointSetNode(storage, isTemporaryImportNode);
 
             var result = new PointSet(storage, key, root.Id, octreeSplitLimit);
@@ -186,7 +186,7 @@ namespace Aardvark.Geometry.Points
         public Box3d Bounds => Root?.Value?.Cell.BoundingBox ?? Box3d.Invalid;
 
         /// <summary>
-        /// Gets exact bounding box of all points from coarsest LoD.
+        /// Gets exact bounding box of all points in pointcloud.
         /// </summary>
         public Box3d BoundingBox
         {
@@ -194,7 +194,7 @@ namespace Aardvark.Geometry.Points
             {
                 try
                 {
-                    return new Box3d(Root.Value.PositionsAbsolute);
+                    return Root.Value.BoundingBoxExactGlobal;
                 }
                 catch (NullReferenceException)
                 {
@@ -211,9 +211,6 @@ namespace Aardvark.Geometry.Points
         
         /// <summary></summary>
         public bool HasClassifications => Root != null && Root.Value.HasClassifications;
-
-        /// <summary></summary>
-        public bool HasVelocities => Root != null && Root.Value.HasVelocities;
 
         /// <summary></summary>
         public bool HasKdTree => Root != null && Root.Value.HasKdTree;

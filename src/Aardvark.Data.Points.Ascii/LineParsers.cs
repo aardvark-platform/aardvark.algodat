@@ -31,7 +31,6 @@ namespace Aardvark.Data.Points
         public C4b Color = C4b.Black;
         public V3f Normal;
         public int Intensity;
-        public V3f Velocity;
     }
     
     /// <summary>
@@ -65,11 +64,6 @@ namespace Aardvark.Data.Points
             // Intensity
             { Token.Intensity, state => ParseFloat64(state, i => state.Intensity = (int)i) },
 
-            // Velocity
-            { Token.VelocityX, state => ParseFloat64(state, x => state.Velocity.X = (float)x) },
-            { Token.VelocityY, state => ParseFloat64(state, y => state.Velocity.Y = (float)y) },
-            { Token.VelocityZ, state => ParseFloat64(state, z => state.Velocity.Z = (float)z) },
-
             // Skip
             { Token.Skip, state => ParseSkip(state) },
         };
@@ -82,13 +76,11 @@ namespace Aardvark.Data.Points
             var hasColor = layout.HasColorTokens();
             var hasNormal = layout.HasNormalTokens();
             var hasIntensity = layout.HasIntensityTokens();
-            var hasVelocity = layout.HasVelocityTokens();
 
             var ps = new List<V3d>();
             var cs = hasColor ? new List<C4b>() : null;
             var ns = hasNormal ? new List<V3f>() : null;
             var js = hasIntensity ? new List<int>() : null;
-            var vs = hasVelocity ? new List<V3f>() : null;
 
             var prev = V3d.PositiveInfinity;
             var filterDistM = -filterDist;
@@ -131,13 +123,12 @@ namespace Aardvark.Data.Points
                         if (hasColor) cs.Add(state.Color);
                         if (hasNormal) ns.Add(state.Normal);
                         if (hasIntensity) js.Add(state.Intensity);
-                        if (hasVelocity) vs.Add(state.Velocity);
                     }
                 }
             }
 
             if (ps.Count == 0) return null;
-            return new Chunk(ps, cs, ns, js, classifications: null, velocities: vs);
+            return new Chunk(ps, cs, ns, js, classifications: null);
         }
 
         /// <summary>
@@ -148,13 +139,11 @@ namespace Aardvark.Data.Points
             var hasColor = layout.HasColorTokens();
             var hasNormal = layout.HasNormalTokens();
             var hasIntensity = layout.HasIntensityTokens();
-            var hasVelocity = layout.HasVelocityTokens();
 
             var ps = new List<V3d>();
             var cs = hasColor ? new List<C4b>() : null;
             var ns = hasNormal ? new List<V3f>() : null;
             var js = hasIntensity ? new List<int>() : null;
-            var vs = hasVelocity ? new List<V3f>() : null;
 
             var prev = V3d.PositiveInfinity;
             var filterDistM = -filterDist;
@@ -197,13 +186,12 @@ namespace Aardvark.Data.Points
                         if (hasColor) cs.Add(state.Color);
                         if (hasNormal) ns.Add(state.Normal);
                         if (hasIntensity) js.Add(state.Intensity);
-                        if (hasVelocity) vs.Add(state.Velocity);
                     }
                 }
             }
 
             if (ps.Count == 0) return null;
-            return new Chunk(ps, cs, ns, js, classifications: null, velocities: vs);
+            return new Chunk(ps, cs, ns, js, classifications: null);
         }
 
         /// <summary>

@@ -13,6 +13,7 @@
 */
 using Aardvark.Base;
 using Aardvark.Data.Points;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -189,22 +190,39 @@ namespace Aardvark.Geometry.Points
             this IPointCloudNode node, int level
             )
         {
+            //Report.ErrorNoPrefix($"[QueryPointsInOctreeLevel] start, level = {level}");
             if (level < 0) yield break;
 
             if (level == 0 || node.IsLeaf())
             {
                 var ps = node.PositionsAbsolute;
-                var cs = node?.TryGetColors4b()?.Value;
-                if(ps != null && cs != null && ps.Length != cs.Length)
+
+                T[] Verified<T>(T[] xs, string name)
                 {
-                    cs = new C4b[ps.Length];
-                    Report.Warn("[Chunk] inconsistent length: pos.length = {0} vs cs.length = {1}", ps.Length, cs.Length);
+                    if (ps == null || xs == null) return xs;
+
+                    //if (xs.Length > 0 && s_random.NextDouble() < 0.1)
+                    //{
+                    //    Report.ErrorNoPrefix("[QueryPointsInOctreeLevel] perform random mutation");
+                    //    xs = xs.Copy(s_random.Next(xs.Length));
+                    //}
+
+                    if (ps.Length == xs.Length) return xs;
+                    Report.ErrorNoPrefix($"[QueryPointsInOctreeLevel] inconsistent length: {ps.Length} positions, but {xs.Length} {name}.");
+
+                    var rs = new T[ps.Length];
+                    if (rs.Length == 0) return rs;
+                    var lastX = xs[xs.Length - 1];
+                    var imax = Math.Min(ps.Length, xs.Length);
+                    for (var i = 0; i < imax; i++) rs[i] = xs[i];
+                    for (var i = imax; i < ps.Length; i++) rs[i] = lastX;
+                    return rs;
                 }
-                var ns = node?.TryGetNormals3f()?.Value;
-                var js = node?.TryGetIntensities()?.Value;
-                var ks = node?.TryGetClassifications()?.Value;
-                var vs = node?.TryGetVelocities()?.Value;
-                var chunk = new Chunk(ps, cs, ns, js, ks, vs);
+                var cs = Verified(node?.TryGetColors4b()?.Value, "colors");
+                var ns = Verified(node?.TryGetNormals3f()?.Value, "normals");
+                var js = Verified(node?.TryGetIntensities()?.Value, "intensities");
+                var ks = Verified(node?.TryGetClassifications()?.Value, "classifications");
+                var chunk = new Chunk(ps, cs, ns, js, ks);
                 yield return chunk;
             }
             else
@@ -249,8 +267,7 @@ namespace Aardvark.Geometry.Points
                 var ns = node?.TryGetNormals3f()?.Value;
                 var js = node?.TryGetIntensities()?.Value;
                 var ks = node?.TryGetClassifications()?.Value;
-                var vs = node?.TryGetVelocities()?.Value;
-                var chunk = new Chunk(ps, cs, ns, js, ks, vs);
+                var chunk = new Chunk(ps, cs, ns, js, ks);
                 yield return chunk;
             }
             else

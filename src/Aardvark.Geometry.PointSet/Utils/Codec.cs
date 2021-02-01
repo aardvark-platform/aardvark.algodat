@@ -26,6 +26,8 @@ namespace Aardvark.Data
                 [Durable.Primitives.GuidDef.Id] = EncodeGuid,
                 [Durable.Primitives.GuidArray.Id] = EncodeGuidArray,
 
+                [Durable.Primitives.UInt8.Id] = EncodeUInt8,
+                [Durable.Primitives.UInt8Array.Id] = EncodeUInt8Array,
                 [Durable.Primitives.Int16.Id] = EncodeInt16,
                 [Durable.Primitives.Int16Array.Id] = EncodeInt16Array,
                 [Durable.Primitives.UInt16.Id] = EncodeUInt16,
@@ -59,6 +61,10 @@ namespace Aardvark.Data
                 [Durable.Aardvark.V3dArray.Id] = EncodeV3dArray,
                 [Durable.Aardvark.V4d.Id] = EncodeV4d,
                 [Durable.Aardvark.V4dArray.Id] = EncodeV4dArray,
+                [Durable.Aardvark.M33f.Id] = EncodeM33f,
+                [Durable.Aardvark.M33fArray.Id] = EncodeM33fArray,
+                [Durable.Aardvark.M33d.Id] = EncodeM33d,
+                [Durable.Aardvark.M33dArray.Id] = EncodeM33dArray,
                 [Durable.Aardvark.Box2f.Id] = EncodeBox2f,
                 [Durable.Aardvark.Box2fArray.Id] = EncodeBox2fArray,
                 [Durable.Aardvark.Box2d.Id] = EncodeBox2d,
@@ -70,6 +76,12 @@ namespace Aardvark.Data
 
                 [Durable.Aardvark.C3b.Id] = EncodeC3b,
                 [Durable.Aardvark.C3bArray.Id] = EncodeC3bArray,
+                [Durable.Aardvark.C3f.Id] = EncodeC3f,
+                [Durable.Aardvark.C3fArray.Id] = EncodeC3fArray,
+                [Durable.Aardvark.C4b.Id] = EncodeC4b,
+                [Durable.Aardvark.C4bArray.Id] = EncodeC4bArray,
+                [Durable.Aardvark.C4f.Id] = EncodeC4f,
+                [Durable.Aardvark.C4fArray.Id] = EncodeC4fArray,
             };
 
             s_decoders = new Dictionary<Guid, object>
@@ -111,6 +123,10 @@ namespace Aardvark.Data
                 [Durable.Aardvark.V3dArray.Id] = DecodeV3dArray,
                 [Durable.Aardvark.V4d.Id] = DecodeV4d,
                 [Durable.Aardvark.V4dArray.Id] = DecodeV4dArray,
+                [Durable.Aardvark.M33f.Id] = DecodeM33f,
+                [Durable.Aardvark.M33fArray.Id] = DecodeM33fArray,
+                [Durable.Aardvark.M33d.Id] = DecodeM33d,
+                [Durable.Aardvark.M33dArray.Id] = DecodeM33dArray,
                 [Durable.Aardvark.Box2f.Id] = DecodeBox2f,
                 [Durable.Aardvark.Box2fArray.Id] = DecodeBox2fArray,
                 [Durable.Aardvark.Box2d.Id] = DecodeBox2d,
@@ -122,6 +138,12 @@ namespace Aardvark.Data
 
                 [Durable.Aardvark.C3b.Id] = DecodeC3b,
                 [Durable.Aardvark.C3bArray.Id] = DecodeC3bArray,
+                [Durable.Aardvark.C3f.Id] = DecodeC3f,
+                [Durable.Aardvark.C3fArray.Id] = DecodeC3fArray,
+                [Durable.Aardvark.C4b.Id] = DecodeC4b,
+                [Durable.Aardvark.C4bArray.Id] = DecodeC4bArray,
+                [Durable.Aardvark.C4f.Id] = DecodeC4f,
+                [Durable.Aardvark.C4fArray.Id] = DecodeC4fArray,
             };
         }
 
@@ -129,6 +151,8 @@ namespace Aardvark.Data
 
         private static readonly Action<BinaryWriter, object> EncodeGuid = (s, o) => s.Write(((Guid)o).ToByteArray(), 0, 16);
         private static readonly Action<BinaryWriter, object> EncodeGuidArray = (s, o) => EncodeArray(s, (Guid[])o);
+        private static readonly Action<BinaryWriter, object> EncodeUInt8 = (s, o) => s.Write((byte)o);
+        private static readonly Action<BinaryWriter, object> EncodeUInt8Array = (s, o) => EncodeArray(s, (byte[])o);
         private static readonly Action<BinaryWriter, object> EncodeInt16 = (s, o) => s.Write((short)o);
         private static readonly Action<BinaryWriter, object> EncodeInt16Array = (s, o) => EncodeArray(s, (short[])o);
         private static readonly Action<BinaryWriter, object> EncodeUInt16 = (s, o) => s.Write((ushort)o);
@@ -194,6 +218,18 @@ namespace Aardvark.Data
             (s, o) => EncodeArray(s, (V4d[])o);
 
 
+
+        private static readonly Action<BinaryWriter, object> EncodeM33f =
+            (s, o) => { var x = (M33f)o; s.Write(x.M00); s.Write(x.M01); s.Write(x.M02); s.Write(x.M10); s.Write(x.M11); s.Write(x.M12); s.Write(x.M20); s.Write(x.M21); s.Write(x.M22); };
+        private static readonly Action<BinaryWriter, object> EncodeM33fArray =
+            (s, o) => EncodeArray(s, (M33f[])o);
+
+        private static readonly Action<BinaryWriter, object> EncodeM33d =
+            (s, o) => { var x = (M33d)o; s.Write(x.M00); s.Write(x.M01); s.Write(x.M02); s.Write(x.M10); s.Write(x.M11); s.Write(x.M12); s.Write(x.M20); s.Write(x.M21); s.Write(x.M22); };
+        private static readonly Action<BinaryWriter, object> EncodeM33dArray =
+            (s, o) => EncodeArray(s, (M33d[])o);
+
+
         private static readonly Action<BinaryWriter, object> EncodeBox2f =
             (s, o) => { var x = (Box2f)o; EncodeV2f(s, x.Min); EncodeV2f(s, x.Max); };
         private static readonly Action<BinaryWriter, object> EncodeBox2fArray =
@@ -215,10 +251,35 @@ namespace Aardvark.Data
         private static readonly Action<BinaryWriter, object> EncodeBox3dArray =
             (s, o) => EncodeArray(s, (Box3d[])o);
 
+        /// <summary>
+        /// Wrong implemention (should be serialized as BGR, not RGB) according to Durable definition.
+        /// For backwards compatibility, this should be fixed with magic, by obsoleting Aardvark.C3b durable definition used by this implemention and creating new Aardvark.C3b durable def.
+        /// </summary>
         private static readonly Action<BinaryWriter, object> EncodeC3b =
             (s, o) => { var x = (C3b)o; s.Write(x.R); s.Write(x.G); s.Write(x.B); };
+        /// <summary>
+        /// This should be correctly serialized, since the array is serialzed in memory layout, which is BGR. See EncodeC3b.
+        /// </summary>
         private static readonly Action<BinaryWriter, object> EncodeC3bArray =
             (s, o) => EncodeArray(s, (C3b[])o);
+
+        private static readonly Action<BinaryWriter, object> EncodeC3f =
+            (s, o) => { var x = (C3f)o; s.Write(x.R); s.Write(x.G); s.Write(x.B); };
+        private static readonly Action<BinaryWriter, object> EncodeC3fArray =
+            (s, o) => EncodeArray(s, (C3f[])o);
+
+        /// <summary>
+        /// Correct implemention, serialized as BGRA (because it was added later after the problem was known).
+        /// </summary>
+        private static readonly Action<BinaryWriter, object> EncodeC4b =
+            (s, o) => { var x = (C4b)o; s.Write(x.B); s.Write(x.G); s.Write(x.R); s.Write(x.A); };
+        private static readonly Action<BinaryWriter, object> EncodeC4bArray =
+            (s, o) => EncodeArray(s, (C4b[])o);
+
+        private static readonly Action<BinaryWriter, object> EncodeC4f =
+            (s, o) => { var x = (C4f)o; s.Write(x.R); s.Write(x.G); s.Write(x.B); s.Write(x.A); };
+        private static readonly Action<BinaryWriter, object> EncodeC4fArray =
+            (s, o) => EncodeArray(s, (C4f[])o);
 
         private static unsafe void EncodeArray<T>(BinaryWriter s, params T[] xs) where T : struct
         {
@@ -330,6 +391,11 @@ namespace Aardvark.Data
         private static readonly Func<BinaryReader, object> DecodeV4d = s => new V4d(s.ReadDouble(), s.ReadDouble(), s.ReadDouble(), s.ReadDouble());
         private static readonly Func<BinaryReader, object> DecodeV4dArray = s => DecodeArray<V4d>(s);
 
+        private static readonly Func<BinaryReader, object> DecodeM33f = s => new M33f(s.ReadSingle(), s.ReadSingle(), s.ReadSingle(), s.ReadSingle(), s.ReadSingle(), s.ReadSingle(), s.ReadSingle(), s.ReadSingle(), s.ReadSingle());
+        private static readonly Func<BinaryReader, object> DecodeM33fArray = s => DecodeArray<M33f>(s);
+        private static readonly Func<BinaryReader, object> DecodeM33d = s => new M33d(s.ReadDouble(), s.ReadDouble(), s.ReadDouble(), s.ReadDouble(), s.ReadDouble(), s.ReadDouble(), s.ReadDouble(), s.ReadDouble(), s.ReadDouble());
+        private static readonly Func<BinaryReader, object> DecodeM33dArray = s => DecodeArray<M33d>(s);
+
         private static readonly Func<BinaryReader, object> DecodeBox2f = s => new Box2f((V2f)DecodeV2f(s), (V2f)DecodeV2f(s));
         private static readonly Func<BinaryReader, object> DecodeBox2fArray = s => DecodeArray<Box2f>(s);
         private static readonly Func<BinaryReader, object> DecodeBox2d = s => new Box2d((V2d)DecodeV2d(s), (V2d)DecodeV2d(s));
@@ -340,8 +406,35 @@ namespace Aardvark.Data
         private static readonly Func<BinaryReader, object> DecodeBox3d = s => new Box3d((V3d)DecodeV3d(s), (V3d)DecodeV3d(s));
         private static readonly Func<BinaryReader, object> DecodeBox3dArray = s => DecodeArray<Box3d>(s);
 
+        /// <summary>
+        /// Wrong implemention (should be serialized as BGR, not RGB) according to Durable definition.
+        /// For backwards compatibility, this should be fixed with magic, by obsoleting Aardvark.C3b durable definition used by this implemention and creating new Aardvark.C3b durable def.
+        /// </summary>
         private static readonly Func<BinaryReader, object> DecodeC3b = s => new C3b(s.ReadByte(), s.ReadByte(), s.ReadByte());
+        /// <summary>
+        /// This should be correctly deserialized, since the array is serialized in memory layout, which is BGR. See EncodeC3b.
+        /// </summary>
         private static readonly Func<BinaryReader, object> DecodeC3bArray = s => DecodeArray<C3b>(s);
+
+        private static readonly Func<BinaryReader, object> DecodeC3f = s => new C3f(s.ReadSingle(), s.ReadSingle(), s.ReadSingle());
+        private static readonly Func<BinaryReader, object> DecodeC3fArray = s => DecodeArray<C3f>(s);
+
+        /// <summary>
+        /// Correct implemention, serialized as BGRA (because it was added later after the problem was known).
+        /// </summary>
+        private static readonly Func<BinaryReader, object> DecodeC4b = s =>
+        {
+            var b = s.ReadByte();
+            var g = s.ReadByte();
+            var r = s.ReadByte();
+            var a = s.ReadByte();
+            return new C4b(r, g, b, a);
+        };
+        private static readonly Func<BinaryReader, object> DecodeC4bArray = s => DecodeArray<C4b>(s);
+
+        private static readonly Func<BinaryReader, object> DecodeC4f = s => new C4f(s.ReadSingle(), s.ReadSingle(), s.ReadSingle(), s.ReadSingle());
+        private static readonly Func<BinaryReader, object> DecodeC4fArray = s => DecodeArray<C4f>(s);
+
 
         private static unsafe T[] DecodeArray<T>(BinaryReader s) where T : struct
         {

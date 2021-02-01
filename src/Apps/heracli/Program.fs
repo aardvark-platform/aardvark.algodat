@@ -1,12 +1,13 @@
-﻿open System.IO
-
-#nowarn "9"
-
+﻿open Aardvark.Base
+open Aardvark.Data.Points
+open Aardvark.Geometry.Points
+open Hera
 open System
 open System.Diagnostics
-open Aardvark.Base
+open System.IO
+open Uncodium.SimpleStore
 
-open Hera
+#nowarn "9"
 
 let exampleSingleFileConversion () =
 
@@ -20,16 +21,12 @@ let exampleSingleFileConversion () =
     let test = Hera.deserialize outputfile
     printfn "deserialized file contains %d points" test.Count
 
-
-
 let exampleTgzConversion () =
 
     let tgzFileName  = @"D:\Hera\Impact_Simulation\r80_p0_m500_v6000_mbasalt_a1.0_1M.tar.gz"
     let targetFolder = @"D:\Hera\Impact_Simulation\r80_p0_m500_v6000_mbasalt_a1.0_1M.tar.gz.betternormals.durable"
 
     Hera.convertTgz tgzFileName targetFolder
-
-
 
 let exampleReadPerformanceOld () =
 
@@ -42,7 +39,6 @@ let exampleReadPerformanceOld () =
         sw.Stop()
         printfn "%A" sw.Elapsed
 
-
 let exampleMmf () =
     printfn "%A" (Hera.HeraDataRef.FromFile(@"T:\Hera\impact.0000.durable.old"))
     printfn "%A" (Hera.HeraDataRef.FromFile(@"T:\Hera\impact.0000.durable.new"))
@@ -53,11 +49,41 @@ let exampleCheckNormals () =
     |> Seq.iter Hera.HeraData.CheckNormals
 
 let exampleImportHeraDataFromFileFull () =
-    let sw = Stopwatch()
-    sw.Start()
-    let particles = Hera.importHeraDataFromFileFull "T:\Hera\impact.0400"
-    sw.Stop()
-    printfn "%A" sw.Elapsed
+
+    let datafile  = @"T:\Hera\impact.0400"
+    let storepath = datafile + ".store"
+
+    let id = Hera.importHeraDataIntoStore datafile storepath false
+    printfn "%s" id
+
+    //Report.BeginTimed("importing " + datafile)
+    //let particles = Hera.importHeraDataFromFileFull datafile
+    //Report.EndTimed() |> ignore
+
+    //let chunk = particles.ToGenericChunk ()
+    //printfn "chunk.Count       = %d" chunk.Count
+    //printfn "chunk.BoundingBox = %A" chunk.BoundingBox
+
+    //let store = (new SimpleDiskStore(storepath)).ToPointCloudStore()
+    //Report.BeginTimed("saving particles octree to store")
+    //let pointcloud = particles.SaveToStore store
+    //Report.EndTimed() |> ignore
+    //printfn "pointcloud bounds (new): %A" pointcloud.BoundingBox
+    //let pointcloudId = pointcloud.Id
+    //printfn "pointcloud id          : %s" pointcloud.Id
+    //let pointcloudRootId = pointcloud.Root.Value.Id
+    //printfn "pointcloud root id     : %A" pointcloud.Root.Value.Id
+    
+    //store.Dispose()
+    //printfn "closed store"
+
+    //printfn "reopening store ..."
+    //let store = (new SimpleDiskStore(storepath)).ToPointCloudStore()
+    //let pointcloud2 = store.GetPointSet(pointcloudId)
+    //printfn "pointcloud bounds (new): %A" pointcloud2.BoundingBox
+    //printfn "pointcloud id          : %s" pointcloud2.Id
+    //printfn "pointcloud root id     : %A" pointcloud2.Root.Value.Id
+    
     ()
 
 [<EntryPoint>]

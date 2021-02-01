@@ -17,83 +17,110 @@ using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Threading;
 
 namespace Aardvark.Geometry.Points
 {
-    /// <summary>
-    /// </summary>
     public class InMemoryPointSet
     {
-        private readonly long m_splitLimit;
-        private readonly IList<V3d> m_ps;
-        private readonly IList<C4b> m_cs;
-        private readonly IList<V3f> m_ns;
-        private readonly IList<int> m_is;
-        private readonly IList<byte> m_ks;
-        private readonly IList<V3f> m_vs;
+        /// <summary>
+        /// The following attribute arrays will be stored stand-alone and referenced via id.
+        /// </summary>
+        public static Dictionary<Durable.Def, Durable.Def> StoreAsReference { get; } = new Dictionary<Durable.Def, Durable.Def>()
+            {
+                { Durable.Octree.PositionsLocal3f,  Durable.Octree.PositionsLocal3fReference    },
+                { Durable.Octree.Colors4b,          Durable.Octree.Colors4bReference            },
+                { Durable.Octree.Normals3f,         Durable.Octree.Normals3fReference           },
+                { Durable.Octree.Intensities1i,     Durable.Octree.Intensities1iReference       },
+                { Durable.Octree.Classifications1b, Durable.Octree.Classifications1bReference   }
+            };
+
+        private readonly ImmutableDictionary<Durable.Def, object> m_data;
+        private readonly int m_splitLimit;
         private readonly Node m_root;
-#pragma warning disable IDE0052 // Remove unread private members
-        private readonly long m_insertedPointsCount = 0;
-        private long m_duplicatePointsCount = 0;
-#pragma warning restore IDE0052 // Remove unread private members
+        private readonly IList<V3d> m_ps;
 
-        /// <summary>
-        /// </summary>
-        public static InMemoryPointSet Build(Chunk chunk, long octreeSplitLimit)
-            => Build(chunk.Positions, chunk.Colors, chunk.Normals, chunk.Intensities, chunk.Classifications, chunk.Velocities, chunk.BoundingBox, octreeSplitLimit);
+        public static InMemoryPointSet Build(GenericChunk chunk, int octreeSplitLimit)
+            => new InMemoryPointSet(chunk.Data, new Cell(chunk.BoundingBox), octreeSplitLimit);
 
-        /// <summary>
-        /// </summary>
-        public static InMemoryPointSet Build(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, IList<V3f> vs, Box3d bounds, long octreeSplitLimit)
-            => new InMemoryPointSet(ps, cs, ns, js, ks, vs, bounds, octreeSplitLimit);
+        public static InMemoryPointSet Build(Chunk chunk, int octreeSplitLimit)
+            => Build(chunk.Positions, chunk.Colors, chunk.Normals, chunk.Intensities, chunk.Classifications, new Cell(chunk.BoundingBox), octreeSplitLimit);
 
-        /// <summary>
-        /// </summary>
-        public static InMemoryPointSet Build(Chunk chunk, Cell rootBounds, long octreeSplitLimit)
-            => Build(chunk.Positions, chunk.Colors, chunk.Normals, chunk.Intensities, chunk.Classifications, chunk.Velocities, rootBounds, octreeSplitLimit);
+        public static InMemoryPointSet Build(Chunk chunk, Cell rootBounds, int octreeSplitLimit)
+            => Build(chunk.Positions, chunk.Colors, chunk.Normals, chunk.Intensities, chunk.Classifications, rootBounds, octreeSplitLimit);
 
-        /// <summary>
-        /// </summary>
-        public static InMemoryPointSet Build(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, IList<V3f> vs, Cell bounds, long octreeSplitLimit)
-            => new InMemoryPointSet(ps, cs, ns, js, ks, vs, bounds, octreeSplitLimit);
-
-        private InMemoryPointSet(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, IList<V3f> vs, Box3d bounds, long octreeSplitLimit)
-            : this(ps, cs, ns, js, ks, vs, new Cell(bounds), octreeSplitLimit)
-            { }
-
-        private InMemoryPointSet(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, IList<V3f> vs, Cell bounds, long octreeSplitLimit)
+        public static InMemoryPointSet Build(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, Cell rootBounds, int octreeSplitLimit)
         {
-#if DEBUG
-            //if (new Box3d(ps).Size.Length < 0.001) Debugger.Break();
-#endif
-            m_ps = ps;
-            m_cs = cs;
-            m_ns = ns;
-            m_is = js;
-            m_ks = ks;
-            m_vs = vs;
-            m_splitLimit = octreeSplitLimit;
+            if (ps == null) throw new ArgumentNullException(nameof(ps));
 
-            m_root = new Node(this, bounds);
-            m_insertedPointsCount = ps != null ? ps.Count : 0;
-            for (var i = 0; i < ps.Count; i++) m_root.Insert(i);
+            var data = ImmutableDictionary<Durable.Def, object>.Empty
+                .Add(Durable.Octree.PositionsGlobal3d, ps.ToArray())
+                ;
+            if (cs != null) data = data.Add(Durable.Octree.Colors4b, cs.ToArray());
+            if (ns != null) data = data.Add(Durable.Octree.Normals3f, ns.ToArray());
+            if (js != null) data = data.Add(Durable.Octree.Intensities1i, js.ToArray());
+            if (ks != null) data = data.Add(Durable.Octree.Classifications1b, ks.ToArray());
+
+            return new InMemoryPointSet(data, rootBounds, octreeSplitLimit);
         }
 
-        /// <summary></summary>
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        private InMemoryPointSet(ImmutableDictionary<Durable.Def, object> data, Cell cell, int octreeSplitLimit)
+        {
+            if (data == null) throw new ArgumentNullException(nameof(data));
+            
+            foreach (var kv in data)
+            {
+                if (!(kv.Value is Array)) throw new ArgumentException($"Entry {kv.Key} must be array.");
+            }
+
+            void TryRename(Durable.Def from, Durable.Def to)
+            {
+                if (data.TryGetValue(from, out var obj))
+                {
+                    data = data.Remove(from).Add(to, obj);
+                }
+            }
+            TryRename(GenericChunk.Defs.Positions3f,        Durable.Octree.PositionsGlobal3f);
+            TryRename(GenericChunk.Defs.Positions3d,        Durable.Octree.PositionsGlobal3d);
+            TryRename(GenericChunk.Defs.Classifications1b,  Durable.Octree.Classifications1b);
+            TryRename(GenericChunk.Defs.Classifications1i,  Durable.Octree.Classifications1i);
+            TryRename(GenericChunk.Defs.Classifications1s,  Durable.Octree.Classifications1s);
+            TryRename(GenericChunk.Defs.Colors3b,           Durable.Octree.Colors3b         );
+            TryRename(GenericChunk.Defs.Colors4b,           Durable.Octree.Colors4b         );
+            TryRename(GenericChunk.Defs.Intensities1i,      Durable.Octree.Intensities1i    );
+            TryRename(GenericChunk.Defs.Intensities1f,      Durable.Octree.Intensities1f    );
+            TryRename(GenericChunk.Defs.Normals3f,          Durable.Octree.Normals3f        );
+
+            // extract positions ...
+            if (data.TryGetValue(Durable.Octree.PositionsGlobal3d, out var ps3d))
+            {
+                m_ps = (V3d[])ps3d;
+                data = data.Remove(Durable.Octree.PositionsGlobal3d);
+            }
+            else if (data.TryGetValue(Durable.Octree.PositionsGlobal3f, out var ps3f))
+            {
+                m_ps = ((V3f[])ps3f).Map(p => (V3d)p);
+                data = data.Remove(Durable.Octree.PositionsGlobal3f);
+            }
+            else
+            {
+                throw new Exception("Could not find positions. Please add one of the following entries to 'data': Durable.Octree.PositionsGlobal3[df], GenericChunk.Defs.Positions3[df].");
+            }
+
+            m_data = data;
+            m_splitLimit = octreeSplitLimit;
+            m_root = new Node(this, cell);
+            for (var i = 0; i < m_ps.Count; i++) m_root.Insert(i);
+        }
+
+
         public PointSetNode ToPointSetNode(Storage storage, bool isTemporaryImportNode)
         {
-            var result = m_root.ToPointSetCell(storage, isTemporaryImportNode);
-//#if DEBUG
-//            if (m_duplicatePointsCount > 0)
-//            {
-//                var percent = (m_duplicatePointsCount / (double)m_insertedPointsCount) * 100.0;
-//                Report.Warn($"[INFO] Removed {m_duplicatePointsCount}/{m_insertedPointsCount} duplicate points ({percent:0.00}%).");
-//            }
-//#endif
+            var result = m_root.ToPointSetNode(storage, isTemporaryImportNode);
             return result;
         }
 
@@ -114,78 +141,41 @@ namespace Aardvark.Geometry.Points
                 _centerX = c.X; _centerY = c.Y; _centerZ = c.Z;
             }
 
-            public PointSetNode ToPointSetCell(Storage storage, bool isTemporaryImportNode)
+            internal PointSetNode ToPointSetNode(Storage storage, bool isTemporaryImportNode)
             {
                 var center = new V3d(_centerX, _centerY, _centerZ);
-                V3f[] ps = null;
-                C4b[] cs = null;
-                V3f[] ns = null;
-                int[] js = null;
-                byte[] ks = null;
-                V3f[] vs = null;
-                
+                V3f[] localPositions = null;
+                var attributes = ImmutableDictionary<Durable.Def, object>.Empty;
+
                 if (_ia != null)
                 {
-                    var allPs = _octree.m_ps;
                     var count = _ia.Count;
 
-                    ps = new V3f[count];
-                    for (var i = 0; i < count; i++) ps[i] = (V3f)(allPs[_ia[i]] - center);
+                    // compute positions attribute (relative to center)
+                    var allPs = _octree.m_ps;
+                    localPositions = new V3f[count];
+                    for (var i = 0; i < count; i++) localPositions[i] = (V3f)(allPs[_ia[i]] - center); // relative to center
+                    attributes = attributes.Add(Durable.Octree.PositionsLocal3f, localPositions);
 
-                    if (_octree.m_cs != null)
+                    // create all other attributes ...
+                    foreach (var kv in _octree.m_data)
                     {
-                        var allCs = _octree.m_cs;
-                        cs = new C4b[count];
-                        for (var i = 0; i < count; i++) cs[i] = allCs[_ia[i]];
-                    }
-
-                    if (_octree.m_ns != null)
-                    {
-                        var allNs = _octree.m_ns;
-                        ns = new V3f[count];
-                        for (var i = 0; i < count; i++) ns[i] = allNs[_ia[i]];
-                    }
-
-                    if (_octree.m_is != null)
-                    {
-                        var allIs = _octree.m_is;
-                        js = new int[count];
-                        for (var i = 0; i < count; i++) js[i] = allIs[_ia[i]];
-                    }
-
-                    if (_octree.m_ks != null)
-                    {
-                        var allKs = _octree.m_ks;
-                        ks = new byte[count];
-                        for (var i = 0; i < count; i++) ks[i] = allKs[_ia[i]];
-                    }
-
-                    if (_octree.m_vs != null)
-                    {
-                        var allVs = _octree.m_vs;
-                        vs = new V3f[count];
-                        for (var i = 0; i < count; i++) vs[i] = allVs[_ia[i]];
+                        if (kv.Key == Durable.Octree.PositionsGlobal3d) continue;
+                        var subset = kv.Value.Subset(_ia);
+                        attributes = attributes.Add(kv.Key, subset);
                     }
                 }
 
-                Guid? psId = ps != null ? (Guid?)Guid.NewGuid() : null;
-                Guid? csId = cs != null ? (Guid?)Guid.NewGuid() : null;
-                Guid? nsId = ns != null ? (Guid?)Guid.NewGuid() : null;
-                Guid? isId = js != null ? (Guid?)Guid.NewGuid() : null;
-                Guid? ksId = ks != null ? (Guid?)Guid.NewGuid() : null;
-                Guid? vsId = vs != null ? (Guid?)Guid.NewGuid() : null;
-
-                var subcells = _subnodes?.Map(x => x?.ToPointSetCell(storage, isTemporaryImportNode));
+                // subcells ...
+                var subcells = _subnodes?.Map(x => x?.ToPointSetNode(storage, isTemporaryImportNode));
                 var subcellIds = subcells?.Map(x => x?.Id);
                 var isLeaf = _subnodes == null;
 
 #if DEBUG
                 if (_subnodes != null)
                 {
-                    if (ps != null)
-                    {
+                    if (localPositions != null)
                         throw new InvalidOperationException("Invariant d98ea55b-760c-4564-8076-ce9cf7d293a0.");
-                    }
 
                     for (var i = 0; i < 8; i++)
                     {
@@ -199,7 +189,7 @@ namespace Aardvark.Geometry.Points
 #endif
                 var pointCountTreeLeafs = subcells != null
                     ? subcells.Sum(n => n != null ? n.PointCountTree : 0)
-                    : ps.Length
+                    : localPositions.Length
                     ;
 
                 var data = ImmutableDictionary<Durable.Def, object>.Empty
@@ -213,24 +203,16 @@ namespace Aardvark.Geometry.Points
                     data = data.Add(PointSetNode.TemporaryImportNode, 0);
                 }
 
-                if (psId != null)
+                if (attributes.TryGetValue(Durable.Octree.PositionsLocal3f, out var psObj))
                 {
-                    storage.Add(psId.ToString(), ps);
+                    var ps = (V3f[])psObj;
                     var bbExactLocal = new Box3f(ps);
 
                     data = data
                         .Add(Durable.Octree.PointCountCell, ps.Length)
-                        .Add(Durable.Octree.PositionsLocal3fReference, psId.Value)
                         .Add(Durable.Octree.BoundingBoxExactLocal, bbExactLocal)
+                        .Add(Durable.Octree.BoundingBoxExactGlobal, (Box3d)bbExactLocal + center)
                         ;
-
-                    if (isLeaf)
-                    {
-                        var bbExactGlobal = (Box3d)bbExactLocal + center;
-                        data = data
-                            .Add(Durable.Octree.BoundingBoxExactGlobal, bbExactGlobal)
-                            ;
-                    }
                 }
                 else
                 {
@@ -239,11 +221,22 @@ namespace Aardvark.Geometry.Points
                         ;
                 }
 
-                if (csId != null) { storage.Add(csId.ToString(), cs); data = data.Add(Durable.Octree.Colors4bReference, csId.Value); }
-                if (nsId != null) { storage.Add(nsId.ToString(), ns); data = data.Add(Durable.Octree.Normals3fReference, nsId.Value); }
-                if (isId != null) { storage.Add(isId.ToString(), js); data = data.Add(Durable.Octree.Intensities1iReference, isId.Value); }
-                if (ksId != null) { storage.Add(ksId.ToString(), ks); data = data.Add(Durable.Octree.Classifications1bReference, ksId.Value); }
-                if (vsId != null) { storage.Add(vsId.ToString(), vs); data = data.Add(Durable.Octree.Velocities3fReference, vsId.Value); }
+                // save attribute arrays to store ...
+                foreach (var kv in attributes)
+                {
+                    if (StoreAsReference.TryGetValue(kv.Key, out var refdef))
+                    {
+                        // store separately and reference by id ...
+                        var id = Guid.NewGuid();
+                        storage.Add(id, (Array)kv.Value);
+                        data = data.Add(refdef, id);
+                    }
+                    else
+                    {
+                        // store inline (inside node) ...
+                        data = data.Add(kv.Key, kv.Value);
+                    }
+                }
 
                 if (isLeaf) // leaf
                 {
@@ -293,7 +286,6 @@ namespace Aardvark.Geometry.Points
                         if (_octree.m_ps[index] == _octree.m_ps[_ia[0]])
                         {
                             // duplicate -> do not add
-                            _octree.m_duplicatePointsCount++;
                             return this;
                         }
                     }

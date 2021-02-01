@@ -5,11 +5,16 @@ open System
 open Aardvark.Base
 open Aardvark.Application.Slim
 open Aardvark.Rendering
+open Aardvark.Data.Points
 open Aardvark.SceneGraph
 open Aardvark.Application
 open FSharp.Data.Adaptive
+open Aardvark.Geometry.Points
 
 open Hera
+open Microsoft.FSharp.Control
+open Uncodium.SimpleStore
+open Aardvark.Data
 
 
 module Shaders = 
@@ -100,7 +105,7 @@ module Shaders =
             let f = Vec.dot c c - 1.0
             if f > 0.0 then discard ()// || v.density > 0.11 then discard()
             let dHeat = heat (v.density * 10.0)
-            return V4d(dHeat.XYZ * v.color.XYZ,1.0)
+            return V4d(dHeat.XYZ * v.color.XYZ,0.01)
         }
 
     let fs2 (v : Vertex) = 
@@ -112,34 +117,76 @@ module Shaders =
         }
 
 
+let loadOctreeFromStore storepath =
+    let id = storepath + ".key" |> File.readAllText
+    let store = (new SimpleDiskStore(storepath)).ToPointCloudStore()
+    let pointcloud = store.GetPointSet(id)
+    (pointcloud, store)
+
 [<EntryPoint>]
 let main argv =
     Aardvark.Init()
-    //let inputfile   = @"D:\volumes\univie\r80_p0_m500_v6000_mbasalt_a1.0_1M\impact.0400"
+
+    //let inputfile   = @"\\heap\sm\hera\r80_p0_m500_v6000_mbasalt_a1.0_1M.tar\r80_p0_m500_v6000_mbasalt_a1.0_1M\impact.0400"
     //let outputfile  = @"D:\volumes\univie\r80_p0_m500_v6000_mbasalt_a1.0_1M\impact.0400.durable"
     //let outputfile  = @"D:\Hera\Impact_Simulation\r80_p0_m500_v6000_mbasalt_a1.0_1M.tar.gz.betternormals.durable\impact.0039.durable"
-    let outputfile = @"\\ripperl\T$\Hera\Impact_Simulation\r80_p0_m500_v6000_mbasalt_a1.0_1M.tar.gz.betternormals.densities.durable\impact.0400.durable"
+    //let outputfile = @"\\heap\sm\hera\converted\impact.0400.durable"
 
     //Report.BeginTimed("convert")
     //Hera.convertFile inputfile outputfile 
     //Report.EndTimed() |> ignore
 
-    let data = Hera.deserialize outputfile
+    //let data = Hera.deserialize outputfile
 
+    let datafile  = @"T:\Hera\impact.0400"
+    let storepath = datafile + ".store"
 
-    let bb = Box3f data.Positions |> Box3d
+    let (p, store) = loadOctreeFromStore storepath
+    let bb = p.Root.Value.BoundingBoxExactGlobal
+    let root = p.Root.Value
 
-    let vertices = data.Positions
-    let velocities = data.Velocities
-    let normals = data.EstimatedNormals
-    let averageSquaredDistances = data.AverageSquaredDistances
+    let collectLeafData (extract : IPointCloudNode -> 'a[]) (root : IPointCloudNode) : 'a[] =
+        root.EnumerateNodes () |> Seq.filter (fun n -> n.IsLeaf) |> Seq.map extract |> Array.concat
 
-    let min = Array.min averageSquaredDistances
-    let max = Array.max averageSquaredDistances
+    let vertices   = root |> collectLeafData (fun n -> n.PositionsAbsolute |> Array.map V3f)
+    let normals    = root |> collectLeafData (fun n -> n.Normals.Value)
+    let velocities = root |> collectLeafData (fun n -> n.Properties.[Hera.Defs.Velocities] :?> V3f[])
+    let densities  = root |> collectLeafData (fun n -> n.Properties.[Hera.Defs.AverageSquaredDistances] :?> float32[])
+
+    //let bb = Box3f data.Positions |> Box3d
+    //let vertices = data.Positions
+    //let velocities = data.Velocities
+    //let normals = data.EstimatedNormals
+    //let densities = data.AverageSquaredDistances
+
+    //let harriChunk = Aardvark.Data.Points.Chunk(vertices |> Array.map V3d, null, normals, null, null);
+
+    //let config = 
+    //  ImportConfig.Default
+    //    .WithInMemoryStore()
+    //    .WithRandomKey()
+    //    .WithVerbose(true)
+    //    .WithMaxDegreeOfParallelism(0)
+    //    .WithMinDist(0.0)
+    //    .WithOctreeSplitLimit(4096)
+    //    .WithNormalizePointDensityGlobal(false)
+             
+    //let p = PointCloud.Chunks(harriChunk, config)
+    
+    //printfn "raw data bounds: %A" bb
+    printfn "pointcloud bounds: %A" p.BoundingBox
+
+    // easier way to construct.
+    // why? want to do queries on data.
+    //let p = Aardvark.Geometry.Points.PointSet.Create(storage, "p", data.Positions |> Array.map V3d, null, data.Normals, null, null, data.Velocities, 32768, false, false, System.Threading.CancellationToken.None)
+    
+    
+    let min = Array.min densities
+    let max = Array.max densities
     let histo = Histogram(float min,float max,100)
-    histo.AddRange(averageSquaredDistances |> Seq.map float)
+    histo.AddRange(densities |> Seq.map float)
     printfn "%A" histo.Slots
-    printfn "deserialized file contains %d points" data.Count
+    printfn "octree contains %d points" root.PointCountTree
 
 
     let app = new OpenGlApplication()
@@ -200,11 +247,41 @@ let main argv =
             |]
         )
 
-    win.RenderTask <-
+    let selected = cval [||]
+
+    win.Mouse.Down.Values.Add(fun e -> 
+        let view = c |> AVal.force
+        let f = f |> AVal.force
+        let camera = Camera.create view f
+        let pixelPos = PixelPosition(V2i win.MousePosition, Box2i.FromMinAndSize(V2i.Zero, win.Sizes |> AVal.force))
+        let ray = Camera.pickRay camera pixelPos
+
+        let result = p.QueryPointsNearRayCustom(ray, 0.25, Hera.Defs.Velocities, Hera.Defs.Pressures) |> Seq.toArray
+        let extract f = result |> Array.map f |> Array.concat
+        let positions  = extract (fun c -> c.PositionsAsV3d |> Array.map V3f)
+        let velocities = extract (fun c -> c.Data.[Hera.Defs.Velocities] :?> V3f[])
+        let pressures  = extract (fun c -> c.Data.[Hera.Defs.Pressures] :?> float32[])
+
+        printfn "n.Length = %d; %A" positions.Length (positions |> Array.tryHead)
+        transact (fun _ -> selected.Value <- positions)
+    )
+
+    let selectedSg = 
+        Sg.draw IndexedGeometryMode.PointList
+        |> Sg.vertexAttribute DefaultSemantic.Positions selected    
+        |> Sg.shader {  
+             do! DefaultSurfaces.trafo
+             do! DefaultSurfaces.constantColor C4f.White
+             do! DefaultSurfaces.pointSprite
+             do! DefaultSurfaces.pointSpriteFragment
+           }
+        |> Sg.uniform "PointSize" (AVal.constant 8.0)
+
+    let scene = 
         Sg.draw IndexedGeometryMode.PointList
         |> Sg.vertexAttribute DefaultSemantic.Positions vertices
         |> Sg.vertexAttribute DefaultSemantic.Normals (AVal.constant normals)
-        |> Sg.vertexAttribute (Sym.ofString "AverageSquaredDistance") (AVal.constant averageSquaredDistances)
+        |> Sg.vertexAttribute (Sym.ofString "Density") (AVal.constant densities)
         |> Sg.vertexAttribute' DefaultSemantic.Colors (velocities |> Array.map ( fun v -> ((v.Normalized + V3f.III) * 0.5f) |> V3f ))
         |> Sg.shader {  
              do! DefaultSurfaces.trafo
@@ -216,12 +293,16 @@ let main argv =
              //do! DefaultSurfaces.pointSpriteFragment
            }
         |> Sg.uniform "PointSize" (AVal.constant 8.0)
+        |> Sg.blendMode (AVal.constant BlendMode.Blend)
 
-        |> Sg.transform t
+
+    win.RenderTask <-
+        Sg.ofSeq [ scene; selectedSg ]
+        //|> Sg.transform t
         |> Sg.viewTrafo (c |> AVal.map CameraView.viewTrafo)
         |> Sg.projTrafo (f |> AVal.map Frustum.projTrafo)
-        |> Sg.uniform "ViewTrafo" stereoViews
-        |> Sg.uniform "ProjTrafo" stereoProjs
+        //|> Sg.uniform "ViewTrafo" stereoViews
+        //|> Sg.uniform "ProjTrafo" stereoProjs
         //|> Sg.blendMode (Mod.constant blend)
         //|> Sg.depthTest (Mod.constant DepthTestMode.None)
         |> Sg.compile app.Runtime win.FramebufferSignature

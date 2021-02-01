@@ -1,4 +1,5 @@
 ﻿using Aardvark.Base;
+using Aardvark.Base.Coder;
 using Aardvark.Data;
 using Aardvark.Data.Points;
 using Aardvark.Data.Points.Import;
@@ -11,6 +12,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -64,12 +66,57 @@ namespace Aardvark.Geometry.Tests
             Report.Line($"count -> {pc.PointCount}");
         }
 
+        internal static void TestLaszip()
+        {
+            CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+            var basedir = @"T:\OEBB\datasets\stream_3893\lasFiles";
+            var filename = @"T:\OEBB\datasets\stream_3893\lasFiles\469_0-0.las";
+            //var fileSizeInBytes = new FileInfo(filename).Length;
+
+            var key = Path.GetFileName(filename);
+
+            var info = Laszip.LaszipInfo(filename, ParseConfig.Default);
+            Report.Line($"total bounds: {info.Bounds}");
+            Report.Line($"total count : {info.PointCount:N0}");
+
+            var storePath = $@"T:\Vgm\Stores\{key}";
+            using var store = new SimpleDiskStore(storePath).ToPointCloudStore();
+
+            var config = ImportConfig.Default
+                .WithStorage(store)
+                .WithKey(key)
+                .WithVerbose(true)
+                .WithMaxDegreeOfParallelism(0)
+                //.WithMinDist(0.025)
+                .WithNormalizePointDensityGlobal(true)
+                ;
+
+            Report.BeginTimed("total");
+
+            //var chunks = Laszip.Chunks(filename, config.ParseConfig);
+            var chunks = Directory.EnumerateFiles(basedir, "*.las").SelectMany(f => Laszip.Chunks(f, config.ParseConfig));
+
+            var total = 0L;
+            foreach (var chunk in chunks)
+            {
+                total += chunk.Count;
+                Report.WarnNoPrefix($"[Chunk] {chunk.Count,16:N0}; {total,16:N0}; {chunk.HasPositions} {chunk.HasColors} {chunk.HasIntensities}");
+            }
+
+
+            var cloud = PointCloud.Chunks(chunks, config);
+            var pcl = store.GetPointSet(key);
+            Report.Line($"{storePath}:{key} : {pcl.PointCount:N0} points");
+
+            Report.EndTimed();
+        }
+
         internal static void TestE57()
         {
             //var sw = new Stopwatch();
 
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
-            var filename = @"T:\Vgm\Data\E57\2020-11-13-Walenta\2020452-B-3-5.e57";
+            var filename = @"T:\Vgm\Data\E57\2020-12-14_Trimble_Scan.e57";
             //var fileSizeInBytes = new FileInfo(filename).Length;
 
             var key = Path.GetFileName(filename);
@@ -115,14 +162,15 @@ namespace Aardvark.Geometry.Tests
             //var cloud = PointCloud.Chunks(chunks, config);
 
             var pcl = store.GetPointSet(key);
-            var maxCount = pcl.PointCount / 30;
-            var level = pcl.GetMaxOctreeLevelWithLessThanGivenPointCount(maxCount);
-            var foo = pcl.QueryPointsInOctreeLevel(level);
-            var fooCount = 0;
-            foreach (var chunk in foo) 
-            {
-                Report.WarnNoPrefix($"{++fooCount}");
-            }
+            Report.Line($"{storePath}:{key} : {pcl.PointCount:N0} points");
+            //var maxCount = pcl.PointCount / 30;
+            //var level = pcl.GetMaxOctreeLevelWithLessThanGivenPointCount(maxCount);
+            //var foo = pcl.QueryPointsInOctreeLevel(level);
+            //var fooCount = 0;
+            //foreach (var chunk in foo) 
+            //{
+            //    Report.WarnNoPrefix($"{++fooCount}");
+            //}
 
             //var intensityRange =
             //    foo
@@ -1012,13 +1060,7 @@ namespace Aardvark.Geometry.Tests
             Report.BeginTimed("parsing (with Aardvark.Data.Points.Ascii)");
 
             var lineDef = new[] {
-                Ascii.Token.PositionX, Ascii.Token.PositionY, Ascii.Token.PositionZ,
-                Ascii.Token.VelocityX, Ascii.Token.VelocityY, Ascii.Token.VelocityZ,
-                //Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip,
-                //Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip,
-                //Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip,
-                //Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip, Ascii.Token.Skip,
-                //Ascii.Token.Skip
+                Ascii.Token.PositionX, Ascii.Token.PositionY, Ascii.Token.PositionZ
             };
             var chunks = Ascii.Chunks(inputFile, lineDef, ParseConfig.Default).ToArray();
 
@@ -1055,7 +1097,6 @@ namespace Aardvark.Geometry.Tests
             var data = ImmutableDictionary<Durable.Def, object>.Empty
                 .Add(Durable.Octree.PositionsLocal3f, flat.Positions.Map(p => new V3f(p)))
                 .Add(Durable.Octree.Normals3f, flat.Normals.ToArray())
-                .Add(Durable.Octree.Velocities3f, flat.Velocities.ToArray())
                 ;
             Report.EndTimed();
 
@@ -1072,10 +1113,8 @@ namespace Aardvark.Geometry.Tests
                 sw.Stop();
                 var ps = (V3f[])dict[Durable.Octree.PositionsLocal3f];
                 var ns = (V3f[])dict[Durable.Octree.Normals3f];
-                var vs = (V3f[])dict[Durable.Octree.Velocities3f];
                 //Report.Line($"positions : {ps.Length}");
                 //Report.Line($"normals   : {ns.Length}");
-                //Report.Line($"velocities: {vs.Length}");
                 Report.Line($"{(buffer.Length / sw.Elapsed.TotalSeconds) / (1024 * 1024 * 1024):N3} GB/s");
                 Report.EndTimed();
             }
@@ -1273,12 +1312,20 @@ namespace Aardvark.Geometry.Tests
 
         internal static void Test_20201113_Hannes()
         {
-            var filename = @"T:\Vgm\Data\E57\2020-11-13-Walenta\2020452-B-3-5.e57";
+            //var filename = @"T:\Vgm\Data\E57\aibotix_ground_points.e57";
+            //var filename = @"T:\Vgm\Data\E57\Register360_Berlin Office_1.e57";
+            var filename = @"T:\Vgm\Data\E57\Staatsoper.e57";
+            //var filename = @"T:\Vgm\Data\E57\Innenscan_FARO.e57";
+            //var filename = @"T:\Vgm\Data\E57\1190_31_test_Frizzo.e57";
+            //var filename = @"T:\Vgm\Data\E57\Neuhäusl-Hörschwang.e57";
+            //var filename = @"T:\Vgm\Data\E57\2020-11-13-Walenta\2020452-B-3-5.e57";
 
             var key = Path.GetFileName(filename);
-
-            var storePath = $@"T:\Vgm\Stores\{key}";
-            using var store = new SimpleDiskStore(storePath).ToPointCloudStore();
+            
+            //var storePath = $@"T:\Vgm\Stores\{key}";
+            var storePath = $@"E:\rmdata\{key}";
+            using var storeRaw = new SimpleDiskStore(storePath);
+            var store = storeRaw.ToPointCloudStore();
 
 
             var info = E57.E57Info(filename, ParseConfig.Default);
@@ -1291,49 +1338,64 @@ namespace Aardvark.Geometry.Tests
                 .WithKey(key)
                 .WithVerbose(false)
                 .WithMaxDegreeOfParallelism(0)
-                .WithMinDist(0.025)
+                .WithMinDist(0.005)
                 .WithNormalizePointDensityGlobal(true)
-                .WithProgressCallback(p => { Thread.Sleep(2000); Report.Line($"{p:0.00}"); })
+                .WithProgressCallback(p => { Report.Line($"{p:0.00}"); })
                 ;
 
             Report.BeginTimed("total");
 
             var import = Task.Run(() =>
             {
-                var chunks = E57.Chunks(filename, config.ParseConfig);
-                var pcl = PointCloud.Chunks(chunks/*.Take(50)*/, config);
+                //var runningCount = 0L;
+                var chunks = E57
+                    .Chunks(filename, config.ParseConfig)
+                    //.Take(50)
+                    //.TakeWhile(chunk =>
+                    //{
+                    //    var n = Interlocked.Add(ref runningCount, chunk.Count);
+                    //    Report.WarnNoPrefix($"[Chunks] {n:N0} / {info.PointCount:N0}");
+                    //    return n < info.PointCount * (0.125 + 0.125 / 2);
+                    //})
+                    ;
+                var pcl = PointCloud.Chunks(chunks, config);
                 return pcl;
             });
 
             var pcl = import.Result;
+            File.WriteAllText(Path.Combine(storePath, "key.txt"), pcl.Id);
 
-            var maxCount = pcl.PointCount / 30;
-            var level = pcl.GetMaxOctreeLevelWithLessThanGivenPointCount(maxCount);
-            var queryChunks = pcl.QueryPointsInOctreeLevel(level);
+            //var maxCount = pcl.PointCount / 30;
+            //var level = pcl.GetMaxOctreeLevelWithLessThanGivenPointCount(maxCount);
+            //var queryChunks = pcl.QueryPointsInOctreeLevel(level);
 
-            var intensityRange = queryChunks.Aggregate<Chunk, (int, int)?>(null, (intMaxima, chunk) =>
-            {
-                if (chunk.HasIntensities)
-                {
-                    var (currentMin, currentMax) = intMaxima.HasValue ? intMaxima.Value : (int.MaxValue, int.MinValue);
-                    var minInt = Math.Min(currentMin, chunk.Intensities.Min());
-                    var maxInt = Math.Max(currentMax, chunk.Intensities.Max());
-                    return (minInt, maxInt);
-                }
-                else
-                {
-                    return null;
-                }
-            });
+            //var intensityRange = queryChunks.Aggregate<Chunk, (int, int)?>(null, (intMaxima, chunk) =>
+            //{
+            //    if (chunk.HasIntensities)
+            //    {
+            //        var (currentMin, currentMax) = intMaxima ?? (int.MaxValue, int.MinValue);
+            //        var minInt = Math.Min(currentMin, chunk.Intensities.Min());
+            //        var maxInt = Math.Max(currentMax, chunk.Intensities.Max());
+            //        return (minInt, maxInt);
+            //    }
+            //    else
+            //    {
+            //        return null;
+            //    }
+            //});
 
-            Report.Line($"intensityRange {intensityRange}");
+            //Report.Line($"intensityRange {intensityRange}");
 
             Report.EndTimed();
+
+            Report.Line($"number of keys: {storeRaw.SnapshotKeys().Length:N0}");
         }
 
         public static void Main(string[] _)
         {
-            Test_20201113_Hannes();
+            TestLaszip();
+
+            //Test_20201113_Hannes();
 
             //var poly = new Polygon2d(V2d.OO, V2d.IO, V2d.II, V2d.OI);
             //Console.WriteLine(ApprInsidePolygon.Contains(poly, new V2d(0.5, 0.0)));
@@ -1341,7 +1403,7 @@ namespace Aardvark.Geometry.Tests
 
             //EnumerateCells2dTestNew();
 
-            //var inputFile = @"C:\Users\sm\Downloads\C_30DN2.LAZ";
+            //var inputFile = @"C:\Users\sm\Downloads\C_25GN1.LAZ";
             //var storeName = Path.Combine(@"T:\Vgm\Stores", Path.GetFileName(inputFile));
             //var key = Path.GetFileName(storeName);
             //CreateStore(inputFile, storeName, key, 0.0);
