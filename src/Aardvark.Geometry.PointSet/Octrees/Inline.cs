@@ -279,8 +279,6 @@ namespace Aardvark.Geometry.Points
             Report.EndTimed();
         }
 
-
-
         private static InlinedNode ConvertToInline(
             this Storage storage,
             IReadOnlyDictionary<Durable.Def, object> node,
@@ -344,11 +342,6 @@ namespace Aardvark.Geometry.Points
                 {
                     foreach (var g in guids) if (g != Guid.Empty) survive.Add(g);
                 }
-
-                if (hasColors && ps.Length != cs.Length) throw new InvalidOperationException(
-                    $"Different number of positions ({ps.Length}) and colors ({cs.Length}). " +
-                    "Invariant ac1cdac5-b7a2-4557-9383-ae80929af999."
-                    );
             }
             else
             {
@@ -362,6 +355,23 @@ namespace Aardvark.Geometry.Points
                 }
             }
 
+            // fix color array if it has inconsistent length
+            // (might have been created by an old Aardvark.Geometry.PointSet version)
+            if (hasColors && cs.Length != ps.Length)
+            {
+                Report.ErrorNoPrefix($"[ConvertToInline] inconsistent length: {ps.Length} positions, but {cs.Length} colors.");
+
+                var csFixed = new C4b[ps.Length];
+                if (csFixed.Length > 0)
+                {
+                    var lastColor = cs[cs.Length - 1];
+                    var imax = Math.Min(ps.Length, cs.Length);
+                    for (var i = 0; i < imax; i++) csFixed[i] = cs[i];
+                    for (var i = imax; i < ps.Length; i++) csFixed[i] = lastColor;
+                }
+                cs = csFixed;
+            }
+
             // optionally round positions
             if (config.PositionsRoundedToNumberOfDigits.HasValue)
             {
@@ -370,8 +380,8 @@ namespace Aardvark.Geometry.Points
 
             // result
             pointCountCell = ps.Length;
-            var cs3 = cs?.Map(x => new C3b(x));
-            var result = new InlinedNode(id, cell, bbExactGlobal, (Guid[])subnodeGuids, pointCountCell, pointCountTree, ps, cs3);
+            var cs3b = cs?.Map(x => new C3b(x));
+            var result = new InlinedNode(id, cell, bbExactGlobal, (Guid[])subnodeGuids, pointCountCell, pointCountTree, ps, cs3b);
             return result;
         }
 
