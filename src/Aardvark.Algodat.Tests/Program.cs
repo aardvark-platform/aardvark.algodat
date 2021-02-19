@@ -1391,9 +1391,43 @@ namespace Aardvark.Geometry.Tests
             Report.Line($"number of keys: {storeRaw.SnapshotKeys().Length:N0}");
         }
 
+        internal static void Test_20210217_cpunz()
+        {
+            var inputFile = @"T:\Vgm\Data\E57\aibotix_ground_points.e57";
+            var storeName = Path.Combine(@"T:\Vgm\Stores", Path.GetFileName(inputFile));
+            var key = Path.GetFileName(storeName);
+            //CreateStore(inputFile, storeName, key, 0.005);
+
+            var store = new SimpleDiskStore(storeName).ToPointCloudStore(cache: default);
+            var pc = store.GetPointSet(key).Root.Value;
+            Report.Line($"filename    : {key}"); 
+            Report.Line($"total points: {pc.PointCountTree,10:N0}");
+            Report.Line($"bounding box: {pc.BoundingBoxExactGlobal:N2}");
+
+            Report.Line();
+            Report.BeginTimed("activating filter");
+            var queryBox = pc.BoundingBoxExactGlobal.GetOctant(0);
+            var pcFiltered = FilteredNode.Create(pc, new FilterInsideBox3d(queryBox));
+            Report.EndTimed();
+
+            Report.Line();
+            Report.BeginTimed("performing GridQueryXY on original point cloud");
+            var dummy1 = pc.EnumerateGridCellsXY(4).Select(x => x.Footprint.GetCenter()).ToArray();
+            Report.Line($"got {dummy1.Length} grid cells");
+            Report.EndTimed();
+
+            Report.Line();
+            Report.BeginTimed("performing GridQueryXY on filtered point cloud");
+            var dummy2 = pcFiltered.EnumerateGridCellsXY(4).Select(x => x.Footprint.GetCenter()).ToArray();
+            Report.Line($"got {dummy2.Length} grid cells");
+            Report.EndTimed();
+        }
+
         public static void Main(string[] _)
         {
-            TestLaszip();
+            Test_20210217_cpunz();
+
+            //TestLaszip();
 
             //Test_20201113_Hannes();
 
