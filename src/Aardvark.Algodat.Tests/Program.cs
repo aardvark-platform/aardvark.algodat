@@ -1400,31 +1400,47 @@ namespace Aardvark.Geometry.Tests
 
             var store = new SimpleDiskStore(storeName).ToPointCloudStore(cache: default);
             var pc = store.GetPointSet(key).Root.Value;
-            Report.Line($"filename    : {key}"); 
+            Report.Line($"filename    : {key}");
             Report.Line($"total points: {pc.PointCountTree,10:N0}");
             Report.Line($"bounding box: {pc.BoundingBoxExactGlobal:N2}");
 
             Report.Line();
             Report.BeginTimed("activating filter");
-            var queryBox = pc.BoundingBoxExactGlobal.GetOctant(0);
-            var pcFiltered = FilteredNode.Create(pc, new FilterInsideBox3d(queryBox));
+
+            //var bb = pc.BoundingBoxExactGlobal;
+            //var queryBox = new Box3d(bb.Min, new V3d(bb.Max.X, bb.Center.Y, bb.Max.Z));//.GetOctant(0);
+            //var pcFiltered = FilteredNode.Create(pc, new FilterInsideBox3d(queryBox));
+
+            var planes = new Plane3d[] {
+                new Plane3d(new V3d(0.833098559959325, -0.55312456950826, 0.0), -148084.543321104),
+                new Plane3d(new V3d(0.553124569505628, 0.833098559961073, 0.0), 210175.952298119),
+                new Plane3d(new V3d(0.0, 0.0, -1.0), -705.281005859375),
+                new Plane3d(new V3d(-0.833098559959325, 0.55312456950826, 0.0), 148100.179131675),
+                new Plane3d(new V3d(-0.553124569505628, -0.833098559961073, 0.0), -210155.471521074),
+                new Plane3d(new V3d(0.0, 0.0, 1.0), 708.76618125843)
+             };
+            var tempFilter = new Hull3d(planes);
+            var pcFiltered = FilteredNode.Create(pc, new FilterInsideConvexHull3d(tempFilter));
+
             Report.EndTimed();
 
-            Report.Line();
-            Report.BeginTimed("performing GridQueryXY on original point cloud");
-            var dummy1 = pc.EnumerateGridCellsXY(4).Select(x => x.Footprint.GetCenter()).ToArray();
-            Report.Line($"got {dummy1.Length} grid cells");
-            Report.EndTimed();
+            //Report.Line();
+            //Report.BeginTimed("performing GridQueryXY on original point cloud");
+            //var dummy1 = pc.EnumerateGridCellsXY(-1).Select(x => x.Footprint.GetCenter()).ToArray();
+            //Report.Line($"got {dummy1.Length} grid cells");
+            //Report.EndTimed();
 
             Report.Line();
             Report.BeginTimed("performing GridQueryXY on filtered point cloud");
-            var dummy2 = pcFiltered.EnumerateGridCellsXY(4).Select(x => x.Footprint.GetCenter()).ToArray();
+            var dummy2 = pcFiltered.EnumerateGridCellsXY(-1).Select(x => V3d.OOO).ToArray();
             Report.Line($"got {dummy2.Length} grid cells");
             Report.EndTimed();
         }
 
         public static void Main(string[] _)
         {
+            var buffer = File.ReadAllBytes(@"T:\Vgm\Stores\2021-02-16_madorjan\data.bin");
+
             Test_20210217_cpunz();
 
             //TestLaszip();
