@@ -333,7 +333,7 @@ namespace Aardvark.Data.Points
         {
             if (IsEmpty) return Empty;
 
-            var ps = HasPositions ? new List<V3d>() : null;
+            var ps = new List<V3d>();
             var cs = HasColors ? new List<C4b>() : null;
             var ns = HasNormals ? new List<V3f>() : null;
             var js = HasIntensities ? new List<int>() : null;
@@ -344,7 +344,7 @@ namespace Aardvark.Data.Points
                 if (predicate(this, i))
                 {
 #pragma warning disable CS8602
-                    if (ps != null) ps.Add(Positions[i]);
+                    ps.Add(Positions[i]);
                     if (cs != null) cs.Add(Colors[i]);
                     if (ns != null) ns.Add(Normals[i]);
                     if (js != null) js.Add(Intensities[i]);
@@ -353,7 +353,6 @@ namespace Aardvark.Data.Points
                 }
             }
 
-            if (ps == null) throw new Exception("Invariant bc49afa3-ea57-42a8-ac1c-ee1c439a48d3.");
             return new Chunk(ps, cs, ns, js, ks);
         }
 
