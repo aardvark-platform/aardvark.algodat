@@ -115,13 +115,13 @@ namespace LASZip
 
             var bounds = new Box3d(
                 new V3d(
-                    reader.header.x_scale_factor * reader.header.min_x + reader.header.x_offset,
-                    reader.header.y_scale_factor * reader.header.min_y + reader.header.y_offset,
-                    reader.header.z_scale_factor * reader.header.min_z + reader.header.z_offset),
+                    reader.header.min_x,
+                    reader.header.min_y,
+                    reader.header.min_z),
                 new V3d(
-                    reader.header.x_scale_factor * reader.header.max_x + reader.header.x_offset,
-                    reader.header.y_scale_factor * reader.header.max_y + reader.header.y_offset,
-                    reader.header.z_scale_factor * reader.header.max_z + reader.header.z_offset)
+                    reader.header.max_x,
+                    reader.header.max_y,
+                    reader.header.max_z)
                 );
 
             reader.laszip_close_reader();
@@ -239,26 +239,26 @@ namespace LASZip
                     }
                 }
 
-                if (verbose)
-                {
-                    if (ps?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] positions");
-                    if (intensities?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] intensities");
-                    if (returnNumbers?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] returnNumbers");
-                    if (numberOfReturnsOfPulses?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] numberOfReturnsOfPulses");
-                    if (classifications?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] classifications");
-                    if (scanAngleRanks?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] scanAngleRanks");
-                    if (userDatas?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] userDatas");
-                    if (pointSourceIds?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] pointSourceIds");
-                    if (gpsTimes?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] gpsTimes");
-                    if (colors?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] colors");
-                    if (wavePacketDescriptorIndices?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] wavePacketDescriptorIndices");
-                    if (bytesOffsetToWaveformDatas?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] bytesOffsetToWaveformDatas");
-                    if (waveformPacketSizesInBytes?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] waveformPacketSizesInBytes");
-                    if (returnPointWaveformLocations?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] returnPointWaveformLocations");
-                    if (xts?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] xts");
-                    if (yts?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] yts");
-                    if (zts?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] zts");
-                }
+                //if (verbose)
+                //{
+                //    if (ps?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] positions");
+                //    if (intensities?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] intensities");
+                //    if (returnNumbers?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] returnNumbers");
+                //    if (numberOfReturnsOfPulses?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] numberOfReturnsOfPulses");
+                //    if (classifications?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] classifications");
+                //    if (scanAngleRanks?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] scanAngleRanks");
+                //    if (userDatas?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] userDatas");
+                //    if (pointSourceIds?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] pointSourceIds");
+                //    if (gpsTimes?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] gpsTimes");
+                //    if (colors?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] colors");
+                //    if (wavePacketDescriptorIndices?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] wavePacketDescriptorIndices");
+                //    if (bytesOffsetToWaveformDatas?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] bytesOffsetToWaveformDatas");
+                //    if (waveformPacketSizesInBytes?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] waveformPacketSizesInBytes");
+                //    if (returnPointWaveformLocations?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] returnPointWaveformLocations");
+                //    if (xts?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] xts");
+                //    if (yts?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] yts");
+                //    if (zts?.Distinct()?.Count() > 1) Report.WarnNoPrefix("[Laszip.ReadPoints] zts");
+                //}
 
                 yield return new Points
                 {
