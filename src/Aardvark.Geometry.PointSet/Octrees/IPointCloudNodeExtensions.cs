@@ -12,6 +12,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
+using Aardvark.Data;
 using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
@@ -381,11 +382,40 @@ namespace Aardvark.Geometry.Points
             {
                 if (outOfCore)
                 {
-                    for (var i = 0; i < 8; i++)
+                    long FastCount(Guid key)
                     {
-                        var n = self.Subnodes[i];
-                        if (n != null) count += n.Value.CountNodes(outOfCore);
+                        if (key == Guid.Empty) return 0L;
+
+                        var acc = 1L;
+
+                        var (def, obj) = self.Storage.GetDurable(key);
+                        if (def == Durable.Octree.Node)
+                        {
+                            var data = (IDictionary<Durable.Def, object>)obj;
+                            if (data.TryGetValue(Durable.Octree.SubnodesGuids, out var o))
+                            {
+                                var snids = (Guid[])o;
+                                foreach(var snid in snids)
+                                {
+                                    if (snid == Guid.Empty) continue;
+                                    acc += FastCount(snid);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            var n = self.Storage.GetPointCloudNode(key);
+                            foreach (var sn in n.Subnodes)
+                            {
+                                if (sn == null) continue;
+                                acc += FastCount(sn.Value.Id);
+                            }
+                        }
+                        
+                        return acc;
                     }
+
+                    return FastCount(self.Id);
                 }
                 else
                 {
