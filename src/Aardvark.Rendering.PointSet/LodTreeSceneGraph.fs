@@ -69,7 +69,7 @@ module Readback =
 
     type DepthReader(rt : IRuntime) =
         let ditherTex = 
-            let tex = rt.CreateTexture(V2i dither1024.Size, TextureFormat.R32f, 1, 1)
+            let tex = rt.CreateTexture2D(V2i dither1024.Size, TextureFormat.R32f, 1, 1)
             let img = PixImage<float32>(Col.Format.Gray, dither1024)
             rt.Upload(tex,img)
             tex
