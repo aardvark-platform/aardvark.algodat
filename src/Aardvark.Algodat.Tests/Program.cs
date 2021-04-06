@@ -6,6 +6,7 @@ using Aardvark.Data.Points.Import;
 using Aardvark.Geometry.Points;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using NUnit.Framework.Constraints;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -319,6 +320,92 @@ namespace Aardvark.Geometry.Tests
             */
         }
 
+        internal static void TestLasZip()
+        {
+            CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+
+            var storePath = @"E:\tmp\sansimeon\store2";
+            using var storeRaw = new SimpleDiskStore(storePath);
+            var store = storeRaw.ToPointCloudStore();
+
+            //var foo = store.GetPointSet("sansimeon");
+            //Report.BeginTimed("counting all nodes");
+            //var fooCount = foo.Root.Value.CountNodes(outOfCore: true);
+            //Report.EndTimed();
+            //Console.WriteLine($"total node count: {fooCount:N0}");
+            //return;
+
+            var folder = @"\\hyperspace\Work\Datasets\SanSimeon\download";
+            var files = Directory.EnumerateFiles(folder, "*.laz").ToArray();
+
+            var globalBounds = new Box3d(new V3d(-121.4116112, 35.1171962, -1.03), new V3d(-120.3998118, 35.8767543, 1093.57));
+            var subregion = new Box3d(globalBounds.Min, globalBounds.Min + new V3d(globalBounds.Size.X * 0.1, globalBounds.Size.Y * 1.0, globalBounds.Size.Z));
+
+            //var infos = files.Select(x => Laszip.LaszipInfo(x, ParseConfig.Default)).Where(x => x.Bounds.Intersects(subregion));
+            //var totalBounds = Box3d.Invalid;
+            //var totalCount = 0L;
+            //foreach (var info in infos)
+            //{
+            //    totalBounds = totalBounds.IsInvalid ? info.Bounds : new Box3d(totalBounds, info.Bounds);
+            //    totalCount += info.PointCount;
+            //    Console.WriteLine($"{Path.GetFileName(info.FileName),-40} {info.PointCount,16:N0} {totalCount,16:N0} {info.Bounds}");
+            //    //Console.WriteLine($"{Path.GetFileName(info.FileName),-40} {info.PointCount,16:N0} {totalCount,16:N0} {fooBounds}");
+            //}
+            //Console.WriteLine($"total count : {totalCount:N0}");
+            //Console.WriteLine($"total bounds: {totalBounds}");
+            ///*
+            // sansimeon dataset (!! x is lon in deg, y is lat in deg, z is in m)
+            //    total count : 17,714,127,505
+            //    total bounds: [[-121.4116112, 35.1171962, -1.03], [-120.3998118, 35.8767543, 1093.57]]
+            //*/
+            //return;
+
+
+            var firstPosOfFirstChunk = new V3d(-121.2715999, 35.7687472, 301.27);
+            var config = ImportConfig.Default
+                            .WithStorage(store)
+                            .WithKey("sansimeon")
+                            .WithOctreeSplitLimit(65536)
+                            .WithVerbose(true)
+                            .WithMaxDegreeOfParallelism(0)
+                            .WithMinDist(0.0)
+                            .WithNormalizePointDensityGlobal(false)
+                            .WithReproject(ps =>
+                            {
+                                var rs = new V3d[ps.Count];
+                                var offsetX = firstPosOfFirstChunk.X;
+                                var offsetY = firstPosOfFirstChunk.Y;
+                                var s = 2.0 * 6_371_000 * Math.PI / 360.0;
+                                for (var i = 0; i < ps.Count; i++)
+                                {
+                                    rs[i].X = (ps[i].X - offsetX) * s;
+                                    rs[i].Y = (ps[i].Y - offsetY) * s;
+                                    rs[i].Z = ps[i].Z;
+                                    }
+                                return rs;
+                            })
+                            ;
+
+            
+            var chunks =
+                files
+                    //.Skip(100)
+                    //.Take(10)
+                    .Where(x => Laszip.LaszipInfo(x, ParseConfig.Default).Bounds.Intersects(subregion))
+                    .AsParallel()
+                    .SelectMany(x => {
+                        var chunks = Laszip.Chunks(x, config.ParseConfig);
+                        var foo = chunks.ToArray();
+                        Console.WriteLine($"{x,80} {foo.Sum(c => c.Count),20:N0}");
+                        return foo;
+                    })
+                    //.ToArray()
+                    ;
+
+            var pc = PointCloud.Chunks(chunks, config);
+            Console.WriteLine("key  : {0}", pc.Id);
+            Console.WriteLine("count: {0:N0}", pc.PointCount);
+        }
         internal static void TestImport()
         {
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
@@ -1437,11 +1524,58 @@ namespace Aardvark.Geometry.Tests
             Report.EndTimed();
         }
 
+        internal static void Test_20210319_Hannes()
+        {
+            var filename = @"T:\Vgm\Data\20210319_hannes\2017-10-20_09-44-27_1mm_shade_norm_5pp - Cloud.pts";
+
+            var key = Path.GetFileName(filename);
+            var storePath = $@"E:\rmdata\{key}";
+            using var storeRaw = new SimpleDiskStore(storePath);
+            var store = storeRaw.ToPointCloudStore();
+
+
+            var config = ImportConfig.Default
+                .WithStorage(store)
+                .WithKey(key)
+                .WithVerbose(true)
+                .WithMaxDegreeOfParallelism(0)
+                .WithMinDist(0.005)
+                .WithNormalizePointDensityGlobal(true)
+                .WithProgressCallback(p => { Report.Line($"{p:0.00}"); })
+                ;
+
+            Report.BeginTimed("total");
+
+            var import = Task.Run(() =>
+            {
+                //var runningCount = 0L;
+                var chunks = Pts
+                    .Chunks(filename, config.ParseConfig)
+                    //.Take(50)
+                    //.TakeWhile(chunk =>
+                    //{
+                    //    var n = Interlocked.Add(ref runningCount, chunk.Count);
+                    //    Report.WarnNoPrefix($"[Chunks] {n:N0} / {info.PointCount:N0}");
+                    //    return n < info.PointCount * (0.125 + 0.125 / 2);
+                    //})
+                    ;
+                var pcl = PointCloud.Chunks(chunks, config);
+                return pcl;
+            });
+
+            var pcl = import.Result;
+            File.WriteAllText(Path.Combine(storePath, "key.txt"), pcl.Id);
+
+            Report.EndTimed();
+        }
+
         public static void Main(string[] _)
         {
-            var buffer = File.ReadAllBytes(@"T:\Vgm\Stores\2021-02-16_madorjan\data.bin");
+            Test_20210319_Hannes();
 
-            Test_20210217_cpunz();
+            //var buffer = File.ReadAllBytes(@"T:\Vgm\Stores\2021-02-16_madorjan\data.bin");
+
+            //Test_20210217_cpunz(); return;
 
             //TestLaszip();
 
@@ -1467,6 +1601,7 @@ namespace Aardvark.Geometry.Tests
             //HeraTest();
 
             //TestE57();
+            //TestLasZip();
 
             //LisaTest();
 

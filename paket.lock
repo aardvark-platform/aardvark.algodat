@@ -614,7 +614,7 @@ NUGET
       Microsoft.Extensions.DependencyModel (>= 3.1.1)
     Uncodium.Eigensystems (1.1)
       Aardvark.Base (>= 5.0.4 < 5.1)
-    Uncodium.SimpleStore (2.1.8)
+    Uncodium.SimpleStore (2.1.9.4)
     Unofficial.DotSpatial.Projections (0.0.4)
     Unofficial.laszip.netstandard (2.2.1)
     Unofficial.LibTessDotNet (2.0.2)

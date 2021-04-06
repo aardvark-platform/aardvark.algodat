@@ -59,7 +59,11 @@ namespace Aardvark.Data.Points
             LruDictionary<string, object> cache
             )
         {
-            f_add = add;
+            f_add = (key, value, f) =>
+            {
+                if (get(key) != null) Report.WarnNoPrefix($"Key already exists ({key}, {value.GetType()}).");
+                add(key, value, f);
+            };
             f_get = get;
             f_getSlice = getSlice;
             f_remove = remove;
