@@ -33,37 +33,53 @@ namespace Aardvark.Geometry.Points
         #region Construction
 
         /// <summary>
+        /// Creates a permanent FilteredNode, which is written to the store.
         /// </summary>
         public static IPointCloudNode Create(Guid id, IPointCloudNode node, IFilter filter)
         {
             if (node.IsTemporaryImportNode) throw new InvalidOperationException(
                 "FilteredNode cannot be created from temporary import node. Invariant b9c2dca3-1510-4ea7-959f-6a0737c707fa."
                 );
-            return new FilteredNode(id, true, node, filter);
+            return new FilteredNode(id, writeToStore: true, node, filter);
         }
 
-        /// <summary></summary>
+        /// <summary>
+        /// Creates a permanent FilteredNode, which is written to the store.
+        /// </summary>
+        public static IPointCloudNode Create(IPointCloudNode node, IFilter filter)
+            => Create(Guid.NewGuid(), node, filter);
+
+        /// <summary>
+        /// Creates an in-memory FilteredNode, which is not written to the store. 
+        /// </summary>
+        public static IPointCloudNode CreateTransient(Guid id, IPointCloudNode node, IFilter filter)
+        {
+            if (node.IsTemporaryImportNode) throw new InvalidOperationException(
+                "FilteredNode cannot be created from temporary import node. Invariant e2b1d90c-38b8-4e05-a832-97ca4936ed3c."
+                );
+            return new FilteredNode(id, writeToStore: false, node, filter);
+        }
+
+        /// <summary>
+        /// Creates an in-memory FilteredNode, which is not written to the store. 
+        /// </summary>
+        public static IPointCloudNode CreateTransient(IPointCloudNode node, IFilter filter)
+            => CreateTransient(Guid.NewGuid(), node, filter);
+
+        /// <summary>
+        /// </summary>
         private FilteredNode(Guid id, bool writeToStore, IPointCloudNode node, IFilter filter)
         {
             Id = id;
             Node = node ?? throw new ArgumentNullException(nameof(node));
             Filter = filter ?? throw new ArgumentNullException(nameof(filter));
-            if (filter.IsFullyInside(node)) { m_activePoints = null; }
-            else if (filter.IsFullyOutside(node)) { m_activePoints = new HashSet<int>(); }
-            else
-            {
-                m_activePoints = Filter.FilterPoints(node, m_activePoints);
-            }
-            if (writeToStore)
-            {
-                WriteToStore();
-                //Console.WriteLine("Written to store: {0}", id);
-            }
-        }
 
-        /// <summary></summary>
-        public static IPointCloudNode Create(IPointCloudNode node, IFilter filter)
-            => Create(Guid.NewGuid(), node, filter);
+            if (filter.IsFullyInside(node)) m_activePoints = null;
+            else if (filter.IsFullyOutside(node)) m_activePoints = new HashSet<int>();
+            else m_activePoints = Filter.FilterPoints(node, m_activePoints);
+
+            if (writeToStore) WriteToStore();
+        }
 
         #endregion
 
