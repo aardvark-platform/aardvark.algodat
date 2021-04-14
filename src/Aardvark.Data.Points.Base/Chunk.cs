@@ -142,6 +142,8 @@ namespace Aardvark.Data.Points
             var offset = 0;
             foreach (var chunk in chunks)
             {
+                if (chunk.IsEmpty) continue;
+
 #pragma warning disable CS8602
                 if (ps != null) chunk.Positions.CopyTo(ps, offset);
                 if (cs != null) chunk.Colors.CopyTo(cs, offset);
@@ -201,6 +203,8 @@ namespace Aardvark.Data.Points
         /// </summary>
         public Chunk Union(Chunk other)
         {
+            if (other.IsEmpty) return this;
+
             var ps = Append(Positions, other.Positions);
             if (ps == null) throw new Exception("Invariant c799ccc6-4edf-4530-b1eb-59d93ef69727.");
             return new Chunk(
@@ -243,6 +247,7 @@ namespace Aardvark.Data.Points
         /// </summary>
         public Chunk ImmutableDeduplicate(bool verbose)
         {
+            if (IsEmpty) return Empty;
             if (!HasPositions || Positions == null) return this;
 
             var dedup = new HashSet<V3d>();
@@ -281,7 +286,7 @@ namespace Aardvark.Data.Points
         }
 
         public Chunk ImmutableMapPositions(Func<V3d, V3d> mapping)
-            => new(Positions.Map(mapping), Colors, Normals, Intensities, Classifications);
+            => IsEmpty ? Empty : new(Positions.Map(mapping), Colors, Normals, Intensities, Classifications);
 
         public Chunk ImmutableMergeWith(IEnumerable<Chunk> others)
             => ImmutableMerge(this, ImmutableMerge(others));
@@ -294,6 +299,8 @@ namespace Aardvark.Data.Points
         /// </summary>
         public Dictionary<TKey, Chunk> GroupBy<TKey>(Func<Chunk, int, TKey> keySelector)
         {
+            if (IsEmpty) return new Dictionary<TKey, Chunk>();
+
             var dict = new Dictionary<TKey, List<int>>();
             for (var i = 0; i < Count; i++)
             {
@@ -324,7 +331,9 @@ namespace Aardvark.Data.Points
         /// </summary>
         public Chunk ImmutableFilter(Func<Chunk, int, bool> predicate)
         {
-            var ps = HasPositions ? new List<V3d>() : null;
+            if (IsEmpty) return Empty;
+
+            var ps = new List<V3d>();
             var cs = HasColors ? new List<C4b>() : null;
             var ns = HasNormals ? new List<V3f>() : null;
             var js = HasIntensities ? new List<int>() : null;
@@ -335,7 +344,7 @@ namespace Aardvark.Data.Points
                 if (predicate(this, i))
                 {
 #pragma warning disable CS8602
-                    if (ps != null) ps.Add(Positions[i]);
+                    ps.Add(Positions[i]);
                     if (cs != null) cs.Add(Colors[i]);
                     if (ns != null) ns.Add(Normals[i]);
                     if (js != null) js.Add(Intensities[i]);
@@ -344,7 +353,6 @@ namespace Aardvark.Data.Points
                 }
             }
 
-            if (ps == null) throw new Exception("Invariant bc49afa3-ea57-42a8-ac1c-ee1c439a48d3.");
             return new Chunk(ps, cs, ns, js, ks);
         }
 
@@ -353,7 +361,8 @@ namespace Aardvark.Data.Points
         /// </summary>
         public Chunk ImmutableFilterSequentialMinDistL2(double minDist)
         {
-            if (minDist <= 0.0 || !HasPositions || Positions?.Count <= 1) return this;
+            if (IsEmpty) return Empty;
+            if (minDist <= 0.0 || !HasPositions) return this;
             var minDistSquared = minDist * minDist;
 
             var ps = new List<V3d>();
@@ -387,7 +396,8 @@ namespace Aardvark.Data.Points
         /// </summary>
         public Chunk ImmutableFilterSequentialMinDistL1(double minDist)
         {
-            if (minDist <= 0.0 || !HasPositions || Positions?.Count <= 1) return this;
+            if (IsEmpty) return Empty;
+            if (minDist <= 0.0 || !HasPositions) return this;
 
             var ps = new List<V3d>();
             var cs = Colors != null ? new List<C4b>() : null;
@@ -420,7 +430,8 @@ namespace Aardvark.Data.Points
         /// </summary>
         public Chunk ImmutableFilterMinDistByCell(Cell bounds, ParseConfig config)
         {
-            if (config.MinDist <= 0.0 || !HasPositions || Positions?.Count <= 1) return this;
+            if (IsEmpty) return Empty;
+            if (config.MinDist <= 0.0 || !HasPositions) return this;
             if (Positions == null) throw new InvalidOperationException();
 
             var smallestCellExponent = Fun.Log2(config.MinDist).Ceiling();
