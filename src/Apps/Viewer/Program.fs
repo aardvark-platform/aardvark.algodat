@@ -12,14 +12,17 @@ open Aardvark.Data.Points.Import
 
 [<EntryPoint>]
 let main args =  
-
-    //import @"C:\Users\Schorsch\Development\WorkDirectory\jbhaus-innen_erdgeschoss_blk.e57"  @"C:\Users\Schorsch\Development\WorkDirectory\jb_innen" "jb_innen" (Args.parse [||])
+    //let pts = @"C:\Users\Spot\Desktop\Laserscan-MS60_Beiglboeck-2015.pts"
+    //import pts  @"C:\Users\Spot\Desktop\teststore" "a" (Args.parse [||])
     //view @"C:\stores\innen_store" ["a2b7e0c1-e672-48d3-8958-9ff8678f2dc4"] (Args.parse [||])
     //view @"C:\Users\sm\Downloads\C_31EN2.LAZ.store" [File.readAllText @"C:\Users\sm\Downloads\C_31EN2.LAZ.key"] (Args.parse [||])
     //view @"C:\Users\sm\Downloads\C_30DN2.LAZ.store" [File.readAllText @"C:\Users\sm\Downloads\C_30DN2.LAZ.key"] (Args.parse [||])
     //view @"C:\Users\sm\Downloads\test.store" ["128330b1-8761-4a07-b160-76bcd7e2f70a"; "ab2f6f76-7eae-47c9-82d1-ad28b816abb9"] (Args.parse [||])
     //view @"T:\Vgm\Stores\C_30DN2.LAZ" ["C_30DN2.LAZ"] (Args.parse [||])
-    view @"E:\AHN3\laz\orig\C_24HN2.LAZ.store" [File.readAllText "E:\AHN3\laz\orig\C_24HN2.LAZ.key"] (Args.parse [||])
+
+    let store = @"C:\Users\Spot\Desktop\spot_stores\2021_04_16_16_26_40\store.uds"
+    let key = Path.combine [System.IO.Path.GetDirectoryName store;"key.txt"] |> File.readAllText
+    view store [key] (Args.parse [||])
 
     let args = Args.parse args
     

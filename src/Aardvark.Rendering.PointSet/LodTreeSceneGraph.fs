@@ -905,6 +905,7 @@ module Sg =
 
         let mutable lastDepth = None
         let depth =
+            depth.Acquire()
             { new AdaptiveResource<IBackendTexture>() with
                 override x.Compute(t, rt) = 
                     let d = depth.GetValue(t, rt)
