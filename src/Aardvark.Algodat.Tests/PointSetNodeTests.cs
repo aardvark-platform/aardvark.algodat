@@ -31,13 +31,15 @@ namespace Aardvark.Geometry.Tests
         internal static Storage CreateStorage()
         {
             var x = new SimpleMemoryStore();
-            return new Storage(x.Add, x.Get, x.GetSlice, x.Remove, x.Dispose, x.Flush, cache: default);
+            Action<string, object, Func<byte[]>> add = (name, value, create) => x.Add(name, create());
+            return new Storage(add, x.Get, x.GetSlice, x.Remove, x.Dispose, x.Flush, cache: default);
         }
 
         internal static Storage CreateDiskStorage(string dbDiskLocation)
         {
             var x = new SimpleDiskStore(dbDiskLocation);
-            return new Storage(x.Add, x.Get, x.GetSlice, x.Remove, x.Dispose, x.Flush, cache: default);
+            Action<string, object, Func<byte[]>> add = (name, value, create) => x.Add(name, create());
+            return new Storage(add, x.Get, x.GetSlice, x.Remove, x.Dispose, x.Flush, cache: default);
         }
 
         internal static readonly ImmutableDictionary<Durable.Def, object> EmptyData = ImmutableDictionary<Durable.Def, object>.Empty;

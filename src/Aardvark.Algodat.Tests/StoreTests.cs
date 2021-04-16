@@ -29,6 +29,7 @@ namespace Aardvark.Geometry.Tests
         public void Store_CanReopenDisposedStore()
         {
             var storepath = Path.Combine(Config.TempDataDir, Guid.NewGuid().ToString());
+            if (!Directory.Exists(storepath)) { Directory.CreateDirectory(storepath); }
             var store = PointCloud.OpenStore(storepath, cache: default);
             store.Add("key", new byte[] { 1, 2, 3 });
             var xs = store.GetByteArray("key");

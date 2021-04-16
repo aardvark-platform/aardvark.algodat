@@ -268,6 +268,7 @@ namespace Aardvark.Geometry.Tests
         public void CanCreateOutOfCoreStore()
         {
             var storepath = Path.Combine(Config.TempDataDir, Guid.NewGuid().ToString());
+            if (!Directory.Exists(storepath)) { Directory.CreateDirectory(storepath); }
             var store = PointCloud.OpenStore(storepath, cache: default);
             Assert.IsTrue(store != null);
         }
@@ -313,6 +314,7 @@ namespace Aardvark.Geometry.Tests
         {
             Assert.IsTrue(Data.Points.Import.Pts.PtsFormat != null);
             var storepath = Path.Combine(Config.TempDataDir, Guid.NewGuid().ToString());
+            if (!Directory.Exists(storepath)) { Directory.CreateDirectory(storepath); }
             TestContext.WriteLine($"storepath is '{storepath}'");
             var filename = Path.Combine(Config.TestDataDir, "test.pts");
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
@@ -327,6 +329,7 @@ namespace Aardvark.Geometry.Tests
         {
             Assert.IsTrue(Data.Points.Import.Pts.PtsFormat != null);
             var storepath = Path.Combine(Config.TempDataDir, Guid.NewGuid().ToString());
+            if (!Directory.Exists(storepath)) { Directory.CreateDirectory(storepath); }
             TestContext.WriteLine($"storepath is '{storepath}'");
             var filename = Path.Combine(Config.TestDataDir, "test.pts");
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");

@@ -982,29 +982,29 @@ namespace Aardvark.Geometry.Tests
 
         internal static void DumpPointSetKeys()
         {
-            var storeFolder = @"T:\Vgm\Pinter_Dachboden_3Dworx_Store\Pinter_Dachboden_store";
+            //var storeFolder = @"T:\Vgm\Pinter_Dachboden_3Dworx_Store\Pinter_Dachboden_store";
 
-            var sds = new SimpleDiskStore(storeFolder);
-            var keys = sds.SnapshotKeys();
-            var store = sds.ToPointCloudStore(cache: default);
+            //var sds = new SimpleDiskStore(storeFolder);
+            //var keys = sds.SnapshotKeys();
+            //var store = sds.ToPointCloudStore(cache: default);
 
-            foreach (var k in keys) if (k.StartsWith("dd0f")) Console.WriteLine(k);
-            Console.WriteLine($"mmmh: {keys.SingleOrDefault(x => x == "dd0fe31f-ea1f-4bea-a1b4-f6c8bf314598")}");
+            //foreach (var k in keys) if (k.StartsWith("dd0f")) Console.WriteLine(k);
+            //Console.WriteLine($"mmmh: {keys.SingleOrDefault(x => x == "dd0fe31f-ea1f-4bea-a1b4-f6c8bf314598")}");
 
-            Console.CursorVisible = false;
-            for (var i = 0; i < keys.Length; i++)
-            {
-                var k = keys[i];
-                try
-                {
-                    var pc = store.GetPointSet(k);
-                    Console.WriteLine($"\r{k} (count={pc.PointCount:N0})");
-                }
-                catch { }
-                if (i % 100 == 0) Console.Write($"\r{100.0 * (i + 1) / keys.Length,6:0.00}%");
-            }
-            Console.Write($"\r{100,6:0.00}%");
-            Console.CursorVisible = true;
+            //Console.CursorVisible = false;
+            //for (var i = 0; i < keys.Length; i++)
+            //{
+            //    var k = keys[i];
+            //    try
+            //    {
+            //        var pc = store.GetPointSet(k);
+            //        Console.WriteLine($"\r{k} (count={pc.PointCount:N0})");
+            //    }
+            //    catch { }
+            //    if (i % 100 == 0) Console.Write($"\r{100.0 * (i + 1) / keys.Length,6:0.00}%");
+            //}
+            //Console.Write($"\r{100,6:0.00}%");
+            //Console.CursorVisible = true;
         }
 
         internal static void LisaTest()
@@ -1388,7 +1388,7 @@ namespace Aardvark.Geometry.Tests
 
             Report.EndTimed();
 
-            Report.Line($"number of keys: {storeRaw.SnapshotKeys().Length:N0}");
+            //Report.Line($"number of keys: {storeRaw.SnapshotKeys().Length:N0}");
         }
 
         internal static void Test_20210217_cpunz()

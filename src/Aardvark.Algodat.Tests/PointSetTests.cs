@@ -11,6 +11,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+using System;
 using Aardvark.Base;
 using Aardvark.Data.Points;
 using Aardvark.Geometry.Points;
@@ -27,13 +28,15 @@ namespace Aardvark.Geometry.Tests
         internal static Storage CreateStorage()
         {
             var x = new SimpleMemoryStore();
-            return new Storage(x.Add, x.Get, x.GetSlice, x.Remove, x.Dispose, x.Flush, cache: default);
+            Action<string, object, Func<byte[]>> add = (name, value, create) => x.Add(name, create());
+            return new Storage(add, x.Get, x.GetSlice, x.Remove, x.Dispose, x.Flush, cache: default);
         }
 
         internal static Storage CreateDiskStorage(string dbDiskLocation)
         {
             var x = new SimpleDiskStore(dbDiskLocation);
-            return new Storage(x.Add, x.Get, x.GetSlice, x.Remove, x.Dispose, x.Flush, cache: default);
+            Action<string, object, Func<byte[]>> add = (name, value, create) => x.Add(name, create());
+            return new Storage(add, x.Get, x.GetSlice, x.Remove, x.Dispose, x.Flush, cache: default);
         }
 
         [Test]

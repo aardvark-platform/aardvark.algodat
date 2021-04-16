@@ -231,20 +231,23 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public static ImportConfig WithInMemoryStore(this ImportConfig self)
             => self.WithStorage(new SimpleMemoryStore().ToPointCloudStore(cache: default));
-        
+
         /// <summary>
         /// Wraps Uncodium.ISimpleStore into Storage.
         /// </summary>
-        public static Storage ToPointCloudStore(this ISimpleStore x, LruDictionary<string, object> cache) => new Storage(
-            x.Add, x.Get, x.GetSlice, x.Remove, x.Dispose, x.Flush, cache
-            );
+        public static Storage ToPointCloudStore(this ISimpleStore x, LruDictionary<string, object> cache) {
+            Action<string, object, Func<byte[]>> add = (name, value, create) => x.Add(name, create());
+            return new Storage(add, x.Get, x.GetSlice, x.Remove, x.Dispose, x.Flush, cache);
+        }
 
         /// <summary>
         /// Wraps Uncodium.ISimpleStore into Storage with default 1GB cache.
         /// </summary>
-        public static Storage ToPointCloudStore(this ISimpleStore x) => new Storage(
-            x.Add, x.Get, x.GetSlice, x.Remove, x.Dispose, x.Flush, new LruDictionary<string, object>(1024 * 1024 * 1024)
-            );
+        public static Storage ToPointCloudStore(this ISimpleStore x)
+        {
+            Action<string, object, Func<byte[]>> add = (name, value, create) => x.Add(name, create());
+            return new Storage(add, x.Get, x.GetSlice, x.Remove, x.Dispose, x.Flush, new LruDictionary<string, object>(1024 * 1024 * 1024));
+        }
 
         #endregion
 
