@@ -1,6 +1,6 @@
 ﻿/*
    Aardvark Platform
-   Copyright (C) 2006-2020  Aardvark Platform Team
+   Copyright (C) 2006-2021  Aardvark Platform Team
    https://aardvark.graphics
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +19,7 @@ using Aardvark.Base;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -70,16 +71,25 @@ namespace Aardvark.Data.Points
 
         public bool IsEmpty => Count == 0;
 
+        [MemberNotNullWhen(true, nameof(Positions))]
         public bool HasPositions => Positions != null && Positions.Count > 0;
+
+        [MemberNotNullWhen(true, nameof(Colors))]
         public bool HasColors => Colors != null && Colors.Count > 0;
+
+        [MemberNotNullWhen(true, nameof(Normals))]
         public bool HasNormals => Normals != null && Normals.Count > 0;
+
+        [MemberNotNullWhen(true, nameof(Intensities))]
         public bool HasIntensities => Intensities != null && Intensities.Count > 0;
+
+        [MemberNotNullWhen(true, nameof(Classifications))]
         public bool HasClassifications => Classifications != null && Classifications.Count > 0;
 
         public static Chunk ImmutableMerge(Chunk a, Chunk b)
         {
-            if (a.IsEmpty) return b;
-            if (b.IsEmpty) return a;
+            if (a is null || a.IsEmpty) return b;
+            if (b is null || b.IsEmpty) return a;
 
             ImmutableList<V3d>? ps = null;
             if (a.HasPositions)
@@ -93,32 +103,60 @@ namespace Aardvark.Data.Points
             if (a.HasColors)
             {
                 var cs0 = (a.Colors is ImmutableList<C4b> x2) ? x2 : ImmutableList<C4b>.Empty.AddRange(a.Colors);
-                var cs1 = (b.Colors is ImmutableList<C4b> x3) ? x3 : ImmutableList<C4b>.Empty.AddRange(b.Colors);
-                cs = cs0.AddRange(cs1);
+                if (b.HasColors)
+                {
+                    var cs1 = (b.Colors is ImmutableList<C4b> x3) ? x3 : ImmutableList<C4b>.Empty.AddRange(b.Colors);
+                    cs = cs0.AddRange(cs1);
+                }
+                else
+                {
+                    cs = cs0;
+                }
             }
 
             ImmutableList<V3f>? ns = null;
             if (a.HasNormals)
             {
                 var ns0 = (a.Normals is ImmutableList<V3f> x4) ? x4 : ImmutableList<V3f>.Empty.AddRange(a.Normals);
-                var ns1 = (b.Normals is ImmutableList<V3f> x5) ? x5 : ImmutableList<V3f>.Empty.AddRange(b.Normals);
-                ns = ns0.AddRange(ns1);
+                if (b.HasNormals)
+                {
+                    var ns1 = (b.Normals is ImmutableList<V3f> x5) ? x5 : ImmutableList<V3f>.Empty.AddRange(b.Normals);
+                    ns = ns0.AddRange(ns1);
+                }
+                else
+                {
+                    ns = ns0;
+                }
             }
 
             ImmutableList<int>? js = null;
             if (a.HasIntensities)
             {
                 var js0 = (a.Intensities is ImmutableList<int> x6) ? x6 : ImmutableList<int>.Empty.AddRange(a.Intensities);
-                var js1 = (b.Intensities is ImmutableList<int> x7) ? x7 : ImmutableList<int>.Empty.AddRange(b.Intensities);
-                js = js0.AddRange(js1);
+                if (b.HasIntensities)
+                {
+                    var js1 = (b.Intensities is ImmutableList<int> x7) ? x7 : ImmutableList<int>.Empty.AddRange(b.Intensities);
+                    js = js0.AddRange(js1);
+                }
+                else
+                {
+                    js = js0;
+                }
             }
 
             ImmutableList<byte>? ks = null;
             if (a.HasClassifications)
             {
                 var ks0 = (a.Classifications is ImmutableList<byte> x8) ? x8 : ImmutableList<byte>.Empty.AddRange(a.Classifications);
-                var ks1 = (b.Classifications is ImmutableList<byte> x9) ? x9 : ImmutableList<byte>.Empty.AddRange(b.Classifications);
-                ks = ks0.AddRange(ks1);
+                if (b.HasClassifications)
+                {
+                    var ks1 = (b.Classifications is ImmutableList<byte> x9) ? x9 : ImmutableList<byte>.Empty.AddRange(b.Classifications);
+                    ks = ks0.AddRange(ks1);
+                }
+                else
+                {
+                    ks = ks0;
+                }
             }
 
             if (ps == null) throw new Exception("Invariant 1415ad7b-262a-49aa-839d-4bd0a80cd141.");
