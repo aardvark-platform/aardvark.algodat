@@ -1437,11 +1437,20 @@ namespace Aardvark.Geometry.Tests
             Report.EndTimed();
         }
 
+        internal static void Test_20210419_AutoUpgradeToSimpleStore3_0_0()
+        {
+            var store = PointCloud.OpenStore(@"T:\Vgm\Stores\2021-04-19_jbhaus_store\jbhaus_store", new LruDictionary<string, object>(2L << 30));
+            var pc = store.GetPointCloudNode(@"c5eda8ca-35d8-46e5-be5a-6cf60c744421");
+            Console.WriteLine($"{pc.BoundingBoxExactGlobal}");
+        }
+
         public static void Main(string[] _)
         {
-            var buffer = File.ReadAllBytes(@"T:\Vgm\Stores\2021-02-16_madorjan\data.bin");
+            Test_20210419_AutoUpgradeToSimpleStore3_0_0();
 
-            Test_20210217_cpunz();
+            //Durable.Octree.BoundingBoxExactGlobal
+
+            //Test_20210217_cpunz();
 
             //TestLaszip();
 

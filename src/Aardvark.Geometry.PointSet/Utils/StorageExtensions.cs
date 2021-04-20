@@ -236,7 +236,7 @@ namespace Aardvark.Geometry.Points
         /// Wraps Uncodium.ISimpleStore into Storage.
         /// </summary>
         public static Storage ToPointCloudStore(this ISimpleStore x, LruDictionary<string, object> cache) {
-            Action<string, object, Func<byte[]>> add = (name, value, create) => x.Add(name, create());
+            void add(string name, object value, Func<byte[]> create) => x.Add(name, create());
             return new Storage(add, x.Get, x.GetSlice, x.Remove, x.Dispose, x.Flush, cache);
         }
 
@@ -245,7 +245,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static Storage ToPointCloudStore(this ISimpleStore x)
         {
-            Action<string, object, Func<byte[]>> add = (name, value, create) => x.Add(name, create());
+            void add(string name, object value, Func<byte[]> create) => x.Add(name, create());
             return new Storage(add, x.Get, x.GetSlice, x.Remove, x.Dispose, x.Flush, new LruDictionary<string, object>(1024 * 1024 * 1024));
         }
 
@@ -631,7 +631,8 @@ namespace Aardvark.Geometry.Points
 
             var buffer = storage.f_get(key);
             if (buffer == null) return default;
-            var json = JObject.Parse(Encoding.UTF8.GetString(buffer));
+            var jsonUTF8 = Encoding.UTF8.GetString(buffer);
+            var json = JObject.Parse(jsonUTF8);
             var data = PointSet.Parse(json, storage);
 
             if (storage.HasCache) storage.Cache.Add(

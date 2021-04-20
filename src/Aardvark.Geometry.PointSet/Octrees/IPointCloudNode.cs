@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2020. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2021. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -162,7 +162,7 @@ namespace Aardvark.Geometry.Points
         bool HasBoundingBoxExactGlobal { get; }
 
         /// <summary>
-        /// Octree. Exact bounding box of this node's positions. Local space. Box3f.
+        /// Octree. Exact bounding box of this tree's positions. Global space. Box3d.
         /// Durable definition 7912c862-74b4-4f44-a8cd-d11ea1da9304.
         /// </summary>
         Box3d BoundingBoxExactGlobal { get; }

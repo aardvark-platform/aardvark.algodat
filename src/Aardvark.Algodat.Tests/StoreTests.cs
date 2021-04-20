@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2020. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2021. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -11,13 +11,11 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-using System;
-using System.IO;
-using System.Linq;
-using System.Threading;
 using Aardvark.Base;
 using Aardvark.Geometry.Points;
 using NUnit.Framework;
+using System;
+using System.IO;
 using Uncodium.SimpleStore;
 
 namespace Aardvark.Geometry.Tests
@@ -29,7 +27,6 @@ namespace Aardvark.Geometry.Tests
         public void Store_CanReopenDisposedStore()
         {
             var storepath = Path.Combine(Config.TempDataDir, Guid.NewGuid().ToString());
-            if (!Directory.Exists(storepath)) { Directory.CreateDirectory(storepath); }
             var store = PointCloud.OpenStore(storepath, cache: default);
             store.Add("key", new byte[] { 1, 2, 3 });
             var xs = store.GetByteArray("key");

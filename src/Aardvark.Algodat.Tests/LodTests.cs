@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2020. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2021. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -19,7 +19,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading;
 
 namespace Aardvark.Geometry.Tests
 {
@@ -165,7 +164,14 @@ namespace Aardvark.Geometry.Tests
                 });
             }
 
-            Directory.Delete(dbDiskLocation, true);
+            try
+            {
+                Directory.Delete(dbDiskLocation, true);
+            }
+            catch
+            {
+                File.Delete(dbDiskLocation);
+            }
         }
 
         [Test]

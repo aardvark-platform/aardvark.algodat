@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2020. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2021. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -260,12 +260,27 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CanCreateInMemoryStore()
         {
-            var store = PointCloud.CreateInMemoryStore(cache: default);
+            using var store = PointCloud.CreateInMemoryStore(cache: default);
             Assert.IsTrue(store != null);
         }
 
         [Test]
         public void CanCreateOutOfCoreStore()
+        {
+            var storepath = Path.Combine(Config.TempDataDir, Guid.NewGuid().ToString());
+            try
+            {
+                using var store = PointCloud.OpenStore(storepath, cache: default);
+                Assert.IsTrue(store != null);
+            }
+            finally
+            {
+                File.Delete(storepath);
+            }
+        }
+
+        [Test]
+        public void CanCreateOutOfCoreFolderStore()
         {
             var storepath = Path.Combine(Config.TempDataDir, Guid.NewGuid().ToString());
             if (!Directory.Exists(storepath)) { Directory.CreateDirectory(storepath); }
@@ -314,7 +329,6 @@ namespace Aardvark.Geometry.Tests
         {
             Assert.IsTrue(Data.Points.Import.Pts.PtsFormat != null);
             var storepath = Path.Combine(Config.TempDataDir, Guid.NewGuid().ToString());
-            if (!Directory.Exists(storepath)) { Directory.CreateDirectory(storepath); }
             TestContext.WriteLine($"storepath is '{storepath}'");
             var filename = Path.Combine(Config.TestDataDir, "test.pts");
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
@@ -329,7 +343,6 @@ namespace Aardvark.Geometry.Tests
         {
             Assert.IsTrue(Data.Points.Import.Pts.PtsFormat != null);
             var storepath = Path.Combine(Config.TempDataDir, Guid.NewGuid().ToString());
-            if (!Directory.Exists(storepath)) { Directory.CreateDirectory(storepath); }
             TestContext.WriteLine($"storepath is '{storepath}'");
             var filename = Path.Combine(Config.TestDataDir, "test.pts");
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
