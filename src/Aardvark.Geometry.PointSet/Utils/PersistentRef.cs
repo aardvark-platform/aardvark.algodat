@@ -79,7 +79,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        public (bool, T) TryGetValue() => f_tryGet(Id);
+        public (bool hasValue, T value) TryGetValue() => f_tryGet(Id);
 
         /// <summary>
         /// </summary>

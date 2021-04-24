@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2020. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2021. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -23,7 +23,7 @@ namespace Aardvark.Geometry.Points
     public class InlineConfig
     {
         /// <summary>
-        /// Collapse child nodes making each node 8 times as big.
+        /// Collapse child nodes making each node appr. 8 times as big.
         /// E.g. for an octree with split limit 8192, this would result in an octree with split limit 65536.
         /// </summary>
         public bool Collapse { get; }
@@ -38,8 +38,16 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public int? PositionsRoundedToNumberOfDigits { get; }
 
+        /// <summary>
+        /// Progress callback [0,1].
+        /// </summary>
         public Action<double> Progress { get; }
 
+        /// <summary></summary>
+        /// <param name="collapse">Collapse child nodes making each node appr. 8 times as big.</param>
+        /// <param name="gzipped">GZip inlined node.</param>
+        /// <param name="positionsRoundedToNumberOfDigits">Optionally round positions to given number of digits.</param>
+        /// <param name="progress">Progress callback [0,1].</param>
         public InlineConfig(bool collapse, bool gzipped, int? positionsRoundedToNumberOfDigits, Action<double> progress)
         {
             Collapse = collapse;
@@ -48,11 +56,21 @@ namespace Aardvark.Geometry.Points
             Progress = progress;
         }
 
+        /// <summary></summary>
+        /// <param name="collapse">Collapse child nodes making each node appr. 8 times as big.</param>
+        /// <param name="gzipped">GZip inlined node.</param>
+        /// <param name="progress">Progress callback [0,1].</param>
         public InlineConfig(bool collapse, bool gzipped, Action<double> progress) : this(collapse, gzipped, null, progress) { }
 
+        /// <summary></summary>
+        /// <param name="collapse">Collapse child nodes making each node appr. 8 times as big.</param>
+        /// <param name="gzipped">GZip inlined node.</param>
         public InlineConfig(bool collapse, bool gzipped) : this(collapse, gzipped, null, null) { }
     }
 
+    /// <summary>
+    /// Compact representation of an octree node, without references to external data (except subnodes).
+    /// </summary>
     public class InlinedNode
     {
         public Guid NodeId { get; }
@@ -120,11 +138,14 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary>
-        /// Binary encodes (and optionally gzips) this InlinedNode as Durable.Octree.Node.
+        /// Binary encodes (and optionally gzips) this InlinedNode as a Durable.Octree.Node.
         /// </summary>
         public byte[] Encode(bool gzip) => this.ToDurableMap().DurableEncode(Durable.Octree.Node, gzip);
     }
 
+    /// <summary>
+    /// Set of inlined nodes and related metadata.
+    /// </summary>
     public class InlinedNodes
     {
         public InlineConfig Config { get; }
@@ -158,7 +179,7 @@ namespace Aardvark.Geometry.Points
     public static class InlineExtensions
     {
         /// <summary>
-        /// Enumerate inlined octree nodes.
+        /// Enumerate inlined (self-contained, no external data is referenced) octree nodes.
         /// </summary>
         public static InlinedNodes EnumerateOctreeInlined(
             this Storage storage, string key, InlineConfig config
@@ -166,7 +187,7 @@ namespace Aardvark.Geometry.Points
         {
             if (storage.TryGetOctree(key, out var root))
             {
-                return EnumerateOctreeInlined(storage, root, config);
+                return root.EnumerateOctreeInlined(config);
             }
             else
             {
@@ -177,7 +198,7 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary>
-        /// Enumerate inlined octree nodes.
+        /// Enumerate inlined (self-contained, no external data is referenced) octree nodes.
         /// </summary>
         public static InlinedNodes EnumerateOctreeInlined(
             this Storage storage, Guid key, InlineConfig config
@@ -185,24 +206,71 @@ namespace Aardvark.Geometry.Points
             => EnumerateOctreeInlined(storage, key.ToString(), config);
 
         /// <summary>
-        /// Enumerate inlined octree nodes.
+        /// Enumerate inlined (self-contained, no external data is referenced) octree nodes.
         /// </summary>
         public static InlinedNodes EnumerateOctreeInlined(
-            this Storage storage, IPointCloudNode root, InlineConfig config
+            this IPointCloudNode root, InlineConfig config
             )
         {
             var processedNodeCount = 0L;
             var totalNodeCount = root.CountNodes(outOfCore: true); 
             var totalNodeCountD = (double)totalNodeCount;
             var survive = new HashSet<Guid> { root.Id };
-            var nodes = EnumerateRec(root.Id);
+            var nodes = EnumerateRec(root);
 
             var r = nodes.First();
             return new InlinedNodes(
                 config, r, nodes, totalNodeCount
-                ); ;
+                );
 
-            IEnumerable<InlinedNode> EnumerateRec(Guid key)
+            IEnumerable<InlinedNode> EnumerateRec(IPointCloudNode node)
+            {
+                var isLeafNode = node.IsLeaf;
+
+                config.Progress?.Invoke(++processedNodeCount / totalNodeCountD);
+
+                if (config.Collapse && isLeafNode && !survive.Contains(node.Id)) yield break;
+
+                var inline = node.ConvertToInline(config, survive);
+                survive.Remove(node.Id);
+                yield return inline;
+
+                if (node.Subnodes != null)
+                {
+                    foreach (var x in node.Subnodes)
+                    {
+                        if (x != null && x.TryGetValue(out var subnode))
+                        {
+                            foreach (var n in EnumerateRec(subnode)) yield return n;
+                        }
+                    }
+                }
+            }
+        }
+
+        [Obsolete("Will be removed soon. Use EnumerateOctreeInlined(this IPointCloudNode root, InlineConfig config) instead.")]
+        public static InlinedNodes EnumerateOctreeInlined(
+            this Storage storage, IPointCloudNode root, InlineConfig config
+            )
+            => EnumerateOctreeInlined(root, config);
+
+        [Obsolete("Will be removed soon. Use EnumerateOctreeInlined instead.")]
+        public static InlinedNodes EnumerateOctreeInlinedOld(
+            this Storage storage, IPointCloudNode root, InlineConfig config
+            )
+        {
+            var processedNodeCount = 0L;
+            var totalNodeCount = root.CountNodes(outOfCore: true);
+            var totalNodeCountD = (double)totalNodeCount;
+            var survive = new HashSet<Guid> { root.Id };
+            var nodes = EnumerateRecOld(root.Id);
+
+            var r = nodes.First();
+            return new InlinedNodes(
+                config, r, nodes, totalNodeCount
+                );
+
+            IEnumerable<InlinedNode> EnumerateRecOld(Guid key)
             {
                 var node = storage.GetNodeDataFromKey(key);
                 var isLeafNode = !node.TryGetValue(Durable.Octree.SubnodesGuids, out var subnodeGuids);
@@ -211,7 +279,7 @@ namespace Aardvark.Geometry.Points
 
                 if (config.Collapse && isLeafNode && !survive.Contains(key)) yield break;
 
-                var inline = storage.ConvertToInline(node, config, survive);
+                var inline = storage.ConvertToInlineOld(node, config, survive);
                 survive.Remove(key);
                 yield return inline;
 
@@ -220,20 +288,35 @@ namespace Aardvark.Geometry.Points
                     foreach (var g in (Guid[])subnodeGuids)
                     {
                         if (g == Guid.Empty) continue;
-                        foreach (var n in EnumerateRec(g)) yield return n;
+                        foreach (var n in EnumerateRecOld(g)) yield return n;
                     }
                 }
             }
         }
 
+        #region ExportInlinedPointCloud
+
+        [Obsolete("Use ExportInlinedPointCloud instead. Will be removed after 2022-03-31.")]
+        public static void InlineOctree(this Storage sourceStore, string key, Storage exportStore, InlineConfig config)
+            => ExportInlinedPointCloud(sourceStore, key, exportStore, config);
+
+        [Obsolete("Use ExportInlinedPointCloud instead. Will be removed after 2022-03-31.")]
+        public static void InlineOctree(this Storage sourceStore, Guid key, Storage targetStore, InlineConfig config)
+            => ExportInlinedPointCloud(sourceStore, key, targetStore, config);
+
+        [Obsolete("Use ExportInlinedPointCloud instead. Will be removed after 2022-03-31.")]
+        public static void InlineOctree(this IPointCloudNode root, Storage targetStore, InlineConfig config)
+            => ExportInlinedPointCloud(root, targetStore, config);
+
+
         /// <summary>
-        /// Inlines and exports pointset to another store.
+        /// Inlines and exports point cloud to another store.
         /// </summary>
-        public static void InlineOctree(this Storage storage, string key, Storage exportStore, InlineConfig config)
+        public static void ExportInlinedPointCloud(this Storage sourceStore, string key, Storage targetStore, InlineConfig config)
         {
-            if (storage.TryGetOctree(key, out var root))
+            if (sourceStore.TryGetOctree(key, out var root))
             {
-                InlineOctree(storage, root, exportStore, config);
+                ExportInlinedPointCloud(root, targetStore, config);
             }
             else
             {
@@ -246,40 +329,162 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Inlines and exports pointset to another store.
         /// </summary>
-        public static void InlineOctree(this Storage storage, Guid key, Storage exportStore, InlineConfig config)
-            => InlineOctree(storage, key.ToString(), exportStore, config);
+        public static void ExportInlinedPointCloud(this Storage sourceStore, Guid key, Storage targetStore, InlineConfig config)
+            => ExportInlinedPointCloud(sourceStore, key.ToString(), targetStore, config);
 
         /// <summary>
         /// Inlines and exports pointset to another store.
         /// </summary>
-        public static void InlineOctree(
-            this Storage storageSource, 
-            IPointCloudNode root, 
-            Storage storageTarget, 
-            InlineConfig config
-            )
+        public static void ExportInlinedPointCloud(this IPointCloudNode root, Storage targetStore, InlineConfig config)
         {
             Report.BeginTimed("inlining octree");
 
             var totalNodeCount = root.CountNodes(outOfCore: true);
-            var newSplitLimit = root.PointCountCell * 8;
+            var newSplitLimit = config.Collapse ? root.PointCountCell * 8 : root.PointCountCell;
             Report.Line($"root              = {root.Id}");
             Report.Line($"split limit       = {root.PointCountCell,36:N0}");
             Report.Line($"split limit (new) = {newSplitLimit,36:N0}");
             Report.Line($"total node count  = {totalNodeCount,36:N0}");
 
             // export octree
-            var exported = EnumerateOctreeInlined(storageSource, root.Id, config);
+            var exported = root.EnumerateOctreeInlined(config);
             foreach (var x in exported.Nodes)
             {
                 var inlined = x.ToDurableMap();
-                storageTarget.Add(x.NodeId, Durable.Octree.Node, inlined, config.GZipped);
+                targetStore.Add(x.NodeId, Durable.Octree.Node, inlined, config.GZipped);
             }
 
             Report.EndTimed();
         }
 
+        [Obsolete("Will be removed soon. Use ExportInlinedPointCloud instead.")]
+        public static void ExportInlinedPointCloudOld(this Storage sourceStore, IPointCloudNode root, Storage targetStore, InlineConfig config)
+        {
+            Report.BeginTimed("inlining octree");
+
+            var totalNodeCount = root.CountNodes(outOfCore: true);
+            var newSplitLimit = config.Collapse ? root.PointCountCell * 8 : root.PointCountCell;
+            Report.Line($"root              = {root.Id}");
+            Report.Line($"split limit       = {root.PointCountCell,36:N0}");
+            Report.Line($"split limit (new) = {newSplitLimit,36:N0}");
+            Report.Line($"total node count  = {totalNodeCount,36:N0}");
+
+            // export octree
+            var exported = EnumerateOctreeInlinedOld(sourceStore, root, config);
+            foreach (var x in exported.Nodes)
+            {
+                var inlined = x.ToDurableMap();
+                targetStore.Add(x.NodeId, Durable.Octree.Node, inlined, config.GZipped);
+            }
+
+            Report.EndTimed();
+        }
+
+        #endregion
+
+        #region Helpers
+
         private static InlinedNode ConvertToInline(
+            this IPointCloudNode node,
+            InlineConfig config,
+            HashSet<Guid> survive
+            )
+        {
+            var id = node.Id;
+            var cell = node.Cell;
+            var cellCenter = cell.GetCenter();
+            var bbExactGlobal = node.BoundingBoxExactGlobal;
+            var pointCountCell = node.PointCountCell;
+            var pointCountTree = node.PointCountTree;
+            var hasColors = node.HasColors;
+            var subnodes = node.Subnodes?.Map(x => x?.TryGetValue());
+            var isNotLeaf = !node.IsLeaf;
+
+            var ps = default(V3f[]);
+            var cs = default(C4b[]);
+
+            Guid[] subnodeGuids = null;
+            if (config.Collapse && isNotLeaf)
+            {
+                var nonEmptySubNodes = subnodes.Where(x => x.HasValue && x.Value.hasValue).Select(x => x.Value.value).ToArray();
+
+                ps = nonEmptySubNodes
+                    .SelectMany(n =>
+                    {
+                        var nCell = n.Cell;
+                        var nCenter = nCell.GetCenter();
+                        var delta = nCenter - cellCenter;
+                        var xs = n.Positions.Value.Map(x => (V3f)((V3d)x + delta));
+                        return xs;
+                    })
+                    .ToArray();
+
+                if (hasColors)
+                {
+                    cs = nonEmptySubNodes
+                        .SelectMany(n => n.Colors.Value)
+                        .ToArray();
+                }
+
+                var guids2 = subnodes
+                    .Map(nref =>
+                    {
+                        if (nref.HasValue && nref.Value.hasValue)
+                        {
+                            var n = nref.Value.value;
+                            return !n.IsLeaf ? n.Id : Guid.Empty;
+                        }
+                        else
+                        {
+                            return Guid.Empty;
+                        }
+                    });
+
+                var isNewLeaf = guids2.All(k => k == Guid.Empty);
+                if (!isNewLeaf)
+                {
+                    subnodeGuids = subnodes.Map(x => x.HasValue && x.Value.hasValue ? x.Value.value.Id : Guid.Empty);
+                    foreach (var g in subnodes) if (g.HasValue && g.Value.hasValue) survive.Add(g.Value.value.Id);
+                }
+            }
+            else
+            {
+                ps = node.Positions.Value;
+                if (hasColors) cs = node.Colors.Value;
+            }
+
+            // fix color array if it has inconsistent length
+            // (might have been created by an old Aardvark.Geometry.PointSet version)
+            if (hasColors && cs.Length != ps.Length)
+            {
+                Report.ErrorNoPrefix($"[ConvertToInline] inconsistent length: {ps.Length} positions, but {cs.Length} colors.");
+
+                var csFixed = new C4b[ps.Length];
+                if (csFixed.Length > 0)
+                {
+                    var lastColor = cs[cs.Length - 1];
+                    var imax = Math.Min(ps.Length, cs.Length);
+                    for (var i = 0; i < imax; i++) csFixed[i] = cs[i];
+                    for (var i = imax; i < ps.Length; i++) csFixed[i] = lastColor;
+                }
+                cs = csFixed;
+            }
+
+            // optionally round positions
+            if (config.PositionsRoundedToNumberOfDigits.HasValue)
+            {
+                ps = ps.Map(x => x.Round(config.PositionsRoundedToNumberOfDigits.Value));
+            }
+
+            // result
+            pointCountCell = ps.Length;
+            var cs3b = cs?.Map(x => new C3b(x));
+            var result = new InlinedNode(id, cell, bbExactGlobal, subnodeGuids, pointCountCell, pointCountTree, ps, cs3b);
+            return result;
+        }
+
+        [Obsolete("Will be removed soon. Use ConvertToInline instead.")]
+        private static InlinedNode ConvertToInlineOld(
             this Storage storage,
             IReadOnlyDictionary<Durable.Def, object> node,
             InlineConfig config,
@@ -427,5 +632,7 @@ namespace Aardvark.Geometry.Points
                 throw new InvalidOperationException("No colors. Invariant 8516dbaf-9765-44ab-949c-79986514f1d1.");
             }
         }
+
+        #endregion
     }
 }

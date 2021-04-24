@@ -668,7 +668,7 @@ namespace Aardvark.Geometry.Tests
                     collapse, gzipped, positionsRoundedToNumberOfDigits,
                     x => Report.Line($"[progress] {x,7:0.000}")
                     );
-                storeSource.InlineOctree(bar, storeTarget, config);
+                storeSource.ExportInlinedPointCloud(bar, storeTarget, config);
                 storeTarget.Flush();
 
                 // meta
@@ -1466,8 +1466,13 @@ namespace Aardvark.Geometry.Tests
             Console.WriteLine(pc.CountNodes(true));
             Console.WriteLine(f.CountNodes(true));
 
-            var foo = f.Storage.EnumerateOctreeInlined(f, new InlineConfig(collapse: false, gzipped: true)).Nodes.ToArray();
-            Console.WriteLine(foo.Length);
+            Report.BeginTimed("exporting inlined point cloud");
+            var targetStore = new SimpleFolderStore(@"E:\tmp\20210424_inlined_filtered_new").ToPointCloudStore();
+            f.ExportInlinedPointCloud(targetStore, new InlineConfig(false, false));
+            Report.End();
+
+            //var foo = f.Storage.EnumerateOctreeInlined(f, new InlineConfig(collapse: false, gzipped: true)).Nodes.ToArray();
+            //Console.WriteLine(foo.Length);
         }
 
         public static void Main(string[] _)

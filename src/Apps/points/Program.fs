@@ -126,7 +126,7 @@ let export args =
     let onProgress = null // Action<StorageExtensions.ExportPointSetInfo> (fun info -> printfn "%f" (info.Progress))
     Report.BeginTimed("exporting")
     match args.inlining with
-    | Some true -> inStore.InlineOctree(key, outStore, InlineConfig(collapse, gzipped))
+    | Some true -> inStore.ExportInlinedPointCloud(key, outStore, InlineConfig(collapse, gzipped))
     | _         -> if gzipped then printfn "[WARNING] -z is only supported with -inline"
                    inStore.ExportPointSet(key, outStore, onProgress, args.verbose, CancellationToken.None) |> ignore
     outStore.Flush()
