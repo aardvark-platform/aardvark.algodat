@@ -999,12 +999,15 @@ namespace Aardvark.Geometry.Points
         [JsonIgnore]
         public int SubnodeCount => SubnodeIds == null ? 0 : SubnodeIds.Count(x => x != null);
 
-#endregion
+        #endregion
 
-#region Immutable updates (With...)
+        #region Immutable updates (With...)
 
         /// <summary>
         /// Returns new node with replaced subnodes.
+        /// Attention:
+        /// All node properties (except Cell, BoundingBoxExactGlobal, and PointCountTreeLeafs) are removed, because they would no longer be valid for new subnode data.
+        /// Use LodExtensions.GenerateLod to recompute these properties.
         /// </summary>
         public IPointCloudNode WithSubNodes(IPointCloudNode[] subnodes)
         {
