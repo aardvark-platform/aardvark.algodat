@@ -1,3 +1,18 @@
+### 5.1.9
+- rewrite octree inlining on top of IPointCloudNode to be generally applicable (e.g. also for FilteredNode), see https://github.com/aardvark-platform/aardvark.algodat/issues/16
+- fix CountNodes() for FilteredNode, see https://github.com/aardvark-platform/aardvark.algodat/issues/15
+
+### 5.1.8
+- improved Chunk.ImmutableMerge null-safety
+- update to Uncodium.SimpleStore 3.0.0-preview.14 and adapt PointCloud.OpenStore to different SimpleStore variants
+- pointcloudviewer depth workaround
+
+### 5.1.7
+- updated dependency Uncodium.Simplestore 3.0
+
+### 5.1.6
+- Merge branch 'master' into v51
+
 ### 5.1.5
 - updated Aardvark.Base
 - updated Aardvark.Rendering (breaking changes)
