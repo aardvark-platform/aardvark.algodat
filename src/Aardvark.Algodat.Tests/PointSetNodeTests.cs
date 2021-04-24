@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2020. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2021. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -17,10 +17,7 @@ using Aardvark.Data.Points;
 using Aardvark.Geometry.Points;
 using NUnit.Framework;
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.IO;
-using System.Threading;
 using Uncodium.SimpleStore;
 
 namespace Aardvark.Geometry.Tests
@@ -31,14 +28,14 @@ namespace Aardvark.Geometry.Tests
         internal static Storage CreateStorage()
         {
             var x = new SimpleMemoryStore();
-            Action<string, object, Func<byte[]>> add = (name, value, create) => x.Add(name, create());
+            void add(string name, object value, Func<byte[]> create) => x.Add(name, create());
             return new Storage(add, x.Get, x.GetSlice, x.Remove, x.Dispose, x.Flush, cache: default);
         }
 
         internal static Storage CreateDiskStorage(string dbDiskLocation)
         {
             var x = new SimpleDiskStore(dbDiskLocation);
-            Action<string, object, Func<byte[]>> add = (name, value, create) => x.Add(name, create());
+            void add(string name, object value, Func<byte[]> create) => x.Add(name, create());
             return new Storage(add, x.Get, x.GetSlice, x.Remove, x.Dispose, x.Flush, cache: default);
         }
 

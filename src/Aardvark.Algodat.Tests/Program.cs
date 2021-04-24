@@ -6,6 +6,7 @@ using Aardvark.Data.Points.Import;
 using Aardvark.Geometry.Points;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -1444,9 +1445,38 @@ namespace Aardvark.Geometry.Tests
             Console.WriteLine($"{pc.BoundingBoxExactGlobal}");
         }
 
+        internal static void Test_20240420_DecodeBlob()
+        {
+            var buffer = File.ReadAllBytes(@"C:\Users\sm\Downloads\4a32683e-5d39-4a9c-991d-ff3a6db0929d");
+            //var bufferOk1 = File.ReadAllBytes(@"C:\Users\sm\Downloads\839046c1-3248-4e0b-b20c-f19f0ee4b93e");
+            //var bufferOk2 = File.ReadAllBytes(@"C:\Users\sm\Downloads\10075930-77ff-46d0-8648-84a73b60420c");
+            var foo = new GZipStream(new MemoryStream(buffer), CompressionMode.Decompress);
+            var (def, _) = DurableCodec.Deserialize(foo);
+            Console.WriteLine(def);
+        }
+
+        internal static void Test_20210422_EnumerateInlinedFromFilteredNode()
+        {
+            var store = PointCloud.OpenStore(@"T:\Vgm\Stores\2021-04-19_jbhaus_store\jbhaus_store", new LruDictionary<string, object>(2L << 30));
+            var pc = store.GetPointCloudNode(@"c5eda8ca-35d8-46e5-be5a-6cf60c744421");
+            var ebb = pc.BoundingBoxExactGlobal;
+            var filter = new Box3d(ebb.Min, ebb.Max - ebb.SizeZ * 0.5);
+
+            var f = FilteredNode.Create(pc, new FilterInsideBox3d(filter));
+            Console.WriteLine(pc.CountNodes(true));
+            Console.WriteLine(f.CountNodes(true));
+
+            var foo = f.Storage.EnumerateOctreeInlined(f, new InlineConfig(collapse: false, gzipped: true)).Nodes.ToArray();
+            Console.WriteLine(foo.Length);
+        }
+
         public static void Main(string[] _)
         {
-            Test_20210419_AutoUpgradeToSimpleStore3_0_0();
+            Test_20210422_EnumerateInlinedFromFilteredNode();
+
+            //Test_20240420_DecodeBlob();
+
+            //Test_20210419_AutoUpgradeToSimpleStore3_0_0();
 
             //Durable.Octree.BoundingBoxExactGlobal
 
