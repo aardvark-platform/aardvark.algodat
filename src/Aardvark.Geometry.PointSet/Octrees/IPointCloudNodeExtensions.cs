@@ -380,7 +380,7 @@ namespace Aardvark.Geometry.Points
             var count = 1L;
             if (self.Subnodes != null)
             {
-                if (outOfCore)
+                if (outOfCore && !(self is FilteredNode))
                 {
                     long FastCount(Guid key)
                     {
