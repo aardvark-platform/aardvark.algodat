@@ -1457,22 +1457,37 @@ namespace Aardvark.Geometry.Tests
 
         internal static void Test_20210422_EnumerateInlinedFromFilteredNode()
         {
-            var store = PointCloud.OpenStore(@"T:\Vgm\Stores\2021-04-19_jbhaus_store\jbhaus_store", new LruDictionary<string, object>(2L << 30));
-            var pc = store.GetPointCloudNode(@"c5eda8ca-35d8-46e5-be5a-6cf60c744421");
-            var ebb = pc.BoundingBoxExactGlobal;
-            var filter = new Box3d(ebb.Min, ebb.Max - ebb.SizeZ * 0.5);
+            //var store = PointCloud.OpenStore(@"T:\Vgm\Stores\2021-04-19_jbhaus_store\jbhaus_store", new LruDictionary<string, object>(2L << 30));
+            //var pc = store.GetPointCloudNode(@"c5eda8ca-35d8-46e5-be5a-6cf60c744421");
+            //var ebb = pc.BoundingBoxExactGlobal;
+            //var filter = new Box3d(ebb.Min, ebb.Max - ebb.SizeZ * 0.5);
 
-            var f = FilteredNode.Create(pc, new FilterInsideBox3d(filter));
-            Console.WriteLine(pc.CountNodes(true));
-            Console.WriteLine(f.CountNodes(true));
+            //var f = FilteredNode.Create(pc, new FilterInsideBox3d(filter));
+            //Console.WriteLine(pc.CountNodes(true));
+            //Console.WriteLine(f.CountNodes(true));
 
-            Report.BeginTimed("exporting inlined point cloud");
-            var targetStore = new SimpleFolderStore(@"E:\tmp\20210424_inlined_filtered_new").ToPointCloudStore();
-            f.ExportInlinedPointCloud(targetStore, new InlineConfig(false, false));
-            Report.End();
+            //Report.BeginTimed("exporting inlined point cloud");
+            //var targetStore = new SimpleFolderStore(@"E:\tmp\20210424_inlined_filtered_new").ToPointCloudStore();
+            //f.ExportInlinedPointCloud(targetStore, new InlineConfig(false, false));
+            //Report.End();
 
             //var foo = f.Storage.EnumerateOctreeInlined(f, new InlineConfig(collapse: false, gzipped: true)).Nodes.ToArray();
             //Console.WriteLine(foo.Length);
+
+            // check old vs new
+            var folderOld = @"E:\tmp\20210424_inlined_old_collapse_gzip";
+            var folderNew = @"E:\tmp\20210424_inlined_new_collapse_gzip";
+            var filesOld = Directory.GetFiles(folderOld).OrderBy(x => x).ToArray();
+            var filesNew = Directory.GetFiles(folderNew).OrderBy(x => x).ToArray();
+            for (var i = 0; i < filesOld.Length; i++)
+            {
+                Console.WriteLine(filesOld[i]);
+                if (Path.GetFileName(filesOld[i]) != Path.GetFileName(filesNew[i])) throw new Exception("Mismatch");
+                var bufferOld = File.ReadAllBytes(filesOld[i]);
+                var bufferNew = File.ReadAllBytes(filesNew[i]);
+                if (bufferOld.Length != bufferNew.Length) throw new Exception("Mismatch");
+                for (var j = 0; j < bufferOld.Length; j++) if (bufferOld[j] != bufferNew[j]) throw new Exception("Mismatch");
+            }
         }
 
         public static void Main(string[] _)
