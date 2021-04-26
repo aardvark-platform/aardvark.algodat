@@ -1,3 +1,8 @@
+### 5.1.10
+- Fix for partially written results in octree inlining when using dotnet framework (net48).
+  GZipStream will not write to completion (ignores Flush) unless Close() is called explicitely.
+  In netcore this works as expected, i.e. Flush() is not ignored.
+  
 ### 5.1.9
 - rewrite octree inlining on top of IPointCloudNode to be generally applicable (e.g. also for FilteredNode), see https://github.com/aardvark-platform/aardvark.algodat/issues/16
 - fix CountNodes() for FilteredNode, see https://github.com/aardvark-platform/aardvark.algodat/issues/15

@@ -603,6 +603,7 @@ namespace Aardvark.Geometry.Tests
             //    using (var zs = new GZipStream(fs, CompressionLevel.Fastest))
             //    {
             //        zs.Write(inlinedBlob, 0, inlinedBlob.Length);
+            //        zs.Close();
             //    }
 
             //    // children
@@ -1447,7 +1448,7 @@ namespace Aardvark.Geometry.Tests
 
         internal static void Test_20240420_DecodeBlob()
         {
-            var buffer = File.ReadAllBytes(@"C:\Users\sm\Downloads\4a32683e-5d39-4a9c-991d-ff3a6db0929d");
+            var buffer = File.ReadAllBytes(@"T:\Vgm\Data\comparison_cli_3dworx\comparison\cli\cli_nodes\4a32683e-5d39-4a9c-991d-ff3a6db0929d");
             //var bufferOk1 = File.ReadAllBytes(@"C:\Users\sm\Downloads\839046c1-3248-4e0b-b20c-f19f0ee4b93e");
             //var bufferOk2 = File.ReadAllBytes(@"C:\Users\sm\Downloads\10075930-77ff-46d0-8648-84a73b60420c");
             var foo = new GZipStream(new MemoryStream(buffer), CompressionMode.Decompress);
@@ -1467,27 +1468,39 @@ namespace Aardvark.Geometry.Tests
             //Console.WriteLine(f.CountNodes(true));
 
             //Report.BeginTimed("exporting inlined point cloud");
-            //var targetStore = new SimpleFolderStore(@"E:\tmp\20210424_inlined_filtered_new").ToPointCloudStore();
-            //f.ExportInlinedPointCloud(targetStore, new InlineConfig(false, false));
+            //var targetStore = new SimpleFolderStore(@"E:\tmp\20210426_net48").ToPointCloudStore();
+            //f.ExportInlinedPointCloud(targetStore, new InlineConfig(true, true));
             //Report.End();
 
-            //var foo = f.Storage.EnumerateOctreeInlined(f, new InlineConfig(collapse: false, gzipped: true)).Nodes.ToArray();
+            //var foo = pc.EnumerateOctreeInlined(new InlineConfig(collapse: false, gzipped: true)).Nodes.ToArray();
             //Console.WriteLine(foo.Length);
 
             // check old vs new
             var folderOld = @"E:\tmp\20210424_inlined_old_collapse_gzip";
-            var folderNew = @"E:\tmp\20210424_inlined_new_collapse_gzip";
+            var folderNew = @"E:\tmp\20210426_net48_fix";
             var filesOld = Directory.GetFiles(folderOld).OrderBy(x => x).ToArray();
             var filesNew = Directory.GetFiles(folderNew).OrderBy(x => x).ToArray();
+            var countSizeMismatch = 0;
+            var countSizeMatch = 0;
             for (var i = 0; i < filesOld.Length; i++)
             {
                 Console.WriteLine(filesOld[i]);
                 if (Path.GetFileName(filesOld[i]) != Path.GetFileName(filesNew[i])) throw new Exception("Mismatch");
                 var bufferOld = File.ReadAllBytes(filesOld[i]);
                 var bufferNew = File.ReadAllBytes(filesNew[i]);
-                if (bufferOld.Length != bufferNew.Length) throw new Exception("Mismatch");
-                for (var j = 0; j < bufferOld.Length; j++) if (bufferOld[j] != bufferNew[j]) throw new Exception("Mismatch");
+                if (bufferOld.Length != bufferNew.Length)
+                {
+                    countSizeMismatch++;
+                }
+                else
+                {
+                    countSizeMatch++;
+                    for (var j = 0; j < bufferOld.Length; j++) if (bufferOld[j] != bufferNew[j]) throw new Exception("Mismatch");
+                }
             }
+            Console.WriteLine($"blob sizes");
+            Console.WriteLine($"    match    {countSizeMatch,10:N0}");
+            Console.WriteLine($"    mismatch {countSizeMismatch,10:N0}");
         }
 
         public static void Main(string[] _)

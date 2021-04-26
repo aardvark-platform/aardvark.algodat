@@ -843,7 +843,8 @@ namespace Aardvark.Geometry.Points
             using var zs = gzipped ? new GZipStream(ms, CompressionLevel.Optimal) : (Stream)ms;
             using var bw = new BinaryWriter(zs);
             Data.Codec.Serialize(bw, def, data);
-            bw.Flush();
+            bw.Close(); // must close, otherwise GZipStream will not write to completion in net48 (ignores flush!!)
+            
             var buffer = ms.ToArray();
             return buffer;
         }
@@ -858,8 +859,8 @@ namespace Aardvark.Geometry.Points
             using var zs = gzipped ? new GZipStream(ms, CompressionLevel.Optimal) : (Stream)ms;
             using var bw = new BinaryWriter(zs);
             Data.Codec.Serialize(bw, def, data);
-
-            bw.Flush();
+            bw.Close(); // must close, otherwise GZipStream will not write to completion in net48 (ignores flush!!)
+            
             var buffer = ms.ToArray();
             storage.Add(key, buffer);
 
