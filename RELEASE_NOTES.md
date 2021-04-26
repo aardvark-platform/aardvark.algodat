@@ -1,3 +1,6 @@
+### 5.1.11
+- updated packages
+
 ### 5.1.10
 - Fix for partially written results in octree inlining when using dotnet framework (net48).
   GZipStream will not write to completion (ignores Flush) unless Close() is called explicitely.
