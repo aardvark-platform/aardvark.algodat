@@ -1118,7 +1118,8 @@ namespace Aardvark.Geometry.Tests
             var n = ps.Root.Value;
             var k = new Box3i(new V3i(-1,-1,-1), new V3i(+1,+1,+1));
 
-            var dict = new Dictionary<Cell, Queries.CellQueryResult>(n.EnumerateCells(-1).Select(x => new KeyValuePair<Cell, Queries.CellQueryResult>(x.Cell, x)));
+            var dict = new Dictionary<Cell, Queries.CellQueryResult>();
+            foreach (var kv in n.EnumerateCells(-1).Select(x => new KeyValuePair<Cell, Queries.CellQueryResult>(x.Cell, x))) dict.Add(kv.Key, kv.Value);
             Assert.IsTrue(dict.Count == 8);
             Assert.IsTrue(dict[new Cell(0, 0, 0, -1)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 800);
             Assert.IsTrue(dict[new Cell(1, 0, 0, -1)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 800);
@@ -1137,7 +1138,8 @@ namespace Aardvark.Geometry.Tests
             var n = ps.Root.Value;
             var k = new Box3i(new V3i(-1, -1, -1), new V3i(+1, +1, +1));
 
-            var dict = new Dictionary<Cell, Queries.CellQueryResult>(n.EnumerateCells(-2).Select(x => new KeyValuePair<Cell, Queries.CellQueryResult>(x.Cell, x)));
+            var dict = new Dictionary<Cell, Queries.CellQueryResult>();
+            foreach (var kv in n.EnumerateCells(-2).Select(x => new KeyValuePair<Cell, Queries.CellQueryResult>(x.Cell, x))) dict.Add(kv.Key, kv.Value);
             Assert.IsTrue(dict.Count == 64);
             Assert.IsTrue(dict[new Cell(0, 0, 0, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 8);
             Assert.IsTrue(dict[new Cell(1, 0, 0, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 12);
