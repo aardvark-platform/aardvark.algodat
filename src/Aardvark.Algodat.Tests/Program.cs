@@ -1503,9 +1503,33 @@ namespace Aardvark.Geometry.Tests
             Console.WriteLine($"    mismatch {countSizeMismatch,10:N0}");
         }
 
+
+        internal static void TestDuplicatePoints()
+        {
+            using var store = new SimpleMemoryStore().ToPointCloudStore();
+            var config = ImportConfig.Default
+                .WithStorage(store)
+                .WithVerbose(true)
+                .WithMaxDegreeOfParallelism(0)
+                .WithMinDist(0.0)
+                .WithNormalizePointDensityGlobal(false)
+                ;
+
+            Report.BeginTimed($"importing");
+            var chunk = new Chunk(
+                positions: new [] { V3d.III, V3d.IOO, V3d.III, V3d.IOO, V3d.III, V3d.IOO, V3d.III, V3d.IOO }
+                );
+            var ps = PointCloud.Import(chunk, config);
+            Report.EndTimed();
+
+            Report.Line($"#points: {ps.PointCount}");
+        }
+
         public static void Main(string[] _)
         {
-            Test_20210422_EnumerateInlinedFromFilteredNode();
+            TestDuplicatePoints();
+
+            //Test_20210422_EnumerateInlinedFromFilteredNode();
 
             //Test_20240420_DecodeBlob();
 
