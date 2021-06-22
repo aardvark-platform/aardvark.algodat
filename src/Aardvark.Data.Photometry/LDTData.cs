@@ -16,7 +16,11 @@ namespace Aardvark.Data.Photometry
         public string ColorRendering;
         public double Wattage;
     }
-    
+
+    /// <summary>
+    /// ELUMDAT Symmetry indicator - Isym
+    /// Specifies how the luminaire has been measured and how the data needs to be interpreted
+    /// </summary>
     public enum LDTSymmetry
     {
         None     = 0, // No symmetry
@@ -26,11 +30,17 @@ namespace Aardvark.Data.Photometry
         Quarter  = 4  // Measurement data from 0 - 90
     }
 
+    /// <summary>
+    /// ELUMDAT Type indicator - Ityp
+    /// Indicates the luminaire type and describes its symmetry character. It does not necessarily mean that the measurement data 
+    /// is also perfectly symmetrical according to this (e.g. Ityp = 1 does not force Isym = 1)
+    /// </summary>
     public enum LDTItype
     {
-        PointVerticalSymmetry = 1,
-        Linear = 2,         // can be subdivided in longitudinal and transverse directions
-        PointWithOtherSymmetry = 3
+        PointSource = 0,           // point source with no symmetry
+        PointVerticalSymmetry = 1, // symmetry about the vertical axis
+        Linear = 2,                // linear luminaire / can be subdivided in longitudinal and transverse directions
+        PointWithOtherSymmetry = 3 // point source with any other symmetry
     }
 
     /// <summary>
