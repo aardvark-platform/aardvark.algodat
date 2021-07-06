@@ -1503,7 +1503,6 @@ namespace Aardvark.Geometry.Tests
             Console.WriteLine($"    mismatch {countSizeMismatch,10:N0}");
         }
 
-
         internal static void TestDuplicatePoints()
         {
             using var store = new SimpleMemoryStore().ToPointCloudStore();
@@ -1525,9 +1524,221 @@ namespace Aardvark.Geometry.Tests
             Report.Line($"#points: {ps.PointCount}");
         }
 
+        internal static void Test_20210621_InlineTransientNodes()
+        {
+            var filename = @"T:\Vgm\Data\JBs_Haus.pts";
+            var storeFolder1 = @"E:\tmp\20210621_1";
+            //var storeFolder2 = @"E:\tmp\20210621_2";
+            var store1 = new SimpleDiskStore(storeFolder1).ToPointCloudStore();
+            //var store2 = new SimpleDiskStore(storeFolder2).ToPointCloudStore();
+
+            var config = ImportConfig.Default
+                .WithStorage(store1)
+                .WithRandomKey()
+                .WithVerbose(true)
+                ;
+
+            Report.BeginTimed("import");
+            var pc = PointCloud.Import(filename, config);
+            var root = pc.Root.Value;
+            store1.Flush();
+            Report.EndTimed();
+
+            // target store for inlined
+            var store1ReadOnly = SimpleDiskStore.OpenReadOnlySnapshot(storeFolder1).ToPointCloudStore();
+            var rootReadOnly = store1ReadOnly.GetPointSet(pc.Id).Root.Value;
+
+            var centroid = root.Center + (V3d)root.CentroidLocal;
+            Console.WriteLine($"root.PointCountTree           : {root.PointCountTree}");
+            Console.WriteLine($"centroid                      : {centroid}");
+            var filter = new Box3d(centroid - new V3d(5, 5, 5), centroid + new V3d(5, 5, 5));
+            Console.WriteLine($"filter                        : {filter}");
+            var f = FilteredNode.CreateTransient(rootReadOnly, new FilterInsideBox3d(filter));
+            
+            Report.BeginTimed("exporting inlined point cloud");
+            store1ReadOnly.EnumerateOctreeInlined(f.Id, new InlineConfig(true, true));
+            Report.End();
+        }
+
+        internal static void TestPointShareApi()
+        {
+            CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+            var storePath = @"W:\Datasets\SanSimeon\tmp\sansimeon\sansimeon_full.uds";
+            var outPath = @"W:\Datasets\SanSimeon\tmp\sansimeon\inlined.bin";
+            var key = File.ReadAllText(Path.Combine(Path.GetDirectoryName(storePath), "key.txt"));
+            Report.Line(key);
+
+            Report.BeginTimed("open store");
+            using var storeRaw = new SimpleDiskStore(storePath);
+            var store = storeRaw.ToPointCloudStore(null);
+            var pc = store.GetPointSet(key);
+            Report.EndTimed();
+
+            //Report.BeginTimed("count nodes");
+            //Report.Line($"node count: {pc.Root.Value.CountNodes(outOfCore: true)}");
+            //Report.EndTimed();
+
+            // enumerate Aardvark.Algodat octree nodes ...
+            var gzipped = true;
+            var config = new InlineConfig(
+                gzipped: gzipped,
+                collapse: true,
+                positionsRoundedToNumberOfDigits: 3,
+                progress: _ => {}
+                );
+            var inlined = store.EnumerateOctreeInlined(key, config);
+
+            // encode nodes for PointShare
+            var nodes = inlined.Nodes.Select(node => new {
+                Id = node.NodeId,
+                node.PointCountCell,
+                IsLeafNode = node.SubnodesGuids == null,
+                Buffer = node.Encode(gzipped)
+            });
+
+            Report.BeginTimed("extract inlined nodes");
+            using var bw = new BinaryWriter(File.Open(outPath, FileMode.CreateNew, FileAccess.Write, FileShare.None));
+            var i = 0;
+            foreach (var x in nodes)
+            {
+                bw.Write(x.Buffer.Length);
+                bw.Write(x.Buffer);
+                Report.Line($"[{++i}] {x.Buffer.Length,10:N0}");
+                if (i % 100 == 0) GC.Collect();
+            }
+            bw.Write(-1);
+            Report.EndTimed();
+
+            //// create/upload point cloud
+            //void onProgress(double x) => Console.WriteLine($"[PROGRESS] {x:0.000}");
+
+            //var detail = new Aardworx.Services.PointShare.PointShareClient.PointCloudDetail(
+            //    rootId: inlined.RootId.ToString(),
+            //    cell: inlined.Cell,
+            //    boundingBoxExactGlobal: inlined.BoundingBoxExactGlobal,
+            //    pointCount: inlined.PointCountTreeLeafs,
+            //    nodeCount: inlined.TotalNodeCount,
+            //    centroid: inlined.Centroid,
+            //    centroidStdDev: inlined.CentroidStdDev
+            //    );
+
+            //var result = api.CreatePointCloud("<userId>", detail, "<localTmpFolder>", nodes, gzipped, 0, onProgress)
+        }
+
+        internal static void TestLasZip()
+        {
+            return;
+            CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+
+            var baseFolder = @"\\hyperspace\Work\Datasets\SanSimeon\tmp\sansimeon";
+            var dbname = "sansimeon_full";
+            if (!Directory.Exists(baseFolder)) Directory.CreateDirectory(baseFolder);
+            var storePath = Path.Combine(baseFolder, dbname);
+            using var storeRaw = new SimpleDiskStore(storePath);
+            var store = storeRaw.ToPointCloudStore();
+
+            //var foo = store.GetPointSet("sansimeon");
+            //Report.BeginTimed("counting all nodes");
+            //var fooCount = foo.Root.Value.CountNodes(outOfCore: true);
+            //Report.EndTimed();
+            //Console.WriteLine($"total node count: {fooCount:N0}");
+            //return;
+
+            var folder = @"\\hyperspace\Work\Datasets\SanSimeon\download";
+            var files = Directory.EnumerateFiles(folder, "*.laz").OrderBy(x => x).ToArray();
+
+            var globalBounds = new Box3d(new V3d(-121.4116112, 35.1171962, -1.03), new V3d(-120.3998118, 35.8767543, 1093.57));
+            var subregion = new Box3d(globalBounds.Min, globalBounds.Min + new V3d(globalBounds.Size.X * 0.1, globalBounds.Size.Y * 1.0, globalBounds.Size.Z));
+
+            //var infos = files.Select(x => Laszip.LaszipInfo(x, ParseConfig.Default)).Where(x => x.Bounds.Intersects(subregion));
+            //var totalBounds = Box3d.Invalid;
+            //var totalCount = 0L;
+            //foreach (var info in infos)
+            //{
+            //    totalBounds = totalBounds.IsInvalid ? info.Bounds : new Box3d(totalBounds, info.Bounds);
+            //    totalCount += info.PointCount;
+            //    Console.WriteLine($"{Path.GetFileName(info.FileName),-40} {info.PointCount,16:N0} {totalCount,16:N0} {info.Bounds}");
+            //    //Console.WriteLine($"{Path.GetFileName(info.FileName),-40} {info.PointCount,16:N0} {totalCount,16:N0} {fooBounds}");
+            //}
+            //Console.WriteLine($"total count : {totalCount:N0}");
+            //Console.WriteLine($"total bounds: {totalBounds}");
+            ///*
+            // sansimeon dataset (!! x is lon in deg, y is lat in deg, z is in m)
+            //    total count : 17,714,127,505
+            //    total bounds: [[-121.4116112, 35.1171962, -1.03], [-120.3998118, 35.8767543, 1093.57]]
+            //*/
+            //return;
+
+
+            var firstPosOfFirstChunk = new V3d(-121.2715999, 35.7687472, 301.27);
+            var config = ImportConfig.Default
+                            .WithStorage(store)
+                            .WithKey("sansimeon")
+                            .WithOctreeSplitLimit(65536)
+                            .WithVerbose(true)
+                            .WithMaxDegreeOfParallelism(0)
+                            .WithMinDist(0.0)
+                            .WithNormalizePointDensityGlobal(false)
+                            .WithReproject(ps =>
+                            {
+                                var rs = new V3d[ps.Count];
+                                var offsetX = firstPosOfFirstChunk.X;
+                                var offsetY = firstPosOfFirstChunk.Y;
+                                var s = 2.0 * 6_371_000 * Math.PI / 360.0;
+                                for (var i = 0; i < ps.Count; i++)
+                                {
+                                    rs[i].X = (ps[i].X - offsetX) * s;
+                                    rs[i].Y = (ps[i].Y - offsetY) * s;
+                                    rs[i].Z = ps[i].Z;
+                                }
+                                return rs;
+                            })
+                            ;
+
+            //using var keysFile = new StreamWriter(File.Open(Path.Combine(baseFolder, dbname + ".keys"), FileMode.OpenOrCreate, FileAccess.Write, FileShare.Read));
+            var processedFilesCount = 0;
+            var chunks =
+                files
+                    //.Skip(100)
+                    //.Take(10)
+                    //.Where(x => Laszip.LaszipInfo(x, ParseConfig.Default).Bounds.Intersects(subregion))
+                    //.AsParallel()
+                    //.WithDegreeOfParallelism(8)
+                    .SelectMany(x =>
+                    {
+                        var chunks = Laszip.Chunks(x, config.ParseConfig).ToArray();
+                        var count = Interlocked.Increment(ref processedFilesCount);
+                        Report.Line($"{count}/{files.Length} {Path.GetFileName(x),40} {chunks.Sum(c => c.Count),20:N0}");
+                        return chunks;
+                    })
+                    //.AsEnumerable()
+                    //.Select(chunks => {
+                    //    var pc = PointCloud.Chunks(chunks, config);
+                    //    Console.WriteLine($"{pc.Id}");
+                    //    lock (keysFile)
+                    //    {
+                    //        keysFile.WriteLine($"{pc.Id}");
+                    //        keysFile.Flush();
+                    //    }
+                    //    return pc;
+                    //})
+                    //.ToArray()
+                    ;
+
+            var pc = PointCloud.Chunks(chunks, config);
+            Report.Line("key  : {0}", pc.Id);
+            Report.Line("count: {0:N0}", pc.PointCount);
+            store.Flush();
+        }
+
         public static void Main(string[] _)
         {
-            TestDuplicatePoints();
+            TestPointShareApi();
+            //TestLasZip();
+
+            //Test_20210621_InlineTransientNodes();
+
+            //TestDuplicatePoints();
 
             //Test_20210422_EnumerateInlinedFromFilteredNode();
 

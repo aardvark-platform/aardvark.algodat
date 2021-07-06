@@ -372,6 +372,7 @@ namespace Aardvark.Geometry.Points
             }
         }
 
+        private static long CountNodesDebug = 0L;
         /// <summary>
         /// Total number of nodes.
         /// </summary>
@@ -386,6 +387,7 @@ namespace Aardvark.Geometry.Points
                     {
                         if (key == Guid.Empty) return 0L;
 
+                        if (++CountNodesDebug % 1000 == 0) Report.WarnNoPrefix($"CountNodes.FastCount: {CountNodesDebug,16:N0}");
                         var acc = 1L;
 
                         var (def, obj) = self.Storage.GetDurable(key);

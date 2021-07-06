@@ -213,21 +213,21 @@ namespace Aardvark.Geometry.Points
             )
         {
             var processedNodeCount = 0L;
-            var totalNodeCount = root.CountNodes(outOfCore: true); 
-            var totalNodeCountD = (double)totalNodeCount;
+            //var totalNodeCount = root.CountNodes(outOfCore: true); 
+            //var totalNodeCountD = (double)totalNodeCount;
             var survive = new HashSet<Guid> { root.Id };
             var nodes = EnumerateRec(root);
 
             var r = nodes.First();
             return new InlinedNodes(
-                config, r, nodes, totalNodeCount
+                config, r, nodes, -1//totalNodeCount
                 );
 
             IEnumerable<InlinedNode> EnumerateRec(IPointCloudNode node)
             {
                 var isLeafNode = node.IsLeaf;
 
-                config.Progress?.Invoke(++processedNodeCount / totalNodeCountD);
+                config.Progress?.Invoke(++processedNodeCount /*/ totalNodeCountD*/);
 
                 if (config.Collapse && isLeafNode && !survive.Contains(node.Id)) yield break;
 

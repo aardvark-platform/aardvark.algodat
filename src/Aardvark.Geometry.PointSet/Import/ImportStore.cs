@@ -42,7 +42,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Loads point cloud from store.
         /// </summary>
-        public static PointSet Load(string key, string storePath, LruDictionary<string, object> cache)
+        public static PointSet Load(string key, string storePath, LruDictionary<string, object> cache = null)
         {
             //if (!Directory.Exists(storePath)) throw new InvalidOperationException($"Not a store ({storePath}).");
 
@@ -66,8 +66,10 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Opens or creates a store at the specified location.
         /// </summary>
-        public static Storage OpenStore(string storePath, LruDictionary<string, object> cache, Action<string[]> logLines = null)
+        public static Storage OpenStore(string storePath, LruDictionary<string, object> cache = null, Action<string[]> logLines = null)
         {
+            if (cache is null) cache = new LruDictionary<string, object>(2L << 30);
+
             lock (s_stores)
             {
                 // if we are lucky, then this storePath is already cached

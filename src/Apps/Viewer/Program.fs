@@ -20,8 +20,9 @@ let main args =
     //view @"C:\Users\sm\Downloads\test.store" ["128330b1-8761-4a07-b160-76bcd7e2f70a"; "ab2f6f76-7eae-47c9-82d1-ad28b816abb9"] (Args.parse [||])
     //view @"T:\Vgm\Stores\C_30DN2.LAZ" ["C_30DN2.LAZ"] (Args.parse [||])
 
-    let store = @"C:\Users\Spot\Desktop\spot_stores\2021_04_16_16_26_40\store.uds"
+    let store = @"W:\Datasets\SanSimeon\tmp\sansimeon\sansimeon_full.uds"
     let key = Path.combine [System.IO.Path.GetDirectoryName store;"key.txt"] |> File.readAllText
+
     view store [key] (Args.parse [||])
 
     let args = Args.parse args
