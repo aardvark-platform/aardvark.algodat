@@ -1627,7 +1627,6 @@ namespace Aardvark.Geometry.Tests
 
         internal static void TestLasZip()
         {
-            return;
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
 
             var baseFolder = @"\\hyperspace\Work\Datasets\SanSimeon\tmp\sansimeon";
