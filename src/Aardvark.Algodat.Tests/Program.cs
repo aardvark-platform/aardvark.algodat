@@ -1731,9 +1731,40 @@ namespace Aardvark.Geometry.Tests
             store.Flush();
         }
 
+        internal static void Test_20210720_PossibleInlineProblem()
+        {
+            var source = @"\\hyperspace\Work\Datasets\Vgm\Data\JBs_Haus.pts";
+            var store = new SimpleMemoryStore().ToPointCloudStore();
+            var pointset = PointCloud.Import(source, ImportConfig.Default
+                .WithStorage(store)
+                .WithOctreeSplitLimit(65536)
+                .WithVerbose(true)
+                );
+            var inlined = pointset.EnumerateOctreeInlined(new InlineConfig(
+                collapse: false,
+                gzipped: true,
+                positionsRoundedToNumberOfDigits: null,
+                progress: _ => { }
+                ));
+            var ns = inlined.Nodes.ToArray();
+
+            var i = 0;
+            var totalCount = 0L;
+            foreach (var n in inlined.Nodes)
+            {
+                var isLeaf = n.SubnodesGuids is null || n.SubnodesGuids.All(x => x == Guid.Empty);
+                if (isLeaf) totalCount += n.PointCountCell;
+                var sn = isLeaf ? "-,-,-,-,-,-,-,-" : n.SubnodesGuids.Select(x => x.ToString()).Join(",");
+                Report.Line($"[{i++,6}] {(isLeaf ? "L" : " ")} {n.PointCountCell,12:N0} {totalCount,12:N0} {sn}");
+            }
+        }
+
         public static void Main(string[] _)
         {
-            TestPointShareApi();
+            Test_20210720_PossibleInlineProblem();
+
+            //TestPointShareApi();
+
             //TestLasZip();
 
             //Test_20210621_InlineTransientNodes();
