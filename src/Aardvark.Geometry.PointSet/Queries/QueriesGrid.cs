@@ -28,7 +28,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Enumerate over point cloud in a grid of cells of size gridCellExponent. 
         /// </summary>
-        public static IEnumerable<GridQueryXY> EnumerateGridCellsXY(
+        public static IEnumerable<IGridQueryXY> EnumerateGridCellsXY(
             this PointSet self, int gridCellExponent
             )
             => new GridQueryXY(self.Root.Value).EnumerateGridCellsXY(gridCellExponent);
@@ -37,12 +37,20 @@ namespace Aardvark.Geometry.Points
         /// Enumerate over point cloud in a grid of cells of size gridCellExponent.
         /// Empty grid cells are skipped.
         /// </summary>
-        public static IEnumerable<GridQueryXY> EnumerateGridCellsXY(
+        public static IEnumerable<IGridQueryXY> EnumerateGridCellsXY(
             this IPointCloudNode self, int gridCellExponent
             )
             => new GridQueryXY(self).EnumerateGridCellsXY(gridCellExponent);
 
-        public class GridQueryXY
+        public interface IGridQueryXY
+        {
+            public long Count { get; }
+            public Cell2d Footprint { get; }
+            public IEnumerable<Chunk> CollectPoints(int minCellExponent = int.MinValue);
+            public IEnumerable<IGridQueryXY> EnumerateGridCellsXY(int subgridCellExponent);
+        }
+
+        public class GridQueryXY : IGridQueryXY
         {
             private IPointCloudNode[] Roots { get; }
             private Chunk Rest { get; }
@@ -93,7 +101,7 @@ namespace Aardvark.Geometry.Points
             /// <summary>
             /// Enumerate over this grid cell in a grid of subcells of size subgridCellExponent. 
             /// </summary>
-            public IEnumerable<GridQueryXY> EnumerateGridCellsXY(int subgridCellExponent)
+            public IEnumerable<IGridQueryXY> EnumerateGridCellsXY(int subgridCellExponent)
             {
                 if (Footprint.Exponent <= subgridCellExponent)
                 {
