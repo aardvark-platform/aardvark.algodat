@@ -285,8 +285,10 @@ namespace Aardvark.Geometry
                 foreach (var p in pl) hashCode = HashCode.Combine(hashCode, p.HashCode1(epsilon));
                 int ci = ca[fi]; if (ca[ci] != ci) { do { ci = ca[ci]; } while (ca[ci] != ci); ca[fi] = ci; }
                 int si = sa[ci];
-                foreach (int fj in faceTable.ValuesWithKey(hashCode))
+                var e = faceTable.GetValuesWithKeyEnumerator(hashCode);
+                while(e.MoveNext())
                 {
+                    var fj = e.Current;
                     int cj = ca[fj]; if (ca[cj] != cj) { do { cj = ca[cj]; } while (ca[cj] != cj); ca[fj] = cj; }
                     if (ci == cj) continue;
                     int fvj = fia[fj];
@@ -360,8 +362,10 @@ namespace Aardvark.Geometry
                     for (int nc = 0; nc < numNormalCodes; nc++)
                     {
                         int hj = distanceCodeTable[dc] ^ (int)(normalCodeTable[nc] << 16);
-                        foreach (int fj in planeTable.ValuesWithKey(hj))
+                        var e = planeTable.GetValuesWithKeyEnumerator(hj);
+                        while (e.MoveNext())
                         {
+                            var fj = e.Current;
                             int cj = ca[fj]; if (ca[cj] != cj) { do { cj = ca[cj]; } while (ca[cj] != cj); ca[fj] = cj; }
                             if (ci == cj) continue;
                             FacePlane pi = planeArray[ci];
