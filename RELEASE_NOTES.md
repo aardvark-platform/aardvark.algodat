@@ -1,3 +1,8 @@
+### 5.1.14
+- updated aardvark libraries (base 5.1.12, rendering 5.1.14)
+- improved clustering performance using ValuesWithKeyEnumerator
+- added typed PlaneEpsilonClustering version
+
 ### 5.1.11
 - updated packages
 
