@@ -449,6 +449,11 @@ namespace Aardvark.Geometry.Points
             }
             else
             {
+                if (isNotLeaf)
+                {
+                    subnodeGuids = subnodes.Map(x => x.HasValue && x.Value.hasValue ? x.Value.value.Id : Guid.Empty);
+                }
+
                 ps = node.Positions.Value;
                 if (hasColors) cs = node.Colors.Value;
             }
