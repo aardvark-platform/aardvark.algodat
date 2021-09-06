@@ -220,12 +220,36 @@ namespace Aardvark.Physics.Sky
         public static (double, double) GeocentricEclipticToEquatorialCoodinates(double lambda, double beta, double epsilon)
         {
             // declination
-            var delta = Fun.Asin(beta.Sin() * epsilon.Cos() + beta.Cos() * epsilon.Sin() * lambda.Sin());
+            var delta = Declination(lambda, beta, epsilon);
 
             // right ascension
-            var alpha = Fun.Atan2(lambda.Sin() * epsilon.Cos() - beta.Tan() * epsilon.Sin(), lambda.Cos());
+            var alpha = RightAscension(lambda, beta, epsilon);
             
             return (delta, alpha);
+        }
+
+        /// <summary>
+        /// Gets the declination of the geocentric ecliptic coordinates using the specified earths angle of obliquity.
+        /// </summary>
+        /// <param name="lambda">longitude in radians</param>
+        /// <param name="beta">latitude in radians</param>
+        /// <param name="epsilon">earths angle of obliquity in radians</param>
+        /// <returns>declination in radians</returns>
+        public static double Declination(double lambda, double beta, double epsilon)
+        {
+            return Fun.Asin(beta.Sin() * epsilon.Cos() + beta.Cos() * epsilon.Sin() * lambda.Sin());
+        }
+
+        /// <summary>
+        /// Gets the right ascension of the geocentric ecliptic coordinates using the specified earths angle of obliquity.
+        /// </summary>
+        /// <param name="lambda">longitude in radians</param>
+        /// <param name="beta">latitude in radians</param>
+        /// <param name="epsilon">earths angle of obliquity in radians</param>
+        /// <returns>right ascension in radians</returns>
+        public static double RightAscension(double lambda, double beta, double epsilon)
+        {
+            return Fun.Atan2(lambda.Sin() * epsilon.Cos() - beta.Tan() * epsilon.Sin(), lambda.Cos());
         }
 
         /// <summary>
@@ -245,18 +269,19 @@ namespace Aardvark.Physics.Sky
             // earths angle of obliquity
             var epsilon = GetEarthMeanObliquityAA2010(jd);
 
+            // right ascension and declination in radians
             var (delta, alpha) = GeocentricEclipticToEquatorialCoodinates(lambda, beta, epsilon);
 
-            // 8. sidearl time
             var phi = latitude * Constant.RadiansPerDegree;
             var lw = -longitude * Constant.RadiansPerDegree; // convert East to West
 
+            // 8. sidereal time
             var theta =
                 280.1470 * Constant.RadiansPerDegree +
                 360.9856235 * Constant.RadiansPerDegree *
                 (jd - J2000) - lw;
 
-            // 9. hour angle: how far (hours) the object has passed beyond the celestial meridian
+            // 9. hour angle: how far (usually in hours, but here in radians) the object has passed beyond the celestial meridian
             var H = theta - alpha;
 
             // 10. height and azimuth
@@ -858,5 +883,87 @@ namespace Aardvark.Physics.Sky
                 return 2 * Fun.Atan(t);
             }
         }
+
+        /// <summary>
+        /// Perihelion (Pi), the ecliptic longitude of the point closest to the sun measured in degrees (relative to the ecliptic of Earth).
+        /// </summary>
+        public static double[] Perihelion = new []
+        {
+            230.3265, // Mercury 
+             73.7576, // Venus   
+            102.9373, // Earth   
+             71.0041, // Mars    
+            237.1015, // Jupiter 
+             99.4587, // Saturn  
+              5.4634, // Uranus  
+            182.2100, // Neptune 
+            184.5484  // Pluto
+        };
+
+        /// <summary>
+        /// Gets the Perihelion (Pi) of a planet, the ecliptic longitude of the point closest to the sun measured in degrees (relative to the ecliptic of Earth).
+        /// </summary>
+        public static double GetPerihelion(Planet p)
+        {
+            return Perihelion[(int)p];
+        }
+
+        /// <summary>
+        /// Obliquity (epsilon) of the planets in our solar system.
+        /// </summary>
+        public static double[] Obliquity = new[]
+        {
+              0.0351, // Mercury 
+              2.6376, // Venus   
+             23.4393, // Earth   
+             25.1918, // Mars    
+              3.1189, // Jupiter 
+             26.7285, // Saturn  
+             82.2298, // Uranus  
+             27.8477, // Neptune 
+            119.6075  // Pluto
+        };
+
+        /// <summary>
+        /// Pre-calculated coefficients for the calculation of solar time in Julian day.
+        /// https://www.aa.quae.nl/en/reken/zonpositie.html#8
+        /// J0 = (M + PI + 180 - theta0) * J3 / 360 (mod J3) -> offset of solar transit
+        /// J1 = C1 * J3 / 360                               -> variation due to eccentricity
+        /// J2 = A2 * J3 / 360                               -> variation due to obliquity
+        /// J3 = 360 / (o - M1)                              -> average length of a solar day
+        /// </summary>
+        public static (double,double,double,double)[] SolarTimeCoefficients = new []
+        {
+            ( 45.3497, 11.4556,  0.0000,  175.9386    ), // Mercury 
+            ( 52.1268, -0.2516,  0.0099, -116.7505    ), // Venus   
+            (  0.0009,  0.0053, -0.0068,    1.0000000 ), // Earth   
+            (  0.9047,  0.0305, -0.0082,    1.027491  ), // Mars    
+            (  0.3345,  0.0064,  0.0000,    0.4135778 ), // Jupiter 
+            (  0.0766,  0.0078, -0.0040,    0.4440276 ), // Saturn  
+            (  0.1260, -0.0106,  0.0850,   -0.7183165 ), // Uranus  
+            (  0.3841,  0.0019, -0.0066,    0.6712575 ), // Neptune 
+            (  4.5635, -0.5024,  0.3429,    6.387672  ),  // Pluto
+        };
+
+        /// <summary>
+        /// Gets the solar time coefficient of a planet (<see cref="SolarTimeCoefficients" />).
+        /// </summary>
+        public static (double, double, double, double) GetSolarTimeCoefficients(Planet p)
+        {
+            return SolarTimeCoefficients[(int)p];
+        }
+
+        public static (double, double, double)[] HorizonCoefficients = new[]
+        {
+            (  0.035,  0.0,   0.0   ),
+            (  2.636,  0.001, 0.0   ),
+            ( 22.137,  0.599, 0.016 ),
+            ( 23.576,  0.733, 0.024 ),
+            (  3.116,  0.002, 0.0   ),
+            ( 24.800,  0.864, 0.032 ),
+            ( 28.680, -0.843, 8.722 ),
+            ( 26.668,  0.967, 0.039 ),
+            ( 38.648,  4.971, 1.864 ),
+        };
     }
 }

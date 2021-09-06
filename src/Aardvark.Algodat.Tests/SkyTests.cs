@@ -40,5 +40,22 @@ namespace Aardvark.Physics.Sky
             if (diff > 0.1 && diff < 359.9)
                 Assert.Fail("FAIL");
         }
+
+        [Test]
+        public void SolarTransmitTest()
+        {
+            var jd = 2453097.0;
+            var longitude = 5.0; // Netherlands: 5° East
+
+            var jtrans = SunPosition.SolarTransit(jd, longitude);
+
+            var h = SunPosition.HourAngleDeg(jtrans, longitude);
+
+            var diff = Fun.AngleDifference(h.RadiansFromDegrees(), 0) * Constant.DegreesPerRadian;
+
+            Assert.AreEqual(0.0, diff, 0.01);
+
+            Assert.AreEqual(2453096.9895, jtrans, 0.001);
+        }
     }
 }
