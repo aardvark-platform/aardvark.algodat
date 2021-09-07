@@ -229,7 +229,7 @@ namespace Aardvark.Physics.Sky
         }
 
         /// <summary>
-        /// Gets the declination of the geocentric ecliptic coordinates using the specified earths angle of obliquity.
+        /// Gets the declination (delta) of the geocentric ecliptic coordinates using the specified earths angle of obliquity.
         /// </summary>
         /// <param name="lambda">longitude in radians</param>
         /// <param name="beta">latitude in radians</param>
@@ -241,7 +241,7 @@ namespace Aardvark.Physics.Sky
         }
 
         /// <summary>
-        /// Gets the right ascension of the geocentric ecliptic coordinates using the specified earths angle of obliquity.
+        /// Gets the right ascension (alpha) of the geocentric ecliptic coordinates using the specified earths angle of obliquity.
         /// </summary>
         /// <param name="lambda">longitude in radians</param>
         /// <param name="beta">latitude in radians</param>

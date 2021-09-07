@@ -1527,7 +1527,11 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] _)
         {
-            TestDuplicatePoints();
+            //TestDuplicatePoints();
+
+            //new Aardvark.Physics.Sky.SkyTests().SolarTransmitTest();
+            //new Aardvark.Physics.Sky.SkyTests().SunRiseSunSetTest();
+            new Aardvark.Physics.Sky.SkyTests().HorizonTest();
 
             //Test_20210422_EnumerateInlinedFromFilteredNode();
 
