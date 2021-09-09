@@ -1,3 +1,12 @@
+### 5.1.15
+- fixed `IPointCloudNode.ConvertToInline(...)`,
+  which failed to include subnode-ids for inner nodes in the non-collapse case
+
+### 5.1.14
+- updated aardvark libraries (base 5.1.12, rendering 5.1.14)
+- improved clustering performance using ValuesWithKeyEnumerator
+- added typed PlaneEpsilonClustering version
+
 ### 5.1.11
 - updated packages
 

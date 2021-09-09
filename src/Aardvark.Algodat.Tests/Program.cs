@@ -1525,14 +1525,37 @@ namespace Aardvark.Geometry.Tests
             Report.Line($"#points: {ps.PointCount}");
         }
 
+        internal static void Test_20210904()
+        {
+            var storePath = @"E:\test1\a7b8c6f5-285e-4095-a737-faf4fce94587\store.uds";
+            var store = new SimpleDiskStore(storePath).ToPointCloudStore();
+            var root = store.GetPointCloudNode(Guid.Parse("9501236f-bb37-4eca-9dc1-eb5b91853595"));
+
+            var c = new InlineConfig(
+                collapse: false,
+                gzipped: true,
+                positionsRoundedToNumberOfDigits: null,
+                progress: _ => { }
+                );
+            var inlined = root.EnumerateOctreeInlined(c);
+
+            // encode nodes for PointShare
+            var nodes = inlined.Nodes.ToArray();
+            Console.WriteLine($"{nodes.Length}");
+        }
+
         public static void Main(string[] _)
         {
+            Test_20210904();
+
+            //TestDuplicatePoints();
+
             //TestDuplicatePoints();
 
             //new Aardvark.Physics.Sky.SkyTests().SolarTransmitTest();
             //new Aardvark.Physics.Sky.SkyTests().SunRiseSunSetTest();
             //new Aardvark.Physics.Sky.SkyTests().DuskDawnTest();
-            new Aardvark.Physics.Sky.SkyTests().DuskDawnTest2();
+            //new Aardvark.Physics.Sky.SkyTests().DuskDawnTest2();
             //new Aardvark.Physics.Sky.SkyTests().HorizonTest();
 
             //Test_20210422_EnumerateInlinedFromFilteredNode();

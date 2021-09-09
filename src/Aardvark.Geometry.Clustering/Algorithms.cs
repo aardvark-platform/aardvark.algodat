@@ -211,14 +211,18 @@ namespace Aardvark.Geometry.Clustering
                 var p = pa[i]; p.HashCodes8(epsilon, ha);
                 int ci = ca[i]; if (ca[ci] != ci) { do { ci = ca[ci]; } while (ca[ci] != ci); ca[i] = ci; }
                 for (int hi = 0; hi < 8; hi++)
-                    foreach (var j in dict.ValuesWithKey(ha[hi]))
+                {
+                    var e = dict.GetValuesWithKeyEnumerator(ha[hi]);
+                    while (e.MoveNext())
                     {
+                        var j = e.Current;
                         int cj = ca[j]; if (ca[cj] != cj) { do { cj = ca[cj]; } while (ca[cj] != cj); ca[j] = cj; }
                         if (ci == cj || Vec.DistanceSquared(p, pa[j]) >= eps2) continue;
                         bit >>= 1; if (bit == 0) { rndBits = rnd.UniformInt(); bit = 1 << 30; }
                         if ((rndBits & bit) != 0) { ca[ci] = cj; ca[i] = cj; ci = cj; }
                         else { ca[cj] = ci; ca[j] = ci; }
                     }
+                }
                 dict[ha[0]] = i;
             }
             Init();
@@ -248,8 +252,10 @@ namespace Aardvark.Geometry.Clustering
             {
                 var p = pa[i]; var hc = p.HashCode1(eps);
                 int ci = ca[i]; if (ca[ci] != ci) { do { ci = ca[ci]; } while (ca[ci] != ci); ca[i] = ci; }
-                foreach (var j in dict.ValuesWithKey(hc))
+                var e = dict.GetValuesWithKeyEnumerator(hc);
+                while (e.MoveNext())
                 {
+                    var j = e.Current;
                     int cj = ca[j]; if (ca[cj] != cj) { do { cj = ca[cj]; } while (ca[cj] != cj); ca[j] = cj; }
                     if (ci == cj || p != pa[j]) continue;
                     bit >>= 1; if (bit == 0) { rndBits = rnd.UniformInt(); bit = 1 << 30; }
@@ -290,14 +296,18 @@ namespace Aardvark.Geometry.Clustering
                 var p = get(pa, i); p.HashCodes8(eps, ha);
                 int ci = ca[i]; if (ca[ci] != ci) { do { ci = ca[ci]; } while (ca[ci] != ci); ca[i] = ci; }
                 for (int hi = 0; hi < 8; hi++)
-                    foreach (var j in dict.ValuesWithKey(ha[hi]))
+                {
+                    var e = dict.GetValuesWithKeyEnumerator(ha[hi]);
+                    while (e.MoveNext())
                     {
+                        var j = e.Current;
                         int cj = ca[j]; if (ca[cj] != cj) { do { cj = ca[cj]; } while (ca[cj] != cj); ca[j] = cj; }
                         if (ci == cj || Vec.DistanceSquared(p, get(pa, j)) >= eps2) continue;
                         bit >>= 1; if (bit == 0) { rndBits = rnd.UniformInt(); bit = 1 << 30; }
                         if ((rndBits & bit) != 0) { ca[ci] = cj; ca[i] = cj; ci = cj; }
                         else { ca[cj] = ci; ca[j] = ci; }
                     }
+                }
                 dict[ha[0]] = i;
             }
             Init();
@@ -326,8 +336,10 @@ namespace Aardvark.Geometry.Clustering
             {
                 var p = get(pa, i); var hc = p.HashCode1(eps);
                 int ci = ca[i]; if (ca[ci] != ci) { do { ci = ca[ci]; } while (ca[ci] != ci); ca[i] = ci; }
-                foreach (var j in dict.ValuesWithKey(hc))
+                var e = dict.GetValuesWithKeyEnumerator(hc);
+                while (e.MoveNext())
                 {
+                    var j = e.Current;
                     int cj = ca[j]; if (ca[cj] != cj) { do { cj = ca[cj]; } while (ca[cj] != cj); ca[j] = cj; }
                     if (ci == cj || p != get(pa, j)) continue;
                     bit >>= 1; if (bit == 0) { rndBits = rnd.UniformInt(); bit = 1 << 30; }
@@ -377,8 +389,11 @@ namespace Aardvark.Geometry.Clustering
                 int ci = ca[i]; if (ca[ci] != ci) { do { ci = ca[ci]; } while (ca[ci] != ci); ca[i] = ci; }
                 double dmin = double.MaxValue;
                 for (int hi = 0; hi < 16; hi++)
-                    foreach (var j in dict.ValuesWithKey(ha[hi]))
+                {
+                    var e = dict.GetValuesWithKeyEnumerator(ha[hi]);
+                    while (e.MoveNext())
                     {
+                        var j = e.Current;
                         int cj = ca[j]; if (ca[cj] != cj) { do { cj = ca[cj]; } while (ca[cj] != cj); ca[j] = cj; }
                         if (ci == cj) continue;
                         var dd = Fun.Square(di - getDist(pa, j)); if (dd >= de2) continue;
@@ -388,6 +403,63 @@ namespace Aardvark.Geometry.Clustering
                         if ((rndBits & bit) != 0) { ca[ci] = cj; ca[i] = cj; ci = cj; }
                         else { ca[cj] = ci; ca[j] = ci; }
                     }
+                }
+                if (dmin > deps) dict[ha[0]] = i; // only sparsely populate hashtable for performance reasons
+            }
+            Init();
+        }
+
+        #endregion
+    }
+
+    public class PlaneEpsilonClustering : Clustering
+    {
+        #region Constructor
+
+        /// <summary>
+        /// Creates clusters of planes within a certain epsilon from each other
+        /// (euclidean distance between normal vectors and between offsets). 
+        /// This algorithm uses a 4d hash-grid and only works fast if the supplied 
+        /// epsilons are small enough that not too many planes fall within each cluster.
+        /// Thus it is ideal for merging planes with small variations in orientation and 
+        /// offset due to numerical inaccuracies.
+        /// </summary>
+        public PlaneEpsilonClustering(
+                int count, Plane3d[] pa,
+                double epsNormal, double epsDist,
+                double deltaEpsFactor = 0.25, IRandomUniform rnd = null)
+        {
+            rnd = rnd ?? new RandomSystem();
+            Alloc(count);
+            var ca = m_indexArray;
+            var dict = new IntDict<int>(count, stackDuplicateKeys: true);
+            int rndBits = 0; int bit = 0;
+            var ha = new int[16];
+            var ne2 = epsNormal * epsNormal;
+            var de2 = epsDist * epsDist;
+            var deps = (ne2 + de2) * deltaEpsFactor * deltaEpsFactor;
+            for (int i = 0; i < count; i++)
+            {
+                var ni = pa[i].Normal; var di = pa[i].Distance;
+                ni.HashCodes16(di, epsNormal, epsDist, ha);
+                int ci = ca[i]; if (ca[ci] != ci) { do { ci = ca[ci]; } while (ca[ci] != ci); ca[i] = ci; }
+                double dmin = double.MaxValue;
+                for (int hi = 0; hi < 16; hi++)
+                {
+                    var e = dict.GetValuesWithKeyEnumerator(ha[hi]);
+                    while (e.MoveNext())
+                    {
+                        var j = e.Current;
+                        int cj = ca[j]; if (ca[cj] != cj) { do { cj = ca[cj]; } while (ca[cj] != cj); ca[j] = cj; }
+                        if (ci == cj) continue;
+                        var dd = Fun.Square(di - pa[j].Distance); if (dd >= de2) continue;
+                        var dn = Vec.DistanceSquared(ni, pa[j].Normal); if (dn >= ne2) continue;
+                        var d = dn + dd; if (d < dmin) dmin = d;
+                        bit >>= 1; if (bit == 0) { rnd.UniformInt(); bit = 1 << 30; }
+                        if ((rndBits & bit) != 0) { ca[ci] = cj; ca[i] = cj; ci = cj; }
+                        else { ca[cj] = ci; ca[j] = ci; }
+                    }
+                }
                 if (dmin > deps) dict[ha[0]] = i; // only sparsely populate hashtable for performance reasons
             }
             Init();
