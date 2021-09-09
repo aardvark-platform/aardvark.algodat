@@ -1531,7 +1531,9 @@ namespace Aardvark.Geometry.Tests
 
             //new Aardvark.Physics.Sky.SkyTests().SolarTransmitTest();
             //new Aardvark.Physics.Sky.SkyTests().SunRiseSunSetTest();
-            new Aardvark.Physics.Sky.SkyTests().HorizonTest();
+            //new Aardvark.Physics.Sky.SkyTests().DuskDawnTest();
+            new Aardvark.Physics.Sky.SkyTests().DuskDawnTest2();
+            //new Aardvark.Physics.Sky.SkyTests().HorizonTest();
 
             //Test_20210422_EnumerateInlinedFromFilteredNode();
 

@@ -275,11 +275,8 @@ namespace Aardvark.Physics.Sky
             var phi = latitude * Constant.RadiansPerDegree;
             var lw = -longitude * Constant.RadiansPerDegree; // convert East to West
 
-            // 8. sidereal time
-            var theta =
-                280.1470 * Constant.RadiansPerDegree +
-                360.9856235 * Constant.RadiansPerDegree *
-                (jd - J2000) - lw;
+            // 8. local sidereal time
+            var theta = SideralTime(jd) - lw;
 
             // 9. hour angle: how far (usually in hours, but here in radians) the object has passed beyond the celestial meridian
             var H = theta - alpha;
@@ -965,5 +962,18 @@ namespace Aardvark.Physics.Sky
             ( 26.668,  0.967, 0.039 ),
             ( 38.648,  4.971, 1.864 ),
         };
+
+        /// <summary>
+        /// Calculates the sidereal time (Theta), the earths rotation angle ERA at the prime meridian, in radians.
+        /// https://aa.quae.nl/en/reken/hemelpositie.html#1_8
+        /// https://en.wikipedia.org/wiki/Sidereal_time
+        /// </summary>
+        public static double SideralTime(double jd)
+        {
+            //return 280.1470 + 360.9856235 * (jd - Astronomy.J2000); // calculation used by Dr Louis Strous on Astronomy Answers
+
+            // using constants from: Urban & Seidelmann 2013, p. 78.
+            return Constant.PiTimesTwo * (0.7790572732640 + 1.002737811911354 * (jd - Astronomy.J2000));
+        }
     }
 }
