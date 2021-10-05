@@ -127,8 +127,8 @@ namespace Aardvark.Physics.Sky
         /// <param name="jd">Date and time in Julian days</param>
         /// <param name="longitudeInDegrees">Longitude GPS coordinate in degrees east</param>
         /// <param name="latitudeInDegrees">Latitude GPS coordinate in degrees north</param>
-        /// <returns>Time of sun rise and set in Julian days</returns>
-        public static (double, double) SunRiseAndSet(double jd, double longitudeInDegrees, double latitudeInDegrees)
+        /// <returns>Time of sun rise, solar transit and sun set in Julian days</returns>
+        public static (double, double, double) SunRiseAndSet(double jd, double longitudeInDegrees, double latitudeInDegrees)
         {
             return HorizonTransit(jd, longitudeInDegrees, latitudeInDegrees, -0.83);
         }
@@ -138,7 +138,7 @@ namespace Aardvark.Physics.Sky
         /// The civil dusk is defined when the geometric center of the sun (declination) is -6 degrees below the horizon.
         /// If no solution if found double.NaN is returned.
         /// </summary>
-        public static (double, double) CivilDuskAndDawn(double jd, double longitudeInDegrees, double latitudeInDegrees)
+        public static (double, double, double) CivilDuskAndDawn(double jd, double longitudeInDegrees, double latitudeInDegrees)
         {
             return HorizonTransit(jd, longitudeInDegrees, latitudeInDegrees, -6);
         }
@@ -148,7 +148,7 @@ namespace Aardvark.Physics.Sky
         /// The nautical dusk is defined when the geometric center of the sun (declination) is -12 degrees below the horizon.
         /// If no solution if found double.NaN is returned.
         /// </summary>
-        public static (double, double) NauticalDuskAndDawn(double jd, double longitudeInDegrees, double latitudeInDegrees)
+        public static (double, double, double) NauticalDuskAndDawn(double jd, double longitudeInDegrees, double latitudeInDegrees)
         {
             return HorizonTransit(jd, longitudeInDegrees, latitudeInDegrees, -12);
         }
@@ -158,7 +158,8 @@ namespace Aardvark.Physics.Sky
         /// The astronomical dusk is defined when the geometric center of the sun (declination) is -18 degrees below the horizon.
         /// If no solution if found double.NaN is returned.
         /// </summary>
-        public static (double, double) AstronomicalDuskAndDawn(double jd, double longitudeInDegrees, double latitudeInDegrees)
+        /// <returns>Time where astronomical dawn starts, time of solar transit, and time where astronomical dusk ends</returns>
+        public static (double, double, double) AstronomicalDuskAndDawn(double jd, double longitudeInDegrees, double latitudeInDegrees)
         {
             return HorizonTransit(jd, longitudeInDegrees, latitudeInDegrees, -18);
         }
@@ -172,15 +173,126 @@ namespace Aardvark.Physics.Sky
         /// <param name="longitudeInDegrees">Longitude GPS coordinate in degrees east</param>
         /// <param name="latitudeInDegrees">Latitude GPS coordinate in degrees north</param>
         /// <param name="h0InDegrees">Declination angle in degrees</param>
-        /// <returns>Time of previous and next horizon transition</returns>
-        public static (double, double) HorizonTransit(double jd, double longitudeInDegrees, double latitudeInDegrees, double h0InDegrees)
+        /// <returns>Time of horizon transit during sun rise, solar transit, and time of horizon transit during sun set</returns>
+        public static (double, double, double) HorizonTransit(double jd, double longitudeInDegrees, double latitudeInDegrees, double h0InDegrees)
         {
             var jtransit = SolarTransit(jd, longitudeInDegrees);
 
             // sun declination at solar transit in radians
-            var delta = GetDeclination(jtransit);
+            var sunDeclination = GetDeclination(jtransit);
 
-            var phi = latitudeInDegrees * Constant.RadiansPerDegree; // latitude?
+            var (start, end) = HorizonTransit(jtransit, sunDeclination, longitudeInDegrees, latitudeInDegrees, h0InDegrees);
+
+            return (start, jtransit, end);
+        }
+
+        /// <summary>
+        /// Dates of twilight times and solar transition in Julian days at a certain day
+        /// </summary>
+        public struct TwilightTimesJd
+        {
+            public double AstronomicalDawn;
+            public double NauticalDawn;
+            public double CivilDawn;
+            public double SunRise;
+            public double SunRiseEnd;
+            public double GoldenHourEnd;
+            public double Noon;
+            public double GoldenHourStart;
+            public double SunSetStart;
+            public double SunSet;
+            public double CivilDusk;
+            public double NauticalDusk;
+            public double AstronomicalDusk;
+
+            public TwilightTimes ToDateTime(double timeZone = 0.0)
+            {
+                var offset = TimeSpan.FromHours(timeZone);
+                return new TwilightTimes()
+                {
+                    AstronomicalDawn = DateTimeExtensions.ComputeDateFromJulianDay(AstronomicalDawn) + offset,
+                    NauticalDawn = DateTimeExtensions.ComputeDateFromJulianDay(NauticalDawn) + offset,
+                    CivilDawn = DateTimeExtensions.ComputeDateFromJulianDay(CivilDawn) + offset,
+                    SunRise = DateTimeExtensions.ComputeDateFromJulianDay(SunRise) + offset,
+                    SunRiseEnd = DateTimeExtensions.ComputeDateFromJulianDay(SunRiseEnd) + offset,
+                    GoldenHourEnd = DateTimeExtensions.ComputeDateFromJulianDay(GoldenHourEnd) + offset,
+                    Noon = DateTimeExtensions.ComputeDateFromJulianDay(Noon) + offset,
+                    GoldenHourStart = DateTimeExtensions.ComputeDateFromJulianDay(GoldenHourStart) + offset,
+                    SunSetStart = DateTimeExtensions.ComputeDateFromJulianDay(SunSetStart) + offset,
+                    SunSet = DateTimeExtensions.ComputeDateFromJulianDay(SunSet) + offset,
+                    CivilDusk = DateTimeExtensions.ComputeDateFromJulianDay(CivilDusk) + offset,
+                    NauticalDusk = DateTimeExtensions.ComputeDateFromJulianDay(NauticalDusk) + offset,
+                    AstronomicalDusk = DateTimeExtensions.ComputeDateFromJulianDay(AstronomicalDusk) + offset,
+                };
+            }
+        }
+
+        /// <summary>
+        /// Dates of twilight times and solar transition at a certain day
+        /// </summary>
+        public struct TwilightTimes
+        {
+            public DateTime AstronomicalDawn;
+            public DateTime NauticalDawn;
+            public DateTime CivilDawn;
+            public DateTime SunRise;
+            public DateTime SunRiseEnd;
+            public DateTime GoldenHourEnd;
+            public DateTime Noon;
+            public DateTime GoldenHourStart;
+            public DateTime SunSetStart;
+            public DateTime SunSet;
+            public DateTime CivilDusk;
+            public DateTime NauticalDusk;
+            public DateTime AstronomicalDusk;
+        }
+
+        /// <summary>
+        /// Calculates the start and end times of all twilight levels closest to the given date.
+        /// If no solution if found double.NaN is returned.
+        /// https://www.aa.quae.nl/en/reken/zonpositie.html#10
+        /// </summary>
+        /// <param name="jd">Date and time in Julian days</param>
+        /// <param name="longitudeInDegrees">Longitude GPS coordinate in degrees east</param>
+        /// <param name="latitudeInDegrees">Latitude GPS coordinate in degrees north</param>
+        /// <returns>Start/end times of twilight events and solar transition</returns>
+        public static TwilightTimesJd GetTwilightTimes(double jd, double longitudeInDegrees, double latitudeInDegrees)
+        {
+            var jtransit = SolarTransit(jd, longitudeInDegrees);
+
+            // sun declination at solar transit in radians
+            var sunDeclination = GetDeclination(jtransit);
+
+            var (goldEnd, goldStart) = HorizonTransit(jtransit, sunDeclination, longitudeInDegrees, latitudeInDegrees, 6);
+            var (riseStart, setEnd) = HorizonTransit(jtransit, sunDeclination, longitudeInDegrees, latitudeInDegrees, -0.83);
+            var (riseEnd, setStart) = HorizonTransit(jtransit, sunDeclination, longitudeInDegrees, latitudeInDegrees, -0.3); // sun diameter ~0.53°
+            var (civilStart, civilEnd) = HorizonTransit(jtransit, sunDeclination, longitudeInDegrees, latitudeInDegrees, -6);
+            var (nautStart, nautEnd) = HorizonTransit(jtransit, sunDeclination, longitudeInDegrees, latitudeInDegrees, -12);
+            var (astroStart, astroEnd) = HorizonTransit(jtransit, sunDeclination, longitudeInDegrees, latitudeInDegrees, -18);
+
+            return new TwilightTimesJd()
+            {
+                AstronomicalDawn = astroStart,
+                NauticalDawn = nautStart,
+                CivilDawn = civilStart,
+                SunRise = riseStart,
+                SunRiseEnd = riseEnd,
+                GoldenHourEnd = goldEnd,
+                Noon = jtransit,
+                GoldenHourStart = goldStart,
+                SunSetStart = setStart,
+                SunSet = setEnd,
+                CivilDusk = civilEnd,
+                NauticalDusk = nautEnd,
+                AstronomicalDusk = astroEnd
+            };
+        }
+
+        private static (double, double) HorizonTransit(double jtransit, double sunDeclination, double longitudeInDegrees, double latitudeInDegrees, double h0InDegrees)
+        {
+            var delta = sunDeclination;
+
+            var phi = latitudeInDegrees * Constant.RadiansPerDegree;
             var cosPhi = Fun.Cos(phi);
             var sinPhi = Fun.Sin(phi);
 
@@ -289,14 +401,14 @@ namespace Aardvark.Physics.Sky
         /// <param name="jd">Date and time in Julian days</param>
         /// <param name="longitudeInDegrees">Longitude GPS coordinate in degrees east</param>
         /// <param name="latitudeInDegrees">Latitude GPS coordinate in degrees north</param>
-        /// <returns>Time of the previous and next horizon transit</returns>
-        public static (double, double) HorizonTransit(double jd, double longitudeInDegrees, double latitudeInDegrees)
+        /// <returns>Time of sun passing the horizon, the solar transit, the time of the sun passing the horizon at sun set</returns>
+        public static (double, double, double) HorizonTransit(double jd, double longitudeInDegrees, double latitudeInDegrees)
         {
             var jdtransit = SolarTransit(jd, longitudeInDegrees);
 
             var jdOffset = HorizonTransitOffset(jdtransit, latitudeInDegrees);
 
-            return (jdtransit - jdOffset, jdtransit + jdOffset);
+            return (jdtransit - jdOffset, jdtransit, jdtransit + jdOffset);
         }
 
         /// <summary>

@@ -68,7 +68,7 @@ namespace Aardvark.Physics.Sky
             var longitude = 5.0;
             var latitude = 52.0;
 
-            var (jdRise, jdSet) = SunPosition.SunRiseAndSet(jd, longitude, latitude);
+            var (jdRise, _, jdSet) = SunPosition.SunRiseAndSet(jd, longitude, latitude);
 
             var date = DateTimeExtensions.ComputeDateFromJulianDay(jd);
             var timeRise = DateTimeExtensions.ComputeDateFromJulianDay(jdRise);
@@ -91,7 +91,7 @@ namespace Aardvark.Physics.Sky
             var longitude = 5.0; 
             var latitude = 52.0;
 
-            var (jdDawn, jdDusk) = SunPosition.CivilDuskAndDawn(jd, longitude, latitude);
+            var (jdDawn, _, jdDusk) = SunPosition.CivilDuskAndDawn(jd, longitude, latitude);
 
             var date = DateTimeExtensions.ComputeDateFromJulianDay(jd);
             var timeStart = DateTimeExtensions.ComputeDateFromJulianDay(jdDawn);
@@ -117,7 +117,7 @@ namespace Aardvark.Physics.Sky
             var longitude = 25.0;
             var latitude = 71.0;
 
-            var (jdDawn, jdDusk) = SunPosition.AstronomicalDuskAndDawn(jd, longitude, latitude);
+            var (jdDawn, _, jdDusk) = SunPosition.AstronomicalDuskAndDawn(jd, longitude, latitude);
 
             Assert.IsTrue(jdDawn.IsNaN());
             Assert.IsTrue(jdDusk.IsNaN());
@@ -133,7 +133,7 @@ namespace Aardvark.Physics.Sky
             var longitude = 5.0;
             var latitude = 52.0;
 
-            var (jdRise, jdSet) = SunPosition.HorizonTransit(jd, longitude, latitude);
+            var (jdRise, _, jdSet) = SunPosition.HorizonTransit(jd, longitude, latitude);
 
             var date = DateTimeExtensions.ComputeDateFromJulianDay(jd);
             var timeRise = DateTimeExtensions.ComputeDateFromJulianDay(jdRise);
@@ -143,10 +143,44 @@ namespace Aardvark.Physics.Sky
             Report.Line("Sun rise at: " + timeRise.ToString("HH:mm:ss"));
             Report.Line("Sun set at: " + timeSet.ToString("HH:mm:ss"));
 
-            var (jdRise2, jdSet2) = SunPosition.HorizonTransit(jd, longitude, latitude, 0.0);
+            var (jdRise2, _, jdSet2) = SunPosition.HorizonTransit(jd, longitude, latitude, 0.0);
 
             Assert.AreEqual(jdRise2, jdRise, 0.001);
             Assert.AreEqual(jdSet2, jdSet, 0.001);
+        }
+
+        [Test]
+        public void TwilightTimesTest()
+        {
+            // 1. April 2004
+            var jd = new DateTime(2021, 10, 06, 12, 0, 0).ComputeJulianDay();
+
+            // Vienna
+            var longitude = 16; // east
+            var latitude = 48; // north
+
+            var timesJd = SunPosition.GetTwilightTimes(jd, longitude, latitude);
+
+            var timeZone = 2;
+            var twilightTimes = timesJd.ToDateTime(timeZone);
+
+            var date = DateTimeExtensions.ComputeDateFromJulianDay(jd);
+
+            Report.Line("Date: " + date.ToString("dd.MM.yyyy") + "\n");
+
+            Report.Line("Astronomical dawn start:   " + twilightTimes.AstronomicalDawn.ToString("HH:mm:ss"));
+            Report.Line("Nautical dawn start:       " + twilightTimes.NauticalDawn.ToString("HH:mm:ss"));
+            Report.Line("Civil dawn start:          " + twilightTimes.CivilDawn.ToString("HH:mm:ss"));
+            Report.Line("Sun rise start:            " + twilightTimes.SunRise.ToString("HH:mm:ss"));
+            Report.Line("Sun rise end:              " + twilightTimes.SunRiseEnd.ToString("HH:mm:ss"));
+            Report.Line("Golden morning hour end:   " + twilightTimes.GoldenHourEnd.ToString("HH:mm:ss"));
+            Report.Line("Noon:                      " + twilightTimes.Noon.ToString("HH:mm:ss"));
+            Report.Line("Golden evening hour start: " + twilightTimes.GoldenHourStart.ToString("HH:mm:ss"));
+            Report.Line("Sun set start:             " + twilightTimes.SunSetStart.ToString("HH:mm:ss"));
+            Report.Line("Sun set end:               " + twilightTimes.SunSet.ToString("HH:mm:ss"));
+            Report.Line("Civil dusk end:            " + twilightTimes.CivilDusk.ToString("HH:mm:ss"));
+            Report.Line("Nautical dusk end:         " + twilightTimes.NauticalDusk.ToString("HH:mm:ss"));
+            Report.Line("Astronomical dusk end:     " + twilightTimes.AstronomicalDusk.ToString("HH:mm:ss"));
         }
     }
 }

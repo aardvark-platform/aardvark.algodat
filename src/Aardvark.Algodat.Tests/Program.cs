@@ -1546,7 +1546,7 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] _)
         {
-            Test_20210904();
+            //Test_20210904();
 
             //TestDuplicatePoints();
 
@@ -1557,6 +1557,7 @@ namespace Aardvark.Geometry.Tests
             //new Aardvark.Physics.Sky.SkyTests().DuskDawnTest();
             //new Aardvark.Physics.Sky.SkyTests().DuskDawnTest2();
             //new Aardvark.Physics.Sky.SkyTests().HorizonTest();
+            new Aardvark.Physics.Sky.SkyTests().TwilightTimesTest();
 
             //Test_20210422_EnumerateInlinedFromFilteredNode();
 
