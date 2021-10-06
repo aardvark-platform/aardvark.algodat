@@ -49,7 +49,9 @@ namespace Aardvark.Data.Photometry
         public double LumFlux;
 
         /// <summary>
-        /// Measured intensities in cd [Vertical, Horizontal]
+        /// Absolute measured intensities in cd [Vertical, Horizontal]
+        /// Integral of these values is supposed to give the specified luminous flux.
+        /// 
         /// X = VerticalAngles, Y = HorizontalAngles (C-Planes)
         /// 
         ///       0°  5° 10° ...
@@ -142,13 +144,13 @@ namespace Aardvark.Data.Photometry
         {
             Name = ldt.LuminaireName;
             
-            var isAbsolute = ldt.LampSets.FirstOrDefault().TrySelect(x => x.Number < 0, true);
-            if (!isAbsolute)
+            // Intensity data of an EULUMDAT file is stored in cd per 1000 lumen
+            //  -> scale intensities to get absolute intensity distribution
+            var scale = ldt.LampSets.Sum(x => x.TotalFlux) / 1000;
+            if (scale != 1.0)
             {
-                var scale = ldt.LampSets.Sum(x => x.TotalFlux / 1000);
                 var scaled = ldt.Data.Copy();
                 scaled.Apply(x => x * scale);
-
                 Intensities = scaled;
             }
             else
@@ -484,7 +486,7 @@ namespace Aardvark.Data.Photometry
                 if (ldtSymmetry == LDTSymmetry.C1)
                     this.HorizontalAngles = this.HorizontalAngles.Map(x => x < 180 ? x + 180 : x - 180);
 
-                // in early versions the LumLux was not been saved -> force calculation, does not perfectly match the rounded LumFlux specified in the meta data of LDT or IES
+                // in early versions the LumFlux was not saved -> force calculation, does not perfectly match the rounded LumFlux specified in the meta data of LDT or IES
                 if (codedVersion == 0)
                 {
                     var equidistanceData = BuildEquidistantMatrix();

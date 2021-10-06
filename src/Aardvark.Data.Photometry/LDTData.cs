@@ -72,6 +72,9 @@ namespace Aardvark.Data.Photometry
 
         public LDTData() { }
 
+        /// <summary>
+        /// Intensity distribution normalized to cd per 1000 lumen
+        /// </summary>
         public Matrix<double> Data { get; set; }
         public double[] VerticleAngles { get; set; }
         public double[] HorizontalAngles { get; set; }
