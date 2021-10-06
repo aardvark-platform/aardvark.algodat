@@ -143,20 +143,17 @@ namespace Aardvark.Data.Photometry
         public LightMeasurementData(LDTData ldt)
         {
             Name = ldt.LuminaireName;
-            
+
+            var totalLampFlux = ldt.LampSets.Sum(x => x.TotalFlux);
+
+            var lor = ldt.LightOutputRatioLuminaire / 100;
+            LumFlux = totalLampFlux * lor;
+
             // Intensity data of an EULUMDAT file is stored in cd per 1000 lumen
             //  -> scale intensities to get absolute intensity distribution
-            var scale = ldt.LampSets.Sum(x => x.TotalFlux) / 1000;
-            if (scale != 1.0)
-            {
-                var scaled = ldt.Data.Copy();
-                scaled.Apply(x => x * scale);
-                Intensities = scaled;
-            }
-            else
-            {
-                Intensities = ldt.Data;
-            }
+
+            var scale = totalLampFlux / 1000; // NOTE: using totalLampFlux here is the proper scale according to the validation in PhotometryTests.LumFluxTest
+            Intensities = scale != 1.0 ? ldt.Data.Map(x => x * scale) : ldt.Data;
 
             HorizontalSymmetry = ConvertSymmetry(ldt.Symmetry);
             
@@ -172,9 +169,6 @@ namespace Aardvark.Data.Photometry
             else if (ldt.VerticleAngles.First() == 0 && ldt.VerticleAngles.Last() == 90) VerticalRange = VerticalRangeMode.Bottom;
             else if (ldt.VerticleAngles.First() == 90 && ldt.VerticleAngles.Last() == 180) VerticalRange = VerticalRangeMode.Top;
             else Report.Warn("LDT-File {0} has a non-valid VerticalRangeMode", Name);
-            
-            var lor = ldt.LightOutputRatioLuminaire / 100;
-            LumFlux = ldt.LampSets.Sum(x => x.TotalFlux) * lor;
         }
 
         /// <summary>

@@ -166,6 +166,7 @@ namespace Aardvark.Data.Photometry
             foreach (var f in Directory.GetFiles(PhotometryDataPath, "*.ldt"))
             {
                 EvaluateLumFlux(f);
+                Report.Line("");
             }
         }
 
@@ -190,6 +191,11 @@ namespace Aardvark.Data.Photometry
             var errorCalc = (1 - ratioCalc).Abs();
             var errorCalcEq = (1 - ratioCalcEq).Abs();
             var errorSample = (1 - ratioSample).Abs();
+
+            Report.Line("Specified LumFlux: " + data.LumFlux);
+            Report.Line("Calculated LumFlux (Sampling/Reference): " + lumFluxSample); // assuming sampling is unbiased and data transformation works as intented
+            Report.Line("Calculated LumFlux (Segments): " + lumFluxCalc);
+            Report.Line("Calculated LumFlux (EqDistPoints): " + lumFluxCalcEq);
 
             var better = errorCalc < errorCalcEq ? "Calc" : "CalcEq";
             Report.Line("{0} Calculation More Accurate [Calc Error={1:0.00}%, CalcEq Error={2:0.00}% Sample={3:0.00}%", better, errorCalc * 100, errorCalcEq * 100, errorSample * 100);

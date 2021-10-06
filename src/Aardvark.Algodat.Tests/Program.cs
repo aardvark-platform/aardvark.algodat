@@ -1557,7 +1557,9 @@ namespace Aardvark.Geometry.Tests
             //new Aardvark.Physics.Sky.SkyTests().DuskDawnTest();
             //new Aardvark.Physics.Sky.SkyTests().DuskDawnTest2();
             //new Aardvark.Physics.Sky.SkyTests().HorizonTest();
-            new Aardvark.Physics.Sky.SkyTests().TwilightTimesTest();
+            //new Aardvark.Physics.Sky.SkyTests().TwilightTimesTest();
+
+            new Aardvark.Data.Photometry.PhotometryTest().LumFluxTest();
 
             //Test_20210422_EnumerateInlinedFromFilteredNode();
 
