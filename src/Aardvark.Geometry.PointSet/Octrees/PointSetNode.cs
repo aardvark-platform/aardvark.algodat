@@ -666,12 +666,31 @@ namespace Aardvark.Geometry.Points
         [JsonIgnore]
         public bool HasColors =>
             Data.ContainsKey(Durable.Octree.Colors4bReference) ||
-            Data.ContainsKey(Durable.Octree.Colors4b)
+            Data.ContainsKey(Durable.Octree.Colors4b) ||
+            Data.ContainsKey(Durable.Octree.Colors3bReference) ||
+            Data.ContainsKey(Durable.Octree.Colors3b)
             ;
 
         /// <summary></summary>
         [JsonIgnore]
-        public Guid? ColorsId => Data.TryGetValue(Durable.Octree.Colors4bReference, out var id) ? (Guid?)id : null;
+        public Guid? ColorsId
+        {
+            get
+            {
+                if (Data.TryGetValue(Durable.Octree.Colors4bReference, out var id4b))
+                {
+                    return (Guid?)id4b;
+                }
+                else if (Data.TryGetValue(Durable.Octree.Colors3bReference, out var id3b))
+                {
+                    return (Guid?)id3b;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+        }
 
         /// <summary>
         /// Point colors, or null if no points.
@@ -688,6 +707,19 @@ namespace Aardvark.Geometry.Points
                 else if (Data.TryGetValue(Durable.Octree.Colors4b, out o))
                 {
                     var xs = (C4b[])o;
+                    return new PersistentRef<C4b[]>(Guid.Empty, _ => xs, _ => (true, xs));
+                }
+                else if (PersistentRefs.TryGetValue(Durable.Octree.Colors3bReference, out o) && ((PersistentRef<C3b[]>)o).Id != GuidEmptyString)
+                {
+                    // convert on the fly ...
+                    var pref = (PersistentRef<C3b[]>)o;
+                    var xs = pref.Value.Map(c => new C4b(c));
+                    return new PersistentRef<C4b[]>(Guid.Empty, _ => xs, _ => (true, xs));
+                }
+                else if (Data.TryGetValue(Durable.Octree.Colors3b, out o))
+                {
+                    // convert on the fly
+                    var xs = ((C3b[])o).Map(c => new C4b(c));
                     return new PersistentRef<C4b[]>(Guid.Empty, _ => xs, _ => (true, xs));
                 }
                 else
