@@ -104,6 +104,7 @@ namespace Aardvark.Data.Points
 
             var sw = new Stopwatch(); sw.Start();
 
+            var ts = new List<Task>();
             foreach (var item in items)
             {
                 ct.ThrowIfCancellationRequested();
@@ -111,7 +112,7 @@ namespace Aardvark.Data.Points
                 queueSemapore.Wait();
                 ct.ThrowIfCancellationRequested();
                 Interlocked.Increment(ref inFlightCount);
-                Task.Run(() =>
+                ts.Add(Task.Run(() =>
                 {
                     try
                     {
@@ -124,7 +125,7 @@ namespace Aardvark.Data.Points
                         Interlocked.Decrement(ref inFlightCount);
                         queueSemapore.Release();
                     }
-                });
+                }));
 
                 while (queue.TryDequeue(out R? r)) { ct.ThrowIfCancellationRequested(); yield return r; }
             }
@@ -134,6 +135,8 @@ namespace Aardvark.Data.Points
                 while (queue.TryDequeue(out R? r)) { ct.ThrowIfCancellationRequested(); yield return r; }
                 Task.Delay(100).Wait();
             }
+
+            Task.WaitAll(ts.ToArray());
 
             sw.Stop();
             onFinish?.Invoke(sw.Elapsed);

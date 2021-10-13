@@ -1544,8 +1544,36 @@ namespace Aardvark.Geometry.Tests
             Console.WriteLine($"{nodes.Length}");
         }
 
+        internal static void Test_20211013_log2int()
+        {
+            //var bb = new Box3d(new V3d(-7163.84, 256990.58, 702.67), new V3d(-7146.66, 257016.8, 717.04));
+            //var c = new Cell(-224, 8030, 21, 5);
+            //Console.WriteLine(new Cell(bb));
+            //Console.WriteLine(c.BoundingBox);
+            //Console.WriteLine(c.BoundingBox.Contains(bb));
+            //return;
+
+            var filename = @"W:\Datasets\Vgm\Data\2021-10-13_test_rmDATA\außen_bereinigt.laz";
+            var store = new SimpleDiskStore(@"T:\tmp\test20211013log2int.uds");
+            var config = ImportConfig.Default
+                .WithStorage(store.ToPointCloudStore())
+                .WithVerbose(true)
+                .WithMaxDegreeOfParallelism(1)
+                .WithMinDist(0.005)
+                .WithNormalizePointDensityGlobal(false)
+                ;
+
+            Report.BeginTimed($"importing");
+            var ps = PointCloud.Import(filename, config);
+            Report.EndTimed();
+
+            Report.Line($"#points: {ps.PointCount}");
+        }
+
         public static void Main(string[] _)
         {
+            Test_20211013_log2int();
+
             //Test_20210904();
 
             //TestDuplicatePoints();
@@ -1559,7 +1587,7 @@ namespace Aardvark.Geometry.Tests
             //new Aardvark.Physics.Sky.SkyTests().HorizonTest();
             //new Aardvark.Physics.Sky.SkyTests().TwilightTimesTest();
 
-            new Aardvark.Data.Photometry.PhotometryTest().LumFluxTest();
+            //new Aardvark.Data.Photometry.PhotometryTest().LumFluxTest();
 
             //Test_20210422_EnumerateInlinedFromFilteredNode();
 
