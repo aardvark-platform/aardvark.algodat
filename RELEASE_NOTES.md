@@ -1,3 +1,14 @@
+### 5.1.16
+- updated build script
+- more twilight time calculations
+- fixed intensity distribution of LightMeasurementData when importing LDTs with absolute measurements
+- cleanup fix + validation
+- PointSetNode: add support for Durable.Octree.Colors3b and Durable.Octree.Colors3bReference
+  - if no C4b colors exists, then C3b colors will be used if available (on-the-fly conversion)
+- paket update (to get rid of missing method exceptions)
+- EnumerableExtensions.MapParallel no longer swallows exceptions
+- update Aardvark.Base to 5.1.18
+  - fixes cell construction from boxes introduced by log2int fix
 ### 5.1.15
 - fixed `IPointCloudNode.ConvertToInline(...)`,
   which failed to include subnode-ids for inner nodes in the non-collapse case
