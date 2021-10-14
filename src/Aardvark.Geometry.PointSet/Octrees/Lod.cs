@@ -83,7 +83,9 @@ namespace Aardvark.Geometry.Points
                 var dj = (jmax + 0.49) / counts[ci];
                 for (var j = 0.0; j < jmax; j += dj)
                 {
-                    rs[i++] = new V3f((V3d)xs[(int)j] + c - center);
+                    var _p = new V3f((V3d)xs[(int)j] + c - center);
+                    //if (_p.IsNaN) throw new Exception("Position is NaN.");
+                    rs[i++] = _p;
                 }
             }
             return rs;
@@ -326,6 +328,7 @@ namespace Aardvark.Geometry.Points
                 // ... positions ...
                 var subcenters = subcells.Map(x => x?.Center);
                 var lodPs = AggregateSubPositions(counts, aggregateCount, self.Center, subcenters, subcells.Map(x => x?.Positions?.Value));
+                if (lodPs.Any(p => p.IsNaN)) throw new Exception("One or more positions are NaN.");
                 var lodPsKey = Guid.NewGuid();
                 store.Add(lodPsKey, lodPs);
                 upsertData = upsertData

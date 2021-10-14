@@ -12,7 +12,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Data.Points;
-using System.Linq;
 
 namespace Aardvark.Geometry.Points
 {

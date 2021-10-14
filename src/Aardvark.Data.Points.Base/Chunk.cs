@@ -228,6 +228,8 @@ namespace Aardvark.Data.Points
                 colors = new C4b[positions.Count];
             }
 
+            //if (positions.Any(p => p.IsNaN)) throw new ArgumentException("One or more positions are NaN.");
+
             Positions       = positions;
             Colors          = colors             != null && colors.Count          > 0 ? colors          : null;
             Normals         = normals            != null && normals.Count         > 0 ? normals         : null;

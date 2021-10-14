@@ -1553,21 +1553,49 @@ namespace Aardvark.Geometry.Tests
             //Console.WriteLine(c.BoundingBox.Contains(bb));
             //return;
 
-            var filename = @"W:\Datasets\Vgm\Data\2021-10-13_test_rmDATA\außen_bereinigt.laz";
-            var store = new SimpleDiskStore(@"T:\tmp\test20211013log2int.uds");
-            var config = ImportConfig.Default
-                .WithStorage(store.ToPointCloudStore())
-                .WithVerbose(true)
-                .WithMaxDegreeOfParallelism(1)
-                .WithMinDist(0.005)
-                .WithNormalizePointDensityGlobal(false)
-                ;
+            var basedir = @"W:\Datasets\Vgm\Data\2021-10-13_test_rmDATA";
+            var storeFileName = @"T:\tmp\test20211013log2int.uds";
 
-            Report.BeginTimed($"importing");
-            var ps = PointCloud.Import(filename, config);
-            Report.EndTimed();
+            if (File.Exists(storeFileName)) File.Delete(storeFileName);
+            var store = new SimpleDiskStore(storeFileName);
+            var filenames = Directory.GetFiles(basedir);
 
-            Report.Line($"#points: {ps.PointCount}");
+            var results = new List<(string filename, PointSet pointset)>();
+
+            foreach (var filename in filenames)
+            {
+                var config = ImportConfig.Default
+                    .WithStorage(store.ToPointCloudStore())
+                    .WithKey(Path.GetFileName(filename).ToMd5Hash())
+                    .WithVerbose(true)
+                    .WithMaxDegreeOfParallelism(0)
+                    .WithMinDist(0.005)
+                    .WithNormalizePointDensityGlobal(true)
+                    ;
+
+                Report.BeginTimed($"importing");
+                var ps = PointCloud.Import(filename, config);
+                results.Add((filename, ps));
+                Report.EndTimed();
+            }
+
+            Report.Line();
+            Report.Begin("results");
+            foreach (var (filename, ps) in results)
+            {
+                var root = ps.Root.Value;
+                Report.Line();
+                Report.Begin($"{filename}");
+                Report.Line($"Id                          = {ps.Id}");
+                Report.Line($"PointCount                  = {ps.PointCount:N0}");
+                Report.Line($"root.Id                     = {root.Id}");
+                Report.Line($"root.Cell                   = {root.Cell}");
+                Report.Line($"root.BoundingBoxExactGlobal = {root.BoundingBoxExactGlobal}");
+                Report.Line($"root.CentroidLocal          = {root.CentroidLocal}");
+                Report.Line($"root.CentroidLocalStdDev    = {root.CentroidLocalStdDev}");
+                Report.End();
+            }
+            Report.End();
         }
 
         public static void Main(string[] _)

@@ -22,9 +22,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Threading;
 
 namespace Aardvark.Geometry.Points
 {
@@ -106,6 +104,7 @@ namespace Aardvark.Geometry.Points
 
             var bboxCell = Cell.BoundingBox;
             Center = bboxCell.Center;
+            //if (Center.IsNaN) throw new Exception("NaN.");
             Corners = bboxCell.ComputeCorners();
 
 #if DEBUG && NEVERMORE
@@ -903,6 +902,7 @@ namespace Aardvark.Geometry.Points
             foreach(var p in ps)
             {
                 var pd = (V3d)p;
+                //Debug.Assert(!pd.IsNaN);
                 sum += pd;
                 sumSq += pd.LengthSquared;
             }
