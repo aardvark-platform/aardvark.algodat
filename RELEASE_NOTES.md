@@ -1,3 +1,7 @@
+### 5.1.17
+- update Aardvark.Base to 5.1.19
+  - fixes cell construction from boxes (a little more) introduced by log2int fix
+
 ### 5.1.16
 - updated build script
 - more twilight time calculations
