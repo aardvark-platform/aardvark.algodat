@@ -16,10 +16,11 @@ namespace Aardvark.Data.Photometry
         {
             var ldtC1 = new LDTData()
             {
-                LampSets = new LDTLampData[0],
+                LampSets = new LDTLampData() { TotalFlux = 1000, Number = 1 }.IntoArray(),
                 HorizontalAngles = new double[] { 0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330 },
                 VerticleAngles = new double[] {0, 45, 90, 135, 180 },
                 VertAngleStep = 45,
+                LightOutputRatioLuminaire = 100,
                 Symmetry = LDTSymmetry.C1,
                 Data = new Matrix<double>(5, 7).SetByCoord((x, y) => y),
             };
@@ -30,10 +31,11 @@ namespace Aardvark.Data.Photometry
 
             var ldtQuarter = new LDTData()
             {
-                LampSets = new LDTLampData[0],
+                LampSets = new LDTLampData() { TotalFlux = 1000, Number = 1 }.IntoArray(),
                 HorizontalAngles = new double[] { 0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330 },
                 VerticleAngles = new double[] { 0, 45, 90, 135, 180 },
                 VertAngleStep = 45,
+                LightOutputRatioLuminaire = 100,
                 Symmetry = LDTSymmetry.Quarter,
                 Data = new Matrix<double>(5, 4).SetByCoord((x, y) => y),
             };
