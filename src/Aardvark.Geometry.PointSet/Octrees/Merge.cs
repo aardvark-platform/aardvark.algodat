@@ -17,6 +17,7 @@ using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
 
 namespace Aardvark.Geometry.Points
@@ -250,7 +251,7 @@ namespace Aardvark.Geometry.Points
                 CollectEverything(a, psla, csla, nsla, jsla, ksla);
                 CollectEverything(b, psla, csla, nsla, jsla, ksla);
 
-                var cell = ParentCell(a.Cell, b.Cell);
+                var cell = new Cell(a.Cell, b.Cell);
                 var chunk = new Chunk(
                     psla.Count > 0 ? psla : null,
                     csla.Count > 0 ? csla : null,
@@ -324,7 +325,7 @@ namespace Aardvark.Geometry.Points
             // if A and B do not intersect ...
             if (!a.Cell.Intersects(b.Cell))
             {
-                var rootCell = new Cell(new Box3d(a.BoundingBoxExactGlobal, b.BoundingBoxExactGlobal));
+                var rootCell = new Cell(a.Cell, b.Cell);
                 var result = JoinNonOverlappingTrees(rootCell, a, b, pointsMergedCallback, config);
 //#if DEBUG
 //                if (!config.NormalizePointDensityGlobal && result.PointCountTree != totalPointCountTree) throw new InvalidOperationException();
@@ -384,8 +385,7 @@ namespace Aardvark.Geometry.Points
                 }
 
                 // common case: multiple parts
-                var rootCellBounds = new Box3d(a.Cell.BoundingBox, b.Cell.BoundingBox);
-                var rootCell = new Cell(rootCellBounds);
+                var rootCell = new Cell(a.Cell, b.Cell);
                 var roots = new IPointCloudNode[8];
 
                 static int octant(Cell x)
@@ -398,24 +398,29 @@ namespace Aardvark.Geometry.Points
                 {
                     var oi = octant(x.Cell);
                     var oct = rootCell.GetOctant(oi);
+                    IPointCloudNode r = null;
                     if (roots[oi] == null)
                     {
                         if (x.Cell != oct)
                         {
                             if (!oct.Contains(x.Cell)) throw new InvalidOperationException();
-                            roots[oi] = JoinTreeToRootCell(oct, x, config);
+                            r = JoinTreeToRootCell(oct, x, config);
+                            if (oct != r.Cell) throw new InvalidOperationException();
                         }
                         else
                         {
-                            roots[oi] = x;
+                            r = x;
+                            if (oct != r.Cell) throw new InvalidOperationException();
                         }
                     }
                     else
                     {
-                        roots[oi] = Merge(roots[oi], x, pointsMergedCallback, config).Item1;
+                        r = Merge(roots[oi], x, pointsMergedCallback, config).Item1;
+                        if (oct != r.Cell) throw new InvalidOperationException();
                     }
 
-                    if (oct != roots[oi].Cell) throw new InvalidOperationException();
+                    if (oct != r.Cell) throw new InvalidOperationException();
+                    roots[oi] = r;
                 }
 
                 var pointCountTreeLeafs = roots.Where(x => x != null).Sum(x => x.PointCountTree);
@@ -684,28 +689,6 @@ namespace Aardvark.Geometry.Points
             }
 
 #endregion
-        }
-
-        private static Cell ParentCell(Cell a, Cell b)
-        {
-            return new Cell(Box.Union(a.BoundingBox, b.BoundingBox));
-            //if (a == b) return a;
-            //if (a.IsCenteredAtOrigin && b.IsCenteredAtOrigin)  return new Cell(Fun.Max(a.Exponent, b.Exponent));
-
-            //var oa = new V3i(Math.Sign(a.X + 0.5), Math.Sign(a.Y + 0.5), Math.Sign(a.Z + 0.5));
-            //var ob = new V3i(Math.Sign(b.X + 0.5), Math.Sign(b.Y + 0.5), Math.Sign(b.Z + 0.5));
-
-            //if(oa == ob)
-            //{
-            //    if (b.Exponent < a.Exponent) return ParentCell(b.Parent, a);
-            //    else if (a.Exponent < b.Exponent) return ParentCell(a.Parent, b);
-            //    else return ParentCell(a.Parent, b.Parent);
-            //}
-            //else
-            //{
-            //    return new Cell()
-            //}
-
         }
 
         internal static IPointCloudNode JoinTreeToRootCell(Cell rootCell, IPointCloudNode a, ImportConfig config, bool collapse = true)

@@ -1546,6 +1546,8 @@ namespace Aardvark.Geometry.Tests
 
         internal static void Test_20211013_log2int()
         {
+            Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+
             //var bb = new Box3d(new V3d(-7163.84, 256990.58, 702.67), new V3d(-7146.66, 257016.8, 717.04));
             //var c = new Cell(-224, 8030, 21, 5);
             //Console.WriteLine(new Cell(bb));
@@ -1553,38 +1555,87 @@ namespace Aardvark.Geometry.Tests
             //Console.WriteLine(c.BoundingBox.Contains(bb));
             //return;
 
-            var basedir = @"W:\Datasets\Vgm\Data\2021-10-13_test_rmDATA";
-            var storeFileName = @"T:\tmp\test20211013log2int.uds";
+            //var basedir = @"W:\Datasets\Vgm\Data\2021-10-13_test_rmDATA";
+            var basedir = @"W:\Datasets\Vgm\Data";
+            var storeFileName = @"W:\tmp\test20211013log2int.uds";
 
             if (File.Exists(storeFileName)) File.Delete(storeFileName);
             var store = new SimpleDiskStore(storeFileName);
-            var filenames = Directory.GetFiles(basedir);
+            var filepaths = Directory.GetFiles(basedir, "*.*", SearchOption.AllDirectories);
+            var files = new Dictionary<string, string>();
+            foreach (var filepath in filepaths)
+            {
+                var ext = Path.GetExtension(filepath).ToLower();
+                if (ext != ".pts" && ext != ".e57" && ext != ".las" && ext != ".laz") continue;
+                files[Path.GetFileName(filepath)] = filepath;
+            }
+            var filenames = files.Values.OrderBy(x => Path.GetFileName(x)).ToArray();
 
             var results = new List<(string filename, PointSet pointset)>();
+            var sw = new Stopwatch();
 
             foreach (var filename in filenames)
             {
-                var config = ImportConfig.Default
-                    .WithStorage(store.ToPointCloudStore())
-                    .WithKey(Path.GetFileName(filename).ToMd5Hash())
-                    .WithVerbose(true)
-                    .WithMaxDegreeOfParallelism(0)
-                    .WithMinDist(0.005)
-                    .WithNormalizePointDensityGlobal(true)
+                try
+                {
+                    if (new FileInfo(filename).Length > 8L * 1024 * 1024 * 1024) continue;
+
+                    var config = ImportConfig.Default
+                        .WithStorage(store.ToPointCloudStore())
+                        .WithKey(Path.GetFileName(filename).ToMd5Hash())
+                        .WithVerbose(false)
+                        .WithMaxDegreeOfParallelism(0)
+                        .WithMinDist(0.005)
+                        .WithNormalizePointDensityGlobal(true)
+                        .WithProgressCallback(x =>
+                        {
+                            var col = Console.CursorLeft;
+                            Console.Write($"\r{100.0 * x,6:N2}%");
+                        });
                     ;
 
-                Report.BeginTimed($"importing");
-                var ps = PointCloud.Import(filename, config);
-                results.Add((filename, ps));
-                Report.EndTimed();
+                    //Report.BeginTimed($"importing {filename}");
+                    //Report.Line($"");
+                    Console.BackgroundColor = ConsoleColor.Blue;
+                    Console.ForegroundColor = ConsoleColor.Black;
+                    Console.WriteLine($"{Path.GetFileName(filename)}");
+                    Console.ResetColor();
+                    sw.Restart();
+                    var ps = PointCloud.Import(filename, config);
+                    var root = ps.Root.Value;
+                    sw.Stop();
+                    results.Add((filename, ps));
+                    //PrintInfo(filename, ps);
+                    Console.WriteLine($"\r{sw.Elapsed.TotalSeconds,10:N2}s     {root.PointCountTree,16:N0}     {root.Id}     {ToNiceString(root.Cell)}    {root.BoundingBoxExactGlobal:0.000}");
+                    //Report.EndTimed();
+                }
+                catch (Exception e)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine(e);
+                    Console.ResetColor();
+                }
             }
 
+            Report.Line();
+            Report.Line("===================================================================");
             Report.Line();
             Report.Begin("results");
             foreach (var (filename, ps) in results)
             {
-                var root = ps.Root.Value;
                 Report.Line();
+                PrintInfo(filename, ps);
+            }
+            Report.End();
+
+            static string ToNiceString(Cell c)
+            {
+                if (c.IsCenteredAtOrigin) return $"[{"-",6}, {"-",6}, {"-",6}, {c.Exponent,6}]";
+                return $"[{c.X,6}, {c.Y,6}, {c.Z,6}, {c.Exponent,6}]";
+            }
+            static void PrintInfo(string filename, PointSet ps)
+            {
+                var root = ps.Root.Value;
                 Report.Begin($"{filename}");
                 Report.Line($"Id                          = {ps.Id}");
                 Report.Line($"PointCount                  = {ps.PointCount:N0}");
@@ -1595,7 +1646,6 @@ namespace Aardvark.Geometry.Tests
                 Report.Line($"root.CentroidLocalStdDev    = {root.CentroidLocalStdDev}");
                 Report.End();
             }
-            Report.End();
         }
 
         public static void Main(string[] _)

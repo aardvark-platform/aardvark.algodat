@@ -7,10 +7,10 @@ source https://vrvis.myget.org/F/aardvark_public/api/v2
 nuget FSharp.Core                       >= 4.7.0 lowest_matching: true
 
 // aardvark.base
-nuget Aardvark.Base                     ~> 5.1.19
-nuget Aardvark.Geometry                 ~> 5.1.19
-nuget Aardvark.Base.IO                  ~> 5.1.19
-nuget Aardvark.Base.Tensors             ~> 5.1.19
+nuget Aardvark.Base                     ~> 5.1.20
+nuget Aardvark.Geometry                 ~> 5.1.20
+nuget Aardvark.Base.IO                  ~> 5.1.20
+nuget Aardvark.Base.Tensors             ~> 5.1.20
 
 // aardvark.rendering
 nuget Aardvark.Rendering                ~> 5.1.12
