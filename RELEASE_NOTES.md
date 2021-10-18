@@ -1,3 +1,7 @@
+### 5.1.18
+- update Aardvark.Base 5.1.20
+- fixed octree merge
+
 ### 5.1.17
 - update Aardvark.Base to 5.1.19
   - fixes cell construction from boxes (a little more) introduced by log2int fix
