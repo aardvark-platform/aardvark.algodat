@@ -107,6 +107,19 @@ namespace Aardvark.Geometry.Points
             //if (Center.IsNaN) throw new Exception("NaN.");
             Corners = bboxCell.ComputeCorners();
 
+#if DEBUG
+            if (PositionsAbsolute != null) // if not PointSetNode.Empty
+            {
+                // Invariant: bounding box of global positions MUST BE CONTAINED within bounding box of node cell
+                var bb = new Box3d(PositionsAbsolute);
+                if (!Cell.BoundingBox.Contains(bb)) throw new Exception($"Invariant 71e949d7-21b1-4150-bfe3-337db52c4c7d.");
+
+                // Invariant: cell of bounding box of global positions MUST EQUAL node cell
+                var bbCell = new Cell(bb);
+                if (Cell != bbCell) throw new InvalidOperationException($"Invariant 7564f5b1-1b70-45cf-bfbe-5c955b90d1fe.");
+            }
+#endif
+
 #if DEBUG && NEVERMORE
             if (isObsoleteFormat)
             {
@@ -114,7 +127,7 @@ namespace Aardvark.Geometry.Points
             }
 #endif
 
-#region Subnodes
+            #region Subnodes
 
             if (Data.TryGetValue(Durable.Octree.SubnodesGuids, out object o) && o is Guid[] subNodeIds)
             {
@@ -125,27 +138,11 @@ namespace Aardvark.Geometry.Points
                     var pRef = new PersistentRef<IPointCloudNode>(subNodeIds[i].ToString(), storage.GetPointCloudNode, storage.TryGetPointCloudNode);
                     Subnodes[i] = pRef;
 
-#if DEBUG && NEVERMORE
-                    // ensure that child cells have correct exponent (one less)
-                    if (pRef.Value.Cell.Exponent + 1 != Cell.Exponent) throw new InvalidOperationException("Invariant a5308834-2509-4af5-8986-c717da792611.");
+#if DEBUG
+                    // Invariant: child cells MUST be direct sub-cells
+                    if (pRef.Value.Cell != this.Cell.GetOctant(i)) throw new InvalidOperationException("Invariant a5308834-2509-4af5-8986-c717da792611.");
 #endif
                 }
-
-#if DEBUG
-                //var n0count = 0;
-                //var n1count = 0;
-                //foreach (var n in Subnodes)
-                //{
-                //    if (n == null) continue;
-                //    if (n.Value.HasNormals) n1count++; else n0count++;
-                //}
-                //if (n0count > 0 && n1count > 0)
-                //{
-                //    var foo1 = Subnodes.Map(n => n?.Value?.HasNormals);
-                //    var foo2 = Subnodes.Map(n => n?.Value?.IsLeaf);
-                //    throw new Exception();
-                //}
-#endif
             }
             else
             {

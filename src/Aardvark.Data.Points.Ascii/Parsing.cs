@@ -15,6 +15,7 @@ using Aardvark.Base;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 
 namespace Aardvark.Data.Points
@@ -142,39 +143,43 @@ namespace Aardvark.Data.Points
             var totalBytesRead = 0L;
             var bounds = Box3d.Invalid;
 
-            var result = buffers.MapParallel((buffer, ct2) =>
-            {
-                var optionalSamples = parser(buffer.Data, buffer.Count, minDist);
-                if (optionalSamples == null) return Chunk.Empty;
-                var samples = optionalSamples;
-                bounds.ExtendBy(new Box3d(samples.Positions));
-                Interlocked.Add(ref sampleCount, samples.Count);
-                var r = new Chunk(samples.Positions, samples.Colors, samples.Normals, samples.Intensities, samples.Classifications, samples.BoundingBox);
+            var result = buffers
 
-                Interlocked.Add(ref sampleCountYielded, r.Count);
-                Interlocked.Add(ref totalBytesRead, buffer.Count);
-                stats.ReportProgress(totalBytesRead);
+                .MapParallel((buffer, ct2) =>
+                    {
+                        var optionalSamples = parser(buffer.Data, buffer.Count, minDist);
+                        if (optionalSamples == null) return Chunk.Empty;
+                        var samples = optionalSamples;
+                        bounds.ExtendBy(new Box3d(samples.Positions));
+                        Interlocked.Add(ref sampleCount, samples.Count);
+                        var r = new Chunk(samples.Positions, samples.Colors, samples.Normals, samples.Intensities, samples.Classifications, samples.BoundingBox);
+
+                        Interlocked.Add(ref sampleCountYielded, r.Count);
+                        Interlocked.Add(ref totalBytesRead, buffer.Count);
+                        stats.ReportProgress(totalBytesRead);
                 
-                if (verbose) Console.WriteLine(
-                    $"[Parsing] processed {totalBytesRead * PER_GiB:0.000} GiB at {stats.MiBsPerSecond:0.00} MiB/s"
-                    );
+                        if (verbose) Console.WriteLine(
+                            $"[Parsing] processed {totalBytesRead * PER_GiB:0.000} GiB at {stats.MiBsPerSecond:0.00} MiB/s"
+                            );
 
-                return r;
-            },
-            maxLevelOfParallelism,
-            elapsed =>
-            {
-                if (verbose)
-                {
-                    Console.WriteLine($"[Parsing] summary: processed {sumOfAllBufferSizesInBytes} bytes in {elapsed.TotalSeconds:0.00} secs");
-                    Console.WriteLine($"[Parsing] summary: with average throughput of {sumOfAllBufferSizesInBytes * PER_MiB / elapsed.TotalSeconds:0.00} MiB/s");
-                    Console.WriteLine($"[Parsing] summary: parsed  {sampleCount} point samples");
-                    Console.WriteLine($"[Parsing] summary: yielded {sampleCountYielded} point samples");
-                    Console.WriteLine($"[Parsing] summary: bounding box is {bounds}");
-                }
-            }, ct)
-            .WhereNotNull()
-            ;
+                        return r;
+                    },
+                    maxLevelOfParallelism,
+                    elapsed =>
+                    {
+                        if (verbose)
+                        {
+                            Console.WriteLine($"[Parsing] summary: processed {sumOfAllBufferSizesInBytes} bytes in {elapsed.TotalSeconds:0.00} secs");
+                            Console.WriteLine($"[Parsing] summary: with average throughput of {sumOfAllBufferSizesInBytes * PER_MiB / elapsed.TotalSeconds:0.00} MiB/s");
+                            Console.WriteLine($"[Parsing] summary: parsed  {sampleCount} point samples");
+                            Console.WriteLine($"[Parsing] summary: yielded {sampleCountYielded} point samples");
+                            Console.WriteLine($"[Parsing] summary: bounding box is {bounds}");
+                        }
+                    }, ct)
+
+                .Where(c => c != null && c.Count > 0)
+
+                ;
 
             return result;
         }

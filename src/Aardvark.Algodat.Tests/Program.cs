@@ -1574,11 +1574,15 @@ namespace Aardvark.Geometry.Tests
             var results = new List<(string filename, PointSet pointset)>();
             var sw = new Stopwatch();
 
+            var lineDefSitzungssaal = new[] { Ascii.Token.PositionX, Ascii.Token.PositionY, Ascii.Token.PositionZ, Ascii.Token.ColorR, Ascii.Token.ColorG, Ascii.Token.ColorB };
+            filenames = filenames/*.Where(x => x.Contains("Betriebsgebäude.e57"))*/.ToArray();
+
             foreach (var filename in filenames)
             {
                 try
                 {
-                    if (new FileInfo(filename).Length > 8L * 1024 * 1024 * 1024) continue;
+                    var fileinfo = new FileInfo(filename);
+                    if (fileinfo.Length > 8L * 1024 * 1024 * 1024) continue;
 
                     var config = ImportConfig.Default
                         .WithStorage(store.ToPointCloudStore())
@@ -1598,10 +1602,13 @@ namespace Aardvark.Geometry.Tests
                     //Report.Line($"");
                     Console.BackgroundColor = ConsoleColor.Blue;
                     Console.ForegroundColor = ConsoleColor.Black;
-                    Console.WriteLine($"{Path.GetFileName(filename)}");
+                    Console.WriteLine($"[{DateTimeOffset.Now}] {Path.GetFileName(filename),-60} {fileinfo.Length / (1024.0*1024*1024),4:N3} GiB ");
                     Console.ResetColor();
                     sw.Restart();
-                    var ps = PointCloud.Import(filename, config);
+                    var ps = filename.EndsWith("Sitzungssaal.pts")
+                        ? PointCloud.Import(Ascii.Chunks(filename, lineDefSitzungssaal, config.ParseConfig), config)
+                        : PointCloud.Import(filename, config)
+                        ;
                     var root = ps.Root.Value;
                     sw.Stop();
                     results.Add((filename, ps));

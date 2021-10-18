@@ -77,7 +77,31 @@ namespace Aardvark.Geometry.Points
                 var jsla = new List<int>();
                 var ksla = new List<byte>();
                 var leaves = CollectEverything(self, psla, csla, nsla, jsla, ksla);
-                
+
+                // positions might be slightly (~eps) outside this node's bounds,
+                // due to floating point conversion from local sub-node space to global space
+                var bb = self.BoundingBoxExactGlobal;
+                var eps = bb.Size * 1e-7;
+                for (var i = 0; i < psla.Count; i++)
+                {
+                    var p = psla[i];
+                    if (p.X <= bb.Min.X) { if (!p.X.ApproximateEquals(bb.Min.X, eps.X)) throw new Exception($"Invariant 4840fe92-02df-4b9a-8233-18edb12656f9."); p.X = bb.Min.X + eps.X; }
+                    if (p.Y <= bb.Min.Y) { if (!p.Y.ApproximateEquals(bb.Min.Y, eps.Y)) throw new Exception($"Invariant 942019a9-cb0d-476c-bfb8-69a2bde8debf."); p.Y = bb.Min.Y + eps.Y; }
+                    if (p.Z <= bb.Min.Z) { if (!p.Z.ApproximateEquals(bb.Min.Z, eps.Z)) throw new Exception($"Invariant 68fd4c9e-6de1-4a43-91ae-fec4a9fb28df."); p.Z = bb.Min.Z + eps.Z; }
+                    if (p.X >= bb.Max.X) { if (!p.X.ApproximateEquals(bb.Max.X, eps.X)) throw new Exception($"Invariant a24f717c-19d9-46eb-9cf5-b1f6d928963a."); p.X = bb.Max.X - eps.X; }
+                    if (p.Y >= bb.Max.Y) { if (!p.Y.ApproximateEquals(bb.Max.Y, eps.Y)) throw new Exception($"Invariant fd8aaa89-43d3-428c-9d95-a62bf5a41b07."); p.Y = bb.Max.Y - eps.Y; }
+                    if (p.Z >= bb.Max.Z) { if (!p.Z.ApproximateEquals(bb.Max.Z, eps.Z)) throw new Exception($"Invariant 9905f569-16d0-4e46-8ae2-147aeb6e7acc."); p.Z = bb.Max.Z - eps.Z; }
+                    psla[i] = p;
+                }
+                var bbNew = new Box3d(psla);
+
+#if DEBUG
+                {
+                    // Invariant: bounding box of collected positions MUST be contained in original trees bounding box
+                    if (!self.BoundingBoxExactGlobal.Contains(new Box3d(psla))) throw new Exception($"Invariant 0fdad697-b315-45b2-a581-49db8c46e20e.");
+                }
+#endif
+
                 if (leaves <= 1)
                 {
                     return (self.WriteToStore(), true);
@@ -91,20 +115,43 @@ namespace Aardvark.Geometry.Points
                         jsla.Count > 0 ? jsla : null,
                         ksla.Count > 0 ? ksla : null
                         );
+
                     if (config.NormalizePointDensityGlobal)
                     {
                         chunk = chunk.ImmutableFilterMinDistByCell(self.Cell, config.ParseConfig);
                     }
 
-                    var node = InMemoryPointSet.Build(chunk, config.OctreeSplitLimit);
-                    var psnode = node.ToPointSetNode(self.Storage, isTemporaryImportNode: true);
-                    if (self.Cell != psnode.Cell)
+#if DEBUG
                     {
-                        return (JoinTreeToRootCell(self.Cell, psnode, config, collapse: false), true);
+                        // Invariant: collected and filtered subtree data MUST still have no more points than split limit
+                        if (chunk.Count > config.OctreeSplitLimit) throw new Exception($"Invariant 8d48f48c-9f35-4d14-a9fc-80d33bf94615.");
+                    }
+#endif
+
+                    var inMemory = InMemoryPointSet.Build(chunk, config.OctreeSplitLimit);
+                    var collapsedNode = inMemory.ToPointSetNode(self.Storage, isTemporaryImportNode: true);
+
+#if DEBUG
+                    {
+                        // Invariant: collapsed node's bounding box MUST be contained in original tree's bounding box
+                        if (!self.BoundingBoxExactGlobal/*.EnlargedByRelativeEps(1e-6)*/.Contains(collapsedNode.BoundingBoxExactGlobal))
+                            throw new Exception($"Invariant 0936ab9d-7c4a-4873-86ab-d36deb163716.");
+
+                        // Invariant: original tree's root node cell MUST contain collapsed node's cell 
+                        if (self.Cell != collapsedNode.Cell) throw new Exception($"Invariant 8370ea8c-ba61-42ba-823e-94d596cb5f3f.");
+
+                        // Invariant: collapsed node MUST still be a leaf node
+                        if (collapsedNode.IsNotLeaf) throw new Exception($"Invariant c4f7e0e3-9ad5-4cba-80ee-4b0849a995e6.");
+                    }
+#endif
+
+                    if (self.Cell != collapsedNode.Cell)
+                    {
+                        return (JoinTreeToRootCell(self.Cell, collapsedNode, config, collapse: false), true);
                     }
                     else
                     {
-                        return (psnode, true);
+                        return (collapsedNode, true);
                     }
                 }
             }

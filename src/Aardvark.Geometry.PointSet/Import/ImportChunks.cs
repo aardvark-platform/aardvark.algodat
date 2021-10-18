@@ -30,6 +30,8 @@ namespace Aardvark.Geometry.Points
             var current = default(Chunk);
             foreach(var c in input)
             {
+                if (c.Count == 0) Report.Warn($"[PointCloud.MergeSmall] empty chunk");
+
                 if(c.Count < limit)
                 {
                     if (current != null) current = current.Union(c);
@@ -75,11 +77,21 @@ namespace Aardvark.Geometry.Points
             if (config.Verbose)
             {
                 var chunkCount = 0;
-                chunks = chunks.Do(chunk => { Report.Line($"[PointCloud.Chunks] processing chunk {Interlocked.Increment(ref chunkCount)}"); });
+                chunks = chunks.Do(chunk => 
+                {
+                    if (chunk.Count == 0) Report.Warn($"[PointCloud.Chunks] empty chunk");
+                    Report.Line($"[PointCloud.Chunks] processing chunk {Interlocked.Increment(ref chunkCount)}");
+                });
             }
 
             // deduplicate points
-            chunks = chunks.Select(x => x.ImmutableDeduplicate(config.Verbose));
+            chunks = chunks
+                .Select(x => x.ImmutableDeduplicate(config.Verbose))
+                .Do(chunk =>
+                 {
+                     if (chunk.Count == 0) Report.Warn($"[PointCloud.Chunks] empty chunk");
+                 })
+                ;
 
             // merge small chunks
             chunks = MergeSmall(config.MaxChunkPointCount, chunks);
@@ -92,6 +104,7 @@ namespace Aardvark.Geometry.Points
                     var smallestPossibleCellExponent = Fun.Log2(config.MinDist).Ceiling();
                     chunks = chunks.Select(x =>
                     {
+                        if (x.Count == 0) Report.Warn($"[PointCloud.Chunks] empty chunk");
                         var c = new Cell(x.BoundingBox);
                         while (c.Exponent < smallestPossibleCellExponent) c = c.Parent;
                         return x.ImmutableFilterMinDistByCell(c, config.ParseConfig);
