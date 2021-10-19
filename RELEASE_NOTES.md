@@ -1,3 +1,6 @@
+### 5.1.20
+- merged inline fix
+
 ### 5.1.19
 - enforcing more octree invariants (points on or near border)
 
