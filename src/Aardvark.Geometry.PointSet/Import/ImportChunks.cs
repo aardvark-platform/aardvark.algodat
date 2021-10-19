@@ -84,6 +84,26 @@ namespace Aardvark.Geometry.Points
                 });
             }
 
+            // reproject positions
+            if (config.Reproject != null)
+            {
+                Chunk map(Chunk x, CancellationToken ct)
+                {
+                    if (config.Reproject != null)
+                    {
+                        var ps = config.Reproject(x.Positions);
+                        var y = x.WithPositions(ps);
+                        return y;
+                    }
+                    else
+                    {
+                        return x;
+                    }
+                }
+
+                chunks = chunks.MapParallel(map, config.MaxDegreeOfParallelism, null, config.CancellationToken);
+            }
+
             // deduplicate points
             chunks = chunks
                 .Select(x => x.ImmutableDeduplicate(config.Verbose))
@@ -123,23 +143,6 @@ namespace Aardvark.Geometry.Points
             //Report.BeginTimed("unmix");
             //chunks = chunks.ImmutableUnmixOutOfCore(@"T:\tmp", 1, config);
             //Report.End();
-
-            // reproject positions and/or estimate normals
-            if (config.Reproject != null)
-            {
-                Chunk map(Chunk x, CancellationToken ct)
-                {
-                    if (config.Reproject != null)
-                    {
-                        var ps = config.Reproject(x.Positions);
-                        x = x.WithPositions(ps);
-                    }
-
-                    return x;
-                }
-
-                chunks = chunks.MapParallel(map, config.MaxDegreeOfParallelism, null, config.CancellationToken);
-            }
 
             // reduce all chunks to single PointSet
             if (config.Verbose) Report.BeginTimed("map/reduce");

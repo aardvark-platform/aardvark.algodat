@@ -83,8 +83,8 @@ namespace Aardvark.Geometry.Points
         public C3b[] Colors3b { get; }
 
         public InlinedNode(
-            Guid nodeId, Cell cell, Box3d boundingBoxExactGlobal, 
-            Guid[] subnodesGuids, 
+            Guid nodeId, Cell cell, Box3d boundingBoxExactGlobal,
+            Guid[] subnodesGuids,
             int pointCountCell, long pointCountTreeLeafs,
             V3f[] positionsLocal3f, C3b[] colors3b
             )
@@ -205,6 +205,15 @@ namespace Aardvark.Geometry.Points
             )
             => EnumerateOctreeInlined(storage, key.ToString(), config);
 
+
+        /// <summary>
+        /// Enumerate inlined (self-contained, no external data is referenced) octree nodes.
+        /// </summary>
+        public static InlinedNodes EnumerateOctreeInlined(
+            this PointSet pointset, InlineConfig config
+            )
+            => pointset.Root.Value.EnumerateOctreeInlined(config);
+
         /// <summary>
         /// Enumerate inlined (self-contained, no external data is referenced) octree nodes.
         /// </summary>
@@ -213,21 +222,21 @@ namespace Aardvark.Geometry.Points
             )
         {
             var processedNodeCount = 0L;
-            var totalNodeCount = root.CountNodes(outOfCore: true); 
-            var totalNodeCountD = (double)totalNodeCount;
+            //var totalNodeCount = root.CountNodes(outOfCore: true); 
+            //var totalNodeCountD = (double)totalNodeCount;
             var survive = new HashSet<Guid> { root.Id };
             var nodes = EnumerateRec(root);
 
             var r = nodes.First();
             return new InlinedNodes(
-                config, r, nodes, totalNodeCount
+                config, r, nodes, -1//totalNodeCount
                 );
 
             IEnumerable<InlinedNode> EnumerateRec(IPointCloudNode node)
             {
                 var isLeafNode = node.IsLeaf;
 
-                config.Progress?.Invoke(++processedNodeCount / totalNodeCountD);
+                config.Progress?.Invoke(++processedNodeCount /*/ totalNodeCountD*/);
 
                 if (config.Collapse && isLeafNode && !survive.Contains(node.Id)) yield break;
 
@@ -456,6 +465,7 @@ namespace Aardvark.Geometry.Points
 
                 ps = node.Positions.Value;
                 if (hasColors) cs = node.Colors.Value;
+                if (isNotLeaf) subnodeGuids = subnodes.Map(x => x.HasValue && x.Value.hasValue ? x.Value.value.Id : Guid.Empty);
             }
 
             // fix color array if it has inconsistent length

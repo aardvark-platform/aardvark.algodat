@@ -1525,6 +1525,41 @@ namespace Aardvark.Geometry.Tests
             Report.Line($"#points: {ps.PointCount}");
         }
 
+        internal static void Test_20210621_InlineTransientNodes()
+        {
+            var filename = @"T:\Vgm\Data\JBs_Haus.pts";
+            var storeFolder1 = @"E:\tmp\20210621_1";
+            //var storeFolder2 = @"E:\tmp\20210621_2";
+            var store1 = new SimpleDiskStore(storeFolder1).ToPointCloudStore();
+            //var store2 = new SimpleDiskStore(storeFolder2).ToPointCloudStore();
+
+            var config = ImportConfig.Default
+                .WithStorage(store1)
+                .WithRandomKey()
+                .WithVerbose(true)
+                ;
+
+            Report.BeginTimed("import");
+            var pc = PointCloud.Import(filename, config);
+            var root = pc.Root.Value;
+            store1.Flush();
+            Report.EndTimed();
+
+            // target store for inlined
+            var store1ReadOnly = SimpleDiskStore.OpenReadOnlySnapshot(storeFolder1).ToPointCloudStore();
+            var rootReadOnly = store1ReadOnly.GetPointSet(pc.Id).Root.Value;
+
+            var centroid = root.Center + (V3d)root.CentroidLocal;
+            Console.WriteLine($"root.PointCountTree           : {root.PointCountTree}");
+            Console.WriteLine($"centroid                      : {centroid}");
+            var filter = new Box3d(centroid - new V3d(5, 5, 5), centroid + new V3d(5, 5, 5));
+            Console.WriteLine($"filter                        : {filter}");
+            var f = FilteredNode.CreateTransient(rootReadOnly, new FilterInsideBox3d(filter));
+            
+            Report.BeginTimed("exporting inlined point cloud");
+            store1ReadOnly.EnumerateOctreeInlined(f.Id, new InlineConfig(true, true));
+            Report.End();
+        }
         internal static void Test_20210904()
         {
             var storePath = @"E:\test1\a7b8c6f5-285e-4095-a737-faf4fce94587\store.uds";

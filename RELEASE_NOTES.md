@@ -29,6 +29,9 @@
 - improved clustering performance using ValuesWithKeyEnumerator
 - added typed PlaneEpsilonClustering version
 
+### 5.1.12
+- fix EnumerateOctreeInlined (subnode guids of inlined inner nodes may be dropped in some cases)
+
 ### 5.1.11
 - updated packages
 
