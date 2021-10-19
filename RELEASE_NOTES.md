@@ -1,3 +1,6 @@
+### 5.1.19
+- enforcing more octree invariants (points on or near border)
+
 ### 5.1.18
 - update Aardvark.Base 5.1.20
 - fixed octree merge
