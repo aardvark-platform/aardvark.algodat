@@ -1,5 +1,5 @@
-version 6.0.0-alpha050
-framework: netcoreapp3.1, netstandard2.0
+version 5.257.0
+framework: netstandard2.0, net5.0
 
 source https://api.nuget.org/v3/index.json
 source https://vrvis.myget.org/F/aardvark_public/api/v2
@@ -7,37 +7,37 @@ source https://vrvis.myget.org/F/aardvark_public/api/v2
 nuget FSharp.Core                       >= 4.7.0 lowest_matching: true
 
 // aardvark.base
-nuget Aardvark.Base                     ~> 5.1.20
-nuget Aardvark.Geometry                 ~> 5.1.20
-nuget Aardvark.Base.IO                  ~> 5.1.20
-nuget Aardvark.Base.Tensors             ~> 5.1.20
+nuget Aardvark.Base                     ~> 5.1.21
+nuget Aardvark.Geometry                 ~> 5.1.21
+nuget Aardvark.Base.IO                  ~> 5.1.21
+nuget Aardvark.Base.Tensors             ~> 5.1.21
 
 // aardvark.rendering
-nuget Aardvark.Rendering                ~> 5.1.12
-nuget Aardvark.SceneGraph               ~> 5.1.12
-nuget Aardvark.Application.Utilities    ~> 5.1.12
-nuget Aardvark.Application.Slim         ~> 5.1.12
-nuget Aardvark.Application.Slim.GL      ~> 5.1.12
-nuget Aardvark.Application.Slim.Vulkan  ~> 5.1.12
+nuget Aardvark.Rendering                ~> 5.1.18
+nuget Aardvark.SceneGraph               ~> 5.1.18
+nuget Aardvark.Application.Utilities    ~> 5.1.18
+nuget Aardvark.Application.Slim         ~> 5.1.18
+nuget Aardvark.Application.Slim.GL      ~> 5.1.18
+nuget Aardvark.Application.Slim.Vulkan  ~> 5.1.18
 
-nuget Aardvark.Data.Durable             >= 0.2.19
-nuget Aardvark.Data.Durable.Codec       >= 0.2.19
+nuget Aardvark.Data.Durable             >= 0.2.21
+nuget Aardvark.Data.Durable.Codec       >= 0.2.21
 
 // 3rd-party
 #nuget Crc32C.NET                       ~> 1.0.5
 nuget Newtonsoft.Json                   ~> 12.0.0
-nuget NUnit                             ~> 3.12.0
-nuget NUnit3TestAdapter                 ~> 3.15.1
+nuget NUnit                             ~> 3.13.2
+nuget NUnit3TestAdapter                 ~> 4.1.0
 nuget Uncodium.Eigensystems             ~> 1.1.2
-nuget Uncodium.SimpleStore              ~> 3.0.0-preview.14
-nuget sharpcompress                     ~> 0.24.0
+nuget Uncodium.SimpleStore              ~> 3.0.8
+nuget sharpcompress                     ~> 0.30.0
 
 nuget Unofficial.laszip.netstandard     ~> 2.2.1
 
 nuget FShade                            ~> 5.1.7
 nuget Unofficial.DotSpatial.Projections ~> 0.0.4
 
-nuget Microsoft.NET.Test.Sdk            ~> 16.1.1
+nuget Microsoft.NET.Test.Sdk            ~> 17.0.0
 nuget Nullable                          ~> 1.3.0
 
 nuget Aardworx.Services.PointShare      ~> 0.0.17
@@ -46,4 +46,4 @@ group Build
 framework: netstandard2.0
 source https://api.nuget.org/v3/index.json
 github aardvark-platform/aardvark.fake:v511
-nuget fake-cli ~> 5.20.4-alpha.1642
+nuget fake-cli ~> 5.20.4
