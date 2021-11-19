@@ -1,3 +1,6 @@
+### 5.1.21
+- update dependencies
+
 ### 5.1.20
 - merged inline fix
 
