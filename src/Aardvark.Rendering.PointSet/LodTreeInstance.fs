@@ -93,6 +93,8 @@ module LodTreeInstance =
             Attrib : System.Array
         }
 
+    let vb = Box3d(V3d.NNN, V3d.III)
+
     type PointTreeNode private(
                                 pointCloudId : System.Guid, 
                                 world : obj, 
@@ -459,6 +461,7 @@ module LodTreeInstance =
                                     else
                                         try 
                                             let c = c.Value
+
                                             if isNull c then
                                                 None
                                             else
@@ -490,8 +493,14 @@ module LodTreeInstance =
             load ct ips cache (getCustomIndexedAttributes self level) self globalTrafo localBounds level
             
         member x.ShouldSplit (splitfactor : float, quality : float, view : Trafo3d, proj : Trafo3d) =
-            not isLeaf && equivalentAngle60 view proj > splitfactor / quality
-
+            if isOrtho proj then 
+                let vp = view * proj
+                let bb = localBounds.Transformed(vp)
+                let overlap = bb.Intersection(vb)
+                overlap.IsValid && (not isLeaf && equivalentAngle60 view proj > splitfactor / quality)
+            else
+                not isLeaf && equivalentAngle60 view proj > splitfactor / quality
+            
         member x.ShouldCollapse (splitfactor : float, quality : float, view : Trafo3d, proj : Trafo3d) =
             equivalentAngle60 view proj < (splitfactor * 0.75) / quality
             
