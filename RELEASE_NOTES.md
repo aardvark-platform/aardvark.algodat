@@ -1,3 +1,6 @@
+### 5.1.22
+- [ILodTreeNode] shouldSplit only inside ortho frustum 
+
 ### 5.1.21
 - update dependencies
 
