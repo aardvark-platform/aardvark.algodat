@@ -629,6 +629,8 @@ namespace Aardvark.Geometry
         HashSet<ClusterUsingList> m_clusters;
         ClusterUsingList[] m_clusterRefs;
 
+        public static int Verbosity = 5;
+
         public IntSet ClusterEdges { get; private set; }
         public IntSet SheetEdges { get; private set; }
 
@@ -641,15 +643,13 @@ namespace Aardvark.Geometry
                 m.AddFaceNormalsAreasCentroids();
             }
 
-            const int verbosity = 3;
-
             var faceCount = m.FaceCount;
 
-            Report.BeginTimed(verbosity, "initial clustering");
+            Report.BeginTimed(Verbosity, "Initial Clustering");
             InitialClustering(m, nonManifoldConnections, borderEdges);
-            Report.End(verbosity);
+            Report.End(Verbosity);
 
-            Report.Value(verbosity, "ClusterCount", m_clusters.Count);
+            Report.Value(Verbosity, "ClusterCount", m_clusters.Count);
 
             //Report.BeginTimed(verbosity, "optimize cluster borders");
             //OptimizeEdges(m, borderEdges, this.ClusterEdges);
@@ -664,17 +664,17 @@ namespace Aardvark.Geometry
             //    OptimizeClusterOutline(m, c, borderEdges);
             //Report.End();
 
-            Report.BeginTimed(verbosity, "optimize cluster borders");
+            Report.BeginTimed(Verbosity, "Optimize Cluster Borders");
             SheetClustering(m, borderEdges, nonManifoldConnections, maxClusterAngle);
-            Report.End(verbosity);
+            Report.End(Verbosity);
 
             //Report.BeginTimed("optimize sheet borders");
             //OptimizeEdges(m, borderEdges, this.SheetEdges);
             //Report.End();
 
-            Report.BeginTimed(verbosity, "create sheets");
+            Report.BeginTimed(Verbosity, "Create Sheets");
             AddFaceSheets(m, sheetAttributeName, sheetCoordsName);
-            Report.End(verbosity);
+            Report.End(Verbosity);
         }
 
         /// <summary>

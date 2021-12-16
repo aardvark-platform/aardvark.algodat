@@ -404,8 +404,8 @@ namespace Aardvark.Geometry
         /// </summary>
         private const int c_maxDepth = 32;
 
-        private const int c_reportVerbosity = 3;
-        private const int c_detailReportVerbosity = 5;
+        public static int ReportVerbosity = 3;
+        public static int DetailReportVerbosity = 5;
 
         #endregion
 
@@ -726,7 +726,7 @@ namespace Aardvark.Geometry
 
             int numObjects = m_objectSet.ObjectCount;
 
-            Report.BeginTimed(c_reportVerbosity, "building kd-tree [{0}]",
+            Report.BeginTimed(ReportVerbosity, "building kd-tree [{0}]",
                              numObjects);
 
             if ((options & BuildFlags.EmptySpaceOptimization) != 0)
@@ -764,15 +764,15 @@ namespace Aardvark.Geometry
             if (Report.Verbosity > 2)
             {
 
-                Report.Begin(c_detailReportVerbosity, "parameters");
-                Report.Value(c_detailReportVerbosity, "number of objects", numObjects);
-                Report.Value(c_detailReportVerbosity, "volume", volume);
+                Report.Begin(DetailReportVerbosity, "parameters");
+                Report.Value(DetailReportVerbosity, "number of objects", numObjects);
+                Report.Value(DetailReportVerbosity, "volume", volume);
                 if (volume > 0.0)
-                    Report.Value(c_detailReportVerbosity, "bounding box", m_box);
-                Report.End(c_detailReportVerbosity); // parameters
+                    Report.Value(DetailReportVerbosity, "bounding box", m_box);
+                Report.End(DetailReportVerbosity); // parameters
             }
 
-            Report.BeginTimed(c_detailReportVerbosity, "creating nodes");
+            Report.BeginTimed(DetailReportVerbosity, "creating nodes");
 
             int[] objectIndexArray = new int[numObjects];
             for (int oi = 0; oi < numObjects; oi++) objectIndexArray[oi] = oi;
@@ -781,80 +781,80 @@ namespace Aardvark.Geometry
             Tree = CreateNode(inParams, outParams,
                                 0, objectIndexArray, m_box, out bool split);
 
-            Report.End(c_detailReportVerbosity);
+            Report.End(DetailReportVerbosity);
 
             if (Report.Verbosity > 2)
             {
-                Report.Begin(c_detailReportVerbosity, "statistics");
-                Report.Value(c_detailReportVerbosity, "volume", volume);
-                Report.Value(c_detailReportVerbosity, "number of splits", outParams.SplitCount);
-                Report.Value(c_detailReportVerbosity, "number of singles", outParams.SingleCount);
-                Report.Value(c_detailReportVerbosity, "number of leafs", outParams.LeafCount);
+                Report.Begin(DetailReportVerbosity, "statistics");
+                Report.Value(DetailReportVerbosity, "volume", volume);
+                Report.Value(DetailReportVerbosity, "number of splits", outParams.SplitCount);
+                Report.Value(DetailReportVerbosity, "number of singles", outParams.SingleCount);
+                Report.Value(DetailReportVerbosity, "number of leafs", outParams.LeafCount);
                 if (outParams.LeafCount > 0)
                 {
-                    Report.Begin(c_detailReportVerbosity);
-                    Report.Value(c_detailReportVerbosity, "objects in leafs",
+                    Report.Begin(DetailReportVerbosity);
+                    Report.Value(DetailReportVerbosity, "objects in leafs",
                                     outParams.SmallObjectCount);
-                    Report.Value(c_detailReportVerbosity, "volume of leafs",
+                    Report.Value(DetailReportVerbosity, "volume of leafs",
                                     outParams.SmallVolume);
-                    Report.Value(c_detailReportVerbosity, "objects per leaf",
+                    Report.Value(DetailReportVerbosity, "objects per leaf",
                         outParams.ObjectCount / (double)outParams.LeafCount);
-                    Report.Value(c_detailReportVerbosity, "volume per leaf",
+                    Report.Value(DetailReportVerbosity, "volume per leaf",
                         outParams.LeafVolume / outParams.LeafCount);
-                    Report.End(c_detailReportVerbosity);
+                    Report.End(DetailReportVerbosity);
                 }
-                Report.Value(c_detailReportVerbosity, "number of small leafs",
+                Report.Value(DetailReportVerbosity, "number of small leafs",
                                 outParams.SmallLeafCount);
                 if (outParams.SmallLeafCount > 0)
                 {
-                    Report.Begin(c_detailReportVerbosity);
-                    Report.Value(c_detailReportVerbosity, "objects in small leafs",
+                    Report.Begin(DetailReportVerbosity);
+                    Report.Value(DetailReportVerbosity, "objects in small leafs",
                         outParams.SmallObjectCount);
-                    Report.Value(c_detailReportVerbosity, "volume of small leafs",
+                    Report.Value(DetailReportVerbosity, "volume of small leafs",
                         outParams.SmallVolume);
-                    Report.Value(c_detailReportVerbosity, "objects per small leaf",
+                    Report.Value(DetailReportVerbosity, "objects per small leaf",
                         outParams.SmallObjectCount
                             / (double)outParams.SmallLeafCount);
-                    Report.Value(c_detailReportVerbosity, "volume per small leaf",
+                    Report.Value(DetailReportVerbosity, "volume per small leaf",
                         outParams.SmallVolume / outParams.SmallLeafCount);
-                    Report.End(c_detailReportVerbosity);
+                    Report.End(DetailReportVerbosity);
                 }
-                Report.Value(c_detailReportVerbosity, "number of big leafs",
+                Report.Value(DetailReportVerbosity, "number of big leafs",
                         outParams.BigLeafCount);
                 if (outParams.BigLeafCount > 0)
                 {
-                    Report.Begin(c_detailReportVerbosity);
-                    Report.Value(c_detailReportVerbosity, "objects in big leafs",
+                    Report.Begin(DetailReportVerbosity);
+                    Report.Value(DetailReportVerbosity, "objects in big leafs",
                         outParams.BigObjectCount);
-                    Report.Value(c_detailReportVerbosity, "volume of big leafs",
+                    Report.Value(DetailReportVerbosity, "volume of big leafs",
                         outParams.BigVolume);
-                    Report.Value(c_detailReportVerbosity, "objects per big leaf",
+                    Report.Value(DetailReportVerbosity, "objects per big leaf",
                         outParams.BigObjectCount
                             / (double)outParams.BigLeafCount);
-                    Report.Value(c_detailReportVerbosity, "volume per big leaf",
+                    Report.Value(DetailReportVerbosity, "volume per big leaf",
                         outParams.BigVolume / outParams.BigLeafCount);
-                    Report.End(c_detailReportVerbosity);
+                    Report.End(DetailReportVerbosity);
                 }
-                Report.Value(c_detailReportVerbosity, "number of max leafs",
+                Report.Value(DetailReportVerbosity, "number of max leafs",
                                 outParams.MaxLeafCount);
                 if (outParams.BigLeafCount > 0)
                 {
-                    Report.Begin(c_detailReportVerbosity);
-                    Report.Value(c_detailReportVerbosity, "objects in max leafs",
+                    Report.Begin(DetailReportVerbosity);
+                    Report.Value(DetailReportVerbosity, "objects in max leafs",
                         outParams.MaxObjectCount);
-                    Report.Value(c_detailReportVerbosity, "volume of max leafs",
+                    Report.Value(DetailReportVerbosity, "volume of max leafs",
                         outParams.MaxVolume);
-                    Report.Value(c_detailReportVerbosity, "objects per max leaf",
+                    Report.Value(DetailReportVerbosity, "objects per max leaf",
                         outParams.MaxObjectCount
                             / (double)outParams.MaxLeafCount);
-                    Report.Value(c_detailReportVerbosity, "volume per max leaf",
+                    Report.Value(DetailReportVerbosity, "volume per max leaf",
                         outParams.MaxVolume / outParams.MaxLeafCount);
-                    Report.End(c_detailReportVerbosity);
+                    Report.End(DetailReportVerbosity);
                 }
-                Report.End(c_detailReportVerbosity); // statistics
+                Report.End(DetailReportVerbosity); // statistics
             }
 
-            Report.End(c_reportVerbosity, ": {0} + {1} * {2:0.0}",
+            Report.End(ReportVerbosity, ": {0} + {1} * {2:0.0}",
                         outParams.SplitCount + outParams.SingleCount,
                         outParams.LeafCount,
                         outParams.LeafCount > 0 ? outParams.ObjectCount / (double)outParams.LeafCount : 0
