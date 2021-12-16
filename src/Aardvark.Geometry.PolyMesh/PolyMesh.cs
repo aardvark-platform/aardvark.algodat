@@ -473,16 +473,25 @@ namespace Aardvark.Geometry
             set { this[Property.InstanceAttributes] = m_instanceAttributes = value; }
         }
 
+        /// <summary>
+        /// Returns all vertex attributes names, excluding "negative" names of indexed attributes.
+        /// </summary>
         public IEnumerable<Symbol> VertexAttributeNames
         {
             get { return VertexAttributes.Keys.Where(k => k.IsPositive); }
         }
 
+        /// <summary>
+        /// Returns all face attributes names, excluding "negative" names of indexed attributes.
+        /// </summary>
         public IEnumerable<Symbol> FaceAttributeNames
         {
             get { return FaceAttributes.Keys.Where(k => k.IsPositive); }
         }
 
+        /// <summary>
+        /// Returns all face-vertex attributes names, excluding "negative" names of indexed attributes.
+        /// </summary>
         public IEnumerable<Symbol> FaceVertexAttributeNames
         {
             get { return FaceVertexAttributes.Keys.Where(k => k.IsPositive); }
@@ -1371,6 +1380,9 @@ namespace Aardvark.Geometry
 
         public PolyMesh WithCompactedVertices => SubSetOfFaces(FaceCount.Range());
 
+        /// <summary>
+        /// NOTE: compactVertices does not "compact" indexed attribute arrays
+        /// </summary>
         public PolyMesh SubSetOfFaces(
                 IEnumerable<int> faceIndices,
                 bool compactVertices = true)
