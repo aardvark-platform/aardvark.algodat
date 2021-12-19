@@ -23,7 +23,8 @@ using Aardvark.Base;
 
 namespace Aardvark.Data.E57
 {
-    #pragma warning disable 1591
+#pragma warning disable 1591
+#pragma warning disable IDE0051 // Remove unused private members
 
     /// <summary>
     /// E57 (ASTM E2807-11)
@@ -32,13 +33,11 @@ namespace Aardvark.Data.E57
     /// </summary>
     public static class ASTM_E57
     {
-#pragma warning disable IDE0051 // Remove unused private members
         private const int E57_BLOB_SECTION = 0;
         private const int E57_COMPRESSED_VECTOR_SECTION = 1;
         private const int E57_INDEX_PACKET = 0;
         private const int E57_DATA_PACKET = 1;
         private const int E57_IGNORED_PACKET = 2;
-#pragma warning restore IDE0051 // Remove unused private members
 
         /// <summary>
         /// Physical E57 file offset.
@@ -84,7 +83,7 @@ namespace Aardvark.Data.E57
             public XElement RawXml { get; private set; }
             public E57Root E57Root { get; private set; }
 
-            public static E57FileHeader Parse(Stream stream, long actualFileSizeInBytes)
+            public static E57FileHeader Parse(Stream stream, long actualFileSizeInBytes, bool verbose)
             {
                 stream.Position = 0;
                 var buffer = new byte[48];
@@ -107,7 +106,7 @@ namespace Aardvark.Data.E57
                 var xmlBuffer = ReadLogicalBytes(stream, h.XmlOffset, (int)h.XmlLength);
                 var xmlString = Encoding.UTF8.GetString(xmlBuffer);
                 h.RawXml = XElement.Parse(xmlString, LoadOptions.SetBaseUri);
-                h.E57Root = E57Root.Parse(h.RawXml, stream);
+                h.E57Root = E57Root.Parse(h.RawXml, stream, verbose);
 
                 //Console.WriteLine(h.RawXml);
 
@@ -209,7 +208,7 @@ namespace Aardvark.Data.E57
         {
             public E57ElementType E57Type => E57ElementType.ScaledInteger;
 
-#region Properties
+            #region Properties
             
             public string Name;
 
@@ -282,7 +281,7 @@ namespace Aardvark.Data.E57
         {
             public E57ElementType E57Type => E57ElementType.Float;
 
-#region Properties
+            #region Properties
             
             public string Name;
 
@@ -309,7 +308,7 @@ namespace Aardvark.Data.E57
             
             public string Semantic => Name;
 
-#endregion
+            #endregion
 
             internal static E57Float Parse(XElement root)
             {
@@ -334,12 +333,12 @@ namespace Aardvark.Data.E57
         {
             public E57ElementType E57Type => E57ElementType.String;
 
-#region Properties
+            #region Properties
             
             public string Name;
             public string Value;
 
-#endregion
+            #endregion
 
             internal static E57String Parse(XElement root)
             {
@@ -356,7 +355,7 @@ namespace Aardvark.Data.E57
         {
             public E57ElementType E57Type => E57ElementType.Blob;
 
-#region Properties
+            #region Properties
 
             /// <summary>
             /// Required.
@@ -370,7 +369,7 @@ namespace Aardvark.Data.E57
             /// </summary>
             public long Length;
 
-#endregion
+            #endregion
 
             internal static E57Blob Parse(XElement root)
             {
@@ -391,19 +390,19 @@ namespace Aardvark.Data.E57
         {
             public E57ElementType E57Type => E57ElementType.Structure;
 
-#region Properties
+            #region Properties
             
             public IE57Element[] Children;
 
-#endregion
+            #endregion
 
-            internal static E57Structure Parse(XElement root, Stream stream)
+            internal static E57Structure Parse(XElement root, Stream stream, bool verbose)
             {
                 if (root == null) return null;
                 EnsureElementType(root, "Structure");
                 return new E57Structure
                 {
-                    Children = root.Elements().Select(x => ParseE57Element(x, stream)).ToArray()
+                    Children = root.Elements().Select(x => ParseE57Element(x, stream, verbose)).ToArray()
                 };
             }
         }
@@ -415,7 +414,7 @@ namespace Aardvark.Data.E57
         {
             public E57ElementType E57Type => E57ElementType.Vector;
 
-#region Properties
+            #region Properties
 
             /// <summary>
             /// Optional.
@@ -428,16 +427,16 @@ namespace Aardvark.Data.E57
             /// </summary>
             public IE57Element[] Children;
 
-#endregion
+            #endregion
 
-            internal static E57Vector Parse(XElement root, Stream stream)
+            internal static E57Vector Parse(XElement root, Stream stream, bool verbose)
             {
                 if (root == null) return null;
                 EnsureElementType(root, "Vector");
                 return new E57Vector
                 {
                     AllowHeterogenousChildren = TryGetLongAttribute(root, "allowHeterogeneousChildren") == 1,
-                    Children = root.Elements().Select(x => ParseE57Element(x, stream)).ToArray()
+                    Children = root.Elements().Select(x => ParseE57Element(x, stream, verbose)).ToArray()
                 };
             }
         }
@@ -450,7 +449,7 @@ namespace Aardvark.Data.E57
         {
             public E57ElementType E57Type => E57ElementType.CompressedVector;
 
-#region Properties
+            #region Properties
 
             /// <summary>
             /// Required.
@@ -478,11 +477,11 @@ namespace Aardvark.Data.E57
 
             public int ByteStreamsCount => Prototype.Children.Length;
 
-#endregion
+            #endregion
 
             private Stream m_stream;
 
-            internal static E57CompressedVector Parse(XElement root, Stream stream)
+            internal static E57CompressedVector Parse(XElement root, Stream stream, bool verbose)
             {
                 if (root == null) return null;
                 
@@ -490,8 +489,8 @@ namespace Aardvark.Data.E57
                 {
                     FileOffset = GetPhysicalOffsetAttribute(root, "fileOffset"), 
                     RecordCount = GetLongAttribute(root, "recordCount"),
-                    Prototype = E57Structure.Parse(GetElement(root, "prototype"), stream),
-                    Codecs = GetElement(root, "codecs").Elements().Select(x => (E57Codec)ParseE57Element(x, stream)).ToArray(),
+                    Prototype = E57Structure.Parse(GetElement(root, "prototype"), stream, verbose),
+                    Codecs = GetElement(root, "codecs").Elements().Select(x => (E57Codec)ParseE57Element(x, stream, verbose)).ToArray(),
                     m_stream = stream
                 };
 
@@ -500,9 +499,29 @@ namespace Aardvark.Data.E57
             }
 
             public IEnumerable<(V3d pos, C4b color, int intensity)> ReadData(
+                int[] cartesianXYZ, int[] sphericalRAE,
+                int[] colorRGB,
+                int? intensityIndex, E57IntensityLimits intensityLimits,
+                bool verbose = false
+                )
+                => ReadData(cartesianXYZ, sphericalRAE, colorRGB, intensityIndex, intensityLimits, null, null, null, null, null, verbose)
+                    .Select(x => (x.pos, x.color, x.intensity));
+
+            public IEnumerable<(V3d pos, C4b color, int intensity, 
+                byte cartesianInvalidState,
+                byte sphericalInvalidState,
+                byte intensityInvalidState,
+                byte timestampInvalidState,
+                byte colorInvalidState
+                )> ReadData(
                 int[] cartesianXYZ, int[] sphericalRAE, 
                 int[] colorRGB, 
                 int? intensityIndex, E57IntensityLimits intensityLimits,
+                int? cartesianInvalidStateIndex,
+                int? sphericalInvalidStateIndex,
+                int? intensityInvalidStateIndex,
+                int? timestampInvalidStateIndex,
+                int? colorInvalidStateIndex,
                 bool verbose = false
                 )
             {
@@ -524,6 +543,11 @@ namespace Aardvark.Data.E57
                 var hasCartesian = cartesianXYZ != null;
                 var hasSpherical = sphericalRAE != null;
                 var hasIntensities = intensityIndex.HasValue;
+                var hasCartesianInvalidState = cartesianInvalidStateIndex.HasValue;
+                var hasSphericalInvalidState = sphericalInvalidStateIndex.HasValue;
+                var hasIntensityInvalidState = intensityInvalidStateIndex.HasValue;
+                var hasTimestampInvalidState = timestampInvalidStateIndex.HasValue;
+                var hasColorInvalidState = colorInvalidStateIndex.HasValue;
                 if (compressedVectorHeader.DataStartOffset.Value == 0) throw new Exception($"Unexpected compressedVectorHeader.DataStartOffset (0).");
                 if (compressedVectorHeader.IndexStartOffset.Value != 0) throw new Exception($"Unexpected compressedVectorHeader.IndexStartOffset ({compressedVectorHeader.IndexStartOffset})");
 
@@ -534,6 +558,11 @@ namespace Aardvark.Data.E57
                 var colorG = hasColors ? new Queue<byte>() : null;
                 var colorB = hasColors ? new Queue<byte>() : null;
                 var intensities = hasIntensities ? new Queue<int>() : null;
+                var cartesianInvalidState = hasCartesianInvalidState ? new Queue<byte>() : null;
+                var sphericalInvalidState = hasSphericalInvalidState ? new Queue<byte>() : null;
+                var intensityInvalidState = hasIntensityInvalidState ? new Queue<byte>() : null;
+                var timestampInvalidState = hasTimestampInvalidState ? new Queue<byte>() : null;
+                var colorInvalidState = hasColorInvalidState ? new Queue<byte>() : null;
 
                 var offset = (E57LogicalOffset)compressedVectorHeader.DataStartOffset;
                 var verboseDetail = false; // verbose
@@ -661,6 +690,36 @@ namespace Aardvark.Data.E57
                                 foreach (var r in js) intensities.Enqueue(r);
                             }
 
+                            if (hasCartesianInvalidState)
+                            {
+                                var xs = (uint[])buffers[cartesianInvalidStateIndex.Value];
+                                foreach (var x in xs) cartesianInvalidState.Enqueue((byte)x);
+                            }
+
+                            if (hasSphericalInvalidState)
+                            {
+                                var xs = (uint[])buffers[sphericalInvalidStateIndex.Value];
+                                foreach (var x in xs) sphericalInvalidState.Enqueue((byte)x);
+                            }
+
+                            if (hasIntensityInvalidState)
+                            {
+                                var xs = (uint[])buffers[intensityInvalidStateIndex.Value];
+                                foreach (var x in xs) intensityInvalidState.Enqueue((byte)x);
+                            }
+
+                            if (hasTimestampInvalidState)
+                            {
+                                var xs = (uint[])buffers[timestampInvalidStateIndex.Value];
+                                foreach (var x in xs) timestampInvalidState.Enqueue((byte)x);
+                            }
+
+                            if (hasColorInvalidState)
+                            {
+                                var xs = (uint[])buffers[colorInvalidStateIndex.Value];
+                                foreach (var x in xs) colorInvalidState.Enqueue((byte)x);
+                            }
+
                             var imax = Fun.Min(cartesianX.Count, cartesianY.Count, cartesianZ.Count);
                             if (hasColors) imax = Fun.Min(imax, Fun.Min(colorR.Count, colorG.Count, colorB.Count));
                             if (hasIntensities) imax = Fun.Min(imax, intensities.Count);
@@ -679,7 +738,18 @@ namespace Aardvark.Data.E57
                                 }
                                 var c = colorRGB != null ? new C4b(colorR.Dequeue(), colorG.Dequeue(), colorB.Dequeue()) : C4b.Black;
                                 var j = (hasIntensities && intensities.Count > 0) ? intensities.Dequeue() : 0;
-                                yield return (pos: p, color: c, intensity: j);
+                                var pis = (hasCartesianInvalidState && cartesianInvalidState.Count > 0) ? cartesianInvalidState.Dequeue() : (byte)0;
+                                var sis = (hasSphericalInvalidState && sphericalInvalidState.Count > 0) ? sphericalInvalidState.Dequeue() : (byte)0;
+                                var iis = (hasIntensityInvalidState && intensityInvalidState.Count > 0) ? intensityInvalidState.Dequeue() : (byte)0;
+                                var tis = (hasTimestampInvalidState && timestampInvalidState.Count > 0) ? timestampInvalidState.Dequeue() : (byte)0;
+                                var cis = (hasColorInvalidState && colorInvalidState.Count > 0) ? colorInvalidState.Dequeue() : (byte)0;
+                                yield return (pos: p, color: c, intensity: j,
+                                    cartesianInvalidState: pis,
+                                    sphericalInvalidState: sis,
+                                    intensityInvalidState: iis,
+                                    timestampInvalidState: tis,
+                                    colorInvalidState: cis
+                                    );
                             }
                         }
 
@@ -719,6 +789,11 @@ namespace Aardvark.Data.E57
                 if (hasIntensities)
                 {
                     if (intensities.Count > 31 / bitpackerPerByteStream[intensityIndex.Value].BitsPerValue) Report.Warn($"Intensity values left over ({intensities.Count}).");
+                }
+
+                if (hasCartesianInvalidState)
+                {
+                    if (cartesianInvalidState.Count > 31 / bitpackerPerByteStream[cartesianInvalidStateIndex.Value].BitsPerValue) Report.Warn($"CartesianInvalidState values left over ({cartesianInvalidState.Count}).");
                 }
 
                 #region Helpers
@@ -810,7 +885,7 @@ namespace Aardvark.Data.E57
         {
             public E57ElementType E57Type => E57ElementType.E57Codec;
 
-#region Properties
+            #region Properties
 
             /// <summary>
             /// Required.
@@ -824,15 +899,15 @@ namespace Aardvark.Data.E57
             /// </summary>
             public E57Structure BitPackCodec;
 
-#endregion
+            #endregion
 
-            internal static E57Codec Parse(XElement root, Stream stream)
+            internal static E57Codec Parse(XElement root, Stream stream, bool verbose)
             {
                 if (root == null) return null;
                 return new E57Codec
                 {
-                    Inputs = E57Vector.Parse(GetElement(root, "inputs"), stream),
-                    BitPackCodec = E57Structure.Parse(GetElement(root, "bitPackCodec"), stream),
+                    Inputs = E57Vector.Parse(GetElement(root, "inputs"), stream, verbose),
+                    BitPackCodec = E57Structure.Parse(GetElement(root, "bitPackCodec"), stream, verbose),
                 };
             }
         }
@@ -845,7 +920,7 @@ namespace Aardvark.Data.E57
         {
             public E57ElementType E57Type => E57ElementType.E57Root;
 
-#region Properties
+            #region Properties
 
             /// <summary>
             /// Raw XML.
@@ -906,9 +981,9 @@ namespace Aardvark.Data.E57
             /// </summary>
             public string CoordinateMetadata;
 
-#endregion
+            #endregion
 
-            internal static E57Root Parse(XElement root, Stream stream)
+            internal static E57Root Parse(XElement root, Stream stream, bool verbose)
             {
                 EnsureElementNameAndType(root, "e57Root", "Structure");
                 
@@ -921,7 +996,7 @@ namespace Aardvark.Data.E57
                     VersionMinor = GetInteger(root, "versionMinor", true).Value,
                     E57LibraryVersion = GetString(root, "e57LibraryVersion", false),
                     CreationDateTime = E57DateTime.Parse(GetElement(root, "creationDateTime")),
-                    Data3D = E57Data3D.ParseVectorChildren(GetElement(root, "data3D"), stream),
+                    Data3D = E57Data3D.ParseVectorChildren(GetElement(root, "data3D"), stream, verbose),
                     Images2D = E57Image2D.ParseVectorChildren(GetElement(root, "images2D"), stream),
                     CoordinateMetadata = GetString(root, "coordinateMetadata", false)
                 };
@@ -936,7 +1011,7 @@ namespace Aardvark.Data.E57
         {
             public E57ElementType E57Type => E57ElementType.Data3D;
 
-#region Properties
+            #region Properties
 
             /// <summary>
             /// Required.
@@ -1079,41 +1154,74 @@ namespace Aardvark.Data.E57
             /// </summary>
             public double? AtmosphericPressure;
 
-#endregion
+            #endregion
 
             public bool HasCartesianCoordinates { get; private set; }
             public int[] ByteStreamIndicesForCartesianCoordinates { get; private set; }
+
             public bool HasSphericalCoordinates { get; private set; }
             public int[] ByteStreamIndicesForSphericalCoordinates { get; private set; }
+
             public bool HasColors { get; private set; }
             public int[] ByteStreamIndicesForColors { get; private set; }
-            public bool HasCartesianInvalidState { get; private set; }
-            public bool HasSphericalInvalidState { get; private set; }
+
             public bool HasIntensities { get; private set; }
             public int? ByteStreamIndexForIntensities { get; private set; }
 
-            internal static E57Data3D Parse(XElement root, Stream stream)
+            public bool HasCartesianInvalidState { get; private set; }
+            public int? ByteStreamIndexForCartesianInvalidState { get; private set; }
+
+            public bool HasSphericalInvalidState { get; private set; }
+            public int? ByteStreamIndexForSphericalInvalidState { get; private set; }
+
+            public bool HasIntensityInvalidState { get; private set; }
+            public int? ByteStreamIndexForIntensityInvalidState { get; private set; }
+
+            public bool HasTimestampInvalidState { get; private set; }
+            public int? ByteStreamIndexForTimestampInvalidState { get; private set; }
+
+            public bool HasColorInvalidState { get; private set; }
+            public int? ByteStreamIndexForColorInvalidState { get; private set; }
+
+            internal static E57Data3D Parse(XElement root, Stream stream, bool verbose)
             {
                 EnsureElementNameAndType(root, "vectorChild", "Structure");
 
-                var points = E57CompressedVector.Parse(GetElement(root, "points"), stream);
+                var points = E57CompressedVector.Parse(GetElement(root, "points"), stream, verbose);
 
                 // check semantics
                 var semantics = points.Prototype.Children.Map(x => ((IBitPack)x).Semantic);
+
                 var hasCartesian = false;
                 var byteStreamIndicesForCartesianCoordinates = default(int[]);
+
                 var hasSpherical = false;
                 var byteStreamIndicesForSphericalCoordinates = default(int[]);
+
                 var hasColors = false;
                 var byteStreamIndicesForColors = default(int[]);
-                var hasCartesianInvalidState = false;
-                var hasSphericalInvalidState = false;
+
                 var hasIntensities = false;
                 var byteStreamIndexForIntensities = default(int?);
 
-#region 8.4.4.1 (nop)
+                var hasCartesianInvalidState = false;
+                var byteStreamIndexForCartesianInvalidState = default(int?);
+
+                var hasSphericalInvalidState = false;
+                var byteStreamIndexForSphericalInvalidState = default(int?);
+
+                var hasIntensityInvalidState = false;
+                var byteStreamIndexForIntensityInvalidState = default(int?);
+
+                var hasTimestampInvalidState = false;
+                var byteStreamIndexForTimestampInvalidState = default(int?);
+
+                var hasColorInvalidState = false;
+                var byteStreamIndexForColorInvalidState = default(int?);
+
+                #region 8.4.4.1 (nop)
                 #endregion
-#region 8.4.4.2
+                #region 8.4.4.2
                 if (semantics.Contains("cartesianX") || semantics.Contains("cartesianY") || semantics.Contains("cartesianZ"))
                 {
                     if (!semantics.Contains("cartesianX") || !semantics.Contains("cartesianY") || !semantics.Contains("cartesianZ"))
@@ -1139,24 +1247,24 @@ namespace Aardvark.Data.E57
                     };
                 }
 #endregion
-#region 8.4.4.3 (nop)
-#endregion
-#region 8.4.4.4
+                #region 8.4.4.3 (nop)
+                #endregion
+                #region 8.4.4.4
                 if (semantics.Contains("returnIndex") || semantics.Contains("returnCount"))
                 {
                     if (!semantics.Contains("returnIndex") || !semantics.Contains("returnCount"))
                         throw new ArgumentException("[8.4.4.4] Incomplete return[Index|Count].");
                     hasSpherical = true;
                 }
-#endregion
-#region 8.4.4.5
+                #endregion
+                #region 8.4.4.5
                 if (semantics.Contains("intensity"))
                 {
                     hasIntensities = true;
                     byteStreamIndexForIntensities = semantics.IndexOf("intensity");
                 }
-#endregion
-#region 8.4.4.6
+                #endregion
+                #region 8.4.4.6
                 if (semantics.Contains("colorRed") || semantics.Contains("colorGreen") || semantics.Contains("colorBlue"))
                 {
                     if (!semantics.Contains("colorRed") || !semantics.Contains("colorGreen") || !semantics.Contains("colorBlue"))
@@ -1169,20 +1277,49 @@ namespace Aardvark.Data.E57
                         semantics.IndexOf("colorBlue")
                     };
                 }
-#endregion
-#region 8.4.4.7
-                if (semantics.Contains("cartesianInvalidState")) hasCartesianInvalidState = true;
-#endregion
-#region 8.4.4.8
-                if (semantics.Contains("sphericalInvalidState")) hasSphericalInvalidState = true;
-#endregion
+                #endregion
+                #region 8.4.4.7
+                if (semantics.Contains("cartesianInvalidState"))
+                {
+                    hasCartesianInvalidState = true;
+                    byteStreamIndexForCartesianInvalidState = semantics.IndexOf("cartesianInvalidState");
+                }
+                #endregion
+                #region 8.4.4.8
+                if (semantics.Contains("sphericalInvalidState"))
+                {
+                    hasSphericalInvalidState = true;
+                    byteStreamIndexForSphericalInvalidState = semantics.IndexOf("sphericalInvalidState");
+                }
+                #endregion
+                #region 8.4.4.9
+                if (semantics.Contains("isTimeStampInvalid"))
+                {
+                    hasTimestampInvalidState = true;
+                    byteStreamIndexForTimestampInvalidState = semantics.IndexOf("isTimeStampInvalid");
+                }
+                #endregion
+                #region 8.4.4.10
+                if (semantics.Contains("isIntensityInvalid"))
+                {
+                    hasIntensityInvalidState = true;
+                    byteStreamIndexForIntensityInvalidState = semantics.IndexOf("isIntensityInvalid");
+                }
+                #endregion
+                #region 8.4.4.11
+                if (semantics.Contains("isColorInvalid"))
+                {
+                    hasColorInvalidState = true;
+                    byteStreamIndexForColorInvalidState = semantics.IndexOf("isColorInvalid");
+                }
+                #endregion
 
                 var data3d = new E57Data3D
                 {
                     Guid = GetString(root, "guid", true),
                     Points = points,
                     Pose = E57RigidBodyTransform.Parse(GetElement(root, "pose")),
-                    OriginalGuids = E57Vector.Parse(GetElement(root, "originalGuids"), stream),
+                    OriginalGuids = E57Vector.Parse(GetElement(root, "originalGuids"), stream, verbose),
                     PointGroupingSchemes = E57PointGroupingSchemes.Parse(GetElement(root, "pointGroupingSchemes")),
                     Name = GetString(root, "name", false),
                     Description = GetString(root, "description", false),
@@ -1202,59 +1339,78 @@ namespace Aardvark.Data.E57
                     Temperature = Check("temperature", GetFloat(root, "temperature", false), x => !x.HasValue || x >= -273.15, ">= -273.15"),
                     RelativeHumidity = Check("relativeHumidity", GetFloat(root, "relativeHumidity", false), x => !x.HasValue || (x >= 0 && x <= 100), "[0,100]"),
                     AtmosphericPressure = Check("atmosphericPressure", GetFloat(root, "atmosphericPressure", false), x => !x.HasValue || x > 0, "positive"),
+                    
                     HasCartesianCoordinates = hasCartesian,
                     ByteStreamIndicesForCartesianCoordinates = byteStreamIndicesForCartesianCoordinates,
                     HasSphericalCoordinates = hasSpherical,
                     ByteStreamIndicesForSphericalCoordinates = byteStreamIndicesForSphericalCoordinates,
                     HasColors = hasColors,
                     ByteStreamIndicesForColors = byteStreamIndicesForColors,
-                    HasCartesianInvalidState = hasCartesianInvalidState,
-                    HasSphericalInvalidState = hasSphericalInvalidState,
                     HasIntensities = hasIntensities,
                     ByteStreamIndexForIntensities = byteStreamIndexForIntensities,
+                    HasCartesianInvalidState = hasCartesianInvalidState,
+                    ByteStreamIndexForCartesianInvalidState = byteStreamIndexForCartesianInvalidState,
+                    HasSphericalInvalidState = hasSphericalInvalidState,
+                    ByteStreamIndexForSphericalInvalidState = byteStreamIndexForSphericalInvalidState,
+                    HasIntensityInvalidState = hasIntensityInvalidState,
+                    ByteStreamIndexForIntensityInvalidState = byteStreamIndexForIntensityInvalidState,
+                    HasTimestampInvalidState = hasTimestampInvalidState,
+                    ByteStreamIndexForTimestampInvalidState = byteStreamIndexForTimestampInvalidState,
+                    HasColorInvalidState = hasColorInvalidState,
+                    ByteStreamIndexForColorInvalidState = byteStreamIndexForColorInvalidState,
                 };
 
-#region 8.4.3.1 (nop)
-#endregion
-#region 8.4.3.2 (nop)
-#endregion
-#region 8.4.3.3 (nop)
-#endregion
-#region 8.4.3.4
+                #region 8.4.3.1 (nop)
+                #endregion
+                #region 8.4.3.2 (nop)
+                #endregion
+                #region 8.4.3.3 (nop)
+                #endregion
+                #region 8.4.3.4
                 if (data3d.HasCartesianCoordinates && data3d.CartesianBounds == null)
                 {
-                    Report.Warn("[8.4.3.4] CartesianBounds must be defined (if cartesian coordinates are defined).");
+                    if (verbose) Report.Warn("[8.4.3.4] CartesianBounds must be defined (if cartesian coordinates are defined).");
                 }
-#endregion
-#region 8.4.3.5
+                #endregion
+                #region 8.4.3.5
                 if (data3d.HasSphericalCoordinates && data3d.SphericalBounds == null)
                 {
-                    Report.Warn("[8.4.3.5] SphericalBounds must be defined (if spherical coordinates are defined).");
+                    if (verbose) Report.Warn("[8.4.3.5] SphericalBounds must be defined (if spherical coordinates are defined).");
                 }
-#endregion
-#region 8.4.3.6
+                #endregion
+                #region 8.4.3.6
                 if (semantics.Contains("rowIndex") && data3d.IndexBounds == null)
                     throw new ArgumentException("[8.4.3.6] IndexBounds must be defined (if rowIndex is defined).");
                 if (semantics.Contains("columnIndex") && data3d.IndexBounds == null)
                     throw new ArgumentException("[8.4.3.6] IndexBounds must be defined (if columnIndex is defined).");
                 if (semantics.Contains("returnIndex") && data3d.IndexBounds == null)
                     throw new ArgumentException("[8.4.3.6] IndexBounds must be defined (if returnIndex is defined).");
-#endregion
-#region 8.4.3.7 (nop)
-#endregion
-#region 8.4.3.8 (nop)
-#endregion
+                #endregion
+                #region 8.4.3.7 (nop)
+                #endregion
+                #region 8.4.3.8 (nop)
+                #endregion
 
                 return data3d;
             }
-            internal static E57Data3D[] ParseVectorChildren(XElement root, Stream stream)
+            internal static E57Data3D[] ParseVectorChildren(XElement root, Stream stream, bool verbose)
             {
                 if (root == null) return null;
                 EnsureElementNameAndType(root, "data3D", "Vector");
-                return GetElements(root, "vectorChild").Select(x => Parse(x, stream)).ToArray();
+                return GetElements(root, "vectorChild").Select(x => Parse(x, stream, verbose)).ToArray();
             }
 
             public IEnumerable<(V3d pos, C4b color, int intensity)> StreamPoints(bool verbose = false)
+                => StreamPointsFull(verbose).Select(x => (x.pos, x.color, x.intensity));
+
+            public IEnumerable<(
+                V3d pos, C4b color, int intensity,
+                byte cartesianInvalidState, 
+                byte sphericalInvalidState, 
+                byte intensityInvalidState, 
+                byte timestampInvalidSate, 
+                byte colorInvalidState
+                )> StreamPointsFull(bool verbose = false)
             {
                 var result = Points.ReadData(
                     ByteStreamIndicesForCartesianCoordinates,
@@ -1262,6 +1418,11 @@ namespace Aardvark.Data.E57
                     ByteStreamIndicesForColors,
                     ByteStreamIndexForIntensities,
                     IntensityLimits,
+                    ByteStreamIndexForCartesianInvalidState,
+                    ByteStreamIndexForSphericalInvalidState,
+                    ByteStreamIndexForIntensityInvalidState,
+                    ByteStreamIndexForTimestampInvalidState,
+                    ByteStreamIndexForColorInvalidState,
                     verbose
                     );
 
@@ -1270,7 +1431,12 @@ namespace Aardvark.Data.E57
                     result = result.Select(p => (
                         Pose.Rotation.Transform(p.pos) + Pose.Translation,
                         p.color,
-                        p.intensity
+                        p.intensity,
+                        p.cartesianInvalidState,
+                        p.sphericalInvalidState,
+                        p.intensityInvalidState,
+                        p.timestampInvalidState,
+                        p.colorInvalidState
                         ));
                 }
 
@@ -2457,10 +2623,8 @@ namespace Aardvark.Data.E57
                 _ => throw new NotImplementedException($"Unknown type '{type}'. Invariant a55575af-73cc-439f-ba63-a46883b8f6cd."),
             };
         }
-#pragma warning disable IDE0051 // Remove unused private members
-        private static Range1i GetIntegerRange(XElement root, string elementNameMin, string elementNameMax)
-#pragma warning restore IDE0051 // Remove unused private members
-            => new Range1i(GetInteger(root, elementNameMin, true).Value, GetInteger(root, elementNameMax, true).Value);
+
+        private static Range1i GetIntegerRange(XElement root, string elementNameMin, string elementNameMax) => new Range1i(GetInteger(root, elementNameMin, true).Value, GetInteger(root, elementNameMax, true).Value);
         private static Range1i? TryGetIntegerRange(XElement root, string elementNameMin, string elementNameMax)
         {
             var min = GetInteger(root, elementNameMin, false);
@@ -2479,9 +2643,8 @@ namespace Aardvark.Data.E57
         }
         private static Range1d GetFloatRange(XElement root, string elementNameMin, string elementNameMax)
             => new Range1d(GetFloat(root, elementNameMin, true).Value, GetFloat(root, elementNameMax, true).Value);
-#pragma warning disable IDE0051 // Remove unused private members
+
         private static Range1d? TryGetFloatRange(XElement root, string elementNameMin, string elementNameMax)
-#pragma warning restore IDE0051 // Remove unused private members
         {
             var min = GetFloat(root, elementNameMin, false);
             var max = GetFloat(root, elementNameMax, false);
@@ -2534,7 +2697,7 @@ namespace Aardvark.Data.E57
             return (a != null) ? double.Parse(a.Value, CultureInfo.InvariantCulture) : (double?)null;
         }
 
-        private static IE57Element ParseE57Element(XElement root, Stream stream)
+        private static IE57Element ParseE57Element(XElement root, Stream stream, bool verbose)
         {
             return (GetElementType(root)) switch
             {
@@ -2543,12 +2706,12 @@ namespace Aardvark.Data.E57
                 "Float" => E57Float.Parse(root),
                 "String" => E57String.Parse(root),
                 "Blob" => E57Blob.Parse(root),
-                "Structure" => E57Structure.Parse(root, stream),
-                "Vector" => E57Vector.Parse(root, stream),
-                "CompressedVector" => E57CompressedVector.Parse(root, stream),
-                "Codec" => E57Codec.Parse(root, stream),
-                "E57Root" => E57Root.Parse(root, stream),
-                "Data3D" => E57Data3D.Parse(root, stream),
+                "Structure" => E57Structure.Parse(root, stream, verbose),
+                "Vector" => E57Vector.Parse(root, stream, verbose),
+                "CompressedVector" => E57CompressedVector.Parse(root, stream, verbose),
+                "Codec" => E57Codec.Parse(root, stream, verbose),
+                "E57Root" => E57Root.Parse(root, stream, verbose),
+                "Data3D" => E57Data3D.Parse(root, stream, verbose),
                 "PointRecord" => E57PointRecord.Parse(root),
                 "PointGroupingSchemes" => E57PointGroupingSchemes.Parse(root),
                 "GroupingByLine" => GroupingByLine.Parse(root),
@@ -2573,6 +2736,7 @@ namespace Aardvark.Data.E57
 
 #endregion
     }
-    
+
+#pragma warning restore IDE0051 // Remove unused private members
 #pragma warning restore 1591
 }

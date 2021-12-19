@@ -1,5 +1,7 @@
 ﻿using Aardvark.Base;
 using Aardvark.Data;
+using Aardvark.Data.Points;
+using Aardvark.Data.Points.Import;
 using Aardvark.Geometry.Points;
 using Microsoft.FSharp.Core;
 using System;
@@ -8,8 +10,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using Uncodium.SimpleStore;
-
-#pragma warning disable IDE0060
 
 namespace Scratch
 {
@@ -77,7 +77,7 @@ namespace Scratch
             Durable.Octree.NormalsOct16PReference,
         };
 
-        private static readonly HashSet<Durable.Def> DefsRefs = new HashSet<Durable.Def>
+        private static readonly HashSet<Durable.Def> DefsRefs = new()
         {
             Durable.Octree.Classifications1bReference,
             Durable.Octree.Classifications1iReference,
@@ -223,7 +223,7 @@ namespace Scratch
             Report.EndTimed();
         }
 
-        static void Main(string[] args)
+        static void GeneratePointCloudStats()
         {
             var storePaths = new[]
             {
@@ -256,7 +256,65 @@ namespace Scratch
             {
                 PointCloudStats(storePath: x, detailedNodeScan: true);
             }
-            
+        }
+
+        static void PrintAllFileContinaingCartesianInvalidState()
+        {
+            var files = Directory
+                .EnumerateFiles(@"W:\Datasets\Vgm\Data\E57", "*.e57", SearchOption.AllDirectories)
+                ;
+            foreach (var file in files)
+            {
+                try
+                {
+                    var info = E57.E57Info(file, ParseConfig.Default);
+                    var data3d = info.Metadata.E57Root.Data3D[0];
+                    if (!data3d.HasCartesianInvalidState) continue;
+                    Console.WriteLine($"{(data3d.HasCartesianInvalidState ? 'X' : ' ')} {file} {info.FileSizeInBytes:N0}");
+                }
+                catch (Exception e)
+                {
+                    //Console.WriteLine($"{file}: {e.Message}");
+                }
+            }
+        }
+
+        static void Main(string[] args)
+        {
+            //GeneratePointCloudStats();
+            //PrintAllFileContinaingCartesianInvalidState();
+
+            var files = Directory
+                .EnumerateFiles(@"W:\Datasets\Vgm\Data\E57", "*.e57", SearchOption.AllDirectories)
+                .OrderBy(x => x)
+                .ToArray()
+                ;
+            foreach (var file in files.Where(x => x.Contains("Cylcone")))
+            {
+                try
+                {
+                    var info = E57.E57Info(file, ParseConfig.Default);
+                    if (info.PointCount > 1024 * 1024 * 1024) continue;
+                    var data3d = info.Metadata.E57Root.Data3D[0];
+                    if (!data3d.HasCartesianInvalidState) continue;
+                    Console.WriteLine($"{(data3d.HasCartesianInvalidState ? 'X' : ' ')} {file} {info.FileSizeInBytes:N0}");
+                    foreach (var chunk in E57.ChunksFull(file, ParseConfig.Default))
+                    {
+                        Console.WriteLine($"{chunk.Count}");
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"{e}");
+                }
+            }
+
+            //var file = @"W:\Datasets\Vgm\Data\E57\Infinity.e57";
+            //var info = E57.E57Info(file, ParseConfig.Default);
+            //foreach (var chunk in E57.Chunks(file, ParseConfig.Default))
+            //{
+            //    Console.WriteLine($"{chunk.Count}");
+            //}
         }
     }
 }
