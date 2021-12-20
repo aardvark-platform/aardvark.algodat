@@ -13,6 +13,7 @@
 */
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -499,29 +500,16 @@ namespace Aardvark.Data.E57
             }
 
             public IEnumerable<(V3d pos, C4b color, int intensity)> ReadData(
-                int[] cartesianXYZ, int[] sphericalRAE,
-                int[] colorRGB,
-                int? intensityIndex, E57IntensityLimits intensityLimits,
+                ImmutableDictionary<PointPropertySemantics, int> sem2idx,
+                E57IntensityLimits intensityLimits,
                 bool verbose = false
                 )
-                => ReadData(cartesianXYZ, sphericalRAE, colorRGB, intensityIndex, intensityLimits, null, null, null, null, null, verbose)
+                => ReadDataFull(sem2idx, intensityLimits, verbose)
                     .Select(x => (x.pos, x.color, x.intensity));
 
-            public IEnumerable<(V3d pos, C4b color, int intensity, 
-                byte cartesianInvalidState,
-                byte sphericalInvalidState,
-                byte intensityInvalidState,
-                byte timestampInvalidState,
-                byte colorInvalidState
-                )> ReadData(
-                int[] cartesianXYZ, int[] sphericalRAE, 
-                int[] colorRGB, 
-                int? intensityIndex, E57IntensityLimits intensityLimits,
-                int? cartesianInvalidStateIndex,
-                int? sphericalInvalidStateIndex,
-                int? intensityInvalidStateIndex,
-                int? timestampInvalidStateIndex,
-                int? colorInvalidStateIndex,
+            public IEnumerable<(V3d pos, C4b color, int intensity, double? timestamp, uint? ri, uint? ci, byte? pis, byte? sis, byte? iis, byte? tis, byte? cis)> ReadDataFull(
+                ImmutableDictionary<PointPropertySemantics, int> sem2idx,
+                E57IntensityLimits intensityLimits,
                 bool verbose = false
                 )
             {
@@ -539,15 +527,18 @@ namespace Aardvark.Data.E57
                 var recordsLeftToConsumePerByteStream = new long[ByteStreamsCount].Set(RecordCount);
                 var bitpackerPerByteStream = Prototype.Children.Map(x => new BitPacker(((IBitPack)x).NumberOfBitsForBitPack));
                 var bytesLeftToConsume = compressedVectorHeader.SectionLength - 32;
-                var hasColors = colorRGB != null;
-                var hasCartesian = cartesianXYZ != null;
-                var hasSpherical = sphericalRAE != null;
-                var hasIntensities = intensityIndex.HasValue;
-                var hasCartesianInvalidState = cartesianInvalidStateIndex.HasValue;
-                var hasSphericalInvalidState = sphericalInvalidStateIndex.HasValue;
-                var hasIntensityInvalidState = intensityInvalidStateIndex.HasValue;
-                var hasTimestampInvalidState = timestampInvalidStateIndex.HasValue;
-                var hasColorInvalidState = colorInvalidStateIndex.HasValue;
+                var hasColors = sem2idx.ContainsKey(PointPropertySemantics.ColorRed);
+                var hasCartesian = sem2idx.ContainsKey(PointPropertySemantics.CartesianX);
+                var hasSpherical = sem2idx.ContainsKey(PointPropertySemantics.SphericalRange);
+                var hasIntensities = sem2idx.ContainsKey(PointPropertySemantics.Intensity);
+                var hasTimestamps = sem2idx.ContainsKey(PointPropertySemantics.TimeStamp);
+                var hasColumnIndex = sem2idx.ContainsKey(PointPropertySemantics.RowIndex);
+                var hasRowIndex = sem2idx.ContainsKey(PointPropertySemantics.ColumnIndex);
+                var hasCartesianInvalidState = sem2idx.ContainsKey(PointPropertySemantics.CartesianInvalidState);
+                var hasSphericalInvalidState = sem2idx.ContainsKey(PointPropertySemantics.SphericalInvalidState);
+                var hasIsIntensityInvalid = sem2idx.ContainsKey(PointPropertySemantics.IsIntensityInvalid);
+                var hasIsTimestampInvalid = sem2idx.ContainsKey(PointPropertySemantics.IsTimeStampInvalid);
+                var hasIsColorInvalid = sem2idx.ContainsKey(PointPropertySemantics.IsColorInvalid);
                 if (compressedVectorHeader.DataStartOffset.Value == 0) throw new Exception($"Unexpected compressedVectorHeader.DataStartOffset (0).");
                 if (compressedVectorHeader.IndexStartOffset.Value != 0) throw new Exception($"Unexpected compressedVectorHeader.IndexStartOffset ({compressedVectorHeader.IndexStartOffset})");
 
@@ -558,11 +549,14 @@ namespace Aardvark.Data.E57
                 var colorG = hasColors ? new Queue<byte>() : null;
                 var colorB = hasColors ? new Queue<byte>() : null;
                 var intensities = hasIntensities ? new Queue<int>() : null;
+                var timestamps = hasTimestamps ? new Queue<double>() : null;
+                var rowindex = hasRowIndex ? new Queue<uint>() : null;
+                var columnindex = hasColumnIndex ? new Queue<uint>() : null;
                 var cartesianInvalidState = hasCartesianInvalidState ? new Queue<byte>() : null;
                 var sphericalInvalidState = hasSphericalInvalidState ? new Queue<byte>() : null;
-                var intensityInvalidState = hasIntensityInvalidState ? new Queue<byte>() : null;
-                var timestampInvalidState = hasTimestampInvalidState ? new Queue<byte>() : null;
-                var colorInvalidState = hasColorInvalidState ? new Queue<byte>() : null;
+                var isIntensityInvalid = hasIsIntensityInvalid ? new Queue<byte>() : null;
+                var isTimestampInvalid = hasIsTimestampInvalid ? new Queue<byte>() : null;
+                var isColorInvalid = hasIsColorInvalid ? new Queue<byte>() : null;
 
                 var offset = (E57LogicalOffset)compressedVectorHeader.DataStartOffset;
                 var verboseDetail = false; // verbose
@@ -617,9 +611,9 @@ namespace Aardvark.Data.E57
 
                             if (hasCartesian)
                             {
-                                var pxs = (buffers[cartesianXYZ[0]] is double[] xs) ? xs : ((float[])buffers[cartesianXYZ[0]]).Map(x => (double)x);
-                                var pys = (buffers[cartesianXYZ[1]] is double[] ys) ? ys : ((float[])buffers[cartesianXYZ[1]]).Map(x => (double)x);
-                                var pzs = (buffers[cartesianXYZ[2]] is double[] zs) ? zs : ((float[])buffers[cartesianXYZ[2]]).Map(x => (double)x);
+                                var pxs = (buffers[sem2idx[PointPropertySemantics.CartesianX]] is double[] xs) ? xs : ((float[])buffers[sem2idx[PointPropertySemantics.CartesianX]]).Map(x => (double)x);
+                                var pys = (buffers[sem2idx[PointPropertySemantics.CartesianY]] is double[] ys) ? ys : ((float[])buffers[sem2idx[PointPropertySemantics.CartesianY]]).Map(x => (double)x);
+                                var pzs = (buffers[sem2idx[PointPropertySemantics.CartesianZ]] is double[] zs) ? zs : ((float[])buffers[sem2idx[PointPropertySemantics.CartesianZ]]).Map(x => (double)x);
                                 foreach (var x in pxs) cartesianX.Enqueue(x);
                                 foreach (var y in pys) cartesianY.Enqueue(y);
                                 foreach (var z in pzs) cartesianZ.Enqueue(z);
@@ -627,9 +621,9 @@ namespace Aardvark.Data.E57
 
                             if (hasSpherical)
                             {
-                                var pxs = (buffers[sphericalRAE[0]] is double[] xs) ? xs : ((float[])buffers[sphericalRAE[0]]).Map(x => (double)x);
-                                var pys = (buffers[sphericalRAE[1]] is double[] ys) ? ys : ((float[])buffers[sphericalRAE[1]]).Map(x => (double)x);
-                                var pzs = (buffers[sphericalRAE[2]] is double[] zs) ? zs : ((float[])buffers[sphericalRAE[2]]).Map(x => (double)x);
+                                var pxs = (buffers[sem2idx[PointPropertySemantics.SphericalRange]] is double[] xs) ? xs : ((float[])buffers[sem2idx[PointPropertySemantics.SphericalRange]]).Map(x => (double)x);
+                                var pys = (buffers[sem2idx[PointPropertySemantics.SphericalAzimuth]] is double[] ys) ? ys : ((float[])buffers[sem2idx[PointPropertySemantics.SphericalAzimuth]]).Map(x => (double)x);
+                                var pzs = (buffers[sem2idx[PointPropertySemantics.SphericalElevation]] is double[] zs) ? zs : ((float[])buffers[sem2idx[PointPropertySemantics.SphericalElevation]]).Map(x => (double)x);
                                 foreach (var x in pxs) cartesianX.Enqueue(x);
                                 foreach (var y in pys) cartesianY.Enqueue(y);
                                 foreach (var z in pzs) cartesianZ.Enqueue(z);
@@ -637,9 +631,9 @@ namespace Aardvark.Data.E57
 
                             if (hasColors)
                             {
-                                var crs = (uint[])buffers[colorRGB[0]];
-                                var cgs = (uint[])buffers[colorRGB[1]];
-                                var cbs = (uint[])buffers[colorRGB[2]];
+                                var crs = (uint[])buffers[sem2idx[PointPropertySemantics.ColorRed]];
+                                var cgs = (uint[])buffers[sem2idx[PointPropertySemantics.ColorGreen]];
+                                var cbs = (uint[])buffers[sem2idx[PointPropertySemantics.ColorBlue]];
                                 foreach (var r in crs) colorR.Enqueue((byte)r);
                                 foreach (var g in cgs) colorG.Enqueue((byte)g);
                                 foreach (var b in cbs) colorB.Enqueue((byte)b);
@@ -663,7 +657,7 @@ namespace Aardvark.Data.E57
                                 //    return xs.Map(x => (int)(((x - min) / d) * 65535.5));
                                 //}
 
-                                var js = buffers[intensityIndex.Value] switch
+                                var js = buffers[sem2idx[PointPropertySemantics.Intensity]] switch
                                 {
                                     sbyte[] xs  => xs.Map(x => (int)x),
                                     byte[] xs   => xs.Map(x => (int)x),
@@ -684,40 +678,58 @@ namespace Aardvark.Data.E57
 
                                     double[] xs => remapWithLimits(xs.Map(x => (float)x)),
 
-                                    _ => throw new Exception($"Unspecified intensity format {buffers[intensityIndex.Value].GetType()}.")
+                                    _ => throw new Exception($"Unspecified intensity format {buffers[sem2idx[PointPropertySemantics.Intensity]].GetType()}.")
                                 };
 
                                 foreach (var r in js) intensities.Enqueue(r);
                             }
 
+                            if (hasTimestamps)
+                            {
+                                var xs = (double[])buffers[sem2idx[PointPropertySemantics.TimeStamp]];
+                                foreach (var x in xs) timestamps.Enqueue(x);
+                            }
+
+                            if (hasRowIndex)
+                            {
+                                var xs = (uint[])buffers[sem2idx[PointPropertySemantics.RowIndex]];
+                                foreach (var x in xs) rowindex.Enqueue(x);
+                            }
+
+                            if (hasColumnIndex)
+                            {
+                                var xs = (uint[])buffers[sem2idx[PointPropertySemantics.ColumnIndex]];
+                                foreach (var x in xs) columnindex.Enqueue(x);
+                            }
+
                             if (hasCartesianInvalidState)
                             {
-                                var xs = (uint[])buffers[cartesianInvalidStateIndex.Value];
+                                var xs = (uint[])buffers[sem2idx[PointPropertySemantics.CartesianInvalidState]];
                                 foreach (var x in xs) cartesianInvalidState.Enqueue((byte)x);
                             }
 
                             if (hasSphericalInvalidState)
                             {
-                                var xs = (uint[])buffers[sphericalInvalidStateIndex.Value];
+                                var xs = (uint[])buffers[sem2idx[PointPropertySemantics.SphericalInvalidState]];
                                 foreach (var x in xs) sphericalInvalidState.Enqueue((byte)x);
                             }
 
-                            if (hasIntensityInvalidState)
+                            if (hasIsIntensityInvalid)
                             {
-                                var xs = (uint[])buffers[intensityInvalidStateIndex.Value];
-                                foreach (var x in xs) intensityInvalidState.Enqueue((byte)x);
+                                var xs = (uint[])buffers[sem2idx[PointPropertySemantics.IsIntensityInvalid]];
+                                foreach (var x in xs) isIntensityInvalid.Enqueue((byte)x);
                             }
 
-                            if (hasTimestampInvalidState)
+                            if (hasIsTimestampInvalid)
                             {
-                                var xs = (uint[])buffers[timestampInvalidStateIndex.Value];
-                                foreach (var x in xs) timestampInvalidState.Enqueue((byte)x);
+                                var xs = (uint[])buffers[sem2idx[PointPropertySemantics.IsTimeStampInvalid]];
+                                foreach (var x in xs) isTimestampInvalid.Enqueue((byte)x);
                             }
 
-                            if (hasColorInvalidState)
+                            if (hasIsColorInvalid)
                             {
-                                var xs = (uint[])buffers[colorInvalidStateIndex.Value];
-                                foreach (var x in xs) colorInvalidState.Enqueue((byte)x);
+                                var xs = (uint[])buffers[sem2idx[PointPropertySemantics.IsColorInvalid]];
+                                foreach (var x in xs) isColorInvalid.Enqueue((byte)x);
                             }
 
                             var imax = Fun.Min(cartesianX.Count, cartesianY.Count, cartesianZ.Count);
@@ -736,20 +748,17 @@ namespace Aardvark.Data.E57
                                         p.X * Math.Sin(p.Z)
                                         );
                                 }
-                                var c = colorRGB != null ? new C4b(colorR.Dequeue(), colorG.Dequeue(), colorB.Dequeue()) : C4b.Black;
+                                var c = hasColors ? new C4b(colorR.Dequeue(), colorG.Dequeue(), colorB.Dequeue()) : C4b.Black;
                                 var j = (hasIntensities && intensities.Count > 0) ? intensities.Dequeue() : 0;
+                                var ts = (hasTimestamps && timestamps.Count > 0) ? timestamps.Dequeue() : 0;
+                                var ri = (hasRowIndex && rowindex.Count > 0) ? rowindex.Dequeue() : 0;
+                                var ci = (hasColumnIndex && columnindex.Count > 0) ? columnindex.Dequeue() : 0;
                                 var pis = (hasCartesianInvalidState && cartesianInvalidState.Count > 0) ? cartesianInvalidState.Dequeue() : (byte)0;
                                 var sis = (hasSphericalInvalidState && sphericalInvalidState.Count > 0) ? sphericalInvalidState.Dequeue() : (byte)0;
-                                var iis = (hasIntensityInvalidState && intensityInvalidState.Count > 0) ? intensityInvalidState.Dequeue() : (byte)0;
-                                var tis = (hasTimestampInvalidState && timestampInvalidState.Count > 0) ? timestampInvalidState.Dequeue() : (byte)0;
-                                var cis = (hasColorInvalidState && colorInvalidState.Count > 0) ? colorInvalidState.Dequeue() : (byte)0;
-                                yield return (pos: p, color: c, intensity: j,
-                                    cartesianInvalidState: pis,
-                                    sphericalInvalidState: sis,
-                                    intensityInvalidState: iis,
-                                    timestampInvalidState: tis,
-                                    colorInvalidState: cis
-                                    );
+                                var iis = (hasIsIntensityInvalid && isIntensityInvalid.Count > 0) ? isIntensityInvalid.Dequeue() : (byte)0;
+                                var tis = (hasIsTimestampInvalid && isTimestampInvalid.Count > 0) ? isTimestampInvalid.Dequeue() : (byte)0;
+                                var cis = (hasIsColorInvalid && isColorInvalid.Count > 0) ? isColorInvalid.Dequeue() : (byte)0;
+                                yield return (p, c, j, ts, ri, ci, pis, sis, iis, tis, cis);
                             }
                         }
 
@@ -774,26 +783,34 @@ namespace Aardvark.Data.E57
 
                 if (hasCartesian)
                 {
-                    if (cartesianX.Count > 31 / bitpackerPerByteStream[cartesianXYZ[0]].BitsPerValue) Report.Warn($"Cartesian x coordinates left over ({cartesianX.Count}).");
-                    if (cartesianY.Count > 31 / bitpackerPerByteStream[cartesianXYZ[1]].BitsPerValue) Report.Warn($"Cartesian y coordinates left over ({cartesianY.Count}).");
-                    if (cartesianZ.Count > 31 / bitpackerPerByteStream[cartesianXYZ[2]].BitsPerValue) Report.Warn($"Cartesian z coordinates left over ({cartesianZ.Count}).");
+                    if (cartesianX.Count > 31 / bitpackerPerByteStream[sem2idx[PointPropertySemantics.CartesianX]].BitsPerValue) 
+                        Report.Warn($"Cartesian x coordinates left over ({cartesianX.Count}).");
+                    if (cartesianY.Count > 31 / bitpackerPerByteStream[sem2idx[PointPropertySemantics.CartesianY]].BitsPerValue) 
+                        Report.Warn($"Cartesian y coordinates left over ({cartesianY.Count}).");
+                    if (cartesianZ.Count > 31 / bitpackerPerByteStream[sem2idx[PointPropertySemantics.CartesianZ]].BitsPerValue) 
+                        Report.Warn($"Cartesian z coordinates left over ({cartesianZ.Count}).");
                 }
 
                 if (hasColors)
                 {
-                    if (colorR.Count > 31 / bitpackerPerByteStream[colorRGB[0]].BitsPerValue) Report.Warn($"Color r values left over ({colorR.Count}).");
-                    if (colorG.Count > 31 / bitpackerPerByteStream[colorRGB[0]].BitsPerValue) Report.Warn($"Color g values left over ({colorG.Count}).");
-                    if (colorB.Count > 31 / bitpackerPerByteStream[colorRGB[0]].BitsPerValue) Report.Warn($"Color b values left over ({colorB.Count}).");
+                    if (colorR.Count > 31 / bitpackerPerByteStream[sem2idx[PointPropertySemantics.ColorRed]].BitsPerValue)
+                        Report.Warn($"Color r values left over ({colorR.Count}).");
+                    if (colorG.Count > 31 / bitpackerPerByteStream[sem2idx[PointPropertySemantics.ColorGreen]].BitsPerValue) 
+                        Report.Warn($"Color g values left over ({colorG.Count}).");
+                    if (colorB.Count > 31 / bitpackerPerByteStream[sem2idx[PointPropertySemantics.ColorBlue]].BitsPerValue) 
+                        Report.Warn($"Color b values left over ({colorB.Count}).");
                 }
 
                 if (hasIntensities)
                 {
-                    if (intensities.Count > 31 / bitpackerPerByteStream[intensityIndex.Value].BitsPerValue) Report.Warn($"Intensity values left over ({intensities.Count}).");
+                    if (intensities.Count > 31 / bitpackerPerByteStream[sem2idx[PointPropertySemantics.Intensity]].BitsPerValue)
+                        Report.Warn($"Intensity values left over ({intensities.Count}).");
                 }
 
                 if (hasCartesianInvalidState)
                 {
-                    if (cartesianInvalidState.Count > 31 / bitpackerPerByteStream[cartesianInvalidStateIndex.Value].BitsPerValue) Report.Warn($"CartesianInvalidState values left over ({cartesianInvalidState.Count}).");
+                    if (cartesianInvalidState.Count > 31 / bitpackerPerByteStream[sem2idx[PointPropertySemantics.CartesianInvalidState]].BitsPerValue)
+                        Report.Warn($"CartesianInvalidState values left over ({cartesianInvalidState.Count}).");
                 }
 
                 #region Helpers
@@ -1003,6 +1020,34 @@ namespace Aardvark.Data.E57
             }
         }
 
+        public enum PointPropertySemantics
+        {
+            CartesianX,
+            CartesianY,
+            CartesianZ,
+            SphericalRange,
+            SphericalAzimuth,
+            SphericalElevation,
+            RowIndex,
+            ColumnIndex,
+            ReturnCount,
+            ReturnIndex,
+            TimeStamp,
+            Intensity,
+            ColorRed,
+            ColorGreen,
+            ColorBlue,
+            CartesianInvalidState,
+            SphericalInvalidState,
+            IsTimeStampInvalid,
+            IsIntensityInvalid,
+            IsColorInvalid,
+
+            NormalX,
+            NormalY,
+            NormalZ,
+        }
+
         /// <summary>
         /// E57 Data3D (8.4.3. Data3D).
         /// TABLE 13 Child Elements for the Data3D Structure.
@@ -1156,32 +1201,12 @@ namespace Aardvark.Data.E57
 
             #endregion
 
-            public bool HasCartesianCoordinates { get; private set; }
-            public int[] ByteStreamIndicesForCartesianCoordinates { get; private set; }
-
-            public bool HasSphericalCoordinates { get; private set; }
-            public int[] ByteStreamIndicesForSphericalCoordinates { get; private set; }
-
-            public bool HasColors { get; private set; }
-            public int[] ByteStreamIndicesForColors { get; private set; }
-
-            public bool HasIntensities { get; private set; }
-            public int? ByteStreamIndexForIntensities { get; private set; }
-
-            public bool HasCartesianInvalidState { get; private set; }
-            public int? ByteStreamIndexForCartesianInvalidState { get; private set; }
-
-            public bool HasSphericalInvalidState { get; private set; }
-            public int? ByteStreamIndexForSphericalInvalidState { get; private set; }
-
-            public bool HasIntensityInvalidState { get; private set; }
-            public int? ByteStreamIndexForIntensityInvalidState { get; private set; }
-
-            public bool HasTimestampInvalidState { get; private set; }
-            public int? ByteStreamIndexForTimestampInvalidState { get; private set; }
-
-            public bool HasColorInvalidState { get; private set; }
-            public int? ByteStreamIndexForColorInvalidState { get; private set; }
+            public ImmutableDictionary<PointPropertySemantics, int> Sem2Index { get; private set; }
+            public bool HasCartesianCoordinates => Has(PointPropertySemantics.CartesianX);
+            public bool HasSphericalCoordinates => Has(PointPropertySemantics.SphericalAzimuth);
+            public bool HasColors => Has(PointPropertySemantics.ColorRed);
+            public bool Has(PointPropertySemantics x) => Sem2Index.ContainsKey(x);
+            public bool HasAllOrNoneOf(params PointPropertySemantics[] xs) => !xs.Any(Sem2Index.ContainsKey) || xs.All(Sem2Index.ContainsKey);
 
             internal static E57Data3D Parse(XElement root, Stream stream, bool verbose)
             {
@@ -1190,129 +1215,16 @@ namespace Aardvark.Data.E57
                 var points = E57CompressedVector.Parse(GetElement(root, "points"), stream, verbose);
 
                 // check semantics
-                var semantics = points.Prototype.Children.Map(x => ((IBitPack)x).Semantic);
-
-                var hasCartesian = false;
-                var byteStreamIndicesForCartesianCoordinates = default(int[]);
-
-                var hasSpherical = false;
-                var byteStreamIndicesForSphericalCoordinates = default(int[]);
-
-                var hasColors = false;
-                var byteStreamIndicesForColors = default(int[]);
-
-                var hasIntensities = false;
-                var byteStreamIndexForIntensities = default(int?);
-
-                var hasCartesianInvalidState = false;
-                var byteStreamIndexForCartesianInvalidState = default(int?);
-
-                var hasSphericalInvalidState = false;
-                var byteStreamIndexForSphericalInvalidState = default(int?);
-
-                var hasIntensityInvalidState = false;
-                var byteStreamIndexForIntensityInvalidState = default(int?);
-
-                var hasTimestampInvalidState = false;
-                var byteStreamIndexForTimestampInvalidState = default(int?);
-
-                var hasColorInvalidState = false;
-                var byteStreamIndexForColorInvalidState = default(int?);
-
-                #region 8.4.4.1 (nop)
-                #endregion
-                #region 8.4.4.2
-                if (semantics.Contains("cartesianX") || semantics.Contains("cartesianY") || semantics.Contains("cartesianZ"))
-                {
-                    if (!semantics.Contains("cartesianX") || !semantics.Contains("cartesianY") || !semantics.Contains("cartesianZ"))
-                        throw new ArgumentException("[8.4.4.2] Incomplete cartesian[XYZ].");
-                    hasCartesian = true;
-                    byteStreamIndicesForCartesianCoordinates = new int[]
+                var sem2Index = points.Prototype.Children
+                    .Select((x, i) =>
                     {
-                        semantics.IndexOf("cartesianX"),
-                        semantics.IndexOf("cartesianY"),
-                        semantics.IndexOf("cartesianZ")
-                    };
-                }
-                if (semantics.Contains("sphericalRange") || semantics.Contains("sphericalAzimuth") || semantics.Contains("sphericalElevation"))
-                {
-                    if (!semantics.Contains("sphericalRange") || !semantics.Contains("sphericalAzimuth") || !semantics.Contains("sphericalElevation"))
-                        throw new ArgumentException("[8.4.4.2] Incomplete spherical[Range|Azimuth|Elevation].");
-                    hasSpherical = true;
-                    byteStreamIndicesForSphericalCoordinates = new int[]
-                    {
-                        semantics.IndexOf("sphericalRange"),
-                        semantics.IndexOf("sphericalAzimuth"),
-                        semantics.IndexOf("sphericalElevation")
-                    };
-                }
-#endregion
-                #region 8.4.4.3 (nop)
-                #endregion
-                #region 8.4.4.4
-                if (semantics.Contains("returnIndex") || semantics.Contains("returnCount"))
-                {
-                    if (!semantics.Contains("returnIndex") || !semantics.Contains("returnCount"))
-                        throw new ArgumentException("[8.4.4.4] Incomplete return[Index|Count].");
-                    hasSpherical = true;
-                }
-                #endregion
-                #region 8.4.4.5
-                if (semantics.Contains("intensity"))
-                {
-                    hasIntensities = true;
-                    byteStreamIndexForIntensities = semantics.IndexOf("intensity");
-                }
-                #endregion
-                #region 8.4.4.6
-                if (semantics.Contains("colorRed") || semantics.Contains("colorGreen") || semantics.Contains("colorBlue"))
-                {
-                    if (!semantics.Contains("colorRed") || !semantics.Contains("colorGreen") || !semantics.Contains("colorBlue"))
-                        throw new ArgumentException("[8.4.4.6] Incomplete color[Red|Green|Blue].");
-                    hasColors = true;
-                    byteStreamIndicesForColors = new int[]
-                    {
-                        semantics.IndexOf("colorRed"),
-                        semantics.IndexOf("colorGreen"),
-                        semantics.IndexOf("colorBlue")
-                    };
-                }
-                #endregion
-                #region 8.4.4.7
-                if (semantics.Contains("cartesianInvalidState"))
-                {
-                    hasCartesianInvalidState = true;
-                    byteStreamIndexForCartesianInvalidState = semantics.IndexOf("cartesianInvalidState");
-                }
-                #endregion
-                #region 8.4.4.8
-                if (semantics.Contains("sphericalInvalidState"))
-                {
-                    hasSphericalInvalidState = true;
-                    byteStreamIndexForSphericalInvalidState = semantics.IndexOf("sphericalInvalidState");
-                }
-                #endregion
-                #region 8.4.4.9
-                if (semantics.Contains("isTimeStampInvalid"))
-                {
-                    hasTimestampInvalidState = true;
-                    byteStreamIndexForTimestampInvalidState = semantics.IndexOf("isTimeStampInvalid");
-                }
-                #endregion
-                #region 8.4.4.10
-                if (semantics.Contains("isIntensityInvalid"))
-                {
-                    hasIntensityInvalidState = true;
-                    byteStreamIndexForIntensityInvalidState = semantics.IndexOf("isIntensityInvalid");
-                }
-                #endregion
-                #region 8.4.4.11
-                if (semantics.Contains("isColorInvalid"))
-                {
-                    hasColorInvalidState = true;
-                    byteStreamIndexForColorInvalidState = semantics.IndexOf("isColorInvalid");
-                }
-                #endregion
+                        var s = ((IBitPack)x).Semantic;
+                        if (!Enum.TryParse<PointPropertySemantics>(s, ignoreCase: true, out var sem)) 
+                            throw new NotImplementedException($"Unknown semantic \"{s}\".");
+                        return (idx: i, sem);
+                    })
+                    .ToImmutableDictionary(x => x.sem, x => x.idx)
+                    ;
 
                 var data3d = new E57Data3D
                 {
@@ -1339,26 +1251,41 @@ namespace Aardvark.Data.E57
                     Temperature = Check("temperature", GetFloat(root, "temperature", false), x => !x.HasValue || x >= -273.15, ">= -273.15"),
                     RelativeHumidity = Check("relativeHumidity", GetFloat(root, "relativeHumidity", false), x => !x.HasValue || (x >= 0 && x <= 100), "[0,100]"),
                     AtmosphericPressure = Check("atmosphericPressure", GetFloat(root, "atmosphericPressure", false), x => !x.HasValue || x > 0, "positive"),
-                    
-                    HasCartesianCoordinates = hasCartesian,
-                    ByteStreamIndicesForCartesianCoordinates = byteStreamIndicesForCartesianCoordinates,
-                    HasSphericalCoordinates = hasSpherical,
-                    ByteStreamIndicesForSphericalCoordinates = byteStreamIndicesForSphericalCoordinates,
-                    HasColors = hasColors,
-                    ByteStreamIndicesForColors = byteStreamIndicesForColors,
-                    HasIntensities = hasIntensities,
-                    ByteStreamIndexForIntensities = byteStreamIndexForIntensities,
-                    HasCartesianInvalidState = hasCartesianInvalidState,
-                    ByteStreamIndexForCartesianInvalidState = byteStreamIndexForCartesianInvalidState,
-                    HasSphericalInvalidState = hasSphericalInvalidState,
-                    ByteStreamIndexForSphericalInvalidState = byteStreamIndexForSphericalInvalidState,
-                    HasIntensityInvalidState = hasIntensityInvalidState,
-                    ByteStreamIndexForIntensityInvalidState = byteStreamIndexForIntensityInvalidState,
-                    HasTimestampInvalidState = hasTimestampInvalidState,
-                    ByteStreamIndexForTimestampInvalidState = byteStreamIndexForTimestampInvalidState,
-                    HasColorInvalidState = hasColorInvalidState,
-                    ByteStreamIndexForColorInvalidState = byteStreamIndexForColorInvalidState,
+
+                    Sem2Index = sem2Index,
                 };
+
+
+                #region 8.4.4.1 (nop)
+                #endregion
+                #region 8.4.4.2
+                if (!data3d.HasAllOrNoneOf(PointPropertySemantics.CartesianX, PointPropertySemantics.CartesianY, PointPropertySemantics.CartesianZ))
+                    throw new ArgumentException("[8.4.4.2] Incomplete cartesian[XYZ].");
+                if (!data3d.HasAllOrNoneOf(PointPropertySemantics.SphericalRange, PointPropertySemantics.SphericalAzimuth, PointPropertySemantics.SphericalElevation))
+                    throw new ArgumentException("[8.4.4.2] Incomplete spherical[Range|Azimuth|Elevation].");
+                #endregion
+                #region 8.4.4.3 (nop)
+                #endregion
+                #region 8.4.4.4
+                if (!data3d.HasAllOrNoneOf(PointPropertySemantics.ReturnIndex, PointPropertySemantics.ReturnCount))
+                    throw new ArgumentException("[8.4.4.4] Incomplete return[Index|Count].");
+                #endregion
+                #region 8.4.4.5 (nop)
+                #endregion
+                #region 8.4.4.6
+                if (!data3d.HasAllOrNoneOf(PointPropertySemantics.ColorRed, PointPropertySemantics.ColorGreen, PointPropertySemantics.ColorBlue))
+                    throw new ArgumentException("[8.4.4.6] Incomplete color[Red|Green|Blue].");
+                #endregion
+                #region 8.4.4.7 (nop)
+                #endregion
+                #region 8.4.4.8 (nop)
+                #endregion
+                #region 8.4.4.9 (nop)
+                #endregion
+                #region 8.4.4.10 (nop)
+                #endregion
+                #region 8.4.4.11 (nop)
+                #endregion
 
                 #region 8.4.3.1 (nop)
                 #endregion
@@ -1379,11 +1306,11 @@ namespace Aardvark.Data.E57
                 }
                 #endregion
                 #region 8.4.3.6
-                if (semantics.Contains("rowIndex") && data3d.IndexBounds == null)
+                if (data3d.Has(PointPropertySemantics.RowIndex) && data3d.IndexBounds == null)
                     throw new ArgumentException("[8.4.3.6] IndexBounds must be defined (if rowIndex is defined).");
-                if (semantics.Contains("columnIndex") && data3d.IndexBounds == null)
+                if (data3d.Has(PointPropertySemantics.ColumnIndex) && data3d.IndexBounds == null)
                     throw new ArgumentException("[8.4.3.6] IndexBounds must be defined (if columnIndex is defined).");
-                if (semantics.Contains("returnIndex") && data3d.IndexBounds == null)
+                if (data3d.Has(PointPropertySemantics.ReturnIndex) && data3d.IndexBounds == null)
                     throw new ArgumentException("[8.4.3.6] IndexBounds must be defined (if returnIndex is defined).");
                 #endregion
                 #region 8.4.3.7 (nop)
@@ -1405,26 +1332,17 @@ namespace Aardvark.Data.E57
 
             public IEnumerable<(
                 V3d pos, C4b color, int intensity,
-                byte cartesianInvalidState, 
-                byte sphericalInvalidState, 
-                byte intensityInvalidState, 
-                byte timestampInvalidSate, 
-                byte colorInvalidState
+                double? timestamp,
+                uint? rowIndex,
+                uint? columnIndex,
+                byte? cartesianInvalidState, 
+                byte? sphericalInvalidState, 
+                byte? isIntensityInvalid, 
+                byte? isTimeStampInvalid, 
+                byte? isColorInvalid
                 )> StreamPointsFull(bool verbose = false)
             {
-                var result = Points.ReadData(
-                    ByteStreamIndicesForCartesianCoordinates,
-                    ByteStreamIndicesForSphericalCoordinates,
-                    ByteStreamIndicesForColors,
-                    ByteStreamIndexForIntensities,
-                    IntensityLimits,
-                    ByteStreamIndexForCartesianInvalidState,
-                    ByteStreamIndexForSphericalInvalidState,
-                    ByteStreamIndexForIntensityInvalidState,
-                    ByteStreamIndexForTimestampInvalidState,
-                    ByteStreamIndexForColorInvalidState,
-                    verbose
-                    );
+                var result = Points.ReadDataFull(Sem2Index, IntensityLimits, verbose);
 
                 if (Pose != null)
                 {
@@ -1432,12 +1350,9 @@ namespace Aardvark.Data.E57
                         Pose.Rotation.Transform(p.pos) + Pose.Translation,
                         p.color,
                         p.intensity,
-                        p.cartesianInvalidState,
-                        p.sphericalInvalidState,
-                        p.intensityInvalidState,
-                        p.timestampInvalidState,
-                        p.colorInvalidState
-                        ));
+                        p.timestamp,
+                        p.ri, p.ci,
+                        p.pis, p.sis, p.iis, p.tis, p.cis));
                 }
 
                 return result;
@@ -1451,7 +1366,7 @@ namespace Aardvark.Data.E57
         {
             public E57ElementType E57Type => E57ElementType.PointRecord;
 
-#region Properties
+            #region Properties
 
             /// <summary>
             /// Optional.
@@ -1459,7 +1374,7 @@ namespace Aardvark.Data.E57
             /// </summary>
             public GroupingByLine GroupingByLine;
 
-#endregion
+            #endregion
 
             internal static E57PointRecord Parse(XElement root)
                 => root != null ? new E57PointRecord { GroupingByLine = GroupingByLine.Parse(root) } : null;
@@ -2283,7 +2198,8 @@ namespace Aardvark.Data.E57
             /// The time.
             /// </summary>
             public DateTimeOffset DateTime => GpsStartEpoch + TimeSpan.FromSeconds(DateTimeValue);
-            private static readonly DateTimeOffset GpsStartEpoch = new DateTimeOffset(1980, 01, 06, 0, 0, 0, TimeSpan.Zero);
+            internal static readonly DateTimeOffset GpsStartEpoch = new DateTimeOffset(1980, 01, 06, 0, 0, 0, TimeSpan.Zero);
+            internal static readonly DateTimeOffset UnixStartEpoch = new DateTimeOffset(1970, 01, 01, 0, 0, 0, TimeSpan.Zero);
 
 #endregion
 

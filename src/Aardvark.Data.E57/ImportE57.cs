@@ -19,6 +19,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Xml.Linq;
+using static Aardvark.Data.E57.ASTM_E57;
 
 namespace Aardvark.Data.Points.Import
 {
@@ -162,9 +163,9 @@ namespace Aardvark.Data.Points.Import
             checked
             {
                 // file integrity check
-                ASTM_E57.VerifyChecksums(stream, streamLengthInBytes);
+                VerifyChecksums(stream, streamLengthInBytes);
 
-                var header = ASTM_E57.E57FileHeader.Parse(stream, streamLengthInBytes, config.Verbose);
+                var header = E57FileHeader.Parse(stream, streamLengthInBytes, config.Verbose);
                 if (config.Verbose) PrintHeader(header);
 
                 if (header.E57Root.Data3D.Length == 0) yield break;
@@ -175,7 +176,7 @@ namespace Aardvark.Data.Points.Import
                 var head = header.E57Root.Data3D[0];
                 var hasPositions = head.HasCartesianCoordinates || head.HasSphericalCoordinates;
                 var hasColors = head.HasColors;
-                var hasIntensities = head.HasIntensities;
+                var hasIntensities = head.Has(PointPropertySemantics.Intensity);
 
                 var ps = hasPositions ? new List<V3d>() : null;
                 var cs = hasColors ? new List<C4b>() : null;
@@ -285,6 +286,21 @@ namespace Aardvark.Data.Points.Import
             public int[] Intensities { get; }
 
             /// <summary>
+            /// Timestamps. Optional.
+            /// </summary>
+            public DateTimeOffset[] Timestamps { get; }
+
+            /// <summary>
+            /// The row number of point (zero-based). This is useful for data that is stored in a regular grid. Optional.
+            /// </summary>
+            public uint[] RowIndex { get; }
+
+            /// <summary>
+            /// The column number of point (zero-based). This is useful for data that is stored in a regular grid. Optional.
+            /// </summary>
+            public uint[] ColumnIndex { get; }
+
+            /// <summary>
             /// [Spec] If cartesianInvalidState is defined, its value shall have the following interpretation.
             /// If the value is 0, the values of cartesianX, cartesianY, and cartesianZ shall all be 
             /// meaningful. If the value is 1, only the direction component of the vector (cartesianX,
@@ -329,6 +345,9 @@ namespace Aardvark.Data.Points.Import
                 V3d[] positions,
                 C3b[] colors,
                 int[] intensities,
+                DateTimeOffset[] timestamps,
+                uint[] rowIndex,
+                uint[] columnIndex,
                 CartesianInvalidState[] cartesianInvalidState,
                 SphericalInvalidState[] sphericalInvalidState,
                 bool[] isIntensityInvalid,
@@ -339,6 +358,9 @@ namespace Aardvark.Data.Points.Import
                 Positions = positions ?? throw new ArgumentNullException(nameof(positions));
                 Colors = CheckAndInit(colors, nameof(colors));
                 Intensities = CheckAndInit(intensities, nameof(intensities));
+                Timestamps = CheckAndInit(timestamps, nameof(timestamps));
+                RowIndex = CheckAndInit(rowIndex, nameof(rowIndex));
+                ColumnIndex = CheckAndInit(columnIndex, nameof(columnIndex));
                 CartesianInvalidState = CheckAndInit(cartesianInvalidState, nameof(cartesianInvalidState));
                 SphericalInvalidState = CheckAndInit(sphericalInvalidState, nameof(sphericalInvalidState));
                 IsIntensityInvalid = CheckAndInit(isIntensityInvalid, nameof(isIntensityInvalid));
@@ -347,7 +369,7 @@ namespace Aardvark.Data.Points.Import
 
                 T[] CheckAndInit<T>(T[] xs, string name)
                 {
-                    if (xs?.Length != positions.Length) throw new ArgumentException(
+                    if (xs != null && xs.Length != positions.Length) throw new ArgumentException(
                         $"Array {name} must have size {positions.Length}, but has {xs.Length}.", name
                         );
                     return xs;
@@ -363,9 +385,9 @@ namespace Aardvark.Data.Points.Import
             checked
             {
                 // file integrity check
-                ASTM_E57.VerifyChecksums(stream, streamLengthInBytes);
+                VerifyChecksums(stream, streamLengthInBytes);
 
-                var header = ASTM_E57.E57FileHeader.Parse(stream, streamLengthInBytes, config.Verbose);
+                var header = E57FileHeader.Parse(stream, streamLengthInBytes, config.Verbose);
                 if (config.Verbose) PrintHeader(header);
 
                 if (header.E57Root.Data3D.Length == 0) yield break;
@@ -376,25 +398,31 @@ namespace Aardvark.Data.Points.Import
                 var head = header.E57Root.Data3D[0];
                 var hasPositions = head.HasCartesianCoordinates || head.HasSphericalCoordinates;
                 var hasColors = head.HasColors;
-                var hasIntensities = head.HasIntensities;
-                var hasCartesianInvalidState = head.HasCartesianInvalidState;
-                var hasSphericalInvalidState = head.HasSphericalInvalidState;
-                var hasIntensityInvalidState = head.HasIntensityInvalidState;
-                var hasTimestampInvalidState = head.HasTimestampInvalidState;
-                var hasColorInvalidState = head.HasColorInvalidState;
+                var hasIntensities = head.Has(PointPropertySemantics.Intensity);
+                var hasTimeStamps = head.Has(PointPropertySemantics.TimeStamp);
+                var hasRowIndex = head.Has(PointPropertySemantics.RowIndex);
+                var hasColumnIndex = head.Has(PointPropertySemantics.ColumnIndex);
+                var hasCartesianInvalidState = head.Has(PointPropertySemantics.CartesianInvalidState);
+                var hasSphericalInvalidState = head.Has(PointPropertySemantics.SphericalInvalidState);
+                var hasIsIntensityInvalid = head.Has(PointPropertySemantics.IsIntensityInvalid);
+                var hasIsTimeStampInvalid = head.Has(PointPropertySemantics.IsTimeStampInvalid);
+                var hasIsColorInvalid = head.Has(PointPropertySemantics.IsColorInvalid);
 
                 var ps = hasPositions ? new List<V3d>() : null;
                 var cs = hasColors ? new List<C4b>() : null;
                 var js = hasIntensities ? new List<int>() : null;
+                var ts = hasTimeStamps ? new List<DateTimeOffset>() : null;
+                var rindex = hasRowIndex ? new List<uint>() : null;
+                var cindex = hasColumnIndex ? new List<uint>() : null;
                 var piss = hasCartesianInvalidState ? new List<byte>() : null;
                 var siss = hasSphericalInvalidState ? new List<byte>() : null;
-                var iiss = hasIntensityInvalidState ? new List<byte>() : null;
-                var tiss = hasTimestampInvalidState ? new List<byte>() : null;
-                var ciss = hasColorInvalidState ? new List<byte>() : null;
+                var iiss = hasIsIntensityInvalid ? new List<byte>() : null;
+                var tiss = hasIsTimeStampInvalid ? new List<byte>() : null;
+                var ciss = hasIsColorInvalid ? new List<byte>() : null;
 
                 E57Chunk PrepareChunk()
                 {
-                    if (hasCartesianInvalidState)
+                    if (head.Has(PointPropertySemantics.CartesianInvalidState))
                     {
                         var foo = string.Join(", ", piss.GroupBy(x => x).OrderBy(x => x.Key).Select(g => $"{g.Key}: {g.Count(),10}"));
                         Console.WriteLine(foo);
@@ -404,18 +432,28 @@ namespace Aardvark.Data.Points.Import
                         positions: ps.ToArray(),
                         colors: hasColors ? cs.ToArray().Map(c => (C3b)c) : null,
                         intensities: hasIntensities ? js.ToArray() : null,
+                        timestamps: hasTimeStamps ? ts.ToArray() : null,
+                        rowIndex: hasRowIndex ? rindex.ToArray() : null,
+                        columnIndex: hasColumnIndex ? cindex.ToArray() : null,
                         cartesianInvalidState: hasCartesianInvalidState ? piss.Select(x => (CartesianInvalidState)x).ToArray() : null,
                         sphericalInvalidState: hasSphericalInvalidState ? siss.Select(x => (SphericalInvalidState)x).ToArray() : null,
-                        isIntensityInvalid: hasIntensityInvalidState ? iiss.Select(x => x == 1).ToArray() : null,
-                        isTimeStampInvalid: hasTimestampInvalidState ? tiss.Select(x => x == 1).ToArray() : null,
-                        isColorInvalid: hasColorInvalidState ? ciss.Select(x => x == 1).ToArray() : null
+                        isIntensityInvalid: hasIsIntensityInvalid ? iiss.Select(x => x == 1).ToArray() : null,
+                        isTimeStampInvalid: hasIsTimeStampInvalid ? tiss.Select(x => x == 1).ToArray() : null,
+                        isColorInvalid: hasIsColorInvalid ? ciss.Select(x => x == 1).ToArray() : null
                         );
                     Interlocked.Add(ref yieldedRecordCount, ps.Count);
 
                     if (hasPositions) ps = new List<V3d>();
                     if (hasColors) cs = new List<C4b>();
                     if (hasIntensities) js = new List<int>();
+                    if (hasTimeStamps) ts = new List<DateTimeOffset>();
+                    if (hasRowIndex) rindex = new List<uint>();
+                    if (hasColumnIndex) cindex = new List<uint>();
                     if (hasCartesianInvalidState) piss = new List<byte>();
+                    if (hasSphericalInvalidState) siss = new List<byte>();
+                    if (hasIsIntensityInvalid) iiss = new List<byte>();
+                    if (hasIsTimeStampInvalid) tiss = new List<byte>();
+                    if (hasIsColorInvalid) ciss = new List<byte>();
 
                     if (config.Verbose)
                     {
@@ -429,17 +467,21 @@ namespace Aardvark.Data.Points.Import
                 //var j = 0;
                 foreach (var data3d in header.E57Root.Data3D)
                 {
+                    var acquisitionStart = data3d.AcquisitonStart?.DateTime ?? E57DateTime.UnixStartEpoch;
                     //Report.WarnNoPrefix($"[header.E57Root.Data3D][{++j}/{header.E57Root.Data3D.Length}] recordCount: {data3d.Points.RecordCount,16:N0}; hasColors: {data3d.HasColors}; hasIntensities: {data3d.HasIntensities}");
-                    foreach (var (pos, color, intensity, pis, sis, iis, tis, cis) in data3d.StreamPointsFull(config.Verbose))
+                    foreach (var (pos, color, intensity, timestamp, ri, ci, pis, sis, iis, tis, cis) in data3d.StreamPointsFull(config.Verbose))
                     {
                         if (hasPositions) ps.Add(pos);
                         if (hasColors) cs.Add(color);
                         if (hasIntensities) js.Add(intensity);
-                        if (hasCartesianInvalidState) piss.Add(pis);
-                        if (hasSphericalInvalidState) siss.Add(sis);
-                        if (hasIntensityInvalidState) iiss.Add(iis);
-                        if (hasTimestampInvalidState) tiss.Add(tis);
-                        if (hasColorInvalidState) ciss.Add(cis);
+                        if (hasTimeStamps) ts.Add(acquisitionStart.AddSeconds(timestamp.Value));
+                        if (hasRowIndex) rindex.Add(ri.Value);
+                        if (hasColumnIndex) cindex.Add(ci.Value);
+                        if (hasCartesianInvalidState) piss.Add(pis.Value);
+                        if (hasSphericalInvalidState) siss.Add(sis.Value);
+                        if (hasIsIntensityInvalid) iiss.Add(iis.Value);
+                        if (hasIsTimeStampInvalid) tiss.Add(tis.Value);
+                        if (hasIsColorInvalid) ciss.Add(cis.Value);
                         if (ps.Count == config.MaxChunkPointCount) yield return PrepareChunk();
                     }
                     if (ps.Count > 0) yield return PrepareChunk();
@@ -452,11 +494,11 @@ namespace Aardvark.Data.Points.Import
         /// <summary>
         /// Gets general info for .e57 file.
         /// </summary>
-        public static PointFileInfo<ASTM_E57.E57FileHeader> E57Info(string filename, ParseConfig config)
+        public static PointFileInfo<E57FileHeader> E57Info(string filename, ParseConfig config)
         {
             var filesize = new FileInfo(filename).Length;
             var stream = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
-            var header = ASTM_E57.E57FileHeader.Parse(stream, filesize, config.Verbose);
+            var header = E57FileHeader.Parse(stream, filesize, config.Verbose);
             var pointCount = 0L;
             var pointBounds = Box3d.Invalid;
             foreach (var data3d in header.E57Root.Data3D)
@@ -467,7 +509,7 @@ namespace Aardvark.Data.Points.Import
                     pointBounds.ExtendBy(data3d.CartesianBounds.Bounds);
                 }
             }
-            return new PointFileInfo<ASTM_E57.E57FileHeader>(filename, E57Format, filesize, pointCount, pointBounds, header);
+            return new PointFileInfo<E57FileHeader>(filename, E57Format, filesize, pointCount, pointBounds, header);
         }
     }
 }

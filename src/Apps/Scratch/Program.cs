@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using Uncodium.SimpleStore;
+using static Aardvark.Data.E57.ASTM_E57;
 
 namespace Scratch
 {
@@ -269,8 +270,8 @@ namespace Scratch
                 {
                     var info = E57.E57Info(file, ParseConfig.Default);
                     var data3d = info.Metadata.E57Root.Data3D[0];
-                    if (!data3d.HasCartesianInvalidState) continue;
-                    Console.WriteLine($"{(data3d.HasCartesianInvalidState ? 'X' : ' ')} {file} {info.FileSizeInBytes:N0}");
+                    if (!data3d.Has(PointPropertySemantics.CartesianInvalidState)) continue;
+                    Console.WriteLine($"{(data3d.Has(PointPropertySemantics.CartesianInvalidState) ? 'X' : ' ')} {file} {info.FileSizeInBytes:N0}");
                 }
                 catch (Exception e)
                 {
@@ -284,23 +285,28 @@ namespace Scratch
             //GeneratePointCloudStats();
             //PrintAllFileContinaingCartesianInvalidState();
 
+            var basedir = @"W:\Datasets\Vgm\Data\E57";
+            //var basedir = @"W:\Datasets\pointclouds\e57-3d-imgfmt";
             var files = Directory
-                .EnumerateFiles(@"W:\Datasets\Vgm\Data\E57", "*.e57", SearchOption.AllDirectories)
+                .EnumerateFiles(basedir, "*.e57", SearchOption.AllDirectories)
                 .OrderBy(x => x)
+                //.Where(x => x.Contains("Cylcone"))
                 .ToArray()
                 ;
-            foreach (var file in files.Where(x => x.Contains("Cylcone")))
+            foreach (var file in files)
             {
                 try
                 {
                     var info = E57.E57Info(file, ParseConfig.Default);
                     if (info.PointCount > 1024 * 1024 * 1024) continue;
                     var data3d = info.Metadata.E57Root.Data3D[0];
-                    if (!data3d.HasCartesianInvalidState) continue;
-                    Console.WriteLine($"{(data3d.HasCartesianInvalidState ? 'X' : ' ')} {file} {info.FileSizeInBytes:N0}");
-                    foreach (var chunk in E57.ChunksFull(file, ParseConfig.Default))
+                    //if (!data3d.Has(PointPropertySemantics.RowIndex)) continue;
+                    Console.WriteLine($"{(data3d.Has(PointPropertySemantics.RowIndex) ? 'X' : ' ')} {file} {info.FileSizeInBytes:N0}");
+                    foreach (var chunk in E57.ChunksFull(file, ParseConfig.Default).Take(1))
                     {
                         Console.WriteLine($"{chunk.Count}");
+                        //var gs = chunk.Timestamps.GroupBy(x => new DateTimeOffset(x.Year, x.Month, x.Day, x.Hour, x.Minute, x.Second, TimeSpan.Zero)).Select(g => (g.Key, g.Count())).ToArray();
+                        //var gs = chunk.CartesianInvalidState.GroupBy(x => x).Select(g => (g.Key, g.Count())).ToArray();
                     }
                 }
                 catch (Exception e)
