@@ -1314,19 +1314,20 @@ namespace Aardvark.Geometry.Tests
 
         internal static void Test_20201113_Hannes()
         {
-            //var filename = @"T:\Vgm\Data\E57\aibotix_ground_points.e57";
-            //var filename = @"T:\Vgm\Data\E57\Register360_Berlin Office_1.e57";
-            var filename = @"T:\Vgm\Data\E57\Staatsoper.e57";
-            //var filename = @"T:\Vgm\Data\E57\Innenscan_FARO.e57";
-            //var filename = @"T:\Vgm\Data\E57\1190_31_test_Frizzo.e57";
-            //var filename = @"T:\Vgm\Data\E57\Neuhäusl-Hörschwang.e57";
-            //var filename = @"T:\Vgm\Data\E57\2020-11-13-Walenta\2020452-B-3-5.e57";
+            //var filename = @"E:\e57tests\datasets\aibotix_ground_points.e57";
+            //var filename = @"E:\e57tests\datasets\Register360_Berlin Office_1.e57";
+            //var filename = @"E:\e57tests\datasets\Staatsoper.e57";
+            //var filename = @"E:\e57tests\datasets\Innenscan_FARO.e57";
+            //var filename = @"E:\e57tests\datasets\1190_31_test_Frizzo.e57";
+            var filename = @"E:\e57tests\datasets\Neuhäusl-Hörschwang.e57";
+            //var filename = @"E:\e57tests\datasets\2020452-B-3-5.e57";
+            //var filename = @"E:\e57tests\datasets\100pct_1mm_zebcam_shade_zebcam_world.e57";
 
             var key = Path.GetFileName(filename);
             
-            //var storePath = $@"T:\Vgm\Stores\{key}";
-            var storePath = $@"E:\rmdata\{key}";
-            using var storeRaw = new SimpleDiskStore(storePath);
+            var storePath = $@"E:\e57tests\stores\{key}";
+            Directory.CreateDirectory(storePath);
+            using var storeRaw = new SimpleDiskStore(Path.Combine(storePath, "data.uds"));
             var store = storeRaw.ToPointCloudStore();
 
 
@@ -1367,6 +1368,7 @@ namespace Aardvark.Geometry.Tests
             var pcl = import.Result;
             File.WriteAllText(Path.Combine(storePath, "key.txt"), pcl.Id);
 
+
             //var maxCount = pcl.PointCount / 30;
             //var level = pcl.GetMaxOctreeLevelWithLessThanGivenPointCount(maxCount);
             //var queryChunks = pcl.QueryPointsInOctreeLevel(level);
@@ -1389,7 +1391,7 @@ namespace Aardvark.Geometry.Tests
             //Report.Line($"intensityRange {intensityRange}");
 
             Report.EndTimed();
-
+            Report.Line($"point count: {pcl.Root.Value.PointCountTree:N0}");
             //Report.Line($"number of keys: {storeRaw.SnapshotKeys().Length:N0}");
         }
 
@@ -1692,7 +1694,7 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] _)
         {
-            Test_20211013_log2int();
+            //Test_20211013_log2int();
 
             //Test_20210904();
 
@@ -1721,7 +1723,7 @@ namespace Aardvark.Geometry.Tests
 
             //TestLaszip();
 
-            //Test_20201113_Hannes();
+            Test_20201113_Hannes();
 
             //var poly = new Polygon2d(V2d.OO, V2d.IO, V2d.II, V2d.OI);
             //Console.WriteLine(ApprInsidePolygon.Contains(poly, new V2d(0.5, 0.0)));

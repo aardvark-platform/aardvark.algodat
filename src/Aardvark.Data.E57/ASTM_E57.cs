@@ -504,7 +504,7 @@ namespace Aardvark.Data.E57
                 int maxChunkPointCount,
                 ImmutableDictionary<PointPropertySemantics, int> sem2idx,
                 E57IntensityLimits intensityLimits,
-                bool verbose = false
+                bool verbose
                 )
             {
                 var compressedVectorHeader = E57CompressedVectorHeader.Parse(ReadLogicalBytes(m_stream, FileOffset, 32));
@@ -1174,9 +1174,14 @@ namespace Aardvark.Data.E57
                 return GetElements(root, "vectorChild").Select(x => Parse(x, stream, verbose)).ToArray();
             }
 
-            public IEnumerable<(V3d[] Positions, ImmutableDictionary<PointPropertySemantics, Array> Properties)> StreamPointsFull(int maxChunkPointCount, bool verbose = false)
+            public IEnumerable<(V3d[] Positions, ImmutableDictionary<PointPropertySemantics, Array> Properties)> StreamPointsFull(
+                int maxChunkPointCount,
+                bool verbose,
+                ImmutableHashSet<PointPropertySemantics> exclude
+                )
             {
-                var chunks = Points.ReadDataFull(maxChunkPointCount, Sem2Index, IntensityLimits, verbose);
+                var filteredSem2Index = Sem2Index.Where(kv => !exclude.Contains(kv.Key)).ToImmutableDictionary();
+                var chunks = Points.ReadDataFull(maxChunkPointCount, filteredSem2Index, IntensityLimits, verbose);
                 foreach (var chunk in chunks)
                 {
                     V3d[] ps;

@@ -161,6 +161,19 @@ namespace Aardvark.Data.Points.Import
         /// </summary>
         public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, ParseConfig config)
         {
+            var exclude = ImmutableHashSet<PointPropertySemantics>.Empty
+                .Add(PointPropertySemantics.CartesianInvalidState)
+                .Add(PointPropertySemantics.ColumnIndex)
+                .Add(PointPropertySemantics.IsColorInvalid)
+                .Add(PointPropertySemantics.IsIntensityInvalid)
+                .Add(PointPropertySemantics.IsTimeStampInvalid)
+                .Add(PointPropertySemantics.ReturnCount)
+                .Add(PointPropertySemantics.ReturnIndex)
+                .Add(PointPropertySemantics.RowIndex)
+                .Add(PointPropertySemantics.SphericalInvalidState)
+                .Add(PointPropertySemantics.TimeStamp)
+                ;
+
             checked
             {
                 // file integrity check
@@ -174,16 +187,9 @@ namespace Aardvark.Data.Points.Import
                 var totalRecordCount = header.E57Root.Data3D.Sum(x => x.Points.RecordCount);
                 var yieldedRecordCount = 0L;
 
-                var head = header.E57Root.Data3D[0];
-                var hasPositions = head.HasCartesianCoordinates || head.HasSphericalCoordinates;
-                var hasColors = head.HasColors;
-                var hasIntensities = head.Has(PointPropertySemantics.Intensity);
-
-                //var j = 0;
                 foreach (var data3d in header.E57Root.Data3D)
                 {
-                    //Report.WarnNoPrefix($"[header.E57Root.Data3D][{++j}/{header.E57Root.Data3D.Length}] recordCount: {data3d.Points.RecordCount,16:N0}; hasColors: {data3d.HasColors}; hasIntensities: {data3d.HasIntensities}");
-                    foreach (var (Positions, Properties) in data3d.StreamPointsFull(config.MaxChunkPointCount, config.Verbose))
+                    foreach (var (Positions, Properties) in data3d.StreamPointsFull(config.MaxChunkPointCount, config.Verbose, exclude))
                     {
                         var e57chunk = new E57Chunk(Properties, data3d, Positions);
 
@@ -230,11 +236,9 @@ namespace Aardvark.Data.Points.Import
 
                 var head = header.E57Root.Data3D[0];
 
-                //var j = 0;
                 foreach (var data3d in header.E57Root.Data3D)
                 {
-                    //Report.WarnNoPrefix($"[header.E57Root.Data3D][{++j}/{header.E57Root.Data3D.Length}] recordCount: {data3d.Points.RecordCount,16:N0}; hasColors: {data3d.HasColors}; hasIntensities: {data3d.HasIntensities}");
-                    foreach (var (Positions, Properties) in data3d.StreamPointsFull(config.MaxChunkPointCount, config.Verbose))
+                    foreach (var (Positions, Properties) in data3d.StreamPointsFull(config.MaxChunkPointCount, config.Verbose, ImmutableHashSet<PointPropertySemantics>.Empty))
                     {
                         var chunk = new E57Chunk(Properties, data3d, Positions);
                         Interlocked.Add(ref yieldedRecordCount, Positions.Length);
