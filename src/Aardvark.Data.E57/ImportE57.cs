@@ -28,7 +28,7 @@ namespace Aardvark.Data.Points.Import
     /// Importer for E57 format.
     /// </summary>
     [PointCloudFileFormatAttribute]
-    public static class E57
+    public static partial class E57
     {
         /// <summary>
         /// E57 file format.
@@ -190,7 +190,7 @@ namespace Aardvark.Data.Points.Import
                         var chunk = new Chunk(
                             positions: Positions,
                             colors: e57chunk.Colors?.Map(c => new C4b(c)) ?? Positions.Map(_ => C4b.White),
-                            normals: null,
+                            normals: e57chunk.Normals,
                             intensities: e57chunk.Intensities,
                             classifications: null
                             );
@@ -208,43 +208,6 @@ namespace Aardvark.Data.Points.Import
 
                 if (config.Verbose) Report.Line();
             }
-        }
-
-        /// <summary>
-        /// </summary>
-        public enum CartesianInvalidState : byte
-        {
-            /// <summary>
-            /// The cartesian coordinates are meaningful.
-            /// </summary>
-            Valid = 0,
-
-            /// <summary>
-            /// Only the direction component of the vector is meaningful.
-            /// </summary>
-            OnlyDirectionIsValid = 1,
-
-            /// <summary>
-            /// The cartesian coordinates are not meaningful.
-            /// </summary>
-            Invalid = 2,
-        }
-
-        /// <summary>
-        /// </summary>
-        public enum SphericalInvalidState : byte
-        {
-            /// <summary>
-            /// </summary>
-            Valid = 0,
-
-            /// <summary>
-            /// </summary>
-            InvalidSphericalRange = 1,
-
-            /// <summary>
-            /// </summary>
-            Invalid = 2,
         }
 
         /// <summary>
@@ -309,6 +272,43 @@ namespace Aardvark.Data.Points.Import
                 }
             }
             return new PointFileInfo<E57FileHeader>(filename, E57Format, filesize, pointCount, pointBounds, header);
+        }
+
+        /// <summary>
+        /// </summary>
+        public enum CartesianInvalidState : byte
+        {
+            /// <summary>
+            /// The cartesian coordinates are meaningful.
+            /// </summary>
+            Valid = 0,
+
+            /// <summary>
+            /// Only the direction component of the vector is meaningful.
+            /// </summary>
+            OnlyDirectionIsValid = 1,
+
+            /// <summary>
+            /// The cartesian coordinates are not meaningful.
+            /// </summary>
+            Invalid = 2,
+        }
+
+        /// <summary>
+        /// </summary>
+        public enum SphericalInvalidState : byte
+        {
+            /// <summary>
+            /// </summary>
+            Valid = 0,
+
+            /// <summary>
+            /// </summary>
+            InvalidSphericalRange = 1,
+
+            /// <summary>
+            /// </summary>
+            Invalid = 2,
         }
 
         /// <summary>
@@ -461,6 +461,28 @@ namespace Aardvark.Data.Points.Import
             /// </summary>
             public bool[] IsColorInvalid
                 => GetOrNull<byte>(PointPropertySemantics.IsColorInvalid)?.Map(x => x == 1);
+
+            /// <summary>
+            /// Normals. Optional.
+            /// </summary>
+            public V3f[] Normals
+            {
+                get
+                {
+                    V3f[] ns = null;
+                    if (RawData.ContainsKey(PointPropertySemantics.NormalX))
+                    {
+                        var nxs = (float[])RawData[PointPropertySemantics.NormalX];
+                        var nys = (float[])RawData[PointPropertySemantics.NormalY];
+                        var nzs = (float[])RawData[PointPropertySemantics.NormalZ];
+
+                        var imax = Count;
+                        ns = new V3f[imax];
+                        for (var i = 0; i < imax; i++) ns[i] = new(nxs[i], nys[i], nzs[i]);
+                    }
+                    return ns;
+                }
+            }
 
             private T[] GetOrNull<T>(PointPropertySemantics sem)
                 => RawData.TryGetValue(sem, out var raw) ? (T[])raw : null;

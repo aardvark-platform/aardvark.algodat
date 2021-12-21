@@ -44,17 +44,6 @@ namespace Aardvark.Data.E57
 
     internal static class Utils
     {
-        public static V3d SphericalToCartesion(double range, double azimuth, double elevation)
-        {
-            // convert spherical to Cartesian coordinates
-            var cosElevation = Math.Cos(elevation);
-            return new(
-                range * cosElevation * Math.Cos(azimuth),
-                range * cosElevation * Math.Sin(azimuth),
-                range * Math.Sin(elevation)
-                );
-        }
-
         public static IValueBuffer ValueBuffer<T>() => new ValueBuffer<T>();
 
         public static IValueBuffer ValueBuffer(PPS sem) => sem switch

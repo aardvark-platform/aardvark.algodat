@@ -283,9 +283,10 @@ namespace Scratch
 
         static void Main(string[] args)
         {
-            GeneratePointCloudStats();
+            //GeneratePointCloudStats();
+            //return;
+
             //PrintAllFileContainingCartesianInvalidState();
-            return;
 
             var basedir = @"W:\Datasets\Vgm\Data\E57";
             //var basedir = @"W:\Datasets\pointclouds\e57-3d-imgfmt";
@@ -294,6 +295,7 @@ namespace Scratch
                 .OrderBy(x => x)
                 //.Where(x => x.Contains("Cylcone"))
                 //.Where(x => x.Contains("Statue"))
+                //.Where(x => x.Contains("illnach"))
                 .ToArray()
                 ;
             foreach (var file in files)
@@ -308,6 +310,7 @@ namespace Scratch
                     foreach (var chunk in E57.ChunksFull(file, ParseConfig.Default).Take(1))
                     {
                         Console.WriteLine($"{chunk.Count}");
+                        if (chunk.RawData.ContainsKey(PointPropertySemantics.NormalX)) Debugger.Break();
                         //var foo = chunk.Colors.Where(c => c.R != c.G || c.R != c.B).ToArray();
                         //if (foo.Length > 0) Debugger.Break();
                         //var gs = chunk.Timestamps.GroupBy(x => new DateTimeOffset(x.Year, x.Month, x.Day, x.Hour, x.Minute, x.Second, TimeSpan.Zero)).Select(g => (g.Key, g.Count())).ToArray();

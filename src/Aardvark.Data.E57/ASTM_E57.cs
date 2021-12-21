@@ -649,6 +649,14 @@ namespace Aardvark.Data.E57
                                             break;
                                         }
 
+                                    case (PointPropertySemantics.NormalX, float[] xs)             : data.Append(sem, xs); break;
+                                    case (PointPropertySemantics.NormalY, float[] xs)             : data.Append(sem, xs); break;
+                                    case (PointPropertySemantics.NormalZ, float[] xs)             : data.Append(sem, xs); break;
+
+                                    case (PointPropertySemantics.NormalX, double[] xs)            : data.Append(sem, xs.Map(x => (float)x)); break;
+                                    case (PointPropertySemantics.NormalY, double[] xs)            : data.Append(sem, xs.Map(x => (float)x)); break;
+                                    case (PointPropertySemantics.NormalZ, double[] xs)            : data.Append(sem, xs.Map(x => (float)x)); break;
+
                                     default: throw new NotImplementedException($"Unexpected data ({raw}) for {sem}");
                                 }
                             }
