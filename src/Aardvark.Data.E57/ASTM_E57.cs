@@ -14,6 +14,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -49,9 +50,9 @@ namespace Aardvark.Data.E57
             public E57PhysicalOffset(long value) => Value
                 = (value % 1024 < 1020) ? value : throw new ArgumentException($"E57PhysicalOffset must not point to checksum bytes. ({value}).");
 
-            public static E57PhysicalOffset operator +(E57PhysicalOffset a, E57PhysicalOffset b) => new E57PhysicalOffset(a.Value + b.Value);
+            public static E57PhysicalOffset operator +(E57PhysicalOffset a, E57PhysicalOffset b) => new(a.Value + b.Value);
             public static E57LogicalOffset operator +(E57PhysicalOffset a, E57LogicalOffset b) => (E57LogicalOffset)a + b;
-            public static explicit operator E57LogicalOffset(E57PhysicalOffset a) => new E57LogicalOffset(a.Value - ((a.Value >> 8) & ~0b11));
+            public static explicit operator E57LogicalOffset(E57PhysicalOffset a) => new(a.Value - ((a.Value >> 8) & ~0b11));
             public override string ToString() => $"E57PhysicalOffset({Value})";
         }
 
@@ -62,9 +63,9 @@ namespace Aardvark.Data.E57
         {
             public readonly long Value;
             public E57LogicalOffset(long value) { Value = value; }
-            public static E57LogicalOffset operator +(E57LogicalOffset a, E57LogicalOffset b) => new E57LogicalOffset(a.Value + b.Value);
-            public static E57LogicalOffset operator +(E57LogicalOffset a, int b) => new E57LogicalOffset(a.Value + b);
-            public static explicit operator E57PhysicalOffset(E57LogicalOffset a) => new E57PhysicalOffset(a.Value + (a.Value / 1020 * 4));
+            public static E57LogicalOffset operator +(E57LogicalOffset a, E57LogicalOffset b) => new(a.Value + b.Value);
+            public static E57LogicalOffset operator +(E57LogicalOffset a, int b) => new(a.Value + b);
+            public static explicit operator E57PhysicalOffset(E57LogicalOffset a) => new(a.Value + (a.Value / 1020 * 4));
             public override string ToString() => $"E57LogicalOffset({Value})";
         }
 
@@ -499,15 +500,8 @@ namespace Aardvark.Data.E57
                 return v;
             }
 
-            public IEnumerable<(V3d pos, C4b color, int intensity)> ReadData(
-                ImmutableDictionary<PointPropertySemantics, int> sem2idx,
-                E57IntensityLimits intensityLimits,
-                bool verbose = false
-                )
-                => ReadDataFull(sem2idx, intensityLimits, verbose)
-                    .Select(x => (x.pos, x.color, x.intensity));
-
-            public IEnumerable<(V3d pos, C4b color, int intensity, double? timestamp, uint? ri, uint? ci, byte? pis, byte? sis, byte? iis, byte? tis, byte? cis)> ReadDataFull(
+            public IEnumerable<ImmutableDictionary<PointPropertySemantics, Array>> ReadDataFull(
+                int maxChunkPointCount,
                 ImmutableDictionary<PointPropertySemantics, int> sem2idx,
                 E57IntensityLimits intensityLimits,
                 bool verbose = false
@@ -527,36 +521,13 @@ namespace Aardvark.Data.E57
                 var recordsLeftToConsumePerByteStream = new long[ByteStreamsCount].Set(RecordCount);
                 var bitpackerPerByteStream = Prototype.Children.Map(x => new BitPacker(((IBitPack)x).NumberOfBitsForBitPack));
                 var bytesLeftToConsume = compressedVectorHeader.SectionLength - 32;
-                var hasColors = sem2idx.ContainsKey(PointPropertySemantics.ColorRed);
-                var hasCartesian = sem2idx.ContainsKey(PointPropertySemantics.CartesianX);
-                var hasSpherical = sem2idx.ContainsKey(PointPropertySemantics.SphericalRange);
-                var hasIntensities = sem2idx.ContainsKey(PointPropertySemantics.Intensity);
-                var hasTimestamps = sem2idx.ContainsKey(PointPropertySemantics.TimeStamp);
-                var hasColumnIndex = sem2idx.ContainsKey(PointPropertySemantics.RowIndex);
-                var hasRowIndex = sem2idx.ContainsKey(PointPropertySemantics.ColumnIndex);
-                var hasCartesianInvalidState = sem2idx.ContainsKey(PointPropertySemantics.CartesianInvalidState);
-                var hasSphericalInvalidState = sem2idx.ContainsKey(PointPropertySemantics.SphericalInvalidState);
-                var hasIsIntensityInvalid = sem2idx.ContainsKey(PointPropertySemantics.IsIntensityInvalid);
-                var hasIsTimestampInvalid = sem2idx.ContainsKey(PointPropertySemantics.IsTimeStampInvalid);
-                var hasIsColorInvalid = sem2idx.ContainsKey(PointPropertySemantics.IsColorInvalid);
+
+                bool has(PointPropertySemantics sem) => sem2idx.ContainsKey(sem);
+
                 if (compressedVectorHeader.DataStartOffset.Value == 0) throw new Exception($"Unexpected compressedVectorHeader.DataStartOffset (0).");
                 if (compressedVectorHeader.IndexStartOffset.Value != 0) throw new Exception($"Unexpected compressedVectorHeader.IndexStartOffset ({compressedVectorHeader.IndexStartOffset})");
 
-                var cartesianX = new Queue<double>();
-                var cartesianY = new Queue<double>();
-                var cartesianZ = new Queue<double>();
-                var colorR = hasColors ? new Queue<byte>() : null;
-                var colorG = hasColors ? new Queue<byte>() : null;
-                var colorB = hasColors ? new Queue<byte>() : null;
-                var intensities = hasIntensities ? new Queue<int>() : null;
-                var timestamps = hasTimestamps ? new Queue<double>() : null;
-                var rowindex = hasRowIndex ? new Queue<uint>() : null;
-                var columnindex = hasColumnIndex ? new Queue<uint>() : null;
-                var cartesianInvalidState = hasCartesianInvalidState ? new Queue<byte>() : null;
-                var sphericalInvalidState = hasSphericalInvalidState ? new Queue<byte>() : null;
-                var isIntensityInvalid = hasIsIntensityInvalid ? new Queue<byte>() : null;
-                var isTimestampInvalid = hasIsTimestampInvalid ? new Queue<byte>() : null;
-                var isColorInvalid = hasIsColorInvalid ? new Queue<byte>() : null;
+                var data = new ValueBufferSet(sem2idx.Keys);
 
                 var offset = (E57LogicalOffset)compressedVectorHeader.DataStartOffset;
                 var verboseDetail = false; // verbose
@@ -580,8 +551,6 @@ namespace Aardvark.Data.E57
                         var bytestreamBufferLengths = ReadLogicalUnsignedShorts(m_stream, offset, dataPacketHeader.ByteStreamCount);
                         
                         offset += dataPacketHeader.ByteStreamCount * sizeof(ushort);
-                        //for (var i = 0; i < bytestreamBufferLengths.Length; i++)
-                        //    Console.WriteLine($"[E57CompressedVector]  ByteStream {i+1}/{bytestreamBufferLengths.Length}: length = {bytestreamBufferLengths[i]}");
                         if (verboseDetail) Console.WriteLine($"[E57CompressedVector][OFFSET] {offset}");
 
                         // read bytestream buffers
@@ -591,175 +560,101 @@ namespace Aardvark.Data.E57
                         {
                             var count = bytestreamBufferLengths[i];
                             bytestreamBuffers[i] = ReadLogicalBytes(m_stream, offset, count);
-                            //Console.WriteLine($"[E57CompressedVector][OFFSET] {offset}, reading {count} bytes for bytestream {i+1}/{dataPacketHeader.ByteStreamCount}");
                             offset += count;
 
-                            //buffers[i] = bitpackerPerByteStream[i].UnpackUInts(bytestreamBuffers[i]);
                             buffers[i] = UnpackByteStream(bytestreamBuffers[i], bitpackerPerByteStream[i], (IBitPack)Prototype.Children[i]);
 
                             recordsLeftToConsumePerByteStream[i] -= buffers[i].Length;
                         }
 
-                        //if (verbose) Console.WriteLine(
-                        //    $"[E57CompressedVector][recordsLeftToConsumePerByteStream] {string.Join(", ", recordsLeftToConsumePerByteStream.Select(x => x.ToString()))}"
-                        //    );
-
                         // build
                         {
+                            var hasCartesian = has(PointPropertySemantics.CartesianX);
+                            var hasSpherical = has(PointPropertySemantics.SphericalRange);
                             if (!hasCartesian && !hasSpherical) throw new Exception("Neither cartesian nor spherical coordinates.");
                             if (hasCartesian && hasSpherical) throw new Exception("Both cartesian and spherical coordinates.");
 
-                            if (hasCartesian)
+                            foreach (var kv in sem2idx)
                             {
-                                var pxs = (buffers[sem2idx[PointPropertySemantics.CartesianX]] is double[] xs) ? xs : ((float[])buffers[sem2idx[PointPropertySemantics.CartesianX]]).Map(x => (double)x);
-                                var pys = (buffers[sem2idx[PointPropertySemantics.CartesianY]] is double[] ys) ? ys : ((float[])buffers[sem2idx[PointPropertySemantics.CartesianY]]).Map(x => (double)x);
-                                var pzs = (buffers[sem2idx[PointPropertySemantics.CartesianZ]] is double[] zs) ? zs : ((float[])buffers[sem2idx[PointPropertySemantics.CartesianZ]]).Map(x => (double)x);
-                                foreach (var x in pxs) cartesianX.Enqueue(x);
-                                foreach (var y in pys) cartesianY.Enqueue(y);
-                                foreach (var z in pzs) cartesianZ.Enqueue(z);
-                            }
-
-                            if (hasSpherical)
-                            {
-                                var pxs = (buffers[sem2idx[PointPropertySemantics.SphericalRange]] is double[] xs) ? xs : ((float[])buffers[sem2idx[PointPropertySemantics.SphericalRange]]).Map(x => (double)x);
-                                var pys = (buffers[sem2idx[PointPropertySemantics.SphericalAzimuth]] is double[] ys) ? ys : ((float[])buffers[sem2idx[PointPropertySemantics.SphericalAzimuth]]).Map(x => (double)x);
-                                var pzs = (buffers[sem2idx[PointPropertySemantics.SphericalElevation]] is double[] zs) ? zs : ((float[])buffers[sem2idx[PointPropertySemantics.SphericalElevation]]).Map(x => (double)x);
-                                foreach (var x in pxs) cartesianX.Enqueue(x);
-                                foreach (var y in pys) cartesianY.Enqueue(y);
-                                foreach (var z in pzs) cartesianZ.Enqueue(z);
-                            }
-
-                            if (hasColors)
-                            {
-                                var crs = (uint[])buffers[sem2idx[PointPropertySemantics.ColorRed]];
-                                var cgs = (uint[])buffers[sem2idx[PointPropertySemantics.ColorGreen]];
-                                var cbs = (uint[])buffers[sem2idx[PointPropertySemantics.ColorBlue]];
-                                foreach (var r in crs) colorR.Enqueue((byte)r);
-                                foreach (var g in cgs) colorG.Enqueue((byte)g);
-                                foreach (var b in cbs) colorB.Enqueue((byte)b);
-                            }
-
-                            if (hasIntensities)
-                            {
-                                int[] remapWithLimits(float[] xs)
+                                var (sem, raw) = (kv.Key, buffers[kv.Value]);
+                                switch (sem, raw)
                                 {
-                                    var min = intensityLimits.Intensity.Min;
-                                    var max = intensityLimits.Intensity.Max;
-                                    var d = max - min;
-                                    var result = xs.Map(x => (int)(((x - min) / d) * 65535.5f));
-                                    return result;
+                                    case (PointPropertySemantics.CartesianX, double[] xs)         : data.Append(sem, xs); break;
+                                    case (PointPropertySemantics.CartesianY, double[] xs)         : data.Append(sem, xs); break;
+                                    case (PointPropertySemantics.CartesianZ, double[] xs)         : data.Append(sem, xs); break;
+
+                                    case (PointPropertySemantics.CartesianX, float[] xs)          : data.Append(sem, xs.Map(x => (double)x)); break;
+                                    case (PointPropertySemantics.CartesianY, float[] xs)          : data.Append(sem, xs.Map(x => (double)x)); break;
+                                    case (PointPropertySemantics.CartesianZ, float[] xs)          : data.Append(sem, xs.Map(x => (double)x)); break;
+
+                                    case (PointPropertySemantics.SphericalRange, double[] xs)     : data.Append(sem, xs); break;
+                                    case (PointPropertySemantics.SphericalAzimuth, double[] xs)   : data.Append(sem, xs); break;
+                                    case (PointPropertySemantics.SphericalElevation, double[] xs) : data.Append(sem, xs); break;
+
+                                    case (PointPropertySemantics.SphericalRange, float[] xs)      : data.Append(sem, xs.Map(x => (double)x)); break;
+                                    case (PointPropertySemantics.SphericalAzimuth, float[] xs)    : data.Append(sem, xs.Map(x => (double)x)); break;
+                                    case (PointPropertySemantics.SphericalElevation, float[] xs)  : data.Append(sem, xs.Map(x => (double)x)); break;
+
+                                    case (PointPropertySemantics.ColorRed, uint[] xs)             : data.Append(sem, xs.Map(x => (byte)x)); break;
+                                    case (PointPropertySemantics.ColorGreen, uint[] xs)           : data.Append(sem, xs.Map(x => (byte)x)); break;
+                                    case (PointPropertySemantics.ColorBlue, uint[] xs)            : data.Append(sem, xs.Map(x => (byte)x)); break;
+
+                                    case (PointPropertySemantics.TimeStamp, double[] xs)          : data.Append(sem, xs); break;
+
+                                    case (PointPropertySemantics.RowIndex, uint[] xs)             : data.Append(sem, xs); break;
+                                    case (PointPropertySemantics.ColumnIndex, uint[] xs)          : data.Append(sem, xs); break;
+
+                                    case (PointPropertySemantics.CartesianInvalidState, uint[] xs): data.Append(sem, xs.Map(x => (byte)x)); break;
+                                    case (PointPropertySemantics.SphericalInvalidState, uint[] xs): data.Append(sem, xs.Map(x => (byte)x)); break;
+                                    case (PointPropertySemantics.IsIntensityInvalid, uint[] xs)   : data.Append(sem, xs.Map(x => (byte)x)); break;
+                                    case (PointPropertySemantics.IsTimeStampInvalid, uint[] xs)   : data.Append(sem, xs.Map(x => (byte)x)); break;
+                                    case (PointPropertySemantics.IsColorInvalid, uint[] xs)       : data.Append(sem, xs.Map(x => (byte)x)); break;
+
+                                    case (PointPropertySemantics.Intensity, _):
+                                        {
+                                            int[] remapWithLimits(float[] xs)
+                                            {
+                                                var min = intensityLimits.Intensity.Min;
+                                                var max = intensityLimits.Intensity.Max;
+                                                var d = max - min;
+                                                var result = xs.Map(x => (int)(((x - min) / d) * 65535.5f));
+                                                return result;
+                                            }
+
+                                            var js = raw switch
+                                            {
+                                                sbyte[] ys => ys.Map(x => (int)x),
+                                                byte[] ys => ys.Map(x => (int)x),
+                                                short[] ys => ys.Map(x => (int)x),
+                                                ushort[] ys => ys.Map(x => (int)x),
+                                                int[] ys => ys,
+                                                uint[] ys => ys.Map(x => (int)x),
+                                                long[] ys => ys.Map(x => (int)x),
+                                                ulong[] ys => ys.Map(x => (int)x),
+
+                                                float[] ys when intensityLimits is null
+                                                            => ys.Map(x => (int)(65535 * x)),
+
+                                                float[] ys => remapWithLimits(ys),
+
+                                                double[] ys when intensityLimits is null
+                                                            => ys.Map(x => (int)(65535 * x)),
+
+                                                double[] ys => remapWithLimits(ys.Map(x => (float)x)),
+
+                                                _ => throw new Exception($"Unspecified intensity format {raw.GetType()}.")
+                                            };
+
+                                            data.Append(sem, js);
+                                            break;
+                                        }
+
+                                    default: throw new NotImplementedException($"Unexpected data ({raw}) for {sem}");
                                 }
-                                //int[] remapDoubleWithLimits(double[] xs)
-                                //{
-                                //    var min = intensityLimits.Intensity.Min;
-                                //    var max = intensityLimits.Intensity.Max;
-                                //    var d = max - min;
-                                //    return xs.Map(x => (int)(((x - min) / d) * 65535.5));
-                                //}
-
-                                var js = buffers[sem2idx[PointPropertySemantics.Intensity]] switch
-                                {
-                                    sbyte[] xs  => xs.Map(x => (int)x),
-                                    byte[] xs   => xs.Map(x => (int)x),
-                                    short[] xs  => xs.Map(x => (int)x),
-                                    ushort[] xs => xs.Map(x => (int)x),
-                                    int[] xs    => xs,
-                                    uint[] xs   => xs.Map(x => (int)x),
-                                    long[] xs   => xs.Map(x => (int)x),
-                                    ulong[] xs  => xs.Map(x => (int)x),
-
-                                    float[] xs when intensityLimits is null 
-                                                => xs.Map(x => (int)(65535 * x)),
-
-                                    float[] xs  => remapWithLimits(xs),
-
-                                    double[] xs when intensityLimits is null
-                                                => xs.Map(x => (int)(65535 * x)),
-
-                                    double[] xs => remapWithLimits(xs.Map(x => (float)x)),
-
-                                    _ => throw new Exception($"Unspecified intensity format {buffers[sem2idx[PointPropertySemantics.Intensity]].GetType()}.")
-                                };
-
-                                foreach (var r in js) intensities.Enqueue(r);
                             }
 
-                            if (hasTimestamps)
-                            {
-                                var xs = (double[])buffers[sem2idx[PointPropertySemantics.TimeStamp]];
-                                foreach (var x in xs) timestamps.Enqueue(x);
-                            }
-
-                            if (hasRowIndex)
-                            {
-                                var xs = (uint[])buffers[sem2idx[PointPropertySemantics.RowIndex]];
-                                foreach (var x in xs) rowindex.Enqueue(x);
-                            }
-
-                            if (hasColumnIndex)
-                            {
-                                var xs = (uint[])buffers[sem2idx[PointPropertySemantics.ColumnIndex]];
-                                foreach (var x in xs) columnindex.Enqueue(x);
-                            }
-
-                            if (hasCartesianInvalidState)
-                            {
-                                var xs = (uint[])buffers[sem2idx[PointPropertySemantics.CartesianInvalidState]];
-                                foreach (var x in xs) cartesianInvalidState.Enqueue((byte)x);
-                            }
-
-                            if (hasSphericalInvalidState)
-                            {
-                                var xs = (uint[])buffers[sem2idx[PointPropertySemantics.SphericalInvalidState]];
-                                foreach (var x in xs) sphericalInvalidState.Enqueue((byte)x);
-                            }
-
-                            if (hasIsIntensityInvalid)
-                            {
-                                var xs = (uint[])buffers[sem2idx[PointPropertySemantics.IsIntensityInvalid]];
-                                foreach (var x in xs) isIntensityInvalid.Enqueue((byte)x);
-                            }
-
-                            if (hasIsTimestampInvalid)
-                            {
-                                var xs = (uint[])buffers[sem2idx[PointPropertySemantics.IsTimeStampInvalid]];
-                                foreach (var x in xs) isTimestampInvalid.Enqueue((byte)x);
-                            }
-
-                            if (hasIsColorInvalid)
-                            {
-                                var xs = (uint[])buffers[sem2idx[PointPropertySemantics.IsColorInvalid]];
-                                foreach (var x in xs) isColorInvalid.Enqueue((byte)x);
-                            }
-
-                            var imax = Fun.Min(cartesianX.Count, cartesianY.Count, cartesianZ.Count);
-                            if (hasColors) imax = Fun.Min(imax, Fun.Min(colorR.Count, colorG.Count, colorB.Count));
-                            if (hasIntensities) imax = Fun.Min(imax, intensities.Count);
-                            for (var i = 0; i < imax; i++)
-                            {
-                                var p = new V3d(cartesianX.Dequeue(), cartesianY.Dequeue(), cartesianZ.Dequeue());
-                                if (hasSpherical)
-                                {
-                                    // convert spherical to Cartesian coordinates
-                                    var cosElevation = Math.Cos(p.Z);
-                                    p = new V3d(
-                                        p.X * cosElevation * Math.Cos(p.Y),
-                                        p.X * cosElevation * Math.Sin(p.Y),
-                                        p.X * Math.Sin(p.Z)
-                                        );
-                                }
-                                var c = hasColors ? new C4b(colorR.Dequeue(), colorG.Dequeue(), colorB.Dequeue()) : C4b.Black;
-                                var j = (hasIntensities && intensities.Count > 0) ? intensities.Dequeue() : 0;
-                                var ts = (hasTimestamps && timestamps.Count > 0) ? timestamps.Dequeue() : 0;
-                                var ri = (hasRowIndex && rowindex.Count > 0) ? rowindex.Dequeue() : 0;
-                                var ci = (hasColumnIndex && columnindex.Count > 0) ? columnindex.Dequeue() : 0;
-                                var pis = (hasCartesianInvalidState && cartesianInvalidState.Count > 0) ? cartesianInvalidState.Dequeue() : (byte)0;
-                                var sis = (hasSphericalInvalidState && sphericalInvalidState.Count > 0) ? sphericalInvalidState.Dequeue() : (byte)0;
-                                var iis = (hasIsIntensityInvalid && isIntensityInvalid.Count > 0) ? isIntensityInvalid.Dequeue() : (byte)0;
-                                var tis = (hasIsTimestampInvalid && isTimestampInvalid.Count > 0) ? isTimestampInvalid.Dequeue() : (byte)0;
-                                var cis = (hasIsColorInvalid && isColorInvalid.Count > 0) ? isColorInvalid.Dequeue() : (byte)0;
-                                yield return (p, c, j, ts, ri, ci, pis, sis, iis, tis, cis);
-                            }
+                            if (data.CountMin >= maxChunkPointCount)
+                                yield return data.Consume(data.CountMin);
                         }
 
                         // move to next packet
@@ -781,37 +676,9 @@ namespace Aardvark.Data.E57
                     }
                 }
 
-                if (hasCartesian)
-                {
-                    if (cartesianX.Count > 31 / bitpackerPerByteStream[sem2idx[PointPropertySemantics.CartesianX]].BitsPerValue) 
-                        Report.Warn($"Cartesian x coordinates left over ({cartesianX.Count}).");
-                    if (cartesianY.Count > 31 / bitpackerPerByteStream[sem2idx[PointPropertySemantics.CartesianY]].BitsPerValue) 
-                        Report.Warn($"Cartesian y coordinates left over ({cartesianY.Count}).");
-                    if (cartesianZ.Count > 31 / bitpackerPerByteStream[sem2idx[PointPropertySemantics.CartesianZ]].BitsPerValue) 
-                        Report.Warn($"Cartesian z coordinates left over ({cartesianZ.Count}).");
-                }
+                if (data.CountMin > 0)
+                    yield return data.Consume(data.CountMin);
 
-                if (hasColors)
-                {
-                    if (colorR.Count > 31 / bitpackerPerByteStream[sem2idx[PointPropertySemantics.ColorRed]].BitsPerValue)
-                        Report.Warn($"Color r values left over ({colorR.Count}).");
-                    if (colorG.Count > 31 / bitpackerPerByteStream[sem2idx[PointPropertySemantics.ColorGreen]].BitsPerValue) 
-                        Report.Warn($"Color g values left over ({colorG.Count}).");
-                    if (colorB.Count > 31 / bitpackerPerByteStream[sem2idx[PointPropertySemantics.ColorBlue]].BitsPerValue) 
-                        Report.Warn($"Color b values left over ({colorB.Count}).");
-                }
-
-                if (hasIntensities)
-                {
-                    if (intensities.Count > 31 / bitpackerPerByteStream[sem2idx[PointPropertySemantics.Intensity]].BitsPerValue)
-                        Report.Warn($"Intensity values left over ({intensities.Count}).");
-                }
-
-                if (hasCartesianInvalidState)
-                {
-                    if (cartesianInvalidState.Count > 31 / bitpackerPerByteStream[sem2idx[PointPropertySemantics.CartesianInvalidState]].BitsPerValue)
-                        Report.Warn($"CartesianInvalidState values left over ({cartesianInvalidState.Count}).");
-                }
 
                 #region Helpers
                 static Array UnpackByteStream(byte[] buffer, BitPacker packer, IBitPack proto)
@@ -891,7 +758,7 @@ namespace Aardvark.Data.E57
                 }
                 static Array UnpackIntegers(byte[] buffer, BitPacker packer, E57Integer proto)
                     => packer.UnpackUInts(buffer);
-#endregion
+                #endregion
             }
         }
         
@@ -1018,34 +885,6 @@ namespace Aardvark.Data.E57
                     CoordinateMetadata = GetString(root, "coordinateMetadata", false)
                 };
             }
-        }
-
-        public enum PointPropertySemantics
-        {
-            CartesianX,
-            CartesianY,
-            CartesianZ,
-            SphericalRange,
-            SphericalAzimuth,
-            SphericalElevation,
-            RowIndex,
-            ColumnIndex,
-            ReturnCount,
-            ReturnIndex,
-            TimeStamp,
-            Intensity,
-            ColorRed,
-            ColorGreen,
-            ColorBlue,
-            CartesianInvalidState,
-            SphericalInvalidState,
-            IsTimeStampInvalid,
-            IsIntensityInvalid,
-            IsColorInvalid,
-
-            NormalX,
-            NormalY,
-            NormalZ,
         }
 
         /// <summary>
@@ -1327,35 +1166,59 @@ namespace Aardvark.Data.E57
                 return GetElements(root, "vectorChild").Select(x => Parse(x, stream, verbose)).ToArray();
             }
 
-            public IEnumerable<(V3d pos, C4b color, int intensity)> StreamPoints(bool verbose = false)
-                => StreamPointsFull(verbose).Select(x => (x.pos, x.color, x.intensity));
-
-            public IEnumerable<(
-                V3d pos, C4b color, int intensity,
-                double? timestamp,
-                uint? rowIndex,
-                uint? columnIndex,
-                byte? cartesianInvalidState, 
-                byte? sphericalInvalidState, 
-                byte? isIntensityInvalid, 
-                byte? isTimeStampInvalid, 
-                byte? isColorInvalid
-                )> StreamPointsFull(bool verbose = false)
+            public IEnumerable<(V3d[] Positions, ImmutableDictionary<PointPropertySemantics, Array> Properties)> StreamPointsFull(int maxChunkPointCount, bool verbose = false)
             {
-                var result = Points.ReadDataFull(Sem2Index, IntensityLimits, verbose);
-
-                if (Pose != null)
+                var chunks = Points.ReadDataFull(maxChunkPointCount, Sem2Index, IntensityLimits, verbose);
+                foreach (var chunk in chunks)
                 {
-                    result = result.Select(p => (
-                        Pose.Rotation.Transform(p.pos) + Pose.Translation,
-                        p.color,
-                        p.intensity,
-                        p.timestamp,
-                        p.ri, p.ci,
-                        p.pis, p.sis, p.iis, p.tis, p.cis));
-                }
+                    V3d[] ps;
+                    if (chunk.ContainsKey(PointPropertySemantics.CartesianX))
+                    {
+                        var pxs = (double[])chunk[PointPropertySemantics.CartesianX];
+                        var pys = (double[])chunk[PointPropertySemantics.CartesianY];
+                        var pzs = (double[])chunk[PointPropertySemantics.CartesianZ];
 
-                return result;
+                        var imax = pxs.Length;
+                        if (imax != pys.Length || imax != pys.Length) 
+                            throw new Exception($"Length mismatch for CartesianX ({pxs.Length}), CartesianY ({pys.Length}), and CartesianZ ({pzs.Length}) ");
+
+                        ps = new V3d[imax];
+                        for (var i = 0; i < imax; i++) ps[i].X = pxs[i];
+                        for (var i = 0; i < imax; i++) ps[i].Y = pys[i];
+                        for (var i = 0; i < imax; i++) ps[i].Z = pzs[i];
+                    }
+                    else // spherical
+                    {
+                        var prs = (double[])chunk[PointPropertySemantics.SphericalRange];
+                        var pas = (double[])chunk[PointPropertySemantics.SphericalAzimuth];
+                        var pes = (double[])chunk[PointPropertySemantics.SphericalElevation];
+
+                        var imax = prs.Length;
+                        if (imax != pas.Length || imax != pes.Length)
+                            throw new Exception($"Length mismatch for SphericalRange ({prs.Length}), SphericalAzimuth ({pas.Length}), and SphericalElevation ({pes.Length}) ");
+
+                        ps = new V3d[imax];
+                        for (var i = 0; i < imax; i++)
+                        {
+                            var range = prs[i];
+                            var azimuth = pas[i];
+                            var elevation = pes[i];
+                            var cosElevation = Math.Cos(elevation);
+                            ps[i] = new(
+                                range * cosElevation * Math.Cos(azimuth),
+                                range * cosElevation * Math.Sin(azimuth),
+                                range * Math.Sin(elevation)
+                                );
+                        }
+                    }
+
+                    if (Pose != null)
+                    {
+                        ps = ps.Map(p => Pose.Rotation.Transform(p) + Pose.Translation);
+                    }
+
+                    yield return (ps, chunk);
+                }
             }
         }
 
@@ -1705,7 +1568,7 @@ namespace Aardvark.Data.E57
             /// <summary>
             /// (ImageWidth, ImageHeight).
             /// </summary>
-            public V2i ImageSize => new V2i(ImageWidth, ImageHeight);
+            public V2i ImageSize => new(ImageWidth, ImageHeight);
 
 #endregion
 
@@ -1764,7 +1627,7 @@ namespace Aardvark.Data.E57
             /// <summary>
             /// (ImageWidth, ImageHeight).
             /// </summary>
-            public V2i ImageSize => new V2i(ImageWidth, ImageHeight);
+            public V2i ImageSize => new(ImageWidth, ImageHeight);
 
             /// <summary>
             /// Required.
@@ -1787,7 +1650,7 @@ namespace Aardvark.Data.E57
             /// <summary>
             /// (PixelWidth, PixelHeight).
             /// </summary>
-            public V2i PixelSize => new V2i(PixelWidth, PixelHeight);
+            public V2i PixelSize => new(PixelWidth, PixelHeight);
 
             /// <summary>
             /// Required.
@@ -1805,7 +1668,7 @@ namespace Aardvark.Data.E57
             /// <summary>
             /// (PrincipalPointX, PrincipalPointY).
             /// </summary>
-            public V2d PrincipalPoint => new V2d(PrincipalPointX, PrincipalPointY);
+            public V2d PrincipalPoint => new(PrincipalPointX, PrincipalPointY);
 
 #endregion
 
@@ -1873,7 +1736,7 @@ namespace Aardvark.Data.E57
             /// <summary>
             /// (ImageWidth, ImageHeight).
             /// </summary>
-            public V2i ImageSize => new V2i(ImageWidth, ImageHeight);
+            public V2i ImageSize => new(ImageWidth, ImageHeight);
             
             /// <summary>
             /// Required.
@@ -1890,7 +1753,7 @@ namespace Aardvark.Data.E57
             /// <summary>
             /// (PixelWidth, PixelHeight).
             /// </summary>
-            public V2i PixelSize => new V2i(PixelWidth, PixelHeight);
+            public V2i PixelSize => new(PixelWidth, PixelHeight);
 
 #endregion
 
@@ -1951,7 +1814,7 @@ namespace Aardvark.Data.E57
             /// <summary>
             /// (ImageWidth, ImageHeight).
             /// </summary>
-            public V2i ImageSize => new V2i(ImageWidth, ImageHeight);
+            public V2i ImageSize => new(ImageWidth, ImageHeight);
 
             /// <summary>
             /// Required.
@@ -1981,7 +1844,7 @@ namespace Aardvark.Data.E57
             /// <summary>
             /// (PixelWidth, PixelHeight).
             /// </summary>
-            public V2i PixelSize => new V2i(PixelWidth, PixelHeight);
+            public V2i PixelSize => new(PixelWidth, PixelHeight);
 
 #endregion
 
@@ -2198,8 +2061,8 @@ namespace Aardvark.Data.E57
             /// The time.
             /// </summary>
             public DateTimeOffset DateTime => GpsStartEpoch + TimeSpan.FromSeconds(DateTimeValue);
-            internal static readonly DateTimeOffset GpsStartEpoch = new DateTimeOffset(1980, 01, 06, 0, 0, 0, TimeSpan.Zero);
-            internal static readonly DateTimeOffset UnixStartEpoch = new DateTimeOffset(1970, 01, 01, 0, 0, 0, TimeSpan.Zero);
+            internal static readonly DateTimeOffset GpsStartEpoch = new(1980, 01, 06, 0, 0, 0, TimeSpan.Zero);
+            internal static readonly DateTimeOffset UnixStartEpoch = new(1970, 01, 01, 0, 0, 0, TimeSpan.Zero);
 
 #endregion
 
@@ -2237,7 +2100,7 @@ namespace Aardvark.Data.E57
             /// </summary>
             internal E57PhysicalOffset IndexStartOffset;
 
-            internal static E57CompressedVectorHeader Parse(byte[] buffer) => new E57CompressedVectorHeader
+            internal static E57CompressedVectorHeader Parse(byte[] buffer) => new()
             {
                 SectionId = Check("SectionId", buffer[0], x => x == 1, "1"),
                 Reserved = Check("Reserved", buffer.Copy(1, 7), xs => xs.All(x => x == 0), "(0,0,0,0,0,0,0)"),
@@ -2279,7 +2142,7 @@ namespace Aardvark.Data.E57
             /// </summary>
             internal byte[] Reserved2;
 
-            internal static E57IndexPacketHeader Parse(byte[] buffer) => new E57IndexPacketHeader
+            internal static E57IndexPacketHeader Parse(byte[] buffer) => new()
             {
                 PacketType = Check("PacketType", buffer[0], x => x == 0, "0"),
                 Reserved1 = Check("Reserved1", buffer[1], x => x == 0, "0"),
@@ -2308,7 +2171,7 @@ namespace Aardvark.Data.E57
             /// </summary>
             internal E57PhysicalOffset PacketOffset;
 
-            internal static E57IndexPacketAddressEntry Parse(byte[] buffer) => new E57IndexPacketAddressEntry
+            internal static E57IndexPacketAddressEntry Parse(byte[] buffer) => new()
             {
                 ChunkRecordIndex = new E57PhysicalOffset(BitConverter.ToInt64(buffer, 0)),
                 PacketOffset = new E57PhysicalOffset(BitConverter.ToInt64(buffer, 8))
@@ -2342,7 +2205,7 @@ namespace Aardvark.Data.E57
             
             internal bool CompressorRestart => (PacketFlags & 0b00000001) != 0;
             
-            internal static E57DataPacketHeader Parse(byte[] buffer) => new E57DataPacketHeader
+            internal static E57DataPacketHeader Parse(byte[] buffer) => new()
             {
                 PacketType = Check("PacketType", buffer[0], x => x == 1, "1"),
                 PacketFlags = Check("PacketFlags", buffer[1], x => x <= 1, "[0,1]"),
@@ -2540,7 +2403,7 @@ namespace Aardvark.Data.E57
             };
         }
 
-        private static Range1i GetIntegerRange(XElement root, string elementNameMin, string elementNameMax) => new Range1i(GetInteger(root, elementNameMin, true).Value, GetInteger(root, elementNameMax, true).Value);
+        private static Range1i GetIntegerRange(XElement root, string elementNameMin, string elementNameMax) => new(GetInteger(root, elementNameMin, true).Value, GetInteger(root, elementNameMax, true).Value);
         private static Range1i? TryGetIntegerRange(XElement root, string elementNameMin, string elementNameMax)
         {
             var min = GetInteger(root, elementNameMin, false);
@@ -2558,7 +2421,7 @@ namespace Aardvark.Data.E57
                 ;
         }
         private static Range1d GetFloatRange(XElement root, string elementNameMin, string elementNameMax)
-            => new Range1d(GetFloat(root, elementNameMin, true).Value, GetFloat(root, elementNameMax, true).Value);
+            => new(GetFloat(root, elementNameMin, true).Value, GetFloat(root, elementNameMax, true).Value);
 
         private static Range1d? TryGetFloatRange(XElement root, string elementNameMin, string elementNameMax)
         {
@@ -2577,11 +2440,11 @@ namespace Aardvark.Data.E57
                 ;
         }
         private static Range1d GetRange(XElement root, string elementNameMin, string elementNameMax)
-            => new Range1d(GetFloatOrInteger(root, elementNameMin, true).Value, GetFloatOrInteger(root, elementNameMax, true).Value);
+            => new(GetFloatOrInteger(root, elementNameMin, true).Value, GetFloatOrInteger(root, elementNameMax, true).Value);
         private static V3d GetTranslation(XElement root)
-            => new V3d(GetFloat(root, "x", true).Value, GetFloat(root, "y", true).Value, GetFloat(root, "z", true).Value);
+            => new(GetFloat(root, "x", true).Value, GetFloat(root, "y", true).Value, GetFloat(root, "z", true).Value);
         private static Rot3d GetQuaternion(XElement root)
-            => new Rot3d(GetFloat(root, "w", true).Value, GetFloat(root, "x", true).Value, GetFloat(root, "y", true).Value, GetFloat(root, "z", true).Value);
+            => new(GetFloat(root, "w", true).Value, GetFloat(root, "x", true).Value, GetFloat(root, "y", true).Value, GetFloat(root, "z", true).Value);
         private static T GetValue<T>(XElement root, string elementName, bool required, string typename, Func<T, bool> verify, Func<string, T> parse, object mustBe, T defaultValue)
         {
             var x = GetElement(root, elementName);
@@ -2599,7 +2462,7 @@ namespace Aardvark.Data.E57
             return result;
         }
 
-        private static E57PhysicalOffset GetPhysicalOffsetAttribute(XElement root, string elementName) => new E57PhysicalOffset(long.Parse(root.Attribute(elementName).Value));
+        private static E57PhysicalOffset GetPhysicalOffsetAttribute(XElement root, string elementName) => new(long.Parse(root.Attribute(elementName).Value));
         private static long GetLongAttribute(XElement root, string elementName) => long.Parse(root.Attribute(elementName).Value);
         private static long? TryGetLongAttribute(XElement root, string elementName)
         {

@@ -1,5 +1,6 @@
 ﻿using Aardvark.Base;
 using Aardvark.Data;
+using Aardvark.Data.E57;
 using Aardvark.Data.Points;
 using Aardvark.Data.Points.Import;
 using Aardvark.Geometry.Points;
@@ -259,7 +260,7 @@ namespace Scratch
             }
         }
 
-        static void PrintAllFileContinaingCartesianInvalidState()
+        static void PrintAllFileContainingCartesianInvalidState()
         {
             var files = Directory
                 .EnumerateFiles(@"W:\Datasets\Vgm\Data\E57", "*.e57", SearchOption.AllDirectories)
@@ -273,7 +274,7 @@ namespace Scratch
                     if (!data3d.Has(PointPropertySemantics.CartesianInvalidState)) continue;
                     Console.WriteLine($"{(data3d.Has(PointPropertySemantics.CartesianInvalidState) ? 'X' : ' ')} {file} {info.FileSizeInBytes:N0}");
                 }
-                catch (Exception e)
+                catch //(Exception e)
                 {
                     //Console.WriteLine($"{file}: {e.Message}");
                 }
@@ -282,8 +283,9 @@ namespace Scratch
 
         static void Main(string[] args)
         {
-            //GeneratePointCloudStats();
-            //PrintAllFileContinaingCartesianInvalidState();
+            GeneratePointCloudStats();
+            //PrintAllFileContainingCartesianInvalidState();
+            return;
 
             var basedir = @"W:\Datasets\Vgm\Data\E57";
             //var basedir = @"W:\Datasets\pointclouds\e57-3d-imgfmt";
@@ -291,6 +293,7 @@ namespace Scratch
                 .EnumerateFiles(basedir, "*.e57", SearchOption.AllDirectories)
                 .OrderBy(x => x)
                 //.Where(x => x.Contains("Cylcone"))
+                //.Where(x => x.Contains("Statue"))
                 .ToArray()
                 ;
             foreach (var file in files)
@@ -305,6 +308,8 @@ namespace Scratch
                     foreach (var chunk in E57.ChunksFull(file, ParseConfig.Default).Take(1))
                     {
                         Console.WriteLine($"{chunk.Count}");
+                        //var foo = chunk.Colors.Where(c => c.R != c.G || c.R != c.B).ToArray();
+                        //if (foo.Length > 0) Debugger.Break();
                         //var gs = chunk.Timestamps.GroupBy(x => new DateTimeOffset(x.Year, x.Month, x.Day, x.Hour, x.Minute, x.Second, TimeSpan.Zero)).Select(g => (g.Key, g.Count())).ToArray();
                         //var gs = chunk.CartesianInvalidState.GroupBy(x => x).Select(g => (g.Key, g.Count())).ToArray();
                     }

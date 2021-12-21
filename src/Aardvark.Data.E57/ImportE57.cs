@@ -15,6 +15,7 @@ using Aardvark.Base;
 using Aardvark.Data.E57;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -60,7 +61,7 @@ namespace Aardvark.Data.Points.Import
             return ChunksFull(stream, fileSizeInBytes, config);
         }
 
-        private static void PrintHeader(ASTM_E57.E57FileHeader header)
+        private static void PrintHeader(E57FileHeader header)
         {
             Report.Line($"[E57] ========================================================================");
             Report.Line($"[E57] Header (binary)");
@@ -178,46 +179,31 @@ namespace Aardvark.Data.Points.Import
                 var hasColors = head.HasColors;
                 var hasIntensities = head.Has(PointPropertySemantics.Intensity);
 
-                var ps = hasPositions ? new List<V3d>() : null;
-                var cs = hasColors ? new List<C4b>() : null;
-                var js = hasIntensities ? new List<int>() : null;
-
-                Chunk PrepareChunk()
-                {
-                    var chunk = new Chunk(
-                        positions      : ps, 
-                        colors         : hasColors ? cs : ps.Map(_ => C4b.White),
-                        normals        : null, 
-                        intensities    : js,
-                        classifications: null
-                        );
-                    Interlocked.Add(ref yieldedRecordCount, ps.Count);
-
-                    if (hasPositions) ps = new List<V3d>(); 
-                    if (hasColors) cs = new List<C4b>();
-                    if (hasIntensities) js = new List<int>();
-
-                    if (config.Verbose)
-                    {
-                        var progress = yieldedRecordCount / (double)totalRecordCount;
-                        Report.Line($"\r[E57] yielded {yieldedRecordCount,13:N0}/{totalRecordCount:N0} points [{progress * 100,6:0.00}%]");
-                    }
-
-                    return chunk;
-                }
-
                 //var j = 0;
                 foreach (var data3d in header.E57Root.Data3D)
                 {
                     //Report.WarnNoPrefix($"[header.E57Root.Data3D][{++j}/{header.E57Root.Data3D.Length}] recordCount: {data3d.Points.RecordCount,16:N0}; hasColors: {data3d.HasColors}; hasIntensities: {data3d.HasIntensities}");
-                    foreach (var (pos, color, intensity) in data3d.StreamPoints(config.Verbose))
+                    foreach (var (Positions, Properties) in data3d.StreamPointsFull(config.MaxChunkPointCount, config.Verbose))
                     {
-                        if (hasPositions) ps.Add(pos);
-                        if (hasColors) cs.Add(color);
-                        if (hasIntensities) js.Add(intensity);
-                        if (ps.Count == config.MaxChunkPointCount) yield return PrepareChunk();
+                        var e57chunk = new E57Chunk(Properties, data3d, Positions);
+
+                        var chunk = new Chunk(
+                            positions: Positions,
+                            colors: e57chunk.Colors?.Map(c => new C4b(c)) ?? Positions.Map(_ => C4b.White),
+                            normals: null,
+                            intensities: e57chunk.Intensities,
+                            classifications: null
+                            );
+                        Interlocked.Add(ref yieldedRecordCount, Positions.Length);
+
+                        if (config.Verbose)
+                        {
+                            var progress = yieldedRecordCount / (double)totalRecordCount;
+                            Report.Line($"\r[E57] yielded {yieldedRecordCount,13:N0}/{totalRecordCount:N0} points [{progress * 100,6:0.00}%]");
+                        }
+
+                        yield return chunk;
                     }
-                    if (ps.Count > 0) yield return PrepareChunk();
                 }
 
                 if (config.Verbose) Report.Line();
@@ -262,122 +248,6 @@ namespace Aardvark.Data.Points.Import
         }
 
         /// <summary>
-        /// </summary>
-        public class E57Chunk
-        {
-            /// <summary>
-            /// Cartesian positions.
-            /// </summary>
-            public V3d[] Positions { get; }
-
-            /// <summary>
-            /// Number of points in this chunk.
-            /// </summary>
-            public int Count => Positions.Length;
-
-            /// <summary>
-            /// Colors. Optional.
-            /// </summary>
-            public C3b[] Colors { get; }
-
-            /// <summary>
-            /// Intensities. Optional.
-            /// </summary>
-            public int[] Intensities { get; }
-
-            /// <summary>
-            /// Timestamps. Optional.
-            /// </summary>
-            public DateTimeOffset[] Timestamps { get; }
-
-            /// <summary>
-            /// The row number of point (zero-based). This is useful for data that is stored in a regular grid. Optional.
-            /// </summary>
-            public uint[] RowIndex { get; }
-
-            /// <summary>
-            /// The column number of point (zero-based). This is useful for data that is stored in a regular grid. Optional.
-            /// </summary>
-            public uint[] ColumnIndex { get; }
-
-            /// <summary>
-            /// [Spec] If cartesianInvalidState is defined, its value shall have the following interpretation.
-            /// If the value is 0, the values of cartesianX, cartesianY, and cartesianZ shall all be 
-            /// meaningful. If the value is 1, only the direction component of the vector (cartesianX,
-            /// cartesianY, cartesianZ) shall be meaningful, and the magnitude of the vector shall be
-            /// considered non-meaningful. If the value is 2, the values of cartesianX, cartesianY,
-            /// and cartesianZ shall all be considered non-meaningful.
-            /// </summary>
-            public CartesianInvalidState[] CartesianInvalidState { get; }
-
-            /// <summary>
-            /// If sphericalInvalidState is defined, its value shall have the following interpretation.
-            /// If the value is 0, the values of sphericalRange, sphericalAzimuth, and sphericalElevation
-            /// shall all be meaningful. If the value is 1, the value of sphericalRange shall be considered 
-            /// non-meaningful, and the value of sphericalAzimuth, and sphericalElevation shall be meaningful.
-            /// If the value is 2, the values of sphericalRange, sphericalAzimuth, and sphericalElevation 
-            /// shall all be considered non-meaningful.
-            /// </summary>
-            public SphericalInvalidState[] SphericalInvalidState { get; }
-
-            /// <summary>
-            /// If isIntensityInvalid is defined and its value is 1, the value of intensity shall be 
-            /// considered non-meaningful. Otherwise, the value of intensity shall be meaningful.
-            /// </summary>
-            public bool[] IsIntensityInvalid { get; }
-
-            /// <summary>
-            /// If isTimeStampInvalid is defined and its value is 1, the value of timeStamp shall be
-            /// considered non-meaningful. Otherwise, the value of timeStamp shall be meaningful.
-            /// </summary>
-            public bool[] IsTimeStampInvalid { get; }
-
-            /// <summary>
-            /// If isColorInvalid is defined and its value is 1, the values of colorRed, colorGreen,
-            /// and colorBlue shall be considered non-meaningful. Otherwise, the values of colorRed,
-            /// colorGreen, and colorBlue shall all be meaningful.
-            /// </summary>
-            public bool[] IsColorInvalid { get; }
-
-
-            /// <summary></summary>
-            public E57Chunk(
-                V3d[] positions,
-                C3b[] colors,
-                int[] intensities,
-                DateTimeOffset[] timestamps,
-                uint[] rowIndex,
-                uint[] columnIndex,
-                CartesianInvalidState[] cartesianInvalidState,
-                SphericalInvalidState[] sphericalInvalidState,
-                bool[] isIntensityInvalid,
-                bool[] isTimeStampInvalid,
-                bool[] isColorInvalid
-                )
-            {
-                Positions = positions ?? throw new ArgumentNullException(nameof(positions));
-                Colors = CheckAndInit(colors, nameof(colors));
-                Intensities = CheckAndInit(intensities, nameof(intensities));
-                Timestamps = CheckAndInit(timestamps, nameof(timestamps));
-                RowIndex = CheckAndInit(rowIndex, nameof(rowIndex));
-                ColumnIndex = CheckAndInit(columnIndex, nameof(columnIndex));
-                CartesianInvalidState = CheckAndInit(cartesianInvalidState, nameof(cartesianInvalidState));
-                SphericalInvalidState = CheckAndInit(sphericalInvalidState, nameof(sphericalInvalidState));
-                IsIntensityInvalid = CheckAndInit(isIntensityInvalid, nameof(isIntensityInvalid));
-                IsTimeStampInvalid = CheckAndInit(isTimeStampInvalid, nameof(isTimeStampInvalid));
-                IsColorInvalid = CheckAndInit(isColorInvalid, nameof(isColorInvalid));
-
-                T[] CheckAndInit<T>(T[] xs, string name)
-                {
-                    if (xs != null && xs.Length != positions.Length) throw new ArgumentException(
-                        $"Array {name} must have size {positions.Length}, but has {xs.Length}.", name
-                        );
-                    return xs;
-                }
-            }
-        }
-
-        /// <summary>
         /// Parses .e57 stream.
         /// </summary>
         public static IEnumerable<E57Chunk> ChunksFull(this Stream stream, long streamLengthInBytes, ParseConfig config)
@@ -396,95 +266,24 @@ namespace Aardvark.Data.Points.Import
                 var yieldedRecordCount = 0L;
 
                 var head = header.E57Root.Data3D[0];
-                var hasPositions = head.HasCartesianCoordinates || head.HasSphericalCoordinates;
-                var hasColors = head.HasColors;
-                var hasIntensities = head.Has(PointPropertySemantics.Intensity);
-                var hasTimeStamps = head.Has(PointPropertySemantics.TimeStamp);
-                var hasRowIndex = head.Has(PointPropertySemantics.RowIndex);
-                var hasColumnIndex = head.Has(PointPropertySemantics.ColumnIndex);
-                var hasCartesianInvalidState = head.Has(PointPropertySemantics.CartesianInvalidState);
-                var hasSphericalInvalidState = head.Has(PointPropertySemantics.SphericalInvalidState);
-                var hasIsIntensityInvalid = head.Has(PointPropertySemantics.IsIntensityInvalid);
-                var hasIsTimeStampInvalid = head.Has(PointPropertySemantics.IsTimeStampInvalid);
-                var hasIsColorInvalid = head.Has(PointPropertySemantics.IsColorInvalid);
-
-                var ps = hasPositions ? new List<V3d>() : null;
-                var cs = hasColors ? new List<C4b>() : null;
-                var js = hasIntensities ? new List<int>() : null;
-                var ts = hasTimeStamps ? new List<DateTimeOffset>() : null;
-                var rindex = hasRowIndex ? new List<uint>() : null;
-                var cindex = hasColumnIndex ? new List<uint>() : null;
-                var piss = hasCartesianInvalidState ? new List<byte>() : null;
-                var siss = hasSphericalInvalidState ? new List<byte>() : null;
-                var iiss = hasIsIntensityInvalid ? new List<byte>() : null;
-                var tiss = hasIsTimeStampInvalid ? new List<byte>() : null;
-                var ciss = hasIsColorInvalid ? new List<byte>() : null;
-
-                E57Chunk PrepareChunk()
-                {
-                    if (head.Has(PointPropertySemantics.CartesianInvalidState))
-                    {
-                        var foo = string.Join(", ", piss.GroupBy(x => x).OrderBy(x => x.Key).Select(g => $"{g.Key}: {g.Count(),10}"));
-                        Console.WriteLine(foo);
-                    }
-
-                    var chunk = new E57Chunk(
-                        positions: ps.ToArray(),
-                        colors: hasColors ? cs.ToArray().Map(c => (C3b)c) : null,
-                        intensities: hasIntensities ? js.ToArray() : null,
-                        timestamps: hasTimeStamps ? ts.ToArray() : null,
-                        rowIndex: hasRowIndex ? rindex.ToArray() : null,
-                        columnIndex: hasColumnIndex ? cindex.ToArray() : null,
-                        cartesianInvalidState: hasCartesianInvalidState ? piss.Select(x => (CartesianInvalidState)x).ToArray() : null,
-                        sphericalInvalidState: hasSphericalInvalidState ? siss.Select(x => (SphericalInvalidState)x).ToArray() : null,
-                        isIntensityInvalid: hasIsIntensityInvalid ? iiss.Select(x => x == 1).ToArray() : null,
-                        isTimeStampInvalid: hasIsTimeStampInvalid ? tiss.Select(x => x == 1).ToArray() : null,
-                        isColorInvalid: hasIsColorInvalid ? ciss.Select(x => x == 1).ToArray() : null
-                        );
-                    Interlocked.Add(ref yieldedRecordCount, ps.Count);
-
-                    if (hasPositions) ps = new List<V3d>();
-                    if (hasColors) cs = new List<C4b>();
-                    if (hasIntensities) js = new List<int>();
-                    if (hasTimeStamps) ts = new List<DateTimeOffset>();
-                    if (hasRowIndex) rindex = new List<uint>();
-                    if (hasColumnIndex) cindex = new List<uint>();
-                    if (hasCartesianInvalidState) piss = new List<byte>();
-                    if (hasSphericalInvalidState) siss = new List<byte>();
-                    if (hasIsIntensityInvalid) iiss = new List<byte>();
-                    if (hasIsTimeStampInvalid) tiss = new List<byte>();
-                    if (hasIsColorInvalid) ciss = new List<byte>();
-
-                    if (config.Verbose)
-                    {
-                        var progress = yieldedRecordCount / (double)totalRecordCount;
-                        Report.Line($"\r[E57] yielded {yieldedRecordCount,13:N0}/{totalRecordCount:N0} points [{progress * 100,6:0.00}%]");
-                    }
-
-                    return chunk;
-                }
 
                 //var j = 0;
                 foreach (var data3d in header.E57Root.Data3D)
                 {
-                    var acquisitionStart = data3d.AcquisitonStart?.DateTime ?? E57DateTime.UnixStartEpoch;
                     //Report.WarnNoPrefix($"[header.E57Root.Data3D][{++j}/{header.E57Root.Data3D.Length}] recordCount: {data3d.Points.RecordCount,16:N0}; hasColors: {data3d.HasColors}; hasIntensities: {data3d.HasIntensities}");
-                    foreach (var (pos, color, intensity, timestamp, ri, ci, pis, sis, iis, tis, cis) in data3d.StreamPointsFull(config.Verbose))
+                    foreach (var (Positions, Properties) in data3d.StreamPointsFull(config.MaxChunkPointCount, config.Verbose))
                     {
-                        if (hasPositions) ps.Add(pos);
-                        if (hasColors) cs.Add(color);
-                        if (hasIntensities) js.Add(intensity);
-                        if (hasTimeStamps) ts.Add(acquisitionStart.AddSeconds(timestamp.Value));
-                        if (hasRowIndex) rindex.Add(ri.Value);
-                        if (hasColumnIndex) cindex.Add(ci.Value);
-                        if (hasCartesianInvalidState) piss.Add(pis.Value);
-                        if (hasSphericalInvalidState) siss.Add(sis.Value);
-                        if (hasIsIntensityInvalid) iiss.Add(iis.Value);
-                        if (hasIsTimeStampInvalid) tiss.Add(tis.Value);
-                        if (hasIsColorInvalid) ciss.Add(cis.Value);
-                        if (ps.Count == config.MaxChunkPointCount) yield return PrepareChunk();
+                        var chunk = new E57Chunk(Properties, data3d, Positions);
+                        Interlocked.Add(ref yieldedRecordCount, Positions.Length);
+
+                        if (config.Verbose)
+                        {
+                            var progress = yieldedRecordCount / (double)totalRecordCount;
+                            Report.Line($"\r[E57] yielded {yieldedRecordCount,13:N0}/{totalRecordCount:N0} points [{progress * 100,6:0.00}%]");
+                        }
+
+                        yield return chunk;
                     }
-                    if (ps.Count > 0) yield return PrepareChunk();
                 }
 
                 if (config.Verbose) Report.Line();
@@ -510,6 +309,161 @@ namespace Aardvark.Data.Points.Import
                 }
             }
             return new PointFileInfo<E57FileHeader>(filename, E57Format, filesize, pointCount, pointBounds, header);
+        }
+
+        /// <summary>
+        /// </summary>
+        public class E57Chunk
+        {
+            /// <summary></summary>
+            public E57Chunk(ImmutableDictionary<PointPropertySemantics, Array> rawData, E57Data3D data3d, V3d[] positions)
+            {
+                if (rawData.Values.Any(x => x.Length != positions.Length))
+                    throw new Exception("All properties must have same number of entries.");
+
+                RawData = rawData;
+                Positions = positions;
+                Data3D = data3d;
+            }
+
+            /// <summary>
+            /// Raw data as decoded from e57 file.
+            /// </summary>
+            public ImmutableDictionary<PointPropertySemantics, Array> RawData { get; }
+
+            /// <summary>
+            /// </summary>
+            public E57Data3D Data3D { get; }
+
+            /// <summary>
+            /// Cartesian positions.
+            /// </summary>
+            public V3d[] Positions { get; }
+
+            /// <summary>
+            /// Number of points in this chunk.
+            /// </summary>
+            public int Count => Positions.Length;
+
+
+            /// <summary>
+            /// The row number of point (zero-based). This is useful for data that is stored in a regular grid. Optional.
+            /// </summary>
+            public uint[] RowIndex => GetOrNull<uint>(PointPropertySemantics.RowIndex);
+
+            /// <summary>
+            /// The column number of point (zero-based). This is useful for data that is stored in a regular grid. Optional.
+            /// </summary>
+            public uint[] ColumnIndex => GetOrNull<uint>(PointPropertySemantics.ColumnIndex);
+
+            /// <summary>
+            /// Only for multi-return sensors. The total number of returns for the pulse that this corresponds to. Optional.
+            /// </summary>
+            public uint[] ReturnCount => GetOrNull<uint>(PointPropertySemantics.ReturnCount);
+
+            /// <summary>
+            /// Only for multi-return sensors. The number of this return (zero based). 
+            /// That is, 0 is the first return, 1 is the second, and so on. 
+            /// Shall be in the interval [0, returnCount). Optional.
+            /// </summary>
+            public uint[] ReturnIndex => GetOrNull<uint>(PointPropertySemantics.ReturnIndex);
+
+            /// <summary>
+            /// Timestamps. Optional.
+            /// </summary>
+            public DateTimeOffset[] Timestamps
+            {
+                get
+                {
+                    var xs = GetOrNull<double>(PointPropertySemantics.TimeStamp);
+                    if (xs == null) return null;
+
+                    DateTimeOffset guessAcquisitionStart()
+                    {
+                        if (E57DateTime.GpsStartEpoch.AddSeconds(xs[0]) < DateTimeOffset.Now) return E57DateTime.GpsStartEpoch;
+                        return E57DateTime.UnixStartEpoch;
+                    }
+                    var t0 = Data3D.AcquisitonStart?.DateTime ?? guessAcquisitionStart();
+
+                    var ts = new DateTimeOffset[xs.Length];
+                    for (var i = 0; i < xs.Length; i++) ts[i] = t0.AddSeconds(xs[i]);
+                    return ts;
+                }
+            }
+
+            /// <summary>
+            /// Intensities. Optional.
+            /// </summary>
+            public int[] Intensities => GetOrNull<int>(PointPropertySemantics.Intensity);
+
+            /// <summary>
+            /// Colors. Optional.
+            /// </summary>
+            public C3b[] Colors
+            {
+                get
+                {
+                    C3b[] cs = null;
+                    if (RawData.ContainsKey(PointPropertySemantics.ColorRed))
+                    {
+                        var crs = (byte[])RawData[PointPropertySemantics.ColorRed];
+                        var cgs = (byte[])RawData[PointPropertySemantics.ColorGreen];
+                        var cbs = (byte[])RawData[PointPropertySemantics.ColorBlue];
+
+                        var imax = Count;
+                        cs = new C3b[imax];
+                        for (var i = 0; i < imax; i++) cs[i] = new(crs[i], cgs[i], cbs[i]);
+                    }
+                    return cs;
+                }
+            }
+
+            /// <summary>
+            /// [Spec] If cartesianInvalidState is defined, its value shall have the following interpretation.
+            /// If the value is 0, the values of cartesianX, cartesianY, and cartesianZ shall all be 
+            /// meaningful. If the value is 1, only the direction component of the vector (cartesianX,
+            /// cartesianY, cartesianZ) shall be meaningful, and the magnitude of the vector shall be
+            /// considered non-meaningful. If the value is 2, the values of cartesianX, cartesianY,
+            /// and cartesianZ shall all be considered non-meaningful.
+            /// </summary>
+            public CartesianInvalidState[] CartesianInvalidState 
+                => GetOrNull<byte>(PointPropertySemantics.CartesianInvalidState)?.Map(x => (CartesianInvalidState)x);
+
+            /// <summary>
+            /// If sphericalInvalidState is defined, its value shall have the following interpretation.
+            /// If the value is 0, the values of sphericalRange, sphericalAzimuth, and sphericalElevation
+            /// shall all be meaningful. If the value is 1, the value of sphericalRange shall be considered 
+            /// non-meaningful, and the value of sphericalAzimuth, and sphericalElevation shall be meaningful.
+            /// If the value is 2, the values of sphericalRange, sphericalAzimuth, and sphericalElevation 
+            /// shall all be considered non-meaningful.
+            /// </summary>
+            public SphericalInvalidState[] SphericalInvalidState
+                => GetOrNull<byte>(PointPropertySemantics.SphericalInvalidState)?.Map(x => (SphericalInvalidState)x);
+
+            /// <summary>
+            /// If isTimeStampInvalid is defined and its value is 1, the value of timeStamp shall be
+            /// considered non-meaningful. Otherwise, the value of timeStamp shall be meaningful.
+            /// </summary>
+            public bool[] IsTimeStampInvalid
+                => GetOrNull<byte>(PointPropertySemantics.IsTimeStampInvalid)?.Map(x => x == 1);
+
+            /// <summary>
+            /// If isIntensityInvalid is defined and its value is 1, the value of intensity shall be 
+            /// considered non-meaningful. Otherwise, the value of intensity shall be meaningful.
+            /// </summary>
+            public bool[] IsIntensityInvalid
+                => GetOrNull<byte>(PointPropertySemantics.IsIntensityInvalid)?.Map(x => x == 1);
+
+            /// <summary>
+            /// If isColorInvalid is defined and its value is 1, the values of colorRed, colorGreen,
+            /// and colorBlue shall be considered non-meaningful. Otherwise, the values of colorRed,
+            /// colorGreen, and colorBlue shall all be meaningful.
+            /// </summary>
+            public bool[] IsColorInvalid
+                => GetOrNull<byte>(PointPropertySemantics.IsColorInvalid)?.Map(x => x == 1);
+
+            private T[] GetOrNull<T>(PointPropertySemantics sem)
+                => RawData.TryGetValue(sem, out var raw) ? (T[])raw : null;
         }
     }
 }
