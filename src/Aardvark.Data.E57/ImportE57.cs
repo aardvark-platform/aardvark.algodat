@@ -162,7 +162,6 @@ namespace Aardvark.Data.Points.Import
         public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, ParseConfig config)
         {
             var exclude = ImmutableHashSet<PointPropertySemantics>.Empty
-                .Add(PointPropertySemantics.CartesianInvalidState)
                 .Add(PointPropertySemantics.ColumnIndex)
                 .Add(PointPropertySemantics.IsColorInvalid)
                 .Add(PointPropertySemantics.IsIntensityInvalid)
@@ -170,8 +169,9 @@ namespace Aardvark.Data.Points.Import
                 .Add(PointPropertySemantics.ReturnCount)
                 .Add(PointPropertySemantics.ReturnIndex)
                 .Add(PointPropertySemantics.RowIndex)
-                .Add(PointPropertySemantics.SphericalInvalidState)
                 .Add(PointPropertySemantics.TimeStamp)
+                .Add(PointPropertySemantics.CartesianInvalidState)
+                .Add(PointPropertySemantics.SphericalInvalidState)
                 ;
 
             checked
@@ -189,17 +189,32 @@ namespace Aardvark.Data.Points.Import
 
                 foreach (var data3d in header.E57Root.Data3D)
                 {
-                    foreach (var (Positions, Properties) in data3d.StreamPointsFull(config.MaxChunkPointCount, config.Verbose, exclude))
+                    foreach (var (Positions, Properties) in data3d.StreamPointsFull(config.MaxChunkPointCount, exclude, config.Verbose))
                     {
                         var e57chunk = new E57Chunk(Properties, data3d, Positions);
 
-                        var chunk = new Chunk(
-                            positions: Positions,
-                            colors: e57chunk.Colors?.Map(c => new C4b(c)) ?? Positions.Map(_ => C4b.White),
-                            normals: e57chunk.Normals,
-                            intensities: e57chunk.Intensities,
-                            classifications: null
-                            );
+                        var ps = Positions;
+                        var cs = e57chunk.Colors?.Map(c => new C4b(c)) ?? Positions.Map(_ => C4b.White);
+                        var ns = e57chunk.Normals;
+                        var js = e57chunk.Intensities;
+
+                        var filter = e57chunk.CartesianInvalidState?.Map(x => x == CartesianInvalidState.Valid) ?? e57chunk.SphericalInvalidState?.Map(x => x == SphericalInvalidState.Valid);
+                        var fcount = filter?.Count(x => x == true);
+                        if (filter != null && fcount.Value != filter.Length)
+                        {
+                            T[] f<T>(T[] xs)
+                            {
+                                if (xs == null) return null;
+                                var rs = new T[fcount.Value];
+                                for (int i = 0, ri = 0; i < filter.Length; i++)
+                                    if (filter[i]) rs[ri++] = xs[i];
+                                return rs;
+                            }
+
+                            ps = f(ps); cs = f(cs); ns = f(ns); js = f(js);
+                        }
+
+                        var chunk = new Chunk(positions: ps, colors: cs, normals: ns, intensities: js, classifications: null);
                         Interlocked.Add(ref yieldedRecordCount, Positions.Length);
 
                         if (config.Verbose)
@@ -238,7 +253,7 @@ namespace Aardvark.Data.Points.Import
 
                 foreach (var data3d in header.E57Root.Data3D)
                 {
-                    foreach (var (Positions, Properties) in data3d.StreamPointsFull(config.MaxChunkPointCount, config.Verbose, ImmutableHashSet<PointPropertySemantics>.Empty))
+                    foreach (var (Positions, Properties) in data3d.StreamPointsFull(config.MaxChunkPointCount, ImmutableHashSet<PointPropertySemantics>.Empty, config.Verbose))
                     {
                         var chunk = new E57Chunk(Properties, data3d, Positions);
                         Interlocked.Add(ref yieldedRecordCount, Positions.Length);

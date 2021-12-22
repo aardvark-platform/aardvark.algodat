@@ -1318,10 +1318,13 @@ namespace Aardvark.Geometry.Tests
             //var filename = @"E:\e57tests\datasets\Register360_Berlin Office_1.e57";
             //var filename = @"E:\e57tests\datasets\Staatsoper.e57";
             //var filename = @"E:\e57tests\datasets\Innenscan_FARO.e57";
-            //var filename = @"E:\e57tests\datasets\1190_31_test_Frizzo.e57";
-            var filename = @"E:\e57tests\datasets\Neuhäusl-Hörschwang.e57";
+            var filename = @"E:\e57tests\datasets\1190_31_test_Frizzo.e57";
+            //var filename = @"E:\e57tests\datasets\Neuhäusl-Hörschwang.e57";
             //var filename = @"E:\e57tests\datasets\2020452-B-3-5.e57";
             //var filename = @"E:\e57tests\datasets\100pct_1mm_zebcam_shade_zebcam_world.e57";
+            //var filename = @"E:\e57tests\datasets\Station018.e57";
+            //var filename = @"E:\e57tests\datasets\6562-alle-Scans.e57";
+            //var filename = @"E:\e57tests\datasets\CloudCompare_Technologiezentrum_Teil2.e57";
 
             var key = Path.GetFileName(filename);
             

@@ -19,6 +19,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Xml.Linq;
 using Aardvark.Base;
@@ -558,13 +559,13 @@ namespace Aardvark.Data.E57
                         var buffers = new Array[dataPacketHeader.ByteStreamCount];
                         for (var i = 0; i < dataPacketHeader.ByteStreamCount; i++)
                         {
+                            if (!sem2idx.ContainsValue(i)) continue;
                             var count = bytestreamBufferLengths[i];
                             bytestreamBuffers[i] = ReadLogicalBytes(m_stream, offset, count);
                             offset += count;
 
                             buffers[i] = UnpackByteStream(bytestreamBuffers[i], bitpackerPerByteStream[i], (IBitPack)Prototype.Children[i]);
-
-                            recordsLeftToConsumePerByteStream[i] -= buffers[i].Length;
+                            if (buffers[i] != null) recordsLeftToConsumePerByteStream[i] -= buffers[i].Length;
                         }
 
                         // build
@@ -579,6 +580,8 @@ namespace Aardvark.Data.E57
                                 var (sem, raw) = (kv.Key, buffers[kv.Value]);
                                 switch (sem, raw)
                                 {
+                                    case (_, null): break; // empty buffer
+
                                     case (PointPropertySemantics.CartesianX, double[] xs)         : data.Append(sem, xs); break;
                                     case (PointPropertySemantics.CartesianY, double[] xs)         : data.Append(sem, xs); break;
                                     case (PointPropertySemantics.CartesianZ, double[] xs)         : data.Append(sem, xs); break;
@@ -691,6 +694,8 @@ namespace Aardvark.Data.E57
                 #region Helpers
                 static Array UnpackByteStream(byte[] buffer, BitPacker packer, IBitPack proto)
                 {
+                    if (buffer.Length == 0) return null;
+
                     var bits = proto.NumberOfBitsForBitPack;
                     var semantic = proto.Semantic;
                     switch (proto.E57Type)
@@ -698,7 +703,7 @@ namespace Aardvark.Data.E57
                         case E57ElementType.Float:
                             {
                                 var p = (E57Float)proto;
-                                return p.IsDoublePrecision ? (Array)UnpackFloat64(buffer, p) : UnpackFloat32(buffer, p);
+                                return p.IsDoublePrecision ? UnpackFloat64(buffer, p) : UnpackFloat32(buffer, p);
                             }
                         case E57ElementType.ScaledInteger:
                             {
@@ -735,15 +740,32 @@ namespace Aardvark.Data.E57
                     
                 }
 
+                static unsafe T[] DecodeArray<T>(int count, BinaryReader s) where T : struct
+                {
+                    var size = count * Marshal.SizeOf<T>();
+                    var buffer = s.ReadBytes(size);
+                    var xs = new T[count];
+                    var gc = GCHandle.Alloc(xs, GCHandleType.Pinned);
+                    try
+                    {
+                        Marshal.Copy(buffer, 0, gc.AddrOfPinnedObject(), size);
+                        return xs;
+                    }
+                    finally
+                    {
+                        gc.Free();
+                    }
+                }
                 static float[] UnpackFloat32(byte[] buffer, E57Float proto)
                 {
                     if (proto.IsDoublePrecision) throw new ArgumentException($"Expected single precision, but is double.");
                     if (proto.NumberOfBitsForBitPack != 32) throw new ArgumentException($"Expected 32 bits, but is {proto.NumberOfBitsForBitPack}.");
                     if (buffer.Length % 4 != 0) throw new ArgumentException($"Expected buffer length multiple of 4, but is {buffer.Length}.");
                     using var br = new BinaryReader(new MemoryStream(buffer));
-                    var xs = new float[buffer.Length / 4];
-                    for (var i = 0; i < xs.Length; i++) xs[i] = br.ReadSingle();
-                    return xs;
+                    //var xs = new float[buffer.Length / 4];
+                    //for (var i = 0; i < xs.Length; i++) xs[i] = br.ReadSingle();
+                    //return xs;
+                    return DecodeArray<float>(buffer.Length / 4, br);
                 }
                 static double[] UnpackFloat64(byte[] buffer, E57Float proto)
                 {
@@ -751,9 +773,10 @@ namespace Aardvark.Data.E57
                     if (proto.NumberOfBitsForBitPack != 64) throw new ArgumentException($"Expected 64 bits, but is {proto.NumberOfBitsForBitPack}.");
                     if (buffer.Length % 8 != 0) throw new ArgumentException($"Expected buffer length multiple of 8, but is {buffer.Length}.");
                     using var br = new BinaryReader(new MemoryStream(buffer));
-                    var xs = new double[buffer.Length / 8];
-                    for (var i = 0; i < xs.Length; i++) xs[i] = br.ReadDouble();
-                    return xs;
+                    //var xs = new double[buffer.Length / 8];
+                    //for (var i = 0; i < xs.Length; i++) xs[i] = br.ReadDouble();
+                    //return xs;
+                    return DecodeArray<double>(buffer.Length / 8, br);
                 }
                 static double[] UnpackScaledInteger(byte[] buffer, BitPacker packer, E57ScaledInteger proto)
                 {
@@ -1176,8 +1199,8 @@ namespace Aardvark.Data.E57
 
             public IEnumerable<(V3d[] Positions, ImmutableDictionary<PointPropertySemantics, Array> Properties)> StreamPointsFull(
                 int maxChunkPointCount,
-                bool verbose,
-                ImmutableHashSet<PointPropertySemantics> exclude
+                ImmutableHashSet<PointPropertySemantics> exclude,
+                bool verbose
                 )
             {
                 var filteredSem2Index = Sem2Index.Where(kv => !exclude.Contains(kv.Key)).ToImmutableDictionary();

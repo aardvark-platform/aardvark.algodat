@@ -303,18 +303,27 @@ namespace Scratch
                 try
                 {
                     var info = E57.E57Info(file, ParseConfig.Default);
-                    if (info.PointCount > 1024 * 1024 * 1024) continue;
+                    if (info.FileSizeInBytes > 4L * 1024 * 1024 * 1024) continue;
                     var data3d = info.Metadata.E57Root.Data3D[0];
-                    //if (!data3d.Has(PointPropertySemantics.RowIndex)) continue;
-                    Console.WriteLine($"{(data3d.Has(PointPropertySemantics.RowIndex) ? 'X' : ' ')} {file} {info.FileSizeInBytes:N0}");
+                    //if (!data3d.Has(PointPropertySemantics.CartesianInvalidState)) continue;
+                    Console.WriteLine($"{(data3d.Has(PointPropertySemantics.CartesianInvalidState) || data3d.Has(PointPropertySemantics.SphericalInvalidState) ? 'X' : ' ')} {file} {info.FileSizeInBytes:N0}");
                     foreach (var chunk in E57.ChunksFull(file, ParseConfig.Default).Take(1))
                     {
                         Console.WriteLine($"{chunk.Count}");
-                        if (chunk.RawData.ContainsKey(PointPropertySemantics.NormalX)) Debugger.Break();
+                        //if (chunk.RawData.ContainsKey(PointPropertySemantics.NormalX)) Debugger.Break();
                         //var foo = chunk.Colors.Where(c => c.R != c.G || c.R != c.B).ToArray();
                         //if (foo.Length > 0) Debugger.Break();
                         //var gs = chunk.Timestamps.GroupBy(x => new DateTimeOffset(x.Year, x.Month, x.Day, x.Hour, x.Minute, x.Second, TimeSpan.Zero)).Select(g => (g.Key, g.Count())).ToArray();
-                        //var gs = chunk.CartesianInvalidState.GroupBy(x => x).Select(g => (g.Key, g.Count())).ToArray();
+                        if (chunk.CartesianInvalidState != null)
+                        {
+                            var gs = chunk.CartesianInvalidState.GroupBy(x => x).Select(g => (g.Key, g.Count())).ToArray();
+                            if (gs.Length != 1) Console.WriteLine($"contains invalid points (cartesian)");
+                        }
+                        if (chunk.SphericalInvalidState != null)
+                        {
+                            var gs = chunk.SphericalInvalidState.GroupBy(x => x).Select(g => (g.Key, g.Count())).ToArray();
+                            if (gs.Length != 1) Console.WriteLine($"contains invalid points (spherical)");
+                        }
                     }
                 }
                 catch (Exception e)
