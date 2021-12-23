@@ -1,3 +1,6 @@
+### 5.1.24
+- merged martin's branch (Update to FSharp.Core >= 5.0.0)
+
 ### 5.1.23
 - e57: expose all available point properties (via E57.ChunksFull)
 - e57: add support for reading per-point normals, which is an e57 extension
