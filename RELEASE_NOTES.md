@@ -1,3 +1,9 @@
+### 5.1.23
+- e57: expose all available point properties (via E57.ChunksFull)
+- e57: add support for reading per-point normals, which is an e57 extension
+- laszip: synced Aardvark.Data.Points.LasZip project from original code base at https://github.com/stefanmaierhofer/LASzip
+  parser now tries to recover colors which have not been normalized according to spec
+
 ### 5.1.22
 - [ILodTreeNode] shouldSplit only inside ortho frustum 
 
