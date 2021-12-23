@@ -1314,12 +1314,12 @@ namespace Aardvark.Geometry.Tests
 
         internal static void Test_20201113_Hannes()
         {
-            //var filename = @"E:\e57tests\datasets\aibotix_ground_points.e57";
+            var filename = @"E:\e57tests\datasets\aibotix_ground_points.e57";
             //var filename = @"E:\e57tests\datasets\Register360_Berlin Office_1.e57";
             //var filename = @"E:\e57tests\datasets\Staatsoper.e57";
             //var filename = @"E:\e57tests\datasets\Innenscan_FARO.e57";
             //var filename = @"E:\e57tests\datasets\1190_31_test_Frizzo.e57";
-            var filename = @"E:\e57tests\datasets\Neuhäusl-Hörschwang.e57";
+            //var filename = @"E:\e57tests\datasets\Neuhäusl-Hörschwang.e57";
             //var filename = @"E:\e57tests\datasets\2020452-B-3-5.e57";
             //var filename = @"E:\e57tests\datasets\100pct_1mm_zebcam_shade_zebcam_world.e57";
 

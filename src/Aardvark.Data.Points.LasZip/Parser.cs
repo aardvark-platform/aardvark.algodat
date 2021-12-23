@@ -1,26 +1,26 @@
 ﻿/*
-    Copyright (C) 2017-2020. Stefan Maierhofer.
+   Copyright (C) 2017-2021. Stefan Maierhofer.
 
-    This code has been COPIED from https://github.com/stefanmaierhofer/LASzip.
+   This code has been COPIED from https://github.com/stefanmaierhofer/LASzip.
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Affero General Public License for more details.
-    You should have received a copy of the GNU Affero General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 */
+using Aardvark.Base;
+using laszip.net;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using Aardvark.Base;
-using laszip.net;
 
 namespace LASZip
 {
@@ -176,7 +176,7 @@ namespace LASZip
             for (var j = 0; j < n; j += numberOfPointsPerChunk)
             {
                 if (j + numberOfPointsPerChunk > n) numberOfPointsPerChunk = (int)(n - j);
-                //Console.WriteLine($"j: {j}, numberOfPointsPerChunk: {numberOfPointsPerChunk}, n: {n}");
+                if (verbose) Console.WriteLine($"j: {j}, numberOfPointsPerChunk: {numberOfPointsPerChunk}, n: {n}");
 
                 // POINT10
                 var p = new double[3];
@@ -195,7 +195,8 @@ namespace LASZip
                 var gpsTimes = hasGpsTime ? new double[numberOfPointsPerChunk] : null;
 
                 // RGB12
-                var colors = hasColor ? new C3b[numberOfPointsPerChunk] : null;
+                var colorsRaw = hasColor ? new C3us[numberOfPointsPerChunk] : null;
+                bool colorIs8Bit = true;
 
                 // WAVEPACKET13
                 var wavePacketDescriptorIndices = hasWavePacket ? new byte[numberOfPointsPerChunk] : null;
@@ -224,7 +225,12 @@ namespace LASZip
 
                     if (hasGpsTime) gpsTimes[i] = reader.point.gps_time;
 
-                    if (hasColor) colors[i] = new C3b(reader.point.rgb[0] >> 8, reader.point.rgb[1] >> 8, reader.point.rgb[2] >> 8);
+                    if (hasColor)
+                    {
+                        var c = new C3us(reader.point.rgb[0], reader.point.rgb[1], reader.point.rgb[2]);
+                        colorsRaw[i] = c;
+                        if (colorIs8Bit && (c.R > 255 || c.G > 255 || c.B > 255)) colorIs8Bit = false;
+                    }
 
                     if (hasWavePacket)
                     {
@@ -238,6 +244,13 @@ namespace LASZip
                         zts[i] = BitConverter.ToSingle(buffer, 25);
                     }
                 }
+
+                var colors = (colorsRaw, colorIs8Bit) switch
+                {
+                    (null, _) => null,
+                    (not null, true) => colorsRaw.Map(c => new C3b(c.R, c.G, c.B)),
+                    (not null, false) => colorsRaw.Map(c => new C3b(c.R >> 8, c.G >> 8, c.B >> 8))
+                };
 
                 //if (verbose)
                 //{

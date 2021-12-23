@@ -18,11 +18,10 @@ let main args =
     //view @"C:\Users\sm\Downloads\C_31EN2.LAZ.store" [File.readAllText @"C:\Users\sm\Downloads\C_31EN2.LAZ.key"] (Args.parse [||])
     //view @"C:\Users\sm\Downloads\C_30DN2.LAZ.store" [File.readAllText @"C:\Users\sm\Downloads\C_30DN2.LAZ.key"] (Args.parse [||])
     //view @"C:\Users\sm\Downloads\test.store" ["128330b1-8761-4a07-b160-76bcd7e2f70a"; "ab2f6f76-7eae-47c9-82d1-ad28b816abb9"] (Args.parse [||])
-    view @"E:\e57tests\stores\Staatsoper.e57\data.uds" ["Staatsoper.e57"] (Args.parse [||])
-
-    //let store = @"C:\Users\Spot\Desktop\spot_stores\2021_04_16_16_26_40\store.uds"
-    //let key = Path.combine [System.IO.Path.GetDirectoryName store;"key.txt"] |> File.readAllText
-    //view store [key] (Args.parse [||])
+    
+    let store = @"E:\e57tests\stores\aibotix_ground_points.e57\data.uds"
+    let key = Path.combine [System.IO.Path.GetDirectoryName store;"key.txt"] |> File.readAllText
+    view store [key] (Args.parse [||])
 
     let args = Args.parse args
     
