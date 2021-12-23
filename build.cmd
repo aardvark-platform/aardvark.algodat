@@ -3,7 +3,7 @@ SETLOCAL
 PUSHD %~dp0
 
 IF NOT exist .paket\paket.exe (
-	dotnet tool install Paket --tool-path .paket --version 5.257.0
+	dotnet tool install Paket --tool-path .paket
 )
 
 if NOT exist paket.lock (
@@ -17,6 +17,3 @@ if errorlevel 1 (
 )
 
 dotnet packages\build\fake-cli\tools\netcoreapp2.1\any\fake-cli.dll build %* 
-
-
-
