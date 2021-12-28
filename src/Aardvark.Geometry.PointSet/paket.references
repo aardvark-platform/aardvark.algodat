@@ -1,6 +1,4 @@
-Aardvark.Base
 Aardvark.Base.IO
-Aardvark.Data.Durable
 Aardvark.Data.Durable.Codec
 Newtonsoft.Json
 Nullable

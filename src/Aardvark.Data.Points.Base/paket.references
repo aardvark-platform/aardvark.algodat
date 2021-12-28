@@ -1,6 +1,3 @@
-Aardvark.Base
-Aardvark.Data.Durable
 Aardvark.Data.Durable.Codec
-FSharp.Core
 Nullable
 Uncodium.SimpleStore
