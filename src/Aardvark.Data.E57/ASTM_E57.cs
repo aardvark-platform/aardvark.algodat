@@ -598,6 +598,10 @@ namespace Aardvark.Data.E57
                                     case (PointPropertySemantics.SphericalAzimuth, float[] xs)    : data.Append(sem, xs.Map(x => (double)x)); break;
                                     case (PointPropertySemantics.SphericalElevation, float[] xs)  : data.Append(sem, xs.Map(x => (double)x)); break;
 
+                                    case (PointPropertySemantics.ColorRed, byte[] xs)             : data.Append(sem, xs); break;
+                                    case (PointPropertySemantics.ColorGreen, byte[] xs)           : data.Append(sem, xs); break;
+                                    case (PointPropertySemantics.ColorBlue, byte[] xs)            : data.Append(sem, xs); break;
+
                                     case (PointPropertySemantics.ColorRed, uint[] xs)             : data.Append(sem, xs.Map(x => (byte)x)); break;
                                     case (PointPropertySemantics.ColorGreen, uint[] xs)           : data.Append(sem, xs.Map(x => (byte)x)); break;
                                     case (PointPropertySemantics.ColorBlue, uint[] xs)            : data.Append(sem, xs.Map(x => (byte)x)); break;
@@ -722,6 +726,8 @@ namespace Aardvark.Data.E57
                                     }
                                     else
                                     {
+                                        if (packer.BitsPerValue == 8 && !packer.HasRest) return buffer;
+                                        if (packer.BitsPerValue == 16 && !packer.HasRest) return DecodeArray2<uint>(buffer.Length / 2, buffer);
                                         return UnpackIntegers(buffer, packer, p);
                                     }
                                 }
@@ -740,6 +746,20 @@ namespace Aardvark.Data.E57
                     
                 }
 
+                static unsafe T[] DecodeArray2<T>(int count, byte[] buffer) where T : struct
+                {
+                    var xs = new T[count];
+                    var gc = GCHandle.Alloc(xs, GCHandleType.Pinned);
+                    try
+                    {
+                        Marshal.Copy(buffer, 0, gc.AddrOfPinnedObject(), buffer.Length);
+                        return xs;
+                    }
+                    finally
+                    {
+                        gc.Free();
+                    }
+                }
                 static unsafe T[] DecodeArray<T>(int count, BinaryReader s) where T : struct
                 {
                     var size = count * Marshal.SizeOf<T>();

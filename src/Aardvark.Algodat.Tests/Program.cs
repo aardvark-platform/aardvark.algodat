@@ -1355,7 +1355,7 @@ namespace Aardvark.Geometry.Tests
             {
                 //var runningCount = 0L;
                 var chunks = E57
-                    .Chunks(filename, config.ParseConfig)
+                    .ChunksFull(filename, config.ParseConfig)
                     //.Take(50)
                     //.TakeWhile(chunk =>
                     //{
@@ -1364,7 +1364,11 @@ namespace Aardvark.Geometry.Tests
                     //    return n < info.PointCount * (0.125 + 0.125 / 2);
                     //})
                     ;
-                var pcl = PointCloud.Chunks(chunks, config);
+                Report.BeginTimed("parsing");
+                var foo = chunks.ToArray();
+                Report.EndTimed();
+                Environment.Exit(0);
+                var pcl = PointCloud.Chunks(E57.Chunks(filename, config.ParseConfig), config);
                 return pcl;
             });
 

@@ -33,6 +33,10 @@ namespace Aardvark.Base
             BitsPerValue = bitsPerValue;
         }
 
+        /// <summary>
+        /// </summary>
+        public bool HasRest => m_rest != 0 || m_restBitCount != 0;
+
         /// <summary></summary>
         public uint[] UnpackUInts(byte[] buffer)
         {
