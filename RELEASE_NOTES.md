@@ -1,3 +1,6 @@
+### 5.1.26
+- more package updates
+
 ### 5.1.25
 - ... and now also completed Martin's *Update to FSharp.Core >= 5.0.0* ;-)
 
