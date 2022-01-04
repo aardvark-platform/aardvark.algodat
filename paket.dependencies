@@ -6,6 +6,8 @@ source https://vrvis.myget.org/F/aardvark_public/api/v2
 
 storage: none
 
+nuget FSharp.Core                       >= 5.0.0 lowest_matching: true
+
 // aardvark.base
 nuget Aardvark.Base.IO                  ~> 5.1.25
 nuget Aardvark.Base.Tensors             ~> 5.1.25
@@ -20,7 +22,7 @@ nuget Aardvark.Data.Durable.Codec       ~> 0.2.22
 nuget NUnit                             ~> 3.13.2
 nuget NUnit3TestAdapter                 ~> 4.1.0
 nuget Uncodium.Eigensystems             ~> 1.1.2
-nuget Uncodium.SimpleStore              ~> 3.0.9
+nuget Uncodium.SimpleStore              ~> 3.0.10
 nuget sharpcompress                     ~> 0.30.0
 
 nuget Unofficial.laszip.netstandard     ~> 2.2.1
