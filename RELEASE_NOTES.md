@@ -1,3 +1,7 @@
+### 5.1.27
+- restrict FSharp.Core to >= 5.0.0 lowest_matching: true
+- update Uncodium.SimpleStore to 3.0.10
+
 ### 5.1.26
 - more package updates
 
