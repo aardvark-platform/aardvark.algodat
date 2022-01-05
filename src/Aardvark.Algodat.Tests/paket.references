@@ -1,8 +1,7 @@
-Aardvark.Base.IO
+Aardvark.Base
 Aardvark.Data.Durable
 Microsoft.NET.Test.Sdk
 NUnit
 NUnit3TestAdapter
 Uncodium.Eigensystems
 Uncodium.SimpleStore
-Aardworx.Services.PointShare

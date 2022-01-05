@@ -7,7 +7,6 @@
     <DocumentationFile>..\..\bin\Release\netstandard2.0\Aardvark.Geometry.PointSet.xml</DocumentationFile>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>    
     <RootNamespace>Aardvark.Geometry.Points</RootNamespace>
-    <LangVersion>8</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <OutputPath>..\..\bin\Debug</OutputPath>

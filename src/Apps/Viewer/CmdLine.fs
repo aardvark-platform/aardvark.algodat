@@ -3,26 +3,18 @@
 *)
 namespace Aardvark.Algodat.App.Viewer
 
-open Aardvark.Application
-open Aardvark.Application.Slim
 open Aardvark.Base
-open FSharp.Data.Adaptive
-open Aardvark.Rendering
 open Aardvark.Data.Points
-
+open Aardvark.Data.Points.Import
 open Aardvark.Geometry
 open Aardvark.Geometry.Points
-open Aardvark.SceneGraph
-open Newtonsoft.Json.Linq
+open Aardvark.Rendering.PointSet
+open FSharp.Data.Adaptive
 open System
-open System.Collections.Generic
 open System.IO
 open System.Linq
 open System.Net
-open System.Threading
-open Uncodium.SimpleStore
-open Aardvark.Rendering.PointSet
-open Aardvark.Data.Points.Import
+open System.Text.Json
 
 [<AutoOpen>]
 module CmdLine = 
@@ -30,9 +22,9 @@ module CmdLine =
     open System.Diagnostics
 
     let parseBounds filename =
-        let json = JArray.Parse(File.readAllText filename) :> seq<JToken>
+        let json = JsonSerializer.Deserialize<JsonElement>(File.readAllText filename).EnumerateArray()
         json
-            |> Seq.map (fun j -> Box3d.Parse(j.["Bounds"].ToObject<string>()))
+            |> Seq.map (fun j -> Box3d.Parse(j.GetProperty("Bounds").GetString()))
             |> Array.ofSeq
             
     let view (store : string) (ids : list<string>) (args : Args) =

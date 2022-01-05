@@ -1,8 +1,9 @@
 ﻿using Aardvark.Base;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Aardvark.Geometry.Points
 {
@@ -56,21 +57,15 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public JObject Serialize()
+        public JsonNode Serialize() => JsonSerializer.SerializeToNode(new
+        { 
+            Type,
+            Array = Hull.PlaneArray.Map(p => new { Point = p.Point.ToString(), Normal = p.Normal.ToString() })
+        });
+
+        public static FilterInsideConvexHull3d Deserialize(JsonNode json)
         {
-            return JObject.FromObject(new
-                { Type,
-                  Array = JArray.FromObject(
-                                this.Hull.PlaneArray.Map(p =>   
-                                        JObject.FromObject(new { Point = p.Point.ToString(), Normal = p.Normal.ToString() }
-                                    )
-                                )
-                          )
-                });
-        }
-        public static FilterInsideConvexHull3d Deserialize(JObject json)
-        {
-            var arr = (JArray)json["Array"];
+            var arr = (JsonArray)json["Array"];
             var planes = arr.Map(jt => new Plane3d(V3d.Parse((string)jt["Normal"]), V3d.Parse((string)jt["Point"])));
             var hull = new Hull3d(planes);
             return new FilterInsideConvexHull3d(hull);

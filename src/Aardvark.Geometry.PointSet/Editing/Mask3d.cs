@@ -13,8 +13,8 @@
 */
 using System;
 using System.Linq;
+using System.Text.Json.Nodes;
 using Aardvark.Base;
-using Newtonsoft.Json.Linq;
 
 namespace Aardvark.Geometry.Points
 {
@@ -136,19 +136,16 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        public JObject ToJson()
+        public JsonObject ToJson() => new ()
         {
-            return JObject.FromObject(new
-            {
-                mask = m_mask.ToJson(),
-                model2mask = m_model2mask.ToString(),
-                camPosition = m_camPosition.ToString()
-            });
-        }
+            ["mask"] = m_mask.ToJson(),
+            ["model2mask"] = m_model2mask.ToString(),
+            ["camPosition"] = m_camPosition.ToString()
+        };
 
         /// <summary>
         /// </summary>
-        public static Mask3d Parse(JObject json, Func<JToken, IMask2d> deserialize)
+        public static Mask3d Parse(JsonObject json, Func<JsonNode, IMask2d> deserialize)
         {
             var mask = deserialize(json["mask"]);
             var model2mask = Trafo3d.Parse((string)json["model2mask"]);

@@ -17,12 +17,12 @@
 using Aardvark.Base;
 using Aardvark.Data;
 using Aardvark.Data.Points;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
+using System.Text.Json.Serialization;
 
 namespace Aardvark.Geometry.Points
 {

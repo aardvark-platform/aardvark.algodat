@@ -1,9 +1,10 @@
 ﻿using Aardvark.Base;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Aardvark.Geometry.Points
 {
@@ -60,10 +61,12 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public JObject Serialize() => JObject.FromObject(new { Type, Direction = Direction.ToString(), EpsInDegrees });
+        public JsonNode Serialize() => JsonSerializer.SerializeToNode(
+            new { Type, Direction = Direction.ToString(), EpsInDegrees }
+            );
 
         /// <summary></summary>
-        public static FilterNormalDirection Deserialize(JObject json) => new FilterNormalDirection(
+        public static FilterNormalDirection Deserialize(JsonObject json) => new(
             V3f.Parse((string)json["Direction"]),
             float.Parse((string)json["EpsInDegrees"], CultureInfo.InvariantCulture)
             );

@@ -1,7 +1,8 @@
 ﻿using Aardvark.Base;
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Aardvark.Geometry.Points
 {
@@ -88,9 +89,14 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public JObject Serialize() => JObject.FromObject(new { Type, Filter = Filter.ToArray() });
+        public JsonNode Serialize() => JsonSerializer.SerializeToNode(new
+        {
+            Type, 
+            Filter = Filter.ToArray()
+        });
 
         /// <summary></summary>
-        public static FilterClassification Deserialize(JObject json) => new FilterClassification(new HashSet<byte>(json["Filter"].ToObject<byte[]>()));
+        public static FilterClassification Deserialize(JsonObject json) 
+            => new(new HashSet<byte>(json["Filter"].GetValue<byte[]>()));
     }
 }

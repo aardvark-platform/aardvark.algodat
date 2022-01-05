@@ -1,7 +1,8 @@
 ﻿using Aardvark.Base;
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Aardvark.Geometry.Points
 {
@@ -52,10 +53,14 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public JObject Serialize() => JObject.FromObject(new { Type, Box = Box.ToString() });
+        public JsonNode Serialize() => JsonSerializer.SerializeToNode(new
+        {
+            Type,
+            Box = Box.ToString()
+        });
 
         /// <summary></summary>
-        public static FilterInsideBox3d Deserialize(JObject json) => new FilterInsideBox3d(Box3d.Parse((string)json["Box"]));
+        public static FilterInsideBox3d Deserialize(JsonObject json) => new(Box3d.Parse((string)json["Box"]));
 
         public Box3d Clip(Box3d box)
         {
@@ -111,10 +116,14 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public JObject Serialize() => JObject.FromObject(new { Type, Box = Box.ToString() });
+        public JsonNode Serialize() => JsonSerializer.SerializeToNode(new
+        {
+            Type, 
+            Box = Box.ToString()
+        });
 
         /// <summary></summary>
-        public static FilterInsideBox3d Deserialize(JObject json) => new FilterInsideBox3d(Box3d.Parse((string)json["Box"]));
+        public static FilterInsideBox3d Deserialize(JsonObject json) => new(Box3d.Parse((string)json["Box"]));
         public Box3d Clip(Box3d box)
         {
             return box;

@@ -13,10 +13,11 @@
 */
 using Aardvark.Base;
 using Aardvark.Data.Points;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using System.Threading;
 
 namespace Aardvark.Geometry.Points
@@ -29,7 +30,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// The empty pointset.
         /// </summary>
-        public static readonly PointSet Empty = new PointSet(null, "PointSet.Empty");
+        public static readonly PointSet Empty = new(null, "PointSet.Empty");
 
         #region Construction
 
@@ -129,20 +130,17 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        public JObject ToJson()
+        public JsonNode ToJson() => JsonSerializer.SerializeToNode(new
         {
-            return JObject.FromObject(new
-            {
-                Id,
-                RootCellId = Root?.Id,
-                OctreeId = Root?.Id,
-                SplitLimit
-            });
-        }
+            Id,
+            RootCellId = Root?.Id,
+            OctreeId = Root?.Id,
+            SplitLimit
+        });
 
         /// <summary>
         /// </summary>
-        public static PointSet Parse(JObject json, Storage storage)
+        public static PointSet Parse(JsonNode json, Storage storage)
         {
             var octreeId = (string)json["OctreeId"] ?? (string)json["RootCellId"];
             var octree = octreeId != null

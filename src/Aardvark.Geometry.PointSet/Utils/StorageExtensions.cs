@@ -15,8 +15,6 @@ using Aardvark.Base;
 using Aardvark.Base.Coder;
 using Aardvark.Data;
 using Aardvark.Data.Points;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -24,6 +22,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.Json.Nodes;
 using Uncodium.SimpleStore;
 
 namespace Aardvark.Geometry.Points
@@ -336,13 +335,13 @@ namespace Aardvark.Geometry.Points
         public static void Add(this Storage storage, string key, string s)
             => Add(storage, key, Encoding.UTF8.GetBytes(s));
 
-        /// <summary></summary>
-        public static void Add(this Storage storage, Guid key, JObject json)
-            => Add(storage, key, Encoding.UTF8.GetBytes(json.ToString(Formatting.Indented)));
+        ///// <summary></summary>
+        //public static void Add(this Storage storage, Guid key, JObject json)
+        //    => Add(storage, key, Encoding.UTF8.GetBytes(json.ToString(Formatting.Indented)));
 
-        /// <summary></summary>
-        public static void Add(this Storage storage, string key, JObject json)
-            => Add(storage, key, Encoding.UTF8.GetBytes(json.ToString(Formatting.Indented)));
+        ///// <summary></summary>
+        //public static void Add(this Storage storage, string key, JObject json)
+        //    => Add(storage, key, Encoding.UTF8.GetBytes(json.ToString(Formatting.Indented)));
 
         #endregion
 
@@ -504,7 +503,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// </summary>
         public static PointRkdTreeD<V3f[], V3f> GetKdTree(this Storage storage, string key, V3f[] positions)
-            => new PointRkdTreeD<V3f[], V3f>(
+            => new(
                 3, positions.Length, positions,
                 (xs, i) => xs[(int)i], (v, i) => (float)v[i],
                 (a, b) => Vec.Distance(a, b), (i, a, b) => b - a,
@@ -632,7 +631,7 @@ namespace Aardvark.Geometry.Points
             var buffer = storage.f_get(key);
             if (buffer == null) return default;
             var jsonUTF8 = Encoding.UTF8.GetString(buffer);
-            var json = JObject.Parse(jsonUTF8);
+            var json = JsonNode.Parse(jsonUTF8);
             var data = PointSet.Parse(json, storage);
 
             if (storage.HasCache) storage.Cache.Add(
@@ -679,7 +678,9 @@ namespace Aardvark.Geometry.Points
             if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
             {
                 if (o == null) return null;
-                if (!(o is IPointCloudNode r)) throw new InvalidOperationException("Invariant d1cb769c-36b6-4374-8248-b8c1ca31d495. [GetPointCloudNode] Store key "+key+" is not IPointCloudNode.");
+                if (o is not IPointCloudNode r) throw new InvalidOperationException(
+                    $"Invariant d1cb769c-36b6-4374-8248-b8c1ca31d495. [GetPointCloudNode] Store key {key} is not IPointCloudNode."
+                    );
                 return r;
             }
 

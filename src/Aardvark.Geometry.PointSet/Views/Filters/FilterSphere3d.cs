@@ -1,9 +1,8 @@
-﻿using System;
+﻿using Aardvark.Base;
 using System.Collections.Generic;
-using System.Text;
 using System.Linq;
-using Aardvark.Base;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Aardvark.Geometry.Points
 {
@@ -90,10 +89,7 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public JObject Serialize()
-        {
-            return JObject.FromObject(new { Type, Sphere = m_sphere.ToString() });
-        }
+        public JsonNode Serialize() => JsonSerializer.SerializeToNode(new { Type, Sphere = m_sphere.ToString() });
 
         public Box3d Clip(Box3d box)
         {

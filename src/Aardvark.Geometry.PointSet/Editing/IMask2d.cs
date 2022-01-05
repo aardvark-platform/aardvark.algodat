@@ -12,7 +12,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace Aardvark.Geometry.Points
 {
@@ -46,6 +46,6 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        JToken ToJson();
+        JsonNode ToJson();
     }
 }

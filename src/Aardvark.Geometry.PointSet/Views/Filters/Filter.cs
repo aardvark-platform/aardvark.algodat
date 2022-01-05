@@ -1,5 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
-using System;
+﻿using System;
+using System.Text.Json.Nodes;
 
 namespace Aardvark.Geometry.Points
 {
@@ -8,27 +8,27 @@ namespace Aardvark.Geometry.Points
     public static class Filter
     {
         /// <summary></summary>
-        public static IFilter Deserialize(string s) => Deserialize(JObject.Parse(s));
+        public static IFilter Deserialize(string s) => Deserialize(JsonNode.Parse(s));
         
         /// <summary></summary>
-        public static IFilter Deserialize(JToken jtoken) => Deserialize((JObject)jtoken);
+        public static IFilter Deserialize(JsonNode node) => Deserialize((JsonObject)node);
 
         /// <summary></summary>
-        public static IFilter Deserialize(JObject json)
+        public static IFilter Deserialize(JsonObject json)
         {
             var type = (string)json["Type"];
 
-            switch (type)
+            return type switch
             {
-                case FilterInsideBox3d      .Type : return FilterInsideBox3d    .Deserialize(json);
-                case FilterOutsideBox3d     .Type : return FilterOutsideBox3d   .Deserialize(json);
-                //case FilterOr               .Type : return FilterOr             .Deserialize(json);
-                case FilterAnd              .Type : return FilterAnd            .Deserialize(json);
-                case FilterIntensity        .Type : return FilterIntensity      .Deserialize(json);
-                case FilterNormalDirection  .Type : return FilterNormalDirection.Deserialize(json);
-                case FilterInsideConvexHull3d.Type: return FilterInsideConvexHull3d.Deserialize(json);
-                default: throw new NotImplementedException($"Unknown filter type: '{type}'");
-            }
+                FilterInsideBox3d.Type => FilterInsideBox3d.Deserialize(json),
+                FilterOutsideBox3d.Type => FilterOutsideBox3d.Deserialize(json),
+                //FilterOr.Type => return FilterOr.Deserialize(json);
+                FilterAnd.Type => FilterAnd.Deserialize(json),
+                FilterIntensity.Type => FilterIntensity.Deserialize(json),
+                FilterNormalDirection.Type => FilterNormalDirection.Deserialize(json),
+                FilterInsideConvexHull3d.Type => FilterInsideConvexHull3d.Deserialize(json),
+                _ => throw new NotImplementedException($"Unknown filter type: '{type}'"),
+            };
         }
     }
 }

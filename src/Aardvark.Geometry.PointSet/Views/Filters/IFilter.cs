@@ -12,10 +12,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
-using Newtonsoft.Json.Linq;
-using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Text.Json.Nodes;
 
 namespace Aardvark.Geometry.Points
 {
@@ -36,8 +34,7 @@ namespace Aardvark.Geometry.Points
         HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int> selected = default);
 
         /// <summary></summary>
-        JObject Serialize();
-
+        JsonNode Serialize();
     }
 
     public interface ISpatialFilter : IFilter

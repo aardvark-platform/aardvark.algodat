@@ -2,13 +2,12 @@
 using Aardvark.Data.Points;
 using Aardvark.Data.Points.Import;
 using Aardvark.Geometry.Points;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using Uncodium.SimpleStore;
 
@@ -54,16 +53,16 @@ namespace ImportTest
 
 
             var tsEnd = DateTimeOffset.UtcNow;
-            var json = JObject.FromObject(new
+            var json = JsonSerializer.Serialize(new
             {
                 tsStart,
                 tsEnd,
-                durationInSeconds = Math.Round((tsEnd-tsStart).TotalSeconds, 2),
+                durationInSeconds = Math.Round((tsEnd - tsStart).TotalSeconds, 2),
                 stats
-            });
+            }, new JsonSerializerOptions { WriteIndented = true });
             var n = DateTimeOffset.Now;
             var statsFileName = Path.Combine(basedir, $"stats_{n.Year:0000}{n.Month:00}{n.Day:00}_{n.Hour:00}{n.Minute:00}{n.Second:00}.json");
-            File.WriteAllText(statsFileName, json.ToString(Formatting.Indented));
+            File.WriteAllText(statsFileName, json);
         }
 
         static object ImportFile(string path, params string[] filenames)
@@ -124,7 +123,7 @@ namespace ImportTest
                     storeIndexSizeInMb = Math.Round(storeIndexSizeInBytes / (1024.0 * 1024), 3),
                 };
 
-                var json = JsonConvert.SerializeObject(stats, Formatting.Indented);
+                var json = JsonSerializer.Serialize(stats, new JsonSerializerOptions { WriteIndented = true });
                 Console.WriteLine(json);
                 var n = DateTimeOffset.Now;
 

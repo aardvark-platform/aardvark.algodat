@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "points": {
-      "commandName": "Project",
-      "commandLineArgs": "export -ikey a5567a00-628a-491c-a263-5b2b3cc5134f -i T:\\Vgm\\Data\\ObsoleteStore_20190902\\2019-2-1_store -o folder T:\\Vgm\\Data\\ObsoleteStore_20190902\\2019-2-1_store_EXPORT"
-    }
-  }
-}

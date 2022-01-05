@@ -14,7 +14,6 @@
 using Aardvark.Base;
 using Aardvark.Data;
 using Aardvark.Data.Points;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -494,7 +493,7 @@ namespace Aardvark.Geometry.Points
 
         #endregion
 
-        private readonly Dictionary<Guid, object> m_cache = new Dictionary<Guid, object>();
+        private readonly Dictionary<Guid, object> m_cache = new();
         private PersistentRef<T[]> GetSubArray<T>(Def def, PersistentRef<T[]> originalValue)
         {
             if (m_cache.TryGetValue(def.Id, out var o) && o is PersistentRef<T[]> x) return x;
@@ -534,21 +533,21 @@ namespace Aardvark.Geometry.Points
         public static class Defs
         {
             /// <summary></summary>
-            public static readonly Def FilteredNode = new Def(
+            public static readonly Def FilteredNode = new(
                 new Guid("a5dd1687-ea0b-4735-9be1-b74b969e0673"),
                 "Octree.FilteredNode", "Octree.FilteredNode. A filtered octree node.",
                 Primitives.DurableMap.Id, false
                 );
 
             /// <summary></summary>
-            public static readonly Def FilteredNodeRootId = new Def(
+            public static readonly Def FilteredNodeRootId = new(
                 new Guid("f9a7c994-35b3-4d50-b5b0-80af05896987"),
                 "Octree.FilteredNode.RootId", "Octree.FilteredNode. Node id of the node to be filtered.",
                 Primitives.GuidDef.Id, false
                 );
 
             /// <summary></summary>
-            public static readonly Def FilteredNodeFilter = new Def(
+            public static readonly Def FilteredNodeFilter = new(
                 new Guid("1d2298b6-df47-4170-8fc2-4bd899ea6153"),
                 "Octree.FilteredNode.Filter", "Octree.FilteredNode. Filter definition as UTF8-encoded JSON string.",
                 Primitives.StringUTF8.Id, false
@@ -568,7 +567,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public byte[] Encode()
         {
-            var filter = Filter.Serialize().ToString(Formatting.Indented);
+            var filter = Filter.Serialize().ToString();
 
             var x = ImmutableDictionary<Def, object>.Empty
                 .Add(Octree.NodeId, Id)

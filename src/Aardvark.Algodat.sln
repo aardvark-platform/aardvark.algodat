@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.28711.60
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.31911.260
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aardvark.Geometry.PointTree", "Aardvark.Geometry.PointTree\Aardvark.Geometry.PointTree.csproj", "{765878C0-43E4-4E7F-BEEB-B32E7E0DD01A}"
 EndProject
@@ -33,8 +33,6 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aardvark.Algodat.Tests", "Aardvark.Algodat.Tests\Aardvark.Algodat.Tests.csproj", "{FE7BE6D5-A6D0-46E9-9D67-FAC11042EBBB}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aardvark.Geometry.Normals", "Aardvark.Geometry.Normals\Aardvark.Geometry.Normals.csproj", "{359CF793-3CF3-407D-9381-9FAA2C67835E}"
-EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "points", "Apps\points\points.fsproj", "{80CD998B-340E-4817-8D5D-DD7BDC42F28A}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImportTest", "Apps\ImportTest\ImportTest.csproj", "{0595D792-52A4-4DE1-A39F-6A99D199471A}"
 EndProject
@@ -136,10 +134,6 @@ Global
 		{359CF793-3CF3-407D-9381-9FAA2C67835E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{359CF793-3CF3-407D-9381-9FAA2C67835E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{359CF793-3CF3-407D-9381-9FAA2C67835E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{80CD998B-340E-4817-8D5D-DD7BDC42F28A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{80CD998B-340E-4817-8D5D-DD7BDC42F28A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{80CD998B-340E-4817-8D5D-DD7BDC42F28A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{80CD998B-340E-4817-8D5D-DD7BDC42F28A}.Release|Any CPU.Build.0 = Release|Any CPU
 		{0595D792-52A4-4DE1-A39F-6A99D199471A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{0595D792-52A4-4DE1-A39F-6A99D199471A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0595D792-52A4-4DE1-A39F-6A99D199471A}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -175,14 +169,13 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{546BBC98-C84E-4382-AF5B-06954478F059} = {6CA9BC7A-0123-43E9-A26B-5FF0B9E01B08}
 		{C83CAE2F-BAC5-4483-B68D-99C811FCD17D} = {6CA9BC7A-0123-43E9-A26B-5FF0B9E01B08}
-		{80CD998B-340E-4817-8D5D-DD7BDC42F28A} = {6CA9BC7A-0123-43E9-A26B-5FF0B9E01B08}
 		{0595D792-52A4-4DE1-A39F-6A99D199471A} = {6CA9BC7A-0123-43E9-A26B-5FF0B9E01B08}
 		{99385BC2-B716-47EF-96F0-090D82E4F506} = {6CA9BC7A-0123-43E9-A26B-5FF0B9E01B08}
 		{85F64ED4-AAA6-4EEF-BC97-ED5E65839FD7} = {6CA9BC7A-0123-43E9-A26B-5FF0B9E01B08}
 		{5CA8E4F4-E30B-4FC8-A510-A0FFD8A9880B} = {6CA9BC7A-0123-43E9-A26B-5FF0B9E01B08}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {E996B5E6-49B2-4479-9DDE-455A40509F43}
 		EnterpriseLibraryConfigurationToolBinariesPathV6 = packages\EnterpriseLibrary.TransientFaultHandling.6.0.1304.0\lib\portable-net45+win+wp8;packages\EnterpriseLibrary.TransientFaultHandling.Data.6.0.1304.1\lib\NET45
+		SolutionGuid = {E996B5E6-49B2-4479-9DDE-455A40509F43}
 	EndGlobalSection
 EndGlobal

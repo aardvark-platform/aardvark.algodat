@@ -1,6 +1,7 @@
-﻿using Newtonsoft.Json.Linq;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Aardvark.Geometry.Points
 {
@@ -43,10 +44,15 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public JObject Serialize() => JObject.FromObject(new { Type, Left = Left.Serialize(), Right = Right.Serialize() });
+        public JsonNode Serialize() => JsonSerializer.SerializeToNode(new
+        {
+            Type, 
+            Left = Left.Serialize(), 
+            Right = Right.Serialize() 
+        });
 
         /// <summary></summary>
-        public static FilterOr Deserialize(JObject json) => new FilterOr(Filter.Deserialize(json["Left"]), Filter.Deserialize(json["Right"]));
+        public static FilterOr Deserialize(JsonObject json) => new(Filter.Deserialize((string)json["Left"]), Filter.Deserialize((string)json["Right"]));
     }
 
     /// <summary>
@@ -86,9 +92,14 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public JObject Serialize() => JObject.FromObject(new { Type, Left = Left.Serialize(), Right = Right.Serialize() });
+        public JsonNode Serialize() => JsonSerializer.SerializeToNode(new
+        {
+            Type,
+            Left = Left.Serialize(),
+            Right = Right.Serialize()
+        });
 
         /// <summary></summary>
-        public static FilterAnd Deserialize(JObject json) => new FilterAnd(Filter.Deserialize(json["Left"]), Filter.Deserialize(json["Right"]));
+        public static FilterAnd Deserialize(JsonObject json) => new(Filter.Deserialize((string)json["Left"]), Filter.Deserialize((string)json["Right"]));
     }
 }
