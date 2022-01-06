@@ -41,8 +41,6 @@ nuget Unofficial.laszip.netstandard     ~> 2.2.1
 
 nuget sharpcompress                     ~> 0.30.0      // only used in Apps/heracli
 
-nuget Newtonsoft.Json
-
 ////////////////////////////////////////////////////////////////////////
 group Build
 framework: netstandard2.0

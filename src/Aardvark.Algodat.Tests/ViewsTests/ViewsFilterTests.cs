@@ -15,12 +15,10 @@ using Aardvark.Base;
 using Aardvark.Data;
 using Aardvark.Data.Points;
 using Aardvark.Geometry.Points;
-using Newtonsoft.Json;
 using NUnit.Framework;
 using System;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Threading;
 
 namespace Aardvark.Geometry.Tests
 {

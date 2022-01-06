@@ -11,14 +11,10 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Runtime.Serialization;
 using Aardvark.Base;
-using Aardvark.Geometry.Points;
-using Newtonsoft.Json.Linq;
 using NUnit.Framework;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Aardvark.Geometry.Tests
 {
@@ -141,17 +137,19 @@ namespace Aardvark.Geometry.Tests
         public void CanSerializeCellToJson()
         {
             var a = new Cell(1, 2, 3, -1);
-            JObject.FromObject(a);
+            var json = JsonSerializer.SerializeToNode(a);
+            var b = JsonSerializer.Deserialize<Cell>(json);
+            Assert.True(a == b);
         }
 
         [Test]
         public void CanDeserializeCellFromJson()
         {
             var a = new Cell(1, 2, 3, -1);
-            var json = JObject.FromObject(a);
+            var json = JsonSerializer.SerializeToNode(a);
 
-            var b = json.ToObject<Cell>();
-            var c = JObject.Parse(json.ToString()).ToObject<Cell>();
+            var b = JsonSerializer.Deserialize<Cell>(json);
+            var c = JsonSerializer.Deserialize<Cell>(json.ToString());
 
             Assert.IsTrue(a == b);
             Assert.IsTrue(a == c);
@@ -160,7 +158,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CellDeserializationWorks()
         {
-            var json = JObject.Parse("{\"X\": -8,\"Y\": 250,\"Z\": 0,\"E\": 10}");
+            var json = JsonNode.Parse("{\"X\": -8,\"Y\": 250,\"Z\": 0,\"E\": 10}");
             var a = new Cell((long)json["X"], (long)json["Y"], (long)json["Z"], (int)json["E"]);
             var bb = a.BoundingBox;
 

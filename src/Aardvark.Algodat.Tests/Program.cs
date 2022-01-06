@@ -1,12 +1,8 @@
 ﻿using Aardvark.Base;
-using Aardvark.Base.Coder;
 using Aardvark.Data;
 using Aardvark.Data.Points;
 using Aardvark.Data.Points.Import;
 using Aardvark.Geometry.Points;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -15,6 +11,7 @@ using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Uncodium.SimpleStore;
@@ -675,7 +672,7 @@ namespace Aardvark.Geometry.Tests
                 // meta
                 var pointset = storeSource.GetPointSet(key);
                 var root = pointset.Root.Value;
-                var rootJson = JObject.FromObject(new
+                var rootJson = JsonSerializer.SerializeToNode(new
                 {
                     Bounds = root.BoundingBoxExactGlobal,
 #pragma warning disable IDE0037 // Use inferred member name
@@ -692,7 +689,7 @@ namespace Aardvark.Geometry.Tests
 
                 File.WriteAllText(
                     Path.Combine(targetFolder, "root.json"),
-                    rootJson.ToString(Formatting.Indented)
+                    rootJson.ToString()
                     );
 
 

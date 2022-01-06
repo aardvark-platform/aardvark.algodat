@@ -11,15 +11,10 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Runtime.Serialization;
 using Aardvark.Base;
 using Aardvark.Data.Points;
-using Aardvark.Geometry.Points;
-using Newtonsoft.Json.Linq;
 using NUnit.Framework;
+using System;
 
 namespace Aardvark.Geometry.Tests
 {
@@ -135,7 +130,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void NormalsFromEmptyArray()
         {
-            var ps = new V3f[0];
+            var ps = Array.Empty<V3f>();
             var kd = ps.BuildKdTree();
             var ns = ps.EstimateNormalsAsync(16, kd).Result;
             Assert.IsTrue(ns.Length == 0);
