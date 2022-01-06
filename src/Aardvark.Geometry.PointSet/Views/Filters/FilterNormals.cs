@@ -66,9 +66,12 @@ namespace Aardvark.Geometry.Points
             );
 
         /// <summary></summary>
-        public static FilterNormalDirection Deserialize(JsonObject json) => new(
+        public static FilterNormalDirection Deserialize(JsonNode json) => new(
             V3f.Parse((string)json["Direction"]),
-            float.Parse((string)json["EpsInDegrees"], CultureInfo.InvariantCulture)
+            (float)json["EpsInDegrees"]
             );
+
+        public bool Equals(IFilter other)
+            => other is FilterNormalDirection x && Direction == x.Direction && EpsInDegrees == x.EpsInDegrees;
     }
 }

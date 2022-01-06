@@ -22,6 +22,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Uncodium.SimpleStore;
 
@@ -631,7 +632,7 @@ namespace Aardvark.Geometry.Points
             var buffer = storage.f_get(key);
             if (buffer == null) return default;
             var jsonUTF8 = Encoding.UTF8.GetString(buffer);
-            var json = JsonNode.Parse(jsonUTF8);
+            var json = JsonNode.Parse(jsonUTF8, new JsonNodeOptions() { PropertyNameCaseInsensitive = true });
             var data = PointSet.Parse(json, storage);
 
             if (storage.HasCache) storage.Cache.Add(

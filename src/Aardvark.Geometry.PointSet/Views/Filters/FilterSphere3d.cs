@@ -25,21 +25,22 @@ namespace Aardvark.Geometry.Points
     /// <summary></summary>
     public class FilterInsideSphere3d : ISpatialFilter
     {
-        private readonly Sphere3d m_sphere;
-        private readonly double m_radiusSquared;
-
         /// <summary></summary>
         public const string Type = "FilterInsideSphere3d";
 
+        public Sphere3d Sphere { get; }
+
+        private readonly double m_radiusSquared;
+
         public bool Contains(V3d pt)
         {
-            return Vec.DistanceSquared(m_sphere.Center, pt) <= m_radiusSquared;
+            return Vec.DistanceSquared(Sphere.Center, pt) <= m_radiusSquared;
         }
 
         /// <summary></summary>
         public FilterInsideSphere3d(Sphere3d sphere)
         {
-            m_sphere = sphere;
+            Sphere = sphere;
             m_radiusSquared = sphere.RadiusSquared;
         }
 
@@ -79,7 +80,7 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public bool IsFullyOutside(Box3d box)
         {
-            return !box.Intersects(m_sphere);
+            return !box.Intersects(Sphere);
         }
 
         /// <summary></summary>
@@ -89,11 +90,14 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public JsonNode Serialize() => JsonSerializer.SerializeToNode(new { Type, Sphere = m_sphere.ToString() });
+        public JsonNode Serialize() => JsonSerializer.SerializeToNode(new { Type, Sphere = Sphere.ToString() });
 
-        public Box3d Clip(Box3d box)
-        {
-            return m_sphere.BoundingBox3d.Intersection(box);
-        }
+        /// <summary></summary>
+        public static FilterInsideSphere3d Deserialize(JsonNode json) => new(Sphere3d.Parse((string)json["Sphere"]));
+
+        public Box3d Clip(Box3d box) => Sphere.BoundingBox3d.Intersection(box);
+
+        public bool Equals(IFilter other)
+            => other is FilterInsideSphere3d x && Sphere == x.Sphere;
     }
 }

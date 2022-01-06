@@ -27,8 +27,8 @@ namespace Aardvark.Geometry.Tests
     [TestFixture]
     public class ViewsFilterTests
     {
-        private static readonly Random r = new Random();
-        private static V3f RandomPosition() => new V3f(r.NextDouble(), r.NextDouble(), r.NextDouble());
+        private static readonly Random r = new();
+        private static V3f RandomPosition() => new(r.NextDouble(), r.NextDouble(), r.NextDouble());
         private static V3f[] RandomPositions(int n) => new V3f[n].SetByIndex(_ => RandomPosition());
         private static int[] RandomIntensities(int n) => new int[n].SetByIndex(_ => -999 + r.Next(1998));
 
@@ -222,37 +222,66 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void Serialize_FilterInsideBox3d()
         {
-            new FilterInsideBox3d(Box3d.Unit).Serialize();
+            var f = new FilterInsideBox3d(Box3d.Unit);
+            var json = f.Serialize().ToString();
+            var g = Filter.Deserialize(json);
+            Assert.True(f.Equals(g));
         }
         [Test]
         public void Serialize_FilterOutsideBox3d()
         {
-            new FilterOutsideBox3d(Box3d.Unit).Serialize();
+            var f = new FilterOutsideBox3d(Box3d.Unit);
+            var json = f.Serialize().ToString();
+            var g = Filter.Deserialize(json);
+            Assert.True(f.Equals(g));
+        }
+        [Test]
+        public void Serialize_FilterInsideSphere3d()
+        {
+            var f = new FilterInsideSphere3d(new Sphere3d(new V3d(1,2,3), 4));
+            var json = f.Serialize().ToString();
+            var g = Filter.Deserialize(json);
+            Assert.True(f.Equals(g));
         }
         [Test]
         public void Serialize_FilterClassification()
         {
-            new FilterClassification(new byte[] { 1, 2, 3, 4, 5 }).Serialize();
+            var f = new FilterClassification(new byte[] { 1, 2, 3, 4, 5 });
+            var json = f.Serialize().ToString();
+            var g = Filter.Deserialize(json);
+            Assert.True(f.Equals(g));
         }
         [Test]
         public void Serialize_FilterIntensity()
         {
-            new FilterIntensity(new Range1i(-5, +17)).Serialize();
+            var f = new FilterIntensity(new Range1i(-5, +17));
+            var json = f.Serialize().ToString();
+            var g = Filter.Deserialize(json);
+            Assert.True(f.Equals(g));
         }
         [Test]
         public void Serialize_FilterNormalDirection()
         {
-            new FilterNormalDirection(V3f.ZAxis, 0.1f).Serialize();
+            var f = new FilterNormalDirection(V3f.ZAxis, 0.1f);
+            var json = f.Serialize().ToString();
+            var g = Filter.Deserialize(json);
+            Assert.True(f.Equals(g));
         }
         [Test]
         public void Serialize_FilterOr()
         {
-            new FilterOr(new FilterInsideBox3d(Box3d.Unit), new FilterOutsideBox3d(Box3d.Unit)).Serialize();
+            var f = new FilterOr(new FilterInsideBox3d(Box3d.Unit), new FilterOutsideBox3d(Box3d.Unit));
+            var json = f.Serialize().ToString();
+            var g = Filter.Deserialize(json);
+            Assert.True(f.Equals(g));
         }
         [Test]
         public void Serialize_FilterAnd()
         {
-            new FilterAnd(new FilterInsideBox3d(Box3d.Unit), new FilterOutsideBox3d(Box3d.Unit)).Serialize();
+            var f = new FilterAnd(new FilterInsideBox3d(Box3d.Unit), new FilterOutsideBox3d(Box3d.Unit));
+            var json = f.Serialize().ToString();
+            var g = Filter.Deserialize(json);
+            Assert.True(f.Equals(g));
         }
 
         #endregion

@@ -73,5 +73,8 @@ namespace Aardvark.Geometry.Points
 
         public Box3d Clip(Box3d box) => Hull.IntersectionBounds(box);
         public bool Contains(V3d pt) => Hull.Contains(pt);
+
+        public bool Equals(IFilter other)
+            => other is FilterInsideConvexHull3d x && Hull.PlaneCount == x.Hull.PlaneCount && Hull.PlaneArray.ZipPairs(x.Hull.PlaneArray).All(p => p.Item1 == p.Item2);
     }
 }

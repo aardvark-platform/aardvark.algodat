@@ -11,10 +11,7 @@ namespace Aardvark.Geometry.Points
         public static IFilter Deserialize(string s) => Deserialize(JsonNode.Parse(s));
         
         /// <summary></summary>
-        public static IFilter Deserialize(JsonNode node) => Deserialize((JsonObject)node);
-
-        /// <summary></summary>
-        public static IFilter Deserialize(JsonObject json)
+        public static IFilter Deserialize(JsonNode json)
         {
             var type = (string)json["Type"];
 
@@ -22,11 +19,13 @@ namespace Aardvark.Geometry.Points
             {
                 FilterInsideBox3d.Type => FilterInsideBox3d.Deserialize(json),
                 FilterOutsideBox3d.Type => FilterOutsideBox3d.Deserialize(json),
-                //FilterOr.Type => return FilterOr.Deserialize(json);
+                FilterOr.Type => FilterOr.Deserialize(json),
                 FilterAnd.Type => FilterAnd.Deserialize(json),
                 FilterIntensity.Type => FilterIntensity.Deserialize(json),
                 FilterNormalDirection.Type => FilterNormalDirection.Deserialize(json),
                 FilterInsideConvexHull3d.Type => FilterInsideConvexHull3d.Deserialize(json),
+                FilterClassification.Type => FilterClassification.Deserialize(json),
+                FilterInsideSphere3d.Type => FilterInsideSphere3d.Deserialize(json),
                 _ => throw new NotImplementedException($"Unknown filter type: '{type}'"),
             };
         }

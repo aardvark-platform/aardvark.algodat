@@ -60,13 +60,16 @@ namespace Aardvark.Geometry.Points
         });
 
         /// <summary></summary>
-        public static FilterInsideBox3d Deserialize(JsonObject json) => new(Box3d.Parse((string)json["Box"]));
+        public static FilterInsideBox3d Deserialize(JsonNode json) => new(Box3d.Parse((string)json["Box"]));
 
         public Box3d Clip(Box3d box)
         {
             return box.Intersection(Box);
         }
         public bool Contains(V3d pt) => Box.Contains(pt);
+
+        public bool Equals(IFilter other)
+            => other is FilterInsideBox3d x && Box == x.Box;
     }
 
     /// <summary>
@@ -123,12 +126,15 @@ namespace Aardvark.Geometry.Points
         });
 
         /// <summary></summary>
-        public static FilterInsideBox3d Deserialize(JsonObject json) => new(Box3d.Parse((string)json["Box"]));
+        public static FilterOutsideBox3d Deserialize(JsonNode json) => new(Box3d.Parse((string)json["Box"]));
         public Box3d Clip(Box3d box)
         {
             return box;
         }
 
         public bool Contains(V3d pt) => !Box.Contains(pt);
+
+        public bool Equals(IFilter other)
+            => other is FilterOutsideBox3d x && Box == x.Box;
     }
 }

@@ -52,7 +52,11 @@ namespace Aardvark.Geometry.Points
         });
 
         /// <summary></summary>
-        public static FilterOr Deserialize(JsonObject json) => new(Filter.Deserialize((string)json["Left"]), Filter.Deserialize((string)json["Right"]));
+        public static FilterOr Deserialize(JsonNode json) 
+            => new(Filter.Deserialize(json["Left"]), Filter.Deserialize(json["Right"]));
+
+        public bool Equals(IFilter other)
+            => other is FilterOr x && Left.Equals(x.Left) && Right.Equals(x.Right);
     }
 
     /// <summary>
@@ -100,6 +104,10 @@ namespace Aardvark.Geometry.Points
         });
 
         /// <summary></summary>
-        public static FilterAnd Deserialize(JsonObject json) => new(Filter.Deserialize((string)json["Left"]), Filter.Deserialize((string)json["Right"]));
+        public static FilterAnd Deserialize(JsonNode json) 
+            => new(Filter.Deserialize(json["Left"]), Filter.Deserialize(json["Right"]));
+
+        public bool Equals(IFilter other) 
+            => other is FilterAnd x && Left.Equals(x.Left) && Right.Equals(x.Right);
     }
 }

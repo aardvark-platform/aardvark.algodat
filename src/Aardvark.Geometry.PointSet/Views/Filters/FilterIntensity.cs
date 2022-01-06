@@ -51,6 +51,9 @@ namespace Aardvark.Geometry.Points
         public JsonNode Serialize() => JsonSerializer.SerializeToNode(new { Type, Range = Range.ToString() });
 
         /// <summary></summary>
-        public static FilterIntensity Deserialize(JsonObject json) => new(Range1i.Parse((string)json["Range"]));
+        public static FilterIntensity Deserialize(JsonNode json) => new(Range1i.Parse((string)json["Range"]));
+
+        public bool Equals(IFilter other)
+            => other is FilterIntensity x && Range == x.Range;
     }
 }

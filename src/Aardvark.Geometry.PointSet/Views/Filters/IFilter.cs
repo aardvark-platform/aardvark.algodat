@@ -12,6 +12,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
+using System;
 using System.Collections.Generic;
 using System.Text.Json.Nodes;
 
@@ -19,7 +20,7 @@ namespace Aardvark.Geometry.Points
 {
     /// <summary>
     /// </summary>
-    public interface IFilter
+    public interface IFilter : IEquatable<IFilter>
     {
         /// <summary></summary>
         bool IsFullyInside(IPointCloudNode node);

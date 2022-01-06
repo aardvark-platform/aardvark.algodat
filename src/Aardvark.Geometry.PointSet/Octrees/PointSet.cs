@@ -142,18 +142,19 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PointSet Parse(JsonNode json, Storage storage)
         {
-            var octreeId = (string)json["OctreeId"] ?? (string)json["RootCellId"];
+            var o = json.AsObject() ?? throw new Exception($"Expected JSON object, but found {json}.");
+
+            var octreeId = (string)o["OctreeId"] ?? (string)o["RootCellId"];
             var octree = octreeId != null
                 ? new PersistentRef<IPointCloudNode>(octreeId, storage.GetPointCloudNode, storage.TryGetPointCloudNode)
                 : null 
                 ;
-            
+
             // backwards compatibility: if split limit is not set, guess as number of points in root cell
-            var splitLimitRaw = (string)json["SplitLimit"];
-            var splitLimit = splitLimitRaw != null ? int.Parse(splitLimitRaw) : 8192;
+            var splitLimit = o.TryGetPropertyValue("SplitLimit", out var x) ? (int)x : 8192;
 
             // id
-            var id = (string)json["Id"];
+            var id = (string)o["Id"];
 
             //
             return new PointSet(storage, id, octree?.Value ?? PointSetNode.Empty, splitLimit);
