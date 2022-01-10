@@ -1,3 +1,6 @@
+### 5.1.28
+- removed Newtonsoft.Json dependency
+
 ### 5.1.27
 - restrict FSharp.Core to >= 5.0.0 lowest_matching: true
 - update Uncodium.SimpleStore to 3.0.10
