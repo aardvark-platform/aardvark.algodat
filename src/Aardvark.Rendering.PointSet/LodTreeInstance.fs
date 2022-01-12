@@ -452,7 +452,7 @@ module LodTreeInstance =
                     | Some c -> c :> seq<_>
                     | None ->
                         let c = 
-                            if isNull self.Subnodes then
+                            if isNull self.Subnodes || self.Storage.IsDisposed then
                                 []
                             else
                                 self.Subnodes |> Seq.toList |> List.choose (fun c ->
@@ -460,19 +460,21 @@ module LodTreeInstance =
                                         None
                                     else
                                         try 
-                                            let c = c.Value
-
-                                            if isNull c then
-                                                None
+                                            if self.Storage.IsDisposed then None 
                                             else
-                                                let id = nodeId c customAttributeId globalTrafo level
-                                                match cache.TryGetValue id with
-                                                | (true, n) ->
-                                                    cache.Remove id |> ignore
-                                                    unbox<ILodTreeNode> n |> Some
-                                                | _ -> 
-                                                    //Log.warn "alloc %A" id
-                                                    PointTreeNode(pointCloudId, world, cache, source, (customAttributeId,getCustomIndexedAttributes), globalTrafo, Some this.Root, Some this, level + 1, c) :> ILodTreeNode |> Some
+                                                let c = c.Value
+
+                                                if isNull c then
+                                                    None
+                                                else
+                                                    let id = nodeId c customAttributeId globalTrafo level
+                                                    match cache.TryGetValue id with
+                                                    | (true, n) ->
+                                                        cache.Remove id |> ignore
+                                                        unbox<ILodTreeNode> n |> Some
+                                                    | _ -> 
+                                                        //Log.warn "alloc %A" id
+                                                        PointTreeNode(pointCloudId, world, cache, source, (customAttributeId,getCustomIndexedAttributes), globalTrafo, Some this.Root, Some this, level + 1, c) :> ILodTreeNode |> Some
                                         with
                                         | :? ObjectDisposedException -> 
                                             None
