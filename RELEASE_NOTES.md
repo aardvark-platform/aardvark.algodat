@@ -1,3 +1,9 @@
+### 5.1.30
+- [paket] Added missing entries in paket.references (System.Collections.Immutable, FShade)
+
+### 5.1.29
+- [PointTreeNode] Prevent reads from disposed store
+
 ### 5.1.28
 - removed Newtonsoft.Json dependency
 

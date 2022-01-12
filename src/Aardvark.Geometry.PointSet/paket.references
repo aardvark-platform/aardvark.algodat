@@ -3,3 +3,4 @@ Aardvark.Data.Durable.Codec
 Nullable
 Uncodium.SimpleStore
 Uncodium.Eigensystems
+System.Collections.Immutable
