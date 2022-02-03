@@ -13,7 +13,6 @@ namespace Aardvark.Geometry.Points
     {
         /// <summary></summary>
         public const string Type = "FilterInsideConvexHull3d";
-        public const string Plane = "Plane3d";
 
         /// <summary></summary>
         public Hull3d Hull { get; }

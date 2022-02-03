@@ -18,6 +18,7 @@ nuget System.Text.Json                  >= 6.0
 nuget Aardvark.Base                     ~> 5.1.25
 nuget Aardvark.Base.IO                  ~> 5.1.25
 nuget Aardvark.Base.Tensors             ~> 5.1.25
+nuget Aardvark.Geometry                 ~> 5.1.25
 
 ////////////////////////////////////////////////////////////////////////
 // https://github.com/aardvark-platform/aardvark.rendering
