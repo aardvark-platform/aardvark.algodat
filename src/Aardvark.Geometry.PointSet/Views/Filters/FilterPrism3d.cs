@@ -65,25 +65,31 @@ namespace Aardvark.Geometry.Points
             }
         }
 
-        // TODO sm: JSON anpassen
+        #region Serialization
 
-
+        private record Dto(string Type, V2d[][] Shape, double[] ZRange)
+        {
+            public Dto() : this(FilterInsidePrismXY.Type, Array.Empty<V2d[]>(), Array.Empty<double>()) { }
+            public Dto(FilterInsidePrismXY x) : this(
+                FilterInsidePrismXY.Type,
+                x.Shape.Polygons.Select(x => x.GetPointArray()).ToArray(),
+                new[] { x.ZRange.Min, x.ZRange.Max }
+                )
+            { }
+        }
+        private Dto ToDto() => new(this); 
+        private static FilterInsidePrismXY FromDto(Dto dto) => new(
+            new PolyRegion(new Polygon2d(dto.Shape[0].Map(p => new V2d(p[0], p[1])))),
+            new Range1d(dto.ZRange[0], dto.ZRange[1])
+            );
 
         /// <summary></summary>
-        public JsonNode Serialize() => JsonSerializer.SerializeToNode(new
-        { 
-            //Type,
-            //Array = Hull.PlaneArray.Map(p => new { Point = p.Point.ToString(), Normal = p.Normal.ToString() })
-        });
+        public JsonNode Serialize() => JsonSerializer.SerializeToNode(ToDto());
 
         public static FilterInsidePrismXY Deserialize(JsonNode json)
-        {
-            //var arr = (JsonArray)json["Array"];
-            //var planes = arr.Map(jt => new Plane3d(V3d.Parse((string)jt["Normal"]), V3d.Parse((string)jt["Point"])));
-            //var hull = new Hull3d(planes);
-            //return new FilterInsidePrismXY(hull);
-            return null;
-        }
+            => FromDto(JsonSerializer.Deserialize<Dto>(json));
+
+        #endregion
 
         public Box3d Clip(Box3d box)
         {

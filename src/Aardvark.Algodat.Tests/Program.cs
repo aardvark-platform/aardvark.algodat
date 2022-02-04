@@ -1689,8 +1689,35 @@ namespace Aardvark.Geometry.Tests
             }
         }
 
+        record FilterInsidePrismXYDto(string Type, V2d[][] Shape, double[] ZRange)
+        {
+            public FilterInsidePrismXYDto() : this("FilterInsidePrismXY", Array.Empty<V2d[]>(), Array.Empty<double>()) { }
+            public FilterInsidePrismXYDto(FilterInsidePrismXY x) : this(
+                "FilterInsidePrismXY",
+                x.Shape.Polygons.Select(x => x.GetPointArray()).ToArray(),
+                new[] { x.ZRange.Min, x.ZRange.Max }
+                )
+            { }
+
+            public FilterInsidePrismXY ToFilterInsidePrismXY() => new(
+                new PolyRegion(new Polygon2d(Shape[0].Map(p => new V2d(p[0], p[1])))),
+                new Range1d(ZRange[0], ZRange[1])
+                );
+        }
+        internal static void TestFilterSerialization()
+        {
+            var shape = new PolyRegion(new Polygon2d(new[] { V2d.OO, V2d.IO, V2d.II, V2d.OI }));
+            var zRange = new Range1d(-5.3, 3.1415);
+            var f = new FilterInsidePrismXY(shape, zRange);
+
+            var j = f.Serialize();
+            var f1 = Filter.Deserialize(j);
+        }
+
         public static void Main(string[] _)
         {
+            TestFilterSerialization();
+
             //Test_20211013_log2int();
 
             //Test_20210904();
