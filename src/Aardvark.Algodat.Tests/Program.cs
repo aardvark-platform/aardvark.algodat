@@ -1706,9 +1706,12 @@ namespace Aardvark.Geometry.Tests
         }
         internal static void TestFilterSerialization()
         {
-            var shape = new PolyRegion(new Polygon2d(new[] { V2d.OO, V2d.IO, V2d.II, V2d.OI }));
+            var poly2d = new Polygon2d(new[] { V2d.OO, V2d.IO, V2d.II, V2d.OI });
+            var shape = new PolyRegion(poly2d);
             var zRange = new Range1d(-5.3, 3.1415);
             var f = new FilterInsidePrismXY(shape, zRange);
+
+            Console.WriteLine(JsonSerializer.Serialize(poly2d));
 
             var j = f.Serialize();
             var f1 = Filter.Deserialize(j);
