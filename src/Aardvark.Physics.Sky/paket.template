@@ -2,6 +2,10 @@ type project
 id Aardvark.Physics.Sky
 authors Aardvark Platform Team
 owners Aardvark Platform Team
+projectUrl http://github.com/aardvark-platform
+licenseUrl http://www.gnu.org/licenses/agpl.txt
+repositoryType git
+repositoryUrl https://github.com/aardvark-platform/aardvark.algodat
 description
     Physical sky models.
 include-pdbs true
