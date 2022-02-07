@@ -1,3 +1,6 @@
+### 5.1.31
+- [IPointCloudNode] FilterPrism3d
+
 ### 5.1.30
 - [paket] Added missing entries in paket.references (System.Collections.Immutable, FShade)
 
