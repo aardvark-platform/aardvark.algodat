@@ -1,3 +1,6 @@
+### 5.1.32
+- [IPointCloudNode] FilterConvexHulls3d
+
 ### 5.1.31
 - [IPointCloudNode] FilterPrism3d
 
