@@ -1,3 +1,6 @@
+### 5.1.33
+- [IPointCloudNode] FilterConvexHulls3d: bugfixes, argument checks
+
 ### 5.1.32
 - [IPointCloudNode] FilterConvexHulls3d
 

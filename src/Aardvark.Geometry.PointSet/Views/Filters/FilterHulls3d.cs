@@ -22,14 +22,20 @@ namespace Aardvark.Geometry.Points
 
         public FilterInsideConvexHulls3d(Polygon2d footprint, Range1d zRange, Trafo3d trafo)
         {
-            Hulls = footprint.ComputeNonConcaveSubPolygons(1E-8).ToArray().Map(arr => {
-                var poly = new Polygon2d(arr.Map(i => footprint[i]));
+            var basePoly = footprint;
+            if (basePoly.PointCount < 3) { throw new ArgumentException("Footprint must contain at least 3 points."); }
+            var inter = basePoly.HasSelfIntersections(1E-8);
+            if (inter == 0) { throw new ArgumentException("Footprint can not contain two identical points."); }
+            else if (inter == -1) { throw new ArgumentException("Footprint can not have self-intersections."); }
+            if(!basePoly.IsCcw()) { basePoly.Reverse(); }
+            Hulls = basePoly.ComputeNonConcaveSubPolygons(1E-8).ToArray().Map(arr => {
+                var poly = new Polygon2d(arr.Map(i => basePoly[i]));
                 if (!poly.IsCcw()) poly.Reverse();
                 var planes = 
                     poly.GetEdgeLineArray().Map(l => {
                         var dir = (l.P1 - l.P0).Normalized;
                         var n = new V3d(dir.Y, -dir.X, 0);
-                        return new Plane3d(n, new V3d(l.P0, 0)).Transformed(trafo);
+                        return new Plane3d(-n, new V3d(l.P0, 0)).Transformed(trafo);
                     }).Append(new[] { 
                         new Plane3d(V3d.OON,zRange.Min).Transformed(trafo),
                         new Plane3d(V3d.OOI,zRange.Max).Transformed(trafo)
