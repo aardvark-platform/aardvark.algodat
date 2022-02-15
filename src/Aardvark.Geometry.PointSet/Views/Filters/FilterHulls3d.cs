@@ -35,7 +35,7 @@ namespace Aardvark.Geometry.Points
                     poly.GetEdgeLineArray().Map(l => {
                         var dir = (l.P1 - l.P0).Normalized;
                         var n = new V3d(dir.Y, -dir.X, 0);
-                        return new Plane3d(-n, new V3d(l.P0, 0)).Transformed(trafo);
+                        return new Plane3d(n, new V3d(l.P0, 0)).Transformed(trafo);
                     }).Append(new[] { 
                         new Plane3d(V3d.OON,zRange.Min).Transformed(trafo),
                         new Plane3d(V3d.OOI,zRange.Max).Transformed(trafo)
@@ -118,14 +118,9 @@ namespace Aardvark.Geometry.Points
             return new FilterInsideConvexHulls3d(hulls);
         }
 
-        public Box3d Clip(Box3d box)
-        {
-            return new Box3d(Hulls.Map(h => h.IntersectionBounds(box)));
-        }
-        public bool Contains(V3d point)
-        {
-            return Hulls.Any(h => h.Contains(point));
-        }
+        public Box3d Clip(Box3d box) => new Box3d(Hulls.Map(h => h.IntersectionBounds(box)));
+
+        public bool Contains(V3d point) => Hulls.Any(h =>h.Contains(point));
 
         public bool Equals(IFilter other)
             => other is FilterInsideConvexHulls3d x &&

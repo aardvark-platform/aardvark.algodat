@@ -1,3 +1,6 @@
+### 5.1.34
+- [IPointCloudNode] FilterConvexHulls3d: polygon is CCW
+
 ### 5.1.33
 - [IPointCloudNode] FilterConvexHulls3d: bugfixes, argument checks
 
