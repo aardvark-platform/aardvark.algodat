@@ -100,7 +100,7 @@ module internal SSAO =
 
         let depth =
             sampler2d {
-                texture uniform?Depth
+                texture uniform?DepthStencil
                 addressU WrapMode.Clamp
                 addressV WrapMode.Clamp
                 filter Filter.MinMagLinear
@@ -117,7 +117,7 @@ module internal SSAO =
 
         let depthCmp =
             sampler2dShadow {
-                texture uniform?Depth
+                texture uniform?DepthStencil
                 addressU WrapMode.Clamp
                 addressV WrapMode.Clamp
                 comparison ComparisonFunction.Greater
@@ -556,7 +556,7 @@ module internal SSAO =
 
         let ambientSignature =
             runtime.CreateFramebufferSignature [
-                DefaultSemantic.Colors, RenderbufferFormat.R8
+                DefaultSemantic.Colors, TextureFormat.R8
             ]
 
 
@@ -566,7 +566,7 @@ module internal SSAO =
                 |> Sg.shader {  
                     do! Shader.hbao
                 }
-                |> Sg.texture DefaultSemantic.Depth depth
+                |> Sg.texture DefaultSemantic.DepthStencil depth
                 |> Sg.texture DefaultSemantic.Normals normals
                 |> Sg.projTrafo proj
                 |> Sg.uniform "SampleDirections" (AVal.constant Shader.sampleDirections2d)
@@ -621,7 +621,7 @@ module internal SSAO =
                 |> Sg.shader {
                     do! Shader.blur                    
                 }
-                |> Sg.texture DefaultSemantic.Depth depth
+                |> Sg.texture DefaultSemantic.DepthStencil depth
                 |> Sg.texture Semantic.Ambient ambient
                 |> Sg.projTrafo proj
                 |> Sg.uniform "FilterRadius" filterRadius
@@ -642,7 +642,7 @@ module internal SSAO =
                 |> Sg.shader {
                     do! Shader.blur                  
                 }
-                |> Sg.texture DefaultSemantic.Depth depth
+                |> Sg.texture DefaultSemantic.DepthStencil depth
                 |> Sg.texture Semantic.Ambient blurredX
                 |> Sg.projTrafo proj
                 |> Sg.uniform "FilterRadius" filterRadius
@@ -675,7 +675,7 @@ module internal SSAO =
             do! Shader.compose                    
         }
         |> Sg.uniform "TextureTrafo" (texCoords |> AVal.map (fun t -> t.Forward))
-        |> Sg.texture DefaultSemantic.Depth depth
+        |> Sg.texture DefaultSemantic.DepthStencil depth
         |> Sg.diffuseTexture colors
         |> Sg.texture Semantic.Ambient result
         |> Sg.projTrafo proj

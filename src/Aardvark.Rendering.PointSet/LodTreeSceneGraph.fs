@@ -29,7 +29,7 @@ module Readback =
 
         let depthSam =
             sampler2d {
-                texture uniform?Depth
+                texture uniform?DepthStencil
                 addressU WrapMode.Clamp
                 addressV WrapMode.Clamp
                 filter Filter.MinMagPoint
@@ -283,7 +283,7 @@ module private DeferredPointSetShaders =
         
     let depthSam =
         sampler2d {
-            texture uniform?Depth
+            texture uniform?DepthStencil
             filter Filter.MinMagPoint
             addressU WrapMode.Clamp
             addressV WrapMode.Clamp
@@ -775,14 +775,14 @@ module Sg =
         let textures = 
             let signature =
                 runtime.CreateFramebufferSignature [
-                    DefaultSemantic.Colors, RenderbufferFormat.Rgba8
-                    DefaultSemantic.Positions, RenderbufferFormat.Rgba32f
-                    DefaultSemantic.Depth, RenderbufferFormat.Depth24Stencil8
+                    DefaultSemantic.Colors, TextureFormat.Rgba8
+                    DefaultSemantic.Positions, TextureFormat.Rgba32f
+                    DefaultSemantic.DepthStencil, TextureFormat.Depth24Stencil8
                 ]
 
             let sems =
                 Set.ofList [
-                    DefaultSemantic.Positions; DefaultSemantic.Colors; DefaultSemantic.Depth
+                    DefaultSemantic.Positions; DefaultSemantic.Colors; DefaultSemantic.DepthStencil
                 ]
 
             let render = 
@@ -804,7 +804,7 @@ module Sg =
                 |> Sg.compile runtime signature
 
             let clear =
-                runtime.CompileClear(signature, AVal.constant (Map.ofList [DefaultSemantic.Positions, C4f(0.0f, 0.0f, 2.0f, 0.0f)]), AVal.constant (Some 1.0))
+                runtime.CompileClear(signature, [DefaultSemantic.Positions, C4f(0.0f, 0.0f, 2.0f, 0.0f)], 1.0f)
 
             RenderTask.ofList [clear; render]
             |> RenderTask.renderSemantics sems largeSize
@@ -812,7 +812,7 @@ module Sg =
         
         let color = textures.[DefaultSemantic.Colors]
         let position = textures.[DefaultSemantic.Positions]
-        let depth = textures.[DefaultSemantic.Depth]
+        let depth = textures.[DefaultSemantic.DepthStencil]
         let singlePixelDepth = depth
 
         //let pointIdSym = Symbol.Create "PointId"
@@ -820,13 +820,13 @@ module Sg =
         let sphereTextures =
             let signature =
                 runtime.CreateFramebufferSignature [
-                    DefaultSemantic.Colors, RenderbufferFormat.Rgba8
+                    DefaultSemantic.Colors, TextureFormat.Rgba8
                     //pointIdSym, RenderbufferFormat.R32f
-                    DefaultSemantic.Depth, RenderbufferFormat.Depth24Stencil8
+                    DefaultSemantic.DepthStencil, TextureFormat.Depth24Stencil8
                 ]
             let sems =
                 Set.ofList [
-                    DefaultSemantic.Colors; DefaultSemantic.Depth; //pointIdSym
+                    DefaultSemantic.Colors; DefaultSemantic.DepthStencil; //pointIdSym
                 ]
             Sg.fullScreenQuad
             |> Sg.shader {
@@ -836,7 +836,7 @@ module Sg =
             |> Sg.uniform "ViewportSize" largeSize
             |> Sg.texture DefaultSemantic.Positions position
             |> Sg.texture DefaultSemantic.Colors color
-            |> Sg.texture DefaultSemantic.Depth depth
+            |> Sg.texture DefaultSemantic.DepthStencil depth
             |> Sg.viewTrafo config.viewTrafo
             |> Sg.projTrafo largeProj
             |> Sg.compile runtime signature
@@ -845,7 +845,7 @@ module Sg =
 
         let color = sphereTextures.[DefaultSemantic.Colors]
         //let pointId = sphereTextures.[pointIdSym]
-        let depth = sphereTextures.[DefaultSemantic.Depth]
+        let depth = sphereTextures.[DefaultSemantic.DepthStencil]
 
         let nearFar =
             config.projTrafo |> AVal.map (fun t ->
@@ -866,19 +866,19 @@ module Sg =
         let sceneTextures =
             let signature =
                 runtime.CreateFramebufferSignature [
-                    DefaultSemantic.Colors, RenderbufferFormat.Rgba8
-                    DefaultSemantic.Normals, RenderbufferFormat.Rgb32f
-                    DefaultSemantic.Depth, RenderbufferFormat.Depth24Stencil8
+                    DefaultSemantic.Colors, TextureFormat.Rgba8
+                    DefaultSemantic.Normals, TextureFormat.Rgb32f
+                    DefaultSemantic.DepthStencil, TextureFormat.Depth24Stencil8
                 ]
 
             let sems =
                 Set.ofList [
-                    DefaultSemantic.Colors; DefaultSemantic.Normals; DefaultSemantic.Depth
+                    DefaultSemantic.Colors; DefaultSemantic.Normals; DefaultSemantic.DepthStencil
                 ]
 
             Sg.fullScreenQuad
             |> Sg.texture DefaultSemantic.Colors color
-            |> Sg.texture DefaultSemantic.Depth depth
+            |> Sg.texture DefaultSemantic.DepthStencil depth
             //|> Sg.texture pointIdSym pointId
             |> Sg.uniform "NearFar" nearFar
             |> Sg.uniform "PlaneFit" config.planeFit
@@ -901,7 +901,7 @@ module Sg =
 
         let normals = sceneTextures.[DefaultSemantic.Normals]
         let colors = sceneTextures.[DefaultSemantic.Colors]
-        let depth = sceneTextures.[DefaultSemantic.Depth]
+        let depth = sceneTextures.[DefaultSemantic.DepthStencil]
 
         let mutable lastDepth = None
         let depth =

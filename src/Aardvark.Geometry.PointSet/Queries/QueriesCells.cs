@@ -576,8 +576,8 @@ namespace Aardvark.Geometry.Points
             var cache = new CellQueryResult2dCache();
 
             // new-style
-            var dx = Fun.PowerOfTwo(cellExponent) * (stride.X - 1 / 2);
-            var dy = Fun.PowerOfTwo(cellExponent) * (stride.Y - 1 / 2);
+            var dx = Fun.PowerOfTwo(cellExponent) * (ulong)(stride.X - 1 / 2); // FIXME: missing parantheses?
+            var dy = Fun.PowerOfTwo(cellExponent) * (ulong)(stride.Y - 1 / 2);
             var bbCell = new Cell2d(root.Cell.X, root.Cell.X, root.Cell.Exponent).BoundingBox;
             var bb = new Box2d(bbCell.Min - new V2d(dx, dy), bbCell.Max + new V2d(dx, dy));
             var enlargedFootprint = new Cell2d(bb);

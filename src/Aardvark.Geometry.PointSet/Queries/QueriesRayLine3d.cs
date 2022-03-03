@@ -107,7 +107,7 @@ namespace Aardvark.Geometry.Points
             var s1Local = lineSegment.P1 - centerGlobal;
             var rayLocal = new Ray3d(s0Local, (s1Local - s0Local).Normalized);
 
-            var worstCaseDist = node.BoundingBoxExactLocal.Size3d.Length * 0.5 + maxDistanceToRay;
+            var worstCaseDist = node.BoundingBoxExactLocal.Size3f.Length * 0.5 + maxDistanceToRay;
             var d0 = rayLocal.GetMinimalDistanceTo((V3d)node.BoundingBoxExactLocal.Center);
             if (d0 > worstCaseDist) yield break;
 
@@ -216,7 +216,7 @@ namespace Aardvark.Geometry.Points
             var s1Local = lineSegment.P1 - centerGlobal;
             var rayLocal = new Ray3d(s0Local, (s1Local - s0Local).Normalized);
 
-            var worstCaseDist = node.BoundingBoxExactLocal.Size3d.Length * 0.5 + maxDistanceToRay;
+            var worstCaseDist = node.BoundingBoxExactLocal.Size3f.Length * 0.5 + maxDistanceToRay;
             var d0 = rayLocal.GetMinimalDistanceTo((V3d)node.BoundingBoxExactLocal.Center);
             if (d0 > worstCaseDist) yield break;
 
