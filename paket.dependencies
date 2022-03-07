@@ -22,8 +22,8 @@ nuget Aardvark.Geometry                 ~> 5.2.2
 
 ////////////////////////////////////////////////////////////////////////
 // https://github.com/aardvark-platform/aardvark.rendering
-nuget Aardvark.Application.Utilities    ~> 5.2.0
-nuget Aardvark.Application.Slim.Vulkan  ~> 5.2.0
+nuget Aardvark.Application.Utilities    ~> 5.2.1
+nuget Aardvark.Application.Slim.Vulkan  ~> 5.2.1
 
 ////////////////////////////////////////////////////////////////////////
 // https://github.com/aardvark-community/aardvark.data.durable.dotnet
