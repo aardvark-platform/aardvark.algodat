@@ -1,3 +1,6 @@
+### 5.2.0
+- Updated to Aardvark 5.2
+
 ### 5.1.34
 - [IPointCloudNode] FilterConvexHulls3d: polygon is CCW
 
