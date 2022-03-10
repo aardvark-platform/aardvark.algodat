@@ -26,6 +26,7 @@ namespace Aardvark.Geometry.Points
                 FilterClassification.Type       => FilterClassification.Deserialize(json),
                 FilterInsideBox3d.Type          => FilterInsideBox3d.Deserialize(json),
                 FilterInsideConvexHull3d.Type   => FilterInsideConvexHull3d.Deserialize(json),
+                FilterInsideConvexHulls3d.Type  => FilterInsideConvexHulls3d.Deserialize(json),
                 FilterInsidePrismXY.Type        => FilterInsidePrismXY.Deserialize(json),
                 FilterInsideSphere3d.Type       => FilterInsideSphere3d.Deserialize(json),
                 FilterIntensity.Type            => FilterIntensity.Deserialize(json),
