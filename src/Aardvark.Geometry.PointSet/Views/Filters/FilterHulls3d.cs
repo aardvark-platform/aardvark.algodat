@@ -18,7 +18,10 @@ namespace Aardvark.Geometry.Points
         public Hull3d[] Hulls { get; }
 
         /// <summary></summary>
-        public FilterInsideConvexHulls3d(Hull3d[] filter) { Hulls = filter; }
+        public FilterInsideConvexHulls3d(params Hull3d[] filter) { Hulls = filter; }
+
+        /// <summary></summary>
+        public FilterInsideConvexHulls3d(IEnumerable<Hull3d> filter) { Hulls = filter.ToArray(); }
 
         public FilterInsideConvexHulls3d(Polygon2d footprint, Range1d zRange, Trafo3d trafo)
         {

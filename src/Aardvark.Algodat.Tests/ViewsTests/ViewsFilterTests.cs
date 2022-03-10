@@ -234,6 +234,38 @@ namespace Aardvark.Geometry.Tests
             Assert.True(f.Equals(g));
         }
         [Test]
+        public void Serialize_FilterInsideConvexHull3d()
+        {
+            var f = new FilterInsideConvexHull3d(new Hull3d(Box3d.Unit));
+            var json = f.Serialize().ToString();
+            var g = Filter.Deserialize(json);
+            Assert.True(f.Equals(g));
+        }
+        [Test]
+        public void Serialize_FilterInsideConvexHulls3d_A()
+        {
+            var f = new FilterInsideConvexHulls3d(new Hull3d(Box3d.Unit), new Hull3d(Box3d.Unit.Translated(new V3d(-1, 3.14, 12345.67))));
+            var json = f.Serialize().ToString();
+            var g = Filter.Deserialize(json);
+            Assert.True(f.Equals(g));
+        }
+        [Test]
+        public void Serialize_FilterInsideConvexHulls3d_B()
+        {
+            var f = new FilterInsideConvexHulls3d(Box2d.Unit.ToPolygon2dCCW(), Range1d.Unit, Trafo3d.Translation(1,2,-3));
+            var json = f.Serialize().ToString();
+            var g = Filter.Deserialize(json);
+            Assert.True(f.Equals(g));
+        }
+        [Test]
+        public void Serialize_FilterInsidePrismXY()
+        {
+            var f = new FilterInsidePrismXY(Box2d.Unit.ToPolygon2dCCW(), Range1d.Unit);
+            var json = f.Serialize().ToString();
+            var g = Filter.Deserialize(json);
+            Assert.True(f.Equals(g));
+        }
+        [Test]
         public void Serialize_FilterInsideSphere3d()
         {
             var f = new FilterInsideSphere3d(new Sphere3d(new V3d(1,2,3), 4));
