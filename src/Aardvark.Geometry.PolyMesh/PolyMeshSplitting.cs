@@ -222,8 +222,7 @@ namespace Aardvark.Geometry
                         {
                             double t = ha[i0] / (ha[i0] - ha[i1]);
                             var key = Line1i.CreateSorted(vi0, vi1);
-                            (int, int, int) v;
-                            if (!lineMap.TryGetValue(key, out v))
+                            if (!lineMap.TryGetValue(key, out (int, int, int) v))
                             {
                                 v = lineMap[key] = (nvc++, pvc++, m_spl.Count);
                                 m_spl.Add(new SplitPoint(t, vi0, vi1));
@@ -247,8 +246,7 @@ namespace Aardvark.Geometry
                     {
                         double t = ha[i0] / (ha[i0] - ha[0]);
                         var key = Line1i.CreateSorted(vi0, vib);
-                        (int, int, int) v;
-                        if (!lineMap.TryGetValue(key, out v))
+                        if (!lineMap.TryGetValue(key, out (int, int, int) v))
                         {
                             v = lineMap[key] = (nvc++, pvc++, m_spl.Count);
                             m_spl.Add(new SplitPoint(t, vi0, vib));
@@ -421,7 +419,7 @@ namespace Aardvark.Geometry
                 var interpolator = Interpolator;
                 if (indexArray == null)
                 {
-                    var newValueArray = valueArray.BackMappedCopySafe(vertexBackMap, default(T));
+                    var newValueArray = valueArray.BackMappedCopySafe(vertexBackMap, default);
                     foreach (var v in newVertexList)
                     {
                         var sp = splitPointList[v.SplitIndex];
@@ -737,7 +735,7 @@ namespace Aardvark.Geometry
 
     public static partial class PolyMeshExtensions
     {
-        private static Func<PolyMesh, Plane3d, double, SplitterOptions, (PolyMesh, PolyMesh)>
+        private static readonly Func<PolyMesh, Plane3d, double, SplitterOptions, (PolyMesh, PolyMesh)>
             s_polyMeshSplitOnPlane = (pm, pl, eps, opt) => pm.SplitOnPlane(pl, eps, opt);
 
         /// <summary>

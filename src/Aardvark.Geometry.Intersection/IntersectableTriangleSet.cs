@@ -23,8 +23,8 @@ namespace Aardvark.Geometry
     /// </summary>
     public class IntersectableTriangleSet : IIntersectableObjectSet
     {
-        private int[] m_indices;
-        private V3f[] m_positions;
+        private readonly int[] m_indices;
+        private readonly V3f[] m_positions;
         private Box3d m_bounds;
 
         public int[] Indices { get { return m_indices; } }
@@ -82,7 +82,6 @@ namespace Aardvark.Geometry
 
                     if (d < minDist2)
                     {
-                        d = minDist2;
                         minIndex = id;
                         minPos = p;
                     }
@@ -118,8 +117,7 @@ namespace Aardvark.Geometry
             }
             else
             {
-                V3d p0, p1, p2;
-                GetTriangle(objectIndex, out p0, out p1, out p2);
+                GetTriangle(objectIndex, out var p0, out var p1, out var p2);
                 return new Box3d(p0, p1, p2);
             }
         }

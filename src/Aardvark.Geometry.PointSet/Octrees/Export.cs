@@ -53,7 +53,7 @@ namespace Aardvark.Geometry.Points
             /// Returns new ExportPointSetInfo with ProcessedLeafPointCount incremented by x. 
             /// </summary>
             public ExportPointSetInfo AddProcessedLeafPoints(long x)
-                => new ExportPointSetInfo(PointCountTree, ProcessedLeafPointCount + x);
+                => new(PointCountTree, ProcessedLeafPointCount + x);
         }
 
         /// <summary>

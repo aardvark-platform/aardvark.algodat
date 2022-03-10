@@ -17,14 +17,13 @@ namespace Aardvark.Geometry.Points
 {
     internal class Disposable : IDisposable
     {
-        private object m_lock = new object();
+        private readonly object m_lock = new();
         private bool m_isDisposed = false;
         private Action m_onDispose;
 
         public Disposable(Action onDispose)
         {
-            if (onDispose == null) throw new ArgumentNullException(nameof(onDispose));
-            m_onDispose = onDispose;
+            m_onDispose = onDispose ?? throw new ArgumentNullException(nameof(onDispose));
         }
 
         public void Dispose()

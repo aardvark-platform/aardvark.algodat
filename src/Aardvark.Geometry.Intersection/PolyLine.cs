@@ -201,7 +201,7 @@ namespace Aardvark.Geometry
 
             public override bool Equals(object obj)
             {
-                return obj is Vertex ? this == (Vertex)obj : false;
+                return obj is Vertex vertex && this == vertex;
             }
 
             #endregion
@@ -258,7 +258,7 @@ namespace Aardvark.Geometry
 
             public override bool Equals(object obj)
             {
-                return obj is Vertex ? this == (Line)obj : false;
+                return obj is Vertex && this == (Line)obj;
             }
 
             #endregion

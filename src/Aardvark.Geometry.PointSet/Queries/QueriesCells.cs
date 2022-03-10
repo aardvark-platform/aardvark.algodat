@@ -616,7 +616,7 @@ namespace Aardvark.Geometry.Points
                 Rest = rest;
 
 #if DEBUG
-                static Cell2d GetFootprintZ(Cell c) => new Cell2d(c.X, c.Y, c.Exponent);
+                static Cell2d GetFootprintZ(Cell c) => new(c.X, c.Y, c.Exponent);
                 if (!nodes.All(n => footprint.Contains(GetFootprintZ(n.Cell)))) throw new InvalidOperationException();
                 var bb = footprint.BoundingBox;
                 if (rest.HasPositions && !rest.Positions.All(p => bb.Contains(p.XY))) throw new InvalidOperationException();

@@ -41,6 +41,6 @@ namespace Aardvark.Data.Points
         /// <summary>
         /// </summary>
         public static Buffer Create(byte[] data, int start, int count)
-            => new Buffer(data, start, count);
+            => new(data, start, count);
     }
 }

@@ -71,8 +71,7 @@ namespace Aardvark.Geometry
 
         #region Static Constants
 
-        public readonly static ObjectRayHit MaxRange =
-                new ObjectRayHit(double.PositiveInfinity);
+        public readonly static ObjectRayHit MaxRange = new(double.PositiveInfinity);
 
         #endregion
 
@@ -84,7 +83,7 @@ namespace Aardvark.Geometry
         /// </summary>
         public ObjectHitInfo GetIntersectionRayHitInfo()
         {
-            ObjectHitInfo hitInfo = new ObjectHitInfo();
+            ObjectHitInfo hitInfo = new();
             SetObject.Set.ObjectHitInfo(this, ref hitInfo);
             return hitInfo;
         }
@@ -113,7 +112,7 @@ namespace Aardvark.Geometry
 
         #region Static Constants
 
-        public static readonly SetObject Invalid = new SetObject(null, -1);
+        public static readonly SetObject Invalid = new(null, -1);
 
         #endregion
     }
@@ -169,15 +168,14 @@ namespace Aardvark.Geometry
 
         #region Static Constants
 
-        public static readonly ObjectClosestPoint MaxRange =
-            new ObjectClosestPoint
-            {
-                DistanceSquared = double.MaxValue,
-                Distance = double.MaxValue,
-                Point = V3d.NaN,
-                SetObject = SetObject.Invalid,
-                ObjectStack = null
-            };
+        public static readonly ObjectClosestPoint MaxRange = new()
+        {
+            DistanceSquared = double.MaxValue,
+            Distance = double.MaxValue,
+            Point = V3d.NaN,
+            SetObject = SetObject.Invalid,
+            ObjectStack = null
+        };
 
         #endregion
     }

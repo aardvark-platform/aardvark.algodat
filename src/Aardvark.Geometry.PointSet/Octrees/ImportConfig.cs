@@ -26,7 +26,7 @@ namespace Aardvark.Data.Points
         /// <summary>
         /// Default configuration.
         /// </summary>
-        public static readonly ImportConfig Default = new ImportConfig();
+        public static readonly ImportConfig Default = new();
 
         #region Properties
 
@@ -95,46 +95,46 @@ namespace Aardvark.Data.Points
         }
 
         /// <summary></summary>
-        public ImportConfig WithCancellationToken(CancellationToken x) => new ImportConfig(this) { ParseConfig = ParseConfig.WithCancellationToken(x) };
+        public ImportConfig WithCancellationToken(CancellationToken x) => new(this) { ParseConfig = ParseConfig.WithCancellationToken(x) };
 
         /// <summary></summary>
-        public ImportConfig WithKey(string x) => new ImportConfig(this) { Key = x };
+        public ImportConfig WithKey(string x) => new(this) { Key = x };
 
         /// <summary></summary>
-        public ImportConfig WithKey(Guid x) => new ImportConfig(this) { Key = x.ToString() };
+        public ImportConfig WithKey(Guid x) => new(this) { Key = x.ToString() };
 
         /// <summary></summary>
         public ImportConfig WithRandomKey() => WithKey(Guid.NewGuid().ToString());
 
         /// <summary></summary>
-        public ImportConfig WithMaxDegreeOfParallelism(int x) => new ImportConfig(this) { ParseConfig = ParseConfig.WithMaxDegreeOfParallelism(x) };
+        public ImportConfig WithMaxDegreeOfParallelism(int x) => new(this) { ParseConfig = ParseConfig.WithMaxDegreeOfParallelism(x) };
 
         /// <summary></summary>
-        public ImportConfig WithMinDist(double x) => new ImportConfig(this) { ParseConfig = ParseConfig.WithMinDist(x) };
+        public ImportConfig WithMinDist(double x) => new(this) { ParseConfig = ParseConfig.WithMinDist(x) };
 
         /// <summary></summary>
-        public ImportConfig WithNormalizePointDensityGlobal(bool x) => new ImportConfig(this) { NormalizePointDensityGlobal = x };
+        public ImportConfig WithNormalizePointDensityGlobal(bool x) => new(this) { NormalizePointDensityGlobal = x };
 
         /// <summary></summary>
-        public ImportConfig WithOctreeSplitLimit(int x) => new ImportConfig(this) { OctreeSplitLimit = x };
+        public ImportConfig WithOctreeSplitLimit(int x) => new(this) { OctreeSplitLimit = x };
 
         /// <summary></summary>
-        public ImportConfig WithProgressCallback(Action<double> x) => new ImportConfig(this) { ProgressCallback = x ?? throw new ArgumentNullException(nameof(x)) };
+        public ImportConfig WithProgressCallback(Action<double> x) => new(this) { ProgressCallback = x ?? throw new(nameof(x)) };
 
         /// <summary></summary>
-        public ImportConfig WithReadBufferSizeInBytes(int x) => new ImportConfig(this) { ParseConfig = ParseConfig.WithReadBufferSizeInBytes(x) };
+        public ImportConfig WithReadBufferSizeInBytes(int x) => new(this) { ParseConfig = ParseConfig.WithReadBufferSizeInBytes(x) };
 
         /// <summary></summary>
-        public ImportConfig WithMaxChunkPointCount(int x) => new ImportConfig(this) { ParseConfig = ParseConfig.WithMaxChunkPointCount(Math.Max(x, 1)) };
+        public ImportConfig WithMaxChunkPointCount(int x) => new(this) { ParseConfig = ParseConfig.WithMaxChunkPointCount(Math.Max(x, 1)) };
 
         /// <summary></summary>
-        public ImportConfig WithReproject(Func<IList<V3d>, IList<V3d>> x) => new ImportConfig(this) { Reproject = x };
+        public ImportConfig WithReproject(Func<IList<V3d>, IList<V3d>> x) => new(this) { Reproject = x };
 
         /// <summary></summary>
-        public ImportConfig WithVerbose(bool x) => new ImportConfig(this) { ParseConfig = ParseConfig.WithVerbose(x) };
+        public ImportConfig WithVerbose(bool x) => new(this) { ParseConfig = ParseConfig.WithVerbose(x) };
 
         /// <summary></summary>
-        public ImportConfig WithStorage(Storage x) => new ImportConfig(this) { Storage = x };
+        public ImportConfig WithStorage(Storage x) => new(this) { Storage = x };
 
         #endregion
     }

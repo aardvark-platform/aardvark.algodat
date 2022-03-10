@@ -11,7 +11,7 @@ namespace Aardvark.Physics.Sky
     /// </summary>
     public class AlienWorld : Sky, IPhysicalSky
     {
-        ArHosekSkyModelState model_state;
+        readonly ArHosekSkyModelState model_state;
 
         public AlienWorld(
             double solarPhi,
@@ -62,8 +62,8 @@ namespace Aardvark.Physics.Sky
 
     public class HosekSky : Sky, IPhysicalSky
     {
-        ArHosekSkyModelState[]  model_states; // using 3 states because ground albedo is RGB
-        C3f m_groundAlbedo;
+        readonly ArHosekSkyModelState[]  model_states; // using 3 states because ground albedo is RGB
+        //C3f m_groundAlbedo;
 
         public HosekSky(
             double solarPhi,
@@ -74,7 +74,7 @@ namespace Aardvark.Physics.Sky
             )
             : base(solarPhi, solarTheta)
         {
-            m_groundAlbedo = ground_albedo;
+            //m_groundAlbedo = ground_albedo;
             
             model_states = new ArHosekSkyModelState[3].SetByIndex(
                 i => new ArHosekSkyModelState(Constant.PiHalf - solarTheta,
@@ -165,7 +165,7 @@ namespace Aardvark.Physics.Sky
 
         //   This is just the data from the Preetham paper, extended into the UV range.
 
-        double[] originalSolarRadianceTable =
+        readonly double[] originalSolarRadianceTable =
         {
              7500.0,
             12500.0,

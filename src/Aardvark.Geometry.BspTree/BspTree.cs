@@ -114,8 +114,8 @@ namespace Aardvark.Geometry
                 Finished = new CountdownEvent(1)
             };
 
-            Action<Action> runParallel = a => Task.Factory.StartNew(a);
-            Action<Action> runSequential = a => a();
+            void runParallel(Action a) => Task.Factory.StartNew(a);
+            void runSequential(Action a) => a();
             Action<Action> runChild = parallel ? runParallel : runSequential;
                         
 
@@ -148,8 +148,8 @@ namespace Aardvark.Geometry
                 Finished = new CountdownEvent(1)
             };
 
-            Action<Action> runParallel = a => Task.Factory.StartNew(a);
-            Action<Action> runSequential = a => a();
+            static void runParallel(Action a) => Task.Factory.StartNew(a);
+            static void runSequential(Action a) => a();
             Action<Action> runChild = parallel ? runParallel : runSequential;
 
             if (order == Order.BackToFront)

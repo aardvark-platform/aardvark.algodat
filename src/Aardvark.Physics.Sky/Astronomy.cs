@@ -501,7 +501,7 @@ namespace Aardvark.Physics.Sky
         // IAU1980 Theory of Nutation model
         //         |      Acoeff 1..5      |  Period  |    A0j   A1j   |    B0j   B1j |
         //         | ki1 ki2 ki3 ki4 ki5   |  (days)  |  x10-e4   ''   |  x10-e4   '' |
-        static double[][] NutationModelCoefficients =
+        static readonly double[][] NutationModelCoefficients =
         {
             new [] { 0  , 0   ,0   ,0   ,1   , -6798.4, -171996, -174.2, 92025, 8.9   },
             new [] { 0  , 0   ,2   ,-2  ,2   , 182.6  , -13187 , -1.6  , 5736 ,  -3.1 },
@@ -824,10 +824,10 @@ namespace Aardvark.Physics.Sky
             else
             {
                 var d = e - 1; // parabolic excess
-                var q = (a / d).Abs(); // perifocal distance
+                //var q = (a / d).Abs(); // perifocal distance
 
                 if (e < 1)
-                    M = M - Constant.PiTimesTwo * (M / Constant.PiTimesTwo).Round();
+                    M -= Constant.PiTimesTwo * (M / Constant.PiTimesTwo).Round();
 
                 var Mq = //e != 1.0 ? 
                             M / Fun.Sqrt(d.Abs().Pow(3.0));
@@ -851,9 +851,10 @@ namespace Aardvark.Physics.Sky
                 }
                                
                 var eps = 2.2e-16;
-                double dEi, Bi, si, ci, di = 0.0;
+                double dEi, Bi, si, ci;
                 do
                 {
+                    double di;
                     if (e < 1) // elliptic orbit
                     {
                         si = e * Fun.Sin(Ei);
@@ -869,7 +870,7 @@ namespace Aardvark.Physics.Sky
 
                     dEi = di / ci;
                     Bi = Fun.Abs(2 * eps * Ei * ci / si);
-                    Ei = Ei - dEi;
+                    Ei -= dEi;
 
                 } while (dEi.Square() >= Bi);
 

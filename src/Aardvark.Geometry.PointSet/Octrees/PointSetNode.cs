@@ -37,7 +37,7 @@ namespace Aardvark.Geometry.Points
         /// This node has been stored during out-of-core import, without derived properties, like kd-trees, etc.
         /// The value of this attribute has no meaning.
         /// </summary>
-        public static readonly Durable.Def TemporaryImportNode = new Durable.Def(
+        public static readonly Durable.Def TemporaryImportNode = new(
             new Guid("01bcdfee-b01e-40ff-ad02-7ea724198f10"),
             "Durable.Octree.TemporaryImportNode",
             "This node has been stored during out-of-core import, without derived properties, like kd-trees, etc. The value of this attribute has no meaning.",
@@ -45,7 +45,7 @@ namespace Aardvark.Geometry.Points
             isArray: false
             );
 
-        public static readonly PointSetNode Empty = new PointSetNode(
+        public static readonly PointSetNode Empty = new(
             null, writeToStore: false,
             (Durable.Octree.NodeId, Guid.Empty),
             (Durable.Octree.Cell, Cell.Unit),

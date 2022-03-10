@@ -38,7 +38,7 @@ namespace Aardvark.Data.Points
     /// </summary>
     public static class LineParsers
     {
-        internal static Dictionary<Token, Action<LineParserState>> s_parsers = new Dictionary<Token, Action<LineParserState>>
+        internal static Dictionary<Token, Action<LineParserState>> s_parsers = new()
         {
             // Position
             { Token.PositionX, state => ParseFloat64(state, x => state.Position.X = x) },

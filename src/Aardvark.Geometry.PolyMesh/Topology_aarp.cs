@@ -70,10 +70,7 @@ namespace Aardvark.Geometry
 
         public override int GetHashCode() => HashCode.Combine(Index, Side);
 
-        public override bool Equals(object obj)
-        {
-            return (obj is FaceRef) ? this == (FaceRef)obj : false;
-        }
+        public override bool Equals(object obj) => (obj is FaceRef x) && this == x;
 
         #endregion
     }

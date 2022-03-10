@@ -121,7 +121,7 @@ namespace Aardvark.Geometry.Points
             return new FilterInsideConvexHulls3d(hulls);
         }
 
-        public Box3d Clip(Box3d box) => new Box3d(Hulls.Map(h => h.IntersectionBounds(box)));
+        public Box3d Clip(Box3d box) => new(Hulls.Map(h => h.IntersectionBounds(box)));
 
         public bool Contains(V3d point) => Hulls.Any(h =>h.Contains(point));
 

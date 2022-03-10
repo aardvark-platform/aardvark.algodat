@@ -70,10 +70,7 @@ namespace Aardvark.Geometry
 
         public override int GetHashCode() => HashCode.Combine(Index, Side);
 
-        public override bool Equals(object obj)
-        {
-            return (obj is BigFaceRef) ? this == (BigFaceRef)obj : false;
-        }
+        public override bool Equals(object obj) => (obj is BigFaceRef x) && this == x;
 
         #endregion
     }
@@ -81,12 +78,12 @@ namespace Aardvark.Geometry
     public class BigTopology
     {
         // input members
-        private long m_faceCount;
-        private long m_faceVertexCount;
-        private long m_vertexCount;
+        private readonly long m_faceCount;
+        private readonly long m_faceVertexCount;
+        private readonly long m_vertexCount;
 
-        private long[] m_firstIndexArray;
-        private long[] m_faceVertexIndexArray;
+        private readonly long[] m_firstIndexArray;
+        private readonly long[] m_faceVertexIndexArray;
 
         #region Constructors
 

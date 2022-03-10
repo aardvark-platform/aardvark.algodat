@@ -107,7 +107,7 @@ namespace Aardvark.Physics.Sky
     public partial class ArHosekSkyModelState
     {               
 
-static double[] dataset320 = 
+static readonly double[] dataset320 = 
 {
 	// albedo 0, turbidity 1
 	-1.341049e+001,
@@ -1211,7 +1211,7 @@ static double[] dataset320 =
 	6.227585e-001,
 };
 
-static double[] datasetRad320 = 
+static readonly double[] datasetRad320 = 
 {
 	// albedo 0, turbidity 1
 	9.282016e-004,
@@ -1355,7 +1355,7 @@ static double[] datasetRad320 =
 	8.244103e-002,
 };
 
-static double[] dataset360 = 
+static readonly double[] dataset360 = 
 {
 	// albedo 0, turbidity 1
 	-2.974290e+000,
@@ -2459,7 +2459,7 @@ static double[] dataset360 =
 	7.279518e-001,
 };
 
-static double[] datasetRad360 = 
+static readonly double[] datasetRad360 = 
 {
 	// albedo 0, turbidity 1
 	2.494129e-003,
@@ -2603,7 +2603,7 @@ static double[] datasetRad360 =
 	1.427310e-001,
 };
 
-static double[] dataset400 = 
+static readonly double[] dataset400 = 
 {
 	// albedo 0, turbidity 1
 	-1.869600e+000,
@@ -3707,7 +3707,7 @@ static double[] dataset400 =
 	7.086504e-001,
 };
 
-static double[] datasetRad400 = 
+static readonly double[] datasetRad400 = 
 {
 	// albedo 0, turbidity 1
 	5.767645e-003,
@@ -3851,7 +3851,7 @@ static double[] datasetRad400 =
 	2.328116e-001,
 };
 
-static double[] dataset440 = 
+static readonly double[] dataset440 = 
 {
 	// albedo 0, turbidity 1
 	-1.397312e+000,
@@ -4955,7 +4955,7 @@ static double[] dataset440 =
 	6.840186e-001,
 };
 
-static double[] datasetRad440 = 
+static readonly double[] datasetRad440 = 
 {
 	// albedo 0, turbidity 1
 	9.406889e-003,
@@ -5099,7 +5099,7 @@ static double[] datasetRad440 =
 	2.803810e-001,
 };
 
-static double[] dataset480 = 
+static readonly double[] dataset480 = 
 {
 	// albedo 0, turbidity 1
 	-1.255072e+000,
@@ -6203,7 +6203,7 @@ static double[] dataset480 =
 	6.747408e-001,
 };
 
-static double[] datasetRad480 = 
+static readonly double[] datasetRad480 = 
 {
 	// albedo 0, turbidity 1
 	1.367487e-002,
@@ -6347,7 +6347,7 @@ static double[] datasetRad480 =
 	3.053035e-001,
 };
 
-static double[] dataset520 = 
+static readonly double[] dataset520 = 
 {
 	// albedo 0, turbidity 1
 	-1.171338e+000,
@@ -7451,7 +7451,7 @@ static double[] dataset520 =
 	6.713422e-001,
 };
 
-static double[] datasetRad520 = 
+static readonly double[] datasetRad520 = 
 {
 	// albedo 0, turbidity 1
 	1.459826e-002,
@@ -7595,7 +7595,7 @@ static double[] datasetRad520 =
 	2.692918e-001,
 };
 
-static double[] dataset560 = 
+static readonly double[] dataset560 = 
 {
 	// albedo 0, turbidity 1
 	-1.121223e+000,
@@ -8699,7 +8699,7 @@ static double[] dataset560 =
 	5.872694e-001,
 };
 
-static double[] datasetRad560 = 
+static readonly double[] datasetRad560 = 
 {
 	// albedo 0, turbidity 1
 	1.518543e-002,
@@ -8843,7 +8843,7 @@ static double[] datasetRad560 =
 	2.394514e-001,
 };
 
-static double[] dataset600 = 
+static readonly double[] dataset600 = 
 {
 	// albedo 0, turbidity 1
 	-1.120756e+000,
@@ -9947,7 +9947,7 @@ static double[] dataset600 =
 	6.545784e-001,
 };
 
-static double[] datasetRad600 = 
+static readonly double[] datasetRad600 = 
 {
 	// albedo 0, turbidity 1
 	1.605147e-002,
@@ -10091,7 +10091,7 @@ static double[] datasetRad600 =
 	2.260782e-001,
 };
 
-static double[] dataset640 = 
+static readonly double[] dataset640 = 
 {
 	// albedo 0, turbidity 1
 	-1.113346e+000,
@@ -11195,7 +11195,7 @@ static double[] dataset640 =
 	6.650112e-001,
 };
 
-static double[] datasetRad640 = 
+static readonly double[] datasetRad640 = 
 {
 	// albedo 0, turbidity 1
 	1.479989e-002,
@@ -11339,7 +11339,7 @@ static double[] datasetRad640 =
 	2.043633e-001,
 };
 
-static double[] dataset680 = 
+static readonly double[] dataset680 = 
 {
 	// albedo 0, turbidity 1
 	-1.112655e+000,
@@ -12443,7 +12443,7 @@ static double[] dataset680 =
 	6.710888e-001,
 };
 
-static double[] datasetRad680 = 
+static readonly double[] datasetRad680 = 
 {
 	// albedo 0, turbidity 1
 	1.320908e-002,
@@ -12587,7 +12587,7 @@ static double[] datasetRad680 =
 	1.851691e-001,
 };
 
-static double[] dataset720 = 
+static readonly double[] dataset720 = 
 {
 	// albedo 0, turbidity 1
 	-1.110553e+000,
@@ -13691,7 +13691,7 @@ static double[] dataset720 =
 	6.917938e-001,
 };
 
-static double[] datasetRad720 = 
+static readonly double[] datasetRad720 = 
 {
 	// albedo 0, turbidity 1
 	1.130152e-002,
@@ -13835,7 +13835,7 @@ static double[] datasetRad720 =
 	1.639884e-001,
 };
 
-static double[][] datasets =
+static readonly double[][] datasets =
 {
 	dataset320,
 	dataset360,
@@ -13850,7 +13850,7 @@ static double[][] datasets =
     dataset720
 };
 
-static double[][] datasetsRad =
+static readonly double[][] datasetsRad =
 {
 	datasetRad320,
 	datasetRad360,
@@ -13866,7 +13866,7 @@ static double[][] datasetsRad =
 };
 
 // Uses Feb 9 dataset
-static double[] solarDataset320 = 
+static readonly double[] solarDataset320 = 
 {
 	0,
 	0,
@@ -15670,7 +15670,7 @@ static double[] solarDataset320 =
 	1.715997e+03,
 };
 
-static double[] solarDataset360 = 
+static readonly double[] solarDataset360 = 
 {
 	0,
 	0,
@@ -17474,7 +17474,7 @@ static double[] solarDataset360 =
 	4.337093e+03,
 };
 
-static double[] solarDataset400 = 
+static readonly double[] solarDataset400 = 
 {
 	1.117129e+12,
 	-1.629427e+07,
@@ -19278,7 +19278,7 @@ static double[] solarDataset400 =
 	8.894396e+03,
 };
 
-static double[] solarDataset440 = 
+static readonly double[] solarDataset440 = 
 {
 	-6.439155e+11,
 	7.682264e+06,
@@ -21082,7 +21082,7 @@ static double[] solarDataset440 =
 	1.258462e+04,
 };
 
-static double[] solarDataset480 = 
+static readonly double[] solarDataset480 = 
 {
 	-2.547404e+13,
 	3.635631e+08,
@@ -22886,7 +22886,7 @@ static double[] solarDataset480 =
 	1.549771e+04,
 };
 
-static double[] solarDataset520 = 
+static readonly double[] solarDataset520 = 
 {
 	3.441260e+12,
 	4.257012e+05,
@@ -24690,7 +24690,7 @@ static double[] solarDataset520 =
 	1.483566e+04,
 };
 
-static double[] solarDataset560 = 
+static readonly double[] solarDataset560 = 
 {
 	9.427478e+12,
 	-2.974054e+07,
@@ -26494,7 +26494,7 @@ static double[] solarDataset560 =
 	1.425796e+04,
 };
 
-static double[] solarDataset600 = 
+static readonly double[] solarDataset600 = 
 {
 	1.454828e+13,
 	-1.753873e+07,
@@ -28298,7 +28298,7 @@ static double[] solarDataset600 =
 	1.483525e+04,
 };
 
-static double[] solarDataset640 = 
+static readonly double[] solarDataset640 = 
 {
 	-4.439940e+13,
 	4.727269e+08,
@@ -30102,7 +30102,7 @@ static double[] solarDataset640 =
 	1.419677e+04,
 };
 
-static double[] solarDataset680 = 
+static readonly double[] solarDataset680 = 
 {
 	-352468042275216,
 	4.565228e+09,
@@ -31906,7 +31906,7 @@ static double[] solarDataset680 =
 	1.371823e+04,
 };
 
-static double[] solarDataset720 = 
+static readonly double[] solarDataset720 = 
 {
 	2.525918e+14,
 	-2.554558e+09,
@@ -33710,7 +33710,7 @@ static double[] solarDataset720 =
 	1.313697e+04,
 };
 
-static double[][] solarDatasets =
+static readonly double[][] solarDatasets =
 {
 	solarDataset320,
 	solarDataset360,
@@ -33725,40 +33725,40 @@ static double[][] solarDatasets =
 	solarDataset720
 };
 
-static double[] limbDarkeningDataset320 =
+static readonly double[] limbDarkeningDataset320 =
 { 0.087657, 0.767174, 0.658123, -1.02953, 0.703297, -0.186735 };
 
-static double[]  limbDarkeningDataset360 =
+static readonly double[]  limbDarkeningDataset360 =
 { 0.122953, 1.01278, 0.238687, -1.12208, 1.17087, -0.424947 };
 
-static double[]  limbDarkeningDataset400 =
+static readonly double[]  limbDarkeningDataset400 =
 { 0.123511, 1.08444, -0.405598, 0.370629, -0.240567, 0.0674778 };
 
-static double[]  limbDarkeningDataset440 =
+static readonly double[]  limbDarkeningDataset440 =
 { 0.158489, 1.23346, -0.875754, 0.857812, -0.484919, 0.110895 };
 
-static double[]  limbDarkeningDataset480 =
+static readonly double[]  limbDarkeningDataset480 =
 { 0.198587, 1.30507, -1.25998, 1.49727, -1.04047, 0.299516 };
 
-static double[]  limbDarkeningDataset520 =
+static readonly double[]  limbDarkeningDataset520 =
 { 0.23695, 1.29927, -1.28034, 1.37760, -0.85054, 0.21706 };
 
-static double[]  limbDarkeningDataset560 =
+static readonly double[]  limbDarkeningDataset560 =
 { 0.26892, 1.34319, -1.58427, 1.91271, -1.31350, 0.37295 };
 
-static double[]  limbDarkeningDataset600 =
+static readonly double[]  limbDarkeningDataset600 =
 { 0.299804, 1.36718, -1.80884, 2.29294, -1.60595, 0.454874 };
 
-static double[]  limbDarkeningDataset640 =
+static readonly double[]  limbDarkeningDataset640 =
 { 0.33551, 1.30791, -1.79382, 2.44646, -1.89082, 0.594769 };
 
-static double[]  limbDarkeningDataset680 =
+static readonly double[]  limbDarkeningDataset680 =
 { 0.364007, 1.27316, -1.73824, 2.28535, -1.70203, 0.517758 };
 
-static double[]  limbDarkeningDataset720 =
+static readonly double[]  limbDarkeningDataset720 =
 { 0.389704, 1.2448, -1.69708, 2.14061, -1.51803, 0.440004 };
 
-static double[][] limbDarkeningDatasets =
+static readonly double[][] limbDarkeningDatasets =
 {
 	limbDarkeningDataset320,
 	limbDarkeningDataset360,

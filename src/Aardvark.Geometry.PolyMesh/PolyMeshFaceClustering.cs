@@ -73,7 +73,7 @@ namespace Aardvark.Geometry
         }
 
         public void InitFrame()
-            => M44d.NormalFrame(Centroid, Normal, out M44d local2global, out Global2Local);
+            => M44d.NormalFrame(Centroid, Normal, out _, out Global2Local);
 
         /// <summary>
         /// Adds a hull vertex that is used to build the local box.
@@ -89,7 +89,7 @@ namespace Aardvark.Geometry
             yield return new FieldCoder(2, "Plane", (c, o) => c.CodePlaneWithPoint3d(ref ((FaceAggregation)o).Plane));
             yield return new FieldCoder(3, "Global2Local", 0, 1, (c, o) => c.CodeM44d(ref ((FaceAggregation)o).Global2Local));
             yield return new FieldCoder(4, "LocalBox", (c, o) => c.CodeBox2d(ref ((FaceAggregation)o).LocalBox));
-            yield return new FieldCoder(5, "NormalBox", 0, 1, (c, o) => { Box3d dummy = default(Box3d); c.CodeBox3d(ref dummy); });
+            yield return new FieldCoder(5, "NormalBox", 0, 1, (c, o) => { Box3d dummy = default; c.CodeBox3d(ref dummy); });
             yield return new FieldCoder(6, "MinimumRotation", 2, int.MaxValue, (c, o) => c.CodeDouble(ref ((FaceAggregation)o).MinimumRotation));
         }
 
@@ -106,7 +106,7 @@ namespace Aardvark.Geometry
             }
             else // compute minimum rotation
             {
-                M44d.NormalFrame(Centroid, Normal, out M44d foo, out M44d referenceGlobal2Local);
+                M44d.NormalFrame(Centroid, Normal, out M44d _, out M44d referenceGlobal2Local);
                 var refX = referenceGlobal2Local.R0.XYZ; 
                 var minX = Global2Local.R0.XYZ;
                 var refY = referenceGlobal2Local.R1.XYZ;
@@ -412,7 +412,7 @@ namespace Aardvark.Geometry
             //Func<int, int, bool> sameSheetFun = (i, j) =>
             //    sgia[i] == sgia[j] && faceNormalCodeArray[i] == faceNormalCodeArray[j];
 
-            Func<int, int, bool> sameSheetFun = (i, j) =>
+            bool sameSheetFun(int i, int j) =>
                    faceNormalArray[i].Dot(faceNormalArray[j]) > normalDotThreshold
                 && faceNormalCodeArray[i] == faceNormalCodeArray[j];
 
@@ -614,7 +614,7 @@ namespace Aardvark.Geometry
             m_count = m_countArray.Length;
 
             SheetBorderEdges = new IntSet[m_count];
-            sbe.ForEach(x => SheetBorderEdges[m_indexArray[x.Item1]] = x.Item2);
+            sbe.ForEach(x => SheetBorderEdges[m_indexArray[x.i]] = x.Item2);
         }
     }
 
@@ -643,7 +643,7 @@ namespace Aardvark.Geometry
                 m.AddFaceNormalsAreasCentroids();
             }
 
-            var faceCount = m.FaceCount;
+            //var faceCount = m.FaceCount;
 
             Report.BeginTimed(Verbosity, "Initial Clustering");
             InitialClustering(m, nonManifoldConnections, borderEdges);
@@ -770,8 +770,7 @@ namespace Aardvark.Geometry
                                     var ofi = m.FaceRef_One_OfEdgeRef(er).Index;
                                     if (ofi < 0)
                                     {
-                                        int e1;
-                                        if (!nonManifoldConnections.TryGetValue(ei, out e1))
+                                        if (!nonManifoldConnections.TryGetValue(ei, out int e1))
                                             continue; // should not happen
                                         ofi = m.FaceRef_Zero_OfEdgeRef(EdgeRef.Create(e1, 0)).Index;
                                     }
@@ -847,8 +846,8 @@ namespace Aardvark.Geometry
                     var be = m.GetFace(i).Edges.Select(e => e.Index).Where(ei => borderEdges.Contains(ei));
                     if (!be.IsEmpty())
                     {
-                        var c = new ClusterUsingList();
-                        c.BorderEdges = /*be.IsEmpty() ? null :*/ new List<int>(be);
+                        var c = new ClusterUsingList
+                        { BorderEdges = /*be.IsEmpty() ? null :*/ new List<int>(be) };
                         c.Faces.Add(i);
                         m_clusters.Add(c);
                         return c;
@@ -880,8 +879,8 @@ namespace Aardvark.Geometry
                     if (fj < fi) continue;
                     var cj = m_clusterRefs[fj];
                     if (ci == cj && ci != null) continue;
-                    var eA = ci == null ? null : ci.BorderEdges;
-                    var eB = cj == null ? null : cj.BorderEdges;
+                    var eA = ci?.BorderEdges;
+                    var eB = cj?.BorderEdges;
                     // check if merge not allowed
 
                     if (eA != null && eB != null && (eB.Count < eA.Count ? eB.Any(i => eA.Contains(i)) : eA.Any(i => eB.Contains(i)))) { clusterEdges.Add(ei); continue; }
@@ -1185,117 +1184,117 @@ namespace Aardvark.Geometry
             m.InstanceAttributes[PolyMesh.Property.SheetFaceIndices] = sheetFaceIndexArray;
         }
 
-        /// <summary>
-        /// Locally optimizes the outline of a cluster.
-        /// </summary>
-        void OptimizeEdges(PolyMesh m, IntSet borderEdges, IntSet edgeSet)
-        {
-            //Report.BeginTimed("optimize border faces");
+        ///// <summary>
+        ///// Locally optimizes the outline of a cluster.
+        ///// </summary>
+        //void OptimizeEdges(PolyMesh m, IntSet borderEdges, IntSet edgeSet)
+        //{
+        //    //Report.BeginTimed("optimize border faces");
 
-            var edgesToProcess = edgeSet;
+        //    var edgesToProcess = edgeSet;
 
-            int iterations = 0;
+        //    int iterations = 0;
 
-            do
-            {
-                var facesToProcess = edgesToProcess.Select(ei => m.GetEdge(ei)).SelectMany(e => e.Faces);                                        
+        //    do
+        //    {
+        //        var facesToProcess = edgesToProcess.Select(ei => m.GetEdge(ei)).SelectMany(e => e.Faces);                                        
 
-                var newClusterEdges = new IntSet();
+        //        var newClusterEdges = new IntSet();
 
-                var constrainedClusters = new HashSet<ClusterUsingList>();
-                var potentialClusters = new HashSet<ClusterUsingList>();
+        //        var constrainedClusters = new HashSet<ClusterUsingList>();
+        //        var potentialClusters = new HashSet<ClusterUsingList>();
 
-                // for each face check all neighbour clusters and try to merge them
-                foreach (var face in facesToProcess)
-                {
-                    var faceIndex = face.Index;
-                    var faceCluster = m_clusterRefs[face.Index];
-                    var faceEdges = face.Edges.ToArray();
-                    constrainedClusters.Clear();
-                    foreach (var e in faceEdges.Where(e => !e.OppositeIsBorder && borderEdges.Contains(e.Index))) // edges of faces which are borders
-                        constrainedClusters.Add(m_clusterRefs[e.OppositeFaceIndex]);
-                    // find neighbour faces/cluster with which a merge is valid
-                    var potentialEdges = faceEdges.Where(e =>
-                    {
-                        if (!edgeSet.Contains(e.Index) || e.OppositeIsBorder)
-                            return false; // invalid edge
-                        if (constrainedClusters.Count == 0)
-                            return true;
-                        return !constrainedClusters.Contains(m_clusterRefs[e.OppositeFace.Index]);
-                    }).ToArray();
+        //        // for each face check all neighbour clusters and try to merge them
+        //        foreach (var face in facesToProcess)
+        //        {
+        //            var faceIndex = face.Index;
+        //            var faceCluster = m_clusterRefs[face.Index];
+        //            var faceEdges = face.Edges.ToArray();
+        //            constrainedClusters.Clear();
+        //            foreach (var e in faceEdges.Where(e => !e.OppositeIsBorder && borderEdges.Contains(e.Index))) // edges of faces which are borders
+        //                constrainedClusters.Add(m_clusterRefs[e.OppositeFaceIndex]);
+        //            // find neighbour faces/cluster with which a merge is valid
+        //            var potentialEdges = faceEdges.Where(e =>
+        //            {
+        //                if (!edgeSet.Contains(e.Index) || e.OppositeIsBorder)
+        //                    return false; // invalid edge
+        //                if (constrainedClusters.Count == 0)
+        //                    return true;
+        //                return !constrainedClusters.Contains(m_clusterRefs[e.OppositeFace.Index]);
+        //            }).ToArray();
 
-                    if (potentialEdges.IsEmpty())
-                        continue;
+        //            if (potentialEdges.IsEmpty())
+        //                continue;
 
-                    var currentPenalty = potentialEdges.Sum(e => (e.ToVertex.Position - e.FromVertex.Position).LengthSquared);
-                    var currentBestCluster = faceCluster;
+        //            var currentPenalty = potentialEdges.Sum(e => (e.ToVertex.Position - e.FromVertex.Position).LengthSquared);
+        //            var currentBestCluster = faceCluster;
 
-                    potentialClusters.Clear();
-                    foreach (var e in potentialEdges)
-                        potentialClusters.Add(m_clusterRefs[e.OppositeFaceIndex]);
-                    //var potentialClusters = potentialEdges.Select(e => cia[e.OppositeFace.Index]).Distinct().ToArray();
+        //            potentialClusters.Clear();
+        //            foreach (var e in potentialEdges)
+        //                potentialClusters.Add(m_clusterRefs[e.OppositeFaceIndex]);
+        //            //var potentialClusters = potentialEdges.Select(e => cia[e.OppositeFace.Index]).Distinct().ToArray();
 
-                    foreach (var pc in potentialClusters)
-                    {
-                        var penalty = faceEdges.Where(e => !e.OppositeIsBorder && !borderEdges.Contains(e.Index) && m_clusterRefs[e.OppositeFaceIndex] != pc).Sum(e => (e.ToVertex.Position - e.FromVertex.Position).LengthSquared);
-                        if (penalty < currentPenalty)
-                        {
-                            currentPenalty = penalty;
-                            currentBestCluster = pc;
-                        }
-                    }
+        //            foreach (var pc in potentialClusters)
+        //            {
+        //                var penalty = faceEdges.Where(e => !e.OppositeIsBorder && !borderEdges.Contains(e.Index) && m_clusterRefs[e.OppositeFaceIndex] != pc).Sum(e => (e.ToVertex.Position - e.FromVertex.Position).LengthSquared);
+        //                if (penalty < currentPenalty)
+        //                {
+        //                    currentPenalty = penalty;
+        //                    currentBestCluster = pc;
+        //                }
+        //            }
 
-                    if (currentBestCluster != faceCluster)
-                    {
-                        //int otherFaceIndex = faceEdges.Select(e => e.OppositeFace.Index).Where(fi => cia[fi] == currentBestCluster).First();
-                        //cia[otherFaceIndex] = currentBestCluster;
-                        m_clusterRefs[faceIndex] = currentBestCluster;
-                        faceCluster.Faces.Remove(faceIndex);
-                        currentBestCluster.Faces.Add(faceIndex);
-                        // remove all current cluster edges
+        //            if (currentBestCluster != faceCluster)
+        //            {
+        //                //int otherFaceIndex = faceEdges.Select(e => e.OppositeFace.Index).Where(fi => cia[fi] == currentBestCluster).First();
+        //                //cia[otherFaceIndex] = currentBestCluster;
+        //                m_clusterRefs[faceIndex] = currentBestCluster;
+        //                faceCluster.Faces.Remove(faceIndex);
+        //                currentBestCluster.Faces.Add(faceIndex);
+        //                // remove all current cluster edges
 
-                        //Report.Line("face({0}): {1}=>{2}", faceIndex, faceClusterIndex, currentBestCluster);
+        //                //Report.Line("face({0}): {1}=>{2}", faceIndex, faceClusterIndex, currentBestCluster);
 
-                        // 
-                        var faceClusterBorderEdges = faceCluster.BorderEdges;
-                        var bestClusterBorderEdges = currentBestCluster.BorderEdges;
-                        foreach (var ei in faceEdges.Select(fe => fe.Index))
-                        {
-                            edgeSet.TryRemove(ei);
-                            if (borderEdges.Contains(ei))
-                            {
-                                var a = !bestClusterBorderEdges.Contains(ei);
-                                var b = faceClusterBorderEdges.Contains(ei);
-                                if (!a || !b)
-                                    Report.Warn("epic!");
-                                faceClusterBorderEdges.Remove(ei);
-                                bestClusterBorderEdges.Add(ei);
-                            }
-                        }
-                        // add all new cluster edges
-                        edgeSet.AddRange(faceEdges.Where(fe => fe.OppositeIsBorder 
-                                                            || borderEdges.Contains(fe.Index)
-                                                            || m_clusterRefs[fe.OppositeFaceIndex] != currentBestCluster)
-                                                  .Select(fe => fe.Index));
+        //                // 
+        //                var faceClusterBorderEdges = faceCluster.BorderEdges;
+        //                var bestClusterBorderEdges = currentBestCluster.BorderEdges;
+        //                foreach (var ei in faceEdges.Select(fe => fe.Index))
+        //                {
+        //                    edgeSet.TryRemove(ei);
+        //                    if (borderEdges.Contains(ei))
+        //                    {
+        //                        var a = !bestClusterBorderEdges.Contains(ei);
+        //                        var b = faceClusterBorderEdges.Contains(ei);
+        //                        if (!a || !b)
+        //                            Report.Warn("epic!");
+        //                        faceClusterBorderEdges.Remove(ei);
+        //                        bestClusterBorderEdges.Add(ei);
+        //                    }
+        //                }
+        //                // add all new cluster edges
+        //                edgeSet.AddRange(faceEdges.Where(fe => fe.OppositeIsBorder 
+        //                                                    || borderEdges.Contains(fe.Index)
+        //                                                    || m_clusterRefs[fe.OppositeFaceIndex] != currentBestCluster)
+        //                                          .Select(fe => fe.Index));
 
-                        // new edges to process
-                        newClusterEdges.AddRange(faceEdges.Where(fe => !fe.OppositeIsBorder && !borderEdges.Contains(fe.Index) && m_clusterRefs[fe.OppositeFaceIndex] != currentBestCluster).Select(fe => fe.Index));
+        //                // new edges to process
+        //                newClusterEdges.AddRange(faceEdges.Where(fe => !fe.OppositeIsBorder && !borderEdges.Contains(fe.Index) && m_clusterRefs[fe.OppositeFaceIndex] != currentBestCluster).Select(fe => fe.Index));
                         
-                        if (faceCluster.Faces.IsEmptyOrNull())
-                            m_clusters.Remove(faceCluster);
-                        //Report.Value("pc", currentBestCluster);
-                    }
-                }
+        //                if (faceCluster.Faces.IsEmptyOrNull())
+        //                    m_clusters.Remove(faceCluster);
+        //                //Report.Value("pc", currentBestCluster);
+        //            }
+        //        }
 
-                edgesToProcess = newClusterEdges;
-                iterations++;
-            }
-            while (!edgesToProcess.IsEmpty());
+        //        edgesToProcess = newClusterEdges;
+        //        iterations++;
+        //    }
+        //    while (!edgesToProcess.IsEmpty());
 
-            //Report.End();
+        //    //Report.End();
 
-            //Report.Value("iterationCount", iterations);
-        }
+        //    //Report.Value("iterationCount", iterations);
+        //}
     }
 
     public partial class PolyMesh

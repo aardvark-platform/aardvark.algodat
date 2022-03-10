@@ -22,7 +22,7 @@ namespace Aardvark.Physics.Sky
         /// doubles, alltough too high values can cause disortions.
         /// Recommended values are between 1.9 and 10.0.
         /// </summary>
-        double m_turbidity;
+        readonly double m_turbidity;
 
         public SunLightScattering(double sunPhi, double sunTheta, double turbidity = 1.9)
            : base(sunPhi, sunTheta)

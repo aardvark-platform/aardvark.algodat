@@ -53,43 +53,43 @@ namespace Aardvark.Geometry
 
     public partial class PointRkdTreeD<TArray, TPoint>
     {
-        private void GetClosestFlat(ClosestToPointQuery q, long top, long count) // count = 2,4,8
-        {
-            for (long end = Fun.Min(m_size, top + count);
-                top < end; top = 2 * top + 1, count *= 2, end = Fun.Min(m_size, top + count))
-            {
-                for (long hi = top; hi < end; hi++)
-                {
-                    long index = m_perm[hi];
-                    var dist = q.Dist(q.Point, m_aget(m_array, index));
-                    if (dist <= q.MaxDist)
-                    {
-                        q.List.HeapDescendingEnqueue(new IndexDist<double>(index, dist));
-                        if (q.List.Count > q.MaxCount)
-                        {
-                            q.List.HeapDescendingDequeue();
-                            var md = q.List[0].Dist;
-                            q.MaxDist = md; q.MaxDistEps = md + m_eps;
-                        }
-                    }
+        //private void GetClosestFlat(ClosestToPointQuery q, long top, long count) // count = 2,4,8
+        //{
+        //    for (long end = Fun.Min(m_size, top + count);
+        //        top < end; top = 2 * top + 1, count *= 2, end = Fun.Min(m_size, top + count))
+        //    {
+        //        for (long hi = top; hi < end; hi++)
+        //        {
+        //            long index = m_perm[hi];
+        //            var dist = q.Dist(q.Point, m_aget(m_array, index));
+        //            if (dist <= q.MaxDist)
+        //            {
+        //                q.List.HeapDescendingEnqueue(new IndexDist<double>(index, dist));
+        //                if (q.List.Count > q.MaxCount)
+        //                {
+        //                    q.List.HeapDescendingDequeue();
+        //                    var md = q.List[0].Dist;
+        //                    q.MaxDist = md; q.MaxDistEps = md + m_eps;
+        //                }
+        //            }
 
-                }
-            }
-        }
+        //        }
+        //    }
+        //}
 
-        private void GetClosestFlatDynamic(ClosestToPointQuery q, long top, long count) // count = 2,4,8
-        {
-            for (long end = Fun.Min(m_size, top + count);
-                top < end; top = 2 * top + 1, count *= 2, end = Fun.Min(m_size, top + count))
-            {
-                for (long hi = top; hi < end; hi++)
-                {
-                    long index = m_perm[hi];
-                    var dist = q.Dist(q.Point, m_aget(m_array, index));
-                    if (dist <= q.MaxDist) q.List.Add(new IndexDist<double>(index, dist));
-                }
-            }
-        }
+        //private void GetClosestFlatDynamic(ClosestToPointQuery q, long top, long count) // count = 2,4,8
+        //{
+        //    for (long end = Fun.Min(m_size, top + count);
+        //        top < end; top = 2 * top + 1, count *= 2, end = Fun.Min(m_size, top + count))
+        //    {
+        //        for (long hi = top; hi < end; hi++)
+        //        {
+        //            long index = m_perm[hi];
+        //            var dist = q.Dist(q.Point, m_aget(m_array, index));
+        //            if (dist <= q.MaxDist) q.List.Add(new IndexDist<double>(index, dist));
+        //        }
+        //    }
+        //}
 
         /// <summary>
         /// A query object to handle multiple (possibly accumulated) closest
@@ -353,43 +353,43 @@ namespace Aardvark.Geometry
 
     public partial class PointRkdTreeF<TArray, TPoint>
     {
-        private void GetClosestFlat(ClosestToPointQuery q, long top, long count) // count = 2,4,8
-        {
-            for (long end = Fun.Min(m_size, top + count);
-                top < end; top = 2 * top + 1, count *= 2, end = Fun.Min(m_size, top + count))
-            {
-                for (long hi = top; hi < end; hi++)
-                {
-                    long index = m_perm[hi];
-                    var dist = q.Dist(q.Point, m_aget(m_array, index));
-                    if (dist <= q.MaxDist)
-                    {
-                        q.List.HeapDescendingEnqueue(new IndexDist<float>(index, dist));
-                        if (q.List.Count > q.MaxCount)
-                        {
-                            q.List.HeapDescendingDequeue();
-                            var md = q.List[0].Dist;
-                            q.MaxDist = md; q.MaxDistEps = md + m_eps;
-                        }
-                    }
+        //private void GetClosestFlat(ClosestToPointQuery q, long top, long count) // count = 2,4,8
+        //{
+        //    for (long end = Fun.Min(m_size, top + count);
+        //        top < end; top = 2 * top + 1, count *= 2, end = Fun.Min(m_size, top + count))
+        //    {
+        //        for (long hi = top; hi < end; hi++)
+        //        {
+        //            long index = m_perm[hi];
+        //            var dist = q.Dist(q.Point, m_aget(m_array, index));
+        //            if (dist <= q.MaxDist)
+        //            {
+        //                q.List.HeapDescendingEnqueue(new IndexDist<float>(index, dist));
+        //                if (q.List.Count > q.MaxCount)
+        //                {
+        //                    q.List.HeapDescendingDequeue();
+        //                    var md = q.List[0].Dist;
+        //                    q.MaxDist = md; q.MaxDistEps = md + m_eps;
+        //                }
+        //            }
 
-                }
-            }
-        }
+        //        }
+        //    }
+        //}
 
-        private void GetClosestFlatDynamic(ClosestToPointQuery q, long top, long count) // count = 2,4,8
-        {
-            for (long end = Fun.Min(m_size, top + count);
-                top < end; top = 2 * top + 1, count *= 2, end = Fun.Min(m_size, top + count))
-            {
-                for (long hi = top; hi < end; hi++)
-                {
-                    long index = m_perm[hi];
-                    var dist = q.Dist(q.Point, m_aget(m_array, index));
-                    if (dist <= q.MaxDist) q.List.Add(new IndexDist<float>(index, dist));
-                }
-            }
-        }
+        //private void GetClosestFlatDynamic(ClosestToPointQuery q, long top, long count) // count = 2,4,8
+        //{
+        //    for (long end = Fun.Min(m_size, top + count);
+        //        top < end; top = 2 * top + 1, count *= 2, end = Fun.Min(m_size, top + count))
+        //    {
+        //        for (long hi = top; hi < end; hi++)
+        //        {
+        //            long index = m_perm[hi];
+        //            var dist = q.Dist(q.Point, m_aget(m_array, index));
+        //            if (dist <= q.MaxDist) q.List.Add(new IndexDist<float>(index, dist));
+        //        }
+        //    }
+        //}
 
         /// <summary>
         /// A query object to handle multiple (possibly accumulated) closest

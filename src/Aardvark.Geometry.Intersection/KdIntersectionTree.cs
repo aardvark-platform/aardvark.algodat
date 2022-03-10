@@ -214,12 +214,14 @@ namespace Aardvark.Geometry
                 ref ObjectRayHit hit
                 )
         {
-            KdIntersectionRay kdRay = new KdIntersectionRay();
-            kdRay.FastRay = fastRay;
-            kdRay.ObjectSet = m_objectSet;
-            kdRay.Hit = hit;
-            kdRay.ObjectFilter = objectFilter;
-            kdRay.HitFilter = hitFilter;
+            KdIntersectionRay kdRay = new()
+            {
+                FastRay = fastRay,
+                ObjectSet = m_objectSet,
+                Hit = hit,
+                ObjectFilter = objectFilter,
+                HitFilter = hitFilter
+            };
 
             if (Tree == null)
             {
@@ -282,14 +284,14 @@ namespace Aardvark.Geometry
         /// are ignored (the functionality has not been implemented yet).
         /// </summary>
         public bool ClosestPoint(
-                V3d query,
-                Func<IIntersectableObjectSet, int, bool> ios_index_objectFilter,
-                Func<IIntersectableObjectSet, int, int, ObjectClosestPoint, bool>
-                        ios_index_part_ocp_pointFilter,
-                ref ObjectClosestPoint closest
-                )
+            V3d query,
+            Func<IIntersectableObjectSet, int, bool> ios_index_objectFilter,
+            Func<IIntersectableObjectSet, int, int, ObjectClosestPoint, bool>
+                    ios_index_part_ocp_pointFilter,
+            ref ObjectClosestPoint closest
+            )
         {
-            KdQueryPoint qp = new KdQueryPoint
+            var qp = new KdQueryPoint
             {
                 Point = query,
                 ObjectSet = m_objectSet,
@@ -297,8 +299,8 @@ namespace Aardvark.Geometry
                 ObjectFilter = ios_index_objectFilter,
                 PointFilter = ios_index_part_ocp_pointFilter,
             };
-            V3d min = m_box.Min;
-            V3d max = m_box.Max;
+            var min = m_box.Min;
+            var max = m_box.Max;
 
             if (Tree.ClosestPoint(ref qp, ref min, ref max))
             {
@@ -343,9 +345,8 @@ namespace Aardvark.Geometry
             if (!box.Intersects(m_box)) return Enumerable.Empty<int>();
             KdNode pruned = Tree.Intersect(ref box, m_box.OutsideFlags(box));
             if (pruned == null) return Enumerable.Empty<int>();
-            Func<int[], int, int, IEnumerable<int>> inside =
-                (leafArray, f, c) => leafArray.ElementsWhere(f, c,
-                            i => m_objectSet.ObjectIsInsideBox(i, box));
+            IEnumerable<int> inside(int[] leafArray, int f, int c) 
+                => leafArray.ElementsWhere(f, c, i => m_objectSet.ObjectIsInsideBox(i, box));
             return pruned.Indices(inside, inside);
         }
 
@@ -353,11 +354,11 @@ namespace Aardvark.Geometry
 
         #region Building Constants
 
-        /// <summary>
-        /// For debugging it can be useful to only create KdInner nodes,
-        /// no optimized x/y/z, and left or right nodes.
-        /// </summary>
-        private const bool c_onlyKdInnerNodes = false;
+        ///// <summary>
+        ///// For debugging it can be useful to only create KdInner nodes,
+        ///// no optimized x/y/z, and left or right nodes.
+        ///// </summary>
+        //private const bool c_onlyKdInnerNodes = false;
 
         /// <summary>
         /// Smaller leafs are considered to have linear cost.
@@ -537,7 +538,7 @@ namespace Aardvark.Geometry
 
                 if (numObjects > inParams.ParallelSplitThreshold)
                 {
-                    OutputParameters outParams2 = new OutputParameters();
+                    var outParams2 = new OutputParameters();
                     Parallel.Invoke(
                         new Action[] {
                             delegate
@@ -642,8 +643,8 @@ namespace Aardvark.Geometry
             }
             else
             {
-                double volume = boxSize.X * boxSize.Y * boxSize.Z;
-                KdLeaf leaf = new KdLeaf(objectIndexArray);
+                var volume = boxSize.X * boxSize.Y * boxSize.Z;
+                var leaf = new KdLeaf(objectIndexArray);
                 //if (inParams.ReportProgress)
                 //{
                 //    parameters.m_progress += parameters.m_progressScale;
@@ -697,10 +698,10 @@ namespace Aardvark.Geometry
             )
         {
             if (m_objectSet == null) return;
-            m_leafSet = m_objectSet is KdTreeSet ? false : true;
+            m_leafSet = m_objectSet is not KdTreeSet;
             if (Tree != null) { Tree = null; }
-            InputParameters inParams = new InputParameters();
-            OutputParameters outParams = new OutputParameters();
+            var inParams = new InputParameters();
+            var outParams = new OutputParameters();
 
             if (relativeMinCellSize == 0) relativeMinCellSize = c_minCellSize;
 
@@ -776,10 +777,7 @@ namespace Aardvark.Geometry
 
             int[] objectIndexArray = new int[numObjects];
             for (int oi = 0; oi < numObjects; oi++) objectIndexArray[oi] = oi;
-
-
-            Tree = CreateNode(inParams, outParams,
-                                0, objectIndexArray, m_box, out bool split);
+            Tree = CreateNode(inParams, outParams, 0, objectIndexArray, m_box, out _);
 
             Report.End(DetailReportVerbosity);
 
@@ -865,7 +863,7 @@ namespace Aardvark.Geometry
 
         public void Flatten()
         {
-            if (!(Tree is KdFlat)) Tree = Tree.Flatten();
+            if (Tree is not KdFlat) Tree = Tree.Flatten();
         }
 
         // This table *must* contain the value 0.5 as first entry!
@@ -1102,7 +1100,7 @@ namespace Aardvark.Geometry
         /// For compact storage we use short names for all node types, and do
         /// not store any sizes and version number for the nodes.
         /// </summary>
-        static TypeInfo[] s_typeInfoArray = new[]
+        static readonly TypeInfo[] s_typeInfoArray = new[]
             {
                 new TypeInfo("n", typeof(TypeCoder.Null), TypeInfo.Option.Active),
                 new TypeInfo("i", typeof(KdInner),      TypeInfo.Option.None),
@@ -1117,7 +1115,7 @@ namespace Aardvark.Geometry
                 new TypeInfo("f", typeof(KdFlat),       TypeInfo.Option.None),
             };
 
-        static TypeInfo[] s_floatTypeInfoArray = new[]
+        static readonly TypeInfo[] s_floatTypeInfoArray = new[]
             {
                 new TypeInfo("n", typeof(TypeCoder.Null), TypeInfo.Option.Active),
                 new TypeInfo("i", typeof(KdFloatInner),      TypeInfo.Option.None),
@@ -1215,7 +1213,7 @@ namespace Aardvark.Geometry
     {
         public AxisIndex(short axis, int index) { Axis = axis; Index = index; }
 
-        public static AxisIndex Null = new AxisIndex(0, -1);
+        public static AxisIndex Null = new(0, -1);
 
         public short Axis;
         public int Index;
@@ -1770,24 +1768,16 @@ namespace Aardvark.Geometry
             if (outFlags == Box.Flags.All) return new KdNodeRef(this);
 
             if (box.Min[m_axis] > m_value)
-                return m_right != null
-                    ? m_right.Intersect(ref box, outFlags)
-                    : null;
+                return m_right?.Intersect(ref box, outFlags);
 
             if (box.Max[m_axis] < m_value)
-                return m_left != null
-                    ? m_left.Intersect(ref box, outFlags)
-                    : null;
+                return m_left?.Intersect(ref box, outFlags);
 
-            var left = m_left != null
-                ? m_left.Intersect(ref box,
-                        outFlags | (Box.Flags)((int)Box.Flags.MaxX << (int)m_axis))
-                : null;
+            var left = m_left?.Intersect(ref box,
+                        outFlags | (Box.Flags)((int)Box.Flags.MaxX << (int)m_axis));
 
-            var right = m_right != null
-                ? m_right.Intersect(ref box,
-                        outFlags | (Box.Flags)((int)Box.Flags.MinX << (int)m_axis))
-                : null;
+            var right = m_right?.Intersect(ref box,
+                        outFlags | (Box.Flags)((int)Box.Flags.MinX << (int)m_axis));
 
             if (left == null) return right;
             if (right == null) return left;
@@ -3052,7 +3042,7 @@ namespace Aardvark.Geometry
 
     internal class KdNodeRef : KdNode
     {
-        KdNode m_node;
+        readonly KdNode m_node;
 
         public KdNodeRef(KdNode node)
         {

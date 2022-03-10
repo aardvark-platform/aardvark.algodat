@@ -138,9 +138,7 @@ namespace Aardvark.Base
         {
             lock (m_lock)
             {
-                var tmp = m_clientQueue;
-                m_clientQueue = m_internalQueue;
-                m_internalQueue = tmp;
+                (m_internalQueue, m_clientQueue) = (m_clientQueue, m_internalQueue);
             }
         }
 

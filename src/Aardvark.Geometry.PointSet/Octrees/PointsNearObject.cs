@@ -23,7 +23,7 @@ namespace Aardvark.Geometry.Points
     {
         /// <summary>
         /// </summary>
-        public static CellQueryResult Empty = new CellQueryResult(null, false);
+        public static CellQueryResult Empty = new(null, false);
 
         /// <summary>
         /// </summary>
@@ -52,7 +52,7 @@ namespace Aardvark.Geometry.Points
     public class PointsNearObject<T>
     {
         /// <summary></summary>
-        public static readonly PointsNearObject<T> Empty = new PointsNearObject<T>(
+        public static readonly PointsNearObject<T> Empty = new(
             default, 0.0, 
             Array.Empty<V3d>(), Array.Empty<C4b>(), Array.Empty<V3f>(), 
             Array.Empty<int>(), Array.Empty<byte>(),
@@ -147,7 +147,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Returns PointsNearObject ordered by descending distance.
         /// </summary>
-        public PointsNearObject<T> Reordered(int[] ia) => new PointsNearObject<T>(
+        public PointsNearObject<T> Reordered(int[] ia) => new(
             Object, MaxDistance,
             Positions.Reordered(ia),
             Colors.Length > 0 ? Colors.Reordered(ia) : Colors,
@@ -172,6 +172,6 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// </summary>
         public PointsNearObject<U> WithObject<U>(U other)
-            => new PointsNearObject<U>(other, MaxDistance, Positions, Colors, Normals, Intensities, Classifications, Distances);
+            => new(other, MaxDistance, Positions, Colors, Normals, Intensities, Classifications, Distances);
     }
 }
