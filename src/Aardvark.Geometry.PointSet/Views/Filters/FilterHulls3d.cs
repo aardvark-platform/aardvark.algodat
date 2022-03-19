@@ -128,6 +128,6 @@ namespace Aardvark.Geometry.Points
         public bool Equals(IFilter other)
             => other is FilterInsideConvexHulls3d x &&
                x.Hulls.Length == Hulls.Length &&
-               Hulls.ZipPairs(x.Hulls).All(tup => tup.Item1.PlaneArray.ZipPairs(tup.Item2.PlaneArray).All(p => p.Item1 == p.Item2));
+               Hulls.ZipPairs(x.Hulls).All(tup => tup.Item1.PlaneArray.ZipPairs(tup.Item2.PlaneArray).All(p => p.Item1.ApproximateEquals(p.Item2, 1e-9)));
     }
 }
