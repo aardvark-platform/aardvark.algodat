@@ -1,5 +1,5 @@
 version 5.257.0
-framework: netstandard2.0, net5.0
+framework: netstandard2.0, net472, net6.0
 
 source https://api.nuget.org/v3/index.json
 source https://vrvis.myget.org/F/aardvark_public/api/v2
