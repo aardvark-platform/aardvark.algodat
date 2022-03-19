@@ -20,7 +20,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Threading;
 
 namespace Aardvark.Geometry.Tests
 {
@@ -29,7 +28,7 @@ namespace Aardvark.Geometry.Tests
     {
         private static PointSet CreateRandomPointsInUnitCube(int n, int splitLimit)
         {
-            var r = new Random();
+            var r = new Random(0);
             var ps = new V3d[n];
             for (var i = 0; i < n; i++) ps[i] = new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble());
             var config = ImportConfig.Default
@@ -43,7 +42,7 @@ namespace Aardvark.Geometry.Tests
         private static PointSet CreateClusteredPointsInUnitCube(int n, int splitLimit)
         {
             var r = new Random();
-            V3d randomPos() => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble());
+            V3d randomPos() => new(r.NextDouble(), r.NextDouble(), r.NextDouble());
             var ps = new V3d[n];
             for (var i = 0; i < n / 2; i++) ps[i] = randomPos();
             for (var i = n / 2 + 1; i < n; i++) ps[i] = randomPos();
