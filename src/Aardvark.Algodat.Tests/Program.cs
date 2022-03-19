@@ -17,6 +17,15 @@ using System.Threading.Tasks;
 using Uncodium.SimpleStore;
 using static Aardvark.Geometry.Points.Queries;
 
+#if !NETCOREAPP
+using System.ComponentModel;
+namespace System.Runtime.CompilerServices
+{
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    internal class IsExternalInit { }
+}
+#endif
+
 namespace Aardvark.Geometry.Tests
 {
     public class Program
@@ -1311,11 +1320,11 @@ namespace Aardvark.Geometry.Tests
 
         internal static void Test_20201113_Hannes()
         {
-            var filename = @"E:\e57tests\datasets\aibotix_ground_points.e57";
+            //var filename = @"E:\e57tests\datasets\aibotix_ground_points.e57";
             //var filename = @"E:\e57tests\datasets\Register360_Berlin Office_1.e57";
             //var filename = @"E:\e57tests\datasets\Staatsoper.e57";
             //var filename = @"E:\e57tests\datasets\Innenscan_FARO.e57";
-            //var filename = @"E:\e57tests\datasets\1190_31_test_Frizzo.e57";
+            var filename = @"E:\e57tests\datasets\1190_31_test_Frizzo.e57";
             //var filename = @"E:\e57tests\datasets\Neuhäusl-Hörschwang.e57";
             //var filename = @"E:\e57tests\datasets\2020452-B-3-5.e57";
             //var filename = @"E:\e57tests\datasets\100pct_1mm_zebcam_shade_zebcam_world.e57";
@@ -1336,9 +1345,9 @@ namespace Aardvark.Geometry.Tests
             var config = ImportConfig.Default
                 .WithStorage(store)
                 .WithKey(key)
-                .WithVerbose(false)
+                .WithVerbose(true)
                 .WithMaxDegreeOfParallelism(0)
-                .WithMinDist(0.005)
+                .WithMinDist(0.05)
                 .WithNormalizePointDensityGlobal(true)
                 .WithProgressCallback(p => { Report.Line($"{p:0.00}"); })
                 ;
@@ -1450,8 +1459,12 @@ namespace Aardvark.Geometry.Tests
             var buffer = File.ReadAllBytes(@"T:\Vgm\Data\comparison_cli_3dworx\comparison\cli\cli_nodes\4a32683e-5d39-4a9c-991d-ff3a6db0929d");
             //var bufferOk1 = File.ReadAllBytes(@"C:\Users\sm\Downloads\839046c1-3248-4e0b-b20c-f19f0ee4b93e");
             //var bufferOk2 = File.ReadAllBytes(@"C:\Users\sm\Downloads\10075930-77ff-46d0-8648-84a73b60420c");
-            var foo = new GZipStream(new MemoryStream(buffer), CompressionMode.Decompress);
+            using var foo = new GZipStream(new MemoryStream(buffer), CompressionMode.Decompress);
+#if NETCOREAPP
             var (def, _) = DurableCodec.Deserialize(foo);
+#else
+            var (def, _) = DurableCodec.Deserialize(new BinaryReader(foo));
+#endif
             Console.WriteLine(def);
         }
 
@@ -1719,7 +1732,7 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] _)
         {
-            TestFilterSerialization();
+            //TestFilterSerialization();
 
             //Test_20211013_log2int();
 
