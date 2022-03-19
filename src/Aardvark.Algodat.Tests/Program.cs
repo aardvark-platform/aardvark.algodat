@@ -1727,7 +1727,7 @@ namespace Aardvark.Geometry.Tests
             Console.WriteLine(JsonSerializer.Serialize(poly2d));
 
             var j = f.Serialize();
-            var f1 = Filter.Deserialize(j);
+            var _ = Filter.Deserialize(j);
         }
 
 
