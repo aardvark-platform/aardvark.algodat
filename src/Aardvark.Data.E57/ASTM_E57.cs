@@ -617,33 +617,49 @@ namespace Aardvark.Data.E57
                                                 var min = intensityLimits.Intensity.Min;
                                                 var max = intensityLimits.Intensity.Max;
                                                 var d = max - min;
-                                                var result = xs.Map(x => (int)(((x - min) / d) * 65535.5f));
-                                                return result;
+                                                if (d == 0)
+                                                {
+                                                    var result = xs.Map(x => 0);
+                                                    return result;
+                                                }
+                                                else
+                                                {
+                                                    var result = xs.Map(x => (int)(((x - min) / d) * 65535.5f));
+                                                    return result;
+                                                }
                                             }
 
-                                            var js = raw switch
+                                            int[] js;
+
+                                            var type = raw.GetType();
+                                            if (type == typeof(int[]))
                                             {
-                                                sbyte[] ys => ys.Map(x => (int)x),
-                                                byte[] ys => ys.Map(x => (int)x),
-                                                short[] ys => ys.Map(x => (int)x),
-                                                ushort[] ys => ys.Map(x => (int)x),
-                                                int[] ys => ys,
-                                                uint[] ys => ys.Map(x => (int)x),
-                                                long[] ys => ys.Map(x => (int)x),
-                                                ulong[] ys => ys.Map(x => (int)x),
-
-                                                float[] ys when intensityLimits is null
-                                                            => ys.Map(x => (int)(65535 * x)),
-
-                                                float[] ys => remapWithLimits(ys),
-
-                                                double[] ys when intensityLimits is null
-                                                            => ys.Map(x => (int)(65535 * x)),
-
-                                                double[] ys => remapWithLimits(ys.Map(x => (float)x)),
-
-                                                _ => throw new Exception($"Unspecified intensity format {raw.GetType()}.")
-                                            };
+                                                js = (int[])raw;
+                                            }
+                                            else
+                                            {
+                                                if (type == typeof(float[]))
+                                                {
+                                                    var ys = (float[])raw;
+                                                    js = intensityLimits == null ? ys.Map(x => (int)(65535 * x)) : remapWithLimits(ys);
+                                                }
+                                                else if (type == typeof(double[]))
+                                                {
+                                                    var ys = (double[])raw;
+                                                    js = intensityLimits == null ? ys.Map(x => (int)(65535 * x)) : remapWithLimits(ys.Map(x => (float)x));
+                                                }
+                                                else if (type == typeof(sbyte[])) js = ((sbyte[])raw).Map(x => (int)x);
+                                                else if (type == typeof(byte[])) js = ((byte[])raw).Map(x => (int)x);
+                                                else if (type == typeof(short[])) js = ((short[])raw).Map(x => (int)x);
+                                                else if (type == typeof(ushort[])) js = ((ushort[])raw).Map(x => (int)x);
+                                                else if (type == typeof(uint[])) js = ((uint[])raw).Map(x => (int)x);
+                                                else if (type == typeof(long[])) js = ((long[])raw).Map(x => (int)x);
+                                                else if (type == typeof(ulong[])) js = ((ulong[])raw).Map(x => (int)x);
+                                                else
+                                                {
+                                                    throw new Exception($"Unspecified intensity format {raw.GetType()}.");
+                                                }
+                                            }
 
                                             data.Append(sem, js);
                                             break;
