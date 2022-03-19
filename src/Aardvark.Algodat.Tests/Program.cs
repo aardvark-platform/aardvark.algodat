@@ -1780,6 +1780,96 @@ namespace Aardvark.Geometry.Tests
             }
         }
 
+
+        internal static void Test_Import_Regression()
+        {
+            var filenames = new[]
+            {
+                @"E:\e57tests\datasets\aibotix_ground_points.e57",
+                @"E:\e57tests\datasets\Register360_Berlin Office_1.e57",
+                @"E:\e57tests\datasets\Staatsoper.e57",
+                @"E:\e57tests\datasets\Innenscan_FARO.e57",
+                @"E:\e57tests\datasets\1190_31_test_Frizzo.e57",
+                @"E:\e57tests\datasets\Neuhäusl-Hörschwang.e57",
+                @"E:\e57tests\datasets\2020452-B-3-5.e57",
+                @"E:\e57tests\datasets\100pct_1mm_zebcam_shade_zebcam_world.e57",
+            };
+
+            foreach (var filename in filenames)
+            {
+                Report.BeginTimed($"{filename}");
+
+                var key = Path.GetFileName(filename);
+
+                var storePath = $@"E:\e57tests\stores\{key}";
+                Directory.CreateDirectory(storePath);
+                using var storeRaw = new SimpleDiskStore(Path.Combine(storePath, "data.uds"));
+                var store = storeRaw.ToPointCloudStore();
+
+
+                var info = E57.E57Info(filename, ParseConfig.Default);
+                Report.Line($"total bounds: {info.Bounds}");
+                Report.Line($"total count : {info.PointCount:N0}");
+
+
+                var config = ImportConfig.Default
+                    .WithStorage(store)
+                    .WithKey(key)
+                    .WithVerbose(false)
+                    .WithMaxDegreeOfParallelism(0)
+                    .WithMinDist(0.05)
+                    .WithNormalizePointDensityGlobal(true)
+                    //.WithProgressCallback(p => { Report.Line($"{p:0.00}"); })
+                    ;
+
+                var import = Task.Run(() =>
+                {
+                    //var runningCount = 0L;
+                    var chunks = E57
+                        .Chunks(filename, config.ParseConfig)
+                        .Take(1)
+                        //.TakeWhile(chunk =>
+                        //{
+                        //    var n = Interlocked.Add(ref runningCount, chunk.Count);
+                        //    Report.WarnNoPrefix($"[Chunks] {n:N0} / {info.PointCount:N0}");
+                        //    return n < info.PointCount * (0.125 + 0.125 / 2);
+                        //})
+                        ;
+                    var pcl = PointCloud.Chunks(chunks, config);
+                    return pcl;
+                });
+
+                var pcl = import.Result;
+                File.WriteAllText(Path.Combine(storePath, "key.txt"), pcl.Id);
+
+
+                var maxCount = pcl.PointCount / 30;
+                var level = pcl.GetMaxOctreeLevelWithLessThanGivenPointCount(maxCount);
+                var queryChunks = pcl.QueryPointsInOctreeLevel(0);
+
+                var intensityRange = queryChunks.Aggregate<Chunk, (int, int)?>(null, (intMaxima, chunk) =>
+                {
+                    if (chunk.HasIntensities)
+                    {
+                        var (currentMin, currentMax) = intMaxima ?? (int.MaxValue, int.MinValue);
+                        var minInt = Math.Min(currentMin, chunk.Intensities.Min());
+                        var maxInt = Math.Max(currentMax, chunk.Intensities.Max());
+                        return (minInt, maxInt);
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                });
+
+                Report.Line($"intensityRange {intensityRange}");
+
+                Report.Line($"point count: {pcl.Root.Value.PointCountTree:N0}");
+                //Report.Line($"number of keys: {storeRaw.SnapshotKeys().Length:N0}");
+                Report.EndTimed();
+            }
+        }
+
         public static void Main(string[] _)
         {
             Test_Import_Regression();
