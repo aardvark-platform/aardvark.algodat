@@ -1,3 +1,14 @@
+### 5.2.1
+- tests: deterministic initialization of random generator
+- fix problem with importing uint[] intensities in a .net-framework application,
+  see https://github.com/vrvis/Vgm.Api/issues/32
+- fix github workflows, dotnet-version 6.0.100 -> 6.0.103
+- update net5.0 -> net6.0
+- added net472 target to test project
+- fix missing entry for FilterInsideConvexHulls3d in Filter.Deserialize
+- add serialization tests for FilterHulls3d
+- remove unused code from ObsoleteNodeParser.cs
+
 ### 5.2.0
 - Updated to Aardvark 5.2
 
