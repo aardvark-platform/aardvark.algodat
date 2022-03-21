@@ -1,3 +1,7 @@
+### 5.1.30.1
+- maintenance release:
+  - cherry pick: fixed problem with importing uint[] intensities in a .net-framework application, see https://github.com/vrvis/Vgm.Api/issues/32
+
 ### 5.1.30
 - [paket] Added missing entries in paket.references (System.Collections.Immutable, FShade)
 
