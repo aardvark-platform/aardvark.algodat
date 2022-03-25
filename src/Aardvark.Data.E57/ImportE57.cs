@@ -198,9 +198,14 @@ namespace Aardvark.Data.Points.Import
                             colors: e57chunk.Colors?.Map(c => new C4b(c)) ?? Positions.Map(_ => C4b.White),
                             normals: e57chunk.Normals,
                             intensities: e57chunk.Intensities,
-                            classifications: null
+                            classifications: e57chunk.Classification?.Map(x => (byte)x)
                             );
                         Interlocked.Add(ref yieldedRecordCount, Positions.Length);
+
+                        //if (e57chunk.Classification != null)
+                        //{
+                        //    Console.WriteLine($"[classification] {string.Join(", ", e57chunk.Classification.GroupBy(x => x).Select(g => g.Key.ToString()))}");
+                        //}
 
                         if (config.Verbose)
                         {
@@ -487,6 +492,11 @@ namespace Aardvark.Data.Points.Import
                     return ns;
                 }
             }
+
+            /// <summary>
+            /// Classification. Optional.
+            /// </summary>
+            public int[] Classification => GetOrNull<int>(PointPropertySemantics.Classification);
 
             private T[] GetOrNull<T>(PointPropertySemantics sem)
                 => RawData.TryGetValue(sem, out var raw) ? (T[])raw : null;
