@@ -5,6 +5,7 @@
     <TargetFrameworks>net472;net6.0</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <StartupObject>Aardvark.Geometry.Tests.Program</StartupObject>
+    <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <OutputPath>../../bin/Debug</OutputPath>

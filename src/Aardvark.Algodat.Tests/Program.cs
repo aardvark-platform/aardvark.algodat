@@ -1445,15 +1445,15 @@ namespace Aardvark.Geometry.Tests
             Console.WriteLine($"{pc.BoundingBoxExactGlobal}");
         }
 
-        internal static void Test_20240420_DecodeBlob()
-        {
-            var buffer = File.ReadAllBytes(@"T:\Vgm\Data\comparison_cli_3dworx\comparison\cli\cli_nodes\4a32683e-5d39-4a9c-991d-ff3a6db0929d");
-            //var bufferOk1 = File.ReadAllBytes(@"C:\Users\sm\Downloads\839046c1-3248-4e0b-b20c-f19f0ee4b93e");
-            //var bufferOk2 = File.ReadAllBytes(@"C:\Users\sm\Downloads\10075930-77ff-46d0-8648-84a73b60420c");
-            var foo = new GZipStream(new MemoryStream(buffer), CompressionMode.Decompress);
-            var (def, _) = DurableCodec.Deserialize(foo);
-            Console.WriteLine(def);
-        }
+        // internal static void Test_20240420_DecodeBlob()
+        // {
+        //     var buffer = File.ReadAllBytes(@"T:\Vgm\Data\comparison_cli_3dworx\comparison\cli\cli_nodes\4a32683e-5d39-4a9c-991d-ff3a6db0929d");
+        //     //var bufferOk1 = File.ReadAllBytes(@"C:\Users\sm\Downloads\839046c1-3248-4e0b-b20c-f19f0ee4b93e");
+        //     //var bufferOk2 = File.ReadAllBytes(@"C:\Users\sm\Downloads\10075930-77ff-46d0-8648-84a73b60420c");
+        //     var foo = new GZipStream(new MemoryStream(buffer), CompressionMode.Decompress);
+        //     var (def, _) = DurableCodec.Deserialize(foo);
+        //     Console.WriteLine(def);
+        // }
 
         internal static void Test_20210422_EnumerateInlinedFromFilteredNode()
         {
@@ -1695,96 +1695,6 @@ namespace Aardvark.Geometry.Tests
             var filenames = new[]
             {
                 @"E:\e57tests\datasets\Punktwolke_M34.e57",
-                @"E:\e57tests\datasets\aibotix_ground_points.e57",
-                @"E:\e57tests\datasets\Register360_Berlin Office_1.e57",
-                @"E:\e57tests\datasets\Staatsoper.e57",
-                @"E:\e57tests\datasets\Innenscan_FARO.e57",
-                @"E:\e57tests\datasets\1190_31_test_Frizzo.e57",
-                @"E:\e57tests\datasets\Neuhäusl-Hörschwang.e57",
-                @"E:\e57tests\datasets\2020452-B-3-5.e57",
-                @"E:\e57tests\datasets\100pct_1mm_zebcam_shade_zebcam_world.e57",
-            };
-
-            foreach (var filename in filenames)
-            {
-                Report.BeginTimed($"{filename}");
-
-                var key = Path.GetFileName(filename);
-
-                var storePath = $@"E:\e57tests\stores\{key}";
-                Directory.CreateDirectory(storePath);
-                using var storeRaw = new SimpleDiskStore(Path.Combine(storePath, "data.uds"));
-                var store = storeRaw.ToPointCloudStore();
-
-
-                var info = E57.E57Info(filename, ParseConfig.Default);
-                Report.Line($"total bounds: {info.Bounds}");
-                Report.Line($"total count : {info.PointCount:N0}");
-
-
-                var config = ImportConfig.Default
-                    .WithStorage(store)
-                    .WithKey(key)
-                    .WithVerbose(false)
-                    .WithMaxDegreeOfParallelism(0)
-                    .WithMinDist(0.05)
-                    .WithNormalizePointDensityGlobal(true)
-                    //.WithProgressCallback(p => { Report.Line($"{p:0.00}"); })
-                    ;
-
-                var import = Task.Run(() =>
-                {
-                    //var runningCount = 0L;
-                    var chunks = E57
-                        .Chunks(filename, config.ParseConfig)
-                        .Take(1)
-                        //.TakeWhile(chunk =>
-                        //{
-                        //    var n = Interlocked.Add(ref runningCount, chunk.Count);
-                        //    Report.WarnNoPrefix($"[Chunks] {n:N0} / {info.PointCount:N0}");
-                        //    return n < info.PointCount * (0.125 + 0.125 / 2);
-                        //})
-                        ;
-                    var pcl = PointCloud.Chunks(chunks, config);
-                    return pcl;
-                });
-
-                var pcl = import.Result;
-                File.WriteAllText(Path.Combine(storePath, "key.txt"), pcl.Id);
-
-
-                var maxCount = pcl.PointCount / 30;
-                var level = pcl.GetMaxOctreeLevelWithLessThanGivenPointCount(maxCount);
-                var queryChunks = pcl.QueryPointsInOctreeLevel(0);
-
-                var intensityRange = queryChunks.Aggregate<Chunk, (int, int)?>(null, (intMaxima, chunk) =>
-                {
-                    if (chunk.HasIntensities)
-                    {
-                        var (currentMin, currentMax) = intMaxima ?? (int.MaxValue, int.MinValue);
-                        var minInt = Math.Min(currentMin, chunk.Intensities.Min());
-                        var maxInt = Math.Max(currentMax, chunk.Intensities.Max());
-                        return (minInt, maxInt);
-                    }
-                    else
-                    {
-                        return null;
-                    }
-                });
-
-                Report.Line($"intensityRange {intensityRange}");
-
-                Report.Line($"point count: {pcl.Root.Value.PointCountTree:N0}");
-                //Report.Line($"number of keys: {storeRaw.SnapshotKeys().Length:N0}");
-                Report.EndTimed();
-            }
-        }
-
-
-        internal static void Test_Import_Regression()
-        {
-            var filenames = new[]
-            {
                 @"E:\e57tests\datasets\aibotix_ground_points.e57",
                 @"E:\e57tests\datasets\Register360_Berlin Office_1.e57",
                 @"E:\e57tests\datasets\Staatsoper.e57",
