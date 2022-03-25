@@ -665,6 +665,36 @@ namespace Aardvark.Data.E57
                                             break;
                                         }
 
+                                    case (PointPropertySemantics.Classification, _):
+                                        {
+                                            int[] js;
+
+                                            var type = raw.GetType();
+                                            if (type == typeof(int[]))
+                                            {
+                                                js = (int[])raw;
+                                            }
+                                            else
+                                            {
+                                                if (type == typeof(float[])) js = ((float[])raw).Map(x => (int)x);
+                                                else if (type == typeof(double[])) js = ((double[])raw).Map(x => (int)x);
+                                                else if (type == typeof(sbyte[])) js = ((sbyte[])raw).Map(x => (int)x);
+                                                else if (type == typeof(byte[])) js = ((byte[])raw).Map(x => (int)x);
+                                                else if (type == typeof(short[])) js = ((short[])raw).Map(x => (int)x);
+                                                else if (type == typeof(ushort[])) js = ((ushort[])raw).Map(x => (int)x);
+                                                else if (type == typeof(uint[])) js = ((uint[])raw).Map(x => (int)x);
+                                                else if (type == typeof(long[])) js = ((long[])raw).Map(x => (int)x);
+                                                else if (type == typeof(ulong[])) js = ((ulong[])raw).Map(x => (int)x);
+                                                else
+                                                {
+                                                    throw new Exception($"Unspecified classification format {raw.GetType()}.");
+                                                }
+                                            }
+
+                                            data.Append(sem, js);
+                                            break;
+                                        }
+
                                     case (PointPropertySemantics.NormalX, float[] xs)             : data.Append(sem, xs); break;
                                     case (PointPropertySemantics.NormalY, float[] xs)             : data.Append(sem, xs); break;
                                     case (PointPropertySemantics.NormalZ, float[] xs)             : data.Append(sem, xs); break;

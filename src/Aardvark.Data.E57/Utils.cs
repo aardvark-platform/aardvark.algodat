@@ -37,6 +37,8 @@ namespace Aardvark.Data.E57
         IsIntensityInvalid,
         IsColorInvalid,
 
+        Classification,
+
         NormalX,
         NormalY,
         NormalZ,
@@ -71,6 +73,7 @@ namespace Aardvark.Data.E57
             PPS.SphericalInvalidState => ValueBuffer<byte>(),
             PPS.SphericalRange        => ValueBuffer<double>(),
             PPS.TimeStamp             => ValueBuffer<double>(),
+            PPS.Classification        => ValueBuffer<int>(),
             _ => throw new NotImplementedException($"Unknown PointPropertySemantics \"{sem}\".")
         };
     }
