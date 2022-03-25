@@ -1,3 +1,9 @@
+### 5.1.30.2
+- maintenance release:
+  - cherry pick: E57: add PointPropertySemantics.Classification (not part of E57 specification);
+      according to http://www.libe57.org/data.html this might be a LEICA-specific extension.
+      https://github.com/vrvis/Vgm.Api/issues/33
+
 ### 5.1.30.1
 - maintenance release:
   - cherry pick: fixed problem with importing uint[] intensities in a .net-framework application, see https://github.com/vrvis/Vgm.Api/issues/32
