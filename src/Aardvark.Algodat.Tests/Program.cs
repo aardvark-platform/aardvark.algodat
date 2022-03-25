@@ -1735,6 +1735,7 @@ namespace Aardvark.Geometry.Tests
         {
             var filenames = new[]
             {
+                @"E:\e57tests\datasets\Punktwolke_M34.e57",
                 @"E:\e57tests\datasets\aibotix_ground_points.e57",
                 @"E:\e57tests\datasets\Register360_Berlin Office_1.e57",
                 @"E:\e57tests\datasets\Staatsoper.e57",
