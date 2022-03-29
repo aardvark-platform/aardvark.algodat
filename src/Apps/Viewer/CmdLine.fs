@@ -13,8 +13,8 @@ open FSharp.Data.Adaptive
 open System
 open System.IO
 open System.Linq
-open System.Net
 open System.Text.Json
+open System.Net.Http
 
 [<AutoOpen>]
 module CmdLine = 
@@ -104,11 +104,14 @@ module CmdLine =
             if filename.StartsWith "http" then
                 if not (Directory.Exists(store)) then
                     Directory.CreateDirectory(store) |> ignore
-                let wc = new WebClient()
+                let wc = new HttpClient()
                 let fn = Uri(filename).Segments.Last()
                 let targetFilename = Path.Combine(store, fn)
                 printfn "downloading %s to %s" filename targetFilename
-                wc.DownloadFile(filename, targetFilename)
+                let fs = File.OpenWrite(targetFilename);
+                wc.GetStreamAsync(filename).Result.CopyToAsync(fs).Wait()
+                fs.Flush()
+                fs.Close()
                 targetFilename
             else
                 filename

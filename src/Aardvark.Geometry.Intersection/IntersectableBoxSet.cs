@@ -19,7 +19,7 @@ namespace Aardvark.Geometry
 {
     public class IntersectableBoxSet : IIntersectableObjectSet
     {
-        private Box3d[] m_boxes;
+        private readonly Box3d[] m_boxes;
         private Box3d m_bounds;
 
         public IntersectableBoxSet(params Box3d[] boxes)
@@ -47,7 +47,6 @@ namespace Aardvark.Geometry
 
                     if (d < minDist2)
                     {
-                        d = minDist2;
                         minIndex = id;
                         minPos = p;
                     }

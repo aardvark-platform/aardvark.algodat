@@ -76,22 +76,22 @@ namespace Aardvark.Geometry
     /// </summary>
     public partial class PointRkdTree__cchar____sel__<TArray, TPoint>
     {
-        long m_dim;
-        long m_size;
-        TArray m_array;
-        Func<TArray, long, TPoint> m_aget;
-        __vectorGetterType__ __mvget__;
-        Func<TPoint, TPoint, __ctype__> m_dist;
-        __dimDistType__ m_dimDist__selA__;
+        readonly long m_dim;
+        readonly long m_size;
+        readonly TArray m_array;
+        readonly Func<TArray, long, TPoint> m_aget;
+        readonly __vectorGetterType__ __mvget__;
+        readonly Func<TPoint, TPoint, __ctype__> m_dist;
+        readonly __dimDistType__ m_dimDist__selA__;
         //# if (t.IsReal) {
-        Func<TPoint, TPoint, TPoint, __ctype__> m_lineDist;
-        Func<__ctype__, TPoint, TPoint, TPoint> m_lerp;
+        readonly Func<TPoint, TPoint, TPoint, __ctype__> m_lineDist;
+        readonly Func<__ctype__, TPoint, TPoint, TPoint> m_lerp;
         //# }
-        __ctype__ m_eps;
+        readonly __ctype__ m_eps;
 
-        long[] m_perm;
-        int[] m_axis; // 2^31 dimensions are way enough
-        __ctype__[] m_radius;
+        readonly long[] m_perm;
+        readonly int[] m_axis; // 2^31 dimensions are way enough
+        readonly __ctype__[] m_radius;
 
         #region Constructor
 
@@ -589,17 +589,17 @@ namespace Aardvark.Geometry
     /// </summary>
     public partial class PointKdTree__cchar__<TArray, TPoint>
     {
-        long m_dim;
-        long m_size;
-        TArray m_array;
-        Func<TArray, long, TPoint> m_aget;
-        Func<TPoint, long, __ctype__> m_vget;
-        Func<TPoint, TPoint, __ctype__> m_dist;
-        Func<long, __ctype__, __ctype__, __ctype__> m_dimDist;
-        __ctype__ m_eps;
+        readonly long m_dim;
+        readonly long m_size;
+        readonly TArray m_array;
+        readonly Func<TArray, long, TPoint> m_aget;
+        readonly Func<TPoint, long, __ctype__> m_vget;
+        readonly Func<TPoint, TPoint, __ctype__> m_dist;
+        readonly Func<long, __ctype__, __ctype__, __ctype__> m_dimDist;
+        readonly __ctype__ m_eps;
 
-        long[] m_perm;
-        int[] m_axis; // 2^31 dimensions are way enough
+        readonly long[] m_perm;
+        readonly int[] m_axis; // 2^31 dimensions are way enough
 
         #region Constructor
 
@@ -991,17 +991,17 @@ namespace Aardvark.Geometry
     /// </summary>
     public partial class PointVpTree__cchar__<TArray, TPoint>
     {
-        long m_dim;
-        long m_size;
-        TArray m_array;
-        Func<TArray, long, TPoint> m_aget;
-        Func<TPoint, long, __ctype__> m_vget;
-        Func<TPoint, TPoint, __ctype__> m_dist;
+        readonly long m_dim;
+        readonly long m_size;
+        readonly TArray m_array;
+        readonly Func<TArray, long, TPoint> m_aget;
+        readonly Func<TPoint, long, __ctype__> m_vget;
+        readonly Func<TPoint, TPoint, __ctype__> m_dist;
         readonly __ctype__ m_eps;
 
-        long[] m_perm;
-        __ctype__[] m_lmax;
-        __ctype__[] m_rmin;
+        readonly long[] m_perm;
+        readonly __ctype__[] m_lmax;
+        readonly __ctype__[] m_rmin;
 
         #region Constructor
 
@@ -1086,11 +1086,9 @@ namespace Aardvark.Geometry
             if (left == 0) { m_perm[top] = perm[start]; return; }
             long mid = start - 1 + left + Fun.Min(left, row);
             perm.Swap(mid, start); // vp candidate @start
-            __ctype__ vmin, vmax;
-            long vi = GetMinMaxIndex(perm, start, end, out vmin, out vmax);
+            long vi = GetMinMaxIndex(perm, start, end, out var vmin, out var vmax);
             perm.Swap(vi, start); // vp candidate 2 @start
-            __ctype__ vmin2, vmax2;
-            GetMinMaxIndex(perm, start, end, out vmin2, out vmax2);
+            GetMinMaxIndex(perm, start, end, out var vmin2, out var vmax2);
             if (vmax - vmin > vmax2 - vmin2) perm.Swap(vi, start);
             var vp = m_aget(m_array, perm[start]); // vp @ start
             perm.PermutationQuickMedian(m_array, m_aget,
@@ -1295,15 +1293,13 @@ namespace Aardvark.Geometry
 
         public static Point__kd__Tree__cchar__<Matrix<__ctype__>, Vector<__ctype__>> Create__kd__Tree(
                 this Matrix<__ctype__> array, Metric metric, __ctype__ absoluteEps)
-        {
-            switch (metric)
+            => metric switch
             {
-                case Metric.Manhattan: return array.Create__kd__TreeDist1(absoluteEps);
-                case Metric.Euclidean: return array.Create__kd__TreeDist2(absoluteEps);
-                case Metric.Maximum: return array.Create__kd__TreeDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.Create__kd__TreeDist1(absoluteEps),
+                Metric.Euclidean => array.Create__kd__TreeDist2(absoluteEps),
+                Metric.Maximum => array.Create__kd__TreeDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static Point__kd__Tree__cchar__<Matrix<__ctype__>, Vector<__ctype__>> Create__kd__TreeDist1(
                 this Matrix<__ctype__> array, __ctype__ absoluteEps)
@@ -1353,15 +1349,13 @@ namespace Aardvark.Geometry
         public static Point__kd__Tree__cchar__<Matrix<__ctype__>, Vector<__ctype__>> Create__kd__Tree(
                 this Matrix<__ctype__> array, Metric metric, __ctype__ absoluteEps,
                 Point__kd__Tree__cchar__Data data)
-        {
-            switch (metric)
+            => metric switch
             {
-                case Metric.Manhattan: return array.Create__kd__TreeDist1(absoluteEps, data);
-                case Metric.Euclidean: return array.Create__kd__TreeDist2(absoluteEps, data);
-                case Metric.Maximum: return array.Create__kd__TreeDistMax(absoluteEps, data);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.Create__kd__TreeDist1(absoluteEps, data),
+                Metric.Euclidean => array.Create__kd__TreeDist2(absoluteEps, data),
+                Metric.Maximum => array.Create__kd__TreeDistMax(absoluteEps, data),
+                _ => throw new ArgumentException()
+            };
 
         public static Point__kd__Tree__cchar__<Matrix<__ctype__>, Vector<__ctype__>> Create__kd__TreeDist1(
                 this Matrix<__ctype__> array, __ctype__ absoluteEps, Point__kd__Tree__cchar__Data data)
@@ -1484,15 +1478,13 @@ namespace Aardvark.Geometry
 
         public static Point__kd__Tree__cchar____sel__<__vtype__[], __vtype__> Create__kd__Tree__sel__(
                 this __vtype__[] array, Metric metric, __ctype__ absoluteEps)
-        {
-            switch (metric)
+         => metric switch
             {
-                case Metric.Manhattan: return array.Create__kd__Tree__sel__Dist1(absoluteEps);
-                case Metric.Euclidean: return array.Create__kd__Tree__sel__Dist2(absoluteEps);
-                case Metric.Maximum: return array.Create__kd__Tree__sel__DistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.Create__kd__Tree__sel__Dist1(absoluteEps),
+                Metric.Euclidean => array.Create__kd__Tree__sel__Dist2(absoluteEps),
+                Metric.Maximum => array.Create__kd__Tree__sel__DistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static Point__kd__Tree__cchar____sel__<__vtype__[], __vtype__> Create__kd__Tree__sel__Dist1(
                 this __vtype__[] array, __ctype__ absoluteEps)

@@ -142,7 +142,7 @@ namespace Aardvark.Geometry.Points
                 return store;
             }
         }
-        private static readonly Dictionary<string, WeakReference<Storage>> s_stores = new Dictionary<string, WeakReference<Storage>>();
+        private static readonly Dictionary<string, WeakReference<Storage>> s_stores = new();
 
         /// <summary>
         /// Creates an in-memory store.

@@ -99,7 +99,7 @@ namespace Aardvark.Geometry.Points
             Colors3b = colors3b;
         }
 
-        public InlinedNode WithSubnodesGuids(Guid[] newSubnodesGuids) => new InlinedNode(
+        public InlinedNode WithSubnodesGuids(Guid[] newSubnodesGuids) => new(
             NodeId, Cell, BoundingBoxExactGlobal, newSubnodesGuids, PointCountCell, PointCountTreeLeafs, PositionsLocal3f, Colors3b
             );
 

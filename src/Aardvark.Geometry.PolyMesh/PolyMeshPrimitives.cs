@@ -503,7 +503,7 @@ namespace Aardvark.Geometry
             var coordinates = new List<V2d>();
             var coordinateIndices = new List<int>();
             var tangentSharingIndices = new List<int>();
-            var faceNormals = new List<V3d>();
+            //var faceNormals = new List<V3d>();
 
             // bottom of the cylinder
             V3d newVertex = -V3d.ZAxis * (height * 0.5);
@@ -603,8 +603,6 @@ namespace Aardvark.Geometry
             firstIndexArray.Add(0);
             int numInsertedVertexIndices = 0;
 
-            int insertedBefore = 0;
-
             // indices bottom
             for (int i = 0; i < horizontalSegments; i++)
             {
@@ -630,7 +628,7 @@ namespace Aardvark.Geometry
                 firstIndexArray.Add(numInsertedVertexIndices);
             }
 
-            insertedBefore = tangentSharingIndices.Count;
+            var insertedBefore = tangentSharingIndices.Count;
 
             for (int j = 0; j < horizontalSegments; j++)
             {
@@ -666,7 +664,7 @@ namespace Aardvark.Geometry
                 firstIndexArray.Add(numInsertedVertexIndices);
             }
             
-            insertedBefore = tangentSharingIndices.Count;
+            //insertedBefore = tangentSharingIndices.Count;
 
             // indices top
             for (int i = 0; i < horizontalSegments ; i++)
@@ -784,7 +782,7 @@ namespace Aardvark.Geometry
             var coordinates = new List<V2d>();
             var coordinateIndices = new List<int>();
             var tangentSharingIndices = new List<int>();
-            var faceNormals = new List<V3d>();
+            //var faceNormals = new List<V3d>();
 
             // bottom of the cylinder
             V3d newVertex = -V3d.ZAxis * (height * 0.5);
@@ -847,8 +845,6 @@ namespace Aardvark.Geometry
             firstIndexArray.Add(0);
             int numInsertedVertexIndices = 0;
 
-            int insertedBefore = 0;
-
             // indices bottom
             for (int i = 0; i < horizontalSegments; i++)
             {
@@ -874,7 +870,7 @@ namespace Aardvark.Geometry
                 firstIndexArray.Add(numInsertedVertexIndices);
             }
 
-            insertedBefore = tangentSharingIndices.Count;
+            var insertedBefore = tangentSharingIndices.Count;
 
             for (int j = 0; j < horizontalSegments; j++)
             {
@@ -896,7 +892,7 @@ namespace Aardvark.Geometry
                 firstIndexArray.Add(numInsertedVertexIndices);
             }
 
-            insertedBefore = tangentSharingIndices.Count;
+            //insertedBefore = tangentSharingIndices.Count;
 
             var faceVertexAttributes = tangentName == Symbol.Empty ?
             new SymbolDict<Array>()
@@ -1285,12 +1281,14 @@ namespace Aardvark.Geometry
         public static PolyMesh PlaneXY(V2d size)
         {
             var halfSize = size * 0.5;
-            var g = new PolyMesh();
-            var faceVertexAttributes = new SymbolDict<Array>();
-            g.PositionArray = new V3d[] { new V3d(-halfSize.X, -halfSize.Y, 0), 
-                                          new V3d(halfSize.X, -halfSize.Y, 0),  
-                                          new V3d(-halfSize.X, halfSize.Y, 0),  
-                                          new V3d(halfSize.X, halfSize.Y, 0) };
+            var g = new PolyMesh
+            {
+                PositionArray = new V3d[] {
+                    new V3d(-halfSize.X, -halfSize.Y, 0),
+                    new V3d(halfSize.X, -halfSize.Y, 0),
+                    new V3d(-halfSize.X, halfSize.Y, 0),
+                    new V3d(halfSize.X, halfSize.Y, 0) }
+            };
 
             g.FaceAttributes[PolyMesh.Property.Normals] = new[] { V3d.OOI };
             g.FaceAttributes[PolyMesh.Property.DiffuseColorUTangents] = new[] { V3d.IOO };
@@ -1307,12 +1305,14 @@ namespace Aardvark.Geometry
         public static PolyMesh PlaneXZ(V2d size)
         {
             var halfSize = size * 0.5;
-            var g = new PolyMesh();
-            var faceVertexAttributes = new SymbolDict<Array>();
-            g.PositionArray = new V3d[] { new V3d(-halfSize.X, 0, -halfSize.Y), 
-                                          new V3d(halfSize.X, 0, -halfSize.Y),  
-                                          new V3d(-halfSize.X, 0, halfSize.Y),  
-                                          new V3d(halfSize.X, 0, halfSize.Y) };
+            var g = new PolyMesh
+            {
+                PositionArray = new V3d[] {
+                    new V3d(-halfSize.X, 0, -halfSize.Y),
+                    new V3d(halfSize.X, 0, -halfSize.Y),
+                    new V3d(-halfSize.X, 0, halfSize.Y),
+                    new V3d(halfSize.X, 0, halfSize.Y) }
+            };
 
             g.FaceAttributes[PolyMesh.Property.Normals] = new[] { V3d.OIO };
             g.FaceAttributes[PolyMesh.Property.DiffuseColorUTangents] = new[] { V3d.IOO };
@@ -1329,12 +1329,12 @@ namespace Aardvark.Geometry
         public static PolyMesh PlaneYZ(V2d size)
         {
             var halfSize = size * 0.5;
-            var g = new PolyMesh();
-
-            g.PositionArray = new V3d[] { new V3d(0, -halfSize.X, -halfSize.Y), 
-                                          new V3d(0, halfSize.X, -halfSize.Y),  
-                                          new V3d(0, -halfSize.X, halfSize.Y),  
-                                          new V3d(0, halfSize.X, halfSize.Y) };
+            var g = new PolyMesh
+            { PositionArray = new V3d[] { new V3d(0, -halfSize.X, -halfSize.Y),
+                                          new V3d(0, halfSize.X, -halfSize.Y),
+                                          new V3d(0, -halfSize.X, halfSize.Y),
+                                          new V3d(0, halfSize.X, halfSize.Y) }
+            };
 
             g.FaceAttributes[PolyMesh.Property.Normals] = new[] { V3d.IOO };
             g.FaceAttributes[PolyMesh.Property.DiffuseColorUTangents] = new[] { V3d.OIO };
@@ -1445,22 +1445,22 @@ namespace Aardvark.Geometry
 
         #endregion
 
-        #region Misc Helper
+        //#region Misc Helper
 
-        private static V3d GetCirclePos(double i, int tessellation, Trafo3d trafo)
-        {
-            var angle = i * Constant.PiTimesTwo / tessellation;
+        //private static V3d GetCirclePos(double i, int tessellation, Trafo3d trafo)
+        //{
+        //    var angle = i * Constant.PiTimesTwo / tessellation;
 
-            var dx = Fun.Cos(angle);
-            var dy = Fun.Sin(angle);
+        //    var dx = Fun.Cos(angle);
+        //    var dy = Fun.Sin(angle);
 
-            var v = new V3d(dx, dy, 0);
-            var tv = trafo.Forward.TransformPos(v);
+        //    var v = new V3d(dx, dy, 0);
+        //    var tv = trafo.Forward.TransformPos(v);
 
-            return tv;
-        }
+        //    return tv;
+        //}
 
-        #endregion
+        //#endregion
     }
 }
 

@@ -6,14 +6,14 @@ namespace Aardvark.Algodat.App.Viewer
 open Aardvark.Base
 open System.IO
 open System.Linq
-open System.Net
 open System.Text.RegularExpressions
+open System.Net.Http
 
 module Download =
 
     let listHrefs (url : string) =
-        let wc = new WebClient()
-        let s = wc.DownloadString(url)
+        let wc = new HttpClient()
+        let s = wc.GetStringAsync(url).Result
         let r = new Regex(@"<a href=""(?<filename>.*)""")
         r.Matches(s)
         |> Seq.map (fun x -> x.Groups.["filename"].ToString())
@@ -30,7 +30,7 @@ module Download =
 
         let count = filenames.Count()
 
-        let wc = new WebClient()
+        let wc = new HttpClient()
         let tmpFileName = Path.Combine(targetDirectory, "tmp");
         let mutable i = 1
         for filename in filenames do
@@ -41,7 +41,10 @@ module Download =
             if File.Exists(targetFileName) then
                 printfn "already downloaded"
             else
-                wc.DownloadFile(address, tmpFileName)
+                let fs = File.OpenWrite(tmpFileName);
+                wc.GetStreamAsync(address).Result.CopyToAsync(fs).Wait()
+                fs.Flush()
+                fs.Close()
                 File.Move(tmpFileName, targetFileName)
                 printfn "%s" targetFileName
                 

@@ -107,7 +107,7 @@ namespace Aardvark.Physics.Sky
     public partial class ArHosekSkyModelState
     {               
 
-static double[] datasetXYZ1 = 
+static readonly double[] datasetXYZ1 = 
 {
 	// albedo 0, turbidity 1
 	-1.117001e+000,
@@ -1211,7 +1211,7 @@ static double[] datasetXYZ1 =
 	6.232887e-001,
 };
 
-static double[] datasetXYZRad1 = 
+static readonly double[] datasetXYZRad1 = 
 {
 	// albedo 0, turbidity 1
 	1.560219e+000,
@@ -1355,7 +1355,7 @@ static double[] datasetXYZRad1 =
 	2.523432e+001,
 };
 
-static double[] datasetXYZ2 = 
+static readonly double[] datasetXYZ2 = 
 {
 	// albedo 0, turbidity 1
 	-1.127942e+000,
@@ -2459,7 +2459,7 @@ static double[] datasetXYZ2 =
 	6.118645e-001,
 };
 
-static double[] datasetXYZRad2 = 
+static readonly double[] datasetXYZRad2 = 
 {
 	// albedo 0, turbidity 1
 	1.632341e+000,
@@ -2603,7 +2603,7 @@ static double[] datasetXYZRad2 =
 	2.641780e+001,
 };
 
-static double[] datasetXYZ3 = 
+static readonly double[] datasetXYZ3 = 
 {
 	// albedo 0, turbidity 1
 	-1.310023e+000,
@@ -3707,7 +3707,7 @@ static double[] datasetXYZ3 =
 	6.791814e-001,
 };
 
-static double[] datasetXYZRad3 = 
+static readonly double[] datasetXYZRad3 = 
 {
 	// albedo 0, turbidity 1
 	1.168084e+000,
@@ -3853,14 +3853,14 @@ static double[] datasetXYZRad3 =
 
 
 
-static double[][] datasetsXYZ =
+static readonly double[][] datasetsXYZ =
 {
 	datasetXYZ1,
 	datasetXYZ2,
 	datasetXYZ3
 };
 
-static double[][] datasetsXYZRad =
+static readonly double[][] datasetsXYZRad =
 {
 	datasetXYZRad1,
 	datasetXYZRad2,

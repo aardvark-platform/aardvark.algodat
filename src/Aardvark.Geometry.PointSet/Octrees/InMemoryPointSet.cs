@@ -42,7 +42,7 @@ namespace Aardvark.Geometry.Points
         private readonly IList<V3d> m_ps;
 
         public static InMemoryPointSet Build(GenericChunk chunk, int octreeSplitLimit)
-            => new InMemoryPointSet(chunk.Data, new Cell(chunk.BoundingBox), octreeSplitLimit);
+            => new(chunk.Data, new Cell(chunk.BoundingBox), octreeSplitLimit);
 
         public static InMemoryPointSet Build(Chunk chunk, int octreeSplitLimit)
             => Build(chunk.Positions, chunk.Colors, chunk.Normals, chunk.Intensities, chunk.Classifications, new Cell(chunk.BoundingBox), octreeSplitLimit);
@@ -74,7 +74,7 @@ namespace Aardvark.Geometry.Points
             
             foreach (var kv in data)
             {
-                if (!(kv.Value is Array)) throw new ArgumentException($"Entry {kv.Key} must be array.");
+                if (kv.Value is not Array) throw new ArgumentException($"Entry {kv.Key} must be array.");
             }
 
             void TryRename(Durable.Def from, Durable.Def to)

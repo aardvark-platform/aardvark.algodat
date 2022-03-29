@@ -198,7 +198,7 @@ namespace Aardvark.Geometry.Clustering
         /// </summary>
         public PointEpsilonClustering(V3d[] pa, double epsilon, IRandomUniform rnd = null)
         {
-            rnd = rnd ?? new RandomSystem();
+            rnd ??= new RandomSystem();
             var count = pa.Length;
             Alloc(count);
             var ca = m_indexArray;
@@ -242,7 +242,7 @@ namespace Aardvark.Geometry.Clustering
         /// </summary>
         public PointEqualClustering(V3d[] pa, double eps, IRandomUniform rnd = null)
         {
-            rnd = rnd ?? new RandomSystem();
+            rnd ??= new RandomSystem();
             var count = pa.Length;
             Alloc(count);
             var ca = m_indexArray;
@@ -284,7 +284,7 @@ namespace Aardvark.Geometry.Clustering
         /// </summary>
         public PointEpsilonClustering(int count, TArray pa, Func<TArray, int, V3d> get, double eps = 1e-6, IRandomUniform rnd = null)
         {
-            rnd = rnd ?? new RandomSystem();
+            rnd ??= new RandomSystem();
             Alloc(count);
             var ca = m_indexArray;
             var dict = new IntDict<int>(count, stackDuplicateKeys: true);
@@ -327,7 +327,7 @@ namespace Aardvark.Geometry.Clustering
         /// </summary>
         public PointEqualClustering(int count, TArray pa, Func<TArray, int, V3d> get, double eps = 1e-6, IRandomUniform rnd = null)
         {
-            rnd = rnd ?? new RandomSystem();
+            rnd ??= new RandomSystem();
             Alloc(count);
             var ca = m_indexArray;
             var dict = new IntDict<int>(count, stackDuplicateKeys: true);
@@ -373,7 +373,7 @@ namespace Aardvark.Geometry.Clustering
                 double epsNormal, double epsDist,
                 double deltaEpsFactor = 0.25, IRandomUniform rnd = null)
         {
-            rnd = rnd ?? new RandomSystem();
+            rnd ??= new RandomSystem();
             Alloc(count);
             var ca = m_indexArray;
             var dict = new IntDict<int>(count, stackDuplicateKeys: true);
@@ -429,7 +429,7 @@ namespace Aardvark.Geometry.Clustering
                 double epsNormal, double epsDist,
                 double deltaEpsFactor = 0.25, IRandomUniform rnd = null)
         {
-            rnd = rnd ?? new RandomSystem();
+            rnd ??= new RandomSystem();
             Alloc(count);
             var ca = m_indexArray;
             var dict = new IntDict<int>(count, stackDuplicateKeys: true);

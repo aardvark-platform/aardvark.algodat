@@ -62,20 +62,20 @@ namespace Aardvark.Geometry
     /// </summary>
     public partial class PointRkdTreeF<TArray, TPoint>
     {
-        long m_dim;
-        long m_size;
-        TArray m_array;
-        Func<TArray, long, TPoint> m_aget;
-        Func<TPoint, long, float> m_vget;
-        Func<TPoint, TPoint, float> m_dist;
-        Func<long, float, float, float> m_dimDist;
-        Func<TPoint, TPoint, TPoint, float> m_lineDist;
-        Func<float, TPoint, TPoint, TPoint> m_lerp;
-        float m_eps;
+        readonly long m_dim;
+        readonly long m_size;
+        readonly TArray m_array;
+        readonly Func<TArray, long, TPoint> m_aget;
+        readonly Func<TPoint, long, float> m_vget;
+        readonly Func<TPoint, TPoint, float> m_dist;
+        readonly Func<long, float, float, float> m_dimDist;
+        readonly Func<TPoint, TPoint, TPoint, float> m_lineDist;
+        readonly Func<float, TPoint, TPoint, TPoint> m_lerp;
+        readonly float m_eps;
 
-        long[] m_perm;
-        int[] m_axis; // 2^31 dimensions are way enough
-        float[] m_radius;
+        readonly long[] m_perm;
+        readonly int[] m_axis; // 2^31 dimensions are way enough
+        readonly float[] m_radius;
 
         #region Constructor
 
@@ -424,16 +424,16 @@ namespace Aardvark.Geometry
             }
         }
 
-        private void GetAllListFilter(ClosestToPointQuery q, long top)
-        {
-            var index = m_perm[top];
-            if (q.Filter(index))
-                q.List.Add(new IndexDist<float>(m_perm[top], float.MinValue));
-            long t1 = 2 * top + 1; if (t1 >= m_size) return;
-            GetAllList(q, t1);
-            long t2 = t1 + 1; if (t2 >= m_size) return;
-            GetAllList(q, t2);
-        }
+        //private void GetAllListFilter(ClosestToPointQuery q, long top)
+        //{
+        //    var index = m_perm[top];
+        //    if (q.Filter(index))
+        //        q.List.Add(new IndexDist<float>(m_perm[top], float.MinValue));
+        //    long t1 = 2 * top + 1; if (t1 >= m_size) return;
+        //    GetAllList(q, t1);
+        //    long t2 = t1 + 1; if (t2 >= m_size) return;
+        //    GetAllList(q, t2);
+        //}
 
         private void GetClosestFilter(ClosestToPointQuery q, long top)
         {
@@ -537,20 +537,20 @@ namespace Aardvark.Geometry
     /// </summary>
     public partial class PointRkdTreeFSelector<TArray, TPoint>
     {
-        long m_dim;
-        long m_size;
-        TArray m_array;
-        Func<TArray, long, TPoint> m_aget;
-        Func<TPoint, float>[] m_sela;
-        Func<TPoint, TPoint, float> m_dist;
-        Func<float, float, float>[] m_dimDistA;
-        Func<TPoint, TPoint, TPoint, float> m_lineDist;
-        Func<float, TPoint, TPoint, TPoint> m_lerp;
-        float m_eps;
+        readonly long m_dim;
+        readonly long m_size;
+        readonly TArray m_array;
+        readonly Func<TArray, long, TPoint> m_aget;
+        readonly Func<TPoint, float>[] m_sela;
+        readonly Func<TPoint, TPoint, float> m_dist;
+        readonly Func<float, float, float>[] m_dimDistA;
+        readonly Func<TPoint, TPoint, TPoint, float> m_lineDist;
+        readonly Func<float, TPoint, TPoint, TPoint> m_lerp;
+        readonly float m_eps;
 
-        long[] m_perm;
-        int[] m_axis; // 2^31 dimensions are way enough
-        float[] m_radius;
+        readonly long[] m_perm;
+        readonly int[] m_axis; // 2^31 dimensions are way enough
+        readonly float[] m_radius;
 
         #region Constructor
 
@@ -899,16 +899,16 @@ namespace Aardvark.Geometry
             }
         }
 
-        private void GetAllListFilter(ClosestToPointQuery q, long top)
-        {
-            var index = m_perm[top];
-            if (q.Filter(index))
-                q.List.Add(new IndexDist<float>(m_perm[top], float.MinValue));
-            long t1 = 2 * top + 1; if (t1 >= m_size) return;
-            GetAllList(q, t1);
-            long t2 = t1 + 1; if (t2 >= m_size) return;
-            GetAllList(q, t2);
-        }
+        //private void GetAllListFilter(ClosestToPointQuery q, long top)
+        //{
+        //    var index = m_perm[top];
+        //    if (q.Filter(index))
+        //        q.List.Add(new IndexDist<float>(m_perm[top], float.MinValue));
+        //    long t1 = 2 * top + 1; if (t1 >= m_size) return;
+        //    GetAllList(q, t1);
+        //    long t2 = t1 + 1; if (t2 >= m_size) return;
+        //    GetAllList(q, t2);
+        //}
 
         private void GetClosestFilter(ClosestToPointQuery q, long top)
         {
@@ -1009,17 +1009,17 @@ namespace Aardvark.Geometry
     /// </summary>
     public partial class PointKdTreeF<TArray, TPoint>
     {
-        long m_dim;
-        long m_size;
-        TArray m_array;
-        Func<TArray, long, TPoint> m_aget;
-        Func<TPoint, long, float> m_vget;
-        Func<TPoint, TPoint, float> m_dist;
-        Func<long, float, float, float> m_dimDist;
-        float m_eps;
+        readonly long m_dim;
+        readonly long m_size;
+        readonly TArray m_array;
+        readonly Func<TArray, long, TPoint> m_aget;
+        readonly Func<TPoint, long, float> m_vget;
+        readonly Func<TPoint, TPoint, float> m_dist;
+        readonly Func<long, float, float, float> m_dimDist;
+        readonly float m_eps;
 
-        long[] m_perm;
-        int[] m_axis; // 2^31 dimensions are way enough
+        readonly long[] m_perm;
+        readonly int[] m_axis; // 2^31 dimensions are way enough
 
         #region Constructor
 
@@ -1411,17 +1411,17 @@ namespace Aardvark.Geometry
     /// </summary>
     public partial class PointVpTreeF<TArray, TPoint>
     {
-        long m_dim;
-        long m_size;
-        TArray m_array;
-        Func<TArray, long, TPoint> m_aget;
-        Func<TPoint, long, float> m_vget;
-        Func<TPoint, TPoint, float> m_dist;
+        readonly long m_dim;
+        readonly long m_size;
+        readonly TArray m_array;
+        readonly Func<TArray, long, TPoint> m_aget;
+        readonly Func<TPoint, long, float> m_vget;
+        readonly Func<TPoint, TPoint, float> m_dist;
         readonly float m_eps;
 
-        long[] m_perm;
-        float[] m_lmax;
-        float[] m_rmin;
+        readonly long[] m_perm;
+        readonly float[] m_lmax;
+        readonly float[] m_rmin;
 
         #region Constructor
 
@@ -1506,11 +1506,9 @@ namespace Aardvark.Geometry
             if (left == 0) { m_perm[top] = perm[start]; return; }
             long mid = start - 1 + left + Fun.Min(left, row);
             perm.Swap(mid, start); // vp candidate @start
-            float vmin, vmax;
-            long vi = GetMinMaxIndex(perm, start, end, out vmin, out vmax);
+            long vi = GetMinMaxIndex(perm, start, end, out var vmin, out var vmax);
             perm.Swap(vi, start); // vp candidate 2 @start
-            float vmin2, vmax2;
-            GetMinMaxIndex(perm, start, end, out vmin2, out vmax2);
+            GetMinMaxIndex(perm, start, end, out var vmin2, out var vmax2);
             if (vmax - vmin > vmax2 - vmin2) perm.Swap(vi, start);
             var vp = m_aget(m_array, perm[start]); // vp @ start
             perm.PermutationQuickMedian(m_array, m_aget,
@@ -1738,20 +1736,20 @@ namespace Aardvark.Geometry
     /// </summary>
     public partial class PointRkdTreeD<TArray, TPoint>
     {
-        long m_dim;
-        long m_size;
-        TArray m_array;
-        Func<TArray, long, TPoint> m_aget;
-        Func<TPoint, long, double> m_vget;
-        Func<TPoint, TPoint, double> m_dist;
-        Func<long, double, double, double> m_dimDist;
-        Func<TPoint, TPoint, TPoint, double> m_lineDist;
-        Func<double, TPoint, TPoint, TPoint> m_lerp;
-        double m_eps;
+        readonly long m_dim;
+        readonly long m_size;
+        readonly TArray m_array;
+        readonly Func<TArray, long, TPoint> m_aget;
+        readonly Func<TPoint, long, double> m_vget;
+        readonly Func<TPoint, TPoint, double> m_dist;
+        readonly Func<long, double, double, double> m_dimDist;
+        readonly Func<TPoint, TPoint, TPoint, double> m_lineDist;
+        readonly Func<double, TPoint, TPoint, TPoint> m_lerp;
+        readonly double m_eps;
 
-        long[] m_perm;
-        int[] m_axis; // 2^31 dimensions are way enough
-        double[] m_radius;
+        readonly long[] m_perm;
+        readonly int[] m_axis; // 2^31 dimensions are way enough
+        readonly double[] m_radius;
 
         #region Constructor
 
@@ -2100,16 +2098,16 @@ namespace Aardvark.Geometry
             }
         }
 
-        private void GetAllListFilter(ClosestToPointQuery q, long top)
-        {
-            var index = m_perm[top];
-            if (q.Filter(index))
-                q.List.Add(new IndexDist<double>(m_perm[top], double.MinValue));
-            long t1 = 2 * top + 1; if (t1 >= m_size) return;
-            GetAllList(q, t1);
-            long t2 = t1 + 1; if (t2 >= m_size) return;
-            GetAllList(q, t2);
-        }
+        //private void GetAllListFilter(ClosestToPointQuery q, long top)
+        //{
+        //    var index = m_perm[top];
+        //    if (q.Filter(index))
+        //        q.List.Add(new IndexDist<double>(m_perm[top], double.MinValue));
+        //    long t1 = 2 * top + 1; if (t1 >= m_size) return;
+        //    GetAllList(q, t1);
+        //    long t2 = t1 + 1; if (t2 >= m_size) return;
+        //    GetAllList(q, t2);
+        //}
 
         private void GetClosestFilter(ClosestToPointQuery q, long top)
         {
@@ -2213,20 +2211,20 @@ namespace Aardvark.Geometry
     /// </summary>
     public partial class PointRkdTreeDSelector<TArray, TPoint>
     {
-        long m_dim;
-        long m_size;
-        TArray m_array;
-        Func<TArray, long, TPoint> m_aget;
-        Func<TPoint, double>[] m_sela;
-        Func<TPoint, TPoint, double> m_dist;
-        Func<double, double, double>[] m_dimDistA;
-        Func<TPoint, TPoint, TPoint, double> m_lineDist;
-        Func<double, TPoint, TPoint, TPoint> m_lerp;
-        double m_eps;
+        readonly long m_dim;
+        readonly long m_size;
+        readonly TArray m_array;
+        readonly Func<TArray, long, TPoint> m_aget;
+        readonly Func<TPoint, double>[] m_sela;
+        readonly Func<TPoint, TPoint, double> m_dist;
+        readonly Func<double, double, double>[] m_dimDistA;
+        readonly Func<TPoint, TPoint, TPoint, double> m_lineDist;
+        readonly Func<double, TPoint, TPoint, TPoint> m_lerp;
+        readonly double m_eps;
 
-        long[] m_perm;
-        int[] m_axis; // 2^31 dimensions are way enough
-        double[] m_radius;
+        readonly long[] m_perm;
+        readonly int[] m_axis; // 2^31 dimensions are way enough
+        readonly double[] m_radius;
 
         #region Constructor
 
@@ -2575,16 +2573,16 @@ namespace Aardvark.Geometry
             }
         }
 
-        private void GetAllListFilter(ClosestToPointQuery q, long top)
-        {
-            var index = m_perm[top];
-            if (q.Filter(index))
-                q.List.Add(new IndexDist<double>(m_perm[top], double.MinValue));
-            long t1 = 2 * top + 1; if (t1 >= m_size) return;
-            GetAllList(q, t1);
-            long t2 = t1 + 1; if (t2 >= m_size) return;
-            GetAllList(q, t2);
-        }
+        //private void GetAllListFilter(ClosestToPointQuery q, long top)
+        //{
+        //    var index = m_perm[top];
+        //    if (q.Filter(index))
+        //        q.List.Add(new IndexDist<double>(m_perm[top], double.MinValue));
+        //    long t1 = 2 * top + 1; if (t1 >= m_size) return;
+        //    GetAllList(q, t1);
+        //    long t2 = t1 + 1; if (t2 >= m_size) return;
+        //    GetAllList(q, t2);
+        //}
 
         private void GetClosestFilter(ClosestToPointQuery q, long top)
         {
@@ -2685,17 +2683,17 @@ namespace Aardvark.Geometry
     /// </summary>
     public partial class PointKdTreeD<TArray, TPoint>
     {
-        long m_dim;
-        long m_size;
-        TArray m_array;
-        Func<TArray, long, TPoint> m_aget;
-        Func<TPoint, long, double> m_vget;
-        Func<TPoint, TPoint, double> m_dist;
-        Func<long, double, double, double> m_dimDist;
-        double m_eps;
+        readonly long m_dim;
+        readonly long m_size;
+        readonly TArray m_array;
+        readonly Func<TArray, long, TPoint> m_aget;
+        readonly Func<TPoint, long, double> m_vget;
+        readonly Func<TPoint, TPoint, double> m_dist;
+        readonly Func<long, double, double, double> m_dimDist;
+        readonly double m_eps;
 
-        long[] m_perm;
-        int[] m_axis; // 2^31 dimensions are way enough
+        readonly long[] m_perm;
+        readonly int[] m_axis; // 2^31 dimensions are way enough
 
         #region Constructor
 
@@ -3087,17 +3085,17 @@ namespace Aardvark.Geometry
     /// </summary>
     public partial class PointVpTreeD<TArray, TPoint>
     {
-        long m_dim;
-        long m_size;
-        TArray m_array;
-        Func<TArray, long, TPoint> m_aget;
-        Func<TPoint, long, double> m_vget;
-        Func<TPoint, TPoint, double> m_dist;
+        readonly long m_dim;
+        readonly long m_size;
+        readonly TArray m_array;
+        readonly Func<TArray, long, TPoint> m_aget;
+        readonly Func<TPoint, long, double> m_vget;
+        readonly Func<TPoint, TPoint, double> m_dist;
         readonly double m_eps;
 
-        long[] m_perm;
-        double[] m_lmax;
-        double[] m_rmin;
+        readonly long[] m_perm;
+        readonly double[] m_lmax;
+        readonly double[] m_rmin;
 
         #region Constructor
 
@@ -3182,11 +3180,9 @@ namespace Aardvark.Geometry
             if (left == 0) { m_perm[top] = perm[start]; return; }
             long mid = start - 1 + left + Fun.Min(left, row);
             perm.Swap(mid, start); // vp candidate @start
-            double vmin, vmax;
-            long vi = GetMinMaxIndex(perm, start, end, out vmin, out vmax);
+            long vi = GetMinMaxIndex(perm, start, end, out var vmin, out var vmax);
             perm.Swap(vi, start); // vp candidate 2 @start
-            double vmin2, vmax2;
-            GetMinMaxIndex(perm, start, end, out vmin2, out vmax2);
+            GetMinMaxIndex(perm, start, end, out var vmin2, out var vmax2);
             if (vmax - vmin > vmax2 - vmin2) perm.Swap(vi, start);
             var vp = m_aget(m_array, perm[start]); // vp @ start
             perm.PermutationQuickMedian(m_array, m_aget,
@@ -3382,15 +3378,13 @@ namespace Aardvark.Geometry
 
         public static PointKdTreeF<Matrix<float>, Vector<float>> CreateKdTree(
                 this Matrix<float> array, Metric metric, float absoluteEps)
-        {
-            switch (metric)
+            => metric switch
             {
-                case Metric.Manhattan: return array.CreateKdTreeDist1(absoluteEps);
-                case Metric.Euclidean: return array.CreateKdTreeDist2(absoluteEps);
-                case Metric.Maximum: return array.CreateKdTreeDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateKdTreeDist1(absoluteEps),
+                Metric.Euclidean => array.CreateKdTreeDist2(absoluteEps),
+                Metric.Maximum => array.CreateKdTreeDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static PointKdTreeF<Matrix<float>, Vector<float>> CreateKdTreeDist1(
                 this Matrix<float> array, float absoluteEps)
@@ -3436,15 +3430,13 @@ namespace Aardvark.Geometry
         public static PointKdTreeF<Matrix<float>, Vector<float>> CreateKdTree(
                 this Matrix<float> array, Metric metric, float absoluteEps,
                 PointKdTreeFData data)
-        {
-            switch (metric)
+            => metric switch
             {
-                case Metric.Manhattan: return array.CreateKdTreeDist1(absoluteEps, data);
-                case Metric.Euclidean: return array.CreateKdTreeDist2(absoluteEps, data);
-                case Metric.Maximum: return array.CreateKdTreeDistMax(absoluteEps, data);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateKdTreeDist1(absoluteEps, data),
+                Metric.Euclidean => array.CreateKdTreeDist2(absoluteEps, data),
+                Metric.Maximum => array.CreateKdTreeDistMax(absoluteEps, data),
+                _ => throw new ArgumentException()
+            };
 
         public static PointKdTreeF<Matrix<float>, Vector<float>> CreateKdTreeDist1(
                 this Matrix<float> array, float absoluteEps, PointKdTreeFData data)
@@ -3537,15 +3529,13 @@ namespace Aardvark.Geometry
 
         public static PointKdTreeF<V2f[], V2f> CreateKdTree(
                 this V2f[] array, Metric metric, float absoluteEps)
-        {
-            switch (metric)
+         => metric switch
             {
-                case Metric.Manhattan: return array.CreateKdTreeDist1(absoluteEps);
-                case Metric.Euclidean: return array.CreateKdTreeDist2(absoluteEps);
-                case Metric.Maximum: return array.CreateKdTreeDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateKdTreeDist1(absoluteEps),
+                Metric.Euclidean => array.CreateKdTreeDist2(absoluteEps),
+                Metric.Maximum => array.CreateKdTreeDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static PointKdTreeF<V2f[], V2f> CreateKdTreeDist1(
                 this V2f[] array, float absoluteEps)
@@ -3603,15 +3593,13 @@ namespace Aardvark.Geometry
 
         public static PointKdTreeF<V3f[], V3f> CreateKdTree(
                 this V3f[] array, Metric metric, float absoluteEps)
-        {
-            switch (metric)
+         => metric switch
             {
-                case Metric.Manhattan: return array.CreateKdTreeDist1(absoluteEps);
-                case Metric.Euclidean: return array.CreateKdTreeDist2(absoluteEps);
-                case Metric.Maximum: return array.CreateKdTreeDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateKdTreeDist1(absoluteEps),
+                Metric.Euclidean => array.CreateKdTreeDist2(absoluteEps),
+                Metric.Maximum => array.CreateKdTreeDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static PointKdTreeF<V3f[], V3f> CreateKdTreeDist1(
                 this V3f[] array, float absoluteEps)
@@ -3669,15 +3657,13 @@ namespace Aardvark.Geometry
 
         public static PointKdTreeF<V4f[], V4f> CreateKdTree(
                 this V4f[] array, Metric metric, float absoluteEps)
-        {
-            switch (metric)
+         => metric switch
             {
-                case Metric.Manhattan: return array.CreateKdTreeDist1(absoluteEps);
-                case Metric.Euclidean: return array.CreateKdTreeDist2(absoluteEps);
-                case Metric.Maximum: return array.CreateKdTreeDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateKdTreeDist1(absoluteEps),
+                Metric.Euclidean => array.CreateKdTreeDist2(absoluteEps),
+                Metric.Maximum => array.CreateKdTreeDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static PointKdTreeF<V4f[], V4f> CreateKdTreeDist1(
                 this V4f[] array, float absoluteEps)
@@ -3735,15 +3721,13 @@ namespace Aardvark.Geometry
 
         public static PointKdTreeD<Matrix<double>, Vector<double>> CreateKdTree(
                 this Matrix<double> array, Metric metric, double absoluteEps)
-        {
-            switch (metric)
+            => metric switch
             {
-                case Metric.Manhattan: return array.CreateKdTreeDist1(absoluteEps);
-                case Metric.Euclidean: return array.CreateKdTreeDist2(absoluteEps);
-                case Metric.Maximum: return array.CreateKdTreeDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateKdTreeDist1(absoluteEps),
+                Metric.Euclidean => array.CreateKdTreeDist2(absoluteEps),
+                Metric.Maximum => array.CreateKdTreeDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static PointKdTreeD<Matrix<double>, Vector<double>> CreateKdTreeDist1(
                 this Matrix<double> array, double absoluteEps)
@@ -3789,15 +3773,13 @@ namespace Aardvark.Geometry
         public static PointKdTreeD<Matrix<double>, Vector<double>> CreateKdTree(
                 this Matrix<double> array, Metric metric, double absoluteEps,
                 PointKdTreeDData data)
-        {
-            switch (metric)
+            => metric switch
             {
-                case Metric.Manhattan: return array.CreateKdTreeDist1(absoluteEps, data);
-                case Metric.Euclidean: return array.CreateKdTreeDist2(absoluteEps, data);
-                case Metric.Maximum: return array.CreateKdTreeDistMax(absoluteEps, data);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateKdTreeDist1(absoluteEps, data),
+                Metric.Euclidean => array.CreateKdTreeDist2(absoluteEps, data),
+                Metric.Maximum => array.CreateKdTreeDistMax(absoluteEps, data),
+                _ => throw new ArgumentException()
+            };
 
         public static PointKdTreeD<Matrix<double>, Vector<double>> CreateKdTreeDist1(
                 this Matrix<double> array, double absoluteEps, PointKdTreeDData data)
@@ -3890,15 +3872,13 @@ namespace Aardvark.Geometry
 
         public static PointKdTreeD<V2d[], V2d> CreateKdTree(
                 this V2d[] array, Metric metric, double absoluteEps)
-        {
-            switch (metric)
+         => metric switch
             {
-                case Metric.Manhattan: return array.CreateKdTreeDist1(absoluteEps);
-                case Metric.Euclidean: return array.CreateKdTreeDist2(absoluteEps);
-                case Metric.Maximum: return array.CreateKdTreeDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateKdTreeDist1(absoluteEps),
+                Metric.Euclidean => array.CreateKdTreeDist2(absoluteEps),
+                Metric.Maximum => array.CreateKdTreeDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static PointKdTreeD<V2d[], V2d> CreateKdTreeDist1(
                 this V2d[] array, double absoluteEps)
@@ -3956,15 +3936,13 @@ namespace Aardvark.Geometry
 
         public static PointKdTreeD<V3d[], V3d> CreateKdTree(
                 this V3d[] array, Metric metric, double absoluteEps)
-        {
-            switch (metric)
+         => metric switch
             {
-                case Metric.Manhattan: return array.CreateKdTreeDist1(absoluteEps);
-                case Metric.Euclidean: return array.CreateKdTreeDist2(absoluteEps);
-                case Metric.Maximum: return array.CreateKdTreeDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateKdTreeDist1(absoluteEps),
+                Metric.Euclidean => array.CreateKdTreeDist2(absoluteEps),
+                Metric.Maximum => array.CreateKdTreeDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static PointKdTreeD<V3d[], V3d> CreateKdTreeDist1(
                 this V3d[] array, double absoluteEps)
@@ -4022,15 +4000,13 @@ namespace Aardvark.Geometry
 
         public static PointKdTreeD<V4d[], V4d> CreateKdTree(
                 this V4d[] array, Metric metric, double absoluteEps)
-        {
-            switch (metric)
+         => metric switch
             {
-                case Metric.Manhattan: return array.CreateKdTreeDist1(absoluteEps);
-                case Metric.Euclidean: return array.CreateKdTreeDist2(absoluteEps);
-                case Metric.Maximum: return array.CreateKdTreeDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateKdTreeDist1(absoluteEps),
+                Metric.Euclidean => array.CreateKdTreeDist2(absoluteEps),
+                Metric.Maximum => array.CreateKdTreeDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static PointKdTreeD<V4d[], V4d> CreateKdTreeDist1(
                 this V4d[] array, double absoluteEps)
@@ -4092,15 +4068,13 @@ namespace Aardvark.Geometry
 
         public static PointRkdTreeF<Matrix<float>, Vector<float>> CreateRkdTree(
                 this Matrix<float> array, Metric metric, float absoluteEps)
-        {
-            switch (metric)
+            => metric switch
             {
-                case Metric.Manhattan: return array.CreateRkdTreeDist1(absoluteEps);
-                case Metric.Euclidean: return array.CreateRkdTreeDist2(absoluteEps);
-                case Metric.Maximum: return array.CreateRkdTreeDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateRkdTreeDist1(absoluteEps),
+                Metric.Euclidean => array.CreateRkdTreeDist2(absoluteEps),
+                Metric.Maximum => array.CreateRkdTreeDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static PointRkdTreeF<Matrix<float>, Vector<float>> CreateRkdTreeDist1(
                 this Matrix<float> array, float absoluteEps)
@@ -4139,15 +4113,13 @@ namespace Aardvark.Geometry
         public static PointRkdTreeF<Matrix<float>, Vector<float>> CreateRkdTree(
                 this Matrix<float> array, Metric metric, float absoluteEps,
                 PointRkdTreeFData data)
-        {
-            switch (metric)
+            => metric switch
             {
-                case Metric.Manhattan: return array.CreateRkdTreeDist1(absoluteEps, data);
-                case Metric.Euclidean: return array.CreateRkdTreeDist2(absoluteEps, data);
-                case Metric.Maximum: return array.CreateRkdTreeDistMax(absoluteEps, data);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateRkdTreeDist1(absoluteEps, data),
+                Metric.Euclidean => array.CreateRkdTreeDist2(absoluteEps, data),
+                Metric.Maximum => array.CreateRkdTreeDistMax(absoluteEps, data),
+                _ => throw new ArgumentException()
+            };
 
         public static PointRkdTreeF<Matrix<float>, Vector<float>> CreateRkdTreeDist1(
                 this Matrix<float> array, float absoluteEps, PointRkdTreeFData data)
@@ -4233,15 +4205,13 @@ namespace Aardvark.Geometry
 
         public static PointRkdTreeF<V2f[], V2f> CreateRkdTree(
                 this V2f[] array, Metric metric, float absoluteEps)
-        {
-            switch (metric)
+         => metric switch
             {
-                case Metric.Manhattan: return array.CreateRkdTreeDist1(absoluteEps);
-                case Metric.Euclidean: return array.CreateRkdTreeDist2(absoluteEps);
-                case Metric.Maximum: return array.CreateRkdTreeDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateRkdTreeDist1(absoluteEps),
+                Metric.Euclidean => array.CreateRkdTreeDist2(absoluteEps),
+                Metric.Maximum => array.CreateRkdTreeDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static PointRkdTreeF<V2f[], V2f> CreateRkdTreeDist1(
                 this V2f[] array, float absoluteEps)
@@ -4295,15 +4265,13 @@ namespace Aardvark.Geometry
 
         public static PointRkdTreeF<V3f[], V3f> CreateRkdTree(
                 this V3f[] array, Metric metric, float absoluteEps)
-        {
-            switch (metric)
+         => metric switch
             {
-                case Metric.Manhattan: return array.CreateRkdTreeDist1(absoluteEps);
-                case Metric.Euclidean: return array.CreateRkdTreeDist2(absoluteEps);
-                case Metric.Maximum: return array.CreateRkdTreeDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateRkdTreeDist1(absoluteEps),
+                Metric.Euclidean => array.CreateRkdTreeDist2(absoluteEps),
+                Metric.Maximum => array.CreateRkdTreeDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static PointRkdTreeF<V3f[], V3f> CreateRkdTreeDist1(
                 this V3f[] array, float absoluteEps)
@@ -4357,15 +4325,13 @@ namespace Aardvark.Geometry
 
         public static PointRkdTreeF<V4f[], V4f> CreateRkdTree(
                 this V4f[] array, Metric metric, float absoluteEps)
-        {
-            switch (metric)
+         => metric switch
             {
-                case Metric.Manhattan: return array.CreateRkdTreeDist1(absoluteEps);
-                case Metric.Euclidean: return array.CreateRkdTreeDist2(absoluteEps);
-                case Metric.Maximum: return array.CreateRkdTreeDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateRkdTreeDist1(absoluteEps),
+                Metric.Euclidean => array.CreateRkdTreeDist2(absoluteEps),
+                Metric.Maximum => array.CreateRkdTreeDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static PointRkdTreeF<V4f[], V4f> CreateRkdTreeDist1(
                 this V4f[] array, float absoluteEps)
@@ -4432,15 +4398,13 @@ namespace Aardvark.Geometry
 
         public static PointRkdTreeFSelector<V2f[], V2f> CreateRkdTreeSelector(
                 this V2f[] array, Metric metric, float absoluteEps)
-        {
-            switch (metric)
+         => metric switch
             {
-                case Metric.Manhattan: return array.CreateRkdTreeSelectorDist1(absoluteEps);
-                case Metric.Euclidean: return array.CreateRkdTreeSelectorDist2(absoluteEps);
-                case Metric.Maximum: return array.CreateRkdTreeSelectorDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateRkdTreeSelectorDist1(absoluteEps),
+                Metric.Euclidean => array.CreateRkdTreeSelectorDist2(absoluteEps),
+                Metric.Maximum => array.CreateRkdTreeSelectorDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static PointRkdTreeFSelector<V2f[], V2f> CreateRkdTreeSelectorDist1(
                 this V2f[] array, float absoluteEps)
@@ -4494,15 +4458,13 @@ namespace Aardvark.Geometry
 
         public static PointRkdTreeFSelector<V3f[], V3f> CreateRkdTreeSelector(
                 this V3f[] array, Metric metric, float absoluteEps)
-        {
-            switch (metric)
+         => metric switch
             {
-                case Metric.Manhattan: return array.CreateRkdTreeSelectorDist1(absoluteEps);
-                case Metric.Euclidean: return array.CreateRkdTreeSelectorDist2(absoluteEps);
-                case Metric.Maximum: return array.CreateRkdTreeSelectorDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateRkdTreeSelectorDist1(absoluteEps),
+                Metric.Euclidean => array.CreateRkdTreeSelectorDist2(absoluteEps),
+                Metric.Maximum => array.CreateRkdTreeSelectorDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static PointRkdTreeFSelector<V3f[], V3f> CreateRkdTreeSelectorDist1(
                 this V3f[] array, float absoluteEps)
@@ -4556,15 +4518,13 @@ namespace Aardvark.Geometry
 
         public static PointRkdTreeFSelector<V4f[], V4f> CreateRkdTreeSelector(
                 this V4f[] array, Metric metric, float absoluteEps)
-        {
-            switch (metric)
+         => metric switch
             {
-                case Metric.Manhattan: return array.CreateRkdTreeSelectorDist1(absoluteEps);
-                case Metric.Euclidean: return array.CreateRkdTreeSelectorDist2(absoluteEps);
-                case Metric.Maximum: return array.CreateRkdTreeSelectorDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateRkdTreeSelectorDist1(absoluteEps),
+                Metric.Euclidean => array.CreateRkdTreeSelectorDist2(absoluteEps),
+                Metric.Maximum => array.CreateRkdTreeSelectorDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static PointRkdTreeFSelector<V4f[], V4f> CreateRkdTreeSelectorDist1(
                 this V4f[] array, float absoluteEps)
@@ -4618,15 +4578,13 @@ namespace Aardvark.Geometry
 
         public static PointRkdTreeD<Matrix<double>, Vector<double>> CreateRkdTree(
                 this Matrix<double> array, Metric metric, double absoluteEps)
-        {
-            switch (metric)
+            => metric switch
             {
-                case Metric.Manhattan: return array.CreateRkdTreeDist1(absoluteEps);
-                case Metric.Euclidean: return array.CreateRkdTreeDist2(absoluteEps);
-                case Metric.Maximum: return array.CreateRkdTreeDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateRkdTreeDist1(absoluteEps),
+                Metric.Euclidean => array.CreateRkdTreeDist2(absoluteEps),
+                Metric.Maximum => array.CreateRkdTreeDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static PointRkdTreeD<Matrix<double>, Vector<double>> CreateRkdTreeDist1(
                 this Matrix<double> array, double absoluteEps)
@@ -4665,15 +4623,13 @@ namespace Aardvark.Geometry
         public static PointRkdTreeD<Matrix<double>, Vector<double>> CreateRkdTree(
                 this Matrix<double> array, Metric metric, double absoluteEps,
                 PointRkdTreeDData data)
-        {
-            switch (metric)
+            => metric switch
             {
-                case Metric.Manhattan: return array.CreateRkdTreeDist1(absoluteEps, data);
-                case Metric.Euclidean: return array.CreateRkdTreeDist2(absoluteEps, data);
-                case Metric.Maximum: return array.CreateRkdTreeDistMax(absoluteEps, data);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateRkdTreeDist1(absoluteEps, data),
+                Metric.Euclidean => array.CreateRkdTreeDist2(absoluteEps, data),
+                Metric.Maximum => array.CreateRkdTreeDistMax(absoluteEps, data),
+                _ => throw new ArgumentException()
+            };
 
         public static PointRkdTreeD<Matrix<double>, Vector<double>> CreateRkdTreeDist1(
                 this Matrix<double> array, double absoluteEps, PointRkdTreeDData data)
@@ -4759,15 +4715,13 @@ namespace Aardvark.Geometry
 
         public static PointRkdTreeD<V2d[], V2d> CreateRkdTree(
                 this V2d[] array, Metric metric, double absoluteEps)
-        {
-            switch (metric)
+         => metric switch
             {
-                case Metric.Manhattan: return array.CreateRkdTreeDist1(absoluteEps);
-                case Metric.Euclidean: return array.CreateRkdTreeDist2(absoluteEps);
-                case Metric.Maximum: return array.CreateRkdTreeDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateRkdTreeDist1(absoluteEps),
+                Metric.Euclidean => array.CreateRkdTreeDist2(absoluteEps),
+                Metric.Maximum => array.CreateRkdTreeDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static PointRkdTreeD<V2d[], V2d> CreateRkdTreeDist1(
                 this V2d[] array, double absoluteEps)
@@ -4821,15 +4775,13 @@ namespace Aardvark.Geometry
 
         public static PointRkdTreeD<V3d[], V3d> CreateRkdTree(
                 this V3d[] array, Metric metric, double absoluteEps)
-        {
-            switch (metric)
+         => metric switch
             {
-                case Metric.Manhattan: return array.CreateRkdTreeDist1(absoluteEps);
-                case Metric.Euclidean: return array.CreateRkdTreeDist2(absoluteEps);
-                case Metric.Maximum: return array.CreateRkdTreeDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateRkdTreeDist1(absoluteEps),
+                Metric.Euclidean => array.CreateRkdTreeDist2(absoluteEps),
+                Metric.Maximum => array.CreateRkdTreeDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static PointRkdTreeD<V3d[], V3d> CreateRkdTreeDist1(
                 this V3d[] array, double absoluteEps)
@@ -4883,15 +4835,13 @@ namespace Aardvark.Geometry
 
         public static PointRkdTreeD<V4d[], V4d> CreateRkdTree(
                 this V4d[] array, Metric metric, double absoluteEps)
-        {
-            switch (metric)
+         => metric switch
             {
-                case Metric.Manhattan: return array.CreateRkdTreeDist1(absoluteEps);
-                case Metric.Euclidean: return array.CreateRkdTreeDist2(absoluteEps);
-                case Metric.Maximum: return array.CreateRkdTreeDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateRkdTreeDist1(absoluteEps),
+                Metric.Euclidean => array.CreateRkdTreeDist2(absoluteEps),
+                Metric.Maximum => array.CreateRkdTreeDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static PointRkdTreeD<V4d[], V4d> CreateRkdTreeDist1(
                 this V4d[] array, double absoluteEps)
@@ -4958,15 +4908,13 @@ namespace Aardvark.Geometry
 
         public static PointRkdTreeDSelector<V2d[], V2d> CreateRkdTreeSelector(
                 this V2d[] array, Metric metric, double absoluteEps)
-        {
-            switch (metric)
+         => metric switch
             {
-                case Metric.Manhattan: return array.CreateRkdTreeSelectorDist1(absoluteEps);
-                case Metric.Euclidean: return array.CreateRkdTreeSelectorDist2(absoluteEps);
-                case Metric.Maximum: return array.CreateRkdTreeSelectorDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateRkdTreeSelectorDist1(absoluteEps),
+                Metric.Euclidean => array.CreateRkdTreeSelectorDist2(absoluteEps),
+                Metric.Maximum => array.CreateRkdTreeSelectorDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static PointRkdTreeDSelector<V2d[], V2d> CreateRkdTreeSelectorDist1(
                 this V2d[] array, double absoluteEps)
@@ -5020,15 +4968,13 @@ namespace Aardvark.Geometry
 
         public static PointRkdTreeDSelector<V3d[], V3d> CreateRkdTreeSelector(
                 this V3d[] array, Metric metric, double absoluteEps)
-        {
-            switch (metric)
+         => metric switch
             {
-                case Metric.Manhattan: return array.CreateRkdTreeSelectorDist1(absoluteEps);
-                case Metric.Euclidean: return array.CreateRkdTreeSelectorDist2(absoluteEps);
-                case Metric.Maximum: return array.CreateRkdTreeSelectorDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateRkdTreeSelectorDist1(absoluteEps),
+                Metric.Euclidean => array.CreateRkdTreeSelectorDist2(absoluteEps),
+                Metric.Maximum => array.CreateRkdTreeSelectorDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static PointRkdTreeDSelector<V3d[], V3d> CreateRkdTreeSelectorDist1(
                 this V3d[] array, double absoluteEps)
@@ -5082,15 +5028,13 @@ namespace Aardvark.Geometry
 
         public static PointRkdTreeDSelector<V4d[], V4d> CreateRkdTreeSelector(
                 this V4d[] array, Metric metric, double absoluteEps)
-        {
-            switch (metric)
+         => metric switch
             {
-                case Metric.Manhattan: return array.CreateRkdTreeSelectorDist1(absoluteEps);
-                case Metric.Euclidean: return array.CreateRkdTreeSelectorDist2(absoluteEps);
-                case Metric.Maximum: return array.CreateRkdTreeSelectorDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateRkdTreeSelectorDist1(absoluteEps),
+                Metric.Euclidean => array.CreateRkdTreeSelectorDist2(absoluteEps),
+                Metric.Maximum => array.CreateRkdTreeSelectorDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static PointRkdTreeDSelector<V4d[], V4d> CreateRkdTreeSelectorDist1(
                 this V4d[] array, double absoluteEps)
@@ -5148,15 +5092,13 @@ namespace Aardvark.Geometry
 
         public static PointVpTreeF<Matrix<float>, Vector<float>> CreateVpTree(
                 this Matrix<float> array, Metric metric, float absoluteEps)
-        {
-            switch (metric)
+            => metric switch
             {
-                case Metric.Manhattan: return array.CreateVpTreeDist1(absoluteEps);
-                case Metric.Euclidean: return array.CreateVpTreeDist2(absoluteEps);
-                case Metric.Maximum: return array.CreateVpTreeDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateVpTreeDist1(absoluteEps),
+                Metric.Euclidean => array.CreateVpTreeDist2(absoluteEps),
+                Metric.Maximum => array.CreateVpTreeDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static PointVpTreeF<Matrix<float>, Vector<float>> CreateVpTreeDist1(
                 this Matrix<float> array, float absoluteEps)
@@ -5194,15 +5136,13 @@ namespace Aardvark.Geometry
         public static PointVpTreeF<Matrix<float>, Vector<float>> CreateVpTree(
                 this Matrix<float> array, Metric metric, float absoluteEps,
                 PointVpTreeFData data)
-        {
-            switch (metric)
+            => metric switch
             {
-                case Metric.Manhattan: return array.CreateVpTreeDist1(absoluteEps, data);
-                case Metric.Euclidean: return array.CreateVpTreeDist2(absoluteEps, data);
-                case Metric.Maximum: return array.CreateVpTreeDistMax(absoluteEps, data);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateVpTreeDist1(absoluteEps, data),
+                Metric.Euclidean => array.CreateVpTreeDist2(absoluteEps, data),
+                Metric.Maximum => array.CreateVpTreeDistMax(absoluteEps, data),
+                _ => throw new ArgumentException()
+            };
 
         public static PointVpTreeF<Matrix<float>, Vector<float>> CreateVpTreeDist1(
                 this Matrix<float> array, float absoluteEps, PointVpTreeFData data)
@@ -5286,15 +5226,13 @@ namespace Aardvark.Geometry
 
         public static PointVpTreeF<V2f[], V2f> CreateVpTree(
                 this V2f[] array, Metric metric, float absoluteEps)
-        {
-            switch (metric)
+         => metric switch
             {
-                case Metric.Manhattan: return array.CreateVpTreeDist1(absoluteEps);
-                case Metric.Euclidean: return array.CreateVpTreeDist2(absoluteEps);
-                case Metric.Maximum: return array.CreateVpTreeDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateVpTreeDist1(absoluteEps),
+                Metric.Euclidean => array.CreateVpTreeDist2(absoluteEps),
+                Metric.Maximum => array.CreateVpTreeDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static PointVpTreeF<V2f[], V2f> CreateVpTreeDist1(
                 this V2f[] array, float absoluteEps)
@@ -5343,15 +5281,13 @@ namespace Aardvark.Geometry
 
         public static PointVpTreeF<V3f[], V3f> CreateVpTree(
                 this V3f[] array, Metric metric, float absoluteEps)
-        {
-            switch (metric)
+         => metric switch
             {
-                case Metric.Manhattan: return array.CreateVpTreeDist1(absoluteEps);
-                case Metric.Euclidean: return array.CreateVpTreeDist2(absoluteEps);
-                case Metric.Maximum: return array.CreateVpTreeDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateVpTreeDist1(absoluteEps),
+                Metric.Euclidean => array.CreateVpTreeDist2(absoluteEps),
+                Metric.Maximum => array.CreateVpTreeDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static PointVpTreeF<V3f[], V3f> CreateVpTreeDist1(
                 this V3f[] array, float absoluteEps)
@@ -5400,15 +5336,13 @@ namespace Aardvark.Geometry
 
         public static PointVpTreeF<V4f[], V4f> CreateVpTree(
                 this V4f[] array, Metric metric, float absoluteEps)
-        {
-            switch (metric)
+         => metric switch
             {
-                case Metric.Manhattan: return array.CreateVpTreeDist1(absoluteEps);
-                case Metric.Euclidean: return array.CreateVpTreeDist2(absoluteEps);
-                case Metric.Maximum: return array.CreateVpTreeDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateVpTreeDist1(absoluteEps),
+                Metric.Euclidean => array.CreateVpTreeDist2(absoluteEps),
+                Metric.Maximum => array.CreateVpTreeDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static PointVpTreeF<V4f[], V4f> CreateVpTreeDist1(
                 this V4f[] array, float absoluteEps)
@@ -5457,15 +5391,13 @@ namespace Aardvark.Geometry
 
         public static PointVpTreeD<Matrix<double>, Vector<double>> CreateVpTree(
                 this Matrix<double> array, Metric metric, double absoluteEps)
-        {
-            switch (metric)
+            => metric switch
             {
-                case Metric.Manhattan: return array.CreateVpTreeDist1(absoluteEps);
-                case Metric.Euclidean: return array.CreateVpTreeDist2(absoluteEps);
-                case Metric.Maximum: return array.CreateVpTreeDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateVpTreeDist1(absoluteEps),
+                Metric.Euclidean => array.CreateVpTreeDist2(absoluteEps),
+                Metric.Maximum => array.CreateVpTreeDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static PointVpTreeD<Matrix<double>, Vector<double>> CreateVpTreeDist1(
                 this Matrix<double> array, double absoluteEps)
@@ -5503,15 +5435,13 @@ namespace Aardvark.Geometry
         public static PointVpTreeD<Matrix<double>, Vector<double>> CreateVpTree(
                 this Matrix<double> array, Metric metric, double absoluteEps,
                 PointVpTreeDData data)
-        {
-            switch (metric)
+            => metric switch
             {
-                case Metric.Manhattan: return array.CreateVpTreeDist1(absoluteEps, data);
-                case Metric.Euclidean: return array.CreateVpTreeDist2(absoluteEps, data);
-                case Metric.Maximum: return array.CreateVpTreeDistMax(absoluteEps, data);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateVpTreeDist1(absoluteEps, data),
+                Metric.Euclidean => array.CreateVpTreeDist2(absoluteEps, data),
+                Metric.Maximum => array.CreateVpTreeDistMax(absoluteEps, data),
+                _ => throw new ArgumentException()
+            };
 
         public static PointVpTreeD<Matrix<double>, Vector<double>> CreateVpTreeDist1(
                 this Matrix<double> array, double absoluteEps, PointVpTreeDData data)
@@ -5595,15 +5525,13 @@ namespace Aardvark.Geometry
 
         public static PointVpTreeD<V2d[], V2d> CreateVpTree(
                 this V2d[] array, Metric metric, double absoluteEps)
-        {
-            switch (metric)
+         => metric switch
             {
-                case Metric.Manhattan: return array.CreateVpTreeDist1(absoluteEps);
-                case Metric.Euclidean: return array.CreateVpTreeDist2(absoluteEps);
-                case Metric.Maximum: return array.CreateVpTreeDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateVpTreeDist1(absoluteEps),
+                Metric.Euclidean => array.CreateVpTreeDist2(absoluteEps),
+                Metric.Maximum => array.CreateVpTreeDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static PointVpTreeD<V2d[], V2d> CreateVpTreeDist1(
                 this V2d[] array, double absoluteEps)
@@ -5652,15 +5580,13 @@ namespace Aardvark.Geometry
 
         public static PointVpTreeD<V3d[], V3d> CreateVpTree(
                 this V3d[] array, Metric metric, double absoluteEps)
-        {
-            switch (metric)
+         => metric switch
             {
-                case Metric.Manhattan: return array.CreateVpTreeDist1(absoluteEps);
-                case Metric.Euclidean: return array.CreateVpTreeDist2(absoluteEps);
-                case Metric.Maximum: return array.CreateVpTreeDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateVpTreeDist1(absoluteEps),
+                Metric.Euclidean => array.CreateVpTreeDist2(absoluteEps),
+                Metric.Maximum => array.CreateVpTreeDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static PointVpTreeD<V3d[], V3d> CreateVpTreeDist1(
                 this V3d[] array, double absoluteEps)
@@ -5709,15 +5635,13 @@ namespace Aardvark.Geometry
 
         public static PointVpTreeD<V4d[], V4d> CreateVpTree(
                 this V4d[] array, Metric metric, double absoluteEps)
-        {
-            switch (metric)
+         => metric switch
             {
-                case Metric.Manhattan: return array.CreateVpTreeDist1(absoluteEps);
-                case Metric.Euclidean: return array.CreateVpTreeDist2(absoluteEps);
-                case Metric.Maximum: return array.CreateVpTreeDistMax(absoluteEps);
-                default: throw new ArgumentException();
-            }
-        }
+                Metric.Manhattan => array.CreateVpTreeDist1(absoluteEps),
+                Metric.Euclidean => array.CreateVpTreeDist2(absoluteEps),
+                Metric.Maximum => array.CreateVpTreeDistMax(absoluteEps),
+                _ => throw new ArgumentException()
+            };
 
         public static PointVpTreeD<V4d[], V4d> CreateVpTreeDist1(
                 this V4d[] array, double absoluteEps)

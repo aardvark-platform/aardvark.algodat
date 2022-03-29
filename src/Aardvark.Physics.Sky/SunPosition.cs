@@ -87,7 +87,7 @@ namespace Aardvark.Physics.Sky
                 var H = HourAngleDeg(jt, longitudeInDegrees);
 
                 // iteration of refinement
-                jt = jt - H / 360 * J3; // Eq. 36  :  J3 = average length of a solar day
+                jt -= H / 360 * J3; // Eq. 36  :  J3 = average length of a solar day
             }
 
             return jt;
@@ -324,8 +324,8 @@ namespace Aardvark.Physics.Sky
                 var htset = Fun.Acos((sinh0 - sinPhi * Fun.Sin(deltaSet)) / (cosPhi * Fun.Cos(delta))) * Constant.DegreesPerRadian;
 
                 // iteration of refinement
-                jrise = jrise - (hrise + htrise) / 360 * J3; // Eq. 50  :  J3 = average length of a solar day
-                jset = jset - (hset - htset) / 360 * J3; // Eq. 51  :  J3 = average length of a solar day
+                jrise -= (hrise + htrise) / 360 * J3; // Eq. 50  :  J3 = average length of a solar day
+                jset -= (hset - htset) / 360 * J3; // Eq. 51  :  J3 = average length of a solar day
             }
 
             return (jrise, jset);

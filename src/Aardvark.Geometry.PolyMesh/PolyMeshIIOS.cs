@@ -88,7 +88,7 @@ namespace Aardvark.Geometry
             {
                 var p1 = pa[via[fvi++]];
                 va[fs] = p1; ea[fs - 1] = p1 - p0;
-                p1 = p0;
+                //p1 = p0;
             }
             ea[fvc - 1] = p - p0;
             hitInfo.Points = va;

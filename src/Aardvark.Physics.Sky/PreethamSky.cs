@@ -28,7 +28,7 @@ namespace Aardvark.Physics.Sky
         /// doubles, although too high values can cause distortions.
         /// Recommended values are between 1.9 and 10.0.
         /// </summary>
-        private double m_turbidity;
+        private readonly double m_turbidity;
 
         #region Constructor
 
@@ -47,12 +47,12 @@ namespace Aardvark.Physics.Sky
 
         #region Static Members
 
-        private static double[] s_ABCDE_Y = { -1.4630, 0.4275, 5.3251, -2.5771, 0.3703 };
-        private static double[] s_ABCDET_Y = { 0.1787, -0.3554, -0.0227, 0.1206, -0.0670 };
-        private static double[] s_ABCDE_x = { -0.2592, 0.0008, 0.2125, -0.8989, 0.0452 };
-        private static double[] s_ABCDET_x = { -0.0193, -0.0665, -0.0004, -0.0641, -0.0033 };
-        private static double[] s_ABCDE_y = { -0.2608, 0.0092, 0.2102, -1.6537, 0.0529 };
-        private static double[] s_ABCDET_y = { -0.0167, -0.0950, -0.0079, -0.0441, -0.0109 };
+        private static readonly double[] s_ABCDE_Y = { -1.4630, 0.4275, 5.3251, -2.5771, 0.3703 };
+        private static readonly double[] s_ABCDET_Y = { 0.1787, -0.3554, -0.0227, 0.1206, -0.0670 };
+        private static readonly double[] s_ABCDE_x = { -0.2592, 0.0008, 0.2125, -0.8989, 0.0452 };
+        private static readonly double[] s_ABCDET_x = { -0.0193, -0.0665, -0.0004, -0.0641, -0.0033 };
+        private static readonly double[] s_ABCDE_y = { -0.2608, 0.0092, 0.2102, -1.6537, 0.0529 };
+        private static readonly double[] s_ABCDET_y = { -0.0167, -0.0950, -0.0079, -0.0441, -0.0109 };
 
         #endregion
 
