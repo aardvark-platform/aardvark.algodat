@@ -1,3 +1,7 @@
+### 5.2.2
+- E57: add PointPropertySemantics.Classification (not part of E57 specification)
+- ported C# code to latest language version
+
 ### 5.2.1
 - tests: deterministic initialization of random generator
 - fix problem with importing uint[] intensities in a .net-framework application,
