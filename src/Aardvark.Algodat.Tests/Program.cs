@@ -1735,15 +1735,16 @@ namespace Aardvark.Geometry.Tests
         {
             var filenames = new[]
             {
-                @"E:\e57tests\datasets\Punktwolke_M34.e57",
-                @"E:\e57tests\datasets\aibotix_ground_points.e57",
-                @"E:\e57tests\datasets\Register360_Berlin Office_1.e57",
-                @"E:\e57tests\datasets\Staatsoper.e57",
-                @"E:\e57tests\datasets\Innenscan_FARO.e57",
-                @"E:\e57tests\datasets\1190_31_test_Frizzo.e57",
-                @"E:\e57tests\datasets\Neuhäusl-Hörschwang.e57",
-                @"E:\e57tests\datasets\2020452-B-3-5.e57",
-                @"E:\e57tests\datasets\100pct_1mm_zebcam_shade_zebcam_world.e57",
+                @"W:\Datasets\pointclouds\convex\scan-119.e57",
+                //@"E:\e57tests\datasets\Punktwolke_M34.e57",
+                //@"E:\e57tests\datasets\aibotix_ground_points.e57",
+                //@"E:\e57tests\datasets\Register360_Berlin Office_1.e57",
+                //@"E:\e57tests\datasets\Staatsoper.e57",
+                //@"E:\e57tests\datasets\Innenscan_FARO.e57",
+                //@"E:\e57tests\datasets\1190_31_test_Frizzo.e57",
+                //@"E:\e57tests\datasets\Neuhäusl-Hörschwang.e57",
+                //@"E:\e57tests\datasets\2020452-B-3-5.e57",
+                //@"E:\e57tests\datasets\100pct_1mm_zebcam_shade_zebcam_world.e57",
             };
 
             foreach (var filename in filenames)
@@ -1766,19 +1767,16 @@ namespace Aardvark.Geometry.Tests
                 var config = ImportConfig.Default
                     .WithStorage(store)
                     .WithKey(key)
-                    .WithVerbose(false)
+                    .WithVerbose(true)
                     .WithMaxDegreeOfParallelism(0)
-                    .WithMinDist(0.05)
+                    .WithMinDist(0.005)
                     .WithNormalizePointDensityGlobal(true)
                     //.WithProgressCallback(p => { Report.Line($"{p:0.00}"); })
                     ;
 
-                var import = Task.Run(() =>
-                {
-                    //var runningCount = 0L;
-                    var chunks = E57
+                var chunks = E57
                         .Chunks(filename, config.ParseConfig)
-                        .Take(1)
+                        //.Take(20)
                         //.TakeWhile(chunk =>
                         //{
                         //    var n = Interlocked.Add(ref runningCount, chunk.Count);
@@ -1786,11 +1784,9 @@ namespace Aardvark.Geometry.Tests
                         //    return n < info.PointCount * (0.125 + 0.125 / 2);
                         //})
                         ;
-                    var pcl = PointCloud.Chunks(chunks, config);
-                    return pcl;
-                });
 
-                var pcl = import.Result;
+                var pcl = PointCloud.Import(chunks, config);
+
                 File.WriteAllText(Path.Combine(storePath, "key.txt"), pcl.Id);
 
 
