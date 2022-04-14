@@ -1566,9 +1566,9 @@ namespace Aardvark.Data.E57
             {
                 EnsureElementNameAndType(root, "vectorChild", "Structure");
 
-                return new E57Image2D
+                var x = new E57Image2D
                 {
-                    Guid = GetString(root, "guid", true),
+                    Guid = GetString(root, "guid", required: false) ?? $"RTFM {System.Guid.NewGuid()}", // field "guid" is required according to TABLE21 in E57 specification
                     VisualReferenceRepresentation = E57VisualReferenceRepresentation.Parse(GetElement(root, "visualReferenceRepresentation"),stream),
                     PinholeRepresentation = E57PinholeRepresentation.Parse(GetElement(root, "pinholeRepresentation"), stream),
                     SphericalRepresentation = E57SphericalRepresentation.Parse(GetElement(root, "sphericalRepresentation"), stream),
@@ -1582,6 +1582,7 @@ namespace Aardvark.Data.E57
                     SensorModel = GetString(root, "sensorModel", false),
                     SensorSerialNumber = GetString(root, "sensorSerialNumber", false),
                 };
+                return x;
             }
         }
 

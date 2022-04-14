@@ -1735,16 +1735,17 @@ namespace Aardvark.Geometry.Tests
         {
             var filenames = new[]
             {
-                @"W:\Datasets\pointclouds\convex\scan-119.e57",
-                //@"E:\e57tests\datasets\Punktwolke_M34.e57",
-                //@"E:\e57tests\datasets\aibotix_ground_points.e57",
-                //@"E:\e57tests\datasets\Register360_Berlin Office_1.e57",
-                //@"E:\e57tests\datasets\Staatsoper.e57",
-                //@"E:\e57tests\datasets\Innenscan_FARO.e57",
-                //@"E:\e57tests\datasets\1190_31_test_Frizzo.e57",
-                //@"E:\e57tests\datasets\Neuhäusl-Hörschwang.e57",
-                //@"E:\e57tests\datasets\2020452-B-3-5.e57",
-                //@"E:\e57tests\datasets\100pct_1mm_zebcam_shade_zebcam_world.e57",
+                //@"E:\e57tests\datasets\matterport.e57",
+                @"E:\e57tests\datasets\convex-scan-119.e57",
+                @"E:\e57tests\datasets\Punktwolke_M34.e57",
+                @"E:\e57tests\datasets\aibotix_ground_points.e57",
+                @"E:\e57tests\datasets\Register360_Berlin Office_1.e57",
+                @"E:\e57tests\datasets\Staatsoper.e57",
+                @"E:\e57tests\datasets\Innenscan_FARO.e57",
+                @"E:\e57tests\datasets\1190_31_test_Frizzo.e57",
+                @"E:\e57tests\datasets\Neuhäusl-Hörschwang.e57",
+                @"E:\e57tests\datasets\2020452-B-3-5.e57",
+                @"E:\e57tests\datasets\100pct_1mm_zebcam_shade_zebcam_world.e57",
             };
 
             foreach (var filename in filenames)
@@ -1768,7 +1769,7 @@ namespace Aardvark.Geometry.Tests
                     .WithStorage(store)
                     .WithKey(key)
                     .WithVerbose(true)
-                    .WithMaxDegreeOfParallelism(0)
+                    .WithMaxDegreeOfParallelism(1)
                     .WithMinDist(0.005)
                     .WithNormalizePointDensityGlobal(true)
                     //.WithProgressCallback(p => { Report.Line($"{p:0.00}"); })
@@ -1817,8 +1818,21 @@ namespace Aardvark.Geometry.Tests
             }
         }
 
+        static void LisaTest20220404()
+        {
+            var cache = new LruDictionary<string, object>(1024 * 1024 * 1024);
+            var store = PointCloud.OpenStore($@"E:\e57tests\stores\LisaTest20220404.uds", cache);
+            var config = ImportConfig.Default.WithStorage(store).WithKey("root").WithVerbose(true);
+
+            var chunks = E57.Chunks(@"W:\Datasets\pointclouds\convex\scan-119.e57", config.ParseConfig);
+            var pointset = PointCloud.Chunks(chunks, config);
+            Console.WriteLine("done");
+        }
+
         public static void Main(string[] _)
         {
+            //LisaTest20220404();
+
             Test_Import_Regression();
 
             //TestFilterSerialization();
