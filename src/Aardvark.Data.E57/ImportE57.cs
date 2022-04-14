@@ -162,7 +162,7 @@ namespace Aardvark.Data.Points.Import
         public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, ParseConfig config)
         {
             var exclude = ImmutableHashSet<PointPropertySemantics>.Empty
-                .Add(PointPropertySemantics.CartesianInvalidState)
+                //.Add(PointPropertySemantics.CartesianInvalidState)
                 .Add(PointPropertySemantics.ColumnIndex)
                 .Add(PointPropertySemantics.IsColorInvalid)
                 .Add(PointPropertySemantics.IsIntensityInvalid)
@@ -200,6 +200,13 @@ namespace Aardvark.Data.Points.Import
                             intensities: e57chunk.Intensities,
                             classifications: e57chunk.Classification?.Map(x => (byte)x)
                             );
+
+                        if (Properties.ContainsKey(PointPropertySemantics.CartesianInvalidState))
+                        {
+                            var cis = (byte[])Properties[PointPropertySemantics.CartesianInvalidState];
+                            chunk = chunk.ImmutableFilter((c, i) => cis[i] == 0);
+                        }
+
                         Interlocked.Add(ref yieldedRecordCount, Positions.Length);
 
                         //if (e57chunk.Classification != null)
