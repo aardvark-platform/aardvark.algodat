@@ -1,3 +1,7 @@
+### 5.1.36
+- [cherrypick] e57: E57.Chunks(...) now filters points by CartesianInvalidState==0 (if specified); in E57.ChunksFull(...) no filtering is applied
+- [cherrypick] e57: workaround for invalid matterport exports (missing required "guid" field)
+
 ### 5.1.35
 - merged `5.1.30.1` and `5.1.30.2`
 - cherry picked all commits from `master` branch, which are not related to 5.2.x upgrade
