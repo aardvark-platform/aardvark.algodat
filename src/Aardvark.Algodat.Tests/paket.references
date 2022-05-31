@@ -7,3 +7,4 @@ NUnit3TestAdapter
 Uncodium.Eigensystems
 Uncodium.SimpleStore
 System.Collections.Immutable
+SixLabors.ImageSharp

@@ -283,6 +283,8 @@ namespace Scratch
 
         static void Main(string[] args)
         {
+            Experiments.Run();
+#if NOMORE
             //GeneratePointCloudStats();
             //return;
 
@@ -329,6 +331,7 @@ namespace Scratch
             //{
             //    Console.WriteLine($"{chunk.Count}");
             //}
+#endif
         }
     }
 }

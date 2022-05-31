@@ -18,6 +18,7 @@ type Background =
     | Skybox of box : Skybox
     | CoordinateBox
     | Black
+    | White
 
 type RenderConfig =
     {

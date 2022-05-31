@@ -3,6 +3,9 @@ using Aardvark.Data;
 using Aardvark.Data.Points;
 using Aardvark.Data.Points.Import;
 using Aardvark.Geometry.Points;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.PixelFormats;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -1735,17 +1738,19 @@ namespace Aardvark.Geometry.Tests
         {
             var filenames = new[]
             {
+                @"Z:\VRVis\Brandenburg\2022-01-21_11-29-18_20_EW_Marteloskope_L2.las",
+                //@"Z:\VRVis\Brandenburg\2022-03-26_10-45-23-Proetzel_L0.las",
                 //@"E:\e57tests\datasets\matterport.e57",
-                @"E:\e57tests\datasets\convex-scan-119.e57",
-                @"E:\e57tests\datasets\Punktwolke_M34.e57",
-                @"E:\e57tests\datasets\aibotix_ground_points.e57",
-                @"E:\e57tests\datasets\Register360_Berlin Office_1.e57",
-                @"E:\e57tests\datasets\Staatsoper.e57",
-                @"E:\e57tests\datasets\Innenscan_FARO.e57",
-                @"E:\e57tests\datasets\1190_31_test_Frizzo.e57",
-                @"E:\e57tests\datasets\Neuhäusl-Hörschwang.e57",
-                @"E:\e57tests\datasets\2020452-B-3-5.e57",
-                @"E:\e57tests\datasets\100pct_1mm_zebcam_shade_zebcam_world.e57",
+                //@"E:\e57tests\datasets\convex-scan-119.e57",
+                //@"E:\e57tests\datasets\Punktwolke_M34.e57",
+                //@"E:\e57tests\datasets\aibotix_ground_points.e57",
+                //@"E:\e57tests\datasets\Register360_Berlin Office_1.e57",
+                //@"E:\e57tests\datasets\Staatsoper.e57",
+                //@"E:\e57tests\datasets\Innenscan_FARO.e57",
+                //@"E:\e57tests\datasets\1190_31_test_Frizzo.e57",
+                //@"E:\e57tests\datasets\Neuhäusl-Hörschwang.e57",
+                //@"E:\e57tests\datasets\2020452-B-3-5.e57",
+                //@"E:\e57tests\datasets\100pct_1mm_zebcam_shade_zebcam_world.e57",
             };
 
             foreach (var filename in filenames)
@@ -1760,22 +1765,23 @@ namespace Aardvark.Geometry.Tests
                 var store = storeRaw.ToPointCloudStore();
 
 
-                var info = E57.E57Info(filename, ParseConfig.Default);
-                Report.Line($"total bounds: {info.Bounds}");
-                Report.Line($"total count : {info.PointCount:N0}");
+                //var info = E57.E57Info(filename, ParseConfig.Default);
+                //Report.Line($"total bounds: {info.Bounds}");
+                //Report.Line($"total count : {info.PointCount:N0}");
 
 
                 var config = ImportConfig.Default
                     .WithStorage(store)
                     .WithKey(key)
                     .WithVerbose(true)
-                    .WithMaxDegreeOfParallelism(1)
+                    .WithMaxDegreeOfParallelism(0)
                     .WithMinDist(0.005)
                     .WithNormalizePointDensityGlobal(true)
                     //.WithProgressCallback(p => { Report.Line($"{p:0.00}"); })
                     ;
 
-                var chunks = E57
+                
+                var chunks = Laszip
                         .Chunks(filename, config.ParseConfig)
                         //.Take(20)
                         //.TakeWhile(chunk =>
@@ -1829,11 +1835,180 @@ namespace Aardvark.Geometry.Tests
             Console.WriteLine("done");
         }
 
+        static void FlattenTest()
+        {
+            var filename = @"Z:\VRVis\Brandenburg\2022-01-21_11-29-18_20_EW_Marteloskope_L2.las";
+            //var filename = @"Z:\VRVis\Brandenburg\2022-03-26_10-45-23-Proetzel_L0.las";
+
+            var config = ImportConfig.Default
+                    //.WithStorage(store)
+                    //.WithKey(key)
+                    .WithVerbose(true)
+                    .WithMaxDegreeOfParallelism(0)
+                    .WithMinDist(0.001)
+                    .WithNormalizePointDensityGlobal(true)
+                    //.WithProgressCallback(p => { Report.Line($"{p:0.00}"); })
+                    ;
+
+            var f = 10;
+
+            var info = Laszip.LaszipInfo(filename, config.ParseConfig);
+            var bbxy = info.Bounds.XY;
+            var bbxysize = bbxy.Size;
+            var size = (V2i)(bbxysize * f);
+
+            Console.WriteLine($"{info.Bounds.XY.Area:N0} m²");
+
+            var o = info.Bounds.Min;
+            var ps = Laszip
+                .Chunks(filename, config.ParseConfig)
+                .SelectMany(c => c.Positions)
+                .Select(p => p - o)
+                .ToArray()
+                ;
+
+            Experiments.
+
+            if (false)
+            {
+                var w = size.X + 1;
+                var h = size.Y + 1;
+
+                var raster = new int[w * h];
+                var i = 0;
+                foreach (var p0 in ps)
+                {
+                    var p = (V2i)(p0 * f);
+                    raster[p.Y * w + p.X]++;
+                    if (++i % 1000000 == 0) Console.WriteLine($"{i,10:N0}");
+                    //var c = img[p.X, p.Y];
+                    //img[p.X, p.Y] = new Rgb24((byte)Math.Min(255, c.R + 1), (byte)Math.Min(255, c.G + 1), (byte)Math.Min(255, c.B + 1));
+                }
+
+                var max = raster.Max();
+                var scale = 255f / max;
+
+                var img = new Image<Rgb24>(w, h, new Rgb24(0, 0, 0));
+                for (var y = 0; y < h; y++)
+                {
+                    for (var x = 0; x < w; x++)
+                    {
+                        var c = (byte)(raster[y * w + x] * scale);
+                        img[x, y] = new Rgb24(c, c, c);
+                    }
+                }
+
+                img.SaveAsPng(@"T:\flatwood2_low.png");
+
+                for (var y = 0; y < h; y++)
+                {
+                    for (var x = 0; x < w; x++)
+                    {
+                        var c = img[x, y].R;
+                        if (c > 64) { img[x, y] = new Rgb24(255, 0, 0); continue; }
+                        if (c > 32) { img[x, y] = new Rgb24(0, 255, 0); continue; }
+                        if (c > 16) { img[x, y] = new Rgb24(0, 0, 255); continue; }
+                        //if (c > 191) { img[x, y] = new Rgb24(c, 0, 0); continue; }
+                        //if (c > 159) { img[x, y] = new Rgb24(0, c, 0); continue; }
+                        //if (c > 127) { img[x, y] = new Rgb24(0, 0, c); continue; }
+                        //if (c > 95) { img[x, y] = new Rgb24(c, c, 0); continue; }
+                        //if (c > 63) { img[x, y] = new Rgb24(c, 0, c); continue; }
+                        //if (c > 31) { img[x, y] = new Rgb24(0, c, c); continue; }
+                        //img[x, y] = new Rgb24(0, 0, 0);
+                    }
+                }
+
+                img.SaveAsPng(@"T:\flatwood2_low.png");
+
+                return;
+            }
+
+            var patches = new Dictionary<V2i, List<V3d>>();
+            foreach (var p in ps)
+            {
+                var pi = (V2i)(p / 10.0);
+                if (!patches.ContainsKey(pi)) patches[pi] = new();
+                patches[pi].Add(p);
+            }
+
+            var ps1 = new List<V3d>();
+            var ns1 = new List<V3f>();
+            var ds1 = new List<float>();
+            {
+                var count = 0;
+                var j = 0;
+                Parallel.ForEach(patches.OrderBy(x => x.Key.X + x.Key.Y), patch =>
+                {
+                    Report.BeginTimed($"patch {Interlocked.Increment(ref j):N0}/{patches.Count:N0}, {Interlocked.Add(ref count, patch.Value.Count):N0}");
+                    var (normals, densities) = Normals.EstimateNormalsAndLocalDensity(patch.Value.ToArray(), 16);
+                    lock (ps1)
+                    {
+                        ps1.AddRange(patch.Value);
+                        ns1.AddRange(normals);
+                        ds1.AddRange(densities);
+                    }
+                    Report.EndTimed();
+                });
+
+                Console.WriteLine($"ds1 min   : {ds1.Min(),16:N3}");
+                Console.WriteLine($"ds1 max   : {ds1.Max(),16:N3}");
+                Console.WriteLine($"ds1 mean  : {ds1.Mean(),16:N3}");
+                Console.WriteLine($"ds1 stddev: {ds1.StandardDeviation(),16:N3}");
+
+                //return;
+
+                //var fs = ds1.Map(x => x < 0.05);
+                //ps1 = ps1.Where((_, i) => fs[i]).ToList();
+                //ns1 = ns1.Where((_, i) => fs[i]).ToList();
+                //ds1 = ds1.Where((_, i) => fs[i]).ToList();
+            }
+
+
+            //Console.WriteLine($"patches: {patches.Count}");
+
+            //var binSize = 100;
+            //var histo = patches.Select(x => x.Value.Count).GroupBy(x => x / binSize).Select(g => (bin: g.Key, value: g.Count())).OrderBy(x => x.bin).ToArrayDebug();
+            //foreach (var (bin, value) in histo) Console.WriteLine($"{bin*binSize,10:N0} : {value,10:N0}");
+
+
+
+            {
+                //Console.WriteLine("filtering ...");
+                //var chunkps = new List<V3d>();
+                //foreach (var patch in patches)
+                //{
+                //    var minZ = patch.Value.Select(p => p.Z).Min() + 1.00;
+                //    chunkps.AddRange(patch.Value.Where(p => p.Z > minZ + 1.5 && p.Z < minZ + 2.5));
+                //}
+
+                var key = "test11";
+                var storePath = $@"E:\e57tests\stores\{key}";
+                Directory.CreateDirectory(storePath);
+                using var storeRaw = new SimpleDiskStore(Path.Combine(storePath, "data.uds"));
+                var store = storeRaw.ToPointCloudStore();
+                //var chunk = new Chunk(chunkps);
+                var chunk = new Chunk(ps1, colors: ns1.Map(n => new C4b((V3i)(n.Abs()*255))), normals: ns1);
+
+                Console.WriteLine($"saving {chunk.Count:N0} points ...");
+                var cfg = config
+                        .WithStorage(store)
+                        .WithKey(key)
+                        .WithVerbose(true)
+                        ;
+                var pcl = PointCloud.Import(chunk.Split(16*1024*1024), cfg);
+                File.WriteAllText(Path.Combine(storePath, "key.txt"), pcl.Id);
+            }
+
+            return;
+        }
+
         public static void Main(string[] _)
         {
-            //LisaTest20220404();
+            FlattenTest();
 
-            Test_Import_Regression();
+            //Test_Import_Regression();
+
+            //LisaTest20220404();
 
             //TestFilterSerialization();
 
@@ -1847,6 +2022,7 @@ namespace Aardvark.Geometry.Tests
 
             //new Aardvark.Physics.Sky.SkyTests().SolarTransmitTest();
             //new Aardvark.Physics.Sky.SkyTests().SunRiseSunSetTest();
+
             //new Aardvark.Physics.Sky.SkyTests().DuskDawnTest();
             //new Aardvark.Physics.Sky.SkyTests().DuskDawnTest2();
             //new Aardvark.Physics.Sky.SkyTests().HorizonTest();

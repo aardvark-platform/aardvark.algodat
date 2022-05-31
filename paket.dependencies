@@ -39,6 +39,7 @@ nuget Uncodium.Eigensystems             ~> 1.1.2
 nuget Uncodium.SimpleStore              ~> 3.0.10
 nuget Unofficial.DotSpatial.Projections ~> 0.0.4
 nuget Unofficial.laszip.netstandard     ~> 2.2.1
+nuget SixLabors.ImageSharp              ~> 2.0.0
 
 nuget sharpcompress                     ~> 0.30.0      // only used in Apps/heracli
 

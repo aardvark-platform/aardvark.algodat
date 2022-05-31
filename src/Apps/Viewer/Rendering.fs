@@ -248,7 +248,7 @@ module Rendering =
             (camera, frustum, win.Mouse.Position) 
             |||> AVal.bind3 (fun c f p -> 
                 win.Sizes |> AVal.map (fun s -> 
-                    let pts = !pick p.Position 200 800
+                    let pts = pick.Value p.Position 200 800
                     pts |> Array.map (fun p -> p.World |> Trafo3d.Translation)
                     
                     //if pts.Length = 0 then V3d.III
@@ -366,7 +366,8 @@ module Rendering =
                         | Skybox.ViolentDays -> config.background.Value <- Background.Skybox Skybox.Wasserleonburg
                         | Skybox.Wasserleonburg -> config.background.Value <- Background.CoordinateBox
                     | Background.CoordinateBox ->  config.background.Value <- Background.Black
-                    | Background.Black -> config.background.Value <- Background.Skybox Skybox.Miramar
+                    | Background.Black ->  config.background.Value <- Background.White
+                    | Background.White -> config.background.Value <- Background.Skybox Skybox.Miramar
                 )
 
             | Keys.J -> transact (fun () -> config.planeFit.Value <- not config.planeFit.Value)
@@ -556,7 +557,7 @@ module Rendering =
 
 
         let config, pcs = pointClouds win args.msaa camera frustum pcs
-        
+
         let sg =
             Sg.ofList [
                 pcs
@@ -581,5 +582,15 @@ module Rendering =
             |> Sg.projTrafo (frustum |> AVal.map Frustum.projTrafo)
             //|> Sg.uniform "EnvMap" skyboxes.[Skybox.ViolentDays]
     
-        win.RenderTask <- Sg.compile app.Runtime win.FramebufferSignature sg
+        // background color
+        let bgColor = AVal.init C4f.White
+
+        use task =
+            [
+                app.Runtime.CompileClear(win.FramebufferSignature, bgColor)
+                app.Runtime.CompileRender(win.FramebufferSignature, sg)
+            ]
+            |> RenderTask.ofList
+
+        win.RenderTask <- task //Sg.compile app.Runtime win.FramebufferSignature sg
         win.Run()
