@@ -67,32 +67,30 @@ namespace Aardvark.Data.Points
 
         public readonly Box3d BoundingBox;
 
-        public int Count => Positions != null ? Positions.Count : 0;
+        public int Count => Positions.Count;
 
         public bool IsEmpty => Count == 0;
 
-        [MemberNotNullWhen(true, nameof(Positions))]
-        public bool HasPositions => Positions != null && Positions.Count > 0;
+        public bool HasPositions => true;
 
         [MemberNotNullWhen(true, nameof(Colors))]
-        public bool HasColors => Colors != null && Colors.Count > 0;
+        public bool HasColors => Colors != null;
 
         [MemberNotNullWhen(true, nameof(Normals))]
-        public bool HasNormals => Normals != null && Normals.Count > 0;
+        public bool HasNormals => Normals != null;
 
         [MemberNotNullWhen(true, nameof(Intensities))]
-        public bool HasIntensities => Intensities != null && Intensities.Count > 0;
+        public bool HasIntensities => Intensities != null;
 
         [MemberNotNullWhen(true, nameof(Classifications))]
-        public bool HasClassifications => Classifications != null && Classifications.Count > 0;
+        public bool HasClassifications => Classifications != null;
 
         public static Chunk ImmutableMerge(Chunk a, Chunk b)
         {
             if (a is null || a.IsEmpty) return b;
             if (b is null || b.IsEmpty) return a;
 
-            ImmutableList<V3d>? ps = null;
-            if (a.HasPositions)
+            ImmutableList<V3d> ps;
             {
                 var ps0 = (a.Positions is ImmutableList<V3d> x0) ? x0 : ImmutableList<V3d>.Empty.AddRange(a.Positions);
                 var ps1 = (b.Positions is ImmutableList<V3d> x1) ? x1 : ImmutableList<V3d>.Empty.AddRange(b.Positions);
@@ -159,7 +157,6 @@ namespace Aardvark.Data.Points
                 }
             }
 
-            if (ps == null) throw new Exception("Invariant 1415ad7b-262a-49aa-839d-4bd0a80cd141.");
             return new Chunk(ps, cs, ns, js, ks, new Box3d(a.BoundingBox, b.BoundingBox));
         }
 
@@ -171,7 +168,7 @@ namespace Aardvark.Data.Points
             var head = chunks[0];
             var totalCount = chunks.Sum(c => c.Count);
 
-            var ps = head.HasPositions ? new V3d[totalCount] : null;
+            var ps = new V3d[totalCount];
             var cs = head.HasColors ? new C4b[totalCount] : null;
             var ns = head.HasNormals ? new V3f[totalCount] : null;
             var js = head.HasIntensities ? new int[totalCount] : null;
@@ -189,6 +186,7 @@ namespace Aardvark.Data.Points
                 if (js != null) chunk.Intensities.CopyTo(js, offset);
                 if (ks != null) chunk.Classifications.CopyTo(ks, offset);
 #pragma warning restore CS8602
+
                 offset += chunk.Count;
             }
 
@@ -231,11 +229,36 @@ namespace Aardvark.Data.Points
             //if (positions.Any(p => p.IsNaN)) throw new ArgumentException("One or more positions are NaN.");
 
             Positions       = positions;
-            Colors          = colors             != null && colors.Count          > 0 ? colors          : null;
-            Normals         = normals            != null && normals.Count         > 0 ? normals         : null;
-            Intensities     = intensities        != null && intensities.Count     > 0 ? intensities     : null;
-            Classifications = classifications    != null && classifications.Count > 0 ? classifications : null;
-            BoundingBox     = bbox ?? (positions != null ? new Box3d(positions) : Box3d.Invalid);
+            Colors          = colors;
+            Normals         = normals;
+            Intensities     = intensities;
+            Classifications = classifications;
+            BoundingBox     = bbox ?? (positions.Count > 0 ? new Box3d(positions) : Box3d.Invalid);
+        }
+
+        public IEnumerable<Chunk> Split(int chunksize)
+        {
+            if (chunksize < 1) throw new Exception();
+            if (chunksize >= Count)
+            {
+                yield return this;
+            }
+            else
+            {
+                var i = 0;
+                while (i < Count)
+                {
+                    yield return new Chunk(
+                        Positions.Skip(i).Take(chunksize).ToArray(),
+                        colors: HasColors ? Colors.Skip(i).Take(chunksize).ToArray() : null,
+                        normals: HasNormals ? Normals.Skip(i).Take(chunksize).ToArray() : null,
+                        intensities: HasIntensities ? Intensities.Skip(i).Take(chunksize).ToArray() : null,
+                        classifications: HasClassifications ? Classifications.Skip(i).Take(chunksize).ToArray() : null
+                        );
+
+                    i += chunksize;
+                }
+            }
         }
 
         /// <summary>
