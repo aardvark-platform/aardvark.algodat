@@ -7,9 +7,12 @@ using Aardvark.Geometry.Points;
 using Microsoft.FSharp.Core;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text;
 using Uncodium.SimpleStore;
 using static Aardvark.Data.E57.ASTM_E57;
 
@@ -17,6 +20,8 @@ namespace Scratch
 {
     class Program
     {
+        #region
+
         private static readonly Durable.Def[] DefsPositions = new[]
         {
             Durable.Octree.PositionsGlobal3d,
@@ -186,7 +191,7 @@ namespace Scratch
                     CheckDuplicateProperties(node, DefsPositions);
 
                     nodeBlobsCount++;
-                    nodeBlobsTotalBytes += storeRaw.Get(node.Id.ToString()).Length;
+                    nodeBlobsTotalBytes += storeRaw.Get(node.Id.ToString())!.Length;
 
                     var foo = new HashSet<Durable.Def>(node.Properties.Keys.Where(k => k.Name.EndsWith("Reference")));
                     foreach (var k in foo)
@@ -201,7 +206,7 @@ namespace Scratch
                         };
 
                         refBlobsCount++;
-                        refBlobsTotalBytes += storeRaw.Get(key).Length;
+                        refBlobsTotalBytes += storeRaw.Get(key)!.Length;
                     }
                 });
                 Report.EndTimed();
@@ -281,13 +286,24 @@ namespace Scratch
             }
         }
 
+        #endregion
+
         static void Main(string[] args)
         {
+            {
+                Report.BeginTimed("parsing");
+                var dataset = Ply.Net.PlyParser.Parse(@"C:\Users\sm\Downloads\test.ply", s => Console.WriteLine(s));
+                Report.EndTimed();
+                return;
+            }
+
+
             //GeneratePointCloudStats();
             //return;
 
             //PrintAllFileContainingCartesianInvalidState();
 
+            /*
             var basedir = @"W:\Datasets\Vgm\Data\E57";
             //var basedir = @"W:\Datasets\pointclouds\e57-3d-imgfmt";
             var files = Directory
@@ -329,6 +345,7 @@ namespace Scratch
             //{
             //    Console.WriteLine($"{chunk.Count}");
             //}
+            */
         }
     }
 }
