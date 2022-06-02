@@ -16,7 +16,7 @@
    limitations under the License.
 */
 
-using Aardvark.Base;
+//using Aardvark.Base;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -84,7 +84,7 @@ public static class PlyParser
 
     public record Header(Format Format, ImmutableList<Element> Elements, ImmutableList<string> HeaderLines, long DataOffset);
 
-    public record Vertices(ImmutableDictionary<Property, object> Properties, IReadOnlyList<V3d> Positions, IReadOnlyList<C3b>? Colors, IReadOnlyList<V3f>? Normals, float[]? Intensities);
+    public record Vertices(ImmutableDictionary<Property, object> Properties);
 
     public record Faces(int[][] PerFaceVertexIndices);
 
@@ -96,7 +96,7 @@ public static class PlyParser
 
     public record UserDefined();
 
-    public record Dataset(Vertices Vertices, Faces? Faces, Edges? Edges, Cells? Cells, Materials? Materials, ImmutableList<UserDefined> UserDefined);
+    public record Dataset(Header Header, Vertices Vertices, Faces? Faces, Edges? Edges, Cells? Cells, Materials? Materials, ImmutableList<UserDefined> UserDefined);
 
     #endregion
 
@@ -228,85 +228,9 @@ public static class PlyParser
 
     private static class AsciiParser
     {
-        private static Func<string[], V3d> CreateVertexPositionParser(Element e)
-        {
-            var ipx = e.GetPropertyIndex("x") ?? throw new Exception("Missing vertex property \"x\".");
-            var ipy = e.GetPropertyIndex("y") ?? throw new Exception("Missing vertex property \"y\".");
-            var ipz = e.GetPropertyIndex("z") ?? throw new Exception("Missing vertex property \"z\".");
-
-            return ts =>
-            {
-                return new V3d(
-                    double.Parse(ts[ipx], CultureInfo.InvariantCulture),
-                    double.Parse(ts[ipy], CultureInfo.InvariantCulture),
-                    double.Parse(ts[ipz], CultureInfo.InvariantCulture)
-                    );
-            };
-        }
-
-        private static Func<string[], V3f> CreateVertexNormalParser(Element e)
-        {
-            var ipnx = e.GetPropertyIndex("nx") ?? throw new Exception("Missing vertex property \"nx\".");
-            var ipny = e.GetPropertyIndex("ny") ?? throw new Exception("Missing vertex property \"ny\".");
-            var ipnz = e.GetPropertyIndex("nz") ?? throw new Exception("Missing vertex property \"nz\".");
-
-            return ts =>
-            {
-                return new V3f(
-                    float.Parse(ts[ipnx], CultureInfo.InvariantCulture),
-                    float.Parse(ts[ipny], CultureInfo.InvariantCulture),
-                    float.Parse(ts[ipnz], CultureInfo.InvariantCulture)
-                    );
-            };
-        }
-
-        private static Func<string[], C3b> CreateVertexColorParser(Element e)
-        {
-            var ir = e.GetPropertyIndex("red") ?? throw new Exception("Missing vertex property \"red\".");
-            var ig = e.GetPropertyIndex("green") ?? throw new Exception("Missing vertex property \"green\".");
-            var ib = e.GetPropertyIndex("blue") ?? throw new Exception("Missing vertex property \"blue\".");
-            var pr = e.Properties[ir];
-            var pg = e.Properties[ig];
-            var pb = e.Properties[ib];
-
-            return ts => 
-            {
-                var r = pr.DataType switch
-                {
-                    DataType.Int8 => byte.Parse(ts[ir]),
-                    DataType.UInt8 => byte.Parse(ts[ir]),
-                    _ => throw new NotImplementedException($"Color data type not supported: ({pr.DataType}, {pg.DataType}, {pb.DataType})"),
-                };
-                var g = pg.DataType switch
-                {
-                    DataType.Int8 => byte.Parse(ts[ig]),
-                    DataType.UInt8 => byte.Parse(ts[ig]),
-                    _ => throw new NotImplementedException($"Color data type not supported: ({pr.DataType}, {pg.DataType}, {pb.DataType})"),
-                }; 
-                var b = pb.DataType switch
-                {
-                    DataType.Int8 => byte.Parse(ts[ib]),
-                    DataType.UInt8 => byte.Parse(ts[ib]),
-                    _ => throw new NotImplementedException($"Color data type not supported: ({pr.DataType}, {pg.DataType}, {pb.DataType})"),
-                };
-
-                return new C3b(r, g, b);
-            };
-        }
-
-        private static Func<string[], float> CreateVertexIntensityParser(Element e)
-        {
-            var isi = e.GetPropertyIndex("scalar_intensity") ?? throw new Exception("Missing vertex property \"scalar_intensity\".");
-            return ts => float.Parse(ts[isi], CultureInfo.InvariantCulture);
-        }
-
         private static Vertices ParseVertices(StreamReader f, Element element)
         {
             if (element.Type != ElementType.Vertex) throw new Exception($"Expected \"vertex\" element, but found \"{element.Name}\".");
-
-            var hasColors = element.HasColor;
-            var hasNormals = element.HasNormal;
-            var hasIntensities = element.HasIntensity;
 
             var data = new object[element.Properties.Count];
             var parse = new Action<string[], int>[element.Properties.Count];
@@ -385,15 +309,6 @@ public static class PlyParser
                 props = props.Add(p, data[i]);
             }
 
-            var ps = new V3d[element.Count];
-            var parsePosition = CreateVertexPositionParser(element);
-            var cs = hasColors ? new C3b[element.Count] : null;
-            var parseColor = hasColors ? CreateVertexColorParser(element) : null;
-            var ns = hasNormals ? new V3f[element.Count] : null;
-            var parseNormal = hasNormals ? CreateVertexNormalParser(element) : null;
-            var js = hasIntensities ? new float[element.Count] : null;
-            var parseIntensity = hasIntensities ? CreateVertexIntensityParser(element) : null;
-
             for (var i = 0; i < element.Count; i++)
             {
                 var line = f.ReadLine();
@@ -403,14 +318,9 @@ public static class PlyParser
                 var ts = line.SplitOnWhitespace();
 
                 for (var j = 0; j < element.Properties.Count; j++) parse[j](ts, i);
-
-                ps[i] = parsePosition(ts);
-                if (hasColors) cs![i] = parseColor!(ts);
-                if (hasNormals) ns![i] = parseNormal!(ts);
-                if (hasIntensities) js![i] = parseIntensity!(ts);
             }
 
-            return new(props, ps, cs, ns, js);
+            return new(props);
         }
 
         private static Faces ParseFaces(StreamReader f, Element element, Action<string>? log)
@@ -425,9 +335,7 @@ public static class PlyParser
                 if (line == string.Empty) { i--; continue; }
                 if (line == null)
                 {
-                    var msg = "Premature end of file.";
-                    log?.Invoke(msg);
-                    Report.Warn(msg);
+                    log?.Invoke("Premature end of file.");
                     break;
                 }
 
@@ -492,7 +400,7 @@ public static class PlyParser
 
             if (vertices == null) throw new Exception($"Missing vertex data.");
 
-            return new(vertices, faces, edges, cells, materials, userDefined);
+            return new(header, vertices, faces, edges, cells, materials, userDefined);
         }
     }
 
@@ -509,95 +417,6 @@ public static class PlyParser
             { DataType.Float32, 4 },
             { DataType.Float64, 8 }
         };
-
-        private static Func<byte[], V3d> CreateVertexPositionParser(Element e, int[] offsets)
-        {
-            var ipx = e.GetPropertyIndex("x") ?? throw new Exception("Missing vertex property \"x\".");
-            var ipy = e.GetPropertyIndex("y") ?? throw new Exception("Missing vertex property \"y\".");
-            var ipz = e.GetPropertyIndex("z") ?? throw new Exception("Missing vertex property \"z\".");
-            var ox = offsets[ipx]; var oy = offsets[ipy]; var oz = offsets[ipz];
-            var px = e.Properties[ipx];
-            var py = e.Properties[ipy];
-            var pz = e.Properties[ipz];
-            
-            return (px.DataType, py.DataType, pz.DataType) switch
-            {
-                (DataType.Float32, DataType.Float32, DataType.Float32) => buffer => new V3d(BitConverter.ToSingle(buffer, ox), BitConverter.ToSingle(buffer, oy), BitConverter.ToSingle(buffer, oz)),
-                (DataType.Float32, DataType.Float32, DataType.Float64) => buffer => new V3d(BitConverter.ToSingle(buffer, ox), BitConverter.ToSingle(buffer, oy), BitConverter.ToDouble(buffer, oz)),
-                (DataType.Float32, DataType.Float64, DataType.Float32) => buffer => new V3d(BitConverter.ToSingle(buffer, ox), BitConverter.ToDouble(buffer, oy), BitConverter.ToSingle(buffer, oz)),
-                (DataType.Float32, DataType.Float64, DataType.Float64) => buffer => new V3d(BitConverter.ToSingle(buffer, ox), BitConverter.ToDouble(buffer, oy), BitConverter.ToDouble(buffer, oz)),
-                (DataType.Float64, DataType.Float32, DataType.Float32) => buffer => new V3d(BitConverter.ToDouble(buffer, ox), BitConverter.ToSingle(buffer, oy), BitConverter.ToSingle(buffer, oz)),
-                (DataType.Float64, DataType.Float32, DataType.Float64) => buffer => new V3d(BitConverter.ToDouble(buffer, ox), BitConverter.ToSingle(buffer, oy), BitConverter.ToDouble(buffer, oz)),
-                (DataType.Float64, DataType.Float64, DataType.Float32) => buffer => new V3d(BitConverter.ToDouble(buffer, ox), BitConverter.ToDouble(buffer, oy), BitConverter.ToSingle(buffer, oz)),
-                (DataType.Float64, DataType.Float64, DataType.Float64) => buffer => new V3d(BitConverter.ToDouble(buffer, ox), BitConverter.ToDouble(buffer, oy), BitConverter.ToDouble(buffer, oz)),
-                _ => throw new NotImplementedException($"Position data type not supported: ({px.DataType}, {py.DataType}, {pz.DataType})")
-            };
-        }
-
-        private static Func<byte[], V3f> CreateVertexNormalParser(Element e, int[] offsets)
-        {
-            var ipnx = e.GetPropertyIndex("nx") ?? throw new Exception("Missing vertex property \"nx\".");
-            var ipny = e.GetPropertyIndex("ny") ?? throw new Exception("Missing vertex property \"ny\".");
-            var ipnz = e.GetPropertyIndex("nz") ?? throw new Exception("Missing vertex property \"nz\".");
-            var onx = offsets[ipnx]; var ony = offsets[ipny]; var onz = offsets[ipnz];
-            var pnx = e.Properties[ipnx];
-            var pny = e.Properties[ipny];
-            var pnz = e.Properties[ipnz];
-            return (pnx.DataType, pny.DataType, pnz.DataType) switch
-            {
-                (DataType.Float32, DataType.Float32, DataType.Float32) => buffer => new V3f(BitConverter.ToSingle(buffer, onx), BitConverter.ToSingle(buffer, ony), BitConverter.ToSingle(buffer, onz)),
-                (DataType.Float32, DataType.Float32, DataType.Float64) => buffer => new V3f(BitConverter.ToSingle(buffer, onx), BitConverter.ToSingle(buffer, ony), BitConverter.ToDouble(buffer, onz)),
-                (DataType.Float32, DataType.Float64, DataType.Float32) => buffer => new V3f(BitConverter.ToSingle(buffer, onx), BitConverter.ToDouble(buffer, ony), BitConverter.ToSingle(buffer, onz)),
-                (DataType.Float32, DataType.Float64, DataType.Float64) => buffer => new V3f(BitConverter.ToSingle(buffer, onx), BitConverter.ToDouble(buffer, ony), BitConverter.ToDouble(buffer, onz)),
-                (DataType.Float64, DataType.Float32, DataType.Float32) => buffer => new V3f(BitConverter.ToDouble(buffer, onx), BitConverter.ToSingle(buffer, ony), BitConverter.ToSingle(buffer, onz)),
-                (DataType.Float64, DataType.Float32, DataType.Float64) => buffer => new V3f(BitConverter.ToDouble(buffer, onx), BitConverter.ToSingle(buffer, ony), BitConverter.ToDouble(buffer, onz)),
-                (DataType.Float64, DataType.Float64, DataType.Float32) => buffer => new V3f(BitConverter.ToDouble(buffer, onx), BitConverter.ToDouble(buffer, ony), BitConverter.ToSingle(buffer, onz)),
-                (DataType.Float64, DataType.Float64, DataType.Float64) => buffer => new V3f(BitConverter.ToDouble(buffer, onx), BitConverter.ToDouble(buffer, ony), BitConverter.ToDouble(buffer, onz)),
-                _ => throw new NotImplementedException($"Normal data type not supported: ({pnx.DataType}, {pny.DataType}, {pnz.DataType})")
-            };
-        }
-
-        private static Func<byte[], C3b> CreateVertexColorParser(Element e, int[] offsets)
-        {
-            var ir = e.GetPropertyIndex("red") ?? throw new Exception("Missing vertex property \"red\".");
-            var ig = e.GetPropertyIndex("green") ?? throw new Exception("Missing vertex property \"green\".");
-            var ib = e.GetPropertyIndex("blue") ?? throw new Exception("Missing vertex property \"blue\".");
-            var or = offsets[ir]; var og = offsets[ig]; var ob = offsets[ib];
-            var pr = e.Properties[ir];
-            var pg = e.Properties[ig];
-            var pb = e.Properties[ib];
-            return (pr.DataType, pg.DataType, pb.DataType) switch
-            {
-                (DataType.UInt8, DataType.UInt8, DataType.UInt8)    => buffer => new C3b(buffer[or], buffer[og], buffer[ob]),
-                (DataType.UInt8, DataType.UInt8, DataType.Int8)     => buffer => new C3b(buffer[or], buffer[og], buffer[ob]),
-                (DataType.UInt8, DataType.Int8, DataType.UInt8)     => buffer => new C3b(buffer[or], buffer[og], buffer[ob]),
-                (DataType.UInt8, DataType.Int8, DataType.Int8)      => buffer => new C3b(buffer[or], buffer[og], buffer[ob]),
-                (DataType.Int8, DataType.UInt8, DataType.UInt8)     => buffer => new C3b(buffer[or], buffer[og], buffer[ob]),
-                (DataType.Int8, DataType.UInt8, DataType.Int8)      => buffer => new C3b(buffer[or], buffer[og], buffer[ob]),
-                (DataType.Int8, DataType.Int8, DataType.UInt8)      => buffer => new C3b(buffer[or], buffer[og], buffer[ob]),
-                (DataType.Int8, DataType.Int8, DataType.Int8)       => buffer => new C3b(buffer[or], buffer[og], buffer[ob]),
-                _ => throw new NotImplementedException($"Color data type not supported: ({pr.DataType}, {pg.DataType}, {pb.DataType})")
-            };
-        }
-
-        private static Func<byte[], float> CreateVertexIntensityParser(Element e, int[] offsets)
-        {
-            var isi = e.GetPropertyIndex("scalar_intensity") ?? throw new Exception("Missing vertex property \"scalar_intensity\".");
-            var osi = offsets[isi];
-            var psi = e.Properties[osi];
-            return (psi.DataType) switch
-            {
-                DataType.Int8 => buffer => buffer[osi],
-                DataType.UInt8 => buffer => buffer[osi],
-                DataType.Int16 => buffer => BitConverter.ToInt16(buffer, osi),
-                DataType.UInt16 => buffer => BitConverter.ToUInt16(buffer, osi),
-                DataType.Int32 => buffer => BitConverter.ToInt32(buffer, osi),
-                DataType.UInt32 => buffer => BitConverter.ToUInt32(buffer, osi),
-                DataType.Float32 => buffer => BitConverter.ToSingle(buffer, osi),
-                DataType.Float64 => buffer => (float)BitConverter.ToDouble(buffer, osi),
-                _ => throw new NotImplementedException($"Scalar intensity data type not supported: {psi.DataType}")
-            };
-        }
 
         private static unsafe Func<Stream, int[]> CreateFaceParser(Element e)
         {
@@ -637,22 +456,16 @@ public static class PlyParser
         {
             if (element.Type != ElementType.Vertex) throw new Exception($"Expected \"vertex\" element, but found \"{element.Name}\".");
 
-            var hasColors = element.HasColor;
-            var hasNormals = element.HasNormal;
-            var hasIntensities = element.HasIntensity;
-
             var data = new object[element.Properties.Count];
             var parse = new Action<byte[], int>[element.Properties.Count];
             var props = ImmutableDictionary<Property, object>.Empty;
 
-            var offsets = new int[element.Properties.Count];
             var offset = 0;
             for (var i = 0; i < element.Properties.Count; i++)
             {
                 var p = element.Properties[i];
                 if (p.IsListProperty) throw new NotImplementedException();
                 
-                offsets[i] = offset;
                 var o = offset;
                 offset += DataTypeSizes[p.DataType];
 
@@ -724,15 +537,6 @@ public static class PlyParser
                 props = props.Add(p, data[i]);
             }
 
-            var ps = new List<V3d>();
-            var parsePosition = CreateVertexPositionParser(element, offsets);
-            var cs = hasColors ? new List<C3b>() : null;
-            var parseColor = hasColors ? CreateVertexColorParser(element, offsets) : null;
-            var ns = hasNormals ? new List<V3f>() : null;
-            var parseNormal = hasNormals ? CreateVertexNormalParser(element, offsets) : null;
-            var js = hasIntensities ? new float[element.Count] : null;
-            var parseIntensity = hasIntensities ? CreateVertexIntensityParser(element, offsets) : null;
-
             var bufferSize = element.Properties.Sum(p => DataTypeSizes[p.DataType]);
             var buffer = new byte[bufferSize];
             for (var i = 0; i < element.Count; i++)
@@ -741,14 +545,9 @@ public static class PlyParser
                 if (c != bufferSize) throw new Exception("");
 
                 for (var j = 0; j < element.Properties.Count; j++) parse[j](buffer, i);
-
-                ps.Add(parsePosition(buffer));
-                if (hasColors) cs!.Add(parseColor!(buffer));
-                if (hasNormals) ns!.Add(parseNormal!(buffer));
-                if (hasIntensities) js![i] = parseIntensity!(buffer);
             }
 
-            return new(props, ps, cs, ns, js);
+            return new(props);
         }
 
         private static Faces ParseFaces(Stream f, Element element)
@@ -818,7 +617,7 @@ public static class PlyParser
 
             if (vertices == null) throw new Exception($"Missing vertex data.");
 
-            return new(vertices, faces, edges, cells, materials, userDefined);
+            return new(header, vertices, faces, edges, cells, materials, userDefined);
         }
     }
 
@@ -894,7 +693,7 @@ public static class PlyParser
                 continue;
             }
 
-            Report.Warn($"Unknown header entry:\n{line}");
+            log?.Invoke($"[WARNING] Unknown header entry: {line}");
         }
 
         if (currentElement != null) elements = elements.Add(currentElement);
@@ -940,4 +739,14 @@ public static class PlyParser
         for (var i = 0; i < xs.Length; i++) rs[i] = map(xs[i]);
         return rs;
     }
+
+    private static R[] Map<T, R>(this T[] xs, Func<T, R> map)
+    {
+        var rs = new R[xs.Length];
+        for (var i = 0; i < xs.Length; i++) rs[i] = map(xs[i]);
+        return rs;
+    }
+
+    private static readonly char[] s_whiteSpace = new char[] { ' ', '\t', '\n', '\r' };
+    private static string[] SplitOnWhitespace(this string s) => s.Split(s_whiteSpace, StringSplitOptions.RemoveEmptyEntries);
 }
