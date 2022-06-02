@@ -303,32 +303,32 @@ namespace Scratch
                     @"C:\Users\sm\Downloads\test.ply",                              // ok (binary, vertices)
                 };
 
-                var sw = new Stopwatch();
-                var maxLength = filenames.Select(x => x.Length).Max();
-                foreach (var fn in filenames)
-                {
-                    Console.Write($"{fn.PadRight(maxLength)} -> ");
-                    var h = Ply.Net.PlyParser.ParseHeader(fn);
-                    Console.Write($"{h.Format,-20}");
+                //var sw = new Stopwatch();
+                //var maxLength = filenames.Select(x => x.Length).Max();
+                //foreach (var fn in filenames)
+                //{
+                //    Console.Write($"{fn.PadRight(maxLength)} -> ");
+                //    var h = Ply.Net.PlyParser.ParseHeader(fn);
+                //    Console.Write($"{h.Format,-20}");
 
-                    sw.Restart();
-                    var ply = Ply.Net.PlyParser.Parse(fn);
-                    sw.Stop();
-                    Console.Write($" {sw.Elapsed}");
-                    Console.WriteLine();
+                //    sw.Restart();
+                //    var ply = Ply.Net.PlyParser.Parse(fn);
+                //    sw.Stop();
+                //    Console.Write($" {sw.Elapsed}");
+                //    Console.WriteLine();
 
-                    var maxLengthElementName = ply.Header.Elements.Select(x => x.Name.Length).Max();
-                    foreach (var e in ply.Header.Elements)
-                    {
-                        Console.WriteLine($"    {e.Name.PadRight(maxLengthElementName)} : {e.Count,16:N0}");
-                    }
-                }
-                return;
-
-                //Report.BeginTimed("parsing");
-                //var dataset = Ply.Net.PlyParser.Parse(@"W:\Datasets\plytest\assimp test\Wuson.ply", s => Console.WriteLine(s));
-                //Report.EndTimed();
+                //    var maxLengthElementName = ply.Header.Elements.Select(x => x.Name.Length).Max();
+                //    foreach (var e in ply.Header.Elements)
+                //    {
+                //        Console.WriteLine($"    {e.Name.PadRight(maxLengthElementName)} : {e.Count,16:N0}");
+                //    }
+                //}
                 //return;
+
+                Report.BeginTimed("parsing");
+                var dataset = Ply.Net.PlyParser.Parse(@"C:\Users\sm\Downloads\test.ply", s => Console.WriteLine(s));
+                Report.EndTimed();
+                return;
             }
 
 
