@@ -291,8 +291,33 @@ namespace Scratch
         static void Main(string[] args)
         {
             {
+                var filenames = new[]
+                {
+                    @"W:\Datasets\plytest\assimp test\cube.ply",                    // ok (ascii, vertices|faces)
+                    @"W:\Datasets\plytest\sponza_00_mesh_sub0.ply",                 // ok (ascii, vertices|faces)
+                    @"W:\Datasets\plytest\bunny.ply",                               // ok (binary, vertices|faces)
+                    @"W:\Datasets\plytest\leica-studentenzimmer-scan-125.ply",      // ok (ascii, vertices with scalar intensity)
+                    @"W:\Datasets\plytest\assimp test\ant-half.ply",                // ok (ascii, vertices|faces), premature end of file
+
+                    @"W:\Datasets\plytest\assimp test\pond.0.ply",
+                    @"W:\Datasets\plytest\assimp test\Wuson.ply",
+
+                    @"C:\Users\sm\Downloads\test.ply",                              // ok (binary, vertices)
+                };
+
+                //var maxLength = filenames.Select(x => x.Length).Max();
+                //foreach (var fn in filenames)
+                //{
+                //    Console.Write($"{fn.PadRight(maxLength)} -> ");
+                //    var h = Ply.Net.PlyParser.ParseHeader(fn);
+                //    Console.WriteLine($"{h.Format}");
+
+                //    var _ = Ply.Net.PlyParser.Parse(fn);
+                //}
+                //return;
+
                 Report.BeginTimed("parsing");
-                var dataset = Ply.Net.PlyParser.Parse(@"C:\Users\sm\Downloads\test.ply", s => Console.WriteLine(s));
+                var dataset = Ply.Net.PlyParser.Parse(@"W:\Datasets\plytest\bunny.ply", s => Console.WriteLine(s));
                 Report.EndTimed();
                 return;
             }
