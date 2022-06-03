@@ -248,7 +248,7 @@ module Rendering =
             (camera, frustum, win.Mouse.Position) 
             |||> AVal.bind3 (fun c f p -> 
                 win.Sizes |> AVal.map (fun s -> 
-                    let pts = !pick p.Position 200 800
+                    let pts = pick.Value p.Position 200 800
                     pts |> Array.map (fun p -> p.World |> Trafo3d.Translation)
                     
                     //if pts.Length = 0 then V3d.III
@@ -386,7 +386,8 @@ module Rendering =
                 let trafo t (img : PixImage) = img.Transformed t
                 let load (name : string) =
                     use s = typeof<Args>.Assembly.GetManifestResourceStream("Viewer.CubeMap." + name)
-                    PixImage.Create(s, PixLoadOptions.Default)
+                    PixImage.Load(s)
+                    //PixImage.Create(s, PixLoadOptions.Default)
                 
                 PixImageCube [|
                     PixImageMipMap(
@@ -426,7 +427,8 @@ module Rendering =
                 let trafo t (img : PixImage) = img.Transformed t
                 let load (name : string) =
                     use s = typeof<Args>.Assembly.GetManifestResourceStream("Viewer.CubeMap." + name)
-                    PixImage.Create(s, PixLoadOptions.Default)
+                    PixImage.Load(s)
+                    //PixImage.Create(s, PixLoadOptions.Default)
                 
                 PixImageCube [|
                     PixImageMipMap(
