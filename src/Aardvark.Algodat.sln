@@ -68,7 +68,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_", "_", "{94A7BC5F-B1F0-4A
 		..\viewer.cmd = ..\viewer.cmd
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aardvark.Data.Ply", "Aardvark.Data.Ply\Aardvark.Data.Ply.csproj", "{DF685105-49D3-4440-BD3D-2A318F6CFC12}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Ply.Net", "Ply.Net\Ply.Net.csproj", "{DF685105-49D3-4440-BD3D-2A318F6CFC12}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aardvark.Data.Points.Ply", "Aardvark.Data.Points.Ply\Aardvark.Data.Points.Ply.csproj", "{7E5CEB6E-F437-47D9-905B-FDEEABC9D19D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -168,6 +170,10 @@ Global
 		{DF685105-49D3-4440-BD3D-2A318F6CFC12}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DF685105-49D3-4440-BD3D-2A318F6CFC12}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DF685105-49D3-4440-BD3D-2A318F6CFC12}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7E5CEB6E-F437-47D9-905B-FDEEABC9D19D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E5CEB6E-F437-47D9-905B-FDEEABC9D19D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E5CEB6E-F437-47D9-905B-FDEEABC9D19D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E5CEB6E-F437-47D9-905B-FDEEABC9D19D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -181,7 +187,7 @@ Global
 		{5CA8E4F4-E30B-4FC8-A510-A0FFD8A9880B} = {6CA9BC7A-0123-43E9-A26B-5FF0B9E01B08}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		EnterpriseLibraryConfigurationToolBinariesPathV6 = packages\EnterpriseLibrary.TransientFaultHandling.6.0.1304.0\lib\portable-net45+win+wp8;packages\EnterpriseLibrary.TransientFaultHandling.Data.6.0.1304.1\lib\NET45
 		SolutionGuid = {E996B5E6-49B2-4479-9DDE-455A40509F43}
+		EnterpriseLibraryConfigurationToolBinariesPathV6 = packages\EnterpriseLibrary.TransientFaultHandling.6.0.1304.0\lib\portable-net45+win+wp8;packages\EnterpriseLibrary.TransientFaultHandling.Data.6.0.1304.1\lib\NET45
 	EndGlobalSection
 EndGlobal

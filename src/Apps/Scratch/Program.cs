@@ -331,7 +331,6 @@ namespace Scratch
                 return;
             }
 
-
             //GeneratePointCloudStats();
             //return;
 

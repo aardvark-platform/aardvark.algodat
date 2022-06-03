@@ -1735,22 +1735,26 @@ namespace Aardvark.Geometry.Tests
         {
             var filenames = new[]
             {
+                @"W:\Datasets\plytest\leica-studentenzimmer-scan-125.ply",
+                //@"C:\Users\sm\Downloads\test.ply",
                 //@"E:\e57tests\datasets\matterport.e57",
-                @"E:\e57tests\datasets\convex-scan-119.e57",
-                @"E:\e57tests\datasets\Punktwolke_M34.e57",
-                @"E:\e57tests\datasets\aibotix_ground_points.e57",
-                @"E:\e57tests\datasets\Register360_Berlin Office_1.e57",
-                @"E:\e57tests\datasets\Staatsoper.e57",
-                @"E:\e57tests\datasets\Innenscan_FARO.e57",
-                @"E:\e57tests\datasets\1190_31_test_Frizzo.e57",
-                @"E:\e57tests\datasets\Neuhäusl-Hörschwang.e57",
-                @"E:\e57tests\datasets\2020452-B-3-5.e57",
-                @"E:\e57tests\datasets\100pct_1mm_zebcam_shade_zebcam_world.e57",
+                //@"E:\e57tests\datasets\convex-scan-119.e57",
+                //@"E:\e57tests\datasets\Punktwolke_M34.e57",
+                //@"E:\e57tests\datasets\aibotix_ground_points.e57",
+                //@"E:\e57tests\datasets\Register360_Berlin Office_1.e57",
+                //@"E:\e57tests\datasets\Staatsoper.e57",
+                //@"E:\e57tests\datasets\Innenscan_FARO.e57",
+                //@"E:\e57tests\datasets\1190_31_test_Frizzo.e57",
+                //@"E:\e57tests\datasets\Neuhäusl-Hörschwang.e57",
+                //@"E:\e57tests\datasets\2020452-B-3-5.e57",
+                //@"E:\e57tests\datasets\100pct_1mm_zebcam_shade_zebcam_world.e57",
             };
+
+            filenames = Directory.EnumerateFiles(@"W:\Datasets\plytest", "*.ply", SearchOption.AllDirectories).ToArray();
 
             foreach (var filename in filenames)
             {
-                Report.BeginTimed($"{filename}");
+                Report.BeginTimed($"{ filename}");
 
                 var key = Path.GetFileName(filename);
 
@@ -1760,9 +1764,9 @@ namespace Aardvark.Geometry.Tests
                 var store = storeRaw.ToPointCloudStore();
 
 
-                var info = E57.E57Info(filename, ParseConfig.Default);
-                Report.Line($"total bounds: {info.Bounds}");
-                Report.Line($"total count : {info.PointCount:N0}");
+                //var info = E57.E57Info(filename, ParseConfig.Default);
+                //Report.Line($"total bounds: {info.Bounds}");
+                //Report.Line($"total count : {info.PointCount:N0}");
 
 
                 var config = ImportConfig.Default
@@ -1775,8 +1779,8 @@ namespace Aardvark.Geometry.Tests
                     //.WithProgressCallback(p => { Report.Line($"{p:0.00}"); })
                     ;
 
-                var chunks = E57
-                        .Chunks(filename, config.ParseConfig)
+                var pcl = PointCloud
+                        .Import(filename, config)
                         //.Take(20)
                         //.TakeWhile(chunk =>
                         //{
@@ -1786,7 +1790,7 @@ namespace Aardvark.Geometry.Tests
                         //})
                         ;
 
-                var pcl = PointCloud.Import(chunks, config);
+                //var pcl = PointCloud.Import(chunks, config);
 
                 File.WriteAllText(Path.Combine(storePath, "key.txt"), pcl.Id);
 
@@ -1821,10 +1825,10 @@ namespace Aardvark.Geometry.Tests
         static void LisaTest20220404()
         {
             var cache = new LruDictionary<string, object>(1024 * 1024 * 1024);
-            var store = PointCloud.OpenStore($@"E:\e57tests\stores\LisaTest20220404.uds", cache);
+            var store = PointCloud.OpenStore($@"E:\e57tests\stores\ply\ply.uds", cache);
             var config = ImportConfig.Default.WithStorage(store).WithKey("root").WithVerbose(true);
 
-            var chunks = E57.Chunks(@"W:\Datasets\pointclouds\convex\scan-119.e57", config.ParseConfig);
+            var chunks = Data.Points.Import.Ply.Chunks(@"C:\Users\sm\Downloads\test.ply", config.ParseConfig);
             var pointset = PointCloud.Chunks(chunks, config);
             Console.WriteLine("done");
         }

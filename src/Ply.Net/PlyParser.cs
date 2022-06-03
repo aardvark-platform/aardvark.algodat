@@ -82,9 +82,49 @@ public static class PlyParser
         public bool HasIntensity => GetPropertyIndex("scalar_intensity") != null;
     }
 
-    public record Header(Format Format, ImmutableList<Element> Elements, ImmutableList<string> HeaderLines, long DataOffset);
+    public record Header(Format Format, ImmutableList<Element> Elements, ImmutableList<string> HeaderLines, long DataOffset)
+    {
+        public Element? Cell => Elements.SingleOrDefault(x => x.Type == ElementType.Cell);
+        public Element? Edge => Elements.SingleOrDefault(x => x.Type == ElementType.Edge);
+        public Element? Face => Elements.SingleOrDefault(x => x.Type == ElementType.Face);
+        public Element? Material => Elements.SingleOrDefault(x => x.Type == ElementType.Material);
+        public Element? Vertex => Elements.SingleOrDefault(x => x.Type == ElementType.Vertex);
+    }
 
-    public record Vertices(ImmutableDictionary<Property, object> Properties);
+    public record Vertices(ImmutableDictionary<Property, object> Properties)
+    {
+        public Property? TryGetProperty(string name) => Properties.Keys.FirstOrDefault(x => x.Name == name);
+
+        public (Property x, Property y, Property z)? TryGetPositionProperties()
+        {
+            var p0 = TryGetProperty("x"); if (p0 == null) return null;
+            var p1 = TryGetProperty("y"); if (p1 == null) return null;
+            var p2 = TryGetProperty("z"); if (p2 == null) return null;
+            return (p0, p1, p2);
+        }
+
+        public (Property r, Property g, Property b)? TryGetRgbColorProperties()
+        {
+            var p0 = TryGetProperty("red")   ?? TryGetProperty("diffuse_red");   if (p0 == null) return null;
+            var p1 = TryGetProperty("green") ?? TryGetProperty("diffuse_green"); if (p1 == null) return null;
+            var p2 = TryGetProperty("blue")  ?? TryGetProperty("diffuse_blue");  if (p2 == null) return null;
+            return (p0, p1, p2);
+        }
+
+        public (Property nx, Property ny, Property nz)? TryGetNormalProperties()
+        {
+            var p0 = TryGetProperty("nx"); if (p0 == null) return null;
+            var p1 = TryGetProperty("ny"); if (p1 == null) return null;
+            var p2 = TryGetProperty("nz"); if (p2 == null) return null;
+            return (p0, p1, p2);
+        }
+
+        public Property? TryGetIntensityProperty()
+        {
+            var p0 = TryGetProperty("scalar_intensity"); if (p0 == null) return null;
+            return p0;
+        }
+    }
 
     public record Faces(int[][] PerFaceVertexIndices);
 
