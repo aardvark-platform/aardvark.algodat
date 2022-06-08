@@ -89,14 +89,7 @@ public static class PlyParser
         public PropertyData? this[string propertyName] => Data.SingleOrDefault(x => x.Property.Name == propertyName);
     }
 
-    public record Dataset(Header Header, ImmutableList<ElementData> Data)
-    {
-        public ElementData? Cell     => Data.SingleOrDefault(x => x.Element.Type == ElementType.Cell);
-        public ElementData? Edge     => Data.SingleOrDefault(x => x.Element.Type == ElementType.Edge);
-        public ElementData? Face     => Data.SingleOrDefault(x => x.Element.Type == ElementType.Face);
-        public ElementData? Material => Data.SingleOrDefault(x => x.Element.Type == ElementType.Material);
-        public ElementData? Vertex   => Data.SingleOrDefault(x => x.Element.Type == ElementType.Vertex);
-    }
+    public record Dataset(Header Header, IEnumerable<ElementData> Data);
 
     #endregion
 
@@ -419,62 +412,6 @@ public static class PlyParser
 
     private static class BinaryParser
     {
-        private delegate void PropertyParser(int rowIndex, Row row);
-
-        private class Row
-        {
-            public readonly Stream Stream;
-            public readonly byte[] Buffer;
-            public int BufferOffset;
-            private readonly byte[] _local = new byte[8];
-            public Row(Stream stream, byte[] buffer) { Stream = stream; Buffer = buffer; BufferOffset = 0; }
-
-            public void NextRow()
-            {
-                if (Buffer.Length == 0) return;
-                var c = Stream.Read(Buffer, 0, Buffer.Length);
-                if (c != Buffer.Length) throw new Exception("Failed to read next row.");
-                BufferOffset = 0;
-            }
-
-            public static sbyte  NextBufferInt8   (Row r) => (sbyte)r.Buffer[r.BufferOffset++];
-            public static byte   NextBufferUInt8  (Row r) => r.Buffer[r.BufferOffset++];
-            public static short  NextBufferInt16  (Row r) { var x = BitConverter.ToInt16 (r.Buffer, r.BufferOffset); r.BufferOffset += 2; return x; }
-            public static ushort NextBufferUInt16 (Row r) { var x = BitConverter.ToUInt16(r.Buffer, r.BufferOffset); r.BufferOffset += 2; return x; }
-            public static int    NextBufferInt32  (Row r) { var x = BitConverter.ToInt32 (r.Buffer, r.BufferOffset); r.BufferOffset += 4; return x; }
-            public static uint   NextBufferUInt32 (Row r) { var x = BitConverter.ToUInt32(r.Buffer, r.BufferOffset); r.BufferOffset += 4; return x; }
-            public static float  NextBufferFloat32(Row r) { var x = BitConverter.ToSingle(r.Buffer, r.BufferOffset); r.BufferOffset += 4; return x; }
-            public static double NextBufferFloat64(Row r) { var x = BitConverter.ToDouble(r.Buffer, r.BufferOffset); r.BufferOffset += 8; return x; }
-
-            public static sbyte  NextStreamInt8   (Row r) => (sbyte)r.Stream.ReadByte();
-            public static byte   NextStreamUInt8  (Row r) => (byte) r.Stream.ReadByte();
-            public static short  NextStreamInt16  (Row r) { var c = r.Stream.Read(r._local, 0, 2); if (c != 2) throw new Exception("Failed to read next int16 from stream.");   return BitConverter.ToInt16 (r._local, 0); }
-            public static ushort NextStreamUInt16 (Row r) { var c = r.Stream.Read(r._local, 0, 2); if (c != 2) throw new Exception("Failed to read next uint16 from stream.");  return BitConverter.ToUInt16(r._local, 0); }
-            public static int    NextStreamInt32  (Row r) { var c = r.Stream.Read(r._local, 0, 4); if (c != 4) throw new Exception("Failed to read next int32 from stream.");   return BitConverter.ToInt32 (r._local, 0); }
-            public static uint   NextStreamUInt32 (Row r) { var c = r.Stream.Read(r._local, 0, 4); if (c != 4) throw new Exception("Failed to read next uint32 from stream.");  return BitConverter.ToUInt32(r._local, 0); }
-            public static float  NextStreamFloat32(Row r) { var c = r.Stream.Read(r._local, 0, 4); if (c != 4) throw new Exception("Failed to read next float32 from stream."); return BitConverter.ToSingle(r._local, 0); }
-            public static double NextStreamFloat64(Row r) { var c = r.Stream.Read(r._local, 0, 8); if (c != 8) throw new Exception("Failed to read next float64 from stream."); return BitConverter.ToDouble(r._local, 0); }
-
-            public static Func<Row, long> CreateGetListCount(bool hasFixedRowSize, DataType datatype)
-                => (hasFixedRowSize, datatype) switch
-                {
-                    (true, DataType.Int8)    => r => NextBufferInt8(r),
-                    (true, DataType.UInt8)   => r => NextBufferUInt8(r),
-                    (true, DataType.Int16)   => r => NextBufferInt16(r),
-                    (true, DataType.UInt16)  => r => NextBufferUInt16(r),
-                    (true, DataType.Int32)   => r => NextBufferInt32(r),
-                    (true, DataType.UInt32)  => r => NextBufferUInt32(r),
-                    (false, DataType.Int8)   => r => NextStreamInt8(r),
-                    (false, DataType.UInt8)  => r => NextStreamUInt8(r),
-                    (false, DataType.Int16)  => r => NextStreamInt16(r),
-                    (false, DataType.UInt16) => r => NextStreamUInt16(r),
-                    (false, DataType.Int32)  => r => NextStreamInt32(r),
-                    (false, DataType.UInt32) => r => NextStreamUInt32(r),
-                    _ => throw new Exception($"Data type {datatype} not supported."),
-                };
-
-        }
-
         private static readonly Dictionary<DataType, int> DataTypeSizes = new()
         {
             { DataType.Int8,    1 },
@@ -492,36 +429,49 @@ public static class PlyParser
         /// </summary>
         private static int? GetSizeInBytes(Element e) => e.ContainsListProperty ? null : e.Properties.Sum(p => DataTypeSizes[p.DataType]);
 
-        private static ElementData ParseElement(Stream f, Element element)
+        private static Array AllocArray(Property p, int count) => (p.IsListProperty, p.DataType) switch
         {
-            var hasFixedRowSize = !element.ContainsListProperty;
+            (false, DataType.Int8   ) => new sbyte [count], (true , DataType.Int8   ) => new sbyte [count][],
+            (false, DataType.UInt8  ) => new byte  [count], (true , DataType.UInt8  ) => new byte  [count][],
+            (false, DataType.Int16  ) => new short [count], (true , DataType.Int16  ) => new short [count][],
+            (false, DataType.UInt16 ) => new ushort[count], (true , DataType.UInt16 ) => new ushort[count][],
+            (false, DataType.Int32  ) => new int   [count], (true , DataType.Int32  ) => new int   [count][],
+            (false, DataType.UInt32 ) => new uint  [count], (true , DataType.UInt32 ) => new uint  [count][],
+            (false, DataType.Float32) => new float [count], (true , DataType.Float32) => new float [count][],
+            (false, DataType.Float64) => new double[count], (true , DataType.Float64) => new double[count][],
+            _ => throw new Exception($"Error 8ba1684a-21e9-4e6c-9767-74bca998df53. {p} not supported.")
+        };
+
+        private static IEnumerable<ElementData> ParseElement(Stream f, Element element, Action<string>? log)
+        {
+            const int MAX_CHUNK_ROWS = 16 * 1024 * 1024;
+
+            var rows = element.Properties.Select(p => new PropertyData(p, AllocArray(p, element.Count))).ToArray();
+            var rowsOffset = 0;
 
             var offsets = new int[element.Properties.Count];
-            var parse = new PropertyParser[element.Properties.Count];
-            var data =  new PropertyData  [element.Properties.Count];
-
             var offset = 0;
             for (var pi = 0; pi < element.Properties.Count; pi++)
             {
-                var p = element.Properties[pi];
-                (parse[pi], var d) = CreatePropertyParser(p);
-                data[pi] = new(p, d);
-                offsets[pi] = offset; offset += DataTypeSizes[p.DataType];
+                offsets[pi] = offset; 
+                offset += DataTypeSizes[element.Properties[pi].DataType];
             }
 
-            if (hasFixedRowSize)
+            if (element.ContainsListProperty)
             {
-                var maxChunkRows = 16 * 1024 * 1024;
-                var rowSizeInBytes = GetSizeInBytes(element) ?? 0;
-                var maxChunkSizeInBytes = maxChunkRows * rowSizeInBytes;
+                throw new NotImplementedException();
+            }
+            else
+            {
+                var rowSizeInBytes = GetSizeInBytes(element) ?? throw new Exception($"Error 4f56dae5-94e8-4bfb-a290-0e20d1396ca6.");
+                var maxChunkSizeInBytes = MAX_CHUNK_ROWS * rowSizeInBytes;
                 var remainingBytes = (long)element.Count * rowSizeInBytes;
-                var rowsOffset = 0;
 
                 var swTotal = new Stopwatch(); swTotal.Restart();
                 var sw = new Stopwatch();
                 while (remainingBytes > 0)
                 {
-                    var chunkRowCount = (int)Math.Min(remainingBytes / rowSizeInBytes, maxChunkRows);
+                    var chunkRowCount = (int)Math.Min(remainingBytes / rowSizeInBytes, MAX_CHUNK_ROWS);
                     var chunkSizeInBytes = chunkRowCount * rowSizeInBytes;
                     remainingBytes -= chunkSizeInBytes;
                     if (remainingBytes < 0) throw new Exception("Error c9aef005-bd20-4320-abde-c03116b77c2e.");
@@ -532,18 +482,18 @@ public static class PlyParser
                     var c = f.Read(chunk, 0, chunkSizeInBytes);
                     if (c != chunkSizeInBytes) throw new Exception("Error a6d0f241-be6a-408b-baa5-5872b311b6a0.");
 
-                    unsafe
+                    var tasks = new List<Task>();
+                    for (var _pi = 0; _pi < element.Properties.Count; _pi++)
                     {
-                        var tasks = new List<Task>();
-                        for (var _pi = 0; _pi < element.Properties.Count; _pi++)
+                        var pi = _pi;
+                        void Process()
                         {
-                            var pi = _pi;
-                            tasks.Add(Task.Run(() =>
+                            unsafe
                             {
                                 fixed (byte* p0 = &chunk[0])
                                 {
                                     var p = p0 + offsets[pi];
-                                    var a = data[pi].Data;
+                                    var a = rows[pi].Data;
 
                                     static bool Copy<T>(byte* source, int sourceStride, Array target, int targetOffset, int count) where T : unmanaged
                                     {
@@ -568,101 +518,31 @@ public static class PlyParser
                                         _ => throw new Exception()
                                     };
                                 }
-                            }));
+                            }
                         }
-                        Task.WhenAll(tasks).Wait();
-                        
+
+                        tasks.Add(Task.Run(Process));
                     }
+                    Task.WhenAll(tasks).Wait();
+
 
                     rowsOffset += chunkRowCount;
 
                     sw.Stop();
-                    Console.WriteLine($"Read {chunkSizeInBytes:N0} bytes in {sw.Elapsed}.");
+                    if (log != null)
+                    {
+                        var bps = chunkSizeInBytes / sw.Elapsed.TotalSeconds;
+                        var vps = chunkRowCount / sw.Elapsed.TotalSeconds;
+                        log?.Invoke($"[PlyParser] {chunkSizeInBytes,16:N0} bytes | in {sw.Elapsed.TotalSeconds,6:N3} s | {bps,16:N0} MiB/s | {vps,16:N0} vertices/s");
+                    }
                 }
                 swTotal.Stop();
-                Console.WriteLine($"{swTotal.Elapsed}");
-                return new(element, data.ToImmutableList());
-            }
-
-            var bufferSize = GetSizeInBytes(element) ?? 0;
-            var row = new Row(f, new byte[bufferSize]);
-            for (var i = 0; i < element.Count; i++)
-            {
-                row.NextRow();
-                for (var j = 0; j < element.Properties.Count; j++) parse[j](i, row);
-            }
-
-            return new(element, data.ToImmutableList());
-
-
-            (PropertyParser Parse, Array Data) CreatePropertyParser(Property p)
-            {
-                return hasFixedRowSize ? CreateScalarPropertyParser() : CreateListPropertyParser();
-
-                (PropertyParser Parse, Array Data) CreateListPropertyParser()
-                {
-                    (PropertyParser, Array) ParseList<T>(Func<Row, T> nextValue)
-                    {
-                        var rs = new T[element.Count][];
-                        var getListCount = Row.CreateGetListCount(hasFixedRowSize, p.ListCountType);
-                        return ((rowIndex, row) =>
-                        {
-                            var count = getListCount(row);
-                            if (count < 1 || count > int.MaxValue) throw new Exception($"List count ({count}) is out of range.");
-                            var xs = new T[count]; rs[rowIndex] = xs;
-                            for (var i = 0; i < count; i++) xs[i] = nextValue(row);
-                        }, rs);
-                    }
-
-                    var (parseList, data) = p.DataType switch
-                    {
-                        DataType.Int8    => ParseList<sbyte >(hasFixedRowSize ? Row.NextBufferInt8    : Row.NextStreamInt8   ),
-                        DataType.UInt8   => ParseList<byte  >(hasFixedRowSize ? Row.NextBufferUInt8   : Row.NextStreamUInt8  ),
-                        DataType.Int16   => ParseList<short >(hasFixedRowSize ? Row.NextBufferInt16   : Row.NextStreamInt16  ),
-                        DataType.UInt16  => ParseList<ushort>(hasFixedRowSize ? Row.NextBufferUInt16  : Row.NextStreamUInt16 ),
-                        DataType.Int32   => ParseList<int   >(hasFixedRowSize ? Row.NextBufferInt32   : Row.NextStreamInt32  ),
-                        DataType.UInt32  => ParseList<uint  >(hasFixedRowSize ? Row.NextBufferUInt32  : Row.NextStreamUInt32 ),
-                        DataType.Float32 => ParseList<float >(hasFixedRowSize ? Row.NextBufferFloat32 : Row.NextStreamFloat32),
-                        DataType.Float64 => ParseList<double>(hasFixedRowSize ? Row.NextBufferFloat64 : Row.NextStreamFloat64),
-                        _ => throw new Exception($"List data type {p.DataType} is not supported."),
-                    };
-
-                    return (
-                        Parse: parseList,
-                        Data: data
-                        );
-                }
-
-                (PropertyParser Parse, Array Data) CreateScalarPropertyParser()
-                {
-                    (PropertyParser, Array) ParseScalar<T>(Func<Row, T> nextValue)
-                    {
-                        var rs = new T[element.Count];
-                        return ((rowIndex, row) => rs[rowIndex] = nextValue(row), rs);
-                    }
-
-                    var (parseList, data) = p.DataType switch
-                    {
-                        DataType.Int8    => ParseScalar<sbyte >(hasFixedRowSize ? Row.NextBufferInt8    : Row.NextStreamInt8   ),
-                        DataType.UInt8   => ParseScalar<byte  >(hasFixedRowSize ? Row.NextBufferUInt8   : Row.NextStreamUInt8  ),
-                        DataType.Int16   => ParseScalar<short >(hasFixedRowSize ? Row.NextBufferInt16   : Row.NextStreamInt16  ),
-                        DataType.UInt16  => ParseScalar<ushort>(hasFixedRowSize ? Row.NextBufferUInt16  : Row.NextStreamUInt16 ),
-                        DataType.Int32   => ParseScalar<int   >(hasFixedRowSize ? Row.NextBufferInt32   : Row.NextStreamInt32  ),
-                        DataType.UInt32  => ParseScalar<uint  >(hasFixedRowSize ? Row.NextBufferUInt32  : Row.NextStreamUInt32 ),
-                        DataType.Float32 => ParseScalar<float >(hasFixedRowSize ? Row.NextBufferFloat32 : Row.NextStreamFloat32),
-                        DataType.Float64 => ParseScalar<double>(hasFixedRowSize ? Row.NextBufferFloat64 : Row.NextStreamFloat64),
-                        _ => throw new Exception($"List data type {p.DataType} is not supported."),
-                    };
-
-                    return (
-                        Parse: parseList,
-                        Data: data
-                        );
-                };
+                log?.Invoke($"[PlyParser] total {swTotal.Elapsed}");
+                yield return new(element, rows.ToImmutableList());
             }
         }
 
-        public static Dataset Parse(Header header, Stream f)
+        public static Dataset Parse(Header header, Stream f, Action<string>? log)
         {
             if (BitConverter.IsLittleEndian && header.Format == Format.BinaryBigEndian)
                 throw new Exception("Parsing binary big endian on little endian machine is not supported.");
@@ -670,7 +550,7 @@ public static class PlyParser
             if (!BitConverter.IsLittleEndian && header.Format == Format.BinaryLittleEndian)
                 throw new Exception("Parsing binary little endian on big endian machine is not supported.");
 
-            var data = header.Elements.Select(e => ParseElement(f, e)).ToImmutableList();
+            var data = header.Elements.SelectMany(e => ParseElement(f, e, log));
             return new(header, data);
         }
     }
@@ -681,8 +561,8 @@ public static class PlyParser
 
         return header.Format switch
         {
-            Format.BinaryLittleEndian => BinaryParser.Parse(header, f),
-            Format.BinaryBigEndian    => BinaryParser.Parse(header, f),
+            Format.BinaryLittleEndian => BinaryParser.Parse(header, f, log),
+            Format.BinaryBigEndian    => BinaryParser.Parse(header, f, log),
             Format.Ascii              => AsciiParser.Parse(header, f, log),
             _ => throw new NotImplementedException($"Format {header.Format} not supported."),
         };
@@ -690,7 +570,7 @@ public static class PlyParser
 
     public static Dataset Parse(string filename, Action<string>? log = null)
     {
-        log?.Invoke($"parsing file {filename}");
+        log?.Invoke($"parsing file {filename} ({new FileInfo(filename).Length:N0} bytes)");
         var f = File.OpenRead(filename);
         return Parse(f, log);
     }

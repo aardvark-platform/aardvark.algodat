@@ -326,7 +326,8 @@ namespace Scratch
                 //return;
 
                 Report.BeginTimed("parsing");
-                var dataset = Ply.Net.PlyParser.Parse(@"C:\Users\sm\Downloads\test.ply", s => Console.WriteLine(s));
+                var dataset = Ply.Net.PlyParser.Parse(@"C:\Users\sm\Downloads\test.ply", s => Report.Line(s));
+                var data = dataset.Data.ToList();
                 Report.EndTimed();
                 return;
             }
