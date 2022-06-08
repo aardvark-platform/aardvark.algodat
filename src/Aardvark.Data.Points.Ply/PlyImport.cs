@@ -64,12 +64,14 @@ namespace Aardvark.Data.Points.Import
 
         private static IEnumerable<Chunk> Chunks(this PlyParser.Dataset data, ParseConfig config)
         {
-            if (data.Header.Vertex == null) throw new Exception("No vertex data.");
-            var totalCount = data.Header.Vertex.Count;
+            var vd = data.Vertex; 
+            if (vd == null) throw new Exception("No vertex data.");
 
-            var x = data.Vertices.TryGetProperty("x");
-            var y = data.Vertices.TryGetProperty("y");
-            var z = data.Vertices.TryGetProperty("z");
+            var totalCount = data.Header.Vertex!.Count;
+
+            var x = vd["x"];
+            var y = vd["y"];
+            var z = vd["z"];
             if (x == null && y == null && z == null) throw new Exception("No vertex data.");
 
             for (var i0 = 0; i0 < totalCount; i0 += config.MaxChunkPointCount)
@@ -82,8 +84,8 @@ namespace Aardvark.Data.Points.Import
 
                 if (x != null)
                 {
-                    var o = data.Vertices.Properties[x];
-                    switch (x.DataType)
+                    var o = x.Data;
+                    switch (x.Property.DataType)
                     {
                         case PlyParser.DataType.Int8   : { var xs = (sbyte[]) o; for (var i = 0; i < count; i++) ps[i].X = xs[i0 + i]; break; }
                         case PlyParser.DataType.UInt8  : { var xs = (byte[])  o; for (var i = 0; i < count; i++) ps[i].X = xs[i0 + i]; break; }
@@ -93,13 +95,13 @@ namespace Aardvark.Data.Points.Import
                         case PlyParser.DataType.UInt32 : { var xs = (uint[])  o; for (var i = 0; i < count; i++) ps[i].X = xs[i0 + i]; break; }
                         case PlyParser.DataType.Float32: { var xs = (float[]) o; for (var i = 0; i < count; i++) ps[i].X = xs[i0 + i]; break; }
                         case PlyParser.DataType.Float64: { var xs = (double[])o; for (var i = 0; i < count; i++) ps[i].X = xs[i0 + i]; break; }
-                        default: throw new Exception($"Data type {x.DataType} not supported.");
+                        default: throw new Exception($"Data type {x.Property.DataType} not supported.");
                     }
                 }
                 if (y != null)
                 {
-                    var o = data.Vertices.Properties[y];
-                    switch (y.DataType)
+                    var o = y.Data;
+                    switch (y.Property.DataType)
                     {
                         case PlyParser.DataType.Int8   : { var xs = (sbyte[]) o; for (var i = 0; i < count; i++) ps[i].Y = xs[i0 + i]; break; }
                         case PlyParser.DataType.UInt8  : { var xs = (byte[])  o; for (var i = 0; i < count; i++) ps[i].Y = xs[i0 + i]; break; }
@@ -109,13 +111,13 @@ namespace Aardvark.Data.Points.Import
                         case PlyParser.DataType.UInt32 : { var xs = (uint[])  o; for (var i = 0; i < count; i++) ps[i].Y = xs[i0 + i]; break; }
                         case PlyParser.DataType.Float32: { var xs = (float[]) o; for (var i = 0; i < count; i++) ps[i].Y = xs[i0 + i]; break; }
                         case PlyParser.DataType.Float64: { var xs = (double[])o; for (var i = 0; i < count; i++) ps[i].Y = xs[i0 + i]; break; }
-                        default: throw new Exception($"Data type {y.DataType} not supported.");
+                        default: throw new Exception($"Data type {y.Property.DataType} not supported.");
                     }
                 }
                 if (z != null)
                 {
-                    var o = data.Vertices.Properties[z];
-                    switch (z.DataType)
+                    var o = z.Data;
+                    switch (z.Property.DataType)
                     {
                         case PlyParser.DataType.Int8   : { var xs = (sbyte[]) o; for (var i = 0; i < count; i++) ps[i].Z = xs[i0 + i]; break; }
                         case PlyParser.DataType.UInt8  : { var xs = (byte[])  o; for (var i = 0; i < count; i++) ps[i].Z = xs[i0 + i]; break; }
@@ -125,7 +127,7 @@ namespace Aardvark.Data.Points.Import
                         case PlyParser.DataType.UInt32 : { var xs = (uint[])  o; for (var i = 0; i < count; i++) ps[i].Z = xs[i0 + i]; break; }
                         case PlyParser.DataType.Float32: { var xs = (float[]) o; for (var i = 0; i < count; i++) ps[i].Z = xs[i0 + i]; break; }
                         case PlyParser.DataType.Float64: { var xs = (double[])o; for (var i = 0; i < count; i++) ps[i].Z = xs[i0 + i]; break; }
-                        default: throw new Exception($"Data type {z.DataType} not supported.");
+                        default: throw new Exception($"Data type {z.Property.DataType} not supported.");
                     }
                 }
 
@@ -133,17 +135,17 @@ namespace Aardvark.Data.Points.Import
 
                 #region colors
 
-                var cr = data.Vertices.TryGetProperty("red") ?? data.Vertices.TryGetProperty("diffuse_red");
-                var cg = data.Vertices.TryGetProperty("green") ?? data.Vertices.TryGetProperty("diffuse_green");
-                var cb = data.Vertices.TryGetProperty("blue") ?? data.Vertices.TryGetProperty("blue");
+                var cr = vd["red"];
+                var cg = vd["green"];
+                var cb = vd["blue"];
                 var hasColors = cr != null || cg != null || cb != null;
                 var cs = hasColors ? new C4b[count] : null;
                 if (hasColors) for (var i = 0; i < count; i++) cs![i].A = 255;
 
                 if (cr != null)
                 {
-                    var o = data.Vertices.Properties[cr];
-                    switch (cr.DataType)
+                    var o = cr.Data;
+                    switch (cr.Property.DataType)
                     {
                         case PlyParser.DataType.Int8   : { var xs = (sbyte[]) o; for (var i = 0; i < count; i++) cs![i].R = (byte)xs[i0 + i]; break; }
                         case PlyParser.DataType.UInt8  : { var xs = (byte[])  o; for (var i = 0; i < count; i++) cs![i].R = (byte)xs[i0 + i]; break; }
@@ -153,13 +155,13 @@ namespace Aardvark.Data.Points.Import
                         case PlyParser.DataType.UInt32 : { var xs = (uint[])  o; for (var i = 0; i < count; i++) cs![i].R = (byte)xs[i0 + i]; break; }
                         case PlyParser.DataType.Float32: { var xs = (float[]) o; for (var i = 0; i < count; i++) cs![i].R = (byte)(xs[i0 + i] * 255.999); break; }
                         case PlyParser.DataType.Float64: { var xs = (double[])o; for (var i = 0; i < count; i++) cs![i].R = (byte)(xs[i0 + i] * 255.999); break; }
-                        default: throw new Exception($"Data type {cr.DataType} not supported.");
+                        default: throw new Exception($"Data type {cr.Property.DataType} not supported.");
                     }
                 }
                 if (cg != null)
                 {
-                    var o = data.Vertices.Properties[cg];
-                    switch (cg.DataType)
+                    var o = cg.Data;
+                    switch (cg.Property.DataType)
                     {
                         case PlyParser.DataType.Int8   : { var xs = (sbyte[]) o; for (var i = 0; i < count; i++) cs![i].G = (byte)xs[i0 + i]; break; }
                         case PlyParser.DataType.UInt8  : { var xs = (byte[])  o; for (var i = 0; i < count; i++) cs![i].G = (byte)xs[i0 + i]; break; }
@@ -169,13 +171,13 @@ namespace Aardvark.Data.Points.Import
                         case PlyParser.DataType.UInt32 : { var xs = (uint[])  o; for (var i = 0; i < count; i++) cs![i].G = (byte)xs[i0 + i]; break; }
                         case PlyParser.DataType.Float32: { var xs = (float[]) o; for (var i = 0; i < count; i++) cs![i].G = (byte)(xs[i0 + i] * 255.999); break; }
                         case PlyParser.DataType.Float64: { var xs = (double[])o; for (var i = 0; i < count; i++) cs![i].G = (byte)(xs[i0 + i] * 255.999); break; }
-                        default: throw new Exception($"Data type {cg.DataType} not supported.");
+                        default: throw new Exception($"Data type {cg.Property.DataType} not supported.");
                     }
                 }
                 if (cb != null)
                 {
-                    var o = data.Vertices.Properties[cb];
-                    switch (cb.DataType)
+                    var o = cb.Data;
+                    switch (cb.Property.DataType)
                     {
                         case PlyParser.DataType.Int8   : { var xs = (sbyte[]) o; for (var i = 0; i < count; i++) cs![i].B = (byte)xs[i0 + i]; break; }
                         case PlyParser.DataType.UInt8  : { var xs = (byte[])  o; for (var i = 0; i < count; i++) cs![i].B = (byte)xs[i0 + i]; break; }
@@ -185,7 +187,7 @@ namespace Aardvark.Data.Points.Import
                         case PlyParser.DataType.UInt32 : { var xs = (uint[])  o; for (var i = 0; i < count; i++) cs![i].B = (byte)xs[i0 + i]; break; }
                         case PlyParser.DataType.Float32: { var xs = (float[]) o; for (var i = 0; i < count; i++) cs![i].B = (byte)(xs[i0 + i] * 255.999); break; }
                         case PlyParser.DataType.Float64: { var xs = (double[])o; for (var i = 0; i < count; i++) cs![i].B = (byte)(xs[i0 + i] * 255.999); break; }
-                        default: throw new Exception($"Data type {cb.DataType} not supported.");
+                        default: throw new Exception($"Data type {cb.Property.DataType} not supported.");
                     }
                 }
 
@@ -193,16 +195,16 @@ namespace Aardvark.Data.Points.Import
 
                 #region normals
 
-                var nx = data.Vertices.TryGetProperty("nx");
-                var ny = data.Vertices.TryGetProperty("ny");
-                var nz = data.Vertices.TryGetProperty("nz");
+                var nx = vd["nx"];
+                var ny = vd["ny"];
+                var nz = vd["nz"];
                 var hasNormals = nx != null || ny != null || nz != null;
                 var ns = hasNormals ? new V3f[count] : null;
 
                 if (nx != null)
                 {
-                    var o = data.Vertices.Properties[nx];
-                    switch (nx.DataType)
+                    var o = nx.Data;
+                    switch (nx.Property.DataType)
                     {
                         case PlyParser.DataType.Int8   : { var xs = (sbyte[]) o; for (var i = 0; i < count; i++) ns![i].X = (float)xs[i0 + i]; break; }
                         case PlyParser.DataType.UInt8  : { var xs = (byte[])  o; for (var i = 0; i < count; i++) ns![i].X = (float)xs[i0 + i]; break; }
@@ -212,13 +214,13 @@ namespace Aardvark.Data.Points.Import
                         case PlyParser.DataType.UInt32 : { var xs = (uint[])  o; for (var i = 0; i < count; i++) ns![i].X = (float)xs[i0 + i]; break; }
                         case PlyParser.DataType.Float32: { var xs = (float[]) o; for (var i = 0; i < count; i++) ns![i].X = (float)xs[i0 + i]; break; }
                         case PlyParser.DataType.Float64: { var xs = (double[])o; for (var i = 0; i < count; i++) ns![i].X = (float)xs[i0 + i]; break; }
-                        default: throw new Exception($"Data type {nx.DataType} not supported.");
+                        default: throw new Exception($"Data type {nx.Property.DataType} not supported.");
                     }
                 }
                 if (ny != null)
                 {
-                    var o = data.Vertices.Properties[ny];
-                    switch (ny.DataType)
+                    var o = ny.Data;
+                    switch (ny.Property.DataType)
                     {
                         case PlyParser.DataType.Int8   : { var xs = (sbyte[]) o; for (var i = 0; i < count; i++) ns![i].Y = (float)xs[i0 + i]; break; }
                         case PlyParser.DataType.UInt8  : { var xs = (byte[])  o; for (var i = 0; i < count; i++) ns![i].Y = (float)xs[i0 + i]; break; }
@@ -228,13 +230,13 @@ namespace Aardvark.Data.Points.Import
                         case PlyParser.DataType.UInt32 : { var xs = (uint[])  o; for (var i = 0; i < count; i++) ns![i].Y = (float)xs[i0 + i]; break; }
                         case PlyParser.DataType.Float32: { var xs = (float[]) o; for (var i = 0; i < count; i++) ns![i].Y = (float)xs[i0 + i]; break; }
                         case PlyParser.DataType.Float64: { var xs = (double[])o; for (var i = 0; i < count; i++) ns![i].Y = (float)xs[i0 + i]; break; }
-                        default: throw new Exception($"Data type {ny.DataType} not supported.");
+                        default: throw new Exception($"Data type {ny.Property.DataType} not supported.");
                     }
                 }
                 if (nz != null)
                 {
-                    var o = data.Vertices.Properties[nz];
-                    switch (nz.DataType)
+                    var o = nz.Data;
+                    switch (nz.Property.DataType)
                     {
                         case PlyParser.DataType.Int8   : { var xs = (sbyte[]) o; for (var i = 0; i < count; i++) ns![i].Z = (float)xs[i0 + i]; break; }
                         case PlyParser.DataType.UInt8  : { var xs = (byte[])  o; for (var i = 0; i < count; i++) ns![i].Z = (float)xs[i0 + i]; break; }
@@ -244,7 +246,7 @@ namespace Aardvark.Data.Points.Import
                         case PlyParser.DataType.UInt32 : { var xs = (uint[])  o; for (var i = 0; i < count; i++) ns![i].Z = (float)xs[i0 + i]; break; }
                         case PlyParser.DataType.Float32: { var xs = (float[]) o; for (var i = 0; i < count; i++) ns![i].Z = (float)xs[i0 + i]; break; }
                         case PlyParser.DataType.Float64: { var xs = (double[])o; for (var i = 0; i < count; i++) ns![i].Z = (float)xs[i0 + i]; break; }
-                        default: throw new Exception($"Data type {nz.DataType} not supported.");
+                        default: throw new Exception($"Data type {nz.Property.DataType} not supported.");
                     }
                 }
 
@@ -252,14 +254,14 @@ namespace Aardvark.Data.Points.Import
 
                 #region intensities
 
-                var j = data.Vertices.TryGetProperty("scalar_intensity");
+                var j = vd["scalar_intensity"];
                 var hasIntensities = j != null;
                 var js = hasIntensities ? new int[count] : null;
 
                 if (j != null)
                 {
-                    var o = data.Vertices.Properties[j];
-                    switch (j.DataType)
+                    var o = j.Data;
+                    switch (j.Property.DataType)
                     {
                         case PlyParser.DataType.Int8   : { var xs = (sbyte[]) o; for (var i = 0; i < count; i++) js![i] = xs[i0 + i]; break; }
                         case PlyParser.DataType.UInt8  : { var xs = (byte[])  o; for (var i = 0; i < count; i++) js![i] = xs[i0 + i]; break; }
@@ -269,7 +271,7 @@ namespace Aardvark.Data.Points.Import
                         case PlyParser.DataType.UInt32 : { var xs = (uint[])  o; var min = xs.Min(); var max = xs.Max(); var f = (max - min) * 255.999; for (var i = 0; i < count; i++) js![i] = (byte)((xs[i0 + i] - min) * f); break; }
                         case PlyParser.DataType.Float32: { var xs = (float[]) o; var min = xs.Min(); var max = xs.Max(); var f = (max - min) * 255.999; for (var i = 0; i < count; i++) js![i] = (byte)((xs[i0 + i] - min) * f); break; }
                         case PlyParser.DataType.Float64: { var xs = (double[])o; var min = xs.Min(); var max = xs.Max(); var f = (max - min) * 255.999; for (var i = 0; i < count; i++) js![i] = (byte)((xs[i0 + i] - min) * f); break; }
-                        default: throw new Exception($"Data type {j.DataType} not supported.");
+                        default: throw new Exception($"Data type {j.Property.DataType} not supported.");
                     }
                 }
 

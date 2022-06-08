@@ -16,7 +16,6 @@
    limitations under the License.
 */
 
-//using Aardvark.Base;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -24,7 +23,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Runtime.InteropServices;
 
 namespace Ply.Net;
 
@@ -40,6 +38,15 @@ public static class PlyParser
         BinaryBigEndian
     }
 
+    public enum DataType
+    {
+        Undefined,
+        Int8, UInt8,
+        Int16, UInt16,
+        Int32, UInt32,
+        Float32, Float64
+    }
+
     public enum ElementType
     {
         Vertex,
@@ -48,15 +55,6 @@ public static class PlyParser
         Material,
         Cell,
         UserDefined,
-    }
-
-    public enum DataType
-    {
-        Undefined,
-        Int8, UInt8,
-        Int16, UInt16,
-        Int32, UInt32,
-        Float32, Float64
     }
 
     public record Property(DataType DataType, string Name, DataType ListCountType)
@@ -68,75 +66,33 @@ public static class PlyParser
     {
         public Element Add(Property p) => this with { Properties = Properties.Add(p) };
 
-        public int? GetPropertyIndex(string name)
-        {
-            for (var i = 0; i < Properties.Count; i++)
-            {
-                if (Properties[i].Name == name) return i;
-            }
-            return null;
-        }
-
-        public bool HasColor => GetPropertyIndex("red") != null && GetPropertyIndex("green") != null && GetPropertyIndex("blue") != null;
-        public bool HasNormal => GetPropertyIndex("nx") != null && GetPropertyIndex("ny") != null && GetPropertyIndex("nz") != null;
-        public bool HasIntensity => GetPropertyIndex("scalar_intensity") != null;
+        public bool ContainsListProperty => Properties.Any(p => p.IsListProperty);
     }
 
     public record Header(Format Format, ImmutableList<Element> Elements, ImmutableList<string> HeaderLines, long DataOffset)
     {
-        public Element? Cell => Elements.SingleOrDefault(x => x.Type == ElementType.Cell);
-        public Element? Edge => Elements.SingleOrDefault(x => x.Type == ElementType.Edge);
-        public Element? Face => Elements.SingleOrDefault(x => x.Type == ElementType.Face);
+        public Element? Cell     => Elements.SingleOrDefault(x => x.Type == ElementType.Cell);
+        public Element? Edge     => Elements.SingleOrDefault(x => x.Type == ElementType.Edge);
+        public Element? Face     => Elements.SingleOrDefault(x => x.Type == ElementType.Face);
         public Element? Material => Elements.SingleOrDefault(x => x.Type == ElementType.Material);
-        public Element? Vertex => Elements.SingleOrDefault(x => x.Type == ElementType.Vertex);
+        public Element? Vertex   => Elements.SingleOrDefault(x => x.Type == ElementType.Vertex);
     }
 
-    public record Vertices(ImmutableDictionary<Property, object> Properties)
+    public record PropertyData(Property Property, object Data);
+
+    public record ElementData(Element Element, ImmutableList<PropertyData> Data)
     {
-        public Property? TryGetProperty(string name) => Properties.Keys.FirstOrDefault(x => x.Name == name);
-
-        public (Property x, Property y, Property z)? TryGetPositionProperties()
-        {
-            var p0 = TryGetProperty("x"); if (p0 == null) return null;
-            var p1 = TryGetProperty("y"); if (p1 == null) return null;
-            var p2 = TryGetProperty("z"); if (p2 == null) return null;
-            return (p0, p1, p2);
-        }
-
-        public (Property r, Property g, Property b)? TryGetRgbColorProperties()
-        {
-            var p0 = TryGetProperty("red")   ?? TryGetProperty("diffuse_red");   if (p0 == null) return null;
-            var p1 = TryGetProperty("green") ?? TryGetProperty("diffuse_green"); if (p1 == null) return null;
-            var p2 = TryGetProperty("blue")  ?? TryGetProperty("diffuse_blue");  if (p2 == null) return null;
-            return (p0, p1, p2);
-        }
-
-        public (Property nx, Property ny, Property nz)? TryGetNormalProperties()
-        {
-            var p0 = TryGetProperty("nx"); if (p0 == null) return null;
-            var p1 = TryGetProperty("ny"); if (p1 == null) return null;
-            var p2 = TryGetProperty("nz"); if (p2 == null) return null;
-            return (p0, p1, p2);
-        }
-
-        public Property? TryGetIntensityProperty()
-        {
-            var p0 = TryGetProperty("scalar_intensity"); if (p0 == null) return null;
-            return p0;
-        }
+        public PropertyData? this[string propertyName] => Data.SingleOrDefault(x => x.Property.Name == propertyName);
     }
 
-    public record Faces(int[][] PerFaceVertexIndices);
-
-    public record Edges();
-
-    public record Cells();
-
-    public record Materials();
-
-    public record UserDefined();
-
-    public record Dataset(Header Header, Vertices Vertices, Faces? Faces, Edges? Edges, Cells? Cells, Materials? Materials, ImmutableList<UserDefined> UserDefined);
+    public record Dataset(Header Header, ImmutableList<ElementData> Data)
+    {
+        public ElementData? Cell     => Data.SingleOrDefault(x => x.Element.Type == ElementType.Cell);
+        public ElementData? Edge     => Data.SingleOrDefault(x => x.Element.Type == ElementType.Edge);
+        public ElementData? Face     => Data.SingleOrDefault(x => x.Element.Type == ElementType.Face);
+        public ElementData? Material => Data.SingleOrDefault(x => x.Element.Type == ElementType.Material);
+        public ElementData? Vertex   => Data.SingleOrDefault(x => x.Element.Type == ElementType.Vertex);
+    }
 
     #endregion
 
@@ -193,14 +149,14 @@ public static class PlyParser
             throw new Exception($"Expected <number_in_file> to be in range [0..2147483647], but found \"{ts[2]}\".");
         }
 
-        var type = ts[1] switch
+        var type = ts[1].ToLower() switch
         {
-            "vertex" => ElementType.Vertex,
-            "face" => ElementType.Face,
-            "edge" => ElementType.Edge,
+            "cell"     => ElementType.Cell,
+            "edge"     => ElementType.Edge,
+            "face"     => ElementType.Face,
             "material" => ElementType.Material,
-            "cell" => ElementType.Cell,
-            _ => ElementType.UserDefined,
+            "vertex"   => ElementType.Vertex,
+            _          => ElementType.UserDefined,
         };
 
         return new(type, ts[1], count, ImmutableList<Property>.Empty);
@@ -263,403 +219,6 @@ public static class PlyParser
 
         _ => throw new Exception($"Unknown data type \"{s}\".")
     };
-
-    #endregion
-
-    private static class AsciiParser
-    {
-        private static Vertices ParseVertices(StreamReader f, Element element)
-        {
-            if (element.Type != ElementType.Vertex) throw new Exception($"Expected \"vertex\" element, but found \"{element.Name}\".");
-
-            var data = new object[element.Properties.Count];
-            var parse = new Action<string[], int>[element.Properties.Count];
-            var props = ImmutableDictionary<Property, object>.Empty;
-
-            for (var i = 0; i < element.Properties.Count; i++)
-            {
-                var p = element.Properties[i];
-                if (p.IsListProperty) throw new NotImplementedException();
-
-                var ti = i;
-                switch (p.DataType)
-                {
-                    case DataType.Int8:
-                        {
-                            var xs = new sbyte[element.Count];
-                            data[i] = xs;
-                            parse[i] = (ts, j) => xs[j] = sbyte.Parse(ts[ti]);
-                            break;
-                        }
-                    case DataType.UInt8:
-                        {
-                            var xs = new byte[element.Count];
-                            data[i] = xs;
-                            parse[i] = (ts, j) => xs[j] = byte.Parse(ts[ti]);
-                            break;
-                        }
-                    case DataType.Int16:
-                        {
-                            var xs = new short[element.Count];
-                            data[i] = xs;
-                            parse[i] = (ts, j) => xs[j] = short.Parse(ts[ti]);
-                            break;
-                        }
-                    case DataType.UInt16:
-                        {
-                            var xs = new ushort[element.Count];
-                            data[i] = xs;
-                            parse[i] = (ts, j) => xs[j] = ushort.Parse(ts[ti]);
-                            break;
-                        }
-                    case DataType.Int32:
-                        {
-                            var xs = new int[element.Count];
-                            data[i] = xs;
-                            parse[i] = (ts, j) => xs[j] = int.Parse(ts[ti]);
-                            break;
-                        }
-                    case DataType.UInt32:
-                        {
-                            var xs = new uint[element.Count];
-                            data[i] = xs;
-                            parse[i] = (ts, j) => xs[j] = uint.Parse(ts[ti]);
-                            break;
-                        }
-                    case DataType.Float32:
-                        {
-                            var xs = new float[element.Count];
-                            data[i] = xs;
-                            parse[i] = (ts, j) => xs[j] = float.Parse(ts[ti], CultureInfo.InvariantCulture);
-                            break;
-                        }
-                    case DataType.Float64:
-                        {
-                            var xs = new double[element.Count];
-                            data[i] = xs;
-                            parse[i] = (ts, j) => xs[j] = double.Parse(ts[ti], CultureInfo.InvariantCulture);
-                            break;
-                        }
-                    default:
-                        {
-                            throw new Exception($"Property data type {p.DataType} not supported.");
-                        }
-                }
-
-                props = props.Add(p, data[i]);
-            }
-
-            for (var i = 0; i < element.Count; i++)
-            {
-                var line = f.ReadLine();
-                if (line == string.Empty) { i--; continue; }
-                if (line == null) throw new Exception("Failed to read next line.");
-
-                var ts = line.SplitOnWhitespace();
-
-                for (var j = 0; j < element.Properties.Count; j++) parse[j](ts, i);
-            }
-
-            return new(props);
-        }
-
-        private static Faces ParseFaces(StreamReader f, Element element, Action<string>? log)
-        {
-            if (element.Type != ElementType.Face) throw new Exception($"Expected \"face\" element, but found \"{element.Name}\".");
-
-            var pfvia = new int[element.Count][];
-
-            for (var i = 0; i < element.Count; i++)
-            {
-                var line = f.ReadLine();
-                if (line == string.Empty) { i--; continue; }
-                if (line == null)
-                {
-                    log?.Invoke("Premature end of file.");
-                    break;
-                }
-
-                var ts = line.SplitOnWhitespace();
-
-                var count = int.Parse(ts[0]);
-                var via = new int[count];
-                for (var j = 0; j < count;) via[j] = int.Parse(ts[++j]);
-                pfvia[i] = via;
-            }
-
-            return new(pfvia);
-        }
-
-        private static Faces ParseEdges(StreamReader f, Element element)
-        {
-            if (element.Type != ElementType.Edge) throw new Exception($"Expected \"edge\" element, but found \"{element.Name}\".");
-            throw new Exception($"Element type \"{element.Name}\" not supported.");
-        }
-
-        private static Cells ParseCells(StreamReader f, Element element)
-        {
-            if (element.Type != ElementType.Cell) throw new Exception($"Expected \"cell\" element, but found \"{element.Name}\".");
-            throw new Exception($"Element type \"{element.Name}\" not supported.");
-        }
-
-        private static Materials ParseMaterials(StreamReader f, Element element)
-        {
-            if (element.Type != ElementType.Material) throw new Exception($"Expected \"material\" element, but found \"{element.Name}\".");
-            throw new Exception($"Element type \"{element.Name}\" not supported.");
-        }
-
-        private static UserDefined ParseUserDefined(StreamReader f, Element element)
-        {
-            throw new Exception($"User defined element type \"{element.Name}\" not supported.");
-        }
-
-        public static Dataset Parse(Header header, Stream f, Action<string>? log)
-        {
-            Vertices? vertices = null;
-            Faces? faces = null;
-            Edges? edges = null;
-            Cells? cells = null;
-            Materials? materials = null;
-            var userDefined = ImmutableList<UserDefined>.Empty;
-
-            var sr = new StreamReader(f);
-
-            foreach (var element in header.Elements)
-            {
-                switch (element.Type)
-                {
-                    case ElementType.Vertex: vertices = ParseVertices(sr, element); break;
-                    case ElementType.Face: faces = ParseFaces(sr, element, log); break;
-                    case ElementType.Edge: faces = ParseEdges(sr, element); break;
-                    case ElementType.Cell: cells = ParseCells(sr, element); break;
-                    case ElementType.Material: materials = ParseMaterials(sr, element); break;
-                    case ElementType.UserDefined: userDefined = userDefined.Add(ParseUserDefined(sr, element)); break;
-                    default: throw new Exception($"Element type {element.Type} not supported.");
-                }
-            }
-
-            if (vertices == null) throw new Exception($"Missing vertex data.");
-
-            return new(header, vertices, faces, edges, cells, materials, userDefined);
-        }
-    }
-
-    private static class BinaryParser
-    {
-        private static readonly Dictionary<DataType, int> DataTypeSizes = new()
-        {
-            { DataType.Int8,    1 },
-            { DataType.UInt8,   1 },
-            { DataType.Int16,   2 },
-            { DataType.UInt16,  2 },
-            { DataType.Int32,   4 },
-            { DataType.UInt32,  4 },
-            { DataType.Float32, 4 },
-            { DataType.Float64, 8 }
-        };
-
-        private static Func<Stream, int[]> CreateFaceParser(Element e)
-        {
-            if (e.Properties.Count != 1 || !e.Properties[0].IsListProperty) throw new Exception("Face properties not supported. Expected exactly 1 list property.");
-            
-            Func<Stream, int> parseCount = e.Properties[0].ListCountType switch
-            {
-                DataType.Int8   => f => f.ReadByte(),
-                DataType.UInt8  => f => f.ReadByte(),
-                DataType.Int16  => f => { var buffer = new byte[2]; f.Read(buffer, 0, buffer.Length); return BitConverter.ToInt16(buffer, 0); },
-                DataType.UInt16 => f => { var buffer = new byte[2]; f.Read(buffer, 0, buffer.Length); return BitConverter.ToUInt16(buffer, 0); },
-                DataType.Int32  => f => { var buffer = new byte[4]; f.Read(buffer, 0, buffer.Length); return BitConverter.ToInt32(buffer, 0); },
-                DataType.UInt32 => f => { var buffer = new byte[4]; f.Read(buffer, 0, buffer.Length); return (int)BitConverter.ToUInt32(buffer, 0); },
-                _ => throw new NotImplementedException($"List count type not supported: {e.Properties[0].ListCountType}")
-            };
-
-            Func<Stream, int, int[]> parseData = e.Properties[0].DataType switch
-            {
-                DataType.Int8   => (f, c) => { var buffer = new byte[c * 1]; f.Read(buffer, 0, buffer.Length); return buffer.Map(x => (int)x); },
-                DataType.UInt8  => (f, c) => { var buffer = new byte[c * 1]; f.Read(buffer, 0, buffer.Length); return buffer.Map(x => (int)x); },
-                DataType.Int16  => (f, c) => { var buffer = new byte[c * 2]; f.Read(buffer, 0, buffer.Length); return MemoryMarshal.Cast<byte, short>(buffer).Map(x => (int)x); },
-                DataType.UInt16 => (f, c) => { var buffer = new byte[c * 2]; f.Read(buffer, 0, buffer.Length); return MemoryMarshal.Cast<byte, ushort>(buffer).Map(x => (int)x); },
-                DataType.Int32  => (f, c) => { var buffer = new byte[c * 4]; f.Read(buffer, 0, buffer.Length); return MemoryMarshal.Cast<byte, int>(buffer).Map(x => (int)x); },
-                DataType.UInt32 => (f, c) => { var buffer = new byte[c * 4]; f.Read(buffer, 0, buffer.Length); return MemoryMarshal.Cast<byte, uint>(buffer).Map(x => (int)x); },
-                _ => throw new NotImplementedException($"List data type not supported: {e.Properties[0].ListCountType}")
-            };
-
-            return f =>
-            {
-                var count = parseCount(f);
-                var ia = parseData(f, count);
-                return ia;
-            };
-        }
-
-        private static Vertices ParseVertices(Stream f, Element element)
-        {
-            if (element.Type != ElementType.Vertex) throw new Exception($"Expected \"vertex\" element, but found \"{element.Name}\".");
-
-            var data = new object[element.Properties.Count];
-            var parse = new Action<byte[], int>[element.Properties.Count];
-            var props = ImmutableDictionary<Property, object>.Empty;
-
-            var offset = 0;
-            for (var i = 0; i < element.Properties.Count; i++)
-            {
-                var p = element.Properties[i];
-                if (p.IsListProperty) throw new NotImplementedException();
-                
-                var o = offset;
-                offset += DataTypeSizes[p.DataType];
-
-                var ti = i;
-                switch (p.DataType)
-                {
-                    case DataType.Int8:
-                        {
-                            var xs = new sbyte[element.Count];
-                            data[i] = xs;
-                            parse[i] = (buffer, j) => xs[j] = (sbyte)buffer[o];
-                            break;
-                        }
-                    case DataType.UInt8:
-                        {
-                            var xs = new byte[element.Count];
-                            data[i] = xs;
-                            parse[i] = (buffer, j) => xs[j] = buffer[o];
-                            break;
-                        }
-                    case DataType.Int16:
-                        {
-                            var xs = new short[element.Count];
-                            data[i] = xs;
-                            parse[i] = (buffer, j) => xs[j] = BitConverter.ToInt16(buffer, o);
-                            break;
-                        }
-                    case DataType.UInt16:
-                        {
-                            var xs = new ushort[element.Count];
-                            data[i] = xs;
-                            parse[i] = (buffer, j) => xs[j] = BitConverter.ToUInt16(buffer, o);
-                            break;
-                        }
-                    case DataType.Int32:
-                        {
-                            var xs = new int[element.Count];
-                            data[i] = xs;
-                            parse[i] = (buffer, j) => xs[j] = BitConverter.ToInt32(buffer, o);
-                            break;
-                        }
-                    case DataType.UInt32:
-                        {
-                            var xs = new uint[element.Count];
-                            data[i] = xs;
-                            parse[i] = (buffer, j) => xs[j] = BitConverter.ToUInt32(buffer, o);
-                            break;
-                        }
-                    case DataType.Float32:
-                        {
-                            var xs = new float[element.Count];
-                            data[i] = xs;
-                            parse[i] = (buffer, j) => xs[j] = BitConverter.ToSingle(buffer, o);
-                            break;
-                        }
-                    case DataType.Float64:
-                        {
-                            var xs = new double[element.Count];
-                            data[i] = xs;
-                            parse[i] = (buffer, j) => xs[j] = BitConverter.ToDouble(buffer, o);
-                            break;
-                        }
-                    default:
-                        {
-                            throw new Exception($"Property data type {p.DataType} not supported.");
-                        }
-                }
-
-                props = props.Add(p, data[i]);
-            }
-
-            var bufferSize = element.Properties.Sum(p => DataTypeSizes[p.DataType]);
-            var buffer = new byte[bufferSize];
-            for (var i = 0; i < element.Count; i++)
-            {
-                var c = f.Read(buffer, 0, bufferSize);
-                if (c != bufferSize) throw new Exception("");
-
-                for (var j = 0; j < element.Properties.Count; j++) parse[j](buffer, i);
-            }
-
-            return new(props);
-        }
-
-        private static Faces ParseFaces(Stream f, Element element)
-        {
-            if (element.Type != ElementType.Face) throw new Exception($"Expected \"face\" element, but found \"{element.Name}\".");
-
-            var fvia = new int[element.Count][];
-            var parseFace = CreateFaceParser(element);
-            for (var i = 0; i < element.Count; i++)
-            {
-                fvia[i] = parseFace(f);
-            }
-            return new(fvia);
-        }
-
-        private static Faces ParseEdges(Stream f, Element element)
-        {
-            if (element.Type != ElementType.Edge) throw new Exception($"Expected \"edge\" element, but found \"{element.Name}\".");
-            throw new Exception($"Element type \"{element.Name}\" not supported.");
-        }
-
-        private static Cells ParseCells(Stream f, Element element)
-        {
-            if (element.Type != ElementType.Cell) throw new Exception($"Expected \"cell\" element, but found \"{element.Name}\".");
-            throw new Exception($"Element type \"{element.Name}\" not supported.");
-        }
-
-        private static Materials ParseMaterials(Stream f, Element element)
-        {
-            if (element.Type != ElementType.Material) throw new Exception($"Expected \"material\" element, but found \"{element.Name}\".");
-            throw new Exception($"Element type \"{element.Name}\" not supported.");
-        }
-
-        private static UserDefined ParseUserDefined(Stream f, Element element)
-        {
-            throw new Exception($"User defined element type \"{element.Name}\" not supported.");
-        }
-
-        public static Dataset Parse(Header header, Stream f, Action<string>? log)
-        {
-            if (BitConverter.IsLittleEndian && header.Format == Format.BinaryBigEndian)
-                throw new Exception("Parsing binary big endian on little endian machine is not supported.");
-
-            if (!BitConverter.IsLittleEndian && header.Format == Format.BinaryLittleEndian)
-                throw new Exception("Parsing binary little endian on big endian machine is not supported.");
-
-            Vertices?   vertices    = null;
-            Faces?      faces       = null;
-            Edges?      edges       = null;
-            Cells?      cells       = null;
-            Materials?  materials   = null;
-            var         userDefined = ImmutableList<UserDefined>.Empty;
-
-            foreach (var element in header.Elements)
-            {
-                switch (element.Type)
-                {
-                    case ElementType.Vertex     : vertices      = ParseVertices(f, element); break;
-                    case ElementType.Face       : faces         = ParseFaces(f, element); break;
-                    case ElementType.Edge       : faces         = ParseEdges(f, element); break;
-                    case ElementType.Cell       : cells         = ParseCells(f, element); break;
-                    case ElementType.Material   : materials     = ParseMaterials(f, element); break;
-                    case ElementType.UserDefined: userDefined   = userDefined.Add(ParseUserDefined(f, element)); break;
-                    default                     : throw new Exception($"Element type {element.Type} not supported.");
-                }
-            }
-
-            if (vertices == null) throw new Exception($"Missing vertex data.");
-
-            return new(header, vertices, faces, edges, cells, materials, userDefined);
-        }
-    }
 
     public static Header ParseHeader(Stream f, Action<string>? log)
     {
@@ -753,15 +312,292 @@ public static class PlyParser
         return ParseHeader(f, log);
     }
 
+    #endregion
+
+    private static class AsciiParser
+    {
+        private delegate void PropertyParser(int rowIndex, Row rowData);
+
+        private class Row
+        {
+            private readonly string[] _ts;
+            private int _next;
+            public Row(string line) { _ts = line.SplitOnWhitespace(); _next = 0; }
+            public string NextToken() => _ts[_next++];
+        }
+
+        private static ElementData ParseElement(StreamReader f, Element element)
+        {
+            (PropertyParser Parse, object Data) CreateListPropertyParser(Property p)
+            {
+                (Action<int, Row, int>, object) ParseListValues<T>(Func<string, T> parseValue)
+                {
+                    var rs = new T[element.Count][];
+                    return ((row, line, count) =>
+                    {
+                        var xs = new T[count]; rs[row] = xs;
+                        for (var i = 0; i < count; i++) xs[i] = parseValue(line.NextToken());
+                    }, rs);
+                }
+
+                var (parseListEntries, data) = p.DataType switch
+                {
+                    DataType.Int8    => ParseListValues(sbyte.Parse),
+                    DataType.UInt8   => ParseListValues(byte.Parse),
+                    DataType.Int16   => ParseListValues(short.Parse),
+                    DataType.UInt16  => ParseListValues(ushort.Parse),
+                    DataType.Int32   => ParseListValues(int.Parse),
+                    DataType.UInt32  => ParseListValues(uint.Parse),
+                    DataType.Float32 => ParseListValues(s => float.Parse(s, CultureInfo.InvariantCulture)),
+                    DataType.Float64 => ParseListValues(s => double.Parse(s, CultureInfo.InvariantCulture)),
+                    _ => throw new Exception($"List data type {p.DataType} is not supported."),
+                };
+
+                return (
+                    Parse: (row, line) => parseListEntries(row, line, int.Parse(line.NextToken())),
+                    Data : data
+                    );
+            }
+
+            (PropertyParser Parse, object Data) CreateScalarPropertyParser(Property p)
+            {
+                (PropertyParser Parse, object Data) ParseScalarValue<T>(Func<string, T> parse)
+                { var xs = new T[element.Count]; return ((row, line) => xs[row] = parse(line.NextToken()), xs); }
+
+                return p.DataType switch
+                {
+                    DataType.Int8    => ParseScalarValue(sbyte.Parse),
+                    DataType.UInt8   => ParseScalarValue(byte.Parse),
+                    DataType.Int16   => ParseScalarValue(short.Parse),
+                    DataType.UInt16  => ParseScalarValue(ushort.Parse),
+                    DataType.Int32   => ParseScalarValue(int.Parse),
+                    DataType.UInt32  => ParseScalarValue(uint.Parse),
+                    DataType.Float32 => ParseScalarValue(s => float.Parse(s, CultureInfo.InvariantCulture)),
+                    DataType.Float64 => ParseScalarValue(s => double.Parse(s, CultureInfo.InvariantCulture)),
+                    _ => throw new Exception($"List data type {p.DataType} is not supported."),
+                };
+            };
+
+            var parse = new PropertyParser[element.Properties.Count];
+            var data  = new PropertyData[element.Properties.Count];
+
+            for (var pi = 0; pi < element.Properties.Count; pi++)
+            {
+                var p = element.Properties[pi];
+                (parse[pi], var d) = p.IsListProperty ? CreateListPropertyParser(p) : CreateScalarPropertyParser(p);
+                data[pi] = new(p, d);
+            }
+
+            for (var i = 0; i < element.Count; i++)
+            {
+                var l = f.ReadLine();
+                if (l == string.Empty) { i--; continue; }
+                if (l == null) throw new Exception("Failed to read next line.");
+
+                var line = new Row(l);
+                for (var j = 0; j < element.Properties.Count; j++) parse[j](i, line);
+            }
+
+            return new(element, data.ToImmutableList());
+        }
+
+        public static Dataset Parse(Header header, Stream f)
+        {
+            var sr = new StreamReader(f);
+            var data = header.Elements.Select(e => ParseElement(sr, e)).ToImmutableList();
+            return new(header, data);
+        }
+    }
+
+    private static class BinaryParser
+    {
+        private delegate void PropertyParser(int rowIndex, Row row);
+
+        private class Row
+        {
+            public readonly Stream Stream;
+            public readonly byte[] Buffer;
+            public int BufferOffset;
+            private readonly byte[] _local = new byte[8];
+            public Row(Stream stream, byte[] buffer) { Stream = stream; Buffer = buffer; BufferOffset = 0; }
+
+            public void NextRow()
+            {
+                if (Buffer.Length == 0) return;
+                var c = Stream.Read(Buffer, 0, Buffer.Length);
+                if (c != Buffer.Length) throw new Exception("Failed to read next row.");
+                BufferOffset = 0;
+            }
+
+            public static sbyte  NextBufferInt8   (Row r) => (sbyte)r.Buffer[r.BufferOffset++];
+            public static byte   NextBufferUInt8  (Row r) => r.Buffer[r.BufferOffset++];
+            public static short  NextBufferInt16  (Row r) { var x = BitConverter.ToInt16 (r.Buffer, r.BufferOffset); r.BufferOffset += 2; return x; }
+            public static ushort NextBufferUInt16 (Row r) { var x = BitConverter.ToUInt16(r.Buffer, r.BufferOffset); r.BufferOffset += 2; return x; }
+            public static int    NextBufferInt32  (Row r) { var x = BitConverter.ToInt32 (r.Buffer, r.BufferOffset); r.BufferOffset += 4; return x; }
+            public static uint   NextBufferUInt32 (Row r) { var x = BitConverter.ToUInt32(r.Buffer, r.BufferOffset); r.BufferOffset += 4; return x; }
+            public static float  NextBufferFloat32(Row r) { var x = BitConverter.ToSingle(r.Buffer, r.BufferOffset); r.BufferOffset += 4; return x; }
+            public static double NextBufferFloat64(Row r) { var x = BitConverter.ToDouble(r.Buffer, r.BufferOffset); r.BufferOffset += 8; return x; }
+
+            public static sbyte  NextStreamInt8   (Row r) => (sbyte)r.Stream.ReadByte();
+            public static byte   NextStreamUInt8  (Row r) => (byte) r.Stream.ReadByte();
+            public static short  NextStreamInt16  (Row r) { var c = r.Stream.Read(r._local, 0, 2); if (c != 2) throw new Exception("Failed to read next int16 from stream.");   return BitConverter.ToInt16 (r._local, 0); }
+            public static ushort NextStreamUInt16 (Row r) { var c = r.Stream.Read(r._local, 0, 2); if (c != 2) throw new Exception("Failed to read next uint16 from stream.");  return BitConverter.ToUInt16(r._local, 0); }
+            public static int    NextStreamInt32  (Row r) { var c = r.Stream.Read(r._local, 0, 4); if (c != 4) throw new Exception("Failed to read next int32 from stream.");   return BitConverter.ToInt32 (r._local, 0); }
+            public static uint   NextStreamUInt32 (Row r) { var c = r.Stream.Read(r._local, 0, 4); if (c != 4) throw new Exception("Failed to read next uint32 from stream.");  return BitConverter.ToUInt32(r._local, 0); }
+            public static float  NextStreamFloat32(Row r) { var c = r.Stream.Read(r._local, 0, 4); if (c != 4) throw new Exception("Failed to read next float32 from stream."); return BitConverter.ToSingle(r._local, 0); }
+            public static double NextStreamFloat64(Row r) { var c = r.Stream.Read(r._local, 0, 8); if (c != 8) throw new Exception("Failed to read next float64 from stream."); return BitConverter.ToDouble(r._local, 0); }
+
+            public static Func<Row, long> CreateGetListCount(bool hasFixedRowSize, DataType datatype)
+                => (hasFixedRowSize, datatype) switch
+                {
+                    (true, DataType.Int8)    => r => NextBufferInt8(r),
+                    (true, DataType.UInt8)   => r => NextBufferUInt8(r),
+                    (true, DataType.Int16)   => r => NextBufferInt16(r),
+                    (true, DataType.UInt16)  => r => NextBufferUInt16(r),
+                    (true, DataType.Int32)   => r => NextBufferInt32(r),
+                    (true, DataType.UInt32)  => r => NextBufferUInt32(r),
+                    (false, DataType.Int8)   => r => NextStreamInt8(r),
+                    (false, DataType.UInt8)  => r => NextStreamUInt8(r),
+                    (false, DataType.Int16)  => r => NextStreamInt16(r),
+                    (false, DataType.UInt16) => r => NextStreamUInt16(r),
+                    (false, DataType.Int32)  => r => NextStreamInt32(r),
+                    (false, DataType.UInt32) => r => NextStreamUInt32(r),
+                    _ => throw new Exception($"Data type {datatype} not supported."),
+                };
+
+        }
+
+        private static readonly Dictionary<DataType, int> DataTypeSizes = new()
+        {
+            { DataType.Int8,    1 },
+            { DataType.UInt8,   1 }, 
+            { DataType.Int16,   2 },
+            { DataType.UInt16,  2 },
+            { DataType.Int32,   4 },
+            { DataType.UInt32,  4 },
+            { DataType.Float32, 4 },
+            { DataType.Float64, 8 }
+        };
+
+        /// <summary>
+        /// Size of element in bytes, or null if element contains one or more list properties (there is no fixed size in this case).
+        /// </summary>
+        private static int? GetSizeInBytes(Element e) => e.ContainsListProperty ? null : e.Properties.Sum(p => DataTypeSizes[p.DataType]);
+
+        private static ElementData ParseElement(Stream f, Element element)
+        {
+            var hasFixedRowSize = !element.ContainsListProperty;
+
+            var parse = new PropertyParser[element.Properties.Count];
+            var data =  new PropertyData  [element.Properties.Count];
+
+            for (var pi = 0; pi < element.Properties.Count; pi++)
+            {
+                var p = element.Properties[pi];
+                (parse[pi], var d) = CreatePropertyParser(p);
+                data[pi] = new(p, d);
+            }
+
+            var bufferSize = GetSizeInBytes(element) ?? 0;
+            var row = new Row(f, new byte[bufferSize]);
+            for (var i = 0; i < element.Count; i++)
+            {
+                row.NextRow();
+                for (var j = 0; j < element.Properties.Count; j++) parse[j](i, row);
+            }
+
+            return new(element, data.ToImmutableList());
+
+
+            (PropertyParser Parse, object Data) CreatePropertyParser(Property p)
+            {
+                return hasFixedRowSize ? CreateScalarPropertyParser() : CreateListPropertyParser();
+
+                (PropertyParser Parse, object Data) CreateListPropertyParser()
+                {
+                    (PropertyParser, object) ParseList<T>(Func<Row, T> nextValue)
+                    {
+                        var rs = new T[element.Count][];
+                        var getListCount = Row.CreateGetListCount(hasFixedRowSize, p.DataType);
+                        return ((rowIndex, row) =>
+                        {
+                            var count = getListCount(row);
+                            if (count < 1 || count > int.MaxValue) throw new Exception($"List count ({count}) is out of range.");
+                            var xs = new T[count]; rs[rowIndex] = xs;
+                            for (var i = 0; i < count; i++) xs[i] = nextValue(row);
+                        }, rs);
+                    }
+
+                    var (parseList, data) = p.DataType switch
+                    {
+                        DataType.Int8    => ParseList<sbyte >(hasFixedRowSize ? Row.NextBufferInt8    : Row.NextStreamInt8   ),
+                        DataType.UInt8   => ParseList<byte  >(hasFixedRowSize ? Row.NextBufferUInt8   : Row.NextStreamUInt8  ),
+                        DataType.Int16   => ParseList<short >(hasFixedRowSize ? Row.NextBufferInt16   : Row.NextStreamInt16  ),
+                        DataType.UInt16  => ParseList<ushort>(hasFixedRowSize ? Row.NextBufferUInt16  : Row.NextStreamUInt16 ),
+                        DataType.Int32   => ParseList<int   >(hasFixedRowSize ? Row.NextBufferInt32   : Row.NextStreamInt32  ),
+                        DataType.UInt32  => ParseList<uint  >(hasFixedRowSize ? Row.NextBufferUInt32  : Row.NextStreamUInt32 ),
+                        DataType.Float32 => ParseList<float >(hasFixedRowSize ? Row.NextBufferFloat32 : Row.NextStreamFloat32),
+                        DataType.Float64 => ParseList<double>(hasFixedRowSize ? Row.NextBufferFloat64 : Row.NextStreamFloat64),
+                        _ => throw new Exception($"List data type {p.DataType} is not supported."),
+                    };
+
+                    return (
+                        Parse: parseList,
+                        Data: data
+                        );
+                }
+
+                (PropertyParser Parse, object Data) CreateScalarPropertyParser()
+                {
+                    (PropertyParser, object) ParseScalar<T>(Func<Row, T> nextValue)
+                    {
+                        var rs = new T[element.Count];
+                        return ((rowIndex, row) => rs[rowIndex] = nextValue(row), rs);
+                    }
+
+                    var (parseList, data) = p.DataType switch
+                    {
+                        DataType.Int8    => ParseScalar<sbyte >(hasFixedRowSize ? Row.NextBufferInt8    : Row.NextStreamInt8   ),
+                        DataType.UInt8   => ParseScalar<byte  >(hasFixedRowSize ? Row.NextBufferUInt8   : Row.NextStreamUInt8  ),
+                        DataType.Int16   => ParseScalar<short >(hasFixedRowSize ? Row.NextBufferInt16   : Row.NextStreamInt16  ),
+                        DataType.UInt16  => ParseScalar<ushort>(hasFixedRowSize ? Row.NextBufferUInt16  : Row.NextStreamUInt16 ),
+                        DataType.Int32   => ParseScalar<int   >(hasFixedRowSize ? Row.NextBufferInt32   : Row.NextStreamInt32  ),
+                        DataType.UInt32  => ParseScalar<uint  >(hasFixedRowSize ? Row.NextBufferUInt32  : Row.NextStreamUInt32 ),
+                        DataType.Float32 => ParseScalar<float >(hasFixedRowSize ? Row.NextBufferFloat32 : Row.NextStreamFloat32),
+                        DataType.Float64 => ParseScalar<double>(hasFixedRowSize ? Row.NextBufferFloat64 : Row.NextStreamFloat64),
+                        _ => throw new Exception($"List data type {p.DataType} is not supported."),
+                    };
+
+                    return (
+                        Parse: parseList,
+                        Data: data
+                        );
+                };
+            }
+        }
+
+        public static Dataset Parse(Header header, Stream f)
+        {
+            if (BitConverter.IsLittleEndian && header.Format == Format.BinaryBigEndian)
+                throw new Exception("Parsing binary big endian on little endian machine is not supported.");
+
+            if (!BitConverter.IsLittleEndian && header.Format == Format.BinaryLittleEndian)
+                throw new Exception("Parsing binary little endian on big endian machine is not supported.");
+
+            var data = header.Elements.Select(e => ParseElement(f, e)).ToImmutableList();
+            return new(header, data);
+        }
+    }
+
     public static Dataset Parse(Stream f, Action<string>? log = null)
     {
         var header = ParseHeader(f, log);
 
         return header.Format switch
         {
-            Format.BinaryLittleEndian => BinaryParser.Parse(header, f, log),
-            Format.BinaryBigEndian    => BinaryParser.Parse(header, f, log),
-            Format.Ascii              => AsciiParser.Parse(header, f, log),
+            Format.BinaryLittleEndian => BinaryParser.Parse(header, f),
+            Format.BinaryBigEndian    => BinaryParser.Parse(header, f),
+            Format.Ascii              => AsciiParser.Parse(header, f),
             _ => throw new NotImplementedException($"Format {header.Format} not supported."),
         };
     }
@@ -772,21 +608,4 @@ public static class PlyParser
         var f = File.OpenRead(filename);
         return Parse(f, log);
     }
-
-    private static R[] Map<T, R>(this Span<T> xs, Func<T, R> map)
-    {
-        var rs = new R[xs.Length];
-        for (var i = 0; i < xs.Length; i++) rs[i] = map(xs[i]);
-        return rs;
-    }
-
-    private static R[] Map<T, R>(this T[] xs, Func<T, R> map)
-    {
-        var rs = new R[xs.Length];
-        for (var i = 0; i < xs.Length; i++) rs[i] = map(xs[i]);
-        return rs;
-    }
-
-    private static readonly char[] s_whiteSpace = new char[] { ' ', '\t', '\n', '\r' };
-    private static string[] SplitOnWhitespace(this string s) => s.Split(s_whiteSpace, StringSplitOptions.RemoveEmptyEntries);
 }
