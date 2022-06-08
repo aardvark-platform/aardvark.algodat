@@ -289,7 +289,7 @@ public static class PlyParser
                 continue;
             }
 
-            log?.Invoke($"[WARNING] Unknown header entry: {line}");
+            log?.Invoke($"[PlyParser][WARNING] Unknown header entry: {line}");
         }
 
         if (currentElement != null) elements = elements.Add(currentElement);
@@ -297,7 +297,7 @@ public static class PlyParser
         var header = new Header(format, elements, headerlines, DataOffset: f.Position);
         if (log != null)
         {
-            foreach (var s in header.HeaderLines) log(s);
+            foreach (var s in header.HeaderLines) log($"[PlyParser] {s}");
         }
 
         return header;
@@ -391,7 +391,7 @@ public static class PlyParser
                 if (l == string.Empty) { i--; continue; }
                 if (l == null)
                 {
-                    log?.Invoke($"Failed to read next line. Premature end of element {element} after {i}/{element.Count} lines.");
+                    log?.Invoke($"[PlyParser] Failed to read next line. Premature end of element {element} after {i}/{element.Count} lines.");
                     break;
                 }
 
@@ -533,7 +533,7 @@ public static class PlyParser
                     {
                         var bps = chunkSizeInBytes / sw.Elapsed.TotalSeconds;
                         var vps = chunkRowCount / sw.Elapsed.TotalSeconds;
-                        log?.Invoke($"[PlyParser] {chunkSizeInBytes,16:N0} bytes | in {sw.Elapsed.TotalSeconds,6:N3} s | {bps,16:N0} MiB/s | {vps,16:N0} vertices/s");
+                        log?.Invoke($"[PlyParser] parsed {chunkSizeInBytes,16:N0} bytes in {sw.Elapsed.TotalSeconds,6:N3} s | {bps,16:N0} MiB/s | {vps,16:N0} points/s");
                     }
                 }
                 swTotal.Stop();
@@ -570,7 +570,7 @@ public static class PlyParser
 
     public static Dataset Parse(string filename, Action<string>? log = null)
     {
-        log?.Invoke($"parsing file {filename} ({new FileInfo(filename).Length:N0} bytes)");
+        log?.Invoke($"[PlyParser] parsing file {filename} ({new FileInfo(filename).Length:N0} bytes)");
         var f = File.OpenRead(filename);
         return Parse(f, log);
     }
