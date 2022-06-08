@@ -326,7 +326,7 @@ public static class PlyParser
             public string NextToken() => _ts[_next++];
         }
 
-        private static ElementData ParseElement(StreamReader f, Element element)
+        private static ElementData ParseElement(StreamReader f, Element element, Action<string>? log)
         {
             (PropertyParser Parse, object Data) CreateListPropertyParser(Property p)
             {
@@ -392,7 +392,11 @@ public static class PlyParser
             {
                 var l = f.ReadLine();
                 if (l == string.Empty) { i--; continue; }
-                if (l == null) throw new Exception("Failed to read next line.");
+                if (l == null)
+                {
+                    log?.Invoke($"Failed to read next line. Premature end of element {element} after {i}/{element.Count} lines.");
+                    break;
+                }
 
                 var line = new Row(l);
                 for (var j = 0; j < element.Properties.Count; j++) parse[j](i, line);
@@ -401,10 +405,10 @@ public static class PlyParser
             return new(element, data.ToImmutableList());
         }
 
-        public static Dataset Parse(Header header, Stream f)
+        public static Dataset Parse(Header header, Stream f, Action<string>? log)
         {
             var sr = new StreamReader(f);
-            var data = header.Elements.Select(e => ParseElement(sr, e)).ToImmutableList();
+            var data = header.Elements.Select(e => ParseElement(sr, e, log)).ToImmutableList();
             return new(header, data);
         }
     }
@@ -518,7 +522,7 @@ public static class PlyParser
                     (PropertyParser, object) ParseList<T>(Func<Row, T> nextValue)
                     {
                         var rs = new T[element.Count][];
-                        var getListCount = Row.CreateGetListCount(hasFixedRowSize, p.DataType);
+                        var getListCount = Row.CreateGetListCount(hasFixedRowSize, p.ListCountType);
                         return ((rowIndex, row) =>
                         {
                             var count = getListCount(row);
@@ -597,7 +601,7 @@ public static class PlyParser
         {
             Format.BinaryLittleEndian => BinaryParser.Parse(header, f),
             Format.BinaryBigEndian    => BinaryParser.Parse(header, f),
-            Format.Ascii              => AsciiParser.Parse(header, f),
+            Format.Ascii              => AsciiParser.Parse(header, f, log),
             _ => throw new NotImplementedException($"Format {header.Format} not supported."),
         };
     }

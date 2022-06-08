@@ -1735,7 +1735,8 @@ namespace Aardvark.Geometry.Tests
         {
             var filenames = new[]
             {
-                @"W:\Datasets\plytest\leica-studentenzimmer-scan-125.ply",
+                @"W:\Datasets\plytest\bunny.ply",
+                //@"W:\Datasets\plytest\leica-studentenzimmer-scan-125.ply",
                 //@"C:\Users\sm\Downloads\test.ply",
                 //@"E:\e57tests\datasets\matterport.e57",
                 //@"E:\e57tests\datasets\convex-scan-119.e57",
@@ -1750,7 +1751,11 @@ namespace Aardvark.Geometry.Tests
                 //@"E:\e57tests\datasets\100pct_1mm_zebcam_shade_zebcam_world.e57",
             };
 
-            filenames = Directory.EnumerateFiles(@"W:\Datasets\plytest", "*.ply", SearchOption.AllDirectories).ToArray();
+            filenames = Directory
+                .EnumerateFiles(@"W:\Datasets\plytest", "*.ply", SearchOption.AllDirectories)
+                .Skip(4)
+                .ToArray()
+                ;
 
             foreach (var filename in filenames)
             {
@@ -1795,26 +1800,26 @@ namespace Aardvark.Geometry.Tests
                 File.WriteAllText(Path.Combine(storePath, "key.txt"), pcl.Id);
 
 
-                var maxCount = pcl.PointCount / 30;
-                var level = pcl.GetMaxOctreeLevelWithLessThanGivenPointCount(maxCount);
-                var queryChunks = pcl.QueryPointsInOctreeLevel(0);
+                //var maxCount = pcl.PointCount / 30;
+                //var level = pcl.GetMaxOctreeLevelWithLessThanGivenPointCount(maxCount);
+                //var queryChunks = pcl.QueryPointsInOctreeLevel(0);
 
-                var intensityRange = queryChunks.Aggregate<Chunk, (int, int)?>(null, (intMaxima, chunk) =>
-                {
-                    if (chunk.HasIntensities)
-                    {
-                        var (currentMin, currentMax) = intMaxima ?? (int.MaxValue, int.MinValue);
-                        var minInt = Math.Min(currentMin, chunk.Intensities.Min());
-                        var maxInt = Math.Max(currentMax, chunk.Intensities.Max());
-                        return (minInt, maxInt);
-                    }
-                    else
-                    {
-                        return null;
-                    }
-                });
+                //var intensityRange = queryChunks.Aggregate<Chunk, (int, int)?>(null, (intMaxima, chunk) =>
+                //{
+                //    if (chunk.HasIntensities)
+                //    {
+                //        var (currentMin, currentMax) = intMaxima ?? (int.MaxValue, int.MinValue);
+                //        var minInt = Math.Min(currentMin, chunk.Intensities.Min());
+                //        var maxInt = Math.Max(currentMax, chunk.Intensities.Max());
+                //        return (minInt, maxInt);
+                //    }
+                //    else
+                //    {
+                //        return null;
+                //    }
+                //});
 
-                Report.Line($"intensityRange {intensityRange}");
+                //Report.Line($"intensityRange {intensityRange}");
 
                 Report.Line($"point count: {pcl.Root.Value.PointCountTree:N0}");
                 //Report.Line($"number of keys: {storeRaw.SnapshotKeys().Length:N0}");
