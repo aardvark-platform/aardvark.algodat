@@ -19,10 +19,14 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.IO.MemoryMappedFiles;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Ply.Net;
 
@@ -78,7 +82,7 @@ public static class PlyParser
         public Element? Vertex   => Elements.SingleOrDefault(x => x.Type == ElementType.Vertex);
     }
 
-    public record PropertyData(Property Property, object Data);
+    public record PropertyData(Property Property, Array Data);
 
     public record ElementData(Element Element, ImmutableList<PropertyData> Data)
     {
@@ -328,9 +332,9 @@ public static class PlyParser
 
         private static ElementData ParseElement(StreamReader f, Element element, Action<string>? log)
         {
-            (PropertyParser Parse, object Data) CreateListPropertyParser(Property p)
+            (PropertyParser Parse, Array Data) CreateListPropertyParser(Property p)
             {
-                (Action<int, Row, int>, object) ParseListValues<T>(Func<string, T> parseValue)
+                (Action<int, Row, int>, Array) ParseListValues<T>(Func<string, T> parseValue)
                 {
                     var rs = new T[element.Count][];
                     return ((row, line, count) =>
@@ -359,9 +363,9 @@ public static class PlyParser
                     );
             }
 
-            (PropertyParser Parse, object Data) CreateScalarPropertyParser(Property p)
+            (PropertyParser Parse, Array Data) CreateScalarPropertyParser(Property p)
             {
-                (PropertyParser Parse, object Data) ParseScalarValue<T>(Func<string, T> parse)
+                (PropertyParser Parse, Array Data) ParseScalarValue<T>(Func<string, T> parse)
                 { var xs = new T[element.Count]; return ((row, line) => xs[row] = parse(line.NextToken()), xs); }
 
                 return p.DataType switch
@@ -492,14 +496,92 @@ public static class PlyParser
         {
             var hasFixedRowSize = !element.ContainsListProperty;
 
+            var offsets = new int[element.Properties.Count];
             var parse = new PropertyParser[element.Properties.Count];
             var data =  new PropertyData  [element.Properties.Count];
 
+            var offset = 0;
             for (var pi = 0; pi < element.Properties.Count; pi++)
             {
                 var p = element.Properties[pi];
                 (parse[pi], var d) = CreatePropertyParser(p);
                 data[pi] = new(p, d);
+                offsets[pi] = offset; offset += DataTypeSizes[p.DataType];
+            }
+
+            if (hasFixedRowSize)
+            {
+                var maxChunkRows = 16 * 1024 * 1024;
+                var rowSizeInBytes = GetSizeInBytes(element) ?? 0;
+                var maxChunkSizeInBytes = maxChunkRows * rowSizeInBytes;
+                var remainingBytes = (long)element.Count * rowSizeInBytes;
+                var rowsOffset = 0;
+
+                var swTotal = new Stopwatch(); swTotal.Restart();
+                var sw = new Stopwatch();
+                while (remainingBytes > 0)
+                {
+                    var chunkRowCount = (int)Math.Min(remainingBytes / rowSizeInBytes, maxChunkRows);
+                    var chunkSizeInBytes = chunkRowCount * rowSizeInBytes;
+                    remainingBytes -= chunkSizeInBytes;
+                    if (remainingBytes < 0) throw new Exception("Error c9aef005-bd20-4320-abde-c03116b77c2e.");
+
+                    sw.Restart();
+
+                    var chunk = new byte[chunkSizeInBytes];
+                    var c = f.Read(chunk, 0, chunkSizeInBytes);
+                    if (c != chunkSizeInBytes) throw new Exception("Error a6d0f241-be6a-408b-baa5-5872b311b6a0.");
+
+                    unsafe
+                    {
+                        var tasks = new List<Task>();
+                        for (var _pi = 0; _pi < element.Properties.Count; _pi++)
+                        {
+                            var pi = _pi;
+                            tasks.Add(Task.Run(() =>
+                            {
+                                fixed (byte* p0 = &chunk[0])
+                                {
+                                    var p = p0 + offsets[pi];
+                                    var a = data[pi].Data;
+
+                                    static bool Copy<T>(byte* source, int sourceStride, Array target, int targetOffset, int count) where T : unmanaged
+                                    {
+                                        fixed (T* _t = &((T[])target)[0])
+                                        {
+                                            var t = _t + targetOffset;
+                                            for (int i = 0; i < count; i++, source += sourceStride, t++) *t = *(T*)source;
+                                        }
+                                        return true;
+                                    }
+
+                                    _ = element.Properties[pi].DataType switch
+                                    {
+                                        DataType.Int8    => Copy<sbyte >(p, rowSizeInBytes, a, rowsOffset, chunkRowCount),
+                                        DataType.UInt8   => Copy<byte  >(p, rowSizeInBytes, a, rowsOffset, chunkRowCount),
+                                        DataType.Int16   => Copy<short >(p, rowSizeInBytes, a, rowsOffset, chunkRowCount),
+                                        DataType.UInt16  => Copy<ushort>(p, rowSizeInBytes, a, rowsOffset, chunkRowCount),
+                                        DataType.Int32   => Copy<int   >(p, rowSizeInBytes, a, rowsOffset, chunkRowCount),
+                                        DataType.UInt32  => Copy<uint  >(p, rowSizeInBytes, a, rowsOffset, chunkRowCount),
+                                        DataType.Float32 => Copy<float >(p, rowSizeInBytes, a, rowsOffset, chunkRowCount),
+                                        DataType.Float64 => Copy<double>(p, rowSizeInBytes, a, rowsOffset, chunkRowCount),
+                                        _ => throw new Exception()
+                                    };
+                                }
+                            }));
+                        }
+                        Task.WhenAll(tasks).Wait();
+                        
+                    }
+
+                    rowsOffset += chunkRowCount;
+
+                    sw.Stop();
+                    Console.WriteLine($"Read {chunkSizeInBytes:N0} bytes in {sw.Elapsed}.");
+                }
+                swTotal.Stop();
+                Console.WriteLine($"{swTotal.Elapsed}");
+                return new(element, data.ToImmutableList());
             }
 
             var bufferSize = GetSizeInBytes(element) ?? 0;
@@ -513,13 +595,13 @@ public static class PlyParser
             return new(element, data.ToImmutableList());
 
 
-            (PropertyParser Parse, object Data) CreatePropertyParser(Property p)
+            (PropertyParser Parse, Array Data) CreatePropertyParser(Property p)
             {
                 return hasFixedRowSize ? CreateScalarPropertyParser() : CreateListPropertyParser();
 
-                (PropertyParser Parse, object Data) CreateListPropertyParser()
+                (PropertyParser Parse, Array Data) CreateListPropertyParser()
                 {
-                    (PropertyParser, object) ParseList<T>(Func<Row, T> nextValue)
+                    (PropertyParser, Array) ParseList<T>(Func<Row, T> nextValue)
                     {
                         var rs = new T[element.Count][];
                         var getListCount = Row.CreateGetListCount(hasFixedRowSize, p.ListCountType);
@@ -551,9 +633,9 @@ public static class PlyParser
                         );
                 }
 
-                (PropertyParser Parse, object Data) CreateScalarPropertyParser()
+                (PropertyParser Parse, Array Data) CreateScalarPropertyParser()
                 {
-                    (PropertyParser, object) ParseScalar<T>(Func<Row, T> nextValue)
+                    (PropertyParser, Array) ParseScalar<T>(Func<Row, T> nextValue)
                     {
                         var rs = new T[element.Count];
                         return ((rowIndex, row) => rs[rowIndex] = nextValue(row), rs);
