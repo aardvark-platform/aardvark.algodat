@@ -1,3 +1,6 @@
+### 5.2.3
+- add PLY parser and ply point cloud importer
+
 ### 5.2.2
 - E57: add PointPropertySemantics.Classification (not part of E57 specification)
 - ported C# code to latest language version
