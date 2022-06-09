@@ -26,7 +26,7 @@ namespace Aardvark.Geometry.Tests
         {
             var x = Chunk.Empty;
             Assert.IsTrue(x.IsEmpty);
-            Assert.IsTrue(!x.HasPositions);
+            Assert.IsTrue(x.HasPositions);
             Assert.IsTrue(!x.HasColors);
         }
 
@@ -35,8 +35,8 @@ namespace Aardvark.Geometry.Tests
         {
             var x = new Chunk(new V3d[0], new C4b[0]);
             Assert.IsTrue(x.IsEmpty);
-            Assert.IsTrue(!x.HasPositions);
-            Assert.IsTrue(!x.HasColors);
+            Assert.IsTrue(x.HasPositions);
+            Assert.IsTrue(x.HasColors);
         }
 
         [Test]

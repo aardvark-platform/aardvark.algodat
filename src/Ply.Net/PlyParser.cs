@@ -187,39 +187,16 @@ public static class PlyParser
 
     private static DataType ParseDataType(string s) => s switch
     {
-        "char" => DataType.Int8,
-        "int8" => DataType.Int8,
-        "sbyte" => DataType.Int8,
-
-        "uchar" => DataType.UInt8,
-        "uint8" => DataType.UInt8,
-        "ubyte" => DataType.UInt8,
-        "byte" => DataType.UInt8,
-
-        "short" => DataType.Int16,
-        "int16" => DataType.Int16,
-
-        "ushort" => DataType.UInt16,
-        "uint16" => DataType.UInt16,
-
-        "int" => DataType.Int32,
-        "int32" => DataType.Int32,
-
-        "uint" => DataType.UInt32,
-        "uint32" => DataType.UInt32,
-
-        "long" => DataType.Int64,
-        "int64" => DataType.Int64,
-
-        "ulong" => DataType.UInt64,
-        "uint64" => DataType.UInt64,
-
-        "float" => DataType.Float32,
-        "float32" => DataType.Float32,
-
-        "double" => DataType.Float64,
-        "float64" => DataType.Float64,
-
+        "char"   => DataType.Int8,    "int8"    => DataType.Int8,    "sbyte" => DataType.Int8,
+        "uchar"  => DataType.UInt8,   "uint8"   => DataType.UInt8,   "ubyte" => DataType.UInt8, "byte" => DataType.UInt8,
+        "short"  => DataType.Int16,   "int16"   => DataType.Int16,
+        "ushort" => DataType.UInt16,  "uint16"  => DataType.UInt16,
+        "int"    => DataType.Int32,   "int32"   => DataType.Int32,
+        "uint"   => DataType.UInt32,  "uint32"  => DataType.UInt32,
+        "long"   => DataType.Int64,   "int64"   => DataType.Int64,
+        "ulong"  => DataType.UInt64,  "uint64"  => DataType.UInt64,
+        "float"  => DataType.Float32, "float32" => DataType.Float32,
+        "double" => DataType.Float64, "float64" => DataType.Float64,
         _ => throw new Exception($"Unknown data type \"{s}\".")
     };
 
