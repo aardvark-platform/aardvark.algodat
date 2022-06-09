@@ -22,7 +22,6 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using System.IO.MemoryMappedFiles;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -48,6 +47,7 @@ public static class PlyParser
         Int8, UInt8,
         Int16, UInt16,
         Int32, UInt32,
+        Int64, UInt64,
         Float32, Float64
     }
 
@@ -208,6 +208,12 @@ public static class PlyParser
         "uint" => DataType.UInt32,
         "uint32" => DataType.UInt32,
 
+        "long" => DataType.Int64,
+        "int64" => DataType.Int64,
+
+        "ulong" => DataType.UInt64,
+        "uint64" => DataType.UInt64,
+
         "float" => DataType.Float32,
         "float32" => DataType.Float32,
 
@@ -345,6 +351,8 @@ public static class PlyParser
                     DataType.UInt16  => ParseListValues(ushort.Parse),
                     DataType.Int32   => ParseListValues(int.Parse),
                     DataType.UInt32  => ParseListValues(uint.Parse),
+                    DataType.Int64   => ParseListValues(long.Parse),
+                    DataType.UInt64  => ParseListValues(ulong.Parse),
                     DataType.Float32 => ParseListValues(s => float.Parse(s, CultureInfo.InvariantCulture)),
                     DataType.Float64 => ParseListValues(s => double.Parse(s, CultureInfo.InvariantCulture)),
                     _ => throw new Exception($"List data type {p.DataType} is not supported."),
@@ -369,6 +377,8 @@ public static class PlyParser
                     DataType.UInt16  => ParseScalarValue(ushort.Parse),
                     DataType.Int32   => ParseScalarValue(int.Parse),
                     DataType.UInt32  => ParseScalarValue(uint.Parse),
+                    DataType.Int64   => ParseScalarValue(long.Parse),
+                    DataType.UInt64  => ParseScalarValue(ulong.Parse),
                     DataType.Float32 => ParseScalarValue(s => float.Parse(s, CultureInfo.InvariantCulture)),
                     DataType.Float64 => ParseScalarValue(s => double.Parse(s, CultureInfo.InvariantCulture)),
                     _ => throw new Exception($"List data type {p.DataType} is not supported."),
@@ -420,6 +430,8 @@ public static class PlyParser
             { DataType.UInt16,  2 },
             { DataType.Int32,   4 },
             { DataType.UInt32,  4 },
+            { DataType.Int64,   8 },
+            { DataType.UInt64,  8 },
             { DataType.Float32, 4 },
             { DataType.Float64, 8 }
         };
@@ -437,6 +449,8 @@ public static class PlyParser
             (false, DataType.UInt16 ) => new ushort[count], (true , DataType.UInt16 ) => new ushort[count][],
             (false, DataType.Int32  ) => new int   [count], (true , DataType.Int32  ) => new int   [count][],
             (false, DataType.UInt32 ) => new uint  [count], (true , DataType.UInt32 ) => new uint  [count][],
+            (false, DataType.Int64  ) => new long  [count], (true , DataType.Int64  ) => new long  [count][],
+            (false, DataType.UInt64 ) => new ulong [count], (true , DataType.UInt64 ) => new ulong [count][],
             (false, DataType.Float32) => new float [count], (true , DataType.Float32) => new float [count][],
             (false, DataType.Float64) => new double[count], (true , DataType.Float64) => new double[count][],
             _ => throw new Exception($"Error 8ba1684a-21e9-4e6c-9767-74bca998df53. {p} not supported.")
@@ -469,7 +483,102 @@ public static class PlyParser
 
                 if (element.ContainsListProperty)
                 {
-                    throw new NotImplementedException();
+                    var parse = new Action<int>[element.Properties.Count];
+                    for (var pi = 0; pi < element.Properties.Count; pi++)
+                    {
+                        var p = element.Properties[pi];
+                        var xs = perPropertyData[pi].Data;
+
+                        if (p.IsListProperty)
+                        {
+                            var rawCount = new byte[8];
+                            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                            int parseCount<T>(int bytes, Func<byte[], int, T> decode) where T : unmanaged
+                            {
+                                var c = f.Read(rawCount, 0, bytes);
+                                if (c != bytes) throw new Exception("Error 70fe730c-cba7-4e8e-a5b2-53f410e78546.");
+                                return (int)(object)decode(rawCount, 0);
+                            }
+
+                            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                            void parseList<T>(int i, Func<int> getListSize, int valueBytes, Func<byte[], int, T> valueDecode) where T : unmanaged
+                            {
+                                var listSize = getListSize();
+                                var listItems = new T[listSize];
+
+                                var raw = new byte[listSize * valueBytes];
+                                var c = f.Read(raw, 0, raw.Length);
+                                if (c != raw.Length) throw new Exception("Error a8c446bf-3eba-450d-9b4b-5b3667efc904.");
+
+                                Buffer.BlockCopy(raw, 0, listItems, 0, raw.Length);
+
+                                ((T[][])xs)[i] = listItems;
+                            }
+
+                            Func<int> getListSize = p.ListCountType switch
+                            {
+                                DataType.Int8    => () => f.ReadByte(),
+                                DataType.UInt8   => () => f.ReadByte(),
+                                DataType.Int16   => () => parseCount(2, BitConverter.ToInt16),
+                                DataType.UInt16  => () => parseCount(2, BitConverter.ToUInt16),
+                                DataType.Int32   => () => parseCount(4, BitConverter.ToInt32),
+                                DataType.UInt32  => () => parseCount(4, BitConverter.ToUInt32),
+                                DataType.Int64   => () => parseCount(8, BitConverter.ToInt64),
+                                DataType.UInt64  => () => parseCount(8, BitConverter.ToUInt64),
+                                DataType.Float32 => () => parseCount(4, BitConverter.ToSingle),
+                                DataType.Float64 => () => parseCount(8, BitConverter.ToDouble),
+
+                                _ => throw new Exception($"Error 4171e079-b7de-4c75-8efa-677565405ed6. {p.DataType} not supported.")
+                            };
+
+                            parse[pi] = p.DataType switch
+                            {
+                                DataType.Int8    => i => parseList(i, getListSize, 1, (_raw, _i) => (sbyte)_raw[i]),
+                                DataType.UInt8   => i => parseList(i, getListSize, 1, (_raw, _i) => (byte )_raw[i]),
+                                DataType.Int16   => i => parseList(i, getListSize, 2, BitConverter.ToInt16),
+                                DataType.UInt16  => i => parseList(i, getListSize, 2, BitConverter.ToUInt16),
+                                DataType.Int32   => i => parseList(i, getListSize, 4, BitConverter.ToInt32),
+                                DataType.UInt32  => i => parseList(i, getListSize, 4, BitConverter.ToUInt32),
+                                DataType.Int64   => i => parseList(i, getListSize, 8, BitConverter.ToInt64),
+                                DataType.UInt64  => i => parseList(i, getListSize, 8, BitConverter.ToUInt64),
+                                DataType.Float32 => i => parseList(i, getListSize, 4, BitConverter.ToSingle),
+                                DataType.Float64 => i => parseList(i, getListSize, 8, BitConverter.ToDouble),
+
+                                _ => throw new Exception($"Error 329d239c-dabf-420d-9386-bbf77e8031ff. {p.DataType} not supported.")
+                            };
+                        }
+                        else
+                        {
+                            var raw = new byte[8];
+                            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                            void parseScalar<T>(int i, int bytes, Func<byte[], int, T> decode)
+                            {
+                                var c = f.Read(raw, 0, bytes);
+                                if (c != bytes) throw new Exception("Error 9239b42a-6ef4-4eb5-aea6-c5c07e3947f8.");
+                                ((T[])xs)[i] = decode(raw, 0);
+                            }
+
+                            parse[pi] = p.DataType switch
+                            {
+                                DataType.Int8    => i => { ((sbyte[])xs)[i] = (sbyte)f.ReadByte(); },
+                                DataType.UInt8   => i => { ((byte [])xs)[i] = (byte )f.ReadByte(); },
+                                DataType.Int16   => i => parseScalar(i, 2, BitConverter.ToInt16),
+                                DataType.UInt16  => i => parseScalar(i, 2, BitConverter.ToUInt16),
+                                DataType.Int32   => i => parseScalar(i, 4, BitConverter.ToInt32),
+                                DataType.UInt32  => i => parseScalar(i, 4, BitConverter.ToUInt32),
+                                DataType.Int64   => i => parseScalar(i, 8, BitConverter.ToInt64),
+                                DataType.UInt64  => i => parseScalar(i, 8, BitConverter.ToUInt64),
+                                DataType.Float32 => i => parseScalar(i, 4, BitConverter.ToSingle),
+                                DataType.Float64 => i => parseScalar(i, 8, BitConverter.ToDouble),
+                                _ => throw new Exception($"Error 329d239c-dabf-420d-9386-bbf77e8031ff. {p.DataType} not supported.")
+                            };
+                        }
+                    }
+
+                    for (var chunkRowIndex = 0; chunkRowIndex < chunkRowCount; chunkRowIndex++)
+                    {
+                        for (var pi = 0; pi < element.Properties.Count; pi++) parse[pi](chunkRowIndex);
+                    }
                 }
                 else
                 {
@@ -511,6 +620,8 @@ public static class PlyParser
                                         DataType.UInt16  => Copy<ushort>(p, rowSizeInBytes, a, chunkRowCount),
                                         DataType.Int32   => Copy<int   >(p, rowSizeInBytes, a, chunkRowCount),
                                         DataType.UInt32  => Copy<uint  >(p, rowSizeInBytes, a, chunkRowCount),
+                                        DataType.Int64   => Copy<long  >(p, rowSizeInBytes, a, chunkRowCount),
+                                        DataType.UInt64  => Copy<ulong >(p, rowSizeInBytes, a, chunkRowCount),
                                         DataType.Float32 => Copy<float >(p, rowSizeInBytes, a, chunkRowCount),
                                         DataType.Float64 => Copy<double>(p, rowSizeInBytes, a, chunkRowCount),
                                         _ => throw new Exception()
@@ -529,7 +640,7 @@ public static class PlyParser
                 {
                     var bps = chunkSizeInBytes / swChunk.Elapsed.TotalSeconds;
                     var vps = chunkRowCount / swChunk.Elapsed.TotalSeconds;
-                    log?.Invoke($"[PlyParser] parsed {chunkSizeInBytes,16:N0} bytes in {swChunk.Elapsed.TotalSeconds,6:N3} s | {bps,16:N0} MiB/s | {vps,16:N0} points/s");
+                    log?.Invoke($"[PlyParser] parsed {chunkSizeInBytes,16:N0} bytes in {swChunk.Elapsed.TotalSeconds,6:N3} s | {bps,16:N0} MiB/s | {chunkRowCount,10:N0} points | {vps,16:N0} points/s");
                 }
 
                 yield return new(element, perPropertyData.ToImmutableList());
