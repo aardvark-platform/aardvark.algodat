@@ -2,7 +2,7 @@ type project
 id Ply.Net
 authors Stefan Maierhofer
 owners Stefan Maierhofer
-projectUrl 
+projectUrl https://github.com/aardvark-platform/aardvark.algodat/tree/master/src/Ply.Net
 licenseUrl https://raw.githubusercontent.com/aardvark-platform/aardvark.algodat/master/src/Ply.Net/LICENSE
 repositoryType git
 repositoryUrl https://github.com/aardvark-platform/aardvark.algodat/tree/master/src/Ply.Net

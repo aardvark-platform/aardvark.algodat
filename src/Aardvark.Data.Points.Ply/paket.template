@@ -2,7 +2,7 @@ type project
 id Aardvark.Data.Points.Ply
 authors Aardvark Platform Team
 owners Aardvark Platform Team
-projectUrl 
+projectUrl https://github.com/aardvark-platform/aardvark.algodat/tree/master/src/Aardvark.Data.Points.Ply
 licenseUrl https://raw.githubusercontent.com/aardvark-platform/aardvark.algodat/master/src/Aardvark.Data.Points.Ply/LICENSE
 repositoryType git
 repositoryUrl https://github.com/aardvark-platform/aardvark.algodat/tree/master/src/Aardvark.Data.Points.Ply
