@@ -442,41 +442,39 @@ public static class PlyParser
             _ => throw new Exception($"Error 8ba1684a-21e9-4e6c-9767-74bca998df53. {p} not supported.")
         };
 
-        private static IEnumerable<ElementData> ParseElement(Stream f, Element element, Action<string>? log)
+        private static IEnumerable<ElementData> ParseElement(Stream f, Element element, int maxChunkSize, Action<string>? log)
         {
-            const int MAX_CHUNK_ROWS = 16 * 1024 * 1024;
+            var swTotal = new Stopwatch(); swTotal.Restart();
+            var swChunk = new Stopwatch();
 
-            var rows = element.Properties.Select(p => new PropertyData(p, AllocArray(p, element.Count))).ToArray();
-            var rowsOffset = 0;
-
-            var offsets = new int[element.Properties.Count];
+            // row property offsets
+            var propertiesCount = element.Properties.Count;
+            var offsets = new int[propertiesCount];
             var offset = 0;
-            for (var pi = 0; pi < element.Properties.Count; pi++)
+            for (var pi = 0; pi < propertiesCount; pi++)
             {
-                offsets[pi] = offset; 
+                offsets[pi] = offset;
                 offset += DataTypeSizes[element.Properties[pi].DataType];
             }
 
-            if (element.ContainsListProperty)
+            // chunks
+            var rowCount = element.Count;
+            for (var rowIndex = 0L; rowIndex < rowCount; rowIndex += maxChunkSize)
             {
-                throw new NotImplementedException();
-            }
-            else
-            {
-                var rowSizeInBytes = GetSizeInBytes(element) ?? throw new Exception($"Error 4f56dae5-94e8-4bfb-a290-0e20d1396ca6.");
-                var maxChunkSizeInBytes = MAX_CHUNK_ROWS * rowSizeInBytes;
-                var remainingBytes = (long)element.Count * rowSizeInBytes;
+                swChunk.Restart();
 
-                var swTotal = new Stopwatch(); swTotal.Restart();
-                var sw = new Stopwatch();
-                while (remainingBytes > 0)
+                var chunkRowCount = (int)Math.Min(rowCount - rowIndex, maxChunkSize);
+                var perPropertyData = element.Properties.Select(p => new PropertyData(p, AllocArray(p, chunkRowCount))).ToArray();
+                var chunkSizeInBytes = 0;
+
+                if (element.ContainsListProperty)
                 {
-                    var chunkRowCount = (int)Math.Min(remainingBytes / rowSizeInBytes, MAX_CHUNK_ROWS);
-                    var chunkSizeInBytes = chunkRowCount * rowSizeInBytes;
-                    remainingBytes -= chunkSizeInBytes;
-                    if (remainingBytes < 0) throw new Exception("Error c9aef005-bd20-4320-abde-c03116b77c2e.");
-
-                    sw.Restart();
+                    throw new NotImplementedException();
+                }
+                else
+                {
+                    var rowSizeInBytes = GetSizeInBytes(element) ?? throw new Exception($"Error 4f56dae5-94e8-4bfb-a290-0e20d1396ca6.");
+                    chunkSizeInBytes = chunkRowCount * rowSizeInBytes;
 
                     var chunk = new byte[chunkSizeInBytes];
                     var c = f.Read(chunk, 0, chunkSizeInBytes);
@@ -493,13 +491,13 @@ public static class PlyParser
                                 fixed (byte* p0 = &chunk[0])
                                 {
                                     var p = p0 + offsets[pi];
-                                    var a = rows[pi].Data;
+                                    var a = perPropertyData[pi].Data;
 
-                                    static bool Copy<T>(byte* source, int sourceStride, Array target, int targetOffset, int count) where T : unmanaged
+                                    static bool Copy<T>(byte* source, int sourceStride, Array target, int count) where T : unmanaged
                                     {
                                         fixed (T* _t = &((T[])target)[0])
                                         {
-                                            var t = _t + targetOffset;
+                                            var t = _t;
                                             for (int i = 0; i < count; i++, source += sourceStride, t++) *t = *(T*)source;
                                         }
                                         return true;
@@ -507,14 +505,14 @@ public static class PlyParser
 
                                     _ = element.Properties[pi].DataType switch
                                     {
-                                        DataType.Int8    => Copy<sbyte >(p, rowSizeInBytes, a, rowsOffset, chunkRowCount),
-                                        DataType.UInt8   => Copy<byte  >(p, rowSizeInBytes, a, rowsOffset, chunkRowCount),
-                                        DataType.Int16   => Copy<short >(p, rowSizeInBytes, a, rowsOffset, chunkRowCount),
-                                        DataType.UInt16  => Copy<ushort>(p, rowSizeInBytes, a, rowsOffset, chunkRowCount),
-                                        DataType.Int32   => Copy<int   >(p, rowSizeInBytes, a, rowsOffset, chunkRowCount),
-                                        DataType.UInt32  => Copy<uint  >(p, rowSizeInBytes, a, rowsOffset, chunkRowCount),
-                                        DataType.Float32 => Copy<float >(p, rowSizeInBytes, a, rowsOffset, chunkRowCount),
-                                        DataType.Float64 => Copy<double>(p, rowSizeInBytes, a, rowsOffset, chunkRowCount),
+                                        DataType.Int8    => Copy<sbyte >(p, rowSizeInBytes, a, chunkRowCount),
+                                        DataType.UInt8   => Copy<byte  >(p, rowSizeInBytes, a, chunkRowCount),
+                                        DataType.Int16   => Copy<short >(p, rowSizeInBytes, a, chunkRowCount),
+                                        DataType.UInt16  => Copy<ushort>(p, rowSizeInBytes, a, chunkRowCount),
+                                        DataType.Int32   => Copy<int   >(p, rowSizeInBytes, a, chunkRowCount),
+                                        DataType.UInt32  => Copy<uint  >(p, rowSizeInBytes, a, chunkRowCount),
+                                        DataType.Float32 => Copy<float >(p, rowSizeInBytes, a, chunkRowCount),
+                                        DataType.Float64 => Copy<double>(p, rowSizeInBytes, a, chunkRowCount),
                                         _ => throw new Exception()
                                     };
                                 }
@@ -524,25 +522,24 @@ public static class PlyParser
                         tasks.Add(Task.Run(Process));
                     }
                     Task.WhenAll(tasks).Wait();
-
-
-                    rowsOffset += chunkRowCount;
-
-                    sw.Stop();
-                    if (log != null)
-                    {
-                        var bps = chunkSizeInBytes / sw.Elapsed.TotalSeconds;
-                        var vps = chunkRowCount / sw.Elapsed.TotalSeconds;
-                        log?.Invoke($"[PlyParser] parsed {chunkSizeInBytes,16:N0} bytes in {sw.Elapsed.TotalSeconds,6:N3} s | {bps,16:N0} MiB/s | {vps,16:N0} points/s");
-                    }
                 }
-                swTotal.Stop();
-                log?.Invoke($"[PlyParser] total {swTotal.Elapsed}");
-                yield return new(element, rows.ToImmutableList());
+
+                swChunk.Stop();
+                if (log != null)
+                {
+                    var bps = chunkSizeInBytes / swChunk.Elapsed.TotalSeconds;
+                    var vps = chunkRowCount / swChunk.Elapsed.TotalSeconds;
+                    log?.Invoke($"[PlyParser] parsed {chunkSizeInBytes,16:N0} bytes in {swChunk.Elapsed.TotalSeconds,6:N3} s | {bps,16:N0} MiB/s | {vps,16:N0} points/s");
+                }
+
+                yield return new(element, perPropertyData.ToImmutableList());
             }
+
+            swTotal.Stop();
+            log?.Invoke($"[PlyParser] total {swTotal.Elapsed}");
         }
 
-        public static Dataset Parse(Header header, Stream f, Action<string>? log)
+        public static Dataset Parse(Header header, Stream f, int maxChunkSize, Action<string>? log)
         {
             if (BitConverter.IsLittleEndian && header.Format == Format.BinaryBigEndian)
                 throw new Exception("Parsing binary big endian on little endian machine is not supported.");
@@ -550,28 +547,28 @@ public static class PlyParser
             if (!BitConverter.IsLittleEndian && header.Format == Format.BinaryLittleEndian)
                 throw new Exception("Parsing binary little endian on big endian machine is not supported.");
 
-            var data = header.Elements.SelectMany(e => ParseElement(f, e, log));
+            var data = header.Elements.SelectMany(e => ParseElement(f, e, maxChunkSize, log));
             return new(header, data);
         }
     }
 
-    public static Dataset Parse(Stream f, Action<string>? log = null)
+    public static Dataset Parse(Stream f, int maxChunkSize, Action<string>? log = null)
     {
         var header = ParseHeader(f, log);
 
         return header.Format switch
         {
-            Format.BinaryLittleEndian => BinaryParser.Parse(header, f, log),
-            Format.BinaryBigEndian    => BinaryParser.Parse(header, f, log),
+            Format.BinaryLittleEndian => BinaryParser.Parse(header, f, maxChunkSize, log),
+            Format.BinaryBigEndian    => BinaryParser.Parse(header, f, maxChunkSize, log),
             Format.Ascii              => AsciiParser.Parse(header, f, log),
             _ => throw new NotImplementedException($"Format {header.Format} not supported."),
         };
     }
 
-    public static Dataset Parse(string filename, Action<string>? log = null)
+    public static Dataset Parse(string filename, int maxChunkSize, Action<string>? log = null)
     {
         log?.Invoke($"[PlyParser] parsing file {filename} ({new FileInfo(filename).Length:N0} bytes)");
         var f = File.OpenRead(filename);
-        return Parse(f, log);
+        return Parse(f, maxChunkSize, log);
     }
 }
