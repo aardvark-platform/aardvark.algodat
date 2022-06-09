@@ -15,7 +15,6 @@
     <DocumentationFile>..\..\bin\Debug\netstandard2.0\Aardvark.Data.Points.Import.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Ply.Net\Ply.Net.csproj" />
     <ProjectReference Include="..\Aardvark.Geometry.PointTree\Aardvark.Geometry.PointTree.csproj" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />

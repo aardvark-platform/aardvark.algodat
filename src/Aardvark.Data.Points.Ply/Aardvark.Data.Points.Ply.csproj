@@ -7,6 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Aardvark.Data.Points.Base\Aardvark.Data.Points.Base.csproj" />
+    <ProjectReference Include="..\Ply.Net\Ply.Net.csproj" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

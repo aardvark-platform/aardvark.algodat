@@ -1754,7 +1754,7 @@ namespace Aardvark.Geometry.Tests
             filenames = Directory
                 .EnumerateFiles(@"W:\Datasets\plytest", "*.ply", SearchOption.AllDirectories)
                 //.Skip(4)
-                .Take(1)
+                //.Take(1)
                 .ToArray()
                 ;
 
