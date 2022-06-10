@@ -327,7 +327,7 @@ namespace Scratch
                 //return;
 
                 Report.BeginTimed("parsing");
-                var dataset = Ply.Net.PlyParser.Parse(@"C:\Users\sm\Downloads\test.ply", maxChunkSize: 5*1024*1024, s => Report.Line(s));
+                var dataset = Ply.Net.PlyParser.Parse(@"W:\Datasets\plytest\inference_full.binary.ply", maxChunkSize: 5*1024*1024, s => Report.Line(s));
                 var data = dataset.Data.ToList();
                 Report.EndTimed();
                 return;

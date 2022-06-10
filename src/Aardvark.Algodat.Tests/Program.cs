@@ -1735,9 +1735,10 @@ namespace Aardvark.Geometry.Tests
         {
             var filenames = new[]
             {
-                @"W:\Datasets\plytest\bunny.ply",
+                @"W:\Datasets\plytest\inference_full.binary.ply",
+                //@"W:\Datasets\plytest\bunny.ply",
                 //@"W:\Datasets\plytest\leica-studentenzimmer-scan-125.ply",
-                //@"C:\Users\sm\Downloads\test.ply",
+                //@"W:\Datasets\plytest\2022-05-31_testfile.ply",
                 //@"E:\e57tests\datasets\matterport.e57",
                 //@"E:\e57tests\datasets\convex-scan-119.e57",
                 //@"E:\e57tests\datasets\Punktwolke_M34.e57",
@@ -1751,12 +1752,12 @@ namespace Aardvark.Geometry.Tests
                 //@"E:\e57tests\datasets\100pct_1mm_zebcam_shade_zebcam_world.e57",
             };
 
-            filenames = Directory
-                .EnumerateFiles(@"W:\Datasets\plytest", "*.ply", SearchOption.AllDirectories)
-                //.Skip(4)
-                //.Take(1)
-                .ToArray()
-                ;
+            //filenames = Directory
+            //    .EnumerateFiles(@"W:\Datasets\plytest", "*.ply", SearchOption.AllDirectories)
+            //    //.Skip(4)
+            //    //.Take(1)
+            //    .ToArray()
+            //    ;
 
             foreach (var filename in filenames)
             {

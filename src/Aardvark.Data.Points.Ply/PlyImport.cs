@@ -35,14 +35,14 @@ namespace Aardvark.Data.Points.Import
 
         static Ply()
         {
-            PlyFormat = new PointCloudFileFormat("PLY", new[] { ".ply" }, LaszipInfo, Chunks);
+            PlyFormat = new PointCloudFileFormat("PLY", new[] { ".ply" }, PlyInfo, Chunks);
             PointCloudFileFormat.Register(PlyFormat);
         }
 
         /// <summary>
         /// Gets general info for PLY (.ply) file.
         /// </summary>
-        public static PointFileInfo LaszipInfo(string filename, ParseConfig config)
+        public static PointFileInfo PlyInfo(string filename, ParseConfig config)
         {
             var fileSizeInBytes = new FileInfo(filename).Length;
             var info = PlyParser.ParseHeader(filename);
@@ -70,67 +70,35 @@ namespace Aardvark.Data.Points.Import
             {
                 var count = vd.Data[0].Data.Length;
 
+                #region positions
+
                 var x = vd["x"];
                 var y = vd["y"];
                 var z = vd["z"];
                 if (x == null && y == null && z == null) throw new Exception("No vertex data.");
-
-                #region positions
-
+                
                 var ps = new V3d[count];
 
-                if (x != null)
+                if (x != null) extractP(x, (v, i) => ps[i].X = v);
+                if (y != null) extractP(y, (v, i) => ps[i].Y = v);
+                if (z != null) extractP(z, (v, i) => ps[i].Z = v);
+
+                static void extractP(PlyParser.PropertyData x, Action<double, int> a)
                 {
                     var o = x.Data;
                     switch (x.Property.DataType)
                     {
-                        case PlyParser.DataType.Int8: { var xs = (sbyte[])o; for (var i = 0; i < count; i++) ps[i].X = xs[i]; break; }
-                        case PlyParser.DataType.UInt8: { var xs = (byte[])o; for (var i = 0; i < count; i++) ps[i].X = xs[i]; break; }
-                        case PlyParser.DataType.Int16: { var xs = (short[])o; for (var i = 0; i < count; i++) ps[i].X = xs[i]; break; }
-                        case PlyParser.DataType.UInt16: { var xs = (ushort[])o; for (var i = 0; i < count; i++) ps[i].X = xs[i]; break; }
-                        case PlyParser.DataType.Int32: { var xs = (int[])o; for (var i = 0; i < count; i++) ps[i].X = xs[i]; break; }
-                        case PlyParser.DataType.UInt32: { var xs = (uint[])o; for (var i = 0; i < count; i++) ps[i].X = xs[i]; break; }
-                        case PlyParser.DataType.Int64: { var xs = (long[])o; for (var i = 0; i < count; i++) ps[i].X = xs[i]; break; }
-                        case PlyParser.DataType.UInt64: { var xs = (ulong[])o; for (var i = 0; i < count; i++) ps[i].X = xs[i]; break; }
-                        case PlyParser.DataType.Float32: { var xs = (float[])o; for (var i = 0; i < count; i++) ps[i].X = xs[i]; break; }
-                        case PlyParser.DataType.Float64: { var xs = (double[])o; for (var i = 0; i < count; i++) ps[i].X = xs[i]; break; }
+                        case PlyParser.DataType.Int8   : { var xs = (sbyte[] )o; for (var i = 0; i < xs.Length; i++) a(xs[i], i); break; }
+                        case PlyParser.DataType.UInt8  : { var xs = (byte[]  )o; for (var i = 0; i < xs.Length; i++) a(xs[i], i); break; }
+                        case PlyParser.DataType.Int16  : { var xs = (short[] )o; for (var i = 0; i < xs.Length; i++) a(xs[i], i); break; }
+                        case PlyParser.DataType.UInt16 : { var xs = (ushort[])o; for (var i = 0; i < xs.Length; i++) a(xs[i], i); break; }
+                        case PlyParser.DataType.Int32  : { var xs = (int[]   )o; for (var i = 0; i < xs.Length; i++) a(xs[i], i); break; }
+                        case PlyParser.DataType.UInt32 : { var xs = (uint[]  )o; for (var i = 0; i < xs.Length; i++) a(xs[i], i); break; }
+                        case PlyParser.DataType.Int64  : { var xs = (long[]  )o; for (var i = 0; i < xs.Length; i++) a(xs[i], i); break; }
+                        case PlyParser.DataType.UInt64 : { var xs = (ulong[] )o; for (var i = 0; i < xs.Length; i++) a(xs[i], i); break; }
+                        case PlyParser.DataType.Float32: { var xs = (float[] )o; for (var i = 0; i < xs.Length; i++) a(xs[i], i); break; }
+                        case PlyParser.DataType.Float64: { var xs = (double[])o; for (var i = 0; i < xs.Length; i++) a(xs[i], i); break; }
                         default: throw new Exception($"Data type {x.Property.DataType} not supported.");
-                    }
-                }
-                if (y != null)
-                {
-                    var o = y.Data;
-                    switch (y.Property.DataType)
-                    {
-                        case PlyParser.DataType.Int8: { var xs = (sbyte[])o; for (var i = 0; i < count; i++) ps[i].Y = xs[i]; break; }
-                        case PlyParser.DataType.UInt8: { var xs = (byte[])o; for (var i = 0; i < count; i++) ps[i].Y = xs[i]; break; }
-                        case PlyParser.DataType.Int16: { var xs = (short[])o; for (var i = 0; i < count; i++) ps[i].Y = xs[i]; break; }
-                        case PlyParser.DataType.UInt16: { var xs = (ushort[])o; for (var i = 0; i < count; i++) ps[i].Y = xs[i]; break; }
-                        case PlyParser.DataType.Int32: { var xs = (int[])o; for (var i = 0; i < count; i++) ps[i].Y = xs[i]; break; }
-                        case PlyParser.DataType.UInt32: { var xs = (uint[])o; for (var i = 0; i < count; i++) ps[i].Y = xs[i]; break; }
-                        case PlyParser.DataType.Int64: { var xs = (long[])o; for (var i = 0; i < count; i++) ps[i].Y = xs[i]; break; }
-                        case PlyParser.DataType.UInt64: { var xs = (ulong[])o; for (var i = 0; i < count; i++) ps[i].Y = xs[i]; break; }
-                        case PlyParser.DataType.Float32: { var xs = (float[])o; for (var i = 0; i < count; i++) ps[i].Y = xs[i]; break; }
-                        case PlyParser.DataType.Float64: { var xs = (double[])o; for (var i = 0; i < count; i++) ps[i].Y = xs[i]; break; }
-                        default: throw new Exception($"Data type {y.Property.DataType} not supported.");
-                    }
-                }
-                if (z != null)
-                {
-                    var o = z.Data;
-                    switch (z.Property.DataType)
-                    {
-                        case PlyParser.DataType.Int8: { var xs = (sbyte[])o; for (var i = 0; i < count; i++) ps[i].Z = xs[i]; break; }
-                        case PlyParser.DataType.UInt8: { var xs = (byte[])o; for (var i = 0; i < count; i++) ps[i].Z = xs[i]; break; }
-                        case PlyParser.DataType.Int16: { var xs = (short[])o; for (var i = 0; i < count; i++) ps[i].Z = xs[i]; break; }
-                        case PlyParser.DataType.UInt16: { var xs = (ushort[])o; for (var i = 0; i < count; i++) ps[i].Z = xs[i]; break; }
-                        case PlyParser.DataType.Int32: { var xs = (int[])o; for (var i = 0; i < count; i++) ps[i].Z = xs[i]; break; }
-                        case PlyParser.DataType.UInt32: { var xs = (uint[])o; for (var i = 0; i < count; i++) ps[i].Z = xs[i]; break; }
-                        case PlyParser.DataType.Int64: { var xs = (long[])o; for (var i = 0; i < count; i++) ps[i].Z = xs[i]; break; }
-                        case PlyParser.DataType.UInt64: { var xs = (ulong[])o; for (var i = 0; i < count; i++) ps[i].Z = xs[i]; break; }
-                        case PlyParser.DataType.Float32: { var xs = (float[])o; for (var i = 0; i < count; i++) ps[i].Z = xs[i]; break; }
-                        case PlyParser.DataType.Float64: { var xs = (double[])o; for (var i = 0; i < count; i++) ps[i].Z = xs[i]; break; }
-                        default: throw new Exception($"Data type {z.Property.DataType} not supported.");
                     }
                 }
 
@@ -141,62 +109,32 @@ namespace Aardvark.Data.Points.Import
                 var cr = vd["red"];
                 var cg = vd["green"];
                 var cb = vd["blue"];
-                var hasColors = cr != null || cg != null || cb != null;
+                var ca = vd["alpha"];
+                var hasColors = cr != null || cg != null || cb != null || ca != null;
                 var cs = hasColors ? new C4b[count] : null;
-                if (hasColors) for (var i = 0; i < count; i++) cs![i].A = 255;
+                if (hasColors && ca == null) for (var i = 0; i < count; i++) cs![i].A = 255;
 
-                if (cr != null)
+                if (cr != null) extractC(cr, (v, i) => cs![i].R = v);
+                if (cg != null) extractC(cg, (v, i) => cs![i].G = v);
+                if (cb != null) extractC(cb, (v, i) => cs![i].B = v);
+                if (ca != null) extractC(ca, (v, i) => cs![i].A = v);
+
+                static void extractC(PlyParser.PropertyData x, Action<byte, int> a)
                 {
-                    var o = cr.Data;
-                    switch (cr.Property.DataType)
+                    var o = x.Data;
+                    switch (x.Property.DataType)
                     {
-                        case PlyParser.DataType.Int8: { var xs = (sbyte[])o; for (var i = 0; i < count; i++) cs![i].R = (byte)xs[i]; break; }
-                        case PlyParser.DataType.UInt8: { var xs = (byte[])o; for (var i = 0; i < count; i++) cs![i].R = (byte)xs[i]; break; }
-                        case PlyParser.DataType.Int16: { var xs = (short[])o; for (var i = 0; i < count; i++) cs![i].R = (byte)xs[i]; break; }
-                        case PlyParser.DataType.UInt16: { var xs = (ushort[])o; for (var i = 0; i < count; i++) cs![i].R = (byte)xs[i]; break; }
-                        case PlyParser.DataType.Int32: { var xs = (int[])o; for (var i = 0; i < count; i++) cs![i].R = (byte)xs[i]; break; }
-                        case PlyParser.DataType.UInt32: { var xs = (uint[])o; for (var i = 0; i < count; i++) cs![i].R = (byte)xs[i]; break; }
-                        case PlyParser.DataType.Int64: { var xs = (long[])o; for (var i = 0; i < count; i++) cs![i].R = (byte)xs[i]; break; }
-                        case PlyParser.DataType.UInt64: { var xs = (ulong[])o; for (var i = 0; i < count; i++) cs![i].R = (byte)xs[i]; break; }
-                        case PlyParser.DataType.Float32: { var xs = (float[])o; for (var i = 0; i < count; i++) cs![i].R = (byte)(xs[i] * 255.999); break; }
-                        case PlyParser.DataType.Float64: { var xs = (double[])o; for (var i = 0; i < count; i++) cs![i].R = (byte)(xs[i] * 255.999); break; }
-                        default: throw new Exception($"Data type {cr.Property.DataType} not supported.");
-                    }
-                }
-                if (cg != null)
-                {
-                    var o = cg.Data;
-                    switch (cg.Property.DataType)
-                    {
-                        case PlyParser.DataType.Int8: { var xs = (sbyte[])o; for (var i = 0; i < count; i++) cs![i].G = (byte)xs[i]; break; }
-                        case PlyParser.DataType.UInt8: { var xs = (byte[])o; for (var i = 0; i < count; i++) cs![i].G = (byte)xs[i]; break; }
-                        case PlyParser.DataType.Int16: { var xs = (short[])o; for (var i = 0; i < count; i++) cs![i].G = (byte)xs[i]; break; }
-                        case PlyParser.DataType.UInt16: { var xs = (ushort[])o; for (var i = 0; i < count; i++) cs![i].G = (byte)xs[i]; break; }
-                        case PlyParser.DataType.Int32: { var xs = (int[])o; for (var i = 0; i < count; i++) cs![i].G = (byte)xs[i]; break; }
-                        case PlyParser.DataType.UInt32: { var xs = (uint[])o; for (var i = 0; i < count; i++) cs![i].G = (byte)xs[i]; break; }
-                        case PlyParser.DataType.Int64: { var xs = (long[])o; for (var i = 0; i < count; i++) cs![i].G = (byte)xs[i]; break; }
-                        case PlyParser.DataType.UInt64: { var xs = (ulong[])o; for (var i = 0; i < count; i++) cs![i].G = (byte)xs[i]; break; }
-                        case PlyParser.DataType.Float32: { var xs = (float[])o; for (var i = 0; i < count; i++) cs![i].G = (byte)(xs[i] * 255.999); break; }
-                        case PlyParser.DataType.Float64: { var xs = (double[])o; for (var i = 0; i < count; i++) cs![i].G = (byte)(xs[i] * 255.999); break; }
-                        default: throw new Exception($"Data type {cg.Property.DataType} not supported.");
-                    }
-                }
-                if (cb != null)
-                {
-                    var o = cb.Data;
-                    switch (cb.Property.DataType)
-                    {
-                        case PlyParser.DataType.Int8: { var xs = (sbyte[])o; for (var i = 0; i < count; i++) cs![i].B = (byte)xs[i]; break; }
-                        case PlyParser.DataType.UInt8: { var xs = (byte[])o; for (var i = 0; i < count; i++) cs![i].B = (byte)xs[i]; break; }
-                        case PlyParser.DataType.Int16: { var xs = (short[])o; for (var i = 0; i < count; i++) cs![i].B = (byte)xs[i]; break; }
-                        case PlyParser.DataType.UInt16: { var xs = (ushort[])o; for (var i = 0; i < count; i++) cs![i].B = (byte)xs[i]; break; }
-                        case PlyParser.DataType.Int32: { var xs = (int[])o; for (var i = 0; i < count; i++) cs![i].B = (byte)xs[i]; break; }
-                        case PlyParser.DataType.UInt32: { var xs = (uint[])o; for (var i = 0; i < count; i++) cs![i].B = (byte)xs[i]; break; }
-                        case PlyParser.DataType.Int64: { var xs = (long[])o; for (var i = 0; i < count; i++) cs![i].B = (byte)xs[i]; break; }
-                        case PlyParser.DataType.UInt64: { var xs = (ulong[])o; for (var i = 0; i < count; i++) cs![i].B = (byte)xs[i]; break; }
-                        case PlyParser.DataType.Float32: { var xs = (float[])o; for (var i = 0; i < count; i++) cs![i].B = (byte)(xs[i] * 255.999); break; }
-                        case PlyParser.DataType.Float64: { var xs = (double[])o; for (var i = 0; i < count; i++) cs![i].B = (byte)(xs[i] * 255.999); break; }
-                        default: throw new Exception($"Data type {cb.Property.DataType} not supported.");
+                        case PlyParser.DataType.Int8   : { var xs = (sbyte[] )o; for (var i = 0; i < xs.Length; i++) a((byte)xs[i], i); break; }
+                        case PlyParser.DataType.UInt8  : { var xs = (byte[]  )o; for (var i = 0; i < xs.Length; i++) a((byte)xs[i], i); break; }
+                        case PlyParser.DataType.Int16  : { var xs = (short[] )o; for (var i = 0; i < xs.Length; i++) a((byte)xs[i], i); break; }
+                        case PlyParser.DataType.UInt16 : { var xs = (ushort[])o; for (var i = 0; i < xs.Length; i++) a((byte)xs[i], i); break; }
+                        case PlyParser.DataType.Int32  : { var xs = (int[]   )o; for (var i = 0; i < xs.Length; i++) a((byte)xs[i], i); break; }
+                        case PlyParser.DataType.UInt32 : { var xs = (uint[]  )o; for (var i = 0; i < xs.Length; i++) a((byte)xs[i], i); break; }
+                        case PlyParser.DataType.Int64  : { var xs = (long[]  )o; for (var i = 0; i < xs.Length; i++) a((byte)xs[i], i); break; }
+                        case PlyParser.DataType.UInt64 : { var xs = (ulong[] )o; for (var i = 0; i < xs.Length; i++) a((byte)xs[i], i); break; }
+                        case PlyParser.DataType.Float32: { var xs = (float[] )o; for (var i = 0; i < xs.Length; i++) a((byte)(xs[i] * 255.999), i); break; }
+                        case PlyParser.DataType.Float64: { var xs = (double[])o; for (var i = 0; i < xs.Length; i++) a((byte)(xs[i] * 255.999), i); break; }
+                        default: throw new Exception($"Data type {x.Property.DataType} not supported.");
                     }
                 }
 
@@ -210,58 +148,26 @@ namespace Aardvark.Data.Points.Import
                 var hasNormals = nx != null || ny != null || nz != null;
                 var ns = hasNormals ? new V3f[count] : null;
 
-                if (nx != null)
+                if (nx != null) extractN(nx, (v, i) => ns![i].X = v);
+                if (ny != null) extractN(ny, (v, i) => ns![i].Y = v);
+                if (nz != null) extractN(nz, (v, i) => ns![i].Z = v);
+
+                static void extractN(PlyParser.PropertyData x, Action<float, int> a)
                 {
-                    var o = nx.Data;
-                    switch (nx.Property.DataType)
+                    var o = x.Data;
+                    switch (x.Property.DataType)
                     {
-                        case PlyParser.DataType.Int8: { var xs = (sbyte[])o; for (var i = 0; i < count; i++) ns![i].X = (float)xs[i]; break; }
-                        case PlyParser.DataType.UInt8: { var xs = (byte[])o; for (var i = 0; i < count; i++) ns![i].X = (float)xs[i]; break; }
-                        case PlyParser.DataType.Int16: { var xs = (short[])o; for (var i = 0; i < count; i++) ns![i].X = (float)xs[i]; break; }
-                        case PlyParser.DataType.UInt16: { var xs = (ushort[])o; for (var i = 0; i < count; i++) ns![i].X = (float)xs[i]; break; }
-                        case PlyParser.DataType.Int32: { var xs = (int[])o; for (var i = 0; i < count; i++) ns![i].X = (float)xs[i]; break; }
-                        case PlyParser.DataType.UInt32: { var xs = (uint[])o; for (var i = 0; i < count; i++) ns![i].X = (float)xs[i]; break; }
-                        case PlyParser.DataType.Int64: { var xs = (long[])o; for (var i = 0; i < count; i++) ns![i].X = (float)xs[i]; break; }
-                        case PlyParser.DataType.UInt64: { var xs = (ulong[])o; for (var i = 0; i < count; i++) ns![i].X = (float)xs[i]; break; }
-                        case PlyParser.DataType.Float32: { var xs = (float[])o; for (var i = 0; i < count; i++) ns![i].X = (float)xs[i]; break; }
-                        case PlyParser.DataType.Float64: { var xs = (double[])o; for (var i = 0; i < count; i++) ns![i].X = (float)xs[i]; break; }
-                        default: throw new Exception($"Data type {nx.Property.DataType} not supported.");
-                    }
-                }
-                if (ny != null)
-                {
-                    var o = ny.Data;
-                    switch (ny.Property.DataType)
-                    {
-                        case PlyParser.DataType.Int8: { var xs = (sbyte[])o; for (var i = 0; i < count; i++) ns![i].Y = (float)xs[i]; break; }
-                        case PlyParser.DataType.UInt8: { var xs = (byte[])o; for (var i = 0; i < count; i++) ns![i].Y = (float)xs[i]; break; }
-                        case PlyParser.DataType.Int16: { var xs = (short[])o; for (var i = 0; i < count; i++) ns![i].Y = (float)xs[i]; break; }
-                        case PlyParser.DataType.UInt16: { var xs = (ushort[])o; for (var i = 0; i < count; i++) ns![i].Y = (float)xs[i]; break; }
-                        case PlyParser.DataType.Int32: { var xs = (int[])o; for (var i = 0; i < count; i++) ns![i].Y = (float)xs[i]; break; }
-                        case PlyParser.DataType.UInt32: { var xs = (uint[])o; for (var i = 0; i < count; i++) ns![i].Y = (float)xs[i]; break; }
-                        case PlyParser.DataType.Int64: { var xs = (long[])o; for (var i = 0; i < count; i++) ns![i].Y = (float)xs[i]; break; }
-                        case PlyParser.DataType.UInt64: { var xs = (ulong[])o; for (var i = 0; i < count; i++) ns![i].Y = (float)xs[i]; break; }
-                        case PlyParser.DataType.Float32: { var xs = (float[])o; for (var i = 0; i < count; i++) ns![i].Y = (float)xs[i]; break; }
-                        case PlyParser.DataType.Float64: { var xs = (double[])o; for (var i = 0; i < count; i++) ns![i].Y = (float)xs[i]; break; }
-                        default: throw new Exception($"Data type {ny.Property.DataType} not supported.");
-                    }
-                }
-                if (nz != null)
-                {
-                    var o = nz.Data;
-                    switch (nz.Property.DataType)
-                    {
-                        case PlyParser.DataType.Int8: { var xs = (sbyte[])o; for (var i = 0; i < count; i++) ns![i].Z = (float)xs[i]; break; }
-                        case PlyParser.DataType.UInt8: { var xs = (byte[])o; for (var i = 0; i < count; i++) ns![i].Z = (float)xs[i]; break; }
-                        case PlyParser.DataType.Int16: { var xs = (short[])o; for (var i = 0; i < count; i++) ns![i].Z = (float)xs[i]; break; }
-                        case PlyParser.DataType.UInt16: { var xs = (ushort[])o; for (var i = 0; i < count; i++) ns![i].Z = (float)xs[i]; break; }
-                        case PlyParser.DataType.Int32: { var xs = (int[])o; for (var i = 0; i < count; i++) ns![i].Z = (float)xs[i]; break; }
-                        case PlyParser.DataType.UInt32: { var xs = (uint[])o; for (var i = 0; i < count; i++) ns![i].Z = (float)xs[i]; break; }
-                        case PlyParser.DataType.Int64: { var xs = (long[])o; for (var i = 0; i < count; i++) ns![i].Z = (float)xs[i]; break; }
-                        case PlyParser.DataType.UInt64: { var xs = (ulong[])o; for (var i = 0; i < count; i++) ns![i].Z = (float)xs[i]; break; }
-                        case PlyParser.DataType.Float32: { var xs = (float[])o; for (var i = 0; i < count; i++) ns![i].Z = (float)xs[i]; break; }
-                        case PlyParser.DataType.Float64: { var xs = (double[])o; for (var i = 0; i < count; i++) ns![i].Z = (float)xs[i]; break; }
-                        default: throw new Exception($"Data type {nz.Property.DataType} not supported.");
+                        case PlyParser.DataType.Int8   : { var xs = (sbyte[] )o; for (var i = 0; i < xs.Length; i++) a(xs[i], i); break; }
+                        case PlyParser.DataType.UInt8  : { var xs = (byte[]  )o; for (var i = 0; i < xs.Length; i++) a(xs[i], i); break; }
+                        case PlyParser.DataType.Int16  : { var xs = (short[] )o; for (var i = 0; i < xs.Length; i++) a(xs[i], i); break; }
+                        case PlyParser.DataType.UInt16 : { var xs = (ushort[])o; for (var i = 0; i < xs.Length; i++) a(xs[i], i); break; }
+                        case PlyParser.DataType.Int32  : { var xs = (int[]   )o; for (var i = 0; i < xs.Length; i++) a(xs[i], i); break; }
+                        case PlyParser.DataType.UInt32 : { var xs = (uint[]  )o; for (var i = 0; i < xs.Length; i++) a(xs[i], i); break; }
+                        case PlyParser.DataType.Int64  : { var xs = (long[]  )o; for (var i = 0; i < xs.Length; i++) a(xs[i], i); break; }
+                        case PlyParser.DataType.UInt64 : { var xs = (ulong[] )o; for (var i = 0; i < xs.Length; i++) a(xs[i], i); break; }
+                        case PlyParser.DataType.Float32: { var xs = (float[] )o; for (var i = 0; i < xs.Length; i++) a(xs[i], i); break; }
+                        case PlyParser.DataType.Float64: { var xs = (double[])o; for (var i = 0; i < xs.Length; i++) a((float)xs[i], i); break; }
+                        default: throw new Exception($"Data type {x.Property.DataType} not supported.");
                     }
                 }
 
@@ -269,7 +175,7 @@ namespace Aardvark.Data.Points.Import
 
                 #region intensities
 
-                var j = vd["scalar_intensity"];
+                var j = vd["scalar_intensity"] ?? vd["intensity"];
                 var hasIntensities = j != null;
                 var js = hasIntensities ? new int[count] : null;
 
@@ -278,15 +184,15 @@ namespace Aardvark.Data.Points.Import
                     var o = j.Data;
                     switch (j.Property.DataType)
                     {
-                        case PlyParser.DataType.Int8: { var xs = (sbyte[])o; for (var i = 0; i < count; i++) js![i] = xs[i]; break; }
-                        case PlyParser.DataType.UInt8: { var xs = (byte[])o; for (var i = 0; i < count; i++) js![i] = xs[i]; break; }
-                        case PlyParser.DataType.Int16: { var xs = (short[])o; for (var i = 0; i < count; i++) js![i] = xs[i]; break; }
-                        case PlyParser.DataType.UInt16: { var xs = (ushort[])o; for (var i = 0; i < count; i++) js![i] = xs[i]; break; }
-                        case PlyParser.DataType.Int32: { var xs = (int[])o; for (var i = 0; i < count; i++) js![i] = xs[i]; break; }
-                        case PlyParser.DataType.UInt32: { var xs = (uint[])o; var min = xs.Min(); var max = xs.Max(); var f = (max - min) * 255.999; for (var i = 0; i < count; i++) js![i] = (byte)((xs[i] - min) * f); break; }
-                        case PlyParser.DataType.Int64: { var xs = (long[])o; var min = xs.Min(); var max = xs.Max(); var f = (max - min) * 255.999; for (var i = 0; i < count; i++) js![i] = (byte)((xs[i] - min) * f); break; }
-                        case PlyParser.DataType.UInt64: { var xs = (ulong[])o; var min = xs.Min(); var max = xs.Max(); var f = (max - min) * 255.999; for (var i = 0; i < count; i++) js![i] = (byte)((xs[i] - min) * f); break; }
-                        case PlyParser.DataType.Float32: { var xs = (float[])o; var min = xs.Min(); var max = xs.Max(); var f = (max - min) * 255.999; for (var i = 0; i < count; i++) js![i] = (byte)((xs[i] - min) * f); break; }
+                        case PlyParser.DataType.Int8:    { var xs = (sbyte[] )o; for (var i = 0; i < count; i++) js![i] = xs[i]; break; }
+                        case PlyParser.DataType.UInt8:   { var xs = (byte[]  )o; for (var i = 0; i < count; i++) js![i] = xs[i]; break; }
+                        case PlyParser.DataType.Int16:   { var xs = (short[] )o; for (var i = 0; i < count; i++) js![i] = xs[i]; break; }
+                        case PlyParser.DataType.UInt16:  { var xs = (ushort[])o; for (var i = 0; i < count; i++) js![i] = xs[i]; break; }
+                        case PlyParser.DataType.Int32:   { var xs = (int[]   )o; for (var i = 0; i < count; i++) js![i] = xs[i]; break; }
+                        case PlyParser.DataType.UInt32:  { var xs = (uint[]  )o; var min = xs.Min(); var max = xs.Max(); var f = (max - min) * 255.999; for (var i = 0; i < count; i++) js![i] = (byte)((xs[i] - min) * f); break; }
+                        case PlyParser.DataType.Int64:   { var xs = (long[]  )o; var min = xs.Min(); var max = xs.Max(); var f = (max - min) * 255.999; for (var i = 0; i < count; i++) js![i] = (byte)((xs[i] - min) * f); break; }
+                        case PlyParser.DataType.UInt64:  { var xs = (ulong[] )o; var min = xs.Min(); var max = xs.Max(); var f = (max - min) * 255.999; for (var i = 0; i < count; i++) js![i] = (byte)((xs[i] - min) * f); break; }
+                        case PlyParser.DataType.Float32: { var xs = (float[] )o; var min = xs.Min(); var max = xs.Max(); var f = (max - min) * 255.999; for (var i = 0; i < count; i++) js![i] = (byte)((xs[i] - min) * f); break; }
                         case PlyParser.DataType.Float64: { var xs = (double[])o; var min = xs.Min(); var max = xs.Max(); var f = (max - min) * 255.999; for (var i = 0; i < count; i++) js![i] = (byte)((xs[i] - min) * f); break; }
                         default: throw new Exception($"Data type {j.Property.DataType} not supported.");
                     }
@@ -294,10 +200,35 @@ namespace Aardvark.Data.Points.Import
 
                 #endregion
 
-                var chunk = new Chunk(ps, cs, ns, js);
-#if DEBUG
-                Report.Warn("[DEBUG] CHUNK PRODUCED");
-#endif
+                #region classifications
+
+                var k = vd["scalar_classification"] ?? vd["classification"];
+                var hasClassification = k != null;
+                var ks = hasClassification ? new byte[count] : null;
+
+                if (k != null)
+                {
+                    var o = k.Data;
+                    switch (k.Property.DataType)
+                    {
+                        case PlyParser.DataType.Int8:    { var xs = (sbyte[] )o; for (var i = 0; i < count; i++) ks![i] = (byte)xs[i]; break; }
+                        case PlyParser.DataType.UInt8:   { var xs = (byte[]  )o; for (var i = 0; i < count; i++) ks![i] = (byte)xs[i]; break; }
+                        case PlyParser.DataType.Int16:   { var xs = (short[] )o; for (var i = 0; i < count; i++) ks![i] = (byte)xs[i]; break; }
+                        case PlyParser.DataType.UInt16:  { var xs = (ushort[])o; for (var i = 0; i < count; i++) ks![i] = (byte)xs[i]; break; }
+                        case PlyParser.DataType.Int32:   { var xs = (int[]   )o; for (var i = 0; i < count; i++) ks![i] = (byte)xs[i]; break; }
+                        case PlyParser.DataType.UInt32:  { var xs = (uint[]  )o; for (var i = 0; i < count; i++) ks![i] = (byte)xs[i]; break; }
+                        case PlyParser.DataType.Int64:   { var xs = (long[]  )o; for (var i = 0; i < count; i++) ks![i] = (byte)xs[i]; break; }
+                        case PlyParser.DataType.UInt64:  { var xs = (ulong[] )o; for (var i = 0; i < count; i++) ks![i] = (byte)xs[i]; break; }
+                        case PlyParser.DataType.Float32: { var xs = (float[] )o; for (var i = 0; i < count; i++) ks![i] = (byte)xs[i]; break; }
+                        case PlyParser.DataType.Float64: { var xs = (double[])o; for (var i = 0; i < count; i++) ks![i] = (byte)xs[i]; break; }
+                        default: throw new Exception($"Data type {k.Property.DataType} not supported.");
+                    }
+                }
+
+                #endregion
+
+                var chunk = new Chunk(ps, cs, ns, js, ks);
+
                 yield return chunk;
             }
         }
