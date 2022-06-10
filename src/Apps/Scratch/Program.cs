@@ -327,8 +327,9 @@ namespace Scratch
                 //return;
 
                 Report.BeginTimed("parsing");
-                var dataset = Ply.Net.PlyParser.Parse(@"W:\Datasets\plytest\inference_full.binary.ply", maxChunkSize: 5*1024*1024, s => Report.Line(s));
+                var dataset = Ply.Net.PlyParser.Parse(@"W:\Datasets\plytest\constant_intensity.ply", maxChunkSize: 5*1024*1024, s => Report.Line(s));
                 var data = dataset.Data.ToList();
+                var chunks = Aardvark.Data.Points.Import.Ply.Chunks(dataset).ToList();
                 Report.EndTimed();
                 return;
             }

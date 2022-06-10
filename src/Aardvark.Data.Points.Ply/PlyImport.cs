@@ -62,7 +62,10 @@ namespace Aardvark.Data.Points.Import
         public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, ParseConfig config)
             => PlyParser.Parse(stream, config.MaxChunkPointCount, config.Verbose ? (s => Report.Line(s)) : null).Chunks();
 
-        private static IEnumerable<Chunk> Chunks(this PlyParser.Dataset data)
+        /// <summary>
+        /// Parses Ply.Net dataset.
+        /// </summary>
+        public static IEnumerable<Chunk> Chunks(this PlyParser.Dataset data)
         {
             var vds = data.Data.Where(x => x.Element.Type == PlyParser.ElementType.Vertex);
             
@@ -189,12 +192,32 @@ namespace Aardvark.Data.Points.Import
                         case PlyParser.DataType.Int16:   { var xs = (short[] )o; for (var i = 0; i < count; i++) js![i] = xs[i]; break; }
                         case PlyParser.DataType.UInt16:  { var xs = (ushort[])o; for (var i = 0; i < count; i++) js![i] = xs[i]; break; }
                         case PlyParser.DataType.Int32:   { var xs = (int[]   )o; for (var i = 0; i < count; i++) js![i] = xs[i]; break; }
-                        case PlyParser.DataType.UInt32:  { var xs = (uint[]  )o; var min = xs.Min(); var max = xs.Max(); var f = (max - min) * 255.999; for (var i = 0; i < count; i++) js![i] = (byte)((xs[i] - min) * f); break; }
-                        case PlyParser.DataType.Int64:   { var xs = (long[]  )o; var min = xs.Min(); var max = xs.Max(); var f = (max - min) * 255.999; for (var i = 0; i < count; i++) js![i] = (byte)((xs[i] - min) * f); break; }
-                        case PlyParser.DataType.UInt64:  { var xs = (ulong[] )o; var min = xs.Min(); var max = xs.Max(); var f = (max - min) * 255.999; for (var i = 0; i < count; i++) js![i] = (byte)((xs[i] - min) * f); break; }
-                        case PlyParser.DataType.Float32: { var xs = (float[] )o; var min = xs.Min(); var max = xs.Max(); var f = (max - min) * 255.999; for (var i = 0; i < count; i++) js![i] = (byte)((xs[i] - min) * f); break; }
-                        case PlyParser.DataType.Float64: { var xs = (double[])o; var min = xs.Min(); var max = xs.Max(); var f = (max - min) * 255.999; for (var i = 0; i < count; i++) js![i] = (byte)((xs[i] - min) * f); break; }
+                        case PlyParser.DataType.UInt32:  { rescale<uint  >(x => (double)x); break; }
+                        case PlyParser.DataType.Int64:   { rescale<long  >(x => (double)x); break; }
+                        case PlyParser.DataType.UInt64:  { rescale<ulong >(x => (double)x); break; }
+                        case PlyParser.DataType.Float32: { rescale<float >(x => (double)x); break; }
+                        case PlyParser.DataType.Float64: { rescale<double>(x => (double)x); break; }
                         default: throw new Exception($"Data type {j.Property.DataType} not supported.");
+                    }
+
+                    void rescale<T>(Func<T, double> toDouble)
+                    {
+                        var xs = ((T[])o).Map(toDouble);
+                        var min = xs.Min();
+                        var max = xs.Max();
+                        if (min >= 0 && max <= 255)
+                        {
+                            for (var i = 0; i < count; i++) js![i] = (byte)xs[i];
+                        }
+                        else if (min == max)
+                        {
+                            for (var i = 0; i < count; i++) js![i] = 255;
+                        }
+                        else
+                        {
+                            var f = 255.999 / (max - min);
+                            for (var i = 0; i < count; i++) js![i] = (byte)((xs[i] - min) * f);
+                        }
                     }
                 }
 
