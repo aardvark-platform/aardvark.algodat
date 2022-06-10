@@ -18,6 +18,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+#nullable enable
+
 namespace Aardvark.Geometry.Points
 {
     public class InlineConfig
@@ -41,14 +43,14 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Progress callback [0,1].
         /// </summary>
-        public Action<double> Progress { get; }
+        public Action<double>? Progress { get; }
 
         /// <summary></summary>
         /// <param name="collapse">Collapse child nodes making each node appr. 8 times as big.</param>
         /// <param name="gzipped">GZip inlined node.</param>
         /// <param name="positionsRoundedToNumberOfDigits">Optionally round positions to given number of digits.</param>
         /// <param name="progress">Progress callback [0,1].</param>
-        public InlineConfig(bool collapse, bool gzipped, int? positionsRoundedToNumberOfDigits, Action<double> progress)
+        public InlineConfig(bool collapse, bool gzipped, int? positionsRoundedToNumberOfDigits, Action<double>? progress)
         {
             Collapse = collapse;
             GZipped = gzipped;
@@ -60,7 +62,7 @@ namespace Aardvark.Geometry.Points
         /// <param name="collapse">Collapse child nodes making each node appr. 8 times as big.</param>
         /// <param name="gzipped">GZip inlined node.</param>
         /// <param name="progress">Progress callback [0,1].</param>
-        public InlineConfig(bool collapse, bool gzipped, Action<double> progress) : this(collapse, gzipped, null, progress) { }
+        public InlineConfig(bool collapse, bool gzipped, Action<double>? progress) : this(collapse, gzipped, null, progress) { }
 
         /// <summary></summary>
         /// <param name="collapse">Collapse child nodes making each node appr. 8 times as big.</param>
@@ -76,17 +78,19 @@ namespace Aardvark.Geometry.Points
         public Guid NodeId { get; }
         public Cell Cell { get; }
         public Box3d BoundingBoxExactGlobal { get; }
-        public Guid[] SubnodesGuids { get; }
+        public Guid[]? SubnodesGuids { get; }
         public int PointCountCell { get; }
         public long PointCountTreeLeafs { get; }
         public V3f[] PositionsLocal3f { get; }
-        public C3b[] Colors3b { get; }
+        public C3b[]? Colors3b { get; }
+        public byte[]? Classifications1b { get; }
+        public byte[]? Intensities1b { get; }
 
         public InlinedNode(
             Guid nodeId, Cell cell, Box3d boundingBoxExactGlobal,
-            Guid[] subnodesGuids,
+            Guid[]? subnodesGuids,
             int pointCountCell, long pointCountTreeLeafs,
-            V3f[] positionsLocal3f, C3b[] colors3b
+            V3f[] positionsLocal3f, C3b[]? colors3b, byte[]? classifications1b, byte[]? intensities1b
             )
         {
             NodeId = nodeId;
@@ -97,11 +101,24 @@ namespace Aardvark.Geometry.Points
             PointCountTreeLeafs = pointCountTreeLeafs;
             PositionsLocal3f = positionsLocal3f;
             Colors3b = colors3b;
+            Classifications1b = classifications1b;
+            Intensities1b = intensities1b;
         }
 
-        public InlinedNode WithSubnodesGuids(Guid[] newSubnodesGuids) => new(
-            NodeId, Cell, BoundingBoxExactGlobal, newSubnodesGuids, PointCountCell, PointCountTreeLeafs, PositionsLocal3f, Colors3b
-            );
+        // DO NOT REMOVE -> backwards compatibility
+        [Obsolete("Use other constructor instead.")]
+        public InlinedNode(
+            Guid nodeId, Cell cell, Box3d boundingBoxExactGlobal,
+            Guid[]? subnodesGuids,
+            int pointCountCell, long pointCountTreeLeafs, 
+            V3f[] positionsLocal3f, C3b[]? colors3b
+            )
+            : this(nodeId, cell, boundingBoxExactGlobal, subnodesGuids, pointCountCell, pointCountTreeLeafs, positionsLocal3f, colors3b, classifications1b: null, intensities1b: null)
+        { }
+
+        //public InlinedNode WithSubnodesGuids(Guid[] newSubnodesGuids) => new(
+        //    NodeId, Cell, BoundingBoxExactGlobal, newSubnodesGuids, PointCountCell, PointCountTreeLeafs, PositionsLocal3f, Colors3b, Classifications1b, Intensities1b
+        //    );
 
         public List<KeyValuePair<Durable.Def, object>> ToDurableMap()
         {
@@ -132,6 +149,16 @@ namespace Aardvark.Geometry.Points
             if (Colors3b != null)
             {
                 AddResultEntry(Durable.Octree.Colors3b, Colors3b);
+            }
+
+            if (Classifications1b != null)
+            {
+                AddResultEntry(Durable.Octree.Classifications1b, Classifications1b);
+            }
+
+            if (Intensities1b != null)
+            {
+                AddResultEntry(Durable.Octree.Intensities1b, Intensities1b);
             }
 
             return result;
@@ -257,66 +284,7 @@ namespace Aardvark.Geometry.Points
             }
         }
 
-        [Obsolete("Will be removed soon. Use EnumerateOctreeInlined(this IPointCloudNode root, InlineConfig config) instead.")]
-        public static InlinedNodes EnumerateOctreeInlined(
-            this Storage storage, IPointCloudNode root, InlineConfig config
-            )
-            => EnumerateOctreeInlined(root, config);
-
-        [Obsolete("Will be removed soon. Use EnumerateOctreeInlined instead.")]
-        public static InlinedNodes EnumerateOctreeInlinedOld(
-            this Storage storage, IPointCloudNode root, InlineConfig config
-            )
-        {
-            var processedNodeCount = 0L;
-            var totalNodeCount = root.CountNodes(outOfCore: true);
-            var totalNodeCountD = (double)totalNodeCount;
-            var survive = new HashSet<Guid> { root.Id };
-            var nodes = EnumerateRecOld(root.Id);
-
-            var r = nodes.First();
-            return new InlinedNodes(
-                config, r, nodes, totalNodeCount
-                );
-
-            IEnumerable<InlinedNode> EnumerateRecOld(Guid key)
-            {
-                var node = storage.GetNodeDataFromKey(key);
-                var isLeafNode = !node.TryGetValue(Durable.Octree.SubnodesGuids, out var subnodeGuids);
-
-                config.Progress?.Invoke(++processedNodeCount / totalNodeCountD);
-
-                if (config.Collapse && isLeafNode && !survive.Contains(key)) yield break;
-
-                var inline = storage.ConvertToInlineOld(node, config, survive);
-                survive.Remove(key);
-                yield return inline;
-
-                if (subnodeGuids != null)
-                {
-                    foreach (var g in (Guid[])subnodeGuids)
-                    {
-                        if (g == Guid.Empty) continue;
-                        foreach (var n in EnumerateRecOld(g)) yield return n;
-                    }
-                }
-            }
-        }
-
         #region ExportInlinedPointCloud
-
-        [Obsolete("Use ExportInlinedPointCloud instead. Will be removed after 2022-03-31.")]
-        public static void InlineOctree(this Storage sourceStore, string key, Storage exportStore, InlineConfig config)
-            => ExportInlinedPointCloud(sourceStore, key, exportStore, config);
-
-        [Obsolete("Use ExportInlinedPointCloud instead. Will be removed after 2022-03-31.")]
-        public static void InlineOctree(this Storage sourceStore, Guid key, Storage targetStore, InlineConfig config)
-            => ExportInlinedPointCloud(sourceStore, key, targetStore, config);
-
-        [Obsolete("Use ExportInlinedPointCloud instead. Will be removed after 2022-03-31.")]
-        public static void InlineOctree(this IPointCloudNode root, Storage targetStore, InlineConfig config)
-            => ExportInlinedPointCloud(root, targetStore, config);
-
 
         /// <summary>
         /// Inlines and exports point cloud to another store.
@@ -366,29 +334,6 @@ namespace Aardvark.Geometry.Points
             Report.EndTimed();
         }
 
-        [Obsolete("Will be removed soon. Use ExportInlinedPointCloud instead.")]
-        public static void ExportInlinedPointCloudOld(this Storage sourceStore, IPointCloudNode root, Storage targetStore, InlineConfig config)
-        {
-            Report.BeginTimed("inlining octree");
-
-            var totalNodeCount = root.CountNodes(outOfCore: true);
-            var newSplitLimit = config.Collapse ? root.PointCountCell * 8 : root.PointCountCell;
-            Report.Line($"root              = {root.Id}");
-            Report.Line($"split limit       = {root.PointCountCell,36:N0}");
-            Report.Line($"split limit (new) = {newSplitLimit,36:N0}");
-            Report.Line($"total node count  = {totalNodeCount,36:N0}");
-
-            // export octree
-            var exported = EnumerateOctreeInlinedOld(sourceStore, root, config);
-            foreach (var x in exported.Nodes)
-            {
-                var inlined = x.ToDurableMap();
-                targetStore.Add(x.NodeId, Durable.Octree.Node, inlined, config.GZipped);
-            }
-
-            Report.EndTimed();
-        }
-
         #endregion
 
         #region Helpers
@@ -406,16 +351,41 @@ namespace Aardvark.Geometry.Points
             var pointCountCell = node.PointCountCell;
             var pointCountTree = node.PointCountTree;
             var hasColors = node.HasColors;
+            var hasClassifications = node.HasClassifications;
+            var hasIntensities = node.HasIntensities;
             var subnodes = node.Subnodes?.Map(x => x?.TryGetValue());
             var isNotLeaf = !node.IsLeaf;
 
             var ps = default(V3f[]);
             var cs = default(C4b[]);
+            var ks = default(byte[]);
+            var js = default(byte[]);
 
-            Guid[] subnodeGuids = null;
+            static byte[] rescaleIntensities(int[] js32)
+            {
+                var min = js32.Min();
+                var max = js32.Max();
+
+                if (min >= 0 && max <= 255)
+                {
+                    return js32.Map(x => (byte)x);
+                }
+                else if (min == max)
+                {
+                    return js32.Map(_ => (byte)255);
+                }
+                else
+                {
+                    var f = 255.999 / (max - min);
+                    return js32.Map(x => (byte)((x - min) * f));
+                }
+            }
+
+            Guid[]? subnodeGuids = null;
             if (config.Collapse && isNotLeaf)
             {
-                var nonEmptySubNodes = subnodes.Where(x => x.HasValue && x.Value.hasValue).Select(x => x.Value.value).ToArray();
+                if (subnodes == null) throw new Exception("Assertion failed. Error 42565d4a-2e91-4961-a310-095b503fe6f1.");
+                var nonEmptySubNodes = subnodes.Where(x => x.HasValue && x.Value.hasValue).Select(x => x!.Value.value).ToArray();
 
                 ps = nonEmptySubNodes
                     .SelectMany(n =>
@@ -433,6 +403,22 @@ namespace Aardvark.Geometry.Points
                     cs = nonEmptySubNodes
                         .SelectMany(n => n.Colors.Value)
                         .ToArray();
+                }
+
+                if (hasClassifications)
+                {
+                    ks = nonEmptySubNodes
+                        .SelectMany(n => n.Classifications.Value)
+                        .ToArray();
+                }
+
+                if (hasIntensities)
+                {
+                    var js32 = nonEmptySubNodes
+                        .SelectMany(n => n.Intensities.Value)
+                        .ToArray();
+
+                    js = rescaleIntensities(js32);
                 }
 
                 var guids2 = subnodes
@@ -465,12 +451,16 @@ namespace Aardvark.Geometry.Points
 
                 ps = node.Positions.Value;
                 if (hasColors) cs = node.Colors.Value;
+                if (hasClassifications) ks = node.Classifications.Value;
+                if (hasIntensities) js = rescaleIntensities(node.Intensities.Value);
                 if (isNotLeaf) subnodeGuids = subnodes.Map(x => x.HasValue && x.Value.hasValue ? x.Value.value.Id : Guid.Empty);
             }
 
+
+
             // fix color array if it has inconsistent length
             // (might have been created by an old Aardvark.Geometry.PointSet version)
-            if (hasColors && cs.Length != ps.Length)
+            if (hasColors && cs!.Length != ps.Length)
             {
                 Report.ErrorNoPrefix($"[ConvertToInline] inconsistent length: {ps.Length} positions, but {cs.Length} colors.");
 
@@ -494,158 +484,8 @@ namespace Aardvark.Geometry.Points
             // result
             pointCountCell = ps.Length;
             var cs3b = cs?.Map(x => new C3b(x));
-            var result = new InlinedNode(id, cell, bbExactGlobal, subnodeGuids, pointCountCell, pointCountTree, ps, cs3b);
+            var result = new InlinedNode(id, cell, bbExactGlobal, subnodeGuids, pointCountCell, pointCountTree, ps, cs3b, ks, js);
             return result;
-        }
-
-        [Obsolete("Will be removed soon. Use ConvertToInline instead.")]
-        private static InlinedNode ConvertToInlineOld(
-            this Storage storage,
-            IReadOnlyDictionary<Durable.Def, object> node,
-            InlineConfig config,
-            HashSet<Guid> survive
-            )
-        {
-            var id = (Guid)node[Durable.Octree.NodeId];
-            var cell = (Cell)node[Durable.Octree.Cell];
-            var cellCenter = cell.GetCenter();
-            var bbExactGlobal = (Box3d)node[Durable.Octree.BoundingBoxExactGlobal];
-            var pointCountCell = (int)node[Durable.Octree.PointCountCell];
-            var pointCountTree = (long)node[Durable.Octree.PointCountTreeLeafs];
-            node.TryGetValue(Durable.Octree.SubnodesGuids, out var subnodeGuids);
-            var hasColors = node.ContainsKey(Durable.Octree.Colors4bReference);
-
-            var ps = default(V3f[]);
-            var cs = default(C4b[]);
-
-            if (config.Collapse && subnodeGuids != null)
-            {
-                var guids = ((Guid[])subnodeGuids);
-
-                ps = guids
-                    .Where(g => g != Guid.Empty)
-                    .SelectMany(k =>
-                    {
-                        var n = storage.GetNodeDataFromKey(k);
-                        var nCell = ((Cell)n[Durable.Octree.Cell]);
-                        var nCenter = nCell.GetCenter();
-                        var delta = nCenter - cellCenter;
-                        var xs = storage.GetNodePositions(n).Map(x => (V3d)x + nCenter);
-                        //Report.Line($"    {k} -> {xs.Length}");
-                        return xs;
-                    })
-                    .ToArray()
-                    .Map(p => (V3f)(p - cellCenter));
-
-                if (hasColors)
-                {
-                    cs = guids
-                        .Where(g => g != Guid.Empty)
-                        .Select(k => storage.GetNodeDataFromKey(k))
-                        .SelectMany(n => storage.GetNodeColors(n))
-                        .ToArray();
-                }
-
-                var guids2 = guids
-                    .Map(k =>
-                    {
-                        if (k == Guid.Empty) return Guid.Empty;
-                        var n = storage.GetNodeDataFromKey(k);
-                        return n.ContainsKey(Durable.Octree.SubnodesGuids) ? k : Guid.Empty;
-                    });
-                var isNewLeaf = guids2.All(k => k == Guid.Empty);
-                if (isNewLeaf)
-                {
-                    subnodeGuids = null;
-                }
-                else
-                {
-                    foreach (var g in guids) if (g != Guid.Empty) survive.Add(g);
-                }
-            }
-            else
-            {
-                var psRef = node[Durable.Octree.PositionsLocal3fReference];
-                ps = storage.GetV3fArray(((Guid)psRef).ToString());
-
-                if (hasColors)
-                {
-                    var csRef = node[Durable.Octree.Colors4bReference];
-                    cs = storage.GetC4bArray(((Guid)csRef).ToString());
-                }
-            }
-
-            // fix color array if it has inconsistent length
-            // (might have been created by an old Aardvark.Geometry.PointSet version)
-            if (hasColors && cs.Length != ps.Length)
-            {
-                Report.ErrorNoPrefix($"[ConvertToInline] inconsistent length: {ps.Length} positions, but {cs.Length} colors.");
-
-                var csFixed = new C4b[ps.Length];
-                if (csFixed.Length > 0)
-                {
-                    var lastColor = cs[cs.Length - 1];
-                    var imax = Math.Min(ps.Length, cs.Length);
-                    for (var i = 0; i < imax; i++) csFixed[i] = cs[i];
-                    for (var i = imax; i < ps.Length; i++) csFixed[i] = lastColor;
-                }
-                cs = csFixed;
-            }
-
-            // optionally round positions
-            if (config.PositionsRoundedToNumberOfDigits.HasValue)
-            {
-                ps = ps.Map(x => x.Round(config.PositionsRoundedToNumberOfDigits.Value));
-            }
-
-            // result
-            pointCountCell = ps.Length;
-            var cs3b = cs?.Map(x => new C3b(x));
-            var result = new InlinedNode(id, cell, bbExactGlobal, (Guid[])subnodeGuids, pointCountCell, pointCountTree, ps, cs3b);
-            return result;
-        }
-
-        private static IReadOnlyDictionary<Durable.Def, object> GetNodeDataFromKey(this Storage storage, Guid key)
-        {
-            var (_, raw) = storage.GetDurable(key);
-            if (raw != null) return (raw as IReadOnlyDictionary<Durable.Def, object>);
-
-            var n = storage.GetPointCloudNode(key);
-            if (n != null) return (n.Properties);
-
-            return null;
-        }
-
-        private static V3f[] GetNodePositions(this Storage storage, IReadOnlyDictionary<Durable.Def, object> n)
-        {
-            if (n.TryGetValue(Durable.Octree.PositionsLocal3fReference, out var r))
-            {
-                return storage.GetV3fArray(((Guid)r).ToString());
-            }
-            else if (n.TryGetValue(Durable.Octree.PositionsLocal3f, out var ps))
-            {
-                return (V3f[])ps;
-            }
-            else
-            {
-                throw new InvalidOperationException("No positions. Invariant 167b491b-8e58-4e28-88ed-f0a69590465e.");
-            }
-        }
-
-        private static C4b[] GetNodeColors(this Storage storage, IReadOnlyDictionary<Durable.Def, object> n)
-        {
-            if (n.TryGetValue(Durable.Octree.Colors4bReference, out var r))
-            {
-                return storage.GetC4bArray(((Guid)r).ToString());
-            }
-            else if (n.TryGetValue(Durable.Octree.Colors3b, out var cs))
-            {
-                return ((C3b[])cs).Map(c => new C4b(c));
-            }
-            else
-            {
-                throw new InvalidOperationException("No colors. Invariant 8516dbaf-9765-44ab-949c-79986514f1d1.");
-            }
         }
 
         #endregion
