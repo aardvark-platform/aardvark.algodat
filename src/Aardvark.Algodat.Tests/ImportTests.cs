@@ -546,5 +546,78 @@ namespace Aardvark.Geometry.Tests
         }
 
         #endregion
+
+        #region PLY
+
+        [Test]
+        public void CanParsePlyFileInfo()
+        {
+            Assert.IsTrue(Data.Points.Import.Ply.PlyFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "cube.ply");
+            var info = PointCloud.ParseFileInfo(filename, ParseConfig.Default);
+
+            Assert.IsTrue(info.PointCount == 8);
+            Assert.IsTrue(info.Bounds == Box3d.Invalid);
+        }
+
+        [Test]
+        public void CanParsePlyFile()
+        {
+            Assert.IsTrue(Data.Points.Import.Ply.PlyFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "cube.ply");
+            var ps = PointCloud.Parse(filename, ParseConfig.Default)
+                .SelectMany(x => x.Positions)
+                .ToArray()
+                ;
+            Assert.IsTrue(ps.Length == 8);
+            Assert.IsTrue(ps[0] == V3d.OOO);
+        }
+
+        [Test]
+        public void CanImportPlyFile()
+        {
+            Assert.IsTrue(Data.Points.Import.Ply.PlyFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "cube.ply");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                ;
+            var pointset = PointCloud.Import(filename, config);
+            Assert.IsTrue(pointset != null);
+            Assert.IsTrue(pointset.PointCount == 8);
+        }
+
+        [Test]
+        public void CanImportPlyFile_MinDist()
+        {
+            Assert.IsTrue(Data.Points.Import.Ply.PlyFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "cube.ply");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                .WithMinDist(10)
+                ;
+            var pointset = PointCloud.Import(filename, config);
+            Assert.IsTrue(pointset.PointCount < 8);
+        }
+
+        [Test]
+        public void CanImportPlyFileAndLoadFromStore()
+        {
+            Assert.IsTrue(Data.Points.Import.Ply.PlyFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "cube.ply");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                ;
+            _ = PointCloud.Import(filename, config);
+            var pointset2 = config.Storage.GetPointSet("test");
+            Assert.IsTrue(pointset2 != null);
+            Assert.IsTrue(pointset2.PointCount == 8);
+
+            Assert.IsTrue(pointset2.Root.Value.KdTree.Value != null);
+        }
+
+        #endregion
     }
 }
