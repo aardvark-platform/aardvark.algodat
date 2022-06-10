@@ -15,32 +15,32 @@ nuget System.Text.Json                  >= 6.0
 
 ////////////////////////////////////////////////////////////////////////
 // https://github.com/aardvark-platform/aardvark.base
-nuget Aardvark.Base                     ~> 5.2.2
-nuget Aardvark.Base.IO                  ~> 5.2.2
-nuget Aardvark.Base.Tensors             ~> 5.2.2
-nuget Aardvark.Geometry                 ~> 5.2.2
+nuget Aardvark.Base                     ~> 5.2.5
+nuget Aardvark.Base.IO                  ~> 5.2.5
+nuget Aardvark.Base.Tensors             ~> 5.2.5
+nuget Aardvark.Geometry                 ~> 5.2.5
 
 ////////////////////////////////////////////////////////////////////////
 // https://github.com/aardvark-platform/aardvark.rendering
-nuget Aardvark.Application.Utilities    ~> 5.2.1
-nuget Aardvark.Application.Slim.Vulkan  ~> 5.2.1
+nuget Aardvark.Application.Utilities    ~> 5.2.5
+nuget Aardvark.Application.Slim.Vulkan  ~> 5.2.5
 
 ////////////////////////////////////////////////////////////////////////
 // https://github.com/aardvark-community/aardvark.data.durable.dotnet
-nuget Aardvark.Data.Durable.Codec       ~> 0.3.0
+nuget Aardvark.Data.Durable.Codec       >= 0.3.1
 
 ////////////////////////////////////////////////////////////////////////
 // 3rd-party
-nuget FShade                            ~> 5.2.8
-nuget Microsoft.NET.Test.Sdk            ~> 17.0.0
-nuget NUnit                             ~> 3.13.2
-nuget NUnit3TestAdapter                 ~> 4.1.0
+nuget FShade                            ~> 5.2.9
+nuget Microsoft.NET.Test.Sdk            ~> 17.2.0
+nuget NUnit                             ~> 3.13.3
+nuget NUnit3TestAdapter                 ~> 4.2.1
 nuget Uncodium.Eigensystems             ~> 1.1.2
-nuget Uncodium.SimpleStore              ~> 3.0.10
+nuget Uncodium.SimpleStore              ~> 3.0.13
 nuget Unofficial.DotSpatial.Projections ~> 0.0.4
 nuget Unofficial.laszip.netstandard     ~> 2.2.1
 
 nuget sharpcompress                     ~> 0.30.0      // only used in Apps/heracli
 
 // BUILD
-nuget Aardvark.Build                    ~> 1.0.11
+nuget Aardvark.Build                    ~> 1.0.12
