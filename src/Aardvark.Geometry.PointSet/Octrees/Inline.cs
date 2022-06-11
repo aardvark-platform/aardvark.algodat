@@ -105,6 +105,23 @@ namespace Aardvark.Geometry.Points
             Intensities1b = intensities1b;
         }
 
+        public InlinedNode(byte[] buffer, bool gzipped)
+        {
+            if (gzipped) buffer = buffer.UnGZip();
+            var map = buffer.DurableDecode<IReadOnlyDictionary<Durable.Def, object>>();
+
+            NodeId = (Guid)map[Durable.Octree.NodeId];
+            Cell = (Cell)map[Durable.Octree.Cell];
+            BoundingBoxExactGlobal = (Box3d)map[Durable.Octree.BoundingBoxExactGlobal];
+            SubnodesGuids = map.TryGetValue(Durable.Octree.SubnodesGuids, out var gs) ? (Guid[]?)gs : null;
+            PointCountCell = (int)map[Durable.Octree.PointCountCell];
+            PointCountTreeLeafs = (long)map[Durable.Octree.PointCountTreeLeafs];
+            PositionsLocal3f = (V3f[])map[Durable.Octree.PositionsLocal3f];
+            Colors3b = map.TryGetValue(Durable.Octree.Colors3b, out var cs) ? (C3b[]?)cs : null;
+            Classifications1b = map.TryGetValue(Durable.Octree.Classifications1b, out var ks) ? (byte[]?)ks : null;
+            Intensities1b = map.TryGetValue(Durable.Octree.Intensities1b, out var js) ? (byte[]?)js : null;
+        }
+
         // DO NOT REMOVE -> backwards compatibility
         [Obsolete("Use other constructor instead.")]
         public InlinedNode(
@@ -116,9 +133,14 @@ namespace Aardvark.Geometry.Points
             : this(nodeId, cell, boundingBoxExactGlobal, subnodesGuids, pointCountCell, pointCountTreeLeafs, positionsLocal3f, colors3b, classifications1b: null, intensities1b: null)
         { }
 
-        //public InlinedNode WithSubnodesGuids(Guid[] newSubnodesGuids) => new(
-        //    NodeId, Cell, BoundingBoxExactGlobal, newSubnodesGuids, PointCountCell, PointCountTreeLeafs, PositionsLocal3f, Colors3b, Classifications1b, Intensities1b
-        //    );
+        public V3d[] PositionsGlobal3d
+        {
+            get
+            {
+                var c = Cell.GetCenter();
+                return PositionsLocal3f.Map(p => c + (V3d)p);
+            }
+        }
 
         public List<KeyValuePair<Durable.Def, object>> ToDurableMap()
         {
@@ -248,15 +270,19 @@ namespace Aardvark.Geometry.Points
             this IPointCloudNode root, InlineConfig config
             )
         {
+            if (root == null) throw new ArgumentNullException(nameof(root));
+
             var processedNodeCount = 0L;
             //var totalNodeCount = root.CountNodes(outOfCore: true); 
             //var totalNodeCountD = (double)totalNodeCount;
-            var survive = new HashSet<Guid> { root.Id };
-            var nodes = EnumerateRec(root);
 
-            var r = nodes.First();
+            var survive = new HashSet<Guid> { root.Id };
+            var first = EnumerateRec(root).First();
+
+            var nodes = first.IntoIEnumerable().Concat(EnumerateRec(root));
+
             return new InlinedNodes(
-                config, r, nodes, -1//totalNodeCount
+                config, first, nodes, -1//totalNodeCount
                 );
 
             IEnumerable<InlinedNode> EnumerateRec(IPointCloudNode node)
@@ -439,7 +465,7 @@ namespace Aardvark.Geometry.Points
                 if (!isNewLeaf)
                 {
                     subnodeGuids = subnodes.Map(x => x.HasValue && x.Value.hasValue ? x.Value.value.Id : Guid.Empty);
-                    foreach (var g in subnodes) if (g.HasValue && g.Value.hasValue) survive.Add(g.Value.value.Id);
+                    foreach (var g in nonEmptySubNodes) survive.Add(g.Id);
                 }
             }
             else

@@ -1797,10 +1797,7 @@ namespace Aardvark.Geometry.Tests
                         //})
                         ;
 
-                //var pcl = PointCloud.Import(chunks, config);
-
                 File.WriteAllText(Path.Combine(storePath, "key.txt"), pcl.Id);
-
 
                 //var maxCount = pcl.PointCount / 30;
                 //var level = pcl.GetMaxOctreeLevelWithLessThanGivenPointCount(maxCount);
@@ -1840,11 +1837,36 @@ namespace Aardvark.Geometry.Tests
             Console.WriteLine("done");
         }
 
+        static void SmTest20220610()
+        {
+            var filename = @"E:\e57tests\stores\inference_full.binary.ply\data.uds";
+            var storeRaw = SimpleDiskStore.OpenReadOnlySnapshot(filename);
+            var store = storeRaw.ToPointCloudStore();
+            var key = File.ReadAllText(Path.Combine(Path.GetDirectoryName(filename), "key.txt"));
+
+            var pcl = store.GetPointSet(key);
+            //var nodeCount = pcl.Root.Value.CountNodes(outOfCore: true);
+            //Console.WriteLine($"nodeCount       : {nodeCount,16:N0}");
+
+            var inlineConfig = new InlineConfig(collapse: true, gzipped: true);
+            var inlinedNodes = store.EnumerateOctreeInlined(key, inlineConfig);
+
+            var nodeCountInlined = inlinedNodes.Nodes.Count();
+            Console.WriteLine($"nodeCountInlined: {nodeCountInlined,16:N0}");
+
+            var nodeCountInlined2 = inlinedNodes.Nodes.Count();
+            Console.WriteLine($"nodeCountInlined: {nodeCountInlined2,16:N0}");
+        }
+
         public static void Main(string[] _)
         {
-            //LisaTest20220404();
+            new InlinedNodeTests().CanInlineNode(); return;
 
-            Test_Import_Regression();
+            SmTest20220610();
+
+            //Test_Import_Regression();
+
+            //LisaTest20220404();
 
             //TestFilterSerialization();
 

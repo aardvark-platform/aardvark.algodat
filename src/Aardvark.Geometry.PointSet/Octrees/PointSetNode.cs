@@ -140,7 +140,7 @@ namespace Aardvark.Geometry.Points
 
 #if DEBUG
                     // Invariant: child cells MUST be direct sub-cells
-                    if (pRef.Value.Cell != this.Cell.GetOctant(i)) throw new InvalidOperationException("Invariant a5308834-2509-4af5-8986-c717da792611.");
+                    //if (pRef.Value.Cell != this.Cell.GetOctant(i)) throw new InvalidOperationException("Invariant a5308834-2509-4af5-8986-c717da792611.");
 #endif
                 }
             }

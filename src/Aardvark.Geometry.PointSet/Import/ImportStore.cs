@@ -147,6 +147,13 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Creates an in-memory store.
         /// </summary>
+        public static Storage CreateInMemoryStore()
+            => new SimpleMemoryStore().ToPointCloudStore(new LruDictionary<string, object>(1024 * 1024 * 1024))
+            ;
+
+        /// <summary>
+        /// Creates an in-memory store.
+        /// </summary>
         public static Storage CreateInMemoryStore(LruDictionary<string, object> cache)
             => new SimpleMemoryStore().ToPointCloudStore(cache ?? new LruDictionary<string, object>(1024 * 1024 * 1024))
             ;
