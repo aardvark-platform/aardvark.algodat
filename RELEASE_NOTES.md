@@ -1,3 +1,9 @@
+### 5.2.4
+- added Aardvark.Data.Wavefront
+- ply importer: fixed intensity rescale
+- ply importer: added support for per-vertex classification property ("scalar_Classification", "classification") and alpha color channel ("alpha")
+- InlineNode now also handles classifications and intensities where intensities are converted from int32 to uint8
+
 ### 5.2.3
 - add PLY parser and ply point cloud importer 
 
