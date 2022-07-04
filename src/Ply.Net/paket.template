@@ -5,7 +5,7 @@ owners Stefan Maierhofer
 projectUrl https://github.com/aardvark-platform/aardvark.algodat/tree/master/src/Ply.Net
 licenseUrl https://raw.githubusercontent.com/aardvark-platform/aardvark.algodat/master/src/Ply.Net/LICENSE
 repositoryType git
-repositoryUrl https://github.com/aardvark-platform/aardvark.algodat/tree/master/src/Ply.Net
+repositoryUrl https://github.com/aardvark-platform/aardvark.algodat
 description
     A parser for PLY point cloud data.
 include-pdbs true

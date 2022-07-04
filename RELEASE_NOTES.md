@@ -3,7 +3,7 @@
 - ply importer: fixed intensity rescale
 - ply importer: added support for per-vertex classification property ("scalar_Classification", "classification") and alpha color channel ("alpha")
 - InlineNode now also handles classifications and intensities where intensities are converted from int32 to uint8
-- fixed paket.template files
+- fixed paket.template files 
 
 ### 5.2.3
 - add PLY parser and ply point cloud importer 
