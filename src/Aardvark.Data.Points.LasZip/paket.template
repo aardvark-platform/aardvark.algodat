@@ -1,7 +1,7 @@
 type project
 id Aardvark.Data.Points.LasZip
-authors Stefan Maierhofer
-owners Stefan Maierhofer
+authors Aardvark Platform Team
+owners Aardvark Platform Team
 projectUrl https://github.com/aardvark-platform/aardvark.algodat
 licenseUrl https://raw.githubusercontent.com/aardvark-platform/aardvark.algodat/master/src/Aardvark.Data.Points.LasZip/LICENSE
 repositoryType git

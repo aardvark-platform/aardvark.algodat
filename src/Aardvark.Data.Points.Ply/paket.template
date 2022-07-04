@@ -2,10 +2,10 @@ type project
 id Aardvark.Data.Points.Ply
 authors Aardvark Platform Team
 owners Aardvark Platform Team
-projectUrl https://github.com/aardvark-platform/aardvark.algodat/tree/master/src/Aardvark.Data.Points.Ply
+projectUrl https://github.com/aardvark-platform/aardvark.algodat
 licenseUrl https://raw.githubusercontent.com/aardvark-platform/aardvark.algodat/master/src/Aardvark.Data.Points.Ply/LICENSE
 repositoryType git
-repositoryUrl https://github.com/aardvark-platform/aardvark.algodat/tree/master/src/Aardvark.Data.Points.Ply
+repositoryUrl https://github.com/aardvark-platform/aardvark.algodat
 description
     Aardvark point cloud importer for Ply.Net.
 include-pdbs true

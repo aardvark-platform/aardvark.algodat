@@ -2,7 +2,7 @@ type project
 id Aardvark.Data.Wavefront
 authors Aardvark Platform Team
 owners Aardvark Platform Team
-projectUrl http://github.com/aardvark-platform
+projectUrl https://github.com/aardvark-platform/aardvark.algodat
 licenseUrl http://www.gnu.org/licenses/agpl.txt
 repositoryType git
 repositoryUrl https://github.com/aardvark-platform/aardvark.algodat
