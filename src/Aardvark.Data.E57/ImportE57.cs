@@ -275,8 +275,10 @@ namespace Aardvark.Data.Points.Import
         public static PointFileInfo<E57FileHeader> E57Info(string filename, ParseConfig config)
         {
             var filesize = new FileInfo(filename).Length;
-            var stream = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
-            var header = E57FileHeader.Parse(stream, filesize, config.Verbose);
+            E57FileHeader header;
+            using (var stream = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+                header = E57FileHeader.Parse(stream, filesize, config.Verbose);
+            };
             var pointCount = 0L;
             var pointBounds = Box3d.Invalid;
             foreach (var data3d in header.E57Root.Data3D)
