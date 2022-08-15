@@ -1,3 +1,8 @@
+### 5.2.5
+- E57FileHeader: fix leaking file handle
+  https://github.com/aardvark-platform/aardvark.algodat/pull/23
+  https://github.com/aardvark-platform/aardvark.algodat/issues/22
+
 ### 5.2.4
 - added Aardvark.Data.Wavefront
 - ply importer: fixed intensity rescale
