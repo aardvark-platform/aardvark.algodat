@@ -1860,9 +1860,9 @@ namespace Aardvark.Geometry.Tests
 
         public static void Main(string[] _)
         {
-            new InlinedNodeTests().CanInlineNode(); return;
+            //new InlinedNodeTests().CanInlineNode(); return;
 
-            SmTest20220610();
+            //SmTest20220610();
 
             //Test_Import_Regression();
 
