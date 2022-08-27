@@ -272,24 +272,26 @@ namespace Aardvark.Geometry.Points
         {
             if (root == null) throw new ArgumentNullException(nameof(root));
 
-            var processedNodeCount = 0L;
-            //var totalNodeCount = root.CountNodes(outOfCore: true); 
-            //var totalNodeCountD = (double)totalNodeCount;
-
-            var survive = new HashSet<Guid> { root.Id };
-            var first = EnumerateRec(root).First();
-
-            var nodes = first.IntoIEnumerable().Concat(EnumerateRec(root));
+            var inlinedRoot = root.ConvertToInline(config, new HashSet<Guid> { root.Id });
 
             return new InlinedNodes(
-                config, first, nodes, -1//totalNodeCount
+                config, 
+                inlinedRoot,
+                EnumerateRec(root, config),
+                -1
                 );
 
-            IEnumerable<InlinedNode> EnumerateRec(IPointCloudNode node)
+            static IEnumerable<InlinedNode> EnumerateRec(IPointCloudNode root, InlineConfig config)
+            {
+                var survive = new HashSet<Guid> { root.Id };
+                foreach (var x in EnumerateRecImpl(root, survive, config, 0L)) yield return x;
+            }
+
+            static IEnumerable<InlinedNode> EnumerateRecImpl(IPointCloudNode node, HashSet<Guid> survive, InlineConfig config, long processedNodeCount)
             {
                 var isLeafNode = node.IsLeaf;
 
-                config.Progress?.Invoke(++processedNodeCount /*/ totalNodeCountD*/);
+                config.Progress?.Invoke(++processedNodeCount);
 
                 if (config.Collapse && isLeafNode && !survive.Contains(node.Id)) yield break;
 
@@ -303,7 +305,7 @@ namespace Aardvark.Geometry.Points
                     {
                         if (x != null && x.TryGetValue(out var subnode))
                         {
-                            foreach (var n in EnumerateRec(subnode)) yield return n;
+                            foreach (var n in EnumerateRecImpl(subnode, survive, config, processedNodeCount)) yield return n;
                         }
                     }
                 }

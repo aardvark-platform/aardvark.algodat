@@ -63,6 +63,9 @@ end_header
 
             Assert.IsTrue(inlinedNodes.Nodes.Count() == 1);
 
+            // reentrant?
+            Assert.IsTrue(inlinedNodes.Nodes.Count() == 1);
+
             var n = inlinedNodes.Nodes.Single();
 
             Assert.IsTrue(n.PositionsLocal3f.Length == 8);
