@@ -1,3 +1,9 @@
+### 5.2.6
+- fix EnumerateOctreeInlined 
+  - undefined behaviour if same enumerator was run multiple times in parallel
+  - empty enumeration after first run (when run sequentially)
+  - root node has been duplicated in some cases
+
 ### 5.2.5
 - E57FileHeader: fix leaking file handle
   https://github.com/aardvark-platform/aardvark.algodat/pull/23
