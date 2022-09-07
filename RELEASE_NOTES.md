@@ -1,3 +1,6 @@
+### 5.2.7
+- updated dependency (SimpleStore)
+
 ### 5.2.6
 - fix EnumerateOctreeInlined 
   - undefined behaviour if same enumerator was run multiple times in parallel

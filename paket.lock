@@ -441,7 +441,7 @@ NUGET
     Ultz.Native.GLFW (3.3.3.1)
     Uncodium.Eigensystems (1.1.2)
       Aardvark.Base (>= 5.1 < 6.0)
-    Uncodium.SimpleStore (3.0.13)
+    Uncodium.SimpleStore (3.0.18)
       Microsoft.Bcl.AsyncInterfaces (>= 6.0 < 6.1)
       System.Memory (>= 4.5.5 < 4.6)
     Unofficial.DotSpatial.Projections (0.0.4)

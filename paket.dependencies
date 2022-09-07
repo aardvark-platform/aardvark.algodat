@@ -36,7 +36,7 @@ nuget Microsoft.NET.Test.Sdk            ~> 17.2.0
 nuget NUnit                             ~> 3.13.3
 nuget NUnit3TestAdapter                 ~> 4.2.1
 nuget Uncodium.Eigensystems             ~> 1.1.2
-nuget Uncodium.SimpleStore              ~> 3.0.13
+nuget Uncodium.SimpleStore              ~> 3.0.14
 nuget Unofficial.DotSpatial.Projections ~> 0.0.4
 nuget Unofficial.laszip.netstandard     ~> 2.2.1
 

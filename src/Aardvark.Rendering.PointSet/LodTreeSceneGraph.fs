@@ -770,8 +770,6 @@ module Sg =
                 Frustum.projTrafo frustum
             )
 
-
-
         let textures = 
             let signature =
                 runtime.CreateFramebufferSignature [

@@ -66,7 +66,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Opens or creates a store at the specified location.
         /// </summary>
-        public static Storage OpenStore(string storePath, LruDictionary<string, object> cache = null, Action<string[]> logLines = null)
+        public static Storage OpenStore(string storePath, LruDictionary<string, object> cache = null, Action<string[]> logLines = null, bool readOnly = false)
         {
             if (cache is null) cache = new LruDictionary<string, object>(2L << 30);
 
@@ -84,7 +84,31 @@ namespace Aardvark.Geometry.Points
 
                 // cache miss ...
                 ISimpleStore simpleStore = null;
-                ISimpleStore initDiskStore() => logLines is null ? new SimpleDiskStore(storePath) : new SimpleDiskStore(storePath, logLines);
+                ISimpleStore initDiskStore()
+                {
+                    if (logLines is null)
+                    {
+                        if (readOnly) 
+                        {
+                            return SimpleDiskStore.OpenReadOnlySnapshot(storePath);
+                        } 
+                        else
+                        {
+                            return new SimpleDiskStore(storePath);
+                        }
+                    }
+                    else
+                    {
+                        if (readOnly)
+                        {
+                            return SimpleDiskStore.OpenReadOnlySnapshot(storePath, logLines);
+                        }
+                        else
+                        {
+                            return new SimpleDiskStore(storePath, logLines);
+                        }
+                    }
+                };
                 ISimpleStore initFolderStore() => new SimpleFolderStore(storePath);
 
                 if (File.Exists(storePath))
