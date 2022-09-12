@@ -1,3 +1,6 @@
+### 5.2.8
+- [PointSet]added QueriesDirectedRay3d.cs
+
 ### 5.2.7
 - updated dependency (SimpleStore)
 

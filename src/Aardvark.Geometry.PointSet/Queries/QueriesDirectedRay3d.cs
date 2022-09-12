@@ -51,22 +51,18 @@ namespace Aardvark.Geometry.Points
                 int minCellExponent = int.MinValue
             ) 
         {
-            var rayLocal = new FastRay3d(new Ray3d(ray.Origin - node.Center, ray.Direction));
+            var fastRay = new FastRay3d(ray);
 
             double t0 = System.Double.NegativeInfinity;
             double t1 = System.Double.PositiveInfinity;
 
             var box = 
                 Box3d.FromCenterAndSize(
-                    new V3d(node.BoundingBoxExactLocal.Center), 
-                    new V3d(node.BoundingBoxExactLocal.Size) + V3d.One * maxDistanceToRay
+                    node.BoundingBoxExactGlobal.Center, 
+                    node.BoundingBoxExactGlobal.Size + V3d.One * maxDistanceToRay
                 );
-            //System.Console.WriteLine($"call ro={rayLocal.Ray.Origin} rd={rayLocal.Ray.Direction} bc={box.Center} bs={box.Size}");
-            if(rayLocal.Intersects(box, ref t0, ref t1)) {
-                System.Console.WriteLine($"center = {node.BoundingBoxExactLocal.Center}; t0={t0};t1={t1}");
+            if(fastRay.Intersects(box, ref t0, ref t1)) {
                 if(t1 < tMin || t0 > tMax) { yield break; }
-                if(t0 > tMin) { tMin = t0; }
-                if(t1 < tMax) { tMax = t1; }
 
                 if (node.IsLeaf || node.Cell.Exponent == minCellExponent) {
                     var qs = node.Positions.Value;
@@ -79,12 +75,13 @@ namespace Aardvark.Geometry.Points
 
                     for (var i = 0; i < qs.Length; i++)
                     {
-                        var p = (V3d)qs[i];
-                        var d = rayLocal.Ray.GetMinimalDistanceTo(p, out double tp);
+                        var pWorld = (V3d)qs[i] + node.Center;
+                        var d = ray.GetMinimalDistanceTo(pWorld);
+                        var tp = ray.GetTOfProjectedPoint(pWorld);
                         if (d > maxDistanceToRay || tp < tMin || tp > tMax) continue;
                         if (ps == null) Init();
 
-                        ps.Add(p + node.Center);
+                        ps.Add(pWorld);
                         if (node.HasColors) cs.Add(node.Colors.Value[i]);
                         if (node.HasNormals) ns.Add(node.Normals.Value[i]);
                         if (node.HasIntensities) js.Add(node.Intensities.Value[i]);
@@ -109,12 +106,14 @@ namespace Aardvark.Geometry.Points
                         node.Subnodes.OrderBy(c => 
                             (c==null)?System.Double.PositiveInfinity:
                                 Vec.Distance(
-                                    new V3d(c.Value.BoundingBoxExactLocal.Center),
-                                    rayLocal.Ray.Origin
+                                    new V3d(c.Value.BoundingBoxExactGlobal.Center),
+                                    ray.Origin
                                 )
                         );
                     foreach(var c in sorted) {
                         if(c==null) continue;
+                        if (t0 > tMin) { tMin = t0; }
+                        if (t1 < tMax) { tMax = t1; }
                         var ress = c.Value.QueryPointsNearRay(ray, maxDistanceToRay, tMin, tMax, minCellExponent);
                         foreach(var res in ress) yield return res;
                     }
