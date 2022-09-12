@@ -1154,5 +1154,24 @@ namespace Aardvark.Geometry.Tests
         }
 
         #endregion
+
+
+        [Test]
+        public void CanQueryPointsNearRay3d()
+        {
+            var pointset = CreateRandomPointsInUnitCube(65535, 64);
+
+            var ray = new Ray3d(new V3d(0.5, -1.0, 0.5), V3d.OIO);
+
+            var count1 = 0;
+            var count2 = 0;
+
+            foreach (var x in pointset.QueryPointsNearRay(ray, 0.2, 0.0, 2.0)) count1 += x.Positions.Count;
+            foreach (var x in pointset.QueryPointsNearRay(ray, 0.2, 1.0, 2.0)) count2 += x.Positions.Count;
+
+            System.Console.WriteLine($"count1 {count1} count2 {count2}");
+
+            Assert.IsTrue(count1 > count2);
+        }
     }
 }

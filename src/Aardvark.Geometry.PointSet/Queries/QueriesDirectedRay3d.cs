@@ -53,18 +53,20 @@ namespace Aardvark.Geometry.Points
         {
             var rayLocal = new FastRay3d(new Ray3d(ray.Origin - node.Center, ray.Direction));
 
-            double t0 = System.Double.PositiveInfinity;
-            double t1 = System.Double.NegativeInfinity;
+            double t0 = System.Double.NegativeInfinity;
+            double t1 = System.Double.PositiveInfinity;
 
             var box = 
                 Box3d.FromCenterAndSize(
                     new V3d(node.BoundingBoxExactLocal.Center), 
                     new V3d(node.BoundingBoxExactLocal.Size) + V3d.One * maxDistanceToRay
                 );
+            //System.Console.WriteLine($"call ro={rayLocal.Ray.Origin} rd={rayLocal.Ray.Direction} bc={box.Center} bs={box.Size}");
             if(rayLocal.Intersects(box, ref t0, ref t1)) {
-                if(t0 < tMin || t1 > tMax) { yield break; }
-                if(t0 > tMin && t0 <= tMax) { tMin = t0; }
-                if(t1 < tMax && t1 >= tMin) { tMax = t1; }
+                System.Console.WriteLine($"center = {node.BoundingBoxExactLocal.Center}; t0={t0};t1={t1}");
+                if(t1 < tMin || t0 > tMax) { yield break; }
+                if(t0 > tMin) { tMin = t0; }
+                if(t1 < tMax) { tMax = t1; }
 
                 if (node.IsLeaf || node.Cell.Exponent == minCellExponent) {
                     var qs = node.Positions.Value;
@@ -113,7 +115,7 @@ namespace Aardvark.Geometry.Points
                         );
                     foreach(var c in sorted) {
                         if(c==null) continue;
-                        var ress = QueryPointsNearRay(c.Value, ray, maxDistanceToRay, tMin, tMax, minCellExponent);
+                        var ress = c.Value.QueryPointsNearRay(ray, maxDistanceToRay, tMin, tMax, minCellExponent);
                         foreach(var res in ress) yield return res;
                     }
                 } // node is leafish
