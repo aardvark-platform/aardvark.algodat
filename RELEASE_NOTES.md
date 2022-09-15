@@ -1,3 +1,6 @@
+### 5.2.9
+- fixed ConvertToInline:rescaleIntensities, which failed for empty cells
+
 ### 5.2.8
 - [PointSet]added QueriesDirectedRay3d.cs
 

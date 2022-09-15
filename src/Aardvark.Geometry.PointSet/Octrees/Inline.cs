@@ -391,6 +391,8 @@ namespace Aardvark.Geometry.Points
 
             static byte[] rescaleIntensities(int[] js32)
             {
+                if (js32.Length == 0) return Array.Empty<byte>();
+
                 var min = js32.Min();
                 var max = js32.Max();
 
