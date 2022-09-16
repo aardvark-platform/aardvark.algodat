@@ -1858,8 +1858,72 @@ namespace Aardvark.Geometry.Tests
             Console.WriteLine($"nodeCountInlined: {nodeCountInlined2,16:N0}");
         }
 
+        static void SmTest20220815()
+        {
+            var downloadPath = @"E:\tmp\20220916\download";
+            var pointCloudDirs = Directory.GetDirectories(downloadPath);
+            foreach (var pcDir in pointCloudDirs)
+            {
+                var rootJsonPath = Path.Combine(pcDir, "root.json");
+                var rootJson = JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(rootJsonPath));
+                var rootId = rootJson.GetProperty("rootId").GetString();
+
+                var ns = enumerateTree(rootId).ToArray();
+
+                IEnumerable<InlinedNode> enumerateTree(string id)
+                {
+                    var blobPath = Path.Combine(pcDir, id);
+                    var n = new InlinedNode(File.ReadAllBytes(blobPath), gzipped: true);
+                    if (n.Intensities1b?.Length == 0) Console.WriteLine($"[blobPath] {n.PointCountCell}");
+
+                    if (id == "3fa600f0-6e99-4c11-918b-810430bae0cb") Console.WriteLine($"[{pcDir}] id = {id}");
+                    yield return n;
+
+                    if (n.SubnodesGuids != null)
+                    {
+                        foreach (var sid in n.SubnodesGuids)
+                        {
+                            if (sid == Guid.Empty) continue;
+                            var xs = enumerateTree(sid.ToString());
+                            foreach (var x in xs) yield return x;
+                        }
+                    }
+                }
+            }
+
+            var n0 = new InlinedNode(File.ReadAllBytes(@"E:\tmp\20220916\0c5a9202-d9d2-4565-b137-70c199d3b0c1"), gzipped: true);
+            //var n1 = new InlinedNode(File.ReadAllBytes(@"E:\tmp\20220916\49c753d9-c13a-4f35-8a5f-912be18ea69f"), gzipped: true);
+
+            //var storePath = @"E:\rmdata\20220915\techzentrum_store";
+            //var pointcloud0key = "0c5a9202-d9d2-4565-b137-70c199d3b0c1";
+            //var pointcloud1key = "49c753d9-c13a-4f35-8a5f-912be18ea69f";
+
+            //var storeRaw = new SimpleDiskStore(storePath);
+            //var store = storeRaw.ToPointCloudStore();
+
+            //var pc = store.GetPointCloudNode(pointcloud1key);
+            //// {[[242.683902740479, 98.1308326721191, -1.12363249063492], [279.89542388916, 137.056385040283, 2.01998573541641]]}
+            ////var pc = FilteredNode.Create(root, new FilterInsideBox3d(new Box3d(new V3d(268.64, 116, -1), new V3d(272.70, 118, 1.70))));
+
+            //var nodeCount = pc.CountNodes(outOfCore: true);
+            //Console.WriteLine($"nodeCount       : {nodeCount,16:N0}");
+
+            //var inlineConfig = new InlineConfig(collapse: false, gzipped: true);
+            
+            //var inlinedNodes = pc.EnumerateOctreeInlined(inlineConfig);
+
+            //var xs = inlinedNodes.Nodes.ToArray();
+            //var foo = xs.Where(x => x.NodeId == Guid.Parse("3fa600f0-6e99-4c11-918b-810430bae0cb")).ToArray();
+            ////foreach (var x in xs) Console.WriteLine($"{x.PointCountCell}");
+
+            //var nodeCountInlined = inlinedNodes.Nodes.Count();
+            //Console.WriteLine($"nodeCountInlined: {nodeCountInlined,16:N0}");
+        }
+
         public static void Main(string[] _)
         {
+            SmTest20220815();
+
             //new InlinedNodeTests().CanInlineNode(); return;
 
             //SmTest20220610();
