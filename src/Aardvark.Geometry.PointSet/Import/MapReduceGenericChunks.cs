@@ -58,8 +58,8 @@ namespace Aardvark.Geometry.Points
 
             if (config.Verbose)
             {
-                Console.WriteLine($"[MapReduce] pointsets              : {pointsets.Count}");
-                Console.WriteLine($"[MapReduce] totalPointCountInChunks: {totalPointCountInChunks}");
+                Console.WriteLine($"[MapReduce] pointsets              : {pointsets.Count:N0}");
+                Console.WriteLine($"[MapReduce] totalPointCountInChunks: {totalPointCountInChunks:N0}");
             }
 
             #endregion
@@ -71,7 +71,10 @@ namespace Aardvark.Geometry.Points
             var fractionalProgress = new Dictionary<int, double>();
 
             var totalPointsToMerge = pointsets.Sum(x => x.PointCount);
-            if (config.Verbose) Console.WriteLine($"[MapReduce] totalPointsToMerge: {totalPointsToMerge}");
+            if (config.Verbose)
+            {
+                Console.WriteLine($"[MapReduce] totalPointsToMerge     : {totalPointsToMerge:N0}");
+            }
 
             var totalPointSetsCount = pointsets.Count;
             if (totalPointSetsCount == 0)
