@@ -35,7 +35,7 @@ namespace Aardvark.Data.Points
         /// The empty chunk.
         /// </summary>
         public static readonly GenericChunk Empty = new(
-            perPointAttributes: ImmutableDictionary<Durable.Def, object>.Empty,
+            perPointAttributes: ImmutableDictionary<Durable.Def, object>.Empty.Add(Defs.Positions3d, Array.Empty<V3d>()),
             bbox              : Box3d.Invalid
             );
 
@@ -247,7 +247,7 @@ namespace Aardvark.Data.Points
             if (perPointAttributes == null) throw new ArgumentNullException(nameof(perPointAttributes));
             Data = ImmutableDictionary<Durable.Def, object>.Empty.AddRange(perPointAttributes);
 
-            PositionsDef = perPointAttributes.Keys.Where(Defs.PositionsSupportedDefs.Contains).Single();
+            PositionsDef = perPointAttributes.Keys.Where(Defs.PositionsSupportedDefs.Contains).SingleOrDefault();
             switch (perPointAttributes[PositionsDef])
             {
                 case V2f[] ps:
@@ -442,7 +442,7 @@ namespace Aardvark.Data.Points
             var headKeys = new HashSet<Durable.Def>(head.Data.Keys);
             foreach (var chunk in chunks)
             {
-                if (headKeys.SetEquals(new HashSet<Durable.Def>(chunk.Data.Keys))) throw new InvalidOperationException("Cannot merge chunks with different attributes.");
+                if (!headKeys.SetEquals(new HashSet<Durable.Def>(chunk.Data.Keys))) throw new InvalidOperationException("Cannot merge chunks with different attributes.");
             }
             
 
@@ -474,6 +474,32 @@ namespace Aardvark.Data.Points
         public static GenericChunk ImmutableMerge(IEnumerable<GenericChunk> chunks)
             => ImmutableMerge(chunks.ToArray());
 
+        public GenericChunk?[] Split(Cell cell)
+        {
+            var sias = new List<int>[8];
+            for (var i = 0; i < 8; i++) sias[i] = new();
+            var o = cell.GetCenter();
+            var ps = PositionsAsV3d;
+            for (var i = 0; i < ps.Length; i++)
+            {
+                var p = ps[i];
+                var octant = (p.X < o.X ? 0 : 1) | (p.Y < o.Y ? 0 : 2) | (p.Z < o.Z ? 0 : 4);
+                sias[octant].Add(i);
+            }
+
+            var result = new GenericChunk?[8];
+            for (var i = 0; i < 8; i++)
+            {
+                var sia = sias[i];
+                if (sia.Count == 0) continue;
+
+                var subChunk = Subset(sia);
+                result[i] = subChunk;
+            }
+
+            return result;
+        }
+
         /// <summary>
         /// Creates new chunk which is union of this chunk and other. 
         /// </summary>
@@ -487,7 +513,9 @@ namespace Aardvark.Data.Points
             {
                 data = data.Add(kv.Key, kv.Value.Subset(subsetIndices));
             }
-            return new GenericChunk(data, BoundingBox);
+            var ps = PositionsAsV3d;
+            var bb = ps.Length > 0 ? new Box3d(subsetIndices.Select(i => ps[i])) : BoundingBox;
+            return new GenericChunk(data, bb);
         }
         /// <summary>
         /// Returns chunk with duplicate point positions removed.
