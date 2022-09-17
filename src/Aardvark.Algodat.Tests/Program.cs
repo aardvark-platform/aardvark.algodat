@@ -1920,9 +1920,375 @@ namespace Aardvark.Geometry.Tests
             //Console.WriteLine($"nodeCountInlined: {nodeCountInlined,16:N0}");
         }
 
+        static void SmTest20220917()
+        {
+            var filename = @"";
+            var storePath = @"";
+            var tmpPath = Path.Combine(storePath, "tmp");
+            if (!Directory.Exists(storePath)) Directory.CreateDirectory(storePath);
+            if (!Directory.Exists(tmpPath)) Directory.CreateDirectory(tmpPath);
+            _ = GenericChunk.Defs.Positions3d;
+
+
+            var info = Laszip.LaszipInfo(filename, ParseConfig.Default);
+            Report.Line($"{new Cell(info.Bounds)}");
+
+            var rootCell = new Cell(info.Bounds);
+            var rootDir = Path.Combine(storePath, "root2");
+
+            //Check(rootDir); return;
+
+            static void Check(string dir)
+            {
+                var fileCount = Directory.EnumerateFiles(dir).Count();
+                var subDirs = Directory.GetDirectories(dir);
+                var hasDirs = subDirs.Length > 0;
+
+                //Report.Line($"{fileCount,4} files | {subDirs.Length} subdirs | {dir}");
+
+                if (hasDirs)
+                {
+                    if (fileCount > 0) Report.Error($"[{dir}] has files AND dirs");
+
+                    foreach (var subDir in subDirs)
+                    {
+                        Check(subDir);
+                    }
+                }
+                else
+                {
+                    if (fileCount == 0)
+                    {
+                        Report.Error($"[{dir}] empty");
+                    }
+                    else if (fileCount > 1)
+                    {
+                        Report.Error($"[{dir}] {fileCount} files");
+                    }
+                    else
+                    {
+                        //Report.Line($"[{dir}] {fileCount} files");
+                        //if (fileCount > 1)
+                        //{
+                        //    var fns = Directory.GetFiles(dir);
+                        //    var merged = GenericChunk.ImmutableMerge(fns.Select(LoadChunk));
+                        //    if (merged.Count > 128 * 1024)
+                        //    {
+                        //        Console.ForegroundColor = ConsoleColor.Red;
+                        //    }
+                        //    else
+                        //    {
+                        //        Console.ForegroundColor = ConsoleColor.Green;
+                        //    }
+                        //    Console.WriteLine($"{fns.Length,4} files | {merged.Count,12:N0} points | {dir}");
+                        //    Console.ResetColor();
+                        //}
+                    }
+                }
+            }
+
+            static GenericChunk LoadChunk(string path)
+            {
+                var buffer = File.ReadAllBytes(path);
+                var map = (IReadOnlyDictionary<Durable.Def, object>)DurableCodec.DeserializeDurableMap(buffer.UnGZip());
+                return new GenericChunk(map);
+            }
+
+            static byte[] SerializeChunk(GenericChunk chunk)
+                => DurableCodec.SerializeDurableMap(chunk.Data).Gzip();
+
+            static void SaveChunk(string path, GenericChunk chunk)
+            {
+                while (true)
+                {
+                    try
+                    {
+                        var bufferGzip = SerializeChunk(chunk);
+                        File.WriteAllBytes(path, bufferGzip);
+                        _ = File.ReadAllBytes(path).UnGZip(); // check if file can be read back and decompressed
+                        break;
+                    }
+                    catch (Exception e)
+                    {
+                        Report.Error($"[{path}] {e.Message}");
+                        continue;
+                    }
+                }
+            }
+
+            {
+                var ts = new List<Task>();
+                var q = new Queue<(string fileName, byte[] content, string[] filesToDelete)>();
+
+                var runSaveTask = true;
+                var saveTask = Task.Run(() =>
+                {
+                    while (q.Count > 0 || runSaveTask)
+                    {
+                        Report.Line($"[QUEUE] length = {q.Count}");
+                        (string fn, byte[] buffer, string[] filesToDelete) x = default;
+                        var success = false;
+                        lock (q)
+                        {
+                            if (q.Count > 0)
+                            {
+                                x = q.Dequeue();
+                                success = true;
+                            }
+                            else
+                            {
+                                success = false;
+                            }
+                        }
+
+                        if (success)
+                        {
+                            File.WriteAllBytes(x.fn, x.buffer);
+                            foreach (var fn in x.filesToDelete) File.Delete(fn);
+                        }
+                        else
+                        {
+                            Task.Delay(1000).Wait();
+                        }
+                    }
+                });
+
+                var phase1Chunks = Directory.GetFiles(tmpPath, "*.gz").Where(s => Path.GetFileName(s).StartsWith("chunk-")).Take(int.MaxValue).ToArray();
+                if (phase1Chunks.Length > 0)
+                {
+                    var totalCount = 0L;
+                    Report.BeginTimed("phase 2");
+
+                    for (var _i = 0; _i < phase1Chunks.Length; _i++)
+                    {
+                        var fn = phase1Chunks[_i];
+                        try
+                        {
+                            Report.Line($"[[{_i + 1,5}/{phase1Chunks.Length}]] {fn} | {totalCount,15:N0}");
+                            var chunk = LoadChunk(fn);
+                            Interlocked.Add(ref totalCount, chunk.Count);
+                            SplitAndSave(rootCell, rootDir, Path.GetFileName(fn), chunk);
+                        }
+                        catch (Exception e)
+                        {
+                            Report.Error($"[{fn}] {e}");
+                        }
+                    }
+
+                    while (q.Count > 0) Task.Delay(1000).Wait();
+                    Report.Line("merging");
+                    Merge(rootCell, rootDir);
+
+
+                    Report.Line("waiting for tasks to finish");
+                    Task.WhenAll(ts).Wait();
+                    Task.WhenAll(ts).Wait();
+                    runSaveTask = false;
+                    Report.Line("waiting for queue worker to finish");
+                    saveTask.Wait();
+                    Report.EndTimed();
+
+                    Check(rootDir);
+                    return;
+                }
+
+                void Merge(Cell cell, string dir)
+                {
+                    var fileCount = Directory.EnumerateFiles(dir).Count();
+                    var subDirs = Directory.GetDirectories(dir);
+                    var hasDirs = subDirs.Length > 0;
+
+                    if (hasDirs)
+                    {
+                        if (fileCount > 0) throw new Exception($"[{dir}] has files AND dirs");
+
+                        foreach (var subDir in subDirs)
+                        {
+                            var octantIndex = int.Parse(Path.GetFileName(subDir));
+                            var subCell = cell.GetOctant(octantIndex);
+                            Merge(subCell, subDir);
+                        }
+                    }
+                    else
+                    {
+                        if (fileCount == 0)
+                        {
+                            throw new Exception($"[{dir}] empty");
+                        }
+                        else
+                        {
+                            if (fileCount > 1)
+                            {
+                                var fns = Directory.GetFiles(dir);
+                                var merged = GenericChunk.ImmutableMerge(fns.Select(LoadChunk));
+                                foreach (var fn in fns) File.Delete(fn);
+
+                                if (merged.Count > 128 * 1024)
+                                {
+                                    SplitAndSave(cell, dir, "merged.gz", merged);
+                                    Console.ForegroundColor = ConsoleColor.Red;
+                                }
+                                else
+                                {
+                                    ts.Add(Task.Run(() =>
+                                    {
+                                        var fn = Path.Combine(dir, "merged.gz");
+                                        var buffer = SerializeChunk(merged);
+                                        lock (q) q.Enqueue((fn, buffer, fns));
+                                    }));
+
+                                    Console.ForegroundColor = ConsoleColor.Green;
+                                }
+
+                                Console.WriteLine($"{fns.Length,4} files | {merged.Count,12:N0} points | {dir}");
+                                Console.ResetColor();
+                            }
+                        }
+                    }
+                }
+
+                void SplitAndSave(Cell cell, string path, string filename, GenericChunk chunk)
+                {
+                    var split = chunk.Count > 128 * 1024;
+
+                    if (Directory.Exists(path))
+                    {
+                        if (!split && Directory.EnumerateDirectories(path).Any())
+                        {
+                            split = true;
+                        }
+                    }
+                    else
+                    {
+                        Directory.CreateDirectory(path);
+                        Report.Warn($"create {cell}");
+                    }
+
+                    if (split)
+                    {
+                        {
+                            var octants = chunk.Split(cell);
+                            for (var i = 0; i < 8; i++)
+                            {
+                                var o = octants[i];
+                                if (o == null) continue;
+                                var subPath = Path.Combine(path, i.ToString());
+                                SplitAndSave(cell.GetOctant(i), subPath, filename, o);
+                            }
+                        }
+
+                        var filesToPushDown = Directory.GetFiles(path);
+                        foreach (var fn in filesToPushDown)
+                        {
+                            Report.Line($"push down {fn}");
+                            var chunkToPushDown = LoadChunk(fn);
+                            var octants = chunkToPushDown.Split(cell);
+                            for (var i = 0; i < 8; i++)
+                            {
+                                var o = octants[i];
+                                if (o == null) continue;
+                                var subPath = Path.Combine(path, i.ToString());
+                                SplitAndSave(cell.GetOctant(i), subPath, Path.GetFileName(fn), o);
+                            }
+                            File.Delete(fn);
+                        }
+                    }
+                    else
+                    {
+                        ts.Add(Task.Run(() =>
+                        {
+                            var fn = Path.Combine(path, filename);
+                            var buffer = SerializeChunk(chunk);
+                            lock (q) q.Enqueue((fn, buffer, Array.Empty<string>()));
+                        }));
+                        //SaveChunk(Path.Combine(path, filename), chunk);
+                    }
+                }
+            }
+
+            {
+                var phase1Chunks = Directory.GetFiles(tmpPath, "*.gz").Where(s => Path.GetFileName(s).StartsWith("chunk-")).ToArray();
+                if (phase1Chunks.Length > 0)
+                {
+                    var totalCount = 0L;
+                    Report.BeginTimed("reading phase 1 chunks (v0.0.2)");
+                    var ts = new List<Task>();
+                    for (var _i = 0; _i < phase1Chunks.Length; _i++)
+                    {
+                        var fn = phase1Chunks[_i];
+                        var buffer = File.ReadAllBytes(fn);
+                        //Report.Line($"[[{_i + 1,5}/{phase1Chunks.Length}]] {fn} | {totalCount,15:N0}");
+
+                        ts.Add(Task.Run(() =>
+                        {
+                            try
+                            {
+                                var map = (IReadOnlyDictionary<Durable.Def, object>)DurableCodec.DeserializeDurableMap(buffer.UnGZip());
+                                var chunk = new GenericChunk(map);
+                                Interlocked.Add(ref totalCount, chunk.Count);
+                            }
+                            catch (Exception e)
+                            {
+                                Report.Error($"[{fn}] {e}");
+                            }
+                        }));
+                    }
+                    Task.WhenAll(ts).Wait();
+                    Report.EndTimed();
+                    Report.Line($"total point count: {totalCount:N0}");
+                    return;
+                }
+            }
+
+            Report.BeginTimed("phase 1");
+            {
+                var n = 0L;
+                var i = 0;
+                var ts = new List<Task>();
+                foreach (var _chunk in Laszip.Chunks(filename, ParseConfig.Default.WithMaxChunkPointCount(1_000_000)))
+                {
+                    n += _chunk.Count;
+
+                    var chunk = _chunk; //.ImmutableDeduplicate(verbose: false);
+                    var d = _chunk.Count - chunk.Count;
+                    Report.Line($"[{i++,5}] {100.0 * n / info.PointCount,6:N2}% | {d,10:N0} dups | {n,10:N0}/{info.PointCount:N0} | {new Cell(chunk.BoundingBox),-20}");
+
+                    var j = i;
+                    ts.Add(Task.Run(() =>
+                    {
+                        var outFileName = Path.Combine(tmpPath, $"chunk-{j:00000}.gz");
+                        SaveChunk(outFileName, chunk.ToGenericChunk());
+                    }));
+                }
+
+                Task.WhenAll(ts).Wait();
+            }
+            Report.EndTimed();
+            return;
+
+            //var info = Laszip.LaszipInfo(filename, ParseConfig.Default);
+            //return;
+
+
+            
+            //var store = PointCloud.OpenStore(Path.Combine(storePath, "store.uds"));
+            //var config = ImportConfig.Default
+            //    .WithStorage(store)
+            //    .WithKey("root")
+            //    .WithOctreeSplitLimit(65536*2)
+            //    .WithVerbose(true)
+            //    ;
+            //var pointset = store.GetPointSet("root") ?? PointCloud.Import(filename, config);
+            //var root = pointset.Root.Value;
+            //Console.WriteLine(root.BoundingBoxExactGlobal);
+            //foreach (var p in root.PositionsAbsolute.Take(10)) Console.WriteLine(p);
+        }
+
         public static void Main(string[] _)
         {
-            SmTest20220815();
+            SmTest20220917();
+
+            //SmTest20220815();
 
             //new InlinedNodeTests().CanInlineNode(); return;
 
