@@ -1,0 +1,12 @@
+type project
+id Unofficial.laszip.netstandard
+authors Aardvark Platform Team
+owners Aardvark Platform Team
+projectUrl http://github.com/aardvark-platform
+licenseUrl https://raw.githubusercontent.com/aardvark-platform/aardvark.algodat/master/src/Unofficial.laszip.netstandard/LICENSE
+repositoryType git
+repositoryUrl https://github.com/aardvark-platform/aardvark.algodat
+description
+    (c) 2007-2014, martin isenburg, rapidlasso - fast tools to catch reality
+    (c) of C# port 2014-2017 by Shinta shintadono@googlemail.com
+include-pdbs true
