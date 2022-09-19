@@ -1,3 +1,8 @@
+### 5.2.10
+- LASzip importer now supports LAS 1.4
+- fix GenericChunk.Empty
+- add GenericChunk.Split
+
 ### 5.2.9
 - fixed ConvertToInline:rescaleIntensities, which failed for empty cells
 

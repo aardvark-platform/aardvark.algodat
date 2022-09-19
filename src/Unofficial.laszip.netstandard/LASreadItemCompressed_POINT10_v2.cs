@@ -205,20 +205,19 @@ namespace LASzip.Net
 			item.point_source_ID = last.point_source_ID;
 		}
 
-		ArithmeticDecoder dec;
+		readonly ArithmeticDecoder dec;
 		LASpoint10 last = new LASpoint10();
 
 		readonly ushort[] last_intensity = new ushort[16];
 		readonly StreamingMedian5[] last_x_diff_median5 = new StreamingMedian5[16];
 		readonly StreamingMedian5[] last_y_diff_median5 = new StreamingMedian5[16];
 		readonly int[] last_height = new int[8];
-
-		IntegerCompressor ic_dx;
-		IntegerCompressor ic_dy;
-		IntegerCompressor ic_z;
-		IntegerCompressor ic_intensity;
-		IntegerCompressor ic_point_source_ID;
-		ArithmeticModel m_changed_values;
+		readonly IntegerCompressor ic_dx;
+		readonly IntegerCompressor ic_dy;
+		readonly IntegerCompressor ic_z;
+		readonly IntegerCompressor ic_intensity;
+		readonly IntegerCompressor ic_point_source_ID;
+        readonly ArithmeticModel m_changed_values;
 		readonly ArithmeticModel[] m_scan_angle_rank = new ArithmeticModel[2];
 		readonly ArithmeticModel[] m_bit_byte = new ArithmeticModel[256];
 		readonly ArithmeticModel[] m_classification = new ArithmeticModel[256];
