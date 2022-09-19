@@ -1,5 +1,5 @@
 ﻿/*
-   Copyright (C) 2017-2021. Stefan Maierhofer.
+   Copyright (C) 2017-2022. Stefan Maierhofer.
 
    This code has been COPIED from https://github.com/stefanmaierhofer/LASzip.
 
@@ -16,7 +16,7 @@
    limitations under the License.
 */
 using Aardvark.Base;
-using laszip.net;
+using LASzip.Net;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -92,9 +92,8 @@ namespace LASZip
         /// </summary>
         public static Info ReadInfo(string filename)
         {
-            var reader = new laszip_dll();
-            var compressed = false;
-            reader.laszip_open_reader(filename, ref compressed);
+            var reader = new laszip();
+            reader.open_reader(filename, out _);
             return ReadInfo(reader);
         }
 
@@ -103,13 +102,12 @@ namespace LASZip
         /// </summary>
         public static Info ReadInfo(Stream stream)
         {
-            var reader = new laszip_dll();
-            var compressed = false;
-            reader.laszip_open_reader(stream, ref compressed);
+            var reader = new laszip();
+            reader.open_reader_stream(stream, out _);
             return ReadInfo(reader);
         }
 
-        private static Info ReadInfo(laszip_dll reader)
+        private static Info ReadInfo(laszip reader)
         {
             var count = reader.header.number_of_point_records;
 
@@ -124,7 +122,7 @@ namespace LASZip
                     reader.header.max_z)
                 );
 
-            reader.laszip_close_reader();
+            reader.close_reader();
 
             return new Info(count, bounds);
         }
@@ -136,9 +134,8 @@ namespace LASZip
         /// </summary>
         public static IEnumerable<Points> ReadPoints(string filename, int numberOfPointsPerChunk, bool verbose)
         {
-            var reader = new laszip_dll();
-            var isCompressed = false;
-            reader.laszip_open_reader(filename, ref isCompressed);
+            var reader = new laszip();
+            reader.open_reader(filename, out _);
             return ReadPoints(reader, numberOfPointsPerChunk, verbose);
         }
         /// <summary>
@@ -152,9 +149,8 @@ namespace LASZip
         /// </summary>
         public static IEnumerable<Points> ReadPoints(Stream stream, int numberOfPointsPerChunk, bool verbose)
         {
-            var reader = new laszip_dll();
-            var isCompressed = false;
-            reader.laszip_open_reader(stream, ref isCompressed);
+            var reader = new laszip();
+            reader.open_reader_stream(stream, out _);
             return ReadPoints(reader, numberOfPointsPerChunk, verbose);
         }
         /// <summary>
@@ -163,19 +159,21 @@ namespace LASZip
         public static IEnumerable<Points> ReadPoints(Stream stream, int numberOfPointsPerChunk)
             => ReadPoints(stream, numberOfPointsPerChunk, verbose: false);
 
-        private static IEnumerable<Points> ReadPoints(laszip_dll reader, int numberOfPointsPerChunk, bool verbose)
+        private static IEnumerable<Points> ReadPoints(laszip reader, int numberOfPointsPerChunk, bool verbose)
         {
-            var n = reader.header.number_of_point_records;
-            //var numberOfChunks = n / numberOfPointsPerChunk;
+            if (numberOfPointsPerChunk < 1) throw new ArgumentOutOfRangeException(nameof(numberOfPointsPerChunk));
 
-            var format = reader.header.point_data_format;
-            var hasGpsTime = format == 1 || format == 3 || format == 4 || format == 5;
-            var hasColor = format == 2 || format == 3 || format == 5;
-            var hasWavePacket = format == 4 || format == 5;
+            ulong n = reader.header.number_of_point_records;
+            if (n == 0) n = reader.header.extended_number_of_point_records;
 
-            for (var j = 0; j < n; j += numberOfPointsPerChunk)
+            var f               = reader.header.point_data_format;
+            var hasGpsTime      = f == 1           || f == 3 || f == 4 || f == 5 || f == 6 || f == 7 || f == 8 || f == 9 || f == 10;
+            var hasColor        =           f == 2 || f == 3           || f == 5           || f == 7 || f == 8           || f == 10;
+            var hasWavePacket   =                               f == 4 || f == 5                               || f == 9 || f == 10;
+
+            for (var j = 0ul; j < n; j += (uint)numberOfPointsPerChunk)
             {
-                if (j + numberOfPointsPerChunk > n) numberOfPointsPerChunk = (int)(n - j);
+                if (j + (uint)numberOfPointsPerChunk > n) numberOfPointsPerChunk = (int)(n - j);
                 if (verbose) Console.WriteLine($"j: {j}, numberOfPointsPerChunk: {numberOfPointsPerChunk}, n: {n}");
 
                 // POINT10
@@ -209,13 +207,13 @@ namespace LASZip
 
                 for (var i = 0; i < numberOfPointsPerChunk; i++)
                 {
-                    reader.laszip_read_point();
+                    reader.read_point();
 
-                    reader.laszip_get_coordinates(p);
+                    reader.get_coordinates(p);
                     ps[i] = new V3d(p);
                     intensities[i] = reader.point.intensity;
                     returnNumbers[i] = reader.point.return_number;
-                    numberOfReturnsOfPulses[i] = reader.point.number_of_returns_of_given_pulse;
+                    numberOfReturnsOfPulses[i] = Math.Max(reader.point.number_of_returns, reader.point.extended_number_of_returns);
                     scanDirectionFlags[i] = reader.point.scan_direction_flag != 0;
                     edgeOfFlightLines[i] = reader.point.edge_of_flight_line != 0;
                     classifications[i] = reader.point.classification;
@@ -300,7 +298,7 @@ namespace LASZip
                 };
             }
 
-            reader.laszip_close_reader();
+            reader.close_reader();
         }
     }
 }
