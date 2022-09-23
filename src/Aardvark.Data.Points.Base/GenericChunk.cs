@@ -506,7 +506,7 @@ namespace Aardvark.Data.Points
         public GenericChunk Union(GenericChunk other)
             => ImmutableMerge(this, other);
 
-        private GenericChunk Subset(List<int> subsetIndices)
+        public GenericChunk Subset(List<int> subsetIndices)
         {
             var data = ImmutableDictionary<Durable.Def, object>.Empty;
             foreach (var kv in Data)
@@ -517,6 +517,7 @@ namespace Aardvark.Data.Points
             var bb = ps.Length > 0 ? new Box3d(subsetIndices.Select(i => ps[i])) : BoundingBox;
             return new GenericChunk(data, bb);
         }
+
         /// <summary>
         /// Returns chunk with duplicate point positions removed.
         /// </summary>
