@@ -138,10 +138,7 @@ namespace Aardvark.Geometry.Points
                 for (var i = 0; i < 8; i++)
                 {
                     var n = self.Subnodes[i];
-                    if (n != null)
-                    {
-                        n.Value.ForEachIntersectingNode(outOfCore, hull, doNotTraverseSubnodesWhenFullyInside, action, ct);
-                    }
+                    n?.Value.ForEachIntersectingNode(outOfCore, hull, doNotTraverseSubnodesWhenFullyInside, action, ct);
                 }
             }
             else
@@ -650,7 +647,7 @@ namespace Aardvark.Geometry.Points
                 for (var i = 0; i < 8; i++)
                 {
                     var n = self.Subnodes[i];
-                    if (n != null) n.Value.GetAverageTreeDepth(outOfCore, depth, ref sum, ref count);
+                    n?.Value.GetAverageTreeDepth(outOfCore, depth, ref sum, ref count);
                 }
             }
             else
