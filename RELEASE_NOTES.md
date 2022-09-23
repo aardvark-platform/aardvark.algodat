@@ -1,3 +1,7 @@
+### 5.2.11
+- GenericChunk.Subset is now public
+- fix Laszip.Parser.ReadInfo (for LAS 1.4)
+
 ### 5.2.10
 - LASzip importer now supports LAS 1.4
 - fix GenericChunk.Empty
