@@ -109,7 +109,10 @@ namespace LASZip
 
         private static Info ReadInfo(laszip reader)
         {
-            var count = reader.header.number_of_point_records;
+            var count = Math.Max(
+                reader.header.number_of_point_records,
+                (long)reader.header.extended_number_of_point_records
+                );
 
             var bounds = new Box3d(
                 new V3d(
