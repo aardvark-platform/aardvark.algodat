@@ -297,7 +297,7 @@ namespace Aardvark.Data.Points
             }
 
             ColorsDef = perPointAttributes.Keys.Where(Defs.ColorsSupportedDefs.Contains).SingleOrDefault();
-            NormalsDef = perPointAttributes.Keys.Where(Defs.ColorsSupportedDefs.Contains).SingleOrDefault();
+            NormalsDef = perPointAttributes.Keys.Where(Defs.NormalsSupportedDefs.Contains).SingleOrDefault();
             IntensitiesDef = perPointAttributes.Keys.Where(Defs.IntensitiesSupportedDefs.Contains).SingleOrDefault();
             ClassificationsDef = perPointAttributes.Keys.Where(Defs.ClassificationsSupportedDefs.Contains).SingleOrDefault();
         }
