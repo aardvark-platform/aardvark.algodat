@@ -1,3 +1,7 @@
+### 5.2.12
+- update packages (especially Aardvark.Data.Durable 0.3.4)
+- fix GenericChunk.NormalsSupportedDefs copy/paste bug
+
 ### 5.2.11
 - GenericChunk.Subset is now public
 - fix Laszip.Parser.ReadInfo (for LAS 1.4)
