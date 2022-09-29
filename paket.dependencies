@@ -27,8 +27,8 @@ nuget Aardvark.Application.Slim.Vulkan  ~> 5.2.13
 
 ////////////////////////////////////////////////////////////////////////
 // https://github.com/aardvark-community/aardvark.data.durable.dotnet
-nuget Aardvark.Data.Durable             ~> 0.3.4
-nuget Aardvark.Data.Durable.Codec       ~> 0.3.4
+nuget Aardvark.Data.Durable             ~> 0.3.5
+nuget Aardvark.Data.Durable.Codec       ~> 0.3.5
 
 ////////////////////////////////////////////////////////////////////////
 // 3rd-party
