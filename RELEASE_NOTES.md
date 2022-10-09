@@ -1,3 +1,9 @@
+### 5.2.13
+- add StorageExtensions.UnGZip overload returning whether buffer was actually gzipped
+- E57 checksum verification is now switched off by default;
+  `E57.Chunks` and `E57ChunksFull` now have overloads to opt-in
+- fix laszip parser for non-seekable streams
+
 ### 5.2.12
 - update packages (especially Aardvark.Data.Durable 0.3.4)
 - fix GenericChunk.NormalsSupportedDefs copy/paste bug
