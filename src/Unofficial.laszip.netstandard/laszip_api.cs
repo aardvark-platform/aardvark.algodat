@@ -3472,7 +3472,7 @@ namespace LASzip.Net
 				return 1;
 			}
 
-			if (streamin.Length <= 0)
+			if (streamin.CanSeek && streamin.Length <= 0)
 			{
 				error = "input stream is empty : nothing to read";
 				return 1;
