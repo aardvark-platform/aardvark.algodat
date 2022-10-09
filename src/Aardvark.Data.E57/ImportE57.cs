@@ -160,6 +160,12 @@ namespace Aardvark.Data.Points.Import
         /// Parses .e57 stream.
         /// </summary>
         public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, ParseConfig config)
+            => Chunks(stream, streamLengthInBytes, config, verifyChecksums: false);
+
+        /// <summary>
+        /// Parses .e57 stream.
+        /// </summary>
+        public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, ParseConfig config, bool verifyChecksums)
         {
             var exclude = ImmutableHashSet<PointPropertySemantics>.Empty
                 //.Add(PointPropertySemantics.CartesianInvalidState)
@@ -177,7 +183,7 @@ namespace Aardvark.Data.Points.Import
             checked
             {
                 // file integrity check
-                VerifyChecksums(stream, streamLengthInBytes);
+                if (verifyChecksums) VerifyChecksums(stream, streamLengthInBytes);
 
                 var header = E57FileHeader.Parse(stream, streamLengthInBytes, config.Verbose);
                 if (config.Verbose) PrintHeader(header);
@@ -232,11 +238,17 @@ namespace Aardvark.Data.Points.Import
         /// Parses .e57 stream.
         /// </summary>
         public static IEnumerable<E57Chunk> ChunksFull(this Stream stream, long streamLengthInBytes, ParseConfig config)
+        => ChunksFull(stream, streamLengthInBytes, config, verifyChecksums: false);
+
+        /// <summary>
+        /// Parses .e57 stream.
+        /// </summary>
+        public static IEnumerable<E57Chunk> ChunksFull(this Stream stream, long streamLengthInBytes, ParseConfig config, bool verifyChecksums)
         {
             checked
             {
                 // file integrity check
-                VerifyChecksums(stream, streamLengthInBytes);
+                if (verifyChecksums) VerifyChecksums(stream, streamLengthInBytes);
 
                 var header = E57FileHeader.Parse(stream, streamLengthInBytes, config.Verbose);
                 if (config.Verbose) PrintHeader(header);
