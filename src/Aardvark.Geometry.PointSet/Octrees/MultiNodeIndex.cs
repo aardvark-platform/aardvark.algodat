@@ -109,7 +109,7 @@ namespace Aardvark.Geometry.Points
             {
                 try
                 {
-                    var bufferRootNode = Storage.f_getSlice(Index.TreeBlobId, result.offset, result.size).UnGZip();
+                    var bufferRootNode = StorageExtensions.UnGZip(Storage.f_getSlice(Index.TreeBlobId, result.offset, result.size));
                     var node = PointSetNode.Decode(Storage, bufferRootNode);
                     var indexnode = new MultiNode(Index, node);
                     return (true, indexnode);
@@ -238,7 +238,7 @@ namespace Aardvark.Geometry.Points
         {
             if (_isGZipped)
             {
-                _buffer = _buffer.UnGZip();
+                _buffer = StorageExtensions.UnGZip(_buffer);
                 _isGZipped = false;
             }
             return _buffer;

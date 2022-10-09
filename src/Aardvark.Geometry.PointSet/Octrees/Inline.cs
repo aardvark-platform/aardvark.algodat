@@ -107,7 +107,7 @@ namespace Aardvark.Geometry.Points
 
         public InlinedNode(byte[] buffer, bool gzipped)
         {
-            if (gzipped) buffer = buffer.UnGZip();
+            if (gzipped) buffer = StorageExtensions.UnGZip(buffer);
             var map = buffer.DurableDecode<IReadOnlyDictionary<Durable.Def, object>>();
 
             NodeId = (Guid)map[Durable.Octree.NodeId];

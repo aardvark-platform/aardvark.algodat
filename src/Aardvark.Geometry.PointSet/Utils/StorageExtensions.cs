@@ -305,23 +305,55 @@ namespace Aardvark.Geometry.Points
             return (buffer != null, buffer);
         }
 
-        public static byte[] UnGZip(this byte[] gzip)
+        /// <summary>
+        /// Return ungzipped buffer, or original buffer if it is not gzipped.
+        /// </summary>
+        public static byte[] UnGZip(byte[] buffer, out bool bufferWasGzipped)
         {
-            using var stream = new GZipStream(new MemoryStream(gzip), CompressionMode.Decompress);
-
-            const int size = 4096;
-            byte[] buffer = new byte[size];
-            using var ms = new MemoryStream();
-
-            int count = 0;
-            do
+            // gzipped buffer?
+            if (buffer.Length > 10 && buffer[0] == 0x1F && buffer[1] == 0x8B)
             {
-                count = stream.Read(buffer, 0, size);
-                if (count > 0) ms.Write(buffer, 0, count);
+                // starts with magic gzip bytes: 0x1F 0x8B
+                // see https://datatracker.ietf.org/doc/html/rfc1952#page-5
+                try
+                {
+                    using var msgz = new MemoryStream(buffer);
+                    using var stream = new GZipStream(msgz, CompressionMode.Decompress);
+
+                    const int size = 4096;
+                    byte[] tmp = new byte[size];
+                    using var ms = new MemoryStream();
+
+                    int count = 0;
+                    do
+                    {
+                        count = stream.Read(tmp, 0, size);
+                        if (count > 0) ms.Write(tmp, 0, count);
+                    }
+                    while (count > 0);
+                    stream.Close();
+                    bufferWasGzipped = true;
+                    return ms.ToArray();
+                }
+                catch
+                {
+                    // although buffer starts with gzip magic bytes, it is not gzip
+                    bufferWasGzipped = false;
+                    return buffer; // return original buffer
+                }
             }
-            while (count > 0);
-            return ms.ToArray();
+            else
+            {
+                // not gzipped
+                bufferWasGzipped = false;
+                return buffer; // return original buffer
+            }
         }
+
+        /// <summary>
+        /// Return ungzipped buffer, or original buffer if it is not gzipped.
+        /// </summary>
+        public static byte[] UnGZip(byte[] buffer) => UnGZip(buffer, out _);
 
         #endregion
 
@@ -734,7 +766,7 @@ namespace Aardvark.Geometry.Points
                 {
                     var index = MultiNodeIndex.Decode(buffer);
                     var (offset, size) = index.GetOffsetAndSize(index.RootNodeId);
-                    var bufferRootNode = storage.f_getSlice(index.TreeBlobId, offset, size).UnGZip();
+                    var bufferRootNode = UnGZip(storage.f_getSlice(index.TreeBlobId, offset, size));
                     //var rootNode = DurableCodec.Deserialize(bufferRootNode);
                     var rootNode = PointSetNode.Decode(storage, bufferRootNode);
                     var multiNode = new MultiNode(index, rootNode);
