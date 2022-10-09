@@ -1,5 +1,5 @@
 ### 5.2.13
-- add StorageExtensions.UnGZip overload returning whether buffer was actually gzipped
+- StorageExtensions.UnGZip checks whether buffer is actually gzipped
 - E57 checksum verification is now switched off by default;
   `E57.Chunks` and `E57ChunksFull` now have overloads to opt-in
 - fix laszip parser for non-seekable streams
