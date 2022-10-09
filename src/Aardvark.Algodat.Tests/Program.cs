@@ -11,6 +11,7 @@ using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -1735,7 +1736,9 @@ namespace Aardvark.Geometry.Tests
         {
             var filenames = new[]
             {
-                @"W:\Datasets\plytest\inference_full.binary.ply",
+                //@"W:\Datasets\unstruk\Christchurch.laz",
+                @"W:\Datasets\unstruk\Sensat-EWR-Bedford_22012021_Point-cloud.laz",
+                //@"W:\Datasets\plytest\inference_full.binary.ply",
                 //@"W:\Datasets\plytest\bunny.ply",
                 //@"W:\Datasets\plytest\leica-studentenzimmer-scan-125.ply",
                 //@"W:\Datasets\plytest\2022-05-31_testfile.ply",
@@ -1780,7 +1783,7 @@ namespace Aardvark.Geometry.Tests
                     .WithStorage(store)
                     .WithKey(key)
                     .WithVerbose(true)
-                    .WithMaxDegreeOfParallelism(1)
+                    //.WithMaxDegreeOfParallelism(1)
                     .WithMinDist(0.005)
                     .WithNormalizePointDensityGlobal(true)
                     //.WithProgressCallback(p => { Report.Line($"{p:0.00}"); })
@@ -1860,70 +1863,71 @@ namespace Aardvark.Geometry.Tests
 
         static void SmTest20220815()
         {
-            var downloadPath = @"E:\tmp\20220916\download";
-            var pointCloudDirs = Directory.GetDirectories(downloadPath);
-            foreach (var pcDir in pointCloudDirs)
-            {
-                var rootJsonPath = Path.Combine(pcDir, "root.json");
-                var rootJson = JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(rootJsonPath));
-                var rootId = rootJson.GetProperty("rootId").GetString();
+            //var downloadPath = @"E:\tmp\20220916\download";
+            //var pointCloudDirs = Directory.GetDirectories(downloadPath);
+            //foreach (var pcDir in pointCloudDirs)
+            //{
+            //    var rootJsonPath = Path.Combine(pcDir, "root.json");
+            //    var rootJson = JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(rootJsonPath));
+            //    var rootId = rootJson.GetProperty("rootId").GetString();
 
-                var ns = enumerateTree(rootId).ToArray();
+            //    var ns = enumerateTree(rootId).ToArray();
 
-                IEnumerable<InlinedNode> enumerateTree(string id)
-                {
-                    var blobPath = Path.Combine(pcDir, id);
-                    var n = new InlinedNode(File.ReadAllBytes(blobPath), gzipped: true);
-                    if (n.Intensities1b?.Length == 0) Console.WriteLine($"[blobPath] {n.PointCountCell}");
+            //    IEnumerable<InlinedNode> enumerateTree(string id)
+            //    {
+            //        var blobPath = Path.Combine(pcDir, id);
+            //        var n = new InlinedNode(File.ReadAllBytes(blobPath), gzipped: true);
+            //        if (n.Intensities1b?.Length == 0) Console.WriteLine($"[blobPath] {n.PointCountCell}");
 
-                    if (id == "3fa600f0-6e99-4c11-918b-810430bae0cb") Console.WriteLine($"[{pcDir}] id = {id}");
-                    yield return n;
+            //        if (id == "3fa600f0-6e99-4c11-918b-810430bae0cb") Console.WriteLine($"[{pcDir}] id = {id}");
+            //        yield return n;
 
-                    if (n.SubnodesGuids != null)
-                    {
-                        foreach (var sid in n.SubnodesGuids)
-                        {
-                            if (sid == Guid.Empty) continue;
-                            var xs = enumerateTree(sid.ToString());
-                            foreach (var x in xs) yield return x;
-                        }
-                    }
-                }
-            }
+            //        if (n.SubnodesGuids != null)
+            //        {
+            //            foreach (var sid in n.SubnodesGuids)
+            //            {
+            //                if (sid == Guid.Empty) continue;
+            //                var xs = enumerateTree(sid.ToString());
+            //                foreach (var x in xs) yield return x;
+            //            }
+            //        }
+            //    }
+            //}
 
             var n0 = new InlinedNode(File.ReadAllBytes(@"E:\tmp\20220916\0c5a9202-d9d2-4565-b137-70c199d3b0c1"), gzipped: true);
-            //var n1 = new InlinedNode(File.ReadAllBytes(@"E:\tmp\20220916\49c753d9-c13a-4f35-8a5f-912be18ea69f"), gzipped: true);
+            var n1 = new InlinedNode(File.ReadAllBytes(@"E:\tmp\20220916\49c753d9-c13a-4f35-8a5f-912be18ea69f"), gzipped: true);
 
-            //var storePath = @"E:\rmdata\20220915\techzentrum_store";
-            //var pointcloud0key = "0c5a9202-d9d2-4565-b137-70c199d3b0c1";
-            //var pointcloud1key = "49c753d9-c13a-4f35-8a5f-912be18ea69f";
+            var storePath = @"E:\rmdata\20220915\techzentrum_store";
+            var pointcloud0key = "0c5a9202-d9d2-4565-b137-70c199d3b0c1";
+            var pointcloud1key = "49c753d9-c13a-4f35-8a5f-912be18ea69f";
 
-            //var storeRaw = new SimpleDiskStore(storePath);
-            //var store = storeRaw.ToPointCloudStore();
+            var storeRaw = new SimpleDiskStore(storePath);
+            var store = storeRaw.ToPointCloudStore();
 
-            //var pc = store.GetPointCloudNode(pointcloud1key);
-            //// {[[242.683902740479, 98.1308326721191, -1.12363249063492], [279.89542388916, 137.056385040283, 2.01998573541641]]}
-            ////var pc = FilteredNode.Create(root, new FilterInsideBox3d(new Box3d(new V3d(268.64, 116, -1), new V3d(272.70, 118, 1.70))));
+            var root = store.GetPointCloudNode(pointcloud1key);
+            // {[[242.683902740479, 98.1308326721191, -1.12363249063492], [279.89542388916, 137.056385040283, 2.01998573541641]]}
+            var pc = FilteredNode.Create(root, new FilterInsideBox3d(new Box3d(new V3d(268.64, 116, -1), new V3d(272.70, 118, 1.70))));
 
-            //var nodeCount = pc.CountNodes(outOfCore: true);
-            //Console.WriteLine($"nodeCount       : {nodeCount,16:N0}");
+            var nodeCount = pc.CountNodes(outOfCore: true);
+            Console.WriteLine($"nodeCount       : {nodeCount,16:N0}");
 
-            //var inlineConfig = new InlineConfig(collapse: false, gzipped: true);
-            
-            //var inlinedNodes = pc.EnumerateOctreeInlined(inlineConfig);
+            var inlineConfig = new InlineConfig(collapse: false, gzipped: true);
 
-            //var xs = inlinedNodes.Nodes.ToArray();
-            //var foo = xs.Where(x => x.NodeId == Guid.Parse("3fa600f0-6e99-4c11-918b-810430bae0cb")).ToArray();
-            ////foreach (var x in xs) Console.WriteLine($"{x.PointCountCell}");
+            var inlinedNodes = pc.EnumerateOctreeInlined(inlineConfig);
 
-            //var nodeCountInlined = inlinedNodes.Nodes.Count();
-            //Console.WriteLine($"nodeCountInlined: {nodeCountInlined,16:N0}");
+            var xs = inlinedNodes.Nodes.ToArray();
+            var foo = xs.Where(x => x.NodeId == Guid.Parse("3fa600f0-6e99-4c11-918b-810430bae0cb")).ToArray();
+            //foreach (var x in xs) Console.WriteLine($"{x.PointCountCell}");
+
+            var nodeCountInlined = inlinedNodes.Nodes.Count();
+            Console.WriteLine($"nodeCountInlined: {nodeCountInlined,16:N0}");
         }
 
         static void SmTest20220917()
         {
-            var filename = @"";
-            var storePath = @"";
+            //var filename = @"W:\Datasets\unstruk\Sensat-EWR-Bedford_22012021_Point-cloud.laz";
+            var filename = @"W:\Datasets\unstruk\Christchurch.laz";
+            var storePath = @"E:\e57tests\stores\20220921";
             var tmpPath = Path.Combine(storePath, "tmp");
             if (!Directory.Exists(storePath)) Directory.CreateDirectory(storePath);
             if (!Directory.Exists(tmpPath)) Directory.CreateDirectory(tmpPath);
@@ -1934,7 +1938,7 @@ namespace Aardvark.Geometry.Tests
             Report.Line($"{new Cell(info.Bounds)}");
 
             var rootCell = new Cell(info.Bounds);
-            var rootDir = Path.Combine(storePath, "root2");
+            var rootDir = Path.Combine(storePath, "root");
 
             //Check(rootDir); return;
 
@@ -1990,7 +1994,7 @@ namespace Aardvark.Geometry.Tests
             static GenericChunk LoadChunk(string path)
             {
                 var buffer = File.ReadAllBytes(path);
-                var map = (IReadOnlyDictionary<Durable.Def, object>)DurableCodec.DeserializeDurableMap(buffer.UnGZip());
+                var map = (IReadOnlyDictionary<Durable.Def, object>)DurableCodec.DeserializeDurableMap(StorageExtensions.UnGZip(buffer));
                 return new GenericChunk(map);
             }
 
@@ -2005,7 +2009,7 @@ namespace Aardvark.Geometry.Tests
                     {
                         var bufferGzip = SerializeChunk(chunk);
                         File.WriteAllBytes(path, bufferGzip);
-                        _ = File.ReadAllBytes(path).UnGZip(); // check if file can be read back and decompressed
+                        _ = StorageExtensions.UnGZip(File.ReadAllBytes(path)); // check if file can be read back and decompressed
                         break;
                     }
                     catch (Exception e)
@@ -2025,7 +2029,7 @@ namespace Aardvark.Geometry.Tests
                 {
                     while (q.Count > 0 || runSaveTask)
                     {
-                        Report.Line($"[QUEUE] length = {q.Count}");
+                        //Report.Line($"[QUEUE] length = {q.Count}");
                         (string fn, byte[] buffer, string[] filesToDelete) x = default;
                         var success = false;
                         lock (q)
@@ -2126,7 +2130,6 @@ namespace Aardvark.Geometry.Tests
                                 if (merged.Count > 128 * 1024)
                                 {
                                     SplitAndSave(cell, dir, "merged.gz", merged);
-                                    Console.ForegroundColor = ConsoleColor.Red;
                                 }
                                 else
                                 {
@@ -2136,12 +2139,9 @@ namespace Aardvark.Geometry.Tests
                                         var buffer = SerializeChunk(merged);
                                         lock (q) q.Enqueue((fn, buffer, fns));
                                     }));
-
-                                    Console.ForegroundColor = ConsoleColor.Green;
                                 }
 
-                                Console.WriteLine($"{fns.Length,4} files | {merged.Count,12:N0} points | {dir}");
-                                Console.ResetColor();
+                                Report.Line($"{fns.Length,4} files | {merged.Count,12:N0} points | {dir}");
                             }
                         }
                     }
@@ -2161,7 +2161,7 @@ namespace Aardvark.Geometry.Tests
                     else
                     {
                         Directory.CreateDirectory(path);
-                        Report.Warn($"create {cell}");
+                        //Report.Warn($"create {cell}");
                     }
 
                     if (split)
@@ -2206,6 +2206,7 @@ namespace Aardvark.Geometry.Tests
                 }
             }
 
+            if (false)
             {
                 var phase1Chunks = Directory.GetFiles(tmpPath, "*.gz").Where(s => Path.GetFileName(s).StartsWith("chunk-")).ToArray();
                 if (phase1Chunks.Length > 0)
@@ -2223,7 +2224,7 @@ namespace Aardvark.Geometry.Tests
                         {
                             try
                             {
-                                var map = (IReadOnlyDictionary<Durable.Def, object>)DurableCodec.DeserializeDurableMap(buffer.UnGZip());
+                                var map = (IReadOnlyDictionary<Durable.Def, object>)DurableCodec.DeserializeDurableMap(StorageExtensions.UnGZip(buffer));
                                 var chunk = new GenericChunk(map);
                                 Interlocked.Add(ref totalCount, chunk.Count);
                             }
@@ -2245,11 +2246,11 @@ namespace Aardvark.Geometry.Tests
                 var n = 0L;
                 var i = 0;
                 var ts = new List<Task>();
-                foreach (var _chunk in Laszip.Chunks(filename, ParseConfig.Default.WithMaxChunkPointCount(1_000_000)))
+                foreach (var _chunk in Laszip.Chunks(filename, ParseConfig.Default.WithMaxChunkPointCount(1_000_000)).Take(10))
                 {
                     n += _chunk.Count;
 
-                    var chunk = _chunk; //.ImmutableDeduplicate(verbose: false);
+                    var chunk = _chunk.ImmutableDeduplicate(verbose: false);
                     var d = _chunk.Count - chunk.Count;
                     Report.Line($"[{i++,5}] {100.0 * n / info.PointCount,6:N2}% | {d,10:N0} dups | {n,10:N0}/{info.PointCount:N0} | {new Cell(chunk.BoundingBox),-20}");
 
@@ -2284,9 +2285,28 @@ namespace Aardvark.Geometry.Tests
             //foreach (var p in root.PositionsAbsolute.Take(10)) Console.WriteLine(p);
         }
 
-        public static void Main(string[] _)
+        public static async Task Main(string[] _)
         {
-            SmTest20220917();
+            {
+                var filename = @"W:\Datasets\Vgm\Data\E57\Villnachern.e57";
+                var info = E57.Chunks(filename, ParseConfig.Default).First();
+                return;
+            }
+            //{
+            //    var stream = await new HttpClient().GetStreamAsync("http://localhost:8080/Vgm/Data/E57/JBs_Haus.e57");
+            //    var chunks = E57.Chunks(stream, 0, ParseConfig.Default.WithMaxChunkPointCount(65 * 1024));
+            //    foreach (var chunk in chunks) Console.WriteLine(chunk.Count);
+            //    return;
+            //}
+
+            //{
+            //    foreach (var x in Laszip.Chunks(@"W:\Datasets\unstruk\Christchurch.laz", ParseConfig.Default))
+            //    {
+            //        Console.WriteLine($"intensities [{x.Intensities.Min()} / {x.Intensities.Average()} / {x.Intensities.Max()}] classifications [{x.Classifications.Min()}..{x.Classifications.Max()}]");
+            //    }
+            //}
+
+            //SmTest20220917();
 
             //SmTest20220815();
 
