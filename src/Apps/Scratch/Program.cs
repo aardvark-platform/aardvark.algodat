@@ -4,17 +4,13 @@ using Aardvark.Data.E57;
 using Aardvark.Data.Points;
 using Aardvark.Data.Points.Import;
 using Aardvark.Geometry.Points;
-using Microsoft.FSharp.Core;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
 using Uncodium.SimpleStore;
-using static Aardvark.Data.E57.ASTM_E57;
+
+#pragma warning disable IDE0051 // Remove unused private members
 
 namespace Scratch
 {
@@ -46,7 +42,9 @@ namespace Scratch
             Durable.Octree.Colors3b,
             Durable.Octree.Colors3bReference,
             Durable.Octree.Colors4b,
+#pragma warning disable CS0618 // Type or member is obsolete
             Durable.Octree.Colors4bDeprecated20201117,
+#pragma warning restore CS0618 // Type or member is obsolete
             Durable.Octree.Colors4bReference,
             Durable.Octree.ColorsRGB565,
             Durable.Octree.ColorsRGB565Reference,
@@ -147,7 +145,7 @@ namespace Scratch
                 {
                     if (node.Properties.ContainsKey(def))
                     {
-                        if (exist == null) exist = new List<Durable.Def>();
+                        exist ??= new List<Durable.Def>();
                         exist.Add(def);
                     }
                 }
@@ -288,7 +286,9 @@ namespace Scratch
 
         #endregion
 
+#pragma warning disable IDE0060 // Remove unused parameter
         static void Main(string[] args)
+#pragma warning restore IDE0060 // Remove unused parameter
         {
             {
                 var filenames = new[]

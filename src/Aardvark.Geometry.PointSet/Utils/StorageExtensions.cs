@@ -762,16 +762,16 @@ namespace Aardvark.Geometry.Points
 
                     return fn;
                 }
-                else if (guid == Durable.Octree.MultiNodeIndex.Id)
-                {
-                    var index = MultiNodeIndex.Decode(buffer);
-                    var (offset, size) = index.GetOffsetAndSize(index.RootNodeId);
-                    var bufferRootNode = UnGZip(storage.f_getSlice(index.TreeBlobId, offset, size));
-                    //var rootNode = DurableCodec.Deserialize(bufferRootNode);
-                    var rootNode = PointSetNode.Decode(storage, bufferRootNode);
-                    var multiNode = new MultiNode(index, rootNode);
-                    return multiNode;
-                }
+                //else if (guid == Durable.Octree.MultiNodeIndex.Id)
+                //{
+                //    var index = MultiNodeIndex.Decode(buffer);
+                //    var (offset, size) = index.GetOffsetAndSize(index.RootNodeId);
+                //    var bufferRootNode = UnGZip(storage.f_getSlice(index.TreeBlobId, offset, size));
+                //    //var rootNode = DurableCodec.Deserialize(bufferRootNode);
+                //    var rootNode = PointSetNode.Decode(storage, bufferRootNode);
+                //    var multiNode = new MultiNode(index, rootNode);
+                //    return multiNode;
+                //}
                 else
                 {
                     // if all fails, may be obsolete node format ...

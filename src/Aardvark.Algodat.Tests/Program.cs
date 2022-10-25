@@ -18,6 +18,9 @@ using System.Threading.Tasks;
 using Uncodium.SimpleStore;
 using static Aardvark.Geometry.Points.Queries;
 
+#pragma warning disable IDE0051 // Remove unused private members
+#pragma warning disable IDE0059 // Unnecessary assignment of a value
+
 #if !NETCOREAPP
 using System.ComponentModel;
 namespace System.Runtime.CompilerServices
@@ -1837,7 +1840,7 @@ namespace Aardvark.Geometry.Tests
 
             var chunks = Data.Points.Import.Ply.Chunks(@"C:\Users\sm\Downloads\test.ply", config.ParseConfig);
             var pointset = PointCloud.Chunks(chunks, config);
-            Console.WriteLine("done");
+            Console.WriteLine(pointset.Id);
         }
 
         static void SmTest20220610()
@@ -1898,7 +1901,7 @@ namespace Aardvark.Geometry.Tests
             var n1 = new InlinedNode(File.ReadAllBytes(@"E:\tmp\20220916\49c753d9-c13a-4f35-8a5f-912be18ea69f"), gzipped: true);
 
             var storePath = @"E:\rmdata\20220915\techzentrum_store";
-            var pointcloud0key = "0c5a9202-d9d2-4565-b137-70c199d3b0c1";
+            //var pointcloud0key = "0c5a9202-d9d2-4565-b137-70c199d3b0c1";
             var pointcloud1key = "49c753d9-c13a-4f35-8a5f-912be18ea69f";
 
             var storeRaw = new SimpleDiskStore(storePath);
@@ -2206,40 +2209,40 @@ namespace Aardvark.Geometry.Tests
                 }
             }
 
-            if (false)
-            {
-                var phase1Chunks = Directory.GetFiles(tmpPath, "*.gz").Where(s => Path.GetFileName(s).StartsWith("chunk-")).ToArray();
-                if (phase1Chunks.Length > 0)
-                {
-                    var totalCount = 0L;
-                    Report.BeginTimed("reading phase 1 chunks (v0.0.2)");
-                    var ts = new List<Task>();
-                    for (var _i = 0; _i < phase1Chunks.Length; _i++)
-                    {
-                        var fn = phase1Chunks[_i];
-                        var buffer = File.ReadAllBytes(fn);
-                        //Report.Line($"[[{_i + 1,5}/{phase1Chunks.Length}]] {fn} | {totalCount,15:N0}");
+            //if (false)
+            //{
+            //    var phase1Chunks = Directory.GetFiles(tmpPath, "*.gz").Where(s => Path.GetFileName(s).StartsWith("chunk-")).ToArray();
+            //    if (phase1Chunks.Length > 0)
+            //    {
+            //        var totalCount = 0L;
+            //        Report.BeginTimed("reading phase 1 chunks (v0.0.2)");
+            //        var ts = new List<Task>();
+            //        for (var _i = 0; _i < phase1Chunks.Length; _i++)
+            //        {
+            //            var fn = phase1Chunks[_i];
+            //            var buffer = File.ReadAllBytes(fn);
+            //            //Report.Line($"[[{_i + 1,5}/{phase1Chunks.Length}]] {fn} | {totalCount,15:N0}");
 
-                        ts.Add(Task.Run(() =>
-                        {
-                            try
-                            {
-                                var map = (IReadOnlyDictionary<Durable.Def, object>)DurableCodec.DeserializeDurableMap(StorageExtensions.UnGZip(buffer));
-                                var chunk = new GenericChunk(map);
-                                Interlocked.Add(ref totalCount, chunk.Count);
-                            }
-                            catch (Exception e)
-                            {
-                                Report.Error($"[{fn}] {e}");
-                            }
-                        }));
-                    }
-                    Task.WhenAll(ts).Wait();
-                    Report.EndTimed();
-                    Report.Line($"total point count: {totalCount:N0}");
-                    return;
-                }
-            }
+            //            ts.Add(Task.Run(() =>
+            //            {
+            //                try
+            //                {
+            //                    var map = (IReadOnlyDictionary<Durable.Def, object>)DurableCodec.DeserializeDurableMap(StorageExtensions.UnGZip(buffer));
+            //                    var chunk = new GenericChunk(map);
+            //                    Interlocked.Add(ref totalCount, chunk.Count);
+            //                }
+            //                catch (Exception e)
+            //                {
+            //                    Report.Error($"[{fn}] {e}");
+            //                }
+            //            }));
+            //        }
+            //        Task.WhenAll(ts).Wait();
+            //        Report.EndTimed();
+            //        Report.Line($"total point count: {totalCount:N0}");
+            //        return;
+            //    }
+            //}
 
             Report.BeginTimed("phase 1");
             {
@@ -2287,11 +2290,8 @@ namespace Aardvark.Geometry.Tests
 
         public static async Task Main(string[] _)
         {
-            {
-                var filename = @"W:\Datasets\Vgm\Data\E57\Villnachern.e57";
-                var info = E57.Chunks(filename, ParseConfig.Default).First();
-                return;
-            }
+            await Task.Delay(0);
+
             //{
             //    var stream = await new HttpClient().GetStreamAsync("http://localhost:8080/Vgm/Data/E57/JBs_Haus.e57");
             //    var chunks = E57.Chunks(stream, 0, ParseConfig.Default.WithMaxChunkPointCount(65 * 1024));

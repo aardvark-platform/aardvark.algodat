@@ -129,10 +129,12 @@ namespace Aardvark.Physics.Sky
         private static readonly double[] s_D =  {      0.0,    0.59,   0.0,    0.57,   0.0,   0.55,  0.63,    0.7,     0.5,   0.63,   0.72,   0.74,   0.76,  0.79,   0.79   };
         private static readonly double[] s_E =  {      0.0,   50.47,   0.0,   44.27,   0.0,  38.78, 34.56,   30.41,   27.47, 24.04,  20.76,  18.52,  16.59, 14.56,  13.0    };
         private static readonly double[] s_DvEv={      0.1,    0.18,   0.15,   0.22,   0.20,  0.38,  0.42,    0.41,    0.40,  0.36,   0.23,   0.1,    0.28,  0.28,   0.3    };
-        
+
         #endregion
 
         #region Methods
+
+        #pragma warning disable IDE1006 // Naming Styles
 
         // luminance gradation function
         // 0 <= Z <=p pi/2 // zenith to horizon
@@ -156,6 +158,8 @@ namespace Aardvark.Physics.Sky
         {
             return phi(s_a[type], s_b[type], Z) * f(s_c[type], s_d[type], s_e[type], chi);
         }
+
+        #pragma warning restore IDE1006 // Naming Styles
 
         private void CIESkyInit() 
         {
@@ -262,7 +266,7 @@ namespace Aardvark.Physics.Sky
             // define color temperature, from blue to white with increasing turbidity
             var colorTemp = Fun.Max(9000.0, 25000.0 - Tv * 360);
 
-            var Yuv = colorTemp.ColTemperatureToYuvInC3f();
+            var Yuv = colorTemp.TemperatureToYuvInC3f();
             var Yxy = Yuv.FromYuvToYxy(); // Yxy white point for sRGB [1.0000, 0.3127, 0.3290]
             //Yxy = value.ColTemperatureToYxyInC3f();
             var XYZ = Yxy.FromYxyToXYZ();
