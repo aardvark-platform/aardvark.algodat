@@ -1,3 +1,7 @@
+### 5.2.14
+- update packages (Aardvark.Data.Durable 0.3.8)
+- fix various warnings
+
 ### 5.2.13
 - StorageExtensions.UnGZip checks whether buffer is actually gzipped
 - E57 checksum verification is now switched off by default;
