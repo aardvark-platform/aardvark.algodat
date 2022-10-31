@@ -12,6 +12,8 @@
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="resource\forced-1024.bin" />
+    <None Include="paket.template" />
+    <None Include="paket.references" />
     <Compile Include="Utilities.fs" />
     <Compile Include="LodTreeInstance.fs" />
     <Compile Include="SimplePick.fs" />

@@ -13,8 +13,8 @@
     <DocumentationFile>..\..\bin\Release\netstandard2.0\Aardvark.Data.Wavefront.xml</DocumentationFile>
     <NoWarn>1701;1702;1705;1591</NoWarn>
   </PropertyGroup>
-  <Import Project="..\..\.paket\Paket.Restore.targets" />
   <ItemGroup>
     <ProjectReference Include="..\Aardvark.Geometry.PolyMesh\Aardvark.Geometry.PolyMesh.csproj" />
   </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

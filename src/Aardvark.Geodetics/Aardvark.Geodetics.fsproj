@@ -11,6 +11,8 @@
     <OutputPath>..\..\bin\Debug\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="paket.references" />
+    <None Include="paket.template" />
     <Compile Include="wkt.fs" />
     <Compile Include="CoordinateSystem.fs" />
   </ItemGroup>
