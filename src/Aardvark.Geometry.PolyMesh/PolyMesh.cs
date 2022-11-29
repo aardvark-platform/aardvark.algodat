@@ -17,6 +17,7 @@ using Aardvark.Rendering;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace Aardvark.Geometry
 {
@@ -1551,12 +1552,11 @@ namespace Aardvark.Geometry
             else
             {
                 Polygon3d p = GetFace(face).Polygon3d;
-                foundHit = ray.Intersects(p, double.MinValue, double.MaxValue, out var t);
+                foundHit = ray.Intersects(p, double.MinValue, double.MaxValue, out hit.T);
 
                 if (foundHit)
                 {
-                    hit.T = t;
-                    hit.Point = ray.GetPointOnRay(t);
+                    hit.Point = ray.GetPointOnRay(hit.T);
                     hit.Coord = V2d.NaN;
                     hit.BackSide = Vec.Dot(p.ComputeNormal(), ray.Direction) > 0.0;
                     hit.Part = face;
@@ -4420,6 +4420,23 @@ namespace Aardvark.Geometry
             var scale = 1.0 / (box.Max - box.Min);
             for (int i = 0; i < coords.Length; i++)
                 coords[i] = (coords[i] - box.Min) * scale;
+        }
+
+        #endregion
+
+        #region Contains
+
+        /// <summary>
+        /// Returns whether the mesh contains the given point.
+        /// </summary>
+        /// <param name="mesh">The input mesh.</param>
+        /// <param name="point">The point to query.</param>
+        /// <returns>true if the point is contained, false otherwise.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool Contains(this PolyMesh mesh, V3d point)
+        {
+            var ray = new Ray3d(point, V3d.ZAxis);
+            return mesh.TryGetRayIntersection(ray, out var hit) && hit.BackSide;
         }
 
         #endregion
