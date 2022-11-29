@@ -1521,6 +1521,98 @@ namespace Aardvark.Geometry
 
         #endregion
 
+        #region Ray Intersections
+
+        /// <summary>Delegate for ray intersection filter functions.</summary>
+        /// <param name="hit">The hit candidate to evaluate.</param>
+        /// <returns>True if the given hit represents a valid intersection, false otherwise.</returns>
+        public delegate bool RayHitFilter(in RayHit3d hit);
+
+        private bool TryGetRayFaceIntersection(Ray3d ray, int face, RayHitFilter filter, out RayHit3d hit)
+        {
+            int fvi = m_firstIndexArray[face];
+            int fve = m_firstIndexArray[face + 1];
+
+            hit = RayHit3d.MaxRange;
+            bool foundHit;
+
+            if (fve - fvi == 3)
+            {
+                V3d p1 = m_positionArray[m_vertexIndexArray[fvi]];
+                V3d p2 = m_positionArray[m_vertexIndexArray[fvi + 1]];
+                V3d p3 = m_positionArray[m_vertexIndexArray[fvi + 2]];
+                foundHit = ray.HitsTriangle(p1, p2, p3, ref hit);
+
+                if (foundHit)
+                {
+                    hit.Part = face;
+                }
+            }
+            else
+            {
+                Polygon3d p = GetFace(face).Polygon3d;
+                foundHit = ray.Intersects(p, double.MinValue, double.MaxValue, out var t);
+
+                if (foundHit)
+                {
+                    hit.T = t;
+                    hit.Point = ray.GetPointOnRay(t);
+                    hit.Coord = V2d.NaN;
+                    hit.BackSide = Vec.Dot(p.ComputeNormal(), ray.Direction) > 0.0;
+                    hit.Part = face;
+                }
+            }
+
+            return foundHit && (filter == null || filter(in hit));
+        }
+
+        /// <summary>
+        /// Computes all intersections for the given ray with the mesh.
+        /// </summary>
+        /// <param name="ray">The ray to intersect with the mesh.</param>
+        /// <param name="filter">An optional filter function that returns true if the given hit candidate represents a valid intersection and false otherwise.</param>
+        /// <returns>Hit information for the found intersections.</returns>
+        public List<RayHit3d> GetRayIntersections(Ray3d ray, RayHitFilter filter = null)
+        {
+            var intersections = new List<RayHit3d>();
+
+            for (int face = 0; face < m_faceCount; ++face)
+            {
+                if (TryGetRayFaceIntersection(ray, face, filter, out var hit))
+                    intersections.Add(hit);
+            }
+
+            return intersections;
+        }
+
+        /// <summary>
+        /// Computes the closest intersection for the given ray with the mesh.
+        /// </summary>
+        /// <param name="ray">The ray to intersect with the mesh.</param>
+        /// <param name="hit">When this functions returns true, contains the hit information for the closest intersection.</param>
+        /// <param name="filter">An optional filter function that returns true if the given hit candidate represents a valid intersection and false otherwise.</param>
+        /// <returns>true if an intersection was found, false otherwise.</returns>
+        public bool TryGetRayIntersection(Ray3d ray, out RayHit3d hit, RayHitFilter filter = null)
+        {
+            double current = double.MaxValue;
+            bool foundHit = false;
+            hit = RayHit3d.MaxRange;
+
+            for (int face = 0; face < m_faceCount; ++face)
+            {
+                if (TryGetRayFaceIntersection(ray, face, filter, out var tmp) && tmp.T < current)
+                {
+                    hit = tmp;
+                    current = tmp.T;
+                    foundHit = true;
+                }
+            }
+
+            return foundHit;
+        }
+
+        #endregion
+
         #region IAttributes
 
         public partial interface IAttribute
