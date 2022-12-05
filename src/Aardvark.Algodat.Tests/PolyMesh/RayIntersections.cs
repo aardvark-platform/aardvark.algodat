@@ -33,7 +33,7 @@ namespace Aardvark.Geometry.Tests
             var mesh = PolyMeshPrimitives.Box(C4f.Black);
             var ray = new Ray3d(new V3d(0.5, 0.5, -1.0), V3d.ZAxis);
 
-            var hits = mesh.GetRayIntersections(ray, (in RayHit3d hit) => !hit.BackSide);
+            var hits = mesh.GetRayIntersections(ray, filter: (in RayHit3d hit) => !hit.BackSide);
 
             Assert.AreEqual(hits.Count, 1);
             Assert.True(Fun.ApproximateEquals(hits[0].T, 1.0));
@@ -69,7 +69,7 @@ namespace Aardvark.Geometry.Tests
         }
 
         [Test]
-        public void TryGetRayIntersection()
+        public void Intersects()
         {
             var mesh = PolyMeshPrimitives.Box(C4f.Black);
 
@@ -81,7 +81,7 @@ namespace Aardvark.Geometry.Tests
 
             foreach (Ray3d ray in rays)
             {
-                var foundHit = mesh.TryGetRayIntersection(ray, out var hit);
+                var foundHit = mesh.Intersects(ray, out var hit);
 
                 Assert.True(foundHit);
                 Assert.True(Fun.ApproximateEquals(hit.T, 1.0));
@@ -93,7 +93,7 @@ namespace Aardvark.Geometry.Tests
         }
 
         [Test]
-        public void TryGetRayIntersectionWithFilter()
+        public void IntersectsWithFilter()
         {
             var mesh = PolyMeshPrimitives.Box(C4f.Black);
 
@@ -105,7 +105,7 @@ namespace Aardvark.Geometry.Tests
 
             foreach (Ray3d ray in rays)
             {
-                var foundHit = mesh.TryGetRayIntersection(ray, out var hit, (in RayHit3d h) => h.BackSide);
+                var foundHit = mesh.Intersects(ray, out var hit, filter: (in RayHit3d h) => h.BackSide);
 
                 Assert.True(foundHit);
                 Assert.True(Fun.ApproximateEquals(hit.T, 2.0));
@@ -113,6 +113,38 @@ namespace Aardvark.Geometry.Tests
 
                 var p = mesh.GetFace(hit.Part).Polygon3d;
                 Assert.True(p.Contains(Constant<double>.PositiveTinyValue, hit.Point, out double _));
+            }
+        }
+
+        [Test]
+        public void IntersectsWithinInterval()
+        {
+            var box = PolyMeshPrimitives.Box(C4f.Black);
+
+            var meshes = new PolyMesh[]
+            {
+                box,
+                box, box.TriangulatedCopy()
+            };
+
+            var rays = new Ray3d[]
+            {
+                new Ray3d(new V3d(0.5, 0.5, -1.0), -V3d.ZAxis),
+                new Ray3d(new V3d(0.5, 0.5, 2.0), V3d.ZAxis)
+            };
+
+            foreach (var mesh in meshes)
+            {
+                foreach (Ray3d ray in rays)
+                {
+                    var foundHit = mesh.Intersects(ray, out var hit, -2.5);
+
+                    Assert.True(foundHit);
+                    Assert.True(Fun.ApproximateEquals(hit.T, -1.0));
+
+                    var p = mesh.GetFace(hit.Part).Polygon3d;
+                    Assert.True(p.Contains(Constant<double>.PositiveTinyValue, hit.Point, out double _));
+                }
             }
         }
     }

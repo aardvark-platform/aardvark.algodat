@@ -1529,7 +1529,7 @@ namespace Aardvark.Geometry
         /// <returns>True if the given hit represents a valid intersection, false otherwise.</returns>
         public delegate bool RayHitFilter(in RayHit3d hit);
 
-        private bool TryGetRayFaceIntersection(Ray3d ray, int face, RayHitFilter filter, out RayHit3d hit)
+        private bool TryGetRayFaceIntersection(Ray3d ray, int face, double tmin, double tmax, RayHitFilter filter, out RayHit3d hit)
         {
             int fvi = m_firstIndexArray[face];
             int fve = m_firstIndexArray[face + 1];
@@ -1542,7 +1542,7 @@ namespace Aardvark.Geometry
                 V3d p1 = m_positionArray[m_vertexIndexArray[fvi]];
                 V3d p2 = m_positionArray[m_vertexIndexArray[fvi + 1]];
                 V3d p3 = m_positionArray[m_vertexIndexArray[fvi + 2]];
-                foundHit = ray.HitsTriangle(p1, p2, p3, ref hit);
+                foundHit = ray.HitsTriangle(p1, p2, p3, tmin, tmax, ref hit);
 
                 if (foundHit)
                 {
@@ -1552,7 +1552,7 @@ namespace Aardvark.Geometry
             else
             {
                 Polygon3d p = GetFace(face).Polygon3d;
-                foundHit = ray.Intersects(p, double.MinValue, double.MaxValue, out hit.T);
+                foundHit = ray.Intersects(p, tmin, tmax, out hit.T);
 
                 if (foundHit)
                 {
@@ -1567,18 +1567,25 @@ namespace Aardvark.Geometry
         }
 
         /// <summary>
-        /// Computes all intersections for the given ray with the mesh.
+        /// Computes all intersections for the given ray with the mesh within the interval [<paramref name="tmin"/>, <paramref name="tmax"/>].
         /// </summary>
+        /// <remarks>
+        /// If a valid intersection is found, <see cref="RayHit3d.Part"/> refers to the corresponding face index.
+        /// For triangle faces, <see cref="RayHit3d.Coord"/> contains the barycentric coordinates of the intersection.
+        /// The order of the returned list of intersections is arbitrary.
+        /// </remarks>
         /// <param name="ray">The ray to intersect with the mesh.</param>
+        /// <param name="tmin">The lower bound of the ray interval to consider. Default is 0.</param>
+        /// <param name="tmax">The upper bound of the ray interval to consider. Default is positive infinity.</param>
         /// <param name="filter">An optional filter function that returns true if the given hit candidate represents a valid intersection and false otherwise.</param>
         /// <returns>Hit information for the found intersections.</returns>
-        public List<RayHit3d> GetRayIntersections(Ray3d ray, RayHitFilter filter = null)
+        public List<RayHit3d> GetRayIntersections(Ray3d ray, double tmin = 0, double tmax = double.PositiveInfinity, RayHitFilter filter = null)
         {
             var intersections = new List<RayHit3d>();
 
             for (int face = 0; face < m_faceCount; ++face)
             {
-                if (TryGetRayFaceIntersection(ray, face, filter, out var hit))
+                if (TryGetRayFaceIntersection(ray, face, tmin, tmax, filter, out var hit))
                     intersections.Add(hit);
             }
 
@@ -1586,25 +1593,36 @@ namespace Aardvark.Geometry
         }
 
         /// <summary>
-        /// Computes the closest intersection for the given ray with the mesh.
+        /// Computes the closest intersection for the given ray with the mesh within the interval [<paramref name="tmin"/>, <paramref name="tmax"/>].
         /// </summary>
+        /// <remarks>
+        /// If a valid intersection is found, <paramref name="hit"/>.Part refers to the corresponding face index.
+        /// For triangle faces, <paramref name="hit"/>.Coord contains the barycentric coordinates of the intersection.
+        /// </remarks>
         /// <param name="ray">The ray to intersect with the mesh.</param>
-        /// <param name="hit">When this functions returns true, contains the hit information for the closest intersection.</param>
+        /// <param name="hit">When this functions returns true, contains the hit information for the intersection closest to the ray origin.</param>
+        /// <param name="tmin">The lower bound of the ray interval to consider. Default is 0.</param>
+        /// <param name="tmax">The upper bound of the ray interval to consider. Default is positive infinity.</param>
         /// <param name="filter">An optional filter function that returns true if the given hit candidate represents a valid intersection and false otherwise.</param>
         /// <returns>true if an intersection was found, false otherwise.</returns>
-        public bool TryGetRayIntersection(Ray3d ray, out RayHit3d hit, RayHitFilter filter = null)
+        public bool Intersects(Ray3d ray, out RayHit3d hit, double tmin = 0.0, double tmax = double.PositiveInfinity, RayHitFilter filter = null)
         {
-            double current = double.MaxValue;
+            double current = double.PositiveInfinity;
             bool foundHit = false;
             hit = RayHit3d.MaxRange;
 
             for (int face = 0; face < m_faceCount; ++face)
             {
-                if (TryGetRayFaceIntersection(ray, face, filter, out var tmp) && tmp.T < current)
+                if (TryGetRayFaceIntersection(ray, face, tmin, tmax, filter, out var tmp))
                 {
-                    hit = tmp;
-                    current = tmp.T;
-                    foundHit = true;
+                    var t = Fun.Abs(tmp.T);
+
+                    if (t < current)
+                    {
+                        hit = tmp;
+                        current = t;
+                        foundHit = true;
+                    }
                 }
             }
 
@@ -4429,14 +4447,17 @@ namespace Aardvark.Geometry
         /// <summary>
         /// Returns whether the mesh contains the given point.
         /// </summary>
-        /// <param name="mesh">The input mesh.</param>
+        /// <remarks>
+        /// The mesh must be closed.
+        /// </remarks>
+        /// <param name="mesh">The (closed) input mesh.</param>
         /// <param name="point">The point to query.</param>
         /// <returns>true if the point is contained, false otherwise.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool Contains(this PolyMesh mesh, V3d point)
         {
             var ray = new Ray3d(point, V3d.ZAxis);
-            return mesh.TryGetRayIntersection(ray, out var hit) && hit.BackSide;
+            return mesh.Intersects(ray, out var hit) && hit.BackSide;
         }
 
         #endregion
