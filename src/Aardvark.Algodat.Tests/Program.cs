@@ -2288,9 +2288,54 @@ namespace Aardvark.Geometry.Tests
             //foreach (var p in root.PositionsAbsolute.Take(10)) Console.WriteLine(p);
         }
 
+        static Task Test_20221218()
+        {
+            var filename = @"W:\Datasets\Vgm\Data\2022-12-18_punz\Scan_2.pts";
+            var storePath = @"E:\tmp\2022-12-18_punz";
+            var keyfile = Path.Combine(storePath, "key.txt");
+            if (!Directory.Exists(storePath)) Directory.CreateDirectory(storePath);
+
+            using var storeRaw = new SimpleDiskStore(Path.Combine(storePath, "data.uds"));
+            var store = storeRaw.ToPointCloudStore();
+
+            if (File.Exists(keyfile))
+            {
+                var key = File.ReadAllText(keyfile);
+                var ps = store.GetPointSet(key);
+                Console.WriteLine(ps.PointCount);
+
+                var cells = ps.Root.Value.EnumerateCells(-3).ToArray();
+                var foo = cells.Map(cell =>
+                {
+                    var justInner = cell.GetPoints(1).ToArray();
+                    var useOuter = cell.GetPoints(1, new Box3i(new V3i(-1, -1, -1), new V3i(1, 1, 1)), false).ToArray();
+                    return useOuter;
+                });
+
+                return Task.CompletedTask;
+            }
+
+            var config = ImportConfig.Default
+                    .WithStorage(store)
+                    .WithKey(Path.GetFileName(filename))
+                    .WithVerbose(true)
+                    .WithMinDist(0.005)
+                    .WithNormalizePointDensityGlobal(true)
+                    //.WithProgressCallback(p => { Report.Line($"{p:0.00}"); })
+                    ;
+
+            var pcl = PointCloud
+                    .Import(filename, config)
+                    ;
+
+            File.WriteAllText(keyfile, pcl.Id);
+
+            return Task.CompletedTask;
+        }
+
         public static async Task Main(string[] _)
         {
-            await Task.Delay(0);
+            await Test_20221218();
 
             //{
             //    var stream = await new HttpClient().GetStreamAsync("http://localhost:8080/Vgm/Data/E57/JBs_Haus.e57");
