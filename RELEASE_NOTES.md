@@ -1,3 +1,6 @@
+### 5.2.8.1
+- fix exception in Queries.QueryCell (backported from 5.2.15)
+
 ### 5.2.8
 - [PointSet]added QueriesDirectedRay3d.cs
 
