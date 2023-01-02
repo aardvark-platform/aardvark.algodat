@@ -1,3 +1,16 @@
+### 5.2.15
+- fix exception in Queries.QueryCell
+- Improve ray - polymesh intersection functions
+  - renames TryGetRayIntersection() to Intersects()
+  - adds explicit parameters for ray interval
+  - adds more detailed comments
+  - Fixes Intersects() for negative t values
+  - see: https://github.com/aardvark-platform/aardvark.algodat/pull/24
+- PolyMesh.Contains
+- ray-polymesh intersections
+- update to Aardvark.Rendering 5.3
+- add missing Aardvark.Build references to fix assembly versions
+
 ### 5.2.14
 - update packages (Aardvark.Data.Durable 0.3.8)
 - fix various warnings
