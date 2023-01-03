@@ -4,6 +4,7 @@ on:
     branches:
       - master
       - newbuild
+      - branch_5.2.10
     paths:
       - RELEASE_NOTES.md
       - .github/workflows/publish.yml

@@ -1,3 +1,6 @@
+### 5.2.10.1
+- fix exception in Queries.QueryCell (backported from 5.2.15)
+
 ### 5.2.10
 - LASzip importer now supports LAS 1.4
 - fix GenericChunk.Empty

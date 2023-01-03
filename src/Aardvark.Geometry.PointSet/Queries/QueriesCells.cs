@@ -168,7 +168,7 @@ namespace Aardvark.Geometry.Points
 
             CellQueryResult QueryCellRecursive(IPointCloudNode n)
             {
-                if (n.Cell == cell)
+                if (n.Cell == cell || n.IsLeaf)
                 {
                     // found!
                     return new CellQueryResult(root, cell, n);
