@@ -1739,23 +1739,24 @@ namespace Aardvark.Geometry.Tests
         {
             var filenames = new[]
             {
-                //@"W:\Datasets\unstruk\Christchurch.laz",
+                //@"W:\Datasets\Vgm\Data\2023-02-23_bugreport\KOE1 OG7.e57",
+                @"W:\Datasets\unstruk\Christchurch.laz",
                 @"W:\Datasets\unstruk\Sensat-EWR-Bedford_22012021_Point-cloud.laz",
-                //@"W:\Datasets\plytest\inference_full.binary.ply",
+                @"W:\Datasets\plytest\inference_full.binary.ply",
                 //@"W:\Datasets\plytest\bunny.ply",
                 //@"W:\Datasets\plytest\leica-studentenzimmer-scan-125.ply",
                 //@"W:\Datasets\plytest\2022-05-31_testfile.ply",
                 //@"E:\e57tests\datasets\matterport.e57",
-                //@"E:\e57tests\datasets\convex-scan-119.e57",
-                //@"E:\e57tests\datasets\Punktwolke_M34.e57",
-                //@"E:\e57tests\datasets\aibotix_ground_points.e57",
-                //@"E:\e57tests\datasets\Register360_Berlin Office_1.e57",
+                @"E:\e57tests\datasets\convex-scan-119.e57",
+                @"E:\e57tests\datasets\Punktwolke_M34.e57",
+                @"E:\e57tests\datasets\aibotix_ground_points.e57",
+                @"E:\e57tests\datasets\Register360_Berlin Office_1.e57",
                 //@"E:\e57tests\datasets\Staatsoper.e57",
                 //@"E:\e57tests\datasets\Innenscan_FARO.e57",
-                //@"E:\e57tests\datasets\1190_31_test_Frizzo.e57",
-                //@"E:\e57tests\datasets\Neuhäusl-Hörschwang.e57",
-                //@"E:\e57tests\datasets\2020452-B-3-5.e57",
-                //@"E:\e57tests\datasets\100pct_1mm_zebcam_shade_zebcam_world.e57",
+                @"E:\e57tests\datasets\1190_31_test_Frizzo.e57",
+                @"E:\e57tests\datasets\Neuhäusl-Hörschwang.e57",
+                @"E:\e57tests\datasets\2020452-B-3-5.e57",
+                @"E:\e57tests\datasets\100pct_1mm_zebcam_shade_zebcam_world.e57",
             };
 
             //filenames = Directory
@@ -1771,7 +1772,7 @@ namespace Aardvark.Geometry.Tests
 
                 var key = Path.GetFileName(filename);
 
-                var storePath = $@"E:\e57tests\stores\{key}";
+                var storePath = $@"T:\e57tests\stores\{key}";
                 Directory.CreateDirectory(storePath);
                 using var storeRaw = new SimpleDiskStore(Path.Combine(storePath, "data.uds"));
                 var store = storeRaw.ToPointCloudStore();
@@ -1786,8 +1787,8 @@ namespace Aardvark.Geometry.Tests
                     .WithStorage(store)
                     .WithKey(key)
                     .WithVerbose(true)
-                    //.WithMaxDegreeOfParallelism(1)
-                    .WithMinDist(0.005)
+                    .WithMaxDegreeOfParallelism(1)
+                    .WithMinDist(0.0025)
                     .WithNormalizePointDensityGlobal(true)
                     //.WithProgressCallback(p => { Report.Line($"{p:0.00}"); })
                     ;
@@ -2335,7 +2336,9 @@ namespace Aardvark.Geometry.Tests
 
         public static async Task Main(string[] _)
         {
-            await Test_20221218();
+            Test_Import_Regression();
+
+            //await Test_20221218();
 
             //{
             //    var stream = await new HttpClient().GetStreamAsync("http://localhost:8080/Vgm/Data/E57/JBs_Haus.e57");

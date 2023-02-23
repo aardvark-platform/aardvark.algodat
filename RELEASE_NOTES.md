@@ -1,3 +1,7 @@
+### 5.2.16
+- removed unused code
+- pointcloud import: gracefully fixing mismatched property counts
+
 ### 5.2.15
 - fix exception in Queries.QueryCell
 - Improve ray - polymesh intersection functions
