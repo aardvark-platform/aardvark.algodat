@@ -214,17 +214,62 @@ namespace Aardvark.Data.Points
             Box3d? bbox = null
             )
         {
-            if (positions == null) throw new ArgumentNullException(nameof(positions), "Invariant ad93ff8e-d1a9-4c96-a626-43c69617371e.");
-            if (colors          != null && colors.Count          != positions.Count) throw new ArgumentException(nameof(colors));
-            if (normals         != null && normals.Count         != positions.Count) throw new ArgumentException(nameof(normals));
-            if (intensities     != null && intensities.Count     != positions.Count) throw new ArgumentException(nameof(intensities));
-            if (classifications != null && classifications.Count != positions.Count) throw new ArgumentException(nameof(classifications));
+            if (positions == null) throw new ArgumentNullException(
+                nameof(positions), "Error ad93ff8e-d1a9-4c96-a626-43c69617371e."
+                );
 
-            if (colors != null && positions.Count != colors.Count)
+            var countMismatch = false;
+
+            if (colors != null && colors.Count != positions.Count)
             {
-                Report.Warn("[Chunk-ctor] inconsistent length: pos.length = {0} vs cs.length = {1}", positions.Count, colors.Count);
-                colors = new C4b[positions.Count];
+                countMismatch = true; //throw new ArgumentException(nameof(colors));
+                Report.Warn($"Expected {positions.Count} color values, but found {colors.Count}. " +
+                    $"Warning 3c3ac3d4-c4de-4ad6-a925-d2fbaece1634."
+                    );
             }
+            if (normals != null && normals.Count != positions.Count)
+            {
+                countMismatch = true; //throw new ArgumentException(nameof(normals));
+                Report.Warn($"Expected {positions.Count} normal values, but found {normals.Count}. " +
+                    $"Warning 0e6b1e22-25a1-4814-8dc7-add137edcd45."
+                    );
+            }
+            if (intensities != null && intensities.Count != positions.Count)
+            {
+                countMismatch = true; //throw new ArgumentException(nameof(intensities));
+                Report.Warn($"Expected {positions.Count} intensity values, but found {intensities.Count}. " +
+                    $"Warning ea548345-6f32-4504-8189-4dd4a4531708."
+                    );
+            }
+            if (classifications != null && classifications.Count != positions.Count)
+            {
+                countMismatch = true; //throw new ArgumentException(nameof(classifications));
+                Report.Warn(
+                    $"Expected {positions.Count} classification values, but found {classifications.Count}. " +
+                    $"Warning 0c82c851-986f-4690-980b-7a3a240bf499."
+                    );
+            }
+
+            if (countMismatch)
+            {
+                var minCount = positions.Count;
+                if (colors          != null && colors.Count          != positions.Count) minCount = Math.Min(minCount, colors.Count         );
+                if (normals         != null && normals.Count         != positions.Count) minCount = Math.Min(minCount, normals.Count        );
+                if (intensities     != null && intensities.Count     != positions.Count) minCount = Math.Min(minCount, intensities.Count    );
+                if (classifications != null && classifications.Count != positions.Count) minCount = Math.Min(minCount, classifications.Count);
+
+                if (                           positions      .Count != minCount) positions       = positions      .Take(minCount).ToArray();
+                if (colors          != null && colors         .Count != minCount) colors          = colors         .Take(minCount).ToArray();
+                if (normals         != null && normals        .Count != minCount) normals         = normals        .Take(minCount).ToArray();
+                if (intensities     != null && intensities    .Count != minCount) intensities     = intensities    .Take(minCount).ToArray();
+                if (classifications != null && classifications.Count != minCount) classifications = classifications.Take(minCount).ToArray();
+            }
+
+            //if (colors != null && positions.Count != colors.Count)
+            //{
+            //    Report.Warn("[Chunk-ctor] inconsistent length: pos.length = {0} vs cs.length = {1}", positions.Count, colors.Count);
+            //    colors = new C4b[positions.Count];
+            //}
 
             //if (positions.Any(p => p.IsNaN)) throw new ArgumentException("One or more positions are NaN.");
 
