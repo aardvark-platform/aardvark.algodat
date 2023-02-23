@@ -155,7 +155,7 @@ NUGET
     Aardvark.Base.TypeProviders (4.5.15)
       FSharp.Core (>= 3.1.2.5) - restriction: || (== net472) (&& (== net6.0) (>= net45)) (&& (== netstandard2.0) (>= net45))
       FSharp.Core (>= 4.2.3) - restriction: || (&& (== net472) (< net45)) (== net6.0) (== netstandard2.0)
-    Aardvark.Build (1.0.14)
+    Aardvark.Build (1.0.18)
     Aardvark.Data.Durable (0.3.8)
     Aardvark.Data.Durable.Codec (0.3.8)
       Aardvark.Base (>= 5.2.1 < 5.3)

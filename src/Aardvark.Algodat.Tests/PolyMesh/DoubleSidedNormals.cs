@@ -1,5 +1,4 @@
 ﻿using Aardvark.Base;
-using Aardvark.Geometry;
 using NUnit.Framework;
 
 namespace Aardvark.Geometry.Tests

@@ -20,7 +20,7 @@ namespace Aardvark.Geometry.Tests
     [TestFixture]
     public class BitPackTests
     {
-        private static Random random = new Random();
+        private static readonly Random random = new();
 
         #region BitPacker
 
