@@ -20,7 +20,7 @@ namespace Aardvark.Data.Photometry
         /// [ 0, 1, 0] = C90
         /// [-1, 1, 0] = C180
         /// [ 0,-1, 0] = C270
-        /// NOTE: gamma/theta is mapped defined differntly than in Aardvark Conversion.CartesianFromSpherical
+        /// NOTE: gamma/theta is mapped differntly than in Aardvark Conversion.CartesianFromSpherical
         /// </summary>
         public static V3d SphericalToCartesian(double cInRadians, double gammaInRadians)
         {
@@ -29,7 +29,7 @@ namespace Aardvark.Data.Photometry
         }
 
         /// <summary>
-        /// Returns (c, gamma) angles in radians of the direction vector.
+        /// Returns (c, gamma) angles in radians of the direction vector (normalized).
         /// The coordinate system is defined as:
         /// [ 0, 0,-1] = Gamma 0°
         /// [ 0, 0, 1] = Gamma 180°
@@ -37,7 +37,7 @@ namespace Aardvark.Data.Photometry
         /// [ 0, 1, 0] = C90
         /// [-1, 1, 0] = C180
         /// [ 0,-1, 0] = C270
-        /// NOTE: gamma/theta is mapped defined differntly than in Aardvark Conversion.CartesianFromSpherical
+        /// NOTE: gamma/theta is mapped differntly than in Aardvark Conversion.CartesianFromSpherical
         /// </summary>
         public static (double, double) CartesianToSpherical(V3d v)
         {

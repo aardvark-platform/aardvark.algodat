@@ -81,7 +81,7 @@ namespace Aardvark.Data.Photometry
         /// Full symmetry - single value annotated as 0° 
         /// Complete measurement (no symmetry) - [0, 360-measureDistance] or [0, 360] in some IES files
         /// Symmetry across C0-C180 plane - [0, 180]
-        /// Symmetry across C90-C70 plane - [270, 90] in LDT or [90, 270] in IES
+        /// Symmetry across C90-C270 plane - [270, 90] in LDT or [90, 270] in IES
         /// Symmetry across C0-C180 and C90-C270 planes - [0, 90]
         /// </summary>
         public double[] HorizontalAngles;

@@ -74,6 +74,9 @@ namespace Aardvark.Data.Wavefront
 
         public bool DoublePrecisionVertices { get; }
 
+        /// <summary>
+        /// Vertices either in Single or Double precision (V4f or V4d)
+        /// </summary>
         public IList Vertices { get; }
 
         public List<V3f> Normals { get; } = new List<V3f>();

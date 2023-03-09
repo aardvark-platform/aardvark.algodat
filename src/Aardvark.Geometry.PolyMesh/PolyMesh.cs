@@ -997,7 +997,9 @@ namespace Aardvark.Geometry
             while (fvi < fve) yield return via[fvi++];
         }
 
-
+        /// <summary>
+        /// FirstIndexArray[faceIndex+1] - FirstIndexArray[faceIndex]
+        /// </summary>
         public int VertexCountOfFace(int faceIndex)
         {
             var fia = m_firstIndexArray;
