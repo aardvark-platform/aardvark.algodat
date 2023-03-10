@@ -187,7 +187,8 @@ namespace Aardvark.Physics.Sky
         }
 
         /// <summary>
-        /// Dates of twilight times and solar transition in Julian days at a certain day
+        /// Dates of twilight times and solar transition in Julian days at a certain day.
+        /// Non-existing transitions are represented with NaN.
         /// </summary>
         public struct TwilightTimesJd
         {
@@ -205,30 +206,35 @@ namespace Aardvark.Physics.Sky
             public double NauticalDusk;
             public double AstronomicalDusk;
 
+            /// <summary>
+            /// Converts the Julian days to DateTimes for a given time zone.
+            /// Non-existing solar transitions will be represented with DateTime.MinValue.
+            /// </summary>
             public TwilightTimes ToDateTime(double timeZone = 0.0)
             {
                 var offset = TimeSpan.FromHours(timeZone);
                 return new TwilightTimes()
                 {
-                    AstronomicalDawn = DateTimeExtensions.ComputeDateFromJulianDay(AstronomicalDawn) + offset,
-                    NauticalDawn = DateTimeExtensions.ComputeDateFromJulianDay(NauticalDawn) + offset,
-                    CivilDawn = DateTimeExtensions.ComputeDateFromJulianDay(CivilDawn) + offset,
-                    SunRise = DateTimeExtensions.ComputeDateFromJulianDay(SunRise) + offset,
-                    SunRiseEnd = DateTimeExtensions.ComputeDateFromJulianDay(SunRiseEnd) + offset,
-                    GoldenHourEnd = DateTimeExtensions.ComputeDateFromJulianDay(GoldenHourEnd) + offset,
-                    Noon = DateTimeExtensions.ComputeDateFromJulianDay(Noon) + offset,
-                    GoldenHourStart = DateTimeExtensions.ComputeDateFromJulianDay(GoldenHourStart) + offset,
-                    SunSetStart = DateTimeExtensions.ComputeDateFromJulianDay(SunSetStart) + offset,
-                    SunSet = DateTimeExtensions.ComputeDateFromJulianDay(SunSet) + offset,
-                    CivilDusk = DateTimeExtensions.ComputeDateFromJulianDay(CivilDusk) + offset,
-                    NauticalDusk = DateTimeExtensions.ComputeDateFromJulianDay(NauticalDusk) + offset,
-                    AstronomicalDusk = DateTimeExtensions.ComputeDateFromJulianDay(AstronomicalDusk) + offset,
+                    AstronomicalDawn = AstronomicalDawn.IsNaN() ? DateTime.MinValue : DateTimeExtensions.ComputeDateFromJulianDay(AstronomicalDawn) + offset,
+                    NauticalDawn = NauticalDawn.IsNaN() ? DateTime.MinValue : DateTimeExtensions.ComputeDateFromJulianDay(NauticalDawn) + offset,
+                    CivilDawn = CivilDawn.IsNaN() ? DateTime.MinValue : DateTimeExtensions.ComputeDateFromJulianDay(CivilDawn) + offset,
+                    SunRise = SunRise.IsNaN() ? DateTime.MinValue : DateTimeExtensions.ComputeDateFromJulianDay(SunRise) + offset,
+                    SunRiseEnd = SunRiseEnd.IsNaN() ? DateTime.MinValue : DateTimeExtensions.ComputeDateFromJulianDay(SunRiseEnd) + offset,
+                    GoldenHourEnd = GoldenHourEnd.IsNaN() ? DateTime.MinValue : DateTimeExtensions.ComputeDateFromJulianDay(GoldenHourEnd) + offset,
+                    Noon = Noon.IsNaN() ? DateTime.MinValue : DateTimeExtensions.ComputeDateFromJulianDay(Noon) + offset,
+                    GoldenHourStart = GoldenHourStart.IsNaN() ? DateTime.MinValue : DateTimeExtensions.ComputeDateFromJulianDay(GoldenHourStart) + offset,
+                    SunSetStart = SunSetStart.IsNaN() ? DateTime.MinValue : DateTimeExtensions.ComputeDateFromJulianDay(SunSetStart) + offset,
+                    SunSet = SunSet.IsNaN() ? DateTime.MinValue : DateTimeExtensions.ComputeDateFromJulianDay(SunSet) + offset,
+                    CivilDusk = CivilDusk.IsNaN() ? DateTime.MinValue : DateTimeExtensions.ComputeDateFromJulianDay(CivilDusk) + offset,
+                    NauticalDusk = NauticalDusk.IsNaN() ? DateTime.MinValue : DateTimeExtensions.ComputeDateFromJulianDay(NauticalDusk) + offset,
+                    AstronomicalDusk = AstronomicalDusk.IsNaN() ? DateTime.MinValue : DateTimeExtensions.ComputeDateFromJulianDay(AstronomicalDusk) + offset,
                 };
             }
         }
 
         /// <summary>
-        /// Dates of twilight times and solar transition at a certain day
+        /// Dates of twilight times and solar transition at a certain day.
+        /// Non-existing transitions are represented with DateTime.MinValue.
         /// </summary>
         public struct TwilightTimes
         {
