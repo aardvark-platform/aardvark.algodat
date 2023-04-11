@@ -188,6 +188,12 @@ namespace Aardvark.Data.Points
             V2d[] xs => xs.Map(x => x.XYO),
             V3f[] xs => xs.Map(x => (V3d)x),
             V3d[] xs => xs,
+
+            IReadOnlyList<V2f> xs => xs.MapToArray(x => (V3d)x.XYO),
+            IReadOnlyList<V2d> xs => xs.MapToArray(x => x.XYO),
+            IReadOnlyList<V3f> xs => xs.MapToArray(x => (V3d)x),
+            IReadOnlyList<V3d> xs => xs.ToArray(),
+
             _ => throw new Exception($"Unsupported positions type {Positions.GetType()}.")
         };
 
@@ -197,8 +203,13 @@ namespace Aardvark.Data.Points
         public C4b[]? ColorsAsC4b => Colors switch
         {
             null => null,
+            
             C3b[] xs => xs.Map(x => new C4b(x.R, x.G, x.B)),
             C4b[] xs => xs,
+
+            IReadOnlyList<C3b> xs => xs.MapToArray(x => new C4b(x.R, x.G, x.B)),
+            IReadOnlyList<C4b> xs => xs.ToArray(),
+
             _ => throw new Exception($"Unsupported colors type {Positions.GetType()}.")
         };
 
@@ -208,7 +219,11 @@ namespace Aardvark.Data.Points
         public V3f[]? NormalsAsV3f => Normals switch
         {
             null => null,
+
             V3f[] xs => xs,
+
+            IReadOnlyList<V3f> xs => xs.ToArray(),
+
             _ => throw new Exception($"Unsupported normals type {Positions.GetType()}.")
         };
 
@@ -218,11 +233,19 @@ namespace Aardvark.Data.Points
         public int[]? IntensitiesAsInt32 => Intensities switch
         {
             null => null,
+
             sbyte[] xs => xs.Map(x => (int)x),
             byte[] xs => xs.Map(x => (int)x),
             short[] xs => xs.Map(x => (int)x),
             ushort[] xs => xs.Map(x => (int)x),
             int[] xs => xs,
+
+            IReadOnlyList<sbyte> xs => xs.MapToArray(x => (int)x),
+            IReadOnlyList<byte> xs => xs.MapToArray(x => (int)x),
+            IReadOnlyList<short> xs => xs.MapToArray(x => (int)x),
+            IReadOnlyList<ushort> xs => xs.MapToArray(x => (int)x),
+            IReadOnlyList<int> xs => xs.ToArray(),
+
             _ => throw new Exception($"Unsupported intensities type {Positions.GetType()}.")
         };
 
@@ -232,7 +255,11 @@ namespace Aardvark.Data.Points
         public byte[]? ClassificationsAsByte => Classifications switch
         {
             null => null,
+
             byte[] xs => xs,
+
+            IReadOnlyList<byte> xs => xs.ToArray(),
+
             _ => throw new Exception($"Unsupported classifications type {Positions.GetType()}.")
         };
 
@@ -276,6 +303,36 @@ namespace Aardvark.Data.Points
                 case V3d[] ps:
                     {
                         Count = ps.Length;
+                        BoundingBox = bbox ?? new Box3d(ps);
+                        break;
+                    }
+
+                case IReadOnlyList<V2f> ps:
+                    {
+                        Count = ps.Count;
+                        var bbox2 = bbox.HasValue ? Box2d.Invalid : (Box2d)new Box2f(ps);
+                        BoundingBox = bbox ?? new Box3d(bbox2.Min.XYO, bbox2.Max.XYO);
+                        break;
+                    }
+
+                case IReadOnlyList<V2d> ps:
+                    {
+                        Count = ps.Count;
+                        var bbox2 = bbox.HasValue ? Box2d.Invalid : new Box2d(ps);
+                        BoundingBox = bbox ?? new Box3d(bbox2.Min.XYO, bbox2.Max.XYO);
+                        break;
+                    }
+
+                case IReadOnlyList<V3f> ps:
+                    {
+                        Count = ps.Count;
+                        BoundingBox = bbox ?? (Box3d)new Box3f(ps);
+                        break;
+                    }
+
+                case IReadOnlyList<V3d> ps:
+                    {
+                        Count = ps.Count;
                         BoundingBox = bbox ?? new Box3d(ps);
                         break;
                     }
@@ -530,12 +587,23 @@ namespace Aardvark.Data.Points
                 var dedup = new HashSet<T>();
                 for (var i = 0; i < ps.Length; i++) if (dedup.Add(ps[i])) ia.Add(i);
             }
+            void DedupList<T>(IReadOnlyList<T> ps)
+            {
+                var dedup = new HashSet<T>();
+                for (var i = 0; i < ps.Count; i++) if (dedup.Add(ps[i])) ia.Add(i);
+            }
             switch (positions)
             {
                 case V2f[] ps: Dedup(ps); break;
                 case V2d[] ps: Dedup(ps); break;
                 case V3f[] ps: Dedup(ps); break;
                 case V3d[] ps: Dedup(ps); break;
+
+                case IReadOnlyList<V2f> ps: DedupList(ps); break;
+                case IReadOnlyList<V2d> ps: DedupList(ps); break;
+                case IReadOnlyList<V3f> ps: DedupList(ps); break;
+                case IReadOnlyList<V3d> ps: DedupList(ps); break;
+
                 default: throw new Exception($"Unknown positions type {positions.GetType()}.");
             }
             var hasDuplicates = ia.Count < Count;
@@ -567,6 +635,12 @@ namespace Aardvark.Data.Points
                 V2d[] ps => WithPositions(ps.Map(p => mapping(p.XYO).XY)),
                 V3f[] ps => WithPositions(ps.Map(p => (V3f)mapping((V3d)p))),
                 V3d[] ps => WithPositions(ps.Map(mapping)),
+
+                IReadOnlyList<V2f> ps => WithPositions(ps.MapToArray(p => (V2f)mapping((V3d)p.XYO).XY)),
+                IReadOnlyList<V2d> ps => WithPositions(ps.MapToArray(p => mapping(p.XYO).XY)),
+                IReadOnlyList<V3f> ps => WithPositions(ps.MapToArray(p => (V3f)mapping((V3d)p))),
+                IReadOnlyList<V3d> ps => WithPositions(ps.MapToArray(mapping)),
+
                 _ => throw new Exception($"Unsupported positions type {Data[PositionsDef].GetType()}"),
             };
 
@@ -671,6 +745,56 @@ namespace Aardvark.Data.Points
                         }
                         return Subset(ia);
                     }
+
+                case IReadOnlyList<V2f> ps:
+                    {
+                        var last = V2f.MinValue;
+                        var ia = new List<int>();
+                        for (var i = 0; i < ps.Count; i++)
+                        {
+                            var p = ps[i];
+                            if (Utils.DistLessThanL2(ref p, ref last, minDistSquared)) continue;
+                            last = p; ia.Add(i);
+                        }
+                        return Subset(ia);
+                    }
+                case IReadOnlyList<V2d> ps:
+                    {
+                        var last = V2d.MinValue;
+                        var ia = new List<int>();
+                        for (var i = 0; i < ps.Count; i++)
+                        {
+                            var p = ps[i];
+                            if (Utils.DistLessThanL2(ref p, ref last, minDistSquared)) continue;
+                            last = p; ia.Add(i);
+                        }
+                        return Subset(ia);
+                    }
+                case IReadOnlyList<V3f> ps:
+                    {
+                        var last = V3f.MinValue;
+                        var ia = new List<int>();
+                        for (var i = 0; i < ps.Count; i++)
+                        {
+                            var p = ps[i];
+                            if (Utils.DistLessThanL2(ref p, ref last, minDistSquared)) continue;
+                            last = p; ia.Add(i);
+                        }
+                        return Subset(ia);
+                    }
+                case IReadOnlyList<V3d> ps:
+                    {
+                        var last = V3d.MinValue;
+                        var ia = new List<int>();
+                        for (var i = 0; i < ps.Count; i++)
+                        {
+                            var p = ps[i];
+                            if (Utils.DistLessThanL2(ref p, ref last, minDistSquared)) continue;
+                            last = p; ia.Add(i);
+                        }
+                        return Subset(ia);
+                    }
+
                 default:
                     throw new Exception($"Unsupported type {Data[PositionsDef].GetType()}.");
             };
@@ -734,6 +858,56 @@ namespace Aardvark.Data.Points
                         }
                         return Subset(ia);
                     }
+
+                case IReadOnlyList<V2f> ps:
+                    {
+                        var last = V2f.MinValue;
+                        var ia = new List<int>();
+                        for (var i = 0; i < ps.Count; i++)
+                        {
+                            var p = ps[i];
+                            if (Utils.DistLessThanL1(ref p, ref last, minDistSquared)) continue;
+                            last = p; ia.Add(i);
+                        }
+                        return Subset(ia);
+                    }
+                case IReadOnlyList<V2d> ps:
+                    {
+                        var last = V2d.MinValue;
+                        var ia = new List<int>();
+                        for (var i = 0; i < ps.Count; i++)
+                        {
+                            var p = ps[i];
+                            if (Utils.DistLessThanL1(ref p, ref last, minDistSquared)) continue;
+                            last = p; ia.Add(i);
+                        }
+                        return Subset(ia);
+                    }
+                case IReadOnlyList<V3f> ps:
+                    {
+                        var last = V3f.MinValue;
+                        var ia = new List<int>();
+                        for (var i = 0; i < ps.Count; i++)
+                        {
+                            var p = ps[i];
+                            if (Utils.DistLessThanL1(ref p, ref last, minDistSquared)) continue;
+                            last = p; ia.Add(i);
+                        }
+                        return Subset(ia);
+                    }
+                case IReadOnlyList<V3d> ps:
+                    {
+                        var last = V3d.MinValue;
+                        var ia = new List<int>();
+                        for (var i = 0; i < ps.Count; i++)
+                        {
+                            var p = ps[i];
+                            if (Utils.DistLessThanL1(ref p, ref last, minDistSquared)) continue;
+                            last = p; ia.Add(i);
+                        }
+                        return Subset(ia);
+                    }
+
                 default:
                     throw new Exception($"Unsupported type {Data[PositionsDef].GetType()}.");
             };
@@ -753,6 +927,12 @@ namespace Aardvark.Data.Points
                 V2d[] ps => ps.Map(p => p.XYO),
                 V3f[] ps => ps.Map(p => (V3d)p),
                 V3d[] ps => ps,
+
+                IReadOnlyList<V2f> ps => ps.MapToArray(p => (V3d)p.XYO),
+                IReadOnlyList<V2d> ps => ps.MapToArray(p => p.XYO),
+                IReadOnlyList<V3f> ps => ps.MapToArray(p => (V3d)p),
+                IReadOnlyList<V3d> ps => ps.ToArray(),
+
                 _ => throw new Exception($"Unsupported type {Data[PositionsDef].GetType()}.")
             };
             var take = new bool[Count];
@@ -826,6 +1006,12 @@ namespace Aardvark.Data.Points
                 case V2d[] xs: for (var i = 0; i < xs.Length; i++) if (predicate(xs[i].XYO)) ia.Add(i); break;
                 case V3f[] xs: for (var i = 0; i < xs.Length; i++) if (predicate((V3d)xs[i])) ia.Add(i); break;
                 case V3d[] xs: for (var i = 0; i < xs.Length; i++) if (predicate(xs[i])) ia.Add(i); break;
+
+                case IReadOnlyList<V2f> xs: for (var i = 0; i < xs.Count; i++) if (predicate((V3d)xs[i].XYO)) ia.Add(i); break;
+                case IReadOnlyList<V2d> xs: for (var i = 0; i < xs.Count; i++) if (predicate(xs[i].XYO)) ia.Add(i); break;
+                case IReadOnlyList<V3f> xs: for (var i = 0; i < xs.Count; i++) if (predicate((V3d)xs[i])) ia.Add(i); break;
+                case IReadOnlyList<V3d> xs: for (var i = 0; i < xs.Count; i++) if (predicate(xs[i])) ia.Add(i); break;
+
                 default: throw new Exception($"Unsupported type {Data[PositionsDef].GetType()}.");
             }
             return Subset(ia);
@@ -859,6 +1045,12 @@ namespace Aardvark.Data.Points
                 for (var i = 0; i < xs.Length; i++) if (predicate(xs[i])) ia.Add(i);
                 return Subset(ia);
             }
+            else if (Data[ColorsDef] is IReadOnlyList<T> xs1)
+            {
+                var ia = new List<int>();
+                for (var i = 0; i < xs1.Count; i++) if (predicate(xs1[i])) ia.Add(i);
+                return Subset(ia);
+            }
             else
             {
                 throw new Exception($"Unsupported type {Data[ColorsDef].GetType()}.");
@@ -873,6 +1065,10 @@ namespace Aardvark.Data.Points
             {
                 C3b[] xs => ImmutableFilterByColorGeneric(predicate),
                 C4b[] xs => ImmutableFilterByColorGeneric<C4b>(x => predicate(new C3b(x.R, x.G, x.B))),
+
+                IReadOnlyList<C3b> xs => ImmutableFilterByColorGeneric(predicate),
+                IReadOnlyList<C4b> xs => ImmutableFilterByColorGeneric<C4b>(x => predicate(new C3b(x.R, x.G, x.B))),
+
                 _ => throw new Exception($"Unsupported type {Data[ColorsDef].GetType()}."),
             };
 
@@ -883,6 +1079,9 @@ namespace Aardvark.Data.Points
             => (ColorsDef == null) ? this : Data[ColorsDef] switch
             {
                 C4b[] xs => ImmutableFilterByColorGeneric(predicate),
+
+                IReadOnlyList<C4b> xs => ImmutableFilterByColorGeneric(predicate),
+
                 _ => throw new Exception($"Unsupported type {Data[ColorsDef].GetType()}."),
             };
 
@@ -894,6 +1093,10 @@ namespace Aardvark.Data.Points
             {
                 C3f[] xs => ImmutableFilterByColorGeneric(predicate),
                 C4f[] xs => ImmutableFilterByColorGeneric<C4f>(x => predicate(new C3f(x.R, x.G, x.B))),
+
+                IReadOnlyList<C3f> xs => ImmutableFilterByColorGeneric(predicate),
+                IReadOnlyList<C4f> xs => ImmutableFilterByColorGeneric<C4f>(x => predicate(new C3f(x.R, x.G, x.B))),
+
                 _ => throw new Exception($"Unsupported type {Data[ColorsDef].GetType()}."),
             };
 
@@ -904,6 +1107,9 @@ namespace Aardvark.Data.Points
             => (ColorsDef == null) ? this : Data[ColorsDef] switch
             {
                 C4f[] xs => ImmutableFilterByColorGeneric(predicate),
+
+                IReadOnlyList<C4f> xs => ImmutableFilterByColorGeneric(predicate),
+
                 _ => throw new Exception($"Unsupported type {Data[ColorsDef].GetType()}."),
             };
 
@@ -918,6 +1124,9 @@ namespace Aardvark.Data.Points
             switch (Data[NormalsDef])
             {
                 case V3f[] xs: for (var i = 0; i < xs.Length; i++) if (predicate(xs[i])) ia.Add(i); break;
+
+                case IReadOnlyList<V3f> xs: for (var i = 0; i < xs.Count; i++) if (predicate(xs[i])) ia.Add(i); break;
+
                 default: throw new Exception($"Unsupported type {Data[NormalsDef].GetType()}.");
             }
             return Subset(ia);
@@ -938,6 +1147,13 @@ namespace Aardvark.Data.Points
                 case short[] xs: for (var i = 0; i < xs.Length; i++) if (predicate(xs[i])) ia.Add(i); break;
                 case ushort[] xs: for (var i = 0; i < xs.Length; i++) if (predicate(xs[i])) ia.Add(i); break;
                 case int[] xs: for (var i = 0; i < xs.Length; i++) if (predicate(xs[i])) ia.Add(i); break;
+
+                case IReadOnlyList<byte> xs: for (var i = 0; i < xs.Count; i++) if (predicate(xs[i])) ia.Add(i); break;
+                case IReadOnlyList<sbyte> xs: for (var i = 0; i < xs.Count; i++) if (predicate(xs[i])) ia.Add(i); break;
+                case IReadOnlyList<short> xs: for (var i = 0; i < xs.Count; i++) if (predicate(xs[i])) ia.Add(i); break;
+                case IReadOnlyList<ushort> xs: for (var i = 0; i < xs.Count; i++) if (predicate(xs[i])) ia.Add(i); break;
+                case IReadOnlyList<int> xs: for (var i = 0; i < xs.Count; i++) if (predicate(xs[i])) ia.Add(i); break;
+
                 default: throw new Exception($"Unsupported type {Data[IntensitiesDef].GetType()}.");
             }
             return Subset(ia);
@@ -954,6 +1170,9 @@ namespace Aardvark.Data.Points
             switch (Data[ClassificationsDef])
             {
                 case byte[] xs: for (var i = 0; i < xs.Length; i++) if (predicate(xs[i])) ia.Add(i); break;
+
+                case IReadOnlyList<byte> xs: for (var i = 0; i < xs.Count; i++) if (predicate(xs[i])) ia.Add(i); break;
+
                 default: throw new Exception($"Unsupported type {Data[ClassificationsDef].GetType()}.");
             }
             return Subset(ia);
