@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2022. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -77,20 +77,26 @@ namespace Aardvark.Geometry.Tests
         }
 
         [Test]
-        public void Chunk_MismatchingNumberOfColorsFails1()
+        public void Chunk_MismatchingNumberOfColorsDoesNotFail1()
         {
-            Assert.Catch(() =>
+            Assert.DoesNotThrow(() =>
             {
-                new Chunk(new[] { new V3d(1, 2, 3), new V3d(4, 5, 6) }, new C4b[0]);
+                var chunk = new Chunk(new[] { new V3d(1, 2, 3), new V3d(4, 5, 6) }, Array.Empty<C4b>());
+                Assert.IsTrue(chunk.Count == 0);
+                Assert.IsTrue(chunk.Positions.Count == 0);
+                Assert.IsTrue(chunk.Colors.Count == 0);
             });
         }
 
         [Test]
-        public void Chunk_MismatchingNumberOfColorsFails2()
+        public void Chunk_MismatchingNumberOfColorsDoesNotFail2()
         {
-            Assert.Catch(() =>
+            Assert.DoesNotThrow(() =>
             {
-                new Chunk(new[] { new V3d(1, 2, 3), new V3d(4, 5, 6) }, new C4b[123]);
+                var chunk = new Chunk(new[] { new V3d(1, 2, 3), new V3d(4, 5, 6) }, new C4b[123]);
+                Assert.IsTrue(chunk.Count == 2);
+                Assert.IsTrue(chunk.Positions.Count == 2);
+                Assert.IsTrue(chunk.Colors.Count == 2);
             });
         }
 
