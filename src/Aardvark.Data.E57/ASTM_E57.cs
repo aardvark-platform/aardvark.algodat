@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2022. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -788,7 +788,7 @@ namespace Aardvark.Data.E57
                     if (buffer.Length % 4 != 0) throw new ArgumentException($"Expected buffer length multiple of 4, but is {buffer.Length}.");
                     using var br = new BinaryReader(new MemoryStream(buffer));
                     var xs = new float[buffer.Length / 4];
-                    for (var i = 0; i < xs.Length; i++) xs[i] = br.ReadSingle();
+                    for (var i = 0; i < xs.Length; i++) { xs[i] = br.ReadSingle(); if (Math.Abs(xs[i]) > 1000000000) Debugger.Break(); }
                     return xs;
                 }
                 static double[] UnpackFloat64(byte[] buffer, E57Float proto)

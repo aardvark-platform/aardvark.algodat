@@ -1,6 +1,6 @@
 ﻿/*
    Aardvark Platform
-   Copyright (C) 2006-2020  Aardvark Platform Team
+   Copyright (C) 2006-2023  Aardvark Platform Team
    https://aardvark.graphics
 
    Licensed under the Apache License, Version 2.0 (the "License");

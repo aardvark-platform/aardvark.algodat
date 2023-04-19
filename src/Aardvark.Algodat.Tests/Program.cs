@@ -3,6 +3,7 @@ using Aardvark.Data;
 using Aardvark.Data.Points;
 using Aardvark.Data.Points.Import;
 using Aardvark.Geometry.Points;
+using FShade.GLSL;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -11,12 +12,13 @@ using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Uncodium.SimpleStore;
+using static Aardvark.Data.E57.ASTM_E57;
 using static Aardvark.Geometry.Points.Queries;
+using static System.Console;
 
 #pragma warning disable IDE0051 // Remove unused private members
 #pragma warning disable IDE0059 // Unnecessary assignment of a value
@@ -30,8 +32,7 @@ namespace System.Runtime.CompilerServices
 }
 #endif
 
-namespace Aardvark.Geometry.Tests
-{
+namespace Aardvark.Geometry.Tests {
     public class Program
     {
         internal static void CreateStore(string filename, string storePath, string key, double minDist)
@@ -1739,24 +1740,26 @@ namespace Aardvark.Geometry.Tests
         {
             var filenames = new[]
             {
+                @"W:\Datasets\Vgm\Data\structured_pointclouds\lowergetikum 20230321.e57",
+                //@"W:\Datasets\Vgm\Data\structured_pointclouds\JB_Haus_2022_KG.e57",
                 //@"W:\Datasets\Vgm\Data\2023-02-23_bugreport\KOE1 OG7.e57",
-                @"W:\Datasets\unstruk\Christchurch.laz",
-                @"W:\Datasets\unstruk\Sensat-EWR-Bedford_22012021_Point-cloud.laz",
-                @"W:\Datasets\plytest\inference_full.binary.ply",
+                //@"W:\Datasets\unstruk\Christchurch.laz",
+                //@"W:\Datasets\unstruk\Sensat-EWR-Bedford_22012021_Point-cloud.laz",
+                //@"W:\Datasets\plytest\inference_full.binary.ply",
                 //@"W:\Datasets\plytest\bunny.ply",
                 //@"W:\Datasets\plytest\leica-studentenzimmer-scan-125.ply",
                 //@"W:\Datasets\plytest\2022-05-31_testfile.ply",
                 //@"E:\e57tests\datasets\matterport.e57",
-                @"E:\e57tests\datasets\convex-scan-119.e57",
-                @"E:\e57tests\datasets\Punktwolke_M34.e57",
-                @"E:\e57tests\datasets\aibotix_ground_points.e57",
-                @"E:\e57tests\datasets\Register360_Berlin Office_1.e57",
+                //@"E:\e57tests\datasets\convex-scan-119.e57",
+                //@"E:\e57tests\datasets\Punktwolke_M34.e57",
+                //@"E:\e57tests\datasets\aibotix_ground_points.e57",
+                //@"E:\e57tests\datasets\Register360_Berlin Office_1.e57",
                 //@"E:\e57tests\datasets\Staatsoper.e57",
                 //@"E:\e57tests\datasets\Innenscan_FARO.e57",
-                @"E:\e57tests\datasets\1190_31_test_Frizzo.e57",
-                @"E:\e57tests\datasets\Neuhäusl-Hörschwang.e57",
-                @"E:\e57tests\datasets\2020452-B-3-5.e57",
-                @"E:\e57tests\datasets\100pct_1mm_zebcam_shade_zebcam_world.e57",
+                //@"E:\e57tests\datasets\1190_31_test_Frizzo.e57",
+                //@"E:\e57tests\datasets\Neuhäusl-Hörschwang.e57",
+                //@"E:\e57tests\datasets\2020452-B-3-5.e57",
+                //@"E:\e57tests\datasets\100pct_1mm_zebcam_shade_zebcam_world.e57",
             };
 
             //filenames = Directory
@@ -1787,9 +1790,11 @@ namespace Aardvark.Geometry.Tests
                     .WithStorage(store)
                     .WithKey(key)
                     .WithVerbose(true)
-                    .WithMaxDegreeOfParallelism(1)
-                    .WithMinDist(0.0025)
-                    .WithNormalizePointDensityGlobal(true)
+                    .WithMaxDegreeOfParallelism(0)
+                    //.WithMinDist(0.0025)
+                    //.WithNormalizePointDensityGlobal(true)
+                    .WithMinDist(0)
+                    .WithNormalizePointDensityGlobal(false)
                     //.WithProgressCallback(p => { Report.Line($"{p:0.00}"); })
                     ;
 
@@ -2334,9 +2339,188 @@ namespace Aardvark.Geometry.Tests
             return Task.CompletedTask;
         }
 
+        static Task Example_20230316() 
+        {
+            var filename = @"W:\Datasets\Vgm\Data\structured_pointclouds\JB_Haus_2022_KG.e57";
+
+            var config = ParseConfig.Default.WithMaxChunkPointCount(1000000);
+            var info = E57.E57Info(filename, config);
+
+            //while (true)
+            {
+                var t0 = Stopwatch.StartNew();
+                var chunks = E57.Chunks(filename, config);
+                foreach (var chunk in chunks)
+                {
+                    //WriteLine($"parsed chunk with {chunk.Count} points");
+                    //for (var i = 0; i < 5; i++) WriteLine($"   pos={chunk.Positions[i]:0.00} col={chunk.Colors[i]}");
+                    //WriteLine("    ...");
+                }
+                t0.Stop();
+                WriteLine(t0.Elapsed);
+            }
+            return Task.CompletedTask;
+        }
+
+        static Task Repro_20230308() 
+        {
+            const string POINTCLOUD = @"W:\Datasets\Vgm\Data\E57\JBs_Haus.e57";
+
+            const string STOREPATH = @"./teststore.dur";
+
+            Guid KEY1 = Guid.Parse("771ea77e-f868-4881-8a52-11502f2099e9");
+            Guid KEY2 = Guid.Parse("653d7bcb-2511-40b8-9709-13efdc34736a");
+            var cts = new CancellationTokenSource();
+
+            WriteLine("delete store file (y/N)?");
+            switch (ReadKey().Key) {
+                case ConsoleKey.Y:
+                    try { File.Delete(STOREPATH); }
+                    catch (Exception e) { WriteLine($"Failed to delete store: {e.Message}"); }
+                    break;
+                case ConsoleKey.N:
+                    break;
+                default:
+                    WriteLine($": INVALID KEY -> EXIT");
+                    return Task.CompletedTask;
+            }
+
+            /////////////////////////////////////////////////////////////////////////////
+            WriteLine($"[0] CREATE EMPTY STORE AND IMPORT POINT CLOUD");
+            if (File.Exists(STOREPATH)) {
+                WriteLine($"[0] store already exists (no import necessary)");
+            }
+            else {
+                Directory.CreateDirectory(@"T:\tmp");
+                using var store0 = new SimpleDiskStore(STOREPATH).ToPointCloudStore();
+                WriteLine($"[0] created empty store");
+
+                Write($"[0] importing {POINTCLOUD} ... ");
+                var pointset0 = PointCloud.Import(POINTCLOUD, ImportConfig.Default
+                    .WithStorage(store0)
+                    .WithKey(KEY1)
+                    .WithVerbose(false)
+                    );
+                WriteLine($"done");
+            }
+            WriteLine();
+
+            /////////////////////////////////////////////////////////////////////////////
+            try {
+                WriteLine($"[1] OPEN STORE (READ-ONLY) and continuously read existing point cloud)");
+                var storeReadOnly = SimpleDiskStore
+                    .OpenReadOnlySnapshot(STOREPATH)
+                    .ToPointCloudStore(cache: null) // don't use a cache to force file access
+                    ;
+                WriteLine($"[1] opened store (read-only)");
+                _ = Task.Run(() =>
+                {
+                    try {
+                        while (!cts.IsCancellationRequested) {
+                            var pointcloud = storeReadOnly.GetPointSet(KEY1);
+                            var count = 0;
+                            pointcloud.Root.Value.ForEachNode(
+                                outOfCore: true,
+                                action: node => count++
+                                );
+                            ForegroundColor = ConsoleColor.Blue; Write("R"); ResetColor();
+                        }
+                    }
+                    catch (Exception e) {
+                        WriteLine($"Failed to READ point cloud. {e.Message}");
+                    }
+                },
+                cts.Token);
+            }
+            catch (Exception e) {
+                WriteLine($"Failed to OPEN store (READ-ONLY). {e.Message}");
+            }
+
+            WriteLine();
+            WriteLine("============================================");
+            WriteLine("press any key to START POINTCLOUD IMPORT ...");
+            WriteLine("============================================");
+            ReadKey();
+
+            /////////////////////////////////////////////////////////////////////////////
+            try {
+                WriteLine();
+                WriteLine($"[2] OPEN STORE (WRITE) and continuously import same point cloud");
+                var storeReadWrite = new SimpleDiskStore(STOREPATH)
+                    .ToPointCloudStore(cache: null) // don't use a cache to force file access
+                    ;
+                WriteLine($"[2] opened store (read/write)");
+                _ = Task.Run(() =>
+                {
+                    try {
+                        while (!cts.IsCancellationRequested) {
+                            var pointset = PointCloud.Import(POINTCLOUD, ImportConfig.Default
+                                .WithStorage(storeReadWrite)
+                                .WithKey(KEY2)
+                                .WithVerbose(false)
+                                );
+
+                            ForegroundColor = ConsoleColor.Green;
+                            WriteLine($"\nimported point cloud, store size is {new FileInfo(STOREPATH).Length:N0} bytes");
+                            ResetColor();
+                        }
+                    }
+                    catch (Exception e) {
+                        WriteLine($"Failed to IMPORT point cloud. {e.Message}");
+                    }
+                },
+                cts.Token);
+            }
+            catch (Exception e) {
+                WriteLine($"Failed to OPEN store (WRITE). {e.Message}");
+            }
+
+            WriteLine();
+            WriteLine("=========================");
+            WriteLine("press any key to stop ...");
+            WriteLine("=========================");
+            ReadKey();
+            cts.Cancel();
+
+            return Task.CompletedTask;
+        }
+
+
+
         public static async Task Main(string[] _)
         {
-            Test_Import_Regression();
+            //{
+            //    var chunks = E57.ChunksFull(@"W:\Datasets\Vgm\Data\E57\Innenscan_FARO\Innenscan_FARO.e57", ParseConfig.Default);
+            //    foreach (var chunk in chunks)
+            //    {
+            //        WriteLine(new Box3d(chunk.Positions));
+            //    }
+            //}
+
+            //{
+            //    var filename = @"W:\Datasets\Vgm\Data\structured_pointclouds\JB_Haus_2022_KG.e57";
+            //    var filesize = new FileInfo(filename).Length;
+            //    E57FileHeader header;
+            //    using (var stream = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read))
+            //    {
+            //        header = E57FileHeader.Parse(stream, filesize, verbose: true);
+            //    };
+
+            //    var i = 0;
+            //    foreach (var image2d in header.E57Root.Images2D)
+            //    {
+            //        var outfile = $"T:/tmp/testimages/{i++}.jpg";
+            //        var fileinfo = new FileInfo(outfile); if (!fileinfo.Directory.Exists) fileinfo.Directory.Create();
+            //        File.WriteAllBytes(outfile, image2d.PinholeRepresentation.JpegImage);
+            //        WriteLine($"saved {outfile}");
+            //    }
+            //}
+
+            await Repro_20230308();
+
+            //await Example_20230316();
+
+            //Test_Import_Regression();
 
             //await Test_20221218();
 

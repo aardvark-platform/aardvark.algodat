@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2022. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -16,6 +16,7 @@ using Aardvark.Data.E57;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -264,6 +265,8 @@ namespace Aardvark.Data.Points.Import
                 {
                     foreach (var (Positions, Properties) in data3d.StreamPointsFull(config.MaxChunkPointCount, config.Verbose, ImmutableHashSet<PointPropertySemantics>.Empty))
                     {
+                        for (var i = 0; i < Positions.Length; i++) if (Positions[i].Length > 1000000000) Debugger.Break();
+
                         var chunk = new E57Chunk(Properties, data3d, Positions);
                         Interlocked.Add(ref yieldedRecordCount, Positions.Length);
 

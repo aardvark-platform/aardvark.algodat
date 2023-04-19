@@ -1,3 +1,7 @@
+### 5.2.17
+- update package dependencies and tools
+- fix unit tests (mismatched property counts in Chunk no longer throw)
+
 ### 5.2.16
 - removed unused code
 - pointcloud import: gracefully fixing mismatched property counts
