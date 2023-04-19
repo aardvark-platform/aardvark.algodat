@@ -1,8 +1,8 @@
 Aardvark.Base
-Aardvark.Data.Durable.Codec
-Nullable
-Uncodium.SimpleStore
-Uncodium.Eigensystems
-System.Collections.Immutable
-Aardvark.Geometry
 Aardvark.Build
+Aardvark.Data.Durable.Codec
+Aardvark.Geometry
+Nullable
+System.Collections.Immutable
+Uncodium.Eigensystems
+Uncodium.SimpleStore

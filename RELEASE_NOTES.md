@@ -1,3 +1,8 @@
+### 5.2.18
+- removed net70 references
+    - System.Collections.Immutable ~> 6.0.0
+    - System.Text.Json ~> 6.0.0
+
 ### 5.2.17
 - update package dependencies and tools
 - fix unit tests (mismatched property counts in Chunk no longer throw)
