@@ -1,3 +1,7 @@
+### 5.2.19
+- update Aardvark.Base to 5.2.24
+- Chunk.ToGenericChunk now forces arrays
+
 ### 5.2.18
 - removed net70 references
     - System.Collections.Immutable ~> 6.0.0
