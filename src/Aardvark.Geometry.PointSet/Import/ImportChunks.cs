@@ -144,6 +144,23 @@ namespace Aardvark.Geometry.Points
             //chunks = chunks.ImmutableUnmixOutOfCore(@"T:\tmp", 1, config);
             //Report.End();
 
+#if DEBUG
+#if false
+            // store chunks before map/reduce
+            var debugChunkIndex = 0L;
+            var debugChunkDir = new DirectoryInfo(@"W:\tmp\debugChunks");
+            if (!debugChunkDir.Exists) debugChunkDir.Create();
+            chunks = chunks
+                .Do(chunk =>
+                {
+                    var buffer = chunk.ToGenericChunk().Data.DurableEncode(Durable.Primitives.DurableMap, gzipped: false);
+                    var filename = Path.Combine(debugChunkDir.FullName, $"chunk_{debugChunkIndex++:00000}.dur");
+                    File.WriteAllBytes(filename, buffer);
+                    if (chunk.Count == 0) Report.Warn($"[PointCloud.Chunks] empty chunk");
+                })
+                ;
+#endif
+#endif
             // reduce all chunks to single PointSet
             if (config.Verbose) Report.BeginTimed("map/reduce");
             var final = chunks

@@ -58,10 +58,10 @@ namespace Aardvark.Data.Points
             var data = ImmutableDictionary<Durable.Def, object>.Empty
                 .Add(GenericChunk.Defs.Positions3d, Positions.ToArray())
                 ;
-            if (Colors != null) data = data.Add(GenericChunk.Defs.Colors4b, Colors);
-            if (Normals != null) data = data.Add(GenericChunk.Defs.Normals3f, Normals);
-            if (Intensities != null) data = data.Add(GenericChunk.Defs.Intensities1i, Intensities);
-            if (Classifications != null) data = data.Add(GenericChunk.Defs.Classifications1b, Classifications);
+            if (Colors != null) data = data.Add(GenericChunk.Defs.Colors4b, Colors.ToArray());
+            if (Normals != null) data = data.Add(GenericChunk.Defs.Normals3f, Normals.ToArray());
+            if (Intensities != null) data = data.Add(GenericChunk.Defs.Intensities1i, Intensities.ToArray());
+            if (Classifications != null) data = data.Add(GenericChunk.Defs.Classifications1b, Classifications.ToArray());
             return new GenericChunk(data, BoundingBox);
         }
 

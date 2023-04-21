@@ -3,7 +3,6 @@ using Aardvark.Data;
 using Aardvark.Data.Points;
 using Aardvark.Data.Points.Import;
 using Aardvark.Geometry.Points;
-using FShade.GLSL;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -16,7 +15,6 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Uncodium.SimpleStore;
-using static Aardvark.Data.E57.ASTM_E57;
 using static Aardvark.Geometry.Points.Queries;
 using static System.Console;
 
@@ -32,7 +30,8 @@ namespace System.Runtime.CompilerServices
 }
 #endif
 
-namespace Aardvark.Geometry.Tests {
+namespace Aardvark.Geometry.Tests
+{
     public class Program
     {
         internal static void CreateStore(string filename, string storePath, string key, double minDist)
@@ -2485,10 +2484,153 @@ namespace Aardvark.Geometry.Tests {
             return Task.CompletedTask;
         }
 
+        static Task Test_20230419()
+        {
+            var filename = @"C:\Users\sm\Downloads\NDR-Studio3 1.e57";
 
+            //{
+            //    void VerifyChecksums(Stream stream, long streamLengthInBytes)
+            //    {
+            //        stream.Position = 0;
+
+            //        if (streamLengthInBytes % 1024 != 0) throw new Exception(
+            //            $"[E57] Invalid file size. Must be multiple of 1024, but is {streamLengthInBytes:N0}."
+            //            );
+
+            //        var imax = streamLengthInBytes / 1024;
+            //        var buffer = new byte[1024];
+            //        for (var i = 0; i < imax; i++)
+            //        {
+            //            var blockIndex = i + 1;
+            //            if (stream.Read(buffer, 0, 1024) != 1024) throw new InvalidOperationException();
+
+            //            // checksum is big endian unsigned 32-bit int
+            //            var crcStored = (uint)((buffer[1020] << 24) + (buffer[1021] << 16) + (buffer[1022] << 8) + buffer[1023]);
+
+            //            var crcComputed = Crc32CAlgorithm.Compute(buffer, 0, 1020);
+
+            //            if (blockIndex % (1000000) == 0) 
+            //                WriteLine($"[E57][{DateTime.Now}][{100.0 * stream.Position / stream.Length:000.00}%] checked {stream.Position:N0} bytes");
+
+            //            if (crcStored != crcComputed)
+            //            {
+            //                ForegroundColor = ConsoleColor.Red;
+            //                WriteLine(
+            //                    $"[E57][{DateTime.Now}] block {blockIndex:N0}/{imax:N0} : checksum error (0x{crcStored:X} instead of 0x{crcComputed:X}). File offset is 0x{stream.Position - 4:X}."
+            //                    );
+            //                ResetColor();
+            //            }
+            //        }
+            //        WriteLine($"[E57][{DateTime.Now}][{100.0 * stream.Position / stream.Length:000.00}%] checked {stream.Position:N0} bytes");
+            //    }
+
+            //    VerifyChecksums(File.OpenRead(filename), new FileInfo(filename).Length);
+            //    return Task.CompletedTask;
+            //}
+
+//            {
+//                var rootCell = new Cell(8);
+//                var aCell = new Cell(3, 3, 0, 6);
+//                var bCell = new Cell(1, 1, -1, 7);
+
+//                var foo1 = new Cell(aCell, bCell);
+//                var foo2 = new Cell(new Box3d(aCell.BoundingBox, bCell.BoundingBox));
+
+//                var subcells = new IPointCloudNode[8];
+//                var doneA = false;
+//                var doneB = false;
+//                for (var i = 0; i < 8; i++)
+//                {
+//                    var subcell = rootCell.GetOctant(i);
+
+//                    Report.Line($"subcell {subcell}, a {aCell}");
+//                    if (subcell.Intersects(aCell))
+//                    {
+//#if DEBUG
+//                        if (subcell.Intersects(bCell)) throw new InvalidOperationException();
+//#endif
+//                        //subcells[i] = JoinTreeToRootCell(subcell, a, config);
+//                        if (doneB) break;
+//                        doneA = true;
+//                    }
+
+//                    Report.Line($"subcell {subcell}, b {bCell}");
+//                    if (subcell.Intersects(bCell))
+//                    {
+//#if DEBUG
+//                        if (subcell.Intersects(aCell)) throw new InvalidOperationException();
+//#endif
+//                        //subcells[i] = JoinTreeToRootCell(subcell, b, config);
+//                        if (doneA == true) break;
+//                        doneB = true;
+//                    }
+//                }
+//                return Task.CompletedTask;
+//            }
+
+            //var debugChunksDir = new DirectoryInfo(@"W:\tmp\debugChunks");
+            //var debugChunks = debugChunksDir
+            //    .EnumerateFiles("*.dur")
+            //    .Select(filename =>
+            //    {
+            //        // var buffer = chunk.ToGenericChunk().Data.DurableEncode(Durable.Primitives.DurableMap, gzipped: false);
+            //        var buffer = File.ReadAllBytes(filename.FullName);
+            //        var (def, o) = Data.Codec.Deserialize(buffer);
+            //        var chunk = new GenericChunk((ImmutableDictionary<Durable.Def, object>)o);
+            //        Report.Line($"read chunk {filename.FullName}");
+            //        return chunk;
+            //    })
+            //    //.ToArray()
+            //    ;
+
+
+            var storePath = @"W:\Aardworx\pointshare2\storage\march\ndrstudio3.0.005.store";
+            var keyfile = Path.Combine(storePath, "key.txt");
+            if (!Directory.Exists(storePath)) Directory.CreateDirectory(storePath);
+
+            using var storeRaw = new SimpleDiskStore(Path.Combine(storePath, "data.uds"));
+            var store = storeRaw.ToPointCloudStore();
+
+            if (File.Exists(keyfile))
+            {
+                var key = File.ReadAllText(keyfile);
+                var ps = store.GetPointSet(key);
+                WriteLine(ps.PointCount);
+                return Task.CompletedTask;
+            }
+
+            var config = ImportConfig.Default
+                    .WithStorage(store)
+                    .WithKey(Path.GetFileName(filename))
+                    .WithVerbose(true)
+                    .WithMinDist(0.005)
+                    .WithNormalizePointDensityGlobal(true)
+                    .WithMaxDegreeOfParallelism(1)
+                    //.WithProgressCallback(p => { Report.Line($"{p:0.00}"); })
+                    ;
+
+            var pcl = PointCloud.Import(filename, config);
+
+            //var config = ImportConfig.Default
+            //        .WithStorage(store)
+            //        .WithKey(Path.GetFileName(filename))
+            //        .WithVerbose(true)
+            //        .WithMinDist(0)
+            //        .WithNormalizePointDensityGlobal(false)
+            //        .WithMaxDegreeOfParallelism(1)
+            //        //.WithProgressCallback(p => { Report.Line($"{p:0.00}"); })
+            //        ;
+            //var pcl = PointCloud.Import(debugChunks, config);
+
+            File.WriteAllText(keyfile, pcl.Id);
+
+            return Task.CompletedTask;
+        }
 
         public static async Task Main(string[] _)
         {
+            await Test_20230419();
+
             //{
             //    var chunks = E57.ChunksFull(@"W:\Datasets\Vgm\Data\E57\Innenscan_FARO\Innenscan_FARO.e57", ParseConfig.Default);
             //    foreach (var chunk in chunks)
@@ -2516,7 +2658,7 @@ namespace Aardvark.Geometry.Tests {
             //    }
             //}
 
-            await Repro_20230308();
+            //await Repro_20230308();
 
             //await Example_20230316();
 
