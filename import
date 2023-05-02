@@ -1,0 +1,3 @@
+#!/bin/bash
+
+./src/import/bin/Release/net6.0/import "$@"

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Aardvark.Data.E57\Aardvark.Data.E57.csproj" />
+    <ProjectReference Include="..\Aardvark.Data.Points.Ascii\Aardvark.Data.Points.Ascii.csproj" />
+    <ProjectReference Include="..\Aardvark.Data.Points.LasZip\Aardvark.Data.Points.LasZip.csproj" />
+    <ProjectReference Include="..\Aardvark.Data.Points.Ply\Aardvark.Data.Points.Ply.csproj" />
+    <ProjectReference Include="..\Aardvark.Geometry.PointSet\Aardvark.Geometry.PointSet.csproj" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

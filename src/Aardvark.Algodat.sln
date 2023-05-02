@@ -57,12 +57,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_", "_", "{94A7BC5F-B1F0-4A
 		..\build.fsx = ..\build.fsx
 		..\build.sh = ..\build.sh
 		..\deploy.targets = ..\deploy.targets
+		..\import = ..\import
+		..\import.cmd = ..\import.cmd
 		..\ImportTest.cmd = ..\ImportTest.cmd
 		..\LICENSE = ..\LICENSE
 		..\paket.dependencies = ..\paket.dependencies
 		..\paket.lock = ..\paket.lock
 		..\points.cmd = ..\points.cmd
-		..\publish.cmd = ..\publish.cmd
 		..\README.md = ..\README.md
 		..\RELEASE_NOTES.md = ..\RELEASE_NOTES.md
 		..\viewer.cmd = ..\viewer.cmd
@@ -75,6 +76,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aardvark.Data.Wavefront", "Aardvark.Data.Wavefront\Aardvark.Data.Wavefront.csproj", "{7C25100A-8774-422C-90FB-FA113F798CB4}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Unofficial.laszip.netstandard", "Unofficial.laszip.netstandard\Unofficial.laszip.netstandard.csproj", "{AC84C458-5A8A-4EC9-A1B3-15CC52DA2E91}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "import", "import\import.csproj", "{000B3CDA-C67B-4F6A-B6F8-69A1B5052343}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -186,6 +189,10 @@ Global
 		{AC84C458-5A8A-4EC9-A1B3-15CC52DA2E91}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AC84C458-5A8A-4EC9-A1B3-15CC52DA2E91}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AC84C458-5A8A-4EC9-A1B3-15CC52DA2E91}.Release|Any CPU.Build.0 = Release|Any CPU
+		{000B3CDA-C67B-4F6A-B6F8-69A1B5052343}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{000B3CDA-C67B-4F6A-B6F8-69A1B5052343}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{000B3CDA-C67B-4F6A-B6F8-69A1B5052343}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{000B3CDA-C67B-4F6A-B6F8-69A1B5052343}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -197,9 +204,10 @@ Global
 		{99385BC2-B716-47EF-96F0-090D82E4F506} = {6CA9BC7A-0123-43E9-A26B-5FF0B9E01B08}
 		{85F64ED4-AAA6-4EEF-BC97-ED5E65839FD7} = {6CA9BC7A-0123-43E9-A26B-5FF0B9E01B08}
 		{5CA8E4F4-E30B-4FC8-A510-A0FFD8A9880B} = {6CA9BC7A-0123-43E9-A26B-5FF0B9E01B08}
+		{000B3CDA-C67B-4F6A-B6F8-69A1B5052343} = {6CA9BC7A-0123-43E9-A26B-5FF0B9E01B08}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {E996B5E6-49B2-4479-9DDE-455A40509F43}
 		EnterpriseLibraryConfigurationToolBinariesPathV6 = packages\EnterpriseLibrary.TransientFaultHandling.6.0.1304.0\lib\portable-net45+win+wp8;packages\EnterpriseLibrary.TransientFaultHandling.Data.6.0.1304.1\lib\NET45
+		SolutionGuid = {E996B5E6-49B2-4479-9DDE-455A40509F43}
 	EndGlobalSection
 EndGlobal

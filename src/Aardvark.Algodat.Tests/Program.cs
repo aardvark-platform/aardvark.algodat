@@ -34,9 +34,16 @@ namespace Aardvark.Geometry.Tests
 {
     public class Program
     {
-        internal static void CreateStore(string filename, string storePath, string key, double minDist)
+        internal static Task CreateStore(string filename, string storeDir, double minDist)
+            => CreateStore(filename, new DirectoryInfo(storeDir), minDist);
+
+        internal static Task CreateStore(string filename, DirectoryInfo storeDir, double minDist)
         {
-            using var store = new SimpleDiskStore(storePath).ToPointCloudStore();
+            if (!storeDir.Exists) storeDir.Create();
+
+            var key = Path.GetFileName(filename);
+
+            using var store = new SimpleDiskStore(Path.Combine(storeDir.FullName, "data.uds")).ToPointCloudStore();
             var config = ImportConfig.Default
                 .WithStorage(store)
                 .WithKey(key)
@@ -49,8 +56,12 @@ namespace Aardvark.Geometry.Tests
                 ;
 
             Report.BeginTimed($"importing {filename}");
-            var ps = PointCloud.Import(filename, config);
+            var pcl = PointCloud.Import(filename, config);
             Report.EndTimed();
+
+            File.WriteAllText(Path.Combine(storeDir.FullName, "key.txt"), key);
+
+            return Task.CompletedTask;
         }
 
         internal static void PerfTestJuly2019()
@@ -2629,7 +2640,14 @@ namespace Aardvark.Geometry.Tests
 
         public static async Task Main(string[] _)
         {
-            await Test_20230419();
+            await CreateStore(
+                //@"W:\Datasets\Vgm\Data\structured_pointclouds\JB_Haus_2022_KG.e57",
+                @"W:\Datasets\Vgm\Data\2023-04-19_bugreport\NDR-Studio3.e57",
+                @"W:\tmp\2023-04-30_algodat_ndrstudio3.0.005.store2",
+                minDist: 0.005
+                );
+
+            //await Test_20230419();
 
             //{
             //    var chunks = E57.ChunksFull(@"W:\Datasets\Vgm\Data\E57\Innenscan_FARO\Innenscan_FARO.e57", ParseConfig.Default);

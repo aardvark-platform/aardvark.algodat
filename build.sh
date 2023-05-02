@@ -2,4 +2,5 @@
 
 dotnet tool restore
 dotnet paket restore
-dotnet build src/Aardvark.Algodat.sln
+
+dotnet build -c Release src/Aardvark.Algodat.sln
