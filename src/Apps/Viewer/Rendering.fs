@@ -248,7 +248,7 @@ module Rendering =
             (camera, frustum, win.Mouse.Position) 
             |||> AVal.bind3 (fun c f p -> 
                 win.Sizes |> AVal.map (fun s -> 
-                    let pts = pick.Value p.Position 200 800
+                    let pts = pick.Value p.Position 20 800
                     pts |> Array.map (fun p -> p.World |> Trafo3d.Translation)
                     
                     //if pts.Length = 0 then V3d.III
@@ -263,8 +263,8 @@ module Rendering =
                 )
             )
 
-        let psg = 
-            Sg.sphere' 3 C4b.Maroon 0.01
+        let psg =
+            Sg.sphere' 8 C4b.Maroon 0.1
             |> Sg.instanced p
             |> Sg.shader {
                 do! DefaultSurfaces.trafo
