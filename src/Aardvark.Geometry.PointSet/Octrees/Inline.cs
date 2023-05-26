@@ -205,13 +205,15 @@ namespace Aardvark.Geometry.Points
         public Box3d BoundingBoxExactGlobal => Root.BoundingBoxExactGlobal;
         public Cell Cell => Root.Cell;
         public long PointCountTreeLeafs => Root.PointCountTreeLeafs;
+        public IPointCloudNode NativeRootNode { get;  } 
         public Guid RootId => Root.NodeId;
         public V3d Centroid { get; }
         public double CentroidStdDev { get; }
 
-        public InlinedNodes(InlineConfig config, InlinedNode root, IEnumerable<InlinedNode> nodes, long totalNodeCount)
+        public InlinedNodes(InlineConfig config, IPointCloudNode nativeRootNode, InlinedNode root, IEnumerable<InlinedNode> nodes, long totalNodeCount)
         {
             Config = config;
+            NativeRootNode = nativeRootNode;
             Root = root;
             Nodes = nodes;
             TotalNodeCount = totalNodeCount;
@@ -275,9 +277,10 @@ namespace Aardvark.Geometry.Points
             var inlinedRoot = root.ConvertToInline(config, new HashSet<Guid> { root.Id });
 
             return new InlinedNodes(
-                config, 
-                inlinedRoot,
-                EnumerateRec(root, config),
+                config,
+                nativeRootNode: root,
+                root: inlinedRoot,
+                nodes: EnumerateRec(root, config),
                 -1
                 );
 

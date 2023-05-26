@@ -1,3 +1,6 @@
+### 5.2.22
+- add real root node to InlinedNodes to allow tools to access native octree
+
 ### 5.2.21
 - [IPointCloudNode] DeleteWithClassification
 
