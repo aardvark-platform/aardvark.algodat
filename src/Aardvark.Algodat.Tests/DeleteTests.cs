@@ -19,6 +19,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using static Aardvark.Base.MultimethodTest;
 
 namespace Aardvark.Geometry.Tests
 {
@@ -59,6 +60,24 @@ namespace Aardvark.Geometry.Tests
                 .WithOctreeSplitLimit(splitLimit)
                 ;
             return PointCloud.Chunks(new Chunk(ps, null), config);
+        }
+
+        public static PointSet CreateRandomClassifiedPoints(int n, int splitLimit)
+        {
+            var ps = new List<V3d>();
+            var ks = new List<byte>();
+            var rand = new RandomSystem();
+            for (var x = 0; x < n; x++)
+            {
+                ps.Add(rand.UniformV3d());
+                ks.Add((byte)rand.UniformInt(4));
+            }
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("testaa")
+                .WithOctreeSplitLimit(splitLimit)
+                ;
+            return PointCloud.Chunks(new Chunk(ps, null, null, null, ks), config);
         }
 
         [Test]
@@ -151,6 +170,22 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(a.PointCount != b.PointCount);
             Assert.IsTrue(b.PointCount == 0);
             Assert.IsTrue(a.Id != b.Id);
+        }
+
+        [Test]
+        public void DeleteWithClassifications()
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                var q1 = new Box3d(new V3d(0.0), new V3d(0.23));
+                var a = CreateRandomClassifiedPoints(10000, 256);
+                var b = a.Delete(n => q1.Contains(n.BoundingBoxExactGlobal), n => !(q1.Contains(n.BoundingBoxExactGlobal) || q1.Intersects(n.BoundingBoxExactGlobal)), p => q1.Contains(p), a.Storage, CancellationToken.None);
+                b.ValidateTree();
+                Assert.IsTrue(b.Root?.Value.NoPointIn(p => q1.Contains(p)));
+                var c = b.Root?.Value.DeleteWithClassifications(n => false, n => false, (p,k) => k==0, a.Storage, CancellationToken.None,256);
+                // Did it really delete the classification 0u?
+                c.ForEachNode(false, (node) => node.Classifications?.Value.ForEach((k) => Assert.IsTrue(k != 0)));
+            }
         }
     }
 }

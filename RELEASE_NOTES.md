@@ -1,3 +1,6 @@
+### 5.2.21
+- [IPointCloudNode] DeleteWithClassification
+
 ### 5.2.20
 - [SimplePickTree] SimplePickPoint records generic attributes
 
