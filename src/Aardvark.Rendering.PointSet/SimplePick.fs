@@ -243,12 +243,21 @@ module SimplePickExtensions =
     //        t.Contains x.Center ||
     //        x.Intersects t.Line01 || x.Intersects t.Line12 || x.Intersects t.Line20
 
+    /// <summary>
+    /// Represents the result of a visual picking operation. 
+    /// Contains Position and optional attributes of a point.
+    /// </summary>
     [<Struct>]
     type SimplePickPoint =
         {
+            /// Data Position.
             DataPosition : V3d
+            /// World Position.
             WorldPosition : V3d
+            /// NDC position.
             Ndc : V3d
+            /// The attribute array and this point's index for a given Symbol.
+            TryGetAttribute : Symbol -> Option<Array * int>
             // Original : ILodTreeNode
             // Index : int
         }
@@ -375,13 +384,18 @@ module SimplePickExtensions =
                     //intersections (fun r (t : SimplePickTree) -> t.FindInternal(r, radiusD, radiusK)) bvh.Data ray root
                 | None ->
                     let hits = 
+                        
+                        let mutable pi = 0
                         x.positions |> Array.choose ( fun p -> 
                             let p = x.dataTrafo.Forward.TransformPos (V3d p)
                             if Region3d.contains p query.region then
                                 let t = Vec.length (p - query.cam)
-                                let pt = { SimplePickPoint.DataPosition = p; SimplePickPoint.WorldPosition = x.dataTrafo.Backward.TransformPos p; SimplePickPoint.Ndc = V3d.Zero  }
+                                let getAttribute = fun (s : Symbol) -> x.attributes |> MapExt.tryFind s |> Option.map (fun atts -> atts,pi)
+                                let pt = {SimplePickPoint.DataPosition = p; SimplePickPoint.WorldPosition = x.dataTrafo.Backward.TransformPos p; SimplePickPoint.Ndc = V3d.Zero; TryGetAttribute = getAttribute}
+                                pi <- pi+1
                                 Some (RayHit(t, pt))
                             else
+                                pi <- pi+1
                                 None
                         )
                     hits |> Seq.sortBy (fun h -> h.T)

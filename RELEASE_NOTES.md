@@ -1,3 +1,6 @@
+### 5.2.20
+- [SimplePickTree] SimplePickPoint records generic attributes
+
 ### 5.2.19
 - update Aardvark.Base to 5.2.24
 - Chunk.ToGenericChunk now forces arrays
