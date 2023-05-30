@@ -1,3 +1,6 @@
+### 5.2.22
+- [SimplePickTree] fixed attribute index
+
 ### 5.2.21
 - [IPointCloudNode] DeleteWithClassification
 

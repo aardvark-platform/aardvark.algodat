@@ -390,7 +390,9 @@ module SimplePickExtensions =
                             let p = x.dataTrafo.Forward.TransformPos (V3d p)
                             if Region3d.contains p query.region then
                                 let t = Vec.length (p - query.cam)
-                                let getAttribute = fun (s : Symbol) -> x.attributes |> MapExt.tryFind s |> Option.map (fun atts -> atts,pi)
+                                let getAttribute = 
+                                    let ci = pi
+                                    fun (s : Symbol) -> x.attributes |> MapExt.tryFind s |> Option.map (fun atts -> atts,ci)
                                 let pt = {SimplePickPoint.DataPosition = p; SimplePickPoint.WorldPosition = x.dataTrafo.Backward.TransformPos p; SimplePickPoint.Ndc = V3d.Zero; TryGetAttribute = getAttribute}
                                 pi <- pi+1
                                 Some (RayHit(t, pt))
