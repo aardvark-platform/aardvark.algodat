@@ -666,7 +666,7 @@ module internal SSAO =
                         if enabled.GetValue t then
                             blurredY.GetValue(t, rt) :> ITexture
                         else
-                            NullTexture() :> ITexture
+                            nullTexture
                     
             }
 

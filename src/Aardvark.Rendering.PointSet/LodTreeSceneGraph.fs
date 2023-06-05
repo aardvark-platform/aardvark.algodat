@@ -85,7 +85,7 @@ module Readback =
             use cntBuffer = rt.CreateBuffer<int> 1
             use ndcsBuffer = rt.CreateBuffer<V4f>(max (wantedCt*2) 64)
 
-            use ip = rt.NewInputBinding(computerShader)
+            use ip = rt.CreateInputBinding(computerShader)
             ip.["DepthStencil"] <- depth
             ip.["Dither"] <- ditherTex
             ip.["center"] <- center
