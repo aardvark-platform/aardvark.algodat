@@ -1,3 +1,6 @@
+### 5.2.24
+- [E57 parser] transform normals if E57Data3D.Pose is defined
+
 ### 5.2.23
 - [SimplePickTree] fixed attribute index
 

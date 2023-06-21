@@ -214,12 +214,12 @@ namespace Aardvark.Data.Points.Import
                             chunk = chunk.ImmutableFilter((c, i) => cis[i] == 0);
                         }
 
-                        Interlocked.Add(ref yieldedRecordCount, Positions.Length);
+                        if (data3d.Pose != null)
+                        {
+                            chunk = chunk.WithNormalsTransformed(data3d.Pose.Rotation);
+                        }
 
-                        //if (e57chunk.Classification != null)
-                        //{
-                        //    Console.WriteLine($"[classification] {string.Join(", ", e57chunk.Classification.GroupBy(x => x).Select(g => g.Key.ToString()))}");
-                        //}
+                        Interlocked.Add(ref yieldedRecordCount, Positions.Length);
 
                         if (config.Verbose)
                         {
@@ -239,7 +239,7 @@ namespace Aardvark.Data.Points.Import
         /// Parses .e57 stream.
         /// </summary>
         public static IEnumerable<E57Chunk> ChunksFull(this Stream stream, long streamLengthInBytes, ParseConfig config)
-        => ChunksFull(stream, streamLengthInBytes, config, verifyChecksums: false);
+            => ChunksFull(stream, streamLengthInBytes, config, verifyChecksums: false);
 
         /// <summary>
         /// Parses .e57 stream.
@@ -268,6 +268,12 @@ namespace Aardvark.Data.Points.Import
                         for (var i = 0; i < Positions.Length; i++) if (Positions[i].Length > 1000000000) Debugger.Break();
 
                         var chunk = new E57Chunk(Properties, data3d, Positions);
+
+                        if (data3d.Pose != null)
+                        {
+                            chunk.NormalsTransformInPlace(data3d.Pose.Rotation);
+                        }
+
                         Interlocked.Add(ref yieldedRecordCount, Positions.Length);
 
                         if (config.Verbose)
@@ -496,6 +502,10 @@ namespace Aardvark.Data.Points.Import
                 => GetOrNull<byte>(PointPropertySemantics.IsColorInvalid)?.Map(x => x == 1);
 
             /// <summary>
+            /// </summary>
+            public bool HasNormals => RawData.ContainsKey(PointPropertySemantics.NormalX);
+
+            /// <summary>
             /// Normals. Optional.
             /// </summary>
             public V3f[] Normals
@@ -503,7 +513,7 @@ namespace Aardvark.Data.Points.Import
                 get
                 {
                     V3f[] ns = null;
-                    if (RawData.ContainsKey(PointPropertySemantics.NormalX))
+                    if (HasNormals)
                     {
                         var nxs = (float[])RawData[PointPropertySemantics.NormalX];
                         var nys = (float[])RawData[PointPropertySemantics.NormalY];
@@ -514,6 +524,26 @@ namespace Aardvark.Data.Points.Import
                         for (var i = 0; i < imax; i++) ns[i] = new(nxs[i], nys[i], nzs[i]);
                     }
                     return ns;
+                }
+            }
+
+            /// <summary>
+            /// </summary>
+            public void NormalsTransformInPlace(Rot3d r)
+            {
+                if (!HasNormals) return;
+
+                var nxs = (float[])RawData[PointPropertySemantics.NormalX];
+                var nys = (float[])RawData[PointPropertySemantics.NormalY];
+                var nzs = (float[])RawData[PointPropertySemantics.NormalZ];
+
+                var imax = Count;
+                for (var i = 0; i < imax; i++)
+                {
+                    var n = r.Transform(new V3d(nxs[i], nys[i], nzs[i]));
+                    nxs[i] = (float)n.X;
+                    nys[i] = (float)n.Y;
+                    nzs[i] = (float)n.Z;
                 }
             }
 
