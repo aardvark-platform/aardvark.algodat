@@ -4,6 +4,7 @@ on:
     branches:
       - master
       - newbuild
+      - 5.2.23-maintenance
     paths:
       - RELEASE_NOTES.md
       - .github/workflows/publish.yml
