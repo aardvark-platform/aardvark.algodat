@@ -325,6 +325,13 @@ namespace Aardvark.Data.Points
             );
         }
 
+        public Chunk WithNormalsTransformed(Rot3d r)
+        {
+            if (r == Rot3d.Identity) return this;
+            var ns = Normals.Map(n => (V3f)r.Transform((V3d)n));
+            return WithNormals(ns);
+        }
+
         /// <summary>
         /// Immutable update of positions.
         /// </summary>
