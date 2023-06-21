@@ -214,7 +214,7 @@ namespace Aardvark.Data.Points.Import
                             chunk = chunk.ImmutableFilter((c, i) => cis[i] == 0);
                         }
 
-                        if (data3d.Pose != null)
+                        if (chunk.HasNormals && data3d.Pose != null)
                         {
                             chunk = chunk.WithNormalsTransformed(data3d.Pose.Rotation);
                         }
@@ -269,7 +269,7 @@ namespace Aardvark.Data.Points.Import
 
                         var chunk = new E57Chunk(Properties, data3d, Positions);
 
-                        if (data3d.Pose != null)
+                        if (chunk.HasNormals && data3d.Pose != null)
                         {
                             chunk.NormalsTransformInPlace(data3d.Pose.Rotation);
                         }
