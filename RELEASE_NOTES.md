@@ -1,4 +1,4 @@
-### 5.2.24
+### 5.2.23.1
 - [E57 parser] transform normals if E57Data3D.Pose is defined
 
 ### 5.2.23
