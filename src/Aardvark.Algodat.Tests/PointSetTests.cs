@@ -27,14 +27,14 @@ namespace Aardvark.Geometry.Tests
         internal static Storage CreateStorage()
         {
             var x = new SimpleMemoryStore();
-            Action<string, object, Func<byte[]>> add = (name, value, create) => x.Add(name, create());
+            void add(string name, object value, Func<byte[]> create) => x.Add(name, create());
             return new Storage(add, x.Get, x.GetSlice, x.Remove, x.Dispose, x.Flush, cache: default);
         }
 
         internal static Storage CreateDiskStorage(string dbDiskLocation)
         {
             var x = new SimpleDiskStore(dbDiskLocation);
-            Action<string, object, Func<byte[]>> add = (name, value, create) => x.Add(name, create());
+            void add(string name, object value, Func<byte[]> create) => x.Add(name, create());
             return new Storage(add, x.Get, x.GetSlice, x.Remove, x.Dispose, x.Flush, cache: default);
         }
 
@@ -56,7 +56,7 @@ namespace Aardvark.Geometry.Tests
         public void CanCreatePointSetFromSinglePoint()
         {
             var store = CreateStorage();
-            var ps = new List<V3d> { new V3d(0.1, 0.2, 0.3) };
+            var ps = new List<V3d> { new(0.1, 0.2, 0.3) };
             var cs = new List<C4b> { C4b.White };
             var pointset = PointSet.Create(
                 store, "id", ps, cs, null, null, null, 1000,
@@ -72,7 +72,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CanCreateInMemoryPointSet()
         {
-            var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
+            var ps = new List<V3d> { new(0.5, 0.5, 0.5) };
             var cs = new List<C4b> { C4b.White };
             var ns = new List<V3f> { V3f.ZAxis };
             var js = new List<int> { 123 };
@@ -83,7 +83,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CanCreateInMemoryPointSetWithoutColors()
         {
-            var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
+            var ps = new List<V3d> { new(0.5, 0.5, 0.5) };
             var ns = new List<V3f> { V3f.ZAxis };
             var js = new List<int> { 123 };
             var ks = new List<byte> { 42 };
@@ -93,7 +93,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CanCreateInMemoryPointSetWithoutNormals()
         {
-            var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
+            var ps = new List<V3d> { new(0.5, 0.5, 0.5) };
             var cs = new List<C4b> { C4b.White };
             var js = new List<int> { 123 };
             var ks = new List<byte> { 42 };
@@ -103,7 +103,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CanCreateInMemoryPointSetWithoutIntensities()
         {
-            var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
+            var ps = new List<V3d> { new(0.5, 0.5, 0.5) };
             var cs = new List<C4b> { C4b.White };
             var ns = new List<V3f> { V3f.ZAxis };
             var ks = new List<byte> { 42 };
@@ -113,7 +113,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CanCreateInMemoryPointSetWithoutClassifications()
         {
-            var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
+            var ps = new List<V3d> { new(0.5, 0.5, 0.5) };
             var cs = new List<C4b> { C4b.White };
             var ns = new List<V3f> { V3f.ZAxis };
             var js = new List<int> { 123 };
@@ -160,7 +160,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void PointSetAttributes_All()
         {
-            var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
+            var ps = new List<V3d> { new(0.5, 0.5, 0.5) };
             var cs = new List<C4b> { C4b.White };
             var ns = new List<V3f> { V3f.ZAxis };
             var js = new List<int> { 123 };
@@ -179,7 +179,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void PointSetAttributes_NoLod()
         {
-            var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
+            var ps = new List<V3d> { new(0.5, 0.5, 0.5) };
             var cs = new List<C4b> { C4b.White };
             var ns = new List<V3f> { V3f.ZAxis };
             var js = new List<int> { 123 };
@@ -198,7 +198,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void PointSetAttributes_PositionsAndColors()
         {
-            var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
+            var ps = new List<V3d> { new(0.5, 0.5, 0.5) };
             var cs = new List<C4b> { C4b.White };
             var storage = PointCloud.CreateInMemoryStore(cache: default);
             var pointset = PointSet.Create(storage, "test", ps, cs, null, null, null, 1, generateLod: true, isTemporaryImportNode: true, default);
@@ -207,6 +207,71 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(pointset.HasKdTree == true);
             Assert.IsTrue(pointset.HasNormals == true);
             Assert.IsTrue(pointset.HasPositions == true);
+        }
+
+        [Test]
+        public void PointSet_PartIndexRange_No()
+        {
+            var ps = new List<V3d> { new(0.5, 0.5, 0.5) };
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
+            var pointset = PointSet.Create(storage, "test", ps, null, null, null, null, 1, generateLod: false, isTemporaryImportNode: true, default);
+            Assert.IsTrue(pointset.PartIndexRange == Range1i.Invalid);
+            Assert.IsTrue(pointset.HasPartIndexRange == false);
+        }
+
+        [Test]
+        public void PointSet_PartIndexRange()
+        {
+            var ps = new List<V3d> { new(0.5, 0.5, 0.5) };
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
+            var pointset = PointSet.Create(
+                storage, "test", ps, null, null, null, null, 1, generateLod: false, isTemporaryImportNode: true
+                )
+                .WithPartIndexRange(new(7, 11))
+                ;
+            Assert.IsTrue(pointset.PartIndexRange == new Range1i(7, 11));
+            Assert.IsTrue(pointset.HasPartIndexRange == true);
+        }
+
+        [Test]
+        public void PointSet_PartIndexRange_Serialization()
+        {
+            var ps = new List<V3d> { new(0.5, 0.5, 0.5) };
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
+
+            var pointset = PointSet.Create(
+                storage, "test", ps, null, null, null, null, 1, generateLod: false, isTemporaryImportNode: true
+                )
+                .WithPartIndexRange(new(7, 11))
+                ;
+
+            var json = pointset.ToJson();
+            var reloaded = PointSet.Parse(json, storage);
+
+            Assert.IsTrue(pointset.Id == reloaded.Id);
+            Assert.IsTrue(pointset.SplitLimit == reloaded.SplitLimit);
+            Assert.IsTrue(pointset.Root.Value.Id == reloaded.Root.Value.Id);
+            Assert.IsTrue(pointset.PartIndexRange == reloaded.PartIndexRange);
+        }
+
+        [Test]
+        public void PointSet_PartIndexRange_Serialization_NoRange()
+        {
+            var ps = new List<V3d> { new(0.5, 0.5, 0.5) };
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
+
+            var pointset = PointSet.Create(
+                storage, "test", ps, null, null, null, null, 1, generateLod: false, isTemporaryImportNode: true
+                );
+
+            var json = pointset.ToJson();
+            var reloaded = PointSet.Parse(json, storage);
+
+            Assert.IsTrue(pointset.Id == reloaded.Id);
+            Assert.IsTrue(pointset.SplitLimit == reloaded.SplitLimit);
+            Assert.IsTrue(pointset.Root.Value.Id == reloaded.Root.Value.Id);
+            Assert.IsTrue(pointset.PartIndexRange == reloaded.PartIndexRange);
+            Assert.IsTrue(reloaded.PartIndexRange.IsInvalid);
         }
     }
 }
