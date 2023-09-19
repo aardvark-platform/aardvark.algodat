@@ -136,6 +136,27 @@ namespace Aardvark.Data.Points
         /// <summary></summary>
         public ImportConfig WithStorage(Storage x) => new(this) { Storage = x };
 
+        /// <summary></summary>
+        public ImportConfig WithPartIndexOffset(int x) => new(this) { ParseConfig = ParseConfig.WithPartIndexOffset(x) };
+
+        /// <summary></summary>
+        public ImportConfig WithEnabledProperties(EnabledProperties x) => new(this) { ParseConfig = ParseConfig.WithEnabledProperties(x) };
+
+        /// <summary></summary>
+        public ImportConfig WithEnabledClassifications(bool enabled) => new(this) { ParseConfig = ParseConfig.WithEnabledProperties(ParseConfig.EnabledProperties.WithClassifications(enabled)) };
+
+        /// <summary></summary>
+        public ImportConfig WithEnabledColors(bool enabled) => new(this) { ParseConfig = ParseConfig.WithEnabledProperties(ParseConfig.EnabledProperties.WithColors(enabled)) };
+
+        /// <summary></summary>
+        public ImportConfig WithEnabledIntensities(bool enabled) => new(this) { ParseConfig = ParseConfig.WithEnabledProperties(ParseConfig.EnabledProperties.WithIntensities(enabled)) };
+
+        /// <summary></summary>
+        public ImportConfig WithEnabledNormals(bool enabled) => new(this) { ParseConfig = ParseConfig.WithEnabledProperties(ParseConfig.EnabledProperties.WithNormals(enabled)) };
+
+        /// <summary></summary>
+        public ImportConfig WithEnabledPartIndices(bool enabled) => new(this) { ParseConfig = ParseConfig.WithEnabledProperties(ParseConfig.EnabledProperties.WithPartIndices(enabled)) };
+
         #endregion
     }
 }

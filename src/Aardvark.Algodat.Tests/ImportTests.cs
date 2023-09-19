@@ -218,7 +218,7 @@ namespace Aardvark.Geometry.Tests
                 ;
 
 
-            var pointcloud = PointCloud.Chunks(new Chunk[] { }, config);
+            var pointcloud = PointCloud.Chunks(Array.Empty<Chunk>(), config);
             Assert.IsTrue(pointcloud.Id != null);
             Assert.IsTrue(pointcloud.PointCount == 0);
 
@@ -244,13 +244,14 @@ namespace Aardvark.Geometry.Tests
                 ;
 
 
-            var pointcloud = PointCloud.Chunks(new Chunk[] { }, config);
+            var pointcloud = PointCloud.Chunks(Array.Empty<Chunk>(), config);
             Assert.IsTrue(pointcloud.Id == "test");
             Assert.IsTrue(pointcloud.PointCount == 0);
             
             var reloaded = config.Storage.GetPointSet("test");
             Assert.IsTrue(reloaded.Id == "test");
             Assert.IsTrue(reloaded.PointCount == 0);
+            Assert.IsTrue(reloaded.HasPartIndexRange == false);
         }
 
         #endregion
@@ -385,7 +386,7 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(ps.Length == 3);
             Assert.IsTrue(ps[0].ApproximateEquals(new V3d(1, 2, 9), 1e-10));
         }
-        
+
         [Test]
         public void CanImportPtsFile()
         {
@@ -396,10 +397,30 @@ namespace Aardvark.Geometry.Tests
             var config = ImportConfig.Default
                 .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
+                .WithEnabledProperties(EnabledProperties.All.WithPartIndices(false))
                 ;
             var pointset = PointCloud.Import(filename, config);
             Assert.IsTrue(pointset != null);
             Assert.IsTrue(pointset.PointCount == 3);
+            Assert.IsTrue(pointset.PartIndexRange == Range1i.Invalid);
+        }
+
+        [Test]
+        public void CanImportPtsFile_PartIndex()
+        {
+            Assert.IsTrue(Data.Points.Import.Pts.PtsFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "test.pts");
+            if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
+            TestContext.WriteLine($"testfile is '{filename}'");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                .WithPartIndexOffset(42)
+                ;
+            var pointset = PointCloud.Import(filename, config);
+            Assert.IsTrue(pointset != null);
+            Assert.IsTrue(pointset.PointCount == 3);
+            Assert.IsTrue(pointset.PartIndexRange == new Range1i(42, 42));
         }
 
         [Test]
@@ -412,10 +433,30 @@ namespace Aardvark.Geometry.Tests
             var config = ImportConfig.Default
                 .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
+                .WithEnabledPartIndices(false)
                 .WithMinDist(10.0);
                 ;
             var pointset = PointCloud.Import(filename, config);
             Assert.IsTrue(pointset.PointCount < 3);
+            Assert.IsTrue(pointset.HasPartIndexRange == false);
+        }
+
+        [Test]
+        public void CanImportPtsFile_MinDist_PartIndex()
+        {
+            Assert.IsTrue(Data.Points.Import.Pts.PtsFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "test.pts");
+            if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
+            TestContext.WriteLine($"testfile is '{filename}'");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                .WithPartIndexOffset(42)
+                .WithMinDist(10.0);
+            ;
+            var pointset = PointCloud.Import(filename, config);
+            Assert.IsTrue(pointset.PointCount < 3);
+            Assert.IsTrue(pointset.PartIndexRange == new Range1i(42, 42));
         }
 
         [Test]
@@ -428,11 +469,32 @@ namespace Aardvark.Geometry.Tests
             var config = ImportConfig.Default
                 .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
+                .WithEnabledPartIndices(false)
                 ;
             _ = PointCloud.Import(filename, config);
             var pointset2 = config.Storage.GetPointSet("test");
             Assert.IsTrue(pointset2 != null);
             Assert.IsTrue(pointset2.PointCount == 3);
+            Assert.IsTrue(pointset2.HasPartIndexRange == false);
+        }
+
+        [Test]
+        public void CanImportPtsFileAndLoadFromStore_PartIndex()
+        {
+            Assert.IsTrue(Data.Points.Import.Pts.PtsFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "test.pts");
+            if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
+            TestContext.WriteLine($"testfile is '{filename}'");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                .WithPartIndexOffset(42)
+                ;
+            _ = PointCloud.Import(filename, config);
+            var pointset2 = config.Storage.GetPointSet("test");
+            Assert.IsTrue(pointset2 != null);
+            Assert.IsTrue(pointset2.PointCount == 3);
+            Assert.IsTrue(pointset2.PartIndexRange == new Range1i(42, 42));
         }
 
         [Test]
@@ -445,12 +507,34 @@ namespace Aardvark.Geometry.Tests
             var config = ImportConfig.Default
                 .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
+                .WithEnabledPartIndices(false)
                 ;
             var pointset = PointCloud.Import(filename, config);
             Assert.IsTrue(pointset.Id == "test");
             var pointset2 = config.Storage.GetPointSet("test");
             Assert.IsTrue(pointset2 != null);
             Assert.IsTrue(pointset2.PointCount == 3);
+            Assert.IsTrue(pointset2.HasPartIndexRange == false);
+        }
+
+        [Test]
+        public void CanImportPtsFileAndLoadFromStore_CheckKey_PartIndex()
+        {
+            Assert.IsTrue(Data.Points.Import.Pts.PtsFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "test.pts");
+            if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
+            TestContext.WriteLine($"testfile is '{filename}'");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                .WithPartIndexOffset(42)
+                ;
+            var pointset = PointCloud.Import(filename, config);
+            Assert.IsTrue(pointset.Id == "test");
+            var pointset2 = config.Storage.GetPointSet("test");
+            Assert.IsTrue(pointset2 != null);
+            Assert.IsTrue(pointset2.PointCount == 3);
+            Assert.IsTrue(pointset2.PartIndexRange == new Range1i(42, 42));
         }
 
         [Test]
@@ -463,6 +547,7 @@ namespace Aardvark.Geometry.Tests
             var config = ImportConfig.Default
                 .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
+                .WithEnabledPartIndices(false)
                 ;
             var ptsChunks = Data.Points.Import.Pts.Chunks(filename, config.ParseConfig);
             var pointset = PointCloud.Chunks(ptsChunks, config);
@@ -470,6 +555,28 @@ namespace Aardvark.Geometry.Tests
             var pointset2 = config.Storage.GetPointSet("test");
             Assert.IsTrue(pointset2 != null);
             Assert.IsTrue(pointset2.PointCount == 3);
+            Assert.IsTrue(pointset2.HasPartIndexRange == false);
+        }
+
+        [Test]
+        public void CanParsePtsChunksThenImportThenLoadFromStore_PartIndex()
+        {
+            Assert.IsTrue(Data.Points.Import.Pts.PtsFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "test.pts");
+            if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
+            TestContext.WriteLine($"testfile is '{filename}'");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                .WithPartIndexOffset(42)
+                ;
+            var ptsChunks = Data.Points.Import.Pts.Chunks(filename, config.ParseConfig);
+            var pointset = PointCloud.Chunks(ptsChunks, config);
+            Assert.IsTrue(pointset.Id == "test");
+            var pointset2 = config.Storage.GetPointSet("test");
+            Assert.IsTrue(pointset2 != null);
+            Assert.IsTrue(pointset2.PointCount == 3);
+            Assert.IsTrue(pointset2.PartIndexRange == new Range1i(42, 42));
         }
 
         #endregion

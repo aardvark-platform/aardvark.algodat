@@ -53,6 +53,34 @@ namespace Aardvark.Data.Points
         /// Parse all available properties.
         /// </summary>
         public static readonly EnabledProperties All = new();
+
+        /// <summary> </summary>
+        public EnabledProperties() { }
+
+        /// <summary> </summary>
+        public EnabledProperties(EnabledProperties other)
+        {
+            Classifications = other.Classifications;
+            Colors = other.Colors;
+            Intensities = other.Intensities;
+            Normals = other.Normals;
+            PartIndices = other.PartIndices;
+        }
+
+        /// <summary></summary>
+        public EnabledProperties WithClassifications(bool enabled) => new(this) { Classifications = enabled };
+
+        /// <summary></summary>
+        public EnabledProperties WithColors(bool enabled) =>  new(this) { Colors = enabled };
+
+        /// <summary></summary>
+        public EnabledProperties WithIntensities(bool enabled) => new(this) { Intensities = enabled };
+
+        /// <summary></summary>
+        public EnabledProperties WithNormals(bool enabled) => new(this) { Normals = enabled };
+
+        /// <summary></summary>
+        public EnabledProperties WithPartIndices(bool enabled) => new(this) { PartIndices = enabled };
     }
 
     /// <summary>
@@ -184,6 +212,21 @@ namespace Aardvark.Data.Points
 
         /// <summary></summary>
         public ParseConfig WithPartIndexOffset(int v) => new(this) { PartIndexOffset = v };
+
+        /// <summary></summary>
+        public ParseConfig WithEnabledClassifications(bool enabled) => new(this) { EnabledProperties = EnabledProperties.WithClassifications(enabled) };
+
+        /// <summary></summary>
+        public ParseConfig WithEnabledColors(bool enabled) => new(this) { EnabledProperties = EnabledProperties.WithColors(enabled) };
+
+        /// <summary></summary>
+        public ParseConfig WithEnabledIntensities(bool enabled) => new(this) { EnabledProperties = EnabledProperties.WithIntensities(enabled) };
+
+        /// <summary></summary>
+        public ParseConfig WithEnabledNormals(bool enabled) => new(this) { EnabledProperties = EnabledProperties.WithNormals(enabled) };
+
+        /// <summary></summary>
+        public ParseConfig WithEnabledPartIndices(bool enabled) => new(this) { EnabledProperties = EnabledProperties.WithPartIndices(enabled) };
 
     }
 }
