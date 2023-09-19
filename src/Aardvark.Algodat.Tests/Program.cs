@@ -1437,12 +1437,12 @@ namespace Aardvark.Geometry.Tests
             //var pcFiltered = FilteredNode.Create(pc, new FilterInsideBox3d(queryBox));
 
             var planes = new Plane3d[] {
-                new Plane3d(new V3d(0.833098559959325, -0.55312456950826, 0.0), -148084.543321104),
-                new Plane3d(new V3d(0.553124569505628, 0.833098559961073, 0.0), 210175.952298119),
-                new Plane3d(new V3d(0.0, 0.0, -1.0), -705.281005859375),
-                new Plane3d(new V3d(-0.833098559959325, 0.55312456950826, 0.0), 148100.179131675),
-                new Plane3d(new V3d(-0.553124569505628, -0.833098559961073, 0.0), -210155.471521074),
-                new Plane3d(new V3d(0.0, 0.0, 1.0), 708.76618125843)
+                new (new V3d(0.833098559959325, -0.55312456950826, 0.0), -148084.543321104),
+                new (new V3d(0.553124569505628, 0.833098559961073, 0.0), 210175.952298119),
+                new (new V3d(0.0, 0.0, -1.0), -705.281005859375),
+                new (new V3d(-0.833098559959325, 0.55312456950826, 0.0), 148100.179131675),
+                new (new V3d(-0.553124569505628, -0.833098559961073, 0.0), -210155.471521074),
+                new (new V3d(0.0, 0.0, 1.0), 708.76618125843)
              };
             var tempFilter = new Hull3d(planes);
             var pcFiltered = FilteredNode.Create(pc, new FilterInsideConvexHull3d(tempFilter));
@@ -1734,7 +1734,7 @@ namespace Aardvark.Geometry.Tests
         }
         internal static void TestFilterSerialization()
         {
-            var poly2d = new Polygon2d(new[] { V2d.OO, V2d.IO, V2d.II, V2d.OI });
+            var poly2d = new Polygon2d(V2d.OO, V2d.IO, V2d.II, V2d.OI);
             var shape = new PolyRegion(poly2d);
             var zRange = new Range1d(-5.3, 3.1415);
             var f = new FilterInsidePrismXY(shape, zRange);
@@ -2497,8 +2497,8 @@ namespace Aardvark.Geometry.Tests
 
         static Task Test_20230419()
         {
-            var filename = @"C:\Users\sm\Downloads\NDR-Studio3 1.e57";
-
+            //var filename = @"C:\Users\sm\Downloads\NDR-Studio3 1.e57";
+            var filename = @"W:\Datasets\Vgm\Data\E57\Betriebsgebäude.e57";
             //{
             //    void VerifyChecksums(Stream stream, long streamLengthInBytes)
             //    {
@@ -2539,45 +2539,45 @@ namespace Aardvark.Geometry.Tests
             //    return Task.CompletedTask;
             //}
 
-//            {
-//                var rootCell = new Cell(8);
-//                var aCell = new Cell(3, 3, 0, 6);
-//                var bCell = new Cell(1, 1, -1, 7);
+            //            {
+            //                var rootCell = new Cell(8);
+            //                var aCell = new Cell(3, 3, 0, 6);
+            //                var bCell = new Cell(1, 1, -1, 7);
 
-//                var foo1 = new Cell(aCell, bCell);
-//                var foo2 = new Cell(new Box3d(aCell.BoundingBox, bCell.BoundingBox));
+            //                var foo1 = new Cell(aCell, bCell);
+            //                var foo2 = new Cell(new Box3d(aCell.BoundingBox, bCell.BoundingBox));
 
-//                var subcells = new IPointCloudNode[8];
-//                var doneA = false;
-//                var doneB = false;
-//                for (var i = 0; i < 8; i++)
-//                {
-//                    var subcell = rootCell.GetOctant(i);
+            //                var subcells = new IPointCloudNode[8];
+            //                var doneA = false;
+            //                var doneB = false;
+            //                for (var i = 0; i < 8; i++)
+            //                {
+            //                    var subcell = rootCell.GetOctant(i);
 
-//                    Report.Line($"subcell {subcell}, a {aCell}");
-//                    if (subcell.Intersects(aCell))
-//                    {
-//#if DEBUG
-//                        if (subcell.Intersects(bCell)) throw new InvalidOperationException();
-//#endif
-//                        //subcells[i] = JoinTreeToRootCell(subcell, a, config);
-//                        if (doneB) break;
-//                        doneA = true;
-//                    }
+            //                    Report.Line($"subcell {subcell}, a {aCell}");
+            //                    if (subcell.Intersects(aCell))
+            //                    {
+            //#if DEBUG
+            //                        if (subcell.Intersects(bCell)) throw new InvalidOperationException();
+            //#endif
+            //                        //subcells[i] = JoinTreeToRootCell(subcell, a, config);
+            //                        if (doneB) break;
+            //                        doneA = true;
+            //                    }
 
-//                    Report.Line($"subcell {subcell}, b {bCell}");
-//                    if (subcell.Intersects(bCell))
-//                    {
-//#if DEBUG
-//                        if (subcell.Intersects(aCell)) throw new InvalidOperationException();
-//#endif
-//                        //subcells[i] = JoinTreeToRootCell(subcell, b, config);
-//                        if (doneA == true) break;
-//                        doneB = true;
-//                    }
-//                }
-//                return Task.CompletedTask;
-//            }
+            //                    Report.Line($"subcell {subcell}, b {bCell}");
+            //                    if (subcell.Intersects(bCell))
+            //                    {
+            //#if DEBUG
+            //                        if (subcell.Intersects(aCell)) throw new InvalidOperationException();
+            //#endif
+            //                        //subcells[i] = JoinTreeToRootCell(subcell, b, config);
+            //                        if (doneA == true) break;
+            //                        doneB = true;
+            //                    }
+            //                }
+            //                return Task.CompletedTask;
+            //            }
 
             //var debugChunksDir = new DirectoryInfo(@"W:\tmp\debugChunks");
             //var debugChunks = debugChunksDir
@@ -2595,7 +2595,9 @@ namespace Aardvark.Geometry.Tests
             //    ;
 
 
-            var storePath = @"W:\Aardworx\pointshare2\storage\march\ndrstudio3.0.005.store";
+            //var storePath = @"W:\Aardworx\pointshare2\testdata\ndrstudio3.0.005.store";
+            var storePath = @"W:\Aardworx\pointshare2\testdata\2023-07-29_betriebsgebaeude.0.005.store";
+
             var keyfile = Path.Combine(storePath, "key.txt");
             if (!Directory.Exists(storePath)) Directory.CreateDirectory(storePath);
 
@@ -2638,14 +2640,62 @@ namespace Aardvark.Geometry.Tests
             return Task.CompletedTask;
         }
 
+        static Task ParseTest_20230730()
+        {
+            var filename = @"T:\Kindergarten.pts";
+            var chunks = Pts.Chunks(filename, ParseConfig.Default);
+            var totalPointCount = 0L;
+            var sw = Stopwatch.StartNew();
+            foreach (var chunk in chunks)
+            {
+                totalPointCount += chunk.Count;
+                WriteLine($"[{sw.Elapsed}] {totalPointCount:N0}");
+            }
+            sw.Stop();
+            WriteLine(sw.Elapsed);
+            return Task.CompletedTask;
+        }
+
+        static async Task Ranges_Test_20230802()
+        {
+            await Task.Delay(0); // avoid warning
+            var filename = @"W:\Datasets\Vgm\Data\kinettn\A1_CP_Grossenzersdorf.e57";
+
+            var info = E57.E57Info(filename, ParseConfig.Default);
+            var chunks = E57.Chunks(filename, ParseConfig.Default);
+            WriteLine($"{info.PointCount:N0} points");
+            WriteLine($"{info.Bounds}");
+
+            var pointCountTotal = 0L;
+
+            var intensitiesRange = Range1i.Invalid;
+            var jsHisto = new int[17];
+
+            foreach (var chunk in chunks)
+            {
+                pointCountTotal += chunk.Count;
+
+                var js = chunk.Intensities;
+                var jsRange = new Range1i(js);
+
+
+                foreach (var g in js.GroupBy(j => j >> 12)) jsHisto[g.Key] += g.Count();
+
+                WriteLine($"[{pointCountTotal,20:N0}] {new Cell(chunk.BoundingBox),-25}; intensities {jsRange,-20}; [{string.Join('|', jsHisto.Select(x => $"{x,9}"))}]");
+            }
+        }
+
         public static async Task Main(string[] _)
         {
-            await CreateStore(
-                //@"W:\Datasets\Vgm\Data\structured_pointclouds\JB_Haus_2022_KG.e57",
-                @"W:\Datasets\Vgm\Data\2023-04-19_bugreport\NDR-Studio3.e57",
-                @"W:\tmp\2023-04-30_algodat_ndrstudio3.0.005.store2",
-                minDist: 0.005
-                );
+            //await CreateStore(
+            //    @"T:\Kindergarten.pts",
+            //    @"W:\Aardworx\pointshare2\testdata\2023-08-01_kindergarten.store",
+            //    minDist: 0.0
+            //    );
+
+            await Ranges_Test_20230802();
+
+            //await ParseTest_20230730();
 
             //await Test_20230419();
 

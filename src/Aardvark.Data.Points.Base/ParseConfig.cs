@@ -20,6 +20,42 @@ using System.Threading;
 namespace Aardvark.Data.Points
 {
     /// <summary>
+    /// Specifies properties to parse and import.
+    /// </summary>
+    public class EnabledProperties
+    {
+        /// <summary>
+        /// Parse classifications if available.
+        /// </summary>
+        public bool Classifications = true;
+
+        /// <summary>
+        /// Parse colors if available.
+        /// </summary>
+        public bool Colors = true;
+
+        /// <summary>
+        /// Parse intensities if available.
+        /// </summary>
+        public bool Intensities = true;
+
+        /// <summary>
+        /// Parse normals if available.
+        /// </summary>
+        public bool Normals = true;
+
+        /// <summary>
+        /// Parse/assign part indices if available.
+        /// </summary>
+        public bool PartIndices = true;
+        
+        /// <summary>
+        /// Parse all available properties.
+        /// </summary>
+        public static readonly EnabledProperties All = new();
+    }
+
+    /// <summary>
     /// Config for parsing.
     /// </summary>
     public struct ParseConfig
@@ -55,22 +91,51 @@ namespace Aardvark.Data.Points
         public int ReadBufferSizeInBytes;
 
         /// <summary>
+        /// Properties to parse.
+        /// </summary>
+        public EnabledProperties EnabledProperties;
+
+        /// <summary>
+        /// Assign per-point part indices starting with this value.
+        /// If a point cloud has no internal structure, then all points will be assigned this value.
+        /// </summary>
+        public int PartIndexOffset = 0;
+
+        /// <summary>
         /// Default configuration.
         /// </summary>
         public static readonly ParseConfig Default =
             new(
-                maxChunkPointCount: 5242880,        // 5 MPoints
+                maxChunkPointCount: 5242880,              // 5 MPoints
                 verbose: false,                     
                 ct: default,
-                maxDegreeOfParallelism: 0,          // Environment.ProcessorCount
+                maxDegreeOfParallelism: 0,                // Environment.ProcessorCount
                 minDist: 0.0,
-                readBufferSizeInBytes : 268435456   // 256 MB
+                readBufferSizeInBytes : 268435456,        // 256 MB
+                enabledProperties: EnabledProperties.All,
+                partIndexOffset: 0
             );
 
         /// <summary>
         /// Construct parse config.
         /// </summary>
         public ParseConfig(int maxChunkPointCount, bool verbose, CancellationToken ct, int maxDegreeOfParallelism, double minDist, int readBufferSizeInBytes)
+            : this(maxChunkPointCount, verbose, ct, maxDegreeOfParallelism, minDist, readBufferSizeInBytes, EnabledProperties.All, partIndexOffset: 0)
+        { }
+
+        /// <summary>
+        /// Construct parse config.
+        /// </summary>
+        public ParseConfig(
+            int maxChunkPointCount,
+            bool verbose,
+            CancellationToken ct,
+            int maxDegreeOfParallelism,
+            double minDist,
+            int readBufferSizeInBytes,
+            EnabledProperties enabledProperties,
+            int partIndexOffset
+            )
         {
             MaxChunkPointCount = maxChunkPointCount;
             Verbose = verbose;
@@ -78,6 +143,8 @@ namespace Aardvark.Data.Points
             MaxDegreeOfParallelism = maxDegreeOfParallelism;
             MinDist = minDist;
             ReadBufferSizeInBytes = readBufferSizeInBytes;
+            EnabledProperties = enabledProperties;
+            PartIndexOffset = partIndexOffset;
         }
 
         /// <summary>
@@ -91,6 +158,7 @@ namespace Aardvark.Data.Points
             MaxDegreeOfParallelism = x.MaxDegreeOfParallelism;
             MinDist = x.MinDist;
             ReadBufferSizeInBytes = x.ReadBufferSizeInBytes;
+            EnabledProperties = x.EnabledProperties;
         }
 
         /// <summary></summary>
@@ -110,5 +178,12 @@ namespace Aardvark.Data.Points
 
         /// <summary></summary>
         public ParseConfig WithVerbose(bool v) => new(this) { Verbose = v };
+
+        /// <summary></summary>
+        public ParseConfig WithEnabledProperties(EnabledProperties v) => new(this) { EnabledProperties = v };
+
+        /// <summary></summary>
+        public ParseConfig WithPartIndexOffset(int v) => new(this) { PartIndexOffset = v };
+
     }
 }

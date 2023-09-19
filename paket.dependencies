@@ -27,8 +27,8 @@ nuget Aardvark.Application.Slim.Vulkan  ~> 5.4.0
 
 ////////////////////////////////////////////////////////////////////////
 // https://github.com/aardvark-community/aardvark.data.durable.dotnet
-nuget Aardvark.Data.Durable             ~> 0.3.9
-nuget Aardvark.Data.Durable.Codec       ~> 0.3.9
+nuget Aardvark.Data.Durable             ~> 0.3.14
+nuget Aardvark.Data.Durable.Codec       ~> 0.3.14
 
 ////////////////////////////////////////////////////////////////////////
 // 3rd-party
@@ -38,7 +38,7 @@ nuget NUnit                             ~> 3.13.3
 nuget NUnit3TestAdapter                 ~> 4.2.1
 
 nuget Uncodium.Eigensystems             ~> 1.1.2
-nuget Uncodium.SimpleStore              ~> 3.0.27
+nuget Uncodium.SimpleStore              ~> 3.0.29
 nuget Unofficial.DotSpatial.Projections ~> 0.0.4
 
 nuget sharpcompress                     ~> 0.30.0      // only used in Apps/heracli

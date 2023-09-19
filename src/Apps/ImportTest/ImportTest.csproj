@@ -7,9 +7,11 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <OutputPath>..\..\..\bin\Debug\</OutputPath>
+    <NoWarn>1701;1702;CS7022</NoWarn>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <OutputPath>..\..\..\bin\Release\</OutputPath>
+    <NoWarn>1701;1702;CS7022</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Aardvark.Data.E57\Aardvark.Data.E57.csproj" />
