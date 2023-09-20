@@ -32,7 +32,7 @@ namespace Aardvark.Geometry.Points
         /// Computes indices of selected/visible points, starting from already selected points.
         /// If 'selected' is null, then ALL points are selected to begin with.
         /// </summary>
-        HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int> selected = default);
+        HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null);
 
         /// <summary></summary>
         JsonNode Serialize();

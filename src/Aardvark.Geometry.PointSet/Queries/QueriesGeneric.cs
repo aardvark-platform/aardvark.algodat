@@ -59,7 +59,7 @@ namespace Aardvark.Geometry.Points
                     var csRaw = node.HasColors ? node.Colors.Value : null;
                     var nsRaw = node.HasNormals ? node.Normals.Value : null;
                     var jsRaw = node.HasIntensities ? node.Intensities.Value : null;
-                    var ksRaw = node.HasClassifications ? node.Classifications.Value : null;
+                    var ksRaw = node.HasClassifications ? node.Classifications!.Value : null;
 
                     var ps = new List<V3d>();
                     var cs = csRaw != null ? new List<C4b>() : null;
@@ -73,10 +73,10 @@ namespace Aardvark.Geometry.Points
                         if (isPositionInside(p))
                         {
                             ps.Add(p);
-                            if (csRaw != null) cs.Add(csRaw[i]);
-                            if (nsRaw != null) ns.Add(nsRaw[i]);
-                            if (jsRaw != null) js.Add(jsRaw[i]);
-                            if (ksRaw != null) ks.Add(ksRaw[i]);
+                            if (csRaw != null) cs!.Add(csRaw[i]);
+                            if (nsRaw != null) ns!.Add(nsRaw[i]);
+                            if (jsRaw != null) js!.Add(jsRaw[i]);
+                            if (ksRaw != null) ks!.Add(ksRaw[i]);
                         }
                     }
                     if (ps.Count > 0)
@@ -89,7 +89,7 @@ namespace Aardvark.Geometry.Points
             {
                 for (var i = 0; i < 8; i++)
                 {
-                    var n = node.Subnodes[i];
+                    var n = node.Subnodes![i];
                     if (n == null) continue;
                     var xs = QueryPoints(n.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, minCellExponent);
                     foreach (var x in xs) yield return x;
@@ -163,7 +163,7 @@ namespace Aardvark.Geometry.Points
                 var sum = 0L;
                 for (var i = 0; i < 8; i++)
                 {
-                    var n = node.Subnodes[i];
+                    var n = node.Subnodes![i];
                     if (n == null) continue;
                     sum += CountPoints(n.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, minCellExponent);
                 }
@@ -209,7 +209,7 @@ namespace Aardvark.Geometry.Points
                 var sum = 0L;
                 for (var i = 0; i < 8; i++)
                 {
-                    var n = node.Subnodes[i];
+                    var n = node.Subnodes![i];
                     if (n == null) continue;
                     sum += CountPointsApproximately(n.Value, isNodeFullyInside, isNodeFullyOutside, minCellExponent);
                 }
@@ -267,7 +267,7 @@ namespace Aardvark.Geometry.Points
             {
                 for (var i = 0; i < 8; i++)
                 {
-                    var n = node.Subnodes[i];
+                    var n = node.Subnodes![i];
                     if (n == null) continue;
                     if (QueryContainsPoints(n.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, minCellExponent)) return true;
                 }

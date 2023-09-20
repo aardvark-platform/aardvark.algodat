@@ -26,10 +26,10 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public static class MergeExtensions
     {
-        internal static int CollectEverything(IPointCloudNode self, List<V3d> ps, List<C4b> cs, List<V3f> ns, List<int> js, List<byte> ks)
+        internal static int CollectEverything(IPointCloudNode self, List<V3d> ps, List<C4b>? cs, List<V3f>? ns, List<int>? js, List<byte>? ks)
         {
             if (self == null) return 0;
-            else if(self.IsLeaf)
+            else if (self.IsLeaf)
             {
                 if (self.HasPositions && ps != null)
                 {
@@ -37,16 +37,16 @@ namespace Aardvark.Geometry.Points
                     ps.AddRange(self.Positions.Value.Map(p => off + (V3d)p));
                 }
 
-                if (self.HasColors && cs != null) cs.AddRange(self.Colors.Value);
+                if (self.HasColors && cs != null) cs.AddRange(self.Colors!.Value);
                 if (self.HasNormals && ns != null) ns.AddRange(self.Normals.Value);
                 if (self.HasIntensities && js != null) js.AddRange(self.Intensities.Value);
-                if (self.HasClassifications && ks != null) ks.AddRange(self.Classifications.Value);
+                if (self.HasClassifications && ks != null) ks.AddRange(self.Classifications!.Value);
                 return 1;
             }
             else
             {
                 var leafs = 0;
-                foreach (var x in self.Subnodes)
+                foreach (var x in self.Subnodes!)
                 {
                     if (x != null)
                     {
@@ -63,11 +63,7 @@ namespace Aardvark.Geometry.Points
                 "CollapseLeafNodes is only valid for temporary import nodes. Invariant 4aa0809d-4cb0-422b-97ee-fa5b6dc4785e."
                 );
 
-            if (self.PointCountTree == 0)
-            {
-                return (null, true);
-            }
-            else if (self.PointCountTree <= config.OctreeSplitLimit)
+            if (self.PointCountTree <= config.OctreeSplitLimit)
             {
                 if (self.IsLeaf) return (self.WriteToStore(), true);
 
@@ -181,6 +177,7 @@ namespace Aardvark.Geometry.Points
             var subnodesNormals = self.HasNormals ? new List<V3f>[8] : null;
             var subnodesIntensities = self.HasIntensities ? new List<int>[8] : null;
             var subnodesClassifications = self.HasClassifications ? new List<byte>[8] : null;
+            object?[]? subnodesPartIndices = self.HasPartIndices ? throw new NotImplementedException("TODO PARTINDICES") : null;
 
             var pa = self.PositionsAbsolute;
             var ca = self.Colors?.Value;
@@ -202,10 +199,10 @@ namespace Aardvark.Geometry.Points
                     if (subnodesClassifications != null) subnodesClassifications[si] = new List<byte>();
                 }
                 subnodesPoints[si].Add(pa[i]);
-                if (subnodesColors != null) subnodesColors[si].Add(ca[i]);
-                if (subnodesNormals != null) subnodesNormals[si].Add(na[i]);
-                if (subnodesIntensities != null) subnodesIntensities[si].Add(ia[i]);
-                if (subnodesClassifications != null) subnodesClassifications[si].Add(ka[i]);
+                subnodesColors?[si].Add(ca![i]);
+                subnodesNormals?[si].Add(na![i]);
+                subnodesIntensities?[si].Add(ia![i]);
+                subnodesClassifications?[si].Add(ka![i]);
             }
 
             var subnodes = new PointSetNode[8];
@@ -235,6 +232,7 @@ namespace Aardvark.Geometry.Points
                     subnodesNormals?[i],
                     subnodesIntensities?[i],
                     subnodesClassifications?[i],
+                    subnodesPartIndices?[i],
                     subCell,
                     int.MaxValue
                     );
@@ -276,8 +274,8 @@ namespace Aardvark.Geometry.Points
                 "Merge is only allowed on temporary import nodes. Invariant d53042e7-a032-47a9-98dc-034c0749a649."
                 );
 
-            if (a == null || a.PointCountTree == 0) { pointsMergedCallback?.Invoke(b?.PointCountTree ?? 0); return (b,true); }
-            if (b == null || b.PointCountTree == 0) { pointsMergedCallback?.Invoke(a?.PointCountTree ?? 0); return (a,true); }
+            if (a == null || a.PointCountTree == 0) { pointsMergedCallback.Invoke(b.PointCountTree); return (b, true); }
+            if (b == null || b.PointCountTree == 0) { pointsMergedCallback.Invoke(a.PointCountTree); return (a, true); }
 
 #if DEBUG && NEVERMORE
             if (config.Verbose) Report.Line($"[Merge] a = {a.Cell}, b = {b.Cell}");
@@ -315,16 +313,15 @@ namespace Aardvark.Geometry.Points
                 var ac = a.Center;
                 var bc = b.Center;
 
-                var psAbs = chunk.Positions?.ToArray();
+                var psAbs = chunk.Positions.ToArray();
                 var ns = chunk.Normals?.ToArray();
                 var cs = chunk.Colors?.ToArray();
                 var js = chunk.Intensities?.ToArray();
                 var ks = chunk.Classifications?.ToArray();
-                if (psAbs == null || psAbs.Length == 0) return (null,true);
 
                 var bbExactGlobal = chunk.BoundingBox;
 
-                Guid? psId = psAbs != null ? Guid.NewGuid() : (Guid?)null;
+                Guid psId = Guid.NewGuid();
                 //Guid? kdId = psAbs != null ? Guid.NewGuid() : (Guid?)null;
                 Guid? nsId = ns != null ? Guid.NewGuid() : (Guid?)null;
                 Guid? csId = cs != null ? Guid.NewGuid() : (Guid?)null;
@@ -344,11 +341,11 @@ namespace Aardvark.Geometry.Points
                     .Add(Durable.Octree.PointCountTreeLeafs, ps.LongLength)
                     ;
 
-                if (psId.HasValue) { storage.Add(psId.Value, ps); data = data.Add(Durable.Octree.PositionsLocal3fReference, psId.Value); }
-                if (nsId.HasValue) { storage.Add(nsId.Value, ns); data = data.Add(Durable.Octree.Normals3fReference, nsId.Value); }
-                if (csId.HasValue) { storage.Add(csId.Value, cs); data = data.Add(Durable.Octree.Colors4bReference, csId.Value); }
-                if (jsId.HasValue) { storage.Add(jsId.Value, js); data = data.Add(Durable.Octree.Intensities1iReference, jsId.Value); }
-                if (ksId.HasValue) { storage.Add(ksId.Value, ks); data = data.Add(Durable.Octree.Classifications1bReference, ksId.Value); }
+                storage.Add(psId, ps ); data = data.Add(Durable.Octree.PositionsLocal3fReference, psId);
+                if (nsId.HasValue) { storage.Add(nsId.Value, ns!); data = data.Add(Durable.Octree.Normals3fReference, nsId.Value); }
+                if (csId.HasValue) { storage.Add(csId.Value, cs!); data = data.Add(Durable.Octree.Colors4bReference, csId.Value); }
+                if (jsId.HasValue) { storage.Add(jsId.Value, js!); data = data.Add(Durable.Octree.Intensities1iReference, jsId.Value); }
+                if (ksId.HasValue) { storage.Add(ksId.Value, ks!); data = data.Add(Durable.Octree.Classifications1bReference, ksId.Value); }
                 //if (kdId.HasValue) { storage.Add(kdId.Value, kd.Data); data = data.Add(Durable.Octree.PointRkdTreeFDataReference, kdId.Value); }
 
                 return (new PointSetNode(data, config.Storage, writeToStore: true), true);
@@ -385,7 +382,7 @@ namespace Aardvark.Geometry.Points
             if (a.Cell.IsCenteredAtOrigin || b.Cell.IsCenteredAtOrigin)
             {
                 // enumerate all non-IsCenteredAtOrigin (sub)cells of A and B
-                var parts = new List<IPointCloudNode>();
+                var parts = new List<IPointCloudNode?>();
                 if (a.Cell.IsCenteredAtOrigin)
                 {
                     if (a.IsLeaf)
@@ -421,11 +418,11 @@ namespace Aardvark.Geometry.Points
                 }
 
                 // special case: there is only 1 part -> finished
-                parts = parts.Where(x => x != null).ToList();
-                if (parts.Count == 0) throw new InvalidOperationException();
-                if (parts.Count == 1)
+                List<IPointCloudNode> partsNonNull = parts.Where(x => x != null).ToList()!;
+                if (partsNonNull.Count == 0) throw new InvalidOperationException();
+                if (partsNonNull.Count == 1)
                 {
-                    var r = parts.Single();
+                    var r = partsNonNull.Single();
                     pointsMergedCallback?.Invoke(r.PointCountTree);
                     //if (r.PointCountTree != totalPointCountTree) throw new InvalidOperationException("Invariant 636bc5aa-5489-4007-ac4d-3d6dd5e9ebae.");
                     return r.CollapseLeafNodes(config);
@@ -441,11 +438,11 @@ namespace Aardvark.Geometry.Points
                     return (x.X >= 0 ? 1 : 0) + (x.Y >= 0 ? 2 : 0) + (x.Z >= 0 ? 4 : 0);
                 }
 
-                foreach (var x in parts)
+                foreach (var x in partsNonNull)
                 {
                     var oi = octant(x.Cell);
                     var oct = rootCell.GetOctant(oi);
-                    IPointCloudNode r = null;
+                    IPointCloudNode r;
                     if (roots[oi] == null)
                     {
                         if (x.Cell != oct)
@@ -510,7 +507,7 @@ namespace Aardvark.Geometry.Points
             var isExactlyOne = false;
 #endif
             var processedPointCount = 0L;
-            var subcells = a.Subnodes?.Map(x => x?.Value) ?? new IPointCloudNode[8];
+            IPointCloudNode?[] subcells = a.Subnodes?.Map(x => x?.Value) ?? new IPointCloudNode?[8];
             for (var i = 0; i < 8; i++)
             {
                 var subcellIndex = a.Cell.GetOctant(i);
@@ -526,22 +523,22 @@ namespace Aardvark.Geometry.Points
                     }
                     else
                     {
-                        subcells[i] = Merge(subcells[i], b, 
+                        subcells[i] = Merge(subcells[i]!, b, 
                             n => pointsMergedCallback?.Invoke(processedPointCount + n),
                             config).Item1;
                     }
 
-                    processedPointCount += subcells[i].PointCountTree;
+                    processedPointCount += subcells[i]?.PointCountTree ?? 0L;
                     pointsMergedCallback?.Invoke(processedPointCount);
                 }
             }
 #if DEBUG
             if (!isExactlyOne) throw new InvalidOperationException();
 #endif
-            IPointCloudNode result2 = null;
+            IPointCloudNode result2;
             if (a.IsLeaf)
             {
-                result2 = a.WithSubNodes(subcells);
+                result2 = a.WithSubNodes(subcells!);
                 result2 = InjectPointsIntoTree(
                     a.PositionsAbsolute, a.Colors?.Value, a.Normals?.Value, a.Intensities?.Value, a.Classifications?.Value,
                     result2, result2.Cell, config);
@@ -559,11 +556,11 @@ namespace Aardvark.Geometry.Points
             return result2.CollapseLeafNodes(config);
         }
         
-        private static T[] Concat<T>(T[] xs, T[] ys)
+        private static T[]? Concat<T>(T[]? xs, T[]? ys)
         {
             if (xs == null && ys == null) return null;
             if ((xs == null) != (ys == null)) throw new InvalidOperationException();
-            var rs = new T[xs.Length + ys.Length];
+            var rs = new T[xs!.Length + ys!.Length];
             Array.Copy(xs, 0, rs, 0, xs.Length);
             Array.Copy(ys, 0, rs, xs.Length, ys.Length);
             return rs;
@@ -618,12 +615,12 @@ namespace Aardvark.Geometry.Points
                 if (a.PointCountCell != 0) throw new InvalidOperationException();
 #endif
 
-                var subcells = new IPointCloudNode[8];
+                var subcells = new IPointCloudNode?[8];
                 for (var i = 0; i < 8; i++)
                 {
                     var rootCellOctant = rootCell.GetOctant(i);
 
-                    var aSub = a.Subnodes[i]?.Value;
+                    var aSub = a.Subnodes![i]?.Value;
                     var bIsContained = rootCellOctant.Contains(b.Cell);
 #if DEBUG
                     if (!bIsContained && rootCellOctant.Intersects(b.Cell)) throw new InvalidOperationException();
@@ -832,13 +829,13 @@ namespace Aardvark.Geometry.Points
             if (b.PointCountCell > 0) throw new InvalidOperationException();
 
             var pointCountTree = 0L;
-            var subcells = new IPointCloudNode[8];
+            var subcells = new IPointCloudNode?[8];
             var subcellsDebug = new int[8];
             for (var i = 0; i < 8; i++)
             {
                 var octant = a.Cell.GetOctant(i);
-                var x = a.Subnodes[i]?.Value;
-                var y = b.Subnodes[i]?.Value;
+                var x = a.Subnodes![i]?.Value;
+                var y = b.Subnodes![i]?.Value;
 
                 if (a.Subnodes[i] != null && a.Subnodes[i]?.Value == null) throw new InvalidOperationException("Invariant 5571b3ac-a807-4318-9d07-d0843664b142.");
                 if (b.Subnodes[i] != null && b.Subnodes[i]?.Value == null) throw new InvalidOperationException("Invariant 5eecb345-3460-4f9a-948c-efa29dea26b9.");
@@ -849,7 +846,7 @@ namespace Aardvark.Geometry.Points
                     {
                         subcells[i] = Merge(x, y, pointsMergedCallback, config).Item1;
                         //if (x.PointCountTree + y.PointCountTree != subcells[i].PointCountTree) throw new InvalidOperationException("Invariant 82072553-7271-4448-b74d-735d44eb03b0.");
-                        pointCountTree += subcells[i].PointCountTree;
+                        pointCountTree += subcells[i]!.PointCountTree;
                         subcellsDebug[i] = 0;
                     }
                     else
@@ -881,7 +878,7 @@ namespace Aardvark.Geometry.Points
             var replacements = ImmutableDictionary<Durable.Def, object>.Empty
                 .Add(Durable.Octree.PointCountTreeLeafs, pointCountTree)
                 .Add(Durable.Octree.SubnodesGuids, subcells.Map(x => x?.Id ?? Guid.Empty))
-                .Add(Durable.Octree.BoundingBoxExactGlobal, new Box3d(subcells.Where(n => n != null).Select(n => n.BoundingBoxExactGlobal)))
+                .Add(Durable.Octree.BoundingBoxExactGlobal, new Box3d(subcells.Where(n => n != null).Select(n => n!.BoundingBoxExactGlobal)))
                 ;
             var result = a.With(replacements).CollapseLeafNodes(config).Item1;
 
@@ -892,7 +889,7 @@ namespace Aardvark.Geometry.Points
         }
 
         private static IPointCloudNode InjectPointsIntoTree(
-            IList<V3d> psAbsolute, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks,
+            IList<V3d> psAbsolute, IList<C4b>? cs, IList<V3f>? ns, IList<int>? js, IList<byte>? ks,
             IPointCloudNode a, Cell cell, ImportConfig config
             )
         {
@@ -924,10 +921,10 @@ namespace Aardvark.Geometry.Points
                 if (ns == null && a.HasNormals) throw new InvalidOperationException("Invariant 1e35a025-9a10-4bee-993b-109090c85b50.");
 
                 var newPs = new List<V3d>(psAbsolute); newPs.AddRange(a.PositionsAbsolute);
-                var newCs = cs != null ? new List<C4b>(cs) : null; newCs?.AddRange(a.Colors.Value);
-                var newNs = ns != null ? new List<V3f>(ns) : null; newNs?.AddRange(a.Normals.Value);
-                var newJs = js != null ? new List<int>(js) : null; newJs?.AddRange(a.Intensities.Value);
-                var newKs = ks != null ? new List<byte>(ks) : null; newKs?.AddRange(a.Classifications.Value);
+                var newCs = cs != null ? new List<C4b>(cs) : null; newCs?.AddRange(a.Colors!.Value);
+                var newNs = ns != null ? new List<V3f>(ns) : null; newNs?.AddRange(a.Normals!.Value);
+                var newJs = js != null ? new List<int>(js) : null; newJs?.AddRange(a.Intensities!.Value);
+                var newKs = ks != null ? new List<byte>(ks) : null; newKs?.AddRange(a.Classifications!.Value);
 
                 var chunk = new Chunk(newPs, newCs, newNs, newJs, newKs, cell.BoundingBox);
 
@@ -952,31 +949,31 @@ namespace Aardvark.Geometry.Points
                 if (pss[j] == null)
                 {
                     pss[j] = new List<V3d>();
-                    if (cs != null) css[j] = new List<C4b>();
-                    if (ns != null) nss[j] = new List<V3f>();
-                    if (js != null) iss[j] = new List<int>();
-                    if (ks != null) kss[j] = new List<byte>();
+                    if (cs != null) css![j] = new List<C4b>();
+                    if (ns != null) nss![j] = new List<V3f>();
+                    if (js != null) iss![j] = new List<int>();
+                    if (ks != null) kss![j] = new List<byte>();
                 }
                 pss[j].Add(psAbsolute[i]);
-                if (cs != null) css[j].Add(cs[i]);
-                if (ns != null) nss[j].Add(ns[i]);
-                if (js != null) iss[j].Add(js[i]);
-                if (ks != null) kss[j].Add(ks[i]);
+                if (cs != null) css![j].Add(cs[i]);
+                if (ns != null) nss![j].Add(ns[i]);
+                if (js != null) iss![j].Add(js[i]);
+                if (ks != null) kss![j].Add(ks[i]);
             }
 
             if (pss.Sum(x => x?.Count) != psAbsolute.Count) throw new InvalidOperationException();
 
-            var subcells = new IPointCloudNode[8];
+            var subcells = new IPointCloudNode?[8];
             for (var j = 0; j < 8; j++)
             {
-                var x = a.Subnodes[j]?.Value;
-                if (pss[j] != null)
+                var x = a.Subnodes![j]?.Value;
+                if (x != null) //if (pss[j] != null)
                 {
                     subcells[j] = InjectPointsIntoTree(pss[j], css?[j], nss?[j], iss?[j], kss?[j], x, cell.GetOctant(j), config);
                 }
                 else
                 {
-                    subcells[j] = x;
+                    subcells[j] = null; // x;
                 }
             }
 

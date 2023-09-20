@@ -66,7 +66,7 @@ namespace Aardvark.Geometry.Points
 
                 var center = node.Center;
 
-                var closest = node.KdTree.Value.GetClosest((V3f)(query - center), (float)maxDistanceToPoint, maxCount).ToArray();
+                var closest = node.KdTree!.Value.GetClosest((V3f)(query - center), (float)maxDistanceToPoint, maxCount).ToArray();
                 if (closest.Length > 0)
                 {
                     var ia = closest.Map(x => (int)x.Index);
@@ -88,7 +88,7 @@ namespace Aardvark.Geometry.Points
             {
                 // first traverse octant containing query point
                 var index = node.GetSubIndex(query);
-                var n = node.Subnodes[index];
+                var n = node.Subnodes![index];
                 var result = n != null ? n.Value.QueryPointsNearPoint(query, maxDistanceToPoint, maxCount) : PointsNearObject<V3d>.Empty;
                 if (!result.IsEmpty && result.MaxDistance < maxDistanceToPoint) maxDistanceToPoint = result.MaxDistance;
 

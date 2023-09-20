@@ -138,7 +138,7 @@ namespace Aardvark.Geometry.Points
 
             offset = 56;
 
-            Guid[] subcellIds = null;
+            Guid[]? subcellIds = null;
             if (subcellmask != 0)
             {
                 subcellIds = new Guid[8];

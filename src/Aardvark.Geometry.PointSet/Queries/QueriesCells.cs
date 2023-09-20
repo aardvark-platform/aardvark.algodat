@@ -144,7 +144,7 @@ namespace Aardvark.Geometry.Points
         /// or null if octree does not cover given cell.
         /// Result chunk contains 0 points, if cell is covered by octree, but no points are inside given cell.
         /// </summary>
-        public static CellQueryResult QueryCell(this PointSet pointset, Cell cell)
+        public static CellQueryResult? QueryCell(this PointSet pointset, Cell cell)
             => pointset.Root.Value != null ? QueryCell(pointset.Root.Value, cell) : null;
 
         /// <summary>
@@ -179,7 +179,7 @@ namespace Aardvark.Geometry.Points
                     var octant = n.Cell.GetOctant(cell);
                     if (octant.HasValue)
                     {
-                        var subNodeRef = n.Subnodes[octant.Value];
+                        var subNodeRef = n.Subnodes![octant.Value];
                         if (subNodeRef != null)
                         {
                             return QueryCellRecursive(subNodeRef.Value);
@@ -203,7 +203,7 @@ namespace Aardvark.Geometry.Points
         /// Cell size is 2^cellExponent, e.g. -2 gives 0.25, -1 gives 0.50, 0 gives 1.00, 1 gives 2.00, and so on.
         /// </summary>
         public static IEnumerable<CellQueryResult> EnumerateCells(this PointSet pointset, int cellExponent)
-            => pointset.Root.Value != null ? EnumerateCells(pointset.Root.Value, cellExponent) : null;
+            => EnumerateCells(pointset.Root.Value, cellExponent);
 
         /// <summary>
         /// Enumerates all points in chunks of a given cell size (given by cellExponent).
@@ -217,7 +217,7 @@ namespace Aardvark.Geometry.Points
         /// Cell size is 2^cellExponent, e.g. -2 gives 0.25, -1 gives 0.50, 0 gives 1.00, 1 gives 2.00, and so on.
         /// </summary>
         public static IEnumerable<CellQueryResult> EnumerateCells(this PointSet pointset, int cellExponent, V3i stride)
-            => pointset.Root.Value != null ? EnumerateCells(pointset.Root.Value, cellExponent, stride) : null;
+            => EnumerateCells(pointset.Root.Value, cellExponent, stride);
 
         /// <summary>
         /// Enumerates all points in chunks of a given cell size (given by cellExponent).
@@ -276,7 +276,7 @@ namespace Aardvark.Geometry.Points
                 {
                     for (var i = 0; i < 8; i++)
                     {
-                        var subnode = n.Subnodes[i];
+                        var subnode = n.Subnodes![i];
                         if (subnode != null)
                         {
                             var xs = EnumerateCellsOfSizeRecursive(subnode.Value);
@@ -539,7 +539,7 @@ namespace Aardvark.Geometry.Points
         /// Stride is step size (default is V3i.III), which must be greater 0 for each coordinate axis.
         /// </summary>
         public static IEnumerable<CellQueryResult2d> EnumerateCellColumns(this PointSet pointset, int cellExponent)
-            => pointset.Root.Value != null ? EnumerateCellColumns(pointset.Root.Value, cellExponent) : null;
+            => EnumerateCellColumns(pointset.Root.Value, cellExponent);
 
         /// <summary>
         /// Enumerates all columns of a given cell size (given by cellExponent).
@@ -555,7 +555,7 @@ namespace Aardvark.Geometry.Points
         /// Stride is step size (default is V3i.III), which must be greater 0 for each coordinate axis.
         /// </summary>
         public static IEnumerable<CellQueryResult2d> EnumerateCellColumns(this PointSet pointset, int cellExponent, V2i stride)
-            => pointset.Root.Value != null ? EnumerateCellColumns(pointset.Root.Value, cellExponent, stride) : null;
+            => EnumerateCellColumns(pointset.Root.Value, cellExponent, stride);
 
         /// <summary>
         /// Enumerates all columns of a given cell size (given by cellExponent).
@@ -695,7 +695,7 @@ namespace Aardvark.Geometry.Points
                 }
             }
 
-            private ColZ[] Split()
+            private ColZ?[] Split()
             {
                 // inner ...
                 var nss = new List<IPointCloudNode>[4].SetByIndex(_ => new List<IPointCloudNode>());
@@ -703,7 +703,7 @@ namespace Aardvark.Geometry.Points
                 {
                     for (var i = 0; i < 8; i++)
                     {
-                        var x = n.Subnodes[i]?.Value;
+                        var x = n?.Subnodes![i]?.Value;
                         if (x != null) nss[i & 0b011].Add(x);
 
                     }

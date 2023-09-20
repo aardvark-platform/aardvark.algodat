@@ -17,6 +17,7 @@ using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using static Aardvark.Data.Durable;
 
@@ -83,9 +84,9 @@ namespace Aardvark.Geometry.Points
 
         #region Properties
 
-        private PersistentRef<IPointCloudNode>[] m_subnodes_cache;
+        private PersistentRef<IPointCloudNode>?[]? m_subnodes_cache;
 
-        private readonly HashSet<int> m_activePoints;
+        private readonly HashSet<int>? m_activePoints;
 
         /// <summary></summary>
         public Guid Id { get; }
@@ -123,7 +124,7 @@ namespace Aardvark.Geometry.Points
             {
                 var subnodes = Subnodes.Map(x => x?.Value.Materialize());
                 var subnodeIds = subnodes.Map(x => x?.Id ?? Guid.Empty);
-                var bbExactGlobal = new Box3d(subnodes.Where(x => x != null).Select(x => x.BoundingBoxExactGlobal));
+                var bbExactGlobal = new Box3d(subnodes.Where(x => x != null).Select(x => x!.BoundingBoxExactGlobal));
                 data = data
                     .Add(Octree.SubnodesGuids, subnodeIds)
                     .Add(Octree.BoundingBoxExactGlobal, bbExactGlobal)
@@ -207,13 +208,13 @@ namespace Aardvark.Geometry.Points
         public bool Has(Def what) => Node.Has(what);
 
         /// <summary></summary>
-        public bool TryGetValue(Def what, out object o) => Node.TryGetValue(what, out o);
+        public bool TryGetValue(Def what, [NotNullWhen(true)]out object? o) => Node.TryGetValue(what, out o);
 
         /// <summary></summary>
         public IReadOnlyDictionary<Def, object> Properties => Node.Properties;
 
         /// <summary></summary>
-        public PersistentRef<IPointCloudNode>[] Subnodes
+        public PersistentRef<IPointCloudNode>[]? Subnodes
         {
             get
             {
@@ -265,7 +266,7 @@ namespace Aardvark.Geometry.Points
 
                     }
                 }
-                return m_subnodes_cache;
+                return m_subnodes_cache!;
             }
         }
 
@@ -305,7 +306,7 @@ namespace Aardvark.Geometry.Points
         {
             if (m_ensuredPositionsAndDerived) return;
 
-            var result = GetSubArray(Octree.PositionsLocal3f, Node.Positions);
+            var result = GetSubArray(Octree.PositionsLocal3f, Node.Positions)!;
             m_cache[Octree.PositionsLocal3f.Id] = result;
             var psLocal = result.Value;
 
@@ -371,6 +372,8 @@ namespace Aardvark.Geometry.Points
         #region KdTree
 
         /// <summary></summary>
+
+        [MemberNotNullWhen(true, nameof(KdTree))]
         public bool HasKdTree => Node.HasKdTree;
 
         /// <summary></summary>
@@ -388,40 +391,61 @@ namespace Aardvark.Geometry.Points
         #region Colors
 
         /// <summary></summary>
+
+        [MemberNotNullWhen(true, nameof(Colors))]
         public bool HasColors => Node.HasColors;
 
         /// <summary></summary>
-        public PersistentRef<C4b[]> Colors => GetSubArray(Octree.Colors4b, Node.Colors);
+        public PersistentRef<C4b[]>? Colors => GetSubArray(Octree.Colors4b, Node.Colors);
 
         #endregion
 
         #region Normals
 
         /// <summary></summary>
+
+        [MemberNotNullWhen(true, nameof(Normals))]
         public bool HasNormals => Node.HasNormals;
 
         /// <summary></summary>
-        public PersistentRef<V3f[]> Normals => GetSubArray(Octree.Normals3f, Node.Normals);
+        public PersistentRef<V3f[]>? Normals => GetSubArray(Octree.Normals3f, Node.Normals);
 
         #endregion
 
         #region Intensities
 
         /// <summary></summary>
+
+        [MemberNotNullWhen(true, nameof(Intensities))]
         public bool HasIntensities => Node.HasIntensities;
 
         /// <summary></summary>
-        public PersistentRef<int[]> Intensities => GetSubArray(Octree.Intensities1i, Node.Intensities);
+        public PersistentRef<int[]>? Intensities => GetSubArray(Octree.Intensities1i, Node.Intensities);
 
         #endregion
 
         #region Classifications
 
         /// <summary></summary>
+
+        [MemberNotNullWhen(true, nameof(Classifications))]
         public bool HasClassifications => Node.HasClassifications;
 
         /// <summary></summary>
-        public PersistentRef<byte[]> Classifications => GetSubArray(Octree.Classifications1b, Node.Classifications);
+        public PersistentRef<byte[]>? Classifications => GetSubArray(Octree.Classifications1b, Node.Classifications);
+
+        #endregion
+
+        #region PartIndices
+
+        /// <summary></summary>
+        [MemberNotNullWhen(true, nameof(PartIndices))]
+        public bool HasPartIndices => Node.HasPartIndices;
+
+        /// <summary>
+        /// Octree. Per-point or per-cell part indices.
+        /// </summary>
+        public object? PartIndices => Node.PartIndices;
 
         #endregion
 
@@ -431,13 +455,16 @@ namespace Aardvark.Geometry.Points
         /// Deprecated. Always returns false. Use custom attributes instead.
         /// </summary>
         [Obsolete("Use custom attributes instead.")]
+#pragma warning disable CS0618 // Type or member is obsolete
+        [MemberNotNullWhen(true, nameof(Velocities))]
+#pragma warning restore CS0618 // Type or member is obsolete
         public bool HasVelocities => false;
 
         /// <summary>
         /// Deprecated. Always returns null. Use custom attributes instead.
         /// </summary>
         [Obsolete("Use custom attributes instead.")]
-        public PersistentRef<V3f[]> Velocities => null;
+        public PersistentRef<V3f[]>? Velocities => null;
 
         #endregion
 
@@ -494,7 +521,7 @@ namespace Aardvark.Geometry.Points
         #endregion
 
         private readonly Dictionary<Guid, object> m_cache = new();
-        private PersistentRef<T[]> GetSubArray<T>(Def def, PersistentRef<T[]> originalValue)
+        private PersistentRef<T[]>? GetSubArray<T>(Def def, PersistentRef<T[]>? originalValue)
         {
             if (m_cache.TryGetValue(def.Id, out var o) && o is PersistentRef<T[]> x) return x;
 
@@ -522,7 +549,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// FilteredNode does not support WithSubNodes.
         /// </summary>
-        public IPointCloudNode WithSubNodes(IPointCloudNode[] subnodes)
+        public IPointCloudNode WithSubNodes(IPointCloudNode?[] subnodes)
             => throw new InvalidOperationException("Invariant 62e6dab8-133a-452d-8d8c-f0b0eb5f286c.");
 
         #endregion
@@ -589,7 +616,7 @@ namespace Aardvark.Geometry.Points
             var filterString = (string)data.Get(Defs.FilteredNodeFilter);
             var filter = Points.Filter.Deserialize(filterString);
             var rootId = (Guid)data.Get(Defs.FilteredNodeRootId);
-            var root = storage.GetPointCloudNode(rootId);
+            var root = storage.GetPointCloudNode(rootId) ?? throw new InvalidOperationException("Invariant 7fd48e32-9741-4241-b68f-6a0a0d261ec8.");
             return new FilteredNode(id, false, root, filter);
         }
 

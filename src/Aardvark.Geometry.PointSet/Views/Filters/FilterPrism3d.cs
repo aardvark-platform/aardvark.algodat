@@ -29,7 +29,7 @@ namespace Aardvark.Geometry.Points
 
         public bool IsFullyOutside(IPointCloudNode node) => IsFullyOutside(node.BoundingBoxExactGlobal);
 
-        public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int> selected = null)
+        public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null)
         {
             if (selected != null)
             {
@@ -89,10 +89,10 @@ namespace Aardvark.Geometry.Points
             new Range1d(dto.Range[0], dto.Range[1])
             );
 
-        public JsonNode Serialize() => JsonSerializer.SerializeToNode(ToDto());
+        public JsonNode Serialize() => JsonSerializer.SerializeToNode(ToDto())!;
 
         public static FilterInsidePrismXY Deserialize(JsonNode json)
-            => FromDto(JsonSerializer.Deserialize<Dto>(json));
+            => FromDto(JsonSerializer.Deserialize<Dto>(json)!);
 
         #endregion
     }

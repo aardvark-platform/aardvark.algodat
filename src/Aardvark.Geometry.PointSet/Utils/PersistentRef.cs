@@ -13,6 +13,7 @@
 */
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 
 namespace Aardvark.Geometry.Points
@@ -21,46 +22,47 @@ namespace Aardvark.Geometry.Points
     /// <summary>
     /// </summary>
     public class PersistentRef<T> 
+        where T : notnull
     {
         private readonly Func<string, T> f_get;
-        private readonly Func<string, (bool, T)> f_tryGet;
+        private readonly Func<string, (bool, T?)> f_tryGet;
 
         /// <summary>
         /// </summary>
-        public PersistentRef(Guid id, Func<string, T> get, Func<string, (bool, T)> tryGet)
+        public PersistentRef(Guid id, Func<string, T> get, Func<string, (bool, T?)> tryGet)
             : this(id.ToString(), get, tryGet)
         {
         }
 
         /// <summary>
         /// </summary>
-        public PersistentRef(string id, Func<string, T> get, Func<string, (bool, T)> tryGet)
+        public PersistentRef(string id, Func<string, T> get, Func<string, (bool, T?)> tryGet)
         {
             Id = id; //?? throw new ArgumentNullException(nameof(id));
             f_get = get ?? throw new ArgumentNullException(nameof(get));
             f_tryGet = tryGet ?? throw new ArgumentNullException(nameof(tryGet));
         }
         
-        /// <summary>
-        /// </summary>
-        public PersistentRef<A> Cast<A>()
-        {
-            var get = f_get;
-            var tryGet = f_tryGet;
-            return new PersistentRef<A>(
-                Id,
-                (s => (A)(object)get(s)),
-                (s => { var (w, t) = tryGet(s); return w ? (w, (A)(object)t) : (false, default(A)); })
-            );
+        ///// <summary>
+        ///// </summary>
+        //public PersistentRef<A> Cast<A>() where A : notnull
+        //{
+        //    var get = f_get;
+        //    var tryGet = f_tryGet;
+        //    return new PersistentRef<A>(
+        //        Id,
+        //        (s => (A)(object)get(s)),
+        //        (s => { var (w, t) = tryGet(s); return w ? (w, (A)(object)t) : (false, default(A)); })
+        //    );
 
-        }
+        //}
 
-        /// <summary>
-        /// </summary>
-        public static PersistentRef<T> FromValue(T value)
-        {
-            return new PersistentRef<T>(null, s => value, s => (true, value));
-        }
+        ///// <summary>
+        ///// </summary>
+        //public static PersistentRef<T> FromValue(T value)
+        //{
+        //    return new PersistentRef<T>(null, s => value, s => (true, value));
+        //}
 
         /// <summary>
         /// </summary>
@@ -68,10 +70,10 @@ namespace Aardvark.Geometry.Points
         
         /// <summary>
         /// </summary>
-        public bool TryGetValue(out T value)
+        public bool TryGetValue([NotNullWhen(true)]out T? value)
         {
             bool isSome = false;
-            T x = default;
+            T? x = default;
             (isSome, x) = f_tryGet(Id);
             value = x;
             return isSome;
@@ -79,7 +81,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        public (bool hasValue, T value) TryGetValue() => f_tryGet(Id);
+        public (bool hasValue, T? value) TryGetValue() => f_tryGet(Id);
 
         /// <summary>
         /// </summary>
@@ -88,8 +90,7 @@ namespace Aardvark.Geometry.Points
             get
             {
                 var result = f_get(Id);
-                if (result == null) throw new InvalidOperationException("Invariant e73282a1-45c0-4cb3-bccf-e6d416163abc.");
-                return result;
+                return result == null ? throw new InvalidOperationException("Invariant e73282a1-45c0-4cb3-bccf-e6d416163abc.") : result;
             }
         }
     }

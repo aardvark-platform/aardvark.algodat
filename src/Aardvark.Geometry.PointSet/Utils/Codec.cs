@@ -501,7 +501,7 @@ namespace Aardvark.Data
         /// Serializes value x to byte array. 
         /// Can be deserialized with Deserialize.
         /// </summary>
-        public static byte[] Serialize<T>(Durable.Def def, T x)
+        public static byte[] Serialize<T>(Durable.Def def, T x) where T : notnull
         {
             using var ms = new MemoryStream();
             using var bw = new BinaryWriter(ms);
@@ -521,7 +521,7 @@ namespace Aardvark.Data
         /// Serializes value x to stream. 
         /// Can be deserialized with Deserialize.
         /// </summary>
-        public static void Serialize<T>(BinaryWriter stream, Durable.Def def, T x)
+        public static void Serialize<T>(BinaryWriter stream, Durable.Def def, T x) where T : notnull
         {
             if (def.Type == Durable.Primitives.Unit.Id)
             {
@@ -537,7 +537,7 @@ namespace Aardvark.Data
         /// Serializes value x to stream. 
         /// Can be deserialized with Deserialize.
         /// </summary>
-        public static void Serialize<T>(Stream stream, Durable.Def def, T x)
+        public static void Serialize<T>(Stream stream, Durable.Def def, T x) where T : notnull
         {
             using var bw = new BinaryWriter(stream);
             Serialize(bw, def, x);

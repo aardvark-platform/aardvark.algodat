@@ -43,8 +43,9 @@ namespace Aardvark.Geometry.Tests
             var ns1 = ps1.Map(_ => V3f.XAxis);
             var is1 = ps1.Map(_ => 123);
             var ks1 = ps1.Map(_ => (byte)0);
+            var qs1 = ps1.Map(_ => (byte)17);
             var pointset1 = PointSet.Create(
-                storage, "test1", ps1, cs1, ns1, is1, ks1, splitLimit,
+                storage, "test1", ps1, cs1, ns1, is1, ks1, qs1, splitLimit,
                 generateLod: false, isTemporaryImportNode: true, default
                 );
             var pointset1Count = pointset1.Root.Value.CountPoints();
@@ -55,8 +56,9 @@ namespace Aardvark.Geometry.Tests
             var ns2 = ps2.Map(_ => V3f.XAxis);
             var is2 = ps2.Map(_ => 456);
             var ks2 = ps2.Map(_ => (byte)1);
+            var qs2 = ps2.Map(_ => (byte)18);
             var pointset2 = PointSet.Create(
-                storage, "test2", ps2, cs2, ns2, is2, ks2, splitLimit,
+                storage, "test2", ps2, cs2, ns2, is2, ks2, qs2, splitLimit,
                 generateLod: false, isTemporaryImportNode: true, default
                 );
             var pointset2Count = pointset2.Root.Value.CountPoints();
@@ -89,8 +91,9 @@ namespace Aardvark.Geometry.Tests
             var ns1 = ps1.Map(_ => V3f.XAxis);
             var is1 = ps1.Map(_ => 123);
             var ks1 = ps1.Map(_ => (byte)42);
+            var qs1 = ps1.Map(_ => (byte)17);
             var pointset1 = PointSet.Create(
-                storage, "test1", ps1, cs1, ns1, is1, ks1, 1000,
+                storage, "test1", ps1, cs1, ns1, is1, ks1, qs1, 1000,
                 generateLod: false, isTemporaryImportNode: true, default
                 );
 
@@ -99,8 +102,9 @@ namespace Aardvark.Geometry.Tests
             var ns2 = ps2.Map(_ => V3f.XAxis);
             var is2 = ps2.Map(_ => 456);
             var ks2 = ps1.Map(_ => (byte)7);
+            var qs2 = ps1.Map(_ => (byte)18);
             var pointset2 = PointSet.Create(
-                storage, "test2", ps2, cs2, ns2, is2, ks2, 1000,
+                storage, "test2", ps2, cs2, ns2, is2, ks2, qs2, 1000,
                 generateLod: false, isTemporaryImportNode: true, default
                 );
 
@@ -129,8 +133,9 @@ namespace Aardvark.Geometry.Tests
             var ns1 = ps1.Map(_ => V3f.XAxis);
             var is1 = ps1.Map(_ => 123);
             var ks1 = ps1.Map(_ => (byte)42);
+            var qs1 = ps1.Map(_ => (byte)17);
             var pointset1 = PointSet.Create(
-                storage, "test1", ps1, null, ns1, is1, ks1, 1000,
+                storage, "test1", ps1, null, ns1, is1, ks1, qs1, 1000,
                 generateLod: false, isTemporaryImportNode: true, default
                 );
 
@@ -138,8 +143,9 @@ namespace Aardvark.Geometry.Tests
             var ns2 = ps2.Map(_ => V3f.XAxis);
             var is2 = ps2.Map(_ => 456);
             var ks2 = ps1.Map(_ => (byte)7);
+            var qs2 = ps1.Map(_ => (byte)18);
             var pointset2 = PointSet.Create(
-                storage, "test2", ps2, null, ns2, is2, ks2, 1000,
+                storage, "test2", ps2, null, ns2, is2, ks2, qs2, 1000,
                 generateLod: false, isTemporaryImportNode: true, default
                 );
 
@@ -168,8 +174,9 @@ namespace Aardvark.Geometry.Tests
             var cs1 = ps1.Map(_ => C4b.White);
             var is1 = ps1.Map(_ => 123);
             var ks1 = ps1.Map(_ => (byte)42);
+            var qs1 = ps1.Map(_ => (byte)17);
             var pointset1 = PointSet.Create(
-                storage, "test1", ps1, cs1, null, is1, ks1, 1000,
+                storage, "test1", ps1, cs1, null, is1, ks1, qs1, 1000,
                 generateLod: false, isTemporaryImportNode: true, default
                 );
 
@@ -177,8 +184,9 @@ namespace Aardvark.Geometry.Tests
             var cs2 = ps2.Map(_ => C4b.White);
             var is2 = ps2.Map(_ => 456);
             var ks2 = ps2.Map(_ => (byte)7);
+            var qs2 = ps2.Map(_ => (byte)18);
             var pointset2 = PointSet.Create(
-                storage, "test2", ps2, cs2, null, is2, ks2, 1000,
+                storage, "test2", ps2, cs2, null, is2, ks2, qs2, 1000,
                 generateLod: false, isTemporaryImportNode: true, default
                 );
 

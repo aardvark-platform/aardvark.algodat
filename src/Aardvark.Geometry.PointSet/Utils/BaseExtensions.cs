@@ -27,10 +27,10 @@ namespace Aardvark.Geometry.Points
             var c = self.Center;
             return new Box2l[]
             {
-                new Box2l(self.Min.X, self.Min.Y, c.X,        c.Y       ),
-                new Box2l(c.X,        self.Min.Y, self.Max.X, c.Y       ),
-                new Box2l(self.Min.X, c.Y,        c.X,        self.Max.Y),
-                new Box2l(c.X,        c.Y,        self.Max.X, self.Max.Y)
+                new(self.Min.X, self.Min.Y, c.X,        c.Y       ),
+                new(c.X,        self.Min.Y, self.Max.X, c.Y       ),
+                new(self.Min.X, c.Y,        c.X,        self.Max.Y),
+                new(c.X,        c.Y,        self.Max.X, self.Max.Y)
             };
         }
       
@@ -42,7 +42,7 @@ namespace Aardvark.Geometry.Points
         /// <param name="box">Box to project.</param>
         /// <param name="fromPosition">Project from.</param>
         /// <param name="box2plane">Transformation from world/box-space to plane z=0</param>
-        public static V2d[] GetOutlineProjected(this Box3d box, V3d fromPosition, M44d box2plane)
+        public static V2d[]? GetOutlineProjected(this Box3d box, V3d fromPosition, M44d box2plane)
         {
             var ps = box.GetOutlineCornersCW(fromPosition);
             if (ps == null) return null;

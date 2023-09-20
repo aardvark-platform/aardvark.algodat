@@ -45,7 +45,7 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int> selected = null)
+        public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null)
         {
             if (selected != null)
             {
@@ -90,10 +90,10 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public JsonNode Serialize() => JsonSerializer.SerializeToNode(new { Type, Sphere = Sphere.ToString() });
+        public JsonNode Serialize() => JsonSerializer.SerializeToNode(new { Type, Sphere = Sphere.ToString() })!;
 
         /// <summary></summary>
-        public static FilterInsideSphere3d Deserialize(JsonNode json) => new(Sphere3d.Parse((string)json["Sphere"]));
+        public static FilterInsideSphere3d Deserialize(JsonNode json) => new(Sphere3d.Parse((string)json["Sphere"]!));
 
         public Box3d Clip(Box3d box) => Sphere.BoundingBox3d.Intersection(box);
 

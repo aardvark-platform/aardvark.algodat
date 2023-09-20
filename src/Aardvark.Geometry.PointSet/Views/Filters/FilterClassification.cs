@@ -38,7 +38,7 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public FilterClassification(HashSet<byte> filter) { Filter = filter; }
 
-        private byte[] GetValues(IPointCloudNode node) => node.HasClassifications ? node.Classifications.Value : null;
+        private byte[]? GetValues(IPointCloudNode node) => node.HasClassifications ? node.Classifications.Value : null;
 
         /// <summary></summary>
         public bool IsFullyInside(IPointCloudNode node)
@@ -69,9 +69,10 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int> selected = null)
+        public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null)
         {
             var xs = GetValues(node);
+            if (xs == null) return new();
 
             if (selected != null)
             {
@@ -93,7 +94,7 @@ namespace Aardvark.Geometry.Points
         {
             Type, 
             Filter = Filter.Select(x => (int)x).ToArray()
-        });
+        })!;
 
         /// <summary></summary>
         public static FilterClassification Deserialize(JsonNode json)

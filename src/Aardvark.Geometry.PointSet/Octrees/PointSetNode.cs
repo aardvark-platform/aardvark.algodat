@@ -21,6 +21,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.Json.Serialization;
 
@@ -46,7 +47,7 @@ namespace Aardvark.Geometry.Points
             );
 
         public static readonly PointSetNode Empty = new(
-            null, writeToStore: false,
+            null!, writeToStore: false,
             (Durable.Octree.NodeId, Guid.Empty),
             (Durable.Octree.Cell, Cell.Unit),
             (Durable.Octree.BoundingBoxExactLocal, Box3f.Unit - new V3f(0.5f)),
@@ -129,13 +130,13 @@ namespace Aardvark.Geometry.Points
 
             #region Subnodes
 
-            if (Data.TryGetValue(Durable.Octree.SubnodesGuids, out object o) && o is Guid[] subNodeIds)
+            if (Data.TryGetValue(Durable.Octree.SubnodesGuids, out var o) && o is Guid[] subNodeIds)
             {
                 Subnodes = new PersistentRef<IPointCloudNode>[8];
                 for (var i = 0; i < 8; i++)
                 {
                     if (subNodeIds[i] == Guid.Empty) continue;
-                    var pRef = new PersistentRef<IPointCloudNode>(subNodeIds[i].ToString(), storage.GetPointCloudNode, storage.TryGetPointCloudNode);
+                    var pRef = new PersistentRef<IPointCloudNode>(subNodeIds[i].ToString(), storage.GetPointCloudNode!, storage.TryGetPointCloudNode);
                     Subnodes[i] = pRef;
 
 #if DEBUG
@@ -160,8 +161,8 @@ namespace Aardvark.Geometry.Points
             var isId = IntensitiesId;
             var ksId = ClassificationsId;
 
-            if (psId != null) PersistentRefs[Durable.Octree.PositionsLocal3fReference] = new PersistentRef<V3f[]>(psId.Value, storage.GetV3fArray, storage.TryGetV3fArray);
-            if (csId != null) PersistentRefs[Durable.Octree.Colors4bReference] = new PersistentRef<C4b[]>(csId.Value, storage.GetC4bArray, storage.TryGetC4bArray);
+            if (psId != null) PersistentRefs[Durable.Octree.PositionsLocal3fReference] = new PersistentRef<V3f[]>(psId.Value, storage.GetV3fArray!, storage.TryGetV3fArray);
+            if (csId != null) PersistentRefs[Durable.Octree.Colors4bReference] = new PersistentRef<C4b[]>(csId.Value, storage.GetC4bArray!, storage.TryGetC4bArray);
             if (kdId != null)
             {
                 if (isObsoleteFormat)
@@ -177,9 +178,9 @@ namespace Aardvark.Geometry.Points
                         ;
                 }
             }
-            if (nsId != null) PersistentRefs[Durable.Octree.Normals3fReference] = new PersistentRef<V3f[]>(nsId.Value, storage.GetV3fArray, storage.TryGetV3fArray);
-            if (isId != null) PersistentRefs[Durable.Octree.Intensities1iReference] = new PersistentRef<int[]>(isId.Value, storage.GetIntArray, storage.TryGetIntArray);
-            if (ksId != null) PersistentRefs[Durable.Octree.Classifications1bReference] = new PersistentRef<byte[]>(ksId.Value, storage.GetByteArray, storage.TryGetByteArray);
+            if (nsId != null) PersistentRefs[Durable.Octree.Normals3fReference] = new PersistentRef<V3f[]>(nsId.Value, storage.GetV3fArray!, storage.TryGetV3fArray);
+            if (isId != null) PersistentRefs[Durable.Octree.Intensities1iReference] = new PersistentRef<int[]>(isId.Value, storage.GetIntArray!, storage.TryGetIntArray);
+            if (ksId != null) PersistentRefs[Durable.Octree.Classifications1bReference] = new PersistentRef<byte[]>(ksId.Value, storage.GetByteArray!, storage.TryGetByteArray);
 
 #endregion
 
@@ -293,7 +294,7 @@ namespace Aardvark.Geometry.Points
                         var max = 0;
                         for (var i = 0; i < 8; i++)
                         {
-                            var r = Subnodes[i];
+                            var r = Subnodes![i];
                             if (r == null) continue;
                             var n = r.Value;
                             min = Math.Min(min, 1 + n.MinTreeDepth);
@@ -331,10 +332,10 @@ namespace Aardvark.Geometry.Points
             #endregion
 
             if ((HasPositions && Positions.Value.Length != PointCountCell) ||
-                (HasColors && Colors.Value.Length != PointCountCell) ||
-                (HasNormals && Normals.Value.Length != PointCountCell) ||
-                (HasIntensities && Intensities.Value.Length != PointCountCell) ||
-                (HasClassifications && Classifications.Value.Length != PointCountCell)
+                (HasColors && Colors!.Value.Length != PointCountCell) ||
+                (HasNormals && Normals!.Value.Length != PointCountCell) ||
+                (HasIntensities && Intensities!.Value.Length != PointCountCell) ||
+                (HasClassifications && Classifications!.Value.Length != PointCountCell)
                 )
             {
 #if DEBUG
@@ -352,7 +353,6 @@ namespace Aardvark.Geometry.Points
                     $"Invariant b714b13e-35fb-4186-9c6c-ca6abbc46a4d."
                     );
             }
-
 
             if (writeToStore)
             {
@@ -399,7 +399,7 @@ namespace Aardvark.Geometry.Points
                     );
             }
 
-            (bool, PointRkdTreeF<V3f[], V3f>) TryLoadKdTree(string key)
+            (bool, PointRkdTreeF<V3f[], V3f>?) TryLoadKdTree(string key)
             {
                 var (ok, value) = Storage.TryGetPointRkdTreeFData(key);
                 if (ok == false) return (false, default);
@@ -426,7 +426,7 @@ namespace Aardvark.Geometry.Points
                     );
             }
 
-            (bool, PointRkdTreeF<V3f[], V3f>) TryLoadKdTreeObsolete(string key)
+            (bool, PointRkdTreeF<V3f[], V3f>?) TryLoadKdTreeObsolete(string key)
             {
                 var (ok, value) = Storage.TryGetPointRkdTreeFDataFromD(key);
                 if (ok == false) return (false, default);
@@ -516,11 +516,11 @@ namespace Aardvark.Geometry.Points
         /// Subnodes (8), or null if leaf.
         /// </summary>
         [JsonIgnore]
-        public Guid?[] SubnodeIds
+        public Guid?[]? SubnodeIds
         {
             get
             {
-                if (Data.TryGetValue(Durable.Octree.SubnodesGuids, out object o))
+                if (Data.TryGetValue(Durable.Octree.SubnodesGuids, out var o))
                 {
                     return ((Guid[])o).Map(x => x != Guid.Empty ? x : (Guid?)null);
                 }
@@ -558,7 +558,7 @@ namespace Aardvark.Geometry.Points
         {
             get
             {
-                if (PersistentRefs.TryGetValue(Durable.Octree.PositionsLocal3fReference, out object o))
+                if (PersistentRefs.TryGetValue(Durable.Octree.PositionsLocal3fReference, out object? o))
                 {
                     if (((PersistentRef<V3f[]>)o).Id != GuidEmptyString)
                     {
@@ -620,7 +620,7 @@ namespace Aardvark.Geometry.Points
                     return new PersistentRef<V3f[]>(Guid.Empty, _ => ps, _ => (true, ps));
                 }
                 else
-                    return null;
+                    throw new Exception("Node has no positions. Error cef41b10-945b-475c-add6-df93b2a24945.");
             }
         }
 
@@ -628,7 +628,7 @@ namespace Aardvark.Geometry.Points
         /// Point positions (absolute), or null if no positions.
         /// </summary>
         [JsonIgnore]
-        public V3d[] PositionsAbsolute => Positions?.Value.Map(p => new V3d(Center.X + p.X, Center.Y + p.Y, Center.Z + p.Z));
+        public V3d[] PositionsAbsolute => Positions.Value.Map(p => new V3d(Center.X + p.X, Center.Y + p.Y, Center.Z + p.Z));
 
 #endregion
 
@@ -660,6 +660,8 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
+
+        [MemberNotNullWhen(true, nameof(Colors))]
         public bool HasColors =>
             Data.ContainsKey(Durable.Octree.Colors4bReference) ||
             Data.ContainsKey(Durable.Octree.Colors4b) ||
@@ -692,11 +694,11 @@ namespace Aardvark.Geometry.Points
         /// Point colors, or null if no points.
         /// </summary>
         [JsonIgnore]
-        public PersistentRef<C4b[]> Colors
+        public PersistentRef<C4b[]>? Colors
         {
             get
             {
-                if (PersistentRefs.TryGetValue(Durable.Octree.Colors4bReference, out object o) && ((PersistentRef<C4b[]>)o).Id != GuidEmptyString)
+                if (PersistentRefs.TryGetValue(Durable.Octree.Colors4bReference, out object? o) && ((PersistentRef<C4b[]>)o).Id != GuidEmptyString)
                 {
                     return (PersistentRef<C4b[]>)o;
                 }
@@ -731,6 +733,8 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
+
+        [MemberNotNullWhen(true, nameof(Normals))]
         public bool HasNormals =>
             Data.ContainsKey(Durable.Octree.Normals3fReference) ||
             Data.ContainsKey(Durable.Octree.Normals3f)
@@ -742,11 +746,11 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public PersistentRef<V3f[]> Normals
+        public PersistentRef<V3f[]>? Normals
         {
             get
             {
-                if (PersistentRefs.TryGetValue(Durable.Octree.Normals3fReference, out object o) && ((PersistentRef<V3f[]>)o).Id != GuidEmptyString)
+                if (PersistentRefs.TryGetValue(Durable.Octree.Normals3fReference, out object? o) && ((PersistentRef<V3f[]>)o).Id != GuidEmptyString)
                 {
                     return (PersistentRef<V3f[]>)o;
                 }
@@ -768,6 +772,8 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
+
+        [MemberNotNullWhen(true, nameof(Intensities))]
         public bool HasIntensities =>
             Data.ContainsKey(Durable.Octree.Intensities1iReference) ||
             Data.ContainsKey(Durable.Octree.Intensities1i)
@@ -779,11 +785,11 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public PersistentRef<int[]> Intensities
+        public PersistentRef<int[]>? Intensities
         {
             get
             {
-                if (PersistentRefs.TryGetValue(Durable.Octree.Intensities1iReference, out object o) && ((PersistentRef<int[]>)o).Id != GuidEmptyString)
+                if (PersistentRefs.TryGetValue(Durable.Octree.Intensities1iReference, out object? o) && ((PersistentRef<int[]>)o).Id != GuidEmptyString)
                 {
                     return (PersistentRef<int[]>)o;
                 }
@@ -805,6 +811,8 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
+
+        [MemberNotNullWhen(true, nameof(Classifications))]
         public bool HasClassifications =>
             Data.ContainsKey(Durable.Octree.Classifications1bReference) ||
             Data.ContainsKey(Durable.Octree.Classifications1b)
@@ -816,13 +824,13 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public PersistentRef<byte[]> Classifications
+        public PersistentRef<byte[]>? Classifications
         {
             get
             {
-                if (PersistentRefs.TryGetValue(Durable.Octree.Classifications1bReference, out object o) && ((PersistentRef<byte[]>)o).Id != GuidEmptyString)
+                if (PersistentRefs.TryGetValue(Durable.Octree.Classifications1bReference, out var o) && ((PersistentRef<byte[]>)o).Id != GuidEmptyString)
                 {
-                    return (PersistentRef<byte[]>)o;
+                    return (PersistentRef<byte[]>?)o;
                 }
                 else if (Data.TryGetValue(Durable.Octree.Classifications1b, out o))
                 {
@@ -836,21 +844,56 @@ namespace Aardvark.Geometry.Points
             }
         }
 
-#endregion
+        #endregion
 
-#region Velocities
+        #region PartIndices
+
+        /// <summary></summary>
+        [JsonIgnore]
+
+        [MemberNotNullWhen(true, nameof(PartIndices))]
+        public bool HasPartIndices =>
+            Data.ContainsKey(Durable.Octree.PerCellPartIndex1ui) ||
+            Data.ContainsKey(Durable.Octree.PerPointPartIndex1b) ||
+            Data.ContainsKey(Durable.Octree.PerPointPartIndex1s) ||
+            Data.ContainsKey(Durable.Octree.PerPointPartIndex1i)
+            ;
+
+        /// <summary>
+        /// Octree. Per-point or per-cell part indices.
+        /// </summary>
+        [JsonIgnore]
+        public object? PartIndices
+        {
+            get
+            {
+                if (Data.TryGetValue(Durable.Octree.PerCellPartIndex1ui, out var pcpi)) return pcpi;
+                else if (Data.TryGetValue(Durable.Octree.PerPointPartIndex1b, out var pppi1b)) return pppi1b;
+                else if (Data.TryGetValue(Durable.Octree.PerPointPartIndex1s, out var pppi1s)) return pppi1s;
+                else if (Data.TryGetValue(Durable.Octree.PerPointPartIndex1i, out var pppi1i)) return pppi1i;
+                else return null;
+            }
+        }
+
+        #endregion
+
+        #region Velocities
 
         /// <summary>
         /// Deprecated. Always returns false. Use custom attributes instead.
         /// </summary>
         [Obsolete("Use custom attributes instead.")]
+
+#pragma warning disable CS0618 // Type or member is obsolete
+        [MemberNotNullWhen(true, nameof(Velocities))]
+#pragma warning restore CS0618 // Type or member is obsolete
         public bool HasVelocities => false;
 
         /// <summary>
         /// Deprecated. Always returns null. Use custom attributes instead.
         /// </summary>
         [Obsolete("Use custom attributes instead.")]
-        public PersistentRef<V3f[]> Velocities => null;
+        public PersistentRef<V3f[]>? Velocities => null;
 
 #endregion
 
@@ -858,6 +901,8 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
+
+        [MemberNotNullWhen(true, nameof(KdTree))]
         public bool HasKdTree =>
             Data.ContainsKey(Durable.Octree.PointRkdTreeFDataReference) ||
             Data.ContainsKey(Durable.Octree.PointRkdTreeDDataReference)
@@ -873,9 +918,9 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
-        public PersistentRef<PointRkdTreeF<V3f[], V3f>> KdTree =>
-            PersistentRefs.TryGetValue(Durable.Octree.PointRkdTreeFDataReference, out object x)
-            ? (PersistentRef<PointRkdTreeF<V3f[], V3f>>)x
+        public PersistentRef<PointRkdTreeF<V3f[], V3f>>? KdTree =>
+            PersistentRefs.TryGetValue(Durable.Octree.PointRkdTreeFDataReference, out var x)
+            ? (PersistentRef<PointRkdTreeF<V3f[], V3f>>?)x
             : null
             ;
 
@@ -990,7 +1035,7 @@ namespace Aardvark.Geometry.Points
         /// Subnodes (8), or null if leaf.
         /// </summary>
         [JsonIgnore]
-        public readonly PersistentRef<IPointCloudNode>[] Subnodes;
+        public readonly PersistentRef<IPointCloudNode>[]? Subnodes;
 
         /// <summary>
         /// Center of this node's cell.
@@ -1038,7 +1083,7 @@ namespace Aardvark.Geometry.Points
         /// All node properties (except Cell, BoundingBoxExactGlobal, and PointCountTreeLeafs) are removed, because they would no longer be valid for new subnode data.
         /// Use LodExtensions.GenerateLod to recompute these properties.
         /// </summary>
-        public IPointCloudNode WithSubNodes(IPointCloudNode[] subnodes)
+        public IPointCloudNode WithSubNodes(IPointCloudNode?[] subnodes)
         {
             if (subnodes == null) throw new ArgumentNullException(nameof(subnodes));
 
@@ -1054,7 +1099,7 @@ namespace Aardvark.Geometry.Points
 #endif
 
             var pointCountTree = subnodes.Sum(x => x?.PointCountTree);
-            var bbExactGlobal = new Box3d(subnodes.Where(x => x != null).Select(x => x.BoundingBoxExactGlobal));
+            var bbExactGlobal = new Box3d(subnodes.Where(x => x != null).Select(x => x!.BoundingBoxExactGlobal));
 
             var data = ImmutableDictionary<Durable.Def, object>.Empty
                 .Add(Durable.Octree.NodeId, Guid.NewGuid())
@@ -1166,7 +1211,7 @@ namespace Aardvark.Geometry.Points
         public bool Has(Durable.Def what) => Data.ContainsKey(what);
 
         /// <summary></summary>
-        public bool TryGetValue(Durable.Def what, out object o) => Data.TryGetValue(what, out o);
+        public bool TryGetValue(Durable.Def what, [NotNullWhen(true)]out object? o) => Data.TryGetValue(what, out o);
 
         /// <summary></summary>
         public IReadOnlyDictionary<Durable.Def, object> Properties => Data;
@@ -1179,7 +1224,7 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public IPointCloudNode Materialize() => this;
 
-        PersistentRef<IPointCloudNode>[] IPointCloudNode.Subnodes => Subnodes;
+        PersistentRef<IPointCloudNode>[]? IPointCloudNode.Subnodes => Subnodes;
 
         public Box3d BoundingBoxApproximate
         {

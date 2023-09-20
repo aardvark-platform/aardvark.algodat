@@ -147,9 +147,9 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static Mask3d Parse(JsonObject json, Func<JsonNode, IMask2d> deserialize)
         {
-            var mask = deserialize(json["mask"]);
-            var model2mask = Trafo3d.Parse((string)json["model2mask"]);
-            var camPosition = V3d.Parse((string)json["camPosition"]);
+            var mask = deserialize(json["mask"]!);
+            var model2mask = Trafo3d.Parse((string)json["model2mask"]!);
+            var camPosition = V3d.Parse((string)json["camPosition"]!);
             return new Mask3d(camPosition, mask, model2mask);
         }
     }

@@ -780,7 +780,7 @@ namespace Aardvark.Geometry.Tests
             var config = ImportConfig.Default.WithKey("Test").WithOctreeSplitLimit(1);
             return PointSet
                 .Create(
-                    storage, "test", ps.ToList(), cs.ToList(), null, null, null, 100,
+                    storage, "test", ps.ToList(), cs.ToList(), null, null, null, null, 100,
                     generateLod: false, isTemporaryImportNode: true, default
                     )
                 .GenerateLod(config)
@@ -947,8 +947,8 @@ namespace Aardvark.Geometry.Tests
         public void CanQueryPointsWithEverythingInside_Single()
         {
             var storage = PointCloud.CreateInMemoryStore(cache: default);
-            var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
-            var root = InMemoryPointSet.Build(ps, null, null, null, null, Cell.Unit, 1).ToPointSetNode(storage, isTemporaryImportNode: false);
+            var ps = new List<V3d> { new(0.5, 0.5, 0.5) };
+            var root = InMemoryPointSet.Build(ps, null, null, null, null, null, Cell.Unit, 1).ToPointSetNode(storage, isTemporaryImportNode: false);
 
             var rs = root.QueryPoints(cell => true, cell => false, p => true).SelectMany(x => x.Positions).ToArray();
             Assert.IsTrue(rs.Length == 1);
@@ -972,8 +972,8 @@ namespace Aardvark.Geometry.Tests
         public void CanQueryPointsWithEverythingOutside_Single()
         {
             var storage = PointCloud.CreateInMemoryStore(cache: default);
-            var ps = new List<V3d> { new V3d(0.5, 0.5, 0.5) };
-            var root = InMemoryPointSet.Build(ps, null, null, null, null, Cell.Unit, 1).ToPointSetNode(storage, isTemporaryImportNode: false);
+            var ps = new List<V3d> { new(0.5, 0.5, 0.5) };
+            var root = InMemoryPointSet.Build(ps, null, null, null, null, null, Cell.Unit, 1).ToPointSetNode(storage, isTemporaryImportNode: false);
 
             var rs = root.QueryPoints(cell => false, cell => true, p => false).SelectMany(x => x.Positions).ToArray();
             Assert.IsTrue(rs.Length == 0);

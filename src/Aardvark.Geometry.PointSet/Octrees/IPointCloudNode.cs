@@ -16,6 +16,7 @@ using Aardvark.Data;
 using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Aardvark.Geometry.Points
 {
@@ -83,12 +84,12 @@ namespace Aardvark.Geometry.Points
         /// Entries are null if there is no subnode.
         /// There is at least 1 non-null entry.
         /// </summary>
-        PersistentRef<IPointCloudNode>[] Subnodes { get; }
+        PersistentRef<IPointCloudNode>?[]? Subnodes { get; }
 
         /// <summary>
         /// Returns new node with replaced subnodes.
         /// </summary>
-        IPointCloudNode WithSubNodes(IPointCloudNode[] subnodes);
+        IPointCloudNode WithSubNodes(IPointCloudNode?[] subnodes);
 
         /// <summary>
         /// Node has no subnodes.
@@ -103,7 +104,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Gets given property, or returns false if node has no such property.
         /// </summary>
-        bool TryGetValue(Durable.Def what, out object o);
+        bool TryGetValue(Durable.Def what, [NotNullWhen(true)]out object? o);
 
         /// <summary>
         /// Gets all properties.
@@ -174,63 +175,81 @@ namespace Aardvark.Geometry.Points
         #region KdTree
 
         /// <summary></summary>
+        [MemberNotNullWhen(true, nameof(KdTree))]
         bool HasKdTree { get; }
 
         /// <summary>
         /// </summary>
-        PersistentRef<PointRkdTreeF<V3f[], V3f>> KdTree { get; }
+        PersistentRef<PointRkdTreeF<V3f[], V3f>>? KdTree { get; }
 
         #endregion
 
         #region Colors
 
         /// <summary></summary>
+        [MemberNotNullWhen(true, nameof(Colors))]
         bool HasColors { get; }
 
         /// <summary>
         /// Octree. Per-point colors C4b.
         /// Durable definition c91dfea3-243d-4272-9dba-b572931dba23.
         /// </summary>
-        PersistentRef<C4b[]> Colors { get; }
+        PersistentRef<C4b[]>? Colors { get; }
 
         #endregion
 
         #region Normals
 
         /// <summary></summary>
+        [MemberNotNullWhen(true, nameof(Normals))]
         bool HasNormals { get; }
 
         /// <summary>
         /// Octree. Per-point V3f normals.
         /// Durable definition 712d0a0c-a8d0-42d1-bfc7-77eac2e4a755.
         /// </summary>
-        PersistentRef<V3f[]> Normals { get; }
+        PersistentRef<V3f[]>? Normals { get; }
 
         #endregion
 
         #region Intensities
 
         /// <summary></summary>
+        [MemberNotNullWhen(true, nameof(Intensities))]
         bool HasIntensities { get; }
 
         /// <summary>
         /// Octree. Per-point int32 intensities..
         /// Durable definition 361027fd-ac58-4de8-89ee-98695f8c5520.
         /// </summary>
-        PersistentRef<int[]> Intensities { get; }
+        PersistentRef<int[]>? Intensities { get; }
 
         #endregion
 
         #region Classifications
 
         /// <summary></summary>
+
+        [MemberNotNullWhen(true, nameof(Classifications))]
         bool HasClassifications { get; }
 
         /// <summary>
         /// Octree. Per-point uint8 classifications.
         /// Durable definition d25cff0e-ea80-445b-ab72-d0a5a1013818.
         /// </summary>
-        PersistentRef<byte[]> Classifications { get; }
+        PersistentRef<byte[]>? Classifications { get; }
+
+        #endregion
+
+        #region PartIndices
+
+        /// <summary></summary>
+        bool HasPartIndices { get; }
+
+        /// <summary>
+        /// Octree. Per-point or per-cell part indices.
+        /// </summary>
+        object? PartIndices { get; }
 
         #endregion
 
@@ -246,7 +265,7 @@ namespace Aardvark.Geometry.Points
         /// Deprecated. Always returns null. Use custom attributes instead.
         /// </summary>
         [Obsolete("Use custom attributes instead.")]
-        PersistentRef<V3f[]> Velocities { get; }
+        PersistentRef<V3f[]>? Velocities { get; }
 
         #endregion
 

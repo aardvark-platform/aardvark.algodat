@@ -67,7 +67,7 @@ namespace Aardvark.Geometry.Points
             bool verbose, CancellationToken ct
             )
         {
-            PointSet pointSet = null;
+            PointSet? pointSet = null;
 
             try
             {
@@ -89,7 +89,7 @@ namespace Aardvark.Geometry.Points
                 {
                     var ersatzPointSetKey = Guid.NewGuid().ToString();
                     Report.Warn($"Created PointSet with key '{ersatzPointSetKey}'.");
-                    var ersatzPointSet = new PointSet(self, ersatzPointSetKey, root, root.PointCountCell);
+                    var ersatzPointSet = new PointSet(self, ersatzPointSetKey, root!, root!.PointCountCell);
                     self.Add(ersatzPointSetKey, ersatzPointSet);
 
                     return ExportPointSet(self, ersatzPointSet, exportStorage, onProgress, verbose, ct);
@@ -117,7 +117,7 @@ namespace Aardvark.Geometry.Points
             )
         {
             ct.ThrowIfCancellationRequested();
-            if (onProgress == null) onProgress = _ => { };
+            onProgress ??= _ => { };
 
             var info = new ExportPointSetInfo(pointset.Root.Value.PointCountTree);
 
@@ -144,18 +144,20 @@ namespace Aardvark.Geometry.Points
                 if (key == Guid.Empty) return;
 
                 // try to load node
-                Durable.Def def = Durable.Octree.Node;
-                object raw = null;
+                Durable.Def? def = Durable.Octree.Node;
+                object? raw = null;
                 try
                 {
                     (def, raw) = self.GetDurable(key);
                 }
                 catch
                 {
-                    var n = self.GetPointCloudNode(key);
+                    var n = self.GetPointCloudNode(key)!;
                     raw = n.Properties;
                 }
-                var nodeProps = raw as IReadOnlyDictionary<Durable.Def, object>;
+
+                if (raw is not IReadOnlyDictionary<Durable.Def, object> nodeProps || def == null) return;
+
                 exportStorage.Add(key, def, nodeProps, false);
                 //Report.Line($"exported {key} (node)");
 
@@ -164,7 +166,7 @@ namespace Aardvark.Geometry.Points
                 foreach (var kv in rs)
                 {
                     var k = (Guid)kv.Value;
-                    var buffer = self.GetByteArray(k);
+                    var buffer = self.GetByteArray(k)!;
                     exportStorage.Add(k, buffer);
                     //Report.Line($"exported {k} (reference)");
                 }

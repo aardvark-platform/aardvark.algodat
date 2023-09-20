@@ -67,7 +67,7 @@ namespace Aardvark.Geometry.Points
                 //GridCellExponent = gridCellExponent;
             }
 
-            private GridQueryXY(Cell2d footprint, IPointCloudNode[] roots, Chunk rest)
+            private GridQueryXY(Cell2d footprint, IPointCloudNode[]? roots, Chunk rest)
             {
                 if ((roots == null || roots.Length == 0) && (rest == null || rest.Count == 0))
                     throw new InvalidOperationException("Invariant 0ee8c852-9580-44fb-9c19-a9f2f2dd7c93.");
@@ -138,11 +138,11 @@ namespace Aardvark.Geometry.Points
                             ;
 
                         // split roots ...
-                        List<IPointCloudNode>[] newRoots = null;
-                        void addRoot(int i, IPointCloudNode n)
+                        List<IPointCloudNode>[]? newRoots = null;
+                        void addRoot(int i, IPointCloudNode? n)
                         {
                             if (n == null) return;
-                            if (newRoots == null) newRoots = new List<IPointCloudNode>[4];
+                            newRoots ??= new List<IPointCloudNode>[4];
                             if (newRoots[i] == null) newRoots[i] = new List<IPointCloudNode> { n };
                             else newRoots[i].Add(n);
                         }
@@ -157,7 +157,7 @@ namespace Aardvark.Geometry.Points
                             }
                             else
                             {
-                                var ns = r.Subnodes;
+                                var ns = r.Subnodes!;
                                 for (var i = 0; i < 8; i++) addRoot(i & 0b11, ns[i]?.Value);
                             }
                         }
@@ -368,8 +368,8 @@ namespace Aardvark.Geometry.Points
                         else if (q.Contains(_bb)) newRoots.Add(r);
                         else
                         {
-                            var sub = r.Subnodes;
-                            void add(int i) { if (sub[i] != null) { newRoots.Add(sub[i].Value); } }
+                            var sub = r.Subnodes!;
+                            void add(int i) { if (sub[i] != null) { newRoots.Add(sub[i]!.Value); } }
                             var c = r.Center.XY;
                             if (q.Max.X < c.X)
                             {

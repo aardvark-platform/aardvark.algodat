@@ -45,18 +45,15 @@ namespace Aardvark.Geometry.Points
         /// Imports file.
         /// Format is guessed based on file extension.
         /// </summary>
-        public static PointSet Import(string filename, ImportConfig config = null)
+        public static PointSet Import(string filename, ImportConfig? config = null)
         {
             if (filename == null) throw new ArgumentNullException(nameof(filename));
             if (!File.Exists(filename)) throw new FileNotFoundException("File does not exist.", filename);
 
-            if (config == null)
-            {
-                config = ImportConfig.Default
-                    .WithInMemoryStore()
-                    .WithKey(FileHelpers.ComputeMd5Hash(filename, true))
-                    ;
-            }
+            config ??= ImportConfig.Default
+                .WithInMemoryStore()
+                .WithKey(FileHelpers.ComputeMd5Hash(filename, true))
+                ;
 
             var format = PointCloudFileFormat.FromFileName(filename);
             if (format != PointCloudFileFormat.Unknown)
@@ -84,7 +81,7 @@ namespace Aardvark.Geometry.Points
                 ;
 
             var result = PointCloudFileFormat.FromFileName(filename).ImportFile(filename, config);
-            config.Storage.Flush();
+            config.Storage?.Flush();
             return result;
         }
     }

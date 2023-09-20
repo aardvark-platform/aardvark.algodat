@@ -23,7 +23,7 @@ namespace Aardvark.Geometry.Tests
     [TestFixture]
     public class NormalsTests
     {
-        private Storage CreateInMemoryStore() => new SimpleMemoryStore().ToPointCloudStore(cache: default);
+        private static Storage CreateInMemoryStore() => new SimpleMemoryStore().ToPointCloudStore(cache: default);
 
         [Test]
         public void CanCreateChunkWithNormals()
@@ -51,7 +51,7 @@ namespace Aardvark.Geometry.Tests
         public void CanCreatePointSetWithNormals()
         {
             var ps = PointSet.Create(CreateInMemoryStore(), Guid.NewGuid().ToString(),
-                new[] { V3d.IOO }, new[] { C4b.White }, new[] { V3f.OIO }, null, null, 8192,
+                new[] { V3d.IOO }, new[] { C4b.White }, new[] { V3f.OIO }, null, null, null, 8192,
                 generateLod: false, isTemporaryImportNode: true, default
                 );
 

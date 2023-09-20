@@ -15,6 +15,9 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+
+#pragma warning disable IDE0060 // Remove unused parameter
+
 using Aardvark.Base;
 using System;
 using System.Collections.Generic;
@@ -51,21 +54,22 @@ namespace Aardvark.Data.Points.Import
         /// Parses LASzip (.las, .laz) file.
         /// </summary>
         public static IEnumerable<Chunk> Chunks(string filename, ParseConfig config)
-            => Chunks(LASZip.Parser.ReadPoints(filename, config.MaxChunkPointCount, config.Verbose));
+            => Chunks(LASZip.Parser.ReadPoints(filename, config.MaxChunkPointCount, config.Verbose), partIndices: config.EnabledProperties.PartIndices ? config.PartIndexOffset : null);
 
         /// <summary>
         /// Parses LASzip (.las, .laz) stream.
         /// </summary>
         public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, ParseConfig config)
-            => Chunks(LASZip.Parser.ReadPoints(stream, config.MaxChunkPointCount, config.Verbose));
+            => Chunks(LASZip.Parser.ReadPoints(stream, config.MaxChunkPointCount, config.Verbose), partIndices: config.EnabledProperties.PartIndices ? config.PartIndexOffset : null);
 
-        private static IEnumerable<Chunk> Chunks(this IEnumerable<LASZip.Points> xs)
+        private static IEnumerable<Chunk> Chunks(this IEnumerable<LASZip.Points> xs, object? partIndices)
             => xs.Select(x => new Chunk(
                 positions: x.Positions,
                 colors: x.Colors != null ? Map(x.Colors, c => new C4b(c)) : null,
                 normals: null,
-                intensities: Map(x.Intensities, i => (int)i),
+                intensities: x.Intensities != null ? Map(x.Intensities, i => (int)i) : null,
                 classifications: x.Classifications,
+                partIndices: partIndices,
                 bbox: null
                 )
             );

@@ -26,7 +26,7 @@ namespace LASZip
 {
     /// <summary>
     /// </summary>
-    public struct Info
+    public readonly struct Info
     {
         /// <summary>
         /// Total number of points.
@@ -52,28 +52,28 @@ namespace LASZip
     /// </summary>
     public class Points
     {
-        public V3d[] Positions;
-        public ushort[] Intensities;
-        public byte[] ReturnNumbers;
-        public byte[] NumberOfReturnsOfPulses;
-        public BitArray ScanDirectionFlags;
-        public BitArray EdgeOfFlightLines;
-        public byte[] Classifications;
-        public byte[] ScanAngleRanks;
-        public byte[] UserDatas;
-        public ushort[] PointSourceIds;
+        public V3d[] Positions = null!;
+        public ushort[]? Intensities;
+        public byte[]? ReturnNumbers;
+        public byte[]? NumberOfReturnsOfPulses;
+        public BitArray? ScanDirectionFlags;
+        public BitArray? EdgeOfFlightLines;
+        public byte[]? Classifications;
+        public byte[]? ScanAngleRanks;
+        public byte[]? UserDatas;
+        public ushort[]? PointSourceIds;
 
-        public double[] GpsTimes;
+        public double[]? GpsTimes;
 
-        public C3b[] Colors;
+        public C3b[]? Colors;
 
-        public byte[] WavePacketDescriptorIndices;
-        public ulong[] BytesOffsetToWaveformDatas;
-        public uint[] WaveformPacketSizesInBytes;
-        public float[] ReturnPointWaveformLocations;
-        public float[] Xts;
-        public float[] Yts;
-        public float[] Zts;
+        public byte[]? WavePacketDescriptorIndices;
+        public ulong[]? BytesOffsetToWaveformDatas;
+        public uint[]? WaveformPacketSizesInBytes;
+        public float[]? ReturnPointWaveformLocations;
+        public float[]? Xts;
+        public float[]? Yts;
+        public float[]? Zts;
 
         /// <summary>
         /// Number of points.
@@ -224,25 +224,25 @@ namespace LASZip
                     userDatas[i] = reader.point.user_data;
                     pointSourceIds[i] = reader.point.point_source_ID;
 
-                    if (hasGpsTime) gpsTimes[i] = reader.point.gps_time;
+                    if (hasGpsTime) gpsTimes![i] = reader.point.gps_time;
 
                     if (hasColor)
                     {
                         var c = new C3us(reader.point.rgb[0], reader.point.rgb[1], reader.point.rgb[2]);
-                        colorsRaw[i] = c;
+                        colorsRaw![i] = c;
                         if (colorIs8Bit && (c.R > 255 || c.G > 255 || c.B > 255)) colorIs8Bit = false;
                     }
 
                     if (hasWavePacket)
                     {
                         var buffer = reader.point.wave_packet;
-                        wavePacketDescriptorIndices[i] = buffer[0];
-                        bytesOffsetToWaveformDatas[i] = BitConverter.ToUInt64(buffer, 1);
-                        waveformPacketSizesInBytes[i] = BitConverter.ToUInt32(buffer, 9);
-                        returnPointWaveformLocations[i] = BitConverter.ToSingle(buffer, 13);
-                        xts[i] = BitConverter.ToSingle(buffer, 17);
-                        yts[i] = BitConverter.ToSingle(buffer, 21);
-                        zts[i] = BitConverter.ToSingle(buffer, 25);
+                        wavePacketDescriptorIndices![i] = buffer[0];
+                        bytesOffsetToWaveformDatas![i] = BitConverter.ToUInt64(buffer, 1);
+                        waveformPacketSizesInBytes![i] = BitConverter.ToUInt32(buffer, 9);
+                        returnPointWaveformLocations![i] = BitConverter.ToSingle(buffer, 13);
+                        xts![i] = BitConverter.ToSingle(buffer, 17);
+                        yts![i] = BitConverter.ToSingle(buffer, 21);
+                        zts![i] = BitConverter.ToSingle(buffer, 25);
                     }
                 }
 

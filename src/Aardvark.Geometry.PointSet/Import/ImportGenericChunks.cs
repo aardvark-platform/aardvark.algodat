@@ -71,7 +71,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PointSet Chunks(IEnumerable<GenericChunk> chunks, ImportConfig config)
         {
-            config?.ProgressCallback(0.0);
+            config.ProgressCallback(0.0);
 
             if (config.Verbose)
             {
@@ -145,12 +145,12 @@ namespace Aardvark.Geometry.Points
             // create LOD data
             if (config.Verbose) Report.BeginTimed("generate lod");
             final = final.GenerateLod(config.WithRandomKey().WithProgressCallback(x => config.ProgressCallback(0.66 + x * 0.34)));
-            if (final.Root != null && config.Storage.GetPointCloudNode(final.Root.Value.Id) == null) throw new InvalidOperationException("Invariant 4d633e55-bf84-45d7-b9c3-c534a799242e.");
+            if (config.Storage.GetPointCloudNode(final.Root.Value.Id) == null) throw new InvalidOperationException("Invariant 4d633e55-bf84-45d7-b9c3-c534a799242e.");
             if (config.Verbose) Report.End();
 
             // create final point set with specified key (or random key when no key is specified)
             var key = config.Key ?? Guid.NewGuid().ToString();
-            final = new PointSet(config.Storage, key, final?.Root?.Value?.Id, config.OctreeSplitLimit);
+            final = new PointSet(config.Storage, key, final.Root.Value.Id, config.OctreeSplitLimit);
             config.Storage.Add(key, final);
 
             return final;

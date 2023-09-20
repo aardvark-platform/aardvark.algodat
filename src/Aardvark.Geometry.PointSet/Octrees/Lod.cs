@@ -26,7 +26,6 @@ namespace Aardvark.Geometry.Points
     {
         private static double[] ComputeLodFractions(long[] counts)
         {
-            if (counts == null) return null;
             if (counts.Length != 8) throw new ArgumentOutOfRangeException(nameof(counts));
 
             var sum = 0L;
@@ -38,19 +37,18 @@ namespace Aardvark.Geometry.Points
             return fractions;
         }
 
-        internal static double[] ComputeLodFractions(IPointCloudNode[] subnodes)
+        internal static double[] ComputeLodFractions(IPointCloudNode?[] subnodes)
         {
-            if (subnodes == null) return null;
             if (subnodes.Length != 8) throw new ArgumentOutOfRangeException(nameof(subnodes));
 
             var counts = new long[8];
-            for (var i = 0; i < 8; i++) counts[i] = subnodes[i] != null ? subnodes[i].PointCountTree : 0;
+            for (var i = 0; i < 8; i++) counts[i] = subnodes[i] != null ? subnodes[i]!.PointCountTree : 0;
             return ComputeLodFractions(counts);
         }
 
         internal static int[] ComputeLodCounts(int aggregateCount, double[] fractions)
         {
-            if (fractions == null) return null;
+            //if (fractions == null) return null;
             if (fractions.Length != 8) throw new ArgumentOutOfRangeException(nameof(fractions));
 
             var remainder = 0.1;
@@ -69,15 +67,15 @@ namespace Aardvark.Geometry.Points
             return counts;
         }
 
-        internal static V3f[] AggregateSubPositions(int[] counts, int aggregateCount, V3d center, V3d?[] subCenters, V3f[][] xss)
+        internal static V3f[] AggregateSubPositions(int[] counts, int aggregateCount, V3d center, V3d?[] subCenters, V3f[]?[] xss)
         {
             var rs = new V3f[aggregateCount];
             var i = 0;
             for (var ci = 0; ci < 8; ci++)
             {
                 if (counts[ci] == 0) continue;
-                var xs = xss[ci];
-                var c = subCenters[ci].Value;
+                var xs = xss[ci]!;
+                var c = subCenters[ci]!.Value;
 
                 var jmax = xs.Length;
                 var dj = (jmax + 0.49) / counts[ci];
@@ -91,14 +89,14 @@ namespace Aardvark.Geometry.Points
             return rs;
         }
 
-        internal static T[] AggregateSubArrays<T>(int[] counts, int aggregateCount, T[][] xss)
+        internal static T[] AggregateSubArrays<T>(int[] counts, int aggregateCount, T[]?[] xss)
         {
             var rs = new T[aggregateCount];
             var i = 0;
             for (var ci = 0; ci < 8; ci++)
             {
                 if (counts[ci] == 0) continue;
-                var xs = xss[ci];
+                var xs = xss[ci]!;
 
                 var jmax = xs.Length;
                 if (jmax <= counts[ci])
@@ -179,10 +177,12 @@ namespace Aardvark.Geometry.Points
             };
         }
 
-        private static async Task<PointSet> GenerateLod(this PointSet self, string key, Action callback, CancellationToken ct)
+        private static async Task<PointSet> GenerateLod(this PointSet self, string? key, Action callback, CancellationToken ct)
         {
             try
             {
+                key ??= Guid.NewGuid().ToString();
+
                 if (self.IsEmpty) return self;
 
                 if (self.Root.Value is not PointSetNode root) throw new InvalidOperationException(
@@ -264,7 +264,7 @@ namespace Aardvark.Geometry.Points
                     }
                     else
                     {
-                        if (self.Normals.Value.Length != self.PointCountCell) throw new Exception();
+                        if (self.Normals!.Value.Length != self.PointCountCell) throw new Exception();
                     }
 
                     if (upsertData.Count > 0) self = self.With(upsertData);
@@ -315,7 +315,7 @@ namespace Aardvark.Geometry.Points
                     return has > 0;
                 }
 
-                var firstNonEmptySubnode = subcells.First(n => n != null);
+                var firstNonEmptySubnode = subcells.First(n => n != null)!;
                 var lodAttributeCandidates = firstNonEmptySubnode.Properties.Keys.Where(x => x.IsArray &&
                     x != Durable.Octree.SubnodesGuids &&
                     x != Durable.Octree.PositionsLocal3f &&
@@ -351,7 +351,7 @@ namespace Aardvark.Geometry.Points
                 store.Add(lodNsKey, lodNs);
                 upsertData = upsertData.Add(Durable.Octree.Normals3fReference, lodNsKey);
 
-                void addAttributeByRef<T>(string kind, Durable.Def def, Func<IPointCloudNode, bool> has, Func<IPointCloudNode, T[]> getData)
+                void addAttributeByRef<T>(string kind, Durable.Def def, Func<IPointCloudNode, bool> has, Func<IPointCloudNode?, T[]?> getData)
                 {
                     var hasAttribute = subnodesHaveAttribute(has, kind);
                     if (hasAttribute)
@@ -368,20 +368,20 @@ namespace Aardvark.Geometry.Points
                 }
 
                 // ... classifications ...
-                addAttributeByRef("classifications", Durable.Octree.Classifications1bReference, n => n.HasClassifications, n => n?.Classifications.Value);
+                addAttributeByRef("classifications", Durable.Octree.Classifications1bReference, n => n.HasClassifications, n => n!.Classifications!.Value);
 
                 // ... colors ...
-                addAttributeByRef("colors", Durable.Octree.Colors4bReference, n => n.HasColors, n => n?.Colors.Value);
+                addAttributeByRef("colors", Durable.Octree.Colors4bReference, n => n.HasColors, n => n!.Colors!.Value);
 
                 // ... intensities ...
-                addAttributeByRef("intensities", Durable.Octree.Intensities1iReference, n => n.HasIntensities, n => n?.Intensities.Value);
+                addAttributeByRef("intensities", Durable.Octree.Intensities1iReference, n => n.HasIntensities, n => n!.Intensities!.Value);
 
                 // ... for all other attributes ...
                 foreach (var def in lodAttributeCandidates)
                 {
                     try
                     {
-                        var lod = AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Properties[def]));
+                        var lod = AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Properties[def]!));
                         if (lod.Length != lodPs.Length) throw new Exception(
                             $"Inconsistent lod-array length {lod.Length}. Should be {lodPs.Length}. Error e3f0398a-b0ae-4e57-95ab-b5d83922ec6e."
                             );

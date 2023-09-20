@@ -123,7 +123,7 @@ namespace Scratch
             using var storeRaw = new SimpleDiskStore(storePath);
             var store = storeRaw.ToPointCloudStore();
 
-            var ps = store.GetPointSet(key);
+            var ps = store.GetPointSet(key)!;
             var root = ps.Root.Value;
 
             Report.Line($"key : {key}");

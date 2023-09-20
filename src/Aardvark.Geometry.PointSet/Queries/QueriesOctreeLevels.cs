@@ -32,7 +32,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Max tree depth.
         /// </summary>
-        public static int CountOctreeLevels(this IPointCloudNode root)
+        public static int CountOctreeLevels(this IPointCloudNode? root)
         {
             if (root == null) return 0;
             if (root.Subnodes == null) return 1;
@@ -122,7 +122,7 @@ namespace Aardvark.Geometry.Points
                 var sum = 0L;
                 for (var i = 0; i < 8; i++)
                 {
-                    var n = node.Subnodes[i];
+                    var n = node.Subnodes![i];
                     if (n == null) continue;
                     sum += CountPointsInOctreeLevel(n.Value, nextLevel);
                 }
@@ -160,13 +160,16 @@ namespace Aardvark.Geometry.Points
             }
             else
             {
-                var nextLevel = level - 1;
                 var sum = 0L;
-                for (var i = 0; i < 8; i++)
+                if (node.Subnodes != null)
                 {
-                    var n = node.Subnodes[i];
-                    if (n == null) continue;
-                    sum += CountPointsInOctreeLevel(n.Value, nextLevel, bounds);
+                    var nextLevel = level - 1;
+                    for (var i = 0; i < 8; i++)
+                    {
+                        var n = node.Subnodes[i];
+                        if (n == null) continue;
+                        sum += CountPointsInOctreeLevel(n.Value, nextLevel, bounds);
+                    }
                 }
                 return sum;
             }
@@ -197,7 +200,7 @@ namespace Aardvark.Geometry.Points
             {
                 var ps = node.PositionsAbsolute;
 
-                T[] Verified<T>(T[] xs, string name)
+                T[]? Verified<T>(T[]? xs, string name)
                 {
                     if (ps == null || xs == null) return xs;
 
@@ -218,10 +221,10 @@ namespace Aardvark.Geometry.Points
                     for (var i = imax; i < ps.Length; i++) rs[i] = lastX;
                     return rs;
                 }
-                var cs = Verified(node?.TryGetColors4b()?.Value, "colors");
-                var ns = Verified(node?.TryGetNormals3f()?.Value, "normals");
-                var js = Verified(node?.TryGetIntensities()?.Value, "intensities");
-                var ks = Verified(node?.TryGetClassifications()?.Value, "classifications");
+                var cs = Verified(node.TryGetColors4b()?.Value, "colors");
+                var ns = Verified(node.TryGetNormals3f()?.Value, "normals");
+                var js = Verified(node.TryGetIntensities()?.Value, "intensities");
+                var ks = Verified(node.TryGetClassifications()?.Value, "classifications");
                 var chunk = new Chunk(ps, cs, ns, js, ks);
                 yield return chunk;
             }

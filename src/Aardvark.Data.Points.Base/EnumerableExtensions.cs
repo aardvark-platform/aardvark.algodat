@@ -19,6 +19,7 @@ using Aardvark.Base;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -128,7 +129,7 @@ namespace Aardvark.Data.Points
             return rs;
         }
 
-        public static IEnumerable<R?> MapParallel<T, R>(this IEnumerable<T> items,
+        public static IEnumerable<R> MapParallel<T, R>(this IEnumerable<T> items,
             Func<T, CancellationToken, R> map,
             int maxLevelOfParallelism,
             Action<TimeSpan>? onFinish = null,
@@ -138,7 +139,7 @@ namespace Aardvark.Data.Points
             if (map == null) throw new ArgumentNullException(nameof(map));
             if (maxLevelOfParallelism < 1) maxLevelOfParallelism = Environment.ProcessorCount;
 
-            var queue = new Queue<R?>();
+            var queue = new Queue<R>();
             var queueSemapore = new SemaphoreSlim(maxLevelOfParallelism);
 
             var inFlightCount = 0;
@@ -183,7 +184,7 @@ namespace Aardvark.Data.Points
             onFinish?.Invoke(sw.Elapsed);
         }
 
-        private static bool TryDequeue<T>(this Queue<T?> queue, out T? item) where T : class
+        private static bool TryDequeue<T>(this Queue<T> queue, [NotNullWhen(true)] out T? item) where T : class
         {
             lock (queue)
             {

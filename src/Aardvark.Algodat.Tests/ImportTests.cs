@@ -615,10 +615,28 @@ namespace Aardvark.Geometry.Tests
             var config = ImportConfig.Default
                 .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
+                .WithEnabledPartIndices(false)
                 ;
             var pointset = PointCloud.Import(filename, config);
             Assert.IsTrue(pointset != null);
             Assert.IsTrue(pointset.PointCount == 3);
+            Assert.IsTrue(pointset.HasPartIndexRange == false);
+        }
+
+        [Test]
+        public void CanImportE57File_PartIndex()
+        {
+            Assert.IsTrue(Data.Points.Import.E57.E57Format != null);
+            var filename = Path.Combine(Config.TestDataDir, "test.e57");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                .WithPartIndexOffset(42)
+                ;
+            var pointset = PointCloud.Import(filename, config);
+            Assert.IsTrue(pointset != null);
+            Assert.IsTrue(pointset.PointCount == 3);
+            Assert.IsTrue(pointset.PartIndexRange == new Range1i(42, 42));
         }
 
         [Test]
@@ -629,10 +647,28 @@ namespace Aardvark.Geometry.Tests
             var config = ImportConfig.Default
                 .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
+                .WithEnabledPartIndices(false)
                 .WithMinDist(10)
                 ;
             var pointset = PointCloud.Import(filename, config);
             Assert.IsTrue(pointset.PointCount < 3);
+            Assert.IsTrue(pointset.HasPartIndexRange == false);
+        }
+
+        [Test]
+        public void CanImportE57File_MinDist_PartIndex()
+        {
+            Assert.IsTrue(Data.Points.Import.E57.E57Format != null);
+            var filename = Path.Combine(Config.TestDataDir, "test.e57");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                .WithPartIndexOffset(42)
+                .WithMinDist(10)
+                ;
+            var pointset = PointCloud.Import(filename, config);
+            Assert.IsTrue(pointset.PointCount < 3);
+            Assert.IsTrue(pointset.PartIndexRange == new Range1i(42, 42));
         }
 
         [Test]
@@ -643,12 +679,287 @@ namespace Aardvark.Geometry.Tests
             var config = ImportConfig.Default
                 .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
+                .WithEnabledPartIndices(false)
                 ;
             _ = PointCloud.Import(filename, config);
             var pointset2 = config.Storage.GetPointSet("test");
             Assert.IsTrue(pointset2 != null);
             Assert.IsTrue(pointset2.PointCount == 3);
+            Assert.IsTrue(pointset2.HasPartIndexRange == false);
+            Assert.IsTrue(pointset2.Root.Value.KdTree.Value != null);
+        }
 
+        [Test]
+        public void CanImportE57FileAndLoadFromStore_PartIndex()
+        {
+            Assert.IsTrue(Data.Points.Import.E57.E57Format != null);
+            var filename = Path.Combine(Config.TestDataDir, "test.e57");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                .WithPartIndexOffset(42)
+                ;
+            _ = PointCloud.Import(filename, config);
+            var pointset2 = config.Storage.GetPointSet("test");
+            Assert.IsTrue(pointset2 != null);
+            Assert.IsTrue(pointset2.PointCount == 3);
+            Assert.IsTrue(pointset2.PartIndexRange == new Range1i(42, 42));
+            Assert.IsTrue(pointset2.Root.Value.KdTree.Value != null);
+        }
+
+        #endregion
+
+        #region LAS
+
+        [Test]
+        public void CanParseLasFileInfo()
+        {
+            Assert.IsTrue(Data.Points.Import.Laszip.LaszipFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "test.las");
+            var info = PointCloud.ParseFileInfo(filename, ParseConfig.Default);
+
+            Assert.IsTrue(info.PointCount == 3);
+            Assert.IsTrue(info.Bounds == new Box3d(new V3d(1), new V3d(9)));
+        }
+
+        [Test]
+        public void CanParseLasFile()
+        {
+            Assert.IsTrue(Data.Points.Import.Laszip.LaszipFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "test.las");
+            var ps = PointCloud.Parse(filename, ParseConfig.Default)
+                .SelectMany(x => x.Positions)
+                .ToArray()
+                ;
+            Assert.IsTrue(ps.Length == 3);
+            Assert.IsTrue(ps[0].ApproximateEquals(new V3d(1, 2, 9), 1e-10));
+        }
+
+        [Test]
+        public void CanImportLasFile()
+        {
+            Assert.IsTrue(Data.Points.Import.Laszip.LaszipFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "test.las");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                .WithEnabledPartIndices(false)
+                ;
+            var pointset = PointCloud.Import(filename, config);
+            Assert.IsTrue(pointset != null);
+            Assert.IsTrue(pointset.PointCount == 3);
+            Assert.IsTrue(pointset.HasPartIndexRange == false);
+        }
+
+        [Test]
+        public void CanImportLasFile_PartIndex()
+        {
+            Assert.IsTrue(Data.Points.Import.Laszip.LaszipFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "test.las");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                .WithPartIndexOffset(42)
+                ;
+            var pointset = PointCloud.Import(filename, config);
+            Assert.IsTrue(pointset != null);
+            Assert.IsTrue(pointset.PointCount == 3);
+            Assert.IsTrue(pointset.PartIndexRange == new Range1i(42, 42));
+        }
+
+        [Test]
+        public void CanImportLasFile_MinDist()
+        {
+            Assert.IsTrue(Data.Points.Import.Laszip.LaszipFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "test.las");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                .WithEnabledPartIndices(false)
+                .WithMinDist(10)
+                ;
+            var pointset = PointCloud.Import(filename, config);
+            Assert.IsTrue(pointset.PointCount < 3);
+            Assert.IsTrue(pointset.HasPartIndexRange == false);
+        }
+
+        [Test]
+        public void CanImportLasFile_MinDist_PartIndex()
+        {
+            Assert.IsTrue(Data.Points.Import.Laszip.LaszipFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "test.las");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                .WithPartIndexOffset(42)
+                .WithMinDist(10)
+                ;
+            var pointset = PointCloud.Import(filename, config);
+            Assert.IsTrue(pointset.PointCount < 3);
+            Assert.IsTrue(pointset.PartIndexRange == new Range1i(42, 42));
+        }
+
+        [Test]
+        public void CanImportLasFileAndLoadFromStore()
+        {
+            Assert.IsTrue(Data.Points.Import.Laszip.LaszipFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "test.las");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                .WithEnabledPartIndices(false)
+                ;
+            _ = PointCloud.Import(filename, config);
+            var pointset2 = config.Storage.GetPointSet("test");
+            Assert.IsTrue(pointset2 != null);
+            Assert.IsTrue(pointset2.PointCount == 3);
+            Assert.IsTrue(pointset2.HasPartIndexRange == false);
+            Assert.IsTrue(pointset2.Root.Value.KdTree.Value != null);
+        }
+
+        [Test]
+        public void CanImportLasFileAndLoadFromStore_PartIndex()
+        {
+            Assert.IsTrue(Data.Points.Import.Laszip.LaszipFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "test.las");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                .WithPartIndexOffset(42)
+                ;
+            _ = PointCloud.Import(filename, config);
+            var pointset2 = config.Storage.GetPointSet("test");
+            Assert.IsTrue(pointset2 != null);
+            Assert.IsTrue(pointset2.PointCount == 3);
+            Assert.IsTrue(pointset2.PartIndexRange == new Range1i(42, 42));
+            Assert.IsTrue(pointset2.Root.Value.KdTree.Value != null);
+        }
+
+        #endregion
+
+        #region LAZ
+
+        [Test]
+        public void CanParseLazFileInfo()
+        {
+            Assert.IsTrue(Data.Points.Import.Laszip.LaszipFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "test.laz");
+            var info = PointCloud.ParseFileInfo(filename, ParseConfig.Default);
+
+            Assert.IsTrue(info.PointCount == 3);
+            Assert.IsTrue(info.Bounds == new Box3d(new V3d(1), new V3d(9)));
+        }
+
+        [Test]
+        public void CanParseLazFile()
+        {
+            Assert.IsTrue(Data.Points.Import.Laszip.LaszipFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "test.laz");
+            var ps = PointCloud.Parse(filename, ParseConfig.Default)
+                .SelectMany(x => x.Positions)
+                .ToArray()
+                ;
+            Assert.IsTrue(ps.Length == 3);
+            Assert.IsTrue(ps[0].ApproximateEquals(new V3d(1, 2, 9), 1e-10));
+        }
+
+        [Test]
+        public void CanImportLazFile()
+        {
+            Assert.IsTrue(Data.Points.Import.Laszip.LaszipFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "test.laz");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                .WithEnabledPartIndices(false)
+                ;
+            var pointset = PointCloud.Import(filename, config);
+            Assert.IsTrue(pointset != null);
+            Assert.IsTrue(pointset.PointCount == 3);
+            Assert.IsTrue(pointset.HasPartIndexRange == false);
+        }
+
+        [Test]
+        public void CanImportLazFile_PartIndex()
+        {
+            Assert.IsTrue(Data.Points.Import.Laszip.LaszipFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "test.laz");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                .WithPartIndexOffset(42)
+                ;
+            var pointset = PointCloud.Import(filename, config);
+            Assert.IsTrue(pointset != null);
+            Assert.IsTrue(pointset.PointCount == 3);
+            Assert.IsTrue(pointset.PartIndexRange == new Range1i(42, 42));
+        }
+
+        [Test]
+        public void CanImportLazFile_MinDist()
+        {
+            Assert.IsTrue(Data.Points.Import.Laszip.LaszipFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "test.laz");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                .WithEnabledPartIndices(false)
+                .WithMinDist(10)
+                ;
+            var pointset = PointCloud.Import(filename, config);
+            Assert.IsTrue(pointset.PointCount < 3);
+            Assert.IsTrue(pointset.HasPartIndexRange == false);
+        }
+
+        [Test]
+        public void CanImportLazFile_MinDist_PartIndex()
+        {
+            Assert.IsTrue(Data.Points.Import.Laszip.LaszipFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "test.laz");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                .WithPartIndexOffset(42)
+                .WithMinDist(10)
+                ;
+            var pointset = PointCloud.Import(filename, config);
+            Assert.IsTrue(pointset.PointCount < 3);
+            Assert.IsTrue(pointset.PartIndexRange == new Range1i(42, 42));
+        }
+
+        [Test]
+        public void CanImportLazFileAndLoadFromStore()
+        {
+            Assert.IsTrue(Data.Points.Import.Laszip.LaszipFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "test.laz");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                .WithEnabledPartIndices(false)
+                ;
+            _ = PointCloud.Import(filename, config);
+            var pointset2 = config.Storage.GetPointSet("test");
+            Assert.IsTrue(pointset2 != null);
+            Assert.IsTrue(pointset2.PointCount == 3);
+            Assert.IsTrue(pointset2.HasPartIndexRange == false);
+            Assert.IsTrue(pointset2.Root.Value.KdTree.Value != null);
+        }
+
+        [Test]
+        public void CanImportLazFileAndLoadFromStore_PartIndex()
+        {
+            Assert.IsTrue(Data.Points.Import.Laszip.LaszipFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "test.laz");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                .WithPartIndexOffset(42)
+                ;
+            _ = PointCloud.Import(filename, config);
+            var pointset2 = config.Storage.GetPointSet("test");
+            Assert.IsTrue(pointset2 != null);
+            Assert.IsTrue(pointset2.PointCount == 3);
+            Assert.IsTrue(pointset2.PartIndexRange == new Range1i(42, 42));
             Assert.IsTrue(pointset2.Root.Value.KdTree.Value != null);
         }
 
@@ -688,10 +999,28 @@ namespace Aardvark.Geometry.Tests
             var config = ImportConfig.Default
                 .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
+                .WithEnabledPartIndices(false)
                 ;
             var pointset = PointCloud.Import(filename, config);
             Assert.IsTrue(pointset != null);
             Assert.IsTrue(pointset.PointCount == 8);
+            Assert.IsTrue(pointset.HasPartIndexRange == false);
+        }
+
+        [Test]
+        public void CanImportPlyFile_PartIndex()
+        {
+            Assert.IsTrue(Data.Points.Import.Ply.PlyFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "cube.ply");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                .WithPartIndexOffset(42)
+                ;
+            var pointset = PointCloud.Import(filename, config);
+            Assert.IsTrue(pointset != null);
+            Assert.IsTrue(pointset.PointCount == 8);
+            Assert.IsTrue(pointset.PartIndexRange == new Range1i(42, 42));
         }
 
         [Test]
@@ -702,10 +1031,28 @@ namespace Aardvark.Geometry.Tests
             var config = ImportConfig.Default
                 .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
+                .WithEnabledPartIndices(false)
                 .WithMinDist(10)
                 ;
             var pointset = PointCloud.Import(filename, config);
             Assert.IsTrue(pointset.PointCount < 8);
+            Assert.IsTrue(pointset.HasPartIndexRange == false);
+        }
+
+        [Test]
+        public void CanImportPlyFile_MinDist_PartIndex()
+        {
+            Assert.IsTrue(Data.Points.Import.Ply.PlyFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "cube.ply");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                .WithPartIndexOffset(42)
+                .WithMinDist(10)
+                ;
+            var pointset = PointCloud.Import(filename, config);
+            Assert.IsTrue(pointset.PointCount < 8);
+            Assert.IsTrue(pointset.PartIndexRange == new Range1i(42, 42));
         }
 
         [Test]
@@ -716,12 +1063,31 @@ namespace Aardvark.Geometry.Tests
             var config = ImportConfig.Default
                 .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
+                .WithEnabledPartIndices(false)
                 ;
             _ = PointCloud.Import(filename, config);
             var pointset2 = config.Storage.GetPointSet("test");
             Assert.IsTrue(pointset2 != null);
             Assert.IsTrue(pointset2.PointCount == 8);
+            Assert.IsTrue(pointset2.HasPartIndexRange == false);
+            Assert.IsTrue(pointset2.Root.Value.KdTree.Value != null);
+        }
 
+        [Test]
+        public void CanImportPlyFileAndLoadFromStore_PartIndex()
+        {
+            Assert.IsTrue(Data.Points.Import.Ply.PlyFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "cube.ply");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                .WithPartIndexOffset(42)
+                ;
+            _ = PointCloud.Import(filename, config);
+            var pointset2 = config.Storage.GetPointSet("test");
+            Assert.IsTrue(pointset2 != null);
+            Assert.IsTrue(pointset2.PointCount == 8);
+            Assert.IsTrue(pointset2.PartIndexRange == new Range1i(42, 42));
             Assert.IsTrue(pointset2.Root.Value.KdTree.Value != null);
         }
 

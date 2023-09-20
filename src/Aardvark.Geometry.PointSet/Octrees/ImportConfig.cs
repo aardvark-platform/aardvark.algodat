@@ -34,9 +34,9 @@ namespace Aardvark.Data.Points
         public ParseConfig ParseConfig { get; private set; } = ParseConfig.Default;
         
         /// <summary>
-        /// Store imported pointcloud with this key.
+        /// Store imported point cloud with this key.
         /// </summary>
-        public string Key { get; private set; } = null;
+        public string? Key { get; private set; } = null;
 
         /// <summary></summary>
         public CancellationToken CancellationToken => ParseConfig.CancellationToken;
@@ -65,10 +65,10 @@ namespace Aardvark.Data.Points
         public Action<double> ProgressCallback { get; private set; } = _ => { };
 
         /// <summary></summary>
-        public Func<IList<V3d>, IList<V3d>> Reproject { get; private set; } = null;
+        public Func<IList<V3d>, IList<V3d>>? Reproject { get; private set; } = null;
 
         /// <summary></summary>
-        public Storage Storage { get; private set; } = null;
+        public Storage Storage { get; init; } = null!;
 
         /// <summary></summary>
         public bool Verbose => ParseConfig.Verbose;
@@ -137,7 +137,7 @@ namespace Aardvark.Data.Points
         public ImportConfig WithStorage(Storage x) => new(this) { Storage = x };
 
         /// <summary></summary>
-        public ImportConfig WithPartIndexOffset(int x) => new(this) { ParseConfig = ParseConfig.WithPartIndexOffset(x) };
+        public ImportConfig WithPartIndexOffset(uint x) => new(this) { ParseConfig = ParseConfig.WithPartIndexOffset(x) };
 
         /// <summary></summary>
         public ImportConfig WithEnabledProperties(EnabledProperties x) => new(this) { ParseConfig = ParseConfig.WithEnabledProperties(x) };

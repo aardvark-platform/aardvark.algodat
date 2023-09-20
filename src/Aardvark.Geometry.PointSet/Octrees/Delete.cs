@@ -15,6 +15,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using Aardvark.Base;
@@ -30,16 +31,20 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Returns new pointset with all points deleted which are inside.
         /// </summary>
-        public static PointSet Delete(this PointSet node,
+        public static PointSet? Delete(this PointSet? node,
             Func<IPointCloudNode, bool> isNodeFullyInside,
             Func<IPointCloudNode, bool> isNodeFullyOutside,
             Func<V3d, bool> isPositionInside,
             Storage storage, CancellationToken ct
             )
         {
+            if (node == null) return null;
+
             var root = Delete(node.Root.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, storage, ct, node.SplitLimit);
+            if (root == null) return null;
+
             var newId = Guid.NewGuid().ToString();
-            var result = new PointSet(node.Storage, newId, root?.Id, node.SplitLimit);
+            var result = new PointSet(node.Storage, newId, root.Id, node.SplitLimit);
             node.Storage.Add(newId, result);
             return result;
         }
@@ -47,7 +52,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Returns new tree with all points deleted which are inside.
         /// </summary>
-        public static IPointCloudNode Delete(this IPointCloudNode root,
+        public static IPointCloudNode? Delete(this IPointCloudNode? root,
             Func<IPointCloudNode, bool> isNodeFullyInside,
             Func<IPointCloudNode, bool> isNodeFullyOutside,
             Func<V3d, bool> isPositionInside,
@@ -65,6 +70,7 @@ namespace Aardvark.Geometry.Points
                     bool keep(IPointCloudNode n) => filter.IsFullyOutside(n) || isNodeFullyOutside(n);
                     bool contains(V3d pt) => filter.Contains(pt) && isPositionInside(pt);
                     var res = f.Node.Delete(remove, keep, contains, storage, ct, splitLimit);
+                    if (res == null) return null;
                     return FilteredNode.Create(res, f.Filter);
                 }
                 else
@@ -84,14 +90,14 @@ namespace Aardvark.Geometry.Points
                 return root;
             }
 
-            if(root.IsLeaf)
+            if (root.IsLeaf)
             {
-                var ps = root.HasPositions ? new List<V3f>() : null;
+                var ps = new List<V3f>();
                 var cs = root.HasColors ? new List<C4b>() : null;
                 var ns = root.HasNormals ? new List<V3f>() : null;
                 var js = root.HasIntensities ? new List<int>() : null;
                 var ks = root.HasClassifications ? new List<byte>() : null;
-                var oldPs = root.Positions?.Value;
+                var oldPs = root.Positions.Value;
                 var oldCs = root.Colors?.Value;
                 var oldNs = root.Normals?.Value;
                 var oldIs = root.Intensities?.Value;
@@ -104,11 +110,11 @@ namespace Aardvark.Geometry.Points
                     var pabs = (V3d)oldPs[i] + root.Center;
                     if (!isPositionInside(pabs))
                     {
-                        if (oldPs != null) ps.Add(oldPs[i]);
-                        if (oldCs != null) cs.Add(oldCs[i]);
-                        if (oldNs != null) ns.Add(oldNs[i]);
-                        if (oldIs != null) js.Add(oldIs[i]);
-                        if (oldKs != null) ks.Add(oldKs[i]);
+                        ps.Add(oldPs[i]);
+                        if (oldCs != null) cs!.Add(oldCs[i]);
+                        if (oldNs != null) ns!.Add(oldNs[i]);
+                        if (oldIs != null) js!.Add(oldIs[i]);
+                        if (oldKs != null) ks!.Add(oldKs[i]);
                         bbabs.ExtendBy(pabs);
                         bbloc.ExtendBy(oldPs[i]);
                     }
@@ -174,6 +180,7 @@ namespace Aardvark.Geometry.Points
             else
             {
                 var subnodes = root.Subnodes.Map((r) => r?.Value?.Delete(isNodeFullyInside, isNodeFullyOutside, isPositionInside, storage, ct, splitLimit));
+
                 var pointCountTree = subnodes.Sum((n) => n != null ? n.PointCountTree : 0);
                 if (pointCountTree == 0)
                 {
@@ -181,7 +188,7 @@ namespace Aardvark.Geometry.Points
                 }
                 else if (pointCountTree <= splitLimit)
                 {
-                    var psabs = root.HasPositions ? new List<V3d>() : null;
+                    var psabs = new List<V3d>();
                     var cs = root.HasColors ? new List<C4b>() : null;
                     var ns = root.HasNormals ? new List<V3f>() : null;
                     var js = root.HasIntensities ? new List<int>() : null;
@@ -268,6 +275,7 @@ namespace Aardvark.Geometry.Points
                     var needsKs = subnodes.Any(x => x != null && x.HasClassifications);
 
                     var subcenters = subnodes.Map(x => x?.Center);
+
                     var lodPs = LodExtensions.AggregateSubPositions(counts, aggregateCount, root.Center, subcenters, subnodes.Map(x => x?.Positions?.Value));
                     var lodCs = needsCs ? LodExtensions.AggregateSubArrays(counts, aggregateCount, subnodes.Map(x => x?.Colors?.Value)) : null;
                     var lodNs = needsNs ? LodExtensions.AggregateSubArrays(counts, aggregateCount, subnodes.Map(x => x?.Normals?.Value)) : null;
@@ -338,7 +346,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Returns new tree with all points deleted which are inside. Additionally tests visited points using classifications.
         /// </summary>
-        public static IPointCloudNode DeleteWithClassifications(this IPointCloudNode root,
+        public static IPointCloudNode? DeleteWithClassifications(this IPointCloudNode? root,
             Func<IPointCloudNode, bool> isNodeFullyInside,
             Func<IPointCloudNode, bool> isNodeFullyOutside,
             Func<V3d, byte, bool> isPositionInside,
@@ -356,6 +364,7 @@ namespace Aardvark.Geometry.Points
                     bool keep(IPointCloudNode n) => filter.IsFullyOutside(n) || isNodeFullyOutside(n);
                     bool contains(V3d pt, byte c) => filter.Contains(pt) && isPositionInside(pt,c);
                     var res = f.Node.DeleteWithClassifications(remove, keep, contains, storage, ct, splitLimit);
+                    if (res == null) return null;
                     return FilteredNode.Create(res, f.Filter);
                 }
                 else
@@ -375,14 +384,14 @@ namespace Aardvark.Geometry.Points
                 return root;
             }
 
-            if(root.IsLeaf)
+            if (root.IsLeaf)
             {
-                var ps = root.HasPositions ? new List<V3f>() : null;
+                var ps = new List<V3f>();
                 var cs = root.HasColors ? new List<C4b>() : null;
                 var ns = root.HasNormals ? new List<V3f>() : null;
                 var js = root.HasIntensities ? new List<int>() : null;
                 var ks = root.HasClassifications ? new List<byte>() : null;
-                var oldPs = root.Positions?.Value;
+                var oldPs = root.Positions.Value;
                 var oldCs = root.Colors?.Value;
                 var oldNs = root.Normals?.Value;
                 var oldIs = root.Intensities?.Value;
@@ -399,11 +408,11 @@ namespace Aardvark.Geometry.Points
 
                     if (!isPositionInside(pabs, oldK))
                     {
-                        if (oldPs != null) ps.Add(oldPs[i]);
-                        if (oldCs != null) cs.Add(oldCs[i]);
-                        if (oldNs != null) ns.Add(oldNs[i]);
-                        if (oldIs != null) js.Add(oldIs[i]);
-                        if (oldKs != null) ks.Add(oldKs[i]);
+                        ps.Add(oldPs[i]);
+                        if (oldCs != null) cs!.Add(oldCs[i]);
+                        if (oldNs != null) ns!.Add(oldNs[i]);
+                        if (oldIs != null) js!.Add(oldIs[i]);
+                        if (oldKs != null) ks!.Add(oldKs[i]);
                         bbabs.ExtendBy(pabs);
                         bbloc.ExtendBy(oldPs[i]);
                     }
@@ -476,7 +485,7 @@ namespace Aardvark.Geometry.Points
                 }
                 else if (pointCountTree <= splitLimit)
                 {
-                    var psabs = root.HasPositions ? new List<V3d>() : null;
+                    var psabs = new List<V3d>();
                     var cs = root.HasColors ? new List<C4b>() : null;
                     var ns = root.HasNormals ? new List<V3f>() : null;
                     var js = root.HasIntensities ? new List<int>() : null;

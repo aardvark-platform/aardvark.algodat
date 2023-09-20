@@ -133,10 +133,10 @@ namespace Aardvark.Geometry.Points
                         {
                             var index = (int)ia[i].Index;
                             ps[i] = centerGlobal + (V3d)node.Positions.Value[index];
-                            if (node.HasColors) cs[i] = node.Colors.Value[index];
-                            if (node.HasNormals) ns[i] = node.Normals.Value[index];
-                            if (node.HasIntensities) js[i] = node.Intensities.Value[index];
-                            if (node.HasClassifications) ks[i] = node.Classifications.Value[index];
+                            if (node.HasColors) cs![i] = node.Colors.Value[index];
+                            if (node.HasNormals) ns![i] = node.Normals.Value[index];
+                            if (node.HasIntensities) js![i] = node.Intensities.Value[index];
+                            if (node.HasClassifications) ks![i] = node.Classifications.Value[index];
                             ds[i] = ia[i].Dist;
                         }
                         var chunk = new Chunk(ps, cs, ns, js, ks);
@@ -160,11 +160,11 @@ namespace Aardvark.Geometry.Points
                         if (d > maxDistanceToRay) continue;
                         if (ps == null) Init();
 
-                        ps.Add((V3d)qs[i] + centerGlobal);
-                        if (node.HasColors) cs.Add(node.Colors.Value[i]);
-                        if (node.HasNormals) ns.Add(node.Normals.Value[i]);
-                        if (node.HasIntensities) js.Add(node.Intensities.Value[i]);
-                        if (node.HasClassifications) ks.Add(node.Classifications.Value[i]);
+                        ps!.Add((V3d)qs[i] + centerGlobal);
+                        if (node.HasColors) cs!.Add(node.Colors.Value[i]);
+                        if (node.HasNormals) ns!.Add(node.Normals.Value[i]);
+                        if (node.HasIntensities) js!.Add(node.Intensities.Value[i]);
+                        if (node.HasClassifications) ks!.Add(node.Classifications.Value[i]);
                     }
 
                     if (ps != null)
@@ -186,7 +186,7 @@ namespace Aardvark.Geometry.Points
             {
                 for (var i = 0; i < 8; i++)
                 {
-                    var n = node.Subnodes[i];
+                    var n = node.Subnodes![i];
                     if (n == null) continue;
                     var xs = QueryPointsNearLineSegment(n.Value, lineSegment, maxDistanceToRay, minCellExponent);
                     foreach (var x in xs) yield return x;
@@ -254,7 +254,7 @@ namespace Aardvark.Geometry.Points
             {
                 for (var i = 0; i < 8; i++)
                 {
-                    var n = node.Subnodes[i];
+                    var n = node.Subnodes![i];
                     if (n == null) continue;
                     var xs = QueryPointsNearLineSegmentCustom(n.Value, lineSegment, maxDistanceToRay, minCellExponent, customAttributes);
                     foreach (var x in xs) yield return x;

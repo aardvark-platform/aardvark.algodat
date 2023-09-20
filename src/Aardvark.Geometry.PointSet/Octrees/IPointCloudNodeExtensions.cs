@@ -73,7 +73,7 @@ namespace Aardvark.Geometry.Points
                     var n = self.Subnodes[i];
                     if (n != null)
                     {
-                        if (n.TryGetValue(out IPointCloudNode node)) node.ForEachNode(outOfCore, action);
+                        if (n.TryGetValue(out var node)) node.ForEachNode(outOfCore, action);
                     }
                 }
             }
@@ -148,7 +148,7 @@ namespace Aardvark.Geometry.Points
                     var n = self.Subnodes[i];
                     if (n != null)
                     {
-                        if (n.TryGetValue(out IPointCloudNode node))
+                        if (n.TryGetValue(out var node))
                         {
                             node.ForEachIntersectingNode(outOfCore, hull, doNotTraverseSubnodesWhenFullyInside, action, ct);
                         }
@@ -388,7 +388,7 @@ namespace Aardvark.Geometry.Points
                         var (def, obj) = self.Storage.GetDurable(key);
                         if (def == Durable.Octree.Node)
                         {
-                            var data = (IDictionary<Durable.Def, object>)obj;
+                            var data = (IDictionary<Durable.Def, object>)obj!;
                             if (data.TryGetValue(Durable.Octree.SubnodesGuids, out var o))
                             {
                                 var snids = (Guid[])o;
@@ -402,10 +402,13 @@ namespace Aardvark.Geometry.Points
                         else
                         {
                             var n = self.Storage.GetPointCloudNode(key);
-                            foreach (var sn in n.Subnodes)
+                            if (n!.Subnodes != null)
                             {
-                                if (sn == null) continue;
-                                acc += FastCount(sn.Value.Id);
+                                foreach (var sn in n.Subnodes)
+                                {
+                                    if (sn == null) continue;
+                                    acc += FastCount(sn.Value.Id);
+                                }
                             }
                         }
                         
@@ -421,7 +424,7 @@ namespace Aardvark.Geometry.Points
                         var n = self.Subnodes[i];
                         if (n != null)
                         {
-                            if (n.TryGetValue(out IPointCloudNode node)) count += node.CountNodes(outOfCore);
+                            if (n.TryGetValue(out var node)) count += node.CountNodes(outOfCore);
                         }
                     }
                 }
@@ -452,7 +455,7 @@ namespace Aardvark.Geometry.Points
                     var n = self.Subnodes[i];
                     if (n != null)
                     {
-                        if (n.TryGetValue(out IPointCloudNode node)) count += node.CountLeafNodes(outOfCore);
+                        if (n.TryGetValue(out var node)) count += node.CountLeafNodes(outOfCore);
                     }
                 }
             }
@@ -486,7 +489,7 @@ namespace Aardvark.Geometry.Points
                         var n = self.Subnodes[i];
                         if (n != null)
                         {
-                            if (n.TryGetValue(out IPointCloudNode node))
+                            if (n.TryGetValue(out var node))
                             {
                                 var x = node.GetMinimumLeafPointCount(outOfCore);
                                 if (x < min) min = x;
@@ -525,7 +528,7 @@ namespace Aardvark.Geometry.Points
                         var n = self.Subnodes[i];
                         if (n != null)
                         {
-                            if (n.TryGetValue(out IPointCloudNode node))
+                            if (n.TryGetValue(out var node))
                             {
                                 var x = node.GetMinimumLeafPointCount(outOfCore);
                                 if (x > max) max = x;
@@ -573,7 +576,7 @@ namespace Aardvark.Geometry.Points
                     var n = self.Subnodes[i];
                     if (n != null)
                     {
-                        if (n.TryGetValue(out IPointCloudNode node))
+                        if (n.TryGetValue(out var node))
                         {
                             var x = node.GetMinimumTreeDepth(outOfCore);
                             if (x < min) min = x;
@@ -612,7 +615,7 @@ namespace Aardvark.Geometry.Points
                     var n = self.Subnodes[i];
                     if (n != null)
                     {
-                        if (n.TryGetValue(out IPointCloudNode node))
+                        if (n.TryGetValue(out var node))
                         {
                             var x = node.GetMaximiumTreeDepth(outOfCore);
                             if (x > max) max = x;
@@ -657,7 +660,7 @@ namespace Aardvark.Geometry.Points
                     var n = self.Subnodes[i];
                     if (n != null)
                     {
-                        if (n.TryGetValue(out IPointCloudNode node)) node.GetAverageTreeDepth(outOfCore, depth, ref sum, ref count);
+                        if (n.TryGetValue(out var node)) node.GetAverageTreeDepth(outOfCore, depth, ref sum, ref count);
                     }
                 }
             }
@@ -668,19 +671,19 @@ namespace Aardvark.Geometry.Points
         #region TryGet*
 
         /// <summary>Returns null if node has no colors.</summary>
-        public static PersistentRef<C4b[]> TryGetColors4b(this IPointCloudNode self)
+        public static PersistentRef<C4b[]>? TryGetColors4b(this IPointCloudNode self)
             => self.HasColors ? self.Colors : null;
 
         /// <summary>Returns null if node has no normals.</summary>
-        public static PersistentRef<V3f[]> TryGetNormals3f(this IPointCloudNode self)
+        public static PersistentRef<V3f[]>? TryGetNormals3f(this IPointCloudNode self)
             => self.HasNormals ? self.Normals : null;
 
         /// <summary>Returns null if node has no intensities.</summary>
-        public static PersistentRef<int[]> TryGetIntensities(this IPointCloudNode self)
+        public static PersistentRef<int[]>? TryGetIntensities(this IPointCloudNode self)
             => self.HasIntensities ? self.Intensities : null;
 
         /// <summary>Returns null if node has no classifications.</summary>
-        public static PersistentRef<byte[]> TryGetClassifications(this IPointCloudNode self)
+        public static PersistentRef<byte[]>? TryGetClassifications(this IPointCloudNode self)
             => self.HasClassifications ? self.Classifications : null;
 
         #endregion
@@ -714,7 +717,7 @@ namespace Aardvark.Geometry.Points
                 }
                 else
                 {
-                    foreach (var x in n.Subnodes)
+                    foreach (var x in n.Subnodes!)
                     {
                         if (x != null)
                         {
@@ -807,7 +810,7 @@ namespace Aardvark.Geometry.Points
                 // or finally query subnodes inside column recursively ...
                 else
                 {
-                    foreach (var subnode in n.Subnodes)
+                    foreach (var subnode in n.Subnodes!)
                     {
                         if (subnode == null) continue;
                         var c = subnode.Value.Cell;
@@ -876,7 +879,7 @@ namespace Aardvark.Geometry.Points
             var cs = self.HasColors ? self.Colors.Value : null;
             var ns = self.HasNormals ? self.Normals.Value : null;
             var js = self.HasIntensities ? self.Intensities.Value : null;
-            var ks = self.HasClassifications ? self.Classifications.Value : null;
+            var ks = self.HasClassifications ? self.Classifications!.Value : null;
             return new Chunk(self.PositionsAbsolute, cs, ns, js, ks);
         }
 
@@ -894,12 +897,12 @@ namespace Aardvark.Geometry.Points
                 var cs = self.HasColors ? self.Colors.Value : null;
                 var ns = self.HasNormals ? self.Normals.Value : null;
                 var js = self.HasIntensities ? self.Intensities.Value : null;
-                var ks = self.HasClassifications ? self.Classifications.Value : null;
+                var ks = self.HasClassifications ? self.Classifications!.Value : null;
                 yield return new Chunk(self.PositionsAbsolute, cs, ns, js, ks);
             }
             else
             {
-                foreach (var x in self.Subnodes)
+                foreach (var x in self.Subnodes!)
                 {
                     if (x != null)
                     {

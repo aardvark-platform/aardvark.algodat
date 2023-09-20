@@ -36,20 +36,19 @@ namespace Aardvark.Geometry.Points
 
             var store = OpenStore(storePath, cache: default);
             var pointset = store.GetPointSet(key);
-            return new PointFileInfo(storePath, PointCloudFileFormat.Store, 0L, pointset.PointCount, pointset.Bounds);
+            return new PointFileInfo(storePath, PointCloudFileFormat.Store, 0L, pointset?.PointCount ?? 0, pointset?.Bounds ?? Box3d.Invalid);
         }
 
         /// <summary>
         /// Loads point cloud from store.
         /// </summary>
-        public static PointSet Load(string key, string storePath, LruDictionary<string, object> cache = null)
+        public static PointSet Load(string key, string storePath, LruDictionary<string, object>? cache = null)
         {
             //if (!Directory.Exists(storePath)) throw new InvalidOperationException($"Not a store ({storePath}).");
 
             var store = OpenStore(storePath, cache);
             var result = store.GetPointSet(key);
-            if (result == null) throw new InvalidOperationException($"Key {key} not found in {storePath}.");
-            return result;
+            return result ?? throw new InvalidOperationException($"Key {key} not found in {storePath}.");
         }
 
         /// <summary>
@@ -59,16 +58,15 @@ namespace Aardvark.Geometry.Points
         {
             if (store == null) throw new ArgumentNullException(nameof(store));
             var result = store.GetPointSet(key);
-            if (result == null) throw new InvalidOperationException($"Key {key} not found in store.");
-            return result;
+            return result ?? throw new InvalidOperationException($"Key {key} not found in store.");
         }
 
         /// <summary>
         /// Opens or creates a store at the specified location.
         /// </summary>
-        public static Storage OpenStore(string storePath, LruDictionary<string, object> cache = null, Action<string[]> logLines = null, bool readOnly = false)
+        public static Storage OpenStore(string storePath, LruDictionary<string, object>? cache = null, Action<string[]>? logLines = null, bool readOnly = false)
         {
-            if (cache is null) cache = new LruDictionary<string, object>(2L << 30);
+            cache ??= new LruDictionary<string, object>(2L << 30);
 
             lock (s_stores)
             {
@@ -83,10 +81,10 @@ namespace Aardvark.Geometry.Points
                 }
 
                 // cache miss ...
-                ISimpleStore simpleStore = null;
+                ISimpleStore simpleStore;
                 ISimpleStore initDiskStore()
                 {
-                    if (logLines is null)
+                    if (logLines == null)
                     {
                         if (readOnly) 
                         {

@@ -18,6 +18,7 @@ using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Compression;
 using System.Runtime.CompilerServices;
@@ -35,7 +36,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>V3f[] -> byte[]</summary>
         public static byte[] ArrayToBuffer<T>(T[] data, int elementSizeInBytes, Action<BinaryWriter, T> writeElement)
         {
-            if (data == null) return null;
+            //if (data == null) return null;
             var buffer = new byte[data.Length * elementSizeInBytes];
             using var ms = new MemoryStream(buffer);
             using var bw = new BinaryWriter(ms);
@@ -46,7 +47,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>IList&lt;V3f&gt; -> byte[]</summary>
         public static byte[] ArrayToBuffer<T>(IList<T> data, int elementSizeInBytes, Action<BinaryWriter, T> writeElement)
         {
-            if (data == null) return null;
+            //if (data == null) return null;
             var buffer = new byte[data.Count * elementSizeInBytes];
             using var ms = new MemoryStream(buffer);
             using var bw = new BinaryWriter(ms);
@@ -57,7 +58,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>byte[] -> T[]</summary>
         public static T[] BufferToArray<T>(byte[] buffer, int elementSizeInBytes, Func<BinaryReader, T> readElement)
         {
-            if (buffer == null) return null;
+            //if (buffer == null) return null;
             var data = new T[buffer.Length / elementSizeInBytes];
             using var ms = new MemoryStream(buffer);
             using var br = new BinaryReader(ms);
@@ -144,7 +145,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>C4b[] -> byte[]</summary>
         public static byte[] C4bArrayToBuffer(C4b[] data)
         {
-            if (data == null) return null;
+            //if (data == null) return null;
             var buffer = new byte[data.Length * 4];
             using var ms = new MemoryStream(buffer);
             
@@ -159,7 +160,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>byte[] -> C4b[]</summary>
         public static C4b[] BufferToC4bArray(byte[] buffer)
         {
-            if (buffer == null) return null;
+            //if (buffer == null) return null;
             var data = new C4b[buffer.Length / 4];
             for (int i = 0, j = 0; i < data.Length; i++)
             {
@@ -175,7 +176,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>PointRkdTreeDData -> byte[]</summary>
         public static byte[] PointRkdTreeDDataToBuffer(PointRkdTreeDData data)
         {
-            if (data == null) return null;
+            //if (data == null) return null;
             var ms = new MemoryStream();
             using var coder = new BinaryWritingCoder(ms);
             object x = data; coder.Code(ref x);
@@ -185,10 +186,10 @@ namespace Aardvark.Geometry.Points
         /// <summary>byte[] -> PointRkdTreeDData</summary>
         public static PointRkdTreeDData BufferToPointRkdTreeDData(byte[] buffer)
         {
-            if (buffer == null) return null;
+            //if (buffer == null) return null;
             using var ms = new MemoryStream(buffer);
             using var coder = new BinaryReadingCoder(ms);
-            object o = null;
+            object o = null!;
             coder.Code(ref o);
             return (PointRkdTreeDData)o;
         }
@@ -200,7 +201,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>PointRkdTreeDData -> byte[]</summary>
         public static byte[] PointRkdTreeFDataToBuffer(PointRkdTreeFData data)
         {
-            if (data == null) return null;
+            //if (data == null) return null;
             var ms = new MemoryStream();
             using var coder = new BinaryWritingCoder(ms);
             object x = data; coder.Code(ref x);
@@ -210,10 +211,10 @@ namespace Aardvark.Geometry.Points
         /// <summary>byte[] -> PointRkdTreeDData</summary>
         public static PointRkdTreeFData BufferToPointRkdTreeFData(byte[] buffer)
         {
-            if (buffer == null) return null;
+            //if (buffer == null) return null;
             using var ms = new MemoryStream(buffer);
             using var coder = new BinaryReadingCoder(ms);
-            object o = null;
+            object o = null!;
             coder.Code(ref o);
             return (PointRkdTreeFData)o;
         }
@@ -234,7 +235,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Wraps Uncodium.ISimpleStore into Storage.
         /// </summary>
-        public static Storage ToPointCloudStore(this ISimpleStore x, LruDictionary<string, object> cache) {
+        public static Storage ToPointCloudStore(this ISimpleStore x, LruDictionary<string, object>? cache) {
             void add(string name, object value, Func<byte[]> create) => x.Add(name, create());
             return new Storage(add, x.Get, x.GetSlice, x.Remove, x.Dispose, x.Flush, cache);
         }
@@ -293,13 +294,13 @@ namespace Aardvark.Geometry.Points
         public static void Add(this Storage storage, string key, byte[] data) => storage.f_add(key, data, () => data);
 
         /// <summary></summary>
-        public static byte[] GetByteArray(this Storage storage, string key) => storage.f_get(key);
+        public static byte[]? GetByteArray(this Storage storage, string key) => storage.f_get(key);
 
         /// <summary></summary>
-        public static byte[] GetByteArray(this Storage storage, Guid key) => storage.f_get(key.ToString());
+        public static byte[]? GetByteArray(this Storage storage, Guid key) => storage.f_get(key.ToString());
 
         /// <summary></summary>
-        public static (bool, byte[]) TryGetByteArray(this Storage storage, string key)
+        public static (bool, byte[]?) TryGetByteArray(this Storage storage, string key)
         {
             var buffer = storage.f_get(key);
             return (buffer != null, buffer);
@@ -394,21 +395,22 @@ namespace Aardvark.Geometry.Points
             => storage.f_add(key, data, () => Codec.V3fArrayToBuffer(data));
 
         /// <summary></summary>
-        public static V3f[] GetV3fArray(this Storage storage, string key)
+        public static V3f[]? GetV3fArray(this Storage storage, string key)
         {
-            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (V3f[])o;
+            if (storage.HasCache && storage.Cache.TryGetValue(key, out var o)) return (V3f[])o;
             
             var buffer = storage.f_get(key);
+            if (buffer == null) return null;
             var data = Codec.BufferToV3fArray(buffer);
             
-            if (data != null && storage.HasCache)
+            if (storage.HasCache)
                 storage.Cache.Add(key, data, buffer.Length, onRemove: default);
 
             return data;
         }
 
         /// <summary></summary>
-        public static (bool, V3f[]) TryGetV3fArray(this Storage storage, string key)
+        public static (bool, V3f[]?) TryGetV3fArray(this Storage storage, string key)
         {
             if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
             {
@@ -432,21 +434,22 @@ namespace Aardvark.Geometry.Points
             => storage.f_add(key, data, () => Codec.IntArrayToBuffer(data));
 
         /// <summary></summary>
-        public static int[] GetIntArray(this Storage storage, string key)
+        public static int[]? GetIntArray(this Storage storage, string key)
         {
             if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (int[])o;
 
             var buffer = storage.f_get(key);
+            if (buffer == null) return null;
             var data = Codec.BufferToIntArray(buffer);
 
-            if (data != null && storage.HasCache)
+            if (storage.HasCache)
                 storage.Cache.Add(key, data, buffer.Length, onRemove: default);
 
             return data;
         }
 
         /// <summary></summary>
-        public static (bool, int[]) TryGetIntArray(this Storage storage, string key)
+        public static (bool, int[]?) TryGetIntArray(this Storage storage, string key)
         {
             if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
             {
@@ -470,21 +473,22 @@ namespace Aardvark.Geometry.Points
             => storage.f_add(key, data, () => Codec.C4bArrayToBuffer(data));
 
         /// <summary></summary>
-        public static C4b[] GetC4bArray(this Storage storage, string key)
+        public static C4b[]? GetC4bArray(this Storage storage, string key)
         {
             if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (C4b[])o;
 
             var buffer = storage.f_get(key);
+            if (buffer == null) return null;
             var data = Codec.BufferToC4bArray(buffer);
 
-            if (data != null && storage.HasCache)
+            if (storage.HasCache)
                 storage.Cache.Add(key, data, buffer.Length, onRemove: default);
 
             return data;
         }
 
         /// <summary></summary>
-        public static (bool, C4b[]) TryGetC4bArray(this Storage storage, string key)
+        public static (bool, C4b[]?) TryGetC4bArray(this Storage storage, string key)
         {
             if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
             {
@@ -508,19 +512,19 @@ namespace Aardvark.Geometry.Points
         //    => storage.f_add(key, data, () => Codec.PointRkdTreeDDataToBuffer(data));
 
         /// <summary></summary>
-        public static PointRkdTreeDData GetPointRkdTreeDData(this Storage storage, string key)
+        public static PointRkdTreeDData? GetPointRkdTreeDData(this Storage storage, string key)
         {
             if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (PointRkdTreeDData)o;
             
             var buffer = storage.f_get(key);
-            if (buffer == null) return default;
+            if (buffer == null) return null;
             var data = Codec.BufferToPointRkdTreeDData(buffer);
             if (storage.HasCache) storage.Cache.Add(key, data, buffer.Length, onRemove: default);
             return data;
         }
 
         /// <summary></summary>
-        public static (bool, PointRkdTreeDData) TryGetPointRkdTreeDData(this Storage storage, string key)
+        public static (bool, PointRkdTreeDData?) TryGetPointRkdTreeDData(this Storage storage, string key)
         {
             if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
             {
@@ -555,19 +559,19 @@ namespace Aardvark.Geometry.Points
             => storage.f_add(key, data, () => Codec.PointRkdTreeFDataToBuffer(data));
 
         /// <summary></summary>
-        public static PointRkdTreeFData GetPointRkdTreeFData(this Storage storage, string key)
+        public static PointRkdTreeFData? GetPointRkdTreeFData(this Storage storage, string key)
         {
             if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (PointRkdTreeFData)o;
 
             var buffer = storage.f_get(key);
-            if (buffer == null) return default;
+            if (buffer == null) return null;
             var data = Codec.BufferToPointRkdTreeFData(buffer);
             if (storage.HasCache) storage.Cache.Add(key, data, buffer.Length, onRemove: default);
             return data;
         }
 
         /// <summary></summary>
-        public static PointRkdTreeFData GetPointRkdTreeFDataFromD(this Storage storage, string key)
+        public static PointRkdTreeFData? GetPointRkdTreeFDataFromD(this Storage storage, string key)
         {
             if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (PointRkdTreeFData)o;
 
@@ -585,7 +589,7 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public static (bool, PointRkdTreeFData) TryGetPointRkdTreeFData(this Storage storage, string key)
+        public static (bool, PointRkdTreeFData?) TryGetPointRkdTreeFData(this Storage storage, string key)
         {
             if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
             {
@@ -598,7 +602,7 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public static (bool, PointRkdTreeFData) TryGetPointRkdTreeFDataFromD(this Storage storage, string key)
+        public static (bool, PointRkdTreeFData?) TryGetPointRkdTreeFDataFromD(this Storage storage, string key)
         {
             if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
             {
@@ -656,14 +660,14 @@ namespace Aardvark.Geometry.Points
             => Add(storage, key.ToString(), data);
 
         /// <summary></summary>
-        public static PointSet GetPointSet(this Storage storage, string key)
+        public static PointSet? GetPointSet(this Storage storage, string key)
         {
             if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (PointSet)o;
 
             var buffer = storage.f_get(key);
-            if (buffer == null) return default;
+            if (buffer == null) return null;
             var jsonUTF8 = Encoding.UTF8.GetString(buffer);
-            var json = JsonNode.Parse(jsonUTF8, new JsonNodeOptions() { PropertyNameCaseInsensitive = true });
+            var json = JsonNode.Parse(jsonUTF8, new JsonNodeOptions() { PropertyNameCaseInsensitive = true }) ?? throw new Exception($"Failed to parse Json. Error 7949aa24-075c-4cb4-8787-69d2de06f892.\n{jsonUTF8}");
             var data = PointSet.Parse(json, storage);
 
             if (storage.HasCache) storage.Cache.Add(
@@ -671,7 +675,7 @@ namespace Aardvark.Geometry.Points
                 );
             return data;
         }
-        public static PointSet GetPointSet(this Storage storage, Guid key)
+        public static PointSet? GetPointSet(this Storage storage, Guid key)
             => GetPointSet(storage, key.ToString());
 
         #endregion
@@ -699,17 +703,17 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public static IPointCloudNode GetPointCloudNode(this Storage storage, Guid key)
+        public static IPointCloudNode? GetPointCloudNode(this Storage storage, Guid key)
             => GetPointCloudNode(storage, key.ToString());
 
         /// <summary></summary>
-        public static IPointCloudNode GetPointCloudNode(this Storage storage, string key)
+        public static IPointCloudNode? GetPointCloudNode(this Storage storage, string key)
         {
-            if (key == null) return null;
+            //if (key == null) return null;
 
             if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
             {
-                if (o == null) return null;
+                //if (o == null) return null;
                 if (o is not IPointCloudNode r) throw new InvalidOperationException(
                     $"Invariant d1cb769c-36b6-4374-8248-b8c1ca31d495. [GetPointCloudNode] Store key {key} is not IPointCloudNode."
                     );
@@ -798,7 +802,7 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public static (bool, IPointCloudNode) TryGetPointCloudNode(this Storage storage, string key)
+        public static (bool, IPointCloudNode?) TryGetPointCloudNode(this Storage storage, string key)
         {
             if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
             {
@@ -825,7 +829,7 @@ namespace Aardvark.Geometry.Points
         /// Try to load PointSet or PointCloudNode with given key.
         /// Returns octree root node when found.
         /// </summary>
-        public static bool TryGetOctree(this Storage storage, string key, out IPointCloudNode root)
+        public static bool TryGetOctree(this Storage storage, string key, [NotNullWhen(true)]out IPointCloudNode? root)
         {
             var bs = storage.f_get.Invoke(key);
             if (bs != null)
@@ -833,6 +837,7 @@ namespace Aardvark.Geometry.Points
                 try
                 {
                     var ps = storage.GetPointSet(key);
+                    if (ps == null) { root = null; return false; }
                     root = ps.Root.Value;
                     return true;
                 }
@@ -841,6 +846,7 @@ namespace Aardvark.Geometry.Points
                     try
                     {
                         root = storage.GetPointCloudNode(key);
+                        if (root == null) return false;
                         return true;
                     }
                     catch (Exception en)
@@ -909,14 +915,14 @@ namespace Aardvark.Geometry.Points
         public static T DurableDecode<T>(this byte[] buffer)
             => (T)Data.Codec.Deserialize(buffer).Item2;
 
-        public static (Durable.Def, object) GetDurable(this Storage storage, string key)
+        public static (Durable.Def?, object?) GetDurable(this Storage storage, string key)
         {
             if (key == null) return (null, null);
             var buffer = storage.f_get(key);
             if (buffer == null) return (null, null);
             return Data.Codec.Deserialize(buffer);
         }
-        public static (Durable.Def, object) GetDurable(this Storage storage, Guid key)
+        public static (Durable.Def?, object?) GetDurable(this Storage storage, Guid key)
             => GetDurable(storage, key.ToString());
 
         #endregion

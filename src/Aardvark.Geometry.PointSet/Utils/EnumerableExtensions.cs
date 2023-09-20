@@ -60,7 +60,7 @@ namespace Aardvark.Geometry.Points
             return false;
         }
 
-        internal static T[] Append<T>(this T[] self, T[] other)
+        internal static T[]? Append<T>(this T[]? self, T[]? other)
         {
             if (self == null || self.Length == 0) return other ?? Array.Empty<T>();
             if (other == null || other.Length == 0) return self;
@@ -98,7 +98,7 @@ namespace Aardvark.Geometry.Points
         public static T MapReduceParallel<T>(this IEnumerable<T> xs,
             Func<T, T, CancellationToken, T> reduce,
             int maxLevelOfParallelism,
-            Action<TimeSpan> onFinish = null,
+            Action<TimeSpan>? onFinish = null,
             CancellationToken ct = default
             )
         {

@@ -81,11 +81,11 @@ namespace Aardvark.Geometry.Points
                         if (d > maxDistanceToRay || tp < tMin || tp > tMax) continue;
                         if (ps == null) Init();
 
-                        ps.Add(pWorld);
-                        if (node.HasColors) cs.Add(node.Colors.Value[i]);
-                        if (node.HasNormals) ns.Add(node.Normals.Value[i]);
-                        if (node.HasIntensities) js.Add(node.Intensities.Value[i]);
-                        if (node.HasClassifications) ks.Add(node.Classifications.Value[i]);
+                        ps!.Add(pWorld);
+                        if (node.HasColors) cs!.Add(node.Colors!.Value[i]);
+                        if (node.HasNormals) ns!.Add(node.Normals!.Value[i]);
+                        if (node.HasIntensities) js!.Add(node.Intensities!.Value[i]);
+                        if (node.HasClassifications) ks!.Add(node.Classifications.Value[i]);
                     }
 
                     if (ps != null)

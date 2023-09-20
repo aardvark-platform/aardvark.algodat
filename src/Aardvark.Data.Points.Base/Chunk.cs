@@ -45,13 +45,14 @@ namespace Aardvark.Data.Points
             return ll;
         }
 
-        public static readonly Chunk Empty = new(Array.Empty<V3d>(), null, null, null, null);
+        public static readonly Chunk Empty = new(Array.Empty<V3d>());
 
         public readonly IList<V3d> Positions;
         public readonly IList<C4b>? Colors;
         public readonly IList<V3f>? Normals;
         public readonly IList<int>? Intensities;
         public readonly IList<byte>? Classifications;
+        public readonly object? PartIndices;
 
         public GenericChunk ToGenericChunk()
         {
@@ -84,6 +85,9 @@ namespace Aardvark.Data.Points
 
         [MemberNotNullWhen(true, nameof(Classifications))]
         public bool HasClassifications => Classifications != null;
+
+        [MemberNotNullWhen(true, nameof(PartIndices))]
+        public bool HasPartIndices => PartIndices != null;
 
         public static Chunk ImmutableMerge(Chunk a, Chunk b)
         {
@@ -204,13 +208,15 @@ namespace Aardvark.Data.Points
         /// <param name="normals">Optional. Either null or same number of elements as positions.</param>
         /// <param name="intensities">Optional. Either null or same number of elements as positions.</param>
         /// <param name="classifications">Optional. Either null or same number of elements as positions.</param>
+        /// <param name="partIndices">Optional. Either null or same number of elements (byte|short|int) as positions.</param>
         /// <param name="bbox">Optional. If null, then bbox will be constructed from positions.</param>
         public Chunk(
-            IList<V3d> positions,
+            IList<V3d>? positions,
             IList<C4b>? colors = null,
             IList<V3f>? normals = null,
             IList<int>? intensities = null,
             IList<byte>? classifications = null,
+            object? partIndices = null,
             Box3d? bbox = null
             )
         {
@@ -250,6 +256,37 @@ namespace Aardvark.Data.Points
                     );
             }
 
+            IList<byte>? qs1b = null;
+            if (partIndices is IList<byte> _qs1b && _qs1b.Count != positions.Count)
+            {
+                qs1b = _qs1b;
+                countMismatch = true;
+                Report.Warn(
+                    $"Expected {positions.Count} part indices, but found {_qs1b.Count}. " +
+                    $"Warning a03f843f-d8cd-4a3d-a1c8-d48eb64c5b39."
+                    );
+            }
+            IList<short>? qs1s = null;
+            if (partIndices is IList<short> _qs1s && _qs1s.Count != positions.Count)
+            {
+                qs1s = _qs1s;
+                countMismatch = true;
+                Report.Warn(
+                    $"Expected {positions.Count} part indices, but found {_qs1s.Count}. " +
+                    $"Warning 93c9f432-3e59-45a3-b350-9d5ba7bf9ee3."
+                    );
+            }
+            IList<int>? qs1i = null;
+            if (partIndices is IList<int> _qs1i && _qs1i.Count != positions.Count)
+            {
+                qs1i = _qs1i;
+                countMismatch = true;
+                Report.Warn(
+                    $"Expected {positions.Count} part indices, but found {_qs1i.Count}. " +
+                    $"Warning b94ca9d5-1322-4f57-9ebc-85ea8d3fa8bf."
+                    );
+            }
+
             if (countMismatch)
             {
                 var minCount = positions.Count;
@@ -257,27 +294,26 @@ namespace Aardvark.Data.Points
                 if (normals         != null && normals.Count         != positions.Count) minCount = Math.Min(minCount, normals.Count        );
                 if (intensities     != null && intensities.Count     != positions.Count) minCount = Math.Min(minCount, intensities.Count    );
                 if (classifications != null && classifications.Count != positions.Count) minCount = Math.Min(minCount, classifications.Count);
+                if (qs1b            != null && qs1b.Count            != positions.Count) minCount = Math.Min(minCount, qs1b.Count           );
+                if (qs1s            != null && qs1s.Count            != positions.Count) minCount = Math.Min(minCount, qs1s.Count           );
+                if (qs1i            != null && qs1i.Count            != positions.Count) minCount = Math.Min(minCount, qs1i.Count           );
 
                 if (                           positions      .Count != minCount) positions       = positions      .Take(minCount).ToArray();
                 if (colors          != null && colors         .Count != minCount) colors          = colors         .Take(minCount).ToArray();
                 if (normals         != null && normals        .Count != minCount) normals         = normals        .Take(minCount).ToArray();
                 if (intensities     != null && intensities    .Count != minCount) intensities     = intensities    .Take(minCount).ToArray();
                 if (classifications != null && classifications.Count != minCount) classifications = classifications.Take(minCount).ToArray();
+                if (qs1b            != null && qs1b           .Count != minCount) partIndices     = qs1b           .Take(minCount).ToArray();
+                if (qs1s            != null && qs1s           .Count != minCount) partIndices     = qs1s           .Take(minCount).ToArray();
+                if (qs1i            != null && qs1i           .Count != minCount) partIndices     = qs1i           .Take(minCount).ToArray();
             }
-
-            //if (colors != null && positions.Count != colors.Count)
-            //{
-            //    Report.Warn("[Chunk-ctor] inconsistent length: pos.length = {0} vs cs.length = {1}", positions.Count, colors.Count);
-            //    colors = new C4b[positions.Count];
-            //}
-
-            //if (positions.Any(p => p.IsNaN)) throw new ArgumentException("One or more positions are NaN.");
 
             Positions       = positions;
             Colors          = colors;
             Normals         = normals;
             Intensities     = intensities;
             Classifications = classifications;
+            PartIndices     = partIndices;
             BoundingBox     = bbox ?? (positions.Count > 0 ? new Box3d(positions) : Box3d.Invalid);
         }
 
@@ -314,15 +350,16 @@ namespace Aardvark.Data.Points
             if (other.IsEmpty) return this;
 
             var ps = Append(Positions, other.Positions);
-            if (ps == null) throw new Exception("Invariant c799ccc6-4edf-4530-b1eb-59d93ef69727.");
-            return new Chunk(
-                ps,
-                Append(Colors, other.Colors),
-                Append(Normals, other.Normals),
-                Append(Intensities, other.Intensities),
-                Append(Classifications, other.Classifications),
-                Box.Union(BoundingBox, other.BoundingBox)
-            );
+            return ps == null
+                ? throw new Exception("Invariant c799ccc6-4edf-4530-b1eb-59d93ef69727.")
+                : new Chunk(
+                    ps,
+                    Append(Colors, other.Colors),
+                    Append(Normals, other.Normals),
+                    Append(Intensities, other.Intensities),
+                    Append(Classifications, other.Classifications),
+                    Box.Union(BoundingBox, other.BoundingBox)
+                );
         }
 
         public Chunk WithNormalsTransformed(Rot3d r)
@@ -376,7 +413,7 @@ namespace Aardvark.Data.Points
             if (hasDuplicates)
             {
                 T[]? f<T>(bool has, IList<T>? xs) => (has && xs != null) ? ia.MapToArray(i => xs[i]) : null;
-                var ps = f(HasPositions, Positions); if (ps == null) throw new InvalidOperationException();
+                var ps = f(HasPositions, Positions) ?? throw new InvalidOperationException();
                 var cs = f(HasColors, Colors);
                 var ns = f(HasNormals, Normals);
                 var js = f(HasIntensities, Intensities);
@@ -460,10 +497,10 @@ namespace Aardvark.Data.Points
                 {
 #pragma warning disable CS8602
                     ps.Add(Positions[i]);
-                    if (cs != null) cs.Add(Colors[i]);
-                    if (ns != null) ns.Add(Normals[i]);
-                    if (js != null) js.Add(Intensities[i]);
-                    if (ks != null) ks.Add(Classifications[i]);
+                    cs?.Add(Colors[i]);
+                    ns?.Add(Normals[i]);
+                    js?.Add(Intensities[i]);
+                    ks?.Add(Classifications[i]);
 #pragma warning restore CS8602
                 }
             }
@@ -497,10 +534,10 @@ namespace Aardvark.Data.Points
                 last = p;
                 ps.Add(p);
 #pragma warning disable CS8602
-                if (cs != null) cs.Add(Colors[i]);
-                if (ns != null) ns.Add(Normals[i]);
-                if (js != null) js.Add(Intensities[i]);
-                if (ks != null) ks.Add(Classifications[i]);
+                cs?.Add(Colors[i]);
+                ns?.Add(Normals[i]);
+                js?.Add(Intensities[i]);
+                ks?.Add(Classifications[i]);
 #pragma warning restore CS8602
             }
             return new Chunk(ps, cs, ns, js, ks);
@@ -531,10 +568,10 @@ namespace Aardvark.Data.Points
                 prev = p;
                 ps.Add(p);
 #pragma warning disable CS8602
-                if (cs != null) cs.Add(Colors[i]);
-                if (ns != null) ns.Add(Normals[i]);
-                if (js != null) js.Add(Intensities[i]);
-                if (ks != null) ks.Add(Classifications[i]);
+                cs?.Add(Colors[i]);
+                ns?.Add(Normals[i]);
+                js?.Add(Intensities[i]);
+                ks?.Add(Classifications[i]);
 #pragma warning restore CS8602
             }
             return new Chunk(ps, cs, ns, js, ks);

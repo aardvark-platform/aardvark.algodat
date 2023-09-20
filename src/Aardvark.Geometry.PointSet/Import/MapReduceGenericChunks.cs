@@ -29,7 +29,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PointSet MapReduce(this IEnumerable<GenericChunk> chunks, ImportConfig config)
         {
-            //var foo = chunks.ToArray();
+            var key = config.Key ?? Guid.NewGuid().ToString();
             var totalChunkCount = 0;
             var totalPointCountInChunks = 0L;
             Action<double> progress = x => config.ProgressCallback(x * 0.5);
@@ -79,8 +79,8 @@ namespace Aardvark.Geometry.Points
             var totalPointSetsCount = pointsets.Count;
             if (totalPointSetsCount == 0)
             {
-                var empty = new PointSet(config.Storage, config.Key ?? Guid.NewGuid().ToString());
-                config.Storage.Add(config.Key, empty);
+                var empty = new PointSet(config.Storage, key);
+                config.Storage.Add(key, empty);
                 return empty;
             }
 
@@ -150,7 +150,7 @@ namespace Aardvark.Geometry.Points
 
             #endregion
 
-            config.Storage.Add(config.Key, final);
+            config.Storage.Add(key, final);
             config.ProgressCallback(1.0);
             return final;
 

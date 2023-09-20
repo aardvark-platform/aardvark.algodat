@@ -26,6 +26,11 @@
 //
 //===============================================================================
 
+#pragma warning disable IDE1006 // Naming Styles
+#pragma warning disable IDE0017 // Simplify object initialization
+#pragma warning disable IDE0018 // Inline variable declaration
+#pragma warning disable IDE0059 // Unnecessary assignment of a value
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -33,8 +38,8 @@ using System.Text;
 
 namespace LASzip.Net
 {
-	public partial class laszip
-	{
+    public partial class laszip
+    {
 		public readonly laszip_header header = new laszip_header();
 		long p_count = 0;
 		long npoints = 0;
@@ -861,9 +866,9 @@ namespace LASzip.Net
 					for (int i = 0; i < number; i++) key_entries_plus_one[i + 1] = key_entries[i];
 				}
 
-				// fill a VLR
-				laszip_vlr vlr = new laszip_vlr();
-				vlr.reserved = 0;
+                // fill a VLR
+                laszip_vlr vlr = new laszip_vlr();
+                vlr.reserved = 0;
 				byte[] user_id = Encoding.ASCII.GetBytes("LASF_Projection");
 				Array.Copy(user_id, vlr.user_id, Math.Min(user_id.Length, 16));
 				vlr.record_id = 34735;
@@ -1466,10 +1471,10 @@ namespace LASzip.Net
 						header.number_of_points_by_return[i] = (uint)header.extended_number_of_points_by_return[i];
 					}
 
-					// are there any "extra bytes" already ... ?
-					int number_of_existing_extrabytes = 0;
+                    // are there any "extra bytes" already ... ?
+                    int number_of_existing_extrabytes = 0;
 
-					switch (header.point_data_format)
+                    switch (header.point_data_format)
 					{
 						case 6: number_of_existing_extrabytes = header.point_data_record_length - 30; break;
 						case 7: number_of_existing_extrabytes = header.point_data_record_length - 36; break;
@@ -3089,8 +3094,8 @@ namespace LASzip.Net
 								{
 									laszip.items[j] = new LASitem();
 
-									ushort type;
-									if (!streamin.get16bits(out type))
+                                    ushort type;
+                                    if (!streamin.get16bits(out type))
 									{
 										error = string.Format("reading type of item {0}", j);
 										return 1;

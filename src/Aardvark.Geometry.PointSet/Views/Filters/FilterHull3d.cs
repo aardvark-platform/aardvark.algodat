@@ -33,7 +33,7 @@ namespace Aardvark.Geometry.Points
         public bool IsFullyOutside(IPointCloudNode node) => IsFullyOutside(node.BoundingBoxExactGlobal);
 
         /// <summary></summary>
-        public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int> selected = null)
+        public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null)
         {
             if (selected != null)
             {
@@ -60,12 +60,12 @@ namespace Aardvark.Geometry.Points
         { 
             Type,
             Array = Hull.PlaneArray.Map(p => new { Point = p.Point.ToString(), Normal = p.Normal.ToString() })
-        });
+        })!;
 
         public static FilterInsideConvexHull3d Deserialize(JsonNode json)
         {
-            var arr = (JsonArray)json["Array"];
-            var planes = arr.Map(jt => new Plane3d(V3d.Parse((string)jt["Normal"]), V3d.Parse((string)jt["Point"])));
+            var arr = (JsonArray)json["Array"]!;
+            var planes = arr.Map(jt => new Plane3d(V3d.Parse((string)jt!["Normal"]!), V3d.Parse((string)jt!["Point"]!)));
             var hull = new Hull3d(planes);
             return new FilterInsideConvexHull3d(hull);
         }

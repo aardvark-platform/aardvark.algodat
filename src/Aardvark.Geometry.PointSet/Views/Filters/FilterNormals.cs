@@ -31,7 +31,7 @@ namespace Aardvark.Geometry.Points
 
         private readonly float m_eps;
 
-        private V3f[] GetValues(IPointCloudNode node) => node.HasNormals ? node.Normals.Value : null;
+        private V3f[]? GetValues(IPointCloudNode node) => node.HasNormals ? node.Normals.Value : null;
 
         /// <summary></summary>
         public bool IsFullyInside(IPointCloudNode node) => false;
@@ -40,9 +40,10 @@ namespace Aardvark.Geometry.Points
         public bool IsFullyOutside(IPointCloudNode node) => false;
 
         /// <summary></summary>
-        public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int> selected = null)
+        public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null)
         {
             var xs = GetValues(node);
+            if (xs == null) return new();
 
             if (selected != null)
             {
@@ -62,12 +63,12 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public JsonNode Serialize() => JsonSerializer.SerializeToNode(
             new { Type, Direction = Direction.ToString(), EpsInDegrees }
-            );
+            )!;
 
         /// <summary></summary>
         public static FilterNormalDirection Deserialize(JsonNode json) => new(
-            V3f.Parse((string)json["Direction"]),
-            (float)json["EpsInDegrees"]
+            V3f.Parse((string)json["Direction"]!),
+            (float)json["EpsInDegrees"]!
             );
 
         public bool Equals(IFilter other)

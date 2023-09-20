@@ -33,7 +33,7 @@ namespace Aardvark.Geometry.Points
         public bool IsFullyOutside(IPointCloudNode node) => Left.IsFullyOutside(node) || Right.IsFullyOutside(node);
 
         /// <summary></summary>
-        public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int> selected = null)
+        public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null)
         {
             var a = Left.FilterPoints(node, selected);
             if (selected != null && a.Count == selected.Count) return a;
@@ -49,11 +49,11 @@ namespace Aardvark.Geometry.Points
             Type, 
             Left = Left.Serialize(), 
             Right = Right.Serialize() 
-        });
+        })!;
 
         /// <summary></summary>
         public static FilterOr Deserialize(JsonNode json) 
-            => new(Filter.Deserialize(json["Left"]), Filter.Deserialize(json["Right"]));
+            => new(Filter.Deserialize(json["Left"]!), Filter.Deserialize(json["Right"]!));
 
         public bool Equals(IFilter other)
             => other is FilterOr x && Left.Equals(x.Left) && Right.Equals(x.Right);
@@ -86,7 +86,7 @@ namespace Aardvark.Geometry.Points
         public bool IsFullyOutside(IPointCloudNode node) => Left.IsFullyOutside(node) && Right.IsFullyOutside(node);
 
         /// <summary></summary>
-        public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int> selected = null)
+        public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null)
         {
             var a = Left.FilterPoints(node, selected);
             var b = Right.FilterPoints(node, selected);
@@ -101,11 +101,11 @@ namespace Aardvark.Geometry.Points
             Type,
             Left = Left.Serialize(),
             Right = Right.Serialize()
-        });
+        })!;
 
         /// <summary></summary>
         public static FilterAnd Deserialize(JsonNode json) 
-            => new(Filter.Deserialize(json["Left"]), Filter.Deserialize(json["Right"]));
+            => new(Filter.Deserialize(json["Left"]!), Filter.Deserialize(json["Right"]!));
 
         public bool Equals(IFilter other) 
             => other is FilterAnd x && Left.Equals(x.Left) && Right.Equals(x.Right);

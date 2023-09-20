@@ -13,12 +13,12 @@ namespace Aardvark.Geometry.Points
     public static class Filter
     {
         /// <summary></summary>
-        public static IFilter Deserialize(string s) => Deserialize(JsonNode.Parse(s));
+        public static IFilter Deserialize(string s) => Deserialize(JsonNode.Parse(s)!);
         
         /// <summary></summary>
         public static IFilter Deserialize(JsonNode json)
         {
-            var type = (string)json["Type"];
+            var type = (string?)json["Type"];
 
             return type switch
             {
@@ -34,6 +34,7 @@ namespace Aardvark.Geometry.Points
                 FilterOr.Type                   => FilterOr.Deserialize(json),
                 FilterOutsideBox3d.Type         => FilterOutsideBox3d.Deserialize(json),
 
+                null => throw new Exception($"Failed to deserialize Json. Error 287535f3-1f56-49f8-856a-b3ab8abd3764.\n{json}"),
                 _ => throw new NotImplementedException($"Unknown filter type: '{type}'"),
             };
         }

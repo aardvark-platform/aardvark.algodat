@@ -418,7 +418,7 @@ namespace Aardvark.Geometry.Points
             if (config.Collapse && isNotLeaf)
             {
                 if (subnodes == null) throw new Exception("Assertion failed. Error 42565d4a-2e91-4961-a310-095b503fe6f1.");
-                var nonEmptySubNodes = subnodes.Where(x => x.HasValue && x.Value.hasValue).Select(x => x!.Value.value).ToArray();
+                var nonEmptySubNodes = subnodes.Where(x => x.HasValue && x.Value.hasValue).Select(x => x!.Value.value!).ToArray();
 
                 ps = nonEmptySubNodes
                     .SelectMany(n =>
@@ -434,21 +434,21 @@ namespace Aardvark.Geometry.Points
                 if (hasColors)
                 {
                     cs = nonEmptySubNodes
-                        .SelectMany(n => n.Colors.Value)
+                        .SelectMany(n => n.Colors!.Value)
                         .ToArray();
                 }
 
                 if (hasClassifications)
                 {
                     ks = nonEmptySubNodes
-                        .SelectMany(n => n.Classifications.Value)
+                        .SelectMany(n => n.Classifications!.Value)
                         .ToArray();
                 }
 
                 if (hasIntensities)
                 {
                     var js32 = nonEmptySubNodes
-                        .SelectMany(n => n.Intensities.Value)
+                        .SelectMany(n => n.Intensities!.Value)
                         .ToArray();
 
                     js = rescaleIntensities(js32);
@@ -459,7 +459,7 @@ namespace Aardvark.Geometry.Points
                     {
                         if (nref.HasValue && nref.Value.hasValue)
                         {
-                            var n = nref.Value.value;
+                            var n = nref.Value.value!;
                             return !n.IsLeaf ? n.Id : Guid.Empty;
                         }
                         else
@@ -471,7 +471,7 @@ namespace Aardvark.Geometry.Points
                 var isNewLeaf = guids2.All(k => k == Guid.Empty);
                 if (!isNewLeaf)
                 {
-                    subnodeGuids = subnodes.Map(x => x.HasValue && x.Value.hasValue ? x.Value.value.Id : Guid.Empty);
+                    subnodeGuids = subnodes.Map(x => x.HasValue && x.Value.hasValue ? x.Value.value!.Id : Guid.Empty);
                     foreach (var g in nonEmptySubNodes) survive.Add(g.Id);
                 }
             }
@@ -479,14 +479,14 @@ namespace Aardvark.Geometry.Points
             {
                 if (isNotLeaf)
                 {
-                    subnodeGuids = subnodes.Map(x => x.HasValue && x.Value.hasValue ? x.Value.value.Id : Guid.Empty);
+                    subnodeGuids = subnodes.Map(x => x.HasValue && x.Value.hasValue ? x.Value.value!.Id : Guid.Empty);
                 }
 
                 ps = node.Positions.Value;
-                if (hasColors) cs = node.Colors.Value;
-                if (hasClassifications) ks = node.Classifications.Value;
-                if (hasIntensities) js = rescaleIntensities(node.Intensities.Value);
-                if (isNotLeaf) subnodeGuids = subnodes.Map(x => x.HasValue && x.Value.hasValue ? x.Value.value.Id : Guid.Empty);
+                if (hasColors) cs = node.Colors!.Value;
+                if (hasClassifications) ks = node.Classifications!.Value;
+                if (hasIntensities) js = rescaleIntensities(node.Intensities!.Value);
+                if (isNotLeaf) subnodeGuids = subnodes.Map(x => x.HasValue && x.Value.hasValue ? x.Value.value!.Id : Guid.Empty);
             }
 
 

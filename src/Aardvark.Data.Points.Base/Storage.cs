@@ -18,6 +18,7 @@
 using Aardvark.Base;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Aardvark.Data.Points
 {
@@ -31,10 +32,10 @@ namespace Aardvark.Data.Points
         public readonly Action<string, object, Func<byte[]>> f_add;
 
         /// <summary></summary>
-        public readonly Func<string, byte[]> f_get;
+        public readonly Func<string, byte[]?> f_get;
 
         /// <summary></summary>
-        public readonly Func<string, long, int, byte[]> f_getSlice;
+        public readonly Func<string, long, int, byte[]?> f_getSlice;
 
         /// <summary></summary>
         public readonly Action<string> f_remove;
@@ -46,17 +47,17 @@ namespace Aardvark.Data.Points
         public readonly Action f_dispose;
 
         /// <summary></summary>
-        public readonly LruDictionary<string, object> Cache;
+        public readonly LruDictionary<string, object>? Cache;
 
         /// <summary></summary>
         public Storage(
             Action<string, object, Func<byte[]>> add,
-            Func<string, byte[]> get,
-            Func<string, long, int, byte[]> getSlice,
+            Func<string, byte[]?> get,
+            Func<string, long, int, byte[]?> getSlice,
             Action<string> remove,
             Action dispose,
             Action flush,
-            LruDictionary<string, object> cache
+            LruDictionary<string, object>? cache
             )
         {
             f_add = add;
@@ -71,6 +72,7 @@ namespace Aardvark.Data.Points
         }
 
         /// <summary></summary>
+        [MemberNotNullWhen(true, nameof(Cache))]
         public bool HasCache => Cache != null;
 
         /// <summary>

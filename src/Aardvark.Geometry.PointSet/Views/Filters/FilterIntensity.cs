@@ -19,7 +19,7 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public FilterIntensity(Range1i range) { Range = range; }
 
-        private int[] GetValues(IPointCloudNode node) => node.HasIntensities ? node.Intensities.Value : null;
+        private int[]? GetValues(IPointCloudNode node) => node.HasIntensities ? node.Intensities.Value : null;
 
         /// <summary></summary>
         public bool IsFullyInside(IPointCloudNode node) => false;
@@ -28,9 +28,10 @@ namespace Aardvark.Geometry.Points
         public bool IsFullyOutside(IPointCloudNode node) => false;
 
         /// <summary></summary>
-        public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int> selected = null)
+        public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null)
         {
             var xs = GetValues(node);
+            if (xs == null) return new();
 
             if (selected != null)
             {
@@ -48,10 +49,10 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public JsonNode Serialize() => JsonSerializer.SerializeToNode(new { Type, Range = Range.ToString() });
+        public JsonNode Serialize() => JsonSerializer.SerializeToNode(new { Type, Range = Range.ToString() })!;
 
         /// <summary></summary>
-        public static FilterIntensity Deserialize(JsonNode json) => new(Range1i.Parse((string)json["Range"]));
+        public static FilterIntensity Deserialize(JsonNode json) => new(Range1i.Parse((string)json["Range"]!));
 
         public bool Equals(IFilter other)
             => other is FilterIntensity x && Range == x.Range;

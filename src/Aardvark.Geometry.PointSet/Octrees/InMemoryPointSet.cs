@@ -45,12 +45,12 @@ namespace Aardvark.Geometry.Points
             => new(chunk.Data, new Cell(chunk.BoundingBox), octreeSplitLimit);
 
         public static InMemoryPointSet Build(Chunk chunk, int octreeSplitLimit)
-            => Build(chunk.Positions, chunk.Colors, chunk.Normals, chunk.Intensities, chunk.Classifications, new Cell(chunk.BoundingBox), octreeSplitLimit);
+            => Build(chunk.Positions, chunk.Colors, chunk.Normals, chunk.Intensities, chunk.Classifications, chunk.PartIndices, new Cell(chunk.BoundingBox), octreeSplitLimit);
 
         public static InMemoryPointSet Build(Chunk chunk, Cell rootBounds, int octreeSplitLimit)
-            => Build(chunk.Positions, chunk.Colors, chunk.Normals, chunk.Intensities, chunk.Classifications, rootBounds, octreeSplitLimit);
+            => Build(chunk.Positions, chunk.Colors, chunk.Normals, chunk.Intensities, chunk.Classifications, chunk.PartIndices, rootBounds, octreeSplitLimit);
 
-        public static InMemoryPointSet Build(IList<V3d> ps, IList<C4b> cs, IList<V3f> ns, IList<int> js, IList<byte> ks, Cell rootBounds, int octreeSplitLimit)
+        public static InMemoryPointSet Build(IList<V3d> ps, IList<C4b>? cs, IList<V3f>? ns, IList<int>? js, IList<byte>? ks, object? partIndices, Cell rootBounds, int octreeSplitLimit)
         {
             if (ps == null) throw new ArgumentNullException(nameof(ps));
 
@@ -61,6 +61,12 @@ namespace Aardvark.Geometry.Points
             if (ns != null) data = data.Add(Durable.Octree.Normals3f, ns.ToArray());
             if (js != null) data = data.Add(Durable.Octree.Intensities1i, js.ToArray());
             if (ks != null) data = data.Add(Durable.Octree.Classifications1b, ks.ToArray());
+
+            switch (partIndices)
+            {
+                case null: break;
+                case uint perCellPartIndex: data = data.Add(Durable.Octree.PerCellPartIndex1ui, perCellPartIndex); break;
+            }
 
             return new InMemoryPointSet(data, rootBounds, octreeSplitLimit);
         }
@@ -129,8 +135,8 @@ namespace Aardvark.Geometry.Points
             private readonly InMemoryPointSet _octree;
             private readonly Cell _cell;
             private readonly double _centerX, _centerY, _centerZ;
-            private Node[] _subnodes;
-            private List<int> _ia;
+            private Node[]? _subnodes;
+            private List<int>? _ia;
             public Box3d BoundingBox => _cell.BoundingBox;
 
             public Node(InMemoryPointSet octree, Cell cell)
@@ -144,7 +150,7 @@ namespace Aardvark.Geometry.Points
             internal PointSetNode ToPointSetNode(Storage storage, bool isTemporaryImportNode)
             {
                 var center = new V3d(_centerX, _centerY, _centerZ);
-                V3f[] localPositions = null;
+                V3f[]? localPositions = null;
                 var attributes = ImmutableDictionary<Durable.Def, object>.Empty;
 
                 if (_ia != null)
@@ -189,7 +195,7 @@ namespace Aardvark.Geometry.Points
 #endif
                 var pointCountTreeLeafs = subcells != null
                     ? subcells.Sum(n => n != null ? n.PointCountTree : 0)
-                    : localPositions.Length
+                    : localPositions!.Length
                     ;
 
                 var data = ImmutableDictionary<Durable.Def, object>.Empty
@@ -248,14 +254,14 @@ namespace Aardvark.Geometry.Points
                 {
                     for (var i = 0; i < 8; i++)
                     {
-                        var x = subcellIds[i];
+                        var x = subcellIds![i];
                         if (x.HasValue)
                         {
                             var id = x.Value;
                             if (storage.GetPointCloudNode(id) == null) throw new InvalidOperationException("Invariant 01830b8b-3c0e-4a8b-a1bd-bfd1b1be1844.");
                         }
                     }
-                    var bbExactGlobal = new Box3d(subcells.Where(x => x != null).Select(x => x.BoundingBoxExactGlobal));
+                    var bbExactGlobal = new Box3d(subcells.Where(x => x != null).Select(x => x!.BoundingBoxExactGlobal));
                     data = data
                         .Add(Durable.Octree.BoundingBoxExactGlobal, bbExactGlobal)
                         .Add(Durable.Octree.SubnodesGuids, subcellIds.Map(x => x ?? Guid.Empty))
@@ -303,6 +309,8 @@ namespace Aardvark.Geometry.Points
             
             private Node Split()
             {
+                if (_ia == null) throw new Exception($"Expected index array. Error 809d08b1-e5d8-4ef2-9c46-67a4415173a3.");
+
 #if DEBUG
                 var ps = _ia.Map(i => _octree.m_ps[i]).ToArray();
                 foreach (var p in ps)

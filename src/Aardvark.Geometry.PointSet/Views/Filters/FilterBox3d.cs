@@ -31,7 +31,7 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public bool IsFullyOutside(IPointCloudNode node) => IsFullyOutside(node.BoundingBoxExactGlobal);
         /// <summary></summary>
-        public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int> selected = null)
+        public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null)
         {
             if (selected != null)
             {
@@ -57,10 +57,10 @@ namespace Aardvark.Geometry.Points
         {
             Type,
             Box = Box.ToString()
-        });
+        })!;
 
         /// <summary></summary>
-        public static FilterInsideBox3d Deserialize(JsonNode json) => new(Box3d.Parse((string)json["Box"]));
+        public static FilterInsideBox3d Deserialize(JsonNode json) => new(Box3d.Parse((string)json["Box"]!));
 
         public Box3d Clip(Box3d box)
         {
@@ -98,7 +98,7 @@ namespace Aardvark.Geometry.Points
         public bool IsFullyOutside(IPointCloudNode node) => IsFullyOutside(node.BoundingBoxExactGlobal);
 
         /// <summary></summary>
-        public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int> selected = null)
+        public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null)
         {
             var c = node.Center;
             var xs = node.Positions.Value;
@@ -123,10 +123,10 @@ namespace Aardvark.Geometry.Points
         {
             Type, 
             Box = Box.ToString()
-        });
+        })!;
 
         /// <summary></summary>
-        public static FilterOutsideBox3d Deserialize(JsonNode json) => new(Box3d.Parse((string)json["Box"]));
+        public static FilterOutsideBox3d Deserialize(JsonNode json) => new(Box3d.Parse((string)json["Box"]!));
         public Box3d Clip(Box3d box)
         {
             return box;

@@ -9,6 +9,7 @@
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\.editorconfig" Link=".editorconfig" />
     <None Include="paket.references" />
   </ItemGroup>
   <ItemGroup>
