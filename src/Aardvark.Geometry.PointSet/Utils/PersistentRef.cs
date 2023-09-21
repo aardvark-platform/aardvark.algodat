@@ -15,54 +15,67 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Aardvark.Geometry.Points
+namespace Aardvark.Geometry.Points;
+
+
+/// <summary>
+/// </summary>
+public class PersistentRef<T> 
+    where T : notnull
 {
+    private readonly Func<string, T> f_get;
+    private readonly TryGetFunc f_tryGetFromCache;
+
+    public delegate bool TryGetFunc(string key, [NotNullWhen(true)] out T? result);
 
     /// <summary>
     /// </summary>
-    public class PersistentRef<T> 
-        where T : notnull
+    public PersistentRef(Guid id, Func<string, T> get, TryGetFunc tryGetFromCache)
+        : this(id.ToString(), get, tryGetFromCache)
     {
-        private readonly Func<string, T?> f_get;
-        private readonly Func<string, (bool, T?)> f_tryGet;
-
-        /// <summary>
-        /// </summary>
-        public PersistentRef(Guid id, Func<string, T> get, Func<string, (bool, T?)> tryGet)
-            : this(id.ToString(), get, tryGet)
-        {
-        }
-
-        /// <summary>
-        /// </summary>
-        public PersistentRef(string id, Func<string, T?> get, Func<string, (bool, T?)> tryGet)
-        {
-            Id = id; //?? throw new ArgumentNullException(nameof(id));
-            f_get = get ?? throw new ArgumentNullException(nameof(get));
-            f_tryGet = tryGet ?? throw new ArgumentNullException(nameof(tryGet));
-        }
-        
-        /// <summary>
-        /// </summary>
-        public string Id { get; }
-        
-        /// <summary>
-        /// </summary>
-        public bool TryGetValue([NotNullWhen(true)]out T? value)
-        {
-            bool isSome = false;
-            T? x = default;
-            (isSome, x) = f_tryGet(Id);
-            value = x;
-            return isSome;
-        }
-
-        /// <summary>
-        /// </summary>
-        public (bool hasValue, T? value) TryGetValue() => f_tryGet(Id);
-
-        /// <summary>
-        /// </summary>
-        public T? Value => f_get(Id);
     }
+
+    /// <summary>
+    /// </summary>
+    public PersistentRef(string id, Func<string, T> get, TryGetFunc tryGetFromCache)
+    {
+        Id = id;
+        f_get = get ?? throw new ArgumentNullException(nameof(get));
+        f_tryGetFromCache = tryGetFromCache ?? throw new ArgumentNullException(nameof(tryGetFromCache));
+    }
+
+    /// <summary>
+    /// </summary>
+    public PersistentRef(Guid id, T valueInMemory)
+        : this(id.ToString(), valueInMemory)
+    {
+    }
+
+    /// <summary>
+    /// </summary>
+    public PersistentRef(string id, T valueInMemory)
+    {
+        Id = id;
+        f_get = _ => valueInMemory;
+        bool tryGetFromCache(string key, [NotNullWhen(true)] out T? result)
+        {
+            result = valueInMemory;
+            return true;
+        }
+        f_tryGetFromCache = tryGetFromCache;
+    }
+
+    /// <summary>
+    /// </summary>
+    public string Id { get; }
+    
+    /// <summary>
+    /// </summary>
+    public T Value => f_get(Id);
+
+    /// <summary>
+    /// </summary>
+    public bool TryGetFromCache([NotNullWhen(true)] out T? value)
+        => f_tryGetFromCache(Id, out value);
+
 }

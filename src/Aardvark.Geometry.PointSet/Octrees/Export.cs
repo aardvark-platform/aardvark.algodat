@@ -84,8 +84,7 @@ namespace Aardvark.Geometry.Points
 
             if (pointSet == null)
             {
-                var (success, root) = self.TryGetPointCloudNode(pointSetId);
-                if (success)
+                if (self.TryGetPointCloudNode(pointSetId, out var root))
                 {
                     var ersatzPointSetKey = Guid.NewGuid().ToString();
                     Report.Warn($"Created PointSet with key '{ersatzPointSetKey}'.");

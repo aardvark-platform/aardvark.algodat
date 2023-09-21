@@ -226,6 +226,25 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public static class StorageExtensions
     {
+        #region Generic
+
+        /// <summary></summary>
+        public static bool TryGetFromCache<T>(this Storage storage, string key, [NotNullWhen(true)] out T? result)
+        {
+            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
+            {
+                result = (T)o;
+                return true;
+            }
+            else
+            {
+                result = default;
+                return false;
+            }
+        }
+
+        #endregion
+
         #region Stores
 
         /// <summary></summary>
@@ -305,6 +324,8 @@ namespace Aardvark.Geometry.Points
             var buffer = storage.f_get(key);
             return (buffer != null, buffer);
         }
+
+        public static bool TryGetByteArrayFromCache(this Storage storage, string key, [NotNullWhen(true)] out byte[]? result) => TryGetFromCache(storage, key, out result);
 
         /// <summary>
         /// Return ungzipped buffer, or original buffer if it is not gzipped.
@@ -410,17 +431,7 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public static (bool, V3f[]?) TryGetV3fArray(this Storage storage, string key)
-        {
-            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
-            {
-                return (true, (V3f[])o);
-            }
-            else
-            {
-                return (false, default);
-            }
-        }
+        public static bool TryGetV3fArrayFromCache(this Storage storage, string key, [NotNullWhen(true)] out V3f[]? result) => TryGetFromCache(storage, key, out result);
 
         #endregion
 
@@ -461,6 +472,8 @@ namespace Aardvark.Geometry.Points
             }
         }
 
+        public static bool TryGetIntArrayFromCache(this Storage storage, string key, [NotNullWhen(true)] out int[]? result) => TryGetFromCache(storage, key, out result);
+
         #endregion
 
         #region C4b[]
@@ -499,6 +512,8 @@ namespace Aardvark.Geometry.Points
                 return (false, default);
             }
         }
+
+        public static bool TryGetC4bArrayFromCache(this Storage storage, string key, [NotNullWhen(true)] out C4b[]? result) => TryGetFromCache(storage, key, out result);
 
         #endregion
 
@@ -546,6 +561,8 @@ namespace Aardvark.Geometry.Points
                 (a, b, c) => Vec.DistanceToLine(a, b, c), (t,a,b) => Fun.Lerp((float)t,a,b), 1e-9,
                 storage.GetPointRkdTreeDData(key)
                 );
+
+        public static bool TryGetPointRkdTreeDDataFromCache(this Storage storage, string key, [NotNullWhen(true)] out C4b[]? result) => TryGetFromCache(storage, key, out result);
 
         #endregion
 
@@ -602,6 +619,8 @@ namespace Aardvark.Geometry.Points
             }
         }
 
+        public static bool TryGetPointRkdTreeFDataFromCache(this Storage storage, string key, [NotNullWhen(true)] out C4b[]? result) => TryGetFromCache(storage, key, out result);
+
         /// <summary></summary>
         public static (bool, PointRkdTreeFData?) TryGetPointRkdTreeFDataFromD(this Storage storage, string key)
         {
@@ -615,30 +634,7 @@ namespace Aardvark.Geometry.Points
             }
         }
 
-        ///// <summary>
-        ///// </summary>
-        //public static PointRkdTreeF<V3f[], V3f> GetKdTreeF(this Storage storage, string key, V3f[] positions)
-        //    => new PointRkdTreeF<V3f[], V3f>(
-        //        3, positions.Length, positions,
-        //        (xs, i) => xs[(int)i], (v, i) => (float)v[i],
-        //        (a, b) => V3f.Distance(a, b), (i, a, b) => b - a,
-        //        (a, b, c) => VecFun.DistanceToLine(a, b, c), VecFun.Lerp, 1e-6f,
-        //        storage.GetPointRkdTreeFData(key)
-        //        );
-
-        ///// <summary>
-        ///// </summary>
-        //public static (bool, PointRkdTreeF<V3f[], V3f>) TryGetKdTreeF(this Storage storage, string key, V3f[] positions)
-        //{
-        //    if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
-        //    {
-        //        return (true, (PointRkdTreeF<V3f[], V3f>)o);
-        //    }
-        //    else
-        //    {
-        //        return (false, default);
-        //    }
-        //}
+        public static bool TryGetPointRkdTreeFDataFromDFromCache(this Storage storage, string key, [NotNullWhen(true)] out C4b[]? result) => TryGetFromCache(storage, key, out result);
 
         #endregion
 
@@ -703,26 +699,30 @@ namespace Aardvark.Geometry.Points
             });
         }
 
-        /// <summary></summary>
-        public static IPointCloudNode? GetPointCloudNode(this Storage storage, Guid key)
+        /// <summary>
+        /// </summary>
+        public static IPointCloudNode GetPointCloudNode(this Storage storage, Guid key)
             => GetPointCloudNode(storage, key.ToString());
 
-        /// <summary></summary>
-        public static IPointCloudNode? GetPointCloudNode(this Storage storage, string key)
+        /// <summary>
+        /// </summary>
+        public static IPointCloudNode GetPointCloudNode(this Storage storage, string key)
         {
-            if (key == null) return null;
-
             if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
             {
-                //if (o == null) return null;
                 if (o is not IPointCloudNode r) throw new InvalidOperationException(
-                    $"Invariant d1cb769c-36b6-4374-8248-b8c1ca31d495. [GetPointCloudNode] Store key {key} is not IPointCloudNode."
+                    $"Invariant d1cb769c-36b6-4374-8248-b8c1ca31d495. " +
+                    $"[GetPointCloudNode] Store key {key} is not IPointCloudNode. " +
+                    $"Error 7aebf7f1-3783-42fb-b405-47384e08f716."
                     );
                 return r;
             }
 
             var buffer = storage.f_get(key);
-            if (buffer == null) return null;
+            if (buffer == null) throw new Exception(
+                $"PointCloudNode not found (id={key}). " +
+                $"Error b2ef55c1-1470-465d-80ea-034464c53638."
+                );
 
             try
             {
@@ -802,7 +802,34 @@ namespace Aardvark.Geometry.Points
             }
         }
 
-        /// <summary></summary>
+        /// <summary>
+        /// </summary>
+        public static bool TryGetPointCloudNode(this Storage storage, string key, [NotNullWhen(true)]out IPointCloudNode? result)
+        {
+            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
+            {
+                result = (PointSetNode)o;
+                return true;
+            }
+            else
+            {
+                try
+                {
+                    result = storage.GetPointCloudNode(key);
+                    return true;
+                }
+                catch
+                {
+                    result = null;
+                    return false;
+                }
+            }
+        }
+
+        /// <summary>
+        /// </summary>
+
+        [Obsolete("Use TryGetPointCloudNode with out parameter instead.")]
         public static (bool, IPointCloudNode?) TryGetPointCloudNode(this Storage storage, string key)
         {
             if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))

@@ -73,7 +73,7 @@ namespace Aardvark.Geometry.Points
                     var n = self.Subnodes[i];
                     if (n != null)
                     {
-                        if (n.TryGetValue(out var node)) node.ForEachNode(outOfCore, action);
+                        if (n.TryGetFromCache(out var node)) node.ForEachNode(outOfCore, action);
                     }
                 }
             }
@@ -148,7 +148,7 @@ namespace Aardvark.Geometry.Points
                     var n = self.Subnodes[i];
                     if (n != null)
                     {
-                        if (n.TryGetValue(out var node))
+                        if (n.TryGetFromCache(out var node))
                         {
                             node.ForEachIntersectingNode(outOfCore, hull, doNotTraverseSubnodesWhenFullyInside, action, ct);
                         }
@@ -424,7 +424,7 @@ namespace Aardvark.Geometry.Points
                         var n = self.Subnodes[i];
                         if (n != null)
                         {
-                            if (n.TryGetValue(out var node)) count += node.CountNodes(outOfCore);
+                            if (n.TryGetFromCache(out var node)) count += node.CountNodes(outOfCore);
                         }
                     }
                 }
@@ -455,7 +455,7 @@ namespace Aardvark.Geometry.Points
                     var n = self.Subnodes[i];
                     if (n != null)
                     {
-                        if (n.TryGetValue(out var node)) count += node.CountLeafNodes(outOfCore);
+                        if (n.TryGetFromCache(out var node)) count += node.CountLeafNodes(outOfCore);
                     }
                 }
             }
@@ -489,7 +489,7 @@ namespace Aardvark.Geometry.Points
                         var n = self.Subnodes[i];
                         if (n != null)
                         {
-                            if (n.TryGetValue(out var node))
+                            if (n.TryGetFromCache(out var node))
                             {
                                 var x = node.GetMinimumLeafPointCount(outOfCore);
                                 if (x < min) min = x;
@@ -528,7 +528,7 @@ namespace Aardvark.Geometry.Points
                         var n = self.Subnodes[i];
                         if (n != null)
                         {
-                            if (n.TryGetValue(out var node))
+                            if (n.TryGetFromCache(out var node))
                             {
                                 var x = node.GetMinimumLeafPointCount(outOfCore);
                                 if (x > max) max = x;
@@ -576,7 +576,7 @@ namespace Aardvark.Geometry.Points
                     var n = self.Subnodes[i];
                     if (n != null)
                     {
-                        if (n.TryGetValue(out var node))
+                        if (n.TryGetFromCache(out var node))
                         {
                             var x = node.GetMinimumTreeDepth(outOfCore);
                             if (x < min) min = x;
@@ -615,7 +615,7 @@ namespace Aardvark.Geometry.Points
                     var n = self.Subnodes[i];
                     if (n != null)
                     {
-                        if (n.TryGetValue(out var node))
+                        if (n.TryGetFromCache(out var node))
                         {
                             var x = node.GetMaximiumTreeDepth(outOfCore);
                             if (x > max) max = x;
@@ -660,7 +660,7 @@ namespace Aardvark.Geometry.Points
                     var n = self.Subnodes[i];
                     if (n != null)
                     {
-                        if (n.TryGetValue(out var node)) node.GetAverageTreeDepth(outOfCore, depth, ref sum, ref count);
+                        if (n.TryGetFromCache(out var node)) node.GetAverageTreeDepth(outOfCore, depth, ref sum, ref count);
                     }
                 }
             }

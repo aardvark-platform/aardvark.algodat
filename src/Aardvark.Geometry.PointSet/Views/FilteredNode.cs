@@ -254,7 +254,7 @@ namespace Aardvark.Geometry.Points
                                 else if (n0 != null)
                                 {
                                     var n = new FilteredNode(id, false, n0, Filter);
-                                    m_subnodes_cache[i] = new PersistentRef<IPointCloudNode>(id.ToString(), _ => n, _ => (true, n));
+                                    m_subnodes_cache[i] = new PersistentRef<IPointCloudNode>(id, n);
                                 }
                             }
                             else
@@ -318,7 +318,7 @@ namespace Aardvark.Geometry.Points
             m_cache[Octree.BoundingBoxExactLocal.Id] = bboxLocal;
 
             var kd = psLocal.BuildKdTree();
-            var pRefKd = new PersistentRef<PointRkdTreeF<V3f[], V3f>>(Guid.NewGuid().ToString(), _ => kd, _ => (true, kd));
+            var pRefKd = new PersistentRef<PointRkdTreeF<V3f[], V3f>>(Guid.NewGuid(), kd);
             m_cache[Octree.PointRkdTreeFData.Id] = pRefKd;
 
             m_ensuredPositionsAndDerived = true;
@@ -531,7 +531,7 @@ namespace Aardvark.Geometry.Points
 
             var key = (Id + originalValue.Id).ToGuid().ToString();
             var xs = originalValue.Value.Where((_, i) => m_activePoints.Contains(i)).ToArray();
-            var result = new PersistentRef<T[]>(key, _ => xs, _ => (true, xs));
+            var result = new PersistentRef<T[]>(key, xs);
             m_cache[def.Id] = result;
             return result;
         }

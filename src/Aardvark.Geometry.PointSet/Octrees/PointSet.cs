@@ -15,6 +15,7 @@ using Aardvark.Base;
 using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -95,8 +96,8 @@ namespace Aardvark.Geometry.Points
             Id = pointSetId ?? throw new ArgumentNullException(nameof(pointSetId));
             SplitLimit = splitLimit;
 
-            Root = new PersistentRef<IPointCloudNode>(rootCellId.ToString(), storage.GetPointCloudNode!,
-                k => { var (a, b) = storage.TryGetPointCloudNode(k); return (a, b); }
+            Root = new PersistentRef<IPointCloudNode>(rootCellId.ToString(), storage.GetPointCloudNode,
+                storage.TryGetPointCloudNode
                 );
         }
 
@@ -111,7 +112,7 @@ namespace Aardvark.Geometry.Points
             Id = key ?? throw new ArgumentNullException(nameof(key));
             SplitLimit = splitLimit;
 
-            Root = new PersistentRef<IPointCloudNode>(root.Id.ToString(), storage.GetPointCloudNode!, storage.TryGetPointCloudNode);
+            Root = new PersistentRef<IPointCloudNode>(root.Id.ToString(), storage.GetPointCloudNode, storage.TryGetPointCloudNode);
         }
 
         /// <summary>
@@ -123,7 +124,7 @@ namespace Aardvark.Geometry.Points
             Id = key ?? throw new ArgumentNullException(nameof(key));
             SplitLimit = 0;
 
-            Root = new(id: "", _ => PointSetNode.Empty, _ => (true, PointSetNode.Empty));
+            Root = new(id: Guid.Empty, PointSetNode.Empty);
         }
 
         #endregion
@@ -156,8 +157,8 @@ namespace Aardvark.Geometry.Points
         public JsonNode ToJson() => JsonSerializer.SerializeToNode(new
         {
             Id,
-            RootCellId = Root.Id,
-            OctreeId = Root.Id, // backwards compatibility
+            OctreeId = Root.Id,
+            RootCellId = Root.Id, // backwards compatibility
             SplitLimit,
             PartIndexRange
         })!;
@@ -168,17 +169,21 @@ namespace Aardvark.Geometry.Points
         {
             var o = json.AsObject() ?? throw new Exception($"Expected JSON object, but found {json}.");
 
+            // id
+            var id = (string?)o["Id"] ?? throw new Exception("Missing id. Error 71730558-699e-4128-b0f2-130fd04672e9.");
+
+
             var octreeId = (string?)o["OctreeId"] ?? (string?)o["RootCellId"];
+            if (octreeId == "" || octreeId == Guid.Empty.ToString()) octreeId = null;
+
             var octreeRef = octreeId != null
-                ? new PersistentRef<IPointCloudNode>(octreeId, storage.GetPointCloudNode!, storage.TryGetPointCloudNode)
+                ? new PersistentRef<IPointCloudNode>(octreeId, storage.GetPointCloudNode, storage.TryGetPointCloudNode)
                 : null 
                 ;
+            var octree = octreeRef?.Value;
 
             // backwards compatibility: if split limit is not set, guess as number of points in root cell
             var splitLimit = o.TryGetPropertyValue("SplitLimit", out var x) ? (int)x! : 8192;
-
-            // id
-            var id = (string?)o["Id"] ?? throw new Exception("Missing id. Error 71730558-699e-4128-b0f2-130fd04672e9.");
 
             // part index range (JsonArray)
             var partIndexRangeArray = (JsonArray?)o["PartIndexRange"];
@@ -187,8 +192,6 @@ namespace Aardvark.Geometry.Points
                 : Range1i.Invalid
                 ;
 
-            //
-            var octree = octreeRef?.Value;
             return new PointSet(storage, id, octree ?? PointSetNode.Empty, splitLimit).WithPartIndexRange(partIndexRange);
         }
 

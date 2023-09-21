@@ -162,26 +162,26 @@ namespace Aardvark.Geometry.Points
             var isId = IntensitiesId;
             var ksId = ClassificationsId;
 
-            if (psId != null) PersistentRefs[Durable.Octree.PositionsLocal3fReference] = new PersistentRef<V3f[]>(psId.Value, storage.GetV3fArray!, storage.TryGetV3fArray);
-            if (csId != null) PersistentRefs[Durable.Octree.Colors4bReference] = new PersistentRef<C4b[]>(csId.Value, storage.GetC4bArray!, storage.TryGetC4bArray);
+            if (psId != null) PersistentRefs[Durable.Octree.PositionsLocal3fReference] = new PersistentRef<V3f[]>(psId.Value, storage.GetV3fArray, storage.TryGetV3fArrayFromCache);
+            if (csId != null) PersistentRefs[Durable.Octree.Colors4bReference] = new PersistentRef<C4b[]>(csId.Value, storage.GetC4bArray, storage.TryGetC4bArrayFromCache);
             if (kdId != null)
             {
                 if (isObsoleteFormat)
                 {
                     PersistentRefs[Durable.Octree.PointRkdTreeFDataReference] =
-                        new PersistentRef<PointRkdTreeF<V3f[], V3f>>(kdId.Value, LoadKdTreeObsolete, TryLoadKdTreeObsolete)
+                        new PersistentRef<PointRkdTreeF<V3f[], V3f>>(kdId.Value, LoadKdTreeObsolete, TryLoadKdTreeObsoleteOut)
                         ;
                 }
                 else
                 {
                     PersistentRefs[Durable.Octree.PointRkdTreeFDataReference] =
-                        new PersistentRef<PointRkdTreeF<V3f[], V3f>>(kdId.Value, LoadKdTree, TryLoadKdTree)
+                        new PersistentRef<PointRkdTreeF<V3f[], V3f>>(kdId.Value, LoadKdTree, TryLoadKdTreeOut)
                         ;
                 }
             }
-            if (nsId != null) PersistentRefs[Durable.Octree.Normals3fReference] = new PersistentRef<V3f[]>(nsId.Value, storage.GetV3fArray!, storage.TryGetV3fArray);
-            if (isId != null) PersistentRefs[Durable.Octree.Intensities1iReference] = new PersistentRef<int[]>(isId.Value, storage.GetIntArray!, storage.TryGetIntArray);
-            if (ksId != null) PersistentRefs[Durable.Octree.Classifications1bReference] = new PersistentRef<byte[]>(ksId.Value, storage.GetByteArray!, storage.TryGetByteArray);
+            if (nsId != null) PersistentRefs[Durable.Octree.Normals3fReference] = new PersistentRef<V3f[]>(nsId.Value, storage.GetV3fArray, storage.TryGetV3fArrayFromCache);
+            if (isId != null) PersistentRefs[Durable.Octree.Intensities1iReference] = new PersistentRef<int[]>(isId.Value, storage.GetIntArray, storage.TryGetIntArrayFromCache);
+            if (ksId != null) PersistentRefs[Durable.Octree.Classifications1bReference] = new PersistentRef<byte[]>(ksId.Value, storage.GetByteArray, storage.TryGetByteArrayFromCache);
 
 #endregion
 
@@ -323,7 +323,7 @@ namespace Aardvark.Geometry.Points
                 kdId = ComputeAndStoreKdTree(Storage, Positions.Value);
                 Data = Data.Add(Durable.Octree.PointRkdTreeFDataReference, kdId);
                 PersistentRefs[Durable.Octree.PointRkdTreeFDataReference] =
-                    new PersistentRef<PointRkdTreeF<V3f[], V3f>>(kdId.Value, LoadKdTree, TryLoadKdTree)
+                    new PersistentRef<PointRkdTreeF<V3f[], V3f>>(kdId.Value, LoadKdTree, TryLoadKdTreeOut)
                     ;
 #else
                 //Debugger.Break();
@@ -403,20 +403,6 @@ namespace Aardvark.Geometry.Points
                     );
             }
 
-            (bool, PointRkdTreeF<V3f[], V3f>?) TryLoadKdTree(string key)
-            {
-                var (ok, value) = Storage.TryGetPointRkdTreeFData(key);
-                if (ok == false) return (false, default);
-                var ps = Positions.Value!;
-                return (true, new PointRkdTreeF<V3f[], V3f>(
-                    3, ps.Length, ps,
-                    (xs, i) => xs[(int)i], (v, i) => (float)v[i],
-                    (a, b) => Vec.Distance(a, b), (i, a, b) => b - a,
-                    (a, b, c) => Vec.DistanceToLine(a, b, c), Fun.Lerp, 1e-6f,
-                    value
-                    ));
-            }
-
             PointRkdTreeF<V3f[], V3f> LoadKdTreeObsolete(string key)
             {
                 var value = Storage.GetPointRkdTreeFDataFromD(key);
@@ -430,18 +416,76 @@ namespace Aardvark.Geometry.Points
                     );
             }
 
-            (bool, PointRkdTreeF<V3f[], V3f>?) TryLoadKdTreeObsolete(string key)
+            //(bool, PointRkdTreeF<V3f[], V3f>?) TryLoadKdTree(string key)
+            //{
+            //    var (ok, value) = Storage.TryGetPointRkdTreeFData(key);
+            //    if (ok == false) return (false, default);
+            //    var ps = Positions.Value!;
+            //    return (true, new PointRkdTreeF<V3f[], V3f>(
+            //        3, ps.Length, ps,
+            //        (xs, i) => xs[(int)i], (v, i) => (float)v[i],
+            //        (a, b) => Vec.Distance(a, b), (i, a, b) => b - a,
+            //        (a, b, c) => Vec.DistanceToLine(a, b, c), Fun.Lerp, 1e-6f,
+            //        value
+            //        ));
+            //}
+
+            //(bool, PointRkdTreeF<V3f[], V3f>?) TryLoadKdTreeObsolete(string key)
+            //{
+            //    var (ok, value) = Storage.TryGetPointRkdTreeFDataFromD(key);
+            //    if (ok == false) return (false, default);
+            //    var ps = Positions.Value!;
+            //    return (true, new PointRkdTreeF<V3f[], V3f>(
+            //        3, ps.Length, ps,
+            //        (xs, i) => xs[(int)i], (v, i) => (float)v[i],
+            //        (a, b) => Vec.Distance(a, b), (i, a, b) => b - a,
+            //        (a, b, c) => Vec.DistanceToLine(a, b, c), Fun.Lerp, 1e-6f,
+            //        value
+            //        ));
+            //}
+
+            bool TryLoadKdTreeOut(string key, [NotNullWhen(true)] out PointRkdTreeF<V3f[], V3f>? result)
+            {
+                var (ok, value) = Storage.TryGetPointRkdTreeFData(key);
+                if (ok == false)
+                {
+                    result = default;
+                    return false;
+                }
+                else
+                {
+                    var ps = Positions.Value!;
+                    result = new PointRkdTreeF<V3f[], V3f>(
+                        3, ps.Length, ps,
+                        (xs, i) => xs[(int)i], (v, i) => (float)v[i],
+                        (a, b) => Vec.Distance(a, b), (i, a, b) => b - a,
+                        (a, b, c) => Vec.DistanceToLine(a, b, c), Fun.Lerp, 1e-6f,
+                        value
+                        );
+                    return true;
+                }
+            }
+
+            bool TryLoadKdTreeObsoleteOut(string key, [NotNullWhen(true)] out PointRkdTreeF<V3f[], V3f>? result)
             {
                 var (ok, value) = Storage.TryGetPointRkdTreeFDataFromD(key);
-                if (ok == false) return (false, default);
-                var ps = Positions.Value!;
-                return (true, new PointRkdTreeF<V3f[], V3f>(
-                    3, ps.Length, ps,
-                    (xs, i) => xs[(int)i], (v, i) => (float)v[i],
-                    (a, b) => Vec.Distance(a, b), (i, a, b) => b - a,
-                    (a, b, c) => Vec.DistanceToLine(a, b, c), Fun.Lerp, 1e-6f,
-                    value
-                    ));
+                if (ok == false)
+                {
+                    result = default;
+                    return false;
+                }
+                else
+                {
+                    var ps = Positions.Value!;
+                    result = new PointRkdTreeF<V3f[], V3f>(
+                        3, ps.Length, ps,
+                        (xs, i) => xs[(int)i], (v, i) => (float)v[i],
+                        (a, b) => Vec.Distance(a, b), (i, a, b) => b - a,
+                        (a, b, c) => Vec.DistanceToLine(a, b, c), Fun.Lerp, 1e-6f,
+                        value
+                        );
+                    return true;
+                }
             }
         }
 
@@ -571,13 +615,13 @@ namespace Aardvark.Geometry.Points
                     else
                     {
                         var ps = Array.Empty<V3f>();
-                        return new PersistentRef<V3f[]>(Guid.Empty, _ => ps, _ => (true, ps));
+                        return new PersistentRef<V3f[]>(Guid.Empty, ps);
                     }
                 }
                 else if (Data.TryGetValue(Durable.Octree.PositionsLocal3f, out o))
                 {
                     var ps = (V3f[])o;
-                    return new PersistentRef<V3f[]>(Guid.Empty, _ => ps, _ => (true, ps));
+                    return new PersistentRef<V3f[]>(Guid.Empty, ps);
                 }
                 else if (Data.TryGetValue(Durable.Octree.PositionsLocal3b, out o))
                 {
@@ -588,7 +632,7 @@ namespace Aardvark.Geometry.Points
                     var ps = new V3f[pCount];
                     for (int i = 0, j = 0; i < pCount; i++)
                         ps[i] = new V3f(qs[j++] * step - hsize, qs[j++] * step - hsize, qs[j++] * step - hsize);
-                    return new PersistentRef<V3f[]>(Guid.Empty, _ => ps, _ => (true, ps));
+                    return new PersistentRef<V3f[]>(Guid.Empty, ps);
                 }
                 else if (Data.TryGetValue(Durable.Octree.PositionsLocal3us, out o))
                 {
@@ -599,7 +643,7 @@ namespace Aardvark.Geometry.Points
                     var ps = new V3f[pCount];
                     for (int i = 0, j = 0; i < pCount; i++)
                         ps[i] = new V3f(qs[j++] * step - hsize, qs[j++] * step - hsize, qs[j++] * step - hsize);
-                    return new PersistentRef<V3f[]>(Guid.Empty, _ => ps, _ => (true, ps));
+                    return new PersistentRef<V3f[]>(Guid.Empty, ps);
                 }
                 else if (Data.TryGetValue(Durable.Octree.PositionsLocal3ui, out o))
                 {
@@ -610,7 +654,7 @@ namespace Aardvark.Geometry.Points
                     var ps = new V3f[pCount];
                     for (int i = 0, j = 0; i < pCount; i++)
                         ps[i] = new V3f(qs[j++] * step - hsize, qs[j++] * step - hsize, qs[j++] * step - hsize);
-                    return new PersistentRef<V3f[]>(Guid.Empty, _ => ps, _ => (true, ps));
+                    return new PersistentRef<V3f[]>(Guid.Empty, ps);
                 }
                 else if (Data.TryGetValue(Durable.Octree.PositionsLocal3ul, out o))
                 {
@@ -621,11 +665,10 @@ namespace Aardvark.Geometry.Points
                     var ps = new V3f[pCount];
                     for (int i = 0, j = 0; i < pCount; i++)
                         ps[i] = new V3f(qs[j++] * step - hsize, qs[j++] * step - hsize, qs[j++] * step - hsize);
-                    return new PersistentRef<V3f[]>(Guid.Empty, _ => ps, _ => (true, ps));
+                    return new PersistentRef<V3f[]>(Guid.Empty, ps);
                 }
                 else
                     return null!;
-                    //return new(id: "", _ => Array.Empty<V3f>(), _ => (true, Array.Empty<V3f>()));
             }
         }
 
@@ -710,20 +753,20 @@ namespace Aardvark.Geometry.Points
                 else if (Data.TryGetValue(Durable.Octree.Colors4b, out o))
                 {
                     var xs = (C4b[])o;
-                    return new PersistentRef<C4b[]>(Guid.Empty, _ => xs, _ => (true, xs));
+                    return new PersistentRef<C4b[]>(Guid.Empty, xs);
                 }
                 else if (PersistentRefs.TryGetValue(Durable.Octree.Colors3bReference, out o) && ((PersistentRef<C3b[]>)o).Id != GuidEmptyString)
                 {
                     // convert on the fly ...
                     var pref = (PersistentRef<C3b[]>)o;
                     var xs = pref.Value.Map(c => new C4b(c));
-                    return new PersistentRef<C4b[]>(Guid.Empty, _ => xs, _ => (true, xs));
+                    return new PersistentRef<C4b[]>(Guid.Empty, xs);
                 }
                 else if (Data.TryGetValue(Durable.Octree.Colors3b, out o))
                 {
                     // convert on the fly
                     var xs = ((C3b[])o).Map(c => new C4b(c));
-                    return new PersistentRef<C4b[]>(Guid.Empty, _ => xs, _ => (true, xs));
+                    return new PersistentRef<C4b[]>(Guid.Empty, xs);
                 }
                 else
                 {
@@ -762,7 +805,7 @@ namespace Aardvark.Geometry.Points
                 else if (Data.TryGetValue(Durable.Octree.Normals3f, out o))
                 {
                     var xs = (V3f[])o;
-                    return new PersistentRef<V3f[]>(Guid.Empty, _ => xs, _ => (true, xs));
+                    return new PersistentRef<V3f[]>(Guid.Empty, xs);
                 }
                 else
                 {
@@ -801,7 +844,7 @@ namespace Aardvark.Geometry.Points
                 else if (Data.TryGetValue(Durable.Octree.Intensities1i, out o))
                 {
                     var xs = (int[])o;
-                    return new PersistentRef<int[]>(Guid.Empty, _ => xs, _ => (true, xs));
+                    return new PersistentRef<int[]>(Guid.Empty, xs);
                 }
                 else
                 {
@@ -840,7 +883,7 @@ namespace Aardvark.Geometry.Points
                 else if (Data.TryGetValue(Durable.Octree.Classifications1b, out o))
                 {
                     var xs = (byte[])o;
-                    return new PersistentRef<byte[]>(Guid.Empty, _ => xs, _ => (true, xs));
+                    return new PersistentRef<byte[]>(Guid.Empty, xs);
                 }
                 else
                 {

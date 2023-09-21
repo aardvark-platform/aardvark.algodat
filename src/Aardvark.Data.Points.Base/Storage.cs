@@ -46,7 +46,9 @@ namespace Aardvark.Data.Points
         /// <summary>add(key, value, create)</summary>
         public readonly Action<string, object, Func<byte[]>> f_add;
 
-        /// <summary></summary>
+        /// <summary>
+        /// Returns null if key does not exist.
+        /// </summary>
         public readonly Func<string, byte[]?> f_get;
 
         /// <summary></summary>
