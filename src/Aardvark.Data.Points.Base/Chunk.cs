@@ -256,6 +256,17 @@ namespace Aardvark.Data.Points
                     );
             }
 
+            #region part indices
+
+            switch (partIndices)
+            {
+                case null: break;
+                case uint: break;
+                case IList<byte>: break;
+                case IList<short>: break;
+                case IList<int>: break;
+                default: throw new Exception($"Unexpected part indices type {partIndices.GetType().FullName}. Error fc9d196d-508e-4977-8f04-2167c71e38b0.");
+            }
             IList<byte>? qs1b = null;
             if (partIndices is IList<byte> _qs1b && _qs1b.Count != positions.Count)
             {
@@ -286,6 +297,8 @@ namespace Aardvark.Data.Points
                     $"Warning b94ca9d5-1322-4f57-9ebc-85ea8d3fa8bf."
                     );
             }
+
+            #endregion
 
             if (countMismatch)
             {
@@ -358,6 +371,7 @@ namespace Aardvark.Data.Points
                     Append(Normals, other.Normals),
                     Append(Intensities, other.Intensities),
                     Append(Classifications, other.Classifications),
+                    partIndices: PartIndexUtils.Union(PartIndices, other.PartIndices),
                     Box.Union(BoundingBox, other.BoundingBox)
                 );
         }

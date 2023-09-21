@@ -47,7 +47,6 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(pointset.Id == "PointSet.Empty");
             Assert.IsTrue(pointset.IsEmpty == true);
             Assert.IsTrue(pointset.PointCount == 0);
-            Assert.IsTrue(pointset.Root == null);
             Assert.IsTrue(pointset.SplitLimit == 0);
             pointset.ValidateTree();
         }
@@ -268,9 +267,9 @@ namespace Aardvark.Geometry.Tests
             var json = pointset.ToJson();
             var reloaded = PointSet.Parse(json, storage);
 
-            Assert.IsTrue(pointset.Id == reloaded.Id);
-            Assert.IsTrue(pointset.SplitLimit == reloaded.SplitLimit);
-            Assert.IsTrue(pointset.Root.Value.Id == reloaded.Root.Value.Id);
+            Assert.IsTrue(pointset.Id             == reloaded.Id            );
+            Assert.IsTrue(pointset.SplitLimit     == reloaded.SplitLimit    );
+            Assert.IsTrue(pointset.Root.Value.Id  == reloaded.Root.Value.Id );
             Assert.IsTrue(pointset.PartIndexRange == reloaded.PartIndexRange);
         }
 
@@ -287,9 +286,9 @@ namespace Aardvark.Geometry.Tests
             var json = pointset.ToJson();
             var reloaded = PointSet.Parse(json, storage);
 
-            Assert.IsTrue(pointset.Id == reloaded.Id);
-            Assert.IsTrue(pointset.SplitLimit == reloaded.SplitLimit);
-            Assert.IsTrue(pointset.Root.Value.Id == reloaded.Root.Value.Id);
+            Assert.IsTrue(pointset.Id             == reloaded.Id            );
+            Assert.IsTrue(pointset.SplitLimit     == reloaded.SplitLimit    );
+            Assert.IsTrue(pointset.Root.Value.Id  == reloaded.Root.Value.Id );
             Assert.IsTrue(pointset.PartIndexRange == reloaded.PartIndexRange);
             Assert.IsTrue(reloaded.PartIndexRange.IsInvalid);
         }

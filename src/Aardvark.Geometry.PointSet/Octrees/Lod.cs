@@ -250,21 +250,21 @@ namespace Aardvark.Geometry.Points
                     {
                         kd = await self.Positions.Value.BuildKdTreeAsync();
                         var kdKey = Guid.NewGuid();
-                        store.Add(kdKey, kd.Data);
+                        store?.Add(kdKey, kd.Data);
                         upsertData = upsertData.Add(Durable.Octree.PointRkdTreeFDataReference, kdKey);
                     }
 
                     if (!self.HasNormals)
                     {
                         var ns = await self.Positions.Value.EstimateNormalsAsync(16, kd);
-                        if (ns.Length != self.Positions.Value.Length) throw new Exception();
+                        if (ns.Length != self.Positions.Value!.Length) throw new Exception();
                         var nsId = Guid.NewGuid();
-                        store.Add(nsId, ns);
+                        store?.Add(nsId, ns);
                         upsertData = upsertData.Add(Durable.Octree.Normals3fReference, nsId);
                     }
                     else
                     {
-                        if (self.Normals!.Value.Length != self.PointCountCell) throw new Exception();
+                        if (self.Normals!.Value!.Length != self.PointCountCell) throw new Exception();
                     }
 
                     if (upsertData.Count > 0) self = self.With(upsertData);
@@ -330,7 +330,7 @@ namespace Aardvark.Geometry.Points
                 var lodPs = AggregateSubPositions(counts, aggregateCount, self.Center, subcenters, subcells.Map(x => x?.Positions?.Value));
                 if (lodPs.Any(p => p.IsNaN)) throw new Exception("One or more positions are NaN.");
                 var lodPsKey = Guid.NewGuid();
-                store.Add(lodPsKey, lodPs);
+                store?.Add(lodPsKey, lodPs);
                 upsertData = upsertData
                     .Add(Durable.Octree.PositionsLocal3fReference, lodPsKey)
                     .Add(Durable.Octree.PointCountCell, lodPs.Length)
@@ -339,7 +339,7 @@ namespace Aardvark.Geometry.Points
                 // ... kd-tree ...
                 var lodKd = await lodPs.BuildKdTreeAsync();
                 var lodKdKey = Guid.NewGuid();
-                store.Add(lodKdKey, lodKd.Data);
+                store?.Add(lodKdKey, lodKd.Data);
                 upsertData = upsertData.Add(Durable.Octree.PointRkdTreeFDataReference, lodKdKey);
 
                 // .. normals ...
@@ -348,7 +348,7 @@ namespace Aardvark.Geometry.Points
                     $"Inconsistent lod-normals length {lodNs.Length}. Should be {lodPs.Length}. Error 806dfe30-4faa-46b1-a2a3-f50e336cbe67."
                     );
                 var lodNsKey = Guid.NewGuid();
-                store.Add(lodNsKey, lodNs);
+                store?.Add(lodNsKey, lodNs);
                 upsertData = upsertData.Add(Durable.Octree.Normals3fReference, lodNsKey);
 
                 void addAttributeByRef<T>(string kind, Durable.Def def, Func<IPointCloudNode, bool> has, Func<IPointCloudNode?, T[]?> getData)
@@ -362,7 +362,7 @@ namespace Aardvark.Geometry.Points
                             );
                         // add attribute by ref to separate blob
                         var key = Guid.NewGuid();
-                        store.Add(key, lod);
+                        store?.Add(key, lod);
                         upsertData = upsertData.Add(def, key);
                     }
                 }

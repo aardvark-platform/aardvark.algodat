@@ -94,6 +94,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Node has no subnodes.
         /// </summary>
+        [MemberNotNullWhen(false, nameof(Subnodes))]
         bool IsLeaf { get; }
 
         /// <summary>

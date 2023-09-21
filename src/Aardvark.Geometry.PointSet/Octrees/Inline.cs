@@ -263,7 +263,7 @@ namespace Aardvark.Geometry.Points
         public static InlinedNodes EnumerateOctreeInlined(
             this PointSet pointset, InlineConfig config
             )
-            => pointset.Root.Value.EnumerateOctreeInlined(config);
+            => pointset.Root.Value!.EnumerateOctreeInlined(config);
 
         /// <summary>
         /// Enumerate inlined (self-contained, no external data is referenced) octree nodes.
@@ -482,10 +482,10 @@ namespace Aardvark.Geometry.Points
                     subnodeGuids = subnodes.Map(x => x.HasValue && x.Value.hasValue ? x.Value.value!.Id : Guid.Empty);
                 }
 
-                ps = node.Positions.Value;
+                ps = node.Positions.Value!;
                 if (hasColors) cs = node.Colors!.Value;
                 if (hasClassifications) ks = node.Classifications!.Value;
-                if (hasIntensities) js = rescaleIntensities(node.Intensities!.Value);
+                if (hasIntensities) js = rescaleIntensities(node.Intensities!.Value!);
                 if (isNotLeaf) subnodeGuids = subnodes.Map(x => x.HasValue && x.Value.hasValue ? x.Value.value!.Id : Guid.Empty);
             }
 

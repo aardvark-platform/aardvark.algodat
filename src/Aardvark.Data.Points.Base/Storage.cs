@@ -26,6 +26,21 @@ namespace Aardvark.Data.Points
     /// </summary>
     public class Storage : IDisposable
     {
+        private static readonly HashSet<Storage> s_storages = new();
+
+        /// <summary>
+        /// No storage. All functions are NOP.
+        /// </summary>
+        public static readonly Storage None = new(
+            add: (_, _, _) => { },
+            get: _ => null,
+            getSlice: (_, _, _) => null,
+            remove: _ => { },
+            dispose: () => { },
+            flush: () => { },
+            cache: null
+            );
+
         private bool m_isDisposed = false;
 
         /// <summary>add(key, value, create)</summary>
@@ -138,7 +153,5 @@ namespace Aardvark.Data.Points
                 //}
             }
         }
-
-        private static readonly HashSet<Storage> s_storages = new();
     }
 }

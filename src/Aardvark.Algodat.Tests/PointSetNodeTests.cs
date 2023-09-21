@@ -54,6 +54,10 @@ namespace Aardvark.Geometry.Tests
             var kd = ps.BuildKdTree();
             storage.Add(kdId, kd.Data);
 
+            var csId = Guid.NewGuid();
+            var cs = new[] { C4b.Yellow };
+            storage.Add(csId, cs);
+
             var data = EmptyData
                 .Add(Durable.Octree.NodeId, id)
                 .Add(Durable.Octree.Cell, cell)
@@ -62,6 +66,7 @@ namespace Aardvark.Geometry.Tests
                 .Add(Durable.Octree.PointRkdTreeFDataReference, kdId)
                 .Add(Durable.Octree.BoundingBoxExactLocal, new Box3f(ps))
                 .Add(Durable.Octree.BoundingBoxExactGlobal, ((Box3d)new Box3f(ps)) + cell.GetCenter())
+                .Add(Durable.Octree.Colors4bReference, csId)
                 ;
 
             return new PointSetNode(data, storage, writeToStore: true);

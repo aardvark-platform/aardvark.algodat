@@ -20,7 +20,6 @@ using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.Json.Serialization;
@@ -49,17 +48,17 @@ namespace Aardvark.Geometry.Points
         public static readonly PointSetNode Empty = new(
             null!, writeToStore: false,
             (Durable.Octree.NodeId, Guid.Empty),
-            (Durable.Octree.Cell, Cell.Unit),
-            (Durable.Octree.BoundingBoxExactLocal, Box3f.Unit - new V3f(0.5f)),
-            (Durable.Octree.BoundingBoxExactGlobal, Box3d.Unit),
+            (Durable.Octree.Cell, Cell.Invalid),
+            (Durable.Octree.BoundingBoxExactLocal, Box3f.Invalid),
+            (Durable.Octree.BoundingBoxExactGlobal, Box3d.Invalid),
             (Durable.Octree.PointCountCell, 0),
             (Durable.Octree.PointCountTreeLeafs, 0L),
-            (Durable.Octree.PositionsLocal3fReference, Guid.Empty),
-            (Durable.Octree.PointRkdTreeFDataReference, Guid.Empty),
-            (Durable.Octree.PositionsLocal3fCentroid, V3f.Zero),
-            (Durable.Octree.PositionsLocal3fDistToCentroidStdDev, 0.0f),
-            (Durable.Octree.AveragePointDistance, 0.0f),
-            (Durable.Octree.AveragePointDistanceStdDev, 0.0f),
+            //(Durable.Octree.PositionsLocal3fReference, Guid.Empty),
+            //(Durable.Octree.PointRkdTreeFDataReference, Guid.Empty),
+            (Durable.Octree.PositionsLocal3fCentroid, V3f.NaN),
+            (Durable.Octree.PositionsLocal3fDistToCentroidStdDev, float.NaN),
+            (Durable.Octree.AveragePointDistance, float.NaN),
+            (Durable.Octree.AveragePointDistanceStdDev, float.NaN),
             (Durable.Octree.MinTreeDepth, 0),
             (Durable.Octree.MaxTreeDepth, 0)
             );
@@ -82,7 +81,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public PointSetNode(
             ImmutableDictionary<Durable.Def, object> data,
-            Storage storage, bool writeToStore
+            Storage? storage, bool writeToStore
             )
         {
             if (!data.ContainsKey(Durable.Octree.NodeId)) throw new ArgumentException(
@@ -94,6 +93,8 @@ namespace Aardvark.Geometry.Points
                 );
 
             var isObsoleteFormat = data.ContainsKey(Durable.Octree.PointRkdTreeDDataReference);
+
+            storage ??= Storage.None;
 
             Storage = storage;
             Data = data;
@@ -109,7 +110,7 @@ namespace Aardvark.Geometry.Points
             Corners = bboxCell.ComputeCorners();
 
 #if DEBUG
-            if (PositionsAbsolute != null) // if not PointSetNode.Empty
+            if (PositionsAbsolute?.Length > 0) // if not PointSetNode.Empty
             {
                 // Invariant: bounding box of global positions MUST BE CONTAINED within bounding box of node cell
                 var bb = new Box3d(PositionsAbsolute);
@@ -136,7 +137,7 @@ namespace Aardvark.Geometry.Points
                 for (var i = 0; i < 8; i++)
                 {
                     if (subNodeIds[i] == Guid.Empty) continue;
-                    var pRef = new PersistentRef<IPointCloudNode>(subNodeIds[i].ToString(), storage.GetPointCloudNode!, storage.TryGetPointCloudNode);
+                    var pRef = new PersistentRef<IPointCloudNode>(subNodeIds[i].ToString(), storage.GetPointCloudNode, storage.TryGetPointCloudNode);
                     Subnodes[i] = pRef;
 
 #if DEBUG
@@ -190,7 +191,7 @@ namespace Aardvark.Geometry.Points
             {
                 if (!HasBoundingBoxExactLocal) // why only for new format? (!isObsoleteFormat && !HasBoundingBoxExactLocal)
                 {
-                    var bboxExactLocal = Positions.Value.Length > 0 ? new Box3f(Positions.Value) : Box3f.Invalid;
+                    var bboxExactLocal = Positions.Value!.Length > 0 ? new Box3f(Positions.Value) : Box3f.Invalid;
                     Data = Data.Add(Durable.Octree.BoundingBoxExactLocal, bboxExactLocal);
                 }
 
@@ -208,7 +209,7 @@ namespace Aardvark.Geometry.Points
                     }
                     else
                     {
-                        var bboxExactGlobal = new Box3d(Subnodes.Where(x => x != null).Select(x => x.Value.BoundingBoxExactGlobal));
+                        var bboxExactGlobal = new Box3d(Subnodes.Where(x => x != null).Select(x => x!.Value!.BoundingBoxExactGlobal));
                         Data = Data.Add(Durable.Octree.BoundingBoxExactGlobal, bboxExactGlobal);
                     }
                 }
@@ -220,7 +221,7 @@ namespace Aardvark.Geometry.Points
 
             if (!Has(Durable.Octree.PointCountCell))
             {
-                Data = Data.Add(Durable.Octree.PointCountCell, HasPositions ? Positions.Value.Length : 0);
+                Data = Data.Add(Durable.Octree.PointCountCell, HasPositions ? Positions.Value!.Length : 0);
             }
 
 #endregion
@@ -235,7 +236,7 @@ namespace Aardvark.Geometry.Points
                 }
                 else
                 {
-                    Data = Data.Add(Durable.Octree.PointCountTreeLeafs, Subnodes.Where(x => x != null).Sum(x => x.Value.PointCountTree));
+                    Data = Data.Add(Durable.Octree.PointCountTreeLeafs, Subnodes.Where(x => x != null).Sum(x => x.Value!.PointCountTree));
                 }
             }
 
@@ -296,7 +297,7 @@ namespace Aardvark.Geometry.Points
                         {
                             var r = Subnodes![i];
                             if (r == null) continue;
-                            var n = r.Value;
+                            var n = r.Value!;
                             min = Math.Min(min, 1 + n.MinTreeDepth);
                             max = Math.Max(max, 1 + n.MaxTreeDepth);
                         }
@@ -331,11 +332,11 @@ namespace Aardvark.Geometry.Points
 
             #endregion
 
-            if ((HasPositions && Positions.Value.Length != PointCountCell) ||
-                (HasColors && Colors!.Value.Length != PointCountCell) ||
-                (HasNormals && Normals!.Value.Length != PointCountCell) ||
-                (HasIntensities && Intensities!.Value.Length != PointCountCell) ||
-                (HasClassifications && Classifications!.Value.Length != PointCountCell)
+            if ((HasPositions && Positions.Value!.Length != PointCountCell) ||
+                (HasColors && Colors.Value!.Length != PointCountCell) ||
+                (HasNormals && Normals.Value!.Length != PointCountCell) ||
+                (HasIntensities && Intensities.Value!.Length != PointCountCell) ||
+                (HasClassifications && Classifications.Value!.Length != PointCountCell)
                 )
             {
 #if DEBUG
@@ -366,30 +367,33 @@ namespace Aardvark.Geometry.Points
                 if (PointCountCell != PointCountTree)
                     throw new InvalidOperationException("Invariant 9464f38c-dc98-4d68-a8ac-0baed9f182b4.");
 
-                if (!(
-                    Has(Durable.Octree.PositionsLocal3fReference) ||
-                    Has(Durable.Octree.PositionsLocal3f) ||
-                    Has(Durable.Octree.PositionsLocal3b) ||
-                    Has(Durable.Octree.PositionsLocal3us) ||
-                    Has(Durable.Octree.PositionsLocal3ui) ||
-                    Has(Durable.Octree.PositionsLocal3ul)
-                    ))
-                    throw new ArgumentException("Invariant 663c45a4-1286-45ba-870c-fb4ceebdf318.");
+                if (Id != Guid.Empty)
+                {
+                    if (!(
+                        Has(Durable.Octree.PositionsLocal3fReference) ||
+                        Has(Durable.Octree.PositionsLocal3f) ||
+                        Has(Durable.Octree.PositionsLocal3b) ||
+                        Has(Durable.Octree.PositionsLocal3us) ||
+                        Has(Durable.Octree.PositionsLocal3ui) ||
+                        Has(Durable.Octree.PositionsLocal3ul)
+                        ))
+                        throw new ArgumentException("Invariant 663c45a4-1286-45ba-870c-fb4ceebdf318.");
 
-                if (Has(Durable.Octree.PositionsLocal3fReference) && PositionsId == null)
-                    throw new InvalidOperationException("Invariant ba64ffe9-ada4-4fff-a4e9-0916c1cc9992.");
+                    if (Has(Durable.Octree.PositionsLocal3fReference) && PositionsId == null)
+                        throw new InvalidOperationException("Invariant ba64ffe9-ada4-4fff-a4e9-0916c1cc9992.");
 
-                #if !READONLY
-                if (KdTreeId == null && !Has(TemporaryImportNode))
-                    throw new InvalidOperationException("Invariant 606e8a7b-6e75-496a-bc2a-dfbe6e2c9b10.");
-                #endif
+                    #if !READONLY
+                    if (KdTreeId == null && !Has(TemporaryImportNode))
+                        throw new InvalidOperationException("Invariant 606e8a7b-6e75-496a-bc2a-dfbe6e2c9b10.");
+                    #endif
+                }
             }
 #endif
 
             PointRkdTreeF<V3f[], V3f> LoadKdTree(string key)
             {
                 var value = Storage.GetPointRkdTreeFData(key);
-                var ps = Positions.Value;
+                var ps = Positions.Value!;
                 return new PointRkdTreeF<V3f[], V3f>(
                     3, ps.Length, ps,
                     (xs, i) => xs[(int)i], (v, i) => (float)v[i],
@@ -403,7 +407,7 @@ namespace Aardvark.Geometry.Points
             {
                 var (ok, value) = Storage.TryGetPointRkdTreeFData(key);
                 if (ok == false) return (false, default);
-                var ps = Positions.Value;
+                var ps = Positions.Value!;
                 return (true, new PointRkdTreeF<V3f[], V3f>(
                     3, ps.Length, ps,
                     (xs, i) => xs[(int)i], (v, i) => (float)v[i],
@@ -416,7 +420,7 @@ namespace Aardvark.Geometry.Points
             PointRkdTreeF<V3f[], V3f> LoadKdTreeObsolete(string key)
             {
                 var value = Storage.GetPointRkdTreeFDataFromD(key);
-                var ps = Positions.Value;
+                var ps = Positions.Value!;
                 return new PointRkdTreeF<V3f[], V3f>(
                     3, ps.Length, ps,
                     (xs, i) => xs[(int)i], (v, i) => (float)v[i],
@@ -430,7 +434,7 @@ namespace Aardvark.Geometry.Points
             {
                 var (ok, value) = Storage.TryGetPointRkdTreeFDataFromD(key);
                 if (ok == false) return (false, default);
-                var ps = Positions.Value;
+                var ps = Positions.Value!;
                 return (true, new PointRkdTreeF<V3f[], V3f>(
                     3, ps.Length, ps,
                     (xs, i) => xs[(int)i], (v, i) => (float)v[i],
@@ -447,7 +451,7 @@ namespace Aardvark.Geometry.Points
         public PointSetNode WriteToStore()
         {
             this.CheckDerivedAttributes();
-            Storage.Add(Id.ToString(), this);
+            Storage?.Add(Id.ToString(), this);
             return this;
         }
 
@@ -620,7 +624,8 @@ namespace Aardvark.Geometry.Points
                     return new PersistentRef<V3f[]>(Guid.Empty, _ => ps, _ => (true, ps));
                 }
                 else
-                    throw new Exception("Node has no positions. Error cef41b10-945b-475c-add6-df93b2a24945.");
+                    return null!;
+                    //return new(id: "", _ => Array.Empty<V3f>(), _ => (true, Array.Empty<V3f>()));
             }
         }
 
@@ -628,7 +633,7 @@ namespace Aardvark.Geometry.Points
         /// Point positions (absolute), or null if no positions.
         /// </summary>
         [JsonIgnore]
-        public V3d[] PositionsAbsolute => Positions.Value.Map(p => new V3d(Center.X + p.X, Center.Y + p.Y, Center.Z + p.Z));
+        public V3d[] PositionsAbsolute => Positions?.Value.Map(p => new V3d(Center.X + p.X, Center.Y + p.Y, Center.Z + p.Z))!;
 
 #endregion
 
@@ -1244,7 +1249,7 @@ namespace Aardvark.Geometry.Points
 
                 if(HasPositions)
                 {
-                    var ps = Positions.Value;
+                    var ps = Positions.Value!;
                     if (ps.Length > 0) return (Box3d)(new Box3f(ps)) + Center;
                 }
 

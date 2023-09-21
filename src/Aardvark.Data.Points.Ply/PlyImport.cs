@@ -59,7 +59,9 @@ namespace Aardvark.Data.Points.Import
         /// <summary>
         /// Parses PLY (.ply) file.
         /// </summary>
+#pragma warning disable IDE0060 // Remove unused parameter
         public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, ParseConfig config)
+#pragma warning restore IDE0060 // Remove unused parameter
             => PlyParser.Parse(stream, config.MaxChunkPointCount, config.Verbose ? (s => Report.Line(s)) : null).Chunks();
 
         /// <summary>

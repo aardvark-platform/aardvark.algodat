@@ -54,7 +54,7 @@ end_header
                 ;
 
             var pointset = PointCloud.Import(Data.Points.Import.Ply.Chunks(ms, 0, config.ParseConfig), config);
-            var pcl = pointset.Root.Value;
+            var _ /*pcl*/ = pointset.Root.Value;
 
             var inlineConfig = new InlineConfig(collapse: true, gzipped: true);
             var inlinedNodes = store.EnumerateOctreeInlined(key, inlineConfig);

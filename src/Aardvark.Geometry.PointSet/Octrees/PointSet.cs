@@ -15,6 +15,7 @@ using Aardvark.Base;
 using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -30,24 +31,25 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// The empty pointset.
         /// </summary>
-        public static readonly PointSet Empty = new(null!, "PointSet.Empty");
+        public static readonly PointSet Empty = new(Storage.None, "PointSet.Empty");
 
         #region Construction
 
         /// <summary>
         /// Creates PointSet from given points and colors.
         /// </summary>
-        public static PointSet Create(Storage storage, string key,
+        public static PointSet Create(Storage storage, string pointSetId,
             IList<V3d> positions, IList<C4b> colors, IList<V3f> normals, IList<int> intensities, IList<byte> classifications, object? partIndices,
             int octreeSplitLimit, bool generateLod, bool isTemporaryImportNode, CancellationToken ct = default
             )
         {
-            if (key == null) throw new ArgumentNullException(nameof(key));
+            if (storage == null) throw new ArgumentNullException(nameof(storage));
+            if (pointSetId == null) throw new ArgumentNullException(nameof(pointSetId));
             var bounds = new Box3d(positions);
             var builder = InMemoryPointSet.Build(positions, colors, normals, intensities, classifications, partIndices, new Cell(bounds), octreeSplitLimit);
             var root = builder.ToPointSetNode(storage, isTemporaryImportNode);
 
-            var result = new PointSet(storage, key, root.Id, octreeSplitLimit);
+            var result = new PointSet(storage, pointSetId: pointSetId, rootCellId: root.Id, octreeSplitLimit);
 
             if (result.Root.Value == null) throw new InvalidOperationException("Invariant 5492d57b-add1-48bf-9721-5087c957d81e.");
 
@@ -61,16 +63,36 @@ namespace Aardvark.Geometry.Points
                 result = result.GenerateLod(config);
             }
 
+            checked
+            {
+                switch (partIndices)
+                {
+                    case null           : break;
+                    case byte         x : result = result.WithPartIndexRange(new(x, x)); break;
+                    case short        x : result = result.WithPartIndexRange(new(x, x)); break;
+                    case int          x : result = result.WithPartIndexRange(new(x, x)); break;
+                    case uint         x : result = result.WithPartIndexRange(new((int)x, (int)x)); break;
+                    case IList<byte>  xs: result = result.WithPartIndexRange(new(xs.Select(x => (int)x))); break;
+                    case IList<short> xs: result = result.WithPartIndexRange(new(xs.Select(x => (int)x))); break;
+                    case IList<int>   xs: result = result.WithPartIndexRange(new(xs.Select(x =>      x))); break;
+                    case IList<uint>  xs: result = result.WithPartIndexRange(new(xs.Select(x => (int)x))); break;
+
+                    default: throw new Exception(
+                        $"Unknown part indices type {partIndices.GetType().FullName}. " +
+                        $"Error 8b6b8202-dc6c-4c2c-89a3-40f24c7eee5c."
+                        );
+                }
+            }
             return result;
         }
 
         /// <summary>
         /// Creates pointset from given root cell.
         /// </summary>
-        public PointSet(Storage storage, string key, Guid rootCellId, int splitLimit)
+        public PointSet(Storage storage, string pointSetId, Guid rootCellId, int splitLimit)
         {
-            Storage = storage;
-            Id = key ?? throw new ArgumentNullException(nameof(key));
+            Storage = storage ?? throw new ArgumentNullException(nameof(storage));
+            Id = pointSetId ?? throw new ArgumentNullException(nameof(pointSetId));
             SplitLimit = splitLimit;
 
             Root = new PersistentRef<IPointCloudNode>(rootCellId.ToString(), storage.GetPointCloudNode!,
@@ -85,7 +107,7 @@ namespace Aardvark.Geometry.Points
         {
             if (root == null) throw new ArgumentNullException(nameof(root));
 
-            Storage = storage;
+            Storage = storage ?? throw new ArgumentNullException(nameof(storage));
             Id = key ?? throw new ArgumentNullException(nameof(key));
             SplitLimit = splitLimit;
 
@@ -97,11 +119,11 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public PointSet(Storage storage, string key)
         {
-            Storage = storage;
+            Storage = storage ?? throw new ArgumentNullException(nameof(storage));
             Id = key ?? throw new ArgumentNullException(nameof(key));
             SplitLimit = 0;
 
-            Root = null!;
+            Root = new(id: "", _ => PointSetNode.Empty, _ => (true, PointSetNode.Empty));
         }
 
         #endregion
@@ -135,7 +157,7 @@ namespace Aardvark.Geometry.Points
         {
             Id,
             RootCellId = Root.Id,
-            OctreeId = Root.Id,
+            OctreeId = Root.Id, // backwards compatibility
             SplitLimit,
             PartIndexRange
         })!;
@@ -147,7 +169,7 @@ namespace Aardvark.Geometry.Points
             var o = json.AsObject() ?? throw new Exception($"Expected JSON object, but found {json}.");
 
             var octreeId = (string?)o["OctreeId"] ?? (string?)o["RootCellId"];
-            var octree = octreeId != null
+            var octreeRef = octreeId != null
                 ? new PersistentRef<IPointCloudNode>(octreeId, storage.GetPointCloudNode!, storage.TryGetPointCloudNode)
                 : null 
                 ;
@@ -166,7 +188,8 @@ namespace Aardvark.Geometry.Points
                 ;
 
             //
-            return new PointSet(storage, id, octree?.Value ?? PointSetNode.Empty, splitLimit).WithPartIndexRange(partIndexRange);
+            var octree = octreeRef?.Value;
+            return new PointSet(storage, id, octree ?? PointSetNode.Empty, splitLimit).WithPartIndexRange(partIndexRange);
         }
 
         #endregion
@@ -181,7 +204,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Returns true if pointset is empty.
         /// </summary>
-        public bool IsEmpty => Root == null || Root.Id == Guid.Empty.ToString();
+        public bool IsEmpty => Root.Id == "" || Root.Id == Guid.Empty.ToString();
 
         /// <summary>
         /// Gets total number of points in dataset.
@@ -191,7 +214,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Gets bounds of dataset root cell.
         /// </summary>
-        public Box3d Bounds => Root?.Value?.Cell.BoundingBox ?? Box3d.Invalid;
+        public Box3d Bounds => Root.Value!.Cell.IsValid ? Root.Value.Cell.BoundingBox : Box3d.Invalid;
 
         /// <summary>
         /// Gets exact bounding box of all points in pointcloud.
@@ -202,7 +225,7 @@ namespace Aardvark.Geometry.Points
             {
                 try
                 {
-                    return Root.Value.BoundingBoxExactGlobal;
+                    return Root.Value!.BoundingBoxExactGlobal;
                 }
                 catch (NullReferenceException)
                 {
@@ -212,22 +235,22 @@ namespace Aardvark.Geometry.Points
         }
 
         /// <summary></summary>
-        public bool HasColors => Root != null && Root.Value.HasColors;
+        public bool HasColors => Root != null && Root.Value!.HasColors;
 
         /// <summary></summary>
-        public bool HasIntensities => Root != null && Root.Value.HasIntensities;
+        public bool HasIntensities => Root != null && Root.Value!.HasIntensities;
         
         /// <summary></summary>
-        public bool HasClassifications => Root != null && Root.Value.HasClassifications;
+        public bool HasClassifications => Root != null && Root.Value!.HasClassifications;
 
         /// <summary></summary>
-        public bool HasKdTree => Root != null && Root.Value.HasKdTree;
+        public bool HasKdTree => Root != null && Root.Value!.HasKdTree;
         
         /// <summary></summary>
-        public bool HasNormals => Root != null && Root.Value.HasNormals;
+        public bool HasNormals => Root != null && Root.Value!.HasNormals;
 
         /// <summary></summary>
-        public bool HasPositions => Root != null && Root.Value.HasPositions;
+        public bool HasPositions => Root != null && Root.Value!.HasPositions;
 
 
         /// <summary></summary>
@@ -253,7 +276,7 @@ namespace Aardvark.Geometry.Points
             }
             else
             {
-                throw new InvalidOperationException($"Cannot merge {Root.Value.GetType()} with {other.Root.Value.GetType()}.");
+                throw new InvalidOperationException($"Cannot merge {Root.Value!.GetType()} with {other.Root.Value!.GetType()}. Error cf3a17bf-c3c7-46de-9fb7-f08243992ff0.");
             }
         }
 

@@ -88,6 +88,9 @@ namespace Aardvark.Geometry.Points
             var parts = new HashSet<PointSet>(pointsets);
             var final = pointsets.MapReduceParallel((first, second, ct2) =>
             {
+                if (first .Root.Value == null) throw new Exception($"Expected first octree not to be null. Error c1ac4063-efaa-4c92-879c-7925509adee4.");
+                if (second.Root.Value == null) throw new Exception($"Expected second octree not to be null. Error 65289b58-2c36-46dd-91a6-81b42554d625.");
+
                 lock (parts)
                 {
                     if (!parts.Remove(first)) throw new InvalidOperationException("map reduce error");
@@ -122,6 +125,8 @@ namespace Aardvark.Geometry.Points
                     fractionalProgress.Remove(id);
                     Interlocked.Increment(ref doneCount);
                 }
+
+                if (merged.Root.Value == null) throw new Exception($"Expected merged octree not to be null. Error b49cf692-2c1f-4067-b4cc-2960783fe141.");
 
                 //Console.WriteLine($"[MERGE CALLBACK][{id}] {(first.PointCount + second.PointCount) / (double)totalPointsToMerge,7:N3}");
 

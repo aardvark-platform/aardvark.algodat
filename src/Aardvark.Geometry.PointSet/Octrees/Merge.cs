@@ -29,7 +29,8 @@ namespace Aardvark.Geometry.Points
         internal static int CollectEverything(IPointCloudNode self, List<V3d> ps, List<C4b>? cs, List<V3f>? ns, List<int>? js, List<byte>? ks)
         {
             if (self == null) return 0;
-            else if (self.IsLeaf)
+
+            if (self.IsLeaf)
             {
                 if (self.HasPositions && ps != null)
                 {
@@ -37,20 +38,20 @@ namespace Aardvark.Geometry.Points
                     ps.AddRange(self.Positions.Value.Map(p => off + (V3d)p));
                 }
 
-                if (self.HasColors && cs != null) cs.AddRange(self.Colors!.Value);
-                if (self.HasNormals && ns != null) ns.AddRange(self.Normals.Value);
-                if (self.HasIntensities && js != null) js.AddRange(self.Intensities.Value);
-                if (self.HasClassifications && ks != null) ks.AddRange(self.Classifications!.Value);
+                if (self.HasColors          && cs != null) cs.AddRange(self.Colors.Value);
+                if (self.HasNormals         && ns != null) ns.AddRange(self.Normals.Value);
+                if (self.HasIntensities     && js != null) js.AddRange(self.Intensities.Value);
+                if (self.HasClassifications && ks != null) ks.AddRange(self.Classifications.Value);
                 return 1;
             }
             else
             {
                 var leafs = 0;
-                foreach (var x in self.Subnodes!)
+                foreach (var x in self.Subnodes)
                 {
                     if (x != null)
                     {
-                        leafs += CollectEverything(x.Value, ps, cs, ns, js, ks);
+                        leafs += CollectEverything(x!.Value!, ps, cs, ns, js, ks);
                     }
                 }
                 return leafs;
@@ -342,9 +343,9 @@ namespace Aardvark.Geometry.Points
                     ;
 
                 storage.Add(psId, ps ); data = data.Add(Durable.Octree.PositionsLocal3fReference, psId);
-                if (nsId.HasValue) { storage.Add(nsId.Value, ns!); data = data.Add(Durable.Octree.Normals3fReference, nsId.Value); }
-                if (csId.HasValue) { storage.Add(csId.Value, cs!); data = data.Add(Durable.Octree.Colors4bReference, csId.Value); }
-                if (jsId.HasValue) { storage.Add(jsId.Value, js!); data = data.Add(Durable.Octree.Intensities1iReference, jsId.Value); }
+                if (nsId.HasValue) { storage.Add(nsId.Value, ns!); data = data.Add(Durable.Octree.Normals3fReference        , nsId.Value); }
+                if (csId.HasValue) { storage.Add(csId.Value, cs!); data = data.Add(Durable.Octree.Colors4bReference         , csId.Value); }
+                if (jsId.HasValue) { storage.Add(jsId.Value, js!); data = data.Add(Durable.Octree.Intensities1iReference    , jsId.Value); }
                 if (ksId.HasValue) { storage.Add(ksId.Value, ks!); data = data.Add(Durable.Octree.Classifications1bReference, ksId.Value); }
                 //if (kdId.HasValue) { storage.Add(kdId.Value, kd.Data); data = data.Add(Durable.Octree.PointRkdTreeFDataReference, kdId.Value); }
 

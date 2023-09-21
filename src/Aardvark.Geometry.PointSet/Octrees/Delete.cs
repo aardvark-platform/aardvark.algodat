@@ -29,28 +29,30 @@ namespace Aardvark.Geometry.Points
     public static class DeleteExtensions
     {
         /// <summary>
-        /// Returns new pointset with all points deleted which are inside.
+        /// Returns new pointset without points specified as inside.
+        /// Returns null, if no points are left.
         /// </summary>
-        public static PointSet? Delete(this PointSet? node,
+        public static PointSet? Delete(this PointSet? pointSet,
             Func<IPointCloudNode, bool> isNodeFullyInside,
             Func<IPointCloudNode, bool> isNodeFullyOutside,
             Func<V3d, bool> isPositionInside,
             Storage storage, CancellationToken ct
             )
         {
-            if (node == null) return null;
+            if (pointSet == null) return null;
 
-            var root = Delete(node.Root.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, storage, ct, node.SplitLimit);
+            var root = Delete(pointSet.Root.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, storage, ct, pointSet.SplitLimit);
             if (root == null) return null;
 
             var newId = Guid.NewGuid().ToString();
-            var result = new PointSet(node.Storage, newId, root.Id, node.SplitLimit);
-            node.Storage.Add(newId, result);
+            var result = new PointSet(pointSet.Storage, newId, root.Id, pointSet.SplitLimit);
+            pointSet.Storage.Add(newId, result);
             return result;
         }
 
         /// <summary>
-        /// Returns new tree with all points deleted which are inside.
+        /// Returns new octree with all points deleted which are inside.
+        /// Returns null, if no points are left.
         /// </summary>
         public static IPointCloudNode? Delete(this IPointCloudNode? root,
             Func<IPointCloudNode, bool> isNodeFullyInside,
@@ -97,7 +99,7 @@ namespace Aardvark.Geometry.Points
                 var ns = root.HasNormals ? new List<V3f>() : null;
                 var js = root.HasIntensities ? new List<int>() : null;
                 var ks = root.HasClassifications ? new List<byte>() : null;
-                var oldPs = root.Positions.Value;
+                var oldPs = root.Positions.Value!;
                 var oldCs = root.Colors?.Value;
                 var oldNs = root.Normals?.Value;
                 var oldIs = root.Intensities?.Value;
@@ -343,8 +345,11 @@ namespace Aardvark.Geometry.Points
                 }
             }
         }
+
         /// <summary>
-        /// Returns new tree with all points deleted which are inside. Additionally tests visited points using classifications.
+        /// Returns new octree with all points deleted which are inside.
+        /// Additionally tests visited points using classifications.
+        /// Returns null, if no points are left.
         /// </summary>
         public static IPointCloudNode? DeleteWithClassifications(this IPointCloudNode? root,
             Func<IPointCloudNode, bool> isNodeFullyInside,
@@ -391,7 +396,7 @@ namespace Aardvark.Geometry.Points
                 var ns = root.HasNormals ? new List<V3f>() : null;
                 var js = root.HasIntensities ? new List<int>() : null;
                 var ks = root.HasClassifications ? new List<byte>() : null;
-                var oldPs = root.Positions.Value;
+                var oldPs = root.Positions.Value!;
                 var oldCs = root.Colors?.Value;
                 var oldNs = root.Normals?.Value;
                 var oldIs = root.Intensities?.Value;

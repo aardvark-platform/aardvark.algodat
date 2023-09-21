@@ -561,7 +561,8 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public static PointRkdTreeFData? GetPointRkdTreeFData(this Storage storage, string key)
         {
-            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (PointRkdTreeFData)o;
+            if (storage == null) return null;
+            if (storage.HasCache == true && storage.Cache.TryGetValue(key, out object o)) return (PointRkdTreeFData)o;
 
             var buffer = storage.f_get(key);
             if (buffer == null) return null;
@@ -709,7 +710,7 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public static IPointCloudNode? GetPointCloudNode(this Storage storage, string key)
         {
-            //if (key == null) return null;
+            if (key == null) return null;
 
             if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
             {
@@ -838,7 +839,7 @@ namespace Aardvark.Geometry.Points
                 {
                     var ps = storage.GetPointSet(key);
                     if (ps == null) { root = null; return false; }
-                    root = ps.Root.Value;
+                    root = ps.Root.Value!;
                     return true;
                 }
                 catch
