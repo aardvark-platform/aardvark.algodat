@@ -1,3 +1,6 @@
+### 5.2.26
+- [LodTreeInstance] ShouldSplit vfc
+
 ### 5.2.25
 - [E57 parser] do not transform normals if there are no normals
 - 
