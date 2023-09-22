@@ -261,7 +261,7 @@ namespace Aardvark.Base
                                         break;
 
                                     default:
-                                        throw new NotImplementedException($"Command not implemented: {cmd.Type}");
+                                        throw new Exception($"Unknown command \"{cmd.Type}\". Error 1bc83df9-84b6-4b42-85a1-1f0d1b10bb82.");
                                 }
                             }
 

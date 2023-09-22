@@ -35,7 +35,7 @@ namespace Aardvark.Geometry.Points
                 FilterOutsideBox3d.Type         => FilterOutsideBox3d.Deserialize(json),
 
                 null => throw new Exception($"Failed to deserialize Json. Error 287535f3-1f56-49f8-856a-b3ab8abd3764.\n{json}"),
-                _ => throw new NotImplementedException($"Unknown filter type: '{type}'"),
+                _ => throw new Exception($"Unknown filter type \"{type}\". Error 306594ed-193b-4acb-88e8-7ba24770c884."),
             };
         }
     }

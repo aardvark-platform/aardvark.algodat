@@ -703,7 +703,7 @@ namespace Aardvark.Data.E57
                                     case (PointPropertySemantics.NormalY, double[] xs)            : data.Append(sem, xs.Map(x => (float)x)); break;
                                     case (PointPropertySemantics.NormalZ, double[] xs)            : data.Append(sem, xs.Map(x => (float)x)); break;
 
-                                    default: throw new NotImplementedException($"Unexpected data ({raw}) for {sem}");
+                                    default: throw new Exception($"Unexpected data ({raw}) for {sem}. Error c370df89-355b-42a3-9a3b-d1273f0e113f.");
                                 }
                             }
 
@@ -722,7 +722,7 @@ namespace Aardvark.Data.E57
                         Console.WriteLine($"[E57CompressedVector]   EntryCount         = {indexPacketHeader.EntryCount}");
                         Console.WriteLine($"[E57CompressedVector]   IndexLevel         = {indexPacketHeader.IndexLevel}");
                         Console.WriteLine($"[E57CompressedVector]   PacketLengthMinus1 = {indexPacketHeader.PacketLengthMinus1}");
-                        throw new NotImplementedException("E57CompressedVector/IndexPacket");
+                        throw new Exception("Not supported. E57CompressedVector/IndexPacket. Error 1c01e61a-fd16-4264-83c1-64929865c1fd.");
                     }
                     else
                     {
@@ -1113,7 +1113,7 @@ namespace Aardvark.Data.E57
                     {
                         var s = ((IBitPack)x).Semantic;
                         if (!Enum.TryParse<PointPropertySemantics>(s, ignoreCase: true, out var sem)) 
-                            throw new NotImplementedException($"Unknown semantic \"{s}\".");
+                            throw new Exception($"Unknown semantic \"{s}\". Error 976b5f89-6134-498d-a491-69b2d307da89.");
                         return (idx: i, sem);
                     })
                     .ToImmutableDictionary(x => x.sem, x => x.idx)
@@ -1611,7 +1611,7 @@ namespace Aardvark.Data.E57
             /// Optional.
             /// PNG format image mask.
             /// </summary>
-            public byte[] ImageMask => throw new NotImplementedException();
+            public byte[] ImageMask => throw new Exception("Not supported. Error c8f12c98-7c19-4b48-9726-7cd18d18a954.");
 
             /// <summary>
             /// Required.
@@ -1670,7 +1670,7 @@ namespace Aardvark.Data.E57
             /// Optional.
             /// PNG format image mask.
             /// </summary>
-            public byte[] ImageMask => throw new NotImplementedException();
+            public byte[] ImageMask => throw new Exception("Not supported. Error 9c5d4b09-45d6-4e73-a456-b424947866c8.");
 
             /// <summary>
             /// Required.
@@ -1779,7 +1779,7 @@ namespace Aardvark.Data.E57
             /// Optional.
             /// PNG format image mask.
             /// </summary>
-            public byte[] ImageMask => throw new NotImplementedException();
+            public byte[] ImageMask => throw new Exception("Not supported. Error 5853b006-7291-4ff5-b4e8-0e9406b069ab.");
 
             /// <summary>
             /// Required.
@@ -1857,7 +1857,7 @@ namespace Aardvark.Data.E57
             /// Optional.
             /// PNG format image mask.
             /// </summary>
-            public byte[] ImageMask => throw new NotImplementedException();
+            public byte[] ImageMask => throw new Exception("Not supported. Error 08c44b44-d70d-4ecd-b79c-7ca44d52ea36.");
 
             /// <summary>
             /// Required.
@@ -2459,7 +2459,7 @@ namespace Aardvark.Data.E57
                 "Float" => GetFloat(root, elementName, required),
                 "Integer" => GetInteger(root, elementName, required),
                 "ScaledInteger" => GetScaledInteger(root, elementName, required),
-                _ => throw new NotImplementedException($"Unknown type '{type}'. Invariant a55575af-73cc-439f-ba63-a46883b8f6cd."),
+                _ => throw new Exception($"Unknown type '{type}'. Error a55575af-73cc-439f-ba63-a46883b8f6cd."),
             };
         }
 
@@ -2569,7 +2569,7 @@ namespace Aardvark.Data.E57
                 "IntensityLimits" => E57IntensityLimits.Parse(root),
                 "ColorLimits" => E57ColorLimits.Parse(root),
                 "E57DateTime" => E57DateTime.Parse(root),
-                _ => throw new NotImplementedException($"[E57] Unknown E57 type <{GetElementType(root)}>"),
+                _ => throw new Exception($"[E57] Unknown E57 type <{GetElementType(root)}>. Error b25563c2-bff1-4c8d-9d42-f9d4a1de82b2."),
             };
         }
 

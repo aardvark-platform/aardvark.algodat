@@ -120,7 +120,7 @@ namespace Aardvark.Base
                 return data;
             }
 
-            throw new NotImplementedException($"BitPack.UnpackIntegers({bits})");
+            throw new Exception($"BitPack.UnpackIntegers({bits}) not supported. Error afeef3d1-4d1b-4e4f-bdcf-b2bc9f34d20e.");
         }
         /// <summary></summary>
         public static byte[] OptimizedUnpackInt2(byte[] buffer)

@@ -71,7 +71,7 @@ namespace Aardvark.Geometry.Tests
             var r = new Random();
             var ps = new V3d[n];
             for (var i = 0; i < n; i++) ps[i] = new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble());
-            var chunk = new Chunk(ps);
+            var chunk = new Chunk(ps, null, null, null, null, null, null);
 
             Assert.IsTrue(chunk.Count == 100);
 
@@ -92,7 +92,7 @@ namespace Aardvark.Geometry.Tests
             var r = new Random();
             var ps = new V3d[n];
             for (var i = 0; i < n; i++) ps[i] = new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble());
-            var chunk = new Chunk(ps);
+            var chunk = new Chunk(ps, null, null, null, null, null, null);
 
             Assert.IsTrue(chunk.Count == 100);
 
@@ -114,7 +114,7 @@ namespace Aardvark.Geometry.Tests
             for (var i = 0; i < n; i++) ps[i] = new V3d(i, 0, 0);
             var bb = new Box3d(ps);
 
-            var chunk = new Chunk(ps);
+            var chunk = new Chunk(ps, null, null, null, null, null, null);
             Assert.IsTrue(chunk.Count == 10);
             Assert.IsTrue(chunk.BoundingBox == bb);
 
@@ -135,7 +135,7 @@ namespace Aardvark.Geometry.Tests
             var ps = new V3d[n];
             for (var i = 0; i < n; i++) ps[i] = new V3d(i, 0, 0);
 
-            var chunk = new Chunk(ps);
+            var chunk = new Chunk(ps, null, null, null, null, null, null);
             Assert.IsTrue(chunk.Count == 10);
 
             var config = ImportConfig.Default
@@ -160,7 +160,7 @@ namespace Aardvark.Geometry.Tests
             var ps = new V3d[n];
             for (var i = 0; i < n; i++) ps[i] = new V3d(i, 0, 0);
 
-            var chunk = new Chunk(ps);
+            var chunk = new Chunk(ps, null, null, null, null, null, null);
             Assert.IsTrue(chunk.Count == 10);
 
             var config = ImportConfig.Default
@@ -185,7 +185,7 @@ namespace Aardvark.Geometry.Tests
             var ps = new V3d[n];
             for (var i = 0; i < n; i++) ps[i] = new V3d(i, 0, 0);
 
-            var chunk = new Chunk(ps);
+            var chunk = new Chunk(ps, null, null, null, null, null, null);
             Assert.IsTrue(chunk.Count == 10);
 
             var config = ImportConfig.Default
@@ -206,7 +206,7 @@ namespace Aardvark.Geometry.Tests
             var ps = new V3d[n];
             for (var i = 0; i < n; i++) ps[i] = new V3d(i, 0, 0);
 
-            var chunk = new Chunk(ps);
+            var chunk = new Chunk(ps, null, null, null, null, null, null);
             Assert.IsTrue(chunk.Count == 10);
 
             var config = ImportConfig.Default

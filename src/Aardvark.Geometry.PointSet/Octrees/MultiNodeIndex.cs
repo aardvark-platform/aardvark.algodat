@@ -44,7 +44,7 @@
 //            //var buffer = GetNodeBlobGzipped(key, getBlobPartial);
 //            //var result = QuantizedOctreeNode.Decode(buffer, getBlob, getBlobPartial);
 //            //return result;
-//            throw new NotImplementedException();
+//            throw new Exception("Not supported. Error 833810da-0996-4df0-bd55-2e66553049e7.");
 //        }
 
 //        private MultiNodeIndex(string id, string treeBlobId, Dictionary<string, (long offset, int size)> index)
@@ -203,22 +203,22 @@
 //        /// <summary>
 //        /// MultiNode does not support Encode.
 //        /// </summary>
-//        public byte[] Encode() => throw new NotImplementedException();
+//        public byte[] Encode() => throw new Exception("Not supported. Error 0cc343db-219a-4c3f-a066-4a2f8950ab71.");
 
 //        /// <summary>
 //        /// MultiNode does not support WithSubNodes.
 //        /// </summary>
-//        public IPointCloudNode WithSubNodes(IPointCloudNode[] subnodes) => throw new NotImplementedException();
+//        public IPointCloudNode WithSubNodes(IPointCloudNode[] subnodes) => throw new Exception("Not supported. Error 40776584-f6f0-4ddf-91d2-765172d61fc4.");
 
 //        /// <summary>
 //        /// MultiNode does not support WriteToStore.
 //        /// </summary>
-//        public IPointCloudNode WriteToStore() => throw new NotImplementedException();
+//        public IPointCloudNode WriteToStore() => throw new Exception("Not supported. Error 822fac0a-538c-4613-94fd-9189d48a42c8.");
 
 //        /// <summary>
 //        /// MultiNode does not support With.
 //        /// </summary>
-//        public IPointCloudNode With(IReadOnlyDictionary<Durable.Def, object> replacements) => throw new NotImplementedException();
+//        public IPointCloudNode With(IReadOnlyDictionary<Durable.Def, object> replacements) => throw new Exception("Not supported. Error 314d6802-9e65-4ad7-9d09-90d2e4c28f49.");
 
 //        #endregion
 //    }

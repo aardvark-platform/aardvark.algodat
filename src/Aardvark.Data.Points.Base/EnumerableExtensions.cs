@@ -31,10 +31,14 @@ namespace Aardvark.Data.Points
     {
         public static T[] Subset<T>(this T[] xs, int[] subsetIndices) => subsetIndices.MapToArray(i => xs[i]);
         public static T[] Subset<T>(this T[] xs, List<int> subsetIndices) => subsetIndices.MapToArray(i => xs[i]);
+        public static T[] Subset<T>(this T[] xs, IList<int> subsetIndices) => ((IReadOnlyList<int>)subsetIndices).MapToArray(i => xs[i]);
+        public static T[] Subset<T>(this T[] xs, IReadOnlyList<int> subsetIndices) => subsetIndices.MapToArray(i => xs[i]);
+        public static T[] Subset<T>(this IList<T> xs, int[] subsetIndices) => subsetIndices.MapToArray(i => xs[i]);
+        public static T[] Subset<T>(this IList<T> xs, List<int> subsetIndices) => subsetIndices.MapToArray(i => xs[i]);
         public static T[] Subset<T>(this IReadOnlyList<T> xs, int[] subsetIndices) => subsetIndices.MapToArray(i => xs[i]);
-        public static T[] Subset<T>(this IReadOnlyList<T> xs, List<int> subsetIndices) => subsetIndices.MapToArray(i => xs[i]);
+        public static T[] Subset<T>(this IReadOnlyList<T> xs, IReadOnlyList<int> subsetIndices) => subsetIndices.MapToArray(i => xs[i]);
 
-        public static Array Subset(this object array, List<int> subsetIndices) => array switch
+        public static Array Subset(this object array, IReadOnlyList<int> subsetIndices) => array switch
         {
             Guid   [] xs => Subset(xs, subsetIndices),
             string [] xs => Subset(xs, subsetIndices),

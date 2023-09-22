@@ -15,11 +15,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-using Aardvark.Base;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
 
 namespace Aardvark.Data.Points
 {
@@ -29,9 +26,9 @@ namespace Aardvark.Data.Points
     {
         /// <summary>
         /// </summary>
-        public static IEnumerable<Chunk> ImmutableUnmixOutOfCore(this IEnumerable<Chunk> chunks, string tmpdir, int binsExponent, ParseConfig config)
+        internal static IEnumerable<Chunk> ImmutableUnmixOutOfCore(this IEnumerable<Chunk> chunks, string tmpdir, int binsExponent, ParseConfig config)
         {
-            throw new NotImplementedException();
+            throw new Exception("Not supported. Error b5ee27fe-c32d-4bc7-b96a-3256bd4dbf2f.");
 
 #if TODO
             var binsExponentFactor = 1.0 / Math.Pow(2.0, binsExponent);

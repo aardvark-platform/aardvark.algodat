@@ -205,8 +205,11 @@ namespace Aardvark.Data.Points.Import
                             colors: e57chunk.Colors?.Map(c => new C4b(c)) ?? Positions.Map(_ => C4b.White),
                             normals: e57chunk.Normals,
                             intensities: e57chunk.Intensities,
-                            classifications: e57chunk.Classification?.Map(x => (byte)x)
+                            classifications: e57chunk.Classification?.Map(x => (byte)x),
+                            partIndices: null, // TODO
+                            bbox: null
                             );
+                        throw new NotImplementedException("PARTINDICES");
 
                         if (Properties.ContainsKey(PointPropertySemantics.CartesianInvalidState))
                         {

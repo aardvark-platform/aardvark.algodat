@@ -1242,7 +1242,7 @@ namespace Aardvark.Geometry
         public virtual KdNode Intersect(
                 ref FastHull3d hull, Hull.Flags32 outsideFlags)
             {
-                throw new NotImplementedException();
+                throw new Exception("Not supported. Error 19c200dc-cac4-4ec3-824c-3dec6f0a8493.");
             }
 
         public abstract IEnumerable<int> Indices(
@@ -1653,7 +1653,7 @@ namespace Aardvark.Geometry
 
         public override IEnumerable<KdLeaf> Leafs()
         {
-            throw new NotImplementedException();
+            throw new Exception("Not supported. Error ec65873c-00cd-4a08-9bf9-f750c2ab8e3d.");
         }
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
@@ -3006,7 +3006,7 @@ namespace Aardvark.Geometry
 
         public override IEnumerable<KdLeaf> Leafs()
         {
-            throw new NotImplementedException();
+            throw new Exception("Not supported. Error 2fe1cf8b-9f54-4345-951a-7855b7e8677c.");
         }
 
         internal override void Count(Counts counts)
@@ -3134,31 +3134,31 @@ namespace Aardvark.Geometry
         public override bool Intersect(
                 ref KdIntersectionRay kdRay, ref TP3d tpmin, ref TP3d tpmax)
         {
-            throw new NotImplementedException();
+            throw new Exception("Not supported. Error 00c081ab-2d61-4624-943e-9a99c740fe42.");
         }
 
         public override KdNode Intersect(ref Box3d box, Box.Flags outFlags)
         {
-            throw new NotImplementedException();
+            throw new Exception("Not supported. Error ca95965c-0dd9-4e93-8b02-8dd351e89d8b.");
         }
 
         public override IEnumerable<KdLeaf> Leafs()
         {
-            throw new NotImplementedException();
+            throw new Exception("Not supported. Error 383d5d74-4114-41b9-867e-eb03ffe87355.");
         }
 
         public override IEnumerable<int> Indices(
                 Func<int[], int, int, IEnumerable<int>> interiorSelector,
                 Func<int[], int, int, IEnumerable<int>> borderSelector)
         {
-            throw new NotImplementedException();
+            throw new Exception("Not supported. Error f478b66c-d913-4a34-9e67-6e004d3e5b96.");
         }
 
         public override bool ClosestPoint(
             ref KdQueryPoint query, ref V3d pmin, ref V3d pmax
             )
         {
-            throw new NotImplementedException();
+            throw new Exception("Not supported. Error 36a91713-ec6d-4966-b96c-2116b2c94b8a.");
         }
     }
 

@@ -77,7 +77,7 @@ namespace Aardvark.Geometry.Points
                 }
                 else
                 {
-                    throw new NotImplementedException("cannot delete on PointCloud with non-spatial filter");
+                    throw new Exception("Delete is not supported on PointCloud with non-spatial filter. Error 1885c46f-2eef-4dfb-807b-439c1b9c673d.");
                 }
             }
 
@@ -374,7 +374,7 @@ namespace Aardvark.Geometry.Points
                 }
                 else
                 {
-                    throw new NotImplementedException("cannot delete on PointCloud with non-spatial filter");
+                    throw new Exception("Delete is not supported on PointCloud with non-spatial filter. Error 6350fbef-3422-423f-904e-6706a270e65e.");
                 }
             }
 

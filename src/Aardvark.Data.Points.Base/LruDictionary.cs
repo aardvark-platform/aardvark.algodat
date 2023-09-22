@@ -292,7 +292,7 @@ namespace Aardvark.Base
         /// <summary></summary>
         public void CopyTo(KeyValuePair<K, V>[] array, int arrayIndex)
         {
-            throw new NotImplementedException();
+            throw new Exception("Not supported. Error 96c651a1-e404-4791-81f2-84d7c4dd1902.");
         }
 
         /// <summary></summary>

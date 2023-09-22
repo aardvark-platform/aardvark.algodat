@@ -110,8 +110,11 @@ namespace Aardvark.Geometry.Points
                         csla.Count > 0 ? csla : null,
                         nsla.Count > 0 ? nsla : null,
                         jsla.Count > 0 ? jsla : null,
-                        ksla.Count > 0 ? ksla : null
+                        ksla.Count > 0 ? ksla : null,
+                        partIndices: null, // TODO
+                        bbox: null
                         );
+                    throw new NotImplementedException("PARTINDICES");
 
                     if (config.NormalizePointDensityGlobal)
                     {
@@ -178,7 +181,7 @@ namespace Aardvark.Geometry.Points
             var subnodesNormals = self.HasNormals ? new List<V3f>[8] : null;
             var subnodesIntensities = self.HasIntensities ? new List<int>[8] : null;
             var subnodesClassifications = self.HasClassifications ? new List<byte>[8] : null;
-            object?[]? subnodesPartIndices = self.HasPartIndices ? throw new NotImplementedException("TODO PARTINDICES") : null;
+            object?[]? subnodesPartIndices = self.HasPartIndices ? throw new NotImplementedException("PARTINDICES") : null;
 
             var pa = self.PositionsAbsolute;
             var ca = self.Colors?.Value;
@@ -221,8 +224,10 @@ namespace Aardvark.Geometry.Points
                     subnodesNormals?[i],
                     subnodesIntensities?[i],
                     subnodesClassifications?[i],
+                    partIndices: null, // TODO
                     subCell.BoundingBox
                     );
+                throw new NotImplementedException("PARTINDICES");
                 if (config.NormalizePointDensityGlobal)
                 {
                     chunk = chunk.ImmutableFilterMinDistByCell(subCell, config.ParseConfig);
@@ -303,9 +308,12 @@ namespace Aardvark.Geometry.Points
                     csla.Count > 0 ? csla : null,
                     nsla.Count > 0 ? nsla : null,
                     jsla.Count > 0 ? jsla : null,
-                    ksla.Count > 0 ? ksla : null
-                    );
-                if(config.NormalizePointDensityGlobal)
+                    ksla.Count > 0 ? ksla : null,
+                    partIndices: null, // TODO
+                    bbox: null
+                    ); 
+                throw new NotImplementedException("PARTINDICES");
+                if (config.NormalizePointDensityGlobal)
                 {
                     chunk = chunk.ImmutableFilterMinDistByCell(cell, config.ParseConfig);
                 }
@@ -795,7 +803,8 @@ namespace Aardvark.Geometry.Points
             var js = Concat(a.Intensities?.Value, b.Intensities?.Value);
             var ks = Concat(a.Classifications?.Value, b.Classifications?.Value);
 
-            var chunk = new Chunk(ps, cs, ns, js, ks, cell.BoundingBox);
+            var chunk = new Chunk(ps, cs, ns, js, ks, partIndices: null /* TODO */, cell.BoundingBox);
+            throw new NotImplementedException("PARTINDICES");
             if (config.NormalizePointDensityGlobal)
             {
                 chunk = chunk.ImmutableFilterMinDistByCell(cell, config.ParseConfig);
@@ -900,7 +909,8 @@ namespace Aardvark.Geometry.Points
 
             if (a == null)
             {
-                var chunk = new Chunk(psAbsolute, cs, ns, js, ks, cell.BoundingBox);
+                var chunk = new Chunk(psAbsolute, cs, ns, js, ks, partIndices: null /* TODO */, cell.BoundingBox);
+                throw new NotImplementedException("PARTINDICES");
                 if (config.NormalizePointDensityGlobal)
                 {
                     chunk = chunk.ImmutableFilterMinDistByCell(cell, config.ParseConfig);
@@ -927,7 +937,8 @@ namespace Aardvark.Geometry.Points
                 var newJs = js != null ? new List<int>(js) : null; newJs?.AddRange(a.Intensities!.Value);
                 var newKs = ks != null ? new List<byte>(ks) : null; newKs?.AddRange(a.Classifications!.Value);
 
-                var chunk = new Chunk(newPs, newCs, newNs, newJs, newKs, cell.BoundingBox);
+                var chunk = new Chunk(newPs, newCs, newNs, newJs, newKs, partIndices: null /* TODO */, cell.BoundingBox);
+                throw new NotImplementedException("PARTINDICES");
 
                 if (config.NormalizePointDensityGlobal)
                 {

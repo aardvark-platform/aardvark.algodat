@@ -35,7 +35,7 @@ namespace Aardvark.Geometry.Tests
                 .WithKey("test")
                 .WithOctreeSplitLimit(splitLimit)
                 ;
-            return PointCloud.Chunks(new Chunk(ps, null), config);
+            return PointCloud.Chunks(new Chunk(ps), config);
         }
 
         private static PointSet CreateRegularPointsInUnitCube(int n, int splitLimit)
@@ -52,7 +52,7 @@ namespace Aardvark.Geometry.Tests
                 .WithKey("test")
                 .WithOctreeSplitLimit(splitLimit)
                 ;
-            return PointCloud.Chunks(new Chunk(ps, null), config);
+            return PointCloud.Chunks(new Chunk(ps), config);
         }
 
         [Test]

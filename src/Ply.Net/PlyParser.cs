@@ -649,7 +649,7 @@ public static class PlyParser
             Format.BinaryLittleEndian => BinaryParser.Parse(header, f, maxChunkSize, log),
             Format.BinaryBigEndian    => BinaryParser.Parse(header, f, maxChunkSize, log),
             Format.Ascii              => AsciiParser.Parse(header, f, log),
-            _ => throw new NotImplementedException($"Format {header.Format} not supported."),
+            _ => throw new Exception($"Format {header.Format} is not supported. Error f7bf1121-fb1d-4fcd-844d-e43105d8fe79."),
         };
     }
 

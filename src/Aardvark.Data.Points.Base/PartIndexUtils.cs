@@ -71,6 +71,28 @@ public static class PartIndexUtils
         }
     }
 
+    /// <summary>
+    /// Returns union of part indices (uint, IList of [byte|short|int]).
+    /// </summary>
+    public static object? Union(params object?[] xs)
+    {
+        if (xs.Length == 0) return null;
+
+        var result = xs[0];
+        for (var i = 1; i < xs.Length; i++) result = Union(result, xs[i]);
+        return result;
+    }
+
+    /// <summary>
+    /// Returns union of part indices (uint, IList of [byte|short|int]).
+    /// </summary>
+    public static object? Union(IEnumerable<object?> xs)
+    {
+        var result = xs.FirstOrDefault();
+        foreach (var x in xs.Skip(1)) result = Union(result, x);
+        return result;
+    }
+
     public static Range1i ExtendedBy(in Range1i range, object? partIndices)
     {
         checked
@@ -90,4 +112,52 @@ public static class PartIndexUtils
             };
         }
     }
+
+    /// <summary>
+    /// Skips n part indices and returns the remaining ones.
+    /// </summary>
+    public static object? Skip(object? partIndices, int n) => partIndices switch
+    {
+        null => null,
+        uint x => x,
+        IList<byte> xs => xs.Skip(n).ToArray(),
+        IList<short> xs => xs.Skip(n).ToArray(),
+        IList<int> xs => xs.Skip(n).ToArray(),
+
+        _ => throw new Exception(
+            $"Unexpected part indices type {partIndices.GetType().FullName}. " +
+            $"Error 792d520b-fa95-4760-a2e8-3fecca773337"
+            )
+    };
+
+    /// <summary>
+    /// Returns the first n part indices.
+    /// </summary>
+    public static object? Take(object? partIndices, int n) => partIndices switch
+    {
+        null => null,
+        uint x => x,
+        IList<byte> xs => xs.Take(n).ToArray(),
+        IList<short> xs => xs.Take(n).ToArray(),
+        IList<int> xs => xs.Take(n).ToArray(),
+
+        _ => throw new Exception(
+            $"Unexpected part indices type {partIndices.GetType().FullName}. " +
+            $"Error 49e1b5e2-5380-4ce3-a2d2-b80fec39337f"
+            )
+    };
+
+    internal static object? Subset(object? partIndices, IReadOnlyList<int> subsetIndices) => partIndices switch
+    {
+        null => null,
+        uint x => x,
+        IList<byte> xs => subsetIndices.MapToArray(i => xs[i]),
+        IList<short> xs => subsetIndices.MapToArray(i => xs[i]),
+        IList<int> xs => subsetIndices.MapToArray(i => xs[i]),
+
+        _ => throw new Exception(
+            $"Unexpected part indices type {partIndices.GetType().FullName}. " +
+            $"Error 37b3981f-ea67-489c-8fc9-354c01057792"
+            )
+    };
 }

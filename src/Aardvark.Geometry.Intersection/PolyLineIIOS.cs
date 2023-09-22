@@ -59,7 +59,7 @@ namespace Aardvark.Geometry
 
         public void ObjectHitInfo(ObjectRayHit hit, ref ObjectHitInfo hitInfo)
         {
-            throw new NotImplementedException();
+            throw new Exception("Not supported. Error 42940932-02d0-4a7e-89ff-ccfe2dab743c.");
         }
 
         public bool ObjectIntersectsBox(int objectIndex, Box3d box)

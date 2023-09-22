@@ -225,7 +225,8 @@ namespace Aardvark.Geometry.Points
                 var ns = Verified(node.TryGetNormals3f()?.Value, "normals");
                 var js = Verified(node.TryGetIntensities()?.Value, "intensities");
                 var ks = Verified(node.TryGetClassifications()?.Value, "classifications");
-                var chunk = new Chunk(ps, cs, ns, js, ks);
+                var chunk = new Chunk(ps, cs, ns, js, ks, partIndices: null /* TODO */, bbox: null);
+                throw new NotImplementedException("PARTINDICES");
                 yield return chunk;
             }
             else
@@ -270,7 +271,8 @@ namespace Aardvark.Geometry.Points
                 var ns = node?.TryGetNormals3f()?.Value;
                 var js = node?.TryGetIntensities()?.Value;
                 var ks = node?.TryGetClassifications()?.Value;
-                var chunk = new Chunk(ps, cs, ns, js, ks);
+                var chunk = new Chunk(ps, cs, ns, js, ks, partIndices: null /* TODO */, bbox: null);
+                throw new NotImplementedException("PARTINDICES");
                 yield return chunk;
             }
             else

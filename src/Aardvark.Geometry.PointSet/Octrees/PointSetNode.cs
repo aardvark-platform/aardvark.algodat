@@ -162,8 +162,11 @@ namespace Aardvark.Geometry.Points
             var isId = IntensitiesId;
             var ksId = ClassificationsId;
 
-            if (psId != null) PersistentRefs[Durable.Octree.PositionsLocal3fReference] = new PersistentRef<V3f[]>(psId.Value, storage.GetV3fArray, storage.TryGetV3fArrayFromCache);
-            if (csId != null) PersistentRefs[Durable.Octree.Colors4bReference] = new PersistentRef<C4b[]>(csId.Value, storage.GetC4bArray, storage.TryGetC4bArrayFromCache);
+            Func<string, T> throwWhenNull<T>(Func<string, T?> f) where T : notnull
+                => key => f(key) ?? throw new Exception();
+
+            if (psId != null) PersistentRefs[Durable.Octree.PositionsLocal3fReference] = new PersistentRef<V3f[]>(psId.Value, throwWhenNull(storage.GetV3fArray), storage.TryGetV3fArrayFromCache);
+            if (csId != null) PersistentRefs[Durable.Octree.Colors4bReference        ] = new PersistentRef<C4b[]>(csId.Value, throwWhenNull(storage.GetC4bArray), storage.TryGetC4bArrayFromCache);
             if (kdId != null)
             {
                 if (isObsoleteFormat)
@@ -179,9 +182,9 @@ namespace Aardvark.Geometry.Points
                         ;
                 }
             }
-            if (nsId != null) PersistentRefs[Durable.Octree.Normals3fReference] = new PersistentRef<V3f[]>(nsId.Value, storage.GetV3fArray, storage.TryGetV3fArrayFromCache);
-            if (isId != null) PersistentRefs[Durable.Octree.Intensities1iReference] = new PersistentRef<int[]>(isId.Value, storage.GetIntArray, storage.TryGetIntArrayFromCache);
-            if (ksId != null) PersistentRefs[Durable.Octree.Classifications1bReference] = new PersistentRef<byte[]>(ksId.Value, storage.GetByteArray, storage.TryGetByteArrayFromCache);
+            if (nsId != null) PersistentRefs[Durable.Octree.Normals3fReference        ] = new PersistentRef<V3f[] >(nsId.Value, throwWhenNull(storage.GetV3fArray ), storage.TryGetV3fArrayFromCache );
+            if (isId != null) PersistentRefs[Durable.Octree.Intensities1iReference    ] = new PersistentRef<int[] >(isId.Value, throwWhenNull(storage.GetIntArray ), storage.TryGetIntArrayFromCache );
+            if (ksId != null) PersistentRefs[Durable.Octree.Classifications1bReference] = new PersistentRef<byte[]>(ksId.Value, throwWhenNull(storage.GetByteArray), storage.TryGetByteArrayFromCache);
 
 #endregion
 

@@ -157,7 +157,7 @@ namespace Aardvark.Geometry
 
         #region IBoundingBox2d Members
 
-        public Box2d BoundingBox2d => throw new NotImplementedException();
+        public Box2d BoundingBox2d => throw new Exception("Not supported. Exception 6479c31c-b5d4-431c-b274-398c4936dc51.");
 
         #endregion
 

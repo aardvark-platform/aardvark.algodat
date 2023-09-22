@@ -30,7 +30,7 @@ namespace Aardvark.Data.Points
         /// <summary>
         /// Parses ASCII lines file.
         /// </summary>
-        internal static IEnumerable<Chunk> AsciiLines(Func<byte[], int, double, Chunk> lineParser,
+        internal static IEnumerable<Chunk> AsciiLines(Func<byte[], int, double, uint?, Chunk> lineParser,
             string filename, ParseConfig config
             )
         {
@@ -42,14 +42,14 @@ namespace Aardvark.Data.Points
         /// <summary>
         /// Parses ASCII lines stream.
         /// </summary>
-        internal static IEnumerable<Chunk> AsciiLines(Func<byte[], int, double, Chunk> lineParser,
+        internal static IEnumerable<Chunk> AsciiLines(Func<byte[], int, double, uint?, Chunk> lineParser,
             Stream stream, long streamLengthInBytes, ParseConfig config
             )
         {
             // importing file
             var result = stream
                 .ChunkStreamAtNewlines(streamLengthInBytes, config.ReadBufferSizeInBytes, config.CancellationToken)
-                .ParseBuffers(streamLengthInBytes, lineParser, config.MinDist, config.MaxDegreeOfParallelism, config.Verbose, config.CancellationToken)
+                .ParseBuffers(streamLengthInBytes, lineParser, config)
                 ;
             return result;
         }
@@ -125,16 +125,12 @@ namespace Aardvark.Data.Points
         /// <param name="buffers"></param>
         /// <param name="sumOfAllBufferSizesInBytes"></param>
         /// <param name="parser">(buffer, count, minDist) => Chunk</param>
-        /// <param name="minDist"></param>
-        /// <param name="maxLevelOfParallelism"></param>
-        /// <param name="verbose"></param>
-        /// <param name="ct"></param>
+        /// <param name="config"></param>
         /// <returns></returns>
         public static IEnumerable<Chunk> ParseBuffers(
             this IEnumerable<Buffer> buffers, long sumOfAllBufferSizesInBytes,
-            Func<byte[], int, double, Chunk> parser, double minDist,
-            int maxLevelOfParallelism, bool verbose,
-            CancellationToken ct
+            Func<byte[], int, double, uint?, Chunk> parser, 
+            ParseConfig config
             )
         {
             var stats = new ParsingStats(sumOfAllBufferSizesInBytes);
@@ -147,9 +143,11 @@ namespace Aardvark.Data.Points
 
                 .MapParallel((buffer, ct2) =>
                     {
-                        var optionalSamples = parser(buffer.Data, buffer.Count, minDist);
+                        uint? partIndices = config.EnabledProperties.PartIndices ? config.PartIndexOffset : null;
+                        var optionalSamples = parser(buffer.Data, buffer.Count, config.MinDist, partIndices);
                         if (optionalSamples == null) return Chunk.Empty;
                         var samples = optionalSamples;
+                        if (config.EnabledProperties.PartIndices) samples = samples.WithPartIndices(config.PartIndexOffset);
                         bounds.ExtendBy(new Box3d(samples.Positions));
                         Interlocked.Add(ref sampleCount, samples.Count);
                         var r = new Chunk(samples.Positions, samples.Colors, samples.Normals, samples.Intensities, samples.Classifications, samples.PartIndices, samples.BoundingBox);
@@ -158,16 +156,16 @@ namespace Aardvark.Data.Points
                         Interlocked.Add(ref totalBytesRead, buffer.Count);
                         stats.ReportProgress(totalBytesRead);
                 
-                        if (verbose) Console.WriteLine(
+                        if (config.Verbose) Console.WriteLine(
                             $"[Parsing] processed {totalBytesRead * PER_GiB:0.000} GiB at {stats.MiBsPerSecond:0.00} MiB/s"
                             );
 
                         return r;
                     },
-                    maxLevelOfParallelism,
+                    config.MaxChunkPointCount,
                     elapsed =>
                     {
-                        if (verbose)
+                        if (config.Verbose)
                         {
                             Console.WriteLine($"[Parsing] summary: processed {sumOfAllBufferSizesInBytes} bytes in {elapsed.TotalSeconds:0.00} secs");
                             Console.WriteLine($"[Parsing] summary: with average throughput of {sumOfAllBufferSizesInBytes * PER_MiB / elapsed.TotalSeconds:0.00} MiB/s");
@@ -175,7 +173,7 @@ namespace Aardvark.Data.Points
                             Console.WriteLine($"[Parsing] summary: yielded {sampleCountYielded} point samples");
                             Console.WriteLine($"[Parsing] summary: bounding box is {bounds}");
                         }
-                    }, ct)
+                    }, config.CancellationToken)
 
                 .Where(c => c != null && c.Count > 0)
 

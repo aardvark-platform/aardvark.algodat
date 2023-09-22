@@ -33,7 +33,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void Chunk_EmptyChunk2()
         {
-            var x = new Chunk(new V3d[0], new C4b[0]);
+            var x = new Chunk(Array.Empty<V3d>(), Array.Empty<C4b>(), null, null, null, null, null);
             Assert.IsTrue(x.IsEmpty);
             Assert.IsTrue(x.HasPositions);
             Assert.IsTrue(x.HasColors);
@@ -51,7 +51,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void Chunk_ChunkFromPositionsAndColors()
         {
-            var x = new Chunk(new V3d[1], new C4b[1]);
+            var x = new Chunk(new V3d[1], new C4b[1], null, null, null, null, null);
             Assert.IsTrue(x.Count == 1);
             Assert.IsTrue(x.HasPositions);
             Assert.IsTrue(x.HasColors);
@@ -70,6 +70,7 @@ namespace Aardvark.Geometry.Tests
         {
             var x = new Chunk(
                 new[] { new V3d(1, 2, 3), new V3d(4, 5, 6) },
+                null, null, null, null, null,
                 bbox: new Box3d(new V3d(0, 0, 0), new V3d(8, 8, 8))
                 );
             Assert.IsTrue(x.Count == 2);
@@ -81,7 +82,7 @@ namespace Aardvark.Geometry.Tests
         {
             Assert.DoesNotThrow(() =>
             {
-                var chunk = new Chunk(new[] { new V3d(1, 2, 3), new V3d(4, 5, 6) }, Array.Empty<C4b>());
+                var chunk = new Chunk(new[] { new V3d(1, 2, 3), new V3d(4, 5, 6) }, Array.Empty<C4b>(), null, null, null, null, null);
                 Assert.IsTrue(chunk.Count == 0);
                 Assert.IsTrue(chunk.Positions.Count == 0);
                 Assert.IsTrue(chunk.Colors.Count == 0);
@@ -93,7 +94,7 @@ namespace Aardvark.Geometry.Tests
         {
             Assert.DoesNotThrow(() =>
             {
-                var chunk = new Chunk(new[] { new V3d(1, 2, 3), new V3d(4, 5, 6) }, new C4b[123]);
+                var chunk = new Chunk(new[] { new V3d(1, 2, 3), new V3d(4, 5, 6) }, new C4b[123], null, null, null, null, null);
                 Assert.IsTrue(chunk.Count == 2);
                 Assert.IsTrue(chunk.Positions.Count == 2);
                 Assert.IsTrue(chunk.Colors.Count == 2);
@@ -105,14 +106,14 @@ namespace Aardvark.Geometry.Tests
         {
             Assert.Catch(() =>
             {
-                new Chunk(null, new C4b[123]);
+                new Chunk(null, new C4b[123],null, null, null, null, null);
             });
         }
 
         [Test]
         public void Chunk_EmptyColors()
         {
-            new Chunk(new[] { new V3d(1, 2, 3), new V3d(4, 5, 6) }, null);
+            new Chunk(new[] { new V3d(1, 2, 3), new V3d(4, 5, 6) });
         }
 
         [Test]
@@ -120,7 +121,7 @@ namespace Aardvark.Geometry.Tests
         {
             Assert.Catch(() =>
             {
-                new Chunk(null, new C4b[1]);
+                new Chunk(null, new C4b[1], null, null, null, null, null);
             });
         }
 
@@ -128,7 +129,7 @@ namespace Aardvark.Geometry.Tests
         public void Chunk_ImmutableFilterSequentialMinDistL2()
         {
             var ps = new[] { new V3d(1, 2, 3), new V3d(1.5, 2, 3), new V3d(2, 2, 3), new V3d(2.5, 2, 3) };
-            var a = new Chunk(ps.Copy(), null);
+            var a = new Chunk(ps.Copy());
             var b = a.ImmutableFilterSequentialMinDistL2(0.75);
 
             for (var i = 0; i < ps.Length; i++)
@@ -142,7 +143,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void Chunk_ImmutableMapPositions()
         {
-            var a = new Chunk(new[] { new V3d(1, 2, 3), new V3d(4, 5, 6) }, null);
+            var a = new Chunk(new[] { new V3d(1, 2, 3), new V3d(4, 5, 6) });
             var b = a.ImmutableMapPositions(p => p + new V3d(10, 20, 30));
 
             Assert.IsTrue(a.Positions[0] == new V3d(1, 2, 3));
@@ -155,7 +156,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void Chunk_ImmutableDeduplicate_1()
         {
-            var a = new Chunk(new[] { new V3d(1, 2, 3), new V3d(4, 5, 6), new V3d(1, 2, 3), new V3d(4, 5, 6) }, null);
+            var a = new Chunk(new[] { new V3d(1, 2, 3), new V3d(4, 5, 6), new V3d(1, 2, 3), new V3d(4, 5, 6) });
             var b = a.ImmutableDeduplicate(verbose: false);
 
             Assert.IsTrue(a.Positions.Count == 4);
@@ -167,7 +168,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void Chunk_ImmutableDeduplicate_2()
         {
-            var a = new Chunk(new[] { new V3d(1, 2, 3), new V3d(4, 5, 6), new V3d(4, 5, 7), new V3d(4, 5, 8) }, null);
+            var a = new Chunk(new[] { new V3d(1, 2, 3), new V3d(4, 5, 6), new V3d(4, 5, 7), new V3d(4, 5, 8) });
             var b = a.ImmutableDeduplicate(verbose: false);
 
             Assert.IsTrue(a.Positions.Count == 4);

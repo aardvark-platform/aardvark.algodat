@@ -74,7 +74,7 @@ namespace Aardvark.Data.E57
             PPS.SphericalRange        => ValueBuffer<double>(),
             PPS.TimeStamp             => ValueBuffer<double>(),
             PPS.Classification        => ValueBuffer<int>(),
-            _ => throw new NotImplementedException($"Unknown PointPropertySemantics \"{sem}\".")
+            _ => throw new Exception($"Unknown PointPropertySemantics \"{sem}\". Error 0c98368f-a99f-4a88-a3c6-b2c3ac81d478.")
         };
     }
 

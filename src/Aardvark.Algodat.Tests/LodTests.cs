@@ -192,7 +192,7 @@ namespace Aardvark.Geometry.Tests
             };
 
             var config = ImportConfig.Default.WithStorage(storage).WithRandomKey();
-            var n = PointCloud.Chunks(new Chunk(ps, null), config).Root.Value;
+            var n = PointCloud.Chunks(new Chunk(ps), config).Root.Value;
 
             Assert.IsTrue(n.HasCentroidLocal);
             Assert.IsTrue(n.HasCentroidLocalStdDev);
@@ -217,7 +217,7 @@ namespace Aardvark.Geometry.Tests
             };
 
             var config = ImportConfig.Default.WithStorage(storage).WithRandomKey();
-            var n = PointCloud.Chunks(new Chunk(ps, null), config).Root.Value;
+            var n = PointCloud.Chunks(new Chunk(ps), config).Root.Value;
 
             Assert.IsTrue(n.HasBoundingBoxExactLocal);
             Assert.IsTrue(n.BoundingBoxExactLocal == new Box3f(new V3f(-0.4f), new V3f(0.4f)));
@@ -237,7 +237,7 @@ namespace Aardvark.Geometry.Tests
             var ps = new V3d[10].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
 
             var config = ImportConfig.Default.WithStorage(storage).WithRandomKey();
-            var n = PointCloud.Chunks(new Chunk(ps, null), config).Root.Value;
+            var n = PointCloud.Chunks(new Chunk(ps), config).Root.Value;
 
             Assert.IsTrue(n.HasMinTreeDepth);
             Assert.IsTrue(n.HasMaxTreeDepth);
@@ -255,7 +255,7 @@ namespace Aardvark.Geometry.Tests
             var ps = new V3d[20000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
 
             var config = ImportConfig.Default.WithStorage(storage).WithRandomKey();
-            var n = PointCloud.Chunks(new Chunk(ps, null), config).Root.Value;
+            var n = PointCloud.Chunks(new Chunk(ps), config).Root.Value;
 
             Assert.IsTrue(n.HasMinTreeDepth);
             Assert.IsTrue(n.HasMaxTreeDepth);
@@ -283,7 +283,7 @@ namespace Aardvark.Geometry.Tests
             };
 
             var config = ImportConfig.Default.WithStorage(storage).WithRandomKey();
-            var n = PointCloud.Chunks(new Chunk(ps, null), config).Root.Value;
+            var n = PointCloud.Chunks(new Chunk(ps), config).Root.Value;
 
             Assert.IsTrue(n.HasPointDistanceAverage);
             Assert.IsTrue(n.HasPointDistanceStandardDeviation);

@@ -54,7 +54,7 @@ namespace Aardvark.Data.Points.Import
         /// Parses PLY (.ply) file.
         /// </summary>
         public static IEnumerable<Chunk> Chunks(string filename, ParseConfig config)
-            => PlyParser.Parse(filename, config.MaxChunkPointCount, config.Verbose ? (s => Report.Line(s)) : null).Chunks();
+            => PlyParser.Parse(filename, config.MaxChunkPointCount, config.Verbose ? (s => Report.Line(s)) : null).Chunks(config);
 
         /// <summary>
         /// Parses PLY (.ply) file.
@@ -62,13 +62,21 @@ namespace Aardvark.Data.Points.Import
 #pragma warning disable IDE0060 // Remove unused parameter
         public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, ParseConfig config)
 #pragma warning restore IDE0060 // Remove unused parameter
-            => PlyParser.Parse(stream, config.MaxChunkPointCount, config.Verbose ? (s => Report.Line(s)) : null).Chunks();
+            => PlyParser.Parse(stream, config.MaxChunkPointCount, config.Verbose ? (s => Report.Line(s)) : null).Chunks(config);
 
         /// <summary>
         /// Parses Ply.Net dataset.
         /// </summary>
         public static IEnumerable<Chunk> Chunks(this PlyParser.Dataset data)
+            => Chunks(data, ParseConfig.Default);
+
+        /// <summary>
+        /// Parses Ply.Net dataset.
+        /// </summary>
+        public static IEnumerable<Chunk> Chunks(this PlyParser.Dataset data, ParseConfig config)
         {
+            object? partIndex = config.EnabledProperties.PartIndices ? config.PartIndexOffset : null;
+
             var vds = data.Data.Where(x => x.Element.Type == PlyParser.ElementType.Vertex);
             
             foreach (var vd in vds)
@@ -252,7 +260,7 @@ namespace Aardvark.Data.Points.Import
 
                 #endregion
 
-                var chunk = new Chunk(ps, cs, ns, js, ks);
+                var chunk = new Chunk(ps, cs, ns, js, ks, partIndices: partIndex, bbox: null);
 
                 yield return chunk;
             }

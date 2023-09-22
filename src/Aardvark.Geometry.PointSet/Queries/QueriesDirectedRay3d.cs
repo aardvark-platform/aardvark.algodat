@@ -90,7 +90,8 @@ namespace Aardvark.Geometry.Points
 
                     if (ps != null)
                     {
-                        yield return new Chunk(ps, cs, ns, js, ks);
+                        throw new NotImplementedException("PARTINDICES");
+                        yield return new Chunk(ps, cs, ns, js, ks, partIndices: null /* TODO */, bbox: null);
                     }
 
                     void Init()

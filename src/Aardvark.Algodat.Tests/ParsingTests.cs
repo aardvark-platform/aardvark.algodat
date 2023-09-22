@@ -102,11 +102,12 @@ namespace Aardvark.Geometry.Tests
             var buffer = new byte[10] { 1, 1, 10, 2, 2, 10, 3, 3, 10, 4 };
             var ms = new MemoryStream(buffer);
 
-            static Chunk parse(byte[] _, int __, double ___) => new(new[] { V3d.Zero });
+            static Chunk parse(byte[] _, int __, double ___, uint? ____) => new(new[] { V3d.Zero });
 
+            var config = ParseConfig.Default.WithMinDist(0.0).WithMaxDegreeOfParallelism(0).WithVerbose(true);
             var xs = ms
                 .ChunkStreamAtNewlines(10, 5, CancellationToken.None)
-                .ParseBuffers(buffer.LongLength, parse, 0.0, 0, true, CancellationToken.None)
+                .ParseBuffers(buffer.LongLength, parse, config)
                 .ToArray();
             Assert.IsTrue(xs != null);
         }
@@ -121,7 +122,7 @@ namespace Aardvark.Geometry.Tests
         {
             var buffer = Encoding.ASCII.GetBytes(txt);
             var layout = new[] { Token.NormalX };
-            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout);
+            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout, partIndices: null);
             Assert.IsTrue(data != null && data.Count == 1);
             Assert.IsTrue(data.Normals[0].X.ApproximateEquals(result, 10e-7f));
         }
@@ -151,7 +152,7 @@ namespace Aardvark.Geometry.Tests
         {
             var buffer = Encoding.ASCII.GetBytes(txt);
             var layout = new[] { Token.PositionX };
-            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout);
+            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout, partIndices: null);
             Assert.IsTrue(data != null && data.Count == 1);
             Assert.IsTrue(data.Positions[0].X.ApproximateEquals(result, 10e-15));
         }
@@ -181,7 +182,7 @@ namespace Aardvark.Geometry.Tests
         {
             var buffer = Encoding.ASCII.GetBytes(txt);
             var layout = new[] { Token.Intensity };
-            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout);
+            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout, partIndices: null);
             Assert.IsTrue(data != null && data.Count == 1);
             Assert.IsTrue(data.Intensities[0] == result);
         }
@@ -207,7 +208,7 @@ namespace Aardvark.Geometry.Tests
         {
             var buffer = Encoding.ASCII.GetBytes(txt);
             var layout = new[] { Token.ColorR };
-            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout);
+            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout, partIndices: null);
             if (isInvalid)
             {
                 Assert.IsTrue(data == null);
@@ -240,7 +241,7 @@ namespace Aardvark.Geometry.Tests
         {
             var buffer = Encoding.ASCII.GetBytes(txt);
             var layout = new[] { Token.ColorRf };
-            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout);
+            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout, partIndices: null);
             if (isInvalid)
             {
                 Assert.IsTrue(data == null);
@@ -278,7 +279,7 @@ namespace Aardvark.Geometry.Tests
 
             var buffer = Encoding.ASCII.GetBytes(txt);
             var layout = new[] { Token.PositionX, Token.PositionY, Token.PositionZ };
-            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout);
+            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout, partIndices: null);
             Assert.IsTrue(data != null && data.Count == 1);
             Assert.IsTrue(data.Positions[0] == new V3d(1.2, 3.4, 5.6));
         }
@@ -290,7 +291,7 @@ namespace Aardvark.Geometry.Tests
 
             var buffer = Encoding.ASCII.GetBytes(txt);
             var layout = new[] { Token.ColorR, Token.ColorG, Token.ColorB, Token.ColorA };
-            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout);
+            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout, partIndices: null);
             Assert.IsTrue(data != null && data.Count == 1);
             Assert.IsTrue(data.Colors[0] == new C4b(7, 42, 255, 127));
         }
@@ -302,7 +303,7 @@ namespace Aardvark.Geometry.Tests
 
             var buffer = Encoding.ASCII.GetBytes(txt);
             var layout = new[] { Token.ColorRf, Token.ColorGf, Token.ColorBf, Token.ColorAf };
-            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout);
+            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout, partIndices: null);
             Assert.IsTrue(data != null && data.Count == 1);
             Assert.IsTrue(data.Colors[0] == new C4b(0, 127, 255, 204));
         }
@@ -314,7 +315,7 @@ namespace Aardvark.Geometry.Tests
 
             var buffer = Encoding.ASCII.GetBytes(txt);
             var layout = new[] { Token.NormalX, Token.NormalY, Token.NormalZ };
-            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout);
+            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout, partIndices: null);
             Assert.IsTrue(data != null && data.Count == 1);
             Assert.IsTrue(data.Normals[0] == new V3f(0.0, 0.1, 0.8));
         }
@@ -326,7 +327,7 @@ namespace Aardvark.Geometry.Tests
 
             var buffer = Encoding.ASCII.GetBytes(txt);
             var layout = new[] { Token.Intensity };
-            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout);
+            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout, partIndices: null);
             Assert.IsTrue(data != null && data.Count == 1);
             Assert.IsTrue(data.Intensities[0] == 31415);
         }
@@ -339,7 +340,7 @@ namespace Aardvark.Geometry.Tests
 
             var buffer = Encoding.ASCII.GetBytes(txt);
             var layout = new [] { Token.PositionX, Token.PositionY, Token.PositionZ, Token.ColorR, Token.ColorG, Token.ColorB, Token.Intensity, Token.NormalX, Token.NormalY, Token.NormalZ };
-            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout);
+            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout, partIndices: null);
             Assert.IsTrue(data != null && data.Count == 1);
             Assert.IsTrue(data.Positions[0] == new V3d(1.2, 3.4, 5.6));
             Assert.IsTrue(data.Colors[0] == new C4b(8, 254, 97));
@@ -354,7 +355,7 @@ namespace Aardvark.Geometry.Tests
 
             var buffer = Encoding.ASCII.GetBytes(txt);
             var layout = new[] { Token.PositionX, Token.PositionY, Token.PositionZ, Token.ColorR, Token.ColorG, Token.ColorB, Token.Skip, Token.NormalX, Token.NormalY, Token.NormalZ };
-            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout);
+            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout, partIndices: null);
             Assert.IsTrue(data != null && data.Count == 1);
             Assert.IsTrue(data.Positions[0] == new V3d(1.2, 3.4, 5.6));
             Assert.IsTrue(data.Colors[0] == new C4b(8, 254, 97));
@@ -372,7 +373,7 @@ namespace Aardvark.Geometry.Tests
 
             var buffer = Encoding.ASCII.GetBytes(txt);
             var layout = new[] { Token.PositionX, Token.PositionY, Token.PositionZ };
-            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout);
+            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout, partIndices: null);
             Assert.IsTrue(data != null && data.Count == 1);
             Assert.IsTrue(data.Positions[0] == new V3d(1.2, 3.4, 5.6));
         }
@@ -388,7 +389,7 @@ namespace Aardvark.Geometry.Tests
 
             var buffer = Encoding.ASCII.GetBytes(txt);
             var layout = new[] { Token.PositionX, Token.PositionY, Token.PositionZ };
-            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout);
+            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout, partIndices: null);
             Assert.IsTrue(data != null && data.Count == 1);
             Assert.IsTrue(data.Positions[0] == new V3d(1.2, 3.4, 5.6));
         }
@@ -406,7 +407,7 @@ namespace Aardvark.Geometry.Tests
 
             var buffer = Encoding.ASCII.GetBytes(txt);
             var layout = new[] { Token.PositionX, Token.PositionY, Token.PositionZ };
-            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout);
+            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout, partIndices: null);
             Assert.IsTrue(data != null && data.Count == 2);
             Assert.IsTrue(data.Positions[0] == new V3d(1.2, 3.4, 5.6));
             Assert.IsTrue(data.Positions[1] == new V3d(5.5, 6.6, 7.7));
@@ -420,7 +421,7 @@ namespace Aardvark.Geometry.Tests
                 ";
 
             var buffer = Encoding.ASCII.GetBytes(txt);
-            var data = LineParsers.XYZRGB(buffer, buffer.Length, 0.0);
+            var data = LineParsers.XYZRGB(buffer, buffer.Length, 0.0, partIndices: null);
             Assert.IsTrue(data != null && data.Count == 1);
 
             Assert.IsTrue(data.Positions[0] == new V3d(1.2, 3.4, 5.6));
@@ -435,7 +436,7 @@ namespace Aardvark.Geometry.Tests
                 ";
 
             var buffer = Encoding.ASCII.GetBytes(txt);
-            var data = LineParsers.XYZRGB(buffer, buffer.Length, 0.0);
+            var data = LineParsers.XYZRGB(buffer, buffer.Length, 0.0, partIndices: null);
             Assert.IsTrue(data == null);
         }
 
@@ -447,7 +448,7 @@ namespace Aardvark.Geometry.Tests
                 ";
 
             var buffer = Encoding.ASCII.GetBytes(txt);
-            var data = LineParsers.XYZRGB(buffer, buffer.Length, 0.0);
+            var data = LineParsers.XYZRGB(buffer, buffer.Length, 0.0, partIndices: null);
             Assert.IsTrue(data == null);
         }
 
@@ -461,7 +462,7 @@ namespace Aardvark.Geometry.Tests
                 ";
 
             var buffer = Encoding.ASCII.GetBytes(txt);
-            var data = LineParsers.XYZRGB(buffer, buffer.Length, 0.0);
+            var data = LineParsers.XYZRGB(buffer, buffer.Length, 0.0, partIndices: null);
             Assert.IsTrue(data != null && data.Count == 1);
 
             Assert.IsTrue(data.Positions[0] == new V3d(1.2, 3.4, 5.6));
@@ -477,7 +478,7 @@ namespace Aardvark.Geometry.Tests
                 ";
 
             var buffer = Encoding.ASCII.GetBytes(txt);
-            var data = LineParsers.XYZIRGB(buffer, buffer.Length, 0.0);
+            var data = LineParsers.XYZIRGB(buffer, buffer.Length, 0.0, partIndices: null);
             Assert.IsTrue(data != null && data.Count == 1);
 
             Assert.IsTrue(data.Positions[0] == new V3d(1.2, 3.4, 5.6));
@@ -493,7 +494,7 @@ namespace Aardvark.Geometry.Tests
                 ";
 
             var buffer = Encoding.ASCII.GetBytes(txt);
-            var data = LineParsers.XYZIRGB(buffer, buffer.Length, 0.0);
+            var data = LineParsers.XYZIRGB(buffer, buffer.Length, 0.0, partIndices: null);
             Assert.IsTrue(data == null);
         }
 
@@ -505,7 +506,7 @@ namespace Aardvark.Geometry.Tests
                 ";
 
             var buffer = Encoding.ASCII.GetBytes(txt);
-            var data = LineParsers.XYZIRGB(buffer, buffer.Length, 0.0);
+            var data = LineParsers.XYZIRGB(buffer, buffer.Length, 0.0, partIndices: null);
             Assert.IsTrue(data == null);
         }
 
@@ -519,7 +520,7 @@ namespace Aardvark.Geometry.Tests
                 ";
 
             var buffer = Encoding.ASCII.GetBytes(txt);
-            var data = LineParsers.XYZIRGB(buffer, buffer.Length, 0.0);
+            var data = LineParsers.XYZIRGB(buffer, buffer.Length, 0.0, partIndices: null);
             Assert.IsTrue(data != null && data.Count == 1);
 
             Assert.IsTrue(data.Positions[0] == new V3d(1.2, 3.4, 5.6));

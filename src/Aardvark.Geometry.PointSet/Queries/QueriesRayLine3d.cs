@@ -139,7 +139,8 @@ namespace Aardvark.Geometry.Points
                             if (node.HasClassifications) ks![i] = node.Classifications.Value[index];
                             ds[i] = ia[i].Dist;
                         }
-                        var chunk = new Chunk(ps, cs, ns, js, ks);
+                        var chunk = new Chunk(ps, cs, ns, js, ks, partIndices: null /*TODO */, bbox: null);
+                        throw new NotImplementedException("PARTINDICES");
                         yield return chunk;
                     }
                 }
@@ -169,7 +170,8 @@ namespace Aardvark.Geometry.Points
 
                     if (ps != null)
                     {
-                        yield return new Chunk(ps, cs, ns, js, ks);
+                        yield return new Chunk(ps, cs, ns, js, ks, partIndices: null /* TODO */, bbox: null);
+                        throw new NotImplementedException("PARTINDICES");
                     }
 
                     void Init()
