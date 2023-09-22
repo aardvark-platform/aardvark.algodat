@@ -93,6 +93,7 @@ namespace Aardvark.Geometry.Points
             
             foreach (var kv in data)
             {
+                if (kv.Key == Durable.Octree.PerCellPartIndex1ui) continue;
                 if (kv.Value is not Array) throw new ArgumentException($"Entry {kv.Key} must be array.");
             }
 
@@ -180,6 +181,7 @@ namespace Aardvark.Geometry.Points
                     foreach (var kv in _octree.m_data)
                     {
                         if (kv.Key == Durable.Octree.PositionsGlobal3d) continue;
+                        if (kv.Key == Durable.Octree.PerCellPartIndex1ui) continue;
                         var subset = kv.Value.Subset(_ia);
                         attributes = attributes.Add(kv.Key, subset);
                     }

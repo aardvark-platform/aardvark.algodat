@@ -187,6 +187,7 @@ namespace Aardvark.Data.Points
             MinDist = x.MinDist;
             ReadBufferSizeInBytes = x.ReadBufferSizeInBytes;
             EnabledProperties = x.EnabledProperties;
+            PartIndexOffset = x.PartIndexOffset;
         }
 
         /// <summary></summary>

@@ -71,4 +71,23 @@ public static class PartIndexUtils
         }
     }
 
+    public static Range1i ExtendedBy(in Range1i range, object? partIndices)
+    {
+        checked
+        {
+            return partIndices switch
+            {
+                null => range,
+                uint x => range.ExtendedBy((int)x),
+                IList<byte> xs => range.ExtendedBy((Range1i)new Range1b(xs)),
+                IList<short> xs => range.ExtendedBy((Range1i)new Range1s(xs)),
+                IList<int> xs => range.ExtendedBy(new Range1i(xs)),
+
+                _ => throw new Exception(
+                    $"Unexpected part indices type {partIndices.GetType().FullName}. " +
+                    $"Error 3915b996-1842-4418-9445-e4c4f1b678a6"
+                    )
+            };
+        }
+    }
 }

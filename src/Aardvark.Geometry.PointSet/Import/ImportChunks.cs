@@ -74,15 +74,21 @@ namespace Aardvark.Geometry.Points
         {
             config.ProgressCallback(0.0);
 
-            if (config.Verbose)
+            var partIndicesRange = Range1i.Invalid;
+            var chunkCount = 0;
+            chunks = chunks.Do(chunk => 
             {
-                var chunkCount = 0;
-                chunks = chunks.Do(chunk => 
+                if (chunk.HasPartIndices)
+                {
+                    partIndicesRange = PartIndexUtils.ExtendedBy(partIndicesRange, chunk.PartIndices);
+                }
+
+                if (config.Verbose)
                 {
                     if (chunk.Count == 0) Report.Warn($"[PointCloud.Chunks] empty chunk");
                     Report.Line($"[PointCloud.Chunks] processing chunk {Interlocked.Increment(ref chunkCount)}");
-                });
-            }
+                }
+            });
 
             // reproject positions
             if (config.Reproject != null)
@@ -176,7 +182,15 @@ namespace Aardvark.Geometry.Points
 
             // create final point set with specified key (or random key when no key is specified)
             var key = config.Key ?? Guid.NewGuid().ToString();
-            final = new PointSet(config.Storage ?? throw new Exception($"No storage specified. Error 5b4ebfec-d418-4ddc-9c2f-646d270cf78c."), key, final.Root?.Value?.Id ?? Guid.Empty, config.OctreeSplitLimit);
+            final = new PointSet(
+                storage   : config.Storage ?? throw new Exception($"No storage specified. Error 5b4ebfec-d418-4ddc-9c2f-646d270cf78c."),
+                pointSetId: key,
+                rootCellId: final.Root?.Value?.Id ?? Guid.Empty,
+                splitLimit: config.OctreeSplitLimit
+                )
+            {
+                PartIndexRange = partIndicesRange
+            };
             config.Storage.Add(key, final);
 
             return final;
