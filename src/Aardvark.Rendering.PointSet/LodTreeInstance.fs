@@ -323,13 +323,51 @@ module LodTreeInstance =
             else 
                 0.0
 
-        
+        let intersectsFrustum (vp : M44d) (box : Box3d) =
+            let r0 = vp.R0
+            let r1 = vp.R1
+            let r2 = vp.R2
+            let r3 = vp.R3
+            let plane = r3 + r0
+            let mutable min = V3d.Zero
+            let mutable max = V3d.Zero
+            box.GetMinMaxInDirection(plane.XYZ, &min, &max)
+            if max.Dot(plane.XYZ) + plane.W < 0 then
+                false
+            else
+                let plane = r3 - r0
+                box.GetMinMaxInDirection(plane.XYZ, &min, &max)
+                if max.Dot(plane.XYZ) + plane.W < 0 then
+                    false
+                else
+                    let plane = r3 + r1
+                    box.GetMinMaxInDirection(plane.XYZ, &min, &max)
+                    if max.Dot(plane.XYZ) + plane.W < 0 then
+                        false
+                    else
+                        let plane = r3 - r1
+                        box.GetMinMaxInDirection(plane.XYZ, &min, &max)
+                        if max.Dot(plane.XYZ) + plane.W < 0 then
+                            false
+                        else
+                            let plane = r3 + r2
+                            box.GetMinMaxInDirection(plane.XYZ, &min, &max)
+                            if max.Dot(plane.XYZ) + plane.W < 0 then
+                                false
+                            else
+                                let plane = r3 - r2
+                                box.GetMinMaxInDirection(plane.XYZ, &min, &max)
+                                if max.Dot(plane.XYZ) + plane.W < 0 then
+                                    false
+                                else
+                                    true
             
         let fov (proj : Trafo3d) =
             2.0 * atan(proj.Backward.M00) * Constant.DegreesPerRadian
 
         let equivalentAngle60 (view : Trafo3d) (proj : Trafo3d) =
-            if localCellBounds.IntersectsFrustum((view * proj).Forward) then 
+            let vp = (view * proj).Forward
+            if intersectsFrustum vp localCellBounds then 
 
                 if isOrtho proj then 
                    let width = proj.Backward.M00 * 2.0 
