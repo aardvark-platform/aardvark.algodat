@@ -30,41 +30,169 @@ namespace Aardvark.Data.Points;
 public static class PartIndexUtils
 {
     /// <summary>
-    /// Returns union of two part indices (uint, IList of [byte|short|int]).
+    /// Merges part indices (null, uint, [byte|short|int] array).
     /// </summary>
-    public static object? Union(object? first, object? second)
+    public static object? MergeIndices(object? first, int firstCount, object? second, int secondCount)
+    {
+        // expect: both ranges are defined, or both ranges are null
+        if ((first == null && second != null) || (first != null && second == null)) throw new Exception(
+            "Invariant 874c2220-4779-41f0-9f3e-1c0ef4988da9."
+            );
+
+        checked
+        {
+            return (first, second) switch
+            {
+                (null  , null  ) => null,
+
+                (uint x, uint y) => (x == y) ? x : createArray1(x, firstCount, y, secondCount),
+
+                (uint x, _     ) => second switch
+                {
+                    IReadOnlyList<byte > ys when x <= byte .MaxValue => createArray2((byte )x, firstCount, ys),
+                    IReadOnlyList<short> ys when x <= short.MaxValue => createArray2((short)x, firstCount, ys),
+                    IReadOnlyList<int  > ys when x <= int  .MaxValue => createArray2((int  )x, firstCount, ys),
+                    _ => throw new Exception("Invariant 588fea29-4daa-4356-92a4-369f64ac5778.")
+                },
+
+                (_     , uint y) => second switch
+                {
+                    IReadOnlyList<byte > xs when y <= byte .MaxValue => createArray3(xs, (byte )y, secondCount),
+                    IReadOnlyList<short> xs when y <= short.MaxValue => createArray3(xs, (short)y, secondCount),
+                    IReadOnlyList<int  > xs when y <= int  .MaxValue => createArray3(xs, (int  )y, secondCount),
+                    _ => throw new Exception("Invariant 7ddfc8c0-2e66-45ef-94a9-31d21f6009f9.")
+                },
+
+                (IReadOnlyList<byte > xs, IReadOnlyList<byte > ys) => createArray4(    xs ,     ys ),
+                (IReadOnlyList<byte > xs, IReadOnlyList<short> ys) => createArray4(b2s(xs),     ys ),
+                (IReadOnlyList<byte > xs, IReadOnlyList<int  > ys) => createArray4(b2i(xs),     ys ),
+                (IReadOnlyList<short> xs, IReadOnlyList<byte > ys) => createArray4(    xs , b2s(ys)),
+                (IReadOnlyList<short> xs, IReadOnlyList<short> ys) => createArray4(    xs ,     ys ),
+                (IReadOnlyList<short> xs, IReadOnlyList<int  > ys) => createArray4(s2i(xs),     ys ),
+                (IReadOnlyList<int  > xs, IReadOnlyList<byte > ys) => createArray4(    xs , b2i(ys)),
+                (IReadOnlyList<int  > xs, IReadOnlyList<short> ys) => createArray4(    xs , s2i(ys)),
+                (IReadOnlyList<int  > xs, IReadOnlyList<int  > ys) => createArray4(    xs ,     ys ),
+
+                _ => throw new Exception(
+                    $"Unexpected part indices types {first?.GetType().FullName ?? "null"} and {second?.GetType().FullName ?? "null"}. " +
+                    $"Error 2f0672f5-8c6b-400b-8172-e83a30d70c28"
+                    )
+            };
+
+            object createArray1(uint first, int firstCount, uint second, int secondCount)
+            {
+                var count = firstCount + secondCount;
+                return Math.Max(first, second) switch
+                {
+                    uint max when max <= byte .MaxValue => create((byte )first, (byte )second),
+                    uint max when max <= short.MaxValue => create((short)first, (short)second),
+                    uint max when max <= int  .MaxValue => create((int  )first, (int  )second),
+                    _ => throw new Exception("Invariant 129edb1c-066d-4ff2-8edf-8c5a67191dea.")
+                };
+
+                object create<T>(T x0, T x1) where T : unmanaged
+                {
+                    var xs = new T[count];
+                    for (var i = 0; i < firstCount; i++) xs[i] = x0;
+                    for (var i = firstCount; i < count; i++) xs[i] = x1;
+                    return xs;
+                }
+            }
+
+            object createArray2<T>(T first, int firstCount, IReadOnlyList<T> second) where T : unmanaged
+            {
+                var count = firstCount + second.Count;
+                var xs = new T[count];
+                int j = 0;
+                for (var i = 0; i < firstCount  ; i++) xs[j++] = first;
+                for (var i = 0; i < second.Count; i++) xs[j++] = second[i];
+                return xs;
+            }
+
+            object createArray3<T>(IReadOnlyList<T> first, T second, int secondCount) where T : unmanaged
+            {
+                var count = first.Count + secondCount;
+                var xs = new T[count];
+                int j = 0;
+                for (var i = 0; i < first.Count; i++) xs[j++] = first[i];
+                for (var i = 0; i < secondCount; i++) xs[j++] = second;
+                return xs;
+            }
+
+            object createArray4<T>(IReadOnlyList<T> first, IReadOnlyList<T> second) where T : unmanaged
+            {
+                var count = first.Count + second.Count;
+                var xs = new T[count];
+                int j = 0;
+                for (var i = 0; i < first .Count; i++) xs[j++] = first[i];
+                for (var i = 0; i < second.Count; i++) xs[j++] = second[i];
+                return xs;
+            }
+
+            short[] b2s(IReadOnlyList<byte > xs) { var ys = new short[xs.Count]; for (var i = 0; i < xs.Count; i++) ys[i] = xs[i]; return ys; }
+            int  [] b2i(IReadOnlyList<byte > xs) { var ys = new int  [xs.Count]; for (var i = 0; i < xs.Count; i++) ys[i] = xs[i]; return ys; }
+            int  [] s2i(IReadOnlyList<short> xs) { var ys = new int  [xs.Count]; for (var i = 0; i < xs.Count; i++) ys[i] = xs[i]; return ys; }
+        }
+    }
+
+    /// <summary>
+    /// Merges part indices (null, uint, [byte|short|int] array).
+    /// </summary>
+    public static object? MergeIndices(IEnumerable<(object? indices, int count)> xs)
+    {
+        var (resultIndices, resultCount) = xs.FirstOrDefault();
+        foreach (var (xIndices, xCount) in xs.Skip(1))
+        {
+            MergeIndices(resultIndices, resultCount, xIndices, xCount);
+            resultCount += xCount;
+        }
+        return resultIndices;
+    }
+
+    /// <summary>
+    /// Merges part index ranges (null, (u)int, Range1[bsi]).
+    /// </summary>
+    public static object? MergeRanges(object? first, object? second)
     {
         checked
         {
             return (first, second) switch
             {
                 (null, null) => null,
-                (object x, null) => x,
-                (null, object y) => y,
+                (uint x, null) => x,
+                (int x, null) => x,
+                (Range1b x, null) => x,
+                (Range1s x, null) => x,
+                (Range1i x, null) => x,
+                (null, uint y) => y,
+                (null, int y) => y,
+                (null, Range1b y) => y,
+                (null, Range1s y) => y,
+                (null, Range1i y) => y,
                 (uint x, uint y) => (x == y) ? x : new Range1i(new[] { (int)x, (int)y }),
 
                 (uint x, IList<byte> ys) => ((Range1i)new Range1b(ys)).ExtendedBy((int)x),
                 (uint x, IList<short> ys) => ((Range1i)new Range1s(ys)).ExtendedBy((int)x),
                 (uint x, IList<int> ys) => new Range1i(ys).ExtendedBy((int)x),
 
-                (IList<byte> xs, uint y) => ((Range1i)new Range1b(xs)).ExtendedBy((int)y),
-                (IList<short> xs, uint y) => ((Range1i)new Range1s(xs)).ExtendedBy((int)y),
-                (IList<int> xs, uint y) => new Range1i(xs).ExtendedBy((int)y),
+                //(IList<byte> xs, uint y) => ((Range1i)new Range1b(xs)).ExtendedBy((int)y),
+                //(IList<short> xs, uint y) => ((Range1i)new Range1s(xs)).ExtendedBy((int)y),
+                //(IList<int> xs, uint y) => new Range1i(xs).ExtendedBy((int)y),
 
-                (IList<byte> xs, IList<byte> ys) => (Range1i)new Range1b(xs.Concat(ys)),
-                (IList<byte> xs, IList<short> ys) => (Range1i)new Range1s(xs.Select(x => (short)x).Concat(ys)),
-                (IList<byte> xs, IList<int> ys) => new Range1i(xs.Select(x => (int)x).Concat(ys)),
+                //(IList<byte> xs, IList<byte> ys) => (Range1i)new Range1b(xs.Concat(ys)),
+                //(IList<byte> xs, IList<short> ys) => (Range1i)new Range1s(xs.Select(x => (short)x).Concat(ys)),
+                //(IList<byte> xs, IList<int> ys) => new Range1i(xs.Select(x => (int)x).Concat(ys)),
 
-                (IList<short> xs, IList<byte> ys) => (Range1i)new Range1s(xs.Concat(ys.Select(x => (short)x))),
-                (IList<short> xs, IList<short> ys) => (Range1i)new Range1s(xs.Concat(ys)),
-                (IList<short> xs, IList<int> ys) => new Range1i(xs.Select(x => (int)x).Concat(ys)),
+                //(IList<short> xs, IList<byte> ys) => (Range1i)new Range1s(xs.Concat(ys.Select(x => (short)x))),
+                //(IList<short> xs, IList<short> ys) => (Range1i)new Range1s(xs.Concat(ys)),
+                //(IList<short> xs, IList<int> ys) => new Range1i(xs.Select(x => (int)x).Concat(ys)),
 
-                (IList<int> xs, IList<byte> ys) => new Range1i(xs.Concat(ys.Select(x => (int)x))),
-                (IList<int> xs, IList<short> ys) => new Range1i(xs.Concat(ys.Select(x => (int)x))),
-                (IList<int> xs, IList<int> ys) => new Range1i(xs.Concat(ys)),
+                //(IList<int> xs, IList<byte> ys) => new Range1i(xs.Concat(ys.Select(x => (int)x))),
+                //(IList<int> xs, IList<short> ys) => new Range1i(xs.Concat(ys.Select(x => (int)x))),
+                //(IList<int> xs, IList<int> ys) => new Range1i(xs.Concat(ys)),
 
                 _ => throw new Exception(
-                    $"Unexpected part indices types {first.GetType().FullName} and {second.GetType().FullName}. " +
+                    $"Unexpected part indices types {first?.GetType().FullName ?? "null"} and {second?.GetType().FullName ?? "null"}. " +
                     $"Error 2f0672f5-8c6b-400b-8172-e83a30d70c28"
                     )
             };
@@ -72,38 +200,38 @@ public static class PartIndexUtils
     }
 
     /// <summary>
-    /// Returns union of part indices (uint, IList of [byte|short|int]).
+    /// Merges multiple part index ranges (uint, IList of [byte|short|int]).
     /// </summary>
-    public static object? Union(params object?[] xs)
+    public static object? MergeRanges(params object?[] xs)
     {
         if (xs.Length == 0) return null;
 
         var result = xs[0];
-        for (var i = 1; i < xs.Length; i++) result = Union(result, xs[i]);
+        for (var i = 1; i < xs.Length; i++) result = MergeRanges(result, xs[i]);
         return result;
     }
 
     /// <summary>
-    /// Returns union of part indices (uint, IList of [byte|short|int]).
+    /// Merges multiple part index ranges (uint, IList of [byte|short|int]).
     /// </summary>
-    public static object? Union(IEnumerable<object?> xs)
+    public static object? MergeRanges(IEnumerable<object?> xs)
     {
         var result = xs.FirstOrDefault();
-        foreach (var x in xs.Skip(1)) result = Union(result, x);
+        foreach (var x in xs.Skip(1)) result = MergeRanges(result, x);
         return result;
     }
 
-    public static Range1i ExtendedBy(in Range1i range, object? partIndices)
+    public static Range1i ExtendRangeBy(in Range1i range, object? partIndices)
     {
         checked
         {
             return partIndices switch
             {
-                null => range,
-                uint x => range.ExtendedBy((int)x),
-                IList<byte> xs => range.ExtendedBy((Range1i)new Range1b(xs)),
+                null            => range,
+                uint x          => range.ExtendedBy((int)x),
+                IList<byte> xs  => range.ExtendedBy((Range1i)new Range1b(xs)),
                 IList<short> xs => range.ExtendedBy((Range1i)new Range1s(xs)),
-                IList<int> xs => range.ExtendedBy(new Range1i(xs)),
+                IList<int> xs   => range.ExtendedBy(new Range1i(xs)),
 
                 _ => throw new Exception(
                     $"Unexpected part indices type {partIndices.GetType().FullName}. " +
@@ -149,11 +277,11 @@ public static class PartIndexUtils
 
     internal static object? Subset(object? partIndices, IReadOnlyList<int> subsetIndices) => partIndices switch
     {
-        null => null,
-        uint x => x,
-        IList<byte> xs => subsetIndices.MapToArray(i => xs[i]),
+        null            => null,
+        uint x          => x,
+        IList<byte> xs  => subsetIndices.MapToArray(i => xs[i]),
         IList<short> xs => subsetIndices.MapToArray(i => xs[i]),
-        IList<int> xs => subsetIndices.MapToArray(i => xs[i]),
+        IList<int> xs   => subsetIndices.MapToArray(i => xs[i]),
 
         _ => throw new Exception(
             $"Unexpected part indices type {partIndices.GetType().FullName}. " +

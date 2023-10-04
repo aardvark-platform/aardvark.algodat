@@ -161,7 +161,7 @@ namespace Aardvark.Data.Points
                 }
             }
 
-            return new Chunk(ps, cs, ns, js, ks, PartIndexUtils.Union(a.PartIndices, b.PartIndices), new Box3d(a.BoundingBox, b.BoundingBox));
+            return new Chunk(ps, cs, ns, js, ks, PartIndexUtils.MergeIndices(a.PartIndices, a.Count, b.PartIndices, b.Count), new Box3d(a.BoundingBox, b.BoundingBox));
         }
 
         public static Chunk ImmutableMerge(params Chunk[] chunks)
@@ -196,7 +196,7 @@ namespace Aardvark.Data.Points
 
             if (ps == null) throw new Exception("Invariant 4cc7d585-9a46-4ba2-892a-95fce9ed06da.");
             return new Chunk(ps, cs, ns, js, ks,
-                partIndices: PartIndexUtils.Union(chunks.Select(x => x.PartIndices)),
+                partIndices: PartIndexUtils.MergeIndices(chunks.Select(x => (indices: x.PartIndices, count: x.Count))),
                 bbox: new Box3d(chunks.Select(x => x.BoundingBox))
                 );
         }
@@ -378,7 +378,7 @@ namespace Aardvark.Data.Points
                     Append(Normals, other.Normals),
                     Append(Intensities, other.Intensities),
                     Append(Classifications, other.Classifications),
-                    partIndices: PartIndexUtils.Union(PartIndices, other.PartIndices),
+                    partIndices: PartIndexUtils.MergeIndices(PartIndices, Count, other.PartIndices, other.Count),
                     Box.Union(BoundingBox, other.BoundingBox)
                 );
         }

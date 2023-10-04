@@ -549,7 +549,7 @@ namespace Aardvark.Geometry.Points
             {
                 result2 = a.WithSubNodes(subcells!);
                 result2 = InjectPointsIntoTree(
-                    a.PositionsAbsolute, a.Colors?.Value, a.Normals?.Value, a.Intensities?.Value, a.Classifications?.Value,
+                    a.PositionsAbsolute, a.Colors?.Value, a.Normals?.Value, a.Intensities?.Value, a.Classifications?.Value, a.PartIndices,
                     result2, result2.Cell, config);
             }
             else
@@ -802,9 +802,9 @@ namespace Aardvark.Geometry.Points
             var ns = Concat(a.Normals?.Value, b.Normals?.Value);
             var js = Concat(a.Intensities?.Value, b.Intensities?.Value);
             var ks = Concat(a.Classifications?.Value, b.Classifications?.Value);
+            var qs = PartIndexUtils.MergeIndices(a.PartIndices, a.PointCountCell, b.PartIndices, b.PointCountCell);
 
-            var chunk = new Chunk(ps, cs, ns, js, ks, partIndices: null /* TODO */, cell.BoundingBox);
-            throw new NotImplementedException("PARTINDICES");
+            var chunk = new Chunk(ps, cs, ns, js, ks, partIndices: qs, cell.BoundingBox);
             if (config.NormalizePointDensityGlobal)
             {
                 chunk = chunk.ImmutableFilterMinDistByCell(cell, config.ParseConfig);
@@ -822,7 +822,7 @@ namespace Aardvark.Geometry.Points
             if (a.IsLeaf == false || b.IsLeaf == true) throw new InvalidOperationException();
             if (a.Cell != b.Cell) throw new InvalidOperationException();
 
-            var result = InjectPointsIntoTree(a.PositionsAbsolute, a.Colors?.Value, a.Normals?.Value, a.Intensities?.Value, a.Classifications?.Value, b, a.Cell, config);
+            var result = InjectPointsIntoTree(a.PositionsAbsolute, a.Colors?.Value, a.Normals?.Value, a.Intensities?.Value, a.Classifications?.Value, a.PartIndices, b, a.Cell, config);
             //if (a.PointCountTree + b.PointCountTree != result.PointCountTree) throw new InvalidOperationException("Invariant db336387-4d1a-42fd-a582-48e8cac50fba.");
             if (a.Cell != result.Cell) throw new InvalidOperationException("Invariant 55551919-1a11-4ea9-bb4e-6f1a6b15e3d5.");
             return result;
@@ -899,7 +899,7 @@ namespace Aardvark.Geometry.Points
         }
 
         private static IPointCloudNode InjectPointsIntoTree(
-            IList<V3d> psAbsolute, IList<C4b>? cs, IList<V3f>? ns, IList<int>? js, IList<byte>? ks,
+            IList<V3d> psAbsolute, IList<C4b>? cs, IList<V3f>? ns, IList<int>? js, IList<byte>? ks, object? qs,
             IPointCloudNode a, Cell cell, ImportConfig config
             )
         {
@@ -909,8 +909,7 @@ namespace Aardvark.Geometry.Points
 
             if (a == null)
             {
-                var chunk = new Chunk(psAbsolute, cs, ns, js, ks, partIndices: null /* TODO */, cell.BoundingBox);
-                throw new NotImplementedException("PARTINDICES");
+                var chunk = new Chunk(psAbsolute, cs, ns, js, ks, qs, cell.BoundingBox);
                 if (config.NormalizePointDensityGlobal)
                 {
                     chunk = chunk.ImmutableFilterMinDistByCell(cell, config.ParseConfig);
@@ -955,6 +954,7 @@ namespace Aardvark.Geometry.Points
             var nss = ns != null ? new List<V3f>[8] : null;
             var iss = js != null ? new List<int>[8] : null;
             var kss = ks != null ? new List<byte>[8] : null;
+            var qss = qs != null ? new object?[8] : null;
 
 #if DEBUG
             var bb = cell.BoundingBox;
@@ -988,7 +988,8 @@ namespace Aardvark.Geometry.Points
                 if (pss[j] != null)
                 {
                     if (x == null) throw new InvalidOperationException("Invariant 6afc7ca3-30da-4cb5-9a02-7572085e89bb.");
-                    subcells[j] = InjectPointsIntoTree(pss[j], css?[j], nss?[j], iss?[j], kss?[j], x, cell.GetOctant(j), config);
+                    throw new NotImplementedException("PARTINDICES");
+                    subcells[j] = InjectPointsIntoTree(pss[j], css?[j], nss?[j], iss?[j], kss?[j], qs: null /* TODO */, x, cell.GetOctant(j), config);
                 }
                 else
                 {

@@ -80,7 +80,7 @@ namespace Aardvark.Geometry.Points
             {
                 if (chunk.HasPartIndices)
                 {
-                    partIndicesRange = PartIndexUtils.ExtendedBy(partIndicesRange, chunk.PartIndices);
+                    partIndicesRange = PartIndexUtils.ExtendRangeBy(partIndicesRange, chunk.PartIndices);
                 }
 
                 if (config.Verbose)
