@@ -955,6 +955,12 @@ namespace Aardvark.Geometry.Points
             var nss = ns != null ? new List<V3f>[8] : null;
             var iss = js != null ? new List<int>[8] : null;
             var kss = ks != null ? new List<byte>[8] : null;
+
+#if DEBUG
+            var bb = cell.BoundingBox;
+            if (!psAbsolute.All(bb.Contains)) Debugger.Break();
+#endif
+
             for (var i = 0; i < psAbsolute.Count; i++)
             {
                 var j = a.GetSubIndex(psAbsolute[i]);
@@ -979,13 +985,14 @@ namespace Aardvark.Geometry.Points
             for (var j = 0; j < 8; j++)
             {
                 var x = a.Subnodes![j]?.Value;
-                if (x != null) //if (pss[j] != null)
+                if (pss[j] != null)
                 {
+                    if (x == null) throw new InvalidOperationException("Invariant 6afc7ca3-30da-4cb5-9a02-7572085e89bb.");
                     subcells[j] = InjectPointsIntoTree(pss[j], css?[j], nss?[j], iss?[j], kss?[j], x, cell.GetOctant(j), config);
                 }
                 else
                 {
-                    subcells[j] = null; // x;
+                    subcells[j] = x;
                 }
             }
 
