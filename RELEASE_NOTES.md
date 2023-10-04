@@ -1,3 +1,6 @@
+### 5.2.27
+- [LodTreeInstance] intersect view frustum depth range to -1 +1
+
 ### 5.2.26
 - [LodTreeInstance] ShouldSplit vfc
 
