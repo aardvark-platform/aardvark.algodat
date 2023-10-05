@@ -211,7 +211,7 @@ namespace Aardvark.Geometry.Tests
             var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout, partIndices: null);
             if (isInvalid)
             {
-                Assert.IsTrue(data == null);
+                Assert.IsTrue(data.IsEmpty);
             }
             else
             {
@@ -244,7 +244,7 @@ namespace Aardvark.Geometry.Tests
             var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout, partIndices: null);
             if (isInvalid)
             {
-                Assert.IsTrue(data == null);
+                Assert.IsTrue(data.IsEmpty);
             }
             else
             {
@@ -437,7 +437,7 @@ namespace Aardvark.Geometry.Tests
 
             var buffer = Encoding.ASCII.GetBytes(txt);
             var data = LineParsers.XYZRGB(buffer, buffer.Length, 0.0, partIndices: null);
-            Assert.IsTrue(data == null);
+            Assert.IsTrue(data.IsEmpty);
         }
 
         [Test]
@@ -449,7 +449,7 @@ namespace Aardvark.Geometry.Tests
 
             var buffer = Encoding.ASCII.GetBytes(txt);
             var data = LineParsers.XYZRGB(buffer, buffer.Length, 0.0, partIndices: null);
-            Assert.IsTrue(data == null);
+            Assert.IsTrue(data.IsEmpty);
         }
 
         [Test]
@@ -495,7 +495,7 @@ namespace Aardvark.Geometry.Tests
 
             var buffer = Encoding.ASCII.GetBytes(txt);
             var data = LineParsers.XYZIRGB(buffer, buffer.Length, 0.0, partIndices: null);
-            Assert.IsTrue(data == null);
+            Assert.IsTrue(data.IsEmpty);
         }
 
         [Test]
@@ -507,7 +507,7 @@ namespace Aardvark.Geometry.Tests
 
             var buffer = Encoding.ASCII.GetBytes(txt);
             var data = LineParsers.XYZIRGB(buffer, buffer.Length, 0.0, partIndices: null);
-            Assert.IsTrue(data == null);
+            Assert.IsTrue(data.IsEmpty);
         }
 
         [Test]
