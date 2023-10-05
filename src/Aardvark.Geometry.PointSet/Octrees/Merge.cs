@@ -115,10 +115,9 @@ namespace Aardvark.Geometry.Points
                         nsla.Count > 0 ? nsla : null,
                         jsla.Count > 0 ? jsla : null,
                         ksla.Count > 0 ? ksla : null,
-                        partIndices: null, // TODO
+                        qsla,
                         bbox: null
                         );
-                    throw new NotImplementedException("PARTINDICES");
 
                     if (config.NormalizePointDensityGlobal)
                     {
@@ -164,10 +163,10 @@ namespace Aardvark.Geometry.Points
                 return (self.WriteToStore(), true);
             }
         }
-        
+
         /// <summary>
-        /// If cell is a leaf, it will be split once (non-recursive, without taking into account any split limit).
-        /// If cell is not a leaf, this is an invalid operation.
+        /// If node is a leaf, it will be split once (non-recursive, without taking into account any split limit).
+        /// If node is not a leaf, this is an invalid operation.
         /// </summary>
         public static IPointCloudNode ForceSplitLeaf(this IPointCloudNode self, ImportConfig config)
         {
@@ -180,74 +179,61 @@ namespace Aardvark.Geometry.Points
             if (self.PointCountCell == 0) throw new InvalidOperationException();
             if (self.PointCountTree != self.PointCountCell) throw new InvalidOperationException();
 
-            var subnodesPoints = new List<V3d>[8];
-            var subnodesColors = self.HasColors ? new List<C4b>[8] : null;
-            var subnodesNormals = self.HasNormals ? new List<V3f>[8] : null;
-            var subnodesIntensities = self.HasIntensities ? new List<int>[8] : null;
-            var subnodesClassifications = self.HasClassifications ? new List<byte>[8] : null;
-            object?[]? subnodesPartIndices = self.HasPartIndices ? throw new NotImplementedException("PARTINDICES") : null;
+            var ps = self.PositionsAbsolute;
+            var cs = self.Colors?.Value;
+            var ns = self.Normals?.Value;
+            var js = self.Intensities?.Value;
+            var ks = self.Classifications?.Value;
+            var qs = self.PartIndices;
 
-            var pa = self.PositionsAbsolute;
-            var ca = self.Colors?.Value;
-            var na = self.Normals?.Value;
-            var ia = self.Intensities?.Value;
-            var ka = self.Classifications?.Value;
+            var pss = new V3d[]?[8];
+            var css = self.HasColors ? new C4b[]?[8] : null;
+            var nss = self.HasNormals ? new V3f[]?[8] : null;
+            var jss = self.HasIntensities ? new int[]?[8] : null;
+            var kss = self.HasClassifications ? new byte[]?[8] : null;
+            var qss = self.HasPartIndices ? new object?[8] : null;
+
             var imax = self.PointCountCell;
-            if (pa.Length != imax) throw new InvalidOperationException();
+            if (ps.Length != imax) throw new InvalidOperationException();
 
-            for (var i = 0; i < imax; i++)
+            var ias = new List<int>[8];
+            for (var i = 0; i < 8; i++) ias[i] = new();
+            for (var i = 0; i < imax; i++) ias[self.GetSubIndex(ps[i])].Add(i);
+
+            for (var i = 0; i < 8; i++)
             {
-                var si = self.GetSubIndex(pa[i]);
-                if (subnodesPoints[si] == null)
-                {
-                    subnodesPoints[si] = new List<V3d>();
-                    if (subnodesColors != null) subnodesColors[si] = new List<C4b>();
-                    if (subnodesNormals != null) subnodesNormals[si] = new List<V3f>();
-                    if (subnodesIntensities != null) subnodesIntensities[si] = new List<int>();
-                    if (subnodesClassifications != null) subnodesClassifications[si] = new List<byte>();
-                }
-                subnodesPoints[si].Add(pa[i]);
-                subnodesColors?[si].Add(ca![i]);
-                subnodesNormals?[si].Add(na![i]);
-                subnodesIntensities?[si].Add(ia![i]);
-                subnodesClassifications?[si].Add(ka![i]);
+                var ia = ias[i];
+                if (ia.Count == 0) continue;
+
+                pss[i] = ps.Subset(ia);
+                if (css != null) css[i] = cs?.Subset(ia);
+                if (nss != null) nss[i] = ns?.Subset(ia);
+                if (jss != null) jss[i] = js?.Subset(ia);
+                if (kss != null) kss[i] = ks?.Subset(ia);
+                if (qss != null) qss[i] = PartIndexUtils.Subset(qs, ia);
             }
 
             var subnodes = new PointSetNode[8];
             for (var i = 0; i < 8; i++)
             {
-                if (subnodesPoints[i] == null) continue;
+                var subPs = pss[i];
+                if (subPs == null) continue;
 
                 var subCell = self.Cell.GetOctant(i);
                 if (!self.Cell.Contains(subCell)) throw new InvalidOperationException();
                 if (self.Cell.Exponent != subCell.Exponent + 1) throw new InvalidOperationException();
 
-                var chunk = new Chunk(
-                    subnodesPoints[i],
-                    subnodesColors?[i],
-                    subnodesNormals?[i],
-                    subnodesIntensities?[i],
-                    subnodesClassifications?[i],
-                    partIndices: null, // TODO
-                    subCell.BoundingBox
-                    );
-                throw new NotImplementedException("PARTINDICES");
+                var chunk = new Chunk(subPs, css?[i], nss?[i], jss?[i], kss?[i], qss?[i], subCell.BoundingBox);
+
                 if (config.NormalizePointDensityGlobal)
                 {
                     chunk = chunk.ImmutableFilterMinDistByCell(subCell, config.ParseConfig);
                 }
-                var builder = InMemoryPointSet.Build(
-                    subnodesPoints[i],
-                    subnodesColors?[i],
-                    subnodesNormals?[i],
-                    subnodesIntensities?[i],
-                    subnodesClassifications?[i],
-                    subnodesPartIndices?[i],
-                    subCell,
-                    int.MaxValue
-                    );
+
+                var builder = InMemoryPointSet.Build(subPs, css?[i], nss?[i], jss?[i], kss?[i], qss?[i], subCell, int.MaxValue);
+
                 var subnode = builder.ToPointSetNode(config.Storage, isTemporaryImportNode: true);
-                if (subnode.PointCountTree > subnodesPoints[i].Count) throw new InvalidOperationException();
+                if (subnode.PointCountTree > subPs.Length) throw new InvalidOperationException();
                 if (!self.Cell.Contains(subnode.Cell)) throw new InvalidOperationException();
                 if (self.Cell.Exponent != subnode.Cell.Exponent + 1) throw new InvalidOperationException();
                 

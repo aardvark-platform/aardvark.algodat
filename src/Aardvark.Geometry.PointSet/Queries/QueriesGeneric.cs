@@ -55,35 +55,19 @@ namespace Aardvark.Geometry.Points
                 }
                 else // partially inside
                 {
-                    var psRaw = node.PositionsAbsolute;
+                    var ps = node.PositionsAbsolute;
                     var csRaw = node.HasColors ? node.Colors.Value : null;
                     var nsRaw = node.HasNormals ? node.Normals.Value : null;
                     var jsRaw = node.HasIntensities ? node.Intensities.Value : null;
                     var ksRaw = node.HasClassifications ? node.Classifications!.Value : null;
+                    var qsRaw = node.PartIndices;
 
-                    var ps = new List<V3d>();
-                    var cs = csRaw != null ? new List<C4b>() : null;
-                    var ns = nsRaw != null ? new List<V3f>() : null;
-                    var js = jsRaw != null ? new List<int>() : null;
-                    var ks = ksRaw != null ? new List<byte>() : null;
+                    var ia = new List<int>();
+                    for (var i = 0; i < ps.Length; i++) if (isPositionInside(ps[i])) ia.Add(i);
 
-                    for (var i = 0; i < psRaw.Length; i++)
-                    {
-                        var p = psRaw[i];
-                        if (isPositionInside(p))
-                        {
-                            ps.Add(p);
-                            if (csRaw != null) cs!.Add(csRaw[i]);
-                            if (nsRaw != null) ns!.Add(nsRaw[i]);
-                            if (jsRaw != null) js!.Add(jsRaw[i]);
-                            if (ksRaw != null) ks!.Add(ksRaw[i]);
-                        }
-                    }
-                    if (ps.Count > 0)
-                    {
-                        throw new NotImplementedException("PARTINDICES 7335ac35-e5e1-4e90-8907-48ebb9b66b1b");
-                        yield return new Chunk(ps, cs, ns, js, ks, partIndices: null /* TODO */, bbox: null);
-                    }
+                    if (ia.Count > 0) yield return new Chunk(
+                        ps.Subset(ia), csRaw?.Subset(ia), nsRaw?.Subset(ia), jsRaw?.Subset(ia), ksRaw?.Subset(ia), qsRaw?.Subset(ia), bbox: null
+                        );
                 }
             }
             else

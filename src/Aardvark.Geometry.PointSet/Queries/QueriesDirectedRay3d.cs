@@ -17,112 +17,103 @@ using System.Linq;
 using Aardvark.Base;
 using Aardvark.Data.Points;
 
-namespace Aardvark.Geometry.Points
+namespace Aardvark.Geometry.Points;
+
+/// <summary>
+/// </summary>
+public static partial class Queries
 {
     /// <summary>
+    /// Enumerates Points within given distance of a Ray3d whose Ts lie between tMin and tMax.
+    /// Chunks are approximately sorted along the ray direction.
     /// </summary>
-    public static partial class Queries
+    public static IEnumerable<Chunk> QueryPointsNearRay(
+        this PointSet ps, 
+        Ray3d ray,
+        double maxDistanceToRay,
+        double tMin,
+        double tMax,
+        int minCellExponent = int.MinValue
+        ) 
     {
-        /// <summary>
-        /// Enumerates Points within given distance of a Ray3d whose Ts lie between tMin and tMax. Chunks are approximately sorted along the ray direction.
-        /// </summary>
-        public static IEnumerable<Chunk> QueryPointsNearRay(
-                this PointSet ps, 
-                Ray3d ray,
-                double maxDistanceToRay,
-                double tMin,
-                double tMax,
-                int minCellExponent = int.MinValue
-            ) 
+        if(ps.Root == null) return Enumerable.Empty<Chunk>();
+        return ps.Root.Value.QueryPointsNearRay(ray,maxDistanceToRay,tMin,tMax,minCellExponent);
+    } 
+
+    /// <summary>
+    /// Enumerates Points within given distance of a Ray3d whose Ts lie between tMin and tMax.
+    /// Chunks are approximately sorted along the ray direction.
+    /// </summary>
+    public static IEnumerable<Chunk> QueryPointsNearRay(
+        this IPointCloudNode node, 
+        Ray3d ray,
+        double maxDistanceToRay,
+        double tMin,
+        double tMax,
+        int minCellExponent = int.MinValue
+        ) 
+    {
+        var fastRay = new FastRay3d(ray);
+
+        double t0 = double.NegativeInfinity;
+        double t1 = double.PositiveInfinity;
+
+        var box = Box3d.FromCenterAndSize(
+            node.BoundingBoxExactGlobal.Center, 
+            node.BoundingBoxExactGlobal.Size + V3d.One * maxDistanceToRay
+            );
+
+        if (fastRay.Intersects(box, ref t0, ref t1))
         {
-            if(ps.Root == null) return Enumerable.Empty<Chunk>();
-            return ps.Root.Value.QueryPointsNearRay(ray,maxDistanceToRay,tMin,tMax,minCellExponent);
-        } 
+            if(t1 < tMin || t0 > tMax) { yield break; }
 
-        /// <summary>
-        /// Enumerates Points within given distance of a Ray3d whose Ts lie between tMin and tMax. Chunks are approximately sorted along the ray direction.
-        /// </summary>
-        public static IEnumerable<Chunk> QueryPointsNearRay(
-                this IPointCloudNode node, 
-                Ray3d ray,
-                double maxDistanceToRay,
-                double tMin,
-                double tMax,
-                int minCellExponent = int.MinValue
-            ) 
-        {
-            var fastRay = new FastRay3d(ray);
+            if (node.IsLeaf || node.Cell.Exponent == minCellExponent)
+            {
+                var qs = node.Positions.Value;
 
-            double t0 = System.Double.NegativeInfinity;
-            double t1 = System.Double.PositiveInfinity;
+                var ps = new List<V3d>();
+                var ia = new List<int>();
 
-            var box = 
-                Box3d.FromCenterAndSize(
-                    node.BoundingBoxExactGlobal.Center, 
-                    node.BoundingBoxExactGlobal.Size + V3d.One * maxDistanceToRay
-                );
-            if(fastRay.Intersects(box, ref t0, ref t1)) {
-                if(t1 < tMin || t0 > tMax) { yield break; }
+                for (var i = 0; i < qs.Length; i++)
+                {
+                    var pWorld = (V3d)qs[i] + node.Center;
+                    var d = ray.GetMinimalDistanceTo(pWorld);
+                    var tp = ray.GetTOfProjectedPoint(pWorld);
+                    if (d > maxDistanceToRay || tp < tMin || tp > tMax) continue;
 
-                if (node.IsLeaf || node.Cell.Exponent == minCellExponent) {
-                    var qs = node.Positions.Value;
+                    ps.Add(pWorld);
+                    ia.Add(i);
+                }
+ 
+                if (ia.Count > 0) yield return new Chunk(
+                    ps, 
+                    node.Colors?.Value.Subset(ia),
+                    node.Normals?.Value.Subset(ia),
+                    node.Intensities?.Value.Subset(ia),
+                    node.Classifications?.Value.Subset(ia),
+                    node.PartIndices?.Subset(ia),
+                    bbox: null
+                    );
+            } 
+            else 
+            {
+                var sorted = node.Subnodes.OrderBy(
+                    c => c == null ? double.PositiveInfinity : Vec.Distance(new V3d(c.Value.BoundingBoxExactGlobal.Center), ray.Origin)
+                    );
 
-                    var ps = default(List<V3d>);
-                    var cs = default(List<C4b>);
-                    var ns = default(List<V3f>);
-                    var js = default(List<int>);
-                    var ks = default(List<byte>);
-
-                    for (var i = 0; i < qs.Length; i++)
-                    {
-                        var pWorld = (V3d)qs[i] + node.Center;
-                        var d = ray.GetMinimalDistanceTo(pWorld);
-                        var tp = ray.GetTOfProjectedPoint(pWorld);
-                        if (d > maxDistanceToRay || tp < tMin || tp > tMax) continue;
-                        if (ps == null) Init();
-
-                        ps!.Add(pWorld);
-                        if (node.HasColors) cs!.Add(node.Colors!.Value[i]);
-                        if (node.HasNormals) ns!.Add(node.Normals!.Value[i]);
-                        if (node.HasIntensities) js!.Add(node.Intensities!.Value[i]);
-                        if (node.HasClassifications) ks!.Add(node.Classifications.Value[i]);
-                    }
-
-                    if (ps != null)
-                    {
-                        throw new NotImplementedException("PARTINDICES 13912850-d9fd-4aba-819c-8eb3b6cbc2dc");
-                        yield return new Chunk(ps, cs, ns, js, ks, partIndices: null /* TODO */, bbox: null);
-                    }
-
-                    void Init()
-                    {
-                        ps = new List<V3d>();
-                        cs = node.HasColors ? new List<C4b>() : null;
-                        ns = node.HasNormals ? new List<V3f>() : null;
-                        js = node.HasIntensities ? new List<int>() : null;
-                        ks = node.HasClassifications ? new List<byte>() : null;
-                    }
-                } else {
-                    var sorted = 
-                        node.Subnodes.OrderBy(c => 
-                            (c==null)?System.Double.PositiveInfinity:
-                                Vec.Distance(
-                                    new V3d(c.Value.BoundingBoxExactGlobal.Center),
-                                    ray.Origin
-                                )
-                        );
-                    foreach(var c in sorted) {
-                        if(c==null) continue;
-                        if (t0 > tMin) { tMin = t0; }
-                        if (t1 < tMax) { tMax = t1; }
-                        var ress = c.Value.QueryPointsNearRay(ray, maxDistanceToRay, tMin, tMax, minCellExponent);
-                        foreach(var res in ress) yield return res;
-                    }
-                } // node is leafish
+                foreach(var c in sorted)
+                {
+                    if (c == null) continue;
+                    if (t0 > tMin) tMin = t0;
+                    if (t1 < tMax) tMax = t1;
+                    var ress = c.Value.QueryPointsNearRay(ray, maxDistanceToRay, tMin, tMax, minCellExponent);
+                    foreach(var res in ress) yield return res;
+                }
             }
-            else {
-                yield break;
-            } // ray intersects bounds
-        } // QueryPointsNearRay
-    } // static partial class
-} // namespace
+        }
+        else 
+        {
+            yield break;
+        }
+    }
+}

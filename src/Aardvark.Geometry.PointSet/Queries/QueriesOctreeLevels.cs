@@ -186,14 +186,13 @@ namespace Aardvark.Geometry.Points
             => QueryPointsInOctreeLevel(self.Root.Value, level);
 
         /// <summary>
-        /// Returns lod points for given octree depth/front, where level 0 is the root node.
+        /// Returns LoD points for given octree depth/front, where level 0 is the root node.
         /// Front will include leafs higher up than given level.
         /// </summary>
         public static IEnumerable<Chunk> QueryPointsInOctreeLevel(
             this IPointCloudNode node, int level
             )
         {
-            //Report.ErrorNoPrefix($"[QueryPointsInOctreeLevel] start, level = {level}");
             if (level < 0) yield break;
 
             if (level == 0 || node.IsLeaf())
@@ -203,12 +202,6 @@ namespace Aardvark.Geometry.Points
                 T[]? Verified<T>(T[]? xs, string name)
                 {
                     if (ps == null || xs == null) return xs;
-
-                    //if (xs.Length > 0 && s_random.NextDouble() < 0.1)
-                    //{
-                    //    Report.ErrorNoPrefix("[QueryPointsInOctreeLevel] perform random mutation");
-                    //    xs = xs.Copy(s_random.Next(xs.Length));
-                    //}
 
                     if (ps.Length == xs.Length) return xs;
                     Report.ErrorNoPrefix($"[QueryPointsInOctreeLevel] inconsistent length: {ps.Length} positions, but {xs.Length} {name}.");
@@ -225,8 +218,9 @@ namespace Aardvark.Geometry.Points
                 var ns = Verified(node.TryGetNormals3f()?.Value, "normals");
                 var js = Verified(node.TryGetIntensities()?.Value, "intensities");
                 var ks = Verified(node.TryGetClassifications()?.Value, "classifications");
-                var chunk = new Chunk(ps, cs, ns, js, ks, partIndices: null /* TODO */, bbox: null);
-                throw new NotImplementedException("PARTINDICES 06a9c26b-4bca-4210-ad84-995a9fd55721");
+                var qs = node.PartIndices;
+
+                var chunk = new Chunk(ps, cs, ns, js, ks, qs, bbox: null);
                 yield return chunk;
             }
             else
@@ -266,13 +260,10 @@ namespace Aardvark.Geometry.Points
 
             if (level == 0 || node.IsLeaf())
             {
-                var ps = node.PositionsAbsolute;
-                var cs = node?.TryGetColors4b()?.Value;
-                var ns = node?.TryGetNormals3f()?.Value;
-                var js = node?.TryGetIntensities()?.Value;
-                var ks = node?.TryGetClassifications()?.Value;
-                var chunk = new Chunk(ps, cs, ns, js, ks, partIndices: null /* TODO */, bbox: null);
-                throw new NotImplementedException("PARTINDICES");
+                var chunk = new Chunk(
+                    node.PositionsAbsolute, node.Colors?.Value, node.Normals?.Value, node.Intensities?.Value, node.Classifications?.Value, node.PartIndices,
+                    bbox: null
+                    );
                 yield return chunk;
             }
             else
