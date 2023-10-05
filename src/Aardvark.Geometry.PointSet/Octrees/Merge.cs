@@ -26,22 +26,24 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public static class MergeExtensions
     {
-        internal static int CollectEverything(IPointCloudNode self, List<V3d> ps, List<C4b>? cs, List<V3f>? ns, List<int>? js, List<byte>? ks)
+        internal static int CollectEverything(IPointCloudNode self, List<V3d> ps, List<C4b>? cs, List<V3f>? ns, List<int>? js, List<byte>? ks, ref object? qs)
         {
             if (self == null) return 0;
 
             if (self.IsLeaf)
             {
-                if (self.HasPositions && ps != null)
-                {
-                    var off = self.Center;
-                    ps.AddRange(self.Positions.Value.Map(p => off + (V3d)p));
-                }
+                var initialCount = ps.Count;
+
+                var off = self.Center;
+                ps.AddRange(self.Positions.Value.Map(p => off + (V3d)p));
 
                 if (self.HasColors          && cs != null) cs.AddRange(self.Colors.Value);
                 if (self.HasNormals         && ns != null) ns.AddRange(self.Normals.Value);
                 if (self.HasIntensities     && js != null) js.AddRange(self.Intensities.Value);
                 if (self.HasClassifications && ks != null) ks.AddRange(self.Classifications.Value);
+
+                qs = PartIndexUtils.ConcatIndices(qs, initialCount, self.PartIndices, self.PointCountCell);
+
                 return 1;
             }
             else
@@ -51,7 +53,7 @@ namespace Aardvark.Geometry.Points
                 {
                     if (x != null)
                     {
-                        leafs += CollectEverything(x!.Value!, ps, cs, ns, js, ks);
+                        leafs += CollectEverything(x.Value, ps, cs, ns, js, ks, ref qs);
                     }
                 }
                 return leafs;
@@ -73,7 +75,8 @@ namespace Aardvark.Geometry.Points
                 var nsla = new List<V3f>();
                 var jsla = new List<int>();
                 var ksla = new List<byte>();
-                var leaves = CollectEverything(self, psla, csla, nsla, jsla, ksla);
+                var qsla = (object?)null;
+                var leaves = CollectEverything(self, psla, csla, nsla, jsla, ksla, ref qsla);
 
                 // positions might be slightly (~eps) outside this node's bounds,
                 // due to floating point conversion from local sub-node space to global space
@@ -298,9 +301,10 @@ namespace Aardvark.Geometry.Points
                 var nsla = new List<V3f>();
                 var jsla = new List<int>();
                 var ksla = new List<byte>();
+                var qsla = (object?)null;
 
-                CollectEverything(a, psla, csla, nsla, jsla, ksla);
-                CollectEverything(b, psla, csla, nsla, jsla, ksla);
+                CollectEverything(a, psla, csla, nsla, jsla, ksla, ref qsla);
+                CollectEverything(b, psla, csla, nsla, jsla, ksla, ref qsla);
 
                 var cell = new Cell(a.Cell, b.Cell);
                 var chunk = new Chunk(
@@ -309,10 +313,10 @@ namespace Aardvark.Geometry.Points
                     nsla.Count > 0 ? nsla : null,
                     jsla.Count > 0 ? jsla : null,
                     ksla.Count > 0 ? ksla : null,
-                    partIndices: null, // TODO
+                    partIndices: qsla,
                     bbox: null
                     ); 
-                throw new NotImplementedException("PARTINDICES");
+
                 if (config.NormalizePointDensityGlobal)
                 {
                     chunk = chunk.ImmutableFilterMinDistByCell(cell, config.ParseConfig);
@@ -935,9 +939,9 @@ namespace Aardvark.Geometry.Points
                 var newNs = ns != null ? new List<V3f>(ns) : null; newNs?.AddRange(a.Normals!.Value);
                 var newJs = js != null ? new List<int>(js) : null; newJs?.AddRange(a.Intensities!.Value);
                 var newKs = ks != null ? new List<byte>(ks) : null; newKs?.AddRange(a.Classifications!.Value);
+                var newQs = PartIndexUtils.ConcatIndices(qs, psAbsolute.Count, a.PartIndices, a.PointCountCell);
 
-                var chunk = new Chunk(newPs, newCs, newNs, newJs, newKs, partIndices: null /* TODO */, cell.BoundingBox);
-                throw new NotImplementedException("PARTINDICES");
+                var chunk = new Chunk(newPs, newCs, newNs, newJs, newKs, partIndices: newQs, cell.BoundingBox);
 
                 if (config.NormalizePointDensityGlobal)
                 {
@@ -971,12 +975,14 @@ namespace Aardvark.Geometry.Points
                     if (ns != null) nss![j] = new List<V3f>();
                     if (js != null) iss![j] = new List<int>();
                     if (ks != null) kss![j] = new List<byte>();
+                    if (qs != null) qss![j] = null;
                 }
                 pss[j].Add(psAbsolute[i]);
                 if (cs != null) css![j].Add(cs[i]);
                 if (ns != null) nss![j].Add(ns[i]);
                 if (js != null) iss![j].Add(js[i]);
                 if (ks != null) kss![j].Add(ks[i]);
+                if (qs != null) qss![j] = PartIndexUtils.Get(qs, i);
             }
 
             if (pss.Sum(x => x?.Count) != psAbsolute.Count) throw new InvalidOperationException();
@@ -988,8 +994,7 @@ namespace Aardvark.Geometry.Points
                 if (pss[j] != null)
                 {
                     if (x == null) throw new InvalidOperationException("Invariant 6afc7ca3-30da-4cb5-9a02-7572085e89bb.");
-                    throw new NotImplementedException("PARTINDICES");
-                    subcells[j] = InjectPointsIntoTree(pss[j], css?[j], nss?[j], iss?[j], kss?[j], qs: null /* TODO */, x, cell.GetOctant(j), config);
+                    subcells[j] = InjectPointsIntoTree(pss[j], css?[j], nss?[j], iss?[j], kss?[j], qss?[j], x, cell.GetOctant(j), config);
                 }
                 else
                 {

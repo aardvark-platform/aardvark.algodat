@@ -32,9 +32,9 @@ public class PartIndicesTests
     [Test]
     public void ConcatIndices_nulls()
     {
-        { Assert.True(       PartIndexUtils.ConcatIndices(first: null, firstCount: 0, second: null, secondCount: 0) is null); }
-        { Assert.Catch(() => PartIndexUtils.ConcatIndices(first: null, firstCount: 0, second:   1u, secondCount: 3)); }
-        { Assert.Catch(() => PartIndexUtils.ConcatIndices(first:   1u, firstCount: 3, second: null, secondCount: 0)); }
+        { Assert.True(PartIndexUtils.ConcatIndices(first: null, firstCount: 0, second: null, secondCount: 0) is null); }
+        { Assert.True(PartIndexUtils.ConcatIndices(first: null, firstCount: 0, second: 1u, secondCount: 3) is uint x && x == 1u); }
+        { Assert.True(PartIndexUtils.ConcatIndices(first: 1u, firstCount: 3, second: null, secondCount: 0) is uint x && x == 1u); }
     }
 
     [Test]

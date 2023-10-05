@@ -195,9 +195,10 @@ namespace Aardvark.Geometry.Points
                     var ns = root.HasNormals ? new List<V3f>() : null;
                     var js = root.HasIntensities ? new List<int>() : null;
                     var ks = root.HasClassifications ? new List<byte>() : null;
+                    var qs = (object?)null;
                     foreach (var c in subnodes)
                     {
-                        if (c != null) MergeExtensions.CollectEverything(c, psabs, cs, ns, js, ks);
+                        if (c != null) MergeExtensions.CollectEverything(c, psabs, cs, ns, js, ks, ref qs);
                     }
                     Debug.Assert(psabs.Count == pointCountTree);
                     var psa = psabs.MapToArray((p) => (V3f)(p - root.Center));
@@ -495,9 +496,10 @@ namespace Aardvark.Geometry.Points
                     var ns = root.HasNormals ? new List<V3f>() : null;
                     var js = root.HasIntensities ? new List<int>() : null;
                     var ks = root.HasClassifications ? new List<byte>() : null;
+                    var qs = (object?)null;
                     foreach (var c in subnodes)
                     {
-                        if (c != null) MergeExtensions.CollectEverything(c, psabs, cs, ns, js, ks);
+                        if (c != null) MergeExtensions.CollectEverything(c, psabs, cs, ns, js, ks, ref qs);
                     }
                     Debug.Assert(psabs.Count == pointCountTree);
                     var psa = psabs.MapToArray((p) => (V3f)(p - root.Center));

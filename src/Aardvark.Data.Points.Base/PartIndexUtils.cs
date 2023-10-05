@@ -18,6 +18,7 @@
 using Aardvark.Base;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
@@ -30,6 +31,17 @@ namespace Aardvark.Data.Points;
 /// </summary>
 public static class PartIndexUtils
 {
+    public static uint? Get(object? o, int index) => o switch
+    {
+        null => null,
+        uint x => x,
+        byte[] xs => (uint)xs[index],
+        short[] xs => (uint)xs[index],
+        int[] xs => (uint)xs[index],
+        _ => throw new Exception($"Unexpected type {o.GetType().FullName}. Invariant 98f41e6c-6065-4dd3-aa9e-6619cc71873d.")
+
+    };
+
     /// <summary>
     /// Concatenates part indices (uint, [byte|short|int] array).
     /// </summary>
@@ -38,14 +50,13 @@ public static class PartIndexUtils
         object? second, int secondCount
         )
     {
-        // expect: both defined, or both null
-        if ((first != null && second == null) || (first == null && second != null)) throw new Exception("Invariant 7e8345fc-c993-48fd-9862-33c9928aba3f.");
-
         checked
         {
             return (first, second) switch
             {
-                (null  , null  ) => null,
+                (null, null) => null,
+                (null, object y) => y,
+                (object x, null) => x,
 
                 (uint x, uint y) => (x == y) ? x : createArray1(x, firstCount, y, secondCount),
 
