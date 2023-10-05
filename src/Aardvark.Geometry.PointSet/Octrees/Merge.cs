@@ -802,7 +802,7 @@ namespace Aardvark.Geometry.Points
             var ns = Concat(a.Normals?.Value, b.Normals?.Value);
             var js = Concat(a.Intensities?.Value, b.Intensities?.Value);
             var ks = Concat(a.Classifications?.Value, b.Classifications?.Value);
-            var qs = PartIndexUtils.MergeIndices(a.PartIndices, a.PointCountCell, b.PartIndices, b.PointCountCell);
+            var qs = PartIndexUtils.ConcatIndices(a.PartIndices, a.PointCountCell, b.PartIndices, b.PointCountCell);
 
             var chunk = new Chunk(ps, cs, ns, js, ks, partIndices: qs, cell.BoundingBox);
             if (config.NormalizePointDensityGlobal)
