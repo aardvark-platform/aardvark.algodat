@@ -211,7 +211,7 @@ namespace Aardvark.Data.Points
         /// <param name="normals">Optional. Either null or same number of elements as positions.</param>
         /// <param name="intensities">Optional. Either null or same number of elements as positions.</param>
         /// <param name="classifications">Optional. Either null or same number of elements as positions.</param>
-        /// <param name="partIndices">Optional. Either null or same number of elements (byte|short|int) as positions.</param>
+        /// <param name="partIndices">Optional. Either (A) null, or (B) single uint value for all points in cell, or (3) array with same number of elements (byte|short|int) as positions.</param>
         /// <param name="bbox">Optional. If null, then bbox will be constructed from positions.</param>
         public Chunk(
             IList<V3d>? positions,
@@ -593,7 +593,7 @@ namespace Aardvark.Data.Points
         {
             if (IsEmpty) return Empty;
             if (config.MinDist <= 0.0 || !HasPositions) return this;
-            if (Positions == null) throw new InvalidOperationException();
+            if (Positions == null) throw new InvalidOperationException("Invariant 47ef0ae0-e76f-4f86-bc44-67cc8c939b1c.");
 
             var smallestCellExponent = Fun.Log2(config.MinDist).Ceiling();
             var positions = Positions;
@@ -647,6 +647,14 @@ namespace Aardvark.Data.Points
             var js = f(HasIntensities, Intensities);
             var ks = f(HasClassifications, Classifications);
 
+            var qs = (object?)null;
+            if (HasPartIndices)
+            {
+                var ia = new List<int>();
+                for (var i = 0; i < take.Length; i++) if (take[i]) ia.Add(i);
+                qs = PartIndexUtils.Subset(PartIndices, ia);
+            }
+
             if (config.Verbose)
             {
                 var removedCount = Count - ps?.Count;
@@ -657,8 +665,7 @@ namespace Aardvark.Data.Points
             }
 
             if (ps == null) throw new Exception("Invariant 84440204-5496-479f-ad3e-9e45e5dd16c1.");
-            throw new NotImplementedException("PARTINDICES");
-            return new Chunk(ps, cs, ns, js, ks, partIndices: null /* TODO */, bbox: null);
+            return new Chunk(ps, cs, ns, js, ks, qs, bbox: null);
         }
 
 #pragma warning disable CS8602

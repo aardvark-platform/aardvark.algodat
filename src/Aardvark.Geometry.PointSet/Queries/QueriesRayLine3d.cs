@@ -149,40 +149,27 @@ namespace Aardvark.Geometry.Points
                 else
                 {
                     // do it without kd-tree ;-)
-                    var qs = node.Positions.Value;
+                    var psLocal = node.Positions.Value;
 
-                    var ps = default(List<V3d>);
-                    var cs = default(List<C4b>);
-                    var ns = default(List<V3f>);
-                    var js = default(List<int>);
-                    var ks = default(List<byte>);
-
-                    for (var i = 0; i < qs.Length; i++)
+                    var ia = new List<int>();
+                    for (var i = 0; i < psLocal.Length; i++)
                     {
-                        var d = rayLocal.GetMinimalDistanceTo((V3d)qs[i]);
+                        var d = rayLocal.GetMinimalDistanceTo((V3d)psLocal[i]);
                         if (d > maxDistanceToRay) continue;
-                        if (ps == null) Init();
-
-                        ps!.Add((V3d)qs[i] + centerGlobal);
-                        if (node.HasColors) cs!.Add(node.Colors.Value[i]);
-                        if (node.HasNormals) ns!.Add(node.Normals.Value[i]);
-                        if (node.HasIntensities) js!.Add(node.Intensities.Value[i]);
-                        if (node.HasClassifications) ks!.Add(node.Classifications.Value[i]);
+                        ia.Add(i);
                     }
 
-                    if (ps != null)
+                    if (ia.Count > 0)
                     {
-                        yield return new Chunk(ps, cs, ns, js, ks, partIndices: null /* TODO */, bbox: null);
+                        yield return new Chunk(
+                            node.PositionsAbsolute.Subset(ia),
+                            node.Colors?.Value.Subset(ia),
+                            node.Normals?.Value.Subset(ia),
+                            node.Intensities?.Value.Subset(ia),
+                            node.Classifications?.Value.Subset(ia),
+                            partIndices: node.PartIndices?.Subset(ia),
+                            bbox: null);
                         throw new NotImplementedException("PARTINDICES");
-                    }
-
-                    void Init()
-                    {
-                        ps = new List<V3d>();
-                        cs = node.HasColors ? new List<C4b>() : null;
-                        ns = node.HasNormals ? new List<V3f>() : null;
-                        js = node.HasIntensities ? new List<int>() : null;
-                        ks = node.HasClassifications ? new List<byte>() : null;
                     }
                 }
             }

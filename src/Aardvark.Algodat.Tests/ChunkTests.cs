@@ -173,6 +173,63 @@ namespace Aardvark.Geometry.Tests
 
             Assert.IsTrue(a.Positions.Count == 4);
             Assert.IsTrue(b.Positions.Count == 4);
+            Assert.IsTrue(b.Positions[0] == new V3d(1, 2, 3));
+            Assert.IsTrue(b.Positions[1] == new V3d(4, 5, 6));
+        }
+
+        [Test]
+        public void Chunk_ImmutableFilterMinDistByCell()
+        {
+            var a = new Chunk(
+                positions: new[] { new V3d(0.4, 0.4, 0.4), new V3d(0.6, 0.6, 0.6), new V3d(1.1, 0.1, 0.1), new V3d(1.2, 0.2, 0.2) }
+                );
+
+            {
+                var b = a.ImmutableFilterMinDistByCell(new Cell(0, 0, 0, 1), ParseConfig.Default.WithMinDist(1.0));
+                Assert.IsTrue(b.Positions.Count == 2);
+                Assert.IsTrue(b.Positions[0] == new V3d(0.4, 0.4, 0.4));
+                Assert.IsTrue(b.Positions[1] == new V3d(1.1, 0.1, 0.1));
+            }
+
+            {
+                var b = a.ImmutableFilterMinDistByCell(new Cell(0, 0, 0, 1), ParseConfig.Default.WithMinDist(0.5));
+                Assert.IsTrue(b.Positions.Count == 3);
+                Assert.IsTrue(b.Positions[0] == new V3d(0.4, 0.4, 0.4));
+                Assert.IsTrue(b.Positions[1] == new V3d(0.6, 0.6, 0.6));
+                Assert.IsTrue(b.Positions[2] == new V3d(1.1, 0.1, 0.1));
+            }
+        }
+
+        [Test]
+        public void Chunk_ImmutableFilterMinDistByCell_Parts()
+        {
+            var a = new Chunk(
+                positions: new[] { new V3d(0.4, 0.4, 0.4), new V3d(0.6, 0.6, 0.6), new V3d(1.1, 0.1, 0.1), new V3d(1.2, 0.2, 0.2) },
+                colors: null, normals: null, intensities: null, classifications: null,
+                partIndices: new byte[] { 0, 1, 2, 3 },
+                bbox: null
+                );
+
+            {
+                var b = a.ImmutableFilterMinDistByCell(new Cell(0, 0, 0, 1), ParseConfig.Default.WithMinDist(1.0));
+                Assert.IsTrue(b.Positions.Count == 2);
+                var qs = b.PartIndices as byte[];
+                Assert.NotNull(qs);
+                Assert.IsTrue(qs[0] == 0);
+                Assert.IsTrue(qs[1] == 2);
+                Assert.IsTrue(b.HasPartIndices);
+            }
+
+            {
+                var b = a.ImmutableFilterMinDistByCell(new Cell(0, 0, 0, 1), ParseConfig.Default.WithMinDist(0.5));
+                Assert.IsTrue(b.Positions.Count == 3);
+                var qs = b.PartIndices as byte[];
+                Assert.NotNull(qs);
+                Assert.IsTrue(qs[0] == 0);
+                Assert.IsTrue(qs[1] == 1);
+                Assert.IsTrue(qs[2] == 2);
+                Assert.IsTrue(b.HasPartIndices);
+            }
         }
     }
 }
