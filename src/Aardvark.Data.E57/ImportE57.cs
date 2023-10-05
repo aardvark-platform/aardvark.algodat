@@ -207,7 +207,7 @@ namespace Aardvark.Data.Points.Import
                             normals: e57chunk.Normals,
                             intensities: e57chunk.Intensities,
                             classifications: e57chunk.Classification?.Map(x => (byte)x),
-                            partIndices: config.EnabledProperties.PartIndices ? partIndex : null,
+                            parts: config.EnabledProperties.PartIndices ? partIndex : null,
                             bbox: null
                             );
 

@@ -206,7 +206,7 @@ namespace Aardvark.Geometry.Tests
             var a = new Chunk(
                 positions: new[] { new V3d(0.4, 0.4, 0.4), new V3d(0.6, 0.6, 0.6), new V3d(1.1, 0.1, 0.1), new V3d(1.2, 0.2, 0.2) },
                 colors: null, normals: null, intensities: null, classifications: null,
-                partIndices: new byte[] { 0, 1, 2, 3 },
+                parts: new byte[] { 0, 1, 2, 3 },
                 bbox: null
                 );
 

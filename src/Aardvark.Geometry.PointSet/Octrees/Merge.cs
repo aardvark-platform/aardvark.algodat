@@ -300,7 +300,7 @@ namespace Aardvark.Geometry.Points
                     nsla.Count > 0 ? nsla : null,
                     jsla.Count > 0 ? jsla : null,
                     ksla.Count > 0 ? ksla : null,
-                    partIndices: qsla,
+                    parts: qsla,
                     bbox: null
                     ); 
 
@@ -801,7 +801,7 @@ namespace Aardvark.Geometry.Points
             var ks = Concat(a.Classifications?.Value, b.Classifications?.Value);
             var qs = PartIndexUtils.ConcatIndices(a.PartIndices, a.PointCountCell, b.PartIndices, b.PointCountCell);
 
-            var chunk = new Chunk(ps, cs, ns, js, ks, partIndices: qs, cell.BoundingBox);
+            var chunk = new Chunk(ps, cs, ns, js, ks, parts: qs, cell.BoundingBox);
             if (config.NormalizePointDensityGlobal)
             {
                 chunk = chunk.ImmutableFilterMinDistByCell(cell, config.ParseConfig);

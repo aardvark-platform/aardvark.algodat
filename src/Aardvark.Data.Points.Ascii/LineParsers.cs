@@ -120,15 +120,15 @@ namespace Aardvark.Data.Points
 
                         // add point to chunk
                         ps.Add(state.Position);
-                        if (hasColor) cs.Add(state.Color);
-                        if (hasNormal) ns.Add(state.Normal);
-                        if (hasIntensity) js.Add(state.Intensity);
+                        cs?.Add(state.Color);
+                        ns?.Add(state.Normal);
+                        js?.Add(state.Intensity);
                     }
                 }
             }
 
-            if (ps.Count == 0) return null;
-            return new Chunk(ps, cs, ns, js, classifications: null, partIndices: partIndices, bbox: null);
+            if (ps.Count == 0) return Chunk.Empty;
+            return new Chunk(ps, cs, ns, js, classifications: null, parts: partIndices, bbox: null);
         }
 
         /// <summary>
@@ -183,14 +183,14 @@ namespace Aardvark.Data.Points
 
                         // add point to chunk
                         ps.Add(state.Position);
-                        if (hasColor) cs.Add(state.Color);
-                        if (hasNormal) ns.Add(state.Normal);
-                        if (hasIntensity) js.Add(state.Intensity);
+                        cs?.Add(state.Color);
+                        ns?.Add(state.Normal);
+                        js?.Add(state.Intensity);
                     }
                 }
             }
 
-            if (ps.Count == 0) return null;
+            if (ps.Count == 0) return Chunk.Empty;
             return new Chunk(ps, cs, ns, js, classifications: null, partIndices, bbox: null);
         }
 

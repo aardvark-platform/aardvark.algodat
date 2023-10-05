@@ -196,7 +196,7 @@ namespace Aardvark.Data.Points
 
             if (ps == null) throw new Exception("Invariant 4cc7d585-9a46-4ba2-892a-95fce9ed06da.");
             return new Chunk(ps, cs, ns, js, ks,
-                partIndices: PartIndexUtils.ConcatIndices(chunks.Select(x => (indices: x.PartIndices, count: x.Count))),
+                parts: PartIndexUtils.ConcatIndices(chunks.Select(x => (indices: x.PartIndices, count: x.Count))),
                 bbox: new Box3d(chunks.Select(x => x.BoundingBox))
                 );
         }
@@ -211,7 +211,7 @@ namespace Aardvark.Data.Points
         /// <param name="normals">Optional. Either null or same number of elements as positions.</param>
         /// <param name="intensities">Optional. Either null or same number of elements as positions.</param>
         /// <param name="classifications">Optional. Either null or same number of elements as positions.</param>
-        /// <param name="partIndices">Optional. Either (A) null, or (B) single uint value for all points in cell, or (3) array with same number of elements (byte|short|int) as positions.</param>
+        /// <param name="parts">Optional. Either (A) null, or (B) single uint value for all points in cell, or (3) array with same number of elements (byte|short|int) as positions.</param>
         /// <param name="bbox">Optional. If null, then bbox will be constructed from positions.</param>
         public Chunk(
             IList<V3d>? positions,
@@ -219,7 +219,7 @@ namespace Aardvark.Data.Points
             IList<V3f>? normals,
             IList<int>? intensities,
             IList<byte>? classifications,
-            object? partIndices,
+            object? parts,
             Box3d? bbox
             )
         {
@@ -261,17 +261,17 @@ namespace Aardvark.Data.Points
 
             #region part indices
 
-            switch (partIndices)
+            switch (parts)
             {
                 case null: break;
                 case uint: break;
                 case IList<byte>: break;
                 case IList<short>: break;
                 case IList<int>: break;
-                default: throw new Exception($"Unexpected part indices type {partIndices.GetType().FullName}. Error fc9d196d-508e-4977-8f04-2167c71e38b0.");
+                default: throw new Exception($"Unexpected part indices type {parts.GetType().FullName}. Error fc9d196d-508e-4977-8f04-2167c71e38b0.");
             }
             IList<byte>? qs1b = null;
-            if (partIndices is IList<byte> _qs1b && _qs1b.Count != positions.Count)
+            if (parts is IList<byte> _qs1b && _qs1b.Count != positions.Count)
             {
                 qs1b = _qs1b;
                 countMismatch = true;
@@ -281,7 +281,7 @@ namespace Aardvark.Data.Points
                     );
             }
             IList<short>? qs1s = null;
-            if (partIndices is IList<short> _qs1s && _qs1s.Count != positions.Count)
+            if (parts is IList<short> _qs1s && _qs1s.Count != positions.Count)
             {
                 qs1s = _qs1s;
                 countMismatch = true;
@@ -291,7 +291,7 @@ namespace Aardvark.Data.Points
                     );
             }
             IList<int>? qs1i = null;
-            if (partIndices is IList<int> _qs1i && _qs1i.Count != positions.Count)
+            if (parts is IList<int> _qs1i && _qs1i.Count != positions.Count)
             {
                 qs1i = _qs1i;
                 countMismatch = true;
@@ -319,9 +319,9 @@ namespace Aardvark.Data.Points
                 if (normals         != null && normals        .Count != minCount) normals         = normals        .Take(minCount).ToArray();
                 if (intensities     != null && intensities    .Count != minCount) intensities     = intensities    .Take(minCount).ToArray();
                 if (classifications != null && classifications.Count != minCount) classifications = classifications.Take(minCount).ToArray();
-                if (qs1b            != null && qs1b           .Count != minCount) partIndices     = qs1b           .Take(minCount).ToArray();
-                if (qs1s            != null && qs1s           .Count != minCount) partIndices     = qs1s           .Take(minCount).ToArray();
-                if (qs1i            != null && qs1i           .Count != minCount) partIndices     = qs1i           .Take(minCount).ToArray();
+                if (qs1b            != null && qs1b           .Count != minCount) parts     = qs1b           .Take(minCount).ToArray();
+                if (qs1s            != null && qs1s           .Count != minCount) parts     = qs1s           .Take(minCount).ToArray();
+                if (qs1i            != null && qs1i           .Count != minCount) parts     = qs1i           .Take(minCount).ToArray();
             }
 
             Positions       = positions;
@@ -329,7 +329,7 @@ namespace Aardvark.Data.Points
             Normals         = normals;
             Intensities     = intensities;
             Classifications = classifications;
-            PartIndices     = partIndices;
+            PartIndices     = parts;
             BoundingBox     = bbox ?? (positions.Count > 0 ? new Box3d(positions) : Box3d.Invalid);
         }
 
@@ -353,7 +353,7 @@ namespace Aardvark.Data.Points
                         normals: HasNormals ? Normals.Skip(i).Take(chunksize).ToArray() : null,
                         intensities: HasIntensities ? Intensities.Skip(i).Take(chunksize).ToArray() : null,
                         classifications: HasClassifications ? Classifications.Skip(i).Take(chunksize).ToArray() : null,
-                        partIndices: PartIndexUtils.Take(PartIndexUtils.Skip(PartIndices, i), chunksize),
+                        parts: PartIndexUtils.Take(PartIndexUtils.Skip(PartIndices, i), chunksize),
                         bbox: null
                         );
 
@@ -378,7 +378,7 @@ namespace Aardvark.Data.Points
                     Append(Normals, other.Normals),
                     Append(Intensities, other.Intensities),
                     Append(Classifications, other.Classifications),
-                    partIndices: PartIndexUtils.ConcatIndices(PartIndices, Count, other.PartIndices, other.Count),
+                    parts: PartIndexUtils.ConcatIndices(PartIndices, Count, other.PartIndices, other.Count),
                     Box.Union(BoundingBox, other.BoundingBox)
                 );
         }
@@ -456,7 +456,7 @@ namespace Aardvark.Data.Points
 #endif
                 }
 
-                return new Chunk(ps, cs, ns, js, ks, partIndices: qs, bbox: null);
+                return new Chunk(ps, cs, ns, js, ks, parts: qs, bbox: null);
             }
             else
             {
@@ -498,7 +498,7 @@ namespace Aardvark.Data.Points
                     Normals         != null ? ia.Map(i => Normals[i])         : null,
                     Intensities     != null ? ia.Map(i => Intensities[i])     : null,
                     Classifications != null ? ia.Map(i => Classifications[i]) : null,
-                    partIndices: PartIndexUtils.Subset(PartIndices, ia),
+                    parts: PartIndexUtils.Subset(PartIndices, ia),
                     bbox: null
                     );
             }
@@ -524,7 +524,7 @@ namespace Aardvark.Data.Points
             var ks = Classifications?.Subset(ia);
             var qs = PartIndexUtils.Subset(PartIndices, ia);
 
-            return new Chunk(ps, cs, ns, js, ks, partIndices: qs, bbox: null);
+            return new Chunk(ps, cs, ns, js, ks, parts: qs, bbox: null);
         }
 
         /// <summary>
@@ -552,7 +552,7 @@ namespace Aardvark.Data.Points
                 Normals?.Subset(ia),
                 Intensities?.Subset(ia),
                 Classifications?.Subset(ia),
-                partIndices: PartIndexUtils.Subset(PartIndices, ia),
+                parts: PartIndexUtils.Subset(PartIndices, ia),
                 bbox: null
                 );
         }
@@ -581,7 +581,7 @@ namespace Aardvark.Data.Points
                 Normals?.Subset(ia),
                 Intensities?.Subset(ia),
                 Classifications?.Subset(ia),
-                partIndices: PartIndexUtils.Subset(PartIndices, ia),
+                parts: PartIndexUtils.Subset(PartIndices, ia),
                 bbox: null
                 );
         }
