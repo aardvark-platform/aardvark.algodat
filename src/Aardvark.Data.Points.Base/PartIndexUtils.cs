@@ -31,6 +31,19 @@ namespace Aardvark.Data.Points;
 /// </summary>
 public static class PartIndexUtils
 {
+    public static Durable.Def GetDurableDefForPartIndices(object? partIndices) => partIndices switch
+    {
+        null => throw new Exception("Invariant 598ae146-211f-4cee-af57-985eb26ce961."),
+        uint => Durable.Octree.PerCellPartIndex1ui,
+        IReadOnlyList<byte> => Durable.Octree.PerPointPartIndex1b,
+        IReadOnlyList<short> => Durable.Octree.PerPointPartIndex1s,
+        IReadOnlyList<int> => Durable.Octree.PerPointPartIndex1i,
+        _ => throw new Exception($"Unsupported part indices type {partIndices.GetType().FullName}. Invariant 6700c73d-1842-4fe9-a6b0-28420965cecb.")
+    };
+
+    /// <summary>
+    /// Get intex-th part index.
+    /// </summary>
     public static uint? Get(object? o, int index) => o switch
     {
         null => null,
@@ -230,7 +243,10 @@ public static class PartIndexUtils
             )
     };
 
-    internal static object? Subset(object? partIndices, IReadOnlyList<int> subsetIndices) => partIndices switch
+    /// <summary>
+    /// Creates subset/reshuffle part indices according to index array.
+    /// </summary>
+    public static object? Subset(object? partIndices, IReadOnlyList<int> subsetIndices) => partIndices switch
     {
         null            => null,
         uint x          => x,

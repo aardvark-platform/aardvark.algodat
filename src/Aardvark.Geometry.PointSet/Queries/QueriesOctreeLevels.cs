@@ -226,7 +226,7 @@ namespace Aardvark.Geometry.Points
                 var js = Verified(node.TryGetIntensities()?.Value, "intensities");
                 var ks = Verified(node.TryGetClassifications()?.Value, "classifications");
                 var chunk = new Chunk(ps, cs, ns, js, ks, partIndices: null /* TODO */, bbox: null);
-                throw new NotImplementedException("PARTINDICES");
+                throw new NotImplementedException("PARTINDICES 06a9c26b-4bca-4210-ad84-995a9fd55721");
                 yield return chunk;
             }
             else

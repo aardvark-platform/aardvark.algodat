@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
+using static Aardvark.Base.Monads.Optics;
 
 namespace Aardvark.Geometry.Points
 {
@@ -331,15 +332,16 @@ namespace Aardvark.Geometry.Points
                 var cs = chunk.Colors?.ToArray();
                 var js = chunk.Intensities?.ToArray();
                 var ks = chunk.Classifications?.ToArray();
+                var qs = chunk.PartIndices;
 
                 var bbExactGlobal = chunk.BoundingBox;
 
                 Guid psId = Guid.NewGuid();
                 //Guid? kdId = psAbs != null ? Guid.NewGuid() : (Guid?)null;
-                Guid? nsId = ns != null ? Guid.NewGuid() : (Guid?)null;
-                Guid? csId = cs != null ? Guid.NewGuid() : (Guid?)null;
-                Guid? jsId = js != null ? Guid.NewGuid() : (Guid?)null;
-                Guid? ksId = ks != null ? Guid.NewGuid() : (Guid?)null;
+                Guid? nsId = ns != null ? Guid.NewGuid() : null;
+                Guid? csId = cs != null ? Guid.NewGuid() : null;
+                Guid? jsId = js != null ? Guid.NewGuid() : null;
+                Guid? ksId = ks != null ? Guid.NewGuid() : null;
 
 
                 var center = cell.BoundingBox.Center;
@@ -355,11 +357,16 @@ namespace Aardvark.Geometry.Points
                     ;
 
                 storage.Add(psId, ps ); data = data.Add(Durable.Octree.PositionsLocal3fReference, psId);
+                //if (kdId.HasValue) { storage.Add(kdId.Value, kd.Data); data = data.Add(Durable.Octree.PointRkdTreeFDataReference, kdId.Value); }
                 if (nsId.HasValue) { storage.Add(nsId.Value, ns!); data = data.Add(Durable.Octree.Normals3fReference        , nsId.Value); }
                 if (csId.HasValue) { storage.Add(csId.Value, cs!); data = data.Add(Durable.Octree.Colors4bReference         , csId.Value); }
                 if (jsId.HasValue) { storage.Add(jsId.Value, js!); data = data.Add(Durable.Octree.Intensities1iReference    , jsId.Value); }
                 if (ksId.HasValue) { storage.Add(ksId.Value, ks!); data = data.Add(Durable.Octree.Classifications1bReference, ksId.Value); }
-                //if (kdId.HasValue) { storage.Add(kdId.Value, kd.Data); data = data.Add(Durable.Octree.PointRkdTreeFDataReference, kdId.Value); }
+                if (qs != null) 
+                {
+                    var def = PartIndexUtils.GetDurableDefForPartIndices(qs);
+                    data = data.Add(def, qs);
+                }
 
                 return (new PointSetNode(data, config.Storage, writeToStore: true), true);
             }
@@ -901,6 +908,23 @@ namespace Aardvark.Geometry.Points
             if (a.Cell != result.Cell) throw new InvalidOperationException("Invariant 97239777-8a0c-4158-853b-e9ebef63fda8.");
             return result;
         }
+        private static PointSetNode CreateTmpNode(
+            ImportConfig config,
+            Cell cell,
+            IList<V3d>? positions,
+            IList<C4b>? colors,
+            IList<V3f>? normals,
+            IList<int>? intensities,
+            IList<byte>? classifications,
+            object? partIndices
+            )
+        {
+            var chunk = new Chunk(positions, colors, normals, intensities, classifications, partIndices, bbox: null);
+            if (config.NormalizePointDensityGlobal) chunk = chunk.ImmutableFilterMinDistByCell(cell, config.ParseConfig);
+            var node = InMemoryPointSet.Build(chunk, cell, config.OctreeSplitLimit).ToPointSetNode(config.Storage, isTemporaryImportNode: true);
+            if (node.Cell != cell) throw new InvalidOperationException("Invariant a9d952d5-5e01-4f59-9b6b-8a4e6a3d4cd9.");
+            return node;
+        }
 
         private static IPointCloudNode InjectPointsIntoTree(
             IList<V3d> psAbsolute, IList<C4b>? cs, IList<V3f>? ns, IList<int>? js, IList<byte>? ks, object? qs,
@@ -913,15 +937,7 @@ namespace Aardvark.Geometry.Points
 
             if (a == null)
             {
-                var chunk = new Chunk(psAbsolute, cs, ns, js, ks, qs, cell.BoundingBox);
-                if (config.NormalizePointDensityGlobal)
-                {
-                    chunk = chunk.ImmutableFilterMinDistByCell(cell, config.ParseConfig);
-                }
-
-                var result0 = InMemoryPointSet.Build(chunk, cell, config.OctreeSplitLimit).ToPointSetNode(config.Storage, isTemporaryImportNode: true);
-                //if (result0.PointCountTree != psAbsolute.Count) throw new InvalidOperationException("Invariant db6c1efb-32c3-4fc1-a9c8-a573442d593b.");
-                if (result0.Cell != cell) throw new InvalidOperationException("Invariant 266f3ced-7aea-4efd-b4f0-1c3e04fafb08.");
+                var result0 = CreateTmpNode(config, cell, psAbsolute, cs, ns, js, ks, qs);
                 return result0;
             }
 
@@ -941,15 +957,7 @@ namespace Aardvark.Geometry.Points
                 var newKs = ks != null ? new List<byte>(ks) : null; newKs?.AddRange(a.Classifications!.Value);
                 var newQs = PartIndexUtils.ConcatIndices(qs, psAbsolute.Count, a.PartIndices, a.PointCountCell);
 
-                var chunk = new Chunk(newPs, newCs, newNs, newJs, newKs, partIndices: newQs, cell.BoundingBox);
-
-                if (config.NormalizePointDensityGlobal)
-                {
-                    chunk = chunk.ImmutableFilterMinDistByCell(cell, config.ParseConfig);
-                }
-                var result0 = InMemoryPointSet.Build(chunk, cell, config.OctreeSplitLimit).ToPointSetNode(config.Storage, isTemporaryImportNode: true);
-                //if (a.PointCountTree + psAbsolute.Count != result0.PointCountTree) throw new InvalidOperationException("Invariant 9bda6d47-26d8-42e3-8d94-3db2d4436fec.");
-                if (result0.Cell != cell) throw new InvalidOperationException("Invariant 2c11816c-da18-464e-9c2c-fad53301b41b.");
+                var result0 = CreateTmpNode(config, cell, newPs, newCs, newNs, newJs, newKs, newQs);
                 return result0;
             }
 
@@ -990,11 +998,19 @@ namespace Aardvark.Geometry.Points
             var subcells = new IPointCloudNode?[8];
             for (var j = 0; j < 8; j++)
             {
+                var subCell = cell.GetOctant(j);
                 var x = a.Subnodes![j]?.Value;
                 if (pss[j] != null)
                 {
-                    if (x == null) throw new InvalidOperationException("Invariant 6afc7ca3-30da-4cb5-9a02-7572085e89bb.");
-                    subcells[j] = InjectPointsIntoTree(pss[j], css?[j], nss?[j], iss?[j], kss?[j], qss?[j], x, cell.GetOctant(j), config);
+                    if (x == null)
+                    {
+                        // injecting points into non-existing subtree
+                        subcells[j] = CreateTmpNode(config, subCell, pss[j], css?[j], nss?[j], iss?[j], kss?[j], qss?[j]);
+                    }
+                    else
+                    {
+                        subcells[j] = InjectPointsIntoTree(pss[j], css?[j], nss?[j], iss?[j], kss?[j], qss?[j], x, subCell, config);
+                    }
                 }
                 else
                 {

@@ -194,6 +194,7 @@ namespace Aardvark.Data.Points.Import
                 var totalRecordCount = header.E57Root.Data3D.Sum(x => x.Points.RecordCount);
                 var yieldedRecordCount = 0L;
 
+                var partIndex = config.PartIndexOffset;
                 foreach (var data3d in header.E57Root.Data3D)
                 {
                     foreach (var (Positions, Properties) in data3d.StreamPointsFull(config.MaxChunkPointCount, config.Verbose, exclude))
@@ -206,10 +207,9 @@ namespace Aardvark.Data.Points.Import
                             normals: e57chunk.Normals,
                             intensities: e57chunk.Intensities,
                             classifications: e57chunk.Classification?.Map(x => (byte)x),
-                            partIndices: null, // TODO
+                            partIndices: config.EnabledProperties.PartIndices ? partIndex : null,
                             bbox: null
                             );
-                        throw new NotImplementedException("PARTINDICES");
 
                         if (Properties.ContainsKey(PointPropertySemantics.CartesianInvalidState))
                         {
@@ -232,6 +232,8 @@ namespace Aardvark.Data.Points.Import
 
                         yield return chunk;
                     }
+
+                    partIndex++;
                 }
 
                 if (config.Verbose) Report.Line();

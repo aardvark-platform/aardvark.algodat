@@ -115,32 +115,34 @@ namespace Aardvark.Geometry.Points
             {
                 if (node.HasKdTree)
                 {
-                    var ia = node.KdTree.Value.GetClosestToLine(
+                    var indexArray = node.KdTree.Value.GetClosestToLine(
                         (V3f)s0Local, (V3f)s1Local,
                         (float)maxDistanceToRay,
                         node.PointCountCell
                         );
 
-                    if (ia.Count > 0)
+                    if (indexArray.Count > 0)
                     {
-                        var ps = new V3d[ia.Count];
-                        var cs = node.HasColors ? new C4b[ia.Count] : null;
-                        var ns = node.HasNormals ? new V3f[ia.Count] : null;
-                        var js = node.HasIntensities ? new int[ia.Count] : null;
-                        var ks = node.HasClassifications ? new byte[ia.Count] : null;
-                        var ds = new double[ia.Count];
-                        for (var i = 0; i < ia.Count; i++)
+                        var ia = indexArray.MapToArray(x => (int)x.Index);
+                        var ps = new V3d[ia.Length];
+                        var cs = node.HasColors ? new C4b[ia.Length] : null;
+                        var ns = node.HasNormals ? new V3f[ia.Length] : null;
+                        var js = node.HasIntensities ? new int[ia.Length] : null;
+                        var ks = node.HasClassifications ? new byte[ia.Length] : null;
+                        var qs = PartIndexUtils.Subset(node.PartIndices, ia);
+                        //var ds = new double[ia.Count];
+
+                        for (var i = 0; i < ia.Length; i++)
                         {
-                            var index = (int)ia[i].Index;
+                            var index = ia[i];
                             ps[i] = centerGlobal + (V3d)node.Positions.Value[index];
                             if (node.HasColors) cs![i] = node.Colors.Value[index];
                             if (node.HasNormals) ns![i] = node.Normals.Value[index];
                             if (node.HasIntensities) js![i] = node.Intensities.Value[index];
                             if (node.HasClassifications) ks![i] = node.Classifications.Value[index];
-                            ds[i] = ia[i].Dist;
+                            //ds[i] = ia[i].Dist;
                         }
-                        var chunk = new Chunk(ps, cs, ns, js, ks, partIndices: null /*TODO */, bbox: null);
-                        throw new NotImplementedException("PARTINDICES");
+                        var chunk = new Chunk(ps, cs, ns, js, ks, qs, bbox: null);
                         yield return chunk;
                     }
                 }
