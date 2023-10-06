@@ -17,6 +17,7 @@ using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -191,7 +192,6 @@ namespace Aardvark.Geometry.Points
             var ias = new int[]?[8];
 
             // special case: all subnodes have identical per-cell index
-#if NOT_YET
             if (xss.All(xs => xs == null || xs is uint))
             {
                 var perCellIndices = xss.Where(xs => xs != null).Select(xs => (uint)xs!).ToArray();
@@ -199,9 +199,9 @@ namespace Aardvark.Geometry.Points
                 for (var i = 1; i < perCellIndices.Length; i++) if (perCellIndices[i] != perCellIndices[0]) { allIdentical = false; break; }
                 if (allIdentical) return perCellIndices[0];
             }
-#endif
 
-            var i = 0;
+            // standard case:
+            var resultLengthSoFar = 0;
             for (var ci = 0; ci < 8; ci++)
             {
                 if (counts[ci] == 0) continue;
@@ -217,19 +217,28 @@ namespace Aardvark.Geometry.Points
                     _ => throw new Exception($"Unexpected type {xs.GetType().FullName}. Error 8e44dd14-b984-4d7f-8be4-c8e0d4f43189.")
                 };
 
+#if DEBUG
+                if (xsLength < counts[ci]) Debugger.Break(); // TODO "PARTINDICES" remove
+#endif
+
                 if (xsLength == counts[ci])
                 {
-                    result = PartIndexUtils.ConcatIndices(result, i, xs, xsLength);
-                    i += xsLength;
+                    result = PartIndexUtils.ConcatIndices(result, resultLengthSoFar, xs, xsLength);
                 }
                 else if (xsLength > counts[ci])
                 {
                     var ia = new List<int>();
                     var dj = (xsLength + 0.49) / counts[ci];
                     for (var j = 0.0; j < xsLength; j += dj) ia.Add((int)j);
+#if DEBUG
+                    if (ia.Count != counts[ci]) Debugger.Break(); // TODO "PARTINDICES" remove
+#endif
                     var subset = PartIndexUtils.Subset(xs, ia);
-                    result = PartIndexUtils.ConcatIndices(result, i, xs, xsLength);
-                    i += ia.Count;
+                    var newResult = PartIndexUtils.ConcatIndices(result, resultLengthSoFar, subset, ia.Count);
+#if DEBUG
+                    if (newResult is Array a1 && resultLengthSoFar + counts[ci] != a1.Length) Debugger.Break(); // TODO "PARTINDICES" remove
+#endif
+                    result = newResult;
                 }
                 else
                 {
@@ -238,7 +247,13 @@ namespace Aardvark.Geometry.Points
                         $"Invariant 3a9eeb72-8e56-404a-8def-7001b02c960d."
                         );
                 }
+
+                resultLengthSoFar += counts[ci];
             }
+
+#if DEBUG
+            if (result is Array a && a.Length != aggregateCount) Debugger.Break(); // TODO "PARTINDICES" remove
+#endif
 
             result = PartIndexUtils.Compact(result);
 

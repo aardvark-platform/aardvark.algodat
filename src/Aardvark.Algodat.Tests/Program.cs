@@ -1748,30 +1748,13 @@ namespace Aardvark.Geometry.Tests
 
         internal static void Test_Import_Regression()
         {
-            var filenames = new[]
-            {
-                @"W:\Datasets\Vgm\Data\E57\JBs_Haus.e57",
-                //@"W:\Datasets\Vgm\Data\structured_pointclouds\lowergetikum 20230321.e57",
-                //@"W:\Datasets\Vgm\Data\structured_pointclouds\JB_Haus_2022_KG.e57",
-                //@"W:\Datasets\Vgm\Data\2023-02-23_bugreport\KOE1 OG7.e57",
-                //@"W:\Datasets\unstruk\Christchurch.laz",
-                //@"W:\Datasets\unstruk\Sensat-EWR-Bedford_22012021_Point-cloud.laz",
-                //@"W:\Datasets\plytest\inference_full.binary.ply",
-                //@"W:\Datasets\plytest\bunny.ply",
-                //@"W:\Datasets\plytest\leica-studentenzimmer-scan-125.ply",
-                //@"W:\Datasets\plytest\2022-05-31_testfile.ply",
-                //@"E:\e57tests\datasets\matterport.e57",
-                //@"E:\e57tests\datasets\convex-scan-119.e57",
-                //@"E:\e57tests\datasets\Punktwolke_M34.e57",
-                //@"E:\e57tests\datasets\aibotix_ground_points.e57",
-                //@"E:\e57tests\datasets\Register360_Berlin Office_1.e57",
-                //@"E:\e57tests\datasets\Staatsoper.e57",
-                //@"E:\e57tests\datasets\Innenscan_FARO.e57",
-                //@"E:\e57tests\datasets\1190_31_test_Frizzo.e57",
-                //@"E:\e57tests\datasets\Neuhäusl-Hörschwang.e57",
-                //@"E:\e57tests\datasets\2020452-B-3-5.e57",
-                //@"E:\e57tests\datasets\100pct_1mm_zebcam_shade_zebcam_world.e57",
-            };
+            //var filenames = new[]
+            //{
+            //    @"W:\Datasets\Vgm\Data\E57\JBs_Haus.e57",
+            //    @"W:\Datasets\pointclouds\tests\JB_Haus_2022_KG.e57"
+            //};
+
+            var filenames = Directory.GetFiles(@"W:\Datasets\pointclouds\tests");
 
             //filenames = Directory
             //    .EnumerateFiles(@"W:\Datasets\plytest", "*.ply", SearchOption.AllDirectories)
@@ -1782,11 +1765,17 @@ namespace Aardvark.Geometry.Tests
 
             foreach (var filename in filenames)
             {
+                if (!File.Exists(filename))
+                {
+                    Report.Warn($"File does not exist: {filename}");
+                    continue;
+                }
+
                 Report.BeginTimed($"{ filename}");
 
                 var key = Path.GetFileName(filename);
 
-                var storePath = $@"T:\e57tests\stores\{key}";
+                var storePath = $@"W:\aardvark\stores\{key}";
                 Directory.CreateDirectory(storePath);
                 using var storeRaw = new SimpleDiskStore(Path.Combine(storePath, "data.uds"));
                 var store = storeRaw.ToPointCloudStore();
@@ -2687,8 +2676,23 @@ namespace Aardvark.Geometry.Tests
             }
         }
 
+        static Task Parts_Test_20231006()
+        {
+            //const string STOREPATH = @"W:\Aardvark\stores\JBs_Haus.e57";
+            const string STOREPATH = @"W:\Aardvark\stores\JB_Haus_2022_KG.e57";
+            //const string STOREPATH = @"W:\Aardvark\stores\lowergetikum 20230321.e57";
+
+            using var store = new SimpleDiskStore(Path.Combine(STOREPATH, "data.uds")).ToPointCloudStore();
+            var key = File.ReadAllText(Path.Combine(STOREPATH, "key.txt"));
+            var ps = store.GetPointSet(key);
+
+            return Task.CompletedTask;
+        }
+
         public static async Task Main(string[] _)
         {
+            //await Parts_Test_20231006();
+
             Test_Import_Regression();
 
             //await CreateStore(

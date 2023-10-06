@@ -956,7 +956,10 @@ namespace Aardvark.Geometry.Points
 
 #if DEBUG
             var bb = cell.BoundingBox;
-            if (!psAbsolute.All(bb.Contains)) Debugger.Break();
+            if (!psAbsolute.All(bb.Contains)) Report.Warn(
+                $"Not all points contained in cell bounds {cell}. " +
+                $"Warning b2749dac-e8d4-4f95-a0ac-b97cad9c0b37."
+                );
 #endif
 
             for (var i = 0; i < psAbsolute.Count; i++)
