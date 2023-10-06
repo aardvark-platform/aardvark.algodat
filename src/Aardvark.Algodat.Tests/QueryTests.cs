@@ -36,7 +36,9 @@ namespace Aardvark.Geometry.Tests
                 .WithKey("test")
                 .WithOctreeSplitLimit(splitLimit)
                 ;
-            return PointCloud.Chunks(new Chunk(ps), config);
+            var chunk = new Chunk(ps);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u);
+            return PointCloud.Chunks(chunk, config);
         }
 
         private static PointSet CreateClusteredPointsInUnitCube(int n, int splitLimit)
@@ -51,7 +53,9 @@ namespace Aardvark.Geometry.Tests
                 .WithKey("test")
                 .WithOctreeSplitLimit(splitLimit)
                 ;
-            return PointCloud.Chunks(new Chunk(ps), config);
+            var chunk = new Chunk(ps);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u);
+            return PointCloud.Chunks(chunk, config);
         }
 
         private static PointSet CreateRegularPointsInUnitCube(int n, int splitLimit)
@@ -67,8 +71,9 @@ namespace Aardvark.Geometry.Tests
                 .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 .WithOctreeSplitLimit(splitLimit)
-                ;
-            var pc = PointCloud.Chunks(new Chunk(ps), config);
+                ; var chunk = new Chunk(ps);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u);
+            var pc = PointCloud.Chunks(chunk, config);
             return pc;
         }
 
@@ -780,7 +785,7 @@ namespace Aardvark.Geometry.Tests
             var config = ImportConfig.Default.WithKey("Test").WithOctreeSplitLimit(1);
             return PointSet
                 .Create(
-                    storage, "test", ps.ToList(), cs.ToList(), null, null, null, null, 100,
+                    storage, "test", ps.ToList(), cs.ToList(), null, null, null, partIndices: 42u, 100,
                     generateLod: false, isTemporaryImportNode: true, default
                     )
                 .GenerateLod(config)

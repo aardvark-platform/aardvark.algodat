@@ -42,7 +42,9 @@ namespace Aardvark.Geometry.Tests
                 .WithKey("test")
                 .WithOctreeSplitLimit(splitLimit)
                 ;
-            return PointCloud.Chunks(new Chunk(ps), config);
+            var chunk = new Chunk(ps);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u);
+            return PointCloud.Chunks(chunk, config);
         }
 
         public static PointSet CreateRegularPointsInUnitCube(int n, int splitLimit)
@@ -59,7 +61,9 @@ namespace Aardvark.Geometry.Tests
                 .WithKey("test")
                 .WithOctreeSplitLimit(splitLimit)
                 ;
-            return PointCloud.Chunks(new Chunk(ps), config);
+            var chunk = new Chunk(ps);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u);
+            return PointCloud.Chunks(chunk, config);
         }
 
         public static PointSet CreateRandomClassifiedPoints(int n, int splitLimit)
@@ -77,7 +81,9 @@ namespace Aardvark.Geometry.Tests
                 .WithKey("testaa")
                 .WithOctreeSplitLimit(splitLimit)
                 ;
-            return PointCloud.Chunks(new Chunk(ps, null, null, null, ks, null, null), config);
+            var chunk = new Chunk(ps, null, null, null, ks, null, null);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u);
+            return PointCloud.Chunks(chunk, config);
         }
 
         [Test]

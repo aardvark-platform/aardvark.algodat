@@ -18,8 +18,6 @@
 using Aardvark.Base;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 #pragma warning disable CS1591
@@ -31,6 +29,51 @@ namespace Aardvark.Data.Points;
 /// </summary>
 public static class PartIndexUtils
 {
+    /// <summary>
+    /// Compacts part indices.
+    /// If per-point indices are all identical, then return per-cell index.
+    /// If max per-point index fits in a smaller type (e.g. byte), then convert to array of smaller type.
+    /// </summary>
+    public static object? Compact(object? o)
+    {
+        switch (o)
+        {
+            case null: return null;
+            case uint x: return x;
+            case byte[] xs:
+                {
+                    if (xs.Length == 0) throw new Exception("Invariant fa0e5cea-c04a-4649-9018-765606529e38.");
+                    var range = new Range1b(xs);
+                    if (range.Min < 0) throw new Exception("Invariant 46a46203-2525-40c5-95ab-ff6f05f71f55.");
+                    return range.Min == range.Max ? (uint)range.Min : xs;
+                }
+            case short[] xs:
+                {
+                    if (xs.Length == 0) throw new Exception("Invariant 9d18a39b-d19c-4084-95b0-eb30c6a3e38f.");
+                    var range = new Range1s(xs);
+                    if (range.Min < 0) throw new Exception("Invariant 5d7b3558-e235-4ccc-9b10-2d4217fb8459.");
+                    if (range.Min == range.Max) return (uint)range.Min;
+                    if (range.Max < 256) checked { return xs.Map(x => (byte)x); }
+                    return xs;
+                }
+            case int[] xs:
+                {
+                    if (xs.Length == 0) throw new Exception("Invariant f60565d1-6cea-47a0-95c2-30625bd16c1b.");
+                    var range = new Range1i(xs);
+                    if (range.Min < 0) throw new Exception("Invariant 2e002802-dd0b-402b-970b-a49a6decd987.");
+                    if (range.Min == range.Max) return (uint)range.Min;
+                    if (range.Max < 256) checked { return xs.Map(x => (byte)x); }
+                    if (range.Max < 32768) checked { return xs.Map(x => (short)x); }
+                    return xs;
+                }
+            default:
+                throw new Exception(
+                    $"Unexpected type {o.GetType().FullName}. " +
+                    $"Invariant 5b5857b3-b389-41d8-ae81-50f6ef3c133e."
+                    );
+        }
+    }
+
     public static Durable.Def GetDurableDefForPartIndices(object? partIndices) => partIndices switch
     {
         null => throw new Exception("Invariant 598ae146-211f-4cee-af57-985eb26ce961."),

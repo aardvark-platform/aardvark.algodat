@@ -35,7 +35,9 @@ namespace Aardvark.Geometry.Tests
                 .WithKey("test")
                 .WithOctreeSplitLimit(splitLimit)
                 ;
-            return PointCloud.Chunks(new Chunk(ps), config);
+            var chunk = new Chunk(ps);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u);
+            return PointCloud.Chunks(chunk, config);
         }
 
         private static PointSet CreateRegularPointsInUnitCube(int n, int splitLimit)
@@ -52,7 +54,9 @@ namespace Aardvark.Geometry.Tests
                 .WithKey("test")
                 .WithOctreeSplitLimit(splitLimit)
                 ;
-            return PointCloud.Chunks(new Chunk(ps), config);
+            var chunk = new Chunk(ps);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u);
+            return PointCloud.Chunks(chunk, config);
         }
 
         [Test]

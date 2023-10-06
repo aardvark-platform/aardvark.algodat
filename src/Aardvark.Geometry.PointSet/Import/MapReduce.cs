@@ -47,7 +47,14 @@ namespace Aardvark.Geometry.Points
                     var root = builder.ToPointSetNode(config.Storage, isTemporaryImportNode: true);
                     var id = $"Aardvark.Geometry.PointSet.{Guid.NewGuid()}.json";
                     var pointSet = new PointSet(config.Storage, id, root.Id, config.OctreeSplitLimit);
-                    
+
+#if DEBUG
+                    if (config.ParseConfig.EnabledProperties.PartIndices)
+                    {
+                        if (!chunk.HasPartIndices) throw new Exception("Invariant 04c62ea7-287b-473f-a3e9-6b5451222e27.");
+                    }
+#endif
+
                     return pointSet;
                 },
                 config.MaxDegreeOfParallelism, null, config.CancellationToken

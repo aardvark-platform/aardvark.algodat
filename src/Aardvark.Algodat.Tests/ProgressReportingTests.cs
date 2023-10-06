@@ -51,7 +51,7 @@ namespace Aardvark.Geometry.Tests
                 {
                     var _ps = new V3d[numberOfPointsPerChunk];
                     for (var i = 0; i < numberOfPointsPerChunk; i++) _ps[i] = new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble());
-                    yield return new Chunk(_ps);
+                    yield return new Chunk(_ps).WithPartIndices(42u);
                 }
             }
         }

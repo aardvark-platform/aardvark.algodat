@@ -35,7 +35,7 @@ namespace Aardvark.Geometry.Tests
             var cs = ps.Map(_ => C4b.White);
 
             var pointset = PointSet.Create(
-                storage, "test", ps.ToList(), cs.ToList(), null, null, null, null, 5000,
+                storage, "test", ps.ToList(), cs.ToList(), null, null, null, partIndices: 42u, 5000,
                 generateLod: false, isTemporaryImportNode: true, ct: default
                 );
             pointset.Root.Value.ForEachNode(true, cell =>
@@ -64,7 +64,7 @@ namespace Aardvark.Geometry.Tests
             var cs = ps.Map(_ => C4b.White);
 
             var pointset = PointSet.Create(
-                storage, "test", ps.ToList(), cs.ToList(), null, null, null, null, 5000,
+                storage, "test", ps.ToList(), cs.ToList(), null, null, null, partIndices: 42u, 5000,
                 generateLod: true, isTemporaryImportNode: true, default
                 );
             pointset.Root.Value.ForEachNode(true, cell =>
@@ -192,7 +192,9 @@ namespace Aardvark.Geometry.Tests
             };
 
             var config = ImportConfig.Default.WithStorage(storage).WithRandomKey();
-            var n = PointCloud.Chunks(new Chunk(ps), config).Root.Value;
+            var chunk = new Chunk(ps);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u);
+            var n = PointCloud.Chunks(chunk, config).Root.Value;
 
             Assert.IsTrue(n.HasCentroidLocal);
             Assert.IsTrue(n.HasCentroidLocalStdDev);
@@ -217,7 +219,9 @@ namespace Aardvark.Geometry.Tests
             };
 
             var config = ImportConfig.Default.WithStorage(storage).WithRandomKey();
-            var n = PointCloud.Chunks(new Chunk(ps), config).Root.Value;
+            var chunk = new Chunk(ps);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u);
+            var n = PointCloud.Chunks(chunk, config).Root.Value;
 
             Assert.IsTrue(n.HasBoundingBoxExactLocal);
             Assert.IsTrue(n.BoundingBoxExactLocal == new Box3f(new V3f(-0.4f), new V3f(0.4f)));
@@ -237,7 +241,9 @@ namespace Aardvark.Geometry.Tests
             var ps = new V3d[10].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
 
             var config = ImportConfig.Default.WithStorage(storage).WithRandomKey();
-            var n = PointCloud.Chunks(new Chunk(ps), config).Root.Value;
+            var chunk = new Chunk(ps);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u);
+            var n = PointCloud.Chunks(chunk, config).Root.Value;
 
             Assert.IsTrue(n.HasMinTreeDepth);
             Assert.IsTrue(n.HasMaxTreeDepth);
@@ -255,7 +261,9 @@ namespace Aardvark.Geometry.Tests
             var ps = new V3d[20000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
 
             var config = ImportConfig.Default.WithStorage(storage).WithRandomKey();
-            var n = PointCloud.Chunks(new Chunk(ps), config).Root.Value;
+            var chunk = new Chunk(ps);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u);
+            var n = PointCloud.Chunks(chunk, config).Root.Value;
 
             Assert.IsTrue(n.HasMinTreeDepth);
             Assert.IsTrue(n.HasMaxTreeDepth);
@@ -283,7 +291,9 @@ namespace Aardvark.Geometry.Tests
             };
 
             var config = ImportConfig.Default.WithStorage(storage).WithRandomKey();
-            var n = PointCloud.Chunks(new Chunk(ps), config).Root.Value;
+            var chunk = new Chunk(ps);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u);
+            var n = PointCloud.Chunks(chunk, config).Root.Value;
 
             Assert.IsTrue(n.HasPointDistanceAverage);
             Assert.IsTrue(n.HasPointDistanceStandardDeviation);

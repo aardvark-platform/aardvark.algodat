@@ -181,7 +181,13 @@ namespace Aardvark.Geometry.Points
                     foreach (var kv in _octree.m_data)
                     {
                         if (kv.Key == Durable.Octree.PositionsGlobal3d) continue;
-                        if (kv.Key == Durable.Octree.PerCellPartIndex1ui) continue;
+
+                        if (kv.Key == Durable.Octree.PerCellPartIndex1ui)
+                        {
+                            attributes = attributes.Add(kv.Key, kv.Value);
+                            continue;
+                        }
+
                         var subset = kv.Value.Subset(_ia);
                         attributes = attributes.Add(kv.Key, subset);
                     }

@@ -1750,7 +1750,8 @@ namespace Aardvark.Geometry.Tests
         {
             var filenames = new[]
             {
-                @"W:\Datasets\Vgm\Data\structured_pointclouds\lowergetikum 20230321.e57",
+                @"W:\Datasets\Vgm\Data\E57\JBs_Haus.e57",
+                //@"W:\Datasets\Vgm\Data\structured_pointclouds\lowergetikum 20230321.e57",
                 //@"W:\Datasets\Vgm\Data\structured_pointclouds\JB_Haus_2022_KG.e57",
                 //@"W:\Datasets\Vgm\Data\2023-02-23_bugreport\KOE1 OG7.e57",
                 //@"W:\Datasets\unstruk\Christchurch.laz",
@@ -1806,6 +1807,7 @@ namespace Aardvark.Geometry.Tests
                     .WithMinDist(0)
                     .WithNormalizePointDensityGlobal(false)
                     //.WithProgressCallback(p => { Report.Line($"{p:0.00}"); })
+                    .WithEnabledPartIndices(true)
                     ;
 
                 var pcl = PointCloud
@@ -2687,13 +2689,15 @@ namespace Aardvark.Geometry.Tests
 
         public static async Task Main(string[] _)
         {
+            Test_Import_Regression();
+
             //await CreateStore(
             //    @"T:\Kindergarten.pts",
             //    @"W:\Aardworx\pointshare2\testdata\2023-08-01_kindergarten.store",
             //    minDist: 0.0
             //    );
 
-            await Ranges_Test_20230802();
+            //await Ranges_Test_20230802();
 
             //await ParseTest_20230730();
 

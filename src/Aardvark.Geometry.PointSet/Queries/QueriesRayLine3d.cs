@@ -167,7 +167,7 @@ namespace Aardvark.Geometry.Points
                             node.Normals?.Value.Subset(ia),
                             node.Intensities?.Value.Subset(ia),
                             node.Classifications?.Value.Subset(ia),
-                            parts: node.PartIndices?.Subset(ia),
+                            parts: PartIndexUtils.Subset(node.PartIndices, ia),
                             bbox: null);
                         throw new NotImplementedException("PARTINDICES");
                     }

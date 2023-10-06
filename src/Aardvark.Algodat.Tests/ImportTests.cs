@@ -80,7 +80,7 @@ namespace Aardvark.Geometry.Tests
                 .WithKey("test")
                 .WithOctreeSplitLimit(10)
                 ;
-
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u);
             var pointcloud = PointCloud.Chunks(chunk, config);
             Assert.IsTrue(pointcloud.PointCount == 100);
         }
@@ -102,6 +102,9 @@ namespace Aardvark.Geometry.Tests
                 .WithOctreeSplitLimit(10)
                 .WithMinDist(0.5)
                 ;
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u);
             var pointcloud = PointCloud.Chunks(chunk, config);
             Assert.IsTrue(pointcloud.PointCount < 100);
         }
@@ -124,6 +127,7 @@ namespace Aardvark.Geometry.Tests
                 .WithOctreeSplitLimit(10)
                 .WithReproject(xs => xs.Select(x => x += V3d.OIO).ToArray())
                 ;
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u);
             var pointcloud = PointCloud.Chunks(chunk, config);
             Assert.IsTrue(pointcloud.BoundingBox == bb + V3d.OIO);
         }
@@ -145,6 +149,7 @@ namespace Aardvark.Geometry.Tests
                 .WithMinDist(0.0)
                 .WithReproject(null)
                 ;
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u);
             var pointcloud = PointCloud.Chunks(chunk, config);
             Assert.IsTrue(pointcloud.Id == "test");
         }
@@ -170,6 +175,7 @@ namespace Aardvark.Geometry.Tests
                 .WithMinDist(0.0)
                 .WithReproject(null)
                 ;
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u);
             var pointcloud = PointCloud.Chunks(chunk, config);
             Assert.IsTrue(pointcloud.Id == key);
 
@@ -195,6 +201,7 @@ namespace Aardvark.Geometry.Tests
                 .WithMinDist(0.0)
                 .WithReproject(null)
                 ;
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u);
             var pointcloud = PointCloud.Chunks(chunk, config);
             Assert.IsTrue(pointcloud.Id != null);
         }
@@ -217,6 +224,7 @@ namespace Aardvark.Geometry.Tests
                 .WithReproject(null)
                 ;
 
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u);
 
             var pointcloud = PointCloud.Chunks(Array.Empty<Chunk>(), config);
             Assert.IsTrue(pointcloud.Id != null);

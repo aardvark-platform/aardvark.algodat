@@ -15,6 +15,7 @@ using Aardvark.Base;
 using Aardvark.Data;
 using Aardvark.Data.Points;
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
@@ -177,6 +178,73 @@ namespace Aardvark.Geometry.Points
             };
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="counts">Number of points to take from each subnode.</param>
+        /// <param name="aggregateCount"></param>
+        /// <param name="xss"></param>
+        /// <returns></returns>
+        internal static object? AggregateSubPartIndices(int[] counts, int aggregateCount, object?[] xss)
+        {
+            var result = default(object?);
+            var ias = new int[]?[8];
+
+            // special case: all subnodes have identical per-cell index
+#if NOT_YET
+            if (xss.All(xs => xs == null || xs is uint))
+            {
+                var perCellIndices = xss.Where(xs => xs != null).Select(xs => (uint)xs!).ToArray();
+                var allIdentical = true;
+                for (var i = 1; i < perCellIndices.Length; i++) if (perCellIndices[i] != perCellIndices[0]) { allIdentical = false; break; }
+                if (allIdentical) return perCellIndices[0];
+            }
+#endif
+
+            var i = 0;
+            for (var ci = 0; ci < 8; ci++)
+            {
+                if (counts[ci] == 0) continue;
+                var xs = xss[ci]!;
+
+                var xsLength = xs switch
+                {
+                    null => throw new Exception("Invariant 0a65ab38-4b69-4f6d-aa54-36536c86d8d3."),
+                    uint => counts[ci],
+                    byte[] ys => ys.Length,
+                    short[] ys => ys.Length,
+                    int[] ys => ys.Length,
+                    _ => throw new Exception($"Unexpected type {xs.GetType().FullName}. Error 8e44dd14-b984-4d7f-8be4-c8e0d4f43189.")
+                };
+
+                if (xsLength == counts[ci])
+                {
+                    result = PartIndexUtils.ConcatIndices(result, i, xs, xsLength);
+                    i += xsLength;
+                }
+                else if (xsLength > counts[ci])
+                {
+                    var ia = new List<int>();
+                    var dj = (xsLength + 0.49) / counts[ci];
+                    for (var j = 0.0; j < xsLength; j += dj) ia.Add((int)j);
+                    var subset = PartIndexUtils.Subset(xs, ia);
+                    result = PartIndexUtils.ConcatIndices(result, i, xs, xsLength);
+                    i += ia.Count;
+                }
+                else
+                {
+                    throw new Exception(
+                        $"Expected number of sub-indices {xsLength} to be greater or equal than {counts[ci]}. " +
+                        $"Invariant 3a9eeb72-8e56-404a-8def-7001b02c960d."
+                        );
+                }
+            }
+
+            result = PartIndexUtils.Compact(result);
+
+            return result;
+        }
+
         private static async Task<PointSet> GenerateLod(this PointSet self, string? key, Action callback, CancellationToken ct)
         {
             try
@@ -285,6 +353,12 @@ namespace Aardvark.Geometry.Points
                 var fractions = ComputeLodFractions(subcells);
                 var aggregateCount = Math.Min(octreeSplitLimit, subcells.Sum(x => x?.PointCountCell) ?? 0);
                 var counts = ComputeLodCounts(aggregateCount, fractions);
+#if DEBUG
+                if (counts.Sum() != aggregateCount) throw new Exception(
+                    $"Expected aggregate count {aggregateCount} to be the same as sum of LoD counts {counts.Sum()}. " +
+                    $"Invariant 21033eb8-2a19-43a5-82b4-f6c398ac599f."
+                    );
+#endif
 
                 //////////////////////////////////////////////////////////////////
                 // generate LoD data ...
@@ -322,7 +396,11 @@ namespace Aardvark.Geometry.Points
                     x != Durable.Octree.Normals3f &&
                     x != Durable.Octree.Classifications1b &&
                     x != Durable.Octree.Colors4b &&
-                    x != Durable.Octree.Intensities1i
+                    x != Durable.Octree.Intensities1i &&
+                    x != Durable.Octree.PerCellPartIndex1ui &&
+                    x != Durable.Octree.PerPointPartIndex1b &&
+                    x != Durable.Octree.PerPointPartIndex1s &&
+                    x != Durable.Octree.PerPointPartIndex1i
                     ).ToArray();
 
                 // ... positions ...
@@ -367,21 +445,28 @@ namespace Aardvark.Geometry.Points
                     }
                 }
 
+                // ... part indices ...
+                var lodQs = AggregateSubPartIndices(counts, aggregateCount, subcells.Map(x => x?.PartIndices));
+                if (lodQs != null)
+                {
+                    upsertData = upsertData.Add(PartIndexUtils.GetDurableDefForPartIndices(lodQs), lodQs);
+                }
+                
                 // ... classifications ...
-                addAttributeByRef("classifications", Durable.Octree.Classifications1bReference, n => n.HasClassifications, n => n!.Classifications!.Value);
+                addAttributeByRef("classifications", Durable.Octree.Classifications1bReference, n => n.HasClassifications, n => n?.Classifications?.Value);
 
                 // ... colors ...
-                addAttributeByRef("colors", Durable.Octree.Colors4bReference, n => n.HasColors, n => n!.Colors!.Value);
+                addAttributeByRef("colors", Durable.Octree.Colors4bReference, n => n.HasColors, n => n?.Colors?.Value);
 
                 // ... intensities ...
-                addAttributeByRef("intensities", Durable.Octree.Intensities1iReference, n => n.HasIntensities, n => n!.Intensities!.Value);
+                addAttributeByRef("intensities", Durable.Octree.Intensities1iReference, n => n.HasIntensities, n => n?.Intensities?.Value);
 
                 // ... for all other attributes ...
                 foreach (var def in lodAttributeCandidates)
                 {
                     try
                     {
-                        var lod = AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x => x?.Properties[def]!));
+                        var lod = AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x =>    x?.Properties[def]!));
                         if (lod.Length != lodPs.Length) throw new Exception(
                             $"Inconsistent lod-array length {lod.Length}. Should be {lodPs.Length}. Error e3f0398a-b0ae-4e57-95ab-b5d83922ec6e."
                             );
