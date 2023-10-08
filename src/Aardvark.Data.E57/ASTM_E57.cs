@@ -44,7 +44,7 @@ namespace Aardvark.Data.E57
         /// <summary>
         /// Physical E57 file offset.
         /// </summary>
-        public struct E57PhysicalOffset
+        public readonly struct E57PhysicalOffset
         {
             public readonly long Value;
             public E57PhysicalOffset(long value) => Value
@@ -59,7 +59,7 @@ namespace Aardvark.Data.E57
         /// <summary>
         /// Logical E57 file offset.
         /// </summary>
-        public struct E57LogicalOffset
+        public readonly struct E57LogicalOffset
         {
             public readonly long Value;
             public E57LogicalOffset(long value) { Value = value; }
@@ -2263,7 +2263,7 @@ namespace Aardvark.Data.E57
             /// </summary>
             internal ushort ByteStreamCount;
             
-            internal bool CompressorRestart => (PacketFlags & 0b00000001) != 0;
+            internal readonly bool CompressorRestart => (PacketFlags & 0b00000001) != 0;
             
             internal static E57DataPacketHeader Parse(byte[] buffer) => new()
             {

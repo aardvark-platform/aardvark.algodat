@@ -244,13 +244,21 @@ namespace Aardvark.Geometry.Points
 
         #region PartIndices
 
-        /// <summary></summary>
+        /// <summary>
+        /// True if this node has part indices.
+        /// </summary>
         bool HasPartIndices { get; }
 
         /// <summary>
         /// Octree. Per-point or per-cell part indices.
         /// </summary>
         object? PartIndices { get; }
+
+        /// <summary>
+        /// Get per-point part indices as an int array (regardless of internal representation).
+        /// Returns false if node has no part indices.
+        /// </summary>
+        bool TryGetPartIndices([NotNullWhen(true)] out int[]? result);
 
         #endregion
 

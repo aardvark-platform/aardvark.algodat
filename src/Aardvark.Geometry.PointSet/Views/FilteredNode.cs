@@ -438,14 +438,38 @@ namespace Aardvark.Geometry.Points
 
         #region PartIndices
 
-        /// <summary></summary>
+        /// <summary>
+        /// True if this node has part indices.
+        /// </summary>
         [MemberNotNullWhen(true, nameof(PartIndices))]
         public bool HasPartIndices => Node.HasPartIndices;
 
         /// <summary>
         /// Octree. Per-point or per-cell part indices.
         /// </summary>
-        public object? PartIndices => Node.PartIndices;
+        public object? PartIndices => PartIndexUtils.Subset(Node.PartIndices, null!);
+
+        /// <summary>
+        /// Get per-point part indices as an int array (regardless of internal representation).
+        /// Returns false if node has no part indices.
+        /// </summary>
+        public bool TryGetPartIndices([NotNullWhen(true)] out int[]? result)
+        {
+            var qs = SubsetIndexArray != null ? PartIndexUtils.Subset(PartIndices, SubsetIndexArray) : PartIndices;
+            switch (qs)
+            {
+                case null: result = null; return false;
+                case uint x: checked { result = new int[PointCountCell].Set((int)x); return true; }
+                case byte[] xs: result = xs.Map(x => (int)x); return true;
+                case short[] xs: result = xs.Map(x => (int)x); return true;
+                case int[] xs: result = xs; return true;
+                default:
+                    throw new Exception(
+                    $"Unexpected type {qs.GetType().FullName}. " +
+                    $"Error ccc0b898-fe4f-4373-ac15-42da763fe5ab."
+                    );
+            }
+        }
 
         #endregion
 
@@ -521,6 +545,7 @@ namespace Aardvark.Geometry.Points
         #endregion
 
         private readonly Dictionary<Guid, object> m_cache = new();
+
         private PersistentRef<T[]>? GetSubArray<T>(Def def, PersistentRef<T[]>? originalValue)
         {
             if (m_cache.TryGetValue(def.Id, out var o) && o is PersistentRef<T[]> x) return x;
@@ -534,6 +559,21 @@ namespace Aardvark.Geometry.Points
             var result = new PersistentRef<T[]>(key, xs);
             m_cache[def.Id] = result;
             return result;
+        }
+
+        private int[]? _subsetIndexArray = null;
+        private int[]? SubsetIndexArray
+        {
+            get
+            {
+                if (_subsetIndexArray != null) return _subsetIndexArray;
+                if (m_activePoints == null) return null;
+
+                var imax = PointCountCell;
+                var xs = new List<int>();
+                for (var i = 0; i < imax; i++) if (m_activePoints.Contains(i)) xs.Add(i);
+                return _subsetIndexArray = xs.ToArray();
+            }
         }
 
         #endregion

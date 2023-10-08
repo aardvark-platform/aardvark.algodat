@@ -195,6 +195,7 @@ namespace Aardvark.Geometry.Points
             if (xss.All(xs => xs == null || xs is uint))
             {
                 var perCellIndices = xss.Where(xs => xs != null).Select(xs => (uint)xs!).ToArray();
+                if (perCellIndices.Length == 0) return null;
                 var allIdentical = true;
                 for (var i = 1; i < perCellIndices.Length; i++) if (perCellIndices[i] != perCellIndices[0]) { allIdentical = false; break; }
                 if (allIdentical) return perCellIndices[0];

@@ -506,16 +506,16 @@ namespace Aardvark.Geometry.Points
 
 #endregion
 
-#region Properties (state to serialize)
+        #region Properties (state to serialize)
 
         /// <summary>
         /// Durable properties.
         /// </summary>
         private ImmutableDictionary<Durable.Def, object> Data { get; } = ImmutableDictionary<Durable.Def, object>.Empty;
 
-#endregion
+        #endregion
 
-#region Properties (derived/runtime, non-serialized)
+        #region Properties (derived/runtime, non-serialized)
 
         /// <summary>
         /// Runtime.
@@ -529,7 +529,7 @@ namespace Aardvark.Geometry.Points
         [JsonIgnore]
         private Dictionary<Durable.Def, object> PersistentRefs { get; } = new Dictionary<Durable.Def, object>();
 
-#region Cell attributes
+        #region Cell attributes
 
         /// <summary>
         /// This node's unique id (16 bytes).
@@ -582,9 +582,9 @@ namespace Aardvark.Geometry.Points
             }
         }
 
-#endregion
+        #endregion
 
-#region Positions
+        #region Positions
 
         /// <summary></summary>
         [JsonIgnore]
@@ -681,9 +681,9 @@ namespace Aardvark.Geometry.Points
         [JsonIgnore]
         public V3d[] PositionsAbsolute => Positions?.Value.Map(p => new V3d(Center.X + p.X, Center.Y + p.Y, Center.Z + p.Z))!;
 
-#endregion
+        #endregion
 
-#region BoundingBoxExactLocal
+        #region BoundingBoxExactLocal
 
         /// <summary></summary>
         [JsonIgnore]
@@ -693,9 +693,9 @@ namespace Aardvark.Geometry.Points
         [JsonIgnore]
         public Box3f BoundingBoxExactLocal => Data.TryGetValue(Durable.Octree.BoundingBoxExactLocal, out var o) ? (Box3f)o : default;
 
-#endregion
+        #endregion
 
-#region BoundingBoxExactGlobal
+        #region BoundingBoxExactGlobal
 
         /// <summary></summary>
         [JsonIgnore]
@@ -705,9 +705,9 @@ namespace Aardvark.Geometry.Points
         [JsonIgnore]
         public Box3d BoundingBoxExactGlobal => Data.TryGetValue(Durable.Octree.BoundingBoxExactGlobal, out var o) ? (Box3d)o : default;
 
-#endregion
+        #endregion
 
-#region Colors
+        #region Colors
 
         /// <summary></summary>
         [JsonIgnore]
@@ -778,9 +778,9 @@ namespace Aardvark.Geometry.Points
             }
         }
 
-#endregion
+        #endregion
 
-#region Normals
+        #region Normals
 
         /// <summary></summary>
         [JsonIgnore]
@@ -817,9 +817,9 @@ namespace Aardvark.Geometry.Points
             }
         }
 
-#endregion
+        #endregion
 
-#region Intensities
+        #region Intensities
 
         /// <summary></summary>
         [JsonIgnore]
@@ -856,9 +856,9 @@ namespace Aardvark.Geometry.Points
             }
         }
 
-#endregion
+        #endregion
 
-#region Classifications
+        #region Classifications
 
         /// <summary></summary>
         [JsonIgnore]
@@ -899,9 +899,11 @@ namespace Aardvark.Geometry.Points
 
         #region PartIndices
 
-        /// <summary></summary>
-        [JsonIgnore]
 
+        /// <summary>
+        /// True if this node has part indices.
+        /// </summary>
+        [JsonIgnore]
         [MemberNotNullWhen(true, nameof(PartIndices))]
         public bool HasPartIndices =>
             Data.ContainsKey(Durable.Octree.PerCellPartIndex1ui) ||
@@ -923,6 +925,26 @@ namespace Aardvark.Geometry.Points
                 else if (Data.TryGetValue(Durable.Octree.PerPointPartIndex1s, out var pppi1s)) return pppi1s;
                 else if (Data.TryGetValue(Durable.Octree.PerPointPartIndex1i, out var pppi1i)) return pppi1i;
                 else return null;
+            }
+        }
+
+        /// <summary>
+        /// Get per-point part indices as an int array (regardless of internal representation).
+        /// Returns false if node has no part indices.
+        /// </summary>
+        public bool TryGetPartIndices([NotNullWhen(true)] out int[]? result)
+        {
+            switch (PartIndices)
+            {
+                case null: result = null; return false;
+                case uint x: checked { result = new int[PointCountCell].Set((int)x); return true; }
+                case byte[] xs: result = xs.Map(x => (int)x); return true;
+                case short[] xs: result = xs.Map(x => (int)x); return true;
+                case int[] xs: result = xs; return true;
+                default: throw new Exception(
+                    $"Unexpected type {PartIndices.GetType().FullName}. " +
+                    $"Error 278c88f6-d504-4a17-9752-8cca614505f1."
+                    );
             }
         }
 
@@ -948,7 +970,7 @@ namespace Aardvark.Geometry.Points
 
 #endregion
 
-#region KdTree
+        #region KdTree
 
         /// <summary></summary>
         [JsonIgnore]
@@ -975,9 +997,9 @@ namespace Aardvark.Geometry.Points
             : null
             ;
 
-#endregion
+        #endregion
 
-#region CentroidLocal
+        #region CentroidLocal
 
         /// <summary></summary>
         public bool HasCentroidLocal => PointCountCell > 0 || Data.ContainsKey(Durable.Octree.PositionsLocal3fCentroid);
@@ -1048,9 +1070,9 @@ namespace Aardvark.Geometry.Points
             }
         }
 
-#endregion
+        #endregion
 
-#region TreeDepth
+        #region TreeDepth
 
             /// <summary></summary>
         public bool HasMinTreeDepth => Data.ContainsKey(Durable.Octree.MinTreeDepth);
@@ -1064,9 +1086,9 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public int MaxTreeDepth => (int)Data.Get(Durable.Octree.MaxTreeDepth);
 
-#endregion
+        #endregion
 
-#region PointDistance
+        #region PointDistance
 
         /// <summary></summary>
         public bool HasPointDistanceAverage => Data.ContainsKey(Durable.Octree.AveragePointDistance);
@@ -1080,7 +1102,7 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public float PointDistanceStandardDeviation => (Data.TryGetValue(Durable.Octree.AveragePointDistanceStdDev, out var value) && value is float x) ? x : -1.0f;
 
-#endregion
+        #endregion
 
         /// <summary>
         /// Subnodes (8), or null if leaf.
@@ -1230,7 +1252,7 @@ namespace Aardvark.Geometry.Points
 
 #endregion
 
-#region Durable codec
+        #region Durable codec
 
         /// <summary>
         /// </summary>
@@ -1246,9 +1268,9 @@ namespace Aardvark.Geometry.Points
             return new PointSetNode(data, storage, false);
         }
 
-#endregion
+        #endregion
 
-#region IPointCloudNode
+        #region IPointCloudNode
 
         Guid IPointCloudNode.Id => Id;
 
@@ -1305,6 +1327,6 @@ namespace Aardvark.Geometry.Points
 
         IPointCloudNode IPointCloudNode.With(IReadOnlyDictionary<Durable.Def, object> replacements) => With(replacements);
 
-#endregion
+        #endregion
     }
 }

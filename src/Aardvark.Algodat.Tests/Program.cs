@@ -1751,7 +1751,7 @@ namespace Aardvark.Geometry.Tests
             //var filenames = new[]
             //{
             //    @"W:\Datasets\Vgm\Data\E57\JBs_Haus.e57",
-            //    @"W:\Datasets\pointclouds\tests\JB_Haus_2022_KG.e57"
+            //    //@"W:\Datasets\pointclouds\tests\JB_Haus_2022_KG.e57"
             //};
 
             var filenames = Directory.GetFiles(@"W:\Datasets\pointclouds\tests");
@@ -1775,7 +1775,7 @@ namespace Aardvark.Geometry.Tests
 
                 var key = Path.GetFileName(filename);
 
-                var storePath = $@"W:\aardvark\stores\{key}";
+                var storePath = $@"W:\aardvark\stores_noparts\{key}";
                 Directory.CreateDirectory(storePath);
                 using var storeRaw = new SimpleDiskStore(Path.Combine(storePath, "data.uds"));
                 var store = storeRaw.ToPointCloudStore();
@@ -1796,7 +1796,7 @@ namespace Aardvark.Geometry.Tests
                     .WithMinDist(0)
                     .WithNormalizePointDensityGlobal(false)
                     //.WithProgressCallback(p => { Report.Line($"{p:0.00}"); })
-                    .WithEnabledPartIndices(true)
+                    .WithEnabledPartIndices(false)
                     ;
 
                 var pcl = PointCloud
@@ -2685,12 +2685,17 @@ namespace Aardvark.Geometry.Tests
             using var store = new SimpleDiskStore(Path.Combine(STOREPATH, "data.uds")).ToPointCloudStore();
             var key = File.ReadAllText(Path.Combine(STOREPATH, "key.txt"));
             var ps = store.GetPointSet(key);
+            var root = ps.Root.Value;
 
             return Task.CompletedTask;
         }
 
         public static async Task Main(string[] _)
         {
+            await Task.Delay(0); // avoid warnings if main contains no await
+
+
+
             //await Parts_Test_20231006();
 
             Test_Import_Regression();

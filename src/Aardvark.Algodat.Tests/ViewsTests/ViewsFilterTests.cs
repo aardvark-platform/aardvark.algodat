@@ -55,6 +55,7 @@ namespace Aardvark.Geometry.Tests
                 .Add(Durable.Octree.PointCountTreeLeafs, psLocal.LongLength)
                 .Add(Durable.Octree.PositionsLocal3fReference, psLocalId)
                 .Add(Durable.Octree.PointRkdTreeFDataReference, kdLocalId)
+                .Add(Durable.Octree.PerCellPartIndex1ui, 42u)
                 ;
 
             if (intensities != null)
@@ -66,6 +67,19 @@ namespace Aardvark.Geometry.Tests
 
             var result = new PointSetNode(data, storage, writeToStore: true);
             return result;
+        }
+
+        private static void CheckPartIndices(IPointCloudNode n)
+        {
+            if (n.TryGetPartIndices(out var qs))
+            {
+                Assert.True(qs.Length == n.PointCountCell);
+                Assert.True(qs.All(q => q == 42));
+            }
+            else
+            {
+                Assert.Fail("Node has no part indices.");
+            }
         }
 
         #region FilterInsideBox3d
@@ -80,6 +94,8 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(f.HasPositions);
             var ps = f.PositionsAbsolute;
             Assert.IsTrue(ps.Length == 100);
+
+            CheckPartIndices(f);
         }
 
         [Test]
@@ -90,6 +106,8 @@ namespace Aardvark.Geometry.Tests
 
             var f = FilteredNode.Create(a, new FilterInsideBox3d(a.BoundingBoxExactGlobal + V3d.IOO));
             Assert.IsTrue(f.PointCountCell == 0);
+
+            CheckPartIndices(f);
         }
 
         [Test]
@@ -128,6 +146,8 @@ namespace Aardvark.Geometry.Tests
             var ps = f.PositionsAbsolute;
             var count = ps.Count(p => p.Z <= 0.5);
             Assert.IsTrue(ps.Length == count);
+
+            CheckPartIndices(f);
         }
 
         #endregion
@@ -144,6 +164,8 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(f.HasPositions);
             var ps = f.PositionsAbsolute;
             Assert.IsTrue(ps.Length == 100);
+
+            CheckPartIndices(f);
         }
 
         [Test]
@@ -154,6 +176,8 @@ namespace Aardvark.Geometry.Tests
 
             var f = FilteredNode.Create(a, new FilterOutsideBox3d(a.BoundingBoxExactGlobal));
             Assert.IsTrue(f.PointCountCell == 0);
+
+            CheckPartIndices(f);
         }
 
         [Test]
@@ -167,6 +191,8 @@ namespace Aardvark.Geometry.Tests
             var ps = f.PositionsAbsolute;
             var count = ps.Count(p => p.Z <= 0.5);
             Assert.IsTrue(ps.Length == count);
+
+            CheckPartIndices(f);
         }
 
         #endregion
@@ -184,6 +210,8 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(f.HasIntensities);
             var js = f.Intensities.Value;
             Assert.IsTrue(js.Length == 100);
+
+            CheckPartIndices(f);
         }
         
         [Test]
@@ -194,6 +222,8 @@ namespace Aardvark.Geometry.Tests
 
             var f = FilteredNode.Create(a, new FilterIntensity(new Range1i(-30000, -10000)));
             Assert.IsTrue(f.PointCountCell == 0);
+
+            CheckPartIndices(f);
         }
 
         [Test]
@@ -211,6 +241,8 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(js.Length == 2);
             Assert.IsTrue(js[0] == 10000);
             Assert.IsTrue(js[1] == 20000);
+
+            CheckPartIndices(f);
         }
 
         #endregion
@@ -328,9 +360,13 @@ namespace Aardvark.Geometry.Tests
             var buffer = ((IPointCloudNode)f).Encode();
             Assert.IsTrue(buffer != null);
 
+            CheckPartIndices(f);
+
             var g = FilteredNode.Decode(storage, buffer);
             Assert.IsTrue(f.Id == g.Id);
             Assert.IsTrue(f.Node.Id == g.Node.Id);
+
+            CheckPartIndices(g);
 
             var fFilterJson = f.Filter.Serialize().ToString();
             var gFilterJson = g.Filter.Serialize().ToString();
@@ -366,6 +402,8 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(!b.QueryAllPoints().SelectMany(chunk => chunk.Positions).Any(p => q1.Contains(p)));
 
             Assert.IsTrue(b.HasCentroidLocal);
+
+            CheckPartIndices(f);
         }
 
         #endregion
