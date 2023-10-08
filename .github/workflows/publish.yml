@@ -4,6 +4,7 @@ on:
     branches:
       - master
       - newbuild
+      - parts
     paths:
       - RELEASE_NOTES.md
       - .github/workflows/publish.yml
