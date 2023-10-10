@@ -952,6 +952,7 @@ namespace Aardvark.Geometry.Points
             switch (PartIndices)
             {
                 case null: result = null; return false;
+                case int x: result = new int[PointCountCell].Set(x); return true;
                 case uint x: checked { result = new int[PointCountCell].Set((int)x); return true; }
                 case byte[] xs: result = xs.Map(x => (int)x); return true;
                 case short[] xs: result = xs.Map(x => (int)x); return true;
