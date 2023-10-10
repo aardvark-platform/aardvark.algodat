@@ -1205,7 +1205,7 @@ namespace Aardvark.Geometry.Points
                     var subNode = subnodes[i]; if (subNode == null) continue;
                     qsRange = PartIndexUtils.MergeRanges(qsRange, subNode.PartIndexRange);             
                 }
-                data = data.Add(Durable.Octree.PartIndexRange, qsRange);
+                if (qsRange != null) data = data.Add(Durable.Octree.PartIndexRange, qsRange);
             }
 
             if (IsTemporaryImportNode) data = data.Add(TemporaryImportNode, 0);

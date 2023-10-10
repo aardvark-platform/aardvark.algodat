@@ -1748,13 +1748,13 @@ namespace Aardvark.Geometry.Tests
 
         internal static void Test_Import_Regression()
         {
-            //var filenames = new[]
-            //{
-            //    @"W:\Datasets\Vgm\Data\E57\JBs_Haus.e57",
-            //    //@"W:\Datasets\pointclouds\tests\JB_Haus_2022_KG.e57"
-            //};
+            var filenames = new[]
+            {
+                //@"W:\Datasets\Vgm\Data\E57\JBs_Haus.e57",
+                @"W:\Datasets\pointclouds\tests\JB_Haus_2022_KG.e57"
+            };
 
-            var filenames = Directory.GetFiles(@"W:\Datasets\pointclouds\tests");
+            //var filenames = Directory.GetFiles(@"W:\Datasets\pointclouds\tests");
 
             //filenames = Directory
             //    .EnumerateFiles(@"W:\Datasets\plytest", "*.ply", SearchOption.AllDirectories)
@@ -1796,7 +1796,7 @@ namespace Aardvark.Geometry.Tests
                     .WithMinDist(0)
                     .WithNormalizePointDensityGlobal(false)
                     //.WithProgressCallback(p => { Report.Line($"{p:0.00}"); })
-                    .WithEnabledPartIndices(false)
+                    //.WithEnabledPartIndices(false)
                     ;
 
                 var pcl = PointCloud

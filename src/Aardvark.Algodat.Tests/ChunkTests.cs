@@ -113,7 +113,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void Chunk_EmptyColors()
         {
-            new Chunk(new[] { new V3d(1, 2, 3), new V3d(4, 5, 6) });
+            _ = new Chunk(new[] { new V3d(1, 2, 3), new V3d(4, 5, 6) });
         }
 
         [Test]
