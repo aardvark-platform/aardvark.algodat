@@ -39,20 +39,21 @@ public static class PartIndexUtils
         switch (o)
         {
             case null: return null;
-            case uint x: return x;
+            case int x: return x;
+            case uint x: return (int)x;
             case byte[] xs:
                 {
                     if (xs.Length == 0) throw new Exception("Invariant fa0e5cea-c04a-4649-9018-765606529e38.");
                     var range = new Range1b(xs);
                     if (range.Min < 0) throw new Exception("Invariant 46a46203-2525-40c5-95ab-ff6f05f71f55.");
-                    return range.Min == range.Max ? (uint)range.Min : xs;
+                    return range.Min == range.Max ? (int)range.Min : xs;
                 }
             case short[] xs:
                 {
                     if (xs.Length == 0) throw new Exception("Invariant 9d18a39b-d19c-4084-95b0-eb30c6a3e38f.");
                     var range = new Range1s(xs);
                     if (range.Min < 0) throw new Exception("Invariant 5d7b3558-e235-4ccc-9b10-2d4217fb8459.");
-                    if (range.Min == range.Max) return (uint)range.Min;
+                    if (range.Min == range.Max) return (int)range.Min;
                     if (range.Max < 256) checked { return xs.Map(x => (byte)x); }
                     return xs;
                 }
@@ -61,7 +62,7 @@ public static class PartIndexUtils
                     if (xs.Length == 0) throw new Exception("Invariant f60565d1-6cea-47a0-95c2-30625bd16c1b.");
                     var range = new Range1i(xs);
                     if (range.Min < 0) throw new Exception("Invariant 2e002802-dd0b-402b-970b-a49a6decd987.");
-                    if (range.Min == range.Max) return (uint)range.Min;
+                    if (range.Min == range.Max) return (int)range.Min;
                     if (range.Max < 256) checked { return xs.Map(x => (byte)x); }
                     if (range.Max < 32768) checked { return xs.Map(x => (short)x); }
                     return xs;
@@ -76,30 +77,32 @@ public static class PartIndexUtils
 
     public static Durable.Def GetDurableDefForPartIndices(object? partIndices) => partIndices switch
     {
-        null => throw new Exception("Invariant 598ae146-211f-4cee-af57-985eb26ce961."),
-        uint => Durable.Octree.PerCellPartIndex1ui,
-        IReadOnlyList<byte> => Durable.Octree.PerPointPartIndex1b,
+        null                 => throw new Exception("Invariant 598ae146-211f-4cee-af57-985eb26ce961."),
+        int                  => Durable.Octree.PerCellPartIndex1i,
+        uint                 => throw new Exception($"Use PerCellPartIndex1i instead of PerCellPartIndex1ui."), //Durable.Octree.PerCellPartIndex1ui,
+        IReadOnlyList<byte>  => Durable.Octree.PerPointPartIndex1b,
         IReadOnlyList<short> => Durable.Octree.PerPointPartIndex1s,
-        IReadOnlyList<int> => Durable.Octree.PerPointPartIndex1i,
+        IReadOnlyList<int>   => Durable.Octree.PerPointPartIndex1i,
         _ => throw new Exception($"Unsupported part indices type {partIndices.GetType().FullName}. Invariant 6700c73d-1842-4fe9-a6b0-28420965cecb.")
     };
 
     /// <summary>
     /// Get intex-th part index.
     /// </summary>
-    public static uint? Get(object? o, int index) => o switch
+    public static int? Get(object? o, int index) => o switch
     {
-        null => null,
-        uint x => x,
-        byte[] xs => (uint)xs[index],
-        short[] xs => (uint)xs[index],
-        int[] xs => (uint)xs[index],
+        null       => null,
+        int x      => x,
+        uint x     => (int)x,
+        byte[] xs  => xs[index],
+        short[] xs => xs[index],
+        int[] xs   => xs[index],
         _ => throw new Exception($"Unexpected type {o.GetType().FullName}. Invariant 98f41e6c-6065-4dd3-aa9e-6619cc71873d.")
 
     };
 
     /// <summary>
-    /// Concatenates part indices (uint, [byte|short|int] array).
+    /// Concatenates part indices (int, [byte|short|int] array).
     /// </summary>
     public static object? ConcatIndices(
         object? first , int firstCount,
@@ -114,8 +117,24 @@ public static class PartIndexUtils
                 (null, object y) => y,
                 (object x, null) => x,
 
-                (uint x, uint y) => (x == y) ? x : createArray1(x, firstCount, y, secondCount),
+                (int  x, int  y) => (x == y) ? x : createArray1(     x, firstCount,      y, secondCount),
+                (int  x, uint y) => (x == y) ? x : createArray1(     x, firstCount, (int)y, secondCount),
+                (uint x, int  y) => (x == y) ? x : createArray1((int)x, firstCount,      y, secondCount),
+                (uint x, uint y) => (x == y) ? x : createArray1((int)x, firstCount, (int)y, secondCount),
 
+                (int x, _     ) => second switch
+                {
+                    IReadOnlyList<byte > ys when x <= byte .MaxValue => createArray2((byte )x, firstCount,     ys ),
+                    IReadOnlyList<byte > ys when x <= short.MaxValue => createArray2((short)x, firstCount, b2s(ys)),
+                    IReadOnlyList<byte > ys when x <= int  .MaxValue => createArray2(       x, firstCount, b2i(ys)),
+
+                    IReadOnlyList<short> ys when x <= short.MaxValue => createArray2((short)x, firstCount,     ys ),
+                    IReadOnlyList<short> ys when x <= int  .MaxValue => createArray2(       x, firstCount, s2i(ys)),
+
+                    IReadOnlyList<int  > ys when x <= int  .MaxValue => createArray2(       x, firstCount,     ys ),
+
+                    _ => throw new Exception("Invariant efc1aa79-06d3-4768-8302-6ed743632fe3.")
+                },
                 (uint x, _     ) => second switch
                 {
                     IReadOnlyList<byte > ys when x <= byte .MaxValue => createArray2((byte )x, firstCount,     ys ),
@@ -129,7 +148,20 @@ public static class PartIndexUtils
 
                     _ => throw new Exception("Invariant 588fea29-4daa-4356-92a4-369f64ac5778.")
                 },
+                
+                (_     , int y) => first switch
+                {
+                    IReadOnlyList<byte > xs when y <= byte .MaxValue => createArray3(    xs , (byte )y, secondCount),
+                    IReadOnlyList<byte > xs when y <= short.MaxValue => createArray3(b2s(xs), (short)y, secondCount),
+                    IReadOnlyList<byte > xs when y <= int  .MaxValue => createArray3(b2i(xs),        y, secondCount),
 
+                    IReadOnlyList<short> xs when y <= short.MaxValue => createArray3(    xs , (short)y, secondCount),
+                    IReadOnlyList<short> xs when y <= int  .MaxValue => createArray3(s2i(xs),        y, secondCount),
+
+                    IReadOnlyList<int  > xs when y <= int  .MaxValue => createArray3(xs, (int  )y, secondCount),
+
+                    _ => throw new Exception("Invariant ee1933cb-f9d9-4cea-8bd8-ab702f1a8b97.")
+                },
                 (_     , uint y) => first switch
                 {
                     IReadOnlyList<byte > xs when y <= byte .MaxValue => createArray3(    xs , (byte )y, secondCount),
@@ -160,14 +192,14 @@ public static class PartIndexUtils
                     )
             };
 
-            object createArray1(uint first, int firstCount, uint second, int secondCount)
+            object createArray1(int first, int firstCount, int second, int secondCount)
             {
                 var count = firstCount + secondCount;
                 return Math.Max(first, second) switch
                 {
-                    uint max when max <= byte .MaxValue => create((byte )first, (byte )second),
-                    uint max when max <= short.MaxValue => create((short)first, (short)second),
-                    uint max when max <= int  .MaxValue => create((int  )first, (int  )second),
+                    int max when max <= byte .MaxValue => create((byte )first, (byte )second),
+                    int max when max <= short.MaxValue => create((short)first, (short)second),
+                    int max when max <= int  .MaxValue => create(       first,        second),
                     _ => throw new Exception("Invariant 129edb1c-066d-4ff2-8edf-8c5a67191dea.")
                 };
 
@@ -217,7 +249,7 @@ public static class PartIndexUtils
     }
 
     /// <summary>
-    /// Concatenates part indices (null, uint, [byte|short|int] array).
+    /// Concatenates part indices (null, int, [byte|short|int] array).
     /// </summary>
     public static object? ConcatIndices(IEnumerable<(object? indices, int count)> xs)
     {
@@ -257,11 +289,12 @@ public static class PartIndexUtils
     /// </summary>
     public static object? Skip(object? partIndices, int n) => partIndices switch
     {
-        null => null,
-        uint x => x,
-        IList<byte> xs => xs.Skip(n).ToArray(),
+        null            => null,
+        int x           => x,
+        uint x          => (int)x,
+        IList<byte> xs  => xs.Skip(n).ToArray(),
         IList<short> xs => xs.Skip(n).ToArray(),
-        IList<int> xs => xs.Skip(n).ToArray(),
+        IList<int> xs   => xs.Skip(n).ToArray(),
 
         _ => throw new Exception(
             $"Unexpected part indices type {partIndices.GetType().FullName}. " +
@@ -274,11 +307,12 @@ public static class PartIndexUtils
     /// </summary>
     public static object? Take(object? partIndices, int n) => partIndices switch
     {
-        null => null,
-        uint x => x,
-        IList<byte> xs => xs.Take(n).ToArray(),
+        null            => null,
+        int x           => x,
+        uint x          => (int)x,
+        IList<byte> xs  => xs.Take(n).ToArray(),
         IList<short> xs => xs.Take(n).ToArray(),
-        IList<int> xs => xs.Take(n).ToArray(),
+        IList<int> xs   => xs.Take(n).ToArray(),
 
         _ => throw new Exception(
             $"Unexpected part indices type {partIndices.GetType().FullName}. " +
@@ -292,7 +326,8 @@ public static class PartIndexUtils
     public static object? Subset(object? partIndices, IReadOnlyList<int> subsetIndices) => partIndices switch
     {
         null            => null,
-        uint x          => x,
+        int x           => x,
+        uint x          => (int)x,
         IList<byte> xs  => subsetIndices.MapToArray(i => xs[i]),
         IList<short> xs => subsetIndices.MapToArray(i => xs[i]),
         IList<int> xs   => subsetIndices.MapToArray(i => xs[i]),

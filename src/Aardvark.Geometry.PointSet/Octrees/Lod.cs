@@ -192,9 +192,18 @@ namespace Aardvark.Geometry.Points
             var ias = new int[]?[8];
 
             // special case: all subnodes have identical per-cell index
-            if (xss.All(xs => xs == null || xs is uint))
+            if (xss.All(xs => xs is not Array))
             {
-                var perCellIndices = xss.Where(xs => xs != null).Select(xs => (uint)xs!).ToArray();
+                var perCellIndices = xss
+                    .Where(xs => xs != null)
+                    .Select((object? xs) => xs switch { 
+                        null => default(int?),
+                        int x => x,
+                        uint x => (int)x ,
+                        _ => throw new Exception($"Unexpected type {xs.GetType().FullName}. Error 41874217-05a1-482f-abb5-565cebe6a402.")
+                    })
+                    .ToArray()
+                    ;
                 if (perCellIndices.Length == 0) return null;
                 var allIdentical = true;
                 for (var i = 1; i < perCellIndices.Length; i++) if (perCellIndices[i] != perCellIndices[0]) { allIdentical = false; break; }
@@ -210,11 +219,12 @@ namespace Aardvark.Geometry.Points
 
                 var xsLength = xs switch
                 {
-                    null => throw new Exception("Invariant 0a65ab38-4b69-4f6d-aa54-36536c86d8d3."),
-                    uint => counts[ci],
-                    byte[] ys => ys.Length,
+                    null       => throw new Exception("Invariant 0a65ab38-4b69-4f6d-aa54-36536c86d8d3."),
+                    int        => counts[ci],
+                    uint       => counts[ci],
+                    byte[] ys  => ys.Length,
                     short[] ys => ys.Length,
-                    int[] ys => ys.Length,
+                    int[] ys   => ys.Length,
                     _ => throw new Exception($"Unexpected type {xs.GetType().FullName}. Error 8e44dd14-b984-4d7f-8be4-c8e0d4f43189.")
                 };
 
@@ -413,6 +423,7 @@ namespace Aardvark.Geometry.Points
                     x != Durable.Octree.Classifications1b &&
                     x != Durable.Octree.Colors4b &&
                     x != Durable.Octree.Intensities1i &&
+                    x != Durable.Octree.PerCellPartIndex1i &&
                     x != Durable.Octree.PerCellPartIndex1ui &&
                     x != Durable.Octree.PerPointPartIndex1b &&
                     x != Durable.Octree.PerPointPartIndex1s &&

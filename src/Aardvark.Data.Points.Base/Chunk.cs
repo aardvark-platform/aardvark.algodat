@@ -263,11 +263,12 @@ namespace Aardvark.Data.Points
 
             switch (parts)
             {
-                case null: break;
-                case uint: break;
-                case IList<byte>: break;
+                case null        : break;
+                case int         : break;
+                case uint        : break;
+                case IList<byte> : break;
                 case IList<short>: break;
-                case IList<int>: break;
+                case IList<int>  : break;
                 default: throw new Exception($"Unexpected part indices type {parts.GetType().FullName}. Error fc9d196d-508e-4977-8f04-2167c71e38b0.");
             }
             IList<byte>? qs1b = null;

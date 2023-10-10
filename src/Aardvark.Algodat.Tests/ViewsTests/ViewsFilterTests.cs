@@ -55,7 +55,7 @@ namespace Aardvark.Geometry.Tests
                 .Add(Durable.Octree.PointCountTreeLeafs, psLocal.LongLength)
                 .Add(Durable.Octree.PositionsLocal3fReference, psLocalId)
                 .Add(Durable.Octree.PointRkdTreeFDataReference, kdLocalId)
-                .Add(Durable.Octree.PerCellPartIndex1ui, 42u)
+                .Add(Durable.Octree.PerCellPartIndex1i, 42)
                 ;
 
             if (intensities != null)

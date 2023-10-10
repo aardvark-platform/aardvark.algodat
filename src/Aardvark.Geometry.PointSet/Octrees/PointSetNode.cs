@@ -906,6 +906,7 @@ namespace Aardvark.Geometry.Points
         [JsonIgnore]
         [MemberNotNullWhen(true, nameof(PartIndices))]
         public bool HasPartIndices =>
+            Data.ContainsKey(Durable.Octree.PerCellPartIndex1i ) ||
             Data.ContainsKey(Durable.Octree.PerCellPartIndex1ui) ||
             Data.ContainsKey(Durable.Octree.PerPointPartIndex1b) ||
             Data.ContainsKey(Durable.Octree.PerPointPartIndex1s) ||
@@ -920,7 +921,8 @@ namespace Aardvark.Geometry.Points
         {
             get
             {
-                if (Data.TryGetValue(Durable.Octree.PerCellPartIndex1ui, out var pcpi)) return pcpi;
+                if (Data.TryGetValue(Durable.Octree.PerCellPartIndex1i, out var pcpi)) return pcpi;
+                else if (Data.TryGetValue(Durable.Octree.PerCellPartIndex1ui, out var pcpui)) return pcpui;
                 else if (Data.TryGetValue(Durable.Octree.PerPointPartIndex1b, out var pppi1b)) return pppi1b;
                 else if (Data.TryGetValue(Durable.Octree.PerPointPartIndex1s, out var pppi1s)) return pppi1s;
                 else if (Data.TryGetValue(Durable.Octree.PerPointPartIndex1i, out var pppi1i)) return pppi1i;

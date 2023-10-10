@@ -65,14 +65,15 @@ namespace Aardvark.Geometry.Points
             switch (partIndices)
             {
                 case null                 : break;
-                case uint               xs: data = data.Add(Durable.Octree.PerCellPartIndex1ui, xs   ); break;
-                case byte[]             xs: data = data.Add(Durable.Octree.PerPointPartIndex1b, xs); break;
+                case int                x : data = data.Add(Durable.Octree.PerCellPartIndex1i , x           ); break;
+                case uint               x : data = data.Add(Durable.Octree.PerCellPartIndex1i , (int)x      ); break;
+                case byte[]             xs: data = data.Add(Durable.Octree.PerPointPartIndex1b, xs          ); break;
                 case IList<byte>        xs: data = data.Add(Durable.Octree.PerPointPartIndex1b, xs.ToArray()); break;
                 case IEnumerable<byte>  xs: data = data.Add(Durable.Octree.PerPointPartIndex1b, xs.ToArray()); break;
-                case short[]            xs: data = data.Add(Durable.Octree.PerPointPartIndex1s, xs); break;
+                case short[]            xs: data = data.Add(Durable.Octree.PerPointPartIndex1s, xs          ); break;
                 case IList<short>       xs: data = data.Add(Durable.Octree.PerPointPartIndex1s, xs.ToArray()); break;
                 case IEnumerable<short> xs: data = data.Add(Durable.Octree.PerPointPartIndex1s, xs.ToArray()); break;
-                case int[]              xs: data = data.Add(Durable.Octree.PerPointPartIndex1i, xs); break;
+                case int[]              xs: data = data.Add(Durable.Octree.PerPointPartIndex1i, xs          ); break;
                 case IList<int>         xs: data = data.Add(Durable.Octree.PerPointPartIndex1i, xs.ToArray()); break;
                 case IEnumerable<int>   xs: data = data.Add(Durable.Octree.PerPointPartIndex1i, xs.ToArray()); break;
 
@@ -93,7 +94,9 @@ namespace Aardvark.Geometry.Points
             
             foreach (var kv in data)
             {
-                if (kv.Key == Durable.Octree.PerCellPartIndex1ui) continue;
+                if (kv.Key == Durable.Octree.PerCellPartIndex1i ||
+                    kv.Key == Durable.Octree.PerCellPartIndex1ui
+                    ) continue;
                 if (kv.Value is not Array) throw new ArgumentException($"Entry {kv.Key} must be array.");
             }
 
@@ -182,7 +185,9 @@ namespace Aardvark.Geometry.Points
                     {
                         if (kv.Key == Durable.Octree.PositionsGlobal3d) continue;
 
-                        if (kv.Key == Durable.Octree.PerCellPartIndex1ui)
+                        if (kv.Key == Durable.Octree.PerCellPartIndex1ui ||
+                            kv.Key == Durable.Octree.PerCellPartIndex1i
+                            )
                         {
                             attributes = attributes.Add(kv.Key, kv.Value);
                             continue;
