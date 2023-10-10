@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Text.Json.Serialization;
 using static Aardvark.Data.Durable;
 
 namespace Aardvark.Geometry.Points
@@ -105,6 +106,9 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public bool IsMaterialized => false;
+
+        /// <summary></summary>
+        public bool IsEmpty => Node.IsEmpty;
 
         /// <summary></summary>
         public IPointCloudNode Materialize()
@@ -439,6 +443,54 @@ namespace Aardvark.Geometry.Points
         #region PartIndices
 
         /// <summary>
+        /// True if this node has a PartIndexRange.
+        /// </summary>
+        [JsonIgnore]
+        [MemberNotNullWhen(true, nameof(PartIndexRange))]
+        public bool HasPartIndexRange => Node.HasPartIndexRange;
+
+        /// <summary>
+        /// Octree. Min and max part index in octree.
+        /// </summary>
+        public Range1i? PartIndexRange
+        {
+            get
+            {
+                if (HasPartIndices)
+                {
+                    if (SubsetIndexArray == null)
+                    {
+                        return Node.PartIndexRange;
+                    }
+                    else
+                    {
+                        if (m_cache.TryGetValue(Octree.PartIndexRange.Id, out var _range))
+                        {
+                            return (Range1i)_range;
+                        }
+                        else
+                        {
+                            if (TryGetPartIndices(out var qs))
+                            {
+                                var range = new Range1i(qs);
+                                m_cache[Octree.PartIndexRange.Id] = range;
+                                return range;
+                            }
+                            else
+                            {
+                                throw new Exception($"Expected part indices exist. Error 8d191c4a-042c-4179-ac30-8a10aab16436.");
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    return null;
+                }
+            }
+        }
+
+        /// <summary>
         /// True if this node has part indices.
         /// </summary>
         [MemberNotNullWhen(true, nameof(PartIndices))]
@@ -456,19 +508,32 @@ namespace Aardvark.Geometry.Points
         public bool TryGetPartIndices([NotNullWhen(true)] out int[]? result)
         {
             var qs = SubsetIndexArray != null ? PartIndexUtils.Subset(PartIndices, SubsetIndexArray) : PartIndices;
-            switch (qs)
+
+            if (m_cache.TryGetValue(Octree.PerPointPartIndex1i.Id, out var _result))
             {
-                case null: result = null; return false;
-                case int x: result = new int[PointCountCell].Set(x); return true;
-                case uint x: checked { result = new int[PointCountCell].Set((int)x); return true; }
-                case byte[] xs: result = xs.Map(x => (int)x); return true;
-                case short[] xs: result = xs.Map(x => (int)x); return true;
-                case int[] xs: result = xs; return true;
-                default:
-                    throw new Exception(
-                    $"Unexpected type {qs.GetType().FullName}. " +
-                    $"Error ccc0b898-fe4f-4373-ac15-42da763fe5ab."
-                    );
+                result = (int[])_result;
+                return true;
+            }
+            else
+            {
+                switch (qs)
+                {
+                    case null: result = null; return false;
+                    case int x: result = new int[PointCountCell].Set(x); break;
+                    case uint x: checked { result = new int[PointCountCell].Set((int)x); break; }
+                    case byte[] xs: result = xs.Map(x => (int)x); break;
+                    case short[] xs: result = xs.Map(x => (int)x); break;
+                    case int[] xs: result = xs; break;
+                    default:
+                        throw new Exception(
+                        $"Unexpected type {qs.GetType().FullName}. " +
+                        $"Error ccc0b898-fe4f-4373-ac15-42da763fe5ab."
+                        );
+                }
+
+                m_cache[Octree.PerPointPartIndex1i.Id] = result;
+
+                return true;
             }
         }
 

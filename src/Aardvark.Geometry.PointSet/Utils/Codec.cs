@@ -73,6 +73,8 @@ namespace Aardvark.Data
                 [Durable.Aardvark.Box3fArray.Id] = EncodeBox3fArray,
                 [Durable.Aardvark.Box3d.Id] = EncodeBox3d,
                 [Durable.Aardvark.Box3dArray.Id] = EncodeBox3dArray,
+                [Durable.Aardvark.Range1i.Id] = EncodeRange1i,
+                [Durable.Aardvark.Range1iArray.Id] = EncodeRange1iArray,
 
                 [Durable.Aardvark.C3b.Id] = EncodeC3b,
                 [Durable.Aardvark.C3bArray.Id] = EncodeC3bArray,
@@ -135,6 +137,8 @@ namespace Aardvark.Data
                 [Durable.Aardvark.Box3fArray.Id] = DecodeBox3fArray,
                 [Durable.Aardvark.Box3d.Id] = DecodeBox3d,
                 [Durable.Aardvark.Box3dArray.Id] = DecodeBox3dArray,
+                [Durable.Aardvark.Range1i.Id] = DecodeRange1i,
+                [Durable.Aardvark.Range1iArray.Id] = DecodeRange1iArray,
 
                 [Durable.Aardvark.C3b.Id] = DecodeC3b,
                 [Durable.Aardvark.C3bArray.Id] = DecodeC3bArray,
@@ -250,6 +254,11 @@ namespace Aardvark.Data
             (s, o) => { var x = (Box3d)o; EncodeV3d(s, x.Min); EncodeV3d(s, x.Max); };
         private static readonly Action<BinaryWriter, object> EncodeBox3dArray =
             (s, o) => EncodeArray(s, (Box3d[])o);
+
+        private static readonly Action<BinaryWriter, object> EncodeRange1i =
+            (s, o) => { var x = (Range1i)o; s.Write(x.Min); s.Write(x.Max); };
+        private static readonly Action<BinaryWriter, object> EncodeRange1iArray =
+            (s, o) => EncodeArray(s, (Range1i[])o);
 
         /// <summary>
         /// Wrong implemention (should be serialized as BGR, not RGB) according to Durable definition.
@@ -405,6 +414,9 @@ namespace Aardvark.Data
         private static readonly Func<BinaryReader, object> DecodeBox3fArray = s => DecodeArray<Box3f>(s);
         private static readonly Func<BinaryReader, object> DecodeBox3d = s => new Box3d((V3d)DecodeV3d(s), (V3d)DecodeV3d(s));
         private static readonly Func<BinaryReader, object> DecodeBox3dArray = s => DecodeArray<Box3d>(s);
+
+        private static readonly Func<BinaryReader, object> DecodeRange1i = s => new Range1i(s.ReadInt32(), s.ReadInt32());
+        private static readonly Func<BinaryReader, object> DecodeRange1iArray = s => DecodeArray<Range1i>(s);
 
         /// <summary>
         /// Wrong implemention (should be serialized as BGR, not RGB) according to Durable definition.

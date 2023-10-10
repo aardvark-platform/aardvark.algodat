@@ -64,26 +64,6 @@ namespace Aardvark.Geometry.Points
                 result = result.GenerateLod(config);
             }
 
-            checked
-            {
-                switch (partIndices)
-                {
-                    case null           : break;
-                    case byte         x : result = result.WithPartIndexRange(new(x, x)); break;
-                    case short        x : result = result.WithPartIndexRange(new(x, x)); break;
-                    case int          x : result = result.WithPartIndexRange(new(x, x)); break;
-                    case uint         x : result = result.WithPartIndexRange(new((int)x, (int)x)); break;
-                    case IList<byte>  xs: result = result.WithPartIndexRange(new(xs.Select(x => (int)x))); break;
-                    case IList<short> xs: result = result.WithPartIndexRange(new(xs.Select(x => (int)x))); break;
-                    case IList<int>   xs: result = result.WithPartIndexRange(new(xs.Select(x =>      x))); break;
-                    case IList<uint>  xs: result = result.WithPartIndexRange(new(xs.Select(x => (int)x))); break;
-
-                    default: throw new Exception(
-                        $"Unknown part indices type {partIndices.GetType().FullName}. " +
-                        $"Error 8b6b8202-dc6c-4c2c-89a3-40f24c7eee5c."
-                        );
-                }
-            }
             return result;
         }
 
@@ -96,9 +76,10 @@ namespace Aardvark.Geometry.Points
             Id = pointSetId ?? throw new ArgumentNullException(nameof(pointSetId));
             SplitLimit = splitLimit;
 
-            Root = new PersistentRef<IPointCloudNode>(rootCellId.ToString(), storage.GetPointCloudNode,
-                storage.TryGetPointCloudNode
-                );
+            Root = rootCellId != Guid.Empty
+                ? new PersistentRef<IPointCloudNode>(rootCellId.ToString(), storage.GetPointCloudNode, storage.TryGetPointCloudNode)
+                : new PersistentRef<IPointCloudNode>(Guid.Empty, PointSetNode.Empty)
+                ;
         }
 
         /// <summary>
@@ -112,7 +93,10 @@ namespace Aardvark.Geometry.Points
             Id = key ?? throw new ArgumentNullException(nameof(key));
             SplitLimit = splitLimit;
 
-            Root = new PersistentRef<IPointCloudNode>(root.Id.ToString(), storage.GetPointCloudNode, storage.TryGetPointCloudNode);
+            Root = root.IsEmpty
+                ? new PersistentRef<IPointCloudNode>(Guid.Empty, PointSetNode.Empty)
+                : new PersistentRef<IPointCloudNode>(root.Id.ToString(), storage.GetPointCloudNode, storage.TryGetPointCloudNode)
+                ;
         }
 
         /// <summary>
@@ -143,11 +127,6 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public PersistentRef<IPointCloudNode> Root { get; init; }
 
-        /// <summary>
-        /// Range (inclusive) of part indices, or invalid range if no part indices are stored.
-        /// </summary>
-        public Range1i PartIndexRange { get; init; } = Range1i.Invalid;
-
         #endregion
 
         #region Json
@@ -159,8 +138,7 @@ namespace Aardvark.Geometry.Points
             Id,
             OctreeId = Root.Id,
             RootCellId = Root.Id, // backwards compatibility
-            SplitLimit,
-            PartIndexRange
+            SplitLimit
         })!;
 
         /// <summary>
@@ -185,14 +163,7 @@ namespace Aardvark.Geometry.Points
             // backwards compatibility: if split limit is not set, guess as number of points in root cell
             var splitLimit = o.TryGetPropertyValue("SplitLimit", out var x) ? (int)x! : 8192;
 
-            // part index range (JsonArray)
-            var partIndexRangeArray = (JsonArray?)o["PartIndexRange"];
-            var partIndexRange = partIndexRangeArray != null
-                ? new Range1i((int)partIndexRangeArray[0]!, (int)partIndexRangeArray[1]!)
-                : Range1i.Invalid
-                ;
-
-            return new PointSet(storage, id, octree ?? PointSetNode.Empty, splitLimit).WithPartIndexRange(partIndexRange);
+            return new PointSet(storage, id, octree ?? PointSetNode.Empty, splitLimit);
         }
 
         #endregion
@@ -255,9 +226,12 @@ namespace Aardvark.Geometry.Points
         /// <summary></summary>
         public bool HasPositions => Root != null && Root.Value!.HasPositions;
 
+        public bool HasPartIndices => Root != null && Root.Value.HasPartIndices;
 
-        /// <summary></summary>
-        public bool HasPartIndexRange => PartIndexRange.IsValid;
+        [MemberNotNullWhen(true, nameof(PartIndexRange))]
+        public bool HasPartIndexRange => Root != null && Root.Value.HasPartIndexRange;
+
+        public Range1i? PartIndexRange => Root!.Value.PartIndexRange;
 
         #endregion
 
@@ -282,10 +256,6 @@ namespace Aardvark.Geometry.Points
                 throw new InvalidOperationException($"Cannot merge {Root.Value!.GetType()} with {other.Root.Value!.GetType()}. Error cf3a17bf-c3c7-46de-9fb7-f08243992ff0.");
             }
         }
-
-        //public PointSet WithPartIndexRange(Range1i x) => new() { Id = Id, PartIndexRange = x, Root = Root, SplitLimit = SplitLimit, Storage = Storage };
-
-        public PointSet WithPartIndexRange(Range1i x) => new(Storage, Id, Guid.Parse(Root.Id), SplitLimit) { PartIndexRange = x };
 
         #endregion
     }

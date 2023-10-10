@@ -118,8 +118,8 @@ public class PartIndicesTests
     }
 
     [Test]
-    public void ExtendRangeBy_Fail()
+    public void ExtendRangeBy_null()
     {
-        Assert.Catch(() => PartIndexUtils.ExtendRangeBy(new Range1i(7, 11), null!));
+        Assert.True(PartIndexUtils.ExtendRangeBy(new Range1i(7, 11), null) == new Range1i(7, 11));
     }
 }

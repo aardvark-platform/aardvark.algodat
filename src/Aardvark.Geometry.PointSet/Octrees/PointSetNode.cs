@@ -671,7 +671,7 @@ namespace Aardvark.Geometry.Points
                     return new PersistentRef<V3f[]>(Guid.Empty, ps);
                 }
                 else
-                    return null!;
+                    return new PersistentRef<V3f[]>(Guid.Empty, Array.Empty<V3f>());
             }
         }
 
@@ -679,7 +679,7 @@ namespace Aardvark.Geometry.Points
         /// Point positions (absolute), or null if no positions.
         /// </summary>
         [JsonIgnore]
-        public V3d[] PositionsAbsolute => Positions?.Value.Map(p => new V3d(Center.X + p.X, Center.Y + p.Y, Center.Z + p.Z))!;
+        public V3d[] PositionsAbsolute => Positions.Value.Map(p => new V3d(Center.X + p.X, Center.Y + p.Y, Center.Z + p.Z))!;
 
         #endregion
 
@@ -687,6 +687,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
+        [MemberNotNullWhen(true, nameof(BoundingBoxExactLocal))]
         public bool HasBoundingBoxExactLocal => Data.ContainsKey(Durable.Octree.BoundingBoxExactLocal);
 
         /// <summary></summary>
@@ -699,6 +700,7 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         [JsonIgnore]
+        [MemberNotNullWhen(true, nameof(BoundingBoxExactGlobal))]
         public bool HasBoundingBoxExactGlobal => Data.ContainsKey(Durable.Octree.BoundingBoxExactGlobal);
 
         /// <summary></summary>
@@ -899,6 +901,17 @@ namespace Aardvark.Geometry.Points
 
         #region PartIndices
 
+        /// <summary>
+        /// True if this node has a PartIndexRange.
+        /// </summary>
+        [JsonIgnore]
+        [MemberNotNullWhen(true, nameof(PartIndexRange))]
+        public bool HasPartIndexRange => Data.ContainsKey(Durable.Octree.PartIndexRange);
+
+        /// <summary>
+        /// Octree. Min and max part index in octree.
+        /// </summary>
+        public Range1i? PartIndexRange => Data.TryGetValue(Durable.Octree.PartIndexRange, out var o) ? (Range1i)o : null;
 
         /// <summary>
         /// True if this node has part indices.
@@ -1295,6 +1308,8 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public bool IsMaterialized => true;
+
+        public bool IsEmpty => Id == Guid.Empty;
 
         /// <summary></summary>
         public IPointCloudNode Materialize() => this;

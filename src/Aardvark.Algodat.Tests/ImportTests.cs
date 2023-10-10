@@ -253,13 +253,18 @@ namespace Aardvark.Geometry.Tests
 
 
             var pointcloud = PointCloud.Chunks(Array.Empty<Chunk>(), config);
+            Assert.IsTrue(pointcloud.Root != null);
+            Assert.IsTrue(pointcloud.Root.Id == Guid.Empty.ToString());
+            Assert.IsTrue(pointcloud.Root.Value.IsEmpty);
             Assert.IsTrue(pointcloud.Id == "test");
             Assert.IsTrue(pointcloud.PointCount == 0);
             
             var reloaded = config.Storage.GetPointSet("test");
             Assert.IsTrue(reloaded.Id == "test");
             Assert.IsTrue(reloaded.PointCount == 0);
-            Assert.IsTrue(reloaded.HasPartIndexRange == false);
+            Assert.IsFalse(reloaded.HasPartIndices);
+            Assert.IsFalse(reloaded.HasPartIndexRange);
+            Assert.IsNull(reloaded.PartIndexRange);
         }
 
         #endregion
@@ -410,7 +415,9 @@ namespace Aardvark.Geometry.Tests
             var pointset = PointCloud.Import(filename, config);
             Assert.IsTrue(pointset != null);
             Assert.IsTrue(pointset.PointCount == 3);
-            Assert.IsTrue(pointset.PartIndexRange == Range1i.Invalid);
+            Assert.IsFalse(pointset.HasPartIndices);
+            Assert.IsFalse(pointset.HasPartIndexRange);
+            Assert.IsNull(pointset.PartIndexRange);
         }
 
         [Test]

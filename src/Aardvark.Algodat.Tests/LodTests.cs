@@ -35,7 +35,7 @@ namespace Aardvark.Geometry.Tests
             var cs = ps.Map(_ => C4b.White);
 
             var pointset = PointSet.Create(
-                storage, "test", ps.ToList(), cs.ToList(), null, null, null, partIndices: 42u, 5000,
+                storage, "test", ps.ToList(), cs.ToList(), null, null, null, null, 5000,
                 generateLod: false, isTemporaryImportNode: true, ct: default
                 );
             pointset.Root.Value.ForEachNode(true, cell =>
@@ -51,6 +51,37 @@ namespace Aardvark.Geometry.Tests
             lodded.Root.Value.ForEachNode(true, cell =>
             {
                 Assert.IsTrue(cell.Positions.Value.Length > 0);
+            });
+        }
+
+        [Test]
+        public void LodCreationSetsPartIndices()
+        {
+            var r = new Random();
+            var storage = PointSetTests.CreateStorage();
+
+            var ps = new V3d[42000].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
+            var cs = ps.Map(_ => C4b.White);
+
+            var pointset = PointSet.Create(
+                storage, "test", ps.ToList(), cs.ToList(), null, null, null, partIndices: 42, 5000,
+                generateLod: false, isTemporaryImportNode: true, ct: default
+                );
+            pointset.Root.Value.ForEachNode(true, cell =>
+            {
+                Assert.IsTrue(cell.IsNotLeaf() || cell.Positions != null);
+            });
+
+            var config = ImportConfig.Default
+                .WithKey("Test")
+                .WithOctreeSplitLimit(1)
+                ;
+            var lodded = pointset.GenerateLod(config);
+            lodded.Root.Value.ForEachNode(true, cell =>
+            {
+                Assert.IsTrue(cell.HasPartIndices);
+                Assert.IsTrue(cell.HasPartIndexRange);
+                Assert.IsTrue(cell.PartIndexRange == new Range1i(42, 42));
             });
         }
 

@@ -36,6 +36,11 @@ namespace Aardvark.Geometry.Points
         bool IsMaterialized { get; }
 
         /// <summary>
+        /// True, if this is Node.Empty.
+        /// </summary>
+        bool IsEmpty { get; }
+
+        /// <summary>
         /// Returns materialized version of this node.
         /// E.g. a non-materialized filtered node is converted into a PointSetNode (which is stored in Storage).
         /// </summary>
@@ -146,6 +151,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Durable definition aadbb622-1cf6-42e0-86df-be79d28d6757.
         /// </summary>
+        [MemberNotNullWhen(true, nameof(BoundingBoxExactLocal))]
         bool HasBoundingBoxExactLocal { get; }
 
         /// <summary>
@@ -161,6 +167,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Durable definition 7912c862-74b4-4f44-a8cd-d11ea1da9304.
         /// </summary>
+        [MemberNotNullWhen(true, nameof(BoundingBoxExactGlobal))]
         bool HasBoundingBoxExactGlobal { get; }
 
         /// <summary>
@@ -245,13 +252,26 @@ namespace Aardvark.Geometry.Points
         #region PartIndices
 
         /// <summary>
+        /// True if this node has a PartIndexRange.
+        /// </summary>
+        [MemberNotNullWhen(true, nameof(PartIndexRange))]
+        bool HasPartIndexRange { get; }
+
+        /// <summary>
+        /// Octree. Min and max part index in octree.
+        /// </summary>
+        Range1i? PartIndexRange { get; }
+
+        /// <summary>
         /// True if this node has part indices.
         /// </summary>
+        [MemberNotNullWhen(true, nameof(PartIndices))]
         bool HasPartIndices { get; }
 
         /// <summary>
         /// Octree. Per-point or per-cell part indices.
         /// </summary>
+
         object? PartIndices { get; }
 
         /// <summary>

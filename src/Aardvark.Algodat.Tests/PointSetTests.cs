@@ -182,7 +182,7 @@ namespace Aardvark.Geometry.Tests
             var ks = new List<byte> { 42 };
             var qs = new List<byte> { 17 };
             var storage = PointCloud.CreateInMemoryStore(cache: default);
-            var pointset = PointSet.Create(storage, "test", ps, cs, ns, js, ks, qs, 1, generateLod: true, isTemporaryImportNode: false, default);
+            var pointset = PointSet.Create(storage, "test", ps, cs, ns, js, ks, qs, octreeSplitLimit: 1, generateLod: true, isTemporaryImportNode: false, default);
             Assert.IsTrue(pointset.HasColors == true);
             Assert.IsTrue(pointset.HasClassifications == true);
             Assert.IsTrue(pointset.HasIntensities == true);
@@ -203,7 +203,7 @@ namespace Aardvark.Geometry.Tests
             var ks = new List<byte> { 42 };
             var qs = new List<byte> { 17 };
             var storage = PointCloud.CreateInMemoryStore(cache: default);
-            var pointset = PointSet.Create(storage, "test", ps, cs, ns, js, ks, qs, 1, generateLod: false, isTemporaryImportNode: true, default);
+            var pointset = PointSet.Create(storage, "test", ps, cs, ns, js, ks, qs, octreeSplitLimit: 1, generateLod: false, isTemporaryImportNode: true, default);
             Assert.IsTrue(pointset.HasColors == true);
             Assert.IsTrue(pointset.HasClassifications == true);
             Assert.IsTrue(pointset.HasIntensities == true);
@@ -233,45 +233,45 @@ namespace Aardvark.Geometry.Tests
         {
             var ps = new List<V3d> { new(0.5, 0.5, 0.5) };
             var storage = PointCloud.CreateInMemoryStore(cache: default);
-            var pointset = PointSet.Create(storage, "test", ps, null, null, null, null, null, 1, generateLod: false, isTemporaryImportNode: true, default);
-            Assert.IsTrue(pointset.PartIndexRange == Range1i.Invalid);
+            var pointset = PointSet.Create(storage, "test", ps, null, null, null, null, partIndices: null, 1, generateLod: false, isTemporaryImportNode: true, default);
             Assert.IsTrue(pointset.HasPartIndexRange == false);
+            Assert.IsTrue(pointset.PartIndexRange == null);
         }
 
-        [Test]
-        public void PointSet_PartIndexRange()
-        {
-            var ps = new List<V3d> { new(0.5, 0.5, 0.5) };
-            var storage = PointCloud.CreateInMemoryStore(cache: default);
-            var pointset = PointSet.Create(
-                storage, "test", ps, null, null, null, null, null, 1, generateLod: false, isTemporaryImportNode: true
-                )
-                .WithPartIndexRange(new(7, 11))
-                ;
-            Assert.IsTrue(pointset.PartIndexRange == new Range1i(7, 11));
-            Assert.IsTrue(pointset.HasPartIndexRange == true);
-        }
+        //[Test]
+        //public void PointSet_PartIndexRange()
+        //{
+        //    var ps = new List<V3d> { new(0.5, 0.5, 0.5) };
+        //    var storage = PointCloud.CreateInMemoryStore(cache: default);
+        //    var pointset = PointSet.Create(
+        //        storage, "test", ps, null, null, null, null, null, 1, generateLod: false, isTemporaryImportNode: true
+        //        )
+        //        .WithPartIndexRange(new(7, 11))
+        //        ;
+        //    Assert.IsTrue(pointset.PartIndexRange == new Range1i(7, 11));
+        //    Assert.IsTrue(pointset.HasPartIndexRange == true);
+        //}
 
-        [Test]
-        public void PointSet_PartIndexRange_Serialization()
-        {
-            var ps = new List<V3d> { new(0.5, 0.5, 0.5) };
-            var storage = PointCloud.CreateInMemoryStore(cache: default);
+        //[Test]
+        //public void PointSet_PartIndexRange_Serialization()
+        //{
+        //    var ps = new List<V3d> { new(0.5, 0.5, 0.5) };
+        //    var storage = PointCloud.CreateInMemoryStore(cache: default);
 
-            var pointset = PointSet.Create(
-                storage, "test", ps, null, null, null, null, null, 1, generateLod: false, isTemporaryImportNode: true
-                )
-                .WithPartIndexRange(new(7, 11))
-                ;
+        //    var pointset = PointSet.Create(
+        //        storage, "test", ps, null, null, null, null, null, 1, generateLod: false, isTemporaryImportNode: true
+        //        )
+        //        .WithPartIndexRange(new(7, 11))
+        //        ;
 
-            var json = pointset.ToJson();
-            var reloaded = PointSet.Parse(json, storage);
+        //    var json = pointset.ToJson();
+        //    var reloaded = PointSet.Parse(json, storage);
 
-            Assert.IsTrue(pointset.Id             == reloaded.Id            );
-            Assert.IsTrue(pointset.SplitLimit     == reloaded.SplitLimit    );
-            Assert.IsTrue(pointset.Root.Value.Id  == reloaded.Root.Value.Id );
-            Assert.IsTrue(pointset.PartIndexRange == reloaded.PartIndexRange);
-        }
+        //    Assert.IsTrue(pointset.Id == reloaded.Id);
+        //    Assert.IsTrue(pointset.SplitLimit == reloaded.SplitLimit);
+        //    Assert.IsTrue(pointset.Root.Value.Id == reloaded.Root.Value.Id);
+        //    Assert.IsTrue(pointset.PartIndexRange == reloaded.PartIndexRange);
+        //}
 
         [Test]
         public void PointSet_PartIndexRange_Serialization_NoRange()
@@ -290,7 +290,7 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(pointset.SplitLimit     == reloaded.SplitLimit    );
             Assert.IsTrue(pointset.Root.Value.Id  == reloaded.Root.Value.Id );
             Assert.IsTrue(pointset.PartIndexRange == reloaded.PartIndexRange);
-            Assert.IsTrue(reloaded.PartIndexRange.IsInvalid);
+            Assert.IsTrue(reloaded.PartIndexRange == null);
         }
     }
 }

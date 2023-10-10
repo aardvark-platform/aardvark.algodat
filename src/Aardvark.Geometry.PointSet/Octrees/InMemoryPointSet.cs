@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using static Aardvark.Data.Durable;
 
 namespace Aardvark.Geometry.Points
 {
@@ -27,16 +28,16 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// The following attribute arrays will be stored stand-alone and referenced via id.
         /// </summary>
-        public static Dictionary<Durable.Def, Durable.Def> StoreAsReference { get; } = new Dictionary<Durable.Def, Durable.Def>()
+        public static Dictionary<Def, Def> StoreAsReference { get; } = new Dictionary<Def, Def>()
             {
-                { Durable.Octree.PositionsLocal3f,  Durable.Octree.PositionsLocal3fReference    },
-                { Durable.Octree.Colors4b,          Durable.Octree.Colors4bReference            },
-                { Durable.Octree.Normals3f,         Durable.Octree.Normals3fReference           },
-                { Durable.Octree.Intensities1i,     Durable.Octree.Intensities1iReference       },
-                { Durable.Octree.Classifications1b, Durable.Octree.Classifications1bReference   }
+                { Octree.PositionsLocal3f,  Octree.PositionsLocal3fReference    },
+                { Octree.Colors4b,          Octree.Colors4bReference            },
+                { Octree.Normals3f,         Octree.Normals3fReference           },
+                { Octree.Intensities1i,     Octree.Intensities1iReference       },
+                { Octree.Classifications1b, Octree.Classifications1bReference   }
             };
 
-        private readonly ImmutableDictionary<Durable.Def, object> m_data;
+        private readonly ImmutableDictionary<Def, object> m_data;
         private readonly int m_splitLimit;
         private readonly Node m_root;
         private readonly IList<V3d> m_ps;
@@ -54,28 +55,28 @@ namespace Aardvark.Geometry.Points
         {
             if (ps == null) throw new ArgumentNullException(nameof(ps));
 
-            var data = ImmutableDictionary<Durable.Def, object>.Empty
-                .Add(Durable.Octree.PositionsGlobal3d, ps.ToArray())
+            var data = ImmutableDictionary<Def, object>.Empty
+                .Add(Octree.PositionsGlobal3d, ps.ToArray())
                 ;
-            if (cs != null) data = data.Add(Durable.Octree.Colors4b, cs.ToArray());
-            if (ns != null) data = data.Add(Durable.Octree.Normals3f, ns.ToArray());
-            if (js != null) data = data.Add(Durable.Octree.Intensities1i, js.ToArray());
-            if (ks != null) data = data.Add(Durable.Octree.Classifications1b, ks.ToArray());
+            if (cs != null) data = data.Add(Octree.Colors4b, cs.ToArray());
+            if (ns != null) data = data.Add(Octree.Normals3f, ns.ToArray());
+            if (js != null) data = data.Add(Octree.Intensities1i, js.ToArray());
+            if (ks != null) data = data.Add(Octree.Classifications1b, ks.ToArray());
 
             switch (partIndices)
             {
                 case null                 : break;
-                case int                x : data = data.Add(Durable.Octree.PerCellPartIndex1i , x           ); break;
-                case uint               x : data = data.Add(Durable.Octree.PerCellPartIndex1i , (int)x      ); break;
-                case byte[]             xs: data = data.Add(Durable.Octree.PerPointPartIndex1b, xs          ); break;
-                case IList<byte>        xs: data = data.Add(Durable.Octree.PerPointPartIndex1b, xs.ToArray()); break;
-                case IEnumerable<byte>  xs: data = data.Add(Durable.Octree.PerPointPartIndex1b, xs.ToArray()); break;
-                case short[]            xs: data = data.Add(Durable.Octree.PerPointPartIndex1s, xs          ); break;
-                case IList<short>       xs: data = data.Add(Durable.Octree.PerPointPartIndex1s, xs.ToArray()); break;
-                case IEnumerable<short> xs: data = data.Add(Durable.Octree.PerPointPartIndex1s, xs.ToArray()); break;
-                case int[]              xs: data = data.Add(Durable.Octree.PerPointPartIndex1i, xs          ); break;
-                case IList<int>         xs: data = data.Add(Durable.Octree.PerPointPartIndex1i, xs.ToArray()); break;
-                case IEnumerable<int>   xs: data = data.Add(Durable.Octree.PerPointPartIndex1i, xs.ToArray()); break;
+                case int                x : data = data.Add(Octree.PerCellPartIndex1i , x           ).Add(Octree.PartIndexRange, new Range1i(     x)); break;
+                case uint               x : data = data.Add(Octree.PerCellPartIndex1i , (int)x      ).Add(Octree.PartIndexRange, new Range1i((int)x)); break;
+                case byte[]             xs: data = data.Add(Octree.PerPointPartIndex1b, xs          ).Add(Octree.PartIndexRange, new Range1i(xs.Select(x => (int)x))); break;
+                case IList<byte>        xs: data = data.Add(Octree.PerPointPartIndex1b, xs.ToArray()).Add(Octree.PartIndexRange, new Range1i(xs.Select(x => (int)x))); break;
+                case IEnumerable<byte>  xs: data = data.Add(Octree.PerPointPartIndex1b, xs.ToArray()).Add(Octree.PartIndexRange, new Range1i(xs.Select(x => (int)x))); break;
+                case short[]            xs: data = data.Add(Octree.PerPointPartIndex1s, xs          ).Add(Octree.PartIndexRange, new Range1i(xs.Select(x => (int)x))); break;
+                case IList<short>       xs: data = data.Add(Octree.PerPointPartIndex1s, xs.ToArray()).Add(Octree.PartIndexRange, new Range1i(xs.Select(x => (int)x))); break;
+                case IEnumerable<short> xs: data = data.Add(Octree.PerPointPartIndex1s, xs.ToArray()).Add(Octree.PartIndexRange, new Range1i(xs.Select(x => (int)x))); break;
+                case int[]              xs: data = data.Add(Octree.PerPointPartIndex1i, xs          ).Add(Octree.PartIndexRange, new Range1i(xs)); break;
+                case IList<int>         xs: data = data.Add(Octree.PerPointPartIndex1i, xs.ToArray()).Add(Octree.PartIndexRange, new Range1i(xs)); break;
+                case IEnumerable<int>   xs: data = data.Add(Octree.PerPointPartIndex1i, xs.ToArray()).Add(Octree.PartIndexRange, new Range1i(xs)); break;
 
                 default: throw new Exception(
                     $"Unknown part indices type {partIndices.GetType().FullName}. Error 9869c0df-de22-4385-b39f-2b55a8c64f13."
@@ -88,50 +89,51 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Constructor.
         /// </summary>
-        private InMemoryPointSet(ImmutableDictionary<Durable.Def, object> data, Cell cell, int octreeSplitLimit)
+        private InMemoryPointSet(ImmutableDictionary<Def, object> data, Cell cell, int octreeSplitLimit)
         {
             if (data == null) throw new ArgumentNullException(nameof(data));
             
             foreach (var kv in data)
             {
-                if (kv.Key == Durable.Octree.PerCellPartIndex1i ||
-                    kv.Key == Durable.Octree.PerCellPartIndex1ui
+                if (kv.Key == Octree.PerCellPartIndex1i ||
+                    kv.Key == Octree.PerCellPartIndex1ui ||
+                    kv.Key == Octree.PartIndexRange
                     ) continue;
                 if (kv.Value is not Array) throw new ArgumentException($"Entry {kv.Key} must be array.");
             }
 
-            void TryRename(Durable.Def from, Durable.Def to)
+            void TryRename(Def from, Def to)
             {
                 if (data.TryGetValue(from, out var obj))
                 {
                     data = data.Remove(from).Add(to, obj);
                 }
             }
-            TryRename(GenericChunk.Defs.Positions3f,        Durable.Octree.PositionsGlobal3f);
-            TryRename(GenericChunk.Defs.Positions3d,        Durable.Octree.PositionsGlobal3d);
-            TryRename(GenericChunk.Defs.Classifications1b,  Durable.Octree.Classifications1b);
-            TryRename(GenericChunk.Defs.Classifications1i,  Durable.Octree.Classifications1i);
-            TryRename(GenericChunk.Defs.Classifications1s,  Durable.Octree.Classifications1s);
-            TryRename(GenericChunk.Defs.Colors3b,           Durable.Octree.Colors3b         );
-            TryRename(GenericChunk.Defs.Colors4b,           Durable.Octree.Colors4b         );
-            TryRename(GenericChunk.Defs.Intensities1i,      Durable.Octree.Intensities1i    );
-            TryRename(GenericChunk.Defs.Intensities1f,      Durable.Octree.Intensities1f    );
-            TryRename(GenericChunk.Defs.Normals3f,          Durable.Octree.Normals3f        );
+            TryRename(GenericChunk.Defs.Positions3f,        Octree.PositionsGlobal3f);
+            TryRename(GenericChunk.Defs.Positions3d,        Octree.PositionsGlobal3d);
+            TryRename(GenericChunk.Defs.Classifications1b,  Octree.Classifications1b);
+            TryRename(GenericChunk.Defs.Classifications1i,  Octree.Classifications1i);
+            TryRename(GenericChunk.Defs.Classifications1s,  Octree.Classifications1s);
+            TryRename(GenericChunk.Defs.Colors3b,           Octree.Colors3b         );
+            TryRename(GenericChunk.Defs.Colors4b,           Octree.Colors4b         );
+            TryRename(GenericChunk.Defs.Intensities1i,      Octree.Intensities1i    );
+            TryRename(GenericChunk.Defs.Intensities1f,      Octree.Intensities1f    );
+            TryRename(GenericChunk.Defs.Normals3f,          Octree.Normals3f        );
 
             // extract positions ...
-            if (data.TryGetValue(Durable.Octree.PositionsGlobal3d, out var ps3d))
+            if (data.TryGetValue(Octree.PositionsGlobal3d, out var ps3d))
             {
                 m_ps = (V3d[])ps3d;
-                data = data.Remove(Durable.Octree.PositionsGlobal3d);
+                data = data.Remove(Octree.PositionsGlobal3d);
             }
-            else if (data.TryGetValue(Durable.Octree.PositionsGlobal3f, out var ps3f))
+            else if (data.TryGetValue(Octree.PositionsGlobal3f, out var ps3f))
             {
                 m_ps = ((V3f[])ps3f).Map(p => (V3d)p);
-                data = data.Remove(Durable.Octree.PositionsGlobal3f);
+                data = data.Remove(Octree.PositionsGlobal3f);
             }
             else
             {
-                throw new Exception("Could not find positions. Please add one of the following entries to 'data': Durable.Octree.PositionsGlobal3[df], GenericChunk.Defs.Positions3[df].");
+                throw new Exception("Could not find positions. Please add one of the following entries to 'data': Octree.PositionsGlobal3[df], GenericChunk.Defs.Positions3[df].");
             }
 
             m_data = data;
@@ -168,7 +170,7 @@ namespace Aardvark.Geometry.Points
             {
                 var center = new V3d(_centerX, _centerY, _centerZ);
                 V3f[]? localPositions = null;
-                var attributes = ImmutableDictionary<Durable.Def, object>.Empty;
+                var attributes = ImmutableDictionary<Def, object>.Empty;
 
                 if (_ia != null)
                 {
@@ -178,15 +180,16 @@ namespace Aardvark.Geometry.Points
                     var allPs = _octree.m_ps;
                     localPositions = new V3f[count];
                     for (var i = 0; i < count; i++) localPositions[i] = (V3f)(allPs[_ia[i]] - center); // relative to center
-                    attributes = attributes.Add(Durable.Octree.PositionsLocal3f, localPositions);
+                    attributes = attributes.Add(Octree.PositionsLocal3f, localPositions);
 
                     // create all other attributes ...
                     foreach (var kv in _octree.m_data)
                     {
-                        if (kv.Key == Durable.Octree.PositionsGlobal3d) continue;
+                        if (kv.Key == Octree.PositionsGlobal3d) continue;
 
-                        if (kv.Key == Durable.Octree.PerCellPartIndex1ui ||
-                            kv.Key == Durable.Octree.PerCellPartIndex1i
+                        if (kv.Key == Octree.PerCellPartIndex1ui ||
+                            kv.Key == Octree.PerCellPartIndex1i ||
+                            kv.Key == Octree.PartIndexRange
                             )
                         {
                             attributes = attributes.Add(kv.Key, kv.Value);
@@ -224,10 +227,10 @@ namespace Aardvark.Geometry.Points
                     : localPositions!.Length
                     ;
 
-                var data = ImmutableDictionary<Durable.Def, object>.Empty
-                    .Add(Durable.Octree.NodeId, Guid.NewGuid())
-                    .Add(Durable.Octree.Cell, _cell)
-                    .Add(Durable.Octree.PointCountTreeLeafs, pointCountTreeLeafs)
+                var data = ImmutableDictionary<Def, object>.Empty
+                    .Add(Octree.NodeId, Guid.NewGuid())
+                    .Add(Octree.Cell, _cell)
+                    .Add(Octree.PointCountTreeLeafs, pointCountTreeLeafs)
                     ;
 
                 if (isTemporaryImportNode)
@@ -235,21 +238,21 @@ namespace Aardvark.Geometry.Points
                     data = data.Add(PointSetNode.TemporaryImportNode, 0);
                 }
 
-                if (attributes.TryGetValue(Durable.Octree.PositionsLocal3f, out var psObj))
+                if (attributes.TryGetValue(Octree.PositionsLocal3f, out var psObj))
                 {
                     var ps = (V3f[])psObj;
                     var bbExactLocal = new Box3f(ps);
 
                     data = data
-                        .Add(Durable.Octree.PointCountCell, ps.Length)
-                        .Add(Durable.Octree.BoundingBoxExactLocal, bbExactLocal)
-                        .Add(Durable.Octree.BoundingBoxExactGlobal, (Box3d)bbExactLocal + center)
+                        .Add(Octree.PointCountCell, ps.Length)
+                        .Add(Octree.BoundingBoxExactLocal, bbExactLocal)
+                        .Add(Octree.BoundingBoxExactGlobal, (Box3d)bbExactLocal + center)
                         ;
                 }
                 else
                 {
                     data = data
-                        .Add(Durable.Octree.PointCountCell, 0)
+                        .Add(Octree.PointCountCell, 0)
                         ;
                 }
 
@@ -289,8 +292,8 @@ namespace Aardvark.Geometry.Points
                     }
                     var bbExactGlobal = new Box3d(subcells.Where(x => x != null).Select(x => x!.BoundingBoxExactGlobal));
                     data = data
-                        .Add(Durable.Octree.BoundingBoxExactGlobal, bbExactGlobal)
-                        .Add(Durable.Octree.SubnodesGuids, subcellIds.Map(x => x ?? Guid.Empty))
+                        .Add(Octree.BoundingBoxExactGlobal, bbExactGlobal)
+                        .Add(Octree.SubnodesGuids, subcellIds.Map(x => x ?? Guid.Empty))
                         ;
                     var result = new PointSetNode(data, storage, writeToStore: true);
                     if (storage.GetPointCloudNode(result.Id) == null) throw new InvalidOperationException("Invariant 7b09eccb-b6a0-4b99-be7a-eeff53b6a98b.");

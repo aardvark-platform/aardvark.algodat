@@ -718,8 +718,7 @@ namespace Aardvark.Geometry.Points
                 return r;
             }
 
-            var buffer = storage.f_get(key);
-            if (buffer == null) throw new Exception(
+            var buffer = storage.f_get(key) ?? throw new Exception(
                 $"PointCloudNode not found (id={key}). " +
                 $"Error b2ef55c1-1470-465d-80ea-034464c53638."
                 );

@@ -262,19 +262,31 @@ public static class PartIndexUtils
         return resultIndices;
     }
 
-    public static Range1i ExtendRangeBy(in Range1i range, object partIndices)
+    public static Range1i? GetRange(object? qs) => qs switch
     {
-        if (partIndices == null) throw new Exception("Invariant d781e171-41c3-4272-88a7-261cea302c18.");
+        null => null,
+        int x => new Range1i(x),
+        uint x => new Range1i((int)x),
+        byte[] xs => new Range1i(xs.Select(x => (int)x)),
+        short[] xs => new Range1i(xs.Select(x => (int)x)),
+        int[] xs => new Range1i(xs),
+        _ => throw new Exception($"Unexpected type {qs.GetType().FullName}. Error 8a975735-bb10-42bf-9f7f-4d570e5223e3.")
+    };
+
+    public static Range1i? ExtendRangeBy(in Range1i? range, object? partIndices)
+    {
+        if (range == null) return GetRange(partIndices);
+        if (partIndices == null) return range;
 
         checked
         {
             return partIndices switch
             {
-                int x           => range.ExtendedBy(x),
-                uint x          => range.ExtendedBy((int)x),
-                IList<byte> xs  => range.ExtendedBy((Range1i)new Range1b(xs)),
-                IList<short> xs => range.ExtendedBy((Range1i)new Range1s(xs)),
-                IList<int> xs   => range.ExtendedBy(new Range1i(xs)),
+                int x           => range.Value.ExtendedBy(x),
+                uint x          => range.Value.ExtendedBy((int)x),
+                IList<byte> xs  => range.Value.ExtendedBy((Range1i)new Range1b(xs)),
+                IList<short> xs => range.Value.ExtendedBy((Range1i)new Range1s(xs)),
+                IList<int> xs   => range.Value.ExtendedBy(new Range1i(xs)),
 
                 _ => throw new Exception(
                     $"Unexpected part indices type {partIndices.GetType().FullName}. " +

@@ -186,9 +186,10 @@ namespace Aardvark.Geometry.Points
         /// <param name="aggregateCount"></param>
         /// <param name="xss"></param>
         /// <returns></returns>
-        internal static object? AggregateSubPartIndices(int[] counts, int aggregateCount, object?[] xss)
+        internal static (object? lodQs, Range1i? lodQsRange) AggregateSubPartIndices(int[] counts, int aggregateCount, object?[] xss)
         {
             var result = default(object?);
+            var resultRange = (Range1i?)null;
             var ias = new int[]?[8];
 
             // special case: all subnodes have identical per-cell index
@@ -204,10 +205,10 @@ namespace Aardvark.Geometry.Points
                     })
                     .ToArray()
                     ;
-                if (perCellIndices.Length == 0) return null;
+                if (perCellIndices.Length == 0) return (null, null);
                 var allIdentical = true;
                 for (var i = 1; i < perCellIndices.Length; i++) if (perCellIndices[i] != perCellIndices[0]) { allIdentical = false; break; }
-                if (allIdentical) return perCellIndices[0];
+                if (allIdentical) return (perCellIndices[0], PartIndexUtils.GetRange(perCellIndices[0]));
             }
 
             // standard case:
@@ -216,6 +217,8 @@ namespace Aardvark.Geometry.Points
             {
                 if (counts[ci] == 0) continue;
                 var xs = xss[ci]!;
+
+                resultRange = PartIndexUtils.ExtendRangeBy(in resultRange, xs);
 
                 var xsLength = xs switch
                 {
@@ -268,7 +271,7 @@ namespace Aardvark.Geometry.Points
 
             result = PartIndexUtils.Compact(result);
 
-            return result;
+            return (result, resultRange);
         }
 
         private static async Task<PointSet> GenerateLod(this PointSet self, string? key, Action callback, CancellationToken ct)
@@ -300,9 +303,9 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static PointSet GenerateLod(this PointSet self, ImportConfig config)
         {
-            if (self.Root == null) return self;
+            if (self.Root == null || self.Root.Value.IsEmpty) return self;
 
-            var nodeCount = self.Root?.Value?.CountNodes(true) ?? 0;
+            var nodeCount = self.Root.Value.CountNodes(true);
             var loddedNodesCount = 0L;
             if (config.Verbose) Console.WriteLine();
             var result = self.GenerateLod(config.Key, () =>
@@ -473,10 +476,13 @@ namespace Aardvark.Geometry.Points
                 }
 
                 // ... part indices ...
-                var lodQs = AggregateSubPartIndices(counts, aggregateCount, subcells.Map(x => x?.PartIndices));
+                var (lodQs, lodQsRange) = AggregateSubPartIndices(counts, aggregateCount, subcells.Map(x => x?.PartIndices));
                 if (lodQs != null)
                 {
-                    upsertData = upsertData.Add(PartIndexUtils.GetDurableDefForPartIndices(lodQs), lodQs);
+                    upsertData = upsertData
+                        .Add(PartIndexUtils.GetDurableDefForPartIndices(lodQs), lodQs)
+                        .Add(Durable.Octree.PartIndexRange, lodQsRange ?? throw new Exception($"Expected part index range to be not null. Error d355eb9f-02b3-4cd7-b1de-041d4d0e7c3c."))
+                        ;
                 }
                 
                 // ... classifications ...

@@ -86,9 +86,7 @@ namespace Aardvark.Geometry.Points
             var totalPointSetsCount = pointsets.Count;
             if (totalPointSetsCount == 0)
             {
-                var empty = new PointSet(config.Storage, key);
-                config.Storage.Add(key, empty);
-                return empty;
+                return PointSet.Empty;
             }
 
             var doneCount = 0;
