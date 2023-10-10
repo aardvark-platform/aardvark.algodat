@@ -33,7 +33,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void Chunk_EmptyChunk2()
         {
-            var x = new Chunk(Array.Empty<V3d>(), Array.Empty<C4b>(), null, null, null, null, null);
+            var x = new Chunk(Array.Empty<V3d>(), Array.Empty<C4b>(), null, null, null, null, null, null);
             Assert.IsTrue(x.IsEmpty);
             Assert.IsTrue(x.HasPositions);
             Assert.IsTrue(x.HasColors);
@@ -51,7 +51,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void Chunk_ChunkFromPositionsAndColors()
         {
-            var x = new Chunk(new V3d[1], new C4b[1], null, null, null, null, null);
+            var x = new Chunk(new V3d[1], new C4b[1], null, null, null, null, null, null);
             Assert.IsTrue(x.Count == 1);
             Assert.IsTrue(x.HasPositions);
             Assert.IsTrue(x.HasColors);
@@ -70,7 +70,7 @@ namespace Aardvark.Geometry.Tests
         {
             var x = new Chunk(
                 new[] { new V3d(1, 2, 3), new V3d(4, 5, 6) },
-                null, null, null, null, null,
+                null, null, null, null, null, null,
                 bbox: new Box3d(new V3d(0, 0, 0), new V3d(8, 8, 8))
                 );
             Assert.IsTrue(x.Count == 2);
@@ -82,7 +82,7 @@ namespace Aardvark.Geometry.Tests
         {
             Assert.DoesNotThrow(() =>
             {
-                var chunk = new Chunk(new[] { new V3d(1, 2, 3), new V3d(4, 5, 6) }, Array.Empty<C4b>(), null, null, null, null, null);
+                var chunk = new Chunk(new[] { new V3d(1, 2, 3), new V3d(4, 5, 6) }, Array.Empty<C4b>(), null, null, null, null, null, null);
                 Assert.IsTrue(chunk.Count == 0);
                 Assert.IsTrue(chunk.Positions.Count == 0);
                 Assert.IsTrue(chunk.Colors.Count == 0);
@@ -94,7 +94,7 @@ namespace Aardvark.Geometry.Tests
         {
             Assert.DoesNotThrow(() =>
             {
-                var chunk = new Chunk(new[] { new V3d(1, 2, 3), new V3d(4, 5, 6) }, new C4b[123], null, null, null, null, null);
+                var chunk = new Chunk(new[] { new V3d(1, 2, 3), new V3d(4, 5, 6) }, new C4b[123], null, null, null, null, null, null);
                 Assert.IsTrue(chunk.Count == 2);
                 Assert.IsTrue(chunk.Positions.Count == 2);
                 Assert.IsTrue(chunk.Colors.Count == 2);
@@ -106,7 +106,7 @@ namespace Aardvark.Geometry.Tests
         {
             Assert.Catch(() =>
             {
-                new Chunk(null, new C4b[123],null, null, null, null, null);
+                new Chunk(null, new C4b[123],null, null, null, null, null, null);
             });
         }
 
@@ -121,7 +121,7 @@ namespace Aardvark.Geometry.Tests
         {
             Assert.Catch(() =>
             {
-                new Chunk(null, new C4b[1], null, null, null, null, null);
+                new Chunk(null, new C4b[1], null, null, null, null, null, null);
             });
         }
 
@@ -206,7 +206,7 @@ namespace Aardvark.Geometry.Tests
             var a = new Chunk(
                 positions: new[] { new V3d(0.4, 0.4, 0.4), new V3d(0.6, 0.6, 0.6), new V3d(1.1, 0.1, 0.1), new V3d(1.2, 0.2, 0.2) },
                 colors: null, normals: null, intensities: null, classifications: null,
-                parts: new byte[] { 0, 1, 2, 3 },
+                partIndices: new byte[] { 0, 1, 2, 3 }, partIndexRange: null,
                 bbox: null
                 );
 

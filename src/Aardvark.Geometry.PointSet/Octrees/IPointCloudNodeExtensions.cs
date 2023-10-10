@@ -881,7 +881,7 @@ namespace Aardvark.Geometry.Points
             var js = self.HasIntensities ? self.Intensities.Value : null;
             var ks = self.HasClassifications ? self.Classifications!.Value : null;
             var qs = self.HasPartIndices ? self.PartIndices : null;
-            return new Chunk(self.PositionsAbsolute, cs, ns, js, ks, qs, bbox: null);
+            return new Chunk(self.PositionsAbsolute, cs, ns, js, ks, qs, partIndexRange: null, bbox: null);
         }
 
         /// <summary>
@@ -900,7 +900,7 @@ namespace Aardvark.Geometry.Points
                 var js = self.HasIntensities ? self.Intensities.Value : null;
                 var ks = self.HasClassifications ? self.Classifications!.Value : null;
                 var qs = self.HasPartIndices ? self.PartIndices : null;
-                yield return new Chunk(self.PositionsAbsolute, cs, ns, js, ks, qs, bbox: null);
+                yield return new Chunk(self.PositionsAbsolute, cs, ns, js, ks, qs, partIndexRange: null, bbox: null);
             }
             else
             {

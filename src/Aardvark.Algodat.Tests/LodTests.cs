@@ -224,7 +224,7 @@ namespace Aardvark.Geometry.Tests
 
             var config = ImportConfig.Default.WithStorage(storage).WithRandomKey();
             var chunk = new Chunk(ps);
-            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null);
             var n = PointCloud.Chunks(chunk, config).Root.Value;
 
             Assert.IsTrue(n.HasCentroidLocal);
@@ -251,7 +251,7 @@ namespace Aardvark.Geometry.Tests
 
             var config = ImportConfig.Default.WithStorage(storage).WithRandomKey();
             var chunk = new Chunk(ps);
-            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null);
             var n = PointCloud.Chunks(chunk, config).Root.Value;
 
             Assert.IsTrue(n.HasBoundingBoxExactLocal);
@@ -273,7 +273,7 @@ namespace Aardvark.Geometry.Tests
 
             var config = ImportConfig.Default.WithStorage(storage).WithRandomKey();
             var chunk = new Chunk(ps);
-            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null);
             var n = PointCloud.Chunks(chunk, config).Root.Value;
 
             Assert.IsTrue(n.HasMinTreeDepth);
@@ -293,7 +293,7 @@ namespace Aardvark.Geometry.Tests
 
             var config = ImportConfig.Default.WithStorage(storage).WithRandomKey();
             var chunk = new Chunk(ps);
-            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null);
             var n = PointCloud.Chunks(chunk, config).Root.Value;
 
             Assert.IsTrue(n.HasMinTreeDepth);
@@ -323,7 +323,7 @@ namespace Aardvark.Geometry.Tests
 
             var config = ImportConfig.Default.WithStorage(storage).WithRandomKey();
             var chunk = new Chunk(ps);
-            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null);
             var n = PointCloud.Chunks(chunk, config).Root.Value;
 
             Assert.IsTrue(n.HasPointDistanceAverage);

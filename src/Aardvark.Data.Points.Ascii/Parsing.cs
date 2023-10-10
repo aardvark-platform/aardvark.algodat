@@ -30,7 +30,7 @@ namespace Aardvark.Data.Points
         /// <summary>
         /// Parses ASCII lines file.
         /// </summary>
-        internal static IEnumerable<Chunk> AsciiLines(Func<byte[], int, double, uint?, Chunk> lineParser,
+        internal static IEnumerable<Chunk> AsciiLines(Func<byte[], int, double, int?, Chunk> lineParser,
             string filename, ParseConfig config
             )
         {
@@ -42,7 +42,7 @@ namespace Aardvark.Data.Points
         /// <summary>
         /// Parses ASCII lines stream.
         /// </summary>
-        internal static IEnumerable<Chunk> AsciiLines(Func<byte[], int, double, uint?, Chunk> lineParser,
+        internal static IEnumerable<Chunk> AsciiLines(Func<byte[], int, double, int?, Chunk> lineParser,
             Stream stream, long streamLengthInBytes, ParseConfig config
             )
         {
@@ -129,7 +129,7 @@ namespace Aardvark.Data.Points
         /// <returns></returns>
         public static IEnumerable<Chunk> ParseBuffers(
             this IEnumerable<Buffer> buffers, long sumOfAllBufferSizesInBytes,
-            Func<byte[], int, double, uint?, Chunk> parser, 
+            Func<byte[], int, double, int?, Chunk> parser, 
             ParseConfig config
             )
         {
@@ -143,14 +143,14 @@ namespace Aardvark.Data.Points
 
                 .MapParallel((buffer, ct2) =>
                     {
-                        uint? partIndices = config.EnabledProperties.PartIndices ? config.PartIndexOffset : null;
+                        int? partIndices = config.EnabledProperties.PartIndices ? config.PartIndexOffset : null;
                         var optionalSamples = parser(buffer.Data, buffer.Count, config.MinDist, partIndices);
                         if (optionalSamples == null) return Chunk.Empty;
                         var samples = optionalSamples;
-                        if (config.EnabledProperties.PartIndices) samples = samples.WithPartIndices(config.PartIndexOffset);
+                        if (config.EnabledProperties.PartIndices) samples = samples.WithPartIndices(config.PartIndexOffset, new Range1i(config.PartIndexOffset));
                         bounds.ExtendBy(new Box3d(samples.Positions));
                         Interlocked.Add(ref sampleCount, samples.Count);
-                        var r = new Chunk(samples.Positions, samples.Colors, samples.Normals, samples.Intensities, samples.Classifications, samples.PartIndices, samples.BoundingBox);
+                        var r = new Chunk(samples.Positions, samples.Colors, samples.Normals, samples.Intensities, samples.Classifications, samples.PartIndices, samples.PartIndexRange, samples.BoundingBox);
 
                         Interlocked.Add(ref sampleCountYielded, r.Count);
                         Interlocked.Add(ref totalBytesRead, buffer.Count);

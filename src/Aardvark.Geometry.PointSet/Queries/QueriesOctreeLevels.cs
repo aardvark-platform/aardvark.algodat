@@ -220,7 +220,7 @@ namespace Aardvark.Geometry.Points
                 var ks = Verified(node.TryGetClassifications()?.Value, "classifications");
                 var qs = node.PartIndices;
 
-                var chunk = new Chunk(ps, cs, ns, js, ks, qs, bbox: null);
+                var chunk = new Chunk(ps, cs, ns, js, ks, qs, partIndexRange: null, bbox: null);
                 yield return chunk;
             }
             else
@@ -261,7 +261,8 @@ namespace Aardvark.Geometry.Points
             if (level == 0 || node.IsLeaf())
             {
                 var chunk = new Chunk(
-                    node.PositionsAbsolute, node.Colors?.Value, node.Normals?.Value, node.Intensities?.Value, node.Classifications?.Value, node.PartIndices,
+                    node.PositionsAbsolute, node.Colors?.Value, node.Normals?.Value, node.Intensities?.Value, node.Classifications?.Value,
+                    node.PartIndices, partIndexRange: null,
                     bbox: null
                     );
                 yield return chunk;

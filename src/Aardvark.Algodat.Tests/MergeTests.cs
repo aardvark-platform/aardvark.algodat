@@ -112,6 +112,9 @@ namespace Aardvark.Geometry.Tests
             Assert.IsTrue(merged.PointCount == 84000);
             Assert.IsTrue(merged.Root.Value.PointCountTree == 84000);
             Assert.IsTrue(merged.Root.Value.CountPoints() == 84000);
+            Assert.IsFalse(merged.HasPartIndices); // no lod
+            Assert.IsTrue(merged.HasPartIndexRange);
+            Assert.IsTrue(merged.PartIndexRange == new Range1i(17, 18));
         }
 
         [Test]

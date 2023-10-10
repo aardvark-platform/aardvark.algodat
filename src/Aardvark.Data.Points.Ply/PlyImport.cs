@@ -260,7 +260,7 @@ namespace Aardvark.Data.Points.Import
 
                 #endregion
 
-                var chunk = new Chunk(ps, cs, ns, js, ks, parts: partIndex, bbox: null);
+                var chunk = new Chunk(ps, cs, ns, js, ks, partIndices: partIndex, partIndexRange: null, bbox: null);
 
                 yield return chunk;
             }

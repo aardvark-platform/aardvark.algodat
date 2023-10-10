@@ -170,6 +170,7 @@ namespace Aardvark.Geometry.Points
             {
                 var center = new V3d(_centerX, _centerY, _centerZ);
                 V3f[]? localPositions = null;
+
                 var attributes = ImmutableDictionary<Def, object>.Empty;
 
                 if (_ia != null)
@@ -185,17 +186,15 @@ namespace Aardvark.Geometry.Points
                     // create all other attributes ...
                     foreach (var kv in _octree.m_data)
                     {
-                        if (kv.Key == Octree.PositionsGlobal3d) continue;
-
-                        if (kv.Key == Octree.PerCellPartIndex1ui ||
+                        if (kv.Key == Octree.PositionsGlobal3d ||
                             kv.Key == Octree.PerCellPartIndex1i ||
+                            kv.Key == Octree.PerCellPartIndex1ui ||
+                            kv.Key == Octree.PerPointPartIndex1b ||
+                            kv.Key == Octree.PerPointPartIndex1s ||
+                            kv.Key == Octree.PerPointPartIndex1i ||
                             kv.Key == Octree.PartIndexRange
                             )
-                        {
-                            attributes = attributes.Add(kv.Key, kv.Value);
                             continue;
-                        }
-
                         var subset = kv.Value.Subset(_ia);
                         attributes = attributes.Add(kv.Key, subset);
                     }
@@ -254,6 +253,31 @@ namespace Aardvark.Geometry.Points
                     data = data
                         .Add(Octree.PointCountCell, 0)
                         ;
+                }
+
+                // part indices ...
+                {
+                    void copy(Def def)
+                    {
+                        if (_octree.m_data.TryGetValue(def, out var o))
+                        {
+                            data = data.Add(def, o);
+                        }
+                    }
+
+                    copy(Octree.PerCellPartIndex1i);
+                    copy(Octree.PerCellPartIndex1ui);
+                    copy(Octree.PartIndexRange);
+
+                    if (
+                        _octree.m_data.TryGetValue(Octree.PerPointPartIndex1b, out object? qs) ||
+                        _octree.m_data.TryGetValue(Octree.PerPointPartIndex1s, out qs) ||
+                        _octree.m_data.TryGetValue(Octree.PerPointPartIndex1i, out qs)
+                        )
+                    {
+                        qs = _ia != null ? PartIndexUtils.Subset(qs, _ia) : qs;
+                        if (qs != null) data = data.Add(PartIndexUtils.GetDurableDefForPartIndices(qs), qs);
+                    }
                 }
 
                 // save attribute arrays to store ...

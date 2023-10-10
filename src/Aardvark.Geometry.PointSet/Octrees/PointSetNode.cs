@@ -1168,7 +1168,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Returns new node with replaced subnodes.
         /// Attention:
-        /// All node properties (except Cell, BoundingBoxExactGlobal, and PointCountTreeLeafs) are removed, because they would no longer be valid for new subnode data.
+        /// All node properties (except Cell, BoundingBoxExactGlobal, PointCountTreeLeafs, and PartIndexRange) are removed, because they would no longer be valid for new subnode data.
         /// Use LodExtensions.GenerateLod to recompute these properties.
         /// </summary>
         public IPointCloudNode WithSubNodes(IPointCloudNode?[] subnodes)
@@ -1196,6 +1196,18 @@ namespace Aardvark.Geometry.Points
                 .Add(Durable.Octree.PointCountTreeLeafs, pointCountTree ?? 0L)
                 .Add(Durable.Octree.SubnodesGuids, subnodes.Map(x => x?.Id ?? Guid.Empty))
                 ;
+
+            // part indices ...
+            {
+                Range1i? qsRange = null;
+                for (var i = 0; i < 8; i++)
+                {
+                    var subNode = subnodes[i]; if (subNode == null) continue;
+                    qsRange = PartIndexUtils.MergeRanges(qsRange, subNode.PartIndexRange);             
+                }
+                data = data.Add(Durable.Octree.PartIndexRange, qsRange);
+            }
+
             if (IsTemporaryImportNode) data = data.Add(TemporaryImportNode, 0);
 
             var result = new PointSetNode(data, this.Storage, writeToStore: true);

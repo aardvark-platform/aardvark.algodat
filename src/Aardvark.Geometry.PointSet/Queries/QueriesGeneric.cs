@@ -66,7 +66,7 @@ namespace Aardvark.Geometry.Points
                     for (var i = 0; i < ps.Length; i++) if (isPositionInside(ps[i])) ia.Add(i);
 
                     if (ia.Count > 0) yield return new Chunk(
-                        ps.Subset(ia), csRaw?.Subset(ia), nsRaw?.Subset(ia), jsRaw?.Subset(ia), ksRaw?.Subset(ia), PartIndexUtils.Subset(qsRaw, ia), bbox: null
+                        ps.Subset(ia), csRaw?.Subset(ia), nsRaw?.Subset(ia), jsRaw?.Subset(ia), ksRaw?.Subset(ia), PartIndexUtils.Subset(qsRaw, ia), partIndexRange: null, bbox: null
                         );
                 }
             }

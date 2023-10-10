@@ -137,7 +137,7 @@ namespace Aardvark.Data.Points
         public ImportConfig WithStorage(Storage x) => new(this) { Storage = x };
 
         /// <summary></summary>
-        public ImportConfig WithPartIndexOffset(uint x) => new(this) { ParseConfig = ParseConfig.WithPartIndexOffset(x) };
+        public ImportConfig WithPartIndexOffset(int x) => new(this) { ParseConfig = ParseConfig.WithPartIndexOffset(x) };
 
         /// <summary></summary>
         public ImportConfig WithEnabledProperties(EnabledProperties x) => new(this) { ParseConfig = ParseConfig.WithEnabledProperties(x) };

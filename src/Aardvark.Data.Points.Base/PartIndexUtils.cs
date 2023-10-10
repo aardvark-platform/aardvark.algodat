@@ -296,6 +296,21 @@ public static class PartIndexUtils
         }
     }
 
+    public static Range1i? MergeRanges(in Range1i? a, in Range1i? b) => (a, b) switch
+    {
+        (null, null) => null,
+        (null, not null) => b,
+        (not null, null) => a,
+        (Range1i x, Range1i y) => new Range1i(x, y)
+    };
+
+    public static Range1i? MergeRanges(IEnumerable<Range1i?> xs)
+    {
+        Range1i? result = null;
+        foreach (var x in xs) result = MergeRanges(result, x);
+        return result;
+    }
+
     /// <summary>
     /// Skips n part indices and returns the remaining ones.
     /// </summary>

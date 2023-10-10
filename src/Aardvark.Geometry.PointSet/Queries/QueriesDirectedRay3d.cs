@@ -92,6 +92,7 @@ public static partial class Queries
                     node.Intensities?.Value.Subset(ia),
                     node.Classifications?.Value.Subset(ia),
                     PartIndexUtils.Subset(node.PartIndices, ia),
+                    partIndexRange: null,
                     bbox: null
                     );
             } 

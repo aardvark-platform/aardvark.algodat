@@ -128,13 +128,13 @@ namespace Aardvark.Data.Points
             }
 
             if (ps.Count == 0) return Chunk.Empty;
-            return new Chunk(ps, cs, ns, js, classifications: null, parts: partIndices, bbox: null);
+            return new Chunk(ps, cs, ns, js, classifications: null, partIndices: partIndices, partIndexRange: null, bbox: null);
         }
 
         /// <summary>
         /// Buffer is expected to contain ASCII. Lines separated by '\n'.
         /// </summary>
-        public static Chunk Custom(byte[] buffer, int count, double filterDist, Token[] layout, uint? partIndices)
+        public static Chunk Custom(byte[] buffer, int count, double filterDist, Token[] layout, int? partIndices)
         {
             var hasColor = layout.HasColorTokens();
             var hasNormal = layout.HasNormalTokens();
@@ -191,14 +191,14 @@ namespace Aardvark.Data.Points
             }
 
             if (ps.Count == 0) return Chunk.Empty;
-            return new Chunk(ps, cs, ns, js, classifications: null, partIndices, bbox: null);
+            return new Chunk(ps, cs, ns, js, classifications: null, partIndices, partIndexRange: null, bbox: null);
         }
 
         /// <summary>
         /// Buffer is expected to contain ASCII. Lines separated by '\n'.
         /// Expected line format: [double X] [double Y] [double Z] [int I] [byte R] [byte G] [byte B] \n
         /// </summary>
-        public static Chunk XYZIRGB(byte[] buffer, int count, double filterDist, uint? partIndices)
+        public static Chunk XYZIRGB(byte[] buffer, int count, double filterDist, int? partIndices)
             => Custom(buffer, count, filterDist, new[]
             {
                 Token.PositionX, Token.PositionY, Token.PositionZ,
@@ -210,7 +210,7 @@ namespace Aardvark.Data.Points
         /// Buffer is expected to contain ASCII. Lines separated by '\n'.
         /// Expected line format: [double X] [double Y] [double Z] [SKIP] [byte R] [byte G] [byte B] \n
         /// </summary>
-        public static Chunk XYZSRGB(byte[] buffer, int count, double filterDist, uint? partIndices)
+        public static Chunk XYZSRGB(byte[] buffer, int count, double filterDist, int? partIndices)
             => Custom(buffer, count, filterDist, new[]
             {
                 Token.PositionX, Token.PositionY, Token.PositionZ,
@@ -222,7 +222,7 @@ namespace Aardvark.Data.Points
         /// Buffer is expected to contain ASCII. Lines separated by '\n'.
         /// Expected line format: [double X] [double Y] [double Z] [byte R] [byte G] [byte B] \n
         /// </summary>
-        public static Chunk XYZRGB(byte[] buffer, int count, double filterDist, uint? partIndices)
+        public static Chunk XYZRGB(byte[] buffer, int count, double filterDist, int? partIndices)
             => Custom(buffer, count, filterDist, new[]
             {
                 Token.PositionX, Token.PositionY, Token.PositionZ,

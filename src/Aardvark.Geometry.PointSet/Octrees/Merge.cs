@@ -17,9 +17,8 @@ using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Linq;
-using static Aardvark.Base.Monads.Optics;
+using static Aardvark.Base.MultimethodTest;
 
 namespace Aardvark.Geometry.Points
 {
@@ -29,6 +28,8 @@ namespace Aardvark.Geometry.Points
     {
         internal static int CollectEverything(IPointCloudNode self, List<V3d> ps, List<C4b>? cs, List<V3f>? ns, List<int>? js, List<byte>? ks, ref object? qs)
         {
+            if (self.HasPartIndices && !self.HasPartIndexRange) throw new NotImplementedException("PARTINDICES");
+
             if (self == null) return 0;
 
             if (self.IsLeaf)
@@ -63,6 +64,8 @@ namespace Aardvark.Geometry.Points
 
         public static (IPointCloudNode, bool) CollapseLeafNodes(this IPointCloudNode self, ImportConfig config)
         {
+            if (self.HasPartIndices && !self.HasPartIndexRange) throw new NotImplementedException("PARTINDICES");
+
             if (!self.IsTemporaryImportNode) throw new InvalidOperationException(
                 "CollapseLeafNodes is only valid for temporary import nodes. Invariant 4aa0809d-4cb0-422b-97ee-fa5b6dc4785e."
                 );
@@ -115,7 +118,7 @@ namespace Aardvark.Geometry.Points
                         nsla.Count > 0 ? nsla : null,
                         jsla.Count > 0 ? jsla : null,
                         ksla.Count > 0 ? ksla : null,
-                        qsla,
+                        qsla, partIndexRange: null,
                         bbox: null
                         );
 
@@ -170,6 +173,8 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static IPointCloudNode ForceSplitLeaf(this IPointCloudNode self, ImportConfig config)
         {
+            if (self.HasPartIndices && !self.HasPartIndexRange) throw new NotImplementedException("PARTINDICES");
+
             if (!self.IsTemporaryImportNode) throw new InvalidOperationException(
                 "ForceSplitLeaf is only valid for temporary import nodes. Invariant 3bfca971-be98-45b7-86e7-de436b78cefb."
                 );
@@ -223,7 +228,7 @@ namespace Aardvark.Geometry.Points
                 if (!self.Cell.Contains(subCell)) throw new InvalidOperationException();
                 if (self.Cell.Exponent != subCell.Exponent + 1) throw new InvalidOperationException();
 
-                var chunk = new Chunk(subPs, css?[i], nss?[i], jss?[i], kss?[i], qss?[i], subCell.BoundingBox);
+                var chunk = new Chunk(subPs, css?[i], nss?[i], jss?[i], kss?[i], qss?[i], partIndexRange: null, subCell.BoundingBox);
 
                 if (config.NormalizePointDensityGlobal)
                 {
@@ -266,6 +271,9 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public static (IPointCloudNode, bool) Merge(this IPointCloudNode a, IPointCloudNode b, Action<long> pointsMergedCallback, ImportConfig config)
         {
+            if (a.HasPartIndices && !a.HasPartIndexRange) throw new NotImplementedException("PARTINDICES");
+            if (b.HasPartIndices && !b.HasPartIndexRange) throw new NotImplementedException("PARTINDICES");
+
             if (!a.IsTemporaryImportNode || !b.IsTemporaryImportNode) throw new InvalidOperationException(
                 "Merge is only allowed on temporary import nodes. Invariant d53042e7-a032-47a9-98dc-034c0749a649."
                 );
@@ -300,7 +308,8 @@ namespace Aardvark.Geometry.Points
                     nsla.Count > 0 ? nsla : null,
                     jsla.Count > 0 ? jsla : null,
                     ksla.Count > 0 ? ksla : null,
-                    parts: qsla,
+                    partIndices: qsla,
+                    partIndexRange: PartIndexUtils.MergeRanges(a.PartIndexRange, b.PartIndexRange),
                     bbox: null
                     ); 
 
@@ -319,6 +328,7 @@ namespace Aardvark.Geometry.Points
                 var js = chunk.Intensities?.ToArray();
                 var ks = chunk.Classifications?.ToArray();
                 var qs = chunk.PartIndices;
+                var qsRange = chunk.PartIndexRange;
 
                 var bbExactGlobal = chunk.BoundingBox;
 
@@ -350,8 +360,12 @@ namespace Aardvark.Geometry.Points
                 if (ksId.HasValue) { storage.Add(ksId.Value, ks!); data = data.Add(Durable.Octree.Classifications1bReference, ksId.Value); }
                 if (qs != null) 
                 {
+                    if (qsRange == null) throw new Exception("Invariant 7c01f554-d833-42cc-ab1d-9dbaa61bef45.");
                     var def = PartIndexUtils.GetDurableDefForPartIndices(qs);
-                    data = data.Add(def, qs);
+                    data = data
+                        .Add(def, qs)
+                        .Add(Durable.Octree.PartIndexRange, qsRange)
+                        ;
                 }
 
                 return (new PointSetNode(data, config.Storage, writeToStore: true), true);
@@ -576,7 +590,10 @@ namespace Aardvark.Geometry.Points
             Action<long> pointsMergedCallback, ImportConfig config
             )
         {
-#region Preconditions
+            if (a.HasPartIndices && !a.HasPartIndexRange) throw new NotImplementedException("PARTINDICES");
+            if (b.HasPartIndices && !b.HasPartIndexRange) throw new NotImplementedException("PARTINDICES");
+
+            #region Preconditions
 
             // PRE: ensure that trees 'a' and 'b' do not intersect,
             // because we are joining non-overlapping trees here
@@ -743,6 +760,8 @@ namespace Aardvark.Geometry.Points
 
         internal static IPointCloudNode JoinTreeToRootCell(Cell rootCell, IPointCloudNode a, ImportConfig config, bool collapse = true)
         {
+            if (a.HasPartIndices && !a.HasPartIndexRange) throw new NotImplementedException("PARTINDICES");
+
             if (!rootCell.Contains(a.Cell)) throw new InvalidOperationException();
 
             if (a.Cell.IsCenteredAtOrigin)
@@ -780,6 +799,9 @@ namespace Aardvark.Geometry.Points
 
         private static IPointCloudNode MergeLeafAndLeafWithIdenticalRootCell(IPointCloudNode a, IPointCloudNode b, ImportConfig config)
         {
+            if (a.HasPartIndices && !a.HasPartIndexRange) throw new NotImplementedException("PARTINDICES");
+            if (b.HasPartIndices && !b.HasPartIndexRange) throw new NotImplementedException("PARTINDICES");
+
             if (!a.IsTemporaryImportNode || !b.IsTemporaryImportNode) throw new InvalidOperationException(
                 "MergeLeafAndLeafWithIdenticalRootCell is only valid for temporary import nodes. Invariant 2d68b9d2-a001-47a8-b481-87488f33b85d."
                 );
@@ -801,7 +823,7 @@ namespace Aardvark.Geometry.Points
             var ks = Concat(a.Classifications?.Value, b.Classifications?.Value);
             var qs = PartIndexUtils.ConcatIndices(a.PartIndices, a.PointCountCell, b.PartIndices, b.PointCountCell);
 
-            var chunk = new Chunk(ps, cs, ns, js, ks, parts: qs, cell.BoundingBox);
+            var chunk = new Chunk(ps, cs, ns, js, ks, partIndices: qs, partIndexRange: null, cell.BoundingBox);
             if (config.NormalizePointDensityGlobal)
             {
                 chunk = chunk.ImmutableFilterMinDistByCell(cell, config.ParseConfig);
@@ -814,6 +836,9 @@ namespace Aardvark.Geometry.Points
 
         private static IPointCloudNode MergeLeafAndTreeWithIdenticalRootCell(IPointCloudNode a, IPointCloudNode b, ImportConfig config)
         {
+            if (a.HasPartIndices && !a.HasPartIndexRange) throw new NotImplementedException("PARTINDICES");
+            if (b.HasPartIndices && !b.HasPartIndexRange) throw new NotImplementedException("PARTINDICES");
+
             if (a == null) throw new ArgumentNullException(nameof(a));
             if (b == null) throw new ArgumentNullException(nameof(b));
             if (a.IsLeaf == false || b.IsLeaf == true) throw new InvalidOperationException();
@@ -830,6 +855,9 @@ namespace Aardvark.Geometry.Points
             ImportConfig config
             )
         {
+            if (a.HasPartIndices && !a.HasPartIndexRange) throw new NotImplementedException("PARTINDICES");
+            if (b.HasPartIndices && !b.HasPartIndexRange) throw new NotImplementedException("PARTINDICES");
+
             if (a.IsLeaf || b.IsLeaf) throw new InvalidOperationException();
             if (a.Cell != b.Cell) throw new InvalidOperationException();
             if (a.PointCountCell > 0) throw new InvalidOperationException();
@@ -838,6 +866,7 @@ namespace Aardvark.Geometry.Points
             var pointCountTree = 0L;
             var subcells = new IPointCloudNode?[8];
             var subcellsDebug = new int[8];
+            Range1i? qsRange = null;
             for (var i = 0; i < 8; i++)
             {
                 var octant = a.Cell.GetOctant(i);
@@ -851,15 +880,18 @@ namespace Aardvark.Geometry.Points
                 {
                     if (y != null)
                     {
-                        subcells[i] = Merge(x, y, pointsMergedCallback, config).Item1;
+                        var m = Merge(x, y, pointsMergedCallback, config).Item1;
+                        subcells[i] = m;
                         //if (x.PointCountTree + y.PointCountTree != subcells[i].PointCountTree) throw new InvalidOperationException("Invariant 82072553-7271-4448-b74d-735d44eb03b0.");
-                        pointCountTree += subcells[i]!.PointCountTree;
+                        pointCountTree += m.PointCountTree;
+                        qsRange = PartIndexUtils.MergeRanges(qsRange, m.PartIndexRange);
                         subcellsDebug[i] = 0;
                     }
                     else
                     {
                         subcells[i] = x;
-                        pointCountTree += x.PointCountTree;
+                        pointCountTree += x.PointCountTree; 
+                        qsRange = PartIndexUtils.MergeRanges(qsRange, x.PartIndexRange);
                         //if (subcells[i].PointCountTree != x.PointCountTree) throw new InvalidOperationException();
                         subcellsDebug[i] = 1;
                     }
@@ -870,6 +902,7 @@ namespace Aardvark.Geometry.Points
                     {
                         subcells[i] = y;
                         pointCountTree += y.PointCountTree;
+                        qsRange = PartIndexUtils.MergeRanges(qsRange, y.PartIndexRange);
 
                         //if (subcells[i].PointCountTree != y.PointCountTree) throw new InvalidOperationException();
                         subcellsDebug[i] = 2;
@@ -887,6 +920,9 @@ namespace Aardvark.Geometry.Points
                 .Add(Durable.Octree.SubnodesGuids, subcells.Map(x => x?.Id ?? Guid.Empty))
                 .Add(Durable.Octree.BoundingBoxExactGlobal, new Box3d(subcells.Where(n => n != null).Select(n => n!.BoundingBoxExactGlobal)))
                 ;
+
+            if (qsRange != null) replacements = replacements.Add(Durable.Octree.PartIndexRange, qsRange);
+
             var result = a.With(replacements).CollapseLeafNodes(config).Item1;
 
             //pointsMergedCallback?.Invoke(result.PointCountTree);
@@ -902,13 +938,17 @@ namespace Aardvark.Geometry.Points
             IList<V3f>? normals,
             IList<int>? intensities,
             IList<byte>? classifications,
-            object? partIndices
+            object? partIndices,
+            Range1i? partIndexRange
             )
         {
-            var chunk = new Chunk(positions, colors, normals, intensities, classifications, partIndices, bbox: null);
+            var chunk = new Chunk(positions, colors, normals, intensities, classifications, partIndices, partIndexRange, bbox: null);
             if (config.NormalizePointDensityGlobal) chunk = chunk.ImmutableFilterMinDistByCell(cell, config.ParseConfig);
             var node = InMemoryPointSet.Build(chunk, cell, config.OctreeSplitLimit).ToPointSetNode(config.Storage, isTemporaryImportNode: true);
             if (node.Cell != cell) throw new InvalidOperationException("Invariant a9d952d5-5e01-4f59-9b6b-8a4e6a3d4cd9.");
+
+            if (node.HasPartIndices && !node.HasPartIndexRange) throw new NotImplementedException("PARTINDICES");
+
             return node;
         }
 
@@ -917,13 +957,16 @@ namespace Aardvark.Geometry.Points
             IPointCloudNode a, Cell cell, ImportConfig config
             )
         {
+            if (a.HasPartIndices && !a.HasPartIndexRange) throw new NotImplementedException("PARTINDICES");
+
             if (a != null && !a.IsTemporaryImportNode) throw new InvalidOperationException(
                 "InjectPointsIntoTree is only valid for temporary import nodes. Invariant 0b0c48dc-8500-4ad6-a3dd-9c00f6d0b1d9."
                 );
 
             if (a == null)
             {
-                var result0 = CreateTmpNode(config, cell, psAbsolute, cs, ns, js, ks, qs);
+                var result0 = CreateTmpNode(config, cell, psAbsolute, cs, ns, js, ks, qs, partIndexRange: null);
+                if (qs != null && !result0.HasPartIndices) throw new NotImplementedException("PARTINDICES");
                 return result0;
             }
 
@@ -943,7 +986,8 @@ namespace Aardvark.Geometry.Points
                 var newKs = ks != null ? new List<byte>(ks) : null; newKs?.AddRange(a.Classifications!.Value);
                 var newQs = PartIndexUtils.ConcatIndices(qs, psAbsolute.Count, a.PartIndices, a.PointCountCell);
 
-                var result0 = CreateTmpNode(config, cell, newPs, newCs, newNs, newJs, newKs, newQs);
+                var result0 = CreateTmpNode(config, cell, newPs, newCs, newNs, newJs, newKs, newQs, partIndexRange: null);
+                if (a.HasPartIndices && !result0.HasPartIndices) throw new NotImplementedException("PARTINDICES");
                 return result0;
             }
 
@@ -994,7 +1038,7 @@ namespace Aardvark.Geometry.Points
                     if (x == null)
                     {
                         // injecting points into non-existing subtree
-                        subcells[j] = CreateTmpNode(config, subCell, pss[j], css?[j], nss?[j], iss?[j], kss?[j], qss?[j]);
+                        subcells[j] = CreateTmpNode(config, subCell, pss[j], css?[j], nss?[j], iss?[j], kss?[j], qss?[j], partIndexRange: null);
                     }
                     else
                     {

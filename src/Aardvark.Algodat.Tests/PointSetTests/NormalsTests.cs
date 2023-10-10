@@ -28,7 +28,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CanCreateChunkWithNormals()
         {
-            var chunk = new Chunk(new[] { V3d.IOO }, new[] { C4b.White }, new[] { V3f.OIO }, null, null, null, null);
+            var chunk = new Chunk(new[] { V3d.IOO }, new[] { C4b.White }, new[] { V3f.OIO }, null, null, null, null, null);
             Assert.IsTrue(chunk.Normals != null);
             Assert.IsTrue(chunk.Normals[0] == V3f.OIO);
         }
@@ -36,7 +36,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CanCreateInMemoryPointSetWithNormals()
         {
-            var chunk = new Chunk(new[] { V3d.IOO }, new[] { C4b.White }, new[] { V3f.OIO }, null, null, null, null);
+            var chunk = new Chunk(new[] { V3d.IOO }, new[] { C4b.White }, new[] { V3f.OIO }, null, null, null, null, null);
 
             var builder = InMemoryPointSet.Build(chunk, 8192);
             var root = builder.ToPointSetNode(CreateInMemoryStore(), isTemporaryImportNode: false);

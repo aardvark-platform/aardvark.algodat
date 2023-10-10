@@ -21,6 +21,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Threading;
+using static Aardvark.Base.MultimethodTest;
 
 namespace Aardvark.Geometry.Points
 {
@@ -241,6 +242,9 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public PointSet Merge(PointSet other, Action<long> pointsMergedCallback, ImportConfig config)
         {
+            if (this.HasPartIndices && !this.HasPartIndexRange) throw new NotImplementedException("PARTINDICES");
+            if (other.HasPartIndices && !other.HasPartIndexRange) throw new NotImplementedException("PARTINDICES");
+
             if (other.IsEmpty) return this;
             if (this.IsEmpty) return other;
             if (this.Storage != other.Storage) throw new InvalidOperationException("Invariant 3267c283-3192-438b-a219-821d67ac5061.");

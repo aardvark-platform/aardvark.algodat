@@ -127,7 +127,7 @@ namespace Aardvark.Data.Points
         /// Assign per-point part indices starting with this value.
         /// If a point cloud has no internal structure, then all points will be assigned this value.
         /// </summary>
-        public uint PartIndexOffset = 0;
+        public int PartIndexOffset = 0;
 
         /// <summary>
         /// Default configuration.
@@ -162,7 +162,7 @@ namespace Aardvark.Data.Points
             double minDist,
             int readBufferSizeInBytes,
             EnabledProperties enabledProperties,
-            uint partIndexOffset
+            int partIndexOffset
             )
         {
             MaxChunkPointCount = maxChunkPointCount;
@@ -212,7 +212,7 @@ namespace Aardvark.Data.Points
         public ParseConfig WithEnabledProperties(EnabledProperties v) => new(this) { EnabledProperties = v };
 
         /// <summary></summary>
-        public ParseConfig WithPartIndexOffset(uint v) => new(this) { PartIndexOffset = v };
+        public ParseConfig WithPartIndexOffset(int v) => new(this) { PartIndexOffset = v };
 
         /// <summary></summary>
         public ParseConfig WithEnabledClassifications(bool enabled) => new(this) { EnabledProperties = EnabledProperties.WithClassifications(enabled) };

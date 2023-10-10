@@ -37,7 +37,7 @@ namespace Aardvark.Geometry.Tests
                 .WithOctreeSplitLimit(splitLimit)
                 ;
             var chunk = new Chunk(ps);
-            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null);
             return PointCloud.Chunks(chunk, config);
         }
 
@@ -54,7 +54,7 @@ namespace Aardvark.Geometry.Tests
                 .WithOctreeSplitLimit(splitLimit)
                 ;
             var chunk = new Chunk(ps);
-            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null);
             return PointCloud.Chunks(chunk, config);
         }
 
@@ -72,7 +72,7 @@ namespace Aardvark.Geometry.Tests
                 .WithKey("test")
                 .WithOctreeSplitLimit(splitLimit)
                 ; var chunk = new Chunk(ps);
-            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null);
             var pc = PointCloud.Chunks(chunk, config);
             return pc;
         }

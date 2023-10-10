@@ -142,7 +142,7 @@ namespace Aardvark.Geometry.Points
                             if (node.HasClassifications) ks![i] = node.Classifications.Value[index];
                             //ds[i] = ia[i].Dist;
                         }
-                        var chunk = new Chunk(ps, cs, ns, js, ks, qs, bbox: null);
+                        var chunk = new Chunk(ps, cs, ns, js, ks, qs, partIndexRange: null, bbox: null);
                         yield return chunk;
                     }
                 }
@@ -167,7 +167,8 @@ namespace Aardvark.Geometry.Points
                             node.Normals?.Value.Subset(ia),
                             node.Intensities?.Value.Subset(ia),
                             node.Classifications?.Value.Subset(ia),
-                            parts: PartIndexUtils.Subset(node.PartIndices, ia),
+                            partIndices: PartIndexUtils.Subset(node.PartIndices, ia),
+                            partIndexRange: null,
                             bbox: null);
                         throw new NotImplementedException("PARTINDICES");
                     }
