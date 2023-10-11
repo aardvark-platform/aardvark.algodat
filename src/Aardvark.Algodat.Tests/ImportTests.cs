@@ -431,11 +431,43 @@ namespace Aardvark.Geometry.Tests
                 .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 .WithPartIndexOffset(42)
+                .WithEnabledPartIndices(true)
                 ;
             var pointset = PointCloud.Import(filename, config);
             Assert.IsTrue(pointset != null);
             Assert.IsTrue(pointset.PointCount == 3);
+            Assert.IsTrue(pointset.HasPartIndices == true);
+            Assert.IsTrue(pointset.HasPartIndexRange == true);
             Assert.IsTrue(pointset.PartIndexRange == new Range1i(42, 42));
+            Assert.IsTrue(pointset.Root.Value.HasPartIndices == true);
+            Assert.IsTrue(pointset.Root.Value.PartIndices is int x && x == 42);
+            Assert.IsTrue(pointset.Root.Value.HasPartIndexRange == true);
+            Assert.IsTrue(pointset.Root.Value.PartIndexRange == new Range1i(42, 42));
+        }
+
+        [Test]
+        public void CanImportPtsFile_PartIndex_None()
+        {
+            Assert.IsTrue(Data.Points.Import.Pts.PtsFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "test.pts");
+            if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
+            TestContext.WriteLine($"testfile is '{filename}'");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                .WithPartIndexOffset(42)
+                .WithEnabledPartIndices(false)
+                ;
+            var pointset = PointCloud.Import(filename, config);
+            Assert.IsTrue(pointset != null);
+            Assert.IsTrue(pointset.PointCount == 3);
+            Assert.IsTrue(pointset.HasPartIndices == false);
+            Assert.IsTrue(pointset.HasPartIndexRange == false);
+            Assert.IsTrue(pointset.PartIndexRange == null);
+            Assert.IsTrue(pointset.Root.Value.HasPartIndices == false);
+            Assert.IsTrue(pointset.Root.Value.PartIndices == null);
+            Assert.IsTrue(pointset.Root.Value.HasPartIndexRange == false);
+            Assert.IsTrue(pointset.Root.Value.PartIndexRange == null);
         }
 
         [Test]
@@ -647,11 +679,41 @@ namespace Aardvark.Geometry.Tests
                 .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 .WithPartIndexOffset(42)
+                .WithEnabledPartIndices(true)
                 ;
             var pointset = PointCloud.Import(filename, config);
             Assert.IsTrue(pointset != null);
             Assert.IsTrue(pointset.PointCount == 3);
+            Assert.IsTrue(pointset.HasPartIndices == true);
+            Assert.IsTrue(pointset.HasPartIndexRange == true);
             Assert.IsTrue(pointset.PartIndexRange == new Range1i(42, 42));
+            Assert.IsTrue(pointset.Root.Value.HasPartIndices == true);
+            Assert.IsTrue(pointset.Root.Value.PartIndices is int x && x == 42);
+            Assert.IsTrue(pointset.Root.Value.HasPartIndexRange == true);
+            Assert.IsTrue(pointset.Root.Value.PartIndexRange == new Range1i(42, 42));
+        }
+
+        [Test]
+        public void CanImportE57File_PartIndex_None()
+        {
+            Assert.IsTrue(Data.Points.Import.E57.E57Format != null);
+            var filename = Path.Combine(Config.TestDataDir, "test.e57");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                .WithPartIndexOffset(42)
+                .WithEnabledPartIndices(false)
+                ;
+            var pointset = PointCloud.Import(filename, config);
+            Assert.IsTrue(pointset != null);
+            Assert.IsTrue(pointset.PointCount == 3);
+            Assert.IsTrue(pointset.HasPartIndices == false);
+            Assert.IsTrue(pointset.HasPartIndexRange == false);
+            Assert.IsTrue(pointset.PartIndexRange == null);
+            Assert.IsTrue(pointset.Root.Value.HasPartIndices == false);
+            Assert.IsTrue(pointset.Root.Value.PartIndices == null);
+            Assert.IsTrue(pointset.Root.Value.HasPartIndexRange == false);
+            Assert.IsTrue(pointset.Root.Value.PartIndexRange == null);
         }
 
         [Test]
@@ -763,6 +825,7 @@ namespace Aardvark.Geometry.Tests
             var pointset = PointCloud.Import(filename, config);
             Assert.IsTrue(pointset != null);
             Assert.IsTrue(pointset.PointCount == 3);
+            Assert.IsTrue(pointset.HasPartIndices == false);
             Assert.IsTrue(pointset.HasPartIndexRange == false);
         }
 
@@ -775,11 +838,41 @@ namespace Aardvark.Geometry.Tests
                 .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 .WithPartIndexOffset(42)
+                .WithEnabledPartIndices(true)
                 ;
             var pointset = PointCloud.Import(filename, config);
             Assert.IsTrue(pointset != null);
             Assert.IsTrue(pointset.PointCount == 3);
+            Assert.IsTrue(pointset.HasPartIndices == true);
+            Assert.IsTrue(pointset.HasPartIndexRange == true);
             Assert.IsTrue(pointset.PartIndexRange == new Range1i(42, 42));
+            Assert.IsTrue(pointset.Root.Value.HasPartIndices == true);
+            Assert.IsTrue(pointset.Root.Value.PartIndices is int x && x == 42);
+            Assert.IsTrue(pointset.Root.Value.HasPartIndexRange == true);
+            Assert.IsTrue(pointset.Root.Value.PartIndexRange == new Range1i(42, 42));
+        }
+
+        [Test]
+        public void CanImportLasFile_PartIndex_None()
+        {
+            Assert.IsTrue(Data.Points.Import.Laszip.LaszipFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "test.las");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                .WithPartIndexOffset(42)
+                .WithEnabledPartIndices(false)
+                ;
+            var pointset = PointCloud.Import(filename, config);
+            Assert.IsTrue(pointset != null);
+            Assert.IsTrue(pointset.PointCount == 3);
+            Assert.IsTrue(pointset.HasPartIndices == false);
+            Assert.IsTrue(pointset.HasPartIndexRange == false);
+            Assert.IsTrue(pointset.PartIndexRange == null);
+            Assert.IsTrue(pointset.Root.Value.HasPartIndices == false);
+            Assert.IsTrue(pointset.Root.Value.PartIndices == null);
+            Assert.IsTrue(pointset.Root.Value.HasPartIndexRange == false);
+            Assert.IsTrue(pointset.Root.Value.PartIndexRange == null);
         }
 
         [Test]
@@ -891,6 +984,7 @@ namespace Aardvark.Geometry.Tests
             var pointset = PointCloud.Import(filename, config);
             Assert.IsTrue(pointset != null);
             Assert.IsTrue(pointset.PointCount == 3);
+            Assert.IsTrue(pointset.HasPartIndices == false);
             Assert.IsTrue(pointset.HasPartIndexRange == false);
         }
 
@@ -903,11 +997,41 @@ namespace Aardvark.Geometry.Tests
                 .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 .WithPartIndexOffset(42)
+                .WithEnabledPartIndices(true)
                 ;
             var pointset = PointCloud.Import(filename, config);
             Assert.IsTrue(pointset != null);
             Assert.IsTrue(pointset.PointCount == 3);
+            Assert.IsTrue(pointset.HasPartIndices == true);
+            Assert.IsTrue(pointset.HasPartIndexRange == true);
             Assert.IsTrue(pointset.PartIndexRange == new Range1i(42, 42));
+            Assert.IsTrue(pointset.Root.Value.HasPartIndices == true);
+            Assert.IsTrue(pointset.Root.Value.PartIndices is int x && x == 42);
+            Assert.IsTrue(pointset.Root.Value.HasPartIndexRange == true);
+            Assert.IsTrue(pointset.Root.Value.PartIndexRange == new Range1i(42, 42));
+        }
+
+        [Test]
+        public void CanImportLazFile_PartIndex_None()
+        {
+            Assert.IsTrue(Data.Points.Import.Laszip.LaszipFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "test.laz");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                .WithPartIndexOffset(42)
+                .WithEnabledPartIndices(false)
+                ;
+            var pointset = PointCloud.Import(filename, config);
+            Assert.IsTrue(pointset != null);
+            Assert.IsTrue(pointset.PointCount == 3);
+            Assert.IsTrue(pointset.HasPartIndices == false);
+            Assert.IsTrue(pointset.HasPartIndexRange == false);
+            Assert.IsTrue(pointset.PartIndexRange == null);
+            Assert.IsTrue(pointset.Root.Value.HasPartIndices == false);
+            Assert.IsTrue(pointset.Root.Value.PartIndices == null);
+            Assert.IsTrue(pointset.Root.Value.HasPartIndexRange == false);
+            Assert.IsTrue(pointset.Root.Value.PartIndexRange == null);
         }
 
         [Test]
@@ -1019,6 +1143,7 @@ namespace Aardvark.Geometry.Tests
             var pointset = PointCloud.Import(filename, config);
             Assert.IsTrue(pointset != null);
             Assert.IsTrue(pointset.PointCount == 8);
+            Assert.IsTrue(pointset.HasPartIndices == false);
             Assert.IsTrue(pointset.HasPartIndexRange == false);
         }
 
@@ -1031,11 +1156,41 @@ namespace Aardvark.Geometry.Tests
                 .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
                 .WithKey("test")
                 .WithPartIndexOffset(42)
+                .WithEnabledPartIndices(true)
                 ;
             var pointset = PointCloud.Import(filename, config);
             Assert.IsTrue(pointset != null);
             Assert.IsTrue(pointset.PointCount == 8);
+            Assert.IsTrue(pointset.HasPartIndices == true);
+            Assert.IsTrue(pointset.HasPartIndexRange == true);
             Assert.IsTrue(pointset.PartIndexRange == new Range1i(42, 42));
+            Assert.IsTrue(pointset.Root.Value.HasPartIndices == true);
+            Assert.IsTrue(pointset.Root.Value.PartIndices is int x && x == 42);
+            Assert.IsTrue(pointset.Root.Value.HasPartIndexRange == true);
+            Assert.IsTrue(pointset.Root.Value.PartIndexRange == new Range1i(42, 42));
+        }
+
+        [Test]
+        public void CanImportPlyFile_PartIndex_None()
+        {
+            Assert.IsTrue(Data.Points.Import.Ply.PlyFormat != null);
+            var filename = Path.Combine(Config.TestDataDir, "cube.ply");
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                .WithPartIndexOffset(42)
+                .WithEnabledPartIndices(false)
+                ;
+            var pointset = PointCloud.Import(filename, config);
+            Assert.IsTrue(pointset != null);
+            Assert.IsTrue(pointset.PointCount == 8);
+            Assert.IsTrue(pointset.HasPartIndices == false);
+            Assert.IsTrue(pointset.HasPartIndexRange == false);
+            Assert.IsTrue(pointset.PartIndexRange == null);
+            Assert.IsTrue(pointset.Root.Value.HasPartIndices == false);
+            Assert.IsTrue(pointset.Root.Value.PartIndices == null);
+            Assert.IsTrue(pointset.Root.Value.HasPartIndexRange == false);
+            Assert.IsTrue(pointset.Root.Value.PartIndexRange == null);
         }
 
         [Test]
