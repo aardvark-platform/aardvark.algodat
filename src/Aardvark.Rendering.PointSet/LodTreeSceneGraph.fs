@@ -200,6 +200,7 @@ module private DeferredPointSetShaders =
             [<PointCoord>] c : V2d
             [<Normal>] n : V3d
             [<Semantic("TreeId")>] id : int
+            [<Semantic("PartIndices")>] partIndex : int
             [<Semantic("MaxTreeDepth")>] treeDepth : int
             [<Semantic("Normal32"); Interpolation(InterpolationMode.Flat)>] n32 : int
             [<FragCoord>] fc : V4d
@@ -209,11 +210,30 @@ module private DeferredPointSetShaders =
     [<Inline>]
     let div (v : V4d) = v.XYZ / v.W
     
-    let colorOrWhite (v : Effects.Vertex) =
+
+    let mapColors =
+        [|
+            C4b(141uy, 211uy, 199uy, 255uy)
+            C4b(255uy, 255uy, 179uy, 255uy)
+            C4b(190uy, 186uy, 218uy, 255uy)
+            C4b(251uy, 128uy, 114uy, 255uy)
+            C4b(128uy, 177uy, 211uy, 255uy)
+            C4b(253uy, 180uy, 98uy, 255uy)
+            C4b(179uy, 222uy, 105uy, 255uy)
+            C4b(252uy, 205uy, 229uy, 255uy)
+            C4b(217uy, 217uy, 217uy, 255uy)
+            C4b(188uy, 128uy, 189uy, 255uy)
+            C4b(204uy, 235uy, 197uy, 255uy)
+
+        |] |> Array.map (fun c -> c.ToC4f().ToV4d())
+
+
+    let colorOrWhite (v : PointVertex) =
         vertex {  
-            let mutable color = v.c
-            if not uniform?ShowColors then color <- V4d.IIII
-            return { v with c = color }
+            let mutable color = v.col
+            if not uniform?ShowColors then 
+                color <- mapColors.[(v.partIndex+11)%11]
+            return { v with col = color }
         }
 
     let lodPointSize (v : PointVertex) =

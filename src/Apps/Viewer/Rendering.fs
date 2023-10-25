@@ -110,12 +110,12 @@ module Rendering =
         let picktrees : cmap<ILodTreeNode,SimplePickTree> = cmap()
         let config =
             {
-                pointSize = AVal.init 0.8
+                pointSize = AVal.init 0.225
                 overlayAlpha = AVal.init 0.0
                 maxSplits = AVal.init 8
                 renderBounds = AVal.init false
                 sort = AVal.init false
-                splitfactor = AVal.init 0.45
+                splitfactor = AVal.init 0.1
                 budget = AVal.init -(256L <<< 10)
                 lighting = AVal.init true
                 colors = AVal.init false
@@ -133,7 +133,7 @@ module Rendering =
                 ssaoSharpness = AVal.init 4.0
             }
 
-
+        
 
         let pcs =
             pcs |> ASet.map (fun t ->
@@ -322,10 +322,10 @@ module Rendering =
             | Keys.D9 -> transact (fun () -> config.ssaoSigma.Value <- max 0.0 (config.ssaoSigma.Value - 0.1)); Log.line "sigma: %A" config.ssaoSigma.Value
             
             | Keys.D8 -> transact (fun () -> config.ssaoSamples.Value <- min 8 (config.ssaoSamples.Value + 1)); Log.line "samples: %A" config.ssaoSamples.Value
-            | Keys.D7 -> transact (fun () -> config.ssaoSamples.Value <- max 1 (config.ssaoSamples.Value - 1)); Log.line "samples: %A" config.ssaoSamples.Value
+            //| Keys.D7 -> transact (fun () -> config.ssaoSamples.Value <- max 1 (config.ssaoSamples.Value - 1)); Log.line "samples: %A" config.ssaoSamples.Value
             
-            | Keys.D6 -> transact (fun () -> config.ssaoSampleDirections.Value <- min 8 (config.ssaoSampleDirections.Value + 1)); Log.line "dirs: %A" config.ssaoSampleDirections.Value
-            | Keys.D5 -> transact (fun () -> config.ssaoSampleDirections.Value <- max 1 (config.ssaoSampleDirections.Value - 1)); Log.line "dirs: %A" config.ssaoSampleDirections.Value
+           // | Keys.D6 -> transact (fun () -> config.ssaoSampleDirections.Value <- min 8 (config.ssaoSampleDirections.Value + 1)); Log.line "dirs: %A" config.ssaoSampleDirections.Value
+            //| Keys.D5 -> transact (fun () -> config.ssaoSampleDirections.Value <- max 1 (config.ssaoSampleDirections.Value - 1)); Log.line "dirs: %A" config.ssaoSampleDirections.Value
             
             | Keys.D4 -> transact (fun () -> config.ssaoRadius.Value <- min 2.0 (config.ssaoRadius.Value + 0.01)); Log.line "radius: %A" config.ssaoRadius.Value
             | Keys.D3 -> transact (fun () -> config.ssaoRadius.Value <- max 0.01 (config.ssaoRadius.Value - 0.01)); Log.line "radius: %A" config.ssaoRadius.Value
@@ -528,18 +528,39 @@ module Rendering =
                     V3d.III * 6.0, V3d.Zero
             )
         let speed = AVal.init 2.0
+        
+        let initial = CameraView.ofTrafo <| Trafo3d.Parse "[[[-0.707106781186548, 0.707106781186548, 0, 0], [-0.408248290463863, -0.408248290463863, 0.816496580927726, 0], [0.577350269189626, 0.577350269189626, 0.577350269189626, -342.288592930008], [0, 0, 0, 1]], [[-0.707106781186548, -0.408248290463863, 0.577350269189626, 197.620411268678], [0.707106781186548, -0.408248290463863, 0.577350269189626, 197.620411268678], [0, 0.816496580927726, 0.577350269189626, 197.620411268678], [0, 0, 0, 1]]]"
+        let target = CameraView.ofTrafo <| Trafo3d.Parse "[[[-0.567502843343406, 0.823371436714408, 0, -0.0700798647066693], [-0.362138228540449, -0.249601170524128, 0.898084160367263, 0.212820843806073], [0.739456845412046, 0.509665314570097, 0.439823647496845, -1.68800745703926], [0, 0, 0, 1]], [[-0.567502843343406, -0.362138228540449, 0.739456845412046, 1.28550871010452], [0.823371436714408, -0.249601170524128, 0.509665314570097, 0.971140942202795], [0, 0.898084160367263, 0.439823647496845, 0.551294567938653], [0, 0, 0, 1]]]"
+        
+        
+
+        let custom = AVal.init None
+        let camera =
+            custom |> AVal.bind (fun (custom : Option<CameraView>) -> 
+                printfn "%A" (locAndCenter |> AVal.force)
+                printfn "%A" (initial.Location)
+                match custom with 
+                | None -> 
+                    locAndCenter |> AVal.bind (fun (loc, center) ->
+                        CameraView.lookAt loc center V3d.OOI
+                        |> DefaultCameraController.controlWithSpeed speed win.Mouse win.Keyboard win.Time
+                    )
+                | Some cv -> 
+                    locAndCenter |> AVal.map (fun (_,center) -> 
+                        cv.WithLocation (cv.Location + center)
+                    )
+                    //AVal.constant cv
+            )
+        //let bb = Box3d.FromCenterAndSize(V3d.Zero, V3d.III * 300.0)
+        
         win.Keyboard.DownWithRepeats.Values.Add(function
             | Keys.PageUp | Keys.Up -> transact(fun () -> speed.Value <- speed.Value * 1.5)
             | Keys.PageDown | Keys.Down -> transact(fun () -> speed.Value <- speed.Value / 1.5)
+            | Keys.D5 -> transact(fun () -> custom.Value <- Some initial)
+            | Keys.D6 -> transact(fun () -> custom.Value <- Some target)
+            | Keys.D7 -> transact(fun () -> custom.Value <- None)
             | _ -> ()
         )
-
-        let camera =
-            locAndCenter |> AVal.bind (fun (loc, center) ->
-                CameraView.lookAt loc center V3d.OOI
-                |> DefaultCameraController.controlWithSpeed speed win.Mouse win.Keyboard win.Time
-            )
-        //let bb = Box3d.FromCenterAndSize(V3d.Zero, V3d.III * 300.0)
 
         let frustum =
             AVal.custom (fun t ->
