@@ -480,9 +480,30 @@ namespace Aardvark.Geometry.Points
                 if (lodQs != null)
                 {
                     upsertData = upsertData
-                        .Add(PartIndexUtils.GetDurableDefForPartIndices(lodQs), lodQs)
+                        //.Add(PartIndexUtils.GetDurableDefForPartIndices(lodQs), lodQs)
                         .Add(Durable.Octree.PartIndexRange, lodQsRange ?? throw new Exception($"Expected part index range to be not null. Error d355eb9f-02b3-4cd7-b1de-041d4d0e7c3c."))
                         ;
+
+                    if (lodQs is Array xs)
+                    {
+                        // add attribute by ref to separate blob
+                        var key = Guid.NewGuid();
+                        store?.Add(key, xs);
+                        var def = xs switch
+                        {
+                            byte[] => Durable.Octree.PerPointPartIndex1bReference,
+                            short[] => Durable.Octree.PerPointPartIndex1sReference,
+                            int[] => Durable.Octree.PerPointPartIndex1iReference,
+                            _ => throw new Exception("Invariant 5a25f407-5ccf-4577-a7eb-c0d691093d10.")
+                        };
+                        upsertData = upsertData.Add(def, key);
+                    }
+                    else
+                    {
+                        upsertData = upsertData
+                            .Add(PartIndexUtils.GetDurableDefForPartIndices(lodQs), lodQs)
+                            ;
+                    }
                 }
                 
                 // ... classifications ...

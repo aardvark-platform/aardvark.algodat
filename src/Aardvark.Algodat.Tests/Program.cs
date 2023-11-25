@@ -2766,7 +2766,7 @@ namespace Aardvark.Geometry.Tests
             await CreateStore(
                 @"W:\Datasets\Vgm\Data\structured_pointclouds\lowergetikum 20230321.e57",
                 @"W:\Datasets\Vgm\Stores\lowergetikum 20230321.e57_0.01",
-                minDist: 0.01
+                minDist: 0.0
                 );
 
             //await Parts_Test_20231006_Merge();
