@@ -20,6 +20,7 @@ using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.Json.Serialization;
@@ -60,7 +61,9 @@ namespace Aardvark.Geometry.Points
             (Durable.Octree.AveragePointDistance, float.NaN),
             (Durable.Octree.AveragePointDistanceStdDev, float.NaN),
             (Durable.Octree.MinTreeDepth, 0),
-            (Durable.Octree.MaxTreeDepth, 0)
+            (Durable.Octree.MaxTreeDepth, 0),
+            (Durable.Octree.PartIndexRange, Range1i.Invalid),
+            (Durable.Octree.PerPointPartIndex1b, Array.Empty<byte>())
             );
 
         #region Construction
@@ -98,6 +101,8 @@ namespace Aardvark.Geometry.Points
 
             Storage = storage;
             Data = data;
+
+            if (!IsTemporaryImportNode && !PartIndexUtils.HasValidPartIndexData(data)) Debugger.Break(); // TODO "PARTINDICES" remove
 
             //Report.Line($"{this.Id} {this.Cell}");
             //if (Id == Guid.Empty) Debugger.Break();

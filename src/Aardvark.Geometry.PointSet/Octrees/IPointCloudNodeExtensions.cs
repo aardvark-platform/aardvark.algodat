@@ -872,7 +872,7 @@ namespace Aardvark.Geometry.Points
                 "Missing MinTreeDepth. Invariant 2df9fb7b-684a-4103-8f14-07785607d2f4."
                 );
 
-            if (self.HasPartIndexRange && !self.HasPartIndices) throw new InvalidOperationException(
+            if (!self.IsTemporaryImportNode && self.HasPartIndexRange && !self.HasPartIndices) throw new InvalidOperationException(
                     "Missing part indices. Invariant fc4ff983-151f-4956-b882-54d649245049."
                     );
 

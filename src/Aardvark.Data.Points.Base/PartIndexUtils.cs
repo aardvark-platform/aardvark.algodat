@@ -30,6 +30,40 @@ namespace Aardvark.Data.Points;
 public static class PartIndexUtils
 {
     /// <summary>
+    /// Extract part index range (or null) from durable map.
+    /// </summary>
+    public static Range1i? GetRange(IReadOnlyDictionary<Durable.Def, object>? data)
+    {
+        if (data == null) return null;
+        data.TryGetValue(Durable.Octree.PartIndexRange, out var o);
+        return (Range1i?)o;
+    }
+
+    public static bool HasValidPartIndexData(IReadOnlyDictionary<Durable.Def, object> data)
+    {
+        if (!data.ContainsKey(Durable.Octree.PartIndexRange)) return false;
+
+        var i =
+            (data.ContainsKey(Durable.Octree.PerCellPartIndex1i) ? 1 : 0) +
+            (data.ContainsKey(Durable.Octree.PerCellPartIndex1ui) ? 1 : 0) +
+            (data.ContainsKey(Durable.Octree.PerPointPartIndex1b) ? 1 : 0) +
+            (data.ContainsKey(Durable.Octree.PerPointPartIndex1bReference) ? 1 : 0) +
+            (data.ContainsKey(Durable.Octree.PerPointPartIndex1s) ? 1 : 0) +
+            (data.ContainsKey(Durable.Octree.PerPointPartIndex1sReference) ? 1 : 0) +
+            (data.ContainsKey(Durable.Octree.PerPointPartIndex1i) ? 1 : 0) +
+            (data.ContainsKey(Durable.Octree.PerPointPartIndex1iReference) ? 1 : 0) +
+            (data.ContainsKey(Durable.Octree.PerPointPartIndex1bGz) ? 1 : 0) +
+            (data.ContainsKey(Durable.Octree.PerPointPartIndex1bLz4) ? 1 : 0) +
+            (data.ContainsKey(Durable.Octree.PerPointPartIndex1sGz) ? 1 : 0) +
+            (data.ContainsKey(Durable.Octree.PerPointPartIndex1sLz4) ? 1 : 0) +
+            (data.ContainsKey(Durable.Octree.PerPointPartIndex1iGz) ? 1 : 0) +
+            (data.ContainsKey(Durable.Octree.PerPointPartIndex1iLz4) ? 1 : 0)
+            ;
+
+        return i == 1; // exactly one of the above must exist
+    }
+
+    /// <summary>
     /// Compacts part indices.
     /// If per-point indices are all identical, then return per-cell index.
     /// If max per-point index fits in a smaller type (e.g. byte), then convert to array of smaller type.

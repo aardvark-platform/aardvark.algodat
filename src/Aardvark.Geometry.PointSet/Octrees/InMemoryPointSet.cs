@@ -17,8 +17,10 @@ using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using static Aardvark.Base.MultimethodTest;
 using static Aardvark.Data.Durable;
 
 namespace Aardvark.Geometry.Points
@@ -29,6 +31,7 @@ namespace Aardvark.Geometry.Points
         private readonly int m_splitLimit;
         private readonly Node m_root;
         private readonly IList<V3d> m_ps;
+        private readonly bool m_hasPartIndices = false;
 
         public static InMemoryPointSet Build(GenericChunk chunk, int octreeSplitLimit)
             => new(chunk.Data, new Cell(chunk.BoundingBox), octreeSplitLimit);
@@ -83,10 +86,8 @@ namespace Aardvark.Geometry.Points
             
             foreach (var kv in data)
             {
-                if (kv.Key == Octree.PerCellPartIndex1i ||
-                    kv.Key == Octree.PerCellPartIndex1ui ||
-                    kv.Key == Octree.PartIndexRange
-                    ) continue;
+                if (kv.Key == Octree.PerCellPartIndex1i || kv.Key == Octree.PerCellPartIndex1ui) continue;
+                if (kv.Key == Octree.PartIndexRange) { m_hasPartIndices = true; break; }
                 if (kv.Value is not Array) throw new ArgumentException($"Entry {kv.Key} must be array.");
             }
 
@@ -263,6 +264,10 @@ namespace Aardvark.Geometry.Points
                         $"Invariant 42656f92-f5ac-43ca-a1b7-c7ec95fe9cb3."
                         );
 
+                    
+                    if (!PartIndexUtils.HasValidPartIndexData(resultData)) Debugger.Break(); // TODO "PARTINDICES" remove
+
+                    // create and store result
                     var result = new PointSetNode(resultData, storage, writeToStore: true);
                     if (storage.GetPointCloudNode(result.Id) == null) throw new InvalidOperationException("Invariant 9e863bc5-e9f4-4d39-bd53-3d81e12af6b1.");
                     return result;
@@ -285,6 +290,8 @@ namespace Aardvark.Geometry.Points
                         .Add(Octree.SubnodesGuids, subcellIds.Map(x => x ?? Guid.Empty))
                         ;
 
+#if DEBUG
+                    // check if subnodes exist in store
                     for (var i = 0; i < 8; i++)
                     {
                         var x = subcellIds![i];
@@ -294,76 +301,25 @@ namespace Aardvark.Geometry.Points
                             if (storage.GetPointCloudNode(id) == null) throw new InvalidOperationException("Invariant 01830b8b-3c0e-4a8b-a1bd-bfd1b1be1844.");
                         }
                     }
+#endif
 
+                    // collect part-index-ranges from subnodes
+                    {
+                        var subRanges = subcells.Select(x => PartIndexUtils.GetRange(x?.Properties));
+                        var partIndexRange = PartIndexUtils.MergeRanges(subRanges);
+                        if (partIndexRange.HasValue)
+                        {
+                            resultData = resultData.Add(Octree.PartIndexRange, partIndexRange.Value);
+                        }
+                    }
+
+                    if (!resultData.ContainsKey(Octree.PartIndexRange)) Debugger.Break(); // TODO "PARTINDICES" remove
+
+                    // create and store result
                     var result = new PointSetNode(resultData, storage, writeToStore: true);
                     if (storage.GetPointCloudNode(result.Id) == null) throw new InvalidOperationException("Invariant 7b09eccb-b6a0-4b99-be7a-eeff53b6a98b.");
                     return result;
                 }
-
-                // stuff
-                //var attributes = ImmutableDictionary<Def, object>.Empty;
-
-                /*
-                 * EXPLAINER:
-                 * 
-                 * If  _ia  exists, then this means that a subset of all per-point attribute arrays (positions, colors, ...) has to be taken (according to the indices stored in _ia)
-                 * otherwise these arrays can be used as they are
-                 * 
-                 */
-
-                
-
-                //if (_ia != null)
-                //{
-                //    var count = _ia.Count;
-
-                //    // create all other attributes ...
-                //    foreach (var kv in _octree.m_data)
-                //    {
-                //        if (kv.Key == Octree.PositionsGlobal3d ||
-                //            kv.Key == Octree.PerCellPartIndex1i ||
-                //            kv.Key == Octree.PerCellPartIndex1ui ||
-                //            kv.Key == Octree.PerPointPartIndex1b ||
-                //            kv.Key == Octree.PerPointPartIndex1s ||
-                //            kv.Key == Octree.PerPointPartIndex1i ||
-                //            kv.Key == Octree.PartIndexRange
-                //            )
-                //            continue;
-                //        var subset = kv.Value.Subset(_ia);
-                //        attributes = attributes.Add(kv.Key, subset);
-                //    }
-                //}
-                //else
-                //{
-
-                //}
-
-
-                //// part indices ...
-                //{
-                //    void copy(Def def)
-                //    {
-                //        if (_octree.m_data.TryGetValue(def, out var o))
-                //        {
-                //            data = data.Add(def, o);
-                //        }
-                //    }
-
-                //    copy(Octree.PerCellPartIndex1i);
-                //    copy(Octree.PerCellPartIndex1ui);
-                //    copy(Octree.PartIndexRange);
-
-                //    //if (
-                //    //    _octree.m_data.TryGetValue(Octree.PerPointPartIndex1b, out object? qs) ||
-                //    //    _octree.m_data.TryGetValue(Octree.PerPointPartIndex1s, out qs) ||
-                //    //    _octree.m_data.TryGetValue(Octree.PerPointPartIndex1i, out qs)
-                //    //    )
-                //    //{
-                //    //    qs = _ia != null ? PartIndexUtils.Subset(qs, _ia) : qs;
-                //    //    if (qs != null) data = data.Add(PartIndexUtils.GetDurableDefForPartIndices(qs), qs);
-                //    //}
-                //}
-
             }
             
             public Node Insert(int index)
