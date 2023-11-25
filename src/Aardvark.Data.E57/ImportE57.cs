@@ -195,7 +195,7 @@ namespace Aardvark.Data.Points.Import
                 var yieldedRecordCount = 0L;
 
                 var partIndex = config.PartIndexOffset;
-                foreach (var data3d in header.E57Root.Data3D)
+                foreach (var data3d in header.E57Root.Data3D.Take(2))
                 {
                     foreach (var (Positions, Properties) in data3d.StreamPointsFull(config.MaxChunkPointCount, config.Verbose, exclude))
                     {

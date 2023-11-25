@@ -25,6 +25,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json.Nodes;
 using Uncodium.SimpleStore;
+using static Aardvark.Base.IL.Constant;
 
 namespace Aardvark.Geometry.Points
 {
@@ -77,6 +78,18 @@ namespace Aardvark.Geometry.Points
         /// <summary>byte[] -> int[]</summary>
         public static int[] BufferToIntArray(byte[] buffer)
             => BufferToArray(buffer, sizeof(int), br => br.ReadInt32());
+
+        #endregion
+
+        #region int16[]
+
+        /// <summary>int16[] -> byte[]</summary>
+        public static byte[] Int16ArrayToBuffer(short[] data)
+            => ArrayToBuffer(data, sizeof(short), (bw, x) => bw.Write(x));
+
+        /// <summary>byte[] -> int16[]</summary>
+        public static short[] BufferToInt16Array(byte[] buffer)
+            => BufferToArray(buffer, sizeof(short), br => br.ReadInt16());
 
         #endregion
 
@@ -292,14 +305,15 @@ namespace Aardvark.Geometry.Points
         {
             switch (data)
             {
-                case null: throw new ArgumentNullException(nameof(data));
-                case byte[] xs: storage.f_add(key, xs, () => xs); break;
-                case int[]  xs: storage.f_add(key, xs, () => Codec.IntArrayToBuffer(xs)); break;
-                case V2f[]  xs: storage.f_add(key, xs, () => Codec.V2fArrayToBuffer(xs)); break;
-                case V2d[]  xs: storage.f_add(key, xs, () => Codec.V2dArrayToBuffer(xs)); break;
-                case V3f[]  xs: storage.f_add(key, xs, () => Codec.V3fArrayToBuffer(xs)); break;
-                case V3d[]  xs: storage.f_add(key, xs, () => Codec.V3dArrayToBuffer(xs)); break;
-                case C4b[]  xs: storage.f_add(key, xs, () => Codec.C4bArrayToBuffer(xs)); break;
+                case null      : throw new ArgumentNullException(nameof(data));
+                case byte[]  xs: storage.f_add(key, xs, () => xs); break;
+                case int[]   xs: storage.f_add(key, xs, () => Codec.IntArrayToBuffer(xs)); break;
+                case short[] xs: storage.f_add(key, xs, () => Codec.Int16ArrayToBuffer(xs)); break;
+                case V2f[]   xs: storage.f_add(key, xs, () => Codec.V2fArrayToBuffer(xs)); break;
+                case V2d[]   xs: storage.f_add(key, xs, () => Codec.V2dArrayToBuffer(xs)); break;
+                case V3f[]   xs: storage.f_add(key, xs, () => Codec.V3fArrayToBuffer(xs)); break;
+                case V3d[]   xs: storage.f_add(key, xs, () => Codec.V3dArrayToBuffer(xs)); break;
+                case C4b[]   xs: storage.f_add(key, xs, () => Codec.C4bArrayToBuffer(xs)); break;
                 default: throw new Exception($"Type {data.GetType()} not supported.");
             }
         }
@@ -445,6 +459,10 @@ namespace Aardvark.Geometry.Points
             => storage.f_add(key, data, () => Codec.IntArrayToBuffer(data));
 
         /// <summary></summary>
+        public static int[]? GetIntArray(this Storage storage, Guid key)
+            => GetIntArray(storage, key.ToString());
+
+        /// <summary></summary>
         public static int[]? GetIntArray(this Storage storage, string key)
         {
             if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (int[])o;
@@ -473,6 +491,51 @@ namespace Aardvark.Geometry.Points
         }
 
         public static bool TryGetIntArrayFromCache(this Storage storage, string key, [NotNullWhen(true)] out int[]? result) => TryGetFromCache(storage, key, out result);
+
+        #endregion
+
+        #region int16[]
+
+        /// <summary></summary>
+        public static void Add(this Storage storage, Guid key, short[] data) => Add(storage, key.ToString(), data);
+
+        /// <summary></summary>
+        public static void Add(this Storage storage, string key, short[] data)
+            => storage.f_add(key, data, () => Codec.Int16ArrayToBuffer(data));
+
+        /// <summary></summary>
+        public static short[]? GetInt16Array(this Storage storage, Guid key)
+            => GetInt16Array(storage, key.ToString());
+
+        /// <summary></summary>
+        public static short[]? GetInt16Array(this Storage storage, string key)
+        {
+            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (short[])o;
+
+            var buffer = storage.f_get(key);
+            if (buffer == null) return null;
+            var data = Codec.BufferToInt16Array(buffer);
+
+            if (storage.HasCache)
+                storage.Cache.Add(key, data, buffer.Length, onRemove: default);
+
+            return data;
+        }
+
+        /// <summary></summary>
+        public static (bool, short[]?) TryGetInt16Array(this Storage storage, string key)
+        {
+            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
+            {
+                return (true, (short[])o);
+            }
+            else
+            {
+                return (false, default);
+            }
+        }
+
+        public static bool TryGetInt16ArrayFromCache(this Storage storage, string key, [NotNullWhen(true)] out short[]? result) => TryGetFromCache(storage, key, out result);
 
         #endregion
 

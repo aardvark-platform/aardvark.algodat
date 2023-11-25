@@ -378,11 +378,27 @@ namespace Aardvark.Geometry.Points
                 if (qs != null) 
                 {
                     if (qsRange == null) throw new Exception("Invariant 7c01f554-d833-42cc-ab1d-9dbaa61bef45.");
-                    var def = PartIndexUtils.GetDurableDefForPartIndices(qs);
-                    data = data
-                        .Add(def, qs)
-                        .Add(Durable.Octree.PartIndexRange, qsRange)
-                        ;
+                    data = data.Add(Durable.Octree.PartIndexRange, qsRange);
+
+                    if (qs is Array qsArray)
+                    {
+                        // store separately and reference by id ...
+                        var id = Guid.NewGuid();
+                        storage.Add(id, qsArray);
+                        data = qs switch
+                        {
+                            byte[]  => data.Add(Durable.Octree.PerPointPartIndex1bReference, id),
+                            short[] => data.Add(Durable.Octree.PerPointPartIndex1sReference, id),
+                            int[]   => data.Add(Durable.Octree.PerPointPartIndex1iReference, id),
+                            _       => throw new Exception($"Unexpected type {qs.GetType()}. Invariant cc05e74c-8cac-4d32-9972-0ea53e6e0911."),
+                        };
+                    }
+                    else
+                    {
+                        var def = PartIndexUtils.GetDurableDefForPartIndices(qs);
+                        data = data.Add(def, qs);
+                    }
+                    
                 }
 
                 var result = new PointSetNode(data, config.Storage, writeToStore: true);

@@ -34,16 +34,22 @@ namespace Aardvark.Geometry.Tests
 {
     public class Program
     {
-        internal static Task CreateStore(string filename, string storeDir, double minDist)
+        #region CreateStore
+
+        internal static Task<string> CreateStore(string filename, string storeDir, double minDist)
             => CreateStore(filename, new DirectoryInfo(storeDir), minDist);
 
-        internal static Task CreateStore(string filename, DirectoryInfo storeDir, double minDist)
+        internal static Task<string> CreateStore(IEnumerable<Chunk> chunks, string storeDir, double minDist, int? splitLimit = null)
+            => CreateStore(chunks, new DirectoryInfo(storeDir), minDist, splitLimit);
+
+        internal static Task<string> CreateStore(string filename, DirectoryInfo storeDir, double minDist)
         {
             if (!storeDir.Exists) storeDir.Create();
 
             var key = Path.GetFileName(filename);
 
             using var store = new SimpleDiskStore(Path.Combine(storeDir.FullName, "data.uds")).ToPointCloudStore();
+
             var config = ImportConfig.Default
                 .WithStorage(store)
                 .WithKey(key)
@@ -53,6 +59,7 @@ namespace Aardvark.Geometry.Tests
                 .WithNormalizePointDensityGlobal(true)
                 //.WithMaxChunkPointCount(32 * 1024 * 1024)
                 //.WithOctreeSplitLimit(8192*4)
+                //.WithEnabledPartIndices(false)
                 ;
 
             Report.BeginTimed($"importing {filename}");
@@ -61,8 +68,41 @@ namespace Aardvark.Geometry.Tests
 
             File.WriteAllText(Path.Combine(storeDir.FullName, "key.txt"), key);
 
-            return Task.CompletedTask;
+            return Task.FromResult(key);
         }
+
+        internal static Task<string> CreateStore(IEnumerable<Chunk> chunks, DirectoryInfo storeDir, double minDist, int? splitLimit = null)
+        {
+            if (!storeDir.Exists) storeDir.Create();
+
+            var filename = storeDir.FullName;
+            var key = Path.GetFileName(filename);
+
+            using var store = new SimpleDiskStore(Path.Combine(storeDir.FullName, "data.uds")).ToPointCloudStore();
+
+            var config = ImportConfig.Default
+                .WithStorage(store)
+                .WithKey(key)
+                .WithVerbose(true)
+                .WithMaxDegreeOfParallelism(0)
+                .WithMinDist(minDist)
+                .WithNormalizePointDensityGlobal(true)
+                //.WithMaxChunkPointCount(32 * 1024 * 1024)
+                //.WithEnabledPartIndices(false)
+                ;
+
+            if (splitLimit.HasValue) config = config.WithOctreeSplitLimit(splitLimit.Value);
+
+            Report.BeginTimed($"importing {filename}");
+            var pcl = PointCloud.Import(chunks, config);
+            Report.EndTimed();
+
+            File.WriteAllText(Path.Combine(storeDir.FullName, "key.txt"), key);
+
+            return Task.FromResult(key);
+        }
+
+        #endregion
 
         internal static void PerfTestJuly2019()
         {
@@ -2689,22 +2729,51 @@ namespace Aardvark.Geometry.Tests
 
             return Task.CompletedTask;
         }
+        static async Task Parts_Test_20231006_Merge()
+        {
+            V3d[] randomPoints(int n, Box3d bb)
+            {
+                var size = bb.Size;
+                var ps = new V3d[n];
+                for (var i = 0; i < n; i++)
+                {
+                    ps[i] = bb.Min + new V3d(Random.Shared.NextDouble(), Random.Shared.NextDouble(), Random.Shared.NextDouble()) * size;
+                }
+
+                return ps;
+            }
+
+            var c0 = new Chunk(positions: randomPoints(10, Box3d.Unit          ), null, null, null, null, partIndices: 0, null, null);
+            var c1 = new Chunk(positions: randomPoints(10, Box3d.Unit + V3d.IOO), null, null, null, null, partIndices: 1, null, null);
+
+            var storeDir = @"W:\Datasets\Vgm\Stores\test_partindex";
+            var key = await CreateStore(
+                new [] { c0, c1 },
+                storeDir,
+                minDist: 0.01,
+                splitLimit: 10
+                );
+
+            using var store = new SimpleDiskStore(Path.Combine(storeDir, "data.uds")).ToPointCloudStore();
+            var ps = store.GetPointSet(key);
+            var root = ps.Root.Value;
+        }
 
         public static async Task Main(string[] _)
         {
-            await Task.Delay(0); // avoid warnings if main contains no await
+            //await Task.Delay(0); // avoid warnings if main contains no await
 
+            await CreateStore(
+                @"W:\Datasets\Vgm\Data\structured_pointclouds\lowergetikum 20230321.e57",
+                @"W:\Datasets\Vgm\Stores\lowergetikum 20230321.e57_0.01",
+                minDist: 0.01
+                );
 
+            //await Parts_Test_20231006_Merge();
 
             //await Parts_Test_20231006();
 
-            Test_Import_Regression();
-
-            //await CreateStore(
-            //    @"T:\Kindergarten.pts",
-            //    @"W:\Aardworx\pointshare2\testdata\2023-08-01_kindergarten.store",
-            //    minDist: 0.0
-            //    );
+            //Test_Import_Regression();
 
             //await Ranges_Test_20230802();
 

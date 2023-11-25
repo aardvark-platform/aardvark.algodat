@@ -25,18 +25,6 @@ namespace Aardvark.Geometry.Points
 {
     public class InMemoryPointSet
     {
-        /// <summary>
-        /// The following attribute arrays will be stored stand-alone and referenced via id.
-        /// </summary>
-        public static Dictionary<Def, Def> StoreAsReference { get; } = new Dictionary<Def, Def>()
-            {
-                { Octree.PositionsLocal3f,  Octree.PositionsLocal3fReference    },
-                { Octree.Colors4b,          Octree.Colors4bReference            },
-                { Octree.Normals3f,         Octree.Normals3fReference           },
-                { Octree.Intensities1i,     Octree.Intensities1iReference       },
-                { Octree.Classifications1b, Octree.Classifications1bReference   }
-            };
-
         private readonly ImmutableDictionary<Def, object> m_data;
         private readonly int m_splitLimit;
         private readonly Node m_root;
@@ -166,145 +154,137 @@ namespace Aardvark.Geometry.Points
                 _centerX = c.X; _centerY = c.Y; _centerZ = c.Z;
             }
 
+
+            /// <summary>
+            /// The following arrays will be stored as separate entries in the store and referenced via id.
+            /// </summary>
+            private static readonly Dictionary<Def, Def> StoreAsReference = new()
+            {
+                { Octree.PositionsLocal3f   , Octree.PositionsLocal3fReference    },
+                { Octree.Colors4b           , Octree.Colors4bReference            },
+                { Octree.Normals3f          , Octree.Normals3fReference           },
+                { Octree.Intensities1i      , Octree.Intensities1iReference       },
+                { Octree.Classifications1b  , Octree.Classifications1bReference   },
+                { Octree.PerPointPartIndex1b, Octree.PerPointPartIndex1bReference },
+                { Octree.PerPointPartIndex1s, Octree.PerPointPartIndex1sReference },
+                { Octree.PerPointPartIndex1i, Octree.PerPointPartIndex1iReference },
+            };
+
+
             internal PointSetNode ToPointSetNode(Storage storage, bool isTemporaryImportNode)
             {
-                var center = new V3d(_centerX, _centerY, _centerZ);
-                V3f[]? localPositions = null;
-
-                var attributes = ImmutableDictionary<Def, object>.Empty;
-
-                if (_ia != null)
-                {
-                    var count = _ia.Count;
-
-                    // compute positions attribute (relative to center)
-                    var allPs = _octree.m_ps;
-                    localPositions = new V3f[count];
-                    for (var i = 0; i < count; i++) localPositions[i] = (V3f)(allPs[_ia[i]] - center); // relative to center
-                    attributes = attributes.Add(Octree.PositionsLocal3f, localPositions);
-
-                    // create all other attributes ...
-                    foreach (var kv in _octree.m_data)
-                    {
-                        if (kv.Key == Octree.PositionsGlobal3d ||
-                            kv.Key == Octree.PerCellPartIndex1i ||
-                            kv.Key == Octree.PerCellPartIndex1ui ||
-                            kv.Key == Octree.PerPointPartIndex1b ||
-                            kv.Key == Octree.PerPointPartIndex1s ||
-                            kv.Key == Octree.PerPointPartIndex1i ||
-                            kv.Key == Octree.PartIndexRange
-                            )
-                            continue;
-                        var subset = kv.Value.Subset(_ia);
-                        attributes = attributes.Add(kv.Key, subset);
-                    }
-                }
-
-                // subcells ...
-                var subcells = _subnodes?.Map(x => x?.ToPointSetNode(storage, isTemporaryImportNode));
-                var subcellIds = subcells?.Map(x => x?.Id);
-                var isLeaf = _subnodes == null;
-
-#if DEBUG
-                if (_subnodes != null)
-                {
-                    if (localPositions != null)
-                        throw new InvalidOperationException("Invariant d98ea55b-760c-4564-8076-ce9cf7d293a0.");
-
-                    for (var i = 0; i < 8; i++)
-                    {
-                        var sn = _subnodes[i]; if (sn == null) continue;
-                        if (sn._cell.Exponent != this._cell.Exponent - 1)
-                        {
-                            throw new InvalidOperationException("Invariant 2c33afb4-683b-4f71-9e1f-36ec4a79fba1.");
-                        }
-                    }
-                }
-#endif
-                var pointCountTreeLeafs = subcells != null
-                    ? subcells.Sum(n => n != null ? n.PointCountTree : 0)
-                    : localPositions!.Length
-                    ;
-
-                var data = ImmutableDictionary<Def, object>.Empty
+                // final result data (which we will use to create a PointSetNode)
+                var resultData = ImmutableDictionary<Def, object>.Empty
                     .Add(Octree.NodeId, Guid.NewGuid())
                     .Add(Octree.Cell, _cell)
-                    .Add(Octree.PointCountTreeLeafs, pointCountTreeLeafs)
                     ;
 
-                if (isTemporaryImportNode)
-                {
-                    data = data.Add(PointSetNode.TemporaryImportNode, 0);
-                }
+                if (isTemporaryImportNode) resultData = resultData.Add(PointSetNode.TemporaryImportNode, 0);
 
-                if (attributes.TryGetValue(Octree.PositionsLocal3f, out var psObj))
-                {
-                    var ps = (V3f[])psObj;
-                    var bbExactLocal = new Box3f(ps);
+                // keep track whether we really convert all existing data entries to a PointSetNode
+                // (so we can fail if something is left over at the end, something we did not expect or handle correctly)
+                var notHandled = new HashSet<Def>(_octree.m_data.Keys);
 
-                    data = data
-                        .Add(Octree.PointCountCell, ps.Length)
+                var center = new V3d(_centerX, _centerY, _centerZ);
+
+                if (_subnodes == null)
+                {
+                    // leaf node ...
+
+                    #region positions
+
+                    // transform global float64 positions to local float32 positions (relative to cell center) to save space
+                    var psGlobal = _octree.m_ps;
+                    V3f[] psLocal;
+                    if (_ia != null)
+                    {
+                        psLocal = new V3f[_ia.Count];
+                        for (var i = 0; i < _ia.Count; i++) psLocal[i] = (V3f)(psGlobal[_ia[i]] - center); // relative to center
+                    }
+                    else
+                    {
+                        psLocal = new V3f[psGlobal.Count];
+                        for (var i = 0; i < psGlobal.Count; i++) psLocal[i] = (V3f)(psGlobal[i] - center); // relative to center
+                    }
+
+                    var bbExactLocal = new Box3f(psLocal);
+
+                    resultData = resultData
+                        .Add(Octree.PositionsLocal3f, psLocal)
+                        .Add(Octree.PointCountCell, psLocal.Length)
+                        .Add(Octree.PointCountTreeLeafs, (long)psLocal.Length)
                         .Add(Octree.BoundingBoxExactLocal, bbExactLocal)
                         .Add(Octree.BoundingBoxExactGlobal, (Box3d)bbExactLocal + center)
                         ;
-                }
-                else
-                {
-                    data = data
-                        .Add(Octree.PointCountCell, 0)
-                        ;
-                }
 
-                // part indices ...
-                {
+                    #endregion
+
+                    #region per-point attribute arrays
+
+                    var handledPerPointAttributeArrays = new List<Def>();
+                    foreach (var k in notHandled)
+                    {
+                        if (StoreAsReference.TryGetValue(k, out var refdef))
+                        {
+                            var xs = (Array)_octree.m_data[k];
+                            if (_ia != null) xs = xs.Subset(_ia);
+
+                            // store separately and reference by id ...
+                            var id = Guid.NewGuid();
+                            storage.Add(id, xs);
+                            resultData = resultData.Add(refdef, id);
+
+                            handledPerPointAttributeArrays.Add(k);
+                        }
+                    }
+                    foreach (var k in handledPerPointAttributeArrays) notHandled.Remove(k);
+
+                    #endregion
+
+                    #region other well-known entries
+
                     void copy(Def def)
                     {
                         if (_octree.m_data.TryGetValue(def, out var o))
                         {
-                            data = data.Add(def, o);
+                            resultData = resultData.Add(def, o);
+                            notHandled.Remove(def);
                         }
                     }
 
+                    copy(Octree.PartIndexRange);
                     copy(Octree.PerCellPartIndex1i);
                     copy(Octree.PerCellPartIndex1ui);
-                    copy(Octree.PartIndexRange);
 
-                    if (
-                        _octree.m_data.TryGetValue(Octree.PerPointPartIndex1b, out object? qs) ||
-                        _octree.m_data.TryGetValue(Octree.PerPointPartIndex1s, out qs) ||
-                        _octree.m_data.TryGetValue(Octree.PerPointPartIndex1i, out qs)
-                        )
-                    {
-                        qs = _ia != null ? PartIndexUtils.Subset(qs, _ia) : qs;
-                        if (qs != null) data = data.Add(PartIndexUtils.GetDurableDefForPartIndices(qs), qs);
-                    }
-                }
+                    #endregion
 
-                // save attribute arrays to store ...
-                foreach (var kv in attributes)
-                {
-                    if (StoreAsReference.TryGetValue(kv.Key, out var refdef))
-                    {
-                        // store separately and reference by id ...
-                        var id = Guid.NewGuid();
-                        storage.Add(id, (Array)kv.Value);
-                        data = data.Add(refdef, id);
-                    }
-                    else
-                    {
-                        // store inline (inside node) ...
-                        data = data.Add(kv.Key, kv.Value);
-                    }
-                }
+                    if (notHandled.Count > 0) throw new Exception(
+                        $"Unhandled entries {string.Join(", ", notHandled.Select(x => x.ToString()))}. " +
+                        $"Invariant 42656f92-f5ac-43ca-a1b7-c7ec95fe9cb3."
+                        );
 
-                if (isLeaf) // leaf
-                {
-                    var result = new PointSetNode(data, storage, writeToStore: true);
-                    if (storage.GetPointCloudNode(result.Id) == null) throw new InvalidOperationException("Invariant d1022027-2dbf-4b11-9b40-4829436f5789.");
+                    var result = new PointSetNode(resultData, storage, writeToStore: true);
+                    if (storage.GetPointCloudNode(result.Id) == null) throw new InvalidOperationException("Invariant 9e863bc5-e9f4-4d39-bd53-3d81e12af6b1.");
                     return result;
                 }
                 else
                 {
+                    // inner node ...
+
+                    var subcells = _subnodes?.Map(x => x?.ToPointSetNode(storage, isTemporaryImportNode));
+                    var subcellIds = subcells?.Map(x => x?.Id);
+
+                    var pointCountTreeLeafs =  subcells.Sum(n => n != null ? n.PointCountTree : 0);
+                    var bbExactGlobal = new Box3d(subcells.Where(x => x != null).Select(x => x!.BoundingBoxExactGlobal));
+                    var bbExactLocal = (Box3f)(bbExactGlobal - center);
+
+                    resultData = resultData
+                        .Add(Octree.PointCountTreeLeafs, pointCountTreeLeafs)
+                        .Add(Octree.BoundingBoxExactLocal, bbExactLocal)
+                        .Add(Octree.BoundingBoxExactGlobal, bbExactGlobal)
+                        .Add(Octree.SubnodesGuids, subcellIds.Map(x => x ?? Guid.Empty))
+                        ;
+
                     for (var i = 0; i < 8; i++)
                     {
                         var x = subcellIds![i];
@@ -314,15 +294,76 @@ namespace Aardvark.Geometry.Points
                             if (storage.GetPointCloudNode(id) == null) throw new InvalidOperationException("Invariant 01830b8b-3c0e-4a8b-a1bd-bfd1b1be1844.");
                         }
                     }
-                    var bbExactGlobal = new Box3d(subcells.Where(x => x != null).Select(x => x!.BoundingBoxExactGlobal));
-                    data = data
-                        .Add(Octree.BoundingBoxExactGlobal, bbExactGlobal)
-                        .Add(Octree.SubnodesGuids, subcellIds.Map(x => x ?? Guid.Empty))
-                        ;
-                    var result = new PointSetNode(data, storage, writeToStore: true);
+
+                    var result = new PointSetNode(resultData, storage, writeToStore: true);
                     if (storage.GetPointCloudNode(result.Id) == null) throw new InvalidOperationException("Invariant 7b09eccb-b6a0-4b99-be7a-eeff53b6a98b.");
                     return result;
                 }
+
+                // stuff
+                //var attributes = ImmutableDictionary<Def, object>.Empty;
+
+                /*
+                 * EXPLAINER:
+                 * 
+                 * If  _ia  exists, then this means that a subset of all per-point attribute arrays (positions, colors, ...) has to be taken (according to the indices stored in _ia)
+                 * otherwise these arrays can be used as they are
+                 * 
+                 */
+
+                
+
+                //if (_ia != null)
+                //{
+                //    var count = _ia.Count;
+
+                //    // create all other attributes ...
+                //    foreach (var kv in _octree.m_data)
+                //    {
+                //        if (kv.Key == Octree.PositionsGlobal3d ||
+                //            kv.Key == Octree.PerCellPartIndex1i ||
+                //            kv.Key == Octree.PerCellPartIndex1ui ||
+                //            kv.Key == Octree.PerPointPartIndex1b ||
+                //            kv.Key == Octree.PerPointPartIndex1s ||
+                //            kv.Key == Octree.PerPointPartIndex1i ||
+                //            kv.Key == Octree.PartIndexRange
+                //            )
+                //            continue;
+                //        var subset = kv.Value.Subset(_ia);
+                //        attributes = attributes.Add(kv.Key, subset);
+                //    }
+                //}
+                //else
+                //{
+
+                //}
+
+
+                //// part indices ...
+                //{
+                //    void copy(Def def)
+                //    {
+                //        if (_octree.m_data.TryGetValue(def, out var o))
+                //        {
+                //            data = data.Add(def, o);
+                //        }
+                //    }
+
+                //    copy(Octree.PerCellPartIndex1i);
+                //    copy(Octree.PerCellPartIndex1ui);
+                //    copy(Octree.PartIndexRange);
+
+                //    //if (
+                //    //    _octree.m_data.TryGetValue(Octree.PerPointPartIndex1b, out object? qs) ||
+                //    //    _octree.m_data.TryGetValue(Octree.PerPointPartIndex1s, out qs) ||
+                //    //    _octree.m_data.TryGetValue(Octree.PerPointPartIndex1i, out qs)
+                //    //    )
+                //    //{
+                //    //    qs = _ia != null ? PartIndexUtils.Subset(qs, _ia) : qs;
+                //    //    if (qs != null) data = data.Add(PartIndexUtils.GetDurableDefForPartIndices(qs), qs);
+                //    //}
+                //}
+
             }
             
             public Node Insert(int index)

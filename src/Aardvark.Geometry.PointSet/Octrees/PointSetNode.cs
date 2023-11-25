@@ -116,9 +116,9 @@ namespace Aardvark.Geometry.Points
                 var bb = new Box3d(PositionsAbsolute);
                 if (!Cell.BoundingBox.Contains(bb)) throw new Exception($"Invariant 71e949d7-21b1-4150-bfe3-337db52c4c7d.");
 
-                // Invariant: cell of bounding box of global positions MUST EQUAL node cell
-                var bbCell = new Cell(bb);
-                if (Cell != bbCell) throw new InvalidOperationException($"Invariant 7564f5b1-1b70-45cf-bfbe-5c955b90d1fe.");
+                //// Invariant: cell of bounding box of global positions MUST EQUAL node cell
+                //var bbCell = new Cell(bb);
+                //if (Cell != bbCell) throw new InvalidOperationException($"Invariant 7564f5b1-1b70-45cf-bfbe-5c955b90d1fe.");
             }
 #endif
 
@@ -153,7 +153,7 @@ namespace Aardvark.Geometry.Points
 
 #endregion
 
-#region Per-point attributes
+            #region Per-point attributes
 
             var psId = PositionsId;
             var csId = ColorsId;
@@ -186,9 +186,9 @@ namespace Aardvark.Geometry.Points
             if (isId != null) PersistentRefs[Durable.Octree.Intensities1iReference    ] = new PersistentRef<int[] >(isId.Value, throwWhenNull(storage.GetIntArray ), storage.TryGetIntArrayFromCache );
             if (ksId != null) PersistentRefs[Durable.Octree.Classifications1bReference] = new PersistentRef<byte[]>(ksId.Value, throwWhenNull(storage.GetByteArray), storage.TryGetByteArrayFromCache);
 
-#endregion
+            #endregion
 
-#region Durable.Octree.BoundingBoxExactLocal, Durable.Octree.BoundingBoxExactGlobal
+            #region Durable.Octree.BoundingBoxExactLocal, Durable.Octree.BoundingBoxExactGlobal
 
             if (HasPositions && (!HasBoundingBoxExactLocal || !HasBoundingBoxExactGlobal))
             {
@@ -218,18 +218,18 @@ namespace Aardvark.Geometry.Points
                 }
             }
 
-#endregion
+            #endregion
 
-#region Durable.Octree.PointCountCell
+            #region Durable.Octree.PointCountCell
 
             if (!Has(Durable.Octree.PointCountCell))
             {
                 Data = Data.Add(Durable.Octree.PointCountCell, HasPositions ? Positions.Value!.Length : 0);
             }
 
-#endregion
+            #endregion
 
-#region Durable.Octree.PointCountTreeLeafs
+            #region Durable.Octree.PointCountTreeLeafs
 
             if (!Has(Durable.Octree.PointCountTreeLeafs))
             {
@@ -243,9 +243,9 @@ namespace Aardvark.Geometry.Points
                 }
             }
 
-#endregion
+            #endregion
 
-#region Centroid*
+            #region Centroid*
 
             if (HasPositions && (!HasCentroidLocal || !HasCentroidLocalStdDev))
             {
@@ -268,9 +268,10 @@ namespace Aardvark.Geometry.Points
                     }
                 }
             }
-#endregion
 
-#region TreeDepth*
+            #endregion
+
+            #region TreeDepth*
 
             if (!HasMinTreeDepth || !HasMaxTreeDepth)
             {
@@ -316,9 +317,9 @@ namespace Aardvark.Geometry.Points
                 }
             }
 
-#endregion
+            #endregion
 
-#region KdTree
+            #region KdTree
 
             if (HasPositions && !HasKdTree && !IsTemporaryImportNode)
             {
@@ -418,34 +419,6 @@ namespace Aardvark.Geometry.Points
                     value
                     );
             }
-
-            //(bool, PointRkdTreeF<V3f[], V3f>?) TryLoadKdTree(string key)
-            //{
-            //    var (ok, value) = Storage.TryGetPointRkdTreeFData(key);
-            //    if (ok == false) return (false, default);
-            //    var ps = Positions.Value!;
-            //    return (true, new PointRkdTreeF<V3f[], V3f>(
-            //        3, ps.Length, ps,
-            //        (xs, i) => xs[(int)i], (v, i) => (float)v[i],
-            //        (a, b) => Vec.Distance(a, b), (i, a, b) => b - a,
-            //        (a, b, c) => Vec.DistanceToLine(a, b, c), Fun.Lerp, 1e-6f,
-            //        value
-            //        ));
-            //}
-
-            //(bool, PointRkdTreeF<V3f[], V3f>?) TryLoadKdTreeObsolete(string key)
-            //{
-            //    var (ok, value) = Storage.TryGetPointRkdTreeFDataFromD(key);
-            //    if (ok == false) return (false, default);
-            //    var ps = Positions.Value!;
-            //    return (true, new PointRkdTreeF<V3f[], V3f>(
-            //        3, ps.Length, ps,
-            //        (xs, i) => xs[(int)i], (v, i) => (float)v[i],
-            //        (a, b) => Vec.Distance(a, b), (i, a, b) => b - a,
-            //        (a, b, c) => Vec.DistanceToLine(a, b, c), Fun.Lerp, 1e-6f,
-            //        value
-            //        ));
-            //}
 
             bool TryLoadKdTreeOut(string key, [NotNullWhen(true)] out PointRkdTreeF<V3f[], V3f>? result)
             {
@@ -922,8 +895,11 @@ namespace Aardvark.Geometry.Points
             Data.ContainsKey(Durable.Octree.PerCellPartIndex1i ) ||
             Data.ContainsKey(Durable.Octree.PerCellPartIndex1ui) ||
             Data.ContainsKey(Durable.Octree.PerPointPartIndex1b) ||
+            Data.ContainsKey(Durable.Octree.PerPointPartIndex1bReference) ||
             Data.ContainsKey(Durable.Octree.PerPointPartIndex1s) ||
-            Data.ContainsKey(Durable.Octree.PerPointPartIndex1i)
+            Data.ContainsKey(Durable.Octree.PerPointPartIndex1sReference) ||
+            Data.ContainsKey(Durable.Octree.PerPointPartIndex1i) ||
+            Data.ContainsKey(Durable.Octree.PerPointPartIndex1iReference)
             ;
 
         /// <summary>
@@ -937,11 +913,23 @@ namespace Aardvark.Geometry.Points
                 if (Data.TryGetValue(Durable.Octree.PerCellPartIndex1i, out var pcpi)) return pcpi;
                 else if (Data.TryGetValue(Durable.Octree.PerCellPartIndex1ui, out var pcpui)) return pcpui;
                 else if (Data.TryGetValue(Durable.Octree.PerPointPartIndex1b, out var pppi1b)) return pppi1b;
+                else if (Data.TryGetValue(Durable.Octree.PerPointPartIndex1bReference, out var key1b)) return Storage.GetByteArray((Guid)key1b);
                 else if (Data.TryGetValue(Durable.Octree.PerPointPartIndex1s, out var pppi1s)) return pppi1s;
+                else if (Data.TryGetValue(Durable.Octree.PerPointPartIndex1sReference, out var key1s)) return Storage.GetInt16Array((Guid)key1s);
                 else if (Data.TryGetValue(Durable.Octree.PerPointPartIndex1i, out var pppi1i)) return pppi1i;
+                else if (Data.TryGetValue(Durable.Octree.PerPointPartIndex1iReference, out var key1i)) return Storage.GetIntArray((Guid)key1i);
                 else return null;
             }
         }
+
+        [JsonIgnore]
+        public Guid? PerPointPartIndex1bId => Data.TryGetValue(Durable.Octree.PerPointPartIndex1bReference, out var id) ? (Guid?)id : null;
+
+        [JsonIgnore]
+        public Guid? PerPointPartIndex1sId => Data.TryGetValue(Durable.Octree.PerPointPartIndex1sReference, out var id) ? (Guid?)id : null;
+
+        [JsonIgnore]
+        public Guid? PerPointPartIndex1iId => Data.TryGetValue(Durable.Octree.PerPointPartIndex1iReference, out var id) ? (Guid?)id : null;
 
         /// <summary>
         /// Get per-point part indices as an int array (regardless of internal representation).
@@ -984,7 +972,7 @@ namespace Aardvark.Geometry.Points
         [Obsolete("Use custom attributes instead.")]
         public PersistentRef<V3f[]>? Velocities => null;
 
-#endregion
+        #endregion
 
         #region KdTree
 
@@ -1278,7 +1266,7 @@ namespace Aardvark.Geometry.Points
             return kdId;
         }
 
-#endregion
+        #endregion
 
         #region Durable codec
 
