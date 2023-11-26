@@ -14,7 +14,7 @@ let main args =
     //view @"C:\Users\sm\Downloads\C_30DN2.LAZ.store" [File.readAllText @"C:\Users\sm\Downloads\C_30DN2.LAZ.key"] (Args.parse [||])
     //view @"C:\Users\sm\Downloads\test.store" ["128330b1-8761-4a07-b160-76bcd7e2f70a"; "ab2f6f76-7eae-47c9-82d1-ad28b816abb9"] (Args.parse [||])
     
-    let store = @"W:\Datasets\Vgm\Stores\lowergetikum 20230321.e57_0.01_2\data.uds"
+    let store = @"W:\Datasets\Vgm\Stores\erdgeschoss.e57_0.0025\data.uds"
     let key = Path.combine [System.IO.Path.GetDirectoryName store;"key.txt"] |> File.readAllText
     view store [key] (Args.parse [||])
 

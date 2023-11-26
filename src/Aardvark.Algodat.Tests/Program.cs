@@ -2763,10 +2763,16 @@ namespace Aardvark.Geometry.Tests
         {
             //await Task.Delay(0); // avoid warnings if main contains no await
 
+            //await CreateStore(
+            //    @"W:\Datasets\Vgm\Data\structured_pointclouds\lowergetikum 20230321.e57",
+            //    @"W:\Datasets\Vgm\Stores\lowergetikum 20230321.e57_0.001",
+            //    minDist: 0.001
+            //    );
+
             await CreateStore(
-                @"W:\Datasets\Vgm\Data\structured_pointclouds\lowergetikum 20230321.e57",
-                @"W:\Datasets\Vgm\Stores\lowergetikum 20230321.e57_0.01",
-                minDist: 0.0
+                @"W:\Datasets\Vgm\Data\E57\erdgeschoss.e57",
+                @"W:\Datasets\Vgm\Stores\erdgeschoss.e57_0.0025",
+                minDist: 0.0025
                 );
 
             //await Parts_Test_20231006_Merge();
