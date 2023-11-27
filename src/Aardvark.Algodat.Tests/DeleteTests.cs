@@ -85,6 +85,25 @@ namespace Aardvark.Geometry.Tests
             if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null);
             return PointCloud.Chunks(chunk, config);
         }
+        public static PointSet CreateRandomPointsWithPartIndices(int n, int splitLimit)
+        {
+            var ps = new List<V3d>();
+            var pis = new List<int>();
+            var rand = new RandomSystem();
+            for (var x = 0; x < n; x++)
+            {
+                ps.Add(rand.UniformV3d());
+                pis.Add(rand.UniformInt(4));
+            }
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("testaa")
+                .WithOctreeSplitLimit(splitLimit)
+                .WithEnabledPartIndices(true)
+                ;
+            var chunk = new Chunk(ps, null, null, null, null, pis.ToArray(), new Range1i(0,4), null);
+            return PointCloud.Chunks(chunk, config);
+        }
 
         [Test]
         public void DeleteCollapsesNodes()
@@ -191,9 +210,30 @@ namespace Aardvark.Geometry.Tests
                 var b = a.Delete(n => q1.Contains(n.BoundingBoxExactGlobal), n => !(q1.Contains(n.BoundingBoxExactGlobal) || q1.Intersects(n.BoundingBoxExactGlobal)), p => q1.Contains(p), a.Storage, CancellationToken.None);
                 b.ValidateTree();
                 Assert.IsTrue(b.Root?.Value.NoPointIn(p => q1.Contains(p)));
-                var c = b.Root?.Value.DeleteWithClassifications(n => false, n => false, (p,k) => k==0, a.Storage, CancellationToken.None,256);
+                var c = b.Root?.Value.Delete(n => false, n => false, (p,att) => att.Classification==0, a.Storage, CancellationToken.None,256);
                 // Did it really delete the classification 0u?
                 c.ForEachNode(false, (node) => node.Classifications?.Value.ForEach((k) => Assert.IsTrue(k != 0)));
+            }
+        }
+        [Test]
+        public void DeleteWithPartIndices()
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                var q1 = new Box3d(new V3d(0.0), new V3d(0.23));
+                var a = CreateRandomPointsWithPartIndices(10000, 256);
+                var b = a.Delete(n => q1.Contains(n.BoundingBoxExactGlobal), n => !(q1.Contains(n.BoundingBoxExactGlobal) || q1.Intersects(n.BoundingBoxExactGlobal)), p => q1.Contains(p), a.Storage, CancellationToken.None);
+                b.ValidateTree();
+                Assert.IsTrue(b.Root?.Value.NoPointIn(p => q1.Contains(p)));
+                var c = b.Root?.Value.Delete(n => false, n => false, (p, att) => att.PartIndex == 1, a.Storage, CancellationToken.None, 256);
+                // Did it really delete the partIndex 1?
+                Action<IPointCloudNode> test =
+                    (node) =>
+                    {
+                        node.TryGetPartIndices(out int[] indices);
+                        indices.ForEach((pi) => Assert.IsFalse(pi == 1));
+                    };
+                c.ForEachNode(false, test);
             }
         }
     }
