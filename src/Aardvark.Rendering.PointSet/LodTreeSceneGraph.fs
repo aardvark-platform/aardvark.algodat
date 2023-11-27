@@ -233,7 +233,13 @@ module private DeferredPointSetShaders =
             let mutable color = v.col
             if not uniform?ShowColors then 
                 color <- mapColors.[(v.partIndex+11)%11]
-            return { v with col = color }
+                let filteredPartIndex : int = uniform?FilterPartIndex
+                if filteredPartIndex < 0 || v.partIndex = filteredPartIndex then 
+                    return { v with col = color }
+                else 
+                    return {v with col = V4d.OOOO; pos = V4d(-999.0,-999.0,-999.0,-999.0); ps=0.0; vp = V4d(-999.0,-999.0,-999.0,-999.0)}
+            else 
+                return v
         }
 
     let lodPointSize (v : PointVertex) =
@@ -761,7 +767,8 @@ type PointSetRenderConfig =
 
 module Sg =
     
-    let pointSets (config : PointSetRenderConfig) (pointClouds : aset<LodTreeInstance>) =
+
+    let pointSetsFilter (config : PointSetRenderConfig) (pointClouds : aset<LodTreeInstance>) (filterPartIndex : aval<int>)=
         let runtime = config.runtime
 
         let largeSize = 
@@ -817,6 +824,7 @@ module Sg =
                 |> Sg.uniform "ShowColors" config.colors
                 |> Sg.uniform "PointSize" config.pointSize
                 |> Sg.uniform "ViewportSize" largeSize
+                |> Sg.uniform "FilterPartIndex" filterPartIndex
                 |> Sg.viewTrafo config.viewTrafo
                 |> Sg.projTrafo largeProj
                 |> Sg.compile runtime signature
@@ -1011,4 +1019,4 @@ module Sg =
 
         finalSg
 
-
+    let pointSets config pointClouds = pointSetsFilter config pointClouds (AVal.constant -1)

@@ -162,6 +162,8 @@ module Rendering =
         let p = (frustum |> AVal.map Frustum.projTrafo)
 
         let reset = AVal.init 0 
+        let filterPartIndex = AVal.init -1
+        
         //let filter : ModRef<Option<Hull3d>> = AVal.init None
 
         let instances = pcs |> ASet.mapA (fun a -> a :> aval<_>)
@@ -203,7 +205,9 @@ module Rendering =
                 pickCallback = Some pick
             }
 
-        let sg = Sg.pointSets renderConfig instances
+        let sg = 
+            Sg.pointSetsFilter renderConfig instances filterPartIndex
+            
         let sg =
             sg
             |> Sg.andAlso cfg
@@ -332,7 +336,10 @@ module Rendering =
             
             | Keys.D2 -> transact (fun () -> config.ssaoSharpness.Value <- min 4.0 (config.ssaoSharpness.Value + 0.1)); Log.line "sharpness: %A" config.ssaoSharpness.Value
             | Keys.D1 -> transact (fun () -> config.ssaoSharpness.Value <- max 0.01 (config.ssaoSharpness.Value - 0.1)); Log.line "sharpness: %A" config.ssaoSharpness.Value
-
+            
+            | Keys.F4 -> transact (fun _ -> filterPartIndex.Value <- -1); Log.line $"PartFilter {filterPartIndex.Value}"
+            | Keys.F5 -> transact (fun _ -> filterPartIndex.Value <- max (filterPartIndex.Value-1) -1); Log.line $"PartFilter {filterPartIndex.Value}"
+            | Keys.F6 -> transact (fun _ -> filterPartIndex.Value <- filterPartIndex.Value+1); Log.line $"PartFilter {filterPartIndex.Value}"
             | Keys.L ->
                 transact (fun () ->
                     config.lighting.Value <- not config.lighting.Value

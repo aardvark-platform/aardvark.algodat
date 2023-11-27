@@ -124,6 +124,7 @@ module CmdLine =
                 .WithKey(id)
                 .WithVerbose(true)
                 .WithMaxChunkPointCount(10000000)
+                .WithPartIndexOffset(0)
                 //.WithMinDist(0.005)
                 //.WithNormalizePointDensityGlobal(true)
                 //.WithMinDist(match args.minDist with | None -> 0.0 | Some x -> x)
