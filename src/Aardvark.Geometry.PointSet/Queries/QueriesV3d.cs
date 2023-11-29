@@ -75,8 +75,10 @@ namespace Aardvark.Geometry.Points
                     var cs = node.Colors?.Value?.Subset(ia);
                     var ns = node.Normals?.Value?.Subset(ia);
                     var js = node.Intensities?.Value?.Subset(ia);
+                    node.TryGetPartIndices(out var pis);
+                    pis = pis?.Subset(ia);
                     var ks = node.Classifications?.Value?.Subset(ia);
-                    var chunk = new PointsNearObject<V3d>(query, maxDistanceToPoint, ps, cs, ns, js, ks, ds);
+                    var chunk = new PointsNearObject<V3d>(query, maxDistanceToPoint, ps, cs, ns, js, pis, ks, ds);
                     return chunk;
                 }
                 else

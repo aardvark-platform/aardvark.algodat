@@ -55,7 +55,7 @@ namespace Aardvark.Geometry.Points
         public static readonly PointsNearObject<T> Empty = new(
             default!, 0.0, 
             Array.Empty<V3d>(), Array.Empty<C4b>(), Array.Empty<V3f>(), 
-            Array.Empty<int>(), Array.Empty<byte>(),
+            Array.Empty<int>(), Array.Empty<int>(), Array.Empty<byte>(),
             Array.Empty<double>()
             );
 
@@ -76,7 +76,10 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public int[]? Intensities { get; }
-        
+
+        /// <summary></summary>
+        public int[]? PartIndices { get; }
+
         /// <summary></summary>
         public byte[]? Classifications { get; }
 
@@ -84,7 +87,7 @@ namespace Aardvark.Geometry.Points
         public double[]? Distances { get; }
 
         /// <summary></summary>
-        public PointsNearObject(T obj, double maxDistance, V3d[] positions, C4b[]? colors, V3f[]? normals, int[]? intensities, byte[]? classifications, double[]? distances)
+        public PointsNearObject(T obj, double maxDistance, V3d[] positions, C4b[]? colors, V3f[]? normals, int[]? intensities, int[]? partIndices, byte[]? classifications, double[]? distances)
         {
             if (maxDistance < 0.0) throw new ArgumentOutOfRangeException(nameof(maxDistance), $"Parameter 'maxDistance' must not be less than 0.0, but is {maxDistance}.");
 
@@ -94,6 +97,7 @@ namespace Aardvark.Geometry.Points
             Colors = colors;
             Normals = normals;
             Intensities = intensities;
+            PartIndices = partIndices;
             Classifications = classifications;
             Distances = distances;
         }
@@ -121,6 +125,7 @@ namespace Aardvark.Geometry.Points
                 Colors?.Append(other.Colors),
                 Normals.Append(other.Normals),
                 Intensities.Append(other.Intensities),
+                PartIndices.Append(other.PartIndices),
                 Classifications.Append(other.Classifications),
                 Distances.Append(other.Distances)
                 );
@@ -153,6 +158,7 @@ namespace Aardvark.Geometry.Points
             Colors?.Length > 0 ? Colors.Reordered(ia) : Colors,
             Normals?.Length > 0 ? Normals.Reordered(ia) : Normals,
             Intensities?.Length > 0 ? Intensities.Reordered(ia) : Intensities,
+            PartIndices?.Length > 0 ? PartIndices.Reordered(ia) : PartIndices,
             Classifications?.Length > 0 ? Classifications.Reordered(ia) : Classifications,
             Distances!.Reordered(ia)
             );
@@ -165,13 +171,13 @@ namespace Aardvark.Geometry.Points
             if (count >= Count) return this;
             var ds = Distances!.Take(count);
             return new PointsNearObject<T>(Object, ds.Max(),
-                Positions.Take(count), Colors?.Take(count), Normals?.Take(count), Intensities?.Take(count), Classifications!.Take(count), ds
+                Positions.Take(count), Colors?.Take(count), Normals?.Take(count), Intensities?.Take(count), PartIndices?.Take(count), Classifications!.Take(count), ds
                 );
         }
 
         /// <summary>
         /// </summary>
         public PointsNearObject<U> WithObject<U>(U other)
-            => new(other, MaxDistance, Positions, Colors, Normals, Intensities, Classifications, Distances);
+            => new(other, MaxDistance, Positions, Colors, Normals, Intensities, PartIndices, Classifications, Distances);
     }
 }
