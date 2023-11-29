@@ -20,6 +20,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using static Aardvark.Base.MultimethodTest;
 
 namespace Aardvark.Geometry.Tests
 {
@@ -118,7 +119,6 @@ namespace Aardvark.Geometry.Tests
             foreach (var x in pointset.QueryPointsNearRay(new Ray3d(new V3d(0.5, -1.0, 0.5), V3d.OIO), 0.2, 1.0, 2.0)) count1 += x.Positions.Count;
             foreach (var x in pointset.QueryPointsNearRay(new Ray3d(new V3d(0.5, -1.0, 0.5), V3d.OIO), 0.2, 1.5, 2.0)) count2 += x.Positions.Count;
             foreach (var x in pointset.QueryPointsNearRay(new Ray3d(new V3d(0.5, 0.75, 0.5), V3d.OIO), 0.2, 0.0, 1.0)) count3 += x.Positions.Count;
-
             Assert.IsTrue(count1 > count2);
             Assert.IsTrue(count2 > count3);
         }
@@ -1178,5 +1178,27 @@ namespace Aardvark.Geometry.Tests
         #endregion
 
 
+        [Test]
+        public void CanQueryPointsWithAttributes()
+        {
+            var r = new Random(0);
+            var ps = new V3d[50000];
+            for (var i = 0; i < 50000; i++) ps[i] = new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble());
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("test")
+                .WithOctreeSplitLimit(50000)
+                ;
+            var chunk = new Chunk(ps);
+            var pis = new int[50000];
+            for (var i = 0; i < 50000; i++) pis[i] = r.Next(4);
+            var pir = new Range1i(pis);
+            chunk = chunk.WithPartIndices(pis, pir);
+            var pointset = PointCloud.Chunks(chunk, config);
+
+            var q = pointset.QueryPointsNearPoint(V3d.Zero, 1.0, 5);
+            Assert.IsTrue(q.PartIndices != null);
+            Assert.IsTrue(q.PartIndices.All(x => x >= 0 && x <= 3));
+        }
     }
 }

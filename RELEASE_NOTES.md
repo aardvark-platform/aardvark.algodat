@@ -1,3 +1,6 @@
+### 5.3.0-prerelease007
+- structured point clouds query (prerelease, for testing only)
+
 ### 5.3.0-prerelease006
 - structured point clouds delete (prerelease, for testing only)
 
