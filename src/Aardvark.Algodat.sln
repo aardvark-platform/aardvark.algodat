@@ -79,6 +79,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Unofficial.laszip.netstanda
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "import", "import\import.csproj", "{000B3CDA-C67B-4F6A-B6F8-69A1B5052343}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "ScratchFSharp", "Apps\ScratchFSharp\ScratchFSharp.fsproj", "{E5B3A633-A8F4-4D56-BB64-4A885E22B3B2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -193,6 +195,10 @@ Global
 		{000B3CDA-C67B-4F6A-B6F8-69A1B5052343}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{000B3CDA-C67B-4F6A-B6F8-69A1B5052343}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{000B3CDA-C67B-4F6A-B6F8-69A1B5052343}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E5B3A633-A8F4-4D56-BB64-4A885E22B3B2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E5B3A633-A8F4-4D56-BB64-4A885E22B3B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E5B3A633-A8F4-4D56-BB64-4A885E22B3B2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E5B3A633-A8F4-4D56-BB64-4A885E22B3B2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -205,9 +211,10 @@ Global
 		{85F64ED4-AAA6-4EEF-BC97-ED5E65839FD7} = {6CA9BC7A-0123-43E9-A26B-5FF0B9E01B08}
 		{5CA8E4F4-E30B-4FC8-A510-A0FFD8A9880B} = {6CA9BC7A-0123-43E9-A26B-5FF0B9E01B08}
 		{000B3CDA-C67B-4F6A-B6F8-69A1B5052343} = {6CA9BC7A-0123-43E9-A26B-5FF0B9E01B08}
+		{E5B3A633-A8F4-4D56-BB64-4A885E22B3B2} = {6CA9BC7A-0123-43E9-A26B-5FF0B9E01B08}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {E996B5E6-49B2-4479-9DDE-455A40509F43}
 		EnterpriseLibraryConfigurationToolBinariesPathV6 = packages\EnterpriseLibrary.TransientFaultHandling.6.0.1304.0\lib\portable-net45+win+wp8;packages\EnterpriseLibrary.TransientFaultHandling.Data.6.0.1304.1\lib\NET45
+		SolutionGuid = {E996B5E6-49B2-4479-9DDE-455A40509F43}
 	EndGlobalSection
 EndGlobal
