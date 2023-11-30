@@ -639,12 +639,13 @@ namespace Aardvark.Geometry.Points
             // PRE: we further assume, that both trees are non-empty
             if (a.PointCountTree == 0 && b.PointCountTree == 0) throw new InvalidOperationException();
 
-            // PRE:
+            // PRE: assume that part indices are available in both trees or in no tree (but not in one or the other)
             if (a.HasPartIndexRange != b.HasPartIndexRange) throw new Exception("Invariant b3feedfd-927d-4436-9eb9-350d377ab852.");
 
             #endregion
 
             #region Case reduction
+
             // REDUCE CASES:
             // if one tree ('a' or 'b') is centered at origin, then ensure that 'a' is centered
             // (by swapping 'a' and 'b' if necessary)
@@ -785,6 +786,13 @@ namespace Aardvark.Geometry.Points
                     .Add(Durable.Octree.PointCountTreeLeafs, a.PointCountTree + b.PointCountTree)
                     .Add(Durable.Octree.SubnodesGuids, subcells.Map(x => x?.Id ?? Guid.Empty))
                     ;
+
+                if (a.HasPartIndexRange)
+                {
+                    var mergedPartIndexRange = PartIndexUtils.MergeRanges(a.PartIndexRange, b.PartIndexRange) ?? throw new Exception("Invariant d4ed616f-a348-4303-8e64-651d669cb7bc.");
+                    data = data.Add(Durable.Octree.PartIndexRange, mergedPartIndexRange);
+                }
+
                 var result = new PointSetNode(data, config.Storage, writeToStore: false).CollapseLeafNodes(config).Item1;
 
 #if DEBUG
