@@ -1,5 +1,8 @@
-### 5.3.0-prerelease008
+### 5.3.0-prerelease009
 - structured point clouds rendering (prerelease, for testing only)
+
+### 5.3.0-prerelease008
+- fix part index handling in JoinNonOverlappingTrees (prerelease, for testing only)
 
 ### 5.3.0-prerelease007
 - structured point clouds query (prerelease, for testing only)

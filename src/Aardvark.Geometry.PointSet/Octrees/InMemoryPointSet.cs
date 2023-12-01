@@ -12,7 +12,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
-using Aardvark.Data;
 using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
@@ -20,7 +19,6 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using static Aardvark.Base.MultimethodTest;
 using static Aardvark.Data.Durable;
 
 namespace Aardvark.Geometry.Points
@@ -31,7 +29,7 @@ namespace Aardvark.Geometry.Points
         private readonly int m_splitLimit;
         private readonly Node m_root;
         private readonly IList<V3d> m_ps;
-        private readonly bool m_hasPartIndices = false;
+        //private readonly bool m_hasPartIndices = false;
 
         public static InMemoryPointSet Build(GenericChunk chunk, int octreeSplitLimit)
             => new(chunk.Data, new Cell(chunk.BoundingBox), octreeSplitLimit);
@@ -87,7 +85,7 @@ namespace Aardvark.Geometry.Points
             foreach (var kv in data)
             {
                 if (kv.Key == Octree.PerCellPartIndex1i || kv.Key == Octree.PerCellPartIndex1ui) continue;
-                if (kv.Key == Octree.PartIndexRange) { m_hasPartIndices = true; break; }
+                if (kv.Key == Octree.PartIndexRange) continue;
                 if (kv.Value is not Array) throw new ArgumentException($"Entry {kv.Key} must be array.");
             }
 
