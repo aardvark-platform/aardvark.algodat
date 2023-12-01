@@ -102,8 +102,6 @@ namespace Aardvark.Geometry.Points
             Storage = storage;
             Data = data;
 
-            if (!IsTemporaryImportNode && !PartIndexUtils.HasValidPartIndexData(data)) Debugger.Break(); // TODO "PARTINDICES" remove
-
             //Report.Line($"{this.Id} {this.Cell}");
             //if (Id == Guid.Empty) Debugger.Break();
             //if (IsLeaf && !HasClassifications) Debugger.Break();

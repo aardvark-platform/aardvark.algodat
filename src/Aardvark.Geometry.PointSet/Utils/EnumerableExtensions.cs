@@ -137,7 +137,6 @@ namespace Aardvark.Geometry.Points
                     try
                     {
                         var r = reduce(a, b, ct);
-                        if (r == null) Debugger.Break();
                         CheckCancellationOrException();
                         lock (queue) queue.Enqueue(r);
                     }

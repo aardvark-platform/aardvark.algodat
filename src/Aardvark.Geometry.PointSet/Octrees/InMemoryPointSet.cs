@@ -264,9 +264,6 @@ namespace Aardvark.Geometry.Points
                         $"Invariant 42656f92-f5ac-43ca-a1b7-c7ec95fe9cb3."
                         );
 
-                    
-                    if (!PartIndexUtils.HasValidPartIndexData(resultData)) Debugger.Break(); // TODO "PARTINDICES" remove
-
                     // create and store result
                     var result = new PointSetNode(resultData, storage, writeToStore: true);
                     if (storage.GetPointCloudNode(result.Id) == null) throw new InvalidOperationException("Invariant 9e863bc5-e9f4-4d39-bd53-3d81e12af6b1.");
@@ -312,8 +309,6 @@ namespace Aardvark.Geometry.Points
                             resultData = resultData.Add(Octree.PartIndexRange, partIndexRange.Value);
                         }
                     }
-
-                    if (!resultData.ContainsKey(Octree.PartIndexRange)) Debugger.Break(); // TODO "PARTINDICES" remove
 
                     // create and store result
                     var result = new PointSetNode(resultData, storage, writeToStore: true);
