@@ -1,3 +1,6 @@
+### 5.3.0-prerelease010
+- structured point clouds implementation (prerelease, for testing only)
+
 ### 5.3.0-prerelease009
 - structured point clouds rendering (prerelease, for testing only)
 
