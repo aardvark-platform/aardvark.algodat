@@ -12,6 +12,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
+using Aardvark.Base.Sorting;
 using Aardvark.Data;
 using Aardvark.Data.Points;
 using System;
@@ -27,6 +28,83 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public static class MergeExtensions
     {
+        private static bool DidMergeWorkObject(object? x, int xCount, object? y, int yCount, object? m)
+        {
+            var xqs = PartIndexUtils.ConcatIndices(x, xCount, y, yCount);
+            var ass = ((int[])xqs);
+            ass.QuickSortAscending();
+            var mss = ((int[])m);
+            mss.QuickSortAscending();
+
+            var assHist =
+                ass.GroupBy(i => i)
+                    .Select(group => (group.Key, group.Count()))
+                    .OrderBy(x => x.Item1)
+                    .ToArray();
+            var mssHist =
+                mss.GroupBy(i => i)
+                    .Select(group => (group.Key, group.Count()))
+                    .OrderBy(x => x.Item1)
+                    .ToArray();
+            var eq = Enumerable.SequenceEqual(ass, mss);
+            if (!eq)
+            {
+                Report.Begin("Ass");
+                foreach (var (k, c) in assHist)
+                {
+                    Report.Line("{0}:{1}", k, c);
+                }
+                Report.End();
+                Report.Begin("Mss");
+                foreach (var (k, c) in mssHist)
+                {
+                    Report.Line("{0}:{1}", k, c);
+                }
+                Report.End();
+            }
+            return eq;
+        }
+        private static bool DidMergeWork(IPointCloudNode x, IPointCloudNode y,IPointCloudNode m)
+        {
+            object? xqs = null;
+            object? mqs = null;
+            CollectEverything(x, new List<V3d>(), null, null, null, null, ref xqs);
+            CollectEverything(y, new List<V3d>(), null, null, null, null, ref xqs);
+            CollectEverything(m, new List<V3d>(), null, null, null, null, ref mqs);
+            var ass = ((int[])xqs);
+            ass.QuickSortAscending();
+            var mss = ((int[])mqs);
+            mss.QuickSortAscending();
+
+            var assHist =
+                ass.GroupBy(i => i)
+                    .Select(group => (group.Key, group.Count()))
+                    .OrderBy(x => x.Item1)
+                    .ToArray();
+            var mssHist =
+                mss.GroupBy(i => i)
+                    .Select(group => (group.Key, group.Count()))
+                    .OrderBy(x => x.Item1)
+                    .ToArray();
+            var eq = Enumerable.SequenceEqual(ass, mss);
+            if(!eq)
+            {
+                Report.Begin("Ass");
+                foreach(var (k,c) in assHist)
+                {
+                    Report.Line("{0}:{1}", k, c);
+                }
+                Report.End();
+                Report.Begin("Mss");
+                foreach (var (k, c) in mssHist)
+                {
+                    Report.Line("{0}:{1}", k, c);
+                }
+                Report.End();
+            }
+            return eq;
+        }
+
         /// <summary>
         /// Collects all leaf per-point properties into given lists.
         /// Returns number of leaves that have been collected.
@@ -318,6 +396,13 @@ namespace Aardvark.Geometry.Points
                 CollectEverything(a, psla, csla, nsla, jsla, ksla, ref qsla);
                 CollectEverything(b, psla, csla, nsla, jsla, ksla, ref qsla);
 
+
+                var range = PartIndexUtils.MergeRanges(a.PartIndexRange, b.PartIndexRange);
+
+                //var checkRange = PartIndexUtils.GetRange(qsla);
+                //if (range != checkRange) throw new Exception("!aasdfasdasd");
+
+
                 var cell = new Cell(a.Cell, b.Cell);
                 var chunk = new Chunk(
                     psla.Count > 0 ? psla : null,
@@ -326,7 +411,7 @@ namespace Aardvark.Geometry.Points
                     jsla.Count > 0 ? jsla : null,
                     ksla.Count > 0 ? ksla : null,
                     partIndices: qsla,
-                    partIndexRange: PartIndexUtils.MergeRanges(a.PartIndexRange, b.PartIndexRange),
+                    partIndexRange: range,
                     bbox: null
                     ); 
 
@@ -416,6 +501,8 @@ namespace Aardvark.Geometry.Points
                     : (b.IsLeaf ? MergeLeafAndTreeWithIdenticalRootCell(b, a, config)
                                 : MergeTreeAndTreeWithIdenticalRootCell(a, b, pointsMergedCallback, config))
                     ;
+
+                //DidMergeWork(a, b, result);
                 pointsMergedCallback?.Invoke(a.PointCountTree + b.PointCountTree);
                 if (a.HasPartIndexRange != result.HasPartIndexRange) throw new Exception("Invariant 6b05a096-bab5-4a51-8b4c-1eff19e6806d.");
                 return result.CollapseLeafNodes(config);
@@ -1005,6 +1092,7 @@ namespace Aardvark.Geometry.Points
             {
                 var result0 = CreateTmpNode(config, cell, psAbsolute, cs, ns, js, ks, qs, partIndexRange: null);
                 if (qs != null && !result0.HasPartIndices) throw new NotImplementedException("PARTINDICES");
+                //DidMergeWorkObject(null, 0, qs, psAbsolute.Count, result0.PartIndices);
                 return result0;
             }
 
@@ -1026,6 +1114,8 @@ namespace Aardvark.Geometry.Points
 
                 var result0 = CreateTmpNode(config, cell, newPs, newCs, newNs, newJs, newKs, newQs, partIndexRange: null);
                 if (a.HasPartIndexRange != result0.HasPartIndexRange) throw new Exception("Invariant c338fe24-7377-450c-af16-26be47861137.");
+                //doesnt check if result0 is innernode 
+                //DidMergeWorkObject(a.PartIndices, a.PointCountCell, qs, psAbsolute.Count, result0.PartIndices);
                 return result0;
             }
 
@@ -1034,7 +1124,7 @@ namespace Aardvark.Geometry.Points
             var nss = ns != null ? new List<V3f>[8] : null;
             var iss = js != null ? new List<int>[8] : null;
             var kss = ks != null ? new List<byte>[8] : null;
-            var qss = qs != null ? new object?[8] : null;
+            var qss = qs != null ? new List<int>[8] : null;
 
 #if DEBUG
             var bb = cell.BoundingBox;
@@ -1054,14 +1144,14 @@ namespace Aardvark.Geometry.Points
                     if (ns != null) nss![j] = new List<V3f>();
                     if (js != null) iss![j] = new List<int>();
                     if (ks != null) kss![j] = new List<byte>();
-                    if (qs != null) qss![j] = null;
+                    if (qs != null) qss![j] = new List<int>();
                 }
                 pss[j].Add(psAbsolute[i]);
                 if (cs != null) css![j].Add(cs[i]);
                 if (ns != null) nss![j].Add(ns[i]);
                 if (js != null) iss![j].Add(js[i]);
                 if (ks != null) kss![j].Add(ks[i]);
-                if (qs != null) qss![j] = PartIndexUtils.Get(qs, i);
+                if (qs != null) qss![j].Add(PartIndexUtils.Get(qs, i)!.Value);
             }
 
             if (pss.Sum(x => x?.Count) != psAbsolute.Count) throw new InvalidOperationException();
@@ -1071,16 +1161,17 @@ namespace Aardvark.Geometry.Points
             {
                 var subCell = cell.GetOctant(j);
                 var x = a.Subnodes![j]?.Value;
+                var qsss = (qss != null && qss[j] != null) ? PartIndexUtils.Compact(qss![j].ToArray()) : null;
                 if (pss[j] != null)
                 {
                     if (x == null)
                     {
                         // injecting points into non-existing subtree
-                        subcells[j] = CreateTmpNode(config, subCell, pss[j], css?[j], nss?[j], iss?[j], kss?[j], qss?[j], partIndexRange: null);
+                        subcells[j] = CreateTmpNode(config, subCell, pss[j], css?[j], nss?[j], iss?[j], kss?[j], qsss, partIndexRange: null);
                     }
                     else
                     {
-                        subcells[j] = InjectPointsIntoTree(pss[j], css?[j], nss?[j], iss?[j], kss?[j], qss?[j], x, subCell, config);
+                        subcells[j] = InjectPointsIntoTree(pss[j], css?[j], nss?[j], iss?[j], kss?[j], qsss, x, subCell, config);
                     }
                 }
                 else
