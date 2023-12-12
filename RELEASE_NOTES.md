@@ -1,3 +1,6 @@
+### 5.3.0-prerelease011
+- updated base packages to 5.2.28
+
 ### 5.3.0-prerelease010
 - structured point clouds implementation (prerelease, for testing only)
 
