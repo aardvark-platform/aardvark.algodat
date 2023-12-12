@@ -1,3 +1,6 @@
+### 5.2.28
+- updated base packages to 5.2.28 (LinearRegression missing method hotfix)
+
 ### 5.2.27
 - [LodTreeInstance] intersect view frustum depth range to -1 +1
 
