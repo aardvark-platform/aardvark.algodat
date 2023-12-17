@@ -2,7 +2,7 @@
   "profiles": {
     "Viewer": {
       "commandName": "Project",
-      "commandLineArgs": "view \\\\heap\\steinlechner\\rmdata\\Data\\stores\\KaunertalStore kaunertal"
+      "commandLineArgs": "info \"C:\\bla\\pts\\UAV_JBs-Haus.austriaGKeast.ply\""
     }
   }
 }
