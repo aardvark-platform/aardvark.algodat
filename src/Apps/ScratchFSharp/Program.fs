@@ -23,7 +23,7 @@ module Bla =
 
 
 
-        let storePath = @"C:\bla\stores\test\data.uds"
+        let storePath = @"C:\bla\store\teststore2\data.uds"
         let key = "3d9654b1-c37a-4d41-ba83-393d58a9bdce"
 
         let rnd = RandomSystem()
@@ -36,7 +36,7 @@ module Bla =
                 let dTheta = 1.1 * Constant.RadiansPerDegree
                 let ps = System.Collections.Generic.List()
                 while phi < Constant.PiTimesTwo do  
-                    theta <- 0.0
+                    theta <- dTheta
                     while theta < Constant.PiTimesTwo  do 
                         let d = V2d(phi,theta).CartesianFromSpherical()
                         let r = Ray3d(loc+999.0*d,-d)
