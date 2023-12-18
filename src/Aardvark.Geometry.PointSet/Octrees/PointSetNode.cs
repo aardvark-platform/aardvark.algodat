@@ -940,19 +940,8 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public bool TryGetPartIndices([NotNullWhen(true)] out int[]? result)
         {
-            switch (PartIndices)
-            {
-                case null: result = null; return false;
-                case int x: result = new int[PointCountCell].Set(x); return true;
-                case uint x: checked { result = new int[PointCountCell].Set((int)x); return true; }
-                case byte[] xs: result = xs.Map(x => (int)x); return true;
-                case short[] xs: result = xs.Map(x => (int)x); return true;
-                case int[] xs: result = xs; return true;
-                default: throw new Exception(
-                    $"Unexpected type {PartIndices.GetType().FullName}. " +
-                    $"Error 278c88f6-d504-4a17-9752-8cca614505f1."
-                    );
-            }
+            result = PartIndexUtils.Expand(PartIndices, PointCountCell);
+            return result != null;
         }
 
         #endregion

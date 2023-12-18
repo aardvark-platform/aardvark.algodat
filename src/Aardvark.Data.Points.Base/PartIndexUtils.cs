@@ -64,6 +64,27 @@ public static class PartIndexUtils
     }
 
     /// <summary>
+    /// Expands part indices: All input types are expanded into an int array.
+    /// </summary>
+    public static int[]? Expand(object? o, int ct)
+    {
+        switch (o)
+        {
+            case null: return null;
+            case int x: return new int[ct].Set(x);
+            case uint x: checked { return new int[ct].Set((int)x); }
+            case byte[] xs: return xs.Map(x => (int)x);
+            case short[] xs: return xs.Map(x => (int)x);
+            case int[] xs: return xs;
+            default:
+                throw new Exception(
+                $"Unexpected type {o.GetType().FullName}. " +
+                $"Error 278c88f6-d504-4a17-9752-8cca614505f1."
+                );
+        }
+    }
+
+    /// <summary>
     /// Compacts part indices.
     /// If per-point indices are all identical, then return per-cell index.
     /// If max per-point index fits in a smaller type (e.g. byte), then convert to array of smaller type.

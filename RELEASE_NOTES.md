@@ -1,3 +1,7 @@
+### 5.3.0-prerelease012
+- structured point clouds: filtered nodes
+- structured point clouds: chunk TryGetPartIndices
+
 ### 5.3.0-prerelease011
 - updated base packages to 5.2.28
 

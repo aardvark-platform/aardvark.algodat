@@ -12,6 +12,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
+using Aardvark.Base.Sorting;
 using Aardvark.Data;
 using Aardvark.Data.Points;
 using System;
@@ -499,7 +500,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Octree. Per-point or per-cell part indices.
         /// </summary>
-        public object? PartIndices => PartIndexUtils.Subset(Node.PartIndices, null!);
+        public object? PartIndices => SubsetIndexArray != null ? PartIndexUtils.Subset(Node.PartIndices, SubsetIndexArray) : Node.PartIndices;
 
         /// <summary>
         /// Get per-point part indices as an int array (regardless of internal representation).
@@ -507,7 +508,7 @@ namespace Aardvark.Geometry.Points
         /// </summary>
         public bool TryGetPartIndices([NotNullWhen(true)] out int[]? result)
         {
-            var qs = SubsetIndexArray != null ? PartIndexUtils.Subset(PartIndices, SubsetIndexArray) : PartIndices;
+            var qs = PartIndices;
 
             if (m_cache.TryGetValue(Octree.PerPointPartIndex1i.Id, out var _result))
             {
@@ -635,10 +636,9 @@ namespace Aardvark.Geometry.Points
                 if (_subsetIndexArray != null) return _subsetIndexArray;
                 if (m_activePoints == null) return null;
 
-                var imax = PointCountCell;
-                var xs = new List<int>();
-                for (var i = 0; i < imax; i++) if (m_activePoints.Contains(i)) xs.Add(i);
-                return _subsetIndexArray = xs.ToArray();
+                var xs = m_activePoints.ToArray();
+                xs.QuickSortAscending();
+                return _subsetIndexArray = xs;
             }
         }
 

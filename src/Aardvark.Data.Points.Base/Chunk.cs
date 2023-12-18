@@ -95,6 +95,11 @@ namespace Aardvark.Data.Points
         [MemberNotNullWhen(true, nameof(PartIndexRange))]
         public bool HasPartIndexRange => PartIndexRange != null;
 
+        public IList<int>? TryGetPartIndices()
+        {
+            return PartIndexUtils.Expand(PartIndices, Count);
+        }
+
         public static Chunk ImmutableMerge(Chunk a, Chunk b)
         {
             if (a is null || a.IsEmpty) return b;
