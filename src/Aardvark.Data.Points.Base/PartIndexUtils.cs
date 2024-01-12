@@ -311,7 +311,7 @@ public static class PartIndexUtils
         var (resultIndices, resultCount) = xs.FirstOrDefault();
         foreach (var (xIndices, xCount) in xs.Skip(1))
         {
-            ConcatIndices(resultIndices, resultCount, xIndices, xCount);
+            resultIndices = ConcatIndices(resultIndices, resultCount, xIndices, xCount);
             resultCount += xCount;
         }
         return resultIndices;

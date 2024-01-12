@@ -1,3 +1,6 @@
+### 5.3.0-prerelease013
+- PartiIndices ImmutableMerge fix
+
 ### 5.3.0-prerelease012
 - structured point clouds: filtered nodes
 - structured point clouds: chunk TryGetPartIndices
