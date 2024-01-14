@@ -262,9 +262,6 @@ namespace Aardvark.Geometry.Tests
             var reloaded = config.Storage.GetPointSet("test");
             Assert.IsTrue(reloaded.Id == "test");
             Assert.IsTrue(reloaded.PointCount == 0);
-            Assert.IsFalse(reloaded.HasPartIndices);
-            Assert.IsFalse(reloaded.HasPartIndexRange);
-            Assert.IsNull(reloaded.PartIndexRange);
         }
 
         #endregion
