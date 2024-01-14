@@ -1,5 +1,12 @@
+### 5.3.0-prerelease014
+- merged interop branch ...
+- enable interop with other software
+  - moved IPointCloudNode to Aardvark.Data.Points.Base
+  - moved PersistentRef to Aardvark.Data.Points.Base (dependency)
+  - aligned Aardvark.Geometry.PointTree license to Aardvark.Data.Points.Base license (AGPL -> Apache2.0)
+
 ### 5.3.0-prerelease013
-- PartiIndices ImmutableMerge fix
+- PartIndices ImmutableMerge fix
 
 ### 5.3.0-prerelease012
 - structured point clouds: filtered nodes
