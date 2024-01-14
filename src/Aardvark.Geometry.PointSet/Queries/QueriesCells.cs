@@ -722,7 +722,7 @@ namespace Aardvark.Geometry.Points
                     ? new ColZ(
                         Footprint.GetQuadrant(i),
                         nss[i].Count > 0 ? nss[i].ToArray() : Array.Empty<IPointCloudNode>(),
-                        rs.GetValueOrDefault(i, Chunk.Empty)
+                        rs.GetOrDefault(i, Chunk.Empty)
                         )
                     : null
                     );

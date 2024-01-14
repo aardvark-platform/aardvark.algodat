@@ -19,8 +19,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using static Aardvark.Base.IL.Serializer;
-using static Aardvark.Base.MultimethodTest;
 
 namespace Aardvark.Geometry.Points
 {
@@ -31,9 +29,9 @@ namespace Aardvark.Geometry.Points
         private static bool DidMergeWorkObject(object? x, int xCount, object? y, int yCount, object? m)
         {
             var xqs = PartIndexUtils.ConcatIndices(x, xCount, y, yCount);
-            var ass = ((int[])xqs);
+            var ass = ((int[])xqs!);
             ass.QuickSortAscending();
-            var mss = ((int[])m);
+            var mss = ((int[])m!);
             mss.QuickSortAscending();
 
             var assHist =
@@ -71,9 +69,9 @@ namespace Aardvark.Geometry.Points
             CollectEverything(x, new List<V3d>(), null, null, null, null, ref xqs);
             CollectEverything(y, new List<V3d>(), null, null, null, null, ref xqs);
             CollectEverything(m, new List<V3d>(), null, null, null, null, ref mqs);
-            var ass = ((int[])xqs);
+            var ass = ((int[])xqs!);
             ass.QuickSortAscending();
-            var mss = ((int[])mqs);
+            var mss = ((int[])mqs!);
             mss.QuickSortAscending();
 
             var assHist =
