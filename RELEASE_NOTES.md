@@ -1,3 +1,7 @@
+### 5.3.0-prerelease015
+- changed System.Collections.Immutable and System.Text.Json to '>= 6.0.0' (from '~> 6.0.0')
+- updated dotnet-tools
+
 ### 5.3.0-prerelease014
 - merged interop branch ...
 - enable interop with other software

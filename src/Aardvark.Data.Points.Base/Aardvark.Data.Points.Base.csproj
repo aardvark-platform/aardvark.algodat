@@ -4,7 +4,7 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <LangVersion>10</LangVersion>
     <RootNamespace>Aardvark.Data.Points</RootNamespace>
-	<Nullable>enable</Nullable>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <OutputPath>..\..\bin\Release</OutputPath>
@@ -14,8 +14,8 @@
     <OutputPath>..\..\bin\Debug</OutputPath>
     <DocumentationFile>..\..\bin\Debug\netstandard2.0\Aardvark.Data.Points.Import.xml</DocumentationFile>
   </PropertyGroup>
-  <Import Project="..\..\.paket\Paket.Restore.targets" />
   <ItemGroup>
     <ProjectReference Include="..\Aardvark.Geometry.PointTree\Aardvark.Geometry.PointTree.csproj" />
   </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>
