@@ -8,7 +8,7 @@ module Prelude =
 
     /// Print usage message.
     let printUsage () =
-       printfn "usage: hum <command> <args...>"
+       printfn "usage: Viewer.exe <command> <args...>"
        printfn ""
        printfn "    info <filename>                 print point cloud file info"
        printfn ""
@@ -57,6 +57,8 @@ module Prelude =
         Pts.PtsFormat
         E57.E57Format
         Yxh.YxhFormat
+        Ply.PlyFormat
+        Laszip.LaszipFormat
         ]
 
     /// Init point cloud file formats.
