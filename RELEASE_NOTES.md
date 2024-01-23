@@ -1,3 +1,6 @@
+### 5.3.1
+- updated dependencies (System.Collections.Immutable and System.Text.Json lowest_matching: true)
+
 ### 5.3.0
 - merge "PartIndex" branch into master
 
