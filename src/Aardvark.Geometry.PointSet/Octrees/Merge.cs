@@ -174,7 +174,7 @@ namespace Aardvark.Geometry.Points
                     // positions might be slightly (~eps) outside this node's bounds,
                     // due to floating point conversion from local sub-node space to global space
                     var bb = self.BoundingBoxExactGlobal;
-                    var eps = bb.Size * 1e-7;
+                    var eps = bb.Size * 1e-5;
                     for (var i = 0; i < psla.Count; i++)
                     {
                         var p = psla[i];
