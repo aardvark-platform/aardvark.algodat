@@ -1,3 +1,6 @@
+### 5.3.2
+- [Merge.cs] adjusted bounding box clamp epsilon during leaf collapse
+
 ### 5.3.1
 - updated dependencies (System.Collections.Immutable and System.Text.Json lowest_matching: true)
 
