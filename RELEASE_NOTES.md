@@ -1,3 +1,7 @@
+### 5.3.3
+- [Obj] added support for normal maps "map_Kn"
+- [Obj] added support for emissive color maps "map_Ke"
+
 ### 5.3.2
 - [Merge.cs] adjusted bounding box clamp epsilon during leaf collapse
 
