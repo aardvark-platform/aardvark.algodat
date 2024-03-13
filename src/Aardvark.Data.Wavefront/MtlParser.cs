@@ -102,6 +102,7 @@ namespace Aardvark.Data.Wavefront
                 { new Text("map_Ka"), (s, a) => s.SetAttribute(WavefrontMaterial.Property.AmbientColorMap, Primitives.ParseMap(a, s.BaseDir)) },
                 { new Text("map_Kd"), (s, a) => s.SetAttribute(WavefrontMaterial.Property.DiffuseColorMap, Primitives.ParseMap(a, s.BaseDir)) },
                 { new Text("map_Ks"), (s, a) => s.SetAttribute(WavefrontMaterial.Property.SpecularColorMap, Primitives.ParseMap(a, s.BaseDir)) },
+                { new Text("map_Kn"), (s, a) => s.SetAttribute(WavefrontMaterial.Property.NormalMap, Primitives.ParseMap(a, s.BaseDir)) },
                 { new Text("map_Ns"), (s, a) => s.SetAttribute(WavefrontMaterial.Property.SpecularExponentMap, Primitives.ParseMap(a, s.BaseDir)) },
                 { new Text("map_d"),  (s, a) => s.SetAttribute(WavefrontMaterial.Property.OpacityMap, Primitives.ParseMap(a, s.BaseDir)) },
                 { new Text("decal"),  (s, a) => s.SetAttribute(WavefrontMaterial.Property.DecalMap, Primitives.ParseMap(a, s.BaseDir)) },

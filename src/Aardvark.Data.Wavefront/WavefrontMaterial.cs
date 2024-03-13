@@ -25,6 +25,7 @@ namespace Aardvark.Data.Wavefront
             public static readonly Symbol DecalMap = "DecalMap";
             public static readonly Symbol DisplacementMap = "DisplacementMap";
             public static readonly Symbol BumpMap = "BumpMap";
+            public static readonly Symbol NormalMap = "NormalMap";
 
             public static readonly Symbol ReflectionMap = "ReflectionMap";
 
