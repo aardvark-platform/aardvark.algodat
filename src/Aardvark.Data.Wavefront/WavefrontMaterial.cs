@@ -20,6 +20,7 @@ namespace Aardvark.Data.Wavefront
             public static readonly Symbol AmbientColorMap = "AmbientColorMap";
             public static readonly Symbol DiffuseColorMap = "DiffuseColorMap";
             public static readonly Symbol SpecularColorMap = "SpecularColorMap";
+            public static readonly Symbol EmissiveColorMap = "EmissiveColorMap";
             public static readonly Symbol SpecularExponentMap = "SpecularExponentMap";
             public static readonly Symbol OpacityMap = "OpacityMap";
             public static readonly Symbol DecalMap = "DecalMap";
