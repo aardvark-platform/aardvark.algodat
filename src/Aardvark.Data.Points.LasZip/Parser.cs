@@ -103,7 +103,7 @@ namespace LASZip
         public static Info ReadInfo(Stream stream)
         {
             var reader = new laszip();
-            reader.open_reader_stream(stream, out _);
+            reader.open_reader_stream(stream, out _, true);
             return ReadInfo(reader);
         }
 
@@ -153,7 +153,7 @@ namespace LASZip
         public static IEnumerable<Points> ReadPoints(Stream stream, int numberOfPointsPerChunk, bool verbose)
         {
             var reader = new laszip();
-            reader.open_reader_stream(stream, out _);
+            reader.open_reader_stream(stream, out _, true);
             return ReadPoints(reader, numberOfPointsPerChunk, verbose);
         }
         /// <summary>

@@ -1,3 +1,6 @@
+### 5.3.4
+- [LasZip] ReadPoints doesn't close stream
+
 ### 5.3.3
 - [Obj] added support for normal maps "map_Kn"
 - [Obj] added support for emissive color maps "map_Ke"
