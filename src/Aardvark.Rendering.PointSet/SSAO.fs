@@ -34,9 +34,9 @@ module internal SSAO =
             member x.Samples : int = uniform?SSAO?Samples
             member x.SampleDirectionCount : int = uniform?SSAO?SampleDirectionCount
             member x.Light : V3d = uniform?Light
-            member x.SampleDirections : V4d[] = uniform?StorageBuffer?SampleDirections
+            member x.SampleDirections : Arr<N<32>, V4d> = uniform?SampleDirections
    
-            member x.FilterWeights : V4d[] = uniform?StorageBuffer?FilterWeights
+            member x.FilterWeights : Arr<N<32>, V4d> = uniform?FilterWeights
             member x.FilterRadius : int = uniform?SSAO?FilterRadius
             member x.FilterDirection : V2d = uniform?SSAO?FilterDirection
 
@@ -559,8 +559,12 @@ module internal SSAO =
                 DefaultSemantic.Colors, TextureFormat.R8
             ]
 
+        let samples =
+            config.samples |> AVal.map (clamp 1 32)
 
-
+        let sampleDirections =
+            config.sampleDirections |> AVal.map (clamp 1 32)
+        
         let ambient = 
             Sg.fullScreenQuad
                 |> Sg.shader {  
@@ -573,8 +577,8 @@ module internal SSAO =
                 |> Sg.uniform "Random" (AVal.constant (randomTex :> ITexture))
                 |> Sg.uniform "Radius" config.radius
                 |> Sg.uniform "Threshold" config.threshold
-                |> Sg.uniform "Samples" config.samples
-                |> Sg.uniform "SampleDirectionCount" config.sampleDirections
+                |> Sg.uniform "Samples" samples
+                |> Sg.uniform "SampleDirectionCount" sampleDirections
                 |> Sg.uniform "ViewportSize" size
                 |> Sg.compile runtime ambientSignature
                 |> RenderTask.renderToColor size

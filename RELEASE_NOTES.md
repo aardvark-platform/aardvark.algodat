@@ -1,3 +1,6 @@
+### 5.3.5
+- [Rendering.PointSet] added `Sg.wrapPointCloudSg` for rendering arbitrary point-clouds with our neat rendering
+
 ### 5.3.4
 - [LasZip] ReadPoints doesn't close stream
 

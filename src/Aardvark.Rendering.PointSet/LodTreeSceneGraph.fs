@@ -187,6 +187,78 @@ module private DeferredPointSetShaders =
     open FShade
     open PointSetShaders
 
+        
+    [<Inline>]
+    let div (v : V4d) = v.XYZ / v.W
+    
+    
+    [<ReflectedDefinition; Inline>]
+    let getDepthRange (ndcRadius : V2d) (z : float) =
+        let rwx = ndcRadius.X / uniform.ProjTrafo.M00
+        let rwy = ndcRadius.Y / uniform.ProjTrafo.M11
+        abs (
+            (uniform.ProjTrafo.M32*z - uniform.ProjTrafo.M22) / (4.0 / (rwx + rwy) + 2.0 * uniform.ProjTrafo.M32)
+        )
+    
+
+    
+    type PointVertexSimple =
+        {
+            [<Position>] pos : V4d
+            [<Color; Interpolation(InterpolationMode.Flat)>] col : V4d
+            [<Semantic("DepthRange"); Interpolation(InterpolationMode.Flat)>] depthRange : float
+            [<PointSize>] s : float
+            [<PointCoord>] pc : V2d
+        }
+    
+    let lodPointSizeSimple (v : Effects.Vertex) =
+        vertex {
+            let vp = uniform.ProjTrafoInv * v.pos
+            let vp = vp / vp.W
+            
+            let pp = v.pos / v.pos.W
+            let size = uniform.PointSize
+            let r = size / V2d uniform.ViewportSize
+            //
+            // let dx = div (vp + uniform.ProjTrafoInv.C0 * r.X * pp.W) - vp.XYZ |> Vec.length
+            // let dy = div (vp + uniform.ProjTrafoInv.C1 * r.Y * pp.W) - vp.XYZ |> Vec.length
+            // let dist = 0.5 * (dx + dy)
+            //
+            // let pp0z = pp.Z / pp.W
+            // let ppz = pp + uniform.ProjTrafo.C2*dist |> div
+
+            let depthRange = getDepthRange r pp.Z //abs (pp0z - ppz.Z)
+            
+            return {
+                pos = v.pos
+                col = v.c
+                depthRange = depthRange
+                s = uniform.PointSize
+                pc = V2d.Zero
+            }
+        }
+
+    type SphereFragment =
+        {
+            [<Color>] color : V4d
+            [<Depth>] depth : float
+        }
+    let lodPointSphereSimple (v : PointVertexSimple) =
+        fragment {
+            let o = 2.0 * v.pc - V2d.II
+            let r2 = Vec.dot o o
+            if r2 > 1.0 then
+                discard()
+            
+            let dz = v.depthRange * sqrt(1.0 - r2)
+                
+            let center = v.pos.XYZ / v.pos.W
+            
+            let z = v.pos.Z / v.pos.W
+            
+            return { color = v.col; depth = 0.5 * (z - dz) + 0.5 }
+        }
+    
     type PointVertex =
         {
             [<Position>] pos : V4d
@@ -206,9 +278,6 @@ module private DeferredPointSetShaders =
             [<FragCoord>] fc : V4d
             [<SamplePosition>] sp : V2d
         }
-        
-    [<Inline>]
-    let div (v : V4d) = v.XYZ / v.W
     
 
     let mapColors =
@@ -355,7 +424,7 @@ module private DeferredPointSetShaders =
             let rmax2 = sqr (s / 2.0)
             let rmax22 = sqr (s / 2.0 + 1.0)
 
-            let step = V2d.II * invSize
+            let step = invSize
 
             let mutable minDepth = 2.0
             let mutable minTc = V2d.Zero
@@ -766,7 +835,240 @@ type PointSetRenderConfig =
     }
 
 module Sg =
-    
+
+    let wrapPointCloudSg (config : PointSetRenderConfig) (scene : ISg) =
+        let runtime = config.runtime
+
+        let largeSize = 
+            (config.size, config.pointSize) ||> AVal.map2 (fun s ps -> 
+                let psi = int (ceil ps)
+                let psi =
+                    if psi &&& 1 <> 0 then psi + 1
+                    else psi
+
+                let ps = max 32 psi
+                s + V2i(ps, ps)
+            )
+
+        let largeProj = 
+            (config.projTrafo, config.size, largeSize) |||> AVal.map3 (fun p os ns ->
+                let old = Frustum.ofTrafo p
+                let factor = V2d ns / V2d os
+
+                let frustum = 
+                    { old with
+                        left = factor.X * old.left
+                        right = factor.X * old.right
+                        top = factor.Y * old.top
+                        bottom = factor.Y * old.bottom
+                    }
+                Frustum.projTrafo frustum
+            )
+
+        let textures = 
+            let signature =
+                runtime.CreateFramebufferSignature [
+                    DefaultSemantic.Colors, TextureFormat.Rgba8
+                    //DefaultSemantic.Positions, TextureFormat.Rgba32f
+                    DefaultSemantic.DepthStencil, TextureFormat.Depth24Stencil8
+                ]
+
+            let sems =
+                Set.ofList [
+                    DefaultSemantic.Colors; DefaultSemantic.DepthStencil
+                ]
+
+            let render =
+                let scene = 
+                    scene
+                    |> Sg.blendMode (AVal.constant BlendMode.None)
+                    |> Sg.uniform "ShowColors" config.colors
+                    |> Sg.uniform "PointSize" config.pointSize
+                    |> Sg.uniform "ViewportSize" largeSize
+                    |> Sg.viewTrafo config.viewTrafo
+                    |> Sg.projTrafo largeProj
+                    
+                let objects = Aardvark.SceneGraph.Semantics.RenderObjectSemantics.Semantic.renderObjects Aardvark.Base.Ag.Scope.Root scene
+                    
+                let eff =
+                    FShade.Effect.compose [
+                        FShade.Effect.ofFunction DeferredPointSetShaders.lodPointSizeSimple
+                        FShade.Effect.ofFunction DeferredPointSetShaders.lodPointSphereSimple
+                    ]
+                    
+                let objects = 
+                    objects |> ASet.map (fun o ->
+                        match o with
+                        | :? RenderObject as o ->
+                            match o.Surface with
+                            | Surface.FShadeSimple e ->
+                                o.Surface <- Surface.FShadeSimple (FShade.Effect.compose [e; eff])
+                                o :> IRenderObject 
+                            | _ ->
+                                o :> IRenderObject 
+                        | _ ->
+                            o
+                    )
+                    
+                runtime.CompileRender(signature, objects)
+
+            let clear =
+                runtime.CompileClear(signature, [DefaultSemantic.Colors, C4f(0.0f, 0.0f, 0.0f, 0.0f)], 1.0f, 0)
+
+            RenderTask.ofList [clear; render]
+            |> RenderTask.renderSemantics sems largeSize
+
+        
+        let color = textures.[DefaultSemantic.Colors]
+        let depth = textures.[DefaultSemantic.DepthStencil]
+     
+        let nearFar =
+            config.projTrafo |> AVal.map (fun t ->
+                let f = Frustum.ofTrafo t
+                V2d(f.near, f.far)
+            )
+
+        let randomTex = 
+            let img = PixImage<float32>(Col.Format.RGB, V2i.II * 512)
+
+            let rand = RandomSystem()
+            img.GetMatrix<C3f>().SetByCoord (fun _ ->
+                V3d(rand.UniformV2dDirection(), 0.0).ToC3d().ToC3f()
+            ) |> ignore
+
+            runtime.PrepareTexture(PixTexture2d(PixImageMipMap [| img :> PixImage |], TextureParams.empty)) :> ITexture
+            
+        let finalSg =
+            Sg.fullScreenQuad
+            |> Sg.texture DefaultSemantic.Colors color
+            |> Sg.texture DefaultSemantic.DepthStencil depth
+            //|> Sg.texture pointIdSym pointId
+            |> Sg.uniform "NearFar" nearFar
+            |> Sg.uniform "PlaneFit" config.planeFit
+            |> Sg.uniform "SSAO" config.ssao
+            |> Sg.uniform "RandomTexture" (AVal.constant randomTex)
+            |> Sg.shader {
+                do! DeferredPointSetShaders.blitPlaneFit
+            }
+            |> Sg.viewTrafo config.viewTrafo
+            |> Sg.projTrafo largeProj
+            |> Sg.uniform "Diffuse" config.diffuse
+            |> Sg.uniform "ViewportSize" largeSize
+            |> Sg.uniform "PlaneFitTolerance" config.planeFitTol
+            |> Sg.uniform "PlaneFitRadius" config.planeFitRadius
+            |> Sg.uniform "Gamma" config.gamma
+            
+        let sceneTextures =
+            let signature =
+                runtime.CreateFramebufferSignature [
+                    DefaultSemantic.Colors, TextureFormat.Rgba8
+                    DefaultSemantic.Normals, TextureFormat.Rgba32f
+                    DefaultSemantic.DepthStencil, TextureFormat.Depth24Stencil8
+                ]
+        
+            let sems =
+                Set.ofList [
+                    DefaultSemantic.Colors; DefaultSemantic.Normals; DefaultSemantic.DepthStencil
+                ]
+        
+            finalSg
+            |> Sg.compile runtime signature
+            |> RenderTask.renderSemantics sems largeSize
+              
+        
+        
+        let normals = sceneTextures.[DefaultSemantic.Normals]
+        let colors = sceneTextures.[DefaultSemantic.Colors]
+        let depth = sceneTextures.[DefaultSemantic.DepthStencil]
+        
+        let mutable lastDepth = None
+        let depth =
+            depth.Acquire()
+            { new AdaptiveResource<IBackendTexture>() with
+                override x.Compute(t, rt) = 
+                    let d = depth.GetValue(t, rt)
+                    lastDepth <- Some d
+                    depth.GetValue(t, rt)
+                override x.Create() = depth.Acquire()
+                override x.Destroy() = depth.Release()
+            }
+        
+            
+        let tt = 
+            (config.size, largeSize) ||> AVal.map2 (fun os ns ->
+                Trafo2d.Scale(V2d os) *
+                Trafo2d.Translation(V2d (ns - os) / 2.0) * 
+                Trafo2d.Scale(1.0 / V2d ns)
+            )
+            
+        let finalSg =
+            let s = largeSize // |> AVal.map (fun s -> max V2i.II (s / 2))
+        
+            SSAO.getAmbient tt config.ssao config.ssaoConfig runtime largeProj depth normals colors s
+            |> Sg.uniform "SSAO" config.ssao
+            |> Sg.uniform "ViewportSize" config.size
+        //let mutable lastDepth : option<ITexture> = None
+        let pick (px : V2i) (r : int) (maxCt : int) = 
+            //let normals = normals.GetValue() |> unbox<IBackendTexture>
+            let depth = 
+                match lastDepth with
+                | Some d -> d |> unbox<IBackendTexture>
+                | _ -> depth.GetValue() |> unbox<IBackendTexture>
+
+            let s = config.size.GetValue()
+            let ls = largeSize.GetValue()
+            let view = config.viewTrafo.GetValue()
+            let proj = config.projTrafo.GetValue()
+
+            
+
+            let ndcs = 
+                let px = V2i(px.X, s.Y - 1 - px.Y)
+                let offset = (ls - s) / 2
+                let size = s
+                let center = px 
+
+                Readback.readDepth depth center r offset size maxCt 
+            //let mat = mat.Transformed(ImageTrafo.MirrorY)
+
+            ndcs |> Array.map (fun ndc -> 
+                let ndc = (V3d ndc.XYZ)
+                let tc = V2d(ndc.X * 0.5 + 0.5, 0.5 - ndc.Y * 0.5)
+                let px = tc * V2d(s) |> V2i
+                let vp = proj.Backward.TransformPosProj ndc
+                let wp = view.Backward.TransformPosProj vp
+                {
+                    World = wp
+                    View  = vp
+                    Ndc   = ndc
+                    Pixel = px
+                }
+            )
+            //for x in -r .. r do
+            //    for y in -r .. r do
+            //        let o = V2i(x,y)
+            //        let d = mat.[r + x,r + y]
+            //        if d < 0.999999f && d > 0.01f && x*x + y*y <= r*r then
+            //            let px = px + o
+            //            let tc = V2d px / V2d s
+            //            let ndc = V3d(2.0 * tc.X - 1.0, 1.0 - 2.0*tc.Y, 2.0 * float d - 1.0)
+            //            let vp = proj.Backward.TransformPosProj ndc
+            //            let wp = view.Backward.TransformPosProj vp
+            //            best.Add {
+            //                World = wp
+            //                View  = vp
+            //                Ndc   = ndc
+            //                Pixel = px
+            //            }
+
+
+
+        match config.pickCallback with 
+        | Some r -> 
+            r := pick
+        | None -> ()
+
+        finalSg
 
     let pointSetsFilter (config : PointSetRenderConfig) (pointClouds : aset<LodTreeInstance>) (filterPartIndex : aval<int>)=
         let runtime = config.runtime
@@ -893,7 +1195,7 @@ module Sg =
             let signature =
                 runtime.CreateFramebufferSignature [
                     DefaultSemantic.Colors, TextureFormat.Rgba8
-                    DefaultSemantic.Normals, TextureFormat.Rgb32f
+                    DefaultSemantic.Normals, TextureFormat.Rgba32f
                     DefaultSemantic.DepthStencil, TextureFormat.Depth24Stencil8
                 ]
 
