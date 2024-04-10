@@ -1,3 +1,6 @@
+### 5.3.7
+- [Rendering.PointSet] fixed y-flipped picking
+
 ### 5.3.6
 - [Rendering.PointSet] fixed picking for non-compute runtimes (OpenGL on MacOS)
 

@@ -152,7 +152,7 @@ module Readback =
                     let pixel = V2i(pixel.X, size.Y - 1 - pixel.Y)
                     
                     let tc = (V2d pixel + V2d.Half) / V2d size
-                    let ndc = V3d(tc.X * 2.0 - 1.0, 1.0 - 2.0 * tc.Y, z)
+                    let ndc = V3d(tc.X * 2.0 - 1.0, 2.0 * tc.Y - 1.0, z)
                     V4f(V3f ndc, Vec.distance (V2f pixel) (V2f center))
                 ) |> ignore
                 
