@@ -130,57 +130,40 @@ module Readback =
     let cachy = System.Collections.Concurrent.ConcurrentDictionary<IRuntime, DepthReader>()
 
     let readDepth (depth : IBackendTexture) (center : V2i) (radius : int) (offset : V2i) (size : V2i) (maxCt : int) = //(offset : V2i) (size : V2i) =
-        let reader = cachy.GetOrAdd(unbox depth.Runtime, fun r -> DepthReader(r))
-
-        let ptr = reader.Run(depth, center, radius, offset, size, maxCt)
-
-
-        //Log.warn "%A" ptr
-        ptr
-        //let depth = unbox<Texture> depth
-        //use __ = depth.Context.ResourceLock
+        match depth.Runtime with
+        | :? Aardvark.Rendering.GL.Runtime as rt when rt.Context.Driver.version < System.Version(4,3,0) ->
+            //let center = center - offset
+            if center.AllGreaterOrEqual 0 && center.AllSmaller size then
+                
+                let tex = depth :?> Aardvark.Rendering.GL.Texture
+                 
+                let c = V2i(center.X, size.Y - 1 - center.Y)
+                
+                let box = Box2i.FromCenterAndSize(c, 2*radius*V2i.II) //Box2i(c, c + V2i.II)
+                let depths = rt.DownloadDepth(tex, 0, 0, Box2i(box.Min + offset, box.Max + offset))
+               
+                
+                
+                let ndcs = Matrix<V4f>(depths.Size)
+                ndcs.SetByCoord(fun (c : V2l) ->
+                    let z = 2.0 * float depths.[c] - 1.0
+                    
+                    let pixel = box.Min + V2i c
+                    let pixel = V2i(pixel.X, size.Y - 1 - pixel.Y)
+                    
+                    let tc = (V2d pixel + V2d.Half) / V2d size
+                    let ndc = V3d(tc.X * 2.0 - 1.0, 1.0 - 2.0 * tc.Y, z)
+                    V4f(V3f ndc, Vec.distance (V2f pixel) (V2f center))
+                ) |> ignore
+                
+                ndcs.Data |> Array.filter (fun ndc -> ndc.Z < 1.0f) |> Array.sortBy (fun v -> v.W) |> Array.truncate maxCt
+            else
+                [||]
+        | _ ->
+            let reader = cachy.GetOrAdd(unbox depth.Runtime, fun r -> DepthReader(r))
+            let ptr = reader.Run(depth, center, radius, offset, size, maxCt)
+            ptr
         
-        //let cnt = size.X * size.Y
-        //let f = GL.GenFramebuffer()
-        //GL.Check "GenFramebuffer"
-        ////let pbo = GL.GenBuffer()
-        ////GL.Check "GenBuffer"
-        //try
-        //    GL.BindFramebuffer(FramebufferTarget.Framebuffer, f)
-        //    GL.Check "BindFramebuffer"
-        //    GL.FramebufferTexture(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthStencilAttachment, depth.Handle, 0)
-        //    GL.Check "FramebufferTexture"
-
-        //    let s = GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer)
-        //    if s <> FramebufferErrorCode.FramebufferComplete then failwithf "FBO: %A" s
-
-        //    //GL.BindBuffer(BufferTarget.PixelPackBuffer, pbo)
-        //    //GL.Check "BindBuffer"
-        //    //GL.BufferStorage(BufferTarget.PixelPackBuffer, nativeint (cnt * sizeof<float32>), 0n, BufferStorageFlags.MapReadBit)
-        //    //GL.Check "BufferStorage"
-        //    //GL.ReadBuffer(ReadBufferMode.ColorAttachment0)
-
-        //    let arr = Array.zeroCreate<float32> cnt
-        //    //use ptr = fixed arr
-
-        //    GL.ReadPixels(offset.X, offset.Y, size.X, size.Y, PixelFormat.DepthComponent, PixelType.Float, arr)
-        //    GL.Check "ReadPixels"
-
-        //    //let ptr = GL.MapNamedBuffer(pbo, BufferAccess.ReadOnly)
-        //    //for i in 0 .. arr.Length - 1 do
-        //    //    arr.[i] <- NativeInt.read (ptr + nativeint sizeof<uint32> * nativeint i)
-        //    //GL.UnmapNamedBuffer(pbo) |> ignore
-
-        //    //GL.BindBuffer(BufferTarget.PixelPackBuffer, 0)
-        //    //GL.Check "BindBuffer 0"
-        //    GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0)
-        //    GL.Check "BindFramebuffer 0"
-        //    Matrix(arr, V2l size)
-        //finally
-        //    //GL.DeleteBuffer pbo
-        //    GL.Check "DeleteBuffer"
-        //    GL.DeleteFramebuffer f
-        //    GL.Check "DeleteFramebuffer"
 
 [<ReflectedDefinition>]
 module private DeferredPointSetShaders =

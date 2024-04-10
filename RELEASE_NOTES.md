@@ -1,3 +1,6 @@
+### 5.3.6
+- [Rendering.PointSet] fixed picking for non-compute runtimes (OpenGL on MacOS)
+
 ### 5.3.5
 - [Rendering.PointSet] added `Sg.wrapPointCloudSg` for rendering arbitrary point-clouds with our neat rendering
 

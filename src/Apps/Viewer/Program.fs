@@ -31,6 +31,7 @@ module TestSimpleCloud =
                 do! DefaultSurfaces.trafo
             }
             
+        let pick = ref (fun _ _ _ -> [||])
         let config =
             {
                 runtime = win.Runtime
@@ -65,7 +66,7 @@ module TestSimpleCloud =
                         sampleDirections = AVal.constant 2
                         samples = AVal.constant 4
                     }
-                pickCallback = None
+                pickCallback = Some pick
             }
             
         let scene =
@@ -79,6 +80,13 @@ module TestSimpleCloud =
                 }
             ]
         win.Scene <- scene
+        
+        win.Mouse.Move.Values.Add (fun _ ->
+            let loc = AVal.force win.Mouse.Position
+            pick.Value loc.Position 5 5 |> printfn "%A"
+        )
+        
+        
         win.Run()
 
 [<EntryPoint>]
