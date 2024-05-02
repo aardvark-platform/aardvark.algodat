@@ -1788,13 +1788,13 @@ namespace Aardvark.Geometry.Tests
 
         internal static void Test_Import_Regression()
         {
-            var filenames = new[]
-            {
-                //@"W:\Datasets\Vgm\Data\E57\JBs_Haus.e57",
-                @"W:\Datasets\pointclouds\tests\JB_Haus_2022_KG.e57"
-            };
+            //var filenames = new[]
+            //{
+            //    //@"W:\Datasets\Vgm\Data\E57\JBs_Haus.e57",
+            //    @"W:\Datasets\pointclouds\tests\JB_Haus_2022_KG.e57"
+            //};
 
-            //var filenames = Directory.GetFiles(@"W:\Datasets\pointclouds\tests");
+            var filenames = Directory.GetFiles(@"W:\Datasets\pointclouds\tests");
 
             //filenames = Directory
             //    .EnumerateFiles(@"W:\Datasets\plytest", "*.ply", SearchOption.AllDirectories)
@@ -2761,6 +2761,23 @@ namespace Aardvark.Geometry.Tests
 
         public static async Task Main(string[] _)
         {
+            //{
+            //    var chunks = E57.Chunks(@"W:\Datasets\Vgm\Data\2024-04-30_bugreport\F_240205.e57", ParseConfig.Default);
+            //    var i = 0;
+            //    foreach (var chunk in chunks)
+            //    {
+            //        var bb = new Box3d(chunk.Positions);
+            //        WriteLine($"[{i++}] {bb}");
+            //    }
+            //    return;
+            //}
+
+            //await CreateStore(
+            //    @"C:\Data\F_240205.e57",
+            //    @"t:\tmp\20240501_aardvark",
+            //    minDist: 0.005
+            //    );
+
             //await Task.Delay(0); // avoid warnings if main contains no await
 
             //await CreateStore(
@@ -2769,17 +2786,17 @@ namespace Aardvark.Geometry.Tests
             //    minDist: 0.001
             //    );
 
-            await CreateStore(
-                @"W:\Datasets\Vgm\Data\E57\erdgeschoss.e57",
-                @"W:\Datasets\Vgm\Stores\erdgeschoss.e57_0.0025",
-                minDist: 0.0025
-                );
+            //await CreateStore(
+            //    @"W:\Datasets\Vgm\Data\E57\erdgeschoss.e57",
+            //    @"W:\Datasets\Vgm\Stores\erdgeschoss.e57_0.0025",
+            //    minDist: 0.0025
+            //    );
 
             //await Parts_Test_20231006_Merge();
 
             //await Parts_Test_20231006();
 
-            //Test_Import_Regression();
+            Test_Import_Regression();
 
             //await Ranges_Test_20230802();
 

@@ -255,6 +255,9 @@ namespace Aardvark.Data.E57
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public double Compute(uint rawValue) => (Minimum.HasValue ? (Minimum.Value + rawValue) : rawValue) * Scale + Offset;
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public double ComputeL(ulong rawValue) => (Minimum.HasValue ? (Minimum.Value + (long)rawValue) : rawValue) * Scale + Offset;
+
             #endregion
 
             internal static E57ScaledInteger Parse(XElement root)
@@ -805,9 +808,18 @@ namespace Aardvark.Data.E57
                 {
                     checked
                     {
-                        var xs = packer.UnpackUInts(buffer);
-                        var rs = xs.Map(proto.Compute);
-                        return rs;
+                        if (packer.BitsPerValue <= 32)
+                        {
+                            var xs = packer.UnpackUInts(buffer);
+                            var rs = xs.Map(proto.Compute);
+                            return rs;
+                        }
+                        else
+                        {
+                            var xs = packer.UnpackULongs(buffer);
+                            var rs = xs.Map(proto.ComputeL);
+                            return rs;
+                        }
                     }
                 }
                 static Array UnpackIntegers(byte[] buffer, BitPacker packer, E57Integer proto)

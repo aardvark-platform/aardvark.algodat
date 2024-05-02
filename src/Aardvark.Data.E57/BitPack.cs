@@ -20,6 +20,7 @@ namespace Aardvark.Base
     public class BitPacker
     {
         private uint m_rest = 0;
+        private ulong m_restL = 0ul;
         private int m_restBitCount = 0;
         /// <summary></summary>
         public int BitsPerValue { get; }
@@ -27,8 +28,8 @@ namespace Aardvark.Base
         /// <summary></summary>
         public BitPacker(int bitsPerValue)
         {
-            if (bitsPerValue < 0 || (bitsPerValue > 32 && bitsPerValue != 64)) throw new ArgumentOutOfRangeException(
-                nameof(bitsPerValue), $"BitsPerValue must be [1,32] but is {bitsPerValue}");
+            if (bitsPerValue < 0 || bitsPerValue > 64) throw new ArgumentOutOfRangeException(
+                nameof(bitsPerValue), $"BitsPerValue must be in range [1,64] but is {bitsPerValue}. Invariant 7944df56-ad1d-4140-bdd1-2d52d11540b1.");
 
             BitsPerValue = bitsPerValue;
         }
@@ -36,6 +37,10 @@ namespace Aardvark.Base
         /// <summary></summary>
         public uint[] UnpackUInts(byte[] buffer)
         {
+            if (BitsPerValue > 32) throw new Exception(
+                $"Calling BitPack.UnpackUInts(...) for BitsPerValue={BitsPerValue} is not possible. Call BitPack.UnpackULongs(...) instead. Error 63098b8c-15a0-4ad2-8325-a927ea74e075."
+                );
+
             var count = (m_restBitCount + buffer.Length * 8) / BitsPerValue;
             var result = new uint[count];
             var bufferByteIndex = 0;
@@ -82,6 +87,65 @@ namespace Aardvark.Base
             while (bufferByteIndex < buffer.Length)
             {
                 m_rest |= (uint)buffer[bufferByteIndex++] << m_restBitCount;
+                m_restBitCount += 8;
+            }
+
+            return result;
+        }
+
+        /// <summary></summary>
+        public ulong[] UnpackULongs(byte[] buffer)
+        {
+            if (BitsPerValue <= 32) throw new Exception(
+                $"Calling BitPack.UnpackULongs(...) for BitsPerValue={BitsPerValue} is a bad idea. Call BitPack.UnpackUInts(...) instead. Error 18582197-9403-4c0c-9db3-5b99f6ae2091."
+                );
+
+            var count = (m_restBitCount + buffer.Length * 8) / BitsPerValue;
+            var result = new ulong[count];
+            var bufferByteIndex = 0;
+            for (var i = 0; i < count; i++)
+            {
+                if (m_restBitCount >= BitsPerValue)
+                {
+                    result[i] = m_restL & ((1ul << BitsPerValue) - 1);
+                    m_restL >>= BitsPerValue;
+                    m_restBitCount -= BitsPerValue;
+                    continue;
+                }
+
+                var value = 0ul;
+                var valueBitIndex = 0;
+
+                // init value with m_restL
+                if (m_restBitCount > 0) { value = m_restL; valueBitIndex = m_restBitCount; m_restL = 0; m_restBitCount = 0; }
+
+                // add full byte(s) to value
+                while (valueBitIndex + 8 <= BitsPerValue)
+                {
+                    value |= (ulong)buffer[bufferByteIndex++] << valueBitIndex;
+                    valueBitIndex += 8;
+                }
+                var numberOfBitsUntilCompletion = BitsPerValue - valueBitIndex;
+#if DEBUG
+                if (numberOfBitsUntilCompletion < 0 || numberOfBitsUntilCompletion > 7) throw new InvalidOperationException();
+#endif
+
+                // if value has been filled up with latest full byte, then we are done
+                if (numberOfBitsUntilCompletion == 0) { result[i] = value; continue; }
+
+                // ... else we use a part of the next byte to fill remaining bits
+                var b = (ulong)buffer[bufferByteIndex++];
+                value |= (b & ((1ul << numberOfBitsUntilCompletion) - 1)) << valueBitIndex;
+                result[i] = value;
+                // ... and save remaining bits of current byte to m_rest
+                m_restBitCount = 8 - numberOfBitsUntilCompletion;
+                m_restL = b >> numberOfBitsUntilCompletion;
+            }
+
+            // save trailing bytes to m_rest ...
+            while (bufferByteIndex < buffer.Length)
+            {
+                m_restL |= (ulong)buffer[bufferByteIndex++] << m_restBitCount;
                 m_restBitCount += 8;
             }
 
