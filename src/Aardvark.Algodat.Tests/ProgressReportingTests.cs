@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -51,7 +51,7 @@ namespace Aardvark.Geometry.Tests
                 {
                     var _ps = new V3d[numberOfPointsPerChunk];
                     for (var i = 0; i < numberOfPointsPerChunk; i++) _ps[i] = new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble());
-                    yield return new Chunk(_ps).WithPartIndices(42u, null);
+                    yield return new Chunk(_ps).WithPartIndices(42u, null, null);
                 }
             }
         }

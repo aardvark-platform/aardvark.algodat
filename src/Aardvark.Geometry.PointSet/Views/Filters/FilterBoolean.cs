@@ -8,23 +8,17 @@ namespace Aardvark.Geometry.Points
     /// <summary>
     /// NOT IMPLEMENTED
     /// </summary>
-    public class FilterOr : IFilter
+    /// <remarks></remarks>
+    public class FilterOr(IFilter left, IFilter right) : IFilter
     {
         /// <summary></summary>
         public const string Type = "FilterOr";
 
         /// <summary></summary>
-        public IFilter Left { get; }
+        public IFilter Left { get; } = left ?? throw new ArgumentNullException(nameof(left));
 
         /// <summary></summary>
-        public IFilter Right { get; }
-
-        /// <summary></summary>
-        public FilterOr(IFilter left, IFilter right)
-        {
-            Left = left ?? throw new ArgumentNullException(nameof(left));
-            Right = right ?? throw new ArgumentNullException(nameof(right));
-        }
+        public IFilter Right { get; } = right ?? throw new ArgumentNullException(nameof(right));
 
         /// <summary></summary>
         public bool IsFullyInside(IPointCloudNode node) => Left.IsFullyInside(node) || Right.IsFullyInside(node);
@@ -61,23 +55,17 @@ namespace Aardvark.Geometry.Points
 
     /// <summary>
     /// </summary>
-    public class FilterAnd : IFilter
+    /// <remarks></remarks>
+    public class FilterAnd(IFilter left, IFilter right) : IFilter
     {
         /// <summary></summary>
         public const string Type = "FilterAnd";
 
         /// <summary></summary>
-        public IFilter Left { get; }
+        public IFilter Left { get; } = left ?? throw new ArgumentNullException(nameof(left));
 
         /// <summary></summary>
-        public IFilter Right { get; }
-
-        /// <summary></summary>
-        public FilterAnd(IFilter left, IFilter right)
-        {
-            Left = left ?? throw new ArgumentNullException(nameof(left));
-            Right = right ?? throw new ArgumentNullException(nameof(right));
-        }
+        public IFilter Right { get; } = right ?? throw new ArgumentNullException(nameof(right));
 
         /// <summary></summary>
         public bool IsFullyInside(IPointCloudNode node) => Left.IsFullyInside(node) && Right.IsFullyInside(node);

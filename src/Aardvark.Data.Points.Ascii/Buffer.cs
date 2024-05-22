@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -15,28 +15,21 @@ namespace Aardvark.Data.Points
 {
     /// <summary>
     /// </summary>
-    public struct Buffer
+    /// <remarks>
+    /// </remarks>
+    public readonly struct Buffer(byte[] data, int start, int count)
     {
         /// <summary>
         /// </summary>
-        public readonly byte[] Data;
+        public readonly byte[] Data = data;
 
         /// <summary>
         /// </summary>
-        public readonly int Start;
+        public readonly int Start = start;
 
         /// <summary>
         /// </summary>
-        public readonly int Count;
-
-        /// <summary>
-        /// </summary>
-        public Buffer(byte[] data, int start, int count)
-        {
-            Data = data;
-            Start = start;
-            Count = count;
-        }
+        public readonly int Count = count;
 
         /// <summary>
         /// </summary>

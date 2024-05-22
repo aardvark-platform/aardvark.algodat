@@ -1,5 +1,5 @@
 ﻿/*
-   Copyright (C) 2017-2020. Stefan Maierhofer.
+   Copyright (C) 2017-2024. Stefan Maierhofer.
     
    This code has been COPIED from https://github.com/stefanmaierhofer/LASzip.
 
@@ -71,6 +71,7 @@ namespace Aardvark.Data.Points.Import
                 classifications: x.Classifications,
                 partIndices: partIndices,
                 partIndexRange: null,
+                partIndexSet: null,
                 bbox: null
                 )
             );

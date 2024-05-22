@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -239,7 +239,7 @@ namespace Aardvark.Geometry.Points
             { 
                 var c = root.Cell;
                 do { c = c.Parent; } while (c.Exponent < cellExponent);
-                return new[] { new CellQueryResult(root, c, root) };
+                return [new CellQueryResult(root, c, root)];
             }
 
             return EnumerateCellsOfSizeRecursive(root);
@@ -329,7 +329,7 @@ namespace Aardvark.Geometry.Points
             public CellQueryResult2dCache()
             {
                 Size = Box2i.Invalid;
-                Cache = new Dictionary<int, Dictionary<Cell2d, Chunk>>();
+                Cache = [];
             }
         }
 
@@ -417,7 +417,7 @@ namespace Aardvark.Geometry.Points
                 {
                     Cache.UpdateSize(outer);
                     if (!Cache.Cache.TryGetValue(fromRelativeDepth, out cache))
-                        cache = Cache.Cache[fromRelativeDepth] = new Dictionary<Cell2d, Chunk>();
+                        cache = Cache.Cache[fromRelativeDepth] = [];
                 }
 
                 //var cacheHits = 0;
@@ -501,7 +501,7 @@ namespace Aardvark.Geometry.Points
             /// This method will be removed in future version.
             /// </summary>
             [Obsolete]
-            public IEnumerable<Chunk> GetPoints(int fromRelativeDepth) => new[] { CollectPoints(fromRelativeDepth).Points };
+            public IEnumerable<Chunk> GetPoints(int fromRelativeDepth) => [CollectPoints(fromRelativeDepth).Points];
 
             /// <summary>
             /// Deprecated. Use CollectPoints instead.
@@ -599,13 +599,13 @@ namespace Aardvark.Geometry.Points
             public ColZ(IPointCloudNode n)
             {
                 Footprint = new Cell2d(n.Cell.X, n.Cell.Y, n.Cell.Exponent);
-                Nodes = new [] { n ?? throw new ArgumentNullException(nameof(n)) };
+                Nodes = [n ?? throw new ArgumentNullException(nameof(n))];
                 Rest = Chunk.Empty;
             }
             public ColZ(IPointCloudNode n, Cell2d footprint)
             {
                 Footprint = footprint;
-                Nodes = new[] { n ?? throw new ArgumentNullException(nameof(n)) };
+                Nodes = [n ?? throw new ArgumentNullException(nameof(n))];
                 Rest = Chunk.Empty;
             }
 
@@ -698,7 +698,7 @@ namespace Aardvark.Geometry.Points
             private ColZ?[] Split()
             {
                 // inner ...
-                var nss = new List<IPointCloudNode>[4].SetByIndex(_ => new List<IPointCloudNode>());
+                var nss = new List<IPointCloudNode>[4].SetByIndex(_ => []);
                 foreach (var n in Nodes.Where(n => !n.IsLeaf))
                 {
                     for (var i = 0; i < 8; i++)
@@ -721,7 +721,7 @@ namespace Aardvark.Geometry.Points
                     (nss[i].Count > 0 || rs.ContainsKey(i))
                     ? new ColZ(
                         Footprint.GetQuadrant(i),
-                        nss[i].Count > 0 ? nss[i].ToArray() : Array.Empty<IPointCloudNode>(),
+                        nss[i].Count > 0 ? [.. nss[i]] : [],
                         rs.GetOrDefault(i, Chunk.Empty)
                         )
                     : null

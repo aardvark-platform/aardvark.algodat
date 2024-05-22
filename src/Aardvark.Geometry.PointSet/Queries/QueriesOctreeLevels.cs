@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -220,7 +220,7 @@ namespace Aardvark.Geometry.Points
                 var ks = Verified(node.TryGetClassifications()?.Value, "classifications");
                 var qs = node.PartIndices;
 
-                var chunk = new Chunk(ps, cs, ns, js, ks, qs, partIndexRange: null, bbox: null);
+                var chunk = new Chunk(ps, cs, ns, js, ks, qs, partIndexRange: null, partIndexSet: null, bbox: null);
                 yield return chunk;
             }
             else
@@ -262,7 +262,7 @@ namespace Aardvark.Geometry.Points
             {
                 var chunk = new Chunk(
                     node.PositionsAbsolute, node.Colors?.Value, node.Normals?.Value, node.Intensities?.Value, node.Classifications?.Value,
-                    node.PartIndices, partIndexRange: null,
+                    node.PartIndices, partIndexRange: null, partIndexSet: null,
                     bbox: null
                     );
                 yield return chunk;

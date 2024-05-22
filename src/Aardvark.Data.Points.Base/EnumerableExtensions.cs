@@ -182,7 +182,7 @@ namespace Aardvark.Data.Points
                 Task.Delay(100).Wait();
             }
 
-            Task.WaitAll(ts.ToArray());
+            Task.WaitAll([.. ts]);
 
             sw.Stop();
             onFinish?.Invoke(sw.Elapsed);

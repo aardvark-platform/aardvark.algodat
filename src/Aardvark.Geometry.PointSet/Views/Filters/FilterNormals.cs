@@ -43,7 +43,7 @@ namespace Aardvark.Geometry.Points
         public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null)
         {
             var xs = GetValues(node);
-            if (xs == null) return new();
+            if (xs == null) return [];
 
             if (selected != null)
             {

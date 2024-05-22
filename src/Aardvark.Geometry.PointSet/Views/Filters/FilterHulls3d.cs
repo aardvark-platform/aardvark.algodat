@@ -39,10 +39,10 @@ namespace Aardvark.Geometry.Points
                         var dir = (l.P1 - l.P0).Normalized;
                         var n = new V3d(dir.Y, -dir.X, 0);
                         return new Plane3d(n, new V3d(l.P0, 0)).Transformed(trafo);
-                    }).Append(new[] { 
+                    }).Append([ 
                         new Plane3d(V3d.OON,zRange.Min).Transformed(trafo),
                         new Plane3d(V3d.OOI,zRange.Max).Transformed(trafo)
-                    });
+                    ]);
                 return new Hull3d(planes);
             });
         }

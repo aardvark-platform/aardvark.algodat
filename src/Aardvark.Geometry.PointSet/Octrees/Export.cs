@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -26,23 +26,17 @@ namespace Aardvark.Geometry.Points
     {
         /// <summary>
         /// </summary>
-        public class ExportPointSetInfo
+        public class ExportPointSetInfo(long pointCountTree, long processedLeafPointCount = 0L)
         {
             /// <summary>
             /// Number of points in exported tree (sum of leaf points).
             /// </summary>
-            public readonly long PointCountTree;
+            public readonly long PointCountTree = pointCountTree;
 
             /// <summary>
             /// Number of leaf points already processed.
             /// </summary>
-            public readonly long ProcessedLeafPointCount;
-
-            public ExportPointSetInfo(long pointCountTree, long processedLeafPointCount = 0L)
-            {
-                PointCountTree = pointCountTree;
-                ProcessedLeafPointCount = processedLeafPointCount;
-            }
+            public readonly long ProcessedLeafPointCount = processedLeafPointCount;
 
             /// <summary>
             /// Progress [0,1].

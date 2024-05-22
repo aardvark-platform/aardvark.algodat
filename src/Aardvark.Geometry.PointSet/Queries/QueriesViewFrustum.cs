@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -30,15 +30,15 @@ namespace Aardvark.Geometry.Points
         {
             var t = viewProjection.Inverse;
             var cs = canonicalViewVolume.ComputeCorners().Map(v => t.TransformPosProj(v));
-            var hull = new Hull3d(new[]
-            {
+            var hull = new Hull3d(
+            [
                 new Plane3d(cs[0], cs[2], cs[1]), // near
                 new Plane3d(cs[5], cs[7], cs[4]), // far
                 new Plane3d(cs[0], cs[1], cs[4]), // bottom
                 new Plane3d(cs[1], cs[3], cs[5]), // left
                 new Plane3d(cs[4], cs[6], cs[0]), // right
                 new Plane3d(cs[3], cs[2], cs[7]), // top
-            });
+            ]);
 
             return QueryPointsInsideConvexHull(self, hull);
         }

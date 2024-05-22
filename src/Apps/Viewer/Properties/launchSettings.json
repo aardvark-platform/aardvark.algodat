@@ -2,7 +2,7 @@
   "profiles": {
     "Viewer": {
       "commandName": "Project",
-      "commandLineArgs": "info \"C:\\bla\\pts\\UAV_JBs-Haus.austriaGKeast.ply\""
+      "commandLineArgs": "view \"T:\\tmp\\20240522_aardvark\\Dach_Brunnenplatz 1.e57_0.005\\data.uds\" \"Dach_Brunnenplatz 1.e57\""
     }
   }
 }

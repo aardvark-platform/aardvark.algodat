@@ -81,7 +81,7 @@ namespace Aardvark.Geometry
         /// Create an addtional data structure that contains information
         /// about the hit that is not already part of the IntersectionRayHit.
         /// </summary>
-        public ObjectHitInfo GetIntersectionRayHitInfo()
+        public readonly ObjectHitInfo GetIntersectionRayHitInfo()
         {
             ObjectHitInfo hitInfo = new();
             SetObject.Set.ObjectHitInfo(this, ref hitInfo);
@@ -129,7 +129,7 @@ namespace Aardvark.Geometry
 
         #region Properties
 
-        public bool HasValidNormal
+        public readonly bool HasValidNormal
         {
             get { return Normal != V3d.Zero; }
         }

@@ -27,7 +27,7 @@ namespace Aardvark.Geometry
         public TriangleSet()
             : base(Identifier)
         {
-            Position3dList = new List<V3d>();
+            Position3dList = [];
         }
 
         public TriangleSet(IEnumerable<Triangle3d> triangleList)
@@ -119,10 +119,10 @@ namespace Aardvark.Geometry
         {
             List<V3d> pl = Position3dList;
             int pi = hit.SetObject.Index * 3;
-            info.Points = new V3d[3] { pl[pi], pl[pi + 1], pl[pi + 2] };
+            info.Points = [pl[pi], pl[pi + 1], pl[pi + 2]];
             V3d e01 = info.Points[1]-info.Points[0];
             V3d e02 = info.Points[2]-info.Points[0];
-            info.Edges = new V3d[2] { e01, e02 };
+            info.Edges = [e01, e02];
             info.Normal = Vec.Cross(e01, e02).Normalized;
         }
 

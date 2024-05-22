@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -61,7 +61,7 @@ namespace Aardvark.Geometry.Points
             public GridQueryXY(IPointCloudNode root)
             {
                 Footprint = new Cell2d(root.Cell.X, root.Cell.Y, root.Cell.Exponent);
-                Roots = new[] { root };
+                Roots = [root];
                 Rest = Chunk.Empty;
                 Count = root.PointCountTree;
                 //GridCellExponent = gridCellExponent;
@@ -73,7 +73,7 @@ namespace Aardvark.Geometry.Points
                     throw new InvalidOperationException("Invariant 0ee8c852-9580-44fb-9c19-a9f2f2dd7c93.");
 
                 Footprint = footprint;
-                Roots = roots ?? Array.Empty<IPointCloudNode>();
+                Roots = roots ?? [];
                 Rest = rest ?? Chunk.Empty;
                 //GridCellExponent = gridCellExponent;
                 Count = Roots.Sum(r => r.PointCountTree) + Rest.Count;
@@ -143,7 +143,7 @@ namespace Aardvark.Geometry.Points
                         {
                             if (n == null) return;
                             newRoots ??= new List<IPointCloudNode>[4];
-                            if (newRoots[i] == null) newRoots[i] = new List<IPointCloudNode> { n };
+                            if (newRoots[i] == null) newRoots[i] = [n];
                             else newRoots[i].Add(n);
                         }
                         foreach (var r in Roots)
@@ -282,19 +282,13 @@ namespace Aardvark.Geometry.Points
 
         #region grid query (arbitrary stride)
 
-        public class GridQueryBox2dResult
+        public class GridQueryBox2dResult(Box2d footprint, IEnumerable<Chunk> points)
         {
             /// <summary>Grid cell bounding box.</summary>
-            public Box2d Footprint { get; }
+            public Box2d Footprint { get; } = footprint;
 
             /// <summary></summary>
-            public IEnumerable<Chunk> Points { get; }
-
-            public GridQueryBox2dResult(Box2d footprint, IEnumerable<Chunk> points)
-            {
-                Footprint = footprint;
-                Points = points;
-            }
+            public IEnumerable<Chunk> Points { get; } = points;
         }
 
         /// <summary>
@@ -316,7 +310,7 @@ namespace Aardvark.Geometry.Points
                 new V2l((long)Math.Floor(bbw.Max.X / stride.X) + 1L, (long)Math.Floor(bbw.Max.Y / stride.Y) + 1L)
                 ) ;
 
-            return QueryGridRecXY(bbt, stride, maxInMemoryPointCount, minCellExponent, new List<IPointCloudNode> { self });
+            return QueryGridRecXY(bbt, stride, maxInMemoryPointCount, minCellExponent, [self]);
         }
 
         private static IEnumerable<GridQueryBox2dResult> QueryGridRecInMemoryXY(Box2l bb, V2d stride, Chunk chunk)
@@ -331,7 +325,7 @@ namespace Aardvark.Geometry.Points
 
             if (area == 1)
             {
-                yield return new GridQueryBox2dResult(q, new[] { newChunk });
+                yield return new GridQueryBox2dResult(q, [newChunk]);
             }
             else
             {

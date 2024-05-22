@@ -9,16 +9,14 @@ namespace Aardvark.Geometry.Points
 {
     /// <summary>
     /// </summary>
-    public class FilterInsideConvexHull3d : ISpatialFilter
+    /// <remarks></remarks>
+    public class FilterInsideConvexHull3d(Hull3d filter) : ISpatialFilter
     {
         /// <summary></summary>
         public const string Type = "FilterInsideConvexHull3d";
 
         /// <summary></summary>
-        public Hull3d Hull { get; }
-
-        /// <summary></summary>
-        public FilterInsideConvexHull3d(Hull3d filter) { Hull = filter; }
+        public Hull3d Hull { get; } = filter;
 
         /// <summary></summary>
         public bool IsFullyInside(Box3d box) => Hull.Contains(box);

@@ -22,55 +22,40 @@ namespace Aardvark.Data.Points
     /// <summary>
     /// General info for a point cloud data file.
     /// </summary>
-    public class PointFileInfo
+    /// <remarks></remarks>
+    public class PointFileInfo(string fileName, PointCloudFileFormat format, long fileSizeInBytes, long pointCount, Box3d bounds)
     {
         /// <summary>
         /// Fully qualified file name.
         /// </summary>
-        public string FileName { get; }
+        public string FileName { get; } = fileName;
 
         /// <summary>
         /// Format of point cloud file.
         /// </summary>
-        public PointCloudFileFormat Format { get; }
+        public PointCloudFileFormat Format { get; } = format;
 
         /// <summary>
         /// File size in bytes.
         /// </summary>
-        public long FileSizeInBytes { get; }
+        public long FileSizeInBytes { get; } = fileSizeInBytes;
 
         /// <summary>
         /// Number of points in file.
         /// </summary>
-        public long PointCount { get; }
+        public long PointCount { get; } = pointCount;
 
         /// <summary>
         /// Bounding box of points in file.
         /// </summary>
-        public Box3d Bounds { get; }
-
-        /// <summary></summary>
-        public PointFileInfo(string fileName, PointCloudFileFormat format, long fileSizeInBytes, long pointCount, Box3d bounds)
-        {
-            FileName = fileName;
-            Format = format;
-            FileSizeInBytes = fileSizeInBytes;
-            PointCount = pointCount;
-            Bounds = bounds;
-        }
+        public Box3d Bounds { get; } = bounds;
     }
 
     /// <summary></summary>
-    public class PointFileInfo<T> : PointFileInfo
+    /// <remarks></remarks>
+    public class PointFileInfo<T>(string fileName, PointCloudFileFormat format, long fileSizeInBytes, long pointCount, Box3d bounds, T metadata) : PointFileInfo(fileName, format, fileSizeInBytes, pointCount, bounds)
     {
         /// <summary></summary>
-        public T Metadata { get; }
-
-        /// <summary></summary>
-        public PointFileInfo(string fileName, PointCloudFileFormat format, long fileSizeInBytes, long pointCount, Box3d bounds, T metadata)
-            : base(fileName, format, fileSizeInBytes, pointCount, bounds)
-        {
-            Metadata = metadata;
-        }
+        public T Metadata { get; } = metadata;
     }
 }

@@ -2731,7 +2731,7 @@ namespace Aardvark.Geometry.Tests
         }
         static async Task Parts_Test_20231006_Merge()
         {
-            V3d[] randomPoints(int n, Box3d bb)
+            static V3d[] randomPoints(int n, Box3d bb)
             {
                 var size = bb.Size;
                 var ps = new V3d[n];
@@ -2743,8 +2743,8 @@ namespace Aardvark.Geometry.Tests
                 return ps;
             }
 
-            var c0 = new Chunk(positions: randomPoints(10, Box3d.Unit          ), null, null, null, null, partIndices: 0, null, null);
-            var c1 = new Chunk(positions: randomPoints(10, Box3d.Unit + V3d.IOO), null, null, null, null, partIndices: 1, null, null);
+            var c0 = new Chunk(positions: randomPoints(10, Box3d.Unit          ), null, null, null, null, partIndices: 0, null, null, null);
+            var c1 = new Chunk(positions: randomPoints(10, Box3d.Unit + V3d.IOO), null, null, null, null, partIndices: 1, null, null, null);
 
             var storeDir = @"W:\Datasets\Vgm\Stores\test_partindex";
             var key = await CreateStore(
@@ -2772,11 +2772,11 @@ namespace Aardvark.Geometry.Tests
             //    return;
             //}
 
-            //await CreateStore(
-            //    @"C:\Data\F_240205.e57",
-            //    @"t:\tmp\20240501_aardvark",
-            //    minDist: 0.005
-            //    );
+            await CreateStore(
+                @"C:\Users\sm\Downloads\Dach_Brunnenplatz 1.e57",
+                @"T:\tmp\20240522_aardvark\Dach_Brunnenplatz 1.e57_0.005_A",
+                minDist: 0.005
+                );
 
             //await Task.Delay(0); // avoid warnings if main contains no await
 
@@ -2796,7 +2796,7 @@ namespace Aardvark.Geometry.Tests
 
             //await Parts_Test_20231006();
 
-            Test_Import_Regression();
+            //Test_Import_Regression();
 
             //await Ranges_Test_20230802();
 

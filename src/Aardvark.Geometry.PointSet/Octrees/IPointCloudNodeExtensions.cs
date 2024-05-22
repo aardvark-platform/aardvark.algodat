@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -770,7 +770,7 @@ namespace Aardvark.Geometry.Points
             // column is fully outside point cloud
             if (!cloudXY.Contains(columnXY))
             {
-                return Enumerable.Empty<Chunk>();
+                return [];
             }
 
             return QueryRec(root);
@@ -904,7 +904,7 @@ namespace Aardvark.Geometry.Points
             var js = self.HasIntensities ? self.Intensities.Value : null;
             var ks = self.HasClassifications ? self.Classifications!.Value : null;
             var qs = self.HasPartIndices ? self.PartIndices : null;
-            return new Chunk(self.PositionsAbsolute, cs, ns, js, ks, qs, partIndexRange: null, bbox: null);
+            return new Chunk(self.PositionsAbsolute, cs, ns, js, ks, qs, partIndexRange: null, partIndexSet: null, bbox: null);
         }
 
         /// <summary>
@@ -923,7 +923,7 @@ namespace Aardvark.Geometry.Points
                 var js = self.HasIntensities ? self.Intensities.Value : null;
                 var ks = self.HasClassifications ? self.Classifications!.Value : null;
                 var qs = self.HasPartIndices ? self.PartIndices : null;
-                yield return new Chunk(self.PositionsAbsolute, cs, ns, js, ks, qs, partIndexRange: null, bbox: null);
+                yield return new Chunk(self.PositionsAbsolute, cs, ns, js, ks, qs, partIndexRange: null, partIndexSet: null, bbox: null);
             }
             else
             {

@@ -8,14 +8,14 @@ namespace Aardvark.Geometry.Points
 {
     /// <summary>
     /// </summary>
-    public class FilterClassification : IFilter
+    /// <remarks></remarks>
+    public class FilterClassification(HashSet<byte> filter) : IFilter
     {
         /// <summary></summary>
         public const string Type = "FilterClassification";
 
         /// <summary></summary>
-        public HashSet<byte> Filter { get; }
-        
+        public HashSet<byte> Filter { get; } = filter;
         /// <summary></summary>
         public static FilterClassification AllExcept(params byte[] xs)
         {
@@ -34,9 +34,6 @@ namespace Aardvark.Geometry.Points
 
         /// <summary></summary>
         public FilterClassification(params byte[] filter) : this(new HashSet<byte>(filter)) { }
-
-        /// <summary></summary>
-        public FilterClassification(HashSet<byte> filter) { Filter = filter; }
 
         private byte[]? GetValues(IPointCloudNode node) => node.HasClassifications ? node.Classifications.Value : null;
 
@@ -72,7 +69,7 @@ namespace Aardvark.Geometry.Points
         public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null)
         {
             var xs = GetValues(node);
-            if (xs == null) return new();
+            if (xs == null) return [];
 
             if (selected != null)
             {

@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -18,7 +18,6 @@ using System.Linq;
 using Aardvark.Base;
 using Aardvark.Data;
 using Aardvark.Data.Points;
-using Microsoft.FSharp.Core;
 
 namespace Aardvark.Geometry.Points
 {
@@ -38,7 +37,7 @@ namespace Aardvark.Geometry.Points
             var bbox = data.BoundingBoxExactGlobal;
 
             var line = Clip(bbox, ray);
-            if (!line.HasValue) return Enumerable.Empty<Chunk>();
+            if (!line.HasValue) return [];
 
             return self.QueryPointsNearLineSegment(line.Value, maxDistanceToRay, minCellExponent);
         }
@@ -63,7 +62,7 @@ namespace Aardvark.Geometry.Points
             var bbox = data.BoundingBoxExactGlobal;
 
             var line = Clip(bbox, ray);
-            if (!line.HasValue) return Enumerable.Empty<GenericChunk>();
+            if (!line.HasValue) return [];
 
             return self.QueryPointsNearLineSegmentCustom(line.Value, maxDistanceToRay, minCellExponent, customAttributes);
         }
@@ -142,7 +141,7 @@ namespace Aardvark.Geometry.Points
                             if (node.HasClassifications) ks![i] = node.Classifications.Value[index];
                             //ds[i] = ia[i].Dist;
                         }
-                        var chunk = new Chunk(ps, cs, ns, js, ks, qs, partIndexRange: null, bbox: null);
+                        var chunk = new Chunk(ps, cs, ns, js, ks, qs, partIndexRange: null, partIndexSet: null, bbox: null);
                         yield return chunk;
                     }
                 }
@@ -169,6 +168,7 @@ namespace Aardvark.Geometry.Points
                             node.Classifications?.Value.Subset(ia),
                             partIndices: PartIndexUtils.Subset(node.PartIndices, ia),
                             partIndexRange: null,
+                            partIndexSet: null,
                             bbox: null);
                         throw new NotImplementedException("PARTINDICES");
                     }

@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -12,7 +12,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
-using Aardvark.Base.Sorting;
 using Aardvark.Data;
 using Aardvark.Data.Points;
 using System;
@@ -26,82 +25,82 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public static class MergeExtensions
     {
-        private static bool DidMergeWorkObject(object? x, int xCount, object? y, int yCount, object? m)
-        {
-            var xqs = PartIndexUtils.ConcatIndices(x, xCount, y, yCount);
-            var ass = ((int[])xqs!);
-            ass.QuickSortAscending();
-            var mss = ((int[])m!);
-            mss.QuickSortAscending();
+        //private static bool DidMergeWorkObject(object? x, int xCount, object? y, int yCount, object? m)
+        //{
+        //    var xqs = PartIndexUtils.ConcatIndices(x, xCount, y, yCount);
+        //    var ass = ((int[])xqs!);
+        //    ass.QuickSortAscending();
+        //    var mss = ((int[])m!);
+        //    mss.QuickSortAscending();
 
-            var assHist =
-                ass.GroupBy(i => i)
-                    .Select(group => (group.Key, group.Count()))
-                    .OrderBy(x => x.Item1)
-                    .ToArray();
-            var mssHist =
-                mss.GroupBy(i => i)
-                    .Select(group => (group.Key, group.Count()))
-                    .OrderBy(x => x.Item1)
-                    .ToArray();
-            var eq = Enumerable.SequenceEqual(ass, mss);
-            if (!eq)
-            {
-                Report.Begin("Ass");
-                foreach (var (k, c) in assHist)
-                {
-                    Report.Line("{0}:{1}", k, c);
-                }
-                Report.End();
-                Report.Begin("Mss");
-                foreach (var (k, c) in mssHist)
-                {
-                    Report.Line("{0}:{1}", k, c);
-                }
-                Report.End();
-            }
-            return eq;
-        }
-        private static bool DidMergeWork(IPointCloudNode x, IPointCloudNode y,IPointCloudNode m)
-        {
-            object? xqs = null;
-            object? mqs = null;
-            CollectEverything(x, new List<V3d>(), null, null, null, null, ref xqs);
-            CollectEverything(y, new List<V3d>(), null, null, null, null, ref xqs);
-            CollectEverything(m, new List<V3d>(), null, null, null, null, ref mqs);
-            var ass = ((int[])xqs!);
-            ass.QuickSortAscending();
-            var mss = ((int[])mqs!);
-            mss.QuickSortAscending();
+        //    var assHist =
+        //        ass.GroupBy(i => i)
+        //            .Select(group => (group.Key, group.Count()))
+        //            .OrderBy(x => x.Key)
+        //            .ToArray();
+        //    var mssHist =
+        //        mss.GroupBy(i => i)
+        //            .Select(group => (group.Key, group.Count()))
+        //            .OrderBy(x => x.Key)
+        //            .ToArray();
+        //    var eq = Enumerable.SequenceEqual(ass, mss);
+        //    if (!eq)
+        //    {
+        //        Report.Begin("Ass");
+        //        foreach (var (k, c) in assHist)
+        //        {
+        //            Report.Line("{0}:{1}", k, c);
+        //        }
+        //        Report.End();
+        //        Report.Begin("Mss");
+        //        foreach (var (k, c) in mssHist)
+        //        {
+        //            Report.Line("{0}:{1}", k, c);
+        //        }
+        //        Report.End();
+        //    }
+        //    return eq;
+        //}
+        //private static bool DidMergeWork(IPointCloudNode x, IPointCloudNode y,IPointCloudNode m)
+        //{
+        //    object? xqs = null;
+        //    object? mqs = null;
+        //    CollectEverything(x, new List<V3d>(), null, null, null, null, ref xqs);
+        //    CollectEverything(y, new List<V3d>(), null, null, null, null, ref xqs);
+        //    CollectEverything(m, new List<V3d>(), null, null, null, null, ref mqs);
+        //    var ass = ((int[])xqs!);
+        //    ass.QuickSortAscending();
+        //    var mss = ((int[])mqs!);
+        //    mss.QuickSortAscending();
 
-            var assHist =
-                ass.GroupBy(i => i)
-                    .Select(group => (group.Key, group.Count()))
-                    .OrderBy(x => x.Item1)
-                    .ToArray();
-            var mssHist =
-                mss.GroupBy(i => i)
-                    .Select(group => (group.Key, group.Count()))
-                    .OrderBy(x => x.Item1)
-                    .ToArray();
-            var eq = Enumerable.SequenceEqual(ass, mss);
-            if(!eq)
-            {
-                Report.Begin("Ass");
-                foreach(var (k,c) in assHist)
-                {
-                    Report.Line("{0}:{1}", k, c);
-                }
-                Report.End();
-                Report.Begin("Mss");
-                foreach (var (k, c) in mssHist)
-                {
-                    Report.Line("{0}:{1}", k, c);
-                }
-                Report.End();
-            }
-            return eq;
-        }
+        //    var assHist =
+        //        ass.GroupBy(i => i)
+        //            .Select(group => (group.Key, group.Count()))
+        //            .OrderBy(x => x.Key)
+        //            .ToArray();
+        //    var mssHist =
+        //        mss.GroupBy(i => i)
+        //            .Select(group => (group.Key, group.Count()))
+        //            .OrderBy(x => x.Key)
+        //            .ToArray();
+        //    var eq = Enumerable.SequenceEqual(ass, mss);
+        //    if(!eq)
+        //    {
+        //        Report.Begin("Ass");
+        //        foreach(var (k,c) in assHist)
+        //        {
+        //            Report.Line("{0}:{1}", k, c);
+        //        }
+        //        Report.End();
+        //        Report.Begin("Mss");
+        //        foreach (var (k, c) in mssHist)
+        //        {
+        //            Report.Line("{0}:{1}", k, c);
+        //        }
+        //        Report.End();
+        //    }
+        //    return eq;
+        //}
 
         /// <summary>
         /// Collects all leaf per-point properties into given lists.
@@ -207,7 +206,7 @@ namespace Aardvark.Geometry.Points
                             nsla.Count > 0 ? nsla : null,
                             jsla.Count > 0 ? jsla : null,
                             ksla.Count > 0 ? ksla : null,
-                            qsla, partIndexRange: null,
+                            qsla, partIndexRange: null, partIndexSet: null,
                             bbox: null
                             );
 
@@ -245,6 +244,7 @@ namespace Aardvark.Geometry.Points
                         {
                             if (!collapsedNode.HasPartIndices) throw new Exception($"Invariant 58389bf7-be01-46f1-b0df-f75942eea2b7.");
                             if (!collapsedNode.HasPartIndexRange) throw new Exception($"Invariant 5adce094-281b-4617-b45a-1805301e34af.");
+                            if (!collapsedNode.HasPartIndexSet) throw new Exception($"Invariant ef3d2a9e-09dc-46e2-97f4-f9f3350d6b8b.");
                         }
 
                         if (self.Cell != collapsedNode.Cell)
@@ -275,10 +275,10 @@ namespace Aardvark.Geometry.Points
                 );
 
             if (self == null) throw new ArgumentNullException(nameof(self));
-            if (self.IsLeaf == false) throw new InvalidOperationException();
-            if (self.PointCountCell == 0) throw new InvalidOperationException();
-            if (self.PointCountTree != self.PointCountCell) throw new InvalidOperationException();
-            if (self.HasPartIndices && !self.HasPartIndexRange) throw new InvalidOperationException();
+            if (self.IsLeaf == false) throw new InvalidOperationException("Invariant c4fee178-306d-414f-b107-fb52d8b2ba4a.");
+            if (self.PointCountCell == 0) throw new InvalidOperationException("Invariant 594ad60d-a1ca-4b76-9987-85294fd28616.");
+            if (self.PointCountTree != self.PointCountCell) throw new InvalidOperationException("Invariant f4972e22-a5ad-464f-ab2d-c16965ff2d33.");
+            if (self.HasPartIndices && (!self.HasPartIndexRange || !self.HasPartIndexSet)) throw new InvalidOperationException("Invariant db6a1c23-6fa8-4459-b02c-615ce9bc2410.");
 
             var ps = self.PositionsAbsolute;
             var cs = self.Colors?.Value;
@@ -298,7 +298,7 @@ namespace Aardvark.Geometry.Points
             if (ps.Length != imax) throw new InvalidOperationException();
 
             var ias = new List<int>[8];
-            for (var i = 0; i < 8; i++) ias[i] = new();
+            for (var i = 0; i < 8; i++) ias[i] = [];
             for (var i = 0; i < imax; i++) ias[self.GetSubIndex(ps[i])].Add(i);
 
             for (var i = 0; i < 8; i++)
@@ -324,7 +324,7 @@ namespace Aardvark.Geometry.Points
                 if (!self.Cell.Contains(subCell)) throw new InvalidOperationException();
                 if (self.Cell.Exponent != subCell.Exponent + 1) throw new InvalidOperationException();
 
-                var chunk = new Chunk(subPs, css?[i], nss?[i], jss?[i], kss?[i], qss?[i], partIndexRange: null, subCell.BoundingBox);
+                var chunk = new Chunk(subPs, css?[i], nss?[i], jss?[i], kss?[i], qss?[i], partIndexRange: null, partIndexSet: null, subCell.BoundingBox);
 
                 if (config.NormalizePointDensityGlobal)
                 {
@@ -354,11 +354,12 @@ namespace Aardvark.Geometry.Points
             var result = new PointSetNode(data, self.Storage, true);
 
             // POST
-            if (result.IsLeaf) throw new InvalidOperationException();
-            if (result.PointCountTree != self.PointCountTree) throw new InvalidOperationException();
-            if (result.PointCountCell != 0) throw new InvalidOperationException();
-            if (result.Subnodes.Sum(x => x?.Value?.PointCountTree) > self.PointCountTree) throw new InvalidOperationException();
-            if (self.HasPartIndexRange && !result.HasPartIndexRange) throw new InvalidOperationException();
+            if (result.IsLeaf) throw new InvalidOperationException("Invariant 41de34ef-e0b9-4f8f-b97b-51315131861f.");
+            if (result.PointCountTree != self.PointCountTree) throw new InvalidOperationException("Invariant 42a83b5b-1571-4c26-acc4-3e1b5a42bc16.");
+            if (result.PointCountCell != 0) throw new InvalidOperationException("Invariant 58268f18-fede-433f-8c23-7d0fb77972a6.");
+            if (result.Subnodes.Sum(x => x?.Value?.PointCountTree) > self.PointCountTree) throw new InvalidOperationException("Invariant 2afda276-1865-404b-87e1-6a91e75b9d08.");
+            if (self.HasPartIndexRange && !result.HasPartIndexRange) throw new InvalidOperationException("Invariant 5bd11635-dc71-400b-b288-f736c160d072.");
+            if (self.HasPartIndexSet   && !result.HasPartIndexSet  ) throw new InvalidOperationException("Invariant 9b7e4fdf-baf1-4dac-b368-684e25669669.");
 
             return result;
         }
@@ -381,6 +382,7 @@ namespace Aardvark.Geometry.Points
 
             // expect
             if (a.HasPartIndexRange != b.HasPartIndexRange) throw new Exception("Invariant ff2ea514-a7b7-46dd-b147-ff7bd58ed1db.");
+            if (a.HasPartIndexSet   != b.HasPartIndexSet  ) throw new Exception("Invariant 29e6d043-8f9e-4546-9ca7-d33aeaefc90a.");
 
             if (a.PointCountTree + b.PointCountTree <= config.OctreeSplitLimit)
             {
@@ -395,11 +397,8 @@ namespace Aardvark.Geometry.Points
                 CollectEverything(b, psla, csla, nsla, jsla, ksla, ref qsla);
 
 
-                var range = PartIndexUtils.MergeRanges(a.PartIndexRange, b.PartIndexRange);
-
-                //var checkRange = PartIndexUtils.GetRange(qsla);
-                //if (range != checkRange) throw new Exception("!aasdfasdasd");
-
+                var partIndexRange = PartIndexUtils.MergeRanges(a.PartIndexRange, b.PartIndexRange);
+                var partIndexSet = PartIndexUtils.MergeSets(a.PartIndexSet, b.PartIndexSet);
 
                 var cell = new Cell(a.Cell, b.Cell);
                 var chunk = new Chunk(
@@ -409,7 +408,8 @@ namespace Aardvark.Geometry.Points
                     jsla.Count > 0 ? jsla : null,
                     ksla.Count > 0 ? ksla : null,
                     partIndices: qsla,
-                    partIndexRange: range,
+                    partIndexRange: partIndexRange,
+                    partIndexSet: partIndexSet,
                     bbox: null
                     ); 
 
@@ -429,6 +429,7 @@ namespace Aardvark.Geometry.Points
                 var ks = chunk.Classifications?.ToArray();
                 var qs = chunk.PartIndices;
                 var qsRange = chunk.PartIndexRange;
+                var qsSet   = chunk.PartIndexSet;
 
                 var bbExactGlobal = chunk.BoundingBox;
 
@@ -463,6 +464,9 @@ namespace Aardvark.Geometry.Points
                     if (qsRange == null) throw new Exception("Invariant 7c01f554-d833-42cc-ab1d-9dbaa61bef45.");
                     data = data.Add(Durable.Octree.PartIndexRange, qsRange);
 
+                    if (qsSet == null) throw new Exception("Invariant 4976c2b6-cc90-4698-93a6-9d8f5adeab72.");
+                    data = data.Add(OctreeDefs.PartIndexSet, qsSet);
+
                     if (qs is Array qsArray)
                     {
                         // store separately and reference by id ...
@@ -486,6 +490,7 @@ namespace Aardvark.Geometry.Points
 
                 var result = new PointSetNode(data, config.Storage, writeToStore: true);
                 if (a.HasPartIndexRange != result.HasPartIndexRange) throw new Exception("Invariant 28925464-2ff0-49e8-bf77-c97cbb2dcb47.");
+                if (a.HasPartIndexSet   != result.HasPartIndexSet  ) throw new Exception("Invariant 115503bc-20a6-47dd-b727-51a4fa08710d.");
                 return (result, true);
             }
 
@@ -503,6 +508,7 @@ namespace Aardvark.Geometry.Points
                 //DidMergeWork(a, b, result);
                 pointsMergedCallback?.Invoke(a.PointCountTree + b.PointCountTree);
                 if (a.HasPartIndexRange != result.HasPartIndexRange) throw new Exception("Invariant 6b05a096-bab5-4a51-8b4c-1eff19e6806d.");
+                if (a.HasPartIndexSet   != result.HasPartIndexSet  ) throw new Exception("Invariant e791224d-30d8-430d-9818-470248e720d2.");
                 return result.CollapseLeafNodes(config);
             }
 
@@ -516,6 +522,7 @@ namespace Aardvark.Geometry.Points
 //#endif
                 pointsMergedCallback?.Invoke(a.PointCountTree + b.PointCountTree);
                 if (a.HasPartIndexRange != result.HasPartIndexRange) throw new Exception("Invariant b4f38aff-6499-44cf-9f0f-f8c3e78f0538.");
+                if (a.HasPartIndexSet   != result.HasPartIndexSet  ) throw new Exception("Invariant e51173d8-cde5-487e-81f6-a75e8996869c.");
                 return result.CollapseLeafNodes(config);
             }
 
@@ -530,6 +537,7 @@ namespace Aardvark.Geometry.Points
                         // split A into 8 subcells to get rid of centered cell
                         var aSplit = a.ForceSplitLeaf(config); 
                         if (a.HasPartIndexRange != aSplit.HasPartIndexRange) throw new Exception("Invariant 018b94f4-50fe-4d15-a2fe-6e5d93cbf9a0.");
+                        if (a.HasPartIndexSet   != aSplit.HasPartIndexSet  ) throw new Exception("Invariant 2ba17e86-b6b9-465b-b5e3-6eddb8e51a19.");
                         return Merge(aSplit, b, pointsMergedCallback, config);
                     }
                     else
@@ -549,6 +557,7 @@ namespace Aardvark.Geometry.Points
                         // split B into 8 subcells to get rid of centered cell
                         var bSplit = b.ForceSplitLeaf(config);
                         if (a.HasPartIndexRange != bSplit.HasPartIndexRange) throw new Exception("Invariant 59650027-2b6e-4ddd-8c3b-2bf6b3d3e08b.");
+                        if (a.HasPartIndexSet   != bSplit.HasPartIndexSet  ) throw new Exception("Invariant 917a067d-1d07-46dd-8507-25ce22c7ede0.");
                         return Merge(a, bSplit, pointsMergedCallback, config);
                     }
                     else
@@ -569,6 +578,7 @@ namespace Aardvark.Geometry.Points
                     var r = partsNonNull.Single();
                     pointsMergedCallback?.Invoke(r.PointCountTree);
                     if (a.HasPartIndexRange != r.HasPartIndexRange) throw new Exception("Invariant 2d6be9c1-0f65-48d3-985a-856a82085dca.");
+                    if (a.HasPartIndexSet   != r.HasPartIndexSet  ) throw new Exception("Invariant e2ec40ba-ac01-4ea2-8d1d-51f5c5792d78.");
                     return r.CollapseLeafNodes(config);
                 }
 
@@ -583,6 +593,7 @@ namespace Aardvark.Geometry.Points
                 }
 
                 var qsRange = (Range1i?)null;
+                var qsSet = (int[]?)null;
                 foreach (var x in partsNonNull)
                 {
                     var oi = octant(x.Cell);
@@ -612,6 +623,7 @@ namespace Aardvark.Geometry.Points
                     roots[oi] = r;
 
                     qsRange = PartIndexUtils.MergeRanges(qsRange, r.PartIndexRange);
+                    qsSet = PartIndexUtils.MergeSets(qsSet, r.PartIndexSet);
                 }
 
                 var pointCountTreeLeafs = roots.Where(x => x != null).Sum(x => x.PointCountTree);
@@ -628,6 +640,7 @@ namespace Aardvark.Geometry.Points
                     ;
 
                 if (qsRange != null) data = data.Add(Durable.Octree.PartIndexRange, qsRange);
+                if (qsSet != null) data = data.Add(OctreeDefs.PartIndexSet, qsSet);
 
                 var result = new PointSetNode(data, config.Storage, writeToStore: true);
                 if (a.HasPartIndexRange != result.HasPartIndexRange) throw new Exception("Invariant 71148683-b67c-41e5-aeff-2d63643fd440.");
@@ -647,6 +660,7 @@ namespace Aardvark.Geometry.Points
             {
                 var result = Merge(b, a, pointsMergedCallback, config);
                 if (a.HasPartIndexRange != result.Item1.HasPartIndexRange) throw new Exception("Invariant ce60ef6a-c752-4ada-a540-6eb8bf8b0aec.");
+                if (a.HasPartIndexSet   != result.Item1.HasPartIndexSet  ) throw new Exception("Invariant 819e7493-7293-406a-8599-4d7eb329f66b.");
                 return result;
             }
 
@@ -698,6 +712,7 @@ namespace Aardvark.Geometry.Points
 
             pointsMergedCallback?.Invoke(result2.PointCountTree);
             if (a.HasPartIndexRange != result2.HasPartIndexRange) throw new Exception("Invariant 18852eb2-1be0-4f22-9c9c-1f824c657685.");
+            if (a.HasPartIndexSet   != result2.HasPartIndexSet  ) throw new Exception("Invariant 5b84abc2-0188-4bc9-b62b-350ea1c24eb2.");
             return result2.CollapseLeafNodes(config);
         }
         
@@ -726,6 +741,7 @@ namespace Aardvark.Geometry.Points
 
             // PRE: assume that part indices are available in both trees or in no tree (but not in one or the other)
             if (a.HasPartIndexRange != b.HasPartIndexRange) throw new Exception("Invariant b3feedfd-927d-4436-9eb9-350d377ab852.");
+            if (a.HasPartIndexSet   != b.HasPartIndexSet  ) throw new Exception("Invariant efb8119a-30cd-4b2a-a8e3-935c51f8d367.");
 
             #endregion
 
@@ -759,6 +775,7 @@ namespace Aardvark.Geometry.Points
                 {
                     var r = JoinNonOverlappingTrees(rootCell, a.ForceSplitLeaf(config), b, pointsMergedCallback, config);
                     if (a.HasPartIndexRange != r.HasPartIndexRange) throw new Exception("Invariant b3feedfd-927d-4436-9eb9-350d377ab852.");
+                    if (a.HasPartIndexSet   != r.HasPartIndexSet  ) throw new Exception("Invariant 8f646827-7ce1-4e55-ae7b-fc78fcac12c4.");
                     return r;
                 }
 #endregion
@@ -819,6 +836,7 @@ namespace Aardvark.Geometry.Points
 #endif
                 //pointsMergedCallback?.Invoke(result.PointCountTree);
                 if (a.HasPartIndexRange != result.HasPartIndexRange) throw new Exception("Invariant 595235c3-7541-41e4-9bca-77d38daff7fd.");
+                if (a.HasPartIndexSet   != result.HasPartIndexSet  ) throw new Exception("Invariant 513c2842-9f9a-40c9-9453-18d87115494a.");
                 return result;
             }
 
@@ -878,6 +896,12 @@ namespace Aardvark.Geometry.Points
                     data = data.Add(Durable.Octree.PartIndexRange, mergedPartIndexRange);
                 }
 
+                if (a.HasPartIndexSet)
+                {
+                    var mergedPartIndexSet = PartIndexUtils.MergeSets(a.PartIndexSet, b.PartIndexSet) ?? throw new Exception("Invariant e68531e7-2315-45bd-9937-9db9671a16f6.");
+                    data = data.Add(OctreeDefs.PartIndexSet, mergedPartIndexSet);
+                }
+
                 var result = new PointSetNode(data, config.Storage, writeToStore: false).CollapseLeafNodes(config).Item1;
 
 #if DEBUG
@@ -888,6 +912,7 @@ namespace Aardvark.Geometry.Points
 #endif
                 //pointsMergedCallback?.Invoke(result.PointCountTree);/pointsMergedCallback?.Invoke(result.PointCountTree);
                 if (a.HasPartIndexRange != result.HasPartIndexRange) throw new Exception("Invariant 2a5e4624-1597-4933-a6ba-50d41097af6a.");
+                if (a.HasPartIndexSet   != result.HasPartIndexSet  ) throw new Exception("Invariant 03961db6-eda6-4b91-b5be-2af8b3db4a45.");
                 return result;
             }
 
@@ -922,12 +947,15 @@ namespace Aardvark.Geometry.Points
                 ;
 
             if (a.HasPartIndexRange) data = data.Add(Durable.Octree.PartIndexRange, a.PartIndexRange);
+            if (a.HasPartIndexSet  ) data = data.Add(OctreeDefs.PartIndexSet, a.PartIndexSet);
 
             var result = (IPointCloudNode)new PointSetNode(data, config.Storage, writeToStore: false);
             if (collapse) result = result.CollapseLeafNodes(config).Item1;
             else result = result.WriteToStore();
 
             if (a.PartIndexRange != result.PartIndexRange) throw new Exception("Invariant 8386bc52-2f58-4bbb-8260-25300d0b4e0f.");
+            if (a.PartIndexSet   != result.PartIndexSet  ) throw new Exception("Invariant dd987d5b-a269-438a-8b1f-b69e5b108ad5.");
+
             return result;
         }
 
@@ -945,6 +973,7 @@ namespace Aardvark.Geometry.Points
             if (a.HasIntensities != b.HasIntensities) throw new InvalidOperationException();
             if (a.HasClassifications != b.HasClassifications) throw new InvalidOperationException();
             if (a.HasPartIndexRange != b.HasPartIndexRange) throw new Exception("Invariant 653807fb-16d5-42d5-bf24-d48635195c92.");
+            if (a.HasPartIndexSet   != b.HasPartIndexSet  ) throw new Exception("Invariant de729398-97c2-46dc-acfb-e304c41882dc.");
 
             var cell = a.Cell;
 
@@ -955,7 +984,7 @@ namespace Aardvark.Geometry.Points
             var ks = Concat(a.Classifications?.Value, b.Classifications?.Value);
             var qs = PartIndexUtils.ConcatIndices(a.PartIndices, a.PointCountCell, b.PartIndices, b.PointCountCell);
 
-            var chunk = new Chunk(ps, cs, ns, js, ks, partIndices: qs, partIndexRange: null, cell.BoundingBox);
+            var chunk = new Chunk(ps, cs, ns, js, ks, partIndices: qs, partIndexRange: null, partIndexSet: null, cell.BoundingBox);
             if (config.NormalizePointDensityGlobal)
             {
                 chunk = chunk.ImmutableFilterMinDistByCell(cell, config.ParseConfig);
@@ -963,6 +992,7 @@ namespace Aardvark.Geometry.Points
             var result = InMemoryPointSet.Build(chunk, cell, config.OctreeSplitLimit).ToPointSetNode(config.Storage, isTemporaryImportNode: true);
             if (a.Cell != result.Cell) throw new InvalidOperationException("Invariant 771d781a-6d37-4017-a890-4f72a96a01a8."); 
             if (a.HasPartIndexRange != result.HasPartIndexRange) throw new Exception("Invariant 583675f5-5fb2-4b2d-9b55-3c559bac8bd4.");
+            if (a.HasPartIndexSet   != result.HasPartIndexSet  ) throw new Exception("Invariant 2c828d01-36ca-4ebf-b458-9e255c167e97.");
             return result;
         }
 
@@ -973,10 +1003,12 @@ namespace Aardvark.Geometry.Points
             if (a.IsLeaf == false || b.IsLeaf == true) throw new InvalidOperationException();
             if (a.Cell != b.Cell) throw new InvalidOperationException();
             if (a.HasPartIndexRange != b.HasPartIndexRange) throw new Exception("Invariant 7fe9ebc7-b51e-4a5a-8aa8-0e08b63b6240.");
+            if (a.HasPartIndexSet   != b.HasPartIndexSet  ) throw new Exception("Invariant f511b9ed-f6ce-4585-ad27-61a20e0a6824.");
 
             var result = InjectPointsIntoTree(a.PositionsAbsolute, a.Colors?.Value, a.Normals?.Value, a.Intensities?.Value, a.Classifications?.Value, a.PartIndices, b, a.Cell, config);
             if (a.Cell != result.Cell) throw new InvalidOperationException("Invariant 55551919-1a11-4ea9-bb4e-6f1a6b15e3d5.");
             if (a.HasPartIndexRange != result.HasPartIndexRange) throw new Exception("Invariant bf22e8ce-b517-4f42-90d8-947db603c244.");
+            if (a.HasPartIndexSet   != result.HasPartIndexSet  ) throw new Exception("Invariant 49db3bef-8c08-4ae1-924b-faf20dbe5b19.");
             return result;
         }
 
@@ -985,16 +1017,18 @@ namespace Aardvark.Geometry.Points
             ImportConfig config
             )
         {
-            if (a.IsLeaf || b.IsLeaf) throw new InvalidOperationException();
-            if (a.Cell != b.Cell) throw new InvalidOperationException();
-            if (a.PointCountCell > 0) throw new InvalidOperationException();
-            if (b.PointCountCell > 0) throw new InvalidOperationException(); 
+            if (a.IsLeaf || b.IsLeaf) throw new InvalidOperationException("Invariant e81065f2-48e7-47da-ba62-63b8a6202b00.");
+            if (a.Cell != b.Cell) throw new InvalidOperationException("Invariant 93cef65c-eb55-411d-95d6-72242631267f.");
+            if (a.PointCountCell > 0) throw new InvalidOperationException("Invariant 529a3a65-37d5-404c-a9ee-9254f89f3b92.");
+            if (b.PointCountCell > 0) throw new InvalidOperationException("Invariant 5ebdc0d7-cd26-4e30-abcb-d75d32bd8a61."); 
             if (a.HasPartIndexRange != b.HasPartIndexRange) throw new Exception("Invariant 0103f130-f022-42e5-8efc-da4e5747177a.");
+            if (a.HasPartIndexSet   != b.HasPartIndexSet  ) throw new Exception("Invariant c0649b17-70ae-4e66-9927-6cce23860d75.");
 
             var pointCountTree = 0L;
             var subcells = new IPointCloudNode?[8];
             var subcellsDebug = new int[8];
             Range1i? qsRange = null;
+            int[]? qsSet = null;
             for (var i = 0; i < 8; i++)
             {
                 var octant = a.Cell.GetOctant(i);
@@ -1013,6 +1047,7 @@ namespace Aardvark.Geometry.Points
                         //if (x.PointCountTree + y.PointCountTree != subcells[i].PointCountTree) throw new InvalidOperationException("Invariant 82072553-7271-4448-b74d-735d44eb03b0.");
                         pointCountTree += m.PointCountTree;
                         qsRange = PartIndexUtils.MergeRanges(qsRange, m.PartIndexRange);
+                        qsSet   = PartIndexUtils.MergeSets  (qsSet  , m.PartIndexSet  );
                         subcellsDebug[i] = 0;
                     }
                     else
@@ -1020,6 +1055,7 @@ namespace Aardvark.Geometry.Points
                         subcells[i] = x;
                         pointCountTree += x.PointCountTree; 
                         qsRange = PartIndexUtils.MergeRanges(qsRange, x.PartIndexRange);
+                        qsSet   = PartIndexUtils.MergeSets  (qsSet  , x.PartIndexSet  );
                         //if (subcells[i].PointCountTree != x.PointCountTree) throw new InvalidOperationException();
                         subcellsDebug[i] = 1;
                     }
@@ -1031,6 +1067,7 @@ namespace Aardvark.Geometry.Points
                         subcells[i] = y;
                         pointCountTree += y.PointCountTree;
                         qsRange = PartIndexUtils.MergeRanges(qsRange, y.PartIndexRange);
+                        qsSet   = PartIndexUtils.MergeSets  (qsSet  , y.PartIndexSet  );
 
                         //if (subcells[i].PointCountTree != y.PointCountTree) throw new InvalidOperationException();
                         subcellsDebug[i] = 2;
@@ -1050,10 +1087,12 @@ namespace Aardvark.Geometry.Points
                 ;
 
             if (qsRange != null) replacements = replacements.Add(Durable.Octree.PartIndexRange, qsRange);
+            if (qsSet   != null) replacements = replacements.Add(OctreeDefs.PartIndexSet, qsSet);
 
             var result = a.With(replacements).CollapseLeafNodes(config).Item1;
             if (a.Cell != result.Cell) throw new InvalidOperationException("Invariant 97239777-8a0c-4158-853b-e9ebef63fda8.");
             if (a.HasPartIndexRange != result.HasPartIndexRange) throw new Exception("Invariant 95228e78-b71f-4778-bf8a-926bd91e3560.");
+            if (a.HasPartIndexSet   != result.HasPartIndexSet  ) throw new Exception("Invariant 4fddaa1e-b26b-4559-80c3-e7f62ec0cbc0.");
             return result;
         }
         
@@ -1066,14 +1105,16 @@ namespace Aardvark.Geometry.Points
             IList<int>? intensities,
             IList<byte>? classifications,
             object? partIndices,
-            Range1i? partIndexRange
+            Range1i? partIndexRange,
+            int[]? partIndexSet
             )
         {
-            var chunk = new Chunk(positions, colors, normals, intensities, classifications, partIndices, partIndexRange, bbox: null);
+            var chunk = new Chunk(positions, colors, normals, intensities, classifications, partIndices, partIndexRange, partIndexSet, bbox: null);
             if (config.NormalizePointDensityGlobal) chunk = chunk.ImmutableFilterMinDistByCell(cell, config.ParseConfig);
             var node = InMemoryPointSet.Build(chunk, cell, config.OctreeSplitLimit).ToPointSetNode(config.Storage, isTemporaryImportNode: true);
             if (node.Cell != cell) throw new InvalidOperationException("Invariant a9d952d5-5e01-4f59-9b6b-8a4e6a3d4cd9.");
             if (partIndices != null && !node.HasPartIndexRange) throw new Exception("Invariant b9fccc91-cb8e-4efe-b4f1-25f39c90a8f7.");
+            if (partIndices != null && !node.HasPartIndexSet  ) throw new Exception("Invariant 5664f910-923c-4168-a21e-36b938aef78e.");
             return node;
         }
 
@@ -1088,7 +1129,7 @@ namespace Aardvark.Geometry.Points
 
             if (a == null)
             {
-                var result0 = CreateTmpNode(config, cell, psAbsolute, cs, ns, js, ks, qs, partIndexRange: null);
+                var result0 = CreateTmpNode(config, cell, psAbsolute, cs, ns, js, ks, qs, partIndexRange: null, partIndexSet: null);
                 if (qs != null && !result0.HasPartIndices) throw new NotImplementedException("PARTINDICES");
                 //DidMergeWorkObject(null, 0, qs, psAbsolute.Count, result0.PartIndices);
                 return result0;
@@ -1110,8 +1151,9 @@ namespace Aardvark.Geometry.Points
                 var newKs = ks != null ? new List<byte>(ks) : null; newKs?.AddRange(a.Classifications!.Value);
                 var newQs = PartIndexUtils.ConcatIndices(qs, psAbsolute.Count, a.PartIndices, a.PointCountCell);
 
-                var result0 = CreateTmpNode(config, cell, newPs, newCs, newNs, newJs, newKs, newQs, partIndexRange: null);
+                var result0 = CreateTmpNode(config, cell, newPs, newCs, newNs, newJs, newKs, newQs, partIndexRange: null, partIndexSet: null);
                 if (a.HasPartIndexRange != result0.HasPartIndexRange) throw new Exception("Invariant c338fe24-7377-450c-af16-26be47861137.");
+                if (a.HasPartIndexSet   != result0.HasPartIndexSet  ) throw new Exception("Invariant bfe97595-2434-455c-89a7-92d4dba18dae.");
                 //doesnt check if result0 is innernode 
                 //DidMergeWorkObject(a.PartIndices, a.PointCountCell, qs, psAbsolute.Count, result0.PartIndices);
                 return result0;
@@ -1137,12 +1179,12 @@ namespace Aardvark.Geometry.Points
                 var j = a.GetSubIndex(psAbsolute[i]);
                 if (pss[j] == null)
                 {
-                    pss[j] = new List<V3d>();
-                    if (cs != null) css![j] = new List<C4b>();
-                    if (ns != null) nss![j] = new List<V3f>();
-                    if (js != null) iss![j] = new List<int>();
-                    if (ks != null) kss![j] = new List<byte>();
-                    if (qs != null) qss![j] = new List<int>();
+                    pss[j] = [];
+                    if (cs != null) css![j] = [];
+                    if (ns != null) nss![j] = [];
+                    if (js != null) iss![j] = [];
+                    if (ks != null) kss![j] = [];
+                    if (qs != null) qss![j] = [];
                 }
                 pss[j].Add(psAbsolute[i]);
                 if (cs != null) css![j].Add(cs[i]);
@@ -1165,7 +1207,7 @@ namespace Aardvark.Geometry.Points
                     if (x == null)
                     {
                         // injecting points into non-existing subtree
-                        subcells[j] = CreateTmpNode(config, subCell, pss[j], css?[j], nss?[j], iss?[j], kss?[j], qsss, partIndexRange: null);
+                        subcells[j] = CreateTmpNode(config, subCell, pss[j], css?[j], nss?[j], iss?[j], kss?[j], qsss, partIndexRange: null, partIndexSet: null);
                     }
                     else
                     {
@@ -1178,9 +1220,11 @@ namespace Aardvark.Geometry.Points
                 }
             }
 
-            var result = a.WithSubNodes(subcells).CollapseLeafNodes(config).Item1;
+            var resultWithSubNodes = a.WithSubNodes(subcells);
+            var result = resultWithSubNodes.CollapseLeafNodes(config).Item1;
             if (result.Cell != cell) throw new InvalidOperationException("Invariant 04aa0996-2942-41e5-bfdb-0c6841e2f12f."); 
             if (a.HasPartIndexRange != result.HasPartIndexRange) throw new Exception("Invariant 9a734621-00d6-4ea9-b915-20faf1eaaef5.");
+            if (a.HasPartIndexSet   != result.HasPartIndexSet  ) throw new Exception("Invariant 4622f88f-1115-4dd2-9ac5-537504a21acd.");
             return result;
         }
     }

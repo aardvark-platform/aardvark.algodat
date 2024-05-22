@@ -17,10 +17,13 @@ using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+
+#if DEBUG
+using System.Diagnostics;
+#endif
 
 namespace Aardvark.Geometry.Points
 {
@@ -186,10 +189,11 @@ namespace Aardvark.Geometry.Points
         /// <param name="aggregateCount"></param>
         /// <param name="xss"></param>
         /// <returns></returns>
-        internal static (object? lodQs, Range1i? lodQsRange) AggregateSubPartIndices(int[] counts, int aggregateCount, object?[] xss)
+        internal static (object? lodQs, Range1i? lodQsRange, int[]? lodQsSet) AggregateSubPartIndices(int[] counts, int aggregateCount, object?[] xss)
         {
             var result = default(object?);
             var resultRange = (Range1i?)null;
+            var resultSet = (int[]?)null;
             var ias = new int[]?[8];
 
             // special case: all subnodes have identical per-cell index
@@ -205,10 +209,10 @@ namespace Aardvark.Geometry.Points
                     })
                     .ToArray()
                     ;
-                if (perCellIndices.Length == 0) return (null, null);
+                if (perCellIndices.Length == 0) return (null, null, null);
                 var allIdentical = true;
                 for (var i = 1; i < perCellIndices.Length; i++) if (perCellIndices[i] != perCellIndices[0]) { allIdentical = false; break; }
-                if (allIdentical) return (perCellIndices[0], PartIndexUtils.GetRange(perCellIndices[0]));
+                if (allIdentical) return (perCellIndices[0], PartIndexUtils.GetRange(perCellIndices[0]), PartIndexUtils.GetSet(perCellIndices[0]));
             }
 
             // standard case:
@@ -219,6 +223,7 @@ namespace Aardvark.Geometry.Points
                 var xs = xss[ci]!;
 
                 resultRange = PartIndexUtils.ExtendRangeBy(in resultRange, xs);
+                resultSet = PartIndexUtils.ExtendSetBy(in resultSet, xs);
 
                 var xsLength = xs switch
                 {
@@ -271,7 +276,7 @@ namespace Aardvark.Geometry.Points
 
             result = PartIndexUtils.Compact(result);
 
-            return (result, resultRange);
+            return (result, resultRange, resultSet);
         }
 
         private static async Task<PointSet> GenerateLod(this PointSet self, string? key, Action callback, CancellationToken ct)
@@ -420,17 +425,18 @@ namespace Aardvark.Geometry.Points
 
                 var firstNonEmptySubnode = subcells.First(n => n != null)!;
                 var lodAttributeCandidates = firstNonEmptySubnode.Properties.Keys.Where(x => x.IsArray &&
-                    x != Durable.Octree.SubnodesGuids &&
-                    x != Durable.Octree.PositionsLocal3f &&
-                    x != Durable.Octree.Normals3f &&
-                    x != Durable.Octree.Classifications1b &&
-                    x != Durable.Octree.Colors4b &&
-                    x != Durable.Octree.Intensities1i &&
-                    x != Durable.Octree.PerCellPartIndex1i &&
-                    x != Durable.Octree.PerCellPartIndex1ui &&
-                    x != Durable.Octree.PerPointPartIndex1b &&
-                    x != Durable.Octree.PerPointPartIndex1s &&
-                    x != Durable.Octree.PerPointPartIndex1i
+                    x != Durable.Octree.SubnodesGuids &&                       //
+                    x != Durable.Octree.PositionsLocal3f &&                    //
+                    x != Durable.Octree.Normals3f &&                           //    ...
+                    x != Durable.Octree.Classifications1b &&                   //    these properties will be handled explicitely!!
+                    x != Durable.Octree.Colors4b &&                            //    (and must not be lodded automatically)
+                    x != Durable.Octree.Intensities1i &&                       //    ...
+                    x != Durable.Octree.PerCellPartIndex1i &&                  //
+                    x != Durable.Octree.PerCellPartIndex1ui &&                 //
+                    x != Durable.Octree.PerPointPartIndex1b &&                 //
+                    x != Durable.Octree.PerPointPartIndex1s &&                 //
+                    x != Durable.Octree.PerPointPartIndex1i &&                 //
+                    x != OctreeDefs.PartIndexSet                               //
                     ).ToArray();
 
                 // ... positions ...
@@ -476,12 +482,13 @@ namespace Aardvark.Geometry.Points
                 }
 
                 // ... part indices ...
-                var (lodQs, lodQsRange) = AggregateSubPartIndices(counts, aggregateCount, subcells.Map(x => x?.PartIndices));
+                var (lodQs, lodQsRange, lodQsSet) = AggregateSubPartIndices(counts, aggregateCount, subcells.Map(x => x?.PartIndices));
                 if (lodQs != null)
                 {
                     upsertData = upsertData
                         //.Add(PartIndexUtils.GetDurableDefForPartIndices(lodQs), lodQs)
                         .Add(Durable.Octree.PartIndexRange, lodQsRange ?? throw new Exception($"Expected part index range to be not null. Error d355eb9f-02b3-4cd7-b1de-041d4d0e7c3c."))
+                        .Add(OctreeDefs.PartIndexSet, lodQsSet ?? throw new Exception($"Expected part index set to be not null. Error 12950229-e329-4e12-9d49-ca385db09abb."))
                         ;
 
                     if (lodQs is Array xs)

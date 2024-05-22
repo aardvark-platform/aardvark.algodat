@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -22,41 +22,33 @@ using System.Linq;
 
 namespace Aardvark.Geometry.Points
 {
-    public class InlineConfig
+    /// <summary></summary>
+    /// <param name="collapse">Collapse child nodes making each node appr. 8 times as big.</param>
+    /// <param name="gzipped">GZip inlined node.</param>
+    /// <param name="positionsRoundedToNumberOfDigits">Optionally round positions to given number of digits.</param>
+    /// <param name="progress">Progress callback [0,1].</param>
+    public class InlineConfig(bool collapse, bool gzipped, int? positionsRoundedToNumberOfDigits, Action<double>? progress)
     {
         /// <summary>
         /// Collapse child nodes making each node appr. 8 times as big.
         /// E.g. for an octree with split limit 8192, this would result in an octree with split limit 65536.
         /// </summary>
-        public bool Collapse { get; }
+        public bool Collapse { get; } = collapse;
 
         /// <summary>
         /// GZip inlined node.
         /// </summary>
-        public bool GZipped { get; }
+        public bool GZipped { get; } = gzipped;
 
         /// <summary>
         /// Optionally round positions to given number of digits.
         /// </summary>
-        public int? PositionsRoundedToNumberOfDigits { get; }
+        public int? PositionsRoundedToNumberOfDigits { get; } = positionsRoundedToNumberOfDigits;
 
         /// <summary>
         /// Progress callback [0,1].
         /// </summary>
-        public Action<double>? Progress { get; }
-
-        /// <summary></summary>
-        /// <param name="collapse">Collapse child nodes making each node appr. 8 times as big.</param>
-        /// <param name="gzipped">GZip inlined node.</param>
-        /// <param name="positionsRoundedToNumberOfDigits">Optionally round positions to given number of digits.</param>
-        /// <param name="progress">Progress callback [0,1].</param>
-        public InlineConfig(bool collapse, bool gzipped, int? positionsRoundedToNumberOfDigits, Action<double>? progress)
-        {
-            Collapse = collapse;
-            GZipped = gzipped;
-            PositionsRoundedToNumberOfDigits = positionsRoundedToNumberOfDigits;
-            Progress = progress;
-        }
+        public Action<double>? Progress { get; } = progress;
 
         /// <summary></summary>
         /// <param name="collapse">Collapse child nodes making each node appr. 8 times as big.</param>
@@ -274,7 +266,7 @@ namespace Aardvark.Geometry.Points
         {
             if (root == null) throw new ArgumentNullException(nameof(root));
 
-            var inlinedRoot = root.ConvertToInline(config, new HashSet<Guid> { root.Id });
+            var inlinedRoot = root.ConvertToInline(config, [root.Id]);
 
             return new InlinedNodes(
                 config,
@@ -394,7 +386,7 @@ namespace Aardvark.Geometry.Points
 
             static byte[] rescaleIntensities(int[] js32)
             {
-                if (js32.Length == 0) return Array.Empty<byte>();
+                if (js32.Length == 0) return [];
 
                 var min = js32.Min();
                 var max = js32.Max();

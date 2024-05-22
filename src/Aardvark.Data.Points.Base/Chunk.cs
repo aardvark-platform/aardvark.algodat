@@ -16,6 +16,7 @@
    limitations under the License.
 */
 using Aardvark.Base;
+using Aardvark.Geometry.Points;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -45,7 +46,7 @@ namespace Aardvark.Data.Points
             return ll;
         }
 
-        public static readonly Chunk Empty = new(Array.Empty<V3d>(), null, null, null, null, null, null, Box3d.Invalid);
+        public static readonly Chunk Empty = new(Array.Empty<V3d>(), null, null, null, null, null, null, null, Box3d.Invalid);
 
         public readonly IList<V3d> Positions;
         public readonly IList<C4b>? Colors;
@@ -54,6 +55,7 @@ namespace Aardvark.Data.Points
         public readonly IList<byte>? Classifications;
         public readonly object? PartIndices;
         public readonly Range1i? PartIndexRange;
+        public readonly int[]? PartIndexSet;
 
         public GenericChunk ToGenericChunk()
         {
@@ -66,6 +68,7 @@ namespace Aardvark.Data.Points
             if (Classifications != null) data = data.Add(GenericChunk.Defs.Classifications1b, Classifications.ToArray());
             if (PartIndices != null) data = data.Add(PartIndexUtils.GetDurableDefForPartIndices(PartIndices), PartIndices);
             if (PartIndexRange != null) data = data.Add(Durable.Octree.PartIndexRange, PartIndexRange);
+            if (PartIndexSet != null) data = data.Add(OctreeDefs.PartIndexSet, PartIndexSet);
             return new GenericChunk(data, BoundingBox);
         }
 
@@ -94,6 +97,9 @@ namespace Aardvark.Data.Points
 
         [MemberNotNullWhen(true, nameof(PartIndexRange))]
         public bool HasPartIndexRange => PartIndexRange != null;
+
+        [MemberNotNullWhen(true, nameof(PartIndexSet))]
+        public bool HasPartIndexSet => PartIndexSet != null;
 
         public IList<int>? TryGetPartIndices()
         {
@@ -174,8 +180,9 @@ namespace Aardvark.Data.Points
 
             var qs = PartIndexUtils.ConcatIndices(a.PartIndices, a.Count, b.PartIndices, b.Count);
             var qsRange = PartIndexUtils.MergeRanges(a.PartIndexRange, b.PartIndexRange);
+            var qsSet = PartIndexUtils.MergeSets(a.PartIndexSet, b.PartIndexSet);
 
-            return new Chunk(ps, cs, ns, js, ks, qs, qsRange, new Box3d(a.BoundingBox, b.BoundingBox));
+            return new Chunk(ps, cs, ns, js, ks, qs, qsRange, qsSet, new Box3d(a.BoundingBox, b.BoundingBox));
         }
 
         public static Chunk ImmutableMerge(params Chunk[] chunks)
@@ -212,7 +219,8 @@ namespace Aardvark.Data.Points
 
             var qs = PartIndexUtils.ConcatIndices(chunks.Select(x => (indices: x.PartIndices, count: x.Count)));
             var qsRanges = PartIndexUtils.MergeRanges(chunks.Select(x => x.PartIndexRange));
-            return new Chunk(ps, cs, ns, js, ks, qs, qsRanges, bbox: new Box3d(chunks.Select(x => x.BoundingBox)));
+            var qsSets = PartIndexUtils.MergeSets(chunks.Select(x => x.PartIndexSet));
+            return new Chunk(ps, cs, ns, js, ks, qs, qsRanges, qsSets, bbox: new Box3d(chunks.Select(x => x.BoundingBox)));
         }
 
         public static Chunk ImmutableMerge(IEnumerable<Chunk> chunks)
@@ -227,6 +235,7 @@ namespace Aardvark.Data.Points
         /// <param name="classifications">Optional. Either null or same number of elements as positions.</param>
         /// <param name="partIndices">Optional. Either (A) null, or (B) single uint value for all points in cell, or (3) array with same number of elements (byte|short|int) as positions.</param>
         /// <param name="partIndexRange">Optional. If null and partIndices not null, then it will be automatically computed from partIndices.</param>
+        /// <param name="partIndexSet">Optional. If null and partIndices not null, then it will be automatically computed from partIndices.</param>
         /// <param name="bbox">Optional. If null, then bbox will be constructed from positions.</param>
         public Chunk(
             IList<V3d>? positions,
@@ -236,6 +245,7 @@ namespace Aardvark.Data.Points
             IList<byte>? classifications,
             object? partIndices,
             Range1i? partIndexRange,
+            int[]? partIndexSet,
             Box3d? bbox
             )
         {
@@ -348,10 +358,11 @@ namespace Aardvark.Data.Points
             Classifications = classifications;
             PartIndices     = partIndices;
             PartIndexRange  = partIndexRange ?? PartIndexUtils.GetRange(partIndices);
+            PartIndexSet    = partIndexSet ?? PartIndexUtils.GetSet(partIndices);
             BoundingBox     = bbox ?? (positions.Count > 0 ? new Box3d(positions) : Box3d.Invalid);
         }
 
-        public Chunk(IList<V3d>? positions) : this(positions, null, null, null, null, null, null, null) { }
+        public Chunk(IList<V3d>? positions) : this(positions, null, null, null, null, null, null, null, null) { }
 
         public IEnumerable<Chunk> Split(int chunksize)
         {
@@ -374,6 +385,7 @@ namespace Aardvark.Data.Points
                         classifications: HasClassifications ? Classifications.Skip(i).Take(chunksize).ToArray() : null,
                         partIndices: qs,
                         partIndexRange: PartIndexUtils.GetRange(qs),
+                        partIndexSet: PartIndexUtils.GetSet(qs),
                         bbox: null
                         );
 
@@ -400,6 +412,7 @@ namespace Aardvark.Data.Points
                     Append(Classifications, other.Classifications),
                     partIndices: PartIndexUtils.ConcatIndices(PartIndices, Count, other.PartIndices, other.Count),
                     partIndexRange: PartIndexUtils.MergeRanges(PartIndexRange, other.PartIndexRange),
+                    partIndexSet: PartIndexUtils.MergeSets(PartIndexSet, other.PartIndexSet),
                     Box.Union(BoundingBox, other.BoundingBox)
                 );
         }
@@ -414,32 +427,32 @@ namespace Aardvark.Data.Points
         /// <summary>
         /// Immutable update of positions.
         /// </summary>
-        public Chunk WithPositions(IList<V3d> newPositions) => new(newPositions, Colors, Normals, Intensities, Classifications, PartIndices, PartIndexRange, BoundingBox);
+        public Chunk WithPositions(IList<V3d> newPositions) => new(newPositions, Colors, Normals, Intensities, Classifications, PartIndices, PartIndexRange, PartIndexSet, BoundingBox);
 
         /// <summary>
         /// Immutable update of colors.
         /// </summary>
-        public Chunk WithColors(IList<C4b> newColors) => new(Positions, newColors, Normals, Intensities, Classifications, PartIndices, PartIndexRange, BoundingBox);
+        public Chunk WithColors(IList<C4b> newColors) => new(Positions, newColors, Normals, Intensities, Classifications, PartIndices, PartIndexRange, PartIndexSet, BoundingBox);
 
         /// <summary>
         /// Immutable update of normals.
         /// </summary>
-        public Chunk WithNormals(IList<V3f> newNormals) => new(Positions, Colors, newNormals, Intensities, Classifications, PartIndices, PartIndexRange, BoundingBox);
+        public Chunk WithNormals(IList<V3f> newNormals) => new(Positions, Colors, newNormals, Intensities, Classifications, PartIndices, PartIndexRange, PartIndexSet, BoundingBox);
 
         /// <summary>
         /// Immutable update of normals.
         /// </summary>
-        public Chunk WithIntensities(IList<int> newIntensities) => new(Positions, Colors, Normals, newIntensities, Classifications, PartIndices, PartIndexRange, BoundingBox);
+        public Chunk WithIntensities(IList<int> newIntensities) => new(Positions, Colors, Normals, newIntensities, Classifications, PartIndices, PartIndexRange, PartIndexSet, BoundingBox);
 
         /// <summary>
         /// Immutable update of classifications.
         /// </summary>
-        public Chunk WithClassifications(IList<byte> newClassifications) => new(Positions, Colors, Normals, Intensities, newClassifications, PartIndices, PartIndexRange, BoundingBox);
+        public Chunk WithClassifications(IList<byte> newClassifications) => new(Positions, Colors, Normals, Intensities, newClassifications, PartIndices, PartIndexRange, PartIndexSet, BoundingBox);
 
         /// <summary>
         /// Immutable update of part indices.
         /// </summary>
-        public Chunk WithPartIndices(object? newPartIndices, Range1i? newPartIndexRange) => new(Positions, Colors, Normals, Intensities, Classifications, newPartIndices, newPartIndexRange, BoundingBox);
+        public Chunk WithPartIndices(object? newPartIndices, Range1i? newPartIndexRange, int[]? newPartIndexSet) => new(Positions, Colors, Normals, Intensities, Classifications, newPartIndices, newPartIndexRange, newPartIndexSet, BoundingBox);
 
         /// <summary>
         /// Returns chunk with duplicate point positions removed.
@@ -477,7 +490,7 @@ namespace Aardvark.Data.Points
 #endif
                 }
 
-                return new Chunk(ps, cs, ns, js, ks, partIndices: qs, PartIndexRange, bbox: null);
+                return new Chunk(ps, cs, ns, js, ks, partIndices: qs, PartIndexRange, PartIndexSet, bbox: null);
             }
             else
             {
@@ -486,7 +499,7 @@ namespace Aardvark.Data.Points
         }
 
         public Chunk ImmutableMapPositions(Func<V3d, V3d> mapping)
-            => IsEmpty ? Empty : new(Positions.Map(mapping), Colors, Normals, Intensities, Classifications, PartIndices, PartIndexRange, BoundingBox);
+            => IsEmpty ? Empty : new(Positions.Map(mapping), Colors, Normals, Intensities, Classifications, PartIndices, PartIndexRange, PartIndexSet, BoundingBox);
 
         public Chunk ImmutableMergeWith(IEnumerable<Chunk> others)
             => ImmutableMerge(this, ImmutableMerge(others));
@@ -499,13 +512,13 @@ namespace Aardvark.Data.Points
         /// </summary>
         public Dictionary<TKey, Chunk> GroupBy<TKey>(Func<Chunk, int, TKey> keySelector)
         {
-            if (IsEmpty) return new Dictionary<TKey, Chunk>();
+            if (IsEmpty) return [];
 
             var dict = new Dictionary<TKey, List<int>>();
             for (var i = 0; i < Count; i++)
             {
                 var k = keySelector(this, i);
-                if (!dict.TryGetValue(k, out var ia)) dict[k] = ia = new List<int>();
+                if (!dict.TryGetValue(k, out var ia)) dict[k] = ia = [];
                 ia.Add(i);
             }
 
@@ -522,6 +535,7 @@ namespace Aardvark.Data.Points
                     Classifications != null ? ia.Map(i => Classifications[i]) : null,
                     partIndices: qs,
                     partIndexRange: PartIndexUtils.GetRange(qs),
+                    partIndexSet: PartIndexUtils.GetSet(qs),
                     bbox: null
                     );
             }
@@ -548,7 +562,7 @@ namespace Aardvark.Data.Points
             var qs = PartIndexUtils.Subset(PartIndices, ia);
 
 
-            return new Chunk(ps, cs, ns, js, ks, qs, PartIndexUtils.GetRange(qs), bbox: null);
+            return new Chunk(ps, cs, ns, js, ks, qs, PartIndexUtils.GetRange(qs), PartIndexUtils.GetSet(qs), bbox: null);
         }
 
         /// <summary>
@@ -579,6 +593,7 @@ namespace Aardvark.Data.Points
                 Classifications?.Subset(ia),
                 partIndices: qs,
                 partIndexRange: PartIndexUtils.GetRange(qs),
+                partIndexSet: PartIndexUtils.GetSet(qs),
                 bbox: null
                 );
         }
@@ -610,6 +625,7 @@ namespace Aardvark.Data.Points
                 Classifications?.Subset(ia),
                 partIndices: qs,
                 partIndexRange: PartIndexUtils.GetRange(qs),
+                partIndexSet: PartIndexUtils.GetSet(qs),
                 bbox: null
                 );
         }
@@ -627,6 +643,7 @@ namespace Aardvark.Data.Points
             var positions = Positions;
             var take = new bool[Count];
             var foo = new List<int>(positions.Count); for (var i = 0; i < positions.Count; i++) foo.Add(i);
+            var partIndices = PartIndexRange?.Size > 1 ? TryGetPartIndices() : null;
             Filter(bounds, foo).Wait();
 
             async Task Filter(Cell c, List<int> ia)
@@ -637,12 +654,23 @@ namespace Aardvark.Data.Points
 #endif
                 if (c.Exponent == smallestCellExponent)
                 {
-                    take[ia[0]] = true;
+                    if (partIndices != null)
+                    {
+                        var gs = ia.GroupBy(index => partIndices[index]).ToArray();
+                        foreach (var g in gs)
+                        {
+                            take[g.First()] = true;
+                        }
+                    }
+                    else
+                    {
+                        take[ia[0]] = true;
+                    }
                     return;
                 }
 
                 var center = c.GetCenter();
-                var subias = new List<int>[8].SetByIndex(_ => new List<int>());
+                var subias = new List<int>[8].SetByIndex(_ => []);
                 for (var i = 0; i < ia.Count; i++)
                 {
                     var p = positions[ia[i]];
@@ -693,7 +721,7 @@ namespace Aardvark.Data.Points
             }
 
             if (ps == null) throw new Exception("Invariant 84440204-5496-479f-ad3e-9e45e5dd16c1.");
-            return new Chunk(ps, cs, ns, js, ks, qs, PartIndexUtils.GetRange(qs), bbox: null);
+            return new Chunk(ps, cs, ns, js, ks, qs, PartIndexUtils.GetRange(qs), PartIndexUtils.GetSet(qs), bbox: null);
         }
 
 #pragma warning disable CS8602

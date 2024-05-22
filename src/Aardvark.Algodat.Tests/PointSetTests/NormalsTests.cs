@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -28,7 +28,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CanCreateChunkWithNormals()
         {
-            var chunk = new Chunk(new[] { V3d.IOO }, new[] { C4b.White }, new[] { V3f.OIO }, null, null, null, null, null);
+            var chunk = new Chunk(new[] { V3d.IOO }, new[] { C4b.White }, new[] { V3f.OIO }, null, null, null, null, null, null);
             Assert.IsTrue(chunk.Normals != null);
             Assert.IsTrue(chunk.Normals[0] == V3f.OIO);
         }
@@ -36,7 +36,7 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void CanCreateInMemoryPointSetWithNormals()
         {
-            var chunk = new Chunk(new[] { V3d.IOO }, new[] { C4b.White }, new[] { V3f.OIO }, null, null, null, null, null);
+            var chunk = new Chunk(new[] { V3d.IOO }, new[] { C4b.White }, new[] { V3f.OIO }, null, null, null, null, null, null);
 
             var builder = InMemoryPointSet.Build(chunk, 8192);
             var root = builder.ToPointSetNode(CreateInMemoryStore(), isTemporaryImportNode: false);

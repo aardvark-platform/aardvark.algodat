@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -17,8 +17,6 @@ using Aardvark.Geometry.Points;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
 
 namespace Aardvark.Geometry.Tests
 {
@@ -36,7 +34,7 @@ namespace Aardvark.Geometry.Tests
                 .WithOctreeSplitLimit(splitLimit)
                 ;
             var chunk = new Chunk(ps);
-            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null, null);
             return PointCloud.Chunks(chunk, config);
         }
 
@@ -55,7 +53,7 @@ namespace Aardvark.Geometry.Tests
                 .WithOctreeSplitLimit(splitLimit)
                 ;
             var chunk = new Chunk(ps);
-            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null, null);
             return PointCloud.Chunks(chunk, config);
         }
 

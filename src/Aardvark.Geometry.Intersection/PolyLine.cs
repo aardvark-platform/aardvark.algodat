@@ -47,9 +47,9 @@ namespace Aardvark.Geometry
             m_hideLastVertex = false;
             m_positionArray = null;
 
-            VertexAttributes = new SymbolDict<Array>();
-            LineAttributes = new SymbolDict<Array>();
-            InstanceAttributes = new SymbolDict<object>();
+            VertexAttributes = [];
+            LineAttributes = [];
+            InstanceAttributes = [];
         }
         
         #endregion
@@ -163,7 +163,7 @@ namespace Aardvark.Geometry
 
         #region Vertex
 
-        public struct Vertex : IEquatable<Vertex>
+        public readonly struct Vertex : IEquatable<Vertex>
         {
             public readonly PolyLine PolyLine;
             public readonly int Index;
@@ -220,7 +220,7 @@ namespace Aardvark.Geometry
 
         #region Line
 
-        public struct Line : IEquatable<Line>
+        public readonly struct Line : IEquatable<Line>
         {
             public readonly PolyLine PolyLine;
             public readonly int Index;

@@ -75,11 +75,11 @@ namespace Aardvark.Geometry.Points
 
         private record Dto(string Type, V2d[][] Shape, double[] Range)
         {
-            public Dto() : this(FilterInsidePrismXY.Type, Array.Empty<V2d[]>(), Array.Empty<double>()) { }
+            public Dto() : this(FilterInsidePrismXY.Type, [], []) { }
             public Dto(FilterInsidePrismXY x) : this(
                 FilterInsidePrismXY.Type,
                 x.Shape.Polygons.Select(x => x.GetPointArray()).ToArray(),
-                new[] { x.ZRange.Min, x.ZRange.Max }
+                [x.ZRange.Min, x.ZRange.Max]
                 )
             { }
         }

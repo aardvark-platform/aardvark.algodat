@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -147,10 +147,14 @@ namespace Aardvark.Data.Points
                         var optionalSamples = parser(buffer.Data, buffer.Count, config.MinDist, partIndices);
                         if (optionalSamples == null) return Chunk.Empty;
                         var samples = optionalSamples;
-                        if (config.EnabledProperties.PartIndices) samples = samples.WithPartIndices(config.PartIndexOffset, new Range1i(config.PartIndexOffset));
+                        if (config.EnabledProperties.PartIndices) samples = samples.WithPartIndices(config.PartIndexOffset, new Range1i(config.PartIndexOffset), [ config.PartIndexOffset ]);
                         bounds.ExtendBy(new Box3d(samples.Positions));
                         Interlocked.Add(ref sampleCount, samples.Count);
-                        var r = new Chunk(samples.Positions, samples.Colors, samples.Normals, samples.Intensities, samples.Classifications, samples.PartIndices, samples.PartIndexRange, samples.BoundingBox);
+                        var r = new Chunk(
+                            samples.Positions, samples.Colors, samples.Normals, samples.Intensities, samples.Classifications,
+                            samples.PartIndices, samples.PartIndexRange, samples.PartIndexSet,
+                            samples.BoundingBox
+                            );
 
                         Interlocked.Add(ref sampleCountYielded, r.Count);
                         Interlocked.Add(ref totalBytesRead, buffer.Count);

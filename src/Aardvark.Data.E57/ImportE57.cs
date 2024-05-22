@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -215,6 +215,7 @@ namespace Aardvark.Data.Points.Import
                             classifications: e57chunk.Classification?.Map(x => (byte)x),
                             partIndices: config.EnabledProperties.PartIndices ? partIndex : null,
                             partIndexRange: null,
+                            partIndexSet: null,
                             bbox: null
                             );
 

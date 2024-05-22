@@ -17,16 +17,10 @@ using System.Collections.Generic;
 
 namespace Aardvark.Geometry
 {
-    public class IntersectableBoxSet : IIntersectableObjectSet
+    public class IntersectableBoxSet(params Box3d[] boxes) : IIntersectableObjectSet
     {
-        private readonly Box3d[] m_boxes;
-        private Box3d m_bounds;
-
-        public IntersectableBoxSet(params Box3d[] boxes)
-        {
-            m_boxes = boxes;
-            m_bounds = new Box3d(boxes);
-        }
+        private readonly Box3d[] m_boxes = boxes;
+        private Box3d m_bounds = new(boxes);
 
         public int ObjectCount => m_boxes.Length;
 
@@ -61,7 +55,7 @@ namespace Aardvark.Geometry
                     DistanceSquared = minDist2,
                     Point = minPos,
                     SetObject = new SetObject(this, minIndex),
-                    ObjectStack = new List<SetObject>(), // TODO
+                    ObjectStack = [], // TODO
                     Coord = V2d.Zero // TODO
 
                 };
@@ -127,7 +121,7 @@ namespace Aardvark.Geometry
                 hit = new ObjectRayHit()
                 {
                     SetObject = new SetObject(this, index),
-                    ObjectStack = new List<SetObject>(), // TODO
+                    ObjectStack = [], // TODO
                     RayHit = new RayHit3d()
                     {
                         Part = 0,

@@ -26,7 +26,7 @@ namespace Aardvark.Data.Points
     /// </summary>
     public class Storage : IDisposable
     {
-        private static readonly HashSet<Storage> s_storages = new();
+        private static readonly HashSet<Storage> s_storages = [];
 
         /// <summary>
         /// No storage. All functions are NOP.

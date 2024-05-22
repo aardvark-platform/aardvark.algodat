@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -36,7 +36,7 @@ public static partial class Queries
         int minCellExponent = int.MinValue
         ) 
     {
-        if(ps.Root == null) return Enumerable.Empty<Chunk>();
+        if(ps.Root == null) return [];
         return ps.Root.Value.QueryPointsNearRay(ray,maxDistanceToRay,tMin,tMax,minCellExponent);
     } 
 
@@ -93,6 +93,7 @@ public static partial class Queries
                     node.Classifications?.Value.Subset(ia),
                     PartIndexUtils.Subset(node.PartIndices, ia),
                     partIndexRange: null,
+                    partIndexSet: null,
                     bbox: null
                     );
             } 

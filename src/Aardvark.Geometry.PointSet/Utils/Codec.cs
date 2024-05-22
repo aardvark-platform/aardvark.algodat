@@ -1,4 +1,5 @@
 ﻿using Aardvark.Base;
+using Aardvark.Geometry.Points;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -18,6 +19,9 @@ namespace Aardvark.Data
 
         static Codec()
         {
+            // force OctreeDefs initializer
+            if (OctreeDefs.PartIndexSet == null) throw new InvalidOperationException("Invariant ff88f8bf-f463-4d7c-8486-b4ed0f6a9e98.");
+
             // force Durable.Octree initializer
             if (Durable.Octree.NodeId == null) throw new InvalidOperationException("Invariant 98c78cd6-cef2-4f0b-bb8e-907064c305c4.");
 

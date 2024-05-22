@@ -43,7 +43,7 @@ namespace Aardvark.Geometry.Tests
                 .WithOctreeSplitLimit(splitLimit)
                 ;
             var chunk = new Chunk(ps);
-            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null, null);
             return PointCloud.Chunks(chunk, config);
         }
 
@@ -62,7 +62,7 @@ namespace Aardvark.Geometry.Tests
                 .WithOctreeSplitLimit(splitLimit)
                 ;
             var chunk = new Chunk(ps);
-            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null, null);
             return PointCloud.Chunks(chunk, config);
         }
 
@@ -81,8 +81,8 @@ namespace Aardvark.Geometry.Tests
                 .WithKey("testaa")
                 .WithOctreeSplitLimit(splitLimit)
                 ;
-            var chunk = new Chunk(ps, null, null, null, ks, null, null, null);
-            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null);
+            var chunk = new Chunk(ps, null, null, null, ks, null, null, null, null);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null, null);
             return PointCloud.Chunks(chunk, config);
         }
         public static PointSet CreateRandomPointsWithPartIndices(int n, int splitLimit)
@@ -101,7 +101,7 @@ namespace Aardvark.Geometry.Tests
                 .WithOctreeSplitLimit(splitLimit)
                 .WithEnabledPartIndices(true)
                 ;
-            var chunk = new Chunk(ps, null, null, null, null, pis.ToArray(), new Range1i(0,4), null);
+            var chunk = new Chunk(ps, null, null, null, null, pis.ToArray(), new Range1i(0,4), null, null);
             return PointCloud.Chunks(chunk, config);
         }
 

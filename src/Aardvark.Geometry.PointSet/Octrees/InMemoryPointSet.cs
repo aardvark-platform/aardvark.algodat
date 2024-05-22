@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -16,10 +16,12 @@ using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using static Aardvark.Data.Durable;
+
+#if DEBUG
+using System.IO;
+#endif
 
 namespace Aardvark.Geometry.Points
 {
@@ -54,22 +56,101 @@ namespace Aardvark.Geometry.Points
 
             switch (partIndices)
             {
-                case null                 : break;
-                case int                x : data = data.Add(Octree.PerCellPartIndex1i , x           ).Add(Octree.PartIndexRange, new Range1i(     x)); break;
-                case uint               x : data = data.Add(Octree.PerCellPartIndex1i , (int)x      ).Add(Octree.PartIndexRange, new Range1i((int)x)); break;
-                case byte[]             xs: data = data.Add(Octree.PerPointPartIndex1b, xs          ).Add(Octree.PartIndexRange, new Range1i(xs.Select(x => (int)x))); break;
-                case IList<byte>        xs: data = data.Add(Octree.PerPointPartIndex1b, xs.ToArray()).Add(Octree.PartIndexRange, new Range1i(xs.Select(x => (int)x))); break;
-                case IEnumerable<byte>  xs: data = data.Add(Octree.PerPointPartIndex1b, xs.ToArray()).Add(Octree.PartIndexRange, new Range1i(xs.Select(x => (int)x))); break;
-                case short[]            xs: data = data.Add(Octree.PerPointPartIndex1s, xs          ).Add(Octree.PartIndexRange, new Range1i(xs.Select(x => (int)x))); break;
-                case IList<short>       xs: data = data.Add(Octree.PerPointPartIndex1s, xs.ToArray()).Add(Octree.PartIndexRange, new Range1i(xs.Select(x => (int)x))); break;
-                case IEnumerable<short> xs: data = data.Add(Octree.PerPointPartIndex1s, xs.ToArray()).Add(Octree.PartIndexRange, new Range1i(xs.Select(x => (int)x))); break;
-                case int[]              xs: data = data.Add(Octree.PerPointPartIndex1i, xs          ).Add(Octree.PartIndexRange, new Range1i(xs)); break;
-                case IList<int>         xs: data = data.Add(Octree.PerPointPartIndex1i, xs.ToArray()).Add(Octree.PartIndexRange, new Range1i(xs)); break;
-                case IEnumerable<int>   xs: data = data.Add(Octree.PerPointPartIndex1i, xs.ToArray()).Add(Octree.PartIndexRange, new Range1i(xs)); break;
+                case null:
+                    break;
 
-                default: throw new Exception(
-                    $"Unknown part indices type {partIndices.GetType().FullName}. Error 9869c0df-de22-4385-b39f-2b55a8c64f13."
-                    );
+                case int x : 
+                    data = data
+                        .Add(Octree.PerCellPartIndex1i , x)
+                        .Add(Octree.PartIndexRange, new Range1i(x))
+                        .Add(OctreeDefs.PartIndexSet, new int[] { x })
+                        ; 
+                    break;
+
+                case uint x :
+                    data = data
+                        .Add(Octree.PerCellPartIndex1i, (int)x)
+                        .Add(Octree.PartIndexRange, new Range1i((int)x))
+                        .Add(OctreeDefs.PartIndexSet, new int[] { (int)x })
+                        ;
+                    break;
+
+                case byte[] xs:
+                    data = data
+                        .Add(Octree.PerPointPartIndex1b, xs)
+                        .Add(Octree.PartIndexRange, new Range1i(xs.Select(x => (int)x)))
+                        .Add(OctreeDefs.PartIndexSet, new HashSet<int>(xs.Select(x => (int)x)).ToArray())
+                        ;
+                    break;
+
+                case IList<byte> xs:
+                    data = data
+                        .Add(Octree.PerPointPartIndex1b, xs.ToArray())
+                        .Add(Octree.PartIndexRange, new Range1i(xs.Select(x => (int)x)))
+                        .Add(OctreeDefs.PartIndexSet, new HashSet<int>(xs.Select(x => (int)x)).ToArray())
+                        ;
+                    break;
+
+                case IEnumerable<byte> xs:
+                    data = data
+                        .Add(Octree.PerPointPartIndex1b, xs.ToArray())
+                        .Add(Octree.PartIndexRange, new Range1i(xs.Select(x => (int)x)))
+                        .Add(OctreeDefs.PartIndexSet, new HashSet<int>(xs.Select(x => (int)x)).ToArray())
+                        ;
+                    break;
+
+                case short[] xs:
+                    data = data
+                        .Add(Octree.PerPointPartIndex1s, xs          )
+                        .Add(Octree.PartIndexRange, new Range1i(xs.Select(x => (int)x)))
+                        .Add(OctreeDefs.PartIndexSet, new HashSet<int>(xs.Select(x => (int)x)).ToArray())
+                        ;
+                    break;
+
+                case IList<short> xs:
+                    data = data
+                        .Add(Octree.PerPointPartIndex1s, xs.ToArray())
+                        .Add(Octree.PartIndexRange, new Range1i(xs.Select(x => (int)x)))
+                        .Add(OctreeDefs.PartIndexSet, new HashSet<int>(xs.Select(x => (int)x)).ToArray())
+                        ;
+                    break;
+
+                case IEnumerable<short> xs:
+                    data = data
+                        .Add(Octree.PerPointPartIndex1s, xs.ToArray())
+                        .Add(Octree.PartIndexRange, new Range1i(xs.Select(x => (int)x)))
+                        .Add(OctreeDefs.PartIndexSet, new HashSet<int>(xs.Select(x => (int)x)).ToArray())
+                        ;
+                    break;
+
+                case int[] xs:
+                    data = data
+                        .Add(Octree.PerPointPartIndex1i, xs)
+                        .Add(Octree.PartIndexRange, new Range1i(xs))
+                        .Add(OctreeDefs.PartIndexSet, new HashSet<int>(xs).ToArray())
+                        ;
+                    break;
+
+                case IList<int> xs:
+                    data = data
+                        .Add(Octree.PerPointPartIndex1i, xs.ToArray())
+                        .Add(Octree.PartIndexRange, new Range1i(xs))
+                        .Add(OctreeDefs.PartIndexSet, new HashSet<int>(xs).ToArray())
+                        ;
+                    break;
+
+                case IEnumerable<int> xs:
+                    data = data
+                        .Add(Octree.PerPointPartIndex1i, xs.ToArray())
+                        .Add(Octree.PartIndexRange, new Range1i(xs))
+                        .Add(OctreeDefs.PartIndexSet, new HashSet<int>(xs).ToArray())
+                        ;
+                    break;
+
+                default: 
+                    throw new Exception(
+                        $"Unknown part indices type {partIndices.GetType().FullName}. Error 9869c0df-de22-4385-b39f-2b55a8c64f13."
+                        );
             }
 
             return new InMemoryPointSet(data, rootBounds, octreeSplitLimit);
@@ -86,6 +167,7 @@ namespace Aardvark.Geometry.Points
             {
                 if (kv.Key == Octree.PerCellPartIndex1i || kv.Key == Octree.PerCellPartIndex1ui) continue;
                 if (kv.Key == Octree.PartIndexRange) continue;
+                if (kv.Key == OctreeDefs.PartIndexSet) continue;
                 if (kv.Value is not Array) throw new ArgumentException($"Entry {kv.Key} must be array.");
             }
 
@@ -252,6 +334,7 @@ namespace Aardvark.Geometry.Points
                     }
 
                     copy(Octree.PartIndexRange);
+                    copy(OctreeDefs.PartIndexSet);
                     copy(Octree.PerCellPartIndex1i);
                     copy(Octree.PerCellPartIndex1ui);
 
@@ -308,6 +391,16 @@ namespace Aardvark.Geometry.Points
                         }
                     }
 
+                    // collect part-index-sets from subnodes
+                    {
+                        var subSets = subcells.Select(x => PartIndexUtils.GetSet(x?.Properties));
+                        var partIndexSet = PartIndexUtils.MergeSets(subSets);
+                        if (partIndexSet != null)
+                        {
+                            resultData = resultData.Add(OctreeDefs.PartIndexSet, partIndexSet);
+                        }
+                    }
+
                     // create and store result
                     var result = new PointSetNode(resultData, storage, writeToStore: true);
                     if (storage.GetPointCloudNode(result.Id) == null) throw new InvalidOperationException("Invariant 7b09eccb-b6a0-4b99-be7a-eeff53b6a98b.");
@@ -328,7 +421,7 @@ namespace Aardvark.Geometry.Points
                 {
                     if (_ia == null)
                     {
-                        _ia = new List<int>();
+                        _ia = [];
                     }
                     else
                     {

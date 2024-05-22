@@ -23,25 +23,19 @@ namespace Aardvark.Geometry.Points
     }
 
     /// <summary></summary>
-    public class FilterInsideSphere3d : ISpatialFilter
+    /// <remarks></remarks>
+    public class FilterInsideSphere3d(Sphere3d sphere) : ISpatialFilter
     {
         /// <summary></summary>
         public const string Type = "FilterInsideSphere3d";
 
-        public Sphere3d Sphere { get; }
+        public Sphere3d Sphere { get; } = sphere;
 
-        private readonly double m_radiusSquared;
+        private readonly double m_radiusSquared = sphere.RadiusSquared;
 
         public bool Contains(V3d pt)
         {
             return Vec.DistanceSquared(Sphere.Center, pt) <= m_radiusSquared;
-        }
-
-        /// <summary></summary>
-        public FilterInsideSphere3d(Sphere3d sphere)
-        {
-            Sphere = sphere;
-            m_radiusSquared = sphere.RadiusSquared;
         }
 
         /// <summary></summary>

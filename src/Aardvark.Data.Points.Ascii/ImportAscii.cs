@@ -174,7 +174,7 @@ namespace Aardvark.Data.Points.Import
         /// <summary>
         /// </summary>
         public static PointCloudFileFormat CreateFormat(string description, Token[] lineDefinition)
-            => new(description, new string[0],
+            => new(description, [],
                 (filename, config) => CustomAsciiInfo(filename, lineDefinition, config),
                 (filename, config) => Chunks(filename, lineDefinition, config)
                 );

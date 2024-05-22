@@ -59,7 +59,7 @@ module Bla =
                 
             let points = pointsAndPartindices |> Array.collect (fun (d,_) -> d)
             let partIndices = pointsAndPartindices |> Array.collect (fun (_,d) -> d)
-            Chunk(points,null,null,null,null,partIndices,Range1i(partIndices),bounds)
+            Chunk(points,null,null,null,null,partIndices,Range1i(partIndices),null,bounds)
 
 
         let chunks = 

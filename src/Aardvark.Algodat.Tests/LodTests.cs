@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -224,7 +224,7 @@ namespace Aardvark.Geometry.Tests
 
             var config = ImportConfig.Default.WithStorage(storage).WithRandomKey();
             var chunk = new Chunk(ps);
-            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null, null);
             var n = PointCloud.Chunks(chunk, config).Root.Value;
 
             Assert.IsTrue(n.HasCentroidLocal);
@@ -251,7 +251,7 @@ namespace Aardvark.Geometry.Tests
 
             var config = ImportConfig.Default.WithStorage(storage).WithRandomKey();
             var chunk = new Chunk(ps);
-            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null, null);
             var n = PointCloud.Chunks(chunk, config).Root.Value;
 
             Assert.IsTrue(n.HasBoundingBoxExactLocal);
@@ -273,7 +273,7 @@ namespace Aardvark.Geometry.Tests
 
             var config = ImportConfig.Default.WithStorage(storage).WithRandomKey();
             var chunk = new Chunk(ps);
-            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null, null);
             var n = PointCloud.Chunks(chunk, config).Root.Value;
 
             Assert.IsTrue(n.HasMinTreeDepth);
@@ -293,7 +293,7 @@ namespace Aardvark.Geometry.Tests
 
             var config = ImportConfig.Default.WithStorage(storage).WithRandomKey();
             var chunk = new Chunk(ps);
-            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null, null);
             var n = PointCloud.Chunks(chunk, config).Root.Value;
 
             Assert.IsTrue(n.HasMinTreeDepth);
@@ -323,7 +323,7 @@ namespace Aardvark.Geometry.Tests
 
             var config = ImportConfig.Default.WithStorage(storage).WithRandomKey();
             var chunk = new Chunk(ps);
-            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null);
+            if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null, null);
             var n = PointCloud.Chunks(chunk, config).Root.Value;
 
             Assert.IsTrue(n.HasPointDistanceAverage);

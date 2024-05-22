@@ -324,9 +324,9 @@ namespace Aardvark.Geometry
         /// </summary>
         public IEnumerable<int> ObjectsIntersectingBox(Box3d box)
         {
-            if (!box.Intersects(m_box)) return Enumerable.Empty<int>();
+            if (!box.Intersects(m_box)) return [];
             KdNode pruned = Tree.Intersect(ref box, m_box.OutsideFlags(box));
-            if (pruned == null) return Enumerable.Empty<int>();
+            if (pruned == null) return [];
             return pruned.Indices(
                 (interiorArray, f, c) => interiorArray.Elements(f, c),
                 (borderArray, f, c) => borderArray.ElementsWhere(f, c,
@@ -342,9 +342,9 @@ namespace Aardvark.Geometry
         /// </summary>
         public IEnumerable<int> ObjectsInsideBox(Box3d box)
         {
-            if (!box.Intersects(m_box)) return Enumerable.Empty<int>();
+            if (!box.Intersects(m_box)) return [];
             KdNode pruned = Tree.Intersect(ref box, m_box.OutsideFlags(box));
-            if (pruned == null) return Enumerable.Empty<int>();
+            if (pruned == null) return [];
             IEnumerable<int> inside(int[] leafArray, int f, int c) 
                 => leafArray.ElementsWhere(f, c, i => m_objectSet.ObjectIsInsideBox(i, box));
             return pruned.Indices(inside, inside);
@@ -540,7 +540,7 @@ namespace Aardvark.Geometry
                 {
                     var outParams2 = new OutputParameters();
                     Parallel.Invoke(
-                        new Action[] {
+                        [
                             delegate
                             {
                                 leftNode = CreateNode(inParams, outParams,
@@ -555,7 +555,7 @@ namespace Aardvark.Geometry
                                                        rightObjectIndexArray,
                                                        rightBox, out rightSplit);
                             }
-                        }
+                        ]
                         //, Kernel.TaskManager.CpuBoundLowPriority, TaskCreationOptions.None
                     );
                     outParams.Add(outParams2);
@@ -858,7 +858,7 @@ namespace Aardvark.Geometry
                         outParams.LeafCount > 0 ? outParams.ObjectCount / (double)outParams.LeafCount : 0
                 ); // building kd-tree
 
-            if (Tree == null) Tree = new KdLeaf(new int[0]);
+            Tree ??= new KdLeaf([]);
         }
 
         public void Flatten()
@@ -870,9 +870,9 @@ namespace Aardvark.Geometry
         // If you change the number of values in this table,
         // you need to update the progressStep accordingly.
         private static readonly double[] s_splitTryTable =
-        {
+        [
             0.5f, 0.25f, 0.75f, 0.375f, 0.625f, 0.125f, 0.875f
-        };
+        ];
 
         private byte CalculateSplitPlane(
             InputParameters inParams,
@@ -1100,8 +1100,8 @@ namespace Aardvark.Geometry
         /// For compact storage we use short names for all node types, and do
         /// not store any sizes and version number for the nodes.
         /// </summary>
-        static readonly TypeInfo[] s_typeInfoArray = new[]
-            {
+        static readonly TypeInfo[] s_typeInfoArray =
+            [
                 new TypeInfo("n", typeof(TypeCoder.Null), TypeInfo.Option.Active),
                 new TypeInfo("i", typeof(KdInner),      TypeInfo.Option.None),
                 new TypeInfo("b", typeof(KdInnerBoth),  TypeInfo.Option.None),
@@ -1113,10 +1113,10 @@ namespace Aardvark.Geometry
                 new TypeInfo("o", typeof(KdLeaf),       TypeInfo.Option.None),
                 new TypeInfo("s", typeof(KdLeafSlice),  TypeInfo.Option.None),
                 new TypeInfo("f", typeof(KdFlat),       TypeInfo.Option.None),
-            };
+            ];
 
-        static readonly TypeInfo[] s_floatTypeInfoArray = new[]
-            {
+        static readonly TypeInfo[] s_floatTypeInfoArray =
+            [
                 new TypeInfo("n", typeof(TypeCoder.Null), TypeInfo.Option.Active),
                 new TypeInfo("i", typeof(KdFloatInner),      TypeInfo.Option.None),
                 new TypeInfo("b", typeof(KdFloatInnerBoth),  TypeInfo.Option.None),
@@ -1126,7 +1126,7 @@ namespace Aardvark.Geometry
                 new TypeInfo("l", typeof(KdFloatInnerLeft),  TypeInfo.Option.None),
                 new TypeInfo("r", typeof(KdFloatInnerRight), TypeInfo.Option.None),
                 new TypeInfo("o", typeof(KdLeaf),       TypeInfo.Option.None),
-            };
+            ];
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
@@ -1802,7 +1802,7 @@ namespace Aardvark.Geometry
                 if (m_right != null)
                     return m_right.Indices(interiorSelector, borderSelector);
                 else
-                    return Enumerable.Empty<int>();
+                    return [];
             }
         }
 
@@ -1820,7 +1820,7 @@ namespace Aardvark.Geometry
                 if (m_right != null)
                     return m_right.Leafs();
                 else
-                    return Enumerable.Empty<KdLeaf>();
+                    return [];
             }
         }
 
@@ -1871,8 +1871,8 @@ namespace Aardvark.Geometry
         internal override void Count(Counts counts)
         {
             counts.InnerCount += 1;
-            if (m_left != null) m_left.Count(counts);
-            if (m_right != null) m_right.Count(counts);
+            m_left?.Count(counts);
+            m_right?.Count(counts);
         }
 
         internal override AxisIndex Flatten(Counts counts, KdFlat flat)

@@ -21,9 +21,28 @@ using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using static Aardvark.Data.Durable;
 
 namespace Aardvark.Geometry.Points
 {
+    /// <summary>
+    /// Durable defs that have not yet been moved to Aardvark.Data.Durable.
+    /// </summary>
+    public static class OctreeDefs
+    {
+        /// <summary>
+        /// Octree. Part indices that occur in octree. Int32[].
+        /// </summary>
+        public static readonly Def PartIndexSet = new(
+            new Guid("99ca4072-1a97-4c38-8a15-2cdbbf446805"),
+            "Octree.PartIndexSet",
+            "Octree. Part indices that occur in octree. Int32[].",
+            Primitives.Int32Array.Id,
+            isArray: true
+            );
+
+    }
+
     /// <summary>
     /// An immutable point cloud octree node.
     /// </summary>
@@ -258,6 +277,17 @@ namespace Aardvark.Geometry.Points
         #endregion
 
         #region PartIndices
+
+        /// <summary>
+        /// True if this node has a PartIndexSet.
+        /// </summary>
+        [MemberNotNullWhen(true, nameof(PartIndexSet))]
+        bool HasPartIndexSet { get; }
+
+        /// <summary>
+        /// Octree. Part indices that occur in octree.
+        /// </summary>
+        int[]? PartIndexSet { get; }
 
         /// <summary>
         /// True if this node has a PartIndexRange.

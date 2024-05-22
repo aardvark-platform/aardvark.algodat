@@ -8,16 +8,14 @@ namespace Aardvark.Geometry.Points
 {
     /// <summary>
     /// </summary>
-    public class FilterInsideBox3d : ISpatialFilter
+    /// <remarks></remarks>
+    public class FilterInsideBox3d(Box3d filter) : ISpatialFilter
     {
         /// <summary></summary>
         public const string Type = "FilterInsideBox3d";
 
         /// <summary></summary>
-        public Box3d Box { get; }
-
-        /// <summary></summary>
-        public FilterInsideBox3d(Box3d filter) { Box = filter; }
+        public Box3d Box { get; } = filter;
 
         /// <summary></summary>
         public bool IsFullyInside(Box3d box) => Box.Contains(box);
@@ -74,16 +72,14 @@ namespace Aardvark.Geometry.Points
 
     /// <summary>
     /// </summary>
-    public class FilterOutsideBox3d : ISpatialFilter
+    /// <remarks></remarks>
+    public class FilterOutsideBox3d(Box3d filter) : ISpatialFilter
     {
         /// <summary></summary>
         public const string Type = "FilterOutsideBox3d";
 
         /// <summary></summary>
-        public Box3d Box { get; }
-
-        /// <summary></summary>
-        public FilterOutsideBox3d(Box3d filter) { Box = filter; }
+        public Box3d Box { get; } = filter;
 
         /// <summary></summary>
         public bool IsFullyInside(Box3d box) => !Box.Intersects(box);

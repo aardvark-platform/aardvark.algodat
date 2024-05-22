@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -11,17 +11,15 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+using Aardvark.Base;
+using Aardvark.Data;
+using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
-using Aardvark.Base;
-using Aardvark.Data;
-using Aardvark.Data.Points;
-using static Aardvark.Base.SymMapBaseTraversal;
 
 namespace Aardvark.Geometry.Points
 {
@@ -133,7 +131,7 @@ namespace Aardvark.Geometry.Points
                 for (var i = 0; i < oldPs.Length; i++)
                 {
                     var pabs = (V3d)oldPs[i] + root.Center;
-                    byte? oldK = oldKs != null ? oldKs[i] : null;
+                    byte? oldK = oldKs?[i];
                     int? oldPi = piis != null ? PartIndexUtils.Get(root.PartIndices, i) : null;
                     var atts = new PointDeleteAttributes(oldK, oldPi);
                     if (!isPositionInside(pabs, atts))
@@ -364,7 +362,7 @@ namespace Aardvark.Geometry.Points
                     var lodIs = needsIs ? LodExtensions.AggregateSubArrays(counts, aggregateCount, subnodes.Map(x => x?.Intensities?.Value)) : null;
                     var lodKs = needsKs ? LodExtensions.AggregateSubArrays(counts, aggregateCount, subnodes.Map(x => x?.Classifications?.Value)) : null;
                     var lodKd = lodPs.Length < 1 ? null : lodPs.BuildKdTree();
-                    var (lodPis,lodPiRange) = needsPis ? LodExtensions.AggregateSubPartIndices(counts, aggregateCount, subnodes.Map(x => x?.PartIndices)) : (null,null);
+                    var (lodPis,lodPiRange, lodPiSet) = needsPis ? LodExtensions.AggregateSubPartIndices(counts, aggregateCount, subnodes.Map(x => x?.PartIndices)) : (null,null,null);
 
                     Guid psId = Guid.NewGuid();
                     Guid kdId = lodKd != null ? Guid.NewGuid() : Guid.Empty;

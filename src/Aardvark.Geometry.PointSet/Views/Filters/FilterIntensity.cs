@@ -8,16 +8,14 @@ namespace Aardvark.Geometry.Points
 {
     /// <summary>
     /// </summary>
-    public class FilterIntensity : IFilter
+    /// <remarks></remarks>
+    public class FilterIntensity(Range1i range) : IFilter
     {
         /// <summary></summary>
         public const string Type = "FilterIntensity";
 
         /// <summary></summary>
-        public Range1i Range { get; }
-
-        /// <summary></summary>
-        public FilterIntensity(Range1i range) { Range = range; }
+        public Range1i Range { get; } = range;
 
         private int[]? GetValues(IPointCloudNode node) => node.HasIntensities ? node.Intensities.Value : null;
 
@@ -31,7 +29,7 @@ namespace Aardvark.Geometry.Points
         public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null)
         {
             var xs = GetValues(node);
-            if (xs == null) return new();
+            if (xs == null) return [];
 
             if (selected != null)
             {

@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -61,7 +61,7 @@ namespace Aardvark.Geometry.Points
 
         internal static T[]? Append<T>(this T[]? self, T[]? other)
         {
-            if (self == null || self.Length == 0) return other ?? Array.Empty<T>();
+            if (self == null || self.Length == 0) return other ?? [];
             if (other == null || other.Length == 0) return self;
 
             var xs = new T[self.Length + other.Length];
@@ -73,7 +73,7 @@ namespace Aardvark.Geometry.Points
         internal static T[] Take<T>(this T[] self, int count)
         {
             if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
-            if (self == null || count == 0) return Array.Empty<T>();
+            if (self == null || count == 0) return [];
             if (self.Length <= count) return self;
 
             var xs = new T[count];

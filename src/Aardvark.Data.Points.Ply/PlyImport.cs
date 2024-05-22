@@ -1,5 +1,5 @@
 ﻿/*
-   Copyright (C) 2017-2022. Aardvark Platform Team.
+   Copyright (C) 2017-2024. Aardvark Platform Team.
     
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -260,7 +260,7 @@ namespace Aardvark.Data.Points.Import
 
                 #endregion
 
-                var chunk = new Chunk(ps, cs, ns, js, ks, partIndices: partIndex, partIndexRange: null, bbox: null);
+                var chunk = new Chunk(ps, cs, ns, js, ks, partIndices: partIndex, partIndexRange: null, partIndexSet: null, bbox: null);
 
                 yield return chunk;
             }

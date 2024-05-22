@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -76,7 +76,7 @@ namespace Aardvark.Geometry.Points
             Filter = filter ?? throw new ArgumentNullException(nameof(filter));
 
             if (filter.IsFullyInside(node)) m_activePoints = null;
-            else if (filter.IsFullyOutside(node)) m_activePoints = new HashSet<int>();
+            else if (filter.IsFullyOutside(node)) m_activePoints = [];
             else m_activePoints = Filter.FilterPoints(node, m_activePoints);
 
             if (writeToStore) WriteToStore();
@@ -447,6 +447,24 @@ namespace Aardvark.Geometry.Points
         /// True if this node has a PartIndexRange.
         /// </summary>
         [JsonIgnore]
+        [MemberNotNullWhen(true, nameof(PartIndexSet))]
+        public bool HasPartIndexSet => Node.HasPartIndexSet;
+
+        /// <summary>
+        /// Octree. Part indices occuring in octree.
+        /// </summary>
+        public int[]? PartIndexSet
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        /// <summary>
+        /// True if this node has a PartIndexRange.
+        /// </summary>
+        [JsonIgnore]
         [MemberNotNullWhen(true, nameof(PartIndexRange))]
         public bool HasPartIndexRange => Node.HasPartIndexRange;
 
@@ -611,7 +629,7 @@ namespace Aardvark.Geometry.Points
 
         #endregion
 
-        private readonly Dictionary<Guid, object> m_cache = new();
+        private readonly Dictionary<Guid, object> m_cache = [];
 
         private PersistentRef<T[]>? GetSubArray<T>(Def def, PersistentRef<T[]>? originalValue)
         {

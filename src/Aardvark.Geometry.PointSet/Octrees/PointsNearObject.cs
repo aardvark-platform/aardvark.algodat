@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -19,7 +19,9 @@ namespace Aardvark.Geometry.Points
 {
     /// <summary>
     /// </summary>
-    public class CellQueryResult
+    /// <remarks>
+    /// </remarks>
+    public class CellQueryResult(IPointCloudNode cell, bool isFullyInside)
     {
         /// <summary>
         /// </summary>
@@ -27,24 +29,16 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// </summary>
-        public IPointCloudNode Cell { get; }
+        public IPointCloudNode Cell { get; } = cell;
 
         /// <summary>
         /// </summary>
-        public bool IsFullyInside { get; }
+        public bool IsFullyInside { get; } = isFullyInside;
 
         /// <summary>
         /// Cell == null.
         /// </summary>
         public bool IsEmpty => Cell == null;
-
-        /// <summary>
-        /// </summary>
-        public CellQueryResult(IPointCloudNode cell, bool isFullyInside)
-        {
-            Cell = cell;
-            IsFullyInside = isFullyInside;
-        }
     }
 
     /// <summary>
@@ -53,10 +47,7 @@ namespace Aardvark.Geometry.Points
     {
         /// <summary></summary>
         public static readonly PointsNearObject<T> Empty = new(
-            default!, 0.0, 
-            Array.Empty<V3d>(), Array.Empty<C4b>(), Array.Empty<V3f>(), 
-            Array.Empty<int>(), Array.Empty<int>(), Array.Empty<byte>(),
-            Array.Empty<double>()
+            default!, 0.0, [], [], [], [], [], [], []
             );
 
         /// <summary></summary>

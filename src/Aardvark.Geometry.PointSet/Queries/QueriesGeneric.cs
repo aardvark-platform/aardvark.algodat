@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -66,7 +66,7 @@ namespace Aardvark.Geometry.Points
                     for (var i = 0; i < ps.Length; i++) if (isPositionInside(ps[i])) ia.Add(i);
 
                     if (ia.Count > 0) yield return new Chunk(
-                        ps.Subset(ia), csRaw?.Subset(ia), nsRaw?.Subset(ia), jsRaw?.Subset(ia), ksRaw?.Subset(ia), PartIndexUtils.Subset(qsRaw, ia), partIndexRange: null, bbox: null
+                        ps.Subset(ia), csRaw?.Subset(ia), nsRaw?.Subset(ia), jsRaw?.Subset(ia), ksRaw?.Subset(ia), PartIndexUtils.Subset(qsRaw, ia), partIndexRange: null, partIndexSet: null, bbox: null
                         );
                 }
             }

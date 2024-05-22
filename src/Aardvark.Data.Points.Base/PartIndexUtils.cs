@@ -16,6 +16,7 @@
    limitations under the License.
 */
 using Aardvark.Base;
+using Aardvark.Geometry.Points;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -37,6 +38,16 @@ public static class PartIndexUtils
         if (data == null) return null;
         data.TryGetValue(Durable.Octree.PartIndexRange, out var o);
         return (Range1i?)o;
+    }
+
+    /// <summary>
+    /// Extract part index set (or null) from durable map.
+    /// </summary>
+    public static int[]? GetSet(IReadOnlyDictionary<Durable.Def, object>? data)
+    {
+        if (data == null) return null;
+        data.TryGetValue(OctreeDefs.PartIndexSet, out var o);
+        return (int[]?)o;
     }
 
     public static bool HasValidPartIndexData(IReadOnlyDictionary<Durable.Def, object> data)
@@ -317,6 +328,9 @@ public static class PartIndexUtils
         return resultIndices;
     }
 
+    /// <summary>
+    /// Gets part indices range, or null if there are no part indices.
+    /// </summary>
     public static Range1i? GetRange(object? qs) => qs switch
     {
         null => null,
@@ -326,6 +340,34 @@ public static class PartIndexUtils
         short[] xs => new Range1i(xs.Select(x => (int)x)),
         int[] xs => new Range1i(xs),
         _ => throw new Exception($"Unexpected type {qs.GetType().FullName}. Error 8a975735-bb10-42bf-9f7f-4d570e5223e3.")
+    };
+
+    /// <summary>
+    /// Gets part indices set, or null if there are no part indices.
+    /// </summary>
+    public static int[]? GetSet(object? qs) => qs switch
+    {
+        null => null,
+        int x => [ x ],
+        uint x => [ (int)x ],
+        byte[] xs => new HashSet<int>(xs.Select(x => (int)x)).ToArray(),
+        short[] xs => new HashSet<int>(xs.Select(x => (int)x)).ToArray(),
+        int[] xs => new HashSet<int>(xs).ToArray(),
+        _ => throw new Exception($"Unexpected type {qs.GetType().FullName}. Error 21c43dca-a049-4f6d-956f-b04dde611c88.")
+    };
+
+    /// <summary>
+    /// Gets part indices range, or null if there are no part indices.
+    /// </summary>
+    public static bool HasMultipleDistinctPartIndices(object? qs) => qs switch
+    {
+        null => false,
+        int => false,
+        uint => false,
+        byte[] xs => xs.Distinct().Count() > 1,
+        short[] xs => xs.Distinct().Count() > 1,
+        int[] xs => xs.Distinct().Count() > 1,
+        _ => throw new Exception($"Unexpected type {qs.GetType().FullName}. Error befb5350-18a7-40a2-8abf-0895dbf3563d.")
     };
 
     public static Range1i? ExtendRangeBy(in Range1i? range, object? partIndices)
@@ -351,6 +393,32 @@ public static class PartIndexUtils
         }
     }
 
+    public static int[]? ExtendSetBy(in int[]? set, object? partIndices)
+    {
+        if (set == null) return GetSet(partIndices);
+        if (partIndices == null) return set;
+
+        checked
+        {
+            var h = new HashSet<int>(set);
+            switch (partIndices)
+            {
+                case int x: h.Add(x); break;
+                case uint x: h.Add((int)x); break;
+                case IList<byte> xs: h.AddRange(xs.Select(x => (int)x)); break;
+                case IList<short> xs: h.AddRange(xs.Select(x => (int)x)); break;
+                case IList<int> xs: h.AddRange(xs); break;
+
+                default: throw new Exception(
+                    $"Unexpected part indices type {partIndices.GetType().FullName}. " +
+                    $"Error 00de6fda-f24a-4c47-b6c2-84e22de1e9d3"
+                    );
+            };
+
+            return [.. h];
+        }
+    }
+
     public static Range1i? MergeRanges(in Range1i? a, in Range1i? b) => (a, b) switch
     {
         (null, null) => null,
@@ -365,6 +433,29 @@ public static class PartIndexUtils
         foreach (var x in xs) result = MergeRanges(result, x);
         return result;
     }
+    
+    public static int[]? MergeSets(in int[]? a, in int[]? b) => (a, b) switch
+    {
+        (null, null) => null,
+        (null, not null) => b,
+        (not null, null) => a,
+        (not null, not null) => new HashSet<int>(a.Concat(b)).ToArray()
+    };
+
+    public static int[]? MergeSets(IEnumerable<int[]?> xs)
+    {
+        int[]? result = null;
+        foreach (var x in xs) result = MergeSets(result, x);
+        return result;
+    }
+
+    public static HashSet<int>? MergeSets(in HashSet<int>? a, in HashSet<int>? b) => (a, b) switch
+    {
+        (null, null) => null,
+        (null, not null) => b,
+        (not null, null) => a,
+        (not null, not null) => new HashSet<int>(a.Concat(b))
+    };
 
     /// <summary>
     /// Skips n part indices and returns the remaining ones.

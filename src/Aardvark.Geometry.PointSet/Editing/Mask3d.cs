@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -117,12 +117,12 @@ namespace Aardvark.Geometry.Points
                 if (cs3.All(c => c.Z < 0.0)) return false;
                 if (cs3.Any(c => c.Z < 0.0)) return true;
                 var cs = cs3.Map(c => c.XY);
-                var outline = create(new[] { cs[0], cs[2], cs[3], cs[1] })
-                    .Or(create(new[] { cs[0], cs[4], cs[5], cs[1] }))
-                    .Or(create(new[] { cs[1], cs[5], cs[7], cs[3] }))
-                    .Or(create(new[] { cs[3], cs[7], cs[6], cs[2] }))
-                    .Or(create(new[] { cs[2], cs[6], cs[4], cs[0] }))
-                    .Or(create(new[] { cs[4], cs[6], cs[7], cs[5] }))
+                var outline = create([cs[0], cs[2], cs[3], cs[1]])
+                    .Or(create([cs[0], cs[4], cs[5], cs[1]]))
+                    .Or(create([cs[1], cs[5], cs[7], cs[3]]))
+                    .Or(create([cs[3], cs[7], cs[6], cs[2]]))
+                    .Or(create([cs[2], cs[6], cs[4], cs[0]]))
+                    .Or(create([cs[4], cs[6], cs[7], cs[5]]))
                     ;
                 var r = outline.And(m_mask);
 

@@ -30,7 +30,7 @@ namespace Aardvark.Data.Points.Import
 
         static Yxh()
         {
-            YxhFormat = new PointCloudFileFormat("yxh", new[] { ".yxh" }, YxhInfo, Chunks);
+            YxhFormat = new PointCloudFileFormat("yxh", [".yxh"], YxhInfo, Chunks);
             PointCloudFileFormat.Register(YxhFormat);
         }
 

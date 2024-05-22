@@ -30,7 +30,7 @@ namespace Aardvark.Data.Points.Import
 
         static Pts()
         {
-            PtsFormat = new PointCloudFileFormat("pts", new[] { ".pts" }, PtsInfo, Chunks);
+            PtsFormat = new PointCloudFileFormat("pts", [".pts"], PtsInfo, Chunks);
             PointCloudFileFormat.Register(PtsFormat);
         }
 

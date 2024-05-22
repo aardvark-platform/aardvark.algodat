@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -15,16 +15,11 @@ using System;
 
 namespace Aardvark.Geometry.Points
 {
-    internal class Disposable : IDisposable
+    internal class Disposable(Action onDispose) : IDisposable
     {
         private readonly object m_lock = new();
         private bool m_isDisposed = false;
-        private Action m_onDispose;
-
-        public Disposable(Action onDispose)
-        {
-            m_onDispose = onDispose ?? throw new ArgumentNullException(nameof(onDispose));
-        }
+        private Action m_onDispose = onDispose ?? throw new ArgumentNullException(nameof(onDispose));
 
         public void Dispose()
         {

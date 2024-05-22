@@ -21,14 +21,16 @@ namespace Aardvark.Data.Points
 {
     /// <summary>
     /// </summary>
-    public class ParsingStats
+    /// <remarks>
+    /// </remarks>
+    public class ParsingStats(long totalBytesCount)
     {
         /// <summary>
         /// </summary>
-        public DateTimeOffset T0 { get; }
+        public DateTimeOffset T0 { get; } = DateTimeOffset.UtcNow;
         /// <summary>
         /// </summary>
-        public long TotalBytesCount { get; }
+        public long TotalBytesCount { get; } = totalBytesCount;
         /// <summary>
         /// </summary>
         public long TotalBytesRead { get; private set; }
@@ -38,14 +40,6 @@ namespace Aardvark.Data.Points
         /// <summary>
         /// </summary>
         public double MiBsPerSecond => BytesPerSecond / (1024 * 1024);
-
-        /// <summary>
-        /// </summary>
-        public ParsingStats(long totalBytesCount)
-        {
-            T0 = DateTimeOffset.UtcNow;
-            TotalBytesCount = totalBytesCount;
-        }
 
         /// <summary>
         /// </summary>

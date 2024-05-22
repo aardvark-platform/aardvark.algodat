@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -25,13 +25,13 @@ namespace Aardvark.Geometry.Points
         public static Box2l[] SplitAtCenter(this Box2l self)
         {
             var c = self.Center;
-            return new Box2l[]
-            {
+            return
+            [
                 new(self.Min.X, self.Min.Y, c.X,        c.Y       ),
                 new(c.X,        self.Min.Y, self.Max.X, c.Y       ),
                 new(self.Min.X, c.Y,        c.X,        self.Max.Y),
                 new(c.X,        c.Y,        self.Max.X, self.Max.Y)
-            };
+            ];
         }
       
 
@@ -53,7 +53,7 @@ namespace Aardvark.Geometry.Points
             {
                 if (qs[i].Z < 0.0) behindPositionCount++;
             }
-            if (behindPositionCount == qs.Length) return Array.Empty<V2d>();
+            if (behindPositionCount == qs.Length) return [];
             if (behindPositionCount > 0) return null;
 
             return qs.Map(p => p.XY);

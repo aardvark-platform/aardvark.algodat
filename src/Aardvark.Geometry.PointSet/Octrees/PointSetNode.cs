@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -20,7 +20,6 @@ using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.Json.Serialization;
@@ -63,7 +62,8 @@ namespace Aardvark.Geometry.Points
             (Durable.Octree.MinTreeDepth, 0),
             (Durable.Octree.MaxTreeDepth, 0),
             (Durable.Octree.PartIndexRange, Range1i.Invalid),
-            (Durable.Octree.PerPointPartIndex1b, Array.Empty<byte>())
+            (Durable.Octree.PerPointPartIndex1b, Array.Empty<byte>()),
+            (OctreeDefs.PartIndexSet, Array.Empty<int>())
             );
 
         #region Construction
@@ -503,7 +503,7 @@ namespace Aardvark.Geometry.Points
         /// Runtime.
         /// </summary>
         [JsonIgnore]
-        private Dictionary<Durable.Def, object> PersistentRefs { get; } = new Dictionary<Durable.Def, object>();
+        private Dictionary<Durable.Def, object> PersistentRefs { get; } = [];
 
         #region Cell attributes
 
@@ -647,7 +647,7 @@ namespace Aardvark.Geometry.Points
                     return new PersistentRef<V3f[]>(Guid.Empty, ps);
                 }
                 else
-                    return new PersistentRef<V3f[]>(Guid.Empty, Array.Empty<V3f>());
+                    return new PersistentRef<V3f[]>(Guid.Empty, []);
             }
         }
 
@@ -876,6 +876,18 @@ namespace Aardvark.Geometry.Points
         #endregion
 
         #region PartIndices
+
+        /// <summary>
+        /// True if this node has a PartIndexSet.
+        /// </summary>
+        [JsonIgnore]
+        [MemberNotNullWhen(true, nameof(PartIndexSet))]
+        public bool HasPartIndexSet => Data.ContainsKey(OctreeDefs.PartIndexSet);
+
+        /// <summary>
+        /// Octree. Part indices occuring in octree.
+        /// </summary>
+        public int[]? PartIndexSet => Data.TryGetValue(OctreeDefs.PartIndexSet, out var o) ? (int[])o : null;
 
         /// <summary>
         /// True if this node has a PartIndexRange.
@@ -1181,17 +1193,20 @@ namespace Aardvark.Geometry.Points
             // part indices ...
             {
                 Range1i? qsRange = null;
+                int[]? qsSet = null;
                 for (var i = 0; i < 8; i++)
                 {
                     var subNode = subnodes[i]; if (subNode == null) continue;
-                    qsRange = PartIndexUtils.MergeRanges(qsRange, subNode.PartIndexRange);             
+                    qsRange = PartIndexUtils.MergeRanges(qsRange, subNode.PartIndexRange);
+                    qsSet = PartIndexUtils.MergeSets(qsSet, subNode.PartIndexSet);
                 }
                 if (qsRange != null) data = data.Add(Durable.Octree.PartIndexRange, qsRange);
+                if (qsSet != null) data = data.Add(OctreeDefs.PartIndexSet, qsSet);
             }
 
             if (IsTemporaryImportNode) data = data.Add(TemporaryImportNode, 0);
 
-            var result = new PointSetNode(data, this.Storage, writeToStore: true);
+            var result = new PointSetNode(data, Storage, writeToStore: true);
             return result;
         }
 
