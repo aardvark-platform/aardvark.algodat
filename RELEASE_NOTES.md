@@ -1,3 +1,6 @@
+### 5.4.0-prerelease0001
+- [octree] part-aware mindist filtering and queries (wip)
+
 ### 5.3.8
 - [e57] support for ScaledInteger with 33 to 63 bits (1 to 32, and 64 was already supported)
 

@@ -5,6 +5,7 @@ on:
       - master
       - newbuild
       - parts
+      - sm2024
     paths:
       - RELEASE_NOTES.md
       - .github/workflows/publish.yml
