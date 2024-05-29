@@ -9,6 +9,7 @@ on:
     paths:
       - RELEASE_NOTES.md
       - .github/workflows/publish.yml
+      - global.json
 jobs:
   pack:
     name: Package
