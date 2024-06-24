@@ -36,8 +36,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aardvark.Geometry.Normals",
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImportTest", "Apps\ImportTest\ImportTest.csproj", "{0595D792-52A4-4DE1-A39F-6A99D199471A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aardvark.Data.Photometry", "Aardvark.Data.Photometry\Aardvark.Data.Photometry.csproj", "{9CCC776B-46E0-453F-BF24-BC85D0979067}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aardvark.Physics.Sky", "Aardvark.Physics.Sky\Aardvark.Physics.Sky.csproj", "{00D02F5B-5278-4867-9F55-777ACF03EB1E}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aardvark.Data.Points.LasZip", "Aardvark.Data.Points.LasZip\Aardvark.Data.Points.LasZip.csproj", "{997D436A-6A9F-4C2E-8D71-39410CC1EDF2}"
@@ -73,13 +71,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Ply.Net", "Ply.Net\Ply.Net.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aardvark.Data.Points.Ply", "Aardvark.Data.Points.Ply\Aardvark.Data.Points.Ply.csproj", "{7E5CEB6E-F437-47D9-905B-FDEEABC9D19D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aardvark.Data.Wavefront", "Aardvark.Data.Wavefront\Aardvark.Data.Wavefront.csproj", "{7C25100A-8774-422C-90FB-FA113F798CB4}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Unofficial.laszip.netstandard", "Unofficial.laszip.netstandard\Unofficial.laszip.netstandard.csproj", "{AC84C458-5A8A-4EC9-A1B3-15CC52DA2E91}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "import", "import\import.csproj", "{000B3CDA-C67B-4F6A-B6F8-69A1B5052343}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "ScratchFSharp", "Apps\ScratchFSharp\ScratchFSharp.fsproj", "{E5B3A633-A8F4-4D56-BB64-4A885E22B3B2}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "ScratchFSharp", "Apps\ScratchFSharp\ScratchFSharp.fsproj", "{E5B3A633-A8F4-4D56-BB64-4A885E22B3B2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -151,10 +147,6 @@ Global
 		{0595D792-52A4-4DE1-A39F-6A99D199471A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0595D792-52A4-4DE1-A39F-6A99D199471A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0595D792-52A4-4DE1-A39F-6A99D199471A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9CCC776B-46E0-453F-BF24-BC85D0979067}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9CCC776B-46E0-453F-BF24-BC85D0979067}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9CCC776B-46E0-453F-BF24-BC85D0979067}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9CCC776B-46E0-453F-BF24-BC85D0979067}.Release|Any CPU.Build.0 = Release|Any CPU
 		{00D02F5B-5278-4867-9F55-777ACF03EB1E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{00D02F5B-5278-4867-9F55-777ACF03EB1E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{00D02F5B-5278-4867-9F55-777ACF03EB1E}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -183,10 +175,6 @@ Global
 		{7E5CEB6E-F437-47D9-905B-FDEEABC9D19D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7E5CEB6E-F437-47D9-905B-FDEEABC9D19D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7E5CEB6E-F437-47D9-905B-FDEEABC9D19D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7C25100A-8774-422C-90FB-FA113F798CB4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7C25100A-8774-422C-90FB-FA113F798CB4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7C25100A-8774-422C-90FB-FA113F798CB4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7C25100A-8774-422C-90FB-FA113F798CB4}.Release|Any CPU.Build.0 = Release|Any CPU
 		{AC84C458-5A8A-4EC9-A1B3-15CC52DA2E91}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{AC84C458-5A8A-4EC9-A1B3-15CC52DA2E91}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AC84C458-5A8A-4EC9-A1B3-15CC52DA2E91}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -214,7 +202,7 @@ Global
 		{E5B3A633-A8F4-4D56-BB64-4A885E22B3B2} = {6CA9BC7A-0123-43E9-A26B-5FF0B9E01B08}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		EnterpriseLibraryConfigurationToolBinariesPathV6 = packages\EnterpriseLibrary.TransientFaultHandling.6.0.1304.0\lib\portable-net45+win+wp8;packages\EnterpriseLibrary.TransientFaultHandling.Data.6.0.1304.1\lib\NET45
 		SolutionGuid = {E996B5E6-49B2-4479-9DDE-455A40509F43}
+		EnterpriseLibraryConfigurationToolBinariesPathV6 = packages\EnterpriseLibrary.TransientFaultHandling.6.0.1304.0\lib\portable-net45+win+wp8;packages\EnterpriseLibrary.TransientFaultHandling.Data.6.0.1304.1\lib\NET45
 	EndGlobalSection
 EndGlobal
