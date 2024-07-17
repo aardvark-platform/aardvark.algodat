@@ -15,6 +15,7 @@ using Aardvark.Base;
 using Aardvark.Data.Points;
 using Aardvark.Geometry.Points;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using System;
 
 namespace Aardvark.Geometry.Tests
@@ -49,7 +50,7 @@ namespace Aardvark.Geometry.Tests
                 generateLod: false, isTemporaryImportNode: true, default
                 );
             var pointset1Count = pointset1.Root.Value.CountPoints();
-            Assert.IsTrue(pointset1Count == n);
+            ClassicAssert.IsTrue(pointset1Count == n);
 
             var ps2 = new V3d[n].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
             var cs2 = ps2.Map(_ => C4b.White);
@@ -62,13 +63,13 @@ namespace Aardvark.Geometry.Tests
                 generateLod: false, isTemporaryImportNode: true, default
                 );
             var pointset2Count = pointset2.Root.Value.CountPoints();
-            Assert.IsTrue(pointset2Count == n);
+            ClassicAssert.IsTrue(pointset2Count == n);
 
             var merged = pointset1.Merge(pointset2, null, config);
-            Assert.IsTrue(merged.PointCount == n + n);
-            Assert.IsTrue(merged.Root.Value.PointCountTree == n + n);
+            ClassicAssert.IsTrue(merged.PointCount == n + n);
+            ClassicAssert.IsTrue(merged.Root.Value.PointCountTree == n + n);
             var mergedCount = merged.Root.Value.CountPoints();
-            Assert.IsTrue(mergedCount == n + n);
+            ClassicAssert.IsTrue(mergedCount == n + n);
         }
 
         [Test]
@@ -109,12 +110,12 @@ namespace Aardvark.Geometry.Tests
                 );
 
             var merged = pointset1.Merge(pointset2, null, config);
-            Assert.IsTrue(merged.PointCount == 84000);
-            Assert.IsTrue(merged.Root.Value.PointCountTree == 84000);
-            Assert.IsTrue(merged.Root.Value.CountPoints() == 84000);
-            Assert.IsFalse(merged.HasPartIndices); // no lod
-            Assert.IsTrue(merged.HasPartIndexRange);
-            Assert.IsTrue(merged.PartIndexRange == new Range1i(17, 18));
+            ClassicAssert.IsTrue(merged.PointCount == 84000);
+            ClassicAssert.IsTrue(merged.Root.Value.PointCountTree == 84000);
+            ClassicAssert.IsTrue(merged.Root.Value.CountPoints() == 84000);
+            ClassicAssert.IsFalse(merged.HasPartIndices); // no lod
+            ClassicAssert.IsTrue(merged.HasPartIndexRange);
+            ClassicAssert.IsTrue(merged.PartIndexRange == new Range1i(17, 18));
         }
 
         [Test]
@@ -153,9 +154,9 @@ namespace Aardvark.Geometry.Tests
                 );
 
             var merged = pointset1.Merge(pointset2, null, config);
-            Assert.IsTrue(merged.PointCount == 84000);
-            Assert.IsTrue(merged.Root.Value.PointCountTree == 84000);
-            Assert.IsTrue(merged.Root.Value.CountPoints() == 84000);
+            ClassicAssert.IsTrue(merged.PointCount == 84000);
+            ClassicAssert.IsTrue(merged.Root.Value.PointCountTree == 84000);
+            ClassicAssert.IsTrue(merged.Root.Value.CountPoints() == 84000);
         }
 
         [Test]
@@ -194,9 +195,9 @@ namespace Aardvark.Geometry.Tests
                 );
 
             var merged = pointset1.Merge(pointset2, null, config);
-            Assert.IsTrue(merged.PointCount == 84000);
-            Assert.IsTrue(merged.Root.Value.PointCountTree == 84000);
-            Assert.IsTrue(merged.Root.Value.CountPoints() == 84000);
+            ClassicAssert.IsTrue(merged.PointCount == 84000);
+            ClassicAssert.IsTrue(merged.Root.Value.PointCountTree == 84000);
+            ClassicAssert.IsTrue(merged.Root.Value.CountPoints() == 84000);
         }
     }
 }

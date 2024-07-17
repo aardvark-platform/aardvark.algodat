@@ -1,5 +1,6 @@
 ﻿using Aardvark.Base;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 namespace Aardvark.Geometry.Tests
 {
@@ -15,15 +16,15 @@ namespace Aardvark.Geometry.Tests
             var hits = mesh.GetRayIntersections(ray);
             hits.Sort((x, y) => x.T.CompareTo(y.T));
 
-            Assert.AreEqual(hits.Count, 2);
-            Assert.True(Fun.ApproximateEquals(hits[0].T, 1.0));
-            Assert.True(Fun.ApproximateEquals(hits[1].T, 2.0));
+            ClassicAssert.AreEqual(hits.Count, 2);
+            ClassicAssert.True(Fun.ApproximateEquals(hits[0].T, 1.0));
+            ClassicAssert.True(Fun.ApproximateEquals(hits[1].T, 2.0));
 
             foreach (var hit in hits)
             {
                 var p = mesh.GetFace(hit.Part).Polygon3d;
-                Assert.True(Vec.AllNaN(hit.Coord));
-                Assert.True(p.Contains(Constant<double>.PositiveTinyValue, hit.Point, out double _));
+                ClassicAssert.True(Vec.AllNaN(hit.Coord));
+                ClassicAssert.True(p.Contains(Constant<double>.PositiveTinyValue, hit.Point, out double _));
             }
         }
 
@@ -35,14 +36,14 @@ namespace Aardvark.Geometry.Tests
 
             var hits = mesh.GetRayIntersections(ray, filter: (in RayHit3d hit) => !hit.BackSide);
 
-            Assert.AreEqual(hits.Count, 1);
-            Assert.True(Fun.ApproximateEquals(hits[0].T, 1.0));
+            ClassicAssert.AreEqual(hits.Count, 1);
+            ClassicAssert.True(Fun.ApproximateEquals(hits[0].T, 1.0));
 
             foreach (var hit in hits)
             {
                 var p = mesh.GetFace(hit.Part).Polygon3d;
-                Assert.True(Vec.AllNaN(hit.Coord));
-                Assert.True(p.Contains(Constant<double>.PositiveTinyValue, hit.Point, out double _));
+                ClassicAssert.True(Vec.AllNaN(hit.Coord));
+                ClassicAssert.True(p.Contains(Constant<double>.PositiveTinyValue, hit.Point, out double _));
             }
         }
 
@@ -55,16 +56,16 @@ namespace Aardvark.Geometry.Tests
             var hits = mesh.GetRayIntersections(ray);
             hits.Sort((x, y) => x.T.CompareTo(y.T));
 
-            Assert.AreEqual(hits.Count, 2);
-            Assert.True(Fun.ApproximateEquals(hits[0].T, 1.0));
-            Assert.True(Fun.ApproximateEquals(hits[1].T, 2.0));
+            ClassicAssert.AreEqual(hits.Count, 2);
+            ClassicAssert.True(Fun.ApproximateEquals(hits[0].T, 1.0));
+            ClassicAssert.True(Fun.ApproximateEquals(hits[1].T, 2.0));
 
             foreach (var hit in hits)
             {
                 var p = mesh.GetFace(hit.Part).Polygon3d;
-                Assert.True(Fun.IsFinite(hit.Coord));
-                Assert.True(Vec.AllSmallerOrEqual(hit.Coord, 1.0));
-                Assert.True(p.Contains(Constant<double>.PositiveTinyValue, hit.Point, out double _));
+                ClassicAssert.True(Fun.IsFinite(hit.Coord));
+                ClassicAssert.True(Vec.AllSmallerOrEqual(hit.Coord, 1.0));
+                ClassicAssert.True(p.Contains(Constant<double>.PositiveTinyValue, hit.Point, out double _));
             }
         }
 
@@ -83,12 +84,12 @@ namespace Aardvark.Geometry.Tests
             {
                 var foundHit = mesh.Intersects(ray, out var hit);
 
-                Assert.True(foundHit);
-                Assert.True(Fun.ApproximateEquals(hit.T, 1.0));
-                Assert.True(Vec.AllNaN(hit.Coord));
+                ClassicAssert.True(foundHit);
+                ClassicAssert.True(Fun.ApproximateEquals(hit.T, 1.0));
+                ClassicAssert.True(Vec.AllNaN(hit.Coord));
 
                 var p = mesh.GetFace(hit.Part).Polygon3d;
-                Assert.True(p.Contains(Constant<double>.PositiveTinyValue, hit.Point, out double _));
+                ClassicAssert.True(p.Contains(Constant<double>.PositiveTinyValue, hit.Point, out double _));
             }
         }
 
@@ -107,12 +108,12 @@ namespace Aardvark.Geometry.Tests
             {
                 var foundHit = mesh.Intersects(ray, out var hit, filter: (in RayHit3d h) => h.BackSide);
 
-                Assert.True(foundHit);
-                Assert.True(Fun.ApproximateEquals(hit.T, 2.0));
-                Assert.True(Vec.AllNaN(hit.Coord));
+                ClassicAssert.True(foundHit);
+                ClassicAssert.True(Fun.ApproximateEquals(hit.T, 2.0));
+                ClassicAssert.True(Vec.AllNaN(hit.Coord));
 
                 var p = mesh.GetFace(hit.Part).Polygon3d;
-                Assert.True(p.Contains(Constant<double>.PositiveTinyValue, hit.Point, out double _));
+                ClassicAssert.True(p.Contains(Constant<double>.PositiveTinyValue, hit.Point, out double _));
             }
         }
 
@@ -139,11 +140,11 @@ namespace Aardvark.Geometry.Tests
                 {
                     var foundHit = mesh.Intersects(ray, out var hit, -2.5);
 
-                    Assert.True(foundHit);
-                    Assert.True(Fun.ApproximateEquals(hit.T, -1.0));
+                    ClassicAssert.True(foundHit);
+                    ClassicAssert.True(Fun.ApproximateEquals(hit.T, -1.0));
 
                     var p = mesh.GetFace(hit.Part).Polygon3d;
-                    Assert.True(p.Contains(Constant<double>.PositiveTinyValue, hit.Point, out double _));
+                    ClassicAssert.True(p.Contains(Constant<double>.PositiveTinyValue, hit.Point, out double _));
                 }
             }
         }

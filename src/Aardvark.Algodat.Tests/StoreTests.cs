@@ -14,6 +14,7 @@
 using Aardvark.Base;
 using Aardvark.Geometry.Points;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using System;
 using System.IO;
 using Uncodium.SimpleStore;
@@ -30,14 +31,14 @@ namespace Aardvark.Geometry.Tests
             var store = PointCloud.OpenStore(storepath, cache: default);
             store.Add("key", new byte[] { 1, 2, 3 });
             var xs = store.GetByteArray("key");
-            Assert.IsTrue(xs[0] == 1 && xs[1] == 2 && xs[2] == 3);
+            ClassicAssert.IsTrue(xs[0] == 1 && xs[1] == 2 && xs[2] == 3);
 
             store.Flush();
             store.Dispose();
 
             store = PointCloud.OpenStore(storepath, cache: default);
             xs = store.GetByteArray("key");
-            Assert.IsTrue(xs[0] == 1 && xs[1] == 2 && xs[2] == 3);
+            ClassicAssert.IsTrue(xs[0] == 1 && xs[1] == 2 && xs[2] == 3);
         }
     }
 }

@@ -884,8 +884,8 @@ module Sg =
                         match o with
                         | :? RenderObject as o ->
                             match o.Surface with
-                            | Surface.FShadeSimple e ->
-                                o.Surface <- Surface.FShadeSimple (FShade.Effect.compose [e; eff])
+                            | Surface.Effect e ->
+                                o.Surface <- Surface.Effect (FShade.Effect.compose [e; eff])
                                 o :> IRenderObject 
                             | _ ->
                                 o :> IRenderObject 

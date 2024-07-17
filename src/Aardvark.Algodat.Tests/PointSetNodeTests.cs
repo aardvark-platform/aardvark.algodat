@@ -16,6 +16,7 @@ using Aardvark.Data;
 using Aardvark.Data.Points;
 using Aardvark.Geometry.Points;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using System;
 using System.Collections.Immutable;
 using Uncodium.SimpleStore;
@@ -100,12 +101,12 @@ namespace Aardvark.Geometry.Tests
 
             var node = new PointSetNode(data, storage, writeToStore: true);
 
-            Assert.IsTrue(node.Id == id);
-            Assert.IsTrue(node.Cell == cell);
-            Assert.IsTrue(node.PointCountCell == ps.LongLength);
-            Assert.IsTrue(node.PointCountTree == ps.LongLength);
-            Assert.IsTrue(node.Cell.BoundingBox == cell.BoundingBox);
-            Assert.IsTrue(node.BoundingBoxExactLocal == new Box3f(ps));
+            ClassicAssert.IsTrue(node.Id == id);
+            ClassicAssert.IsTrue(node.Cell == cell);
+            ClassicAssert.IsTrue(node.PointCountCell == ps.LongLength);
+            ClassicAssert.IsTrue(node.PointCountTree == ps.LongLength);
+            ClassicAssert.IsTrue(node.Cell.BoundingBox == cell.BoundingBox);
+            ClassicAssert.IsTrue(node.BoundingBoxExactLocal == new Box3f(ps));
         }
 
         [Test]
@@ -135,7 +136,7 @@ namespace Aardvark.Geometry.Tests
                 ;
             var node2 = node.With(replacements);
 
-            Assert.AreNotEqual(node.Id, node2.Id);
+            ClassicAssert.AreNotEqual(node.Id, node2.Id);
         }
 
         [Test]
@@ -156,9 +157,9 @@ namespace Aardvark.Geometry.Tests
 
             // decode
             var node2 = PointSetNode.Decode(storage, buffer);
-            Assert.IsTrue(node.Id == node2.Id);
-            Assert.IsTrue(node.Cell == node2.Cell);
-            Assert.IsTrue(node.PointCountTree == node2.PointCountTree);
+            ClassicAssert.IsTrue(node.Id == node2.Id);
+            ClassicAssert.IsTrue(node.Cell == node2.Cell);
+            ClassicAssert.IsTrue(node.PointCountTree == node2.PointCountTree);
         }
     }
 }

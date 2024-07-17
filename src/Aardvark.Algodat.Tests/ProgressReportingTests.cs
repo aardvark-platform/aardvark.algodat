@@ -15,6 +15,7 @@ using Aardvark.Base;
 using Aardvark.Data.Points;
 using Aardvark.Geometry.Points;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -40,9 +41,9 @@ namespace Aardvark.Geometry.Tests
                 ;
 
             var pointcloud = PointCloud.Chunks(GenerateChunks(CHUNKSIZE).Take(CHUNKCOUNT), config);
-            Assert.IsTrue(pointcloud.PointCount == CHUNKSIZE * CHUNKCOUNT);
+            ClassicAssert.IsTrue(pointcloud.PointCount == CHUNKSIZE * CHUNKCOUNT);
 
-            Assert.IsTrue(countProgressCallbacks > 1);
+            ClassicAssert.IsTrue(countProgressCallbacks > 1);
 
             static IEnumerable<Chunk> GenerateChunks(int numberOfPointsPerChunk)
             {

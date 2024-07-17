@@ -16,6 +16,7 @@ using Aardvark.Data;
 using Aardvark.Data.Points;
 using Aardvark.Geometry.Points;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using System;
 using System.Collections.Immutable;
 using System.Linq;
@@ -74,8 +75,8 @@ namespace Aardvark.Geometry.Tests
         {
             if (n.TryGetPartIndices(out var qs))
             {
-                Assert.True(qs.Length == n.PointCountCell);
-                Assert.True(qs.All(q => q == 42));
+                ClassicAssert.True(qs.Length == n.PointCountCell);
+                ClassicAssert.True(qs.All(q => q == 42));
             }
             else
             {
@@ -92,9 +93,9 @@ namespace Aardvark.Geometry.Tests
             var a = CreateNode(storage, RandomPositions(100));
 
             var f = FilteredNode.Create(a, new FilterInsideBox3d(a.BoundingBoxExactGlobal));
-            Assert.IsTrue(f.HasPositions);
+            ClassicAssert.IsTrue(f.HasPositions);
             var ps = f.PositionsAbsolute;
-            Assert.IsTrue(ps.Length == 100);
+            ClassicAssert.IsTrue(ps.Length == 100);
 
             CheckPartIndices(f);
         }
@@ -106,7 +107,7 @@ namespace Aardvark.Geometry.Tests
             var a = CreateNode(storage, RandomPositions(100));
 
             var f = FilteredNode.Create(a, new FilterInsideBox3d(a.BoundingBoxExactGlobal + V3d.IOO));
-            Assert.IsTrue(f.PointCountCell == 0);
+            ClassicAssert.IsTrue(f.PointCountCell == 0);
 
             CheckPartIndices(f);
         }
@@ -126,14 +127,14 @@ namespace Aardvark.Geometry.Tests
 
             var ps = storage.GetPointCloudNode(g);
 
-            Assert.IsTrue(ps.Id == f.Id);
+            ClassicAssert.IsTrue(ps.Id == f.Id);
 
             var f2 = (FilteredNode)ps;
             var f1 = (FilteredNode)f;
-            Assert.IsTrue(f2.Node.Id == f1.Node.Id); // how to compare nodes structurally?
+            ClassicAssert.IsTrue(f2.Node.Id == f1.Node.Id); // how to compare nodes structurally?
             var f2s = f2.Filter.Serialize().ToString();
             var f1s = f1.Filter.Serialize().ToString();
-            Assert.IsTrue(f2s == f1s); // how to compare filters structurally ?
+            ClassicAssert.IsTrue(f2s == f1s); // how to compare filters structurally ?
         }
 
         [Test]
@@ -143,10 +144,10 @@ namespace Aardvark.Geometry.Tests
             var a = CreateNode(storage, RandomPositions(100));
 
             var f = FilteredNode.Create(a, new FilterInsideBox3d(new Box3d(new V3d(0, 0, 0), new V3d(1, 1, 0.5))));
-            Assert.IsTrue(f.HasPositions);
+            ClassicAssert.IsTrue(f.HasPositions);
             var ps = f.PositionsAbsolute;
             var count = ps.Count(p => p.Z <= 0.5);
-            Assert.IsTrue(ps.Length == count);
+            ClassicAssert.IsTrue(ps.Length == count);
 
             CheckPartIndices(f);
         }
@@ -162,9 +163,9 @@ namespace Aardvark.Geometry.Tests
             var a = CreateNode(storage, RandomPositions(100));
 
             var f = FilteredNode.Create(a, new FilterOutsideBox3d(a.BoundingBoxExactGlobal + V3d.IOO));
-            Assert.IsTrue(f.HasPositions);
+            ClassicAssert.IsTrue(f.HasPositions);
             var ps = f.PositionsAbsolute;
-            Assert.IsTrue(ps.Length == 100);
+            ClassicAssert.IsTrue(ps.Length == 100);
 
             CheckPartIndices(f);
         }
@@ -176,7 +177,7 @@ namespace Aardvark.Geometry.Tests
             var a = CreateNode(storage, RandomPositions(100));
 
             var f = FilteredNode.Create(a, new FilterOutsideBox3d(a.BoundingBoxExactGlobal));
-            Assert.IsTrue(f.PointCountCell == 0);
+            ClassicAssert.IsTrue(f.PointCountCell == 0);
 
             CheckPartIndices(f);
         }
@@ -188,10 +189,10 @@ namespace Aardvark.Geometry.Tests
             var a = CreateNode(storage, RandomPositions(100));
 
             var f = FilteredNode.Create(a, new FilterOutsideBox3d(new Box3d(new V3d(0, 0, 0), new V3d(1, 1, 0.5))));
-            Assert.IsTrue(f.HasPositions);
+            ClassicAssert.IsTrue(f.HasPositions);
             var ps = f.PositionsAbsolute;
             var count = ps.Count(p => p.Z <= 0.5);
-            Assert.IsTrue(ps.Length == count);
+            ClassicAssert.IsTrue(ps.Length == count);
 
             CheckPartIndices(f);
         }
@@ -208,9 +209,9 @@ namespace Aardvark.Geometry.Tests
             var a = CreateNode(storage, RandomPositions(100), intensities);
 
             var f = FilteredNode.Create(a, new FilterIntensity(new Range1i(-1000, +1000)));
-            Assert.IsTrue(f.HasIntensities);
+            ClassicAssert.IsTrue(f.HasIntensities);
             var js = f.Intensities.Value;
-            Assert.IsTrue(js.Length == 100);
+            ClassicAssert.IsTrue(js.Length == 100);
 
             CheckPartIndices(f);
         }
@@ -222,7 +223,7 @@ namespace Aardvark.Geometry.Tests
             var a = CreateNode(storage, RandomPositions(100), RandomIntensities(100));
 
             var f = FilteredNode.Create(a, new FilterIntensity(new Range1i(-30000, -10000)));
-            Assert.IsTrue(f.PointCountCell == 0);
+            ClassicAssert.IsTrue(f.PointCountCell == 0);
 
             CheckPartIndices(f);
         }
@@ -237,11 +238,11 @@ namespace Aardvark.Geometry.Tests
             var a = CreateNode(storage, RandomPositions(100), intensities);
 
             var f = FilteredNode.Create(a, new FilterIntensity(new Range1i(10000, 30000)));
-            Assert.IsTrue(f.HasIntensities);
+            ClassicAssert.IsTrue(f.HasIntensities);
             var js = f.Intensities.Value;
-            Assert.IsTrue(js.Length == 2);
-            Assert.IsTrue(js[0] == 10000);
-            Assert.IsTrue(js[1] == 20000);
+            ClassicAssert.IsTrue(js.Length == 2);
+            ClassicAssert.IsTrue(js[0] == 10000);
+            ClassicAssert.IsTrue(js[1] == 20000);
 
             CheckPartIndices(f);
         }
@@ -256,7 +257,7 @@ namespace Aardvark.Geometry.Tests
             var f = new FilterInsideBox3d(Box3d.Unit);
             var json = f.Serialize().ToString();
             var g = Filter.Deserialize(json);
-            Assert.True(f.Equals(g));
+            ClassicAssert.True(f.Equals(g));
         }
         [Test]
         public void Serialize_FilterOutsideBox3d()
@@ -264,7 +265,7 @@ namespace Aardvark.Geometry.Tests
             var f = new FilterOutsideBox3d(Box3d.Unit);
             var json = f.Serialize().ToString();
             var g = Filter.Deserialize(json);
-            Assert.True(f.Equals(g));
+            ClassicAssert.True(f.Equals(g));
         }
         [Test]
         public void Serialize_FilterInsideConvexHull3d()
@@ -272,7 +273,7 @@ namespace Aardvark.Geometry.Tests
             var f = new FilterInsideConvexHull3d(new Hull3d(Box3d.Unit));
             var json = f.Serialize().ToString();
             var g = Filter.Deserialize(json);
-            Assert.True(f.Equals(g));
+            ClassicAssert.True(f.Equals(g));
         }
         [Test]
         public void Serialize_FilterInsideConvexHulls3d_A()
@@ -280,7 +281,7 @@ namespace Aardvark.Geometry.Tests
             var f = new FilterInsideConvexHulls3d(new Hull3d(Box3d.Unit), new Hull3d(Box3d.Unit.Translated(new V3d(-1, 3.14, 12345.67))));
             var json = f.Serialize().ToString();
             var g = Filter.Deserialize(json);
-            Assert.True(f.Equals(g));
+            ClassicAssert.True(f.Equals(g));
         }
         [Test]
         public void Serialize_FilterInsideConvexHulls3d_B()
@@ -288,7 +289,7 @@ namespace Aardvark.Geometry.Tests
             var f = new FilterInsideConvexHulls3d(Box2d.Unit.ToPolygon2dCCW(), Range1d.Unit, Trafo3d.Translation(1,2,-3));
             var json = f.Serialize().ToString();
             var g = Filter.Deserialize(json);
-            Assert.True(f.Equals(g));
+            ClassicAssert.True(f.Equals(g));
         }
         [Test]
         public void Serialize_FilterInsidePrismXY()
@@ -296,7 +297,7 @@ namespace Aardvark.Geometry.Tests
             var f = new FilterInsidePrismXY(Box2d.Unit.ToPolygon2dCCW(), Range1d.Unit);
             var json = f.Serialize().ToString();
             var g = Filter.Deserialize(json);
-            Assert.True(f.Equals(g));
+            ClassicAssert.True(f.Equals(g));
         }
         [Test]
         public void Serialize_FilterInsideSphere3d()
@@ -304,7 +305,7 @@ namespace Aardvark.Geometry.Tests
             var f = new FilterInsideSphere3d(new Sphere3d(new V3d(1,2,3), 4));
             var json = f.Serialize().ToString();
             var g = Filter.Deserialize(json);
-            Assert.True(f.Equals(g));
+            ClassicAssert.True(f.Equals(g));
         }
         [Test]
         public void Serialize_FilterClassification()
@@ -312,7 +313,7 @@ namespace Aardvark.Geometry.Tests
             var f = new FilterClassification(new byte[] { 1, 2, 3, 4, 5 });
             var json = f.Serialize().ToString();
             var g = Filter.Deserialize(json);
-            Assert.True(f.Equals(g));
+            ClassicAssert.True(f.Equals(g));
         }
         [Test]
         public void Serialize_FilterIntensity()
@@ -320,7 +321,7 @@ namespace Aardvark.Geometry.Tests
             var f = new FilterIntensity(new Range1i(-5, +17));
             var json = f.Serialize().ToString();
             var g = Filter.Deserialize(json);
-            Assert.True(f.Equals(g));
+            ClassicAssert.True(f.Equals(g));
         }
         [Test]
         public void Serialize_FilterNormalDirection()
@@ -328,7 +329,7 @@ namespace Aardvark.Geometry.Tests
             var f = new FilterNormalDirection(V3f.ZAxis, 0.1f);
             var json = f.Serialize().ToString();
             var g = Filter.Deserialize(json);
-            Assert.True(f.Equals(g));
+            ClassicAssert.True(f.Equals(g));
         }
         [Test]
         public void Serialize_FilterOr()
@@ -336,7 +337,7 @@ namespace Aardvark.Geometry.Tests
             var f = new FilterOr(new FilterInsideBox3d(Box3d.Unit), new FilterOutsideBox3d(Box3d.Unit));
             var json = f.Serialize().ToString();
             var g = Filter.Deserialize(json);
-            Assert.True(f.Equals(g));
+            ClassicAssert.True(f.Equals(g));
         }
         [Test]
         public void Serialize_FilterAnd()
@@ -344,7 +345,7 @@ namespace Aardvark.Geometry.Tests
             var f = new FilterAnd(new FilterInsideBox3d(Box3d.Unit), new FilterOutsideBox3d(Box3d.Unit));
             var json = f.Serialize().ToString();
             var g = Filter.Deserialize(json);
-            Assert.True(f.Equals(g));
+            ClassicAssert.True(f.Equals(g));
         }
 
         #endregion
@@ -359,19 +360,19 @@ namespace Aardvark.Geometry.Tests
 
             var f = (FilteredNode)FilteredNode.Create(a, new FilterInsideBox3d(a.BoundingBoxExactGlobal + new V3d(0.5, 0.0, 0.0)));
             var buffer = ((IPointCloudNode)f).Encode();
-            Assert.IsTrue(buffer != null);
+            ClassicAssert.IsTrue(buffer != null);
 
             CheckPartIndices(f);
 
             var g = FilteredNode.Decode(storage, buffer);
-            Assert.IsTrue(f.Id == g.Id);
-            Assert.IsTrue(f.Node.Id == g.Node.Id);
+            ClassicAssert.IsTrue(f.Id == g.Id);
+            ClassicAssert.IsTrue(f.Node.Id == g.Node.Id);
 
             CheckPartIndices(g);
 
             var fFilterJson = f.Filter.Serialize().ToString();
             var gFilterJson = g.Filter.Serialize().ToString();
-            Assert.IsTrue(fFilterJson == gFilterJson);
+            ClassicAssert.IsTrue(fFilterJson == gFilterJson);
         }
 
         #endregion
@@ -388,7 +389,7 @@ namespace Aardvark.Geometry.Tests
             var store = ((PointSetNode)a).Storage;
             a.ForEachNode(true, n =>
             {
-                Assert.IsTrue(store.GetPointCloudNode(n.Id) != null);
+                ClassicAssert.IsTrue(store.GetPointCloudNode(n.Id) != null);
             });
 
             var f = FilteredNode.Create(a, new FilterInsideBox3d(q));
@@ -398,11 +399,11 @@ namespace Aardvark.Geometry.Tests
                 n => !(q1.Contains(n.BoundingBoxExactGlobal) || q1.Intersects(n.BoundingBoxExactGlobal)),
                 p => q1.Contains(p), a.Storage, default, 1024);
 
-            Assert.IsTrue(a.PointCountTree > b.PointCountTree);
+            ClassicAssert.IsTrue(a.PointCountTree > b.PointCountTree);
 
-            Assert.IsTrue(!b.QueryAllPoints().SelectMany(chunk => chunk.Positions).Any(p => q1.Contains(p)));
+            ClassicAssert.IsTrue(!b.QueryAllPoints().SelectMany(chunk => chunk.Positions).Any(p => q1.Contains(p)));
 
-            Assert.IsTrue(b.HasCentroidLocal);
+            ClassicAssert.IsTrue(b.HasCentroidLocal);
 
             CheckPartIndices(f);
         }

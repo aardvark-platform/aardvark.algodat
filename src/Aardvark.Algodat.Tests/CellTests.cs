@@ -13,6 +13,7 @@
 */
 using Aardvark.Base;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -26,30 +27,30 @@ namespace Aardvark.Geometry.Tests
         //[Test]
         //public void GetRasterBoundsTest()
         //{
-        //    Assert.IsTrue(new Cell(0, 0, 0, 0).GetRasterBounds(0) == new Box3l(new V3l(0, 0, 0), new V3l(0, 0, 0)));
-        //    Assert.IsTrue(new Cell(0, 0, 0, 0).GetRasterBounds(-1) == new Box3l(new V3l(0, 0, 0), new V3l(1, 1, 1)));
-        //    Assert.IsTrue(new Cell(1, 2, -1, 1).GetRasterBounds(-2) == new Box3l(new V3l(8, 16, - 8), new V3l(15, 23, -1)));
+        //    ClassicAssert.IsTrue(new Cell(0, 0, 0, 0).GetRasterBounds(0) == new Box3l(new V3l(0, 0, 0), new V3l(0, 0, 0)));
+        //    ClassicAssert.IsTrue(new Cell(0, 0, 0, 0).GetRasterBounds(-1) == new Box3l(new V3l(0, 0, 0), new V3l(1, 1, 1)));
+        //    ClassicAssert.IsTrue(new Cell(1, 2, -1, 1).GetRasterBounds(-2) == new Box3l(new V3l(8, 16, - 8), new V3l(15, 23, -1)));
         //}
 
         //[Test]
         //public void GetRasterBoundsTest_SmallerExponent()
         //{
-        //    Assert.IsTrue(new Cell(2, 3, -2, -1).GetRasterBounds(0) == new Box3l(new V3l(1, 1, -1), new V3l(1, 1, -1)));
+        //    ClassicAssert.IsTrue(new Cell(2, 3, -2, -1).GetRasterBounds(0) == new Box3l(new V3l(1, 1, -1), new V3l(1, 1, -1)));
         //}
 
         //[Test]
         //public void GetRasterBoundsTest_Centered()
         //{
-        //    Assert.IsTrue(new Cell(0).GetRasterBounds(0) == new Box3l(new V3l(-1, -1, -1), new V3l(0, 0, 0)));
-        //    Assert.IsTrue(new Cell(0).GetRasterBounds(-1) == new Box3l(new V3l(-1, -1, -1), new V3l(0, 0, 0)));
-        //    Assert.IsTrue(new Cell(0).GetRasterBounds(-2) == new Box3l(new V3l(-2, -2, -2), new V3l(1, 1, 1)));
+        //    ClassicAssert.IsTrue(new Cell(0).GetRasterBounds(0) == new Box3l(new V3l(-1, -1, -1), new V3l(0, 0, 0)));
+        //    ClassicAssert.IsTrue(new Cell(0).GetRasterBounds(-1) == new Box3l(new V3l(-1, -1, -1), new V3l(0, 0, 0)));
+        //    ClassicAssert.IsTrue(new Cell(0).GetRasterBounds(-2) == new Box3l(new V3l(-2, -2, -2), new V3l(1, 1, 1)));
         //}
 
         //[Test]
         //public void GetRasterBoundsTest_SmallerExponent_Centered()
         //{
-        //    Assert.IsTrue(new Cell(0).GetRasterBounds(1) == new Box3l(new V3l(-1, -1, -1), new V3l(0, 0, 0)));
-        //    Assert.IsTrue(new Cell(0).GetRasterBounds(2) == new Box3l(new V3l(-1, -1, -1), new V3l(0, 0, 0)));
+        //    ClassicAssert.IsTrue(new Cell(0).GetRasterBounds(1) == new Box3l(new V3l(-1, -1, -1), new V3l(0, 0, 0)));
+        //    ClassicAssert.IsTrue(new Cell(0).GetRasterBounds(2) == new Box3l(new V3l(-1, -1, -1), new V3l(0, 0, 0)));
         //}
 
         #endregion
@@ -61,7 +62,7 @@ namespace Aardvark.Geometry.Tests
         {
             var a = new Box3d(new V3d(1, 2, 3), new V3d(4, 5, 6));
             var b = new Box3d(new V3d(1, 2, 3), new V3d(4, 5, 6));
-            Assert.IsTrue(a == b);
+            ClassicAssert.IsTrue(a == b);
         }
 
         [Test]
@@ -69,8 +70,8 @@ namespace Aardvark.Geometry.Tests
         {
             var a = new Box3d(new V3d(1, 2, 3), new V3d(4, 5, 6));
             var b = new Box3d(new V3d(1, 2, 3), new V3d(4, 5, 6));
-            Assert.IsTrue(a.Contains(b));
-            Assert.IsTrue(b.Contains(a));
+            ClassicAssert.IsTrue(a.Contains(b));
+            ClassicAssert.IsTrue(b.Contains(a));
         }
 
         [Test]
@@ -78,7 +79,7 @@ namespace Aardvark.Geometry.Tests
         {
             var a = new Box3d(new V3d(0, 0, 0), new V3d(4, 4, 4));
             var b = new Box3d(new V3d(1, 1, 2), new V3d(2, 2, 3));
-            Assert.IsTrue(a.Contains(b));
+            ClassicAssert.IsTrue(a.Contains(b));
         }
 
         [Test]
@@ -86,7 +87,7 @@ namespace Aardvark.Geometry.Tests
         {
             var a = new Box3d(new V3d(0, 0, 0), new V3d(4, 4, 4));
             var b = new Box3d(new V3d(0, 0, 0), new V3d(2, 2, 2));
-            Assert.IsTrue(a.Contains(b));
+            ClassicAssert.IsTrue(a.Contains(b));
         }
 
         [Test]
@@ -94,7 +95,7 @@ namespace Aardvark.Geometry.Tests
         {
             var a = new Box3d(new V3d(0, 0, 0), new V3d(4, 4, 4));
             var b = new Box3d(new V3d(6, 0, 0), new V3d(8, 2, 2));
-            Assert.IsTrue(!a.Contains(b));
+            ClassicAssert.IsTrue(!a.Contains(b));
         }
 
         [Test]
@@ -102,7 +103,7 @@ namespace Aardvark.Geometry.Tests
         {
             var a = new Box3d(new V3d(0, 0, 0), new V3d(4, 4, 4));
             var b = new Box3d(new V3d(4, 0, 0), new V3d(8, 4, 4));
-            Assert.IsTrue(!a.Contains(b));
+            ClassicAssert.IsTrue(!a.Contains(b));
         }
 
         [Test]
@@ -110,7 +111,7 @@ namespace Aardvark.Geometry.Tests
         {
             var a = new Box3d(new V3d(4, 0, 0), new V3d(8, 4, 4));
             var b = new Box3d(new V3d(0, 0, 0), new V3d(4, 4, 4));
-            Assert.IsTrue(!a.Intersects(b));
+            ClassicAssert.IsTrue(!a.Intersects(b));
         }
 
         [Test]
@@ -118,7 +119,7 @@ namespace Aardvark.Geometry.Tests
         {
             var a = new Box3d(new V3d(0, 0, 0), new V3d(4, 4, 4));
             var b = new Box3d(new V3d(4, 0, 0), new V3d(8, 4, 4));
-            Assert.IsTrue(!a.Intersects(b));
+            ClassicAssert.IsTrue(!a.Intersects(b));
         }
 
         #endregion
@@ -128,9 +129,9 @@ namespace Aardvark.Geometry.Tests
         [Test]
         public void UnitCell()
         {
-            Assert.IsTrue(Cell.Unit.X == 0 && Cell.Unit.Y == 0 && Cell.Unit.Z == 0);
-            Assert.IsTrue(Cell.Unit.Exponent == 0);
-            Assert.IsTrue(Cell.Unit.BoundingBox == Box3d.Unit);
+            ClassicAssert.IsTrue(Cell.Unit.X == 0 && Cell.Unit.Y == 0 && Cell.Unit.Z == 0);
+            ClassicAssert.IsTrue(Cell.Unit.Exponent == 0);
+            ClassicAssert.IsTrue(Cell.Unit.BoundingBox == Box3d.Unit);
         }
 
         [Test]
@@ -139,7 +140,7 @@ namespace Aardvark.Geometry.Tests
             var a = new Cell(1, 2, 3, -1);
             var json = JsonSerializer.SerializeToNode(a);
             var b = JsonSerializer.Deserialize<Cell>(json);
-            Assert.True(a == b);
+            ClassicAssert.True(a == b);
         }
 
         [Test]
@@ -151,8 +152,8 @@ namespace Aardvark.Geometry.Tests
             var b = JsonSerializer.Deserialize<Cell>(json);
             var c = JsonSerializer.Deserialize<Cell>(json.ToString());
 
-            Assert.IsTrue(a == b);
-            Assert.IsTrue(a == c);
+            ClassicAssert.IsTrue(a == b);
+            ClassicAssert.IsTrue(a == c);
         }
         
         [Test]
@@ -162,7 +163,7 @@ namespace Aardvark.Geometry.Tests
             var a = new Cell((long)json["X"], (long)json["Y"], (long)json["Z"], (int)json["E"]);
             var bb = a.BoundingBox;
 
-            Assert.IsTrue(!bb.IsEmpty);
+            ClassicAssert.IsTrue(!bb.IsEmpty);
         }
 
         #endregion
@@ -200,8 +201,8 @@ namespace Aardvark.Geometry.Tests
         //    var rootCell = new Cell(-245409861791835, 8830308739533606, 24270361011416, -35);
         //    var a = new Cell(-125649849237419232, 4521118074641206784, 12426424837845498, -44);
 
-        //    Assert.IsTrue(rootCell != a);
-        //    Assert.IsTrue(rootCell.Contains(a));
+        //    ClassicAssert.IsTrue(rootCell != a);
+        //    ClassicAssert.IsTrue(rootCell.Contains(a));
 
         //    var children = rootCell.Children;
         //    var contained = new bool[8];
@@ -215,7 +216,7 @@ namespace Aardvark.Geometry.Tests
         //        //if (MyContains(bb1, bb2)) contained[i] = true;
         //    }
 
-        //    Assert.IsTrue(contained.Where(x => x == true).Count() == 1);
+        //    ClassicAssert.IsTrue(contained.Where(x => x == true).Count() == 1);
         //}
 
         //public static bool MyContains(Box3d a, Box3d b)

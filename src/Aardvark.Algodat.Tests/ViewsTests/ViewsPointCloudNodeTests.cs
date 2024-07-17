@@ -15,6 +15,7 @@ using Aardvark.Base;
 using Aardvark.Data;
 using Aardvark.Geometry.Points;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using System;
 
 namespace Aardvark.Geometry.Tests
@@ -44,9 +45,9 @@ namespace Aardvark.Geometry.Tests
                 (Durable.Octree.PointRkdTreeFDataReference, Guid.Empty)
                 );
 
-            Assert.IsTrue(a.Id == aId);
-            Assert.IsTrue(a.Cell == Cell.Unit);
-            Assert.IsTrue(a.BoundingBoxExactGlobal == Box3d.Unit);
+            ClassicAssert.IsTrue(a.Id == aId);
+            ClassicAssert.IsTrue(a.Cell == Cell.Unit);
+            ClassicAssert.IsTrue(a.BoundingBoxExactGlobal == Box3d.Unit);
         }
 
         [Test]
@@ -74,11 +75,11 @@ namespace Aardvark.Geometry.Tests
                 (Durable.Octree.PointRkdTreeFDataReference, kd0Id)
                 );
 
-            Assert.IsTrue(a.Id == aId);
-            Assert.IsTrue(a.Cell == new Cell(ps0Global));
-            Assert.IsTrue(a.BoundingBoxExactLocal == bbLocal);
-            Assert.IsTrue(a.BoundingBoxExactGlobal == bbGlobal);
-            Assert.IsTrue(a.HasPositions);
+            ClassicAssert.IsTrue(a.Id == aId);
+            ClassicAssert.IsTrue(a.Cell == new Cell(ps0Global));
+            ClassicAssert.IsTrue(a.BoundingBoxExactLocal == bbLocal);
+            ClassicAssert.IsTrue(a.BoundingBoxExactGlobal == bbGlobal);
+            ClassicAssert.IsTrue(a.HasPositions);
         }
     }
 }

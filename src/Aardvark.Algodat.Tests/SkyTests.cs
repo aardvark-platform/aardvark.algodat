@@ -1,6 +1,7 @@
 ﻿using Aardvark.Base;
 using Aardvark.Physics.Sky;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using System;
 
 namespace Aardvark.Physics.Sky
@@ -53,9 +54,9 @@ namespace Aardvark.Physics.Sky
 
             var diff = Fun.AngleDifference(h.RadiansFromDegrees(), 0) * Constant.DegreesPerRadian;
 
-            Assert.AreEqual(0.0, diff, 0.01);
+            ClassicAssert.AreEqual(0.0, diff, 0.01);
 
-            Assert.AreEqual(2453096.9895, jtrans, 0.001);
+            ClassicAssert.AreEqual(2453096.9895, jtrans, 0.001);
         }
 
         [Test]
@@ -78,7 +79,7 @@ namespace Aardvark.Physics.Sky
             Report.Line("Sun rise at: " + timeRise.ToString("HH:mm:ss"));
             Report.Line("Sun set at: " + timeSet.ToString("HH:mm:ss"));
 
-            Assert.AreEqual(2453096.7191, jdRise, 0.001);
+            ClassicAssert.AreEqual(2453096.7191, jdRise, 0.001);
         }
 
         [Test]
@@ -103,8 +104,8 @@ namespace Aardvark.Physics.Sky
 
             var diffStart = new DateTime(2004, 4, 1, 4, 40, 0) - timeStart;
             var diffEnd = new DateTime(2004, 4, 1, 18, 49, 0) - timeEnd;
-            Assert.IsTrue(diffStart.TotalMinutes < 1);
-            Assert.IsTrue(diffEnd.TotalMinutes < 1);
+            ClassicAssert.IsTrue(diffStart.TotalMinutes < 1);
+            ClassicAssert.IsTrue(diffEnd.TotalMinutes < 1);
         }
 
         [Test]
@@ -119,8 +120,8 @@ namespace Aardvark.Physics.Sky
 
             var (jdDawn, _, jdDusk) = SunPosition.AstronomicalDuskAndDawn(jd, longitude, latitude);
 
-            Assert.IsTrue(jdDawn.IsNaN());
-            Assert.IsTrue(jdDusk.IsNaN());
+            ClassicAssert.IsTrue(jdDawn.IsNaN());
+            ClassicAssert.IsTrue(jdDusk.IsNaN());
         }
 
         [Test]
@@ -145,8 +146,8 @@ namespace Aardvark.Physics.Sky
 
             var (jdRise2, _, jdSet2) = SunPosition.HorizonTransit(jd, longitude, latitude, 0.0);
 
-            Assert.AreEqual(jdRise2, jdRise, 0.001);
-            Assert.AreEqual(jdSet2, jdSet, 0.001);
+            ClassicAssert.AreEqual(jdRise2, jdRise, 0.001);
+            ClassicAssert.AreEqual(jdSet2, jdSet, 0.001);
         }
 
         [Test]

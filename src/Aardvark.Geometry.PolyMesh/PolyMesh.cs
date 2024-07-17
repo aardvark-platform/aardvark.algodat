@@ -3707,20 +3707,26 @@ namespace Aardvark.Geometry
             return Transformed(trafo.Forward, trafo.Backward);
         }
 
+        private static Array Transform(Array array, Func<V3d, V3d> transform)
+        {
+            if (array is V3d[] arr)
+                return arr.Map(transform);
+            else if (array is V3f[] arrf)
+                return arrf.Map(p => transform(p.ToV3d()).ToV3f());
+            else
+            {
+                Report.Warn($"[PolyMesh] Cannot transform attributes of type {array.GetType()}.");
+                return array;
+            }
+        }
+
         public PolyMesh Transformed(M44d matrix, M44d inverse)
         {
             return Copy(new SymbolDict<Func<Array, Array>>
             {
-                { Property.Positions,
-                    a => a.Copy<V3d>(p => matrix.TransformPos(p)) },
-                { Property.Normals,
-                    a => a.Copy<V3d>(nd => Mat.TransposedTransformDir(inverse, nd).Normalized,
-                    b => b.Copy<V3f>(nf => Mat.TransposedTransformDir(inverse, nf.ToV3d()).Normalized.ToV3f(),
-                                        indexArray => indexArray)) },
-                { -Property.Normals,
-                    a => a.Copy<V3d>(nd => Mat.TransposedTransformDir(inverse, nd).Normalized,
-                    b => b.Copy<V3f>(nf => Mat.TransposedTransformDir(inverse, nf.ToV3d()).Normalized.ToV3f()))},
-                                    
+                { Property.Positions, arr => Transform(arr, p => Mat.TransformPos(matrix, p)) },
+                { Property.Normals,   arr => Transform(arr, n => Mat.TransposedTransformDir(inverse, n).Normalized) },
+                { -Property.Normals,  arr => Transform(arr, n => Mat.TransposedTransformDir(inverse, n).Normalized) },
             },
             a => a);
         }

@@ -15,6 +15,7 @@ using Aardvark.Base;
 using Aardvark.Data.Points;
 using Aardvark.Geometry.Points;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using System;
 using System.Collections.Generic;
 using Uncodium.SimpleStore;
@@ -42,12 +43,12 @@ namespace Aardvark.Geometry.Tests
         public void CanCreateEmptyPointSet()
         {
             var pointset = PointSet.Empty;
-            Assert.IsTrue(pointset.Bounds.IsInvalid);
-            Assert.IsTrue(pointset.BoundingBox.IsInvalid);
-            Assert.IsTrue(pointset.Id == "PointSet.Empty");
-            Assert.IsTrue(pointset.IsEmpty == true);
-            Assert.IsTrue(pointset.PointCount == 0);
-            Assert.IsTrue(pointset.SplitLimit == 0);
+            ClassicAssert.IsTrue(pointset.Bounds.IsInvalid);
+            ClassicAssert.IsTrue(pointset.BoundingBox.IsInvalid);
+            ClassicAssert.IsTrue(pointset.Id == "PointSet.Empty");
+            ClassicAssert.IsTrue(pointset.IsEmpty == true);
+            ClassicAssert.IsTrue(pointset.PointCount == 0);
+            ClassicAssert.IsTrue(pointset.SplitLimit == 0);
             pointset.ValidateTree();
         }
 
@@ -61,10 +62,10 @@ namespace Aardvark.Geometry.Tests
                 store, "id", ps, cs, null, null, null, null, 1000,
                 generateLod: false, isTemporaryImportNode: true, default
                 );
-            Assert.IsTrue(pointset.PointCount == 1);
-            Assert.IsTrue(pointset.Root.Value.IsLeaf());
-            Assert.IsTrue(pointset.Root.Value.Positions.Value.Length == 1);
-            Assert.IsTrue(pointset.Root.Value.PointCountTree == 1);
+            ClassicAssert.IsTrue(pointset.PointCount == 1);
+            ClassicAssert.IsTrue(pointset.Root.Value.IsLeaf());
+            ClassicAssert.IsTrue(pointset.Root.Value.Positions.Value.Length == 1);
+            ClassicAssert.IsTrue(pointset.Root.Value.PointCountTree == 1);
             pointset.ValidateTree();
         }
 
@@ -149,13 +150,13 @@ namespace Aardvark.Geometry.Tests
                         ns.Add(V3f.ZAxis);
                     }
 
-            Assert.IsTrue(ps.Count == 4 * 4 * 4);
+            ClassicAssert.IsTrue(ps.Count == 4 * 4 * 4);
 
             var imps = InMemoryPointSet.Build(ps, null, ns, null, null, null, new Cell(0, 0, 0, 0), 1);
             var root = imps.ToPointSetNode(storage, isTemporaryImportNode: false);
-            Assert.IsTrue(root.PointCountTree == 4 * 4 * 4);
+            ClassicAssert.IsTrue(root.PointCountTree == 4 * 4 * 4);
             var countNodes = root.CountLeafNodes(true);
-            Assert.IsTrue(countNodes == 4 * 4 * 4);
+            ClassicAssert.IsTrue(countNodes == 4 * 4 * 4);
             root.ValidateTree(1, false);
         }
 
@@ -164,11 +165,11 @@ namespace Aardvark.Geometry.Tests
         public void PointSetAttributes_EmptyPointSet()
         {
             var pointset = PointSet.Empty;
-            Assert.IsTrue(pointset.HasColors == false);
-            Assert.IsTrue(pointset.HasIntensities == false);
-            Assert.IsTrue(pointset.HasKdTree == false);
-            Assert.IsTrue(pointset.HasNormals == false);
-            Assert.IsTrue(pointset.HasPositions == false);
+            ClassicAssert.IsTrue(pointset.HasColors == false);
+            ClassicAssert.IsTrue(pointset.HasIntensities == false);
+            ClassicAssert.IsTrue(pointset.HasKdTree == false);
+            ClassicAssert.IsTrue(pointset.HasNormals == false);
+            ClassicAssert.IsTrue(pointset.HasPositions == false);
             pointset.ValidateTree();
         }
 
@@ -183,13 +184,13 @@ namespace Aardvark.Geometry.Tests
             var qs = new List<byte> { 17 };
             var storage = PointCloud.CreateInMemoryStore(cache: default);
             var pointset = PointSet.Create(storage, "test", ps, cs, ns, js, ks, qs, octreeSplitLimit: 1, generateLod: true, isTemporaryImportNode: false, default);
-            Assert.IsTrue(pointset.HasColors == true);
-            Assert.IsTrue(pointset.HasClassifications == true);
-            Assert.IsTrue(pointset.HasIntensities == true);
-            Assert.IsTrue(pointset.HasKdTree == true);
-            Assert.IsTrue(pointset.HasNormals == true);
-            Assert.IsTrue(pointset.HasPartIndexRange == true);
-            Assert.IsTrue(pointset.HasPositions == true);
+            ClassicAssert.IsTrue(pointset.HasColors == true);
+            ClassicAssert.IsTrue(pointset.HasClassifications == true);
+            ClassicAssert.IsTrue(pointset.HasIntensities == true);
+            ClassicAssert.IsTrue(pointset.HasKdTree == true);
+            ClassicAssert.IsTrue(pointset.HasNormals == true);
+            ClassicAssert.IsTrue(pointset.HasPartIndexRange == true);
+            ClassicAssert.IsTrue(pointset.HasPositions == true);
             pointset.ValidateTree();
         }
 
@@ -204,13 +205,13 @@ namespace Aardvark.Geometry.Tests
             var qs = new List<byte> { 17 };
             var storage = PointCloud.CreateInMemoryStore(cache: default);
             var pointset = PointSet.Create(storage, "test", ps, cs, ns, js, ks, qs, octreeSplitLimit: 1, generateLod: false, isTemporaryImportNode: true, default);
-            Assert.IsTrue(pointset.HasColors == true);
-            Assert.IsTrue(pointset.HasClassifications == true);
-            Assert.IsTrue(pointset.HasIntensities == true);
-            //Assert.IsTrue(pointset.HasKdTree == true);
-            Assert.IsTrue(pointset.HasNormals == true);
-            Assert.IsTrue(pointset.HasPartIndexRange == true);
-            Assert.IsTrue(pointset.HasPositions == true);
+            ClassicAssert.IsTrue(pointset.HasColors == true);
+            ClassicAssert.IsTrue(pointset.HasClassifications == true);
+            ClassicAssert.IsTrue(pointset.HasIntensities == true);
+            //ClassicAssert.IsTrue(pointset.HasKdTree == true);
+            ClassicAssert.IsTrue(pointset.HasNormals == true);
+            ClassicAssert.IsTrue(pointset.HasPartIndexRange == true);
+            ClassicAssert.IsTrue(pointset.HasPositions == true);
             pointset.ValidateTree();
         }
 
@@ -221,11 +222,11 @@ namespace Aardvark.Geometry.Tests
             var cs = new List<C4b> { C4b.White };
             var storage = PointCloud.CreateInMemoryStore(cache: default);
             var pointset = PointSet.Create(storage, "test", ps, cs, null, null, null, null, 1, generateLod: true, isTemporaryImportNode: true, default);
-            Assert.IsTrue(pointset.HasColors == true);
-            Assert.IsTrue(pointset.HasIntensities == false);
-            Assert.IsTrue(pointset.HasKdTree == true);
-            Assert.IsTrue(pointset.HasNormals == true);
-            Assert.IsTrue(pointset.HasPositions == true);
+            ClassicAssert.IsTrue(pointset.HasColors == true);
+            ClassicAssert.IsTrue(pointset.HasIntensities == false);
+            ClassicAssert.IsTrue(pointset.HasKdTree == true);
+            ClassicAssert.IsTrue(pointset.HasNormals == true);
+            ClassicAssert.IsTrue(pointset.HasPositions == true);
         }
 
         [Test]
@@ -234,8 +235,8 @@ namespace Aardvark.Geometry.Tests
             var ps = new List<V3d> { new(0.5, 0.5, 0.5) };
             var storage = PointCloud.CreateInMemoryStore(cache: default);
             var pointset = PointSet.Create(storage, "test", ps, null, null, null, null, partIndices: null, 1, generateLod: false, isTemporaryImportNode: true, default);
-            Assert.IsTrue(pointset.HasPartIndexRange == false);
-            Assert.IsTrue(pointset.PartIndexRange == null);
+            ClassicAssert.IsTrue(pointset.HasPartIndexRange == false);
+            ClassicAssert.IsTrue(pointset.PartIndexRange == null);
         }
 
         //[Test]
@@ -248,8 +249,8 @@ namespace Aardvark.Geometry.Tests
         //        )
         //        .WithPartIndexRange(new(7, 11))
         //        ;
-        //    Assert.IsTrue(pointset.PartIndexRange == new Range1i(7, 11));
-        //    Assert.IsTrue(pointset.HasPartIndexRange == true);
+        //    ClassicAssert.IsTrue(pointset.PartIndexRange == new Range1i(7, 11));
+        //    ClassicAssert.IsTrue(pointset.HasPartIndexRange == true);
         //}
 
         //[Test]
@@ -267,10 +268,10 @@ namespace Aardvark.Geometry.Tests
         //    var json = pointset.ToJson();
         //    var reloaded = PointSet.Parse(json, storage);
 
-        //    Assert.IsTrue(pointset.Id == reloaded.Id);
-        //    Assert.IsTrue(pointset.SplitLimit == reloaded.SplitLimit);
-        //    Assert.IsTrue(pointset.Root.Value.Id == reloaded.Root.Value.Id);
-        //    Assert.IsTrue(pointset.PartIndexRange == reloaded.PartIndexRange);
+        //    ClassicAssert.IsTrue(pointset.Id == reloaded.Id);
+        //    ClassicAssert.IsTrue(pointset.SplitLimit == reloaded.SplitLimit);
+        //    ClassicAssert.IsTrue(pointset.Root.Value.Id == reloaded.Root.Value.Id);
+        //    ClassicAssert.IsTrue(pointset.PartIndexRange == reloaded.PartIndexRange);
         //}
 
         [Test]
@@ -286,11 +287,11 @@ namespace Aardvark.Geometry.Tests
             var json = pointset.ToJson();
             var reloaded = PointSet.Parse(json, storage);
 
-            Assert.IsTrue(pointset.Id             == reloaded.Id            );
-            Assert.IsTrue(pointset.SplitLimit     == reloaded.SplitLimit    );
-            Assert.IsTrue(pointset.Root.Value.Id  == reloaded.Root.Value.Id );
-            Assert.IsTrue(pointset.PartIndexRange == reloaded.PartIndexRange);
-            Assert.IsTrue(reloaded.PartIndexRange == null);
+            ClassicAssert.IsTrue(pointset.Id             == reloaded.Id            );
+            ClassicAssert.IsTrue(pointset.SplitLimit     == reloaded.SplitLimit    );
+            ClassicAssert.IsTrue(pointset.Root.Value.Id  == reloaded.Root.Value.Id );
+            ClassicAssert.IsTrue(pointset.PartIndexRange == reloaded.PartIndexRange);
+            ClassicAssert.IsTrue(reloaded.PartIndexRange == null);
         }
     }
 }

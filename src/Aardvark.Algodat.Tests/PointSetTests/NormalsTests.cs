@@ -15,6 +15,7 @@ using Aardvark.Base;
 using Aardvark.Data.Points;
 using Aardvark.Geometry.Points;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using System;
 using Uncodium.SimpleStore;
 
@@ -29,8 +30,8 @@ namespace Aardvark.Geometry.Tests
         public void CanCreateChunkWithNormals()
         {
             var chunk = new Chunk(new[] { V3d.IOO }, new[] { C4b.White }, new[] { V3f.OIO }, null, null, null, null, null);
-            Assert.IsTrue(chunk.Normals != null);
-            Assert.IsTrue(chunk.Normals[0] == V3f.OIO);
+            ClassicAssert.IsTrue(chunk.Normals != null);
+            ClassicAssert.IsTrue(chunk.Normals[0] == V3f.OIO);
         }
 
         [Test]
@@ -41,10 +42,10 @@ namespace Aardvark.Geometry.Tests
             var builder = InMemoryPointSet.Build(chunk, 8192);
             var root = builder.ToPointSetNode(CreateInMemoryStore(), isTemporaryImportNode: false);
           
-            Assert.IsTrue(root.IsLeaf);
-            Assert.IsTrue(root.PointCountCell == 1);
-            Assert.IsTrue(root.HasNormals);
-            Assert.IsTrue(root.Normals.Value[0] == V3f.OIO);
+            ClassicAssert.IsTrue(root.IsLeaf);
+            ClassicAssert.IsTrue(root.PointCountCell == 1);
+            ClassicAssert.IsTrue(root.HasNormals);
+            ClassicAssert.IsTrue(root.Normals.Value[0] == V3f.OIO);
         }
 
         [Test]
@@ -55,11 +56,11 @@ namespace Aardvark.Geometry.Tests
                 generateLod: false, isTemporaryImportNode: true, default
                 );
 
-            Assert.IsTrue(!ps.IsEmpty);
-            Assert.IsTrue(ps.Root.Value.IsLeaf());
-            Assert.IsTrue(ps.Root.Value.Positions.Value.Length == 1);
-            Assert.IsTrue(ps.Root.Value.HasNormals);
-            Assert.IsTrue(ps.Root.Value.Normals.Value[0] == V3f.OIO);
+            ClassicAssert.IsTrue(!ps.IsEmpty);
+            ClassicAssert.IsTrue(ps.Root.Value.IsLeaf());
+            ClassicAssert.IsTrue(ps.Root.Value.Positions.Value.Length == 1);
+            ClassicAssert.IsTrue(ps.Root.Value.HasNormals);
+            ClassicAssert.IsTrue(ps.Root.Value.Normals.Value[0] == V3f.OIO);
         }
     }
 }

@@ -17,6 +17,7 @@ using System.Globalization;
 using System.IO;
 using System.Threading;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using System.Linq;
 
 namespace Aardvark.Geometry.Tests

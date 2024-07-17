@@ -15,6 +15,7 @@ using Aardvark.Base;
 using Aardvark.Data.Points;
 using Aardvark.Geometry.Points;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -64,10 +65,10 @@ namespace Aardvark.Geometry.Tests
         {
             var a = CreateRandomPointsInUnitCube(123, int.MaxValue);
             a.ValidateTree();
-            Assert.IsTrue(a.CountOctreeLevels() == 1);
-            Assert.IsTrue(a.PointCount == 123);
-            Assert.IsTrue(a.Root.Value.CountPoints() == 123);
-            Assert.IsTrue(a.Root.Value.PointCountTree == 123);
+            ClassicAssert.IsTrue(a.CountOctreeLevels() == 1);
+            ClassicAssert.IsTrue(a.PointCount == 123);
+            ClassicAssert.IsTrue(a.Root.Value.CountPoints() == 123);
+            ClassicAssert.IsTrue(a.Root.Value.PointCountTree == 123);
         }
 
         [Test]
@@ -75,10 +76,10 @@ namespace Aardvark.Geometry.Tests
         {
             var a = CreateRandomPointsInUnitCube(1234, 1024);
             a.ValidateTree();
-            Assert.IsTrue(a.CountOctreeLevels() == 2);
-            Assert.IsTrue(a.PointCount == 1234);
-            Assert.IsTrue(a.Root.Value.CountPoints() == 1234);
-            Assert.IsTrue(a.Root.Value.PointCountTree == 1234);
+            ClassicAssert.IsTrue(a.CountOctreeLevels() == 2);
+            ClassicAssert.IsTrue(a.PointCount == 1234);
+            ClassicAssert.IsTrue(a.Root.Value.CountPoints() == 1234);
+            ClassicAssert.IsTrue(a.Root.Value.PointCountTree == 1234);
         }
     }
 }

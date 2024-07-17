@@ -15,6 +15,7 @@ using Aardvark.Base;
 using Aardvark.Data.Points;
 using Aardvark.Geometry.Points;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -40,7 +41,7 @@ namespace Aardvark.Geometry.Tests
                 );
             pointset.Root.Value.ForEachNode(true, cell =>
             {
-                Assert.IsTrue(cell.IsNotLeaf() || cell.Positions != null);
+                ClassicAssert.IsTrue(cell.IsNotLeaf() || cell.Positions != null);
             });
 
             var config = ImportConfig.Default
@@ -50,7 +51,7 @@ namespace Aardvark.Geometry.Tests
             var lodded = pointset.GenerateLod(config);
             lodded.Root.Value.ForEachNode(true, cell =>
             {
-                Assert.IsTrue(cell.Positions.Value.Length > 0);
+                ClassicAssert.IsTrue(cell.Positions.Value.Length > 0);
             });
         }
 
@@ -69,7 +70,7 @@ namespace Aardvark.Geometry.Tests
                 );
             pointset.Root.Value.ForEachNode(true, cell =>
             {
-                Assert.IsTrue(cell.IsNotLeaf() || cell.Positions != null);
+                ClassicAssert.IsTrue(cell.IsNotLeaf() || cell.Positions != null);
             });
 
             var config = ImportConfig.Default
@@ -79,9 +80,9 @@ namespace Aardvark.Geometry.Tests
             var lodded = pointset.GenerateLod(config);
             lodded.Root.Value.ForEachNode(true, cell =>
             {
-                Assert.IsTrue(cell.HasPartIndices);
-                Assert.IsTrue(cell.HasPartIndexRange);
-                Assert.IsTrue(cell.PartIndexRange == new Range1i(42, 42));
+                ClassicAssert.IsTrue(cell.HasPartIndices);
+                ClassicAssert.IsTrue(cell.HasPartIndexRange);
+                ClassicAssert.IsTrue(cell.PartIndexRange == new Range1i(42, 42));
             });
         }
 
@@ -101,14 +102,14 @@ namespace Aardvark.Geometry.Tests
             pointset.Root.Value.ForEachNode(true, cell =>
             {
                 var pointcount = cell.Positions.Value.Length;
-                Assert.IsTrue(pointcount > 0);
+                ClassicAssert.IsTrue(pointcount > 0);
             });
         }
 
         [Test]
         public void LodCreationSetsPointCountCell_FromPts()
         {
-            Assert.IsTrue(Data.Points.Import.Pts.PtsFormat != null);
+            ClassicAssert.IsTrue(Data.Points.Import.Pts.PtsFormat != null);
             var filename = Config.TEST_FILE_NAME_PTS;
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
 
@@ -121,14 +122,14 @@ namespace Aardvark.Geometry.Tests
 
             pointset.Root.Value.ForEachNode(true, cell =>
             {
-                Assert.IsTrue(cell.Positions.Value.Length > 0);
+                ClassicAssert.IsTrue(cell.Positions.Value.Length > 0);
             });
         }
 
         [Test]
         public void Serialization_FromPts()
         {
-            Assert.IsTrue(Data.Points.Import.Pts.PtsFormat != null);
+            ClassicAssert.IsTrue(Data.Points.Import.Pts.PtsFormat != null);
             var filename = Config.TEST_FILE_NAME_PTS;
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
 
@@ -150,15 +151,15 @@ namespace Aardvark.Geometry.Tests
             });
             jsonReloaded.Root.Value.ForEachNode(true, cell =>
             {
-                Assert.IsTrue(xs.Dequeue() == (cell.Positions?.Value.Length ?? 0));
-                Assert.IsTrue(xs.Dequeue() == cell.PointCountTree);
+                ClassicAssert.IsTrue(xs.Dequeue() == (cell.Positions?.Value.Length ?? 0));
+                ClassicAssert.IsTrue(xs.Dequeue() == cell.PointCountTree);
             });
         }
 
         [Test]
         public void Serialization_FromPts_Really()
         {
-            Assert.IsTrue(Data.Points.Import.Pts.PtsFormat != null);
+            ClassicAssert.IsTrue(Data.Points.Import.Pts.PtsFormat != null);
             var filename = Config.TEST_FILE_NAME_PTS;
             if (!File.Exists(filename)) Assert.Ignore($"File not found: {filename}");
             Console.WriteLine($"filename: {filename}");
@@ -177,8 +178,8 @@ namespace Aardvark.Geometry.Tests
                 pointset.Root.Value.ForEachNode(true, cell =>
                 {
                     var pointcount = cell.Positions?.Value.Length ?? 0;
-                    Assert.IsTrue(pointcount > 0);
-                    Assert.IsTrue(cell.Positions.Value.Length == pointcount);
+                    ClassicAssert.IsTrue(pointcount > 0);
+                    ClassicAssert.IsTrue(cell.Positions.Value.Length == pointcount);
                 });
 
                 id = pointset.Id;
@@ -190,8 +191,8 @@ namespace Aardvark.Geometry.Tests
                 pointset.Root.Value.ForEachNode(true, cell =>
                 {
                     var pointcount = cell.Positions?.Value.Length ?? 0;
-                    Assert.IsTrue(pointcount > 0);
-                    Assert.IsTrue(cell.Positions.Value.Length == pointcount);
+                    ClassicAssert.IsTrue(pointcount > 0);
+                    ClassicAssert.IsTrue(cell.Positions.Value.Length == pointcount);
                 });
             }
 
@@ -227,9 +228,9 @@ namespace Aardvark.Geometry.Tests
             if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null);
             var n = PointCloud.Chunks(chunk, config).Root.Value;
 
-            Assert.IsTrue(n.HasCentroidLocal);
-            Assert.IsTrue(n.HasCentroidLocalStdDev);
-            Assert.IsTrue(n.CentroidLocal.ApproximateEquals(V3f.Zero, 1e-5f));
+            ClassicAssert.IsTrue(n.HasCentroidLocal);
+            ClassicAssert.IsTrue(n.HasCentroidLocalStdDev);
+            ClassicAssert.IsTrue(n.CentroidLocal.ApproximateEquals(V3f.Zero, 1e-5f));
         }
 
         [Test]
@@ -254,12 +255,12 @@ namespace Aardvark.Geometry.Tests
             if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null);
             var n = PointCloud.Chunks(chunk, config).Root.Value;
 
-            Assert.IsTrue(n.HasBoundingBoxExactLocal);
-            Assert.IsTrue(n.BoundingBoxExactLocal == new Box3f(new V3f(-0.4f), new V3f(0.4f)));
+            ClassicAssert.IsTrue(n.HasBoundingBoxExactLocal);
+            ClassicAssert.IsTrue(n.BoundingBoxExactLocal == new Box3f(new V3f(-0.4f), new V3f(0.4f)));
 
-            Assert.IsTrue(n.HasBoundingBoxExactGlobal);
-            Assert.IsTrue(n.BoundingBoxExactGlobal.Min.ApproximateEquals(new V3d(0.1), 1e-6));
-            Assert.IsTrue(n.BoundingBoxExactGlobal.Max.ApproximateEquals(new V3d(0.9), 1e-6));
+            ClassicAssert.IsTrue(n.HasBoundingBoxExactGlobal);
+            ClassicAssert.IsTrue(n.BoundingBoxExactGlobal.Min.ApproximateEquals(new V3d(0.1), 1e-6));
+            ClassicAssert.IsTrue(n.BoundingBoxExactGlobal.Max.ApproximateEquals(new V3d(0.9), 1e-6));
 
         }
 
@@ -276,11 +277,11 @@ namespace Aardvark.Geometry.Tests
             if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null);
             var n = PointCloud.Chunks(chunk, config).Root.Value;
 
-            Assert.IsTrue(n.HasMinTreeDepth);
-            Assert.IsTrue(n.HasMaxTreeDepth);
+            ClassicAssert.IsTrue(n.HasMinTreeDepth);
+            ClassicAssert.IsTrue(n.HasMaxTreeDepth);
 
-            Assert.IsTrue(n.MinTreeDepth == 0);
-            Assert.IsTrue(n.MaxTreeDepth == 0);
+            ClassicAssert.IsTrue(n.MinTreeDepth == 0);
+            ClassicAssert.IsTrue(n.MaxTreeDepth == 0);
         }
 
         [Test]
@@ -296,11 +297,11 @@ namespace Aardvark.Geometry.Tests
             if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null);
             var n = PointCloud.Chunks(chunk, config).Root.Value;
 
-            Assert.IsTrue(n.HasMinTreeDepth);
-            Assert.IsTrue(n.HasMaxTreeDepth);
+            ClassicAssert.IsTrue(n.HasMinTreeDepth);
+            ClassicAssert.IsTrue(n.HasMaxTreeDepth);
 
-            Assert.IsTrue(n.MinTreeDepth == 1);
-            Assert.IsTrue(n.MaxTreeDepth == 1);
+            ClassicAssert.IsTrue(n.MinTreeDepth == 1);
+            ClassicAssert.IsTrue(n.MaxTreeDepth == 1);
         }
 
         [Test]
@@ -326,11 +327,11 @@ namespace Aardvark.Geometry.Tests
             if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null);
             var n = PointCloud.Chunks(chunk, config).Root.Value;
 
-            Assert.IsTrue(n.HasPointDistanceAverage);
-            Assert.IsTrue(n.HasPointDistanceStandardDeviation);
+            ClassicAssert.IsTrue(n.HasPointDistanceAverage);
+            ClassicAssert.IsTrue(n.HasPointDistanceStandardDeviation);
 
-            Assert.IsTrue(n.PointDistanceAverage.ApproximateEquals(0.8f, 1e-5f));
-            Assert.IsTrue(n.PointDistanceStandardDeviation.ApproximateEquals(0.0f, 1e-5f));
+            ClassicAssert.IsTrue(n.PointDistanceAverage.ApproximateEquals(0.8f, 1e-5f));
+            ClassicAssert.IsTrue(n.PointDistanceStandardDeviation.ApproximateEquals(0.0f, 1e-5f));
         }
     }
 }

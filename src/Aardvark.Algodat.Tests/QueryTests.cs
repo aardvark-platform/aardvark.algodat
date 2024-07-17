@@ -15,6 +15,7 @@ using Aardvark.Base;
 using Aardvark.Data.Points;
 using Aardvark.Geometry.Points;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -104,7 +105,7 @@ namespace Aardvark.Geometry.Tests
             foreach (var x in pointset.QueryPointsNearRay(ray1, 0.1)) count1 += x.Positions.Count;
             foreach (var x in pointset.QueryPointsNearRay(ray2, 0.1)) count2 += x.Positions.Count;
 
-            Assert.IsTrue(count1 >= count2);
+            ClassicAssert.IsTrue(count1 >= count2);
         }
 
         [Test]
@@ -119,8 +120,8 @@ namespace Aardvark.Geometry.Tests
             foreach (var x in pointset.QueryPointsNearRay(new Ray3d(new V3d(0.5, -1.0, 0.5), V3d.OIO), 0.2, 1.0, 2.0)) count1 += x.Positions.Count;
             foreach (var x in pointset.QueryPointsNearRay(new Ray3d(new V3d(0.5, -1.0, 0.5), V3d.OIO), 0.2, 1.5, 2.0)) count2 += x.Positions.Count;
             foreach (var x in pointset.QueryPointsNearRay(new Ray3d(new V3d(0.5, 0.75, 0.5), V3d.OIO), 0.2, 0.0, 1.0)) count3 += x.Positions.Count;
-            Assert.IsTrue(count1 > count2);
-            Assert.IsTrue(count2 > count3);
+            ClassicAssert.IsTrue(count1 > count2);
+            ClassicAssert.IsTrue(count2 > count3);
         }
 
         #endregion
@@ -131,20 +132,20 @@ namespace Aardvark.Geometry.Tests
         public void CanQueryPointsNearPoint_1()
         {
             var pointset = CreateRandomPointsInUnitCube(1024, 1024);
-            Assert.IsTrue(pointset.Root.Value.IsLeaf());
+            ClassicAssert.IsTrue(pointset.Root.Value.IsLeaf());
 
             var ps = pointset.QueryPointsNearPoint(new V3d(0.5, 0.5, 0.5), 1.0, 10000);
-            Assert.IsTrue(ps.Count == 1024);
+            ClassicAssert.IsTrue(ps.Count == 1024);
         }
 
         [Test]
         public void CanQueryPointsNearPoint_2()
         {
             var pointset = CreateRandomPointsInUnitCube(1024, 32);
-            Assert.IsTrue(pointset.Root.Value.IsNotLeaf());
+            ClassicAssert.IsTrue(pointset.Root.Value.IsNotLeaf());
 
             var ps = pointset.QueryPointsNearPoint(new V3d(0.5, 0.5, 0.5), 1.0, 10000);
-            Assert.IsTrue(ps.Count == 1024);
+            ClassicAssert.IsTrue(ps.Count == 1024);
         }
 
         [Test]
@@ -152,7 +153,7 @@ namespace Aardvark.Geometry.Tests
         {
             var pointset = CreateRandomPointsInUnitCube(1024, 32);
             var ps = pointset.QueryPointsNearPoint(new V3d(2.5, 0.5, 0.5), 1.0, 10000);
-            Assert.IsTrue(ps.Count == 0);
+            ClassicAssert.IsTrue(ps.Count == 0);
         }
 
         [Test]
@@ -160,7 +161,7 @@ namespace Aardvark.Geometry.Tests
         {
             var pointset = CreateRandomPointsInUnitCube(1024, 32);
             var ps = pointset.QueryPointsNearPoint(new V3d(0.75, 0.5, 0.25), 0.25, 10000);
-            Assert.IsTrue(ps.Count < 1024);
+            ClassicAssert.IsTrue(ps.Count < 1024);
         }
         
         [Test]
@@ -169,13 +170,13 @@ namespace Aardvark.Geometry.Tests
             var pointset = CreateRandomPointsInUnitCube(1024, 32);
 
             var ps100 = pointset.QueryPointsNearPoint(new V3d(0.75, 0.5, 0.25), 0.50, 100);
-            Assert.IsTrue(ps100.Count == 100);
+            ClassicAssert.IsTrue(ps100.Count == 100);
 
             var ps10 = pointset.QueryPointsNearPoint(new V3d(0.75, 0.5, 0.25), 0.25, 10);
-            Assert.IsTrue(ps10.Count == 10);
+            ClassicAssert.IsTrue(ps10.Count == 10);
 
             var ps1 = pointset.QueryPointsNearPoint(new V3d(0.75, 0.5, 0.25), 0.25, 1);
-            Assert.IsTrue(ps1.Count == 1);
+            ClassicAssert.IsTrue(ps1.Count == 1);
         }
 
 
@@ -202,8 +203,8 @@ namespace Aardvark.Geometry.Tests
                 var ps = pointset.QueryPointsNearPoint(query, maxDistanceToPoint, maxCount);
                 var queryResult = new HashSet<V3d>(ps.Positions);
 
-                Assert.IsTrue(queryResult.Count == correctResult.Count);
-                foreach (var x in correctResult) Assert.IsTrue(queryResult.Contains(x));
+                ClassicAssert.IsTrue(queryResult.Count == correctResult.Count);
+                foreach (var x in correctResult) ClassicAssert.IsTrue(queryResult.Contains(x));
 
                 if (queryResult.Count > 0) nonEmtpyResultCount++;
             }
@@ -223,10 +224,10 @@ namespace Aardvark.Geometry.Tests
             var q = new Plane3d(V3d.ZAxis, new V3d(0.5, 0.5, 0.5));
 
             var ps = pointset.QueryPointsNearPlane(q, 0.1).SelectMany(x => x.Positions).ToList();
-            Assert.IsTrue(pointset.PointCount > ps.Count);
+            ClassicAssert.IsTrue(pointset.PointCount > ps.Count);
 
             var bb = new Box3d(new V3d(0.0, 0.0, 0.4), new V3d(1.0, 1.0, 0.6));
-            foreach (var p in ps) Assert.IsTrue(bb.Contains(p));
+            foreach (var p in ps) ClassicAssert.IsTrue(bb.Contains(p));
         }
 
         [Test]
@@ -237,7 +238,7 @@ namespace Aardvark.Geometry.Tests
                 .SelectMany(x => x.Positions)
                 .ToArray()
                 ;
-            Assert.IsTrue(rs.Length == 4 * 4);
+            ClassicAssert.IsTrue(rs.Length == 4 * 4);
         }
 
         [Test]
@@ -248,7 +249,7 @@ namespace Aardvark.Geometry.Tests
                 .SelectMany(x => x.Positions)
                 .ToArray()
                 ;
-            Assert.IsTrue(rs.Length == 2 * 4 * 4);
+            ClassicAssert.IsTrue(rs.Length == 2 * 4 * 4);
         }
 
         [Test]
@@ -263,12 +264,12 @@ namespace Aardvark.Geometry.Tests
             };
 
             var ps = pointset.QueryPointsNearPlanes(q, 0.1).SelectMany(x => x.Positions).ToList();
-            Assert.IsTrue(pointset.PointCount > ps.Count);
+            ClassicAssert.IsTrue(pointset.PointCount > ps.Count);
 
             var bb1 = new Box3d(new V3d(0.0, 0.0, 0.4), new V3d(1.0, 1.0, 0.6));
             var bb2 = new Box3d(new V3d(0.6, 0.0, 0.0), new V3d(0.8, 1.0, 1.0));
             //var wrongs = ps.Where(p => !bb1.Contains(p) && !bb2.Contains(p)).ToArray();
-            foreach (var p in ps) Assert.IsTrue(bb1.Contains(p) || bb2.Contains(p));
+            foreach (var p in ps) ClassicAssert.IsTrue(bb1.Contains(p) || bb2.Contains(p));
         }
 
         [Test]
@@ -283,7 +284,7 @@ namespace Aardvark.Geometry.Tests
                 .SelectMany(x => x.Positions)
                 .ToArray()
                 ;
-            Assert.IsTrue(rs.Length == 4 * 4 + 4 * 4 - 4);
+            ClassicAssert.IsTrue(rs.Length == 4 * 4 + 4 * 4 - 4);
         }
         
         [Test]
@@ -298,7 +299,7 @@ namespace Aardvark.Geometry.Tests
                 .SelectMany(x => x.Positions)
                 .ToArray()
                 ;
-            Assert.IsTrue(rs.Length == 32 + 32 - 16);
+            ClassicAssert.IsTrue(rs.Length == 32 + 32 - 16);
         }
         
         [Test]
@@ -309,10 +310,10 @@ namespace Aardvark.Geometry.Tests
             var q = new Plane3d(V3d.ZAxis, new V3d(0.5, 0.5, 0.5));
 
             var ps = pointset.QueryPointsNotNearPlane(q, 0.1).SelectMany(x => x.Positions).ToList();
-            Assert.IsTrue(pointset.PointCount > ps.Count);
+            ClassicAssert.IsTrue(pointset.PointCount > ps.Count);
 
             var bb = new Box3d(new V3d(0.0, 0.0, 0.4), new V3d(1.0, 1.0, 0.6));
-            foreach (var p in ps) Assert.IsTrue(!bb.Contains(p));
+            foreach (var p in ps) ClassicAssert.IsTrue(!bb.Contains(p));
         }
 
         [Test]
@@ -323,7 +324,7 @@ namespace Aardvark.Geometry.Tests
                 .SelectMany(x => x.Positions)
                 .ToArray()
                 ;
-            Assert.IsTrue(rs.Length == 64 - 16);
+            ClassicAssert.IsTrue(rs.Length == 64 - 16);
         }
 
         [Test]
@@ -334,7 +335,7 @@ namespace Aardvark.Geometry.Tests
                 .SelectMany(x => x.Positions)
                 .ToArray()
                 ;
-            Assert.IsTrue(rs.Length == 64 - 32);
+            ClassicAssert.IsTrue(rs.Length == 64 - 32);
         }
         
         [Test]
@@ -349,11 +350,11 @@ namespace Aardvark.Geometry.Tests
             };
 
             var ps = pointset.QueryPointsNotNearPlanes(q, 0.1).SelectMany(x => x.Positions).ToList();
-            Assert.IsTrue(pointset.PointCount > ps.Count);
+            ClassicAssert.IsTrue(pointset.PointCount > ps.Count);
 
             var bb1 = new Box3d(new V3d(0.0, 0.0, 0.4), new V3d(1.0, 1.0, 0.6));
             var bb2 = new Box3d(new V3d(0.6, 0.0, 0.0), new V3d(0.8, 1.0, 1.0));
-            foreach (var p in ps) Assert.IsTrue(!bb1.Contains(p) && !bb2.Contains(p));
+            foreach (var p in ps) ClassicAssert.IsTrue(!bb1.Contains(p) && !bb2.Contains(p));
         }
 
         [Test]
@@ -368,7 +369,7 @@ namespace Aardvark.Geometry.Tests
                 .SelectMany(x => x.Positions)
                 .ToArray()
                 ;
-            Assert.IsTrue(rs.Length == 64 - (16 + 16 - 4));
+            ClassicAssert.IsTrue(rs.Length == 64 - (16 + 16 - 4));
         }
 
         [Test]
@@ -383,7 +384,7 @@ namespace Aardvark.Geometry.Tests
                 .SelectMany(x => x.Positions)
                 .ToArray()
                 ;
-            Assert.IsTrue(rs.Length == 64 - (32 + 32 - 16));
+            ClassicAssert.IsTrue(rs.Length == 64 - (32 + 32 - 16));
         }
 
         #endregion
@@ -396,8 +397,8 @@ namespace Aardvark.Geometry.Tests
             var poly = new Polygon3d(V3d.OOO, V3d.IOO, V3d.IIO);
             var bb = poly.BoundingBox3d(0.5);
 
-            Assert.IsTrue(bb.Min == new V3d(0.0, 0.0, -0.5));
-            Assert.IsTrue(bb.Max == new V3d(1.0, 1.0, 0.5));
+            ClassicAssert.IsTrue(bb.Min == new V3d(0.0, 0.0, -0.5));
+            ClassicAssert.IsTrue(bb.Max == new V3d(1.0, 1.0, 0.5));
         }
 
         [Test]
@@ -408,10 +409,10 @@ namespace Aardvark.Geometry.Tests
             var q = new Polygon3d(new V3d(0.4, 0.4, 0.5), new V3d(0.6, 0.4, 0.5), new V3d(0.6, 0.6, 0.5), new V3d(0.4, 0.6, 0.5));
 
             var ps = pointset.QueryPointsNearPolygon(q, 0.1).SelectMany(x => x.Positions).ToList();
-            Assert.IsTrue(pointset.PointCount > ps.Count);
+            ClassicAssert.IsTrue(pointset.PointCount > ps.Count);
 
             var bb = new Box3d(new V3d(0.4, 0.4, 0.4), new V3d(0.6, 0.6, 0.6));
-            foreach (var p in ps) Assert.IsTrue(bb.Contains(p));
+            foreach (var p in ps) ClassicAssert.IsTrue(bb.Contains(p));
         }
         
         [Test]
@@ -426,7 +427,7 @@ namespace Aardvark.Geometry.Tests
                 .SelectMany(x => x.Positions)
                 .ToArray()
                 ;
-            Assert.IsTrue(rs.Length == 3);
+            ClassicAssert.IsTrue(rs.Length == 3);
         }
 
         [Test]
@@ -442,7 +443,7 @@ namespace Aardvark.Geometry.Tests
                 .SelectMany(x => x.Positions)
                 .ToArray()
                 ;
-            Assert.IsTrue(rs.Length == 2 * 3);
+            ClassicAssert.IsTrue(rs.Length == 2 * 3);
         }
 
         [Test]
@@ -457,7 +458,7 @@ namespace Aardvark.Geometry.Tests
                 .SelectMany(x => x.Positions)
                 .ToArray()
                 ;
-            Assert.IsTrue(rs.Length == 2 * 3);
+            ClassicAssert.IsTrue(rs.Length == 2 * 3);
         }
 
         [Test]
@@ -477,7 +478,7 @@ namespace Aardvark.Geometry.Tests
             var ps1 = pointset.QueryPointsNearPlane(plane, 0.01).ToList();
             var t1 = sw.Elapsed.TotalSeconds;
 
-            Assert.IsTrue(t0 * 2.5 < t1);
+            ClassicAssert.IsTrue(t0 * 2.5 < t1);
         }
 
         [Test]
@@ -492,11 +493,11 @@ namespace Aardvark.Geometry.Tests
             };
 
             var ps = pointset.QueryPointsNearPolygons(q, 0.1).SelectMany(x => x.Positions).ToList();
-            Assert.IsTrue(pointset.PointCount > ps.Count);
+            ClassicAssert.IsTrue(pointset.PointCount > ps.Count);
 
             var bb1 = new Box3d(new V3d(0.4, 0.4, 0.4), new V3d(0.6, 0.6, 0.6));
             var bb2 = new Box3d(new V3d(0.4, 0.4, 0.4), new V3d(0.6, 0.6, 0.6));
-            foreach (var p in ps) Assert.IsTrue(bb1.Contains(p) || bb2.Contains(p));
+            foreach (var p in ps) ClassicAssert.IsTrue(bb1.Contains(p) || bb2.Contains(p));
         }
 
         [Test]
@@ -513,7 +514,7 @@ namespace Aardvark.Geometry.Tests
                 .SelectMany(x => x.Positions)
                 .ToArray()
                 ;
-            Assert.IsTrue(rs.Length == 3 + 2);
+            ClassicAssert.IsTrue(rs.Length == 3 + 2);
         }
 
         [Test]
@@ -530,7 +531,7 @@ namespace Aardvark.Geometry.Tests
                 .SelectMany(x => x.Positions)
                 .ToArray()
                 ;
-            Assert.IsTrue(rs.Length == 2 * (3 + 2));
+            ClassicAssert.IsTrue(rs.Length == 2 * (3 + 2));
         }
 
         [Test]
@@ -541,10 +542,10 @@ namespace Aardvark.Geometry.Tests
             var q = new Polygon3d(new V3d(0.4, 0.4, 0.5), new V3d(0.6, 0.4, 0.5), new V3d(0.6, 0.6, 0.5), new V3d(0.4, 0.6, 0.5));
 
             var ps = pointset.QueryPointsNotNearPolygon(q, 0.1).SelectMany(x => x.Positions).ToList();
-            Assert.IsTrue(pointset.PointCount > ps.Count);
+            ClassicAssert.IsTrue(pointset.PointCount > ps.Count);
 
             var bb = new Box3d(new V3d(0.4, 0.4, 0.4), new V3d(0.6, 0.6, 0.6));
-            foreach (var p in ps) Assert.IsTrue(!bb.Contains(p));
+            foreach (var p in ps) ClassicAssert.IsTrue(!bb.Contains(p));
         }
         
         [Test]
@@ -559,7 +560,7 @@ namespace Aardvark.Geometry.Tests
                 .SelectMany(x => x.Positions)
                 .ToArray()
                 ;
-            Assert.IsTrue(rs.Length == 64 - 3);
+            ClassicAssert.IsTrue(rs.Length == 64 - 3);
         }
 
         [Test]
@@ -574,7 +575,7 @@ namespace Aardvark.Geometry.Tests
                 .SelectMany(x => x.Positions)
                 .ToArray()
                 ;
-            Assert.IsTrue(rs.Length == 64 - 2 * 3);
+            ClassicAssert.IsTrue(rs.Length == 64 - 2 * 3);
         }
         
         [Test]
@@ -589,11 +590,11 @@ namespace Aardvark.Geometry.Tests
             };
 
             var ps = pointset.QueryPointsNotNearPolygons(q, 0.1).SelectMany(x => x.Positions).ToList();
-            Assert.IsTrue(pointset.PointCount > ps.Count);
+            ClassicAssert.IsTrue(pointset.PointCount > ps.Count);
 
             var bb1 = new Box3d(new V3d(0.4, 0.4, 0.4), new V3d(0.6, 0.6, 0.6));
             var bb2 = new Box3d(new V3d(0.4, 0.4, 0.4), new V3d(0.6, 0.6, 0.6));
-            foreach (var p in ps) Assert.IsTrue(!bb1.Contains(p) && !bb2.Contains(p));
+            foreach (var p in ps) ClassicAssert.IsTrue(!bb1.Contains(p) && !bb2.Contains(p));
         }
 
         [Test]
@@ -610,7 +611,7 @@ namespace Aardvark.Geometry.Tests
                 .SelectMany(x => x.Positions)
                 .ToArray()
                 ;
-            Assert.IsTrue(rs.Length == 64 - (3 + 2));
+            ClassicAssert.IsTrue(rs.Length == 64 - (3 + 2));
         }
 
         [Test]
@@ -627,7 +628,7 @@ namespace Aardvark.Geometry.Tests
                 .SelectMany(x => x.Positions)
                 .ToArray()
                 ;
-            Assert.IsTrue(rs.Length == 64 - (2 * (3 + 2)));
+            ClassicAssert.IsTrue(rs.Length == 64 - (2 * (3 + 2)));
         }
 
         #endregion
@@ -651,10 +652,10 @@ namespace Aardvark.Geometry.Tests
             var box = Box3d.FromMinAndSize(new V3d(0.5, 0.5, 0.0), new V3d(0.5, 0.5, 0.5));
             var result = new List<V3d>();
             foreach (var x in pointset.QueryPointsInsideBox(box)) result.AddRange(x.Positions);
-            Assert.IsTrue(result.Count > 0 && result.Count < pointset.PointCount);
+            ClassicAssert.IsTrue(result.Count > 0 && result.Count < pointset.PointCount);
 
             var resultBounds = new Box3d(result);
-            Assert.IsTrue(box.Contains(resultBounds));
+            ClassicAssert.IsTrue(box.Contains(resultBounds));
         }
 
         [Test]
@@ -665,7 +666,7 @@ namespace Aardvark.Geometry.Tests
                 .SelectMany(x => x.Positions)
                 .ToArray()
                 ;
-            Assert.IsTrue(rs.Length == 4 * 4 * 4);
+            ClassicAssert.IsTrue(rs.Length == 4 * 4 * 4);
         }
 
         [Test]
@@ -676,21 +677,21 @@ namespace Aardvark.Geometry.Tests
                 .SelectMany(x => x.Positions)
                 .ToArray()
                 ;
-            Assert.IsTrue(rs.Length == 64 - 4 * 4 * 4);
+            ClassicAssert.IsTrue(rs.Length == 64 - 4 * 4 * 4);
         }
 
         [Test]
         public void CanCountPointsApproximatelyInsideBox()
         {
             var cloud = CreateRandomPointsInUnitCube(1000, 16);
-            Assert.IsTrue(cloud.CountPointsApproximatelyInsideBox(Box3d.Unit) == 1000);
+            ClassicAssert.IsTrue(cloud.CountPointsApproximatelyInsideBox(Box3d.Unit) == 1000);
         }
 
         [Test]
         public void CanCountPointsInsideBox()
         {
             var cloud = CreateRandomPointsInUnitCube(1000, 16);
-            Assert.IsTrue(cloud.CountPointsInsideBox(Box3d.Unit) == 1000);
+            ClassicAssert.IsTrue(cloud.CountPointsInsideBox(Box3d.Unit) == 1000);
         }
 
 
@@ -701,7 +702,7 @@ namespace Aardvark.Geometry.Tests
             {
                 var countA = cloud.CountPointsInsideBox(query, e);
                 var countB = cloud.QueryPointsInsideBox(query, e).Sum(chunk => chunk.Count);
-                Assert.IsTrue(countA == countB);
+                ClassicAssert.IsTrue(countA == countB);
             }
         }
         [Test]
@@ -733,7 +734,7 @@ namespace Aardvark.Geometry.Tests
             {
                 var countA = cloud.CountPointsOutsideBox(query, e);
                 var countB = cloud.QueryPointsOutsideBox(query, e).Sum(chunk => chunk.Count);
-                Assert.IsTrue(countA == countB);
+                ClassicAssert.IsTrue(countA == countB);
             }
         }
         [Test]
@@ -767,7 +768,7 @@ namespace Aardvark.Geometry.Tests
             //var storage = PointCloud.CreateInMemoryStore(cache: default);
             var pointcloud = CreateClusteredPointsInUnitCube(1000, 10);
             var ns = pointcloud.Root.Value.ForEachNodeIntersecting(new Hull3d(Box3d.Unit), true).ToArray();
-            Assert.IsTrue(ns.Length > 0);
+            ClassicAssert.IsTrue(ns.Length > 0);
         }
 
         #endregion
@@ -798,15 +799,15 @@ namespace Aardvark.Geometry.Tests
             var pointset = InternalCreateRandomPointSetForOctreeLevelTests();
 
             var depth = pointset.Root.Value.CountOctreeLevels();
-            Assert.IsTrue(depth > 0);
+            ClassicAssert.IsTrue(depth > 0);
 
             for (var i = 0; i < depth; i++)
             {
                 var countNodes = 0;
                 var countPoints = 0;
                 foreach (var x in pointset.QueryPointsInOctreeLevel(i)) { countNodes++; countPoints += x.Count; }
-                Assert.IsTrue(countPoints > 0);
-                Assert.IsTrue(countNodes <= System.Math.Pow(8, i));
+                ClassicAssert.IsTrue(countPoints > 0);
+                ClassicAssert.IsTrue(countNodes <= System.Math.Pow(8, i));
             }
         }
 
@@ -817,7 +818,7 @@ namespace Aardvark.Geometry.Tests
             var bounds = Box3d.FromMinAndSize(new V3d(0.2, 0.4, 0.8), new V3d(0.2, 0.15, 0.1));
 
             var depth = pointset.Root.Value.CountOctreeLevels();
-            Assert.IsTrue(depth > 0);
+            ClassicAssert.IsTrue(depth > 0);
 
             for (var i = 1; i < depth; i++)
             {
@@ -827,8 +828,8 @@ namespace Aardvark.Geometry.Tests
                 var countPoints1 = 0;
                 foreach (var x in pointset.QueryPointsInOctreeLevel(i)) { countNodes0++; countPoints0 += x.Count; }
                 foreach (var x in pointset.QueryPointsInOctreeLevel(i, bounds)) { countNodes1++; countPoints1 += x.Count; }
-                Assert.IsTrue(countPoints0 > countPoints1);
-                Assert.IsTrue(countNodes0 > countNodes1);
+                ClassicAssert.IsTrue(countPoints0 > countPoints1);
+                ClassicAssert.IsTrue(countNodes0 > countNodes1);
             }
         }
 
@@ -838,7 +839,7 @@ namespace Aardvark.Geometry.Tests
             var pointset = InternalCreateRandomPointSetForOctreeLevelTests();
 
             var depth = pointset.Root.Value.CountOctreeLevels();
-            Assert.IsTrue(depth > 0);
+            ClassicAssert.IsTrue(depth > 0);
             
             foreach (var _ in pointset.QueryPointsInOctreeLevel(-1)) Assert.Fail();
         }
@@ -849,13 +850,13 @@ namespace Aardvark.Geometry.Tests
             var pointset = InternalCreateRandomPointSetForOctreeLevelTests();
 
             var depth = pointset.Root.Value.CountOctreeLevels();
-            Assert.IsTrue(depth > 0);
+            ClassicAssert.IsTrue(depth > 0);
 
             // query octree level depth*2 -> should not crash and give number of original points
             var countNodes = 0;
             var countPoints = 0;
             foreach (var x in pointset.QueryPointsInOctreeLevel(depth * 2)) { countNodes++; countPoints += x.Count; }
-            Assert.IsTrue(countPoints == 51200);
+            ClassicAssert.IsTrue(countPoints == 51200);
         }
 
         [Test]
@@ -864,13 +865,13 @@ namespace Aardvark.Geometry.Tests
             var pointset = InternalCreateRandomPointSetForOctreeLevelTests();
 
             var depth = pointset.Root.Value.CountOctreeLevels();
-            Assert.IsTrue(depth > 0);
+            ClassicAssert.IsTrue(depth > 0);
 
             var countPoints = 0L;
             for (var i = 0; i < depth; i++)
             {
                 var c = pointset.CountPointsInOctreeLevel(i);
-                Assert.IsTrue(c > countPoints);
+                ClassicAssert.IsTrue(c > countPoints);
                 countPoints = c;
             }
         }
@@ -882,13 +883,13 @@ namespace Aardvark.Geometry.Tests
             var bounds = Box3d.FromMinAndSize(new V3d(0.2, 0.4, 0.8), new V3d(0.2, 0.15, 0.1));
 
             var depth = pointset.Root.Value.CountOctreeLevels();
-            Assert.IsTrue(depth > 0);
+            ClassicAssert.IsTrue(depth > 0);
             
             for (var i = 1; i < depth; i++)
             {
                 var c0 = pointset.CountPointsInOctreeLevel(i);
                 var c1 = pointset.CountPointsInOctreeLevel(i, bounds);
-                Assert.IsTrue(c0 > c1);
+                ClassicAssert.IsTrue(c0 > c1);
             }
         }
 
@@ -898,11 +899,11 @@ namespace Aardvark.Geometry.Tests
             var pointset = InternalCreateRandomPointSetForOctreeLevelTests();
 
             var depth = pointset.Root.Value.CountOctreeLevels();
-            Assert.IsTrue(depth > 0);
+            ClassicAssert.IsTrue(depth > 0);
 
             // query point count at level depth*2 -> should not crash and give number of original points
             var countPoints = pointset.CountPointsInOctreeLevel(depth * 2);
-            Assert.IsTrue(countPoints == 51200);
+            ClassicAssert.IsTrue(countPoints == 51200);
         }
 
         [Test]
@@ -911,7 +912,7 @@ namespace Aardvark.Geometry.Tests
             var pointset = InternalCreateRandomPointSetForOctreeLevelTests();
             
             var countPoints = pointset.CountPointsInOctreeLevel(-1);
-            Assert.IsTrue(countPoints == 0);
+            ClassicAssert.IsTrue(countPoints == 0);
         }
 
         [Test]
@@ -920,28 +921,28 @@ namespace Aardvark.Geometry.Tests
             var pointset = InternalCreateRandomPointSetForOctreeLevelTests();
 
             var depth = pointset.Root.Value.CountOctreeLevels();
-            Assert.IsTrue(depth > 0);
+            ClassicAssert.IsTrue(depth > 0);
 
             var l0 = pointset.GetMaxOctreeLevelWithLessThanGivenPointCount(0);
-            Assert.IsTrue(l0 == -1);
+            ClassicAssert.IsTrue(l0 == -1);
 
             var l1 = pointset.GetMaxOctreeLevelWithLessThanGivenPointCount(100);
-            Assert.IsTrue(l1 == -1);
+            ClassicAssert.IsTrue(l1 == -1);
 
             var l2 = pointset.GetMaxOctreeLevelWithLessThanGivenPointCount(101);
-            Assert.IsTrue(l2 == 0);
+            ClassicAssert.IsTrue(l2 == 0);
 
             var l3 = pointset.GetMaxOctreeLevelWithLessThanGivenPointCount(800);
-            Assert.IsTrue(l3 == 0);
+            ClassicAssert.IsTrue(l3 == 0);
 
             var l4 = pointset.GetMaxOctreeLevelWithLessThanGivenPointCount(801);
-            Assert.IsTrue(l4 == 1);
+            ClassicAssert.IsTrue(l4 == 1);
 
             var l5 = pointset.GetMaxOctreeLevelWithLessThanGivenPointCount(51200);
-            Assert.IsTrue(l5 == depth - 2);
+            ClassicAssert.IsTrue(l5 == depth - 2);
 
             var l6 = pointset.GetMaxOctreeLevelWithLessThanGivenPointCount(51201);
-            Assert.IsTrue(l6 == depth - 1);
+            ClassicAssert.IsTrue(l6 == depth - 1);
         }
 
         #endregion
@@ -956,21 +957,21 @@ namespace Aardvark.Geometry.Tests
             var root = InMemoryPointSet.Build(ps, null, null, null, null, null, Cell.Unit, 1).ToPointSetNode(storage, isTemporaryImportNode: false);
 
             var rs = root.QueryPoints(cell => true, cell => false, p => true).SelectMany(x => x.Positions).ToArray();
-            Assert.IsTrue(rs.Length == 1);
-            Assert.IsTrue(rs[0] == new V3d(0.5, 0.5, 0.5));
+            ClassicAssert.IsTrue(rs.Length == 1);
+            ClassicAssert.IsTrue(rs[0] == new V3d(0.5, 0.5, 0.5));
         }
 
         [Test]
         public void CanQueryPointsWithEverythingInside_Many()
         {
             var root = CreateRegularPointsInUnitCube(4, 1).Root.Value;
-            Assert.IsTrue(root.PointCountTree == 4 * 4 * 4);
+            ClassicAssert.IsTrue(root.PointCountTree == 4 * 4 * 4);
 
             var rs1 = root.QueryPoints(cell => true, cell => false, p => true).SelectMany(x => x.Positions).ToArray();
-            Assert.IsTrue(rs1.Length == 4 * 4 * 4);
+            ClassicAssert.IsTrue(rs1.Length == 4 * 4 * 4);
 
             var rs2 = root.QueryPoints(cell => false, cell => false, p => true).SelectMany(x => x.Positions).ToArray();
-            Assert.IsTrue(rs2.Length == 4 * 4 * 4);
+            ClassicAssert.IsTrue(rs2.Length == 4 * 4 * 4);
         }
 
         [Test]
@@ -981,20 +982,20 @@ namespace Aardvark.Geometry.Tests
             var root = InMemoryPointSet.Build(ps, null, null, null, null, null, Cell.Unit, 1).ToPointSetNode(storage, isTemporaryImportNode: false);
 
             var rs = root.QueryPoints(cell => false, cell => true, p => false).SelectMany(x => x.Positions).ToArray();
-            Assert.IsTrue(rs.Length == 0);
+            ClassicAssert.IsTrue(rs.Length == 0);
         }
 
         [Test]
         public void CanQueryPointsWithEverythingOutside_Many()
         {
             var root = CreateRegularPointsInUnitCube(4, 1).Root.Value;
-            Assert.IsTrue(root.PointCountTree == 4 * 4 * 4);
+            ClassicAssert.IsTrue(root.PointCountTree == 4 * 4 * 4);
 
             var rs1 = root.QueryPoints(cell => false, cell => true, p => false).SelectMany(x => x.Positions).ToArray();
-            Assert.IsTrue(rs1.Length == 0);
+            ClassicAssert.IsTrue(rs1.Length == 0);
 
             var rs2 = root.QueryPoints(cell => false, cell => false, p => false).SelectMany(x => x.Positions).ToArray();
-            Assert.IsTrue(rs2.Length == 0);
+            ClassicAssert.IsTrue(rs2.Length == 0);
         }
 
         #endregion
@@ -1008,9 +1009,9 @@ namespace Aardvark.Geometry.Tests
             var n = ps.Root.Value;
 
             var r = n.QueryCell(new Cell(1,0,1,-1));
-            Assert.IsTrue(r.Cell == new Cell(1, 0, 1, -1));
-            Assert.IsTrue(r.GetPoints(0).Sum(x => x.Count) == 100);
-            Assert.IsTrue(r.GetPoints(int.MaxValue).Sum(x => x.Count).ApproximateEquals(1000, 50));
+            ClassicAssert.IsTrue(r.Cell == new Cell(1, 0, 1, -1));
+            ClassicAssert.IsTrue(r.GetPoints(0).Sum(x => x.Count) == 100);
+            ClassicAssert.IsTrue(r.GetPoints(int.MaxValue).Sum(x => x.Count).ApproximateEquals(1000, 50));
         }
 
         [Test]
@@ -1020,9 +1021,9 @@ namespace Aardvark.Geometry.Tests
             var n = FilteredNode.Create(ps.Root.Value, new FilterInsideBox3d(new Box3d(new V3d(0, 0, 0), new V3d(1, 1, 0.5))));
 
             var r = n.QueryCell(new Cell(1, 0, 0, -1));
-            Assert.IsTrue(r.Cell == new Cell(1, 0, 0, -1));
-            Assert.IsTrue(r.GetPoints(0).Union().Count == 100);
-            Assert.IsTrue(r.GetPoints(int.MaxValue).Union().Count.ApproximateEquals(1000, 50));
+            ClassicAssert.IsTrue(r.Cell == new Cell(1, 0, 0, -1));
+            ClassicAssert.IsTrue(r.GetPoints(0).Union().Count == 100);
+            ClassicAssert.IsTrue(r.GetPoints(int.MaxValue).Union().Count.ApproximateEquals(1000, 50));
         }
 
         [Test]
@@ -1032,9 +1033,9 @@ namespace Aardvark.Geometry.Tests
             var n = FilteredNode.Create(ps.Root.Value, new FilterInsideBox3d(new Box3d(new V3d(0, 0, 0), new V3d(1, 1, 0.5))));
 
             var r = n.QueryCell(new Cell(1, 0, 1, -1));
-            Assert.IsTrue(r.Cell == new Cell(1, 0, 1, -1));
-            Assert.IsTrue(r.GetPoints(0).Union().Count == 0);
-            Assert.IsTrue(r.GetPoints(int.MaxValue).Union().Count == 0);
+            ClassicAssert.IsTrue(r.Cell == new Cell(1, 0, 1, -1));
+            ClassicAssert.IsTrue(r.GetPoints(0).Union().Count == 0);
+            ClassicAssert.IsTrue(r.GetPoints(int.MaxValue).Union().Count == 0);
         }
 
 
@@ -1048,26 +1049,26 @@ namespace Aardvark.Geometry.Tests
                 var n = ps.Root.Value;
 
                 var l0 = n.EnumerateCells(0).ToArray();
-                Assert.IsTrue(l0.Length == 1);
-                Assert.IsTrue(l0.Map(x => x.Cell).Contains(new Cell(0, 0, 0, 0)));
-                Assert.IsTrue(l0[0].Cell == new Cell(0, 0, 0, 0));
+                ClassicAssert.IsTrue(l0.Length == 1);
+                ClassicAssert.IsTrue(l0.Map(x => x.Cell).Contains(new Cell(0, 0, 0, 0)));
+                ClassicAssert.IsTrue(l0[0].Cell == new Cell(0, 0, 0, 0));
                 var foo = l0[0].GetPoints(0).Union().Count;
-                Assert.IsTrue(foo == 100);
-                Assert.IsTrue(l0[0].GetPoints(1).Union().Count == 800);
-                Assert.IsTrue(l0[0].GetPoints(int.MaxValue).Union().Count == 8000);
+                ClassicAssert.IsTrue(foo == 100);
+                ClassicAssert.IsTrue(l0[0].GetPoints(1).Union().Count == 800);
+                ClassicAssert.IsTrue(l0[0].GetPoints(int.MaxValue).Union().Count == 8000);
 
                 var l1 = n.EnumerateCells(-1).ToArray();
-                Assert.IsTrue(l1.Length == 8);
-                Assert.IsTrue(l1.Sum(x => x.GetPoints(0).Union().Count) == 800);
-                Assert.IsTrue(l1.Sum(x => x.GetPoints(int.MaxValue).Union().Count) == 8000);
-                Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 0, 0, -1)));
-                Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(1, 0, 0, -1)));
-                Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 1, 0, -1)));
-                Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(1, 1, 0, -1)));
-                Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 0, 1, -1)));
-                Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(1, 0, 1, -1)));
-                Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 1, 1, -1)));
-                Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(1, 1, 1, -1)));
+                ClassicAssert.IsTrue(l1.Length == 8);
+                ClassicAssert.IsTrue(l1.Sum(x => x.GetPoints(0).Union().Count) == 800);
+                ClassicAssert.IsTrue(l1.Sum(x => x.GetPoints(int.MaxValue).Union().Count) == 8000);
+                ClassicAssert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 0, 0, -1)));
+                ClassicAssert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(1, 0, 0, -1)));
+                ClassicAssert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 1, 0, -1)));
+                ClassicAssert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(1, 1, 0, -1)));
+                ClassicAssert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 0, 1, -1)));
+                ClassicAssert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(1, 0, 1, -1)));
+                ClassicAssert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 1, 1, -1)));
+                ClassicAssert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(1, 1, 1, -1)));
             }
         }
 
@@ -1078,9 +1079,9 @@ namespace Aardvark.Geometry.Tests
             var n = ps.Root.Value;
 
             var l0 = n.EnumerateCells(1).ToArray();
-            Assert.IsTrue(l0.Length == 1);
-            Assert.IsTrue(l0[0].Cell == new Cell(0,0,0,1));
-            Assert.IsTrue(l0[0].GetPoints(0).Union().Count == 100);
+            ClassicAssert.IsTrue(l0.Length == 1);
+            ClassicAssert.IsTrue(l0[0].Cell == new Cell(0,0,0,1));
+            ClassicAssert.IsTrue(l0[0].GetPoints(0).Union().Count == 100);
         }
 
         [Test]
@@ -1092,21 +1093,21 @@ namespace Aardvark.Geometry.Tests
                 var n = FilteredNode.Create(ps.Root.Value, new FilterInsideBox3d(new Box3d(new V3d(0, 0, 0), new V3d(1, 1, 0.5))));
 
                 var l0 = n.EnumerateCells(0).ToArray();
-                Assert.IsTrue(l0.Length == 1);
-                Assert.IsTrue(l0.Map(x => x.Cell).Contains(new Cell(0, 0, 0, 0)));
-                Assert.IsTrue(l0[0].Cell == new Cell(0, 0, 0, 0));
-                Assert.IsTrue(l0[0].GetPoints(0).Union().Count.ApproximateEquals(50, 5));
-                Assert.IsTrue(l0[0].GetPoints(1).Union().Count.ApproximateEquals(400, 20));
-                Assert.IsTrue(l0[0].GetPoints(int.MaxValue).Union().Count.ApproximateEquals(4000, 200));
+                ClassicAssert.IsTrue(l0.Length == 1);
+                ClassicAssert.IsTrue(l0.Map(x => x.Cell).Contains(new Cell(0, 0, 0, 0)));
+                ClassicAssert.IsTrue(l0[0].Cell == new Cell(0, 0, 0, 0));
+                ClassicAssert.IsTrue(l0[0].GetPoints(0).Union().Count.ApproximateEquals(50, 5));
+                ClassicAssert.IsTrue(l0[0].GetPoints(1).Union().Count.ApproximateEquals(400, 20));
+                ClassicAssert.IsTrue(l0[0].GetPoints(int.MaxValue).Union().Count.ApproximateEquals(4000, 200));
 
                 var l1 = n.EnumerateCells(-1).ToArray();
-                Assert.IsTrue(l1.Length == 4);
-                Assert.IsTrue(l1.Sum(x => x.GetPoints(0).Union().Count).ApproximateEquals(400, 20));
-                Assert.IsTrue(l1.Sum(x => x.GetPoints(int.MaxValue).Union().Count).ApproximateEquals(4000, 200));
-                Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 0, 0, -1)));
-                Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(1, 0, 0, -1)));
-                Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 1, 0, -1)));
-                Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(1, 1, 0, -1)));
+                ClassicAssert.IsTrue(l1.Length == 4);
+                ClassicAssert.IsTrue(l1.Sum(x => x.GetPoints(0).Union().Count).ApproximateEquals(400, 20));
+                ClassicAssert.IsTrue(l1.Sum(x => x.GetPoints(int.MaxValue).Union().Count).ApproximateEquals(4000, 200));
+                ClassicAssert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 0, 0, -1)));
+                ClassicAssert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(1, 0, 0, -1)));
+                ClassicAssert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 1, 0, -1)));
+                ClassicAssert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(1, 1, 0, -1)));
             }
         }
 
@@ -1118,17 +1119,17 @@ namespace Aardvark.Geometry.Tests
             var n = ps.Root.Value;
 
             var l1 = n.EnumerateCells(-1).Where(x => x.Cell.Z == 0).ToArray();
-            Assert.IsTrue(l1.Length == 4);
-            Assert.IsTrue(l1.Sum(x => x.GetPoints(0).Union().Count).ApproximateEquals(400, 20));
-            Assert.IsTrue(l1.Sum(x => x.GetPoints(int.MaxValue).Union().Count).ApproximateEquals(4000, 200));
-            Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 0, 0, -1)));
-            Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(1, 0, 0, -1)));
-            Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 1, 0, -1)));
-            Assert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(1, 1, 0, -1)));
-            Assert.IsTrue(!l1.Map(x => x.Cell).Contains(new Cell(0, 0, 1, -1)));
-            Assert.IsTrue(!l1.Map(x => x.Cell).Contains(new Cell(1, 0, 1, -1)));
-            Assert.IsTrue(!l1.Map(x => x.Cell).Contains(new Cell(0, 1, 1, -1)));
-            Assert.IsTrue(!l1.Map(x => x.Cell).Contains(new Cell(1, 1, 1, -1)));
+            ClassicAssert.IsTrue(l1.Length == 4);
+            ClassicAssert.IsTrue(l1.Sum(x => x.GetPoints(0).Union().Count).ApproximateEquals(400, 20));
+            ClassicAssert.IsTrue(l1.Sum(x => x.GetPoints(int.MaxValue).Union().Count).ApproximateEquals(4000, 200));
+            ClassicAssert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 0, 0, -1)));
+            ClassicAssert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(1, 0, 0, -1)));
+            ClassicAssert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(0, 1, 0, -1)));
+            ClassicAssert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(1, 1, 0, -1)));
+            ClassicAssert.IsTrue(!l1.Map(x => x.Cell).Contains(new Cell(0, 0, 1, -1)));
+            ClassicAssert.IsTrue(!l1.Map(x => x.Cell).Contains(new Cell(1, 0, 1, -1)));
+            ClassicAssert.IsTrue(!l1.Map(x => x.Cell).Contains(new Cell(0, 1, 1, -1)));
+            ClassicAssert.IsTrue(!l1.Map(x => x.Cell).Contains(new Cell(1, 1, 1, -1)));
         }
 
 
@@ -1141,15 +1142,15 @@ namespace Aardvark.Geometry.Tests
 
             var dict = new Dictionary<Cell, Queries.CellQueryResult>();
             foreach (var kv in n.EnumerateCells(-1).Select(x => new KeyValuePair<Cell, Queries.CellQueryResult>(x.Cell, x))) dict.Add(kv.Key, kv.Value);
-            Assert.IsTrue(dict.Count == 8);
-            Assert.IsTrue(dict[new Cell(0, 0, 0, -1)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 800);
-            Assert.IsTrue(dict[new Cell(1, 0, 0, -1)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 800);
-            Assert.IsTrue(dict[new Cell(0, 1, 0, -1)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 800);
-            Assert.IsTrue(dict[new Cell(1, 1, 0, -1)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 800);
-            Assert.IsTrue(dict[new Cell(0, 0, 1, -1)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 800);
-            Assert.IsTrue(dict[new Cell(1, 0, 1, -1)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 800);
-            Assert.IsTrue(dict[new Cell(0, 1, 1, -1)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 800);
-            Assert.IsTrue(dict[new Cell(1, 1, 1, -1)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 800);
+            ClassicAssert.IsTrue(dict.Count == 8);
+            ClassicAssert.IsTrue(dict[new Cell(0, 0, 0, -1)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 800);
+            ClassicAssert.IsTrue(dict[new Cell(1, 0, 0, -1)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 800);
+            ClassicAssert.IsTrue(dict[new Cell(0, 1, 0, -1)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 800);
+            ClassicAssert.IsTrue(dict[new Cell(1, 1, 0, -1)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 800);
+            ClassicAssert.IsTrue(dict[new Cell(0, 0, 1, -1)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 800);
+            ClassicAssert.IsTrue(dict[new Cell(1, 0, 1, -1)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 800);
+            ClassicAssert.IsTrue(dict[new Cell(0, 1, 1, -1)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 800);
+            ClassicAssert.IsTrue(dict[new Cell(1, 1, 1, -1)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 800);
         }
 
         [Test]
@@ -1161,18 +1162,18 @@ namespace Aardvark.Geometry.Tests
 
             var dict = new Dictionary<Cell, Queries.CellQueryResult>();
             foreach (var kv in n.EnumerateCells(-2).Select(x => new KeyValuePair<Cell, Queries.CellQueryResult>(x.Cell, x))) dict.Add(kv.Key, kv.Value);
-            Assert.IsTrue(dict.Count == 64);
-            Assert.IsTrue(dict[new Cell(0, 0, 0, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 8);
-            Assert.IsTrue(dict[new Cell(1, 0, 0, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 12);
-            Assert.IsTrue(dict[new Cell(0, 1, 0, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 12);
-            Assert.IsTrue(dict[new Cell(1, 1, 0, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 18);
-            Assert.IsTrue(dict[new Cell(0, 0, 1, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 12);
-            Assert.IsTrue(dict[new Cell(1, 0, 1, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 18);
-            Assert.IsTrue(dict[new Cell(0, 1, 1, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 18);
-            Assert.IsTrue(dict[new Cell(1, 1, 1, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 27);
+            ClassicAssert.IsTrue(dict.Count == 64);
+            ClassicAssert.IsTrue(dict[new Cell(0, 0, 0, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 8);
+            ClassicAssert.IsTrue(dict[new Cell(1, 0, 0, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 12);
+            ClassicAssert.IsTrue(dict[new Cell(0, 1, 0, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 12);
+            ClassicAssert.IsTrue(dict[new Cell(1, 1, 0, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 18);
+            ClassicAssert.IsTrue(dict[new Cell(0, 0, 1, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 12);
+            ClassicAssert.IsTrue(dict[new Cell(1, 0, 1, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 18);
+            ClassicAssert.IsTrue(dict[new Cell(0, 1, 1, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 18);
+            ClassicAssert.IsTrue(dict[new Cell(1, 1, 1, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 27);
 
 
-            Assert.IsTrue(dict[new Cell(3, 3, 3, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 8);
+            ClassicAssert.IsTrue(dict[new Cell(3, 3, 3, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 8);
         }
 
         #endregion
@@ -1197,8 +1198,8 @@ namespace Aardvark.Geometry.Tests
             var pointset = PointCloud.Chunks(chunk, config);
 
             var q = pointset.QueryPointsNearPoint(V3d.Zero, 1.0, 5);
-            Assert.IsTrue(q.PartIndices != null);
-            Assert.IsTrue(q.PartIndices.All(x => x >= 0 && x <= 3));
+            ClassicAssert.IsTrue(q.PartIndices != null);
+            ClassicAssert.IsTrue(q.PartIndices.All(x => x >= 0 && x <= 3));
         }
     }
 }

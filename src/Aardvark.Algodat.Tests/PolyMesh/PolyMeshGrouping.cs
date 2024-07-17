@@ -1,5 +1,6 @@
 ﻿using Aardvark.Base;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -35,7 +36,7 @@ namespace Aardvark.Geometry.Tests
                 {
                     // check if face vertex normal points in similar direction
                     var fvn = f.GetVertexAttribute<V3d>(PolyMesh.Property.Normals, 0);
-                    Assert.True(fvn.Dot(fn) > 0);
+                    ClassicAssert.True(fvn.Dot(fn) > 0);
                 }
             });
         }

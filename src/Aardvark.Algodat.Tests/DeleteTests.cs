@@ -15,6 +15,7 @@ using Aardvark.Base;
 using Aardvark.Data.Points;
 using Aardvark.Geometry.Points;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -115,9 +116,9 @@ namespace Aardvark.Geometry.Tests
             var b = a.Delete(n => q.Contains(n.BoundingBoxExactGlobal), n => !(q.Contains(n.BoundingBoxExactGlobal) || q.Intersects(n.BoundingBoxExactGlobal)), p => q.Contains(p), a.Storage, CancellationToken.None);
 
             Console.WriteLine("{0}", b.PointCount);
-            Assert.IsNotNull(b.Root);
-            Assert.IsNotNull(b.Root.Value);
-            Assert.IsTrue(b.Root.Value.IsLeaf);
+            ClassicAssert.IsNotNull(b.Root);
+            ClassicAssert.IsNotNull(b.Root.Value);
+            ClassicAssert.IsTrue(b.Root.Value.IsLeaf);
             b.ValidateTree();
         }
 
@@ -128,12 +129,12 @@ namespace Aardvark.Geometry.Tests
             var q = new Box3d(new V3d(0.3), new V3d(0.7));
 
             var a = CreateRegularPointsInUnitCube(10, 1);
-            Assert.IsTrue(a.QueryAllPoints().SelectMany(chunk => chunk.Positions).Any(p => q.Contains(p)));
+            ClassicAssert.IsTrue(a.QueryAllPoints().SelectMany(chunk => chunk.Positions).Any(p => q.Contains(p)));
 
             var b = a.Delete(n => q.Contains(n.BoundingBoxExactGlobal), n => !(q.Contains(n.BoundingBoxExactGlobal) || q.Intersects(n.BoundingBoxExactGlobal)), p => q.Contains(p), a.Storage, CancellationToken.None);
-            Assert.IsTrue(b.Root?.Value.NoPointIn(p => q.Contains(p)));
-            Assert.IsTrue(a.PointCount > b.PointCount);
-            Assert.IsTrue(!b.QueryAllPoints().SelectMany(chunk => chunk.Positions).Any(p => q.Contains(p)));
+            ClassicAssert.IsTrue(b.Root?.Value.NoPointIn(p => q.Contains(p)));
+            ClassicAssert.IsTrue(a.PointCount > b.PointCount);
+            ClassicAssert.IsTrue(!b.QueryAllPoints().SelectMany(chunk => chunk.Positions).Any(p => q.Contains(p)));
             b.ValidateTree();
         }
 
@@ -144,8 +145,8 @@ namespace Aardvark.Geometry.Tests
             var b = a.Delete(n => false, n => true, p => false, a.Storage, CancellationToken.None);
 
             b.ValidateTree();
-            Assert.IsTrue(a.PointCount == b.PointCount);
-            Assert.IsTrue(a.Id != b.Id);
+            ClassicAssert.IsTrue(a.PointCount == b.PointCount);
+            ClassicAssert.IsTrue(a.Id != b.Id);
         }
 
         [Test]
@@ -159,12 +160,12 @@ namespace Aardvark.Geometry.Tests
                 // 1. delete a subset of points
                 var b = a.Delete(n => q1.Contains(n.BoundingBoxExactGlobal), n => !(q1.Contains(n.BoundingBoxExactGlobal) || q1.Intersects(n.BoundingBoxExactGlobal)), p => q1.Contains(p), a.Storage, CancellationToken.None);
                 b.ValidateTree();
-                Assert.IsTrue(b.Root?.Value.NoPointIn(p => q1.Contains(p)));
+                ClassicAssert.IsTrue(b.Root?.Value.NoPointIn(p => q1.Contains(p)));
 
                 // 2. delete ALL remaining points
                 var c = b.Delete(n => true, n => false, p => true, a.Storage, CancellationToken.None);
                 // if all points are deleted, then 'Delete' returns null
-                Assert.Null(c);
+                ClassicAssert.Null(c);
             }
         }
 
@@ -184,10 +185,10 @@ namespace Aardvark.Geometry.Tests
                     CancellationToken.None
                 );
 
-            Assert.IsTrue(b.Root?.Value.NoPointIn(p => !q1.Contains(p)));
+            ClassicAssert.IsTrue(b.Root?.Value.NoPointIn(p => !q1.Contains(p)));
             b.ValidateTree();
-            Assert.IsTrue(b.PointCount == 1);
-            Assert.IsTrue(a.Id != b.Id);
+            ClassicAssert.IsTrue(b.PointCount == 1);
+            ClassicAssert.IsTrue(a.Id != b.Id);
         }
 
         [Test]
@@ -197,7 +198,7 @@ namespace Aardvark.Geometry.Tests
             var b = a.Delete(n => true, n => false, p => true, a.Storage, CancellationToken.None);
 
             // if all points are deleted, then 'Delete' returns null
-            Assert.Null(b);
+            ClassicAssert.Null(b);
         }
 
         [Test]
@@ -209,10 +210,10 @@ namespace Aardvark.Geometry.Tests
                 var a = CreateRandomClassifiedPoints(10000, 256);
                 var b = a.Delete(n => q1.Contains(n.BoundingBoxExactGlobal), n => !(q1.Contains(n.BoundingBoxExactGlobal) || q1.Intersects(n.BoundingBoxExactGlobal)), p => q1.Contains(p), a.Storage, CancellationToken.None);
                 b.ValidateTree();
-                Assert.IsTrue(b.Root?.Value.NoPointIn(p => q1.Contains(p)));
+                ClassicAssert.IsTrue(b.Root?.Value.NoPointIn(p => q1.Contains(p)));
                 var c = b.Root?.Value.Delete(n => false, n => false, (p,att) => att.Classification==0, a.Storage, CancellationToken.None,256);
                 // Did it really delete the classification 0u?
-                c.ForEachNode(false, (node) => node.Classifications?.Value.ForEach((k) => Assert.IsTrue(k != 0)));
+                c.ForEachNode(false, (node) => node.Classifications?.Value.ForEach((k) => ClassicAssert.IsTrue(k != 0)));
             }
         }
         [Test]
@@ -224,14 +225,14 @@ namespace Aardvark.Geometry.Tests
                 var a = CreateRandomPointsWithPartIndices(10000, 256);
                 var b = a.Delete(n => q1.Contains(n.BoundingBoxExactGlobal), n => !(q1.Contains(n.BoundingBoxExactGlobal) || q1.Intersects(n.BoundingBoxExactGlobal)), p => q1.Contains(p), a.Storage, CancellationToken.None);
                 b.ValidateTree();
-                Assert.IsTrue(b.Root?.Value.NoPointIn(p => q1.Contains(p)));
+                ClassicAssert.IsTrue(b.Root?.Value.NoPointIn(p => q1.Contains(p)));
                 var c = b.Root?.Value.Delete(n => false, n => false, (p, att) => att.PartIndex == 1, a.Storage, CancellationToken.None, 256);
                 // Did it really delete the partIndex 1?
                 Action<IPointCloudNode> test =
                     (node) =>
                     {
                         node.TryGetPartIndices(out int[] indices);
-                        indices.ForEach((pi) => Assert.IsFalse(pi == 1));
+                        indices.ForEach((pi) => ClassicAssert.IsFalse(pi == 1));
                     };
                 c.ForEachNode(false, test);
             }

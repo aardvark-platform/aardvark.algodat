@@ -14,6 +14,7 @@
 using Aardvark.Base;
 using Aardvark.Data.Points;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using System;
 using System.Collections.Generic;
 
@@ -34,92 +35,92 @@ public class PartIndicesTests
     [Test]
     public void ConcatIndices_nulls()
     {
-        { Assert.True(PartIndexUtils.ConcatIndices(first: null, firstCount: 0, second: null, secondCount: 0) is null); }
-        { Assert.True(PartIndexUtils.ConcatIndices(first: null, firstCount: 0, second: 1u, secondCount: 3) is uint x && x == 1u); }
-        { Assert.True(PartIndexUtils.ConcatIndices(first: 1u, firstCount: 3, second: null, secondCount: 0) is uint x && x == 1u); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first: null, firstCount: 0, second: null, secondCount: 0) is null); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first: null, firstCount: 0, second: 1u, secondCount: 3) is uint x && x == 1u); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first: 1u, firstCount: 3, second: null, secondCount: 0) is uint x && x == 1u); }
     }
 
     [Test]
     public void ConcatIndices_single_identical()
     {
-        { Assert.True(PartIndexUtils.ConcatIndices(first:     1u, firstCount: 2, second:     1u, secondCount: 3) is uint x && x == 1u    ); }
-        { Assert.True(PartIndexUtils.ConcatIndices(first:   256u, firstCount: 2, second:   256u, secondCount: 3) is uint x && x == 256u  ); }
-        { Assert.True(PartIndexUtils.ConcatIndices(first: 32768u, firstCount: 2, second: 32768u, secondCount: 3) is uint x && x == 32768u); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first:     1u, firstCount: 2, second:     1u, secondCount: 3) is uint x && x == 1u    ); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first:   256u, firstCount: 2, second:   256u, secondCount: 3) is uint x && x == 256u  ); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first: 32768u, firstCount: 2, second: 32768u, secondCount: 3) is uint x && x == 32768u); }
     }
     
     [Test]
     public void ConcatIndices_single_different()
     {
-        { Assert.True(PartIndexUtils.ConcatIndices(first:     1u, firstCount: 2, second:     2u, secondCount: 3) is byte [] xs && cmp(xs, new byte [] { 1, 1, 2, 2, 2 })); }
-        { Assert.True(PartIndexUtils.ConcatIndices(first:     1u, firstCount: 2, second:   257u, secondCount: 3) is short[] xs && cmp(xs, new short[] { 1, 1, 257, 257, 257 })); }
-        { Assert.True(PartIndexUtils.ConcatIndices(first:     1u, firstCount: 2, second: 32769u, secondCount: 3) is int  [] xs && cmp(xs, new int  [] { 1, 1, 32769, 32769, 32769 })); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first:     1u, firstCount: 2, second:     2u, secondCount: 3) is byte [] xs && cmp(xs, new byte [] { 1, 1, 2, 2, 2 })); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first:     1u, firstCount: 2, second:   257u, secondCount: 3) is short[] xs && cmp(xs, new short[] { 1, 1, 257, 257, 257 })); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first:     1u, firstCount: 2, second: 32769u, secondCount: 3) is int  [] xs && cmp(xs, new int  [] { 1, 1, 32769, 32769, 32769 })); }
 
-        { Assert.True(PartIndexUtils.ConcatIndices(first:   256u, firstCount: 2, second:     2u, secondCount: 3) is short[] xs && cmp(xs, new short[] { 256, 256, 2, 2, 2 })); }
-        { Assert.True(PartIndexUtils.ConcatIndices(first:   256u, firstCount: 2, second:   257u, secondCount: 3) is short[] xs && cmp(xs, new short[] { 256, 256, 257, 257, 257 })); }
-        { Assert.True(PartIndexUtils.ConcatIndices(first:   256u, firstCount: 2, second: 32769u, secondCount: 3) is int  [] xs && cmp(xs, new int  [] { 256, 256, 32769, 32769, 32769 })); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first:   256u, firstCount: 2, second:     2u, secondCount: 3) is short[] xs && cmp(xs, new short[] { 256, 256, 2, 2, 2 })); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first:   256u, firstCount: 2, second:   257u, secondCount: 3) is short[] xs && cmp(xs, new short[] { 256, 256, 257, 257, 257 })); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first:   256u, firstCount: 2, second: 32769u, secondCount: 3) is int  [] xs && cmp(xs, new int  [] { 256, 256, 32769, 32769, 32769 })); }
 
-        { Assert.True(PartIndexUtils.ConcatIndices(first: 32768u, firstCount: 2, second:     2u, secondCount: 3) is int  [] xs && cmp(xs, new int  [] { 32768, 32768, 2, 2, 2 })); }
-        { Assert.True(PartIndexUtils.ConcatIndices(first: 32768u, firstCount: 2, second:   257u, secondCount: 3) is int  [] xs && cmp(xs, new int  [] { 32768, 32768, 257, 257, 257 })); }
-        { Assert.True(PartIndexUtils.ConcatIndices(first: 32768u, firstCount: 2, second: 32769u, secondCount: 3) is int  [] xs && cmp(xs, new int  [] { 32768, 32768, 32769, 32769, 32769 })); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first: 32768u, firstCount: 2, second:     2u, secondCount: 3) is int  [] xs && cmp(xs, new int  [] { 32768, 32768, 2, 2, 2 })); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first: 32768u, firstCount: 2, second:   257u, secondCount: 3) is int  [] xs && cmp(xs, new int  [] { 32768, 32768, 257, 257, 257 })); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first: 32768u, firstCount: 2, second: 32769u, secondCount: 3) is int  [] xs && cmp(xs, new int  [] { 32768, 32768, 32769, 32769, 32769 })); }
     }
 
     
     [Test]
     public void ConcatIndices_single_and_array()
     {
-        { Assert.True(PartIndexUtils.ConcatIndices(first:     1u, firstCount: 2, second: new byte [] { 2, 3, 4 }, secondCount: 3) is byte [] xs && cmp(xs, new byte [] { 1, 1, 2, 3, 4 })); }
-        { Assert.True(PartIndexUtils.ConcatIndices(first:     1u, firstCount: 2, second: new short[] { 2, 3, 4 }, secondCount: 3) is short[] xs && cmp(xs, new short[] { 1, 1, 2, 3, 4 })); }
-        { Assert.True(PartIndexUtils.ConcatIndices(first:     1u, firstCount: 2, second: new int  [] { 2, 3, 4 }, secondCount: 3) is int  [] xs && cmp(xs, new int  [] { 1, 1, 2, 3, 4 })); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first:     1u, firstCount: 2, second: new byte [] { 2, 3, 4 }, secondCount: 3) is byte [] xs && cmp(xs, new byte [] { 1, 1, 2, 3, 4 })); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first:     1u, firstCount: 2, second: new short[] { 2, 3, 4 }, secondCount: 3) is short[] xs && cmp(xs, new short[] { 1, 1, 2, 3, 4 })); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first:     1u, firstCount: 2, second: new int  [] { 2, 3, 4 }, secondCount: 3) is int  [] xs && cmp(xs, new int  [] { 1, 1, 2, 3, 4 })); }
 
-        { Assert.True(PartIndexUtils.ConcatIndices(first:   256u, firstCount: 2, second: new byte [] { 2, 3, 4 }, secondCount: 3) is short[] xs && cmp(xs, new short[] { 256, 256, 2, 3, 4 })); }
-        { Assert.True(PartIndexUtils.ConcatIndices(first:   256u, firstCount: 2, second: new short[] { 2, 3, 4 }, secondCount: 3) is short[] xs && cmp(xs, new short[] { 256, 256, 2, 3, 4 })); }
-        { Assert.True(PartIndexUtils.ConcatIndices(first:   256u, firstCount: 2, second: new int  [] { 2, 3, 4 }, secondCount: 3) is int  [] xs && cmp(xs, new int  [] { 256, 256, 2, 3, 4 })); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first:   256u, firstCount: 2, second: new byte [] { 2, 3, 4 }, secondCount: 3) is short[] xs && cmp(xs, new short[] { 256, 256, 2, 3, 4 })); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first:   256u, firstCount: 2, second: new short[] { 2, 3, 4 }, secondCount: 3) is short[] xs && cmp(xs, new short[] { 256, 256, 2, 3, 4 })); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first:   256u, firstCount: 2, second: new int  [] { 2, 3, 4 }, secondCount: 3) is int  [] xs && cmp(xs, new int  [] { 256, 256, 2, 3, 4 })); }
 
-        { Assert.True(PartIndexUtils.ConcatIndices(first: 32768u, firstCount: 2, second: new byte [] { 2, 3, 4 }, secondCount: 3) is int  [] xs && cmp(xs, new int  [] { 32768, 32768, 2, 3, 4 })); }
-        { Assert.True(PartIndexUtils.ConcatIndices(first: 32768u, firstCount: 2, second: new short[] { 2, 3, 4 }, secondCount: 3) is int  [] xs && cmp(xs, new int  [] { 32768, 32768, 2, 3, 4 })); }
-        { Assert.True(PartIndexUtils.ConcatIndices(first: 32768u, firstCount: 2, second: new int  [] { 2, 3, 4 }, secondCount: 3) is int  [] xs && cmp(xs, new int  [] { 32768, 32768, 2, 3, 4 })); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first: 32768u, firstCount: 2, second: new byte [] { 2, 3, 4 }, secondCount: 3) is int  [] xs && cmp(xs, new int  [] { 32768, 32768, 2, 3, 4 })); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first: 32768u, firstCount: 2, second: new short[] { 2, 3, 4 }, secondCount: 3) is int  [] xs && cmp(xs, new int  [] { 32768, 32768, 2, 3, 4 })); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first: 32768u, firstCount: 2, second: new int  [] { 2, 3, 4 }, secondCount: 3) is int  [] xs && cmp(xs, new int  [] { 32768, 32768, 2, 3, 4 })); }
     }
 
     [Test]
     public void ConcatIndices_array_array()
     {
-        { Assert.True(PartIndexUtils.ConcatIndices(first: new byte [] { 2, 3 }, firstCount: 2, second: new byte [] { 4, 5 }, secondCount: 2) is byte [] xs && cmp(xs, new byte [] { 2, 3, 4, 5 })); }
-        { Assert.True(PartIndexUtils.ConcatIndices(first: new byte [] { 2, 3 }, firstCount: 2, second: new short[] { 4, 5 }, secondCount: 2) is short[] xs && cmp(xs, new short[] { 2, 3, 4, 5 })); }
-        { Assert.True(PartIndexUtils.ConcatIndices(first: new byte [] { 2, 3 }, firstCount: 2, second: new int  [] { 4, 5 }, secondCount: 2) is int  [] xs && cmp(xs, new int  [] { 2, 3, 4, 5 })); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first: new byte [] { 2, 3 }, firstCount: 2, second: new byte [] { 4, 5 }, secondCount: 2) is byte [] xs && cmp(xs, new byte [] { 2, 3, 4, 5 })); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first: new byte [] { 2, 3 }, firstCount: 2, second: new short[] { 4, 5 }, secondCount: 2) is short[] xs && cmp(xs, new short[] { 2, 3, 4, 5 })); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first: new byte [] { 2, 3 }, firstCount: 2, second: new int  [] { 4, 5 }, secondCount: 2) is int  [] xs && cmp(xs, new int  [] { 2, 3, 4, 5 })); }
         
-        { Assert.True(PartIndexUtils.ConcatIndices(first: new short[] { 2, 3 }, firstCount: 2, second: new byte [] { 4, 5 }, secondCount: 2) is short[] xs && cmp(xs, new short[] { 2, 3, 4, 5 })); }
-        { Assert.True(PartIndexUtils.ConcatIndices(first: new short[] { 2, 3 }, firstCount: 2, second: new short[] { 4, 5 }, secondCount: 2) is short[] xs && cmp(xs, new short[] { 2, 3, 4, 5 })); }
-        { Assert.True(PartIndexUtils.ConcatIndices(first: new short[] { 2, 3 }, firstCount: 2, second: new int  [] { 4, 5 }, secondCount: 2) is int  [] xs && cmp(xs, new int  [] { 2, 3, 4, 5 })); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first: new short[] { 2, 3 }, firstCount: 2, second: new byte [] { 4, 5 }, secondCount: 2) is short[] xs && cmp(xs, new short[] { 2, 3, 4, 5 })); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first: new short[] { 2, 3 }, firstCount: 2, second: new short[] { 4, 5 }, secondCount: 2) is short[] xs && cmp(xs, new short[] { 2, 3, 4, 5 })); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first: new short[] { 2, 3 }, firstCount: 2, second: new int  [] { 4, 5 }, secondCount: 2) is int  [] xs && cmp(xs, new int  [] { 2, 3, 4, 5 })); }
         
-        { Assert.True(PartIndexUtils.ConcatIndices(first: new int  [] { 2, 3 }, firstCount: 2, second: new byte [] { 4, 5 }, secondCount: 2) is int  [] xs && cmp(xs, new int  [] { 2, 3, 4, 5 })); }
-        { Assert.True(PartIndexUtils.ConcatIndices(first: new int  [] { 2, 3 }, firstCount: 2, second: new short[] { 4, 5 }, secondCount: 2) is int  [] xs && cmp(xs, new int  [] { 2, 3, 4, 5 })); }
-        { Assert.True(PartIndexUtils.ConcatIndices(first: new int  [] { 2, 3 }, firstCount: 2, second: new int  [] { 4, 5 }, secondCount: 2) is int  [] xs && cmp(xs, new int  [] { 2, 3, 4, 5 })); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first: new int  [] { 2, 3 }, firstCount: 2, second: new byte [] { 4, 5 }, secondCount: 2) is int  [] xs && cmp(xs, new int  [] { 2, 3, 4, 5 })); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first: new int  [] { 2, 3 }, firstCount: 2, second: new short[] { 4, 5 }, secondCount: 2) is int  [] xs && cmp(xs, new int  [] { 2, 3, 4, 5 })); }
+        { ClassicAssert.True(PartIndexUtils.ConcatIndices(first: new int  [] { 2, 3 }, firstCount: 2, second: new int  [] { 4, 5 }, secondCount: 2) is int  [] xs && cmp(xs, new int  [] { 2, 3, 4, 5 })); }
     }
 
     [Test]
     public void ExtendRangeBy()
     {
-        Assert.True(PartIndexUtils.ExtendRangeBy(new Range1i(7, 11), 8u) == new Range1i(7, 11));
-        Assert.True(PartIndexUtils.ExtendRangeBy(new Range1i(7, 11), 1u) == new Range1i(1, 11));
-        Assert.True(PartIndexUtils.ExtendRangeBy(new Range1i(7, 11), 42u) == new Range1i(7, 42));
+        ClassicAssert.True(PartIndexUtils.ExtendRangeBy(new Range1i(7, 11), 8u) == new Range1i(7, 11));
+        ClassicAssert.True(PartIndexUtils.ExtendRangeBy(new Range1i(7, 11), 1u) == new Range1i(1, 11));
+        ClassicAssert.True(PartIndexUtils.ExtendRangeBy(new Range1i(7, 11), 42u) == new Range1i(7, 42));
 
-        Assert.True(PartIndexUtils.ExtendRangeBy(new Range1i(7, 11),  8) == new Range1i(7, 11));
-        Assert.True(PartIndexUtils.ExtendRangeBy(new Range1i(7, 11),  1) == new Range1i(1, 11));
-        Assert.True(PartIndexUtils.ExtendRangeBy(new Range1i(7, 11), 42) == new Range1i(7, 42));
+        ClassicAssert.True(PartIndexUtils.ExtendRangeBy(new Range1i(7, 11),  8) == new Range1i(7, 11));
+        ClassicAssert.True(PartIndexUtils.ExtendRangeBy(new Range1i(7, 11),  1) == new Range1i(1, 11));
+        ClassicAssert.True(PartIndexUtils.ExtendRangeBy(new Range1i(7, 11), 42) == new Range1i(7, 42));
 
-        Assert.True(PartIndexUtils.ExtendRangeBy(new Range1i(7, 11), new byte[] { 2, 12 }) == new Range1i(2, 12));
-        Assert.True(PartIndexUtils.ExtendRangeBy(new Range1i(7, 11), new byte[] { 8, 10 }) == new Range1i(7, 11));
+        ClassicAssert.True(PartIndexUtils.ExtendRangeBy(new Range1i(7, 11), new byte[] { 2, 12 }) == new Range1i(2, 12));
+        ClassicAssert.True(PartIndexUtils.ExtendRangeBy(new Range1i(7, 11), new byte[] { 8, 10 }) == new Range1i(7, 11));
 
-        Assert.True(PartIndexUtils.ExtendRangeBy(new Range1i(7, 11), new short[] { 2, 12 }) == new Range1i(2, 12));
-        Assert.True(PartIndexUtils.ExtendRangeBy(new Range1i(7, 11), new short[] { 8, 10 }) == new Range1i(7, 11));
+        ClassicAssert.True(PartIndexUtils.ExtendRangeBy(new Range1i(7, 11), new short[] { 2, 12 }) == new Range1i(2, 12));
+        ClassicAssert.True(PartIndexUtils.ExtendRangeBy(new Range1i(7, 11), new short[] { 8, 10 }) == new Range1i(7, 11));
 
-        Assert.True(PartIndexUtils.ExtendRangeBy(new Range1i(7, 11), new int[] { 2, 12 }) == new Range1i(2, 12));
-        Assert.True(PartIndexUtils.ExtendRangeBy(new Range1i(7, 11), new int[] { 8, 10 }) == new Range1i(7, 11));
+        ClassicAssert.True(PartIndexUtils.ExtendRangeBy(new Range1i(7, 11), new int[] { 2, 12 }) == new Range1i(2, 12));
+        ClassicAssert.True(PartIndexUtils.ExtendRangeBy(new Range1i(7, 11), new int[] { 8, 10 }) == new Range1i(7, 11));
     }
 
     [Test]
     public void ExtendRangeBy_null()
     {
-        Assert.True(PartIndexUtils.ExtendRangeBy(new Range1i(7, 11), null) == new Range1i(7, 11));
+        ClassicAssert.True(PartIndexUtils.ExtendRangeBy(new Range1i(7, 11), null) == new Range1i(7, 11));
     }
 }

@@ -14,6 +14,7 @@
 using Aardvark.Base;
 using Aardvark.Data.Points;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using System;
 
 namespace Aardvark.Geometry.Tests
@@ -28,7 +29,7 @@ namespace Aardvark.Geometry.Tests
         {
             var a = new V3d(1, 2, 3);
             var b = new V3d(1, 2, 3);
-            Assert.IsTrue(Utils.DistLessThanL1(ref a, ref b, 0.1));
+            ClassicAssert.IsTrue(Utils.DistLessThanL1(ref a, ref b, 0.1));
         }
 
         [Test]
@@ -36,7 +37,7 @@ namespace Aardvark.Geometry.Tests
         {
             var a = new V3d(1, 2, 3);
             var b = new V3d(1, 2, 3);
-            Assert.IsTrue(!Utils.DistLessThanL1(ref a, ref b, 0.0));
+            ClassicAssert.IsTrue(!Utils.DistLessThanL1(ref a, ref b, 0.0));
         }
 
         [Test]
@@ -44,7 +45,7 @@ namespace Aardvark.Geometry.Tests
         {
             var a = new V3d(1, 2, 3);
             var b = new V3d(2, 3, 4);
-            Assert.IsTrue(Utils.DistLessThanL1(ref a, ref b, 1.0001));
+            ClassicAssert.IsTrue(Utils.DistLessThanL1(ref a, ref b, 1.0001));
         }
 
         [Test]
@@ -52,7 +53,7 @@ namespace Aardvark.Geometry.Tests
         {
             var a = new V3d(1, 2, 3);
             var b = new V3d(2, 3, 4);
-            Assert.IsTrue(!Utils.DistLessThanL1(ref a, ref b, 1.0));
+            ClassicAssert.IsTrue(!Utils.DistLessThanL1(ref a, ref b, 1.0));
         }
 
         [Test]
@@ -60,7 +61,7 @@ namespace Aardvark.Geometry.Tests
         {
             var a = new V3d(1, 2, 3);
             var b = new V3d(2, 3, 4);
-            Assert.IsTrue(Utils.DistLessThanL1(ref b, ref a, 1.0001));
+            ClassicAssert.IsTrue(Utils.DistLessThanL1(ref b, ref a, 1.0001));
         }
 
         [Test]
@@ -68,7 +69,7 @@ namespace Aardvark.Geometry.Tests
         {
             var a = new V3d(1, 2, 3);
             var b = new V3d(2, 3, 4);
-            Assert.IsTrue(!Utils.DistLessThanL1(ref b, ref a, 1.0));
+            ClassicAssert.IsTrue(!Utils.DistLessThanL1(ref b, ref a, 1.0));
         }
 
         #endregion
@@ -80,7 +81,7 @@ namespace Aardvark.Geometry.Tests
         {
             var a = new V3d(1, 2, 3);
             var b = new V3d(1, 2, 3);
-            Assert.IsTrue(Utils.DistLessThanL2(ref a, ref b, 0.1));
+            ClassicAssert.IsTrue(Utils.DistLessThanL2(ref a, ref b, 0.1));
         }
 
         [Test]
@@ -88,7 +89,7 @@ namespace Aardvark.Geometry.Tests
         {
             var a = new V3d(1, 2, 3);
             var b = new V3d(1, 2, 3);
-            Assert.IsTrue(!Utils.DistLessThanL2(ref a, ref b, 0.0));
+            ClassicAssert.IsTrue(!Utils.DistLessThanL2(ref a, ref b, 0.0));
         }
 
         [Test]
@@ -96,7 +97,7 @@ namespace Aardvark.Geometry.Tests
         {
             var a = new V3d(1, 2, 3);
             var b = new V3d(2, 3, 4);
-            Assert.IsTrue(!Utils.DistLessThanL2(ref a, ref b, 1.0001));
+            ClassicAssert.IsTrue(!Utils.DistLessThanL2(ref a, ref b, 1.0001));
         }
 
         [Test]
@@ -104,7 +105,7 @@ namespace Aardvark.Geometry.Tests
         {
             var a = new V3d(1, 2, 3);
             var b = new V3d(2, 3, 4);
-            Assert.IsTrue(!Utils.DistLessThanL2(ref a, ref b, 1.0));
+            ClassicAssert.IsTrue(!Utils.DistLessThanL2(ref a, ref b, 1.0));
         }
 
         [Test]
@@ -112,7 +113,7 @@ namespace Aardvark.Geometry.Tests
         {
             var a = new V3d(1, 2, 3);
             var b = new V3d(2, 3, 4);
-            Assert.IsTrue(!Utils.DistLessThanL2(ref b, ref a, 1.0001));
+            ClassicAssert.IsTrue(!Utils.DistLessThanL2(ref b, ref a, 1.0001));
         }
 
         [Test]
@@ -120,7 +121,7 @@ namespace Aardvark.Geometry.Tests
         {
             var a = new V3d(1, 2, 3);
             var b = new V3d(2, 3, 4);
-            Assert.IsTrue(!Utils.DistLessThanL2(ref b, ref a, 1.0));
+            ClassicAssert.IsTrue(!Utils.DistLessThanL2(ref b, ref a, 1.0));
         }
 
         #endregion
@@ -133,7 +134,7 @@ namespace Aardvark.Geometry.Tests
             var ps = Array.Empty<V3f>();
             var kd = ps.BuildKdTree();
             var ns = ps.EstimateNormalsAsync(16, kd).Result;
-            Assert.IsTrue(ns.Length == 0);
+            ClassicAssert.IsTrue(ns.Length == 0);
         }
 
         #endregion

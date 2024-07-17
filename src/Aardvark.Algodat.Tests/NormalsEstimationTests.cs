@@ -13,6 +13,7 @@
 */
 using Aardvark.Base;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using System;
 using System.Linq;
 using System.Threading;
@@ -33,7 +34,7 @@ namespace Aardvark.Geometry.Tests
                 var kd = ps.BuildKdTree();
 
                 var ns = Normals.EstimateNormals(ps, 16, kd);
-                Assert.IsTrue(ns.Length == n);
+                ClassicAssert.IsTrue(ns.Length == n);
             }
         }
 
@@ -48,7 +49,7 @@ namespace Aardvark.Geometry.Tests
                 var kd = ps.BuildKdTree();
 
                 var ns = Normals.EstimateNormals(ps, 16, kd);
-                Assert.IsTrue(ns.Length == n);
+                ClassicAssert.IsTrue(ns.Length == n);
             }
         }
 
@@ -63,7 +64,7 @@ namespace Aardvark.Geometry.Tests
                 var kd = ps.BuildKdTree();
 
                 var ns = Normals.EstimateNormals(ps, 16, kd);
-                Assert.IsTrue(ns.Length == n);
+                ClassicAssert.IsTrue(ns.Length == n);
             }
         }
 
@@ -80,7 +81,7 @@ namespace Aardvark.Geometry.Tests
                 var kd = ps.BuildKdTreeAsync().Result;
 
                 var ns = Normals.EstimateNormalsAsync(ps, 16, kd).Result;
-                Assert.IsTrue(ns.Length == n);
+                ClassicAssert.IsTrue(ns.Length == n);
             }
         }
 
@@ -95,7 +96,7 @@ namespace Aardvark.Geometry.Tests
                 var kd = ps.BuildKdTreeAsync().Result;
 
                 var ns = Normals.EstimateNormalsAsync(ps, 16, kd).Result;
-                Assert.IsTrue(ns.Length == n);
+                ClassicAssert.IsTrue(ns.Length == n);
             }
         }
 
@@ -115,8 +116,8 @@ namespace Aardvark.Geometry.Tests
             var kd = ps.BuildKdTree();
 
             var ns = Normals.EstimateNormals(ps, 16, kd);
-            Assert.IsTrue(ns.Length == 4);
-            Assert.IsTrue(ns.All(n => n == V3f.ZAxis));
+            ClassicAssert.IsTrue(ns.Length == 4);
+            ClassicAssert.IsTrue(ns.All(n => n == V3f.ZAxis));
         }
 
         [Test]
@@ -133,8 +134,8 @@ namespace Aardvark.Geometry.Tests
             var kd = ps.BuildKdTree();
 
             var ns = Normals.EstimateNormals(ps, 16, kd);
-            Assert.IsTrue(ns.Length == 4);
-            Assert.IsTrue(ns.All(n => n == V3f.ZAxis));
+            ClassicAssert.IsTrue(ns.Length == 4);
+            ClassicAssert.IsTrue(ns.All(n => n == V3f.ZAxis));
         }
 
 
@@ -153,8 +154,8 @@ namespace Aardvark.Geometry.Tests
             var kd = ps.BuildKdTreeAsync().Result;
 
             var ns = Normals.EstimateNormalsAsync(ps, 16, kd).Result;
-            Assert.IsTrue(ns.Length == 4);
-            Assert.IsTrue(ns.All(n => n == V3f.ZAxis));
+            ClassicAssert.IsTrue(ns.Length == 4);
+            ClassicAssert.IsTrue(ns.All(n => n == V3f.ZAxis));
         }
 
         [Test]
@@ -171,8 +172,8 @@ namespace Aardvark.Geometry.Tests
             var kd = ps.BuildKdTreeAsync().Result;
 
             var ns = Normals.EstimateNormalsAsync(ps, 16, kd).Result;
-            Assert.IsTrue(ns.Length == 4);
-            Assert.IsTrue(ns.All(n => n == V3f.ZAxis));
+            ClassicAssert.IsTrue(ns.Length == 4);
+            ClassicAssert.IsTrue(ns.All(n => n == V3f.ZAxis));
         }
 
 
@@ -189,8 +190,8 @@ namespace Aardvark.Geometry.Tests
             };
 
             var ns = Normals.EstimateNormals(ps, 16);
-            Assert.IsTrue(ns.Length == 4);
-            Assert.IsTrue(ns.All(n => n == V3f.ZAxis));
+            ClassicAssert.IsTrue(ns.Length == 4);
+            ClassicAssert.IsTrue(ns.All(n => n == V3f.ZAxis));
         }
 
         [Test]
@@ -205,8 +206,8 @@ namespace Aardvark.Geometry.Tests
             };
 
             var ns = Normals.EstimateNormals(ps, 16);
-            Assert.IsTrue(ns.Length == 4);
-            Assert.IsTrue(ns.All(n => n == V3f.ZAxis));
+            ClassicAssert.IsTrue(ns.Length == 4);
+            ClassicAssert.IsTrue(ns.All(n => n == V3f.ZAxis));
         }
 
 
@@ -223,8 +224,8 @@ namespace Aardvark.Geometry.Tests
             };
 
             var ns = Normals.EstimateNormalsAsync(ps, 16).Result;
-            Assert.IsTrue(ns.Length == 4);
-            Assert.IsTrue(ns.All(n => n == V3f.ZAxis));
+            ClassicAssert.IsTrue(ns.Length == 4);
+            ClassicAssert.IsTrue(ns.All(n => n == V3f.ZAxis));
         }
 
         [Test]
@@ -239,8 +240,8 @@ namespace Aardvark.Geometry.Tests
             };
 
             var ns = Normals.EstimateNormalsAsync(ps, 16).Result;
-            Assert.IsTrue(ns.Length == 4);
-            Assert.IsTrue(ns.All(n => n == V3f.ZAxis));
+            ClassicAssert.IsTrue(ns.Length == 4);
+            ClassicAssert.IsTrue(ns.All(n => n == V3f.ZAxis));
         }
     }
 }

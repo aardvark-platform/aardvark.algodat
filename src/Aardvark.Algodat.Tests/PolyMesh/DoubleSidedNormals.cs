@@ -1,5 +1,6 @@
 ﻿using Aardvark.Base;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 namespace Aardvark.Geometry.Tests
 {
@@ -37,7 +38,7 @@ namespace Aardvark.Geometry.Tests
             var creaseNormals = (V3d[])dd.FaceVertexAttributes[-PolyMesh.Property.Normals];
             var creaseNormalIndices = (int[])dd.FaceVertexAttributes[PolyMesh.Property.Normals];
 
-            Assert.IsTrue(creaseNormals.Length == 8);
+            ClassicAssert.IsTrue(creaseNormals.Length == 8);
         }
 
         static PolyMesh MakeDoubleSided(PolyMesh mesh)

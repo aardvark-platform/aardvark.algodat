@@ -14,6 +14,7 @@
 using Aardvark.Data.Points;
 using Aardvark.Geometry.Points;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -59,27 +60,27 @@ end_header
             var inlineConfig = new InlineConfig(collapse: true, gzipped: true);
             var inlinedNodes = store.EnumerateOctreeInlined(key, inlineConfig);
 
-            Assert.IsTrue(inlinedNodes.Nodes.Count() == 1);
+            ClassicAssert.IsTrue(inlinedNodes.Nodes.Count() == 1);
 
             // reentrant?
-            Assert.IsTrue(inlinedNodes.Nodes.Count() == 1);
+            ClassicAssert.IsTrue(inlinedNodes.Nodes.Count() == 1);
 
             var n = inlinedNodes.Nodes.Single();
 
-            Assert.IsTrue(n.PositionsLocal3f.Length == 8);
-            Assert.IsTrue(n.Classifications1b.Length == 8);
-            Assert.IsTrue(n.Intensities1b.Length == 8);
+            ClassicAssert.IsTrue(n.PositionsLocal3f.Length == 8);
+            ClassicAssert.IsTrue(n.Classifications1b.Length == 8);
+            ClassicAssert.IsTrue(n.Intensities1b.Length == 8);
 
             var encoded = n.Encode(gzip: true);
             var m = new InlinedNode(encoded, gzipped: true);
 
-            Assert.True(n.NodeId == m.NodeId);
-            Assert.True(n.Cell == m.Cell);
-            Assert.True(n.PointCountCell == m.PointCountCell);
-            Assert.True(n.PointCountTreeLeafs == m.PointCountTreeLeafs);
-            Assert.IsTrue(m.PositionsLocal3f.Length == 8);
-            Assert.IsTrue(m.Classifications1b.Length == 8);
-            Assert.IsTrue(m.Intensities1b.Length == 8);
+            ClassicAssert.True(n.NodeId == m.NodeId);
+            ClassicAssert.True(n.Cell == m.Cell);
+            ClassicAssert.True(n.PointCountCell == m.PointCountCell);
+            ClassicAssert.True(n.PointCountTreeLeafs == m.PointCountTreeLeafs);
+            ClassicAssert.IsTrue(m.PositionsLocal3f.Length == 8);
+            ClassicAssert.IsTrue(m.Classifications1b.Length == 8);
+            ClassicAssert.IsTrue(m.Intensities1b.Length == 8);
         }
 
     }

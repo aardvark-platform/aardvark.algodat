@@ -15,6 +15,7 @@ using System;
 using Aardvark.Base;
 using Aardvark.Geometry.Points;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 namespace Aardvark.Geometry.Tests
 {
@@ -29,11 +30,11 @@ namespace Aardvark.Geometry.Tests
             var copy = ps.Copy();
 
             var kd = ps.BuildKdTree();
-            Assert.IsTrue(kd != null);
-            Assert.IsTrue(ps.Length == copy.Length);
+            ClassicAssert.IsTrue(kd != null);
+            ClassicAssert.IsTrue(ps.Length == copy.Length);
             for (var i = 0; i < ps.Length; i++)
             {
-                Assert.IsTrue(ps[i] == copy[i]);
+                ClassicAssert.IsTrue(ps[i] == copy[i]);
             }
         }
     }

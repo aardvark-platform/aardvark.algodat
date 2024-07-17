@@ -1,10 +1,5 @@
-Aardvark.Build
-Aardvark.Base
-Aardvark.Data.Durable
-Crc32.NET
+group Test
+
 Microsoft.NET.Test.Sdk
 NUnit
 NUnit3TestAdapter
-Uncodium.Eigensystems
-Uncodium.SimpleStore
-System.Collections.Immutable

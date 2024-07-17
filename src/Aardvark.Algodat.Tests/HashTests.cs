@@ -14,6 +14,7 @@
 using Aardvark.Base;
 using Aardvark.Geometry.Points;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 namespace Aardvark.Geometry.Tests
 {
@@ -25,7 +26,7 @@ namespace Aardvark.Geometry.Tests
         {
             var a = Hull3d.Invalid;
             var b = Hull3d.Invalid;
-            Assert.IsTrue(a.ComputeMd5Hash() == b.ComputeMd5Hash());
+            ClassicAssert.IsTrue(a.ComputeMd5Hash() == b.ComputeMd5Hash());
         }
 
         [Test]
@@ -33,7 +34,7 @@ namespace Aardvark.Geometry.Tests
         {
             var a = new Hull3d(new Plane3d[0]);
             var b = new Hull3d(new Plane3d[0]);
-            Assert.IsTrue(a.ComputeMd5Hash() == b.ComputeMd5Hash());
+            ClassicAssert.IsTrue(a.ComputeMd5Hash() == b.ComputeMd5Hash());
         }
 
         [Test]
@@ -41,7 +42,7 @@ namespace Aardvark.Geometry.Tests
         {
             var a = new Hull3d();
             var b = Hull3d.Invalid;
-            Assert.IsTrue(a.ComputeMd5Hash() == b.ComputeMd5Hash());
+            ClassicAssert.IsTrue(a.ComputeMd5Hash() == b.ComputeMd5Hash());
         }
 
         [Test]
@@ -49,7 +50,7 @@ namespace Aardvark.Geometry.Tests
         {
             var a = Hull3d.Invalid;
             var b = new Hull3d(new Plane3d[0]);
-            Assert.IsTrue(a.ComputeMd5Hash() != b.ComputeMd5Hash());
+            ClassicAssert.IsTrue(a.ComputeMd5Hash() != b.ComputeMd5Hash());
         }
 
         [Test]
@@ -57,7 +58,7 @@ namespace Aardvark.Geometry.Tests
         {
             var a = new Hull3d(new Box3d(new V3d(1, 2, 3), new V3d(2, 3, 4.1)));
             var b = new Hull3d(new Box3d(new V3d(1, 2, 3), new V3d(2, 3, 4.1)));
-            Assert.IsTrue(a.ComputeMd5Hash() == b.ComputeMd5Hash());
+            ClassicAssert.IsTrue(a.ComputeMd5Hash() == b.ComputeMd5Hash());
         }
 
         [Test]
@@ -65,7 +66,7 @@ namespace Aardvark.Geometry.Tests
         {
             var a = new Hull3d(new Box3d(new V3d(1, 2, 3), new V3d(2, 3, 4.1)));
             var b = new Hull3d(new Box3d(new V3d(1, 2, 3), new V3d(2, 3, 4.2)));
-            Assert.IsTrue(a.ComputeMd5Hash() != b.ComputeMd5Hash());
+            ClassicAssert.IsTrue(a.ComputeMd5Hash() != b.ComputeMd5Hash());
         }
 
 
@@ -75,14 +76,14 @@ namespace Aardvark.Geometry.Tests
         {
             var a = new[] { new V3f(1, 2, 3) };
             var b = new[] { new V3f(1, 2, 3) };
-            Assert.IsTrue(a.ComputeMd5Hash() == b.ComputeMd5Hash());
+            ClassicAssert.IsTrue(a.ComputeMd5Hash() == b.ComputeMd5Hash());
         }
         [Test]
         public void HashOfV3fArray_NotEquals()
         {
             var a = new[] { new V3f(1, 2, 3) };
             var b = new[] { new V3f(1, 2, 3), new V3f(1, 2, 3) };
-            Assert.IsTrue(a.ComputeMd5Hash() != b.ComputeMd5Hash());
+            ClassicAssert.IsTrue(a.ComputeMd5Hash() != b.ComputeMd5Hash());
         }
 
 
@@ -92,14 +93,14 @@ namespace Aardvark.Geometry.Tests
         {
             var a = new[] { new C4b(1, 2, 3) };
             var b = new[] { new C4b(1, 2, 3) };
-            Assert.IsTrue(a.ComputeMd5Hash() == b.ComputeMd5Hash());
+            ClassicAssert.IsTrue(a.ComputeMd5Hash() == b.ComputeMd5Hash());
         }
         [Test]
         public void HashC4bArray_NotEquals()
         {
             var a = new[] { new C4b(1, 2, 3) };
             var b = new[] { new C4b(1, 2, 3), new C4b(1, 2, 3) };
-            Assert.IsTrue(a.ComputeMd5Hash() != b.ComputeMd5Hash());
+            ClassicAssert.IsTrue(a.ComputeMd5Hash() != b.ComputeMd5Hash());
         }
     }
 }

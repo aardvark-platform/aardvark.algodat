@@ -12,6 +12,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 namespace Aardvark.Geometry.Tests
 {
@@ -23,11 +24,11 @@ namespace Aardvark.Geometry.Tests
         //{
         //    var data = new int[12].SetByIndex(id => id);
         //    var t = TileData.OfArray(new Box2l(0, 0, 4, 3), data);
-        //    Assert.IsTrue(t.IsArrayTile);
-        //    Assert.IsTrue(!t.IsWindowedTile);
-        //    Assert.IsTrue(t.Size == new V2l(4, 3));
-        //    Assert.IsTrue(t.Bounds == new Box2l(0, 0, 4, 3));
-        //    Assert.IsTrue(t.Data.Length == 12);
+        //    ClassicAssert.IsTrue(t.IsArrayTile);
+        //    ClassicAssert.IsTrue(!t.IsWindowedTile);
+        //    ClassicAssert.IsTrue(t.Size == new V2l(4, 3));
+        //    ClassicAssert.IsTrue(t.Bounds == new Box2l(0, 0, 4, 3));
+        //    ClassicAssert.IsTrue(t.Data.Length == 12);
         //}
 
         //[Test]
@@ -35,11 +36,11 @@ namespace Aardvark.Geometry.Tests
         //{
         //    var data = new int[12].SetByIndex(id => id);
         //    var t = TileData.OfArray(new Box2l(0, 0, 4, 3), data);
-        //    Assert.IsTrue(t.IsArrayTile);
-        //    Assert.IsTrue(!t.IsWindowedTile);
-        //    Assert.IsTrue(t.Size == new V2l(4, 3));
-        //    Assert.IsTrue(t.Bounds == new Box2l(0, 0, 4, 3));
-        //    Assert.IsTrue(t.Data.Length == 12);
+        //    ClassicAssert.IsTrue(t.IsArrayTile);
+        //    ClassicAssert.IsTrue(!t.IsWindowedTile);
+        //    ClassicAssert.IsTrue(t.Size == new V2l(4, 3));
+        //    ClassicAssert.IsTrue(t.Bounds == new Box2l(0, 0, 4, 3));
+        //    ClassicAssert.IsTrue(t.Data.Length == 12);
         //}
 
         //[Test]
@@ -48,20 +49,20 @@ namespace Aardvark.Geometry.Tests
         //    var data = new int[12].SetByIndex(id => id);
         //    var t = TileData.OfArray(new Box2l(32, 16, 36, 19), data);
 
-        //    Assert.IsTrue(t.GetValue(32, 16) ==  0);
-        //    Assert.IsTrue(t.GetValue(33, 16) ==  1);
-        //    Assert.IsTrue(t.GetValue(34, 16) ==  2);
-        //    Assert.IsTrue(t.GetValue(35, 16) ==  3);
+        //    ClassicAssert.IsTrue(t.GetValue(32, 16) ==  0);
+        //    ClassicAssert.IsTrue(t.GetValue(33, 16) ==  1);
+        //    ClassicAssert.IsTrue(t.GetValue(34, 16) ==  2);
+        //    ClassicAssert.IsTrue(t.GetValue(35, 16) ==  3);
 
-        //    Assert.IsTrue(t.GetValue(32, 17) ==  4);
-        //    Assert.IsTrue(t.GetValue(33, 17) ==  5);
-        //    Assert.IsTrue(t.GetValue(34, 17) ==  6);
-        //    Assert.IsTrue(t.GetValue(35, 17) ==  7);
+        //    ClassicAssert.IsTrue(t.GetValue(32, 17) ==  4);
+        //    ClassicAssert.IsTrue(t.GetValue(33, 17) ==  5);
+        //    ClassicAssert.IsTrue(t.GetValue(34, 17) ==  6);
+        //    ClassicAssert.IsTrue(t.GetValue(35, 17) ==  7);
 
-        //    Assert.IsTrue(t.GetValue(32, 18) ==  8);
-        //    Assert.IsTrue(t.GetValue(33, 18) ==  9);
-        //    Assert.IsTrue(t.GetValue(34, 18) == 10);
-        //    Assert.IsTrue(t.GetValue(35, 18) == 11);
+        //    ClassicAssert.IsTrue(t.GetValue(32, 18) ==  8);
+        //    ClassicAssert.IsTrue(t.GetValue(33, 18) ==  9);
+        //    ClassicAssert.IsTrue(t.GetValue(34, 18) == 10);
+        //    ClassicAssert.IsTrue(t.GetValue(35, 18) == 11);
         //}
 
         //[Test]
@@ -93,20 +94,20 @@ namespace Aardvark.Geometry.Tests
         //    var data = new int[12].SetByIndex(id => id);
         //    var t = TileData.OfArray(new Box2l(16, 16, 20, 19), data);
 
-        //    Assert.IsTrue(t.GetValueRelative(0, 0) == 0);
-        //    Assert.IsTrue(t.GetValueRelative(1, 0) == 1);
-        //    Assert.IsTrue(t.GetValueRelative(2, 0) == 2);
-        //    Assert.IsTrue(t.GetValueRelative(3, 0) == 3);
+        //    ClassicAssert.IsTrue(t.GetValueRelative(0, 0) == 0);
+        //    ClassicAssert.IsTrue(t.GetValueRelative(1, 0) == 1);
+        //    ClassicAssert.IsTrue(t.GetValueRelative(2, 0) == 2);
+        //    ClassicAssert.IsTrue(t.GetValueRelative(3, 0) == 3);
 
-        //    Assert.IsTrue(t.GetValueRelative(0, 1) == 4);
-        //    Assert.IsTrue(t.GetValueRelative(1, 1) == 5);
-        //    Assert.IsTrue(t.GetValueRelative(2, 1) == 6);
-        //    Assert.IsTrue(t.GetValueRelative(3, 1) == 7);
+        //    ClassicAssert.IsTrue(t.GetValueRelative(0, 1) == 4);
+        //    ClassicAssert.IsTrue(t.GetValueRelative(1, 1) == 5);
+        //    ClassicAssert.IsTrue(t.GetValueRelative(2, 1) == 6);
+        //    ClassicAssert.IsTrue(t.GetValueRelative(3, 1) == 7);
 
-        //    Assert.IsTrue(t.GetValueRelative(0, 2) == 8);
-        //    Assert.IsTrue(t.GetValueRelative(1, 2) == 9);
-        //    Assert.IsTrue(t.GetValueRelative(2, 2) == 10);
-        //    Assert.IsTrue(t.GetValueRelative(3, 2) == 11);
+        //    ClassicAssert.IsTrue(t.GetValueRelative(0, 2) == 8);
+        //    ClassicAssert.IsTrue(t.GetValueRelative(1, 2) == 9);
+        //    ClassicAssert.IsTrue(t.GetValueRelative(2, 2) == 10);
+        //    ClassicAssert.IsTrue(t.GetValueRelative(3, 2) == 11);
         //}
 
         //[Test]

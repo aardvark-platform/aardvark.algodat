@@ -390,7 +390,7 @@ module Rendering =
     let skybox (name : string) =
         AVal.custom (fun _ ->
             let env =
-                let trafo t (img : PixImage) = img.Transformed t
+                let trafo t (img : PixImage) = img.TransformedPixImage t
                 let load (name : string) =
                     use s = typeof<Args>.Assembly.GetManifestResourceStream("Viewer.CubeMap." + name)
                     PixImage.Load(s)
@@ -431,7 +431,7 @@ module Rendering =
         let name = "2010.04.29-16.59.11-$.jpg"
         AVal.custom (fun _ ->
             let env =
-                let trafo t (img : PixImage) = img.Transformed t
+                let trafo t (img : PixImage) = img.TransformedPixImage t
                 let load (name : string) =
                     use s = typeof<Args>.Assembly.GetManifestResourceStream("Viewer.CubeMap." + name)
                     PixImage.Load(s)

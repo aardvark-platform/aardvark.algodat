@@ -2759,6 +2759,8 @@ namespace Aardvark.Geometry.Tests
             var root = ps.Root.Value;
         }
 
+#pragma warning disable CS1998
+
         public static async Task Main(string[] _)
         {
             //{
