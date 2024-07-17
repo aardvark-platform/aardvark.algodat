@@ -14,9 +14,9 @@ jobs:
     runs-on: windows-latest
     steps:  
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install Dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
       - name: Restore Tools
@@ -26,12 +26,14 @@ jobs:
       - name: Build
         shell: cmd
         run: dotnet build -c Release src\Aardvark.Algodat.sln
+      - name: Test
+        run: dotnet test src\Aardvark.Algodat.sln -c Release --no-build --nologo --logger:"console;verbosity=normal"
       - name: Pack
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: dotnet aardpack src\Aardvark.Algodat.sln --notag
+        run: dotnet aardpack src\Aardvark.Algodat.sln --notag --skip-build
       - name: Upload Packages
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: packages
           path: bin\pack
