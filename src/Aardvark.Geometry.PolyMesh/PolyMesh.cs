@@ -3690,12 +3690,15 @@ namespace Aardvark.Geometry
 
         #region Transformations
 
+        // Move to Aardvark.Data.Vrml97 if actually used
+        [Obsolete]
         public static readonly M44d Vrml97ReadTrafo =
                 new M44d(1, 0, 0, 0,
                          0, 0, -1, 0,
                          0, 1, 0, 0,
                          0, 0, 0, 1);
 
+        [Obsolete]
         public static readonly M44d Vrml97ReadTrafoInverse =
                 new M44d(1, 0, 0, 0,
                          0, 0, 1, 0,
@@ -3731,6 +3734,7 @@ namespace Aardvark.Geometry
             a => a);
         }
 
+        [Obsolete]
         public PolyMesh Vrml97AfterReadingTransformed()
         {
             return Transformed(Vrml97ReadTrafo, Vrml97ReadTrafoInverse);
