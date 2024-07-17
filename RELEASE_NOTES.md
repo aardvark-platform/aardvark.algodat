@@ -1,3 +1,6 @@
+### 5.5.0-prerelease0001
+- Updated to NET 8 and Aardvark.Base 5.3
+
 ### 5.3.8
 - [e57] support for ScaledInteger with 33 to 63 bits (1 to 32, and 64 was already supported)
 
