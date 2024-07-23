@@ -2761,6 +2761,8 @@ namespace Aardvark.Geometry.Tests
 
         public static async Task Main(string[] _)
         {
+            await Task.CompletedTask; // avoid warning if no async methods are called here ...
+
             //{
             //    var chunks = E57.Chunks(@"W:\Datasets\Vgm\Data\2024-04-30_bugreport\F_240205.e57", ParseConfig.Default);
             //    var i = 0;
