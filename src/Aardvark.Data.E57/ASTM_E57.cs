@@ -725,7 +725,14 @@ namespace Aardvark.Data.E57
                         Console.WriteLine($"[E57CompressedVector]   EntryCount         = {indexPacketHeader.EntryCount}");
                         Console.WriteLine($"[E57CompressedVector]   IndexLevel         = {indexPacketHeader.IndexLevel}");
                         Console.WriteLine($"[E57CompressedVector]   PacketLengthMinus1 = {indexPacketHeader.PacketLengthMinus1}");
-                        throw new Exception("Not supported. E57CompressedVector/IndexPacket. Error 1c01e61a-fd16-4264-83c1-64929865c1fd.");
+                        if (indexPacketHeader.EntryCount > 0)
+                        {
+                            throw new Exception("Not supported. E57CompressedVector/IndexPacket. Error 1c01e61a-fd16-4264-83c1-64929865c1fd.");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"[E57CompressedVector]   WARNING: invalid EntryCount 0 -> skipping");
+                        }
                     }
                     else
                     {

@@ -196,9 +196,26 @@ namespace Aardvark.Data.Points.Import
 
                 var partIndex = config.PartIndexOffset;
 
+                // collect all semantics (over all data3d objects)
+                // -> we do this, so we can fill "missing" properties with default values
+                // -> this is a workaround for e57 files that contain data3d objects with differing semantics (which can't be merged later on) 
+                var semanticsAll = new HashSet<PointPropertySemantics>();
                 foreach (var data3d in header.E57Root.Data3D)
                 {
-                    Console.WriteLine($"[Data3D] {data3d.Name} {data3d.Points.ByteStreamsCount}");
+                    semanticsAll.AddRange(data3d.Sem2Index.Keys);
+                }
+
+                // print overview
+                foreach (var data3d in header.E57Root.Data3D)
+                {
+                    Console.WriteLine($"[Data3D] {data3d.Name} ({data3d.Points.ByteStreamsCount} byte streams)");
+                    foreach (var k in semanticsAll)
+                    {
+                        if (!data3d.Sem2Index.ContainsKey(k))
+                        {
+                            Console.WriteLine($"[Data3D]   {k} missing");
+                        }
+                    }
                 }
 
                 foreach (var data3d in header.E57Root.Data3D)
@@ -207,12 +224,36 @@ namespace Aardvark.Data.Points.Import
                     {
                         var e57chunk = new E57Chunk(Properties, data3d, Positions);
 
+                        // ensure that there are colors (if e57 chunk has no colors then add all black colors
+                        var cs = e57chunk.Colors?.Map(c => new C4b(c)) ?? Positions.Map(_ => C4b.Black);
+
+                        // ensure that there are normals, if any e57 chunk has normals (according to 'semanticsAll') 
+                        var ns = e57chunk.Normals;
+                        if (ns == null && semanticsAll.Contains(PointPropertySemantics.NormalX))
+                        {
+                            ns = Positions.Map(_ => V3f.Zero); // set all normals to (0,0,0)
+                        }
+
+                        // ensure that there are intensities, if any e57 chunk has intensities (according to 'semanticsAll') 
+                        var js = e57chunk.Intensities;
+                        if (js == null && semanticsAll.Contains(PointPropertySemantics.Intensity))
+                        {
+                            js = new int[Positions.Length]; // set all intensities to 0
+                        }
+
+                        // ensure that there are classifications, if any e57 chunk has classifications (according to 'semanticsAll') 
+                        var ks = e57chunk.Classification?.Map(x => (byte)x);
+                        if (ks == null && semanticsAll.Contains(PointPropertySemantics.Intensity))
+                        {
+                            ks = new byte[Positions.Length]; // set all classifications to 0
+                        }
+
                         var chunk = new Chunk(
                             positions: Positions,
-                            colors: e57chunk.Colors?.Map(c => new C4b(c)) ?? Positions.Map(_ => C4b.White),
-                            normals: e57chunk.Normals,
-                            intensities: e57chunk.Intensities,
-                            classifications: e57chunk.Classification?.Map(x => (byte)x),
+                            colors: cs,
+                            normals: ns,
+                            intensities: js,
+                            classifications: ks,
                             partIndices: config.EnabledProperties.PartIndices ? partIndex : null,
                             partIndexRange: null,
                             bbox: null
@@ -457,6 +498,9 @@ namespace Aardvark.Data.Points.Import
                     C3b[] cs = null;
                     if (RawData.ContainsKey(PointPropertySemantics.ColorRed))
                     {
+                        if (!RawData.ContainsKey(PointPropertySemantics.ColorGreen)) throw new Exception($"Missing green color channel. Error 4d802e06-bc48-4b18-81f5-4cae997081f3.");
+                        if (!RawData.ContainsKey(PointPropertySemantics.ColorBlue)) throw new Exception($"Missing blue color channel. Error ea80cee4-be10-4ef4-ae0b-8a6cb3685b13.");
+
                         var crs = (byte[])RawData[PointPropertySemantics.ColorRed];
                         var cgs = (byte[])RawData[PointPropertySemantics.ColorGreen];
                         var cbs = (byte[])RawData[PointPropertySemantics.ColorBlue];
@@ -527,6 +571,9 @@ namespace Aardvark.Data.Points.Import
                     V3f[] ns = null;
                     if (HasNormals)
                     {
+                        if (!RawData.ContainsKey(PointPropertySemantics.NormalY)) throw new Exception($"Missing NormalY channel. Error 0e39ebe8-0cf9-44b9-9e22-6ccbab945b4e.");
+                        if (!RawData.ContainsKey(PointPropertySemantics.NormalZ)) throw new Exception($"Missing NormalZ channel. Error 277e8cbc-9cbb-4142-8852-8bd45f851a94.");
+
                         var nxs = (float[])RawData[PointPropertySemantics.NormalX];
                         var nys = (float[])RawData[PointPropertySemantics.NormalY];
                         var nzs = (float[])RawData[PointPropertySemantics.NormalZ];
