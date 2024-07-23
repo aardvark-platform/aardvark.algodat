@@ -23,6 +23,8 @@ using System.Threading;
 using System.Xml.Linq;
 using static Aardvark.Data.E57.ASTM_E57;
 
+#pragma warning disable IDE0130 // Namespace does not match folder structure
+
 namespace Aardvark.Data.Points.Import
 {
     /// <summary>
@@ -38,7 +40,7 @@ namespace Aardvark.Data.Points.Import
 
         static E57()
         {
-            E57Format = new PointCloudFileFormat("e57", new[] { ".e57" }, E57Info, Chunks);
+            E57Format = new PointCloudFileFormat("e57", [".e57"], E57Info, Chunks);
             PointCloudFileFormat.Register(E57Format);
         }
         
