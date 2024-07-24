@@ -35,6 +35,8 @@ nuget Unofficial.DotSpatial.Projections ~> 0.0.4
 
 nuget sharpcompress                     ~> 0.30.0      // only used in Apps/heracli
 
+nuget SixLabors.ImageSharp              >= 2.1.9
+
 // BUILD
 nuget Aardvark.Build                    ~> 1.0.24
 

@@ -44,11 +44,12 @@ namespace Aardvark.Data.E57
         /// <summary>
         /// Physical E57 file offset.
         /// </summary>
-        public readonly struct E57PhysicalOffset
+        public readonly struct E57PhysicalOffset(long value)
         {
-            public readonly long Value;
-            public E57PhysicalOffset(long value) => Value
-                = (value % 1024 < 1020) ? value : throw new ArgumentException($"E57PhysicalOffset must not point to checksum bytes. ({value}).");
+            public readonly long Value = (value % 1024 < 1020)
+                ? value
+                : throw new ArgumentException($"E57PhysicalOffset must not point to checksum bytes. ({value}).")
+                ;
 
             public static E57PhysicalOffset operator +(E57PhysicalOffset a, E57PhysicalOffset b) => new(a.Value + b.Value);
             public static E57LogicalOffset operator +(E57PhysicalOffset a, E57LogicalOffset b) => (E57LogicalOffset)a + b;
@@ -59,10 +60,10 @@ namespace Aardvark.Data.E57
         /// <summary>
         /// Logical E57 file offset.
         /// </summary>
-        public readonly struct E57LogicalOffset
+        public readonly struct E57LogicalOffset(long value)
         {
-            public readonly long Value;
-            public E57LogicalOffset(long value) { Value = value; }
+            public readonly long Value = value;
+
             public static E57LogicalOffset operator +(E57LogicalOffset a, E57LogicalOffset b) => new(a.Value + b.Value);
             public static E57LogicalOffset operator +(E57LogicalOffset a, int b) => new(a.Value + b);
             public static explicit operator E57PhysicalOffset(E57LogicalOffset a) => new(a.Value + (a.Value / 1020 * 4));
@@ -725,7 +726,14 @@ namespace Aardvark.Data.E57
                         Console.WriteLine($"[E57CompressedVector]   EntryCount         = {indexPacketHeader.EntryCount}");
                         Console.WriteLine($"[E57CompressedVector]   IndexLevel         = {indexPacketHeader.IndexLevel}");
                         Console.WriteLine($"[E57CompressedVector]   PacketLengthMinus1 = {indexPacketHeader.PacketLengthMinus1}");
-                        throw new Exception("Not supported. E57CompressedVector/IndexPacket. Error 1c01e61a-fd16-4264-83c1-64929865c1fd.");
+                        if (indexPacketHeader.EntryCount > 0)
+                        {
+                            throw new Exception("Not supported. E57CompressedVector/IndexPacket. Error 1c01e61a-fd16-4264-83c1-64929865c1fd.");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"[E57CompressedVector]   WARNING: invalid EntryCount 0 -> skipping");
+                        }
                     }
                     else
                     {

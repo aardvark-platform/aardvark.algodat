@@ -5,6 +5,8 @@ using System.Collections.Immutable;
 using System.Linq;
 using PPS = Aardvark.Data.E57.PointPropertySemantics;
 
+#pragma warning disable IDE0130 // Namespace does not match folder structure
+
 namespace System.Runtime.CompilerServices
 {
     internal class IsExternalInit { }
@@ -86,7 +88,7 @@ namespace Aardvark.Data.E57
 
     internal class ValueBuffer<T> : IValueBuffer
     {
-        private List<T> _value = new();
+        private List<T> _value = [];
         public void AddRange(T[] xs) => _value.AddRange(xs);
         public int Count => _value.Count;
         public Array Consume(int n)
@@ -95,7 +97,7 @@ namespace Aardvark.Data.E57
             T[] result;
             if (n == _value.Count)
             {
-                result = _value.ToArray();
+                result = [.. _value];
                 _value.Clear();
             }
             else
@@ -109,7 +111,7 @@ namespace Aardvark.Data.E57
 
     internal class ValueBufferSet
     {
-        private readonly Dictionary<PPS, IValueBuffer> _data = new();
+        private readonly Dictionary<PPS, IValueBuffer> _data = [];
 
         public ValueBufferSet(IEnumerable<PPS> keys)
         {

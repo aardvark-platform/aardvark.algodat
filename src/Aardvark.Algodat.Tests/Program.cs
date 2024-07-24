@@ -1815,7 +1815,7 @@ namespace Aardvark.Geometry.Tests
 
                 var key = Path.GetFileName(filename);
 
-                var storePath = $@"W:\aardvark\stores_noparts\{key}";
+                var storePath = $@"T:\tmp_regression\{key}";
                 Directory.CreateDirectory(storePath);
                 using var storeRaw = new SimpleDiskStore(Path.Combine(storePath, "data.uds"));
                 var store = storeRaw.ToPointCloudStore();
@@ -1831,10 +1831,10 @@ namespace Aardvark.Geometry.Tests
                     .WithKey(key)
                     .WithVerbose(true)
                     .WithMaxDegreeOfParallelism(0)
-                    //.WithMinDist(0.0025)
-                    //.WithNormalizePointDensityGlobal(true)
-                    .WithMinDist(0)
-                    .WithNormalizePointDensityGlobal(false)
+                    .WithMinDist(0.005)
+                    .WithNormalizePointDensityGlobal(true)
+                    //.WithMinDist(0)
+                    //.WithNormalizePointDensityGlobal(false)
                     //.WithProgressCallback(p => { Report.Line($"{p:0.00}"); })
                     //.WithEnabledPartIndices(false)
                     ;
@@ -2763,6 +2763,16 @@ namespace Aardvark.Geometry.Tests
 
         public static async Task Main(string[] _)
         {
+            await Task.CompletedTask; // avoid warning if no async methods are called here ...
+
+            Test_Import_Regression();
+
+            //await CreateStore(
+            //    @"W:\Datasets\Vgm\Data\2024-04-04_bugreport\Bestand.e57",
+            //    @"T:\tmp\issue72_Bestand.e57",
+            //    minDist: 0.005
+            //    );
+
             //{
             //    var chunks = E57.Chunks(@"W:\Datasets\Vgm\Data\2024-04-30_bugreport\F_240205.e57", ParseConfig.Default);
             //    var i = 0;
@@ -2773,12 +2783,6 @@ namespace Aardvark.Geometry.Tests
             //    }
             //    return;
             //}
-
-            //await CreateStore(
-            //    @"C:\Data\F_240205.e57",
-            //    @"t:\tmp\20240501_aardvark",
-            //    minDist: 0.005
-            //    );
 
             //await Task.Delay(0); // avoid warnings if main contains no await
 
@@ -2797,8 +2801,6 @@ namespace Aardvark.Geometry.Tests
             //await Parts_Test_20231006_Merge();
 
             //await Parts_Test_20231006();
-
-            Test_Import_Regression();
 
             //await Ranges_Test_20230802();
 
