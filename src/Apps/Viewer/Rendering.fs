@@ -396,7 +396,7 @@ module Rendering =
                     PixImage.Load(s)
                     //PixImage.Create(s, PixLoadOptions.Default)
                 
-                PixImageCube [|
+                PixCube [|
                     PixImageMipMap(
                         load (name.Replace("$", "rt"))
                         |> trafo ImageTrafo.Rot90
@@ -437,7 +437,7 @@ module Rendering =
                     PixImage.Load(s)
                     //PixImage.Create(s, PixLoadOptions.Default)
                 
-                PixImageCube [|
+                PixCube [|
                     PixImageMipMap(
                         load (name.Replace("$", "l"))
                         |> trafo ImageTrafo.Rot90

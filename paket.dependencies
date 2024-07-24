@@ -11,15 +11,16 @@ nuget System.Text.Json                  >= 8.0.4 lowest_matching: true
 
 ////////////////////////////////////////////////////////////////////////
 // https://github.com/aardvark-platform/aardvark.base
-nuget Aardvark.Base                     ~> 5.3.0-prerelease0003
-nuget Aardvark.Base.IO                  ~> 5.3.0-prerelease0003
-nuget Aardvark.Base.Tensors             ~> 5.3.0-prerelease0003
-nuget Aardvark.Geometry                 ~> 5.3.0-prerelease0003
+nuget Aardvark.Base                     ~> 5.3.0-prerelease0005
+nuget Aardvark.Base.IO                  ~> 5.3.0-prerelease0005
+nuget Aardvark.Base.Tensors             ~> 5.3.0-prerelease0005
+nuget Aardvark.Geometry                 ~> 5.3.0-prerelease0005
 
 ////////////////////////////////////////////////////////////////////////
 // https://github.com/aardvark-platform/aardvark.rendering
-nuget Aardvark.Application.Utilities    ~> 5.5.0-prerelease0001
-nuget Aardvark.Application.Slim.Vulkan  ~> 5.5.0-prerelease0001
+nuget Aardvark.Rendering.Common         >= 5.5.0-prerelease0002 lowest_matching: true
+nuget Aardvark.Application.Utilities    ~> 5.5.0-prerelease0002
+nuget Aardvark.Application.Slim.Vulkan  ~> 5.5.0-prerelease0002
 
 ////////////////////////////////////////////////////////////////////////
 // https://github.com/aardvark-community/aardvark.data.durable.dotnet
@@ -34,8 +35,6 @@ nuget Uncodium.SimpleStore              ~> 3.0.29
 nuget Unofficial.DotSpatial.Projections ~> 0.0.4
 
 nuget sharpcompress                     ~> 0.30.0      // only used in Apps/heracli
-
-nuget SixLabors.ImageSharp              >= 2.1.9
 
 // BUILD
 nuget Aardvark.Build                    ~> 1.0.24
