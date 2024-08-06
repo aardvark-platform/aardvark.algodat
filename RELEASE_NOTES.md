@@ -1,5 +1,8 @@
-### 5.5.0-prerelease0001
+### 5.5.0
 - Updated to NET 8 and Aardvark.Base 5.3
+
+### 5.5.0-prerelease0001
+- Updated to NET 8 and Aardvark.Base 5.3 (prerelease)
 
 ### 5.3.9
 - [e57] add default values to non-uniform data3d layouts (intensities, colors, classifications)
