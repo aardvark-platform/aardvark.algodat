@@ -11,21 +11,21 @@ nuget System.Text.Json                  >= 8.0.4 lowest_matching: true
 
 ////////////////////////////////////////////////////////////////////////
 // https://github.com/aardvark-platform/aardvark.base
-nuget Aardvark.Base                     ~> 5.3.0-prerelease0005
-nuget Aardvark.Base.IO                  ~> 5.3.0-prerelease0005
-nuget Aardvark.Base.Tensors             ~> 5.3.0-prerelease0005
-nuget Aardvark.Geometry                 ~> 5.3.0-prerelease0005
+nuget Aardvark.Base                     ~> 5.3.0
+nuget Aardvark.Base.IO                  ~> 5.3.0
+nuget Aardvark.Base.Tensors             ~> 5.3.0
+nuget Aardvark.Geometry                 ~> 5.3.0
 
 ////////////////////////////////////////////////////////////////////////
 // https://github.com/aardvark-platform/aardvark.rendering
-nuget Aardvark.Rendering.Common         >= 5.5.0-prerelease0002 lowest_matching: true
-nuget Aardvark.Application.Utilities    ~> 5.5.0-prerelease0002
-nuget Aardvark.Application.Slim.Vulkan  ~> 5.5.0-prerelease0002
+nuget Aardvark.Rendering.Common         >= 5.5.0
+nuget Aardvark.Application.Utilities    ~> 5.5.0
+nuget Aardvark.Application.Slim.Vulkan  ~> 5.5.0
 
 ////////////////////////////////////////////////////////////////////////
 // https://github.com/aardvark-community/aardvark.data.durable.dotnet
-nuget Aardvark.Data.Durable             ~> 0.4.4-prerelease0001
-nuget Aardvark.Data.Durable.Codec       ~> 0.4.4-prerelease0001
+nuget Aardvark.Data.Durable             ~> 0.4.4
+nuget Aardvark.Data.Durable.Codec       ~> 0.4.4
 
 ////////////////////////////////////////////////////////////////////////
 // 3rd-party
