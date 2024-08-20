@@ -20,6 +20,7 @@ using static System.Console;
 
 #pragma warning disable IDE0051 // Remove unused private members
 #pragma warning disable IDE0059 // Unnecessary assignment of a value
+#pragma warning disable IDE0130 // Namespace does not match folder structure
 
 #if !NETCOREAPP
 using System.ComponentModel;
@@ -2731,7 +2732,7 @@ namespace Aardvark.Geometry.Tests
         }
         static async Task Parts_Test_20231006_Merge()
         {
-            V3d[] randomPoints(int n, Box3d bb)
+            static V3d[] randomPoints(int n, Box3d bb)
             {
                 var size = bb.Size;
                 var ps = new V3d[n];
@@ -2759,19 +2760,19 @@ namespace Aardvark.Geometry.Tests
             var root = ps.Root.Value;
         }
 
-#pragma warning disable CS1998
+        //#pragma warning disable CS1998
 
         public static async Task Main(string[] _)
         {
             await Task.CompletedTask; // avoid warning if no async methods are called here ...
 
-            Test_Import_Regression();
+            //Test_Import_Regression();
 
-            //await CreateStore(
-            //    @"W:\Datasets\Vgm\Data\2024-04-04_bugreport\Bestand.e57",
-            //    @"T:\tmp\issue72_Bestand.e57",
-            //    minDist: 0.005
-            //    );
+            await CreateStore(
+                @"E:\Villa Vaduz gesamt.e57",
+                @"T:\tmp\Villa Vaduz gesamt.e57",
+                minDist: 0.005
+                );
 
             //{
             //    var chunks = E57.Chunks(@"W:\Datasets\Vgm\Data\2024-04-30_bugreport\F_240205.e57", ParseConfig.Default);
