@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -11,6 +11,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+using Aardvark.Base;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -21,7 +22,6 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Xml.Linq;
-using Aardvark.Base;
 
 namespace Aardvark.Data.E57
 {
@@ -522,8 +522,16 @@ namespace Aardvark.Data.E57
                     Report.Line($"[E57CompressedVector] #bytestreams     = {ByteStreamsCount,10}");
                 }
 
-                var recordsLeftToConsumePerByteStream = new long[ByteStreamsCount].Set(RecordCount);
                 var bitpackerPerByteStream = Prototype.Children.Map(x => new BitPacker(((IBitPack)x).NumberOfBitsForBitPack));
+
+                // [Spec 9.7.4.2]
+                // (3) If N = 0, a bytestream shall not be used to encode that
+                // element in the binary section.
+                var ignoreByteStream = bitpackerPerByteStream.Map(x => x.BitsPerValue == 0);
+
+                var recordsLeftToConsumePerByteStream = new long[ByteStreamsCount].Set(RecordCount);
+                for (var i = 0; i < ByteStreamsCount; i++) if (ignoreByteStream[i]) recordsLeftToConsumePerByteStream[i] = 0L;
+
                 var bytesLeftToConsume = compressedVectorHeader.SectionLength - 32;
 
                 bool has(PointPropertySemantics sem) => sem2idx.ContainsKey(sem);
@@ -531,7 +539,8 @@ namespace Aardvark.Data.E57
                 if (compressedVectorHeader.DataStartOffset.Value == 0) throw new Exception($"Unexpected compressedVectorHeader.DataStartOffset (0).");
                 if (compressedVectorHeader.IndexStartOffset.Value != 0) throw new Exception($"Unexpected compressedVectorHeader.IndexStartOffset ({compressedVectorHeader.IndexStartOffset})");
 
-                var data = new ValueBufferSet(sem2idx.Keys);
+                var actualKeys = sem2idx.Keys.Where(k => !ignoreByteStream[sem2idx[k]]).ToArray();
+                var data = new ValueBufferSet(actualKeys);
 
                 var offset = (E57LogicalOffset)compressedVectorHeader.DataStartOffset;
                 var verboseDetail = false; // verbose
@@ -566,7 +575,9 @@ namespace Aardvark.Data.E57
                             bytestreamBuffers[i] = ReadLogicalBytes(m_stream, offset, count);
                             offset += count;
 
-                            buffers[i] = UnpackByteStream(bytestreamBuffers[i], bitpackerPerByteStream[i], (IBitPack)Prototype.Children[i]);
+                            var bitpacker = (IBitPack)Prototype.Children[i];
+                            if (ignoreByteStream[i]) continue; // [Spec 9.7.4.2 (3)]
+                            buffers[i] = UnpackByteStream(bytestreamBuffers[i], bitpackerPerByteStream[i], bitpacker);
 
                             recordsLeftToConsumePerByteStream[i] -= buffers[i].Length;
                         }
@@ -580,7 +591,9 @@ namespace Aardvark.Data.E57
 
                             foreach (var kv in sem2idx)
                             {
-                                var (sem, raw) = (kv.Key, buffers[kv.Value]);
+                                var i = kv.Value;
+                                if (ignoreByteStream[i]) continue; // [Spec 9.7.4.2 (3)]
+                                var (sem, raw) = (kv.Key, buffers[i]);
                                 switch (sem, raw)
                                 {
                                     case (PointPropertySemantics.CartesianX, double[] xs)         : data.Append(sem, xs); break;
@@ -712,7 +725,10 @@ namespace Aardvark.Data.E57
                             }
 
                             if (data.CountMin >= maxChunkPointCount)
-                                yield return data.Consume(data.CountMin);
+                            {
+                                var partialResult = data.Consume(data.CountMin);
+                                yield return partialResult;
+                            }
                         }
 
                         // move to next packet
@@ -742,7 +758,10 @@ namespace Aardvark.Data.E57
                 }
 
                 if (data.CountMin > 0)
-                    yield return data.Consume(data.CountMin);
+                {
+                    var partialResult = data.Consume(data.CountMin);
+                    yield return partialResult;
+                }
 
 
                 #region Helpers
@@ -1248,8 +1267,10 @@ namespace Aardvark.Data.E57
             {
                 var filteredSem2Index = Sem2Index.Where(kv => !exclude.Contains(kv.Key)).ToImmutableDictionary();
                 var chunks = Points.ReadDataFull(maxChunkPointCount, filteredSem2Index, IntensityLimits, verbose);
-                foreach (var chunk in chunks)
+                foreach (var _chunk in chunks)
                 {
+                    var chunk = _chunk;
+
                     V3d[] ps;
                     if (chunk.ContainsKey(PointPropertySemantics.CartesianX))
                     {
@@ -1294,6 +1315,37 @@ namespace Aardvark.Data.E57
                     if (Pose != null)
                     {
                         ps = ps.Map(p => Pose.Rotation.Transform(p) + Pose.Translation);
+                    }
+
+                    // add properties that were skipped according to [Spec 9.7.4.2 (3)]
+                    foreach (var kv in Sem2Index)
+                    {
+                        var semantic = kv.Key;
+                        var i = kv.Value;
+                        var prototype = Points.Prototype.Children[i];
+
+                        if (prototype is E57Integer x0 && x0.NumberOfBitsForBitPack == 0)
+                        {
+                            if (semantic == PointPropertySemantics.Classification)
+                            {
+                                if (x0.Value >= int.MinValue && x0.Value <= int.MaxValue)
+                                {
+                                    chunk = chunk.Add(PointPropertySemantics.Classification, new int[ps.Length].Set((int)x0.Value));
+                                }
+                                else
+                                {
+                                    throw new Exception($"Classification value {x0.Value} is outside of supported range [{int.MinValue}, {int.MaxValue}]. Error 95d79844-c3d0-46c3-bea9-3ce3307e9f02.");
+                                }
+                            }
+                            else
+                            {
+                                throw new Exception($"Semantic {semantic} with 0 bits per value not supported. Error eef7daca-7f90-4f8a-a714-b1d17b18b25f.");
+                            }
+                        }
+                        else if (prototype is E57ScaledInteger x1 && x1.NumberOfBitsForBitPack == 0)
+                        {
+                            throw new Exception($"Semantic {semantic} with 0 bits per value not supported. Error 9f1f2529-25c5-4bd6-a2f2-527aa0c7e369.");
+                        }
                     }
 
                     yield return (ps, chunk);
