@@ -1,4 +1,5 @@
 ﻿using Aardvark.Base;
+using Aardvark.Base.Coder;
 using Aardvark.Data;
 using Aardvark.Data.Points;
 using Aardvark.Data.Points.Import;
@@ -101,6 +102,30 @@ namespace Aardvark.Geometry.Tests
             File.WriteAllText(Path.Combine(storeDir.FullName, "key.txt"), key);
 
             return Task.FromResult(key);
+        }
+
+        #endregion
+
+        #region
+
+        internal static void ParsePointCloudFile(string filename, bool verbose)
+        {
+            var info = PointCloud.ParseFileInfo(filename, ParseConfig.Default);
+            var totalPointCount = 0L;
+            var nextReport = DateTime.Now.AddSeconds(1);
+            var sw = Stopwatch.StartNew();
+            WriteLine($"parsing {filename}");
+            var chunks = PointCloud.Parse(filename, ParseConfig.Default.WithVerbose(verbose));
+            foreach (var chunk in chunks)
+            {
+                totalPointCount += chunk.Count;
+                if (DateTime.Now > nextReport)
+                {
+                    Write($"\r[{100.0*totalPointCount/info.PointCount,6:N2}%] {sw.Elapsed} {totalPointCount,16:N0}/{info.PointCount:N0}");
+                    nextReport = nextReport.AddSeconds(1);
+                }
+            }
+            WriteLine($"\r[{100.0 * totalPointCount / info.PointCount,6:N2}%] {sw.Elapsed} {totalPointCount,16:N0}/{info.PointCount:N0}");
         }
 
         #endregion
@@ -2762,17 +2787,31 @@ namespace Aardvark.Geometry.Tests
 
         //#pragma warning disable CS1998
 
+        static void Test_Parse_Regression()
+        {
+            var basedir = @"W:\Datasets\pointclouds\tests";
+            foreach (var file in Directory.GetFiles(basedir, "*.e57"))
+            {
+                ParsePointCloudFile(file, verbose: false);
+            }
+        }
+
         public static async Task Main(string[] _)
         {
             await Task.CompletedTask; // avoid warning if no async methods are called here ...
 
             //Test_Import_Regression();
 
-            await CreateStore(
-                @"E:\Villa Vaduz gesamt.e57",
-                @"T:\tmp\Villa Vaduz gesamt.e57",
-                minDist: 0.005
-                );
+            ParsePointCloudFile(@"E:\Villa Vaduz gesamt.e57", verbose: false);
+            //ParsePointCloudFile(@"W:\Datasets\pointclouds\tests\KOE1 OG7.e57", verbose: false);
+
+            //Test_Parse_Regression();
+
+            //await CreateStore(
+            //    @"E:\Villa Vaduz gesamt.e57",
+            //    @"T:\tmp\Villa Vaduz gesamt.e57",
+            //    minDist: 0.005
+            //    );
 
             //{
             //    var chunks = E57.Chunks(@"W:\Datasets\Vgm\Data\2024-04-30_bugreport\F_240205.e57", ParseConfig.Default);
