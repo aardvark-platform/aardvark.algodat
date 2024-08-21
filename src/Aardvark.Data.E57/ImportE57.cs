@@ -210,12 +210,12 @@ namespace Aardvark.Data.Points.Import
                 // print overview
                 foreach (var data3d in header.E57Root.Data3D)
                 {
-                    Console.WriteLine($"[Data3D] {data3d.Name} ({data3d.Points.ByteStreamsCount} byte streams)");
+                    //Console.WriteLine($"[Data3D] {data3d.Name} ({data3d.Points.ByteStreamsCount} byte streams)");
                     foreach (var k in semanticsAll)
                     {
                         if (!data3d.Sem2Index.ContainsKey(k))
                         {
-                            Console.WriteLine($"[Data3D]   {k} missing");
+                            Console.WriteLine($"[Data3D][{data3d.Name}]   {k} missing  ({header.E57Root.Data3D.Length} Data3D elements total)");
                         }
                     }
                 }
