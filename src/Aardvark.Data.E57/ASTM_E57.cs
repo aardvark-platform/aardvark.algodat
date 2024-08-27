@@ -1326,11 +1326,36 @@ namespace Aardvark.Data.E57
 
                         if (prototype is E57Integer x0 && x0.NumberOfBitsForBitPack == 0)
                         {
-                            if (semantic == PointPropertySemantics.Classification)
+                            if (
+                                semantic == PointPropertySemantics.CartesianInvalidState    ||
+                                semantic == PointPropertySemantics.Classification           ||
+                                semantic == PointPropertySemantics.ColumnIndex              ||
+                                semantic == PointPropertySemantics.IsColorInvalid           ||
+                                semantic == PointPropertySemantics.IsIntensityInvalid       ||
+                                semantic == PointPropertySemantics.IsTimeStampInvalid       ||
+                                semantic == PointPropertySemantics.ReturnCount              ||
+                                semantic == PointPropertySemantics.ReturnIndex              ||
+                                semantic == PointPropertySemantics.RowIndex                 ||
+                                semantic == PointPropertySemantics.SphericalInvalidState
+                                )
                             {
                                 if (x0.Value >= int.MinValue && x0.Value <= int.MaxValue)
                                 {
-                                    chunk = chunk.Add(PointPropertySemantics.Classification, new int[ps.Length].Set((int)x0.Value));
+                                    var xs = new int[ps.Length].Set((int)x0.Value);
+                                    chunk = semantic switch
+                                    {
+                                        PointPropertySemantics.CartesianInvalidState    => chunk.Add(PointPropertySemantics.CartesianInvalidState   , xs),
+                                        PointPropertySemantics.Classification           => chunk.Add(PointPropertySemantics.Classification          , xs),
+                                        PointPropertySemantics.ColumnIndex              => chunk.Add(PointPropertySemantics.ColumnIndex             , xs),
+                                        PointPropertySemantics.IsColorInvalid           => chunk.Add(PointPropertySemantics.IsColorInvalid          , xs),
+                                        PointPropertySemantics.IsIntensityInvalid       => chunk.Add(PointPropertySemantics.IsIntensityInvalid      , xs),
+                                        PointPropertySemantics.IsTimeStampInvalid       => chunk.Add(PointPropertySemantics.IsTimeStampInvalid      , xs),
+                                        PointPropertySemantics.ReturnCount              => chunk.Add(PointPropertySemantics.ReturnCount             , xs),
+                                        PointPropertySemantics.ReturnIndex              => chunk.Add(PointPropertySemantics.ReturnIndex             , xs),
+                                        PointPropertySemantics.RowIndex                 => chunk.Add(PointPropertySemantics.RowIndex                , xs),
+                                        PointPropertySemantics.SphericalInvalidState    => chunk.Add(PointPropertySemantics.SphericalInvalidState   , xs),
+                                        _ => throw new Exception($"Semantic {semantic} with 0 bits per value not supported. Error 81cbccee-1147-4695-82e5-54a3d05bf118.")
+                                    };
                                 }
                                 else
                                 {
