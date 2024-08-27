@@ -1,3 +1,6 @@
+### 5.5.2
+- [e57] fixed parsing fix (cherrypicked from v53 branch)
+
 ### 5.5.1
 - [e57] fix parsing of classifications that would be encoded with 0 bits per value (see e57 spec 9.7.4.2 (3))
 

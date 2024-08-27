@@ -2792,7 +2792,14 @@ namespace Aardvark.Geometry.Tests
             var basedir = @"W:\Datasets\pointclouds\tests";
             foreach (var file in Directory.GetFiles(basedir, "*.e57"))
             {
-                ParsePointCloudFile(file, verbose: false);
+                try
+                {
+                    ParsePointCloudFile(file, verbose: false);
+                }
+                catch (Exception e)
+                {
+                    WriteLine(e);
+                }
             }
         }
 
@@ -2800,12 +2807,16 @@ namespace Aardvark.Geometry.Tests
         {
             await Task.CompletedTask; // avoid warning if no async methods are called here ...
 
+            Test_Parse_Regression();
+
             //Test_Import_Regression();
 
-            ParsePointCloudFile(@"E:\Villa Vaduz gesamt.e57", verbose: false);
-            //ParsePointCloudFile(@"W:\Datasets\pointclouds\tests\KOE1 OG7.e57", verbose: false);
+            //ParsePointCloudFile(
+            //    @"E:\Villa Vaduz gesamt.e57",
+            //    //@"W:\Datasets\pointclouds\tests\6562-alle-Scans.e57",
+            //    verbose: false
+            //    );
 
-            //Test_Parse_Regression();
 
             //await CreateStore(
             //    @"E:\Villa Vaduz gesamt.e57",
