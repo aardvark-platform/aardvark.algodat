@@ -1,3 +1,5 @@
+### 5.3.10
+- backport from master branch: [e57] fix parsing of classifications that would be encoded with 0 bits per value (see e57 spec 9.7.4.2 (3))
 
 ### 5.3.9
 - [e57] add default values to non-uniform data3d layouts (intensities, colors, classifications)
