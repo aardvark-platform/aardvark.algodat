@@ -106,7 +106,7 @@ namespace Aardvark.Geometry.Tests
 
         #endregion
 
-        #region
+        #region ParsePointCloudFile
 
         internal static void ParsePointCloudFile(string filename, bool verbose)
         {
@@ -126,6 +126,59 @@ namespace Aardvark.Geometry.Tests
                 }
             }
             WriteLine($"\r[{100.0 * totalPointCount / info.PointCount,6:N2}%] {sw.Elapsed} {totalPointCount,16:N0}/{info.PointCount:N0}");
+        }
+
+        #endregion
+
+        #region Export
+
+        internal static void ExportPointCloud(string sourcePath, string targetPath)
+        {
+            var key = string.Empty;
+
+            if (Directory.Exists(sourcePath))
+            {
+                key = File.ReadAllText(Path.Combine(sourcePath, "key.txt"));
+            }
+            else
+            {
+                var keyFileName = Path.Combine(Path.GetDirectoryName(sourcePath), "key.txt");
+                key = File.ReadAllText(keyFileName);
+            }
+
+            Write("opening source store ... ");
+            using var storeSource = new SimpleDiskStore(sourcePath).ToPointCloudStore();
+            WriteLine("ok");
+
+            Write("opening target store ... ");
+            using var storeTarget = new SimpleDiskStore(targetPath).ToPointCloudStore();
+            WriteLine("ok");
+
+            if (Directory.Exists(targetPath))
+            {
+                File.WriteAllText(Path.Combine(sourcePath, "key.txt"), key);
+            }
+            else
+            {
+                var keyFileName = Path.Combine(Path.GetDirectoryName(targetPath), "key.txt");
+                File.WriteAllText(keyFileName, key);
+            }
+
+            //var nextLogWrite = DateTime.Now;
+            storeSource.ExportPointSet(key, storeTarget, 
+                info =>
+                {
+                    //if (DateTime.Now >= nextLogWrite)
+                    //{
+                    //    WriteLine($"{info.Progress:0.000}");
+                    //    nextLogWrite = DateTime.Now.AddSeconds(1.0);
+                    //}
+                },
+                verbose: true,
+                CancellationToken.None
+                );
+
+            storeTarget.Flush();
         }
 
         #endregion
@@ -2805,7 +2858,7 @@ namespace Aardvark.Geometry.Tests
         {
             await Task.CompletedTask; // avoid warning if no async methods are called here ...
 
-            Test_Parse_Regression();
+            //Test_Parse_Regression();
 
             //Test_Import_Regression();
 
@@ -2815,12 +2868,13 @@ namespace Aardvark.Geometry.Tests
             //    verbose: false
             //    );
 
+            await CreateStore(
+                @"E:\pointclouds\SD-Speicher.e57",
+                @"T:\tmp\SD-Speicher.e57.005.algodat",
+                minDist: 0.005
+                );
 
-            //await CreateStore(
-            //    @"E:\Villa Vaduz gesamt.e57",
-            //    @"T:\tmp\Villa Vaduz gesamt.e57",
-            //    minDist: 0.005
-            //    );
+            //ExportPointCloud(@"T:\tmp\SD-Speicher.e57.005\data.uds", @"T:\tmp\SD-Speicher.e57.005.exported\data.uds");
 
             //{
             //    var chunks = E57.Chunks(@"W:\Datasets\Vgm\Data\2024-04-30_bugreport\F_240205.e57", ParseConfig.Default);
