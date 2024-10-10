@@ -1,3 +1,5 @@
+- Updated System.Text.Json dependency (CVE-2024-43485)
+
 ### 5.5.2
 - [e57] fixed parsing fix (cherrypicked from v53 branch)
 
