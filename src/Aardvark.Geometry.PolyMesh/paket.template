@@ -2,8 +2,8 @@ type project
 id Aardvark.Geometry.PolyMesh
 authors Aardvark Platform Team
 owners Aardvark Platform Team
-projectUrl http://github.com/aardvark-platform
-licenseUrl http://www.gnu.org/licenses/agpl.txt
+projectUrl https://github.com/aardvark-platform
+licenseUrl https://raw.githubusercontent.com/aardvark-platform/aardvark.algodat/master/src/Aardvark.Geometry.PolyMesh/LICENSE
 repositoryType git
 repositoryUrl https://github.com/aardvark-platform/aardvark.algodat
 description
