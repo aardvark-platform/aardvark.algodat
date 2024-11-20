@@ -1175,6 +1175,14 @@ namespace Aardvark.Geometry
 
         #region Various Methods
 
+        /// <summary>
+        /// Enumerates non-degenerate face indices.
+        /// The simplest check with compareVertices=false and checkNormals=false will test the edges for identical vertex indices.
+        /// With default arguments (compareVertices=true, checkNormals=true) vertexIndices, vertexValues, and faceNormals are used to test for degenerated faces.
+        /// NOTE: In case there are polygons with more than 3 vertices, a face will be considered degenerated if any edge is degenerated (identical
+        ///       vertex indices or vertex value if compareVertices=true) and will result in missing parts of the mesh. 
+        ///       This can be avoided by using TriangulatedCopy() beforehand.
+        /// </summary>
         public IEnumerable<int> NonDegenerateFaceIndices(
                 bool compareVertices = true, bool checkNormals = true)
         {
