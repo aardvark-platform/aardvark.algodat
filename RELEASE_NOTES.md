@@ -1,3 +1,5 @@
+### 5.5.3
+- Aardvark.Data.E57 parser now reads custom "Reflectance" data.
 - Updated System.Text.Json dependency (CVE-2024-43485)
 
 ### 5.5.2
