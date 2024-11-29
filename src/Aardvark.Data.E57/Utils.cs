@@ -57,6 +57,8 @@ namespace Aardvark.Data.E57
         NormalX,
         NormalY,
         NormalZ,
+
+        Reflectance,
     }
 
     internal static class Utils
@@ -80,6 +82,7 @@ namespace Aardvark.Data.E57
             PPS.NormalX               => ValueBuffer<float>(),
             PPS.NormalY               => ValueBuffer<float>(),
             PPS.NormalZ               => ValueBuffer<float>(),
+            PPS.Reflectance           => ValueBuffer<float>(),
             PPS.ReturnCount           => ValueBuffer<uint>(),
             PPS.ReturnIndex           => ValueBuffer<uint>(),
             PPS.RowIndex              => ValueBuffer<uint>(),
