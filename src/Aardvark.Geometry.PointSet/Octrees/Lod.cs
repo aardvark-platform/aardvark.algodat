@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -22,539 +22,538 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Aardvark.Geometry.Points
+namespace Aardvark.Geometry.Points;
+
+public static class LodExtensions
 {
-    public static class LodExtensions
+    private static double[] ComputeLodFractions(long[] counts)
     {
-        private static double[] ComputeLodFractions(long[] counts)
+        if (counts.Length != 8) throw new ArgumentOutOfRangeException(nameof(counts));
+
+        var sum = 0L;
+        for (var i = 0; i < 8; i++) sum += counts[i];
+
+        var fractions = new double[8];
+        for (var i = 0; i < 8; i++) fractions[i] = counts[i] / (double)sum;
+
+        return fractions;
+    }
+
+    internal static double[] ComputeLodFractions(IPointCloudNode?[] subnodes)
+    {
+        if (subnodes.Length != 8) throw new ArgumentOutOfRangeException(nameof(subnodes));
+
+        var counts = new long[8];
+        for (var i = 0; i < 8; i++) counts[i] = subnodes[i] != null ? subnodes[i]!.PointCountTree : 0;
+        return ComputeLodFractions(counts);
+    }
+
+    internal static int[] ComputeLodCounts(int aggregateCount, double[] fractions)
+    {
+        //if (fractions == null) return null;
+        if (fractions.Length != 8) throw new ArgumentOutOfRangeException(nameof(fractions));
+
+        var remainder = 0.1;
+        var counts = new int[8];
+        for (var i = 0; i < 8; i++)
         {
-            if (counts.Length != 8) throw new ArgumentOutOfRangeException(nameof(counts));
+            var fn = aggregateCount * fractions[i] + remainder;
+            var n = (int)fn;
+            remainder = fn - n;
+            counts[i] = n;
+        };
 
-            var sum = 0L;
-            for (var i = 0; i < 8; i++) sum += counts[i];
+        var e = aggregateCount - counts.Sum();
+        if (e != 0) throw new InvalidOperationException();
 
-            var fractions = new double[8];
-            for (var i = 0; i < 8; i++) fractions[i] = counts[i] / (double)sum;
+        return counts;
+    }
 
-            return fractions;
-        }
-
-        internal static double[] ComputeLodFractions(IPointCloudNode?[] subnodes)
+    internal static V3f[] AggregateSubPositions(int[] counts, int aggregateCount, V3d center, V3d?[] subCenters, V3f[]?[] xss)
+    {
+        var rs = new V3f[aggregateCount];
+        var i = 0;
+        for (var ci = 0; ci < 8; ci++)
         {
-            if (subnodes.Length != 8) throw new ArgumentOutOfRangeException(nameof(subnodes));
+            if (counts[ci] == 0) continue;
+            var xs = xss[ci]!;
+            var c = subCenters[ci]!.Value;
 
-            var counts = new long[8];
-            for (var i = 0; i < 8; i++) counts[i] = subnodes[i] != null ? subnodes[i]!.PointCountTree : 0;
-            return ComputeLodFractions(counts);
-        }
-
-        internal static int[] ComputeLodCounts(int aggregateCount, double[] fractions)
-        {
-            //if (fractions == null) return null;
-            if (fractions.Length != 8) throw new ArgumentOutOfRangeException(nameof(fractions));
-
-            var remainder = 0.1;
-            var counts = new int[8];
-            for (var i = 0; i < 8; i++)
+            var jmax = xs.Length;
+            var dj = (jmax + 0.49) / counts[ci];
+            for (var j = 0.0; j < jmax; j += dj)
             {
-                var fn = aggregateCount * fractions[i] + remainder;
-                var n = (int)fn;
-                remainder = fn - n;
-                counts[i] = n;
-            };
-
-            var e = aggregateCount - counts.Sum();
-            if (e != 0) throw new InvalidOperationException();
-
-            return counts;
+                var _p = new V3f((V3d)xs[(int)j] + c - center);
+                //if (_p.IsNaN) throw new Exception("Position is NaN.");
+                rs[i++] = _p;
+            }
         }
+        return rs;
+    }
 
-        internal static V3f[] AggregateSubPositions(int[] counts, int aggregateCount, V3d center, V3d?[] subCenters, V3f[]?[] xss)
+    internal static T[] AggregateSubArrays<T>(int[] counts, int aggregateCount, T[]?[] xss)
+    {
+        var rs = new T[aggregateCount];
+        var i = 0;
+        for (var ci = 0; ci < 8; ci++)
         {
-            var rs = new V3f[aggregateCount];
-            var i = 0;
-            for (var ci = 0; ci < 8; ci++)
-            {
-                if (counts[ci] == 0) continue;
-                var xs = xss[ci]!;
-                var c = subCenters[ci]!.Value;
+            if (counts[ci] == 0) continue;
+            var xs = xss[ci]!;
 
-                var jmax = xs.Length;
+            var jmax = xs.Length;
+            if (jmax <= counts[ci])
+            {
+                xs.CopyTo(0, xs.Length, rs, i);
+                i += xs.Length;
+            }
+            else
+            {
                 var dj = (jmax + 0.49) / counts[ci];
                 for (var j = 0.0; j < jmax; j += dj)
                 {
-                    var _p = new V3f((V3d)xs[(int)j] + c - center);
-                    //if (_p.IsNaN) throw new Exception("Position is NaN.");
-                    rs[i++] = _p;
+                    rs[i++] = xs[(int)j];
                 }
             }
+        }
+
+        if (i < aggregateCount)
+        {
+            Array.Resize(ref rs, i);
             return rs;
         }
+        else return rs;
+    }
 
-        internal static T[] AggregateSubArrays<T>(int[] counts, int aggregateCount, T[]?[] xss)
+    internal static Array AggregateSubArrays(int[] counts, int splitLimit, object[] arrays)
+    {
+        //var t = arrays.First(x => x != null).GetType().GetElementType();
+        return arrays.First(x => x != null) switch
         {
-            var rs = new T[aggregateCount];
-            var i = 0;
-            for (var ci = 0; ci < 8; ci++)
-            {
-                if (counts[ci] == 0) continue;
-                var xs = xss[ci]!;
+            bool[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (bool[])x)),
+            Guid[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (Guid[])x)),
+            string[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (string[])x)),
+            byte[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (byte[])x)),
+            sbyte[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (sbyte[])x)),
+            short[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (short[])x)),
+            ushort[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (ushort[])x)),
+            int[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (int[])x)),
+            uint[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (uint[])x)),
+            long[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (long[])x)),
+            ulong[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (ulong[])x)),
+            float[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (float[])x)),
+            double[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (double[])x)),
+            decimal[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (decimal[])x)),
+            V2d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V2d[])x)),
+            V2f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V2f[])x)),
+            V2i[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V2i[])x)),
+            V2l[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V2l[])x)),
+            V3d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V3d[])x)),
+            V3f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V3f[])x)),
+            V3i[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V3i[])x)),
+            V3l[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V3l[])x)),
+            V4d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V4d[])x)),
+            V4f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V4f[])x)),
+            V4i[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V4i[])x)),
+            V4l[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V4l[])x)),
+            M22d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M22d[])x)),
+            M22f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M22f[])x)),
+            M22i[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M22i[])x)),
+            M22l[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M22l[])x)),
+            M33d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M33d[])x)),
+            M33f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M33f[])x)),
+            M33i[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M33i[])x)),
+            M33l[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M33l[])x)),
+            M44d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M44d[])x)),
+            M44f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M44f[])x)),
+            M44i[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M44i[])x)),
+            M44l[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M44l[])x)),
+            Trafo2d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (Trafo2d[])x)),
+            Trafo2f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (Trafo2f[])x)),
+            Trafo3d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (Trafo3d[])x)),
+            Trafo3f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (Trafo3f[])x)),
+            C3b[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (C3b[])x)),
+            C3f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (C3f[])x)),
+            C4b[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (C4b[])x)),
+            C4f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (C4f[])x)),
+            _ => throw new Exception($"LoD aggregation for type {arrays.First(x => x != null)} not supported. Error 13c77814-f323-41fb-a7b6-c164973b7b02.")
+        };
+    }
 
-                var jmax = xs.Length;
-                if (jmax <= counts[ci])
-                {
-                    xs.CopyTo(0, xs.Length, rs, i);
-                    i += xs.Length;
-                }
-                else
-                {
-                    var dj = (jmax + 0.49) / counts[ci];
-                    for (var j = 0.0; j < jmax; j += dj)
-                    {
-                        rs[i++] = xs[(int)j];
-                    }
-                }
-            }
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="counts">Number of points to take from each subnode.</param>
+    /// <param name="aggregateCount"></param>
+    /// <param name="xss"></param>
+    /// <returns></returns>
+    internal static (object? lodQs, Range1i? lodQsRange) AggregateSubPartIndices(int[] counts, int aggregateCount, object?[] xss)
+    {
+        var result = default(object?);
+        var resultRange = (Range1i?)null;
+        var ias = new int[]?[8];
 
-            if (i < aggregateCount)
-            {
-                Array.Resize(ref rs, i);
-                return rs;
-            }
-            else return rs;
+        // special case: all subnodes have identical per-cell index
+        if (xss.All(xs => xs is not Array))
+        {
+            var perCellIndices = xss
+                .Where(xs => xs != null)
+                .Select((object? xs) => xs switch { 
+                    null => default(int?),
+                    int x => x,
+                    uint x => (int)x ,
+                    _ => throw new Exception($"Unexpected type {xs.GetType().FullName}. Error 41874217-05a1-482f-abb5-565cebe6a402.")
+                })
+                .ToArray()
+                ;
+            if (perCellIndices.Length == 0) return (null, null);
+            var allIdentical = true;
+            for (var i = 1; i < perCellIndices.Length; i++) if (perCellIndices[i] != perCellIndices[0]) { allIdentical = false; break; }
+            if (allIdentical) return (perCellIndices[0], PartIndexUtils.GetRange(perCellIndices[0]));
         }
 
-        internal static Array AggregateSubArrays(int[] counts, int splitLimit, object[] arrays)
+        // standard case:
+        var resultLengthSoFar = 0;
+        for (var ci = 0; ci < 8; ci++)
         {
-            //var t = arrays.First(x => x != null).GetType().GetElementType();
-            return arrays.First(x => x != null) switch
+            if (counts[ci] == 0) continue;
+            var xs = xss[ci]!;
+
+            resultRange = PartIndexUtils.ExtendRangeBy(in resultRange, xs);
+
+            var xsLength = xs switch
             {
-                bool[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (bool[])x)),
-                Guid[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (Guid[])x)),
-                string[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (string[])x)),
-                byte[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (byte[])x)),
-                sbyte[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (sbyte[])x)),
-                short[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (short[])x)),
-                ushort[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (ushort[])x)),
-                int[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (int[])x)),
-                uint[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (uint[])x)),
-                long[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (long[])x)),
-                ulong[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (ulong[])x)),
-                float[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (float[])x)),
-                double[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (double[])x)),
-                decimal[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (decimal[])x)),
-                V2d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V2d[])x)),
-                V2f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V2f[])x)),
-                V2i[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V2i[])x)),
-                V2l[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V2l[])x)),
-                V3d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V3d[])x)),
-                V3f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V3f[])x)),
-                V3i[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V3i[])x)),
-                V3l[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V3l[])x)),
-                V4d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V4d[])x)),
-                V4f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V4f[])x)),
-                V4i[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V4i[])x)),
-                V4l[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (V4l[])x)),
-                M22d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M22d[])x)),
-                M22f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M22f[])x)),
-                M22i[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M22i[])x)),
-                M22l[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M22l[])x)),
-                M33d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M33d[])x)),
-                M33f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M33f[])x)),
-                M33i[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M33i[])x)),
-                M33l[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M33l[])x)),
-                M44d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M44d[])x)),
-                M44f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M44f[])x)),
-                M44i[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M44i[])x)),
-                M44l[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (M44l[])x)),
-                Trafo2d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (Trafo2d[])x)),
-                Trafo2f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (Trafo2f[])x)),
-                Trafo3d[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (Trafo3d[])x)),
-                Trafo3f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (Trafo3f[])x)),
-                C3b[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (C3b[])x)),
-                C3f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (C3f[])x)),
-                C4b[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (C4b[])x)),
-                C4f[] _ => AggregateSubArrays(counts, splitLimit, arrays.Map(x => (C4f[])x)),
-                _ => throw new Exception($"LoD aggregation for type {arrays.First(x => x != null)} not supported. Error 13c77814-f323-41fb-a7b6-c164973b7b02.")
+                null       => throw new Exception("Invariant 0a65ab38-4b69-4f6d-aa54-36536c86d8d3."),
+                int        => counts[ci],
+                uint       => counts[ci],
+                byte[] ys  => ys.Length,
+                short[] ys => ys.Length,
+                int[] ys   => ys.Length,
+                _ => throw new Exception($"Unexpected type {xs.GetType().FullName}. Error 8e44dd14-b984-4d7f-8be4-c8e0d4f43189.")
             };
-        }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="counts">Number of points to take from each subnode.</param>
-        /// <param name="aggregateCount"></param>
-        /// <param name="xss"></param>
-        /// <returns></returns>
-        internal static (object? lodQs, Range1i? lodQsRange) AggregateSubPartIndices(int[] counts, int aggregateCount, object?[] xss)
-        {
-            var result = default(object?);
-            var resultRange = (Range1i?)null;
-            var ias = new int[]?[8];
+#if DEBUG
+            if (xsLength < counts[ci]) Debugger.Break(); // TODO "PARTINDICES" remove
+#endif
 
-            // special case: all subnodes have identical per-cell index
-            if (xss.All(xs => xs is not Array))
+            if (xsLength == counts[ci])
             {
-                var perCellIndices = xss
-                    .Where(xs => xs != null)
-                    .Select((object? xs) => xs switch { 
-                        null => default(int?),
-                        int x => x,
-                        uint x => (int)x ,
-                        _ => throw new Exception($"Unexpected type {xs.GetType().FullName}. Error 41874217-05a1-482f-abb5-565cebe6a402.")
-                    })
-                    .ToArray()
-                    ;
-                if (perCellIndices.Length == 0) return (null, null);
-                var allIdentical = true;
-                for (var i = 1; i < perCellIndices.Length; i++) if (perCellIndices[i] != perCellIndices[0]) { allIdentical = false; break; }
-                if (allIdentical) return (perCellIndices[0], PartIndexUtils.GetRange(perCellIndices[0]));
+                result = PartIndexUtils.ConcatIndices(result, resultLengthSoFar, xs, xsLength);
+            }
+            else if (xsLength > counts[ci])
+            {
+                var ia = new List<int>();
+                var dj = (xsLength + 0.49) / counts[ci];
+                for (var j = 0.0; j < xsLength; j += dj) ia.Add((int)j);
+#if DEBUG
+                if (ia.Count != counts[ci]) Debugger.Break(); // TODO "PARTINDICES" remove
+#endif
+                var subset = PartIndexUtils.Subset(xs, ia);
+                var newResult = PartIndexUtils.ConcatIndices(result, resultLengthSoFar, subset, ia.Count);
+#if DEBUG
+                if (newResult is Array a1 && resultLengthSoFar + counts[ci] != a1.Length) Debugger.Break(); // TODO "PARTINDICES" remove
+#endif
+                result = newResult;
+            }
+            else
+            {
+                throw new Exception(
+                    $"Expected number of sub-indices {xsLength} to be greater or equal than {counts[ci]}. " +
+                    $"Invariant 3a9eeb72-8e56-404a-8def-7001b02c960d."
+                    );
             }
 
-            // standard case:
-            var resultLengthSoFar = 0;
-            for (var ci = 0; ci < 8; ci++)
+            resultLengthSoFar += counts[ci];
+        }
+
+#if DEBUG
+        if (result is Array a && a.Length != aggregateCount) Debugger.Break(); // TODO "PARTINDICES" remove
+#endif
+
+        result = PartIndexUtils.Compact(result);
+
+        return (result, resultRange);
+    }
+
+    private static async Task<PointSet> GenerateLod(this PointSet self, string? key, Action callback, CancellationToken ct)
+    {
+        try
+        {
+            key ??= Guid.NewGuid().ToString();
+
+            if (self.IsEmpty) return self;
+
+            if (self.Root.Value is not PointSetNode root) throw new InvalidOperationException(
+                "GenerateLod is only valid for PointSetNodes. Invariant 1d530d98-9ea4-4281-894f-bb91a6b8a2cf."
+                );
+
+            var lod = await root.GenerateLod(self.SplitLimit, callback, ct);
+            var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit);
+            self.Storage.Add(key, result);
+            return result;
+        }
+        catch (Exception e)
+        {
+            Report.Error(e.ToString());
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Returns new octree with LOD data created.
+    /// </summary>
+    public static PointSet GenerateLod(this PointSet self, ImportConfig config)
+    {
+        if (self.Root == null || self.Root.Value.IsEmpty) return self;
+
+        var nodeCount = self.Root.Value.CountNodes(true);
+        var loddedNodesCount = 0L;
+        if (config.Verbose) Console.WriteLine();
+        var result = self.GenerateLod(config.Key, () =>
+        {
+            config.CancellationToken.ThrowIfCancellationRequested();
+            var i = Interlocked.Increment(ref loddedNodesCount);
+            if (config.Verbose) Console.Write($"[Lod] {i}/{nodeCount}\r");
+            if (i % 100 == 0) config.ProgressCallback(loddedNodesCount / (double)nodeCount);
+        }, config.CancellationToken);
+
+        result.Wait();
+
+        config.ProgressCallback(1.0);
+
+        return result.Result;
+    }
+
+    internal static async Task<IPointCloudNode> GenerateLod(this PointSetNode self,
+        int octreeSplitLimit, Action callback,
+        CancellationToken ct)
+    {
+        if (self == null) throw new ArgumentNullException(nameof(self));
+        ct.ThrowIfCancellationRequested();
+
+        try
+        {
+            var store = self.Storage;
+            var originalId = self.Id;
+            var upsertData = ImmutableDictionary<Durable.Def, object>.Empty;
+
+            //////////////////////////////////////////////////////////////////
+            // for leafs we need no LoD generation (contain original data)
+            // just build kd-tree and estimate normals ...
+            if (self.IsLeaf)
             {
-                if (counts[ci] == 0) continue;
-                var xs = xss[ci]!;
+                var kd = self.KdTree?.Value;
 
-                resultRange = PartIndexUtils.ExtendRangeBy(in resultRange, xs);
-
-                var xsLength = xs switch
+                if (kd == null)
                 {
-                    null       => throw new Exception("Invariant 0a65ab38-4b69-4f6d-aa54-36536c86d8d3."),
-                    int        => counts[ci],
-                    uint       => counts[ci],
-                    byte[] ys  => ys.Length,
-                    short[] ys => ys.Length,
-                    int[] ys   => ys.Length,
-                    _ => throw new Exception($"Unexpected type {xs.GetType().FullName}. Error 8e44dd14-b984-4d7f-8be4-c8e0d4f43189.")
-                };
-
-#if DEBUG
-                if (xsLength < counts[ci]) Debugger.Break(); // TODO "PARTINDICES" remove
-#endif
-
-                if (xsLength == counts[ci])
-                {
-                    result = PartIndexUtils.ConcatIndices(result, resultLengthSoFar, xs, xsLength);
+                    kd = await self.Positions.Value.BuildKdTreeAsync();
+                    var kdKey = Guid.NewGuid();
+                    store?.Add(kdKey, kd.Data);
+                    upsertData = upsertData.Add(Durable.Octree.PointRkdTreeFDataReference, kdKey);
                 }
-                else if (xsLength > counts[ci])
+
+                if (!self.HasNormals)
                 {
-                    var ia = new List<int>();
-                    var dj = (xsLength + 0.49) / counts[ci];
-                    for (var j = 0.0; j < xsLength; j += dj) ia.Add((int)j);
-#if DEBUG
-                    if (ia.Count != counts[ci]) Debugger.Break(); // TODO "PARTINDICES" remove
-#endif
-                    var subset = PartIndexUtils.Subset(xs, ia);
-                    var newResult = PartIndexUtils.ConcatIndices(result, resultLengthSoFar, subset, ia.Count);
-#if DEBUG
-                    if (newResult is Array a1 && resultLengthSoFar + counts[ci] != a1.Length) Debugger.Break(); // TODO "PARTINDICES" remove
-#endif
-                    result = newResult;
+                    var ns = await self.Positions.Value.EstimateNormalsAsync(16, kd);
+                    if (ns.Length != self.Positions.Value!.Length) throw new Exception();
+                    var nsId = Guid.NewGuid();
+                    store?.Add(nsId, ns);
+                    upsertData = upsertData.Add(Durable.Octree.Normals3fReference, nsId);
                 }
                 else
                 {
-                    throw new Exception(
-                        $"Expected number of sub-indices {xsLength} to be greater or equal than {counts[ci]}. " +
-                        $"Invariant 3a9eeb72-8e56-404a-8def-7001b02c960d."
-                        );
+                    if (self.Normals!.Value!.Length != self.PointCountCell) throw new Exception();
                 }
 
-                resultLengthSoFar += counts[ci];
-            }
-
-#if DEBUG
-            if (result is Array a && a.Length != aggregateCount) Debugger.Break(); // TODO "PARTINDICES" remove
-#endif
-
-            result = PartIndexUtils.Compact(result);
-
-            return (result, resultRange);
-        }
-
-        private static async Task<PointSet> GenerateLod(this PointSet self, string? key, Action callback, CancellationToken ct)
-        {
-            try
-            {
-                key ??= Guid.NewGuid().ToString();
-
-                if (self.IsEmpty) return self;
-
-                if (self.Root.Value is not PointSetNode root) throw new InvalidOperationException(
-                    "GenerateLod is only valid for PointSetNodes. Invariant 1d530d98-9ea4-4281-894f-bb91a6b8a2cf."
-                    );
-
-                var lod = await root.GenerateLod(self.SplitLimit, callback, ct);
-                var result = new PointSet(self.Storage, key, lod.Id, self.SplitLimit);
-                self.Storage.Add(key, result);
-                return result;
-            }
-            catch (Exception e)
-            {
-                Report.Error(e.ToString());
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// Returns new octree with LOD data created.
-        /// </summary>
-        public static PointSet GenerateLod(this PointSet self, ImportConfig config)
-        {
-            if (self.Root == null || self.Root.Value.IsEmpty) return self;
-
-            var nodeCount = self.Root.Value.CountNodes(true);
-            var loddedNodesCount = 0L;
-            if (config.Verbose) Console.WriteLine();
-            var result = self.GenerateLod(config.Key, () =>
-            {
-                config.CancellationToken.ThrowIfCancellationRequested();
-                var i = Interlocked.Increment(ref loddedNodesCount);
-                if (config.Verbose) Console.Write($"[Lod] {i}/{nodeCount}\r");
-                if (i % 100 == 0) config.ProgressCallback(loddedNodesCount / (double)nodeCount);
-            }, config.CancellationToken);
-
-            result.Wait();
-
-            config.ProgressCallback(1.0);
-
-            return result.Result;
-        }
-
-        internal static async Task<IPointCloudNode> GenerateLod(this PointSetNode self,
-            int octreeSplitLimit, Action callback,
-            CancellationToken ct)
-        {
-            if (self == null) throw new ArgumentNullException(nameof(self));
-            ct.ThrowIfCancellationRequested();
-
-            try
-            {
-                var store = self.Storage;
-                var originalId = self.Id;
-                var upsertData = ImmutableDictionary<Durable.Def, object>.Empty;
-
-                //////////////////////////////////////////////////////////////////
-                // for leafs we need no LoD generation (contain original data)
-                // just build kd-tree and estimate normals ...
-                if (self.IsLeaf)
-                {
-                    var kd = self.KdTree?.Value;
-
-                    if (kd == null)
-                    {
-                        kd = await self.Positions.Value.BuildKdTreeAsync();
-                        var kdKey = Guid.NewGuid();
-                        store?.Add(kdKey, kd.Data);
-                        upsertData = upsertData.Add(Durable.Octree.PointRkdTreeFDataReference, kdKey);
-                    }
-
-                    if (!self.HasNormals)
-                    {
-                        var ns = await self.Positions.Value.EstimateNormalsAsync(16, kd);
-                        if (ns.Length != self.Positions.Value!.Length) throw new Exception();
-                        var nsId = Guid.NewGuid();
-                        store?.Add(nsId, ns);
-                        upsertData = upsertData.Add(Durable.Octree.Normals3fReference, nsId);
-                    }
-                    else
-                    {
-                        if (self.Normals!.Value!.Length != self.PointCountCell) throw new Exception();
-                    }
-
-                    if (upsertData.Count > 0) self = self.With(upsertData);
-                    self = self.Without(PointSetNode.TemporaryImportNode);
-                    if (self.Id != originalId) self = self.WriteToStore();
-
-                    if (!self.HasNormals) throw new Exception();
-                    return self;
-                }
-
-                //////////////////////////////////////////////////////////////////
-                // how much data should we take from each subode ...
-                if (self.Subnodes == null || self.Subnodes.Length != 8) throw new InvalidOperationException();
-
-                var subcellsAsync = self.Subnodes.Map(x => (x?.Value as PointSetNode)?.GenerateLod(octreeSplitLimit, callback, ct));
-                await Task.WhenAll(subcellsAsync.Where(x => x != null));
-                var subcells = subcellsAsync.Map(x => x?.Result);
-                var fractions = ComputeLodFractions(subcells);
-                var aggregateCount = Math.Min(octreeSplitLimit, subcells.Sum(x => x?.PointCountCell) ?? 0);
-                var counts = ComputeLodCounts(aggregateCount, fractions);
-#if DEBUG
-                if (counts.Sum() != aggregateCount) throw new Exception(
-                    $"Expected aggregate count {aggregateCount} to be the same as sum of LoD counts {counts.Sum()}. " +
-                    $"Invariant 21033eb8-2a19-43a5-82b4-f6c398ac599f."
-                    );
-#endif
-
-                //////////////////////////////////////////////////////////////////
-                // generate LoD data ...
-
-                bool subnodesHaveAttribute(Func<IPointCloudNode, bool> check, string kind)
-                {
-                    var has = 0; var hasNot = 0;
-                    foreach (var n in subcells)
-                    {
-                        if (n == null) continue;
-                        if (check(n)) has++; else hasNot++;
-                    }
-                    
-                    if (has > 0 && hasNot > 0)
-                    {
-                        var info = "Subnodes: [" + string.Join("; ", subcells.Select((n, i) =>
-                        {
-                            if (n == null)      return $"{i}: null";
-                            else if (check(n))  return $"{i}: exists";
-                            else                return $"{i}: n/a";
-                        })) + "]";
-
-                        throw new Exception(
-                            $"Inconsistent {kind} attribute in subnodes of node id={self.Id}. Invariant 6454e7ab-0b39-4f3e-b158-c3f9cbc24953. {info}."
-                            );
-                    }
-
-                    return has > 0;
-                }
-
-                var firstNonEmptySubnode = subcells.First(n => n != null)!;
-                var lodAttributeCandidates = firstNonEmptySubnode.Properties.Keys.Where(x => x.IsArray &&
-                    x != Durable.Octree.SubnodesGuids &&
-                    x != Durable.Octree.PositionsLocal3f &&
-                    x != Durable.Octree.Normals3f &&
-                    x != Durable.Octree.Classifications1b &&
-                    x != Durable.Octree.Colors4b &&
-                    x != Durable.Octree.Intensities1i &&
-                    x != Durable.Octree.PerCellPartIndex1i &&
-                    x != Durable.Octree.PerCellPartIndex1ui &&
-                    x != Durable.Octree.PerPointPartIndex1b &&
-                    x != Durable.Octree.PerPointPartIndex1s &&
-                    x != Durable.Octree.PerPointPartIndex1i
-                    ).ToArray();
-
-                // ... positions ...
-                var subcenters = subcells.Map(x => x?.Center);
-                var lodPs = AggregateSubPositions(counts, aggregateCount, self.Center, subcenters, subcells.Map(x => x?.Positions?.Value));
-                if (lodPs.Any(p => p.IsNaN)) throw new Exception("One or more positions are NaN.");
-                var lodPsKey = Guid.NewGuid();
-                store?.Add(lodPsKey, lodPs);
-                upsertData = upsertData
-                    .Add(Durable.Octree.PositionsLocal3fReference, lodPsKey)
-                    .Add(Durable.Octree.PointCountCell, lodPs.Length)
-                    ;
-
-                // ... kd-tree ...
-                var lodKd = await lodPs.BuildKdTreeAsync();
-                var lodKdKey = Guid.NewGuid();
-                store?.Add(lodKdKey, lodKd.Data);
-                upsertData = upsertData.Add(Durable.Octree.PointRkdTreeFDataReference, lodKdKey);
-
-                // .. normals ...
-                var lodNs = await lodPs.EstimateNormalsAsync(16, lodKd);
-                if (lodNs.Length != lodPs.Length) throw new Exception(
-                    $"Inconsistent lod-normals length {lodNs.Length}. Should be {lodPs.Length}. Error 806dfe30-4faa-46b1-a2a3-f50e336cbe67."
-                    );
-                var lodNsKey = Guid.NewGuid();
-                store?.Add(lodNsKey, lodNs);
-                upsertData = upsertData.Add(Durable.Octree.Normals3fReference, lodNsKey);
-
-                void addAttributeByRef<T>(string kind, Durable.Def def, Func<IPointCloudNode, bool> has, Func<IPointCloudNode?, T[]?> getData)
-                {
-                    var hasAttribute = subnodesHaveAttribute(has, kind);
-                    if (hasAttribute)
-                    {
-                        var lod = AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(getData));
-                        if (lod.Length != lodPs.Length) throw new Exception(
-                            $"Inconsistent lod {kind} length {lod.Length}. Should be {lodPs.Length}. Error 1aa7a00f-cb3a-42a6-ad38-6c03fcd6ea9f."
-                            );
-                        // add attribute by ref to separate blob
-                        var key = Guid.NewGuid();
-                        store?.Add(key, lod);
-                        upsertData = upsertData.Add(def, key);
-                    }
-                }
-
-                // ... part indices ...
-                var (lodQs, lodQsRange) = AggregateSubPartIndices(counts, aggregateCount, subcells.Map(x => x?.PartIndices));
-                if (lodQs != null)
-                {
-                    upsertData = upsertData
-                        //.Add(PartIndexUtils.GetDurableDefForPartIndices(lodQs), lodQs)
-                        .Add(Durable.Octree.PartIndexRange, lodQsRange ?? throw new Exception($"Expected part index range to be not null. Error d355eb9f-02b3-4cd7-b1de-041d4d0e7c3c."))
-                        ;
-
-                    if (lodQs is Array xs)
-                    {
-                        // add attribute by ref to separate blob
-                        var key = Guid.NewGuid();
-                        store?.Add(key, xs);
-                        var def = xs switch
-                        {
-                            byte[] => Durable.Octree.PerPointPartIndex1bReference,
-                            short[] => Durable.Octree.PerPointPartIndex1sReference,
-                            int[] => Durable.Octree.PerPointPartIndex1iReference,
-                            _ => throw new Exception("Invariant 5a25f407-5ccf-4577-a7eb-c0d691093d10.")
-                        };
-                        upsertData = upsertData.Add(def, key);
-                    }
-                    else
-                    {
-                        upsertData = upsertData
-                            .Add(PartIndexUtils.GetDurableDefForPartIndices(lodQs), lodQs)
-                            ;
-                    }
-                }
-                
-                // ... classifications ...
-                addAttributeByRef("classifications", Durable.Octree.Classifications1bReference, n => n.HasClassifications, n => n?.Classifications?.Value);
-
-                // ... colors ...
-                addAttributeByRef("colors", Durable.Octree.Colors4bReference, n => n.HasColors, n => n?.Colors?.Value);
-
-                // ... intensities ...
-                addAttributeByRef("intensities", Durable.Octree.Intensities1iReference, n => n.HasIntensities, n => n?.Intensities?.Value);
-
-                // ... for all other attributes ...
-                foreach (var def in lodAttributeCandidates)
-                {
-                    try
-                    {
-                        var lod = AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x =>    x?.Properties[def]!));
-                        if (lod.Length != lodPs.Length) throw new Exception(
-                            $"Inconsistent lod-array length {lod.Length}. Should be {lodPs.Length}. Error e3f0398a-b0ae-4e57-95ab-b5d83922ec6e."
-                            );
-
-                        // add attribute inside node (for custom attributes we don't know which type (Durable.Def)
-                        // to use for referencing the attribute data as a blob outside this node)
-                        upsertData = upsertData.Add(def, lod);
-                    }
-                    catch
-                    {
-                        Report.Error($"Failure to aggregate subnode data for custom attribute {def}. Error d74d2b84-58ec-482b-9971-750f8c50324e.");
-                        throw;
-                    }
-                }
-
-                var subnodeIds = subcells.Map(x => x != null ? x.Id : Guid.Empty);
-                upsertData = upsertData.Add(Durable.Octree.SubnodesGuids, subnodeIds);
-
-                //////////////////////////////////////////////////////////////////
-                // store LoD data ...
-                self = self
-                    .With(upsertData)
-                    .Without(PointSetNode.TemporaryImportNode)
-                    ;
-
+                if (upsertData.Count > 0) self = self.With(upsertData);
+                self = self.Without(PointSetNode.TemporaryImportNode);
                 if (self.Id != originalId) self = self.WriteToStore();
 
                 if (!self.HasNormals) throw new Exception();
                 return self;
             }
-            finally
+
+            //////////////////////////////////////////////////////////////////
+            // how much data should we take from each subode ...
+            if (self.Subnodes == null || self.Subnodes.Length != 8) throw new InvalidOperationException();
+
+            var subcellsAsync = self.Subnodes.Map(x => (x?.Value as PointSetNode)?.GenerateLod(octreeSplitLimit, callback, ct));
+            await Task.WhenAll(subcellsAsync.Where(x => x != null));
+            var subcells = subcellsAsync.Map(x => x?.Result);
+            var fractions = ComputeLodFractions(subcells);
+            var aggregateCount = Math.Min(octreeSplitLimit, subcells.Sum(x => x?.PointCountCell) ?? 0);
+            var counts = ComputeLodCounts(aggregateCount, fractions);
+#if DEBUG
+            if (counts.Sum() != aggregateCount) throw new Exception(
+                $"Expected aggregate count {aggregateCount} to be the same as sum of LoD counts {counts.Sum()}. " +
+                $"Invariant 21033eb8-2a19-43a5-82b4-f6c398ac599f."
+                );
+#endif
+
+            //////////////////////////////////////////////////////////////////
+            // generate LoD data ...
+
+            bool subnodesHaveAttribute(Func<IPointCloudNode, bool> check, string kind)
             {
-                callback?.Invoke();
+                var has = 0; var hasNot = 0;
+                foreach (var n in subcells)
+                {
+                    if (n == null) continue;
+                    if (check(n)) has++; else hasNot++;
+                }
+                
+                if (has > 0 && hasNot > 0)
+                {
+                    var info = "Subnodes: [" + string.Join("; ", subcells.Select((n, i) =>
+                    {
+                        if (n == null)      return $"{i}: null";
+                        else if (check(n))  return $"{i}: exists";
+                        else                return $"{i}: n/a";
+                    })) + "]";
+
+                    throw new Exception(
+                        $"Inconsistent {kind} attribute in subnodes of node id={self.Id}. Invariant 6454e7ab-0b39-4f3e-b158-c3f9cbc24953. {info}."
+                        );
+                }
+
+                return has > 0;
             }
+
+            var firstNonEmptySubnode = subcells.First(n => n != null)!;
+            var lodAttributeCandidates = firstNonEmptySubnode.Properties.Keys.Where(x => x.IsArray &&
+                x != Durable.Octree.SubnodesGuids &&
+                x != Durable.Octree.PositionsLocal3f &&
+                x != Durable.Octree.Normals3f &&
+                x != Durable.Octree.Classifications1b &&
+                x != Durable.Octree.Colors4b &&
+                x != Durable.Octree.Intensities1i &&
+                x != Durable.Octree.PerCellPartIndex1i &&
+                x != Durable.Octree.PerCellPartIndex1ui &&
+                x != Durable.Octree.PerPointPartIndex1b &&
+                x != Durable.Octree.PerPointPartIndex1s &&
+                x != Durable.Octree.PerPointPartIndex1i
+                ).ToArray();
+
+            // ... positions ...
+            var subcenters = subcells.Map(x => x?.Center);
+            var lodPs = AggregateSubPositions(counts, aggregateCount, self.Center, subcenters, subcells.Map(x => x?.Positions?.Value));
+            if (lodPs.Any(p => p.IsNaN)) throw new Exception("One or more positions are NaN.");
+            var lodPsKey = Guid.NewGuid();
+            store?.Add(lodPsKey, lodPs);
+            upsertData = upsertData
+                .Add(Durable.Octree.PositionsLocal3fReference, lodPsKey)
+                .Add(Durable.Octree.PointCountCell, lodPs.Length)
+                ;
+
+            // ... kd-tree ...
+            var lodKd = await lodPs.BuildKdTreeAsync();
+            var lodKdKey = Guid.NewGuid();
+            store?.Add(lodKdKey, lodKd.Data);
+            upsertData = upsertData.Add(Durable.Octree.PointRkdTreeFDataReference, lodKdKey);
+
+            // .. normals ...
+            var lodNs = await lodPs.EstimateNormalsAsync(16, lodKd);
+            if (lodNs.Length != lodPs.Length) throw new Exception(
+                $"Inconsistent lod-normals length {lodNs.Length}. Should be {lodPs.Length}. Error 806dfe30-4faa-46b1-a2a3-f50e336cbe67."
+                );
+            var lodNsKey = Guid.NewGuid();
+            store?.Add(lodNsKey, lodNs);
+            upsertData = upsertData.Add(Durable.Octree.Normals3fReference, lodNsKey);
+
+            void addAttributeByRef<T>(string kind, Durable.Def def, Func<IPointCloudNode, bool> has, Func<IPointCloudNode?, T[]?> getData)
+            {
+                var hasAttribute = subnodesHaveAttribute(has, kind);
+                if (hasAttribute)
+                {
+                    var lod = AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(getData));
+                    if (lod.Length != lodPs.Length) throw new Exception(
+                        $"Inconsistent lod {kind} length {lod.Length}. Should be {lodPs.Length}. Error 1aa7a00f-cb3a-42a6-ad38-6c03fcd6ea9f."
+                        );
+                    // add attribute by ref to separate blob
+                    var key = Guid.NewGuid();
+                    store?.Add(key, lod);
+                    upsertData = upsertData.Add(def, key);
+                }
+            }
+
+            // ... part indices ...
+            var (lodQs, lodQsRange) = AggregateSubPartIndices(counts, aggregateCount, subcells.Map(x => x?.PartIndices));
+            if (lodQs != null)
+            {
+                upsertData = upsertData
+                    //.Add(PartIndexUtils.GetDurableDefForPartIndices(lodQs), lodQs)
+                    .Add(Durable.Octree.PartIndexRange, lodQsRange ?? throw new Exception($"Expected part index range to be not null. Error d355eb9f-02b3-4cd7-b1de-041d4d0e7c3c."))
+                    ;
+
+                if (lodQs is Array xs)
+                {
+                    // add attribute by ref to separate blob
+                    var key = Guid.NewGuid();
+                    store?.Add(key, xs);
+                    var def = xs switch
+                    {
+                        byte[] => Durable.Octree.PerPointPartIndex1bReference,
+                        short[] => Durable.Octree.PerPointPartIndex1sReference,
+                        int[] => Durable.Octree.PerPointPartIndex1iReference,
+                        _ => throw new Exception("Invariant 5a25f407-5ccf-4577-a7eb-c0d691093d10.")
+                    };
+                    upsertData = upsertData.Add(def, key);
+                }
+                else
+                {
+                    upsertData = upsertData
+                        .Add(PartIndexUtils.GetDurableDefForPartIndices(lodQs), lodQs)
+                        ;
+                }
+            }
+            
+            // ... classifications ...
+            addAttributeByRef("classifications", Durable.Octree.Classifications1bReference, n => n.HasClassifications, n => n?.Classifications?.Value);
+
+            // ... colors ...
+            addAttributeByRef("colors", Durable.Octree.Colors4bReference, n => n.HasColors, n => n?.Colors?.Value);
+
+            // ... intensities ...
+            addAttributeByRef("intensities", Durable.Octree.Intensities1iReference, n => n.HasIntensities, n => n?.Intensities?.Value);
+
+            // ... for all other attributes ...
+            foreach (var def in lodAttributeCandidates)
+            {
+                try
+                {
+                    var lod = AggregateSubArrays(counts, octreeSplitLimit, subcells.Map(x =>    x?.Properties[def]!));
+                    if (lod.Length != lodPs.Length) throw new Exception(
+                        $"Inconsistent lod-array length {lod.Length}. Should be {lodPs.Length}. Error e3f0398a-b0ae-4e57-95ab-b5d83922ec6e."
+                        );
+
+                    // add attribute inside node (for custom attributes we don't know which type (Durable.Def)
+                    // to use for referencing the attribute data as a blob outside this node)
+                    upsertData = upsertData.Add(def, lod);
+                }
+                catch
+                {
+                    Report.Error($"Failure to aggregate subnode data for custom attribute {def}. Error d74d2b84-58ec-482b-9971-750f8c50324e.");
+                    throw;
+                }
+            }
+
+            var subnodeIds = subcells.Map(x => x != null ? x.Id : Guid.Empty);
+            upsertData = upsertData.Add(Durable.Octree.SubnodesGuids, subnodeIds);
+
+            //////////////////////////////////////////////////////////////////
+            // store LoD data ...
+            self = self
+                .With(upsertData)
+                .Without(PointSetNode.TemporaryImportNode)
+                ;
+
+            if (self.Id != originalId) self = self.WriteToStore();
+
+            if (!self.HasNormals) throw new Exception();
+            return self;
+        }
+        finally
+        {
+            callback?.Invoke();
         }
     }
 }

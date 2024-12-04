@@ -1,3 +1,7 @@
+### 5.5.4
+- [PointSet] fixed out-of-core node merge for part indices
+- [PointSet] code cleanup, C#12
+
 ### 5.5.3
 - Aardvark.Data.E57 parser now reads custom "Reflectance" data.
 - Updated System.Text.Json dependency (CVE-2024-43485)

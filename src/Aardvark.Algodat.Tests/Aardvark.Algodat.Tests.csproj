@@ -10,12 +10,12 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <OutputPath>../../bin/Debug</OutputPath>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <NoWarn>1701;1702;7022</NoWarn>
+    <NoWarn>1701;1702;7022;0130</NoWarn>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <OutputPath>../../bin/Release</OutputPath>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <NoWarn>1701;1702;7022</NoWarn>
+    <NoWarn>1701;1702;7022;0130</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Aardvark.Data.E57\Aardvark.Data.E57.csproj" />

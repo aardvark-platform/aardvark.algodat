@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -18,196 +18,192 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 
-namespace Aardvark.Geometry.Points
+namespace Aardvark.Geometry.Points;
+
+/// <summary>
+/// </summary>
+public static class ExportExtensions
 {
     /// <summary>
     /// </summary>
-    public static class ExportExtensions
+    public class ExportPointSetInfo(
+        long pointCountTree,
+        long processedLeafPointCount = 0L
+        )
     {
         /// <summary>
+        /// Number of points in exported tree (sum of leaf points).
         /// </summary>
-        public class ExportPointSetInfo
-        {
-            /// <summary>
-            /// Number of points in exported tree (sum of leaf points).
-            /// </summary>
-            public readonly long PointCountTree;
-
-            /// <summary>
-            /// Number of leaf points already processed.
-            /// </summary>
-            public readonly long ProcessedLeafPointCount;
-
-            public ExportPointSetInfo(long pointCountTree, long processedLeafPointCount = 0L)
-            {
-                PointCountTree = pointCountTree;
-                ProcessedLeafPointCount = processedLeafPointCount;
-            }
-
-            /// <summary>
-            /// Progress [0,1].
-            /// </summary>
-            public double Progress => (double)ProcessedLeafPointCount / (double)PointCountTree;
-
-            /// <summary>
-            /// Returns new ExportPointSetInfo with ProcessedLeafPointCount incremented by x. 
-            /// </summary>
-            public ExportPointSetInfo AddProcessedLeafPoints(long x)
-                => new(PointCountTree, ProcessedLeafPointCount + x);
-        }
+        public readonly long PointCountTree = pointCountTree;
 
         /// <summary>
-        /// Exports complete pointset (metadata, nodes, referenced blobs) to another store.
+        /// Number of leaf points already processed.
         /// </summary>
-        public static ExportPointSetInfo ExportPointSet(
-            this Storage self, 
-            string pointSetId, 
-            Storage exportStorage, 
-            Action<ExportPointSetInfo> onProgress, 
-            bool verbose, CancellationToken ct
-            )
+        public readonly long ProcessedLeafPointCount = processedLeafPointCount;
+
+        /// <summary>
+        /// Progress [0,1].
+        /// </summary>
+        public double Progress => (double)ProcessedLeafPointCount / (double)PointCountTree;
+
+        /// <summary>
+        /// Returns new ExportPointSetInfo with ProcessedLeafPointCount incremented by x. 
+        /// </summary>
+        public ExportPointSetInfo AddProcessedLeafPoints(long x)
+            => new(PointCountTree, ProcessedLeafPointCount + x);
+    }
+
+    /// <summary>
+    /// Exports complete pointset (metadata, nodes, referenced blobs) to another store.
+    /// </summary>
+    public static ExportPointSetInfo ExportPointSet(
+        this Storage self, 
+        string pointSetId, 
+        Storage exportStorage, 
+        Action<ExportPointSetInfo> onProgress, 
+        bool verbose, CancellationToken ct
+        )
+    {
+        PointSet? pointSet = null;
+
+        try
         {
-            PointSet? pointSet = null;
-
-            try
-            {
-                pointSet = self.GetPointSet(pointSetId);
-                if (pointSet == null)
-                {
-                    Report.Warn($"No PointSet with id '{pointSetId}' in store. Trying to load node with this id.");
-                }
-            }
-            catch
-            {
-                Report.Warn($"Entry with id '{pointSetId}' is not a PointSet. Trying to load node with this id.");
-            }
-
+            pointSet = self.GetPointSet(pointSetId);
             if (pointSet == null)
             {
-                if (self.TryGetPointCloudNode(pointSetId, out var root))
-                {
-                    var ersatzPointSetKey = Guid.NewGuid().ToString();
-                    Report.Warn($"Created PointSet with key '{ersatzPointSetKey}'.");
-                    var ersatzPointSet = new PointSet(self, ersatzPointSetKey, root!, root!.PointCountCell);
-                    self.Add(ersatzPointSetKey, ersatzPointSet);
+                Report.Warn($"No PointSet with id '{pointSetId}' in store. Trying to load node with this id.");
+            }
+        }
+        catch
+        {
+            Report.Warn($"Entry with id '{pointSetId}' is not a PointSet. Trying to load node with this id.");
+        }
 
-                    return ExportPointSet(self, ersatzPointSet, exportStorage, onProgress, verbose, ct);
-                }
-                else
-                {
-                    throw new Exception($"No node with id '{pointSetId}' in store. Giving up. Invariant 48028b00-4538-4169-a2fc-ca009d56e012.");
-                }
+        if (pointSet == null)
+        {
+            if (self.TryGetPointCloudNode(pointSetId, out var root))
+            {
+                var ersatzPointSetKey = Guid.NewGuid().ToString();
+                Report.Warn($"Created PointSet with key '{ersatzPointSetKey}'.");
+                var ersatzPointSet = new PointSet(self, ersatzPointSetKey, root!, root!.PointCountCell);
+                self.Add(ersatzPointSetKey, ersatzPointSet);
+
+                return ExportPointSet(self, ersatzPointSet, exportStorage, onProgress, verbose, ct);
             }
             else
             {
-                return ExportPointSet(self, pointSet, exportStorage, onProgress, verbose, ct);
+                throw new Exception($"No node with id '{pointSetId}' in store. Giving up. Invariant 48028b00-4538-4169-a2fc-ca009d56e012.");
             }
         }
+        else
+        {
+            return ExportPointSet(self, pointSet, exportStorage, onProgress, verbose, ct);
+        }
+    }
 
-        /// <summary>
-        /// Exports complete pointset (metadata, nodes, referenced blobs) to another store.
-        /// </summary>
-        private static ExportPointSetInfo ExportPointSet(
-            this Storage self, 
-            PointSet pointset, 
-            Storage exportStorage, 
-            Action<ExportPointSetInfo> onProgress, 
-            bool verbose, CancellationToken ct
-            )
+    /// <summary>
+    /// Exports complete pointset (metadata, nodes, referenced blobs) to another store.
+    /// </summary>
+    private static ExportPointSetInfo ExportPointSet(
+        this Storage self, 
+        PointSet pointset, 
+        Storage exportStorage, 
+        Action<ExportPointSetInfo> onProgress, 
+        bool verbose, CancellationToken ct
+        )
+    {
+        ct.ThrowIfCancellationRequested();
+        onProgress ??= _ => { };
+
+        var info = new ExportPointSetInfo(pointset.Root.Value.PointCountTree);
+
+        var pointSetId = pointset.Id;
+        var root = pointset.Root.Value;
+        var totalNodeCount = root.CountNodes(outOfCore: true);
+        if (verbose) Report.Line($"total node count = {totalNodeCount:N0}");
+
+        // export pointset metainfo
+        exportStorage.Add(pointSetId, pointset.Encode());
+        // Report.Line($"exported {pointSetId} (pointset metainfo, json)");
+
+        // export octree (recursively)
+        var exportedNodeCount = 0L;
+        ExportNode(root.Id);
+        if (verbose) Console.Write("\r");
+        return info;
+
+        void ExportNode(Guid key)
         {
             ct.ThrowIfCancellationRequested();
-            onProgress ??= _ => { };
 
-            var info = new ExportPointSetInfo(pointset.Root.Value.PointCountTree);
+            // missing subnode (null) is encoded as Guid.Empty
+            if (key == Guid.Empty) return;
 
-            var pointSetId = pointset.Id;
-            var root = pointset.Root.Value;
-            var totalNodeCount = root.CountNodes(outOfCore: true);
-            if (verbose) Report.Line($"total node count = {totalNodeCount:N0}");
-
-            // export pointset metainfo
-            exportStorage.Add(pointSetId, pointset.Encode());
-            // Report.Line($"exported {pointSetId} (pointset metainfo, json)");
-
-            // export octree (recursively)
-            var exportedNodeCount = 0L;
-            ExportNode(root.Id);
-            if (verbose) Console.Write("\r");
-            return info;
-
-            void ExportNode(Guid key)
+            // try to load node
+            Durable.Def? def = Durable.Octree.Node;
+            object? raw = null;
+            try
             {
-                ct.ThrowIfCancellationRequested();
+                (def, raw) = self.GetDurable(key);
+            }
+            catch
+            {
+                var n = self.GetPointCloudNode(key)!;
+                raw = n.Properties;
+            }
 
-                // missing subnode (null) is encoded as Guid.Empty
-                if (key == Guid.Empty) return;
+            if (raw is not IReadOnlyDictionary<Durable.Def, object> nodeProps || def == null) return;
 
-                // try to load node
-                Durable.Def? def = Durable.Octree.Node;
-                object? raw = null;
-                try
+            exportStorage.Add(key, def, nodeProps, false);
+            //Report.Line($"exported {key} (node)");
+
+            // references
+            var rs = GetReferences(nodeProps);
+            foreach (var kv in rs)
+            {
+                var k = (Guid)kv.Value;
+                var buffer = self.GetByteArray(k)!;
+                exportStorage.Add(k, buffer);
+                //Report.Line($"exported {k} (reference)");
+            }
+
+            exportedNodeCount++;
+            if (verbose) Console.Write($"\r{exportedNodeCount}/{totalNodeCount}");
+
+            // children
+            nodeProps.TryGetValue(Durable.Octree.SubnodesGuids, out var subnodeGuids);
+            if (subnodeGuids != null)
+            {
+                foreach (var x in (Guid[])subnodeGuids) ExportNode(x);
+            }
+            else
+            {
+                if (nodeProps.TryGetValue(Durable.Octree.PointCountCell, out var pointCountCell))
                 {
-                    (def, raw) = self.GetDurable(key);
-                }
-                catch
-                {
-                    var n = self.GetPointCloudNode(key)!;
-                    raw = n.Properties;
-                }
-
-                if (raw is not IReadOnlyDictionary<Durable.Def, object> nodeProps || def == null) return;
-
-                exportStorage.Add(key, def, nodeProps, false);
-                //Report.Line($"exported {key} (node)");
-
-                // references
-                var rs = GetReferences(nodeProps);
-                foreach (var kv in rs)
-                {
-                    var k = (Guid)kv.Value;
-                    var buffer = self.GetByteArray(k)!;
-                    exportStorage.Add(k, buffer);
-                    //Report.Line($"exported {k} (reference)");
-                }
-
-                exportedNodeCount++;
-                if (verbose) Console.Write($"\r{exportedNodeCount}/{totalNodeCount}");
-
-                // children
-                nodeProps.TryGetValue(Durable.Octree.SubnodesGuids, out var subnodeGuids);
-                if (subnodeGuids != null)
-                {
-                    foreach (var x in (Guid[])subnodeGuids) ExportNode(x);
+                    info = info.AddProcessedLeafPoints((int)pointCountCell);
                 }
                 else
                 {
-                    if (nodeProps.TryGetValue(Durable.Octree.PointCountCell, out var pointCountCell))
-                    {
-                        info = info.AddProcessedLeafPoints((int)pointCountCell);
-                    }
-                    else
-                    {
-                        Report.Warn("Invariant 2f7bb751-e6d4-4d4a-98a3-eabd6fd9b156.");
-                    }
-                    
-                    onProgress(info);
+                    Report.Warn("Invariant 2f7bb751-e6d4-4d4a-98a3-eabd6fd9b156.");
                 }
+                
+                onProgress(info);
             }
+        }
 
-            IDictionary<Durable.Def, object> GetReferences(IReadOnlyDictionary<Durable.Def, object> node)
+        IDictionary<Durable.Def, object> GetReferences(IReadOnlyDictionary<Durable.Def, object> node)
+        {
+            var rs = new Dictionary<Durable.Def, object>();
+            foreach (var kv in node)
             {
-                var rs = new Dictionary<Durable.Def, object>();
-                foreach (var kv in node)
-                {
-                    if (kv.Key == Durable.Octree.NodeId) continue;
+                if (kv.Key == Durable.Octree.NodeId) continue;
 
-                    if (kv.Key.Type == Durable.Primitives.GuidDef.Id)
-                    {
-                        rs[kv.Key] = kv.Value;
-                    }
+                if (kv.Key.Type == Durable.Primitives.GuidDef.Id)
+                {
+                    rs[kv.Key] = kv.Value;
                 }
-                return rs;
             }
+            return rs;
         }
     }
 }

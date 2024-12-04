@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -13,13 +13,12 @@
 */
 using Aardvark.Data.Points;
 
-namespace Aardvark.Geometry.Points
+namespace Aardvark.Geometry.Points;
+
+/// <summary></summary>
+public static class PointCloudFormatExtensions
 {
     /// <summary></summary>
-    public static class PointCloudFormatExtensions
-    {
-        /// <summary></summary>
-        public static PointSet ImportFile(this PointCloudFileFormat self, string filename, ImportConfig config)
-            => PointCloud.Chunks(self.ParseFile(filename, config.ParseConfig)/*.Take(4)*/, config);
-    }
+    public static PointSet ImportFile(this PointCloudFileFormat self, string filename, ImportConfig config)
+        => PointCloud.Chunks(self.ParseFile(filename, config.ParseConfig)/*.Take(4)*/, config);
 }

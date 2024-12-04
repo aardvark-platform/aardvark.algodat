@@ -24,7 +24,7 @@ module LodTreeInstance =
         open Aardvark.Data.Points.Import
 
         let private tokens =
-            LookupTable.lookupTable [
+            LookupTable.lookup [
                 "x", Ascii.Token.PositionX
                 "y", Ascii.Token.PositionY
                 "z", Ascii.Token.PositionZ
@@ -729,7 +729,7 @@ module LodTreeInstance =
         member x.Build() =
             let cnt = ref 0 
             x.Build(cnt)
-            !cnt
+            cnt.Value
 
 
         interface ILodTreeNode with

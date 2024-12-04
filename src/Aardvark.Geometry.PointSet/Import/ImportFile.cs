@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -17,72 +17,71 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace Aardvark.Geometry.Points
+namespace Aardvark.Geometry.Points;
+
+/// <summary>
+/// Importers for various formats.
+/// </summary>
+public static partial class PointCloud
 {
     /// <summary>
-    /// Importers for various formats.
+    /// Gets general info for given point cloud file.
     /// </summary>
-    public static partial class PointCloud
+    public static PointFileInfo ParseFileInfo(string filename, ParseConfig config)
+        => PointCloudFileFormat.FromFileName(filename).ParseFileInfo(filename, config);
+    
+    /// <summary>
+    /// Parses file.
+    /// Format is guessed based on file extension.
+    /// </summary>
+    public static IEnumerable<Chunk> Parse(string filename, ParseConfig config)
     {
-        /// <summary>
-        /// Gets general info for given point cloud file.
-        /// </summary>
-        public static PointFileInfo ParseFileInfo(string filename, ParseConfig config)
-            => PointCloudFileFormat.FromFileName(filename).ParseFileInfo(filename, config);
-        
-        /// <summary>
-        /// Parses file.
-        /// Format is guessed based on file extension.
-        /// </summary>
-        public static IEnumerable<Chunk> Parse(string filename, ParseConfig config)
+        if (filename == null) throw new ArgumentNullException(nameof(filename));
+        if (!File.Exists(filename)) throw new FileNotFoundException($"File does not exist ({filename}).", filename);
+        return PointCloudFileFormat.FromFileName(filename).ParseFile(filename, config);
+    }
+
+    /// <summary>
+    /// Imports file.
+    /// Format is guessed based on file extension.
+    /// </summary>
+    public static PointSet Import(string filename, ImportConfig? config = null)
+    {
+        if (filename == null) throw new ArgumentNullException(nameof(filename));
+        if (!File.Exists(filename)) throw new FileNotFoundException("File does not exist.", filename);
+
+        config ??= ImportConfig.Default
+            .WithInMemoryStore()
+            .WithKey(FileHelpers.ComputeMd5Hash(filename, true))
+            ;
+
+        var format = PointCloudFileFormat.FromFileName(filename);
+        if (format != PointCloudFileFormat.Unknown)
         {
-            if (filename == null) throw new ArgumentNullException(nameof(filename));
-            if (!File.Exists(filename)) throw new FileNotFoundException($"File does not exist ({filename}).", filename);
-            return PointCloudFileFormat.FromFileName(filename).ParseFile(filename, config);
+            return format.ImportFile(filename, config);
         }
-
-        /// <summary>
-        /// Imports file.
-        /// Format is guessed based on file extension.
-        /// </summary>
-        public static PointSet Import(string filename, ImportConfig? config = null)
+        else
         {
-            if (filename == null) throw new ArgumentNullException(nameof(filename));
-            if (!File.Exists(filename)) throw new FileNotFoundException("File does not exist.", filename);
-
-            config ??= ImportConfig.Default
-                .WithInMemoryStore()
-                .WithKey(FileHelpers.ComputeMd5Hash(filename, true))
-                ;
-
-            var format = PointCloudFileFormat.FromFileName(filename);
-            if (format != PointCloudFileFormat.Unknown)
-            {
-                return format.ImportFile(filename, config);
-            }
-            else
-            {
-                throw new Exception($"Did not find parser for file '{filename}'.");
-            }
+            throw new Exception($"Did not find parser for file '{filename}'.");
         }
+    }
 
-        /// <summary>
-        /// Imports file into out-of-core store.
-        /// Format is guessed based on file extension.
-        /// </summary>
-        public static PointSet Import(string filename, string storeDirectory, LruDictionary<string, object> cache)
-        {
-            if (filename == null) throw new ArgumentNullException(nameof(filename));
-            if (!File.Exists(filename)) throw new FileNotFoundException("File does not exist.", filename);
+    /// <summary>
+    /// Imports file into out-of-core store.
+    /// Format is guessed based on file extension.
+    /// </summary>
+    public static PointSet Import(string filename, string storeDirectory, LruDictionary<string, object> cache)
+    {
+        if (filename == null) throw new ArgumentNullException(nameof(filename));
+        if (!File.Exists(filename)) throw new FileNotFoundException("File does not exist.", filename);
 
-            var config = ImportConfig.Default
-                .WithStorage(OpenStore(storeDirectory, cache))
-                .WithKey(FileHelpers.ComputeMd5Hash(filename, true))
-                ;
+        var config = ImportConfig.Default
+            .WithStorage(OpenStore(storeDirectory, cache))
+            .WithKey(FileHelpers.ComputeMd5Hash(filename, true))
+            ;
 
-            var result = PointCloudFileFormat.FromFileName(filename).ImportFile(filename, config);
-            config.Storage?.Flush();
-            return result;
-        }
+        var result = PointCloudFileFormat.FromFileName(filename).ImportFile(filename, config);
+        config.Storage?.Flush();
+        return result;
     }
 }

@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -16,250 +16,249 @@ using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
 
-namespace Aardvark.Geometry.Points
+namespace Aardvark.Geometry.Points;
+
+/// <summary>
+/// </summary>
+public static partial class Queries
 {
+    #region Query points
+
     /// <summary>
     /// </summary>
-    public static partial class Queries
+    public static IEnumerable<Chunk> QueryPoints(this PointSet node,
+        Func<IPointCloudNode, bool> isNodeFullyInside,
+        Func<IPointCloudNode, bool> isNodeFullyOutside,
+        Func<V3d, bool> isPositionInside,
+        int minCellExponent = int.MinValue
+        )
+        => QueryPoints(node.Root.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, minCellExponent);
+
+    /// <summary>
+    /// </summary>
+    public static IEnumerable<Chunk> QueryPoints(this IPointCloudNode node,
+        Func<IPointCloudNode, bool> isNodeFullyInside,
+        Func<IPointCloudNode, bool> isNodeFullyOutside,
+        Func<V3d, bool> isPositionInside,
+        int minCellExponent = int.MinValue
+        )
     {
-        #region Query points
+        if (node.Cell.Exponent < minCellExponent) yield break;
 
-        /// <summary>
-        /// </summary>
-        public static IEnumerable<Chunk> QueryPoints(this PointSet node,
-            Func<IPointCloudNode, bool> isNodeFullyInside,
-            Func<IPointCloudNode, bool> isNodeFullyOutside,
-            Func<V3d, bool> isPositionInside,
-            int minCellExponent = int.MinValue
-            )
-            => QueryPoints(node.Root.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, minCellExponent);
-
-        /// <summary>
-        /// </summary>
-        public static IEnumerable<Chunk> QueryPoints(this IPointCloudNode node,
-            Func<IPointCloudNode, bool> isNodeFullyInside,
-            Func<IPointCloudNode, bool> isNodeFullyOutside,
-            Func<V3d, bool> isPositionInside,
-            int minCellExponent = int.MinValue
-            )
+        if (isNodeFullyOutside(node)) yield break;
+        
+        if (node.IsLeaf() || node.Cell.Exponent == minCellExponent)
         {
-            if (node.Cell.Exponent < minCellExponent) yield break;
-
-            if (isNodeFullyOutside(node)) yield break;
-            
-            if (node.IsLeaf() || node.Cell.Exponent == minCellExponent)
+            if (isNodeFullyInside(node))
             {
-                if (isNodeFullyInside(node))
-                {
-                    yield return node.ToChunk();
-                }
-                else // partially inside
-                {
-                    var ps = node.PositionsAbsolute;
-                    var csRaw = node.HasColors ? node.Colors.Value : null;
-                    var nsRaw = node.HasNormals ? node.Normals.Value : null;
-                    var jsRaw = node.HasIntensities ? node.Intensities.Value : null;
-                    var ksRaw = node.HasClassifications ? node.Classifications!.Value : null;
-                    var qsRaw = node.PartIndices;
-
-                    var ia = new List<int>();
-                    for (var i = 0; i < ps.Length; i++) if (isPositionInside(ps[i])) ia.Add(i);
-
-                    if (ia.Count > 0) yield return new Chunk(
-                        ps.Subset(ia), csRaw?.Subset(ia), nsRaw?.Subset(ia), jsRaw?.Subset(ia), ksRaw?.Subset(ia), PartIndexUtils.Subset(qsRaw, ia), partIndexRange: null, bbox: null
-                        );
-                }
+                yield return node.ToChunk();
             }
-            else
+            else // partially inside
             {
-                for (var i = 0; i < 8; i++)
-                {
-                    var n = node.Subnodes![i];
-                    if (n == null) continue;
-                    var xs = QueryPoints(n.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, minCellExponent);
-                    foreach (var x in xs) yield return x;
-                }
+                var ps = node.PositionsAbsolute;
+                var csRaw = node.HasColors ? node.Colors.Value : null;
+                var nsRaw = node.HasNormals ? node.Normals.Value : null;
+                var jsRaw = node.HasIntensities ? node.Intensities.Value : null;
+                var ksRaw = node.HasClassifications ? node.Classifications!.Value : null;
+                var qsRaw = node.PartIndices;
+
+                var ia = new List<int>();
+                for (var i = 0; i < ps.Length; i++) if (isPositionInside(ps[i])) ia.Add(i);
+
+                if (ia.Count > 0) yield return new Chunk(
+                    ps.Subset(ia), csRaw?.Subset(ia), nsRaw?.Subset(ia), jsRaw?.Subset(ia), ksRaw?.Subset(ia), PartIndexUtils.Subset(qsRaw, ia), partIndexRange: null, bbox: null
+                    );
             }
         }
-
-        /// <summary>
-        /// Enumerates cells/front at given cell exponent (or higher if given depth is not reached).
-        /// E.g. with minCellExponent = 0 all cells of size 1 (or larger) are numerated.
-        /// </summary>
-        public static IEnumerable<Chunk> QueryPoints(this IPointCloudNode node,
-            int minCellExponent = int.MinValue
-            ) => QueryPoints(
-                node, 
-                _ => true, 
-                _ => throw new InvalidOperationException("Invariant 482cbeed-88f2-46af-9cc0-6b0f6f1fc61a."),
-                _ => throw new InvalidOperationException("Invariant 31b005a8-f65d-406f-b2a1-96f133d357d3."),
-                minCellExponent
-                );
-
-        #endregion
-
-        #region Count exact
-
-        /// <summary>
-        /// Exact count.
-        /// </summary>
-        public static long CountPoints(this PointSet node,
-            Func<IPointCloudNode, bool> isNodeFullyInside,
-            Func<IPointCloudNode, bool> isNodeFullyOutside,
-            Func<V3d, bool> isPositionInside,
-            int minCellExponent = int.MinValue
-            )
-            => CountPoints(node.Root.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, minCellExponent);
-
-        /// <summary>
-        /// Exact count.
-        /// </summary>
-        public static long CountPoints(this IPointCloudNode node,
-            Func<IPointCloudNode, bool> isNodeFullyInside,
-            Func<IPointCloudNode, bool> isNodeFullyOutside,
-            Func<V3d, bool> isPositionInside,
-            int minCellExponent = int.MinValue
-            )
+        else
         {
-            if (node.Cell.Exponent < minCellExponent) return 0L;
-
-            if (isNodeFullyOutside(node)) return 0L;
-
-            if (node.IsLeaf() || node.Cell.Exponent == minCellExponent)
+            for (var i = 0; i < 8; i++)
             {
-                if (isNodeFullyInside(node))
-                {
-                    return node.Positions.Value.Length;
-                }
-                else // partially inside
-                {
-                    var count = 0L;
-                    var psRaw = node.PositionsAbsolute;
-                    for (var i = 0; i < psRaw.Length; i++)
-                    {
-                        var p = psRaw[i];
-                        if (isPositionInside(p)) count++;
-                    }
-                    return count;
-                }
-            }
-            else
-            {
-                var sum = 0L;
-                for (var i = 0; i < 8; i++)
-                {
-                    var n = node.Subnodes![i];
-                    if (n == null) continue;
-                    sum += CountPoints(n.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, minCellExponent);
-                }
-                return sum;
+                var n = node.Subnodes![i];
+                if (n == null) continue;
+                var xs = QueryPoints(n.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, minCellExponent);
+                foreach (var x in xs) yield return x;
             }
         }
+    }
 
-        #endregion
+    /// <summary>
+    /// Enumerates cells/front at given cell exponent (or higher if given depth is not reached).
+    /// E.g. with minCellExponent = 0 all cells of size 1 (or larger) are numerated.
+    /// </summary>
+    public static IEnumerable<Chunk> QueryPoints(this IPointCloudNode node,
+        int minCellExponent = int.MinValue
+        ) => QueryPoints(
+            node, 
+            _ => true, 
+            _ => throw new InvalidOperationException("Invariant 482cbeed-88f2-46af-9cc0-6b0f6f1fc61a."),
+            _ => throw new InvalidOperationException("Invariant 31b005a8-f65d-406f-b2a1-96f133d357d3."),
+            minCellExponent
+            );
 
-        #region Count approximately
+    #endregion
 
-        /// <summary>
-        /// Approximate count (cell granularity).
-        /// Result is always equal or greater than exact number.
-        /// </summary>
-        public static long CountPointsApproximately(this PointSet node,
-            Func<IPointCloudNode, bool> isNodeFullyInside,
-            Func<IPointCloudNode, bool> isNodeFullyOutside,
-            int minCellExponent = int.MinValue
-            )
-            => CountPointsApproximately(node.Root.Value, isNodeFullyInside, isNodeFullyOutside, minCellExponent);
+    #region Count exact
 
-        /// <summary>
-        /// Approximate count (cell granularity).
-        /// Result is always equal or greater than exact number.
-        /// </summary>
-        public static long CountPointsApproximately(this IPointCloudNode node,
-            Func<IPointCloudNode, bool> isNodeFullyInside,
-            Func<IPointCloudNode, bool> isNodeFullyOutside,
-            int minCellExponent = int.MinValue
-            )
+    /// <summary>
+    /// Exact count.
+    /// </summary>
+    public static long CountPoints(this PointSet node,
+        Func<IPointCloudNode, bool> isNodeFullyInside,
+        Func<IPointCloudNode, bool> isNodeFullyOutside,
+        Func<V3d, bool> isPositionInside,
+        int minCellExponent = int.MinValue
+        )
+        => CountPoints(node.Root.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, minCellExponent);
+
+    /// <summary>
+    /// Exact count.
+    /// </summary>
+    public static long CountPoints(this IPointCloudNode node,
+        Func<IPointCloudNode, bool> isNodeFullyInside,
+        Func<IPointCloudNode, bool> isNodeFullyOutside,
+        Func<V3d, bool> isPositionInside,
+        int minCellExponent = int.MinValue
+        )
+    {
+        if (node.Cell.Exponent < minCellExponent) return 0L;
+
+        if (isNodeFullyOutside(node)) return 0L;
+
+        if (node.IsLeaf() || node.Cell.Exponent == minCellExponent)
         {
-            if (node.Cell.Exponent < minCellExponent) return 0L;
-
-            if (isNodeFullyOutside(node)) return 0L;
-
-            if (node.IsLeaf() || node.Cell.Exponent == minCellExponent)
+            if (isNodeFullyInside(node))
             {
                 return node.Positions.Value.Length;
             }
-            else
+            else // partially inside
             {
-                var sum = 0L;
-                for (var i = 0; i < 8; i++)
+                var count = 0L;
+                var psRaw = node.PositionsAbsolute;
+                for (var i = 0; i < psRaw.Length; i++)
                 {
-                    var n = node.Subnodes![i];
-                    if (n == null) continue;
-                    sum += CountPointsApproximately(n.Value, isNodeFullyInside, isNodeFullyOutside, minCellExponent);
+                    var p = psRaw[i];
+                    if (isPositionInside(p)) count++;
                 }
-                return sum;
+                return count;
             }
         }
-
-        #endregion
-
-        #region QueryContainsPoints
-
-        /// <summary>
-        /// Exact count.
-        /// </summary>
-        public static bool QueryContainsPoints(this PointSet node,
-            Func<IPointCloudNode, bool> isNodeFullyInside,
-            Func<IPointCloudNode, bool> isNodeFullyOutside,
-            Func<V3d, bool> isPositionInside,
-            int minCellExponent = int.MinValue
-            )
-            => QueryContainsPoints(node.Root.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, minCellExponent);
-
-        /// <summary>
-        /// Exact count.
-        /// </summary>
-        public static bool QueryContainsPoints(this IPointCloudNode node,
-            Func<IPointCloudNode, bool> isNodeFullyInside,
-            Func<IPointCloudNode, bool> isNodeFullyOutside,
-            Func<V3d, bool> isPositionInside,
-            int minCellExponent = int.MinValue
-            )
+        else
         {
-            if (node.Cell.Exponent < minCellExponent) return false;
-
-            if (isNodeFullyOutside(node)) return false;
-
-            if (node.IsLeaf() || node.Cell.Exponent == minCellExponent)
+            var sum = 0L;
+            for (var i = 0; i < 8; i++)
             {
-                if (isNodeFullyInside(node))
-                {
-                    return true;
-                }
-                else // partially inside
-                {
-                    var psRaw = node.PositionsAbsolute;
-                    for (var i = 0; i < psRaw.Length; i++)
-                    {
-                        var p = psRaw[i];
-                        if (isPositionInside(p)) return true;
-                    }
-                    return false;
-                }
+                var n = node.Subnodes![i];
+                if (n == null) continue;
+                sum += CountPoints(n.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, minCellExponent);
             }
-            else
+            return sum;
+        }
+    }
+
+    #endregion
+
+    #region Count approximately
+
+    /// <summary>
+    /// Approximate count (cell granularity).
+    /// Result is always equal or greater than exact number.
+    /// </summary>
+    public static long CountPointsApproximately(this PointSet node,
+        Func<IPointCloudNode, bool> isNodeFullyInside,
+        Func<IPointCloudNode, bool> isNodeFullyOutside,
+        int minCellExponent = int.MinValue
+        )
+        => CountPointsApproximately(node.Root.Value, isNodeFullyInside, isNodeFullyOutside, minCellExponent);
+
+    /// <summary>
+    /// Approximate count (cell granularity).
+    /// Result is always equal or greater than exact number.
+    /// </summary>
+    public static long CountPointsApproximately(this IPointCloudNode node,
+        Func<IPointCloudNode, bool> isNodeFullyInside,
+        Func<IPointCloudNode, bool> isNodeFullyOutside,
+        int minCellExponent = int.MinValue
+        )
+    {
+        if (node.Cell.Exponent < minCellExponent) return 0L;
+
+        if (isNodeFullyOutside(node)) return 0L;
+
+        if (node.IsLeaf() || node.Cell.Exponent == minCellExponent)
+        {
+            return node.Positions.Value.Length;
+        }
+        else
+        {
+            var sum = 0L;
+            for (var i = 0; i < 8; i++)
             {
-                for (var i = 0; i < 8; i++)
+                var n = node.Subnodes![i];
+                if (n == null) continue;
+                sum += CountPointsApproximately(n.Value, isNodeFullyInside, isNodeFullyOutside, minCellExponent);
+            }
+            return sum;
+        }
+    }
+
+    #endregion
+
+    #region QueryContainsPoints
+
+    /// <summary>
+    /// Exact count.
+    /// </summary>
+    public static bool QueryContainsPoints(this PointSet node,
+        Func<IPointCloudNode, bool> isNodeFullyInside,
+        Func<IPointCloudNode, bool> isNodeFullyOutside,
+        Func<V3d, bool> isPositionInside,
+        int minCellExponent = int.MinValue
+        )
+        => QueryContainsPoints(node.Root.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, minCellExponent);
+
+    /// <summary>
+    /// Exact count.
+    /// </summary>
+    public static bool QueryContainsPoints(this IPointCloudNode node,
+        Func<IPointCloudNode, bool> isNodeFullyInside,
+        Func<IPointCloudNode, bool> isNodeFullyOutside,
+        Func<V3d, bool> isPositionInside,
+        int minCellExponent = int.MinValue
+        )
+    {
+        if (node.Cell.Exponent < minCellExponent) return false;
+
+        if (isNodeFullyOutside(node)) return false;
+
+        if (node.IsLeaf() || node.Cell.Exponent == minCellExponent)
+        {
+            if (isNodeFullyInside(node))
+            {
+                return true;
+            }
+            else // partially inside
+            {
+                var psRaw = node.PositionsAbsolute;
+                for (var i = 0; i < psRaw.Length; i++)
                 {
-                    var n = node.Subnodes![i];
-                    if (n == null) continue;
-                    if (QueryContainsPoints(n.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, minCellExponent)) return true;
+                    var p = psRaw[i];
+                    if (isPositionInside(p)) return true;
                 }
                 return false;
             }
         }
-
-        #endregion
+        else
+        {
+            for (var i = 0; i < 8; i++)
+            {
+                var n = node.Subnodes![i];
+                if (n == null) continue;
+                if (QueryContainsPoints(n.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, minCellExponent)) return true;
+            }
+            return false;
+        }
     }
+
+    #endregion
 }

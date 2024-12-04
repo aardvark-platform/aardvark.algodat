@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -25,996 +25,994 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json.Nodes;
 using Uncodium.SimpleStore;
-using static Aardvark.Base.IL.Constant;
 
-namespace Aardvark.Geometry.Points
+namespace Aardvark.Geometry.Points;
+
+/// <summary></summary>
+public static class Codec
 {
-    /// <summary></summary>
-    public static class Codec
+    #region Generic
+
+    /// <summary>V3f[] -> byte[]</summary>
+    public static byte[] ArrayToBuffer<T>(T[] data, int elementSizeInBytes, Action<BinaryWriter, T> writeElement)
     {
-        #region Generic
+        //if (data == null) return null;
+        var buffer = new byte[data.Length * elementSizeInBytes];
+        using var ms = new MemoryStream(buffer);
+        using var bw = new BinaryWriter(ms);
+        for (var i = 0; i < data.Length; i++) writeElement(bw, data[i]);
+        return buffer;
+    }
 
-        /// <summary>V3f[] -> byte[]</summary>
-        public static byte[] ArrayToBuffer<T>(T[] data, int elementSizeInBytes, Action<BinaryWriter, T> writeElement)
-        {
-            //if (data == null) return null;
-            var buffer = new byte[data.Length * elementSizeInBytes];
-            using var ms = new MemoryStream(buffer);
-            using var bw = new BinaryWriter(ms);
-            for (var i = 0; i < data.Length; i++) writeElement(bw, data[i]);
-            return buffer;
-        }
+    /// <summary>IList&lt;V3f&gt; -> byte[]</summary>
+    public static byte[] ArrayToBuffer<T>(IList<T> data, int elementSizeInBytes, Action<BinaryWriter, T> writeElement)
+    {
+        //if (data == null) return null;
+        var buffer = new byte[data.Count * elementSizeInBytes];
+        using var ms = new MemoryStream(buffer);
+        using var bw = new BinaryWriter(ms);
+        for (var i = 0; i < data.Count; i++) writeElement(bw, data[i]);
+        return buffer;
+    }
 
-        /// <summary>IList&lt;V3f&gt; -> byte[]</summary>
-        public static byte[] ArrayToBuffer<T>(IList<T> data, int elementSizeInBytes, Action<BinaryWriter, T> writeElement)
-        {
-            //if (data == null) return null;
-            var buffer = new byte[data.Count * elementSizeInBytes];
-            using var ms = new MemoryStream(buffer);
-            using var bw = new BinaryWriter(ms);
-            for (var i = 0; i < data.Count; i++) writeElement(bw, data[i]);
-            return buffer;
-        }
+    /// <summary>byte[] -> T[]</summary>
+    public static T[] BufferToArray<T>(byte[] buffer, int elementSizeInBytes, Func<BinaryReader, T> readElement)
+    {
+        //if (buffer == null) return null;
+        var data = new T[buffer.Length / elementSizeInBytes];
+        using var ms = new MemoryStream(buffer);
+        using var br = new BinaryReader(ms);
+        for (var i = 0; i < data.Length; i++) data[i] = readElement(br);
+        return data;
+    }
 
-        /// <summary>byte[] -> T[]</summary>
-        public static T[] BufferToArray<T>(byte[] buffer, int elementSizeInBytes, Func<BinaryReader, T> readElement)
-        {
-            //if (buffer == null) return null;
-            var data = new T[buffer.Length / elementSizeInBytes];
-            using var ms = new MemoryStream(buffer);
-            using var br = new BinaryReader(ms);
-            for (var i = 0; i < data.Length; i++) data[i] = readElement(br);
-            return data;
-        }
+    #endregion
 
-        #endregion
+    #region int[]
 
-        #region int[]
+    /// <summary>int[] -> byte[]</summary>
+    public static byte[] IntArrayToBuffer(int[] data)
+        => ArrayToBuffer(data, sizeof(int), (bw, x) => bw.Write(x));
 
-        /// <summary>int[] -> byte[]</summary>
-        public static byte[] IntArrayToBuffer(int[] data)
-            => ArrayToBuffer(data, sizeof(int), (bw, x) => bw.Write(x));
+    /// <summary>byte[] -> int[]</summary>
+    public static int[] BufferToIntArray(byte[] buffer)
+        => BufferToArray(buffer, sizeof(int), br => br.ReadInt32());
 
-        /// <summary>byte[] -> int[]</summary>
-        public static int[] BufferToIntArray(byte[] buffer)
-            => BufferToArray(buffer, sizeof(int), br => br.ReadInt32());
+    #endregion
 
-        #endregion
+    #region int16[]
 
-        #region int16[]
+    /// <summary>int16[] -> byte[]</summary>
+    public static byte[] Int16ArrayToBuffer(short[] data)
+        => ArrayToBuffer(data, sizeof(short), (bw, x) => bw.Write(x));
 
-        /// <summary>int16[] -> byte[]</summary>
-        public static byte[] Int16ArrayToBuffer(short[] data)
-            => ArrayToBuffer(data, sizeof(short), (bw, x) => bw.Write(x));
+    /// <summary>byte[] -> int16[]</summary>
+    public static short[] BufferToInt16Array(byte[] buffer)
+        => BufferToArray(buffer, sizeof(short), br => br.ReadInt16());
 
-        /// <summary>byte[] -> int16[]</summary>
-        public static short[] BufferToInt16Array(byte[] buffer)
-            => BufferToArray(buffer, sizeof(short), br => br.ReadInt16());
+    #endregion
 
-        #endregion
+    #region V2f[]
 
-        #region V2f[]
+    /// <summary>V2f[] -> byte[]</summary>
+    public static byte[] V2fArrayToBuffer(V2f[] data)
+        => ArrayToBuffer(data, 8, (bw, x) => { bw.Write(x.X); bw.Write(x.Y); });
 
-        /// <summary>V2f[] -> byte[]</summary>
-        public static byte[] V2fArrayToBuffer(V2f[] data)
-            => ArrayToBuffer(data, 8, (bw, x) => { bw.Write(x.X); bw.Write(x.Y); });
+    /// <summary>IList&lt;V2f[]&gt; -> byte[]</summary>
+    public static byte[] V2fArrayToBuffer(IList<V2f> data)
+        => ArrayToBuffer(data, 8, (bw, x) => { bw.Write(x.X); bw.Write(x.Y); });
 
-        /// <summary>IList&lt;V2f[]&gt; -> byte[]</summary>
-        public static byte[] V2fArrayToBuffer(IList<V2f> data)
-            => ArrayToBuffer(data, 8, (bw, x) => { bw.Write(x.X); bw.Write(x.Y); });
+    /// <summary>byte[] -> V2f[]</summary>
+    public static V2f[] BufferToV2fArray(byte[] buffer)
+        => BufferToArray(buffer, 8, br => new V2f(br.ReadSingle(), br.ReadSingle()));
 
-        /// <summary>byte[] -> V2f[]</summary>
-        public static V2f[] BufferToV2fArray(byte[] buffer)
-            => BufferToArray(buffer, 8, br => new V2f(br.ReadSingle(), br.ReadSingle()));
+    #endregion
 
-        #endregion
+    #region V2d[]
 
-        #region V2d[]
+    /// <summary>V2d[] -> byte[]</summary>
+    public static byte[] V2dArrayToBuffer(V2d[] data)
+        => ArrayToBuffer(data, 16, (bw, x) => { bw.Write(x.X); bw.Write(x.Y); });
 
-        /// <summary>V2d[] -> byte[]</summary>
-        public static byte[] V2dArrayToBuffer(V2d[] data)
-            => ArrayToBuffer(data, 16, (bw, x) => { bw.Write(x.X); bw.Write(x.Y); });
+    /// <summary>IList&lt;V2d[]&gt; -> byte[]</summary>
+    public static byte[] V2dArrayToBuffer(IList<V2d> data)
+        => ArrayToBuffer(data, 16, (bw, x) => { bw.Write(x.X); bw.Write(x.Y); });
 
-        /// <summary>IList&lt;V2d[]&gt; -> byte[]</summary>
-        public static byte[] V2dArrayToBuffer(IList<V2d> data)
-            => ArrayToBuffer(data, 16, (bw, x) => { bw.Write(x.X); bw.Write(x.Y); });
+    /// <summary>byte[] -> V2d[]</summary>
+    public static V2d[] BufferToV2dArray(byte[] buffer)
+        => BufferToArray(buffer, 16, br => new V2d(br.ReadDouble(), br.ReadDouble()));
 
-        /// <summary>byte[] -> V2d[]</summary>
-        public static V2d[] BufferToV2dArray(byte[] buffer)
-            => BufferToArray(buffer, 16, br => new V2d(br.ReadDouble(), br.ReadDouble()));
+    #endregion
 
-        #endregion
+    #region V3f[]
 
-        #region V3f[]
+    /// <summary>V3f[] -> byte[]</summary>
+    public static byte[] V3fArrayToBuffer(V3f[] data)
+        => ArrayToBuffer(data, 12, (bw, x) => { bw.Write(x.X); bw.Write(x.Y); bw.Write(x.Z); });
 
-        /// <summary>V3f[] -> byte[]</summary>
-        public static byte[] V3fArrayToBuffer(V3f[] data)
-            => ArrayToBuffer(data, 12, (bw, x) => { bw.Write(x.X); bw.Write(x.Y); bw.Write(x.Z); });
+    /// <summary>IList&lt;V3f[]&gt; -> byte[]</summary>
+    public static byte[] V3fArrayToBuffer(IList<V3f> data)
+        => ArrayToBuffer(data, 12, (bw, x) => { bw.Write(x.X); bw.Write(x.Y); bw.Write(x.Z); });
 
-        /// <summary>IList&lt;V3f[]&gt; -> byte[]</summary>
-        public static byte[] V3fArrayToBuffer(IList<V3f> data)
-            => ArrayToBuffer(data, 12, (bw, x) => { bw.Write(x.X); bw.Write(x.Y); bw.Write(x.Z); });
+    /// <summary>byte[] -> V3f[]</summary>
+    public static V3f[] BufferToV3fArray(byte[] buffer)
+        => BufferToArray(buffer, 12, br => new V3f(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()));
 
-        /// <summary>byte[] -> V3f[]</summary>
-        public static V3f[] BufferToV3fArray(byte[] buffer)
-            => BufferToArray(buffer, 12, br => new V3f(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()));
+    #endregion
 
-        #endregion
+    #region V3d[]
 
-        #region V3d[]
+    /// <summary>V3d[] -> byte[]</summary>
+    public static byte[] V3dArrayToBuffer(V3d[] data)
+        => ArrayToBuffer(data, 24, (bw, x) => { bw.Write(x.X); bw.Write(x.Y); bw.Write(x.Z); });
+    
+    /// <summary>byte[] -> V3d[]</summary>
+    public static V3d[] BufferToV3dArray(byte[] buffer)
+        => BufferToArray(buffer, 24, br => new V3d(br.ReadDouble(), br.ReadDouble(), br.ReadDouble()));
 
-        /// <summary>V3d[] -> byte[]</summary>
-        public static byte[] V3dArrayToBuffer(V3d[] data)
-            => ArrayToBuffer(data, 24, (bw, x) => { bw.Write(x.X); bw.Write(x.Y); bw.Write(x.Z); });
+    #endregion
+
+    #region C4b[]
+
+    /// <summary>C4b[] -> byte[]</summary>
+    public static byte[] C4bArrayToBuffer(C4b[] data)
+    {
+        //if (data == null) return null;
+        var buffer = new byte[data.Length * 4];
+        using var ms = new MemoryStream(buffer);
         
-        /// <summary>byte[] -> V3d[]</summary>
-        public static V3d[] BufferToV3dArray(byte[] buffer)
-            => BufferToArray(buffer, 24, br => new V3d(br.ReadDouble(), br.ReadDouble(), br.ReadDouble()));
-
-        #endregion
-
-        #region C4b[]
-
-        /// <summary>C4b[] -> byte[]</summary>
-        public static byte[] C4bArrayToBuffer(C4b[] data)
+        for (var i = 0; i < data.Length; i++)
         {
-            //if (data == null) return null;
-            var buffer = new byte[data.Length * 4];
-            using var ms = new MemoryStream(buffer);
-            
-            for (var i = 0; i < data.Length; i++)
-            {
-                ms.WriteByte(data[i].R); ms.WriteByte(data[i].G); ms.WriteByte(data[i].B); ms.WriteByte(data[i].A);
-            }
-            
-            return buffer;
+            ms.WriteByte(data[i].R); ms.WriteByte(data[i].G); ms.WriteByte(data[i].B); ms.WriteByte(data[i].A);
         }
+        
+        return buffer;
+    }
 
-        /// <summary>byte[] -> C4b[]</summary>
-        public static C4b[] BufferToC4bArray(byte[] buffer)
+    /// <summary>byte[] -> C4b[]</summary>
+    public static C4b[] BufferToC4bArray(byte[] buffer)
+    {
+        //if (buffer == null) return null;
+        var data = new C4b[buffer.Length / 4];
+        for (int i = 0, j = 0; i < data.Length; i++)
         {
-            //if (buffer == null) return null;
-            var data = new C4b[buffer.Length / 4];
-            for (int i = 0, j = 0; i < data.Length; i++)
-            {
-                data[i] = new C4b(buffer[j++], buffer[j++], buffer[j++], buffer[j++]);
-            }
-            return data;
+            data[i] = new C4b(buffer[j++], buffer[j++], buffer[j++], buffer[j++]);
         }
+        return data;
+    }
 
-        #endregion
+    #endregion
 
-        #region PointRkdTreeDData
+    #region PointRkdTreeDData
 
-        /// <summary>PointRkdTreeDData -> byte[]</summary>
-        public static byte[] PointRkdTreeDDataToBuffer(PointRkdTreeDData data)
+    /// <summary>PointRkdTreeDData -> byte[]</summary>
+    public static byte[] PointRkdTreeDDataToBuffer(PointRkdTreeDData data)
+    {
+        //if (data == null) return null;
+        var ms = new MemoryStream();
+        using var coder = new BinaryWritingCoder(ms);
+        object x = data; coder.Code(ref x);
+        return ms.ToArray();
+    }
+
+    /// <summary>byte[] -> PointRkdTreeDData</summary>
+    public static PointRkdTreeDData BufferToPointRkdTreeDData(byte[] buffer)
+    {
+        //if (buffer == null) return null;
+        using var ms = new MemoryStream(buffer);
+        using var coder = new BinaryReadingCoder(ms);
+        object o = null!;
+        coder.Code(ref o);
+        return (PointRkdTreeDData)o;
+    }
+
+    #endregion
+
+    #region PointRkdTreeFData
+
+    /// <summary>PointRkdTreeDData -> byte[]</summary>
+    public static byte[] PointRkdTreeFDataToBuffer(PointRkdTreeFData data)
+    {
+        //if (data == null) return null;
+        var ms = new MemoryStream();
+        using var coder = new BinaryWritingCoder(ms);
+        object x = data; coder.Code(ref x);
+        return ms.ToArray();
+    }
+
+    /// <summary>byte[] -> PointRkdTreeDData</summary>
+    public static PointRkdTreeFData BufferToPointRkdTreeFData(byte[] buffer)
+    {
+        //if (buffer == null) return null;
+        using var ms = new MemoryStream(buffer);
+        using var coder = new BinaryReadingCoder(ms);
+        object o = null!;
+        coder.Code(ref o);
+        return (PointRkdTreeFData)o;
+    }
+
+    #endregion
+}
+
+/// <summary>
+/// </summary>
+public static class StorageExtensions
+{
+    #region Generic
+
+    /// <summary></summary>
+    public static bool TryGetFromCache<T>(this Storage storage, string key, [NotNullWhen(true)] out T? result)
+    {
+        if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
         {
-            //if (data == null) return null;
-            var ms = new MemoryStream();
-            using var coder = new BinaryWritingCoder(ms);
-            object x = data; coder.Code(ref x);
-            return ms.ToArray();
+            result = (T)o;
+            return true;
         }
-
-        /// <summary>byte[] -> PointRkdTreeDData</summary>
-        public static PointRkdTreeDData BufferToPointRkdTreeDData(byte[] buffer)
+        else
         {
-            //if (buffer == null) return null;
-            using var ms = new MemoryStream(buffer);
-            using var coder = new BinaryReadingCoder(ms);
-            object o = null!;
-            coder.Code(ref o);
-            return (PointRkdTreeDData)o;
+            result = default;
+            return false;
         }
+    }
 
-        #endregion
+    #endregion
 
-        #region PointRkdTreeFData
+    #region Stores
 
-        /// <summary>PointRkdTreeDData -> byte[]</summary>
-        public static byte[] PointRkdTreeFDataToBuffer(PointRkdTreeFData data)
-        {
-            //if (data == null) return null;
-            var ms = new MemoryStream();
-            using var coder = new BinaryWritingCoder(ms);
-            object x = data; coder.Code(ref x);
-            return ms.ToArray();
-        }
+    /// <summary></summary>
+    public static ImportConfig WithInMemoryStore(this ImportConfig self)
+        => self.WithStorage(new SimpleMemoryStore().ToPointCloudStore(cache: default));
 
-        /// <summary>byte[] -> PointRkdTreeDData</summary>
-        public static PointRkdTreeFData BufferToPointRkdTreeFData(byte[] buffer)
-        {
-            //if (buffer == null) return null;
-            using var ms = new MemoryStream(buffer);
-            using var coder = new BinaryReadingCoder(ms);
-            object o = null!;
-            coder.Code(ref o);
-            return (PointRkdTreeFData)o;
-        }
-
-        #endregion
+    /// <summary>
+    /// Wraps Uncodium.ISimpleStore into Storage.
+    /// </summary>
+    public static Storage ToPointCloudStore(this ISimpleStore x, LruDictionary<string, object>? cache) {
+        void add(string name, object value, Func<byte[]> create) => x.Add(name, create());
+        return new Storage(add, x.Get, x.GetSlice, x.Remove, x.Dispose, x.Flush, cache);
     }
 
     /// <summary>
+    /// Wraps Uncodium.ISimpleStore into Storage with default 1GB cache.
     /// </summary>
-    public static class StorageExtensions
+    public static Storage ToPointCloudStore(this ISimpleStore x)
     {
-        #region Generic
+        void add(string name, object value, Func<byte[]> create) => x.Add(name, create());
+        return new Storage(add, x.Get, x.GetSlice, x.Remove, x.Dispose, x.Flush, new LruDictionary<string, object>(1024 * 1024 * 1024));
+    }
 
-        /// <summary></summary>
-        public static bool TryGetFromCache<T>(this Storage storage, string key, [NotNullWhen(true)] out T? result)
+    #endregion
+
+    #region Exists
+
+    /// <summary>
+    /// Returns if given key exists in store.
+    /// </summary>
+    public static bool Exists(this Storage storage, Guid key) => Exists(storage, key.ToString());
+
+    /// <summary>
+    /// Returns if given key exists in store.
+    /// </summary>
+    public static bool Exists(this Storage storage, string key) => storage.f_get(key) != null;
+
+    #endregion
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Add(this Storage storage, Guid key, Array data)
+        => Add(storage, key.ToString(), data);
+
+    public static void Add(this Storage storage, string key, Array data)
+    {
+        switch (data)
         {
-            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
+            case null      : throw new ArgumentNullException(nameof(data));
+            case byte[]  xs: storage.f_add(key, xs, () => xs); break;
+            case int[]   xs: storage.f_add(key, xs, () => Codec.IntArrayToBuffer(xs)); break;
+            case short[] xs: storage.f_add(key, xs, () => Codec.Int16ArrayToBuffer(xs)); break;
+            case V2f[]   xs: storage.f_add(key, xs, () => Codec.V2fArrayToBuffer(xs)); break;
+            case V2d[]   xs: storage.f_add(key, xs, () => Codec.V2dArrayToBuffer(xs)); break;
+            case V3f[]   xs: storage.f_add(key, xs, () => Codec.V3fArrayToBuffer(xs)); break;
+            case V3d[]   xs: storage.f_add(key, xs, () => Codec.V3dArrayToBuffer(xs)); break;
+            case C4b[]   xs: storage.f_add(key, xs, () => Codec.C4bArrayToBuffer(xs)); break;
+            default: throw new Exception($"Type {data.GetType()} not supported.");
+        }
+    }
+
+    #region byte[]
+
+    /// <summary></summary>
+    public static void Add(this Storage storage, Guid key, byte[] data) => Add(storage, key.ToString(), data);
+
+    /// <summary></summary>
+    public static void Add(this Storage storage, string key, byte[] data) => storage.f_add(key, data, () => data);
+
+    /// <summary></summary>
+    public static byte[]? GetByteArray(this Storage storage, string key) => storage.f_get(key);
+
+    /// <summary></summary>
+    public static byte[]? GetByteArray(this Storage storage, Guid key) => storage.f_get(key.ToString());
+
+    /// <summary></summary>
+    public static (bool, byte[]?) TryGetByteArray(this Storage storage, string key)
+    {
+        var buffer = storage.f_get(key);
+        return (buffer != null, buffer);
+    }
+
+    public static bool TryGetByteArrayFromCache(this Storage storage, string key, [NotNullWhen(true)] out byte[]? result) => TryGetFromCache(storage, key, out result);
+
+    /// <summary>
+    /// Return ungzipped buffer, or original buffer if it is not gzipped.
+    /// </summary>
+    public static byte[] UnGZip(byte[] buffer, out bool bufferWasGzipped)
+    {
+        // gzipped buffer?
+        if (buffer.Length > 10 && buffer[0] == 0x1F && buffer[1] == 0x8B)
+        {
+            // starts with magic gzip bytes: 0x1F 0x8B
+            // see https://datatracker.ietf.org/doc/html/rfc1952#page-5
+            try
             {
-                result = (T)o;
-                return true;
-            }
-            else
-            {
-                result = default;
-                return false;
-            }
-        }
+                using var msgz = new MemoryStream(buffer);
+                using var stream = new GZipStream(msgz, CompressionMode.Decompress);
 
-        #endregion
+                const int size = 4096;
+                byte[] tmp = new byte[size];
+                using var ms = new MemoryStream();
 
-        #region Stores
-
-        /// <summary></summary>
-        public static ImportConfig WithInMemoryStore(this ImportConfig self)
-            => self.WithStorage(new SimpleMemoryStore().ToPointCloudStore(cache: default));
-
-        /// <summary>
-        /// Wraps Uncodium.ISimpleStore into Storage.
-        /// </summary>
-        public static Storage ToPointCloudStore(this ISimpleStore x, LruDictionary<string, object>? cache) {
-            void add(string name, object value, Func<byte[]> create) => x.Add(name, create());
-            return new Storage(add, x.Get, x.GetSlice, x.Remove, x.Dispose, x.Flush, cache);
-        }
-
-        /// <summary>
-        /// Wraps Uncodium.ISimpleStore into Storage with default 1GB cache.
-        /// </summary>
-        public static Storage ToPointCloudStore(this ISimpleStore x)
-        {
-            void add(string name, object value, Func<byte[]> create) => x.Add(name, create());
-            return new Storage(add, x.Get, x.GetSlice, x.Remove, x.Dispose, x.Flush, new LruDictionary<string, object>(1024 * 1024 * 1024));
-        }
-
-        #endregion
-
-        #region Exists
-
-        /// <summary>
-        /// Returns if given key exists in store.
-        /// </summary>
-        public static bool Exists(this Storage storage, Guid key) => Exists(storage, key.ToString());
-
-        /// <summary>
-        /// Returns if given key exists in store.
-        /// </summary>
-        public static bool Exists(this Storage storage, string key) => storage.f_get(key) != null;
-
-        #endregion
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Add(this Storage storage, Guid key, Array data)
-            => Add(storage, key.ToString(), data);
-
-        public static void Add(this Storage storage, string key, Array data)
-        {
-            switch (data)
-            {
-                case null      : throw new ArgumentNullException(nameof(data));
-                case byte[]  xs: storage.f_add(key, xs, () => xs); break;
-                case int[]   xs: storage.f_add(key, xs, () => Codec.IntArrayToBuffer(xs)); break;
-                case short[] xs: storage.f_add(key, xs, () => Codec.Int16ArrayToBuffer(xs)); break;
-                case V2f[]   xs: storage.f_add(key, xs, () => Codec.V2fArrayToBuffer(xs)); break;
-                case V2d[]   xs: storage.f_add(key, xs, () => Codec.V2dArrayToBuffer(xs)); break;
-                case V3f[]   xs: storage.f_add(key, xs, () => Codec.V3fArrayToBuffer(xs)); break;
-                case V3d[]   xs: storage.f_add(key, xs, () => Codec.V3dArrayToBuffer(xs)); break;
-                case C4b[]   xs: storage.f_add(key, xs, () => Codec.C4bArrayToBuffer(xs)); break;
-                default: throw new Exception($"Type {data.GetType()} not supported.");
-            }
-        }
-
-        #region byte[]
-
-        /// <summary></summary>
-        public static void Add(this Storage storage, Guid key, byte[] data) => Add(storage, key.ToString(), data);
-
-        /// <summary></summary>
-        public static void Add(this Storage storage, string key, byte[] data) => storage.f_add(key, data, () => data);
-
-        /// <summary></summary>
-        public static byte[]? GetByteArray(this Storage storage, string key) => storage.f_get(key);
-
-        /// <summary></summary>
-        public static byte[]? GetByteArray(this Storage storage, Guid key) => storage.f_get(key.ToString());
-
-        /// <summary></summary>
-        public static (bool, byte[]?) TryGetByteArray(this Storage storage, string key)
-        {
-            var buffer = storage.f_get(key);
-            return (buffer != null, buffer);
-        }
-
-        public static bool TryGetByteArrayFromCache(this Storage storage, string key, [NotNullWhen(true)] out byte[]? result) => TryGetFromCache(storage, key, out result);
-
-        /// <summary>
-        /// Return ungzipped buffer, or original buffer if it is not gzipped.
-        /// </summary>
-        public static byte[] UnGZip(byte[] buffer, out bool bufferWasGzipped)
-        {
-            // gzipped buffer?
-            if (buffer.Length > 10 && buffer[0] == 0x1F && buffer[1] == 0x8B)
-            {
-                // starts with magic gzip bytes: 0x1F 0x8B
-                // see https://datatracker.ietf.org/doc/html/rfc1952#page-5
-                try
+                int count = 0;
+                do
                 {
-                    using var msgz = new MemoryStream(buffer);
-                    using var stream = new GZipStream(msgz, CompressionMode.Decompress);
-
-                    const int size = 4096;
-                    byte[] tmp = new byte[size];
-                    using var ms = new MemoryStream();
-
-                    int count = 0;
-                    do
-                    {
-                        count = stream.Read(tmp, 0, size);
-                        if (count > 0) ms.Write(tmp, 0, count);
-                    }
-                    while (count > 0);
-                    stream.Close();
-                    bufferWasGzipped = true;
-                    return ms.ToArray();
+                    count = stream.Read(tmp, 0, size);
+                    if (count > 0) ms.Write(tmp, 0, count);
                 }
-                catch
-                {
-                    // although buffer starts with gzip magic bytes, it is not gzip
-                    bufferWasGzipped = false;
-                    return buffer; // return original buffer
-                }
+                while (count > 0);
+                stream.Close();
+                bufferWasGzipped = true;
+                return ms.ToArray();
             }
-            else
+            catch
             {
-                // not gzipped
+                // although buffer starts with gzip magic bytes, it is not gzip
                 bufferWasGzipped = false;
                 return buffer; // return original buffer
             }
         }
+        else
+        {
+            // not gzipped
+            bufferWasGzipped = false;
+            return buffer; // return original buffer
+        }
+    }
 
-        /// <summary>
-        /// Return ungzipped buffer, or original buffer if it is not gzipped.
-        /// </summary>
-        public static byte[] UnGZip(byte[] buffer) => UnGZip(buffer, out _);
+    /// <summary>
+    /// Return ungzipped buffer, or original buffer if it is not gzipped.
+    /// </summary>
+    public static byte[] UnGZip(byte[] buffer) => UnGZip(buffer, out _);
 
-        #endregion
+    #endregion
 
-        #region string/json
+    #region string/json
 
-        /// <summary></summary>
-        public static void Add(this Storage storage, Guid key, string s)
-            => Add(storage, key, Encoding.UTF8.GetBytes(s));
+    /// <summary></summary>
+    public static void Add(this Storage storage, Guid key, string s)
+        => Add(storage, key, Encoding.UTF8.GetBytes(s));
 
-        /// <summary></summary>
-        public static void Add(this Storage storage, string key, string s)
-            => Add(storage, key, Encoding.UTF8.GetBytes(s));
+    /// <summary></summary>
+    public static void Add(this Storage storage, string key, string s)
+        => Add(storage, key, Encoding.UTF8.GetBytes(s));
 
-        ///// <summary></summary>
-        //public static void Add(this Storage storage, Guid key, JObject json)
-        //    => Add(storage, key, Encoding.UTF8.GetBytes(json.ToString(Formatting.Indented)));
+    ///// <summary></summary>
+    //public static void Add(this Storage storage, Guid key, JObject json)
+    //    => Add(storage, key, Encoding.UTF8.GetBytes(json.ToString(Formatting.Indented)));
 
-        ///// <summary></summary>
-        //public static void Add(this Storage storage, string key, JObject json)
-        //    => Add(storage, key, Encoding.UTF8.GetBytes(json.ToString(Formatting.Indented)));
+    ///// <summary></summary>
+    //public static void Add(this Storage storage, string key, JObject json)
+    //    => Add(storage, key, Encoding.UTF8.GetBytes(json.ToString(Formatting.Indented)));
 
-        #endregion
+    #endregion
 
-        #region V3f[]
+    #region V3f[]
 
-        /// <summary></summary>
-        public static void Add(this Storage storage, Guid key, V3f[] data) => Add(storage, key.ToString(), data);
+    /// <summary></summary>
+    public static void Add(this Storage storage, Guid key, V3f[] data) => Add(storage, key.ToString(), data);
+    
+    /// <summary></summary>
+    public static void Add(this Storage storage, Guid key, IList<V3f> data) => Add(storage, key.ToString(), data);
+
+    /// <summary></summary>
+    public static void Add(this Storage storage, string key, V3f[] data)
+        => storage.f_add(key, data, () => Codec.V3fArrayToBuffer(data));
+    
+    /// <summary></summary>
+    public static void Add(this Storage storage, string key, IList<V3f> data)
+        => storage.f_add(key, data, () => Codec.V3fArrayToBuffer(data));
+
+    /// <summary></summary>
+    public static V3f[]? GetV3fArray(this Storage storage, string key)
+    {
+        if (storage.HasCache && storage.Cache.TryGetValue(key, out var o)) return (V3f[])o;
         
-        /// <summary></summary>
-        public static void Add(this Storage storage, Guid key, IList<V3f> data) => Add(storage, key.ToString(), data);
-
-        /// <summary></summary>
-        public static void Add(this Storage storage, string key, V3f[] data)
-            => storage.f_add(key, data, () => Codec.V3fArrayToBuffer(data));
+        var buffer = storage.f_get(key);
+        if (buffer == null) return null;
+        var data = Codec.BufferToV3fArray(buffer);
         
-        /// <summary></summary>
-        public static void Add(this Storage storage, string key, IList<V3f> data)
-            => storage.f_add(key, data, () => Codec.V3fArrayToBuffer(data));
+        if (storage.HasCache)
+            storage.Cache.Add(key, data, buffer.Length, onRemove: default);
 
-        /// <summary></summary>
-        public static V3f[]? GetV3fArray(this Storage storage, string key)
+        return data;
+    }
+
+    /// <summary></summary>
+    public static bool TryGetV3fArrayFromCache(this Storage storage, string key, [NotNullWhen(true)] out V3f[]? result) => TryGetFromCache(storage, key, out result);
+
+    #endregion
+
+    #region int[]
+
+    /// <summary></summary>
+    public static void Add(this Storage storage, Guid key, int[] data) => Add(storage, key.ToString(), data);
+
+    /// <summary></summary>
+    public static void Add(this Storage storage, string key, int[] data)
+        => storage.f_add(key, data, () => Codec.IntArrayToBuffer(data));
+
+    /// <summary></summary>
+    public static int[]? GetIntArray(this Storage storage, Guid key)
+        => GetIntArray(storage, key.ToString());
+
+    /// <summary></summary>
+    public static int[]? GetIntArray(this Storage storage, string key)
+    {
+        if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (int[])o;
+
+        var buffer = storage.f_get(key);
+        if (buffer == null) return null;
+        var data = Codec.BufferToIntArray(buffer);
+
+        if (storage.HasCache)
+            storage.Cache.Add(key, data, buffer.Length, onRemove: default);
+
+        return data;
+    }
+
+    /// <summary></summary>
+    public static (bool, int[]?) TryGetIntArray(this Storage storage, string key)
+    {
+        if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
         {
-            if (storage.HasCache && storage.Cache.TryGetValue(key, out var o)) return (V3f[])o;
-            
-            var buffer = storage.f_get(key);
-            if (buffer == null) return null;
-            var data = Codec.BufferToV3fArray(buffer);
-            
-            if (storage.HasCache)
-                storage.Cache.Add(key, data, buffer.Length, onRemove: default);
-
-            return data;
+            return (true, (int[])o);
         }
-
-        /// <summary></summary>
-        public static bool TryGetV3fArrayFromCache(this Storage storage, string key, [NotNullWhen(true)] out V3f[]? result) => TryGetFromCache(storage, key, out result);
-
-        #endregion
-
-        #region int[]
-
-        /// <summary></summary>
-        public static void Add(this Storage storage, Guid key, int[] data) => Add(storage, key.ToString(), data);
-
-        /// <summary></summary>
-        public static void Add(this Storage storage, string key, int[] data)
-            => storage.f_add(key, data, () => Codec.IntArrayToBuffer(data));
-
-        /// <summary></summary>
-        public static int[]? GetIntArray(this Storage storage, Guid key)
-            => GetIntArray(storage, key.ToString());
-
-        /// <summary></summary>
-        public static int[]? GetIntArray(this Storage storage, string key)
+        else
         {
-            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (int[])o;
-
-            var buffer = storage.f_get(key);
-            if (buffer == null) return null;
-            var data = Codec.BufferToIntArray(buffer);
-
-            if (storage.HasCache)
-                storage.Cache.Add(key, data, buffer.Length, onRemove: default);
-
-            return data;
+            return (false, default);
         }
+    }
 
-        /// <summary></summary>
-        public static (bool, int[]?) TryGetIntArray(this Storage storage, string key)
+    public static bool TryGetIntArrayFromCache(this Storage storage, string key, [NotNullWhen(true)] out int[]? result) => TryGetFromCache(storage, key, out result);
+
+    #endregion
+
+    #region int16[]
+
+    /// <summary></summary>
+    public static void Add(this Storage storage, Guid key, short[] data) => Add(storage, key.ToString(), data);
+
+    /// <summary></summary>
+    public static void Add(this Storage storage, string key, short[] data)
+        => storage.f_add(key, data, () => Codec.Int16ArrayToBuffer(data));
+
+    /// <summary></summary>
+    public static short[]? GetInt16Array(this Storage storage, Guid key)
+        => GetInt16Array(storage, key.ToString());
+
+    /// <summary></summary>
+    public static short[]? GetInt16Array(this Storage storage, string key)
+    {
+        if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (short[])o;
+
+        var buffer = storage.f_get(key);
+        if (buffer == null) return null;
+        var data = Codec.BufferToInt16Array(buffer);
+
+        if (storage.HasCache)
+            storage.Cache.Add(key, data, buffer.Length, onRemove: default);
+
+        return data;
+    }
+
+    /// <summary></summary>
+    public static (bool, short[]?) TryGetInt16Array(this Storage storage, string key)
+    {
+        if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
         {
-            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
-            {
-                return (true, (int[])o);
-            }
-            else
-            {
-                return (false, default);
-            }
+            return (true, (short[])o);
         }
-
-        public static bool TryGetIntArrayFromCache(this Storage storage, string key, [NotNullWhen(true)] out int[]? result) => TryGetFromCache(storage, key, out result);
-
-        #endregion
-
-        #region int16[]
-
-        /// <summary></summary>
-        public static void Add(this Storage storage, Guid key, short[] data) => Add(storage, key.ToString(), data);
-
-        /// <summary></summary>
-        public static void Add(this Storage storage, string key, short[] data)
-            => storage.f_add(key, data, () => Codec.Int16ArrayToBuffer(data));
-
-        /// <summary></summary>
-        public static short[]? GetInt16Array(this Storage storage, Guid key)
-            => GetInt16Array(storage, key.ToString());
-
-        /// <summary></summary>
-        public static short[]? GetInt16Array(this Storage storage, string key)
+        else
         {
-            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (short[])o;
-
-            var buffer = storage.f_get(key);
-            if (buffer == null) return null;
-            var data = Codec.BufferToInt16Array(buffer);
-
-            if (storage.HasCache)
-                storage.Cache.Add(key, data, buffer.Length, onRemove: default);
-
-            return data;
+            return (false, default);
         }
+    }
 
-        /// <summary></summary>
-        public static (bool, short[]?) TryGetInt16Array(this Storage storage, string key)
+    public static bool TryGetInt16ArrayFromCache(this Storage storage, string key, [NotNullWhen(true)] out short[]? result) => TryGetFromCache(storage, key, out result);
+
+    #endregion
+
+    #region C4b[]
+
+    /// <summary></summary>
+    public static void Add(this Storage storage, Guid key, C4b[] data) => Add(storage, key.ToString(), data);
+
+    /// <summary></summary>
+    public static void Add(this Storage storage, string key, C4b[] data)
+        => storage.f_add(key, data, () => Codec.C4bArrayToBuffer(data));
+
+    /// <summary></summary>
+    public static C4b[]? GetC4bArray(this Storage storage, string key)
+    {
+        if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (C4b[])o;
+
+        var buffer = storage.f_get(key);
+        if (buffer == null) return null;
+        var data = Codec.BufferToC4bArray(buffer);
+
+        if (storage.HasCache)
+            storage.Cache.Add(key, data, buffer.Length, onRemove: default);
+
+        return data;
+    }
+
+    /// <summary></summary>
+    public static (bool, C4b[]?) TryGetC4bArray(this Storage storage, string key)
+    {
+        if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
         {
-            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
-            {
-                return (true, (short[])o);
-            }
-            else
-            {
-                return (false, default);
-            }
+            return (true, (C4b[])o);
         }
-
-        public static bool TryGetInt16ArrayFromCache(this Storage storage, string key, [NotNullWhen(true)] out short[]? result) => TryGetFromCache(storage, key, out result);
-
-        #endregion
-
-        #region C4b[]
-
-        /// <summary></summary>
-        public static void Add(this Storage storage, Guid key, C4b[] data) => Add(storage, key.ToString(), data);
-
-        /// <summary></summary>
-        public static void Add(this Storage storage, string key, C4b[] data)
-            => storage.f_add(key, data, () => Codec.C4bArrayToBuffer(data));
-
-        /// <summary></summary>
-        public static C4b[]? GetC4bArray(this Storage storage, string key)
+        else
         {
-            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (C4b[])o;
-
-            var buffer = storage.f_get(key);
-            if (buffer == null) return null;
-            var data = Codec.BufferToC4bArray(buffer);
-
-            if (storage.HasCache)
-                storage.Cache.Add(key, data, buffer.Length, onRemove: default);
-
-            return data;
+            return (false, default);
         }
+    }
 
-        /// <summary></summary>
-        public static (bool, C4b[]?) TryGetC4bArray(this Storage storage, string key)
+    public static bool TryGetC4bArrayFromCache(this Storage storage, string key, [NotNullWhen(true)] out C4b[]? result) => TryGetFromCache(storage, key, out result);
+
+    #endregion
+
+    #region PointRkdTreeDData
+
+    ///// <summary></summary>
+    //public static void Add(this Storage storage, Guid key, PointRkdTreeDData data) => Add(storage, key.ToString(), data);
+
+    ///// <summary></summary>
+    //public static void Add(this Storage storage, string key, PointRkdTreeDData data)
+    //    => storage.f_add(key, data, () => Codec.PointRkdTreeDDataToBuffer(data));
+
+    /// <summary></summary>
+    public static PointRkdTreeDData? GetPointRkdTreeDData(this Storage storage, string key)
+    {
+        if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (PointRkdTreeDData)o;
+        
+        var buffer = storage.f_get(key);
+        if (buffer == null) return null;
+        var data = Codec.BufferToPointRkdTreeDData(buffer);
+        if (storage.HasCache) storage.Cache.Add(key, data, buffer.Length, onRemove: default);
+        return data;
+    }
+
+    /// <summary></summary>
+    public static (bool, PointRkdTreeDData?) TryGetPointRkdTreeDData(this Storage storage, string key)
+    {
+        if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
         {
-            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
-            {
-                return (true, (C4b[])o);
-            }
-            else
-            {
-                return (false, default);
-            }
+            return (true, (PointRkdTreeDData)o);
         }
-
-        public static bool TryGetC4bArrayFromCache(this Storage storage, string key, [NotNullWhen(true)] out C4b[]? result) => TryGetFromCache(storage, key, out result);
-
-        #endregion
-
-        #region PointRkdTreeDData
-
-        ///// <summary></summary>
-        //public static void Add(this Storage storage, Guid key, PointRkdTreeDData data) => Add(storage, key.ToString(), data);
-
-        ///// <summary></summary>
-        //public static void Add(this Storage storage, string key, PointRkdTreeDData data)
-        //    => storage.f_add(key, data, () => Codec.PointRkdTreeDDataToBuffer(data));
-
-        /// <summary></summary>
-        public static PointRkdTreeDData? GetPointRkdTreeDData(this Storage storage, string key)
+        else
         {
-            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (PointRkdTreeDData)o;
-            
-            var buffer = storage.f_get(key);
-            if (buffer == null) return null;
-            var data = Codec.BufferToPointRkdTreeDData(buffer);
-            if (storage.HasCache) storage.Cache.Add(key, data, buffer.Length, onRemove: default);
-            return data;
+            return (false, default);
         }
+    }
 
-        /// <summary></summary>
-        public static (bool, PointRkdTreeDData?) TryGetPointRkdTreeDData(this Storage storage, string key)
+    /// <summary>
+    /// </summary>
+    public static PointRkdTreeD<V3f[], V3f> GetKdTree(this Storage storage, string key, V3f[] positions)
+        => new(
+            3, positions.Length, positions,
+            (xs, i) => xs[(int)i], (v, i) => (float)v[i],
+            (a, b) => Vec.Distance(a, b), (i, a, b) => b - a,
+            (a, b, c) => Vec.DistanceToLine(a, b, c), (t,a,b) => Fun.Lerp((float)t,a,b), 1e-9,
+            storage.GetPointRkdTreeDData(key)
+            );
+
+    public static bool TryGetPointRkdTreeDDataFromCache(this Storage storage, string key, [NotNullWhen(true)] out C4b[]? result) => TryGetFromCache(storage, key, out result);
+
+    #endregion
+
+    #region PointRkdTreeFData
+
+    /// <summary></summary>
+    public static void Add(this Storage storage, Guid key, PointRkdTreeFData data) => Add(storage, key.ToString(), data);
+
+    /// <summary></summary>
+    public static void Add(this Storage storage, string key, PointRkdTreeFData data)
+        => storage.f_add(key, data, () => Codec.PointRkdTreeFDataToBuffer(data));
+
+    /// <summary></summary>
+    public static PointRkdTreeFData? GetPointRkdTreeFData(this Storage storage, string key)
+    {
+        if (storage == null) return null;
+        if (storage.HasCache == true && storage.Cache.TryGetValue(key, out object o)) return (PointRkdTreeFData)o;
+
+        var buffer = storage.f_get(key);
+        if (buffer == null) return null;
+        var data = Codec.BufferToPointRkdTreeFData(buffer);
+        if (storage.HasCache) storage.Cache.Add(key, data, buffer.Length, onRemove: default);
+        return data;
+    }
+
+    /// <summary></summary>
+    public static PointRkdTreeFData? GetPointRkdTreeFDataFromD(this Storage storage, string key)
+    {
+        if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (PointRkdTreeFData)o;
+
+        var buffer = storage.f_get(key);
+        if (buffer == null) return default;
+        var data0 = Codec.BufferToPointRkdTreeDData(buffer);
+        var data = new PointRkdTreeFData
         {
-            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
-            {
-                return (true, (PointRkdTreeDData)o);
-            }
-            else
-            {
-                return (false, default);
-            }
-        }
+            AxisArray = data0.AxisArray,
+            PermArray = data0.PermArray,
+            RadiusArray = data0.RadiusArray.Map(x => (float)x)
+        };
+        if (storage.HasCache) storage.Cache.Add(key, data, buffer.Length, onRemove: default);
+        return data;
+    }
 
-        /// <summary>
-        /// </summary>
-        public static PointRkdTreeD<V3f[], V3f> GetKdTree(this Storage storage, string key, V3f[] positions)
-            => new(
-                3, positions.Length, positions,
-                (xs, i) => xs[(int)i], (v, i) => (float)v[i],
-                (a, b) => Vec.Distance(a, b), (i, a, b) => b - a,
-                (a, b, c) => Vec.DistanceToLine(a, b, c), (t,a,b) => Fun.Lerp((float)t,a,b), 1e-9,
-                storage.GetPointRkdTreeDData(key)
+    /// <summary></summary>
+    public static (bool, PointRkdTreeFData?) TryGetPointRkdTreeFData(this Storage storage, string key)
+    {
+        if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
+        {
+            return (true, (PointRkdTreeFData)o);
+        }
+        else
+        {
+            return (false, default);
+        }
+    }
+
+    public static bool TryGetPointRkdTreeFDataFromCache(this Storage storage, string key, [NotNullWhen(true)] out C4b[]? result) => TryGetFromCache(storage, key, out result);
+
+    /// <summary></summary>
+    public static (bool, PointRkdTreeFData?) TryGetPointRkdTreeFDataFromD(this Storage storage, string key)
+    {
+        if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
+        {
+            return (true, (PointRkdTreeFData)o);
+        }
+        else
+        {
+            return (false, default);
+        }
+    }
+
+    public static bool TryGetPointRkdTreeFDataFromDFromCache(this Storage storage, string key, [NotNullWhen(true)] out C4b[]? result) => TryGetFromCache(storage, key, out result);
+
+    #endregion
+
+    #region PointSet
+
+    public static byte[] Encode(this PointSet self)
+    {
+        var json = self.ToJson().ToString();
+        var buffer = Encoding.UTF8.GetBytes(json);
+        return buffer;
+    }
+
+    /// <summary></summary>
+    public static void Add(this Storage storage, string key, PointSet data)
+    {
+        storage.f_add(key, data, () => data.Encode());
+    }
+    /// <summary></summary>
+    public static void Add(this Storage storage, Guid key, PointSet data)
+        => Add(storage, key.ToString(), data);
+
+    /// <summary></summary>
+    public static PointSet? GetPointSet(this Storage storage, string key)
+    {
+        if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (PointSet)o;
+
+        var buffer = storage.f_get(key);
+        if (buffer == null) return null;
+        var jsonUTF8 = Encoding.UTF8.GetString(buffer);
+        var json = JsonNode.Parse(jsonUTF8, new JsonNodeOptions() { PropertyNameCaseInsensitive = true }) ?? throw new Exception($"Failed to parse Json. Error 7949aa24-075c-4cb4-8787-69d2de06f892.\n{jsonUTF8}");
+        var data = PointSet.Parse(json, storage);
+
+        if (storage.HasCache) storage.Cache.Add(
+            key, data, buffer.Length, onRemove: default
+            );
+        return data;
+    }
+    public static PointSet? GetPointSet(this Storage storage, Guid key)
+        => GetPointSet(storage, key.ToString());
+
+    #endregion
+
+    #region PointSetNode
+
+    /// <summary></summary>
+    public static void Add(this Storage storage, string key, PointSetNode data)
+    {
+        storage.f_add(key, data, () =>
+        {
+            if (key != data.Id.ToString()) throw new InvalidOperationException("Invariant b5b13ca6-0182-4e00-a7fe-41ccd9362beb.");
+            return data.Encode();
+        });
+    }
+
+    /// <summary></summary>
+    public static void Add(this Storage storage, string key, IPointCloudNode data)
+    {
+        storage.f_add(key, data, () =>
+        {
+            if (key != data.Id.ToString()) throw new InvalidOperationException("Invariant a1e63dbc-6996-481e-996f-afdac047be0b.");
+            return data.Encode();
+        });
+    }
+
+    /// <summary>
+    /// </summary>
+    public static IPointCloudNode GetPointCloudNode(this Storage storage, Guid key)
+        => GetPointCloudNode(storage, key.ToString());
+
+    /// <summary>
+    /// </summary>
+    public static IPointCloudNode GetPointCloudNode(this Storage storage, string key)
+    {
+        if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
+        {
+            if (o is not IPointCloudNode r) throw new InvalidOperationException(
+                $"Invariant d1cb769c-36b6-4374-8248-b8c1ca31d495. " +
+                $"[GetPointCloudNode] Store key {key} is not IPointCloudNode. " +
+                $"Error 7aebf7f1-3783-42fb-b405-47384e08f716."
                 );
-
-        public static bool TryGetPointRkdTreeDDataFromCache(this Storage storage, string key, [NotNullWhen(true)] out C4b[]? result) => TryGetFromCache(storage, key, out result);
-
-        #endregion
-
-        #region PointRkdTreeFData
-
-        /// <summary></summary>
-        public static void Add(this Storage storage, Guid key, PointRkdTreeFData data) => Add(storage, key.ToString(), data);
-
-        /// <summary></summary>
-        public static void Add(this Storage storage, string key, PointRkdTreeFData data)
-            => storage.f_add(key, data, () => Codec.PointRkdTreeFDataToBuffer(data));
-
-        /// <summary></summary>
-        public static PointRkdTreeFData? GetPointRkdTreeFData(this Storage storage, string key)
-        {
-            if (storage == null) return null;
-            if (storage.HasCache == true && storage.Cache.TryGetValue(key, out object o)) return (PointRkdTreeFData)o;
-
-            var buffer = storage.f_get(key);
-            if (buffer == null) return null;
-            var data = Codec.BufferToPointRkdTreeFData(buffer);
-            if (storage.HasCache) storage.Cache.Add(key, data, buffer.Length, onRemove: default);
-            return data;
+            return r;
         }
 
-        /// <summary></summary>
-        public static PointRkdTreeFData? GetPointRkdTreeFDataFromD(this Storage storage, string key)
-        {
-            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (PointRkdTreeFData)o;
+        var buffer = storage.f_get(key) ?? throw new Exception(
+            $"PointCloudNode not found (id={key}). " +
+            $"Error b2ef55c1-1470-465d-80ea-034464c53638."
+            );
 
-            var buffer = storage.f_get(key);
-            if (buffer == null) return default;
-            var data0 = Codec.BufferToPointRkdTreeDData(buffer);
-            var data = new PointRkdTreeFData
-            {
-                AxisArray = data0.AxisArray,
-                PermArray = data0.PermArray,
-                RadiusArray = data0.RadiusArray.Map(x => (float)x)
-            };
-            if (storage.HasCache) storage.Cache.Add(key, data, buffer.Length, onRemove: default);
-            return data;
+        try
+        {
+            return TryDecodeBuffer(buffer);
         }
-
-        /// <summary></summary>
-        public static (bool, PointRkdTreeFData?) TryGetPointRkdTreeFData(this Storage storage, string key)
+        catch 
         {
-            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
-            {
-                return (true, (PointRkdTreeFData)o);
-            }
-            else
-            {
-                return (false, default);
-            }
-        }
-
-        public static bool TryGetPointRkdTreeFDataFromCache(this Storage storage, string key, [NotNullWhen(true)] out C4b[]? result) => TryGetFromCache(storage, key, out result);
-
-        /// <summary></summary>
-        public static (bool, PointRkdTreeFData?) TryGetPointRkdTreeFDataFromD(this Storage storage, string key)
-        {
-            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
-            {
-                return (true, (PointRkdTreeFData)o);
-            }
-            else
-            {
-                return (false, default);
-            }
-        }
-
-        public static bool TryGetPointRkdTreeFDataFromDFromCache(this Storage storage, string key, [NotNullWhen(true)] out C4b[]? result) => TryGetFromCache(storage, key, out result);
-
-        #endregion
-
-        #region PointSet
-
-        public static byte[] Encode(this PointSet self)
-        {
-            var json = self.ToJson().ToString();
-            var buffer = Encoding.UTF8.GetBytes(json);
-            return buffer;
-        }
-
-        /// <summary></summary>
-        public static void Add(this Storage storage, string key, PointSet data)
-        {
-            storage.f_add(key, data, () => data.Encode());
-        }
-        /// <summary></summary>
-        public static void Add(this Storage storage, Guid key, PointSet data)
-            => Add(storage, key.ToString(), data);
-
-        /// <summary></summary>
-        public static PointSet? GetPointSet(this Storage storage, string key)
-        {
-            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (PointSet)o;
-
-            var buffer = storage.f_get(key);
-            if (buffer == null) return null;
-            var jsonUTF8 = Encoding.UTF8.GetString(buffer);
-            var json = JsonNode.Parse(jsonUTF8, new JsonNodeOptions() { PropertyNameCaseInsensitive = true }) ?? throw new Exception($"Failed to parse Json. Error 7949aa24-075c-4cb4-8787-69d2de06f892.\n{jsonUTF8}");
-            var data = PointSet.Parse(json, storage);
-
-            if (storage.HasCache) storage.Cache.Add(
-                key, data, buffer.Length, onRemove: default
-                );
-            return data;
-        }
-        public static PointSet? GetPointSet(this Storage storage, Guid key)
-            => GetPointSet(storage, key.ToString());
-
-        #endregion
-
-        #region PointSetNode
-
-        /// <summary></summary>
-        public static void Add(this Storage storage, string key, PointSetNode data)
-        {
-            storage.f_add(key, data, () =>
-            {
-                if (key != data.Id.ToString()) throw new InvalidOperationException("Invariant b5b13ca6-0182-4e00-a7fe-41ccd9362beb.");
-                return data.Encode();
-            });
-        }
-
-        /// <summary></summary>
-        public static void Add(this Storage storage, string key, IPointCloudNode data)
-        {
-            storage.f_add(key, data, () =>
-            {
-                if (key != data.Id.ToString()) throw new InvalidOperationException("Invariant a1e63dbc-6996-481e-996f-afdac047be0b.");
-                return data.Encode();
-            });
-        }
-
-        /// <summary>
-        /// </summary>
-        public static IPointCloudNode GetPointCloudNode(this Storage storage, Guid key)
-            => GetPointCloudNode(storage, key.ToString());
-
-        /// <summary>
-        /// </summary>
-        public static IPointCloudNode GetPointCloudNode(this Storage storage, string key)
-        {
-            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
-            {
-                if (o is not IPointCloudNode r) throw new InvalidOperationException(
-                    $"Invariant d1cb769c-36b6-4374-8248-b8c1ca31d495. " +
-                    $"[GetPointCloudNode] Store key {key} is not IPointCloudNode. " +
-                    $"Error 7aebf7f1-3783-42fb-b405-47384e08f716."
-                    );
-                return r;
-            }
-
-            var buffer = storage.f_get(key) ?? throw new Exception(
-                $"PointCloudNode not found (id={key}). " +
-                $"Error b2ef55c1-1470-465d-80ea-034464c53638."
-                );
-
             try
             {
-                return TryDecodeBuffer(buffer);
+                return TryDecodeBuffer(UnGzipBuffer(buffer));
             }
-            catch 
+            catch //(Exception e)
             {
-                try
-                {
-                    return TryDecodeBuffer(UnGzipBuffer(buffer));
-                }
-                catch //(Exception e)
-                {
-                    //Report.Warn("Failed to decode PointSetNode. Unknown format.");
-                    //Report.Warn($"{e}");
-                    return ObsoleteNodeParser.Parse(storage, buffer);
-                }
-            }
-
-            IPointCloudNode TryDecodeBuffer(byte[] buffer)
-            {
-                var guid = new Guid(buffer.TakeToArray(16));
-                if (guid == Durable.Octree.Node.Id)
-                {
-                    var data = PointSetNode.Decode(storage, buffer);
-                    if (key != data.Id.ToString()) throw new InvalidOperationException("Invariant 32554e4b-1e53-4e30-8b3c-c218c5b63c46.");
-
-                    if (storage.HasCache) storage.Cache.Add(
-                        key, data, buffer.Length, onRemove: default
-                        );
-                    return data;
-                }
-                else if (guid == FilteredNode.Defs.FilteredNode.Id)
-                {
-                    var fn = FilteredNode.Decode(storage, buffer);
-                    if (key != fn.Id.ToString()) throw new InvalidOperationException("Invariant 14511080-b605-4f6b-ac49-2495899ccdec.");
-
-
-                    if (storage.HasCache) storage.Cache.Add(
-                        key, fn, buffer.Length, onRemove: default // what to add here?
-                        );
-
-                    return fn;
-                }
-                //else if (guid == Durable.Octree.MultiNodeIndex.Id)
-                //{
-                //    var index = MultiNodeIndex.Decode(buffer);
-                //    var (offset, size) = index.GetOffsetAndSize(index.RootNodeId);
-                //    var bufferRootNode = UnGZip(storage.f_getSlice(index.TreeBlobId, offset, size));
-                //    //var rootNode = DurableCodec.Deserialize(bufferRootNode);
-                //    var rootNode = PointSetNode.Decode(storage, bufferRootNode);
-                //    var multiNode = new MultiNode(index, rootNode);
-                //    return multiNode;
-                //}
-                else
-                {
-                    // if all fails, may be obsolete node format ...
-                    return ObsoleteNodeParser.Parse(storage, buffer);
-                }
-            }
-
-            byte[] UnGzipBuffer(byte[] buffer)
-            {
-                using var stream = new GZipStream(new MemoryStream(buffer), CompressionMode.Decompress);
-                var size = 4096 * 4;
-                var tmp = new byte[size];
-                using var memory = new MemoryStream();
-                var count = -1;
-                while (count != 0)
-                {
-                    count = stream.Read(tmp, 0, size);
-                    if (count > 0) memory.Write(tmp, 0, count);
-                }
-
-                var result = memory.ToArray();
-                return result;
+                //Report.Warn("Failed to decode PointSetNode. Unknown format.");
+                //Report.Warn($"{e}");
+                return ObsoleteNodeParser.Parse(storage, buffer);
             }
         }
 
-        /// <summary>
-        /// </summary>
-        public static bool TryGetPointCloudNode(this Storage storage, string key, [NotNullWhen(true)]out IPointCloudNode? result)
+        IPointCloudNode TryDecodeBuffer(byte[] buffer)
         {
-            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
+            var guid = new Guid(buffer.TakeToArray(16));
+            if (guid == Durable.Octree.Node.Id)
             {
-                result = (PointSetNode)o;
+                var data = PointSetNode.Decode(storage, buffer);
+                if (key != data.Id.ToString()) throw new InvalidOperationException("Invariant 32554e4b-1e53-4e30-8b3c-c218c5b63c46.");
+
+                if (storage.HasCache) storage.Cache.Add(
+                    key, data, buffer.Length, onRemove: default
+                    );
+                return data;
+            }
+            else if (guid == FilteredNode.Defs.FilteredNode.Id)
+            {
+                var fn = FilteredNode.Decode(storage, buffer);
+                if (key != fn.Id.ToString()) throw new InvalidOperationException("Invariant 14511080-b605-4f6b-ac49-2495899ccdec.");
+
+
+                if (storage.HasCache) storage.Cache.Add(
+                    key, fn, buffer.Length, onRemove: default // what to add here?
+                    );
+
+                return fn;
+            }
+            //else if (guid == Durable.Octree.MultiNodeIndex.Id)
+            //{
+            //    var index = MultiNodeIndex.Decode(buffer);
+            //    var (offset, size) = index.GetOffsetAndSize(index.RootNodeId);
+            //    var bufferRootNode = UnGZip(storage.f_getSlice(index.TreeBlobId, offset, size));
+            //    //var rootNode = DurableCodec.Deserialize(bufferRootNode);
+            //    var rootNode = PointSetNode.Decode(storage, bufferRootNode);
+            //    var multiNode = new MultiNode(index, rootNode);
+            //    return multiNode;
+            //}
+            else
+            {
+                // if all fails, may be obsolete node format ...
+                return ObsoleteNodeParser.Parse(storage, buffer);
+            }
+        }
+
+        byte[] UnGzipBuffer(byte[] buffer)
+        {
+            using var stream = new GZipStream(new MemoryStream(buffer), CompressionMode.Decompress);
+            var size = 4096 * 4;
+            var tmp = new byte[size];
+            using var memory = new MemoryStream();
+            var count = -1;
+            while (count != 0)
+            {
+                count = stream.Read(tmp, 0, size);
+                if (count > 0) memory.Write(tmp, 0, count);
+            }
+
+            var result = memory.ToArray();
+            return result;
+        }
+    }
+
+    /// <summary>
+    /// </summary>
+    public static bool TryGetPointCloudNode(this Storage storage, string key, [NotNullWhen(true)]out IPointCloudNode? result)
+    {
+        if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
+        {
+            result = (PointSetNode)o;
+            return true;
+        }
+        else
+        {
+            try
+            {
+                result = storage.GetPointCloudNode(key);
                 return true;
             }
-            else
+            catch
+            {
+                result = null;
+                return false;
+            }
+        }
+    }
+
+    /// <summary>
+    /// </summary>
+
+    [Obsolete("Use TryGetPointCloudNode with out parameter instead.")]
+    public static (bool, IPointCloudNode?) TryGetPointCloudNode(this Storage storage, string key)
+    {
+        if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
+        {
+            return (true, (PointSetNode)o);
+        }
+        else
+        {
+            try
+            {
+                return (true, storage.GetPointCloudNode(key));
+            }
+            catch
+            {
+                return (false, default);
+            }
+        }
+    }
+
+    #endregion
+
+    #region Safe octree load
+
+    /// <summary>
+    /// Try to load PointSet or PointCloudNode with given key.
+    /// Returns octree root node when found.
+    /// </summary>
+    public static bool TryGetOctree(this Storage storage, string key, [NotNullWhen(true)]out IPointCloudNode? root)
+    {
+        var bs = storage.f_get.Invoke(key);
+        if (bs != null)
+        {
+            try
+            {
+                var ps = storage.GetPointSet(key);
+                if (ps == null) { root = null; return false; }
+                root = ps.Root.Value!;
+                return true;
+            }
+            catch
             {
                 try
                 {
-                    result = storage.GetPointCloudNode(key);
+                    root = storage.GetPointCloudNode(key);
+                    if (root == null) return false;
                     return true;
                 }
-                catch
+                catch (Exception en)
                 {
-                    result = null;
+                    Report.Warn($"Invariant 70012c8d-b994-4ddf-adb6-a5481434561a. {en}.");
+                    root = null;
                     return false;
                 }
             }
         }
-
-        /// <summary>
-        /// </summary>
-
-        [Obsolete("Use TryGetPointCloudNode with out parameter instead.")]
-        public static (bool, IPointCloudNode?) TryGetPointCloudNode(this Storage storage, string key)
+        else
         {
-            if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
-            {
-                return (true, (PointSetNode)o);
-            }
-            else
-            {
-                try
-                {
-                    return (true, storage.GetPointCloudNode(key));
-                }
-                catch
-                {
-                    return (false, default);
-                }
-            }
+            Report.Warn($"Key {key} does not exist in store. Invariant af97e19a-63e8-46ad-a752-fe1200828ced.");
+            root = null;
+            return false;
         }
-
-        #endregion
-
-        #region Safe octree load
-
-        /// <summary>
-        /// Try to load PointSet or PointCloudNode with given key.
-        /// Returns octree root node when found.
-        /// </summary>
-        public static bool TryGetOctree(this Storage storage, string key, [NotNullWhen(true)]out IPointCloudNode? root)
-        {
-            var bs = storage.f_get.Invoke(key);
-            if (bs != null)
-            {
-                try
-                {
-                    var ps = storage.GetPointSet(key);
-                    if (ps == null) { root = null; return false; }
-                    root = ps.Root.Value!;
-                    return true;
-                }
-                catch
-                {
-                    try
-                    {
-                        root = storage.GetPointCloudNode(key);
-                        if (root == null) return false;
-                        return true;
-                    }
-                    catch (Exception en)
-                    {
-                        Report.Warn($"Invariant 70012c8d-b994-4ddf-adb6-a5481434561a. {en}.");
-                        root = null;
-                        return false;
-                    }
-                }
-            }
-            else
-            {
-                Report.Warn($"Key {key} does not exist in store. Invariant af97e19a-63e8-46ad-a752-fe1200828ced.");
-                root = null;
-                return false;
-            }
-        }
-
-        #endregion
-
-        #region Durable
-
-        /// <summary>
-        /// Binary encodes (and optionally gzips) a durable map with given definition from a sequence of key/value pairs.
-        /// Entries are encoded in the same order as given by the data sequence.
-        /// </summary>
-        public static byte[] DurableEncode(this IEnumerable<KeyValuePair<Durable.Def, object>> data, Durable.Def def, bool gzipped)
-        {
-            if (data == null) throw new Exception("Invariant c61b7125-b523-4f19-8f51-5e8be5d06dde.");
-            if (def == null) throw new Exception("Invariant a126aff5-8352-4e7c-9864-5459bbf0a5d6.");
-
-            using var ms = new MemoryStream();
-            using var zs = gzipped ? new GZipStream(ms, CompressionLevel.Optimal) : (Stream)ms;
-            using var bw = new BinaryWriter(zs);
-            Data.Codec.Serialize(bw, def, data);
-            bw.Close(); // must close, otherwise GZipStream will not write to completion in net48 (ignores flush!!)
-            
-            var buffer = ms.ToArray();
-            return buffer;
-        }
-
-        public static byte[] Add(this Storage storage, string key, Durable.Def def, IEnumerable<KeyValuePair<Durable.Def, object>> data, bool gzipped)
-        {
-            if (key == null) throw new Exception("Invariant 40e0143a-af01-4e77-b278-abb1a0c182f2.");
-            if (def == null) throw new Exception("Invariant a7a6516e-e019-46ea-b7db-69b559a2aad4.");
-            if (data == null) throw new Exception("Invariant ec5b1c03-d92c-4b2d-9b5c-a30f935369e5.");
-
-            using var ms = new MemoryStream();
-            using var zs = gzipped ? new GZipStream(ms, CompressionLevel.Optimal) : (Stream)ms;
-            using var bw = new BinaryWriter(zs);
-            Data.Codec.Serialize(bw, def, data);
-            bw.Close(); // must close, otherwise GZipStream will not write to completion in net48 (ignores flush!!)
-            
-            var buffer = ms.ToArray();
-            storage.Add(key, buffer);
-
-            return buffer;
-        }
-        public static byte[] Add(this Storage storage, Guid key, Durable.Def def, ImmutableDictionary<Durable.Def, object> data, bool gzipped)
-            => Add(storage, key.ToString(), def, data, gzipped);
-        public static byte[] Add(this Storage storage, Guid key, Durable.Def def, IEnumerable<KeyValuePair<Durable.Def, object>> data, bool gzipped)
-            => Add(storage, key.ToString(), def, data, gzipped);
-
-        public static (Durable.Def, object) DurableDecode(this byte[] buffer)
-            => Data.Codec.Deserialize(buffer);
-        public static T DurableDecode<T>(this byte[] buffer)
-            => (T)Data.Codec.Deserialize(buffer).Item2;
-
-        public static (Durable.Def?, object?) GetDurable(this Storage storage, string key)
-        {
-            if (key == null) return (null, null);
-            var buffer = storage.f_get(key);
-            if (buffer == null) return (null, null);
-            return Data.Codec.Deserialize(buffer);
-        }
-        public static (Durable.Def?, object?) GetDurable(this Storage storage, Guid key)
-            => GetDurable(storage, key.ToString());
-
-        #endregion
     }
+
+    #endregion
+
+    #region Durable
+
+    /// <summary>
+    /// Binary encodes (and optionally gzips) a durable map with given definition from a sequence of key/value pairs.
+    /// Entries are encoded in the same order as given by the data sequence.
+    /// </summary>
+    public static byte[] DurableEncode(this IEnumerable<KeyValuePair<Durable.Def, object>> data, Durable.Def def, bool gzipped)
+    {
+        if (data == null) throw new Exception("Invariant c61b7125-b523-4f19-8f51-5e8be5d06dde.");
+        if (def == null) throw new Exception("Invariant a126aff5-8352-4e7c-9864-5459bbf0a5d6.");
+
+        using var ms = new MemoryStream();
+        using var zs = gzipped ? new GZipStream(ms, CompressionLevel.Optimal) : (Stream)ms;
+        using var bw = new BinaryWriter(zs);
+        Data.Codec.Serialize(bw, def, data);
+        bw.Close(); // must close, otherwise GZipStream will not write to completion in net48 (ignores flush!!)
+        
+        var buffer = ms.ToArray();
+        return buffer;
+    }
+
+    public static byte[] Add(this Storage storage, string key, Durable.Def def, IEnumerable<KeyValuePair<Durable.Def, object>> data, bool gzipped)
+    {
+        if (key == null) throw new Exception("Invariant 40e0143a-af01-4e77-b278-abb1a0c182f2.");
+        if (def == null) throw new Exception("Invariant a7a6516e-e019-46ea-b7db-69b559a2aad4.");
+        if (data == null) throw new Exception("Invariant ec5b1c03-d92c-4b2d-9b5c-a30f935369e5.");
+
+        using var ms = new MemoryStream();
+        using var zs = gzipped ? new GZipStream(ms, CompressionLevel.Optimal) : (Stream)ms;
+        using var bw = new BinaryWriter(zs);
+        Data.Codec.Serialize(bw, def, data);
+        bw.Close(); // must close, otherwise GZipStream will not write to completion in net48 (ignores flush!!)
+        
+        var buffer = ms.ToArray();
+        storage.Add(key, buffer);
+
+        return buffer;
+    }
+    public static byte[] Add(this Storage storage, Guid key, Durable.Def def, ImmutableDictionary<Durable.Def, object> data, bool gzipped)
+        => Add(storage, key.ToString(), def, data, gzipped);
+    public static byte[] Add(this Storage storage, Guid key, Durable.Def def, IEnumerable<KeyValuePair<Durable.Def, object>> data, bool gzipped)
+        => Add(storage, key.ToString(), def, data, gzipped);
+
+    public static (Durable.Def, object) DurableDecode(this byte[] buffer)
+        => Data.Codec.Deserialize(buffer);
+    public static T DurableDecode<T>(this byte[] buffer)
+        => (T)Data.Codec.Deserialize(buffer).Item2;
+
+    public static (Durable.Def?, object?) GetDurable(this Storage storage, string key)
+    {
+        if (key == null) return (null, null);
+        var buffer = storage.f_get(key);
+        if (buffer == null) return (null, null);
+        return Data.Codec.Deserialize(buffer);
+    }
+    public static (Durable.Def?, object?) GetDurable(this Storage storage, Guid key)
+        => GetDurable(storage, key.ToString());
+
+    #endregion
 }

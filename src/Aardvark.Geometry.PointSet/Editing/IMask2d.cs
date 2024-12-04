@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -14,38 +14,37 @@
 using Aardvark.Base;
 using System.Text.Json.Nodes;
 
-namespace Aardvark.Geometry.Points
+namespace Aardvark.Geometry.Points;
+
+/// <summary>
+/// </summary>
+public interface IMask2d
 {
     /// <summary>
     /// </summary>
-    public interface IMask2d
-    {
-        /// <summary>
-        /// </summary>
-        Triangle2d[] ComputeTriangulation();
+    Triangle2d[] ComputeTriangulation();
 
-        /// <summary>
-        /// </summary>
-        IMask2d And(IMask2d other);
+    /// <summary>
+    /// </summary>
+    IMask2d And(IMask2d other);
 
-        /// <summary>
-        /// </summary>
-        IMask2d Or(IMask2d other);
+    /// <summary>
+    /// </summary>
+    IMask2d Or(IMask2d other);
 
-        /// <summary>
-        /// </summary>
-        IMask2d Xor(IMask2d other);
+    /// <summary>
+    /// </summary>
+    IMask2d Xor(IMask2d other);
 
-        /// <summary>
-        /// </summary>
-        IMask2d Subtract(IMask2d other);
+    /// <summary>
+    /// </summary>
+    IMask2d Subtract(IMask2d other);
 
-        /// <summary>
-        /// </summary>
-        bool IsEmpty { get; }
+    /// <summary>
+    /// </summary>
+    bool IsEmpty { get; }
 
-        /// <summary>
-        /// </summary>
-        JsonNode ToJson();
-    }
+    /// <summary>
+    /// </summary>
+    JsonNode ToJson();
 }

@@ -16,38 +16,37 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json.Nodes;
 
-namespace Aardvark.Geometry.Points
+namespace Aardvark.Geometry.Points;
+
+/// <summary>
+/// </summary>
+public interface IFilter : IEquatable<IFilter>
 {
+    /// <summary></summary>
+    bool IsFullyInside(IPointCloudNode node);
+
+    /// <summary></summary>
+    bool IsFullyOutside(IPointCloudNode node);
+
     /// <summary>
+    /// Computes indices of selected/visible points, starting from already selected points.
+    /// If 'selected' is null, then ALL points are selected to begin with.
     /// </summary>
-    public interface IFilter : IEquatable<IFilter>
-    {
-        /// <summary></summary>
-        bool IsFullyInside(IPointCloudNode node);
+    HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null);
 
-        /// <summary></summary>
-        bool IsFullyOutside(IPointCloudNode node);
+    /// <summary></summary>
+    JsonNode Serialize();
+}
 
-        /// <summary>
-        /// Computes indices of selected/visible points, starting from already selected points.
-        /// If 'selected' is null, then ALL points are selected to begin with.
-        /// </summary>
-        HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null);
+public interface ISpatialFilter : IFilter
+{
+    /// <summary></summary>
+    bool IsFullyInside(Box3d box);
 
-        /// <summary></summary>
-        JsonNode Serialize();
-    }
+    /// <summary></summary>
+    bool IsFullyOutside(Box3d box);
 
-    public interface ISpatialFilter : IFilter
-    {
-        /// <summary></summary>
-        bool IsFullyInside(Box3d box);
+    bool Contains(V3d pt);
 
-        /// <summary></summary>
-        bool IsFullyOutside(Box3d box);
-
-        bool Contains(V3d pt);
-
-        Box3d Clip(Box3d box);
-    }
+    Box3d Clip(Box3d box);
 }

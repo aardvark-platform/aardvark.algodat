@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Text.Json.Nodes;
 
+#pragma warning disable IDE0130
+
 namespace System.Runtime.CompilerServices
 {
     internal class IsExternalInit { }

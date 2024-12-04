@@ -38,13 +38,13 @@ namespace Aardvark.Geometry.Tests
     {
         #region CreateStore
 
-        internal static Task<string> CreateStore(string filename, string storeDir, double minDist)
-            => CreateStore(filename, new DirectoryInfo(storeDir), minDist);
+        internal static Task<string> CreateStore(string filename, string storeDir, double minDist, int maxDegreeOfParallelism = 0)
+            => CreateStore(filename, new DirectoryInfo(storeDir), minDist, maxDegreeOfParallelism);
 
         internal static Task<string> CreateStore(IEnumerable<Chunk> chunks, string storeDir, double minDist, int? splitLimit = null)
             => CreateStore(chunks, new DirectoryInfo(storeDir), minDist, splitLimit);
 
-        internal static Task<string> CreateStore(string filename, DirectoryInfo storeDir, double minDist)
+        internal static Task<string> CreateStore(string filename, DirectoryInfo storeDir, double minDist, int maxDegreeOfParallelism = 0)
         {
             if (!storeDir.Exists) storeDir.Create();
 
@@ -56,7 +56,7 @@ namespace Aardvark.Geometry.Tests
                 .WithStorage(store)
                 .WithKey(key)
                 .WithVerbose(true)
-                .WithMaxDegreeOfParallelism(0)
+                .WithMaxDegreeOfParallelism(maxDegreeOfParallelism)
                 .WithMinDist(minDist)
                 .WithNormalizePointDensityGlobal(true)
                 //.WithMaxChunkPointCount(32 * 1024 * 1024)
@@ -73,7 +73,7 @@ namespace Aardvark.Geometry.Tests
             return Task.FromResult(key);
         }
 
-        internal static Task<string> CreateStore(IEnumerable<Chunk> chunks, DirectoryInfo storeDir, double minDist, int? splitLimit = null)
+        internal static Task<string> CreateStore(IEnumerable<Chunk> chunks, DirectoryInfo storeDir, double minDist, int? splitLimit = null, int maxDegreeOfParallelism = 0)
         {
             if (!storeDir.Exists) storeDir.Create();
 
@@ -86,7 +86,7 @@ namespace Aardvark.Geometry.Tests
                 .WithStorage(store)
                 .WithKey(key)
                 .WithVerbose(true)
-                .WithMaxDegreeOfParallelism(0)
+                .WithMaxDegreeOfParallelism(maxDegreeOfParallelism)
                 .WithMinDist(minDist)
                 .WithNormalizePointDensityGlobal(true)
                 //.WithMaxChunkPointCount(32 * 1024 * 1024)
@@ -2807,7 +2807,14 @@ namespace Aardvark.Geometry.Tests
         {
             await Task.CompletedTask; // avoid warning if no async methods are called here ...
 
-            Test_Parse_Regression();
+            await CreateStore(
+                @"W:\Datasets\Vgm\Data\2024-11-27_bugreport\Haus1cm.e57",
+                @"E:\tmp\Haus1cm.e57_000",
+                minDist: 0.005,
+                maxDegreeOfParallelism: 1
+                );
+
+            //Test_Parse_Regression();
 
             //Test_Import_Regression();
 
