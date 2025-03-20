@@ -1,3 +1,6 @@
+### 5.5.5
+- [e57] add custom semantic "amplitude"
+
 ### 5.5.4
 - [PointSet] fixed out-of-core node merge for part indices
 - [PointSet] code cleanup, C#12
