@@ -59,6 +59,8 @@ namespace Aardvark.Data.E57
         NormalZ,
 
         Reflectance,
+
+        Amplitude,
     }
 
     internal static class Utils
@@ -67,10 +69,12 @@ namespace Aardvark.Data.E57
 
         public static IValueBuffer ValueBuffer(PPS sem) => sem switch
         {
+            PPS.Amplitude             => ValueBuffer<float>(),
             PPS.CartesianInvalidState => ValueBuffer<byte>(),
             PPS.CartesianX            => ValueBuffer<double>(),
             PPS.CartesianY            => ValueBuffer<double>(),
             PPS.CartesianZ            => ValueBuffer<double>(),
+            PPS.Classification        => ValueBuffer<int>(),
             PPS.ColorBlue             => ValueBuffer<byte>(),
             PPS.ColorGreen            => ValueBuffer<byte>(),
             PPS.ColorRed              => ValueBuffer<byte>(),
@@ -91,7 +95,6 @@ namespace Aardvark.Data.E57
             PPS.SphericalInvalidState => ValueBuffer<byte>(),
             PPS.SphericalRange        => ValueBuffer<double>(),
             PPS.TimeStamp             => ValueBuffer<double>(),
-            PPS.Classification        => ValueBuffer<int>(),
             _ => throw new Exception($"Unknown PointPropertySemantics \"{sem}\". Error 0c98368f-a99f-4a88-a3c6-b2c3ac81d478.")
         };
     }

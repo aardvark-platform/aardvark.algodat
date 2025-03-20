@@ -2808,8 +2808,8 @@ namespace Aardvark.Geometry.Tests
             await Task.CompletedTask; // avoid warning if no async methods are called here ...
 
             await CreateStore(
-                @"W:\Datasets\Vgm\Data\2024-11-27_bugreport\Haus1cm.e57",
-                @"E:\tmp\Haus1cm.e57_000",
+                @"W:\Datasets\Vgm\Data\2025-03-19_bugreport\pointcloudPos4-6pano.e57",
+                @"E:\tmp\pointcloudPos4-6pano.e57_005",
                 minDist: 0.005,
                 maxDegreeOfParallelism: 1
                 );

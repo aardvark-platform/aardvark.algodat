@@ -723,6 +723,9 @@ namespace Aardvark.Data.E57
                                     case (PointPropertySemantics.Reflectance, float[] xs)         : data.Append(sem, xs); break;
                                     case (PointPropertySemantics.Reflectance, double[] xs)        : data.Append(sem, xs.Map(x => (float)x)); break;
 
+                                    case (PointPropertySemantics.Amplitude, float[] xs)           : data.Append(sem, xs); break;
+                                    case (PointPropertySemantics.Amplitude, double[] xs)          : data.Append(sem, xs.Map(x => (float)x)); break;
+
                                     default: throw new Exception($"Unexpected data ({raw}) for {sem}. Error c370df89-355b-42a3-9a3b-d1273f0e113f.");
                                 }
                             }
