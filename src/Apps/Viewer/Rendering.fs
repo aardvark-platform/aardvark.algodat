@@ -268,12 +268,13 @@ module Rendering =
             )
 
         let psg =
-            Sg.sphere' 8 C4b.Maroon 0.1
-            |> Sg.instanced p
-            |> Sg.shader {
-                do! DefaultSurfaces.trafo
-                do! DefaultSurfaces.simpleLighting
-            }
+            //Sg.sphere' 8 C4b.Maroon 0.1
+            Sg.empty
+            // |> Sg.instanced p
+            // |> Sg.shader {
+            //     do! DefaultSurfaces.trafo
+            //     do! DefaultSurfaces.simpleLighting
+            // }
 
         win.Keyboard.DownWithRepeats.Values.Add(fun k ->
             let pcs = pcs |> ASet.force |> FSharp.Data.Adaptive.HashSet.toArray
