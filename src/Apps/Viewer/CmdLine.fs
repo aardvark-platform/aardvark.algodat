@@ -27,10 +27,10 @@ module CmdLine =
             |> Seq.map (fun j -> Box3d.Parse(j.GetProperty("Bounds").GetString()))
             |> Array.ofSeq
             
-    let view (store : string) (ids : list<string>) (args : Args) =
-        Rendering.show args (ids |> List.choose (fun id ->
-            LodTreeInstance.load "asdasdsadasd" id store []
-        ))
+    // let view (store : string) (ids : list<string>) (args : Args) =
+    //     Rendering.show args (ids |> List.choose (fun id ->
+    //         LodTreeInstance.load "asdasdsadasd" id store []
+    //     ))
 
     let info (filename : string) (args : Args) =
         initPointFileFormats ()

@@ -9,7 +9,12 @@ open Aardvark.Geometry.Points
 open Aardvark.Data
 open Aardvark.Algodat.App.Viewer
 open Aardvark.Rendering
+open Aardvark.Rendering.PointSet
 open FSharp.Data.Adaptive
+open Aardvark.Application.Slim
+open SamSharp
+open Aardvark.Application
+open Aardvark.SceneGraph
 
 module Bla =
     let heatMapColors =
@@ -64,7 +69,45 @@ module Bla =
             (c0 * (1.0f - float32 t) + c1 * float32 t)
 
     
-    
+    module Shader =
+        open FShade
+        
+        type UniformScope with
+            member x.SegmentationCenter : V3d = uniform?SegmentationCenter
+            member x.SegmentationPartIndex : int = uniform?SegmentationPartIndex
+            
+        let masky =
+            sampler2d {
+                texture uniform?SegmentationMask
+                addressU WrapMode.Clamp
+                addressV WrapMode.Clamp
+                filter Filter.MinMagMipPoint
+            }
+        
+        type Vertex =
+            {
+                [<Position>] pos : V4d
+                [<Semantic("PartIndices")>] idx : int
+                [<Color>] c : V4d
+            }
+        let segmented (v : Vertex) =
+            vertex {
+                let mutable c = v.c
+                if v.idx = uniform.SegmentationPartIndex then
+                    let pt = v.pos.XYZ - uniform.SegmentationCenter
+                    
+                    let d = Vec.length pt
+                    let phi = Constant.Pi - atan2 pt.Y pt.X
+                    let theta = asin (pt.Z / d)
+                    
+                    let rx = phi / Constant.PiTimesTwo
+                    let ry = (theta + Constant.PiHalf) / Constant.Pi
+                    
+                    if masky.SampleLevel(V2d(rx, ry), 0.0).X > 0.5 then c <- V4d.IOOI
+                    
+                return { v with c = c }
+                
+            }
     
     [<EntryPoint>]
     let main a =
@@ -76,17 +119,17 @@ module Bla =
                 
         let inputs =
                 [
-                    @"\\heap\aszabo\geos3d\Beispiel Bahnhof GEOS3D\unbereinigt\Bf Tapfheim- 001.e57"
-                    @"\\heap\aszabo\geos3d\Beispiel Bahnhof GEOS3D\unbereinigt\Bf Tapfheim- 002.e57"
-                    @"\\heap\aszabo\geos3d\Beispiel Bahnhof GEOS3D\unbereinigt\Bf Tapfheim- 003.e57"
-                    @"\\heap\aszabo\geos3d\Beispiel Bahnhof GEOS3D\unbereinigt\Bf Tapfheim- 004.e57"
-                    @"\\heap\aszabo\geos3d\Beispiel Bahnhof GEOS3D\unbereinigt\Bf Tapfheim- 005.e57"
-                    @"\\heap\aszabo\geos3d\Beispiel Bahnhof GEOS3D\unbereinigt\Bf Tapfheim- 006.e57"
-                    @"\\heap\aszabo\geos3d\Beispiel Bahnhof GEOS3D\unbereinigt\Bf Tapfheim- 007.e57"
-                    @"\\heap\aszabo\geos3d\Beispiel Bahnhof GEOS3D\unbereinigt\Bf Tapfheim- 008.e57"
-                    @"\\heap\aszabo\geos3d\Beispiel Bahnhof GEOS3D\unbereinigt\Bf Tapfheim- 009.e57"
+                    @"D:\Clouds\unbereinigt\Bf Tapfheim- 001.e57"
+                    @"D:\Clouds\unbereinigt\Bf Tapfheim- 002.e57"
+                    @"D:\Clouds\unbereinigt\Bf Tapfheim- 003.e57"
+                    @"D:\Clouds\unbereinigt\Bf Tapfheim- 004.e57"
+                    @"D:\Clouds\unbereinigt\Bf Tapfheim- 005.e57"
+                    @"D:\Clouds\unbereinigt\Bf Tapfheim- 006.e57"
+                    @"D:\Clouds\unbereinigt\Bf Tapfheim- 007.e57"
+                    @"D:\Clouds\unbereinigt\Bf Tapfheim- 008.e57"
+                    @"D:\Clouds\unbereinigt\Bf Tapfheim- 009.e57"
                 ]
-        let outdir = @"C:\bla\bahn" |> ensure
+        let outdir = @"D:\stores\bahn" |> ensure
         let storepath = Path.combine [outdir; "store"] |> ensure
         let panospath = Path.combine [outdir; "panos"] |> ensure
         let centerspath = Path.combine [outdir;"centers.txt"]
@@ -160,7 +203,7 @@ module Bla =
                                     let phi = Constant.Pi - atan2 pt.Y pt.X
                                     let theta = asin (pt.Z / d)
                                     
-                                    let rx = (phi + Constant.Pi) / Constant.PiTimesTwo
+                                    let rx = phi / Constant.PiTimesTwo
                                     let ry = (theta + Constant.PiHalf) / Constant.Pi
                                     
                                     let pos = V2i(int32 (rx * float dimg.Size.X), int32 ((1.0 - ry) * float dimg.Size.Y))
@@ -190,6 +233,285 @@ module Bla =
         let trafo = Similarity3d(1.0, Euclidean3d(Rot3d.Identity, -bounds.Center))
         let source = Symbol.Create "sourceName"
         let root = Aardvark.Rendering.PointSet.LodTreeInstance.PointTreeNode.Create(System.Guid.NewGuid(), null, store.Cache, source, trafo, None, None, 0, 0, root) 
+        Aardvark.Init()
+        use app = new OpenGlApplication(true, false)
+        use win = app.CreateGameWindow(8)
+        let pick = ref (fun _ _ _ -> [||])
+        
+        let parts = cloud.PartIndexRange.Value
+        let panos =
+            Map.ofArray [|
+                for part in parts.Min .. parts.Max do
+                    let file = Path.Combine(panospath, sprintf "%03d.png" part)
+                    let img = PixImage.Load file
+                    yield part, img.ToPixImage<byte>()
+            |]
+            
+        let sam = new Sam() 
+        let sams =
+            panos |> Map.map (fun _ p ->
+                sam.BuildIndex p
+            )
+            
+        let centers =
+            Map.ofArray [|
+                let centers =
+                    File.ReadAllLines(centerspath)
+                    |> Array.map (fun l -> V3d.Parse l)
+                for part in parts.Min .. parts.Max do
+                    yield part, centers.[part]
+                
+            |]
+            
+        let trySamplePano (cloudCenter : V3d) (viewProj : Trafo3d) (pick : V3d) (part : int) =
+            let cloudCenter = ()
+            match Map.tryFind part centers, Map.tryFind part panos with
+            | Some center, Some pano ->
+                
+                
+                let pp = viewProj.Forward.TransformPosProj pick
+                let ppx =
+                    if pp.X < 0.0 then V3d(1.0, pp.Y, pp.Z)
+                    else V3d(-1.0, pp.Y, pp.Z)
+                    
+                let ppy =
+                    if pp.Y < 0.0 then V3d(pp.X, 1.0, pp.Z)
+                    else V3d(pp.X, -1.0, pp.Z)
+                
+                let rx = Vec.distance pick (viewProj.Backward.TransformPosProj(ppx))
+                let ry = Vec.distance pick (viewProj.Backward.TransformPosProj(ppy))
+                let radius = max rx ry * 1.5
+                
+                printfn "radius: %A" radius
+                
+                
+                let z = center - pick |> Vec.normalize
+                let sky = V3d.OOI
+                let x = Vec.cross sky z |> Vec.normalize
+                let y = Vec.cross z x |> Vec.normalize
+                let t = Trafo3d.FromBasis(x, y, z, pick)
+                //
+                // let p00 = t.TransformPos (V3d(-radius, -radius, 0.0))
+                // let p01 = t.TransformPos (V3d(-radius, radius, 0.0))
+                // let p10 = t.TransformPos (V3d(radius, -radius, 0.0))
+                // let p11 = t.TransformPos (V3d(radius, radius, 0.0))
+                //
+                //
+                
+                
+                
+                
+                let getTC (pos : V3d) =
+                    let pt = pos - center
+                    let d = Vec.length pt
+                    let phi = Constant.Pi - atan2 pt.Y pt.X
+                    let theta = asin (pt.Z / d)
+                    let rx = phi / Constant.PiTimesTwo
+                    let ry = (theta + Constant.PiHalf) / Constant.Pi
+                    V2d(rx, ry)
+                    
+                let getCoord (c : V2d) =
+                    let ndc = 2.0 * c - V2d.II
+                    let tc = t.TransformPos((ndc*radius).XYO) |> getTC
+                    V2i (tc * V2d pano.Size)
+                    
+                let img = PixImage<byte>(Col.Format.RGBA, V2i(1024, 1024))
+                let m = img.GetMatrix<C4b>()
+                let rcpSize = 1.0 / V2d img.Size
+                let panoMat = pano.GetMatrix<C4b>()
+                m.SetByCoord (fun (c : V2l) ->
+                    let px = (V2d c + V2d.Half) * rcpSize |> getCoord
+                    // let cx = c + rcpSize.XO |> getCoord
+                    // let cy = c + rcpSize.OY |> getCoord
+                    //
+                    panoMat.[px]
+                ) |> ignore
+                    
+                    
+                img.SaveAsPng @"D:\crop.png"
+                    
+                let idx = sam.BuildIndex img
+                let res = idx.Query [Query.Point(img.Size / 2, 1)]
+                let maskImg = PixImage<byte>(Col.Format.RGBA, res.Size)
+                let maskMat = maskImg.GetMatrix<C4b>()
+                maskMat.SetMap(res, fun res ->
+                    C4f(C3f.Red * res, 1.0f).ToC4b()    
+                ) |> ignore
+                maskImg.SaveAsPng @"D:\cropMask.png"
+                
+                
+                    
+               
+                    
+                    
+                
+                Some [|V2d.Zero|]
+                
+            | _ ->
+                None
+            
+            
+            
+            
+        let segmentationMask = cval (NullTexture.Instance)
+        let segmentationCenter = cval V3d.Zero
+        let segmentationPartIndex = cval -1
+        
+        let pcs = cset []
+        let bb = 
+            pcs |> ASet.toAVal |> AVal.map (fun pcs ->
+                pcs |> Seq.map (fun i -> 
+                    match i.root with
+                    | :? LodTreeInstance.PointTreeNode as n -> n.Original.BoundingBoxApproximate
+                    | _ -> i.root.WorldBoundingBox
+                ) |> Box3d
+            )
+
+        let locAndCenter =
+            pcs |> ASet.toAVal |> AVal.map (fun pcs ->
+                let pc = pcs |> Seq.tryHead
+        
+                match pc with
+                | Some pc ->
+                    let rand = RandomSystem()
+                    match pc.root with
+                    | :? LodTreeInstance.PointTreeNode as n -> 
+                        let c = n.Original.Center + V3d n.Original.CentroidLocal
+                        let clstddev = max 1.0 (float n.Original.CentroidLocalStdDev)
+                        let pos = c + rand.UniformV3dDirection() * 2.0 * clstddev
+                        pos, c
+                    | _ -> 
+                        let bb = pc.root.WorldBoundingBox
+                        bb.Max, bb.Center
+                | None  ->
+                    V3d.III * 6.0, V3d.Zero
+            )
+        let speed = AVal.init 2.0
+        
+        let initial = CameraView.ofTrafo <| Trafo3d.Parse "[[[-0.707106781186548, 0.707106781186548, 0, 0], [-0.408248290463863, -0.408248290463863, 0.816496580927726, 0], [0.577350269189626, 0.577350269189626, 0.577350269189626, -342.288592930008], [0, 0, 0, 1]], [[-0.707106781186548, -0.408248290463863, 0.577350269189626, 197.620411268678], [0.707106781186548, -0.408248290463863, 0.577350269189626, 197.620411268678], [0, 0.816496580927726, 0.577350269189626, 197.620411268678], [0, 0, 0, 1]]]"
+        let target = CameraView.ofTrafo <| Trafo3d.Parse "[[[-0.567502843343406, 0.823371436714408, 0, -0.0700798647066693], [-0.362138228540449, -0.249601170524128, 0.898084160367263, 0.212820843806073], [0.739456845412046, 0.509665314570097, 0.439823647496845, -1.68800745703926], [0, 0, 0, 1]], [[-0.567502843343406, -0.362138228540449, 0.739456845412046, 1.28550871010452], [0.823371436714408, -0.249601170524128, 0.509665314570097, 0.971140942202795], [0, 0.898084160367263, 0.439823647496845, 0.551294567938653], [0, 0, 0, 1]]]"
+        
+        let custom = AVal.init None
+        let camera =
+            custom |> AVal.bind (fun (custom : Option<CameraView>) -> 
+                printfn "%A" (locAndCenter |> AVal.force)
+                printfn "%A" (initial.Location)
+                match custom with 
+                | None -> 
+                    locAndCenter |> AVal.bind (fun (loc, center) ->
+                        CameraView.lookAt loc center V3d.OOI
+                        |> DefaultCameraController.controlWithSpeed speed win.Mouse win.Keyboard win.Time
+                    )
+                | Some cv -> 
+                    locAndCenter |> AVal.map (fun (_,center) -> 
+                        cv.WithLocation (cv.Location + center)
+                    )
+                    //AVal.constant cv
+            )
+        
+        let frustum =
+            AVal.custom (fun t ->
+                let s = win.Sizes.GetValue t
+                let c = camera.GetValue t
+                let bb = bb.GetValue t
+
+                let (minPt, maxPt) = bb.GetMinMaxInDirection(c.Forward)
+                
+                let near = Vec.dot c.Forward (minPt - c.Location)
+                let far = Vec.dot c.Forward (maxPt - c.Location)
+                let near = max (max 0.05 near) (far / 100000.0)
+
+                Frustum.perspective 90.0 near far (float s.X / float s.Y)
+            )
+        
+
+        win.Mouse.Click.Values.Add (fun b ->
+            if b = Aardvark.Application.MouseButtons.Right then
+                let pts = pick.Value (AVal.force win.Mouse.Position).Position 5 100
+                if pts.Length > 0 then
+                    let partIndices = 
+                        pts |> Array.collect (fun (pt : PickPoint) ->
+                            let chunk = cloud.QueryPointsInsideBox(Box3d.FromCenterAndSize(pt.World, V3d.III * 0.2))
+                            chunk |> Seq.collect (fun c ->
+                                let parts = c.TryGetPartIndices()
+                                if isNull parts then Seq.empty
+                                else parts
+                            )
+                            |> Seq.toArray
+                        )
+                        |> Array.countBy id
+                        |> Array.sortByDescending snd
+                        |> Array.tryHead
+                        
+                    match partIndices with
+                    | Some (id, _) ->
+                        match Map.tryFind id panos, Map.tryFind id centers, Map.tryFind id sams with
+                        | Some pano, Some center, Some samIndex ->
+                            Log.startTimed "segmenting %d: %A" id center
+                            let seeds =
+                                pts |> Array.map (fun pt ->
+                                    let pt = pt.World - center
+                                
+                                    let d = Vec.length pt
+                                    let phi = Constant.Pi - atan2 pt.Y pt.X
+                                    let theta = asin (pt.Z / d)
+                                
+                                    let rx = phi / Constant.PiTimesTwo
+                                    let ry = (theta + Constant.PiHalf) / Constant.Pi
+                                    
+                                    let pos = V2i(int32 (rx * float pano.Size.X), int32 ((1.0 - ry) * float pano.Size.Y))
+                                    pos
+                                )
+                                
+                                
+                            let seeds = seeds |> Array.truncate 1
+                            printfn "%A" seeds
+                            let queries =
+                                seeds |> Array.toList |> List.map (fun pt -> Query.Point(pt, 1))
+                                
+                            let mask = samIndex.Query queries
+                              
+                            let img = PixImage<byte>(Col.Format.RGBA, mask.Size)
+                            let m = img.GetMatrix<C4b>()
+                            m.SetMap(mask, fun v -> if v > 0.4f then C4b.Red else C4b.Black) |> ignore
+                            
+                            
+                            
+                            let maskSeeds = seeds |> Array.map (fun s -> V2d m.Size * (V2d s + V2d.Half) / V2d pano.Size |> V2i)
+                            for s in maskSeeds do
+                                m.SetCross(s, 10, C4b.Green)
+                            
+                            let model = Trafo3d.Identity //Trafo3d.Translation(cloud.Bounds.Center)
+                            let view = AVal.force camera |> CameraView.viewTrafo
+                            let proj = AVal.force frustum |> Frustum.projTrafo
+                            let mvp = model * view * proj
+                            
+                            match trySamplePano cloud.Bounds.Center mvp pts.[0].World id with
+                            | Some ccs ->
+                                for c in ccs do
+                                    let px = V2i(c.X * float mask.SX, (1.0 - c.Y) * float mask.SY)
+                                    m.SetCross(px, 10, C4b.White)
+                                    
+                            | None ->
+                                ()
+                            img.SaveAsPng @"D:\bla.png"
+                            pano.SaveAsPng @"D:\pano.png"
+                            
+                            
+                            transact (fun () ->
+                                segmentationMask.Value <- PixTexture2d(PixImageMipMap [|img :> PixImage|], TextureParams.empty)
+                                segmentationCenter.Value <- center - cloud.Bounds.Center
+                                segmentationPartIndex.Value <- id
+                            )
+                            
+                            Log.stop()
+                                
+                            ()
+                        | _ ->
+                            ()
+                    | None ->
+                        ()
+        )
         
         let sets = 
             match root with
@@ -203,5 +525,81 @@ module Bla =
             | None ->
                 List.empty
         
-        Rendering.show (Args.parse [||]) sets
+
+        
+        transact (fun () ->
+            pcs.Value <- HashSet.ofList sets    
+        )
+
+        win.VSync <- false
+        win.DropFiles.Add(fun e ->
+            match e with
+            | [| e |] when Directory.Exists e -> 
+                let key = Path.combine [e; "key.txt"]
+                if File.Exists key then 
+                    let kk = File.ReadAllText(key).Trim()
+                    match LodTreeInstance.load "asdasdasd" kk e [] with
+                    | Some inst ->
+                        transact (fun () ->
+                            pcs.Value <- HashSet.single inst
+                        )
+                    | None ->
+                        ()
+            
+                Log.warn "dropped: %A" e
+            | _ ->
+                ()
+        )
+            
+        //let bb = Box3d.FromCenterAndSize(V3d.Zero, V3d.III * 300.0)
+        
+        win.Keyboard.DownWithRepeats.Values.Add(function
+            | Keys.PageUp | Keys.Up -> transact(fun () -> speed.Value <- speed.Value * 1.5)
+            | Keys.PageDown | Keys.Down -> transact(fun () -> speed.Value <- speed.Value / 1.5)
+            | Keys.D5 -> transact(fun () -> custom.Value <- Some initial)
+            | Keys.D6 -> transact(fun () -> custom.Value <- Some target)
+            | Keys.D7 -> transact(fun () -> custom.Value <- None)
+            | _ -> ()
+        )
+
+        let sh = FShade.Effect.ofFunction Shader.segmented
+        
+        let uf =
+            HashMap.ofList [
+                "SegmentationMask", segmentationMask :> IAdaptiveValue
+                "SegmentationCenter", segmentationCenter :> IAdaptiveValue
+                "SegmentationPartIndex", segmentationPartIndex :> IAdaptiveValue
+            ]
+        
+        
+        let config, pcs = Rendering.pointClouds (Some sh) uf pick win false camera frustum pcs
+        
+        let sg =
+            Sg.ofList [
+                pcs
+                Util.coordinateBox
+                |> Sg.onOff (config.background |> AVal.map ((=) Background.CoordinateBox))
+
+                Sg.ofList (
+                    Rendering.skyboxes |> Map.toList |> List.map (fun (id, tex) ->
+                        Sg.farPlaneQuad
+                        |> Sg.uniform "EnvMap" tex
+                        |> Sg.onOff (config.background |> AVal.map ((=) (Background.Skybox id)))
+                    )
+                )
+                |> Sg.shader {
+                    do! Util.Shader.reverseTrafo
+                    do! Util.Shader.envMap
+                }
+
+            ]
+            |> Sg.viewTrafo (camera |> AVal.map CameraView.viewTrafo)
+            |> Sg.projTrafo (frustum |> AVal.map Frustum.projTrafo)
+            //|> Sg.uniform "EnvMap" skyboxes.[Skybox.ViolentDays]
+    
+        win.RenderTask <- Sg.compile win.Runtime win.FramebufferSignature sg
+        win.Run()
+        
+        
+        
         0

@@ -39,7 +39,7 @@ nuget sharpcompress                     ~> 0.30.0      // only used in Apps/hera
 
 // BUILD
 nuget Aardvark.Build                    ~> 2.0.3
-
+nuget SamSharp                          ~> 0.0.4
 group Test
     framework: net8.0
     storage: none

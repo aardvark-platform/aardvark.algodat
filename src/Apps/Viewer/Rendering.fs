@@ -106,7 +106,7 @@ module Rendering =
     open Aardvark.Geometry
 
 
-    let pointClouds (win : IRenderWindow) (msaa : bool) (camera : aval<CameraView>) (frustum : aval<Frustum>) (pcs : aset<LodTreeInstance>) =
+    let pointClouds (preShader : option<FShade.Effect>) (uniforms : HashMap<string, IAdaptiveValue>) (pick : ref<_>) (win : IRenderWindow) (msaa : bool) (camera : aval<CameraView>) (frustum : aval<Frustum>) (pcs : aset<LodTreeInstance>) =
         let picktrees : cmap<ILodTreeNode,SimplePickTree> = cmap()
         let config =
             {
@@ -167,9 +167,11 @@ module Rendering =
         //let filter : ModRef<Option<Hull3d>> = AVal.init None
 
         let instances = pcs |> ASet.mapA (fun a -> a :> aval<_>)
-        let pick = ref (fun _ _ _ -> [||])
+        //let pick = ref (fun _ _ _ -> [||])
         let renderConfig : PointSetRenderConfig =
             {
+                preShader = preShader
+                postShader = None
                 runtime = win.Runtime
                 viewTrafo = v
                 projTrafo = p
@@ -206,7 +208,7 @@ module Rendering =
             }
 
         let sg = 
-            Sg.pointSetsFilter renderConfig instances filterPartIndex
+            Sg.pointSetsFilter uniforms renderConfig instances filterPartIndex
             
         let sg =
             sg
@@ -478,15 +480,12 @@ module Rendering =
 
     open System.IO
 
-    let show (args : Args) (pcs : list<LodTreeInstance>) =
-        Aardvark.Init()
+    let show (win : Aardvark.Glfw.Window) (pick : ref<_>) (args : Args) (pcs : list<LodTreeInstance>) =
 
 
         let pcs = cset pcs
 
 
-        use app = new OpenGlApplication(true, false)
-        use win = app.CreateGameWindow(8)
         win.VSync <- false
         win.DropFiles.Add(fun e ->
             match e with
@@ -586,7 +585,7 @@ module Rendering =
             )
 
 
-        let config, pcs = pointClouds win args.msaa camera frustum pcs
+        let config, pcs = pointClouds None HashMap.empty pick win args.msaa camera frustum pcs
         
         let sg =
             Sg.ofList [
@@ -612,5 +611,5 @@ module Rendering =
             |> Sg.projTrafo (frustum |> AVal.map Frustum.projTrafo)
             //|> Sg.uniform "EnvMap" skyboxes.[Skybox.ViolentDays]
     
-        win.RenderTask <- Sg.compile app.Runtime win.FramebufferSignature sg
+        win.RenderTask <- Sg.compile win.Runtime win.FramebufferSignature sg
         win.Run()

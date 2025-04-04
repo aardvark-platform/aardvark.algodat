@@ -27,3 +27,5 @@ obj/
 /src/Apps/HeraViewer/HeraViewer.fsproj.user
 **/.DS_STORE
 .ionide
+**/.idea
+**DotSettings.user

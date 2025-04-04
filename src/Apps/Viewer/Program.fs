@@ -34,6 +34,8 @@ module TestSimpleCloud =
         let pick = ref (fun _ _ _ -> [||])
         let config =
             {
+                preShader = None
+                postShader = None
                 runtime = win.Runtime
                 viewTrafo = win.View |> AVal.map (Array.item 0)
                 projTrafo = win.Proj |> AVal.map (Array.item 0)
@@ -102,7 +104,7 @@ let main args =
     
     let store = @"\\heap\aszabo\rmdata\Data\stores\SD-Speicher.e57.000.exported\data.uds"
     let key = Path.combine [System.IO.Path.GetDirectoryName store;"key.txt"] |> File.readAllText
-    view store [key] (Args.parse [||])
+    //view store [key] (Args.parse [||])
 
     let args = Args.parse args
     
@@ -113,8 +115,8 @@ let main args =
     | Some (Import (filename, store, key)) -> import filename store key args
       
     | Some (View (store, key)) ->
-        view store [key] args
-      
+        //view store [key] args
+        ()
     | Some Gui ->
         failwith "not implemented"
        

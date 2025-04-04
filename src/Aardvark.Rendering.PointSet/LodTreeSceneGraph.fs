@@ -815,6 +815,8 @@ type PointSetRenderConfig =
         lodConfig       : LodTreeRenderConfig
 
         pickCallback    : Option<ref<V2i -> int -> int -> PickPoint[]>>
+        preShader       : option<FShade.Effect>
+        postShader      : option<FShade.Effect>
     }
 
 module Sg =
@@ -1053,7 +1055,7 @@ module Sg =
 
         finalSg
 
-    let pointSetsFilter (config : PointSetRenderConfig) (pointClouds : aset<LodTreeInstance>) (filterPartIndex : aval<int>)=
+    let pointSetsFilter (uniforms : HashMap<string, IAdaptiveValue>) (config : PointSetRenderConfig) (pointClouds : aset<LodTreeInstance>) (filterPartIndex : aval<int>)=
         let runtime = config.runtime
 
         let largeSize = 
@@ -1095,16 +1097,28 @@ module Sg =
                     DefaultSemantic.Positions; DefaultSemantic.Colors; DefaultSemantic.DepthStencil
                 ]
 
-            let render = 
-                let cfg = config.lodConfig
-                Sg.LodTreeNode(cfg.stats, cfg.pickTrees, cfg.alphaToCoverage, cfg.budget, cfg.splitfactor, cfg.renderBounds, cfg.maxSplits, cfg.time, pointClouds) :> ISg
+            let render =
+                let mutable sg = 
+                    let cfg = config.lodConfig
+                    Sg.LodTreeNode(cfg.stats, cfg.pickTrees, cfg.alphaToCoverage, cfg.budget, cfg.splitfactor, cfg.renderBounds, cfg.maxSplits, cfg.time, pointClouds) :> ISg
 
-                //Sg.lodTree config.lodConfig pointClouds
-                |> Sg.shader {
-                    do! DeferredPointSetShaders.colorOrWhite
-                    do! DeferredPointSetShaders.lodPointSize
-                    do! DeferredPointSetShaders.lodPointCircular
-                }
+                    //Sg.lodTree config.lodConfig pointClouds
+                    |> Sg.shader {
+                        match config.preShader with
+                        | Some s -> do! s
+                        | None -> ()
+                        do! DeferredPointSetShaders.colorOrWhite
+                        do! DeferredPointSetShaders.lodPointSize
+                        do! DeferredPointSetShaders.lodPointCircular
+                        match config.postShader with
+                        | Some s -> do! s
+                        | None -> ()
+                    }
+                
+                for (name, value) in uniforms do
+                    sg <- Sg.UniformApplicator(name, value, sg)
+                
+                sg
                 |> Sg.blendMode (AVal.constant BlendMode.None)
                 |> Sg.uniform "ShowColors" config.colors
                 |> Sg.uniform "PointSize" config.pointSize
@@ -1304,4 +1318,4 @@ module Sg =
 
         finalSg
 
-    let pointSets config pointClouds = pointSetsFilter config pointClouds (AVal.constant -1)
+    let pointSets config pointClouds = pointSetsFilter HashMap.empty config pointClouds (AVal.constant -1)
