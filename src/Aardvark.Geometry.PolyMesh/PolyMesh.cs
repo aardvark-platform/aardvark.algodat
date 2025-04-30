@@ -111,7 +111,7 @@ namespace Aardvark.Geometry
         /// with specified overrides.
         /// </summary>
         public PolyMesh(PolyMesh other, SymbolDict<object> overrides)
-            : base(other, overrides)
+            : base(other, overrides, Symbol.Empty)
         {
             Awake(false);
             if (overrides != null &&
@@ -123,7 +123,7 @@ namespace Aardvark.Geometry
         }
 
         protected PolyMesh(Symbol identifier)
-            : base(identifier)
+            : base(identifier, Symbol.Empty)
         {
             m_faceCount = 0;
             m_vertexCount = 0;

@@ -1,3 +1,5 @@
+- [PolyMesh] changed PolyMesh base class SymMap GuidSymbol to Empty
+
 ### 5.5.5
 - [e57] add custom semantic "amplitude"
 

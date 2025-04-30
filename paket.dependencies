@@ -11,10 +11,10 @@ nuget System.Text.Json                  >= 8.0.5 lowest_matching: true
 
 ////////////////////////////////////////////////////////////////////////
 // https://github.com/aardvark-platform/aardvark.base
-nuget Aardvark.Base                     ~> 5.3.5
-nuget Aardvark.Base.IO                  ~> 5.3.5
-nuget Aardvark.Base.Tensors             ~> 5.3.5
-nuget Aardvark.Geometry                 ~> 5.3.5
+nuget Aardvark.Base                     ~> 5.3.10
+nuget Aardvark.Base.IO                  ~> 5.3.10
+nuget Aardvark.Base.Tensors             ~> 5.3.10
+nuget Aardvark.Geometry                 ~> 5.3.10
 
 ////////////////////////////////////////////////////////////////////////
 // https://github.com/aardvark-platform/aardvark.rendering
