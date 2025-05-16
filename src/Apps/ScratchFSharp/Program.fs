@@ -77,6 +77,7 @@ module Bla =
         type UniformScope with
             member x.SegmentationCenter : V3d = uniform?SegmentationCenter
             member x.SegmentationPartIndex : int = uniform?SegmentationPartIndex
+            member x.SegmentationViewProj : M44d = uniform?SegmentationViewProj
             
         let masky =
             sampler2d {
@@ -95,18 +96,18 @@ module Bla =
         let segmented (v : Vertex) =
             vertex {
                 let mutable c = v.c
+                // let sp = uniform.SegmentationViewProj * v.pos
+                // if sp.X >= -sp.W && sp.X <= sp.W && sp.Y >= -sp.W && sp.Y <= sp.W then
+                //     let sp = sp.XYZ / sp.W
+                //     c <- V4d.IOOI
+                
                 if v.idx = uniform.SegmentationPartIndex then
-                    let pt = v.pos.XYZ - uniform.SegmentationCenter
                     
-                    let d = Vec.length pt
-                    let phi = Constant.Pi - atan2 pt.Y pt.X
-                    let theta = asin (pt.Z / d)
-                    
-                    let rx = phi / Constant.PiTimesTwo
-                    let ry = (theta + Constant.PiHalf) / Constant.Pi
-                    
-                    if masky.SampleLevel(V2d(rx, ry), 0.0).X > 0.5 then c <- V4d.IOOI
-                    
+                    let sp = uniform.SegmentationViewProj * v.pos
+                    if sp.X >= -sp.W && sp.X <= sp.W && sp.Y >= -sp.W && sp.Y <= sp.W then
+                        let sp = sp.XYZ / sp.W
+                        if masky.SampleLevel(V2d(0.5 + 0.5 * sp.X, 0.5 - 0.5*sp.Y), 0.0).X > 0.5 then c <- V4d.IOOI
+                
                 return { v with c = c }
                 
             }
@@ -287,10 +288,8 @@ module Bla =
             |]
             
         let trySamplePano (cloudCenter : V3d) (viewProj : Trafo3d) (pick : V3d) (part : int) =
-            let cloudCenter = ()
             match Map.tryFind part centers, Map.tryFind part depthImages with
             | Some center, Some pano ->
-                
                 
                 let pp = viewProj.Forward.TransformPosProj pick
                 let ppx =
@@ -305,18 +304,16 @@ module Bla =
                 let ry = Vec.distance pick (viewProj.Backward.TransformPosProj(ppy))
                 let radius = max rx ry * 1.5
                 
-                printfn "radius: %A" radius
+                Log.line "radius: %A" radius
                 
+                Log.startTimed "render img"
                 let diff = center - pick
                 let distance = Vec.length diff
                 let z = diff / distance
                 let sky = V3d.OOI
                 let x = Vec.cross sky z |> Vec.normalize
-                let y = -Vec.cross z x |> Vec.normalize
+                let y = Vec.cross z x |> Vec.normalize
                 let t = Trafo3d.FromBasis(x, y, z, pick)
-                
-                
-                
                 
                 let getTC (pos : V3d) =
                     let pt = pos - center
@@ -331,6 +328,8 @@ module Bla =
                     let ndc = 2.0 * c - V2d.II
                     let tc = t.TransformPos((ndc*radius).XYO) |> getTC
                     V2i (tc * V2d pano.Size)
+                    
+                
                     
                 let img = PixImage<float32>(Col.Format.Gray, V2i(1024, 1024))
                 let m = img.GetChannel 0L
@@ -358,82 +357,97 @@ module Bla =
                 ) |> ignore
                 
                 let img = colorImg
-                //     
-                // img.SaveAsPng @"D:\crop.png"
+                Log.stop()
                     
+                img.SaveAsPng @"D:\crop.png"
+                    
+                Log.startTimed "sam index"
                 let idx = sam.BuildIndex img
+                Log.stop()
+                Log.startTimed "sam query"
                 let res = idx.Query [Query.Point(img.Size / 2, 1)]
-                // let maskImg = PixImage<byte>(Col.Format.RGBA, res.Size)
-                // let maskMat = maskImg.GetMatrix<C4b>()
-                // maskMat.SetMap(res, fun res ->
-                //     C4f(C3f.Red * res, 1.0f).ToC4b()    
-                // ) |> ignore
-                // maskImg.SaveAsPng @"D:\cropMask.png"
-                
-                
-                let pano = PixImage<byte>(Col.Format.Gray, pano.Size)
-                let mutable panoMat = pano.GetChannel(0L)
-                let pCenter = t.Backward.TransformPos center
-                
-                panoMat.SetByCoord(fun (c : V2l) ->
-                    let tc = (V2d c + V2d.Half) / V2d panoMat.Size
-                    
-                    // let d = Vec.length pt
-                    // let phi = Constant.Pi - atan2 pt.Y pt.X
-                    // let theta = asin (pt.Z / d)
-                    // let rx = phi / Constant.PiTimesTwo
-                    // let ry = (theta + Constant.PiHalf) / Constant.Pi
-                    //
-                    
-                    let phi = -(tc.X * Constant.PiTimesTwo - Constant.Pi)
-                    let theta = (1.0 - tc.Y) * Constant.Pi - Constant.PiHalf
-                    
-                    let ct  = cos theta
-                    let dir = V3d(cos phi * ct, sin phi * ct, sin theta)
-                    
-                    let pDir = t.Backward.TransformDir dir
-                    
-                    // pCenter.Z + t*pDir.Z = 0
-                
-                    let t = -pCenter.Z / pDir.Z
-                    let pPos = pCenter + t * pDir
-                    if t >= 0.0 && pPos.X >= -radius && pPos.X <= radius && pPos.Y >= -radius && pPos.Y <= radius then
-                        let ndc = pPos.XY / radius
-                        let px = 0.5 * (ndc + V2d.II) * V2d res.Size |> V2i
-                        let m = res.[px]
-                        byte (255.0f * m)
-                    else
-                        0uy
-                    
+                let maskImg = PixImage<byte>(Col.Format.RGBA, res.Size)
+                let maskMat = maskImg.GetMatrix<C4b>()
+                maskMat.SetMap(res, fun res ->
+                    C4f(C3f.Red * res, 1.0f).ToC4b()    
                 ) |> ignore
+                maskImg.SaveAsPng @"D:\cropMask.png"
+                Log.stop()
+                
+                let distance = Vec.distance center pick
+                let fov = 2.0 * Constant.DegreesPerRadian * atan (radius / distance)
+                let view  = Trafo3d.FromBasis(x, y, z, center).Inverse //CameraView(sky, center, -z, y, x)//CameraView.lookAt center pick y
+                let proj = Frustum.perspective fov 0.01 (3.0 * distance) 1.0
+                let viewProj = Trafo3d.Translation(cloudCenter) * view * Frustum.projTrafo proj
+                
+                Some (viewProj, res)
                 
                 
-                // res.ForeachXYIndex(fun (x : int64) (y : int64) (i : int64) ->
-                //     let m = res.[i]
-                //     let c = (V2d(x,y) + V2d.Half) / V2d maskMat.Size
-                //     let ndc = 2.0 * c - V2d.II
-                //     let pos = t.TransformPos (radius * ndc).XYO
+                
+                // let pano = PixImage<byte>(Col.Format.Gray, pano.Size)
+                // let mutable panoMat = pano.GetChannel(0L)
+                // let pCenter = t.Backward.TransformPos center
+                //
+                // panoMat.SetByCoord(fun (c : V2l) ->
+                //     let tc = (V2d c + V2d.Half) / V2d panoMat.Size
                 //     
-                //     let tc = getTC pos
-                //     let px = V2i(tc * V2d pano.Size)
-                //     panoMat.[px] <- byte (255.0f * m)
-                // )
-                
-                
-                
-                    
-               
-                    
-                    
-                
-                Some pano
-                
+                //     // let d = Vec.length pt
+                //     // let phi = Constant.Pi - atan2 pt.Y pt.X
+                //     // let theta = asin (pt.Z / d)
+                //     // let rx = phi / Constant.PiTimesTwo
+                //     // let ry = (theta + Constant.PiHalf) / Constant.Pi
+                //     //
+                //     
+                //     let phi = -(tc.X * Constant.PiTimesTwo - Constant.Pi)
+                //     let theta = (1.0 - tc.Y) * Constant.Pi - Constant.PiHalf
+                //     
+                //     let ct  = cos theta
+                //     let dir = V3d(cos phi * ct, sin phi * ct, sin theta)
+                //     
+                //     let pDir = t.Backward.TransformDir dir
+                //     
+                //     // pCenter.Z + t*pDir.Z = 0
+                //
+                //     let t = -pCenter.Z / pDir.Z
+                //     let pPos = pCenter + t * pDir
+                //     if t >= 0.0 && pPos.X >= -radius && pPos.X <= radius && pPos.Y >= -radius && pPos.Y <= radius then
+                //         let ndc = pPos.XY / radius
+                //         let px = 0.5 * (ndc + V2d.II) * V2d res.Size |> V2i
+                //         let m = res.[px]
+                //         byte (255.0f * m)
+                //     else
+                //         0uy
+                //     
+                // ) |> ignore
+                //
+                //
+                // // res.ForeachXYIndex(fun (x : int64) (y : int64) (i : int64) ->
+                // //     let m = res.[i]
+                // //     let c = (V2d(x,y) + V2d.Half) / V2d maskMat.Size
+                // //     let ndc = 2.0 * c - V2d.II
+                // //     let pos = t.TransformPos (radius * ndc).XYO
+                // //     
+                // //     let tc = getTC pos
+                // //     let px = V2i(tc * V2d pano.Size)
+                // //     panoMat.[px] <- byte (255.0f * m)
+                // // )
+                //
+                //
+                //
+                //     
+                //
+                //     
+                //     
+                //
+                // Some pano
+                //
             | _ ->
                 None
             
             
             
             
+        let segmentationViewProj = cval Trafo3d.Identity
         let segmentationMask = cval (NullTexture.Instance)
         let segmentationCenter = cval V3d.Zero
         let segmentationPartIndex = cval -1
@@ -568,12 +582,13 @@ module Bla =
                             let mvp = model * view * proj
                             
                             match trySamplePano cloud.Bounds.Center mvp pts.[0].World id with
-                            | Some img ->
+                            | Some(viewProj, mat) ->
                                 // img.SaveAsPng @"D:\bla.png"
                                 // pano.SaveAsPng @"D:\pano.png"
-                                
+                                let img = PixImage<float32>(Col.Format.Gray, mat)
                                 
                                 transact (fun () ->
+                                    segmentationViewProj.Value <- viewProj
                                     segmentationMask.Value <- PixTexture2d(PixImageMipMap [|img :> PixImage|], TextureParams.empty)
                                     segmentationCenter.Value <- center - cloud.Bounds.Center
                                     segmentationPartIndex.Value <- id
@@ -646,6 +661,7 @@ module Bla =
         let uf =
             HashMap.ofList [
                 "SegmentationMask", segmentationMask :> IAdaptiveValue
+                "SegmentationViewProj", segmentationViewProj :> IAdaptiveValue
                 "SegmentationCenter", segmentationCenter :> IAdaptiveValue
                 "SegmentationPartIndex", segmentationPartIndex :> IAdaptiveValue
             ]
