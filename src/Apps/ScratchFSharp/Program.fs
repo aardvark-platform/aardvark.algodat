@@ -79,6 +79,8 @@ module Bla =
             member x.SegmentationPartIndex : int = uniform?SegmentationPartIndex
             member x.SegmentationViewProj : M44d = uniform?SegmentationViewProj
             
+            member x.PartCenters : V4d[] = uniform?StorageBuffer?PartCenters
+            
         let masky =
             sampler2d {
                 texture uniform?SegmentationMask
@@ -101,14 +103,20 @@ module Bla =
                 //     let sp = sp.XYZ / sp.W
                 //     c <- V4d.IOOI
                 
+                let mutable p = v.pos
+                
+                if Vec.distance uniform.PartCenters.[v.idx] p >= 40.0 then
+                    p <- V4d.IIII * 123123.0
+                
+                
                 if v.idx = uniform.SegmentationPartIndex then
                     
                     let sp = uniform.SegmentationViewProj * v.pos
                     if sp.X >= -sp.W && sp.X <= sp.W && sp.Y >= -sp.W && sp.Y <= sp.W then
                         let sp = sp.XYZ / sp.W
-                        if masky.SampleLevel(V2d(0.5 + 0.5 * sp.X, 0.5 - 0.5*sp.Y), 0.0).X > 0.5 then c <- V4d.IOOI
+                        if masky.SampleLevel(V2d(0.5 + 0.5 * sp.X, 0.5 - 0.5*sp.Y), 0.0).X > 0.8 then c <- V4d.IOOI
                 
-                return { v with c = c }
+                return { v with c = c; pos = p}
                 
             }
     
@@ -122,17 +130,22 @@ module Bla =
                 
         let inputs =
                 [
-                    @"D:\Clouds\unbereinigt\Bf Tapfheim- 001.e57"
-                    @"D:\Clouds\unbereinigt\Bf Tapfheim- 002.e57"
-                    @"D:\Clouds\unbereinigt\Bf Tapfheim- 003.e57"
-                    @"D:\Clouds\unbereinigt\Bf Tapfheim- 004.e57"
-                    @"D:\Clouds\unbereinigt\Bf Tapfheim- 005.e57"
-                    @"D:\Clouds\unbereinigt\Bf Tapfheim- 006.e57"
-                    @"D:\Clouds\unbereinigt\Bf Tapfheim- 007.e57"
-                    @"D:\Clouds\unbereinigt\Bf Tapfheim- 008.e57"
-                    @"D:\Clouds\unbereinigt\Bf Tapfheim- 009.e57"
+                    @"\\heap\aszabo\euclid\Geos3D\Bf Tapfheim- 135.e57"
+                    @"\\heap\aszabo\euclid\Geos3D\Bf Tapfheim- 136.e57"
+                    @"\\heap\aszabo\euclid\Geos3D\Bf Tapfheim- 137.e57"
+                    @"\\heap\aszabo\euclid\Geos3D\Bf Tapfheim- 138.e57"
+                    @"\\heap\aszabo\euclid\Geos3D\Bf Tapfheim- 139.e57"
+                    @"\\heap\aszabo\euclid\Geos3D\Bf Tapfheim- 140.e57"
+                    @"\\heap\aszabo\euclid\Geos3D\Bf Tapfheim- 141.e57"
+                    @"\\heap\aszabo\euclid\Geos3D\Bf Tapfheim- 142.e57"
                 ]
-        let outdir = @"D:\stores\bahn" |> ensure
+        let samPath = None
+            // Some (
+            //     @"C:\sam\samexporter\output_models\sam_vit_h_4b8939.encoder.quant.onnx",
+            //     @"C:\sam\samexporter\output_models\sam_vit_h_4b8939.decoder.quant.onnx"
+            // )
+        let debugBaseDir = @"C:\bla\stores-geos"
+        let outdir = @"C:\bla\stores-geos\tapfheim-station" |> ensure
         let storepath = Path.combine [outdir; "store"] |> ensure
         let panospath = Path.combine [outdir; "panos"] |> ensure
         let centerspath = Path.combine [outdir;"centers.txt"]
@@ -250,6 +263,8 @@ module Bla =
         use win = app.CreateGameWindow(8)
         let pick = ref (fun _ _ _ -> [||])
         
+        let picks = cval []
+        
         let parts = cloud.PartIndexRange.Value
         let panos =
             Map.ofArray [|
@@ -271,7 +286,15 @@ module Bla =
             )
             
             
-        let sam = new Sam() 
+        
+        let sam =
+            match samPath with
+            | Some(encPath, decPath) ->
+                new Sam(
+                    encoder = encPath,
+                    decoder = decPath
+                )
+            | None -> new Sam() 
         // let sams =
         //     panos |> Map.map (fun _ p ->
         //         sam.BuildIndex p
@@ -287,33 +310,61 @@ module Bla =
                 
             |]
             
-        let trySamplePano (cloudCenter : V3d) (viewProj : Trafo3d) (pick : V3d) (part : int) =
+        let trySamplePano (cloudCenter : V3d) (viewProj : Trafo3d) (picks : list<V3d>) (part : int) =
             match Map.tryFind part centers, Map.tryFind part depthImages with
             | Some center, Some pano ->
                 
-                let pp = viewProj.Forward.TransformPosProj pick
-                let ppx =
-                    if pp.X < 0.0 then V3d(1.0, pp.Y, pp.Z)
-                    else V3d(-1.0, pp.Y, pp.Z)
-                    
-                let ppy =
-                    if pp.Y < 0.0 then V3d(pp.X, 1.0, pp.Z)
-                    else V3d(pp.X, -1.0, pp.Z)
-                
-                let rx = Vec.distance pick (viewProj.Backward.TransformPosProj(ppx))
-                let ry = Vec.distance pick (viewProj.Backward.TransformPosProj(ppy))
-                let radius = max rx ry * 1.5
-                
-                Log.line "radius: %A" radius
-                
+                let cropViewProj =
+                    match picks with
+                    | [pick] ->
+                        let radius =
+                            let pp = viewProj.Forward.TransformPosProj pick
+                            let ppx =
+                                if pp.X < 0.0 then V3d(1.0, pp.Y, pp.Z)
+                                else V3d(-1.0, pp.Y, pp.Z)
+                                
+                            let ppy =
+                                if pp.Y < 0.0 then V3d(pp.X, 1.0, pp.Z)
+                                else V3d(pp.X, -1.0, pp.Z)
+                            
+                            let rx = Vec.distance pick (viewProj.Backward.TransformPosProj(ppx))
+                            let ry = Vec.distance pick (viewProj.Backward.TransformPosProj(ppy))
+                            max rx ry * 1.5
+                            
+                        let diff = center - pick
+                        let distance = Vec.length diff
+                        let z = diff / distance
+                        let sky = V3d.OOI
+                        let x = Vec.cross sky z |> Vec.normalize
+                        let y = Vec.cross z x |> Vec.normalize
+                        let fov = 2.0 * Constant.DegreesPerRadian * atan (radius / distance)
+                        let view  = Trafo3d.FromBasis(x, y, z, center).Inverse //CameraView(sky, center, -z, y, x)//CameraView.lookAt center pick y
+                        let proj = Frustum.perspective fov 0.01 (3.0 * distance) 1.0
+                        //Trafo3d.Translation(cloudCenter) *
+                        view * Frustum.projTrafo proj
+                    | _ ->
+                        let ap = List.allPairs picks picks
+                        let fov,view =
+                            ap |> List.map (fun (p0,p1) ->
+                                let z = (Vec.normalize (center - p0) + Vec.normalize (center - p1)) |> Vec.normalize
+                                let sky = V3d.OOI
+                                let x = Vec.cross sky z |> Vec.normalize
+                                let y = Vec.cross z x |> Vec.normalize
+                                let halfAngle = 
+                                    picks |> List.map (fun pick ->
+                                        Vec.AngleBetween(-z, Vec.normalize (pick-center))
+                                    ) |> List.max
+                                let minfov = 2.0 * Constant.DegreesPerRadian * halfAngle
+                                let view  = Trafo3d.FromBasis(x, y, z, center).Inverse 
+                                minfov*1.2 |> min 179.0, view
+                            ) |> List.maxBy fst
+                        
+                        let proj = Frustum.perspective fov 0.01 500.0 1.0
+                        view * Frustum.projTrafo proj
+
+                        
                 Log.startTimed "render img"
-                let diff = center - pick
-                let distance = Vec.length diff
-                let z = diff / distance
-                let sky = V3d.OOI
-                let x = Vec.cross sky z |> Vec.normalize
-                let y = Vec.cross z x |> Vec.normalize
-                let t = Trafo3d.FromBasis(x, y, z, pick)
+                // let t = Trafo3d.FromBasis(x, y, z, pick)
                 
                 let getTC (pos : V3d) =
                     let pt = pos - center
@@ -326,10 +377,8 @@ module Bla =
                     
                 let getCoord (c : V2d) =
                     let ndc = 2.0 * c - V2d.II
-                    let tc = t.TransformPos((ndc*radius).XYO) |> getTC
+                    let tc = cropViewProj.Backward.TransformPosProj(ndc.XYO) |> getTC
                     V2i (tc * V2d pano.Size)
-                    
-                
                     
                 let img = PixImage<float32>(Col.Format.Gray, V2i(1024, 1024))
                 let m = img.GetChannel 0L
@@ -359,30 +408,23 @@ module Bla =
                 let img = colorImg
                 Log.stop()
                     
-                img.SaveAsPng @"D:\crop.png"
+                img.SaveAsPng (Path.combine [debugBaseDir; "crop.png"])
                     
                 Log.startTimed "sam index"
                 let idx = sam.BuildIndex img
                 Log.stop()
                 Log.startTimed "sam query"
+                
+                
                 let res = idx.Query [Query.Point(img.Size / 2, 1)]
                 let maskImg = PixImage<byte>(Col.Format.RGBA, res.Size)
                 let maskMat = maskImg.GetMatrix<C4b>()
                 maskMat.SetMap(res, fun res ->
                     C4f(C3f.Red * res, 1.0f).ToC4b()    
                 ) |> ignore
-                maskImg.SaveAsPng @"D:\cropMask.png"
+                maskImg.SaveAsPng (Path.combine [debugBaseDir; "cropMask.png"])
                 Log.stop()
-                
-                let distance = Vec.distance center pick
-                let fov = 2.0 * Constant.DegreesPerRadian * atan (radius / distance)
-                let view  = Trafo3d.FromBasis(x, y, z, center).Inverse //CameraView(sky, center, -z, y, x)//CameraView.lookAt center pick y
-                let proj = Frustum.perspective fov 0.01 (3.0 * distance) 1.0
-                let viewProj = Trafo3d.Translation(cloudCenter) * view * Frustum.projTrafo proj
-                
-                Some (viewProj, res)
-                
-                
+                Some (Trafo3d.Translation(cloudCenter) * cropViewProj, res)
                 
                 // let pano = PixImage<byte>(Col.Format.Gray, pano.Size)
                 // let mutable panoMat = pano.GetChannel(0L)
@@ -542,6 +584,13 @@ module Bla =
                     | Some (id, _) ->
                         match Map.tryFind id panos, Map.tryFind id centers with
                         | Some pano, Some center ->
+                            
+                            if AVal.force win.Keyboard.Shift then 
+                                transact (fun _ -> picks.Value <- pts.[0].World::picks.Value)
+                            else
+                                transact (fun _ -> picks.Value <- [pts.[0].World])
+                            
+                            
                             Log.startTimed "segmenting %d: %A" id center
                             // let seeds =
                             //     pts |> Array.map (fun pt ->
@@ -581,7 +630,7 @@ module Bla =
                             let proj = AVal.force frustum |> Frustum.projTrafo
                             let mvp = model * view * proj
                             
-                            match trySamplePano cloud.Bounds.Center mvp pts.[0].World id with
+                            match trySamplePano cloud.Bounds.Center mvp picks.Value id with
                             | Some(viewProj, mat) ->
                                 // img.SaveAsPng @"D:\bla.png"
                                 // pano.SaveAsPng @"D:\pano.png"
@@ -658,12 +707,20 @@ module Bla =
 
         let sh = FShade.Effect.ofFunction Shader.segmented
         
+        let partIndexBuffer =
+            let maxKey = centers |> Map.toSeq |> Seq.map fst |> Seq.max
+            let arr = Array.zeroCreate (maxKey+1)
+            for KeyValue(k,v) in centers do
+                arr.[k] <- V4f(V3f(v - cloud.Bounds.Center),0.0f) 
+            arr
+        
         let uf =
             HashMap.ofList [
                 "SegmentationMask", segmentationMask :> IAdaptiveValue
                 "SegmentationViewProj", segmentationViewProj :> IAdaptiveValue
                 "SegmentationCenter", segmentationCenter :> IAdaptiveValue
                 "SegmentationPartIndex", segmentationPartIndex :> IAdaptiveValue
+                "PartCenters", (AVal.constant partIndexBuffer) :> IAdaptiveValue
             ]
         
         
