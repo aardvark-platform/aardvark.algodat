@@ -291,6 +291,11 @@ namespace Scratch
 #pragma warning restore IDE0060 // Remove unused parameter
         {
             {
+                MeshExample.Run();
+                Environment.Exit(1);
+            }
+
+            {
                 var filenames = new[]
                 {
                     @"W:\Datasets\plytest\assimp test\cube.ply",                    // ok (ascii, vertices|faces)

@@ -12,6 +12,7 @@
     <ProjectReference Include="..\..\Aardvark.Data.E57\Aardvark.Data.E57.csproj" />
     <ProjectReference Include="..\..\Aardvark.Data.Points.LasZip\Aardvark.Data.Points.LasZip.csproj" />
     <ProjectReference Include="..\..\Aardvark.Data.Points.Ply\Aardvark.Data.Points.Ply.csproj" />
+    <ProjectReference Include="..\..\Aardvark.Geometry.PolyMesh\Aardvark.Geometry.PolyMesh.csproj" />
     <ProjectReference Include="..\..\Ply.Net\Ply.Net.csproj" />
     <ProjectReference Include="..\..\Aardvark.Geometry.PointSet\Aardvark.Geometry.PointSet.csproj" />
   </ItemGroup>
