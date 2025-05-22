@@ -1,3 +1,6 @@
+### 5.5.7
+- [PointSet] fixed empty chunk problem
+
 ### 5.5.6
 - [PolyMesh] changed PolyMesh base class SymMap GuidSymbol to Empty
 
