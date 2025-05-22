@@ -128,13 +128,15 @@ public static partial class PointCloud
             if (config.NormalizePointDensityGlobal)
             {
                 var smallestPossibleCellExponent = Fun.Log2(config.MinDist).Ceiling();
-                chunks = chunks.Select(x =>
-                {
-                    if (x.Count == 0) Report.Warn($"[PointCloud.Chunks] empty chunk");
-                    var c = new Cell(x.BoundingBox);
-                    while (c.Exponent < smallestPossibleCellExponent) c = c.Parent;
-                    return x.ImmutableFilterMinDistByCell(c, config.ParseConfig);
-                });
+                chunks = chunks
+                    .Where(x => x.Count > 0)
+                    .Select(x =>
+                    {
+                        if (x.Count == 0) Report.Warn($"[PointCloud.Chunks] empty chunk");
+                        var c = new Cell(x.BoundingBox);
+                        while (c.Exponent < smallestPossibleCellExponent) c = c.Parent;
+                        return x.ImmutableFilterMinDistByCell(c, config.ParseConfig);
+                    });
             }
             else
             {
