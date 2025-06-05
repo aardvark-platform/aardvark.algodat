@@ -9,6 +9,7 @@ open Aardvark.Geometry.Points
 open Aardvark.Data
 open Aardvark.Algodat.App.Viewer
 open Aardvark.Rendering
+open Aardvark.Rendering.GL
 open Aardvark.Rendering.PointSet
 open FSharp.Data.Adaptive
 open Aardvark.Application.Slim
@@ -18,6 +19,60 @@ open Aardvark.SceneGraph
 open Microsoft.FSharp.NativeInterop
 
 #nowarn "9"
+module Heat = 
+     let heatMapColors =
+         let fromInt (i : int) =
+             C4b(
+                 byte ((i >>> 16) &&& 0xFF),
+                 byte ((i >>> 8) &&& 0xFF),
+                 byte (i &&& 0xFF),
+                 255uy
+             ).ToC4f().ToV4d()
+
+         Array.map fromInt [|
+             0x1639fa
+             0x2050fa
+             0x3275fb
+             0x459afa
+             0x55bdfb
+             0x67e1fc
+             0x72f9f4
+             0x72f8d3
+             0x72f7ad
+             0x71f787
+             0x71f55f
+             0x70f538
+             0x74f530
+             0x86f631
+             0x9ff633
+             0xbbf735
+             0xd9f938
+             0xf7fa3b
+             0xfae238
+             0xf4be31
+             0xf29c2d
+             0xee7627
+             0xec5223
+             0xeb3b22
+         |]
+
+     [<ReflectedDefinition>]
+     let heat (tc : float) =
+         let tc = clamp 0.0 1.0 tc
+         let fid = tc * float 24
+
+         let id = int (floor fid)
+         if id < 0 then 
+             heatMapColors.[0]
+         elif id >= 24 - 1 then
+             heatMapColors.[24 - 1]
+         else
+             let c0 = heatMapColors.[id]
+             let c1 = heatMapColors.[id + 1]
+             let t = fid - float id
+             (c0 * (1.0 - t) + c1 * t)
+
+
 module Bla =
     let heatMapColors =
         let fromInt (i : int) =
@@ -70,7 +125,8 @@ module Bla =
             let t = fid - float id
             (c0 * (1.0f - float32 t) + c1 * float32 t)
 
-    
+        
+    [<ReflectedDefinition>]
     module Shader =
         open FShade
         
@@ -82,8 +138,6 @@ module Bla =
             member x.Centers : V4d[] = uniform?StorageBuffer?Centers
             member x.Slice : int = uniform?Slice
             member x.SliceCount : int = uniform?SliceCount
-            
-            member x.PartCenters : V4d[] = uniform?StorageBuffer?PartCenters
             
         let masky =
             sampler2d {
@@ -118,6 +172,378 @@ module Bla =
                 
             }
     
+    
+        let texy =
+            sampler2dArray {
+                texture uniform?DepthTextures
+                addressU WrapMode.Clamp
+                addressV WrapMode.Clamp
+                filter Filter.MinMagMipPoint
+            }
+            
+        let tryGetPosition (mySlice : int) (tc : V2d) (pos : ref<V3d>)=
+            let distance = texy.SampleLevel(tc, mySlice, 0.0).X
+            if distance < 1000.0 then
+                let center = uniform.Centers.[mySlice].XYZ
+                let phi = Constant.Pi - tc.X * Constant.PiTimesTwo
+                let theta = tc.Y * Constant.Pi - Constant.PiHalf
+                let ct = cos theta
+                let dir = V3d(cos phi * ct, sin phi * ct, sin theta)
+                pos := center + dir * distance
+                true
+            else
+                false
+
+        let getRayDirection (tc : V2d) =
+            let phi = Constant.Pi - tc.X * Constant.PiTimesTwo
+            let theta = tc.Y * Constant.Pi - Constant.PiHalf
+            let ct = cos theta
+            V3d(cos phi * ct, sin phi * ct, sin theta)
+            
+        let tryGetNormal (mySlice : int) (tc : V2d) (normal : ref<V3d>)=
+            let mutable position = V3d.Zero
+            if tryGetPosition mySlice tc &&position then
+                let dx = V2d(1.0 / float texy.Size.X, 0.0)
+                let dy = V2d(0.0, 1.0 / float texy.Size.Y)
+                let mutable px = V3d.Zero
+                let mutable py = V3d.Zero
+                if tryGetPosition mySlice (tc + dx) &&px then
+                    if tryGetPosition mySlice (tc + dy) &&py then
+                        normal := Vec.cross (px - position) (py - position) |> Vec.normalize
+                        true
+                    elif tryGetPosition mySlice (tc - dy) &&py then
+                        normal := Vec.cross (px - position) (position - py) |> Vec.normalize
+                        true
+                    else
+                        false
+                        
+                elif tryGetPosition mySlice (tc - dx) &&px then
+                    if tryGetPosition mySlice (tc + dy) &&py then
+                        normal := Vec.cross (position - px) (py - position) |> Vec.normalize
+                        true
+                    elif tryGetPosition mySlice (tc - dy) &&py then
+                        normal := Vec.cross (position - px) (position - py) |> Vec.normalize
+                        true
+                    else
+                        false
+                else
+                    false
+            else
+                false
+            
+
+        
+        let samples24 =
+            [|
+                V2d( 0.0, 0.0 )
+                V2d( -0.4612850228120782, -0.8824263018037591 )
+                V2d( 0.2033539719528926, 0.9766070232577696 )
+                V2d( 0.8622755945065503, -0.4990552917715807 )
+                V2d( -0.8458406529500018, 0.4340626564690164 )
+                V2d( 0.9145341241356336, 0.40187426079092753 )
+                V2d( -0.8095919285224212, -0.2476471278659192 )
+                V2d( 0.2443597793708885, -0.8210571365841042 )
+                V2d( -0.29522102954593127, 0.6411496844366571 )
+                V2d( 0.4013698454531175, 0.47134750051312063 )
+                V2d( -0.1573158341083741, -0.48548502348882533 )
+                V2d( 0.5674301785250454, -0.1052346781436156 )
+                V2d( -0.4929375319230899, 0.09422383038685558 )
+                V2d( 0.967785465127825, -0.06868225365333279 )
+                V2d( 0.2267967507441493, -0.40237871966279687 )
+                V2d( -0.7200979001122771, -0.6248240905561527 )
+                V2d( -0.015195608523765971, 0.35623701723070667 )
+                V2d( -0.11428925675805125, -0.963723441683084 )
+                V2d( 0.5482105069441386, 0.781847612911249 )
+                V2d( -0.6515264455787967, 0.7473765703131305 )
+                V2d( 0.5826875031269089, -0.6956573112908789 )
+                V2d( -0.8496230198638387, 0.09209564840857346 )
+                V2d( 0.38289808661249414, 0.15269522898022844 )
+                V2d( -0.4951171173546325, -0.2654758742352245 )
+            |]
+        
+        let realRootsOfNormed (c2 : float) (c1 : float) (c0 : float) =
+            let mutable d = c2 * c2
+            let p3 = 1.0/3.0 * (-1.0/3.0 * d + c1)
+            let q2 = 1.0/2.0 * ((2.0/27.0 * d - 1.0/3.0 * c1) * c2 + c0)
+            let p3c = p3 * p3 * p3
+            let shift = 1.0/3.0 * c2
+            d <- q2 * q2 + p3c
+            if d < 0.0 then
+                if p3c > 0.0 || p3 > 0.0 then
+                    -1.0
+                else
+                    let v = -q2 / sqrt(-p3c)
+                    if v < -1.0 || v > 1.0 then
+                        -1.0
+                    else
+                        let phi = 1.0 / 3.0 * acos v
+                        let t = 2.0 * sqrt(-p3)
+                        let r0 = t * cos phi - shift
+                        let r1 = -t * cos (phi + Constant.Pi / 3.0) - shift
+                        let r2 = -t * cos (phi - Constant.Pi / 3.0) - shift
+                        min r0 (min r1 r2)
+            
+            else
+                d <- sqrt d
+                let uav = cbrt (d - q2) - cbrt (d + q2)
+                let s0 = uav - shift
+                let s1 = -0.5 * uav - shift
+                min s0 s1
+
+        let tryGetSmoothPlane (mySlice : int) (tc : V2d) (result : ref<V4d>) =
+            let planeFitRadius = 5.0
+            let planeFitTolerance = 0.1
+            
+            // let mutable vp = V3d.Zero
+            // let mutable vn = V3d.Zero
+            // if tryGetPosition mySlice tc &&vp && tryGetNormal mySlice tc &&vn then
+            if true then
+                let size = V2d texy.Size.XY
+                //let plane = V4d(vn, -Vec.dot vn vp)
+
+                let mutable sum = V3d.Zero
+                let mutable sumSq = V3d.Zero
+                let mutable off = V3d.Zero
+                let mutable cnt = 1
+
+                let x = V2d.IO //randomSam.SampleLevel((floor (tc * viewPosSize()) + V2d.Half) / V2d randomSam.Size, 0.0).XY |> Vec.normalize
+                let y = V2d(-x.Y, x.X)
+
+                for o in samples24 do
+                    let tc = tc + planeFitRadius * (x*o.X + y*o.Y) / size
+                    let mutable p = V3d.Zero
+                    if tryGetPosition mySlice tc &&p then //&& abs (Vec.dot plane (V4d(p, 1.0))) <= planeFitTolerance then
+                        let pt = p // p - vp
+                        sum <- sum + pt
+                        sumSq <- sumSq + sqr pt
+                        off <- off + V3d(pt.Y*pt.Z, pt.X*pt.Z, pt.X*pt.Y)
+                        cnt <- cnt + 1
+
+                if cnt >= 4 then
+                    let n = float cnt
+                    let avg = sum / n
+                    let xx = (sumSq.X - avg.X * sum.X) / (n - 1.0)
+                    let yy = (sumSq.Y - avg.Y * sum.Y) / (n - 1.0)
+                    let zz = (sumSq.Z - avg.Z * sum.Z) / (n - 1.0)
+
+                    let xy = (off.Z - avg.X * sum.Y) / (n - 1.0)
+                    let xz = (off.Y - avg.X * sum.Z) / (n - 1.0)
+                    let yz = (off.X - avg.Y * sum.Z) / (n - 1.0)
+            
+            
+                    let _a = 1.0
+                    let b = -xx - yy - zz
+                    let c = -sqr xy - sqr xz - sqr yz + xx*yy + xx*zz + yy*zz
+                    let d = -xx*yy*zz - 2.0*xy*xz*yz + sqr xz*yy + sqr xy*zz + sqr yz*xx
+
+
+                    let l = realRootsOfNormed b c d
+                    if l < 0.0 then
+                        let mutable vp = V3d.Zero
+                        let mutable vn = V3d.Zero
+                        if tryGetPosition mySlice tc &&vp && tryGetNormal mySlice tc &&vn then
+                            result := V4d(vn, -Vec.dot vn vp)
+                            true
+                        else
+                            false
+                    else
+                        let c0 = V3d(xx - l, xy, xz)
+                        let c1 = V3d(xy, yy - l, yz)
+                        let c2 = V3d(xz, yz, zz - l)
+                        let len0 = Vec.lengthSquared c0
+                        let len1 = Vec.lengthSquared c1
+                        let len2 = Vec.lengthSquared c2
+
+                        let normal =
+                            if len0 > len1 then
+                                if len2 > len1 then Vec.cross c0 c2
+                                else Vec.cross c0 c1
+                            else
+                                if len2 > len0 then Vec.cross c1 c2
+                                else Vec.cross c0 c1
+
+                        let len = Vec.length normal
+
+                        if len > 0.0 then
+                            let normal = normal / len
+
+                            //result := V4d(normal, -Vec.dot normal (vp + avg))
+                            result := V4d(normal, -Vec.dot normal (avg))
+                            true
+                        else
+                            // result := V4d(vn, -Vec.dot vn vp)
+                            // true
+                            false
+                else
+                    // result := V4d(vn, -Vec.dot vn vp)
+                    // true
+                    false
+            else
+                false
+
+        let tryGetSmoothNormal (mySlice : int) (tc : V2d) (result : ref<V3d>) =
+            let mutable plane = V4d.Zero
+            if tryGetSmoothPlane mySlice tc &&plane then
+                result := plane.XYZ
+                true
+            else
+                false
+
+            
+            
+        [<ReflectedDefinition>]
+        let getCoord (slice : int) (position : V3d) =
+            let pt = position - uniform.Centers.[slice].XYZ
+            let myDepth = Vec.length pt
+            let phi = Constant.Pi - atan2 pt.Y pt.X
+            let theta = asin (pt.Z / myDepth)
+            let rx = phi / Constant.PiTimesTwo
+            let ry = (theta + Constant.PiHalf) / Constant.Pi
+            V2d(rx, ry)
+            
+        let occlusionTest (v : Effects.Vertex) =
+            fragment {
+                let s = V2d texy.Size.XY
+                let tc = V2d(v.tc.X, 1.0 - v.tc.Y)
+                let mySlice = uniform.Slice
+                let mutable position = V3d.Zero
+                let mutable res = V4d.OOOI
+           
+                let mutable minError = 100000.0
+                let mutable bad = 0
+                let mutable total = 0
+                let mutable maxTolerance = 0.0
+                let mutable found = false
+                for i in 0 .. samples24.Length - 1 do
+                    let off = samples24.[i]
+                    let tc = tc + 0.5 * off / s
+                    if tryGetPosition mySlice tc &&position then
+                        found <- true
+                        res <- V4d.IIII
+                        let mutable n = V3d.Zero
+                        let fw = position - uniform.Centers.[mySlice].XYZ |> Vec.normalize
+                        if not (tryGetNormal mySlice tc &&n) then
+                            n <- fw
+                            
+                        let pd = Vec.dot n position
+                          
+                                
+                        for slice in 0 .. uniform.SliceCount - 1 do
+                            if slice <> mySlice then
+                                let rtc = getCoord slice position
+                                
+                                let dir = getRayDirection rtc
+                                let d = acos (Vec.dot dir n |> abs) * 57.295779513
+                                if d < 80.0 then
+                                    let o = uniform.Centers.[slice].XYZ
+                                    let dxp = getRayDirection (rtc + V2d(0.5 / float texy.Size.X, 0.0))
+                                    let dxn = getRayDirection (rtc - V2d(0.5 / float texy.Size.X, 0.0))
+                                    let dyp = getRayDirection (rtc + V2d(0.0, 0.5 / float texy.Size.Y))
+                                    let dyn = getRayDirection (rtc - V2d(0.0, 0.5 / float texy.Size.Y))
+                                    
+                                    let num = pd - Vec.dot n o
+                                    let sx = Vec.distance (dxp * num / Vec.dot n dxp) (dxn * num / Vec.dot n dxn)
+                                    let sy = Vec.distance (dyp * num / Vec.dot n dyp) (dyn * num / Vec.dot n dyn)
+                                    let footprintSize = max sx sy
+                                    
+                                    
+                                    // <n | o + t * d> = dist
+                                    
+                                    // t  = (dist - <n|o>) / <n|d>
+                                    
+                                    
+                                    let cmpDepth = texy.SampleLevel(rtc, slice, 0.0).X
+                                    let myDepth = Vec.distance position uniform.Centers.[slice].XYZ
+                                    
+                                   
+                                    if cmpDepth < 10000.0 then
+                                        let tolerance = 0.1 + 25.0*footprintSize
+                                        maxTolerance <- max maxTolerance tolerance
+                                        if cmpDepth > myDepth + tolerance then
+                                            bad <- bad + 1
+                                        total <- total + 1
+                                        
+                                        let err = abs (cmpDepth - myDepth) / tolerance
+                                        minError <- min minError err
+                             
+                if found then
+                    res <- Heat.heat (float bad / float (total + 1))
+                return res
+            }
+    
+    
+    let renderOcclusionMasks (outPath : string) (runtime : IRuntime) (depthImages : Map<int, PixImage<float32>>) (centers : Map<int, V3d>) =
+        let count = 1 + (depthImages |> Map.toSeq |> Seq.map fst |> Seq.max)
+        let size = (Seq.head depthImages).Value.Size
+        let offset = centers |> Seq.averageBy (fun (KeyValue(_, v)) -> v)
+        
+        
+        
+        let arr = runtime.CreateTexture2DArray(V2i size, TextureFormat.R32f, 1, 1, count)
+        for KeyValue(k, img) in depthImages do
+            runtime.Upload(arr.[TextureAspect.Color, 0, k], img.TransformedPixImage(ImageTrafo.MirrorY))
+        //     
+        // let depthImageArray =
+        //     let vol = PixVolume<float32>(Col.Format.Gray, V3i(size, count))
+        //     
+        //     for KeyValue(k, img) in depthImages do
+        //         let dst = vol.Tensor4.SubXYWVolume(int64 k)
+        //         let src = img.Volume
+        //         
+        //         runtime.Upload(arr.[TextureAspect.Color, 0, k], img)
+        //         
+        //         
+        //         NativeVolume.using src (fun src ->
+        //             NativeVolume.using dst (fun dst ->
+        //                 NativeVolume.copy src dst    
+        //             )    
+        //         )
+        //     vol
+        //
+        let centers =
+            let arr = Array.zeroCreate count
+            for KeyValue(k, c) in centers do
+                arr.[k] <- V4f(V3f (c - offset), 0.0f)
+            arr
+        let slice = cval 0
+        
+        
+        
+        
+        let scene = 
+            Sg.fullScreenQuad
+            |> Sg.uniform' "DepthTextures" (AVal.constant (arr :> ITexture))
+            |> Sg.uniform' "Centers" centers
+            |> Sg.uniform "Slice" slice
+            |> Sg.uniform' "SliceCount" count
+            |> Sg.shader {
+                do! Shader.occlusionTest
+            }
+            |> Sg.depthTest' DepthTest.Always
+            
+        let signature =
+            runtime.CreateFramebufferSignature [
+                DefaultSemantic.Colors, TextureFormat.Rgba8
+            ]
+            
+        use tex = runtime.CreateTexture2D(size, TextureFormat.Rgba8)
+        use fbo = runtime.CreateFramebuffer(signature, [DefaultSemantic.Colors, tex.[TextureAspect.Color, 0, 0] :> IFramebufferOutput])
+            
+        use task = scene |> Sg.compile runtime signature
+        
+        for KeyValue(k, _) in depthImages do
+            transact (fun () -> slice.Value <- k)
+            printfn "%A: %A" k task.OutOfDate
+            task.Run(AdaptiveToken.Top, RenderToken.Empty, fbo)
+            let img = runtime.Download tex
+            img.Save (Path.Combine(outPath, $"mask_%03d{k}.png"))
+        
+        
+            
+            
+        
+    
+    
     [<EntryPoint>]
     let main a =
         
@@ -128,26 +554,20 @@ module Bla =
                 
         let inputs =
                 [
-                    @"D:\Clouds\unbereinigt\Bf Tapfheim- 010.e57"
-                    @"D:\Clouds\unbereinigt\Bf Tapfheim- 011.e57"
-                    @"D:\Clouds\unbereinigt\Bf Tapfheim- 012.e57"
-                    @"D:\Clouds\unbereinigt\Bf Tapfheim- 013.e57"
-                    @"D:\Clouds\unbereinigt\Bf Tapfheim- 014.e57"
-                    @"D:\Clouds\unbereinigt\Bf Tapfheim- 015.e57"
-                    @"D:\Clouds\unbereinigt\Bf Tapfheim- 016.e57"
-                    @"D:\Clouds\unbereinigt\Bf Tapfheim- 017.e57"
-                    @"D:\Clouds\unbereinigt\Bf Tapfheim- 018.e57"
+                    @"D:\Clouds\Kindergarten\KG1__010.e57"
+                    @"D:\Clouds\Kindergarten\KG1__011.e57"
+                    @"D:\Clouds\Kindergarten\KG1__012.e57"
+                    @"D:\Clouds\Kindergarten\KG1__013.e57"
+                    @"D:\Clouds\Kindergarten\KG1__014.e57"
+                    @"D:\Clouds\Kindergarten\KG1__015.e57"
+                    @"D:\Clouds\Kindergarten\KG1__016.e57"
+                    @"D:\Clouds\Kindergarten\KG1__017.e57"
+                    @"D:\Clouds\Kindergarten\KG1__018.e57"
                 ]
-        let outdir = @"D:\stores\bahn2" |> ensure
-        let samPath = None
-            // Some (
-            //     @"C:\sam\samexporter\output_models\sam_vit_h_4b8939.encoder.quant.onnx",
-            //     @"C:\sam\samexporter\output_models\sam_vit_h_4b8939.decoder.quant.onnx"
-            // )
-        let debugBaseDir = @"C:\bla\stores-geos"
-        //let outdir = @"C:\bla\stores-geos\tapfheim-station" |> ensure
+        let outdir = @"D:\stores\kindergarten" |> ensure
         let storepath = Path.combine [outdir; "store"] |> ensure
         let panospath = Path.combine [outdir; "panos"] |> ensure
+        let maskspath = Path.combine [outdir; "masks"] |> ensure
         let centerspath = Path.combine [outdir;"centers.txt"]
         
         let store = PointCloud.OpenStore(Path.combine [storepath; "data.uds"])
@@ -283,16 +703,6 @@ module Bla =
                 img 
             )
             
-            
-        
-        let sam =
-            match samPath with
-            | Some(encPath, decPath) ->
-                new Sam(
-                    encoder = encPath,
-                    decoder = decPath
-                )
-            | None -> new Sam() 
         // let sams =
         //     panos |> Map.map (fun _ p ->
         //         sam.BuildIndex p
@@ -308,7 +718,7 @@ module Bla =
                 
             |]
             
-        //renderOcclusionMasks maskspath app.Runtime depthImages centers
+        renderOcclusionMasks maskspath app.Runtime depthImages centers
             
             
         let sam = new Sam() 
