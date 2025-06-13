@@ -3736,7 +3736,7 @@ namespace Aardvark.Geometry
             return Copy(new SymbolDict<Func<Array, Array>>
             {
                 { Property.Positions, arr => Transform(arr, p => Mat.TransformPos(matrix, p)) },
-                { Property.Normals,   arr => Transform(arr, n => Mat.TransposedTransformDir(inverse, n).Normalized) },
+                { Property.Normals,   arr => arr is int[] ? arr : Transform(arr, n => Mat.TransposedTransformDir(inverse, n).Normalized) },
                 { -Property.Normals,  arr => Transform(arr, n => Mat.TransposedTransformDir(inverse, n).Normalized) },
             },
             a => a);
