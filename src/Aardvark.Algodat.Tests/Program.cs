@@ -62,6 +62,7 @@ namespace Aardvark.Geometry.Tests
                 //.WithMaxChunkPointCount(32 * 1024 * 1024)
                 //.WithOctreeSplitLimit(8192*4)
                 //.WithEnabledPartIndices(false)
+                .WithDefaultNormal(V3f.OOI)
                 ;
 
             Report.BeginTimed($"importing {filename}");
@@ -2808,10 +2809,10 @@ namespace Aardvark.Geometry.Tests
             await Task.CompletedTask; // avoid warning if no async methods are called here ...
 
             await CreateStore(
-                @"W:\Datasets\Vgm\Data\2025-05-21_bugreport\cloud_0.e57",
-                @"E:\tmp\cloud_0.e57_005",
+                @"W:\Datasets\Vgm\Data\BLK360_Atotech.e57",
+                @"E:\tmp\BLK360_Atotech.e57_005_aardvark",
                 minDist: 0.005,
-                maxDegreeOfParallelism: 1
+                maxDegreeOfParallelism: 0
                 );
 
             //Test_Parse_Regression();

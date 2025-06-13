@@ -226,28 +226,31 @@ namespace Aardvark.Data.Points.Import
                     {
                         var e57chunk = new E57Chunk(Properties, data3d, Positions);
 
-                        // ensure that there are colors (if e57 chunk has no colors then add all black colors
-                        var cs = e57chunk.Colors?.Map(c => new C4b(c)) ?? Positions.Map(_ => C4b.Black);
+                        // ensure that there are colors (if e57 chunk has no colors then add colors)
+                        var cs = e57chunk.Colors?.Map(c => new C4b(c)) ?? Positions.Map(_ => config.EnabledProperties.DefaultColor);
 
                         // ensure that there are normals, if any e57 chunk has normals (according to 'semanticsAll') 
                         var ns = e57chunk.Normals;
                         if (ns == null && semanticsAll.Contains(PointPropertySemantics.NormalX))
                         {
-                            ns = Positions.Map(_ => V3f.Zero); // set all normals to (0,0,0)
+                            ns = new V3f[Positions.Length];
+                            for (var i = 0; i < ns.Length; i++) ns[i] = config.EnabledProperties.DefaultNormal;
                         }
 
                         // ensure that there are intensities, if any e57 chunk has intensities (according to 'semanticsAll') 
                         var js = e57chunk.Intensities;
                         if (js == null && semanticsAll.Contains(PointPropertySemantics.Intensity))
                         {
-                            js = new int[Positions.Length]; // set all intensities to 0
+                            js = new int[Positions.Length];
+                            for (var i = 0; i < js.Length; i++) js[i] = config.EnabledProperties.DefaultIntensity;
                         }
 
                         // ensure that there are classifications, if any e57 chunk has classifications (according to 'semanticsAll') 
                         var ks = e57chunk.Classification?.Map(x => (byte)x);
                         if (ks == null && semanticsAll.Contains(PointPropertySemantics.Intensity))
                         {
-                            ks = new byte[Positions.Length]; // set all classifications to 0
+                            ks = new byte[Positions.Length];
+                            for (var i = 0; i < ks.Length; i++) ks[i] = config.EnabledProperties.DefaultClassification;
                         }
 
                         var chunk = new Chunk(
@@ -318,7 +321,7 @@ namespace Aardvark.Data.Points.Import
 
                 foreach (var data3d in header.E57Root.Data3D)
                 {
-                    foreach (var (Positions, Properties) in data3d.StreamPointsFull(config.MaxChunkPointCount, config.Verbose, ImmutableHashSet<PointPropertySemantics>.Empty))
+                    foreach (var (Positions, Properties) in data3d.StreamPointsFull(config.MaxChunkPointCount, config.Verbose, []))
                     {
                         for (var i = 0; i < Positions.Length; i++) if (Positions[i].Length > 1000000000) Debugger.Break();
 

@@ -15,6 +15,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+using Aardvark.Base;
 using System.Threading;
 
 namespace Aardvark.Data.Points
@@ -54,6 +55,42 @@ namespace Aardvark.Data.Points
         /// </summary>
         public static readonly EnabledProperties All = new();
 
+        #region default values
+
+        /// <summary>
+        /// Set missing classifications to this value.
+        /// </summary>
+        /// <remarks>
+        /// This only happens, if some imported chunks have classifications and some have not, so that all chunks can be merged.<br/>
+        /// Nothing will be added if all chunks are without classifications.
+        /// </remarks>
+        public byte DefaultClassification = 0;
+
+        /// <summary>
+        /// Set missing colors to this value.
+        /// </summary>
+        public C4b DefaultColor = C4b.Black;
+
+        /// <summary>
+        /// Set missing intensities to this value.
+        /// </summary>
+        /// <remarks>
+        /// This only happens, if some imported chunks have intensities and some have not, so that all chunks can be merged.<br/>
+        /// Nothing will be added if all chunks are without intensities.
+        /// </remarks>
+        public int DefaultIntensity = 0;
+
+        /// <summary>
+        /// Set missing normals to this value.
+        /// </summary>
+        /// <remarks>
+        /// This only happens, if some imported chunks have normals and some have not, so that all chunks can be merged.<br/>
+        /// Nothing will be added if all chunks are without normals.
+        /// </remarks>
+        public V3f DefaultNormal = V3f.Zero;
+
+        #endregion
+
         /// <summary> </summary>
         public EnabledProperties() { }
 
@@ -65,6 +102,10 @@ namespace Aardvark.Data.Points
             Intensities = other.Intensities;
             Normals = other.Normals;
             PartIndices = other.PartIndices;
+            DefaultClassification = other.DefaultClassification;
+            DefaultColor = other.DefaultColor;
+            DefaultIntensity = other.DefaultIntensity;
+            DefaultNormal = other.DefaultNormal;
         }
 
         /// <summary></summary>
@@ -81,6 +122,42 @@ namespace Aardvark.Data.Points
 
         /// <summary></summary>
         public EnabledProperties WithPartIndices(bool enabled) => new(this) { PartIndices = enabled };
+
+        /// <summary>
+        /// Set missing classifications to this value.
+        /// </summary>
+        /// <remarks>
+        /// This only happens, if some imported chunks have classifications and some have not, so that all chunks can be merged.<br/>
+        /// Nothing will be added if all chunks are without classifications.
+        /// </remarks>
+        public EnabledProperties WithDefaultClassification(byte x) => new(this) { DefaultClassification = x };
+
+        /// <summary>
+        /// Set missing colors to this value.
+        /// </summary>
+        /// <remarks>
+        /// This only happens, if some imported chunks have colors and some have not, so that all chunks can be merged.<br/>
+        /// Nothing will be added if all chunks are without colors.
+        /// </remarks>
+        public EnabledProperties WithDefaultColor(C4b x) => new(this) { DefaultColor = x };
+
+        /// <summary>
+        /// Set missing intensities to this value.
+        /// </summary>
+        /// <remarks>
+        /// This only happens, if some imported chunks have intensities and some have not, so that all chunks can be merged.<br/>
+        /// Nothing will be added if all chunks are without intensities.
+        /// </remarks>
+        public EnabledProperties WithDefaultIntensity(int x) => new(this) { DefaultIntensity = x };
+
+        /// <summary>
+        /// Set missing normals to this value.
+        /// </summary>
+        /// <remarks>
+        /// This only happens, if some imported chunks have normals and some have not, so that all chunks can be merged.<br/>
+        /// Nothing will be added if all chunks are without normals.
+        /// </remarks>
+        public EnabledProperties WithDefaultNormal(V3f x) => new(this) { DefaultNormal = x };
     }
 
     /// <summary>
@@ -229,5 +306,40 @@ namespace Aardvark.Data.Points
         /// <summary></summary>
         public ParseConfig WithEnabledPartIndices(bool enabled) => new(this) { EnabledProperties = EnabledProperties.WithPartIndices(enabled) };
 
+        /// <summary>
+        /// Set missing classifications to this value.
+        /// </summary>
+        /// <remarks>
+        /// This only happens, if some imported chunks have classifications and some have not, so that all chunks can be merged.<br/>
+        /// Nothing will be added if all chunks are without classifications.
+        /// </remarks>
+        public ParseConfig WithDefaultClassification(byte x) => new(this) { EnabledProperties = EnabledProperties.WithDefaultClassification(x) };
+
+        /// <summary>
+        /// Set missing colors to this value.
+        /// </summary>
+        /// <remarks>
+        /// This only happens, if some imported chunks have colors and some have not, so that all chunks can be merged.<br/>
+        /// Nothing will be added if all chunks are without colors.
+        /// </remarks>
+        public ParseConfig WithDefaultColor(C4b x) => new(this) { EnabledProperties = EnabledProperties.WithDefaultColor(x) };
+
+        /// <summary>
+        /// Set missing intensities to this value.
+        /// </summary>
+        /// <remarks>
+        /// This only happens, if some imported chunks have intensities and some have not, so that all chunks can be merged.<br/>
+        /// Nothing will be added if all chunks are without intensities.
+        /// </remarks>
+        public ParseConfig WithDefaultIntensity(int x) => new(this) { EnabledProperties = EnabledProperties.WithDefaultIntensity(x) };
+
+        /// <summary>
+        /// Set missing normals to this value.
+        /// </summary>
+        /// <remarks>
+        /// This only happens, if some imported chunks have normals and some have not, so that all chunks can be merged.<br/>
+        /// Nothing will be added if all chunks are without normals.
+        /// </remarks>
+        public ParseConfig WithDefaultNormal(V3f x) => new(this) { EnabledProperties = EnabledProperties.WithDefaultNormal(x) };
     }
 }

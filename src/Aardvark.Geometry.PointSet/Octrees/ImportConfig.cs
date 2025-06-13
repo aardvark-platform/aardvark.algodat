@@ -157,5 +157,41 @@ public class ImportConfig
     /// <summary></summary>
     public ImportConfig WithEnabledPartIndices(bool enabled) => new(this) { ParseConfig = ParseConfig.WithEnabledProperties(ParseConfig.EnabledProperties.WithPartIndices(enabled)) };
 
+    /// <summary>
+    /// Set missing classifications to this value.
+    /// </summary>
+    /// <remarks>
+    /// This only happens, if some imported chunks have classifications and some have not, so that all chunks can be merged.<br/>
+    /// Nothing will be added if all chunks are without classifications.
+    /// </remarks>
+    public ImportConfig WithDefaultClassification(byte x) => new(this) { ParseConfig = ParseConfig.WithDefaultClassification(x) };
+
+    /// <summary>
+    /// Set missing colors to this value.
+    /// </summary>
+    /// <remarks>
+    /// This only happens, if some imported chunks have colors and some have not, so that all chunks can be merged.<br/>
+    /// Nothing will be added if all chunks are without colors.
+    /// </remarks>
+    public ImportConfig WithDefaultColor(C4b x) => new(this) { ParseConfig = ParseConfig.WithDefaultColor(x) };
+
+    /// <summary>
+    /// Set missing intensities to this value.
+    /// </summary>
+    /// <remarks>
+    /// This only happens, if some imported chunks have intensities and some have not, so that all chunks can be merged.<br/>
+    /// Nothing will be added if all chunks are without intensities.
+    /// </remarks>
+    public ImportConfig WithDefaultIntensity(int x) => new(this) { ParseConfig = ParseConfig.WithDefaultIntensity(x) };
+
+    /// <summary>
+    /// Set missing normals to this value.
+    /// </summary>
+    /// <remarks>
+    /// This only happens, if some imported chunks have normals and some have not, so that all chunks can be merged.<br/>
+    /// Nothing will be added if all chunks are without normals.
+    /// </remarks>
+    public ImportConfig WithDefaultNormal(V3f x) => new(this) { ParseConfig = ParseConfig.WithDefaultNormal(x) };
+
     #endregion
 }

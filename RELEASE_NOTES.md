@@ -1,3 +1,7 @@
+### 5.5.8
+- [PointSet] configuration of default values for import 
+  - used to fill missing properties in subset of chunks
+
 ### 5.5.7
 - [PointSet] fixed empty chunk problem
 
