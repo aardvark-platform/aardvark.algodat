@@ -541,11 +541,122 @@ module Bla =
         
             
             
+    let panoCompare() =
         
-    
-    
+        let panospath = "/Users/schorsch/Desktop"
+        let inputs =
+            [|
+                "/Users/schorsch/Desktop/Bf Tapfheim- 137 org.e57", "/Users/schorsch/Desktop/Bf Tapfheim- 137.e57"
+                "/Users/schorsch/Desktop/Bf Tapfheim- 140 org.e57", "/Users/schorsch/Desktop/Bf Tapfheim- 140.e57"
+            |]
+        
+        let mutable partIndex = 0
+        let centers = ResizeArray()
+        for original, cleaned in inputs do
+            Log.line $"file {original}"
+            
+            
+            
+            let size = V2i(5000, 2500)
+            let dimg = PixImage<float32>(Col.Format.Gray, size)
+            let mutable dmat = dimg.GetChannel(0L)
+            dmat.Set(System.Single.PositiveInfinity) |> ignore
+            let mutable maxDepth = 0.0
+            
+            
+            let dimgCleaned = PixImage<float32>(Col.Format.Gray, size)
+            let mutable dmatCleaned = dimgCleaned.GetChannel(0L)
+            dmatCleaned.Set(System.Single.PositiveInfinity) |> ignore
+            
+            
+            do 
+                let actualSize = FileInfo(original).Length
+                use s = File.OpenRead original
+                let info = Aardvark.Data.E57.ASTM_E57.E57FileHeader.Parse(s, actualSize, false)
+                    
+                let mutable i = 0
+                for data in info.E57Root.Data3D do
+                    
+                    if not (isNull data.Pose) then
+                        let name = $"{data.Guid}_{i}"
+                        let center = data.Pose.Translation
+                        centers.Add(center)
+                        
+                        let chunks =
+                            data.StreamPointsFull(1 <<< 28, false, System.Collections.Immutable.ImmutableHashSet.Empty)
+                            |> Seq.map (fun struct(a,b) -> E57.E57Chunk(b, data, a))
+                            
+                        for c in chunks do
+                            
+                            for i in 0 .. c.Count - 1 do
+                                let pt = c.Positions.[i] - center
+                                
+                                let d = Vec.length pt
+                                let phi = Constant.Pi - atan2 pt.Y pt.X
+                                let theta = asin (pt.Z / d)
+                                
+                                let rx = phi / Constant.PiTimesTwo
+                                let ry = (theta + Constant.PiHalf) / Constant.Pi
+                                
+                                let pos = V2i(int32 (rx * float dimg.Size.X), int32 ((1.0 - ry) * float dimg.Size.Y))
+                                dmat.[pos] <- float32 d
+                                
+                
+            do
+                let original = ()
+                let dmat = ()
+                let dimg = ()
+                let actualSize = FileInfo(cleaned).Length
+                use s = File.OpenRead cleaned
+                let info = Aardvark.Data.E57.ASTM_E57.E57FileHeader.Parse(s, actualSize, false)
+                    
+                let mutable i = 0
+                for data in info.E57Root.Data3D do
+                    
+                    if not (isNull data.Pose) then
+                        let name = $"{data.Guid}_{i}"
+                        let center = data.Pose.Translation
+                        centers.Add(center)
+                        
+                        let chunks =
+                            data.StreamPointsFull(1 <<< 28, false, System.Collections.Immutable.ImmutableHashSet.Empty)
+                            |> Seq.map (fun struct(a,b) -> E57.E57Chunk(b, data, a))
+                            
+                        for c in chunks do
+                            
+                            for i in 0 .. c.Count - 1 do
+                                let pt = c.Positions.[i] - center
+                                
+                                let d = Vec.length pt
+                                let phi = Constant.Pi - atan2 pt.Y pt.X
+                                let theta = asin (pt.Z / d)
+                                
+                                let rx = phi / Constant.PiTimesTwo
+                                let ry = (theta + Constant.PiHalf) / Constant.Pi
+                                
+                                let pos = V2i(int32 (rx * float dimgCleaned.Size.X), int32 ((1.0 - ry) * float dimgCleaned.Size.Y))
+                                dmatCleaned.[pos] <- float32 d
+                                maxDepth <- max maxDepth d
+                               
+                                        
+            
+                            
+            let dimg2 = PixImage<byte>(Col.Format.RGBA, dimg.Size)
+            dimg2.GetMatrix<C4b>().SetMap2(dmat, dmatCleaned, fun oDepth cleanedDepth ->
+                if cleanedDepth >= 1000.0f then
+                    if oDepth < 1000.0f then C4b.White
+                    else C4b.Black
+                else
+                    heat(sqrt(float oDepth / maxDepth)).ToC4b()
+            ) |> ignore
+            dimg2.SaveImageSharp (Path.Combine(panospath, $"%03d{partIndex}.png"))
+            partIndex <- partIndex + 1
+            
     [<EntryPoint>]
     let main a =
+        
+        // panoCompare()
+        // exit 0
         
         let ensure storepath =
             if not (Directory.Exists storepath) then Directory.CreateDirectory storepath |> ignore
