@@ -180,12 +180,67 @@ public static class MergeExtensions
                 for (var i = 0; i < psla.Count; i++)
                 {
                     var p = psla[i];
-                    if (p.X <= bb.Min.X) { if (!p.X.ApproximateEquals(bb.Min.X, eps.X)) throw new Exception($"Invariant 4840fe92-02df-4b9a-8233-18edb12656f9."); p.X = bb.Min.X + eps.X; }
-                    if (p.Y <= bb.Min.Y) { if (!p.Y.ApproximateEquals(bb.Min.Y, eps.Y)) throw new Exception($"Invariant 942019a9-cb0d-476c-bfb8-69a2bde8debf."); p.Y = bb.Min.Y + eps.Y; }
-                    if (p.Z <= bb.Min.Z) { if (!p.Z.ApproximateEquals(bb.Min.Z, eps.Z)) throw new Exception($"Invariant 68fd4c9e-6de1-4a43-91ae-fec4a9fb28df."); p.Z = bb.Min.Z + eps.Z; }
-                    if (p.X >= bb.Max.X) { if (!p.X.ApproximateEquals(bb.Max.X, eps.X)) throw new Exception($"Invariant a24f717c-19d9-46eb-9cf5-b1f6d928963a."); p.X = bb.Max.X - eps.X; }
-                    if (p.Y >= bb.Max.Y) { if (!p.Y.ApproximateEquals(bb.Max.Y, eps.Y)) throw new Exception($"Invariant fd8aaa89-43d3-428c-9d95-a62bf5a41b07."); p.Y = bb.Max.Y - eps.Y; }
-                    if (p.Z >= bb.Max.Z) { if (!p.Z.ApproximateEquals(bb.Max.Z, eps.Z)) throw new Exception($"Invariant 9905f569-16d0-4e46-8ae2-147aeb6e7acc."); p.Z = bb.Max.Z - eps.Z; }
+                    if (p.X <= bb.Min.X)
+                    {
+                        if (!p.X.ApproximateEquals(bb.Min.X, eps.X)) Report.Warn(
+                            $"[WARNING] Invariant p.X <= bb.Min.X ({p.X} <= {bb.Min.X}, eps.X = {bb.Min.X + eps.X}). " +
+                            $"Bounding box is {bb}. " +
+                            $"Shifting p={p} to p.X={bb.Min.X}. " +
+                            $"Warning 4840fe92-02df-4b9a-8233-18edb12656f9."
+                            );
+                        p.X = bb.Min.X + eps.X;
+                    }
+                    if (p.Y <= bb.Min.Y)
+                    {
+                        if (!p.Y.ApproximateEquals(bb.Min.Y, eps.Y)) Report.Warn(
+                            $"[WARNING] Invariant p.Y <= bb.Min.Y ({p.Y} <= {bb.Min.Y}, eps.Y = {bb.Min.Y + eps.Y}). " +
+                            $"Bounding box is {bb} ." +
+                            $"Shifting p={p} to p.Y={bb.Min.Y}. " +
+                            $"Warning 942019a9-cb0d-476c-bfb8-69a2bde8debf."
+                            );
+                        p.Y = bb.Min.Y + eps.Y;
+                    }
+                    if (p.Z <= bb.Min.Z)
+                    {
+                        if (!p.Z.ApproximateEquals(bb.Min.Z, eps.Z)) Report.Warn(
+                            $"[WARNING] Invariant p.Z <= bb.Min.Z ({p.Z} <= {bb.Min.Z}, eps.Z = {bb.Min.Z + eps.Z}). " +
+                            $"Bounding box is {bb}. " +
+                            $"Shifting p={p} to p.Z={bb.Min.Z}. " +
+                            $"Warning 68fd4c9e-6de1-4a43-91ae-fec4a9fb28df."
+                            );
+                        p.Z = bb.Min.Z + eps.Z;
+                    }
+                    if (p.X >= bb.Max.X)
+                    {
+                        if (!p.X.ApproximateEquals(bb.Max.X, eps.X)) Report.Warn(
+                            $"[WARNING] Invariant p.X >= bb.Max.X ({p.X} >= {bb.Max.X}, eps.X = {bb.Max.X - eps.X}). " +
+                            $"Bounding box is {bb}. " +
+                            $"Shifting p={p} to p.X={bb.Max.X}. " +
+                            $"Warning a24f717c-19d9-46eb-9cf5-b1f6d928963a."
+                            );
+                        p.X = bb.Max.X - eps.X;
+                    }
+                    if (p.Y >= bb.Max.Y)
+                    {
+                        if (!p.Y.ApproximateEquals(bb.Max.Y, eps.Y)) Report.Warn(
+                            $"[WARNING] Invariant p.Y >= bb.Max.Y ({p.Y} >= {bb.Max.Y}, eps.Y = {bb.Max.Y - eps.Y}). " +
+                            $"Bounding box is {bb}. " +
+                            $"Shifting p={p} to p.Y={bb.Max.Y}. " +
+                            $"Warning fd8aaa89-43d3-428c-9d95-a62bf5a41b07."
+                            );
+                        p.Y = bb.Max.Y - eps.Y;
+                    }
+                    if (p.Z >= bb.Max.Z)
+                    {
+                        if (!p.Z.ApproximateEquals(bb.Max.Z, eps.Z)) Report.Warn(
+                            $"[WARNING] Invariant p.Z >= bb.Max.Z ({p.Z} >= {bb.Max.Z}, eps.Z = {bb.Max.Z - eps.Z}). " +
+                            $"Bounding box is {bb}. " +
+                            $"Shifting p={p} to p.Z={bb.Max.Z}. " +
+                            $"Warning 9905f569-16d0-4e46-8ae2-147aeb6e7acc."
+                            );
+                        p.Z = bb.Max.Z - eps.Z;
+                    }
+
                     psla[i] = p;
                 }
                 var bbNew = new Box3d(psla);
