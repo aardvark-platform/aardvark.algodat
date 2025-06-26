@@ -1,3 +1,6 @@
+### 5.5.9
+- [PointSet] Merge: print detailed warning instead of throwing Exception when points are slightly outside bounds (due to floating point rounding errors)
+
 ### 5.5.8
 - [PointSet] configuration of default values for import 
   - used to fill missing properties in subset of chunks
