@@ -10,6 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Aardvark.Data.E57\Aardvark.Data.E57.csproj" />
     <ProjectReference Include="..\..\Aardvark.Data.Points.Base\Aardvark.Data.Points.Base.csproj" />
+    <ProjectReference Include="..\..\Aardvark.Data.Points.LasZip\Aardvark.Data.Points.LasZip.csproj" />
     <ProjectReference Include="..\..\Aardvark.Rendering.PointSet\Aardvark.Rendering.PointSet.fsproj" />
   </ItemGroup>
   <Import Project="..\..\..\.paket\Paket.Restore.targets" />
