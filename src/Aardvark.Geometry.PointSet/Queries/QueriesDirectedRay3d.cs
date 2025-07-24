@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2025. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -11,6 +11,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
 using Aardvark.Base;
 using Aardvark.Data.Points;
 using System.Collections.Generic;
@@ -23,11 +24,11 @@ namespace Aardvark.Geometry.Points;
 public static partial class Queries
 {
     /// <summary>
-    /// Enumerates Points within given distance of a Ray3d whose Ts lie between tMin and tMax.
+    /// Enumerates points within given distance of a Ray3d whose Ts lie between tMin and tMax.
     /// Chunks are approximately sorted along the ray direction.
     /// </summary>
     public static IEnumerable<Chunk> QueryPointsNearRay(
-        this PointSet ps, 
+        this PointSet ps,
         Ray3d ray,
         double maxDistanceToRay,
         double tMin,
@@ -57,14 +58,16 @@ public static partial class Queries
         double t0 = double.NegativeInfinity;
         double t1 = double.PositiveInfinity;
 
-        var box = Box3d.FromCenterAndSize(
-            node.BoundingBoxExactGlobal.Center, 
-            node.BoundingBoxExactGlobal.Size + V3d.One * maxDistanceToRay
-            );
+        var bbeg = node.BoundingBoxExactGlobal;
+        var offset = new V3d(maxDistanceToRay);
+        var box = new Box3d(bbeg.Min - offset, bbeg.Max + offset);
 
         if (fastRay.Intersects(box, ref t0, ref t1))
         {
-            if(t1 < tMin || t0 > tMax) { yield break; }
+            if (t1 < tMin || t0 > tMax)
+            {
+                yield break;
+            }
 
             if (node.IsLeaf || node.Cell.Exponent == minCellExponent)
             {
@@ -101,13 +104,13 @@ public static partial class Queries
                     c => c == null ? double.PositiveInfinity : Vec.Distance(new V3d(c.Value.BoundingBoxExactGlobal.Center), ray.Origin)
                     );
 
-                foreach(var c in sorted)
+                foreach (var c in sorted)
                 {
                     if (c == null) continue;
                     if (t0 > tMin) tMin = t0;
                     if (t1 < tMax) tMax = t1;
                     var ress = c.Value.QueryPointsNearRay(ray, maxDistanceToRay, tMin, tMax, minCellExponent);
-                    foreach(var res in ress) yield return res;
+                    foreach (var res in ress) yield return res;
                 }
             }
         }

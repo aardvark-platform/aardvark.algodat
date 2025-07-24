@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2025. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -19,6 +19,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+
+#pragma warning disable IDE0130 // Namespace does not match folder structure
 
 namespace Aardvark.Geometry.Tests
 {
@@ -432,13 +434,13 @@ namespace Aardvark.Geometry.Tests
 
             ClassicAssert.IsTrue(a.TryGetValue(1, out string s1) && s1 == "one");
             ClassicAssert.IsTrue(a.TryGetValue(2, out string s2) && s2 == "two");
-            ClassicAssert.IsTrue(!a.TryGetValue(3, out string s3));
+            ClassicAssert.IsTrue(!a.TryGetValue(3, out _));
 
             a.Remove(1);
-            ClassicAssert.IsTrue(!a.TryGetValue(1, out string s1a));
+            ClassicAssert.IsTrue(!a.TryGetValue(1, out _));
 
             a.Remove(2);
-            ClassicAssert.IsTrue(!a.TryGetValue(2, out string s2a));
+            ClassicAssert.IsTrue(!a.TryGetValue(2, out _));
         }
 
         #endregion

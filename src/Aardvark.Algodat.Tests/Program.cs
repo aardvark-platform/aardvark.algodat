@@ -1,5 +1,4 @@
 ﻿using Aardvark.Base;
-using Aardvark.Base.Coder;
 using Aardvark.Data;
 using Aardvark.Data.Points;
 using Aardvark.Data.Points.Import;
@@ -17,6 +16,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Uncodium.SimpleStore;
 using static Aardvark.Geometry.Points.Queries;
+using static Microsoft.FSharp.Core.ByRefKinds;
 using static System.Console;
 
 #pragma warning disable IDE0051 // Remove unused private members
@@ -36,6 +36,35 @@ namespace Aardvark.Geometry.Tests
 {
     public class Program
     {
+        internal static void EnumerateOctreeNodes(string storePath, string key)
+        {
+            var store = new SimpleDiskStore(storePath).ToPointCloudStore();
+            var root = store.GetPointCloudNode(key);
+
+            var nodes = root.EnumerateNodes();
+
+            var n = 0;
+            foreach (var node in nodes)
+            {
+                WriteLine($"[{n++,8:N0}] {node.PointCountCell}");
+
+                if (node.IsLeaf && node.HasNormals)
+                {
+                    var ns = node.Normals.Value;
+                    var hasOnlyDefaultNormals = true;
+                    for (var i = 0; i < ns.Length; i++)
+                    {
+                        if (ns[i] == V3f.OOO) Debugger.Break();
+                        if (ns[i] != V3f.OOI) { hasOnlyDefaultNormals = false; break; }
+                        if (hasOnlyDefaultNormals)
+                        {
+                            WriteLine("  has only default normals");
+                        }
+                    }
+                }
+            }
+        }
+
         #region CreateStore
 
         internal static Task<string> CreateStore(string filename, string storeDir, double minDist, int maxDegreeOfParallelism = 0)
@@ -2804,16 +2833,129 @@ namespace Aardvark.Geometry.Tests
             }
         }
 
+        static Task CylStoreIssue_20250723()
+        {
+            const string STOREPATH = @"W:\Datasets\Vgm\Stores\2025-07-23_cyl_store";
+            const string KEY = "d84613d1-6841-4745-8779-e498fc041064";
+
+            using var store = new SimpleDiskStore(STOREPATH).ToPointCloudStore();
+            var buffer = store.GetByteArray(KEY);
+            var root = store.GetPointCloudNode(KEY);
+
+            WriteLine($"root.PointCountTree: {root.PointCountTree:N0}");
+
+            var ns = root.EnumerateNodes().Where(n => n.IsLeaf).ToList();
+            var ps = ns.SelectMany(n => n.PositionsAbsolute).ToArray();
+
+            {
+                const int BINS = 20;
+                var gs = ps.GroupBy(p => (int)(p.XY.Length * BINS)).OrderBy(g => g.Key).ToArray();
+                foreach (var g in gs) WriteLine($"radius < {(g.Key + 1.0) / BINS,6:N3}: {g.Count(),16:N0}");
+                var rRange = Range1d.Invalid;
+                var zRange = Range1d.Invalid;
+                foreach (var p in ps)
+                {
+                    var r = p.XY.Length;
+                    rRange.ExtendBy(r);
+                    zRange.ExtendBy(p.Z);
+                }
+                WriteLine($"rRange: {rRange}");
+                WriteLine($"zRange: {zRange}");
+            }
+
+            {
+                const int BINS = 1000;
+                var gs = ps.Where(p => p.XY.Length < 0.98).GroupBy(p => (int)(p.Z * BINS)).OrderBy(g => g.Key).ToArray();
+                foreach (var g in gs) WriteLine($"z      < {(g.Key + 1.0) / BINS,6:N3}: {g.Count(),16:N0}");
+            }
+
+            WriteLine();
+
+            V3d[] QueryPointsNearRayGroundTruth(V3d[] ps, Ray3d ray, double maxDistanceToRay, double tMin, double tMax)
+                => ps.Where(p =>
+                    {
+                        var d = ray.GetMinimalDistanceTo(p);
+                        var tp = ray.GetTOfProjectedPoint(p);
+                        return d <= maxDistanceToRay && tp >= tMin && tp <= tMax;
+                    })
+                    .ToArray();
+
+            var rayOriginShift = V3d.Zero;
+            //var rayOriginShift = new V3d(0.001, 0.001, 0);
+            //var rayOriginShift = new V3d(0.01, 0.01, 0);
+
+            var rayDirOffset = V3d.Zero;
+            //var rayDirOffset = new V3d(0.001, 0.0, 0);
+
+            {
+                WriteLine($"Case A");
+
+                var ray = new Ray3d(
+                    new V3d(2.7977742221289563E-05, 2.093743741681459E-06, -2.4001809538969687) + rayOriginShift,
+                    (new V3d(2.115032588716738E-07, 6.094078775363987E-07, 0.999999999999792) + rayDirOffset).Normalized
+                    //V3d.ZAxis
+                    );
+                var min = 0.0;
+                var max = 4.833334673038614;
+                //var radius = 1.7341171501789909;
+                var radius = 1.0001;
+
+                WriteLine($"  {ray}");
+                WriteLine($"  radius = {radius}");
+
+                var chunks = root.QueryPointsNearRay(ray, radius, min, max).ToArray();
+                WriteLine($"  chunks.Length           : {chunks.Length,16:N0}");
+                WriteLine($"  chunks.Sum(x => x.Count): {chunks.Sum(x => x.Count),16:N0}");
+
+                var groundTruth = QueryPointsNearRayGroundTruth(ps, ray, radius, min, max);
+                WriteLine($"  groundTruth.Length      : {groundTruth.Length,16:N0}");
+
+                WriteLine();
+            }
+
+            {
+                WriteLine($"Case B");
+                var ray = new Ray3d(
+                    new V3d(2.7977742221289563E-05, 2.093743741681459E-06, -2.4001809538969687) + rayOriginShift,
+                    (new V3d(2.115032588716738E-07, 6.094078775363987E-07, 0.999999999999792) + rayDirOffset).Normalized
+                    //V3d.ZAxis
+                    );
+                var min = 0.0;
+                var max = 4.833334673038614;
+                //var radius = 1.7141171501789909;
+                var radius = 1.0001;
+
+                WriteLine($"  {ray}");
+                WriteLine($"  radius = {radius}");
+
+                var chunks = root.QueryPointsNearRay(ray, radius, min, max).ToArray();
+                WriteLine($"  chunks.Length           : {chunks.Length,16:N0}");
+                WriteLine($"  chunks.Sum(x => x.Count): {chunks.Sum(x => x.Count),16:N0}");
+
+                var groundTruth = QueryPointsNearRayGroundTruth(ps, ray, radius, min, max);
+                WriteLine($"  groundTruth.Length      : {groundTruth.Length,16:N0}");
+
+
+                WriteLine();
+            }
+
+            return Task.CompletedTask;
+        }
+
         public static async Task Main(string[] _)
         {
             await Task.CompletedTask; // avoid warning if no async methods are called here ...
 
-            await CreateStore(
-                @"W:\Datasets\Vgm\Data\BLK360_Atotech.e57",
-                @"E:\tmp\BLK360_Atotech.e57_005_aardvark",
-                minDist: 0.005,
-                maxDegreeOfParallelism: 0
-                );
+            await CylStoreIssue_20250723();
+
+            //EnumerateOctreeNodes(@"E:\tmp\BLK360_Atotech.e57_005_vgm", "188ac686-9567-4a7e-ae30-58dfef89bcf4");
+
+            //await CreateStore(
+            //    @"C:\Users\sm\Downloads\cloud_0.e57",
+            //    @"E:\tmp\20250624_cloud0_005_aardvark",
+            //    minDist: 0.005,
+            //    maxDegreeOfParallelism: 0
+            //    );
 
             //Test_Parse_Regression();
 
