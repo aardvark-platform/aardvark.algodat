@@ -1,3 +1,7 @@
+### 5.5.10
+- [PointSet] fixed QueryPointsNearRay
+- merged cleanups for latest LangVersion
+
 ### 5.5.9
 - [PointSet] Merge: print detailed warning instead of throwing Exception when points are slightly outside bounds (due to floating point rounding errors)
 
