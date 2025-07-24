@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2025. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -19,6 +19,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using TypeInfo = Aardvark.Base.Coder.TypeInfo;
 
+#pragma warning disable IDE0130 // Namespace does not match folder structure
+
 namespace Aardvark.Geometry
 {
     /// <summary>
@@ -26,28 +28,12 @@ namespace Aardvark.Geometry
     /// point is represented by an object of this class, and identified
     /// by its reference.
     /// </summary>
-    public class BspSplitPoint
+    public class BspSplitPoint(V3d point, int tvi, double parameter)
     {
-        #region Constructor
-
-        public BspSplitPoint(V3d point, int tvi, double parameter)
-        {
-            Position = point;
-            TriangleVertexIndex = tvi;
-            Parameter = parameter;
-            VertexIndex = -1;
-        }
-
-        #endregion
-
-        #region Properties
-
-        public V3d Position { get; }
-        public int TriangleVertexIndex { get; }
-        public double Parameter { get; }
-        public int VertexIndex { get; set; }
-
-        #endregion
+        public V3d Position { get; } = point;
+        public int TriangleVertexIndex { get; } = tvi;
+        public double Parameter { get; } = parameter;
+        public int VertexIndex { get; set; } = -1;
     }
 
     /// <summary>
@@ -175,16 +161,16 @@ namespace Aardvark.Geometry
         /// For compact storage we use short names for all node types, and do
         /// not store any sizes and version number for the nodes.
         /// </summary>
-        static readonly TypeInfo[] s_typeInfoArray = new[]
-        {
+        static readonly TypeInfo[] s_typeInfoArray =
+        [
             new TypeInfo("n", typeof(TypeCoder.Null),   TypeInfo.Option.Active),
             new TypeInfo("b", typeof(BspNode),          TypeInfo.Option.None),
-        };
+        ];
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
-            return new[]
-            {
+            return
+            [
                 new FieldCoder(0, "Tree",
                         (c,o) =>
                         {
@@ -200,7 +186,7 @@ namespace Aardvark.Geometry
                         (c,o) => c.CodeIntArray(ref ((BspTree)o).m_triangleVertexIndexArray) ),
                 new FieldCoder(2, "AttributeIndices",
                         (c,o) => c.CodeIntArray(ref ((BspTree)o).m_triangleAttributeIndexArray) ),
-            };
+            ];
         }
         #endregion
     }
@@ -250,7 +236,7 @@ namespace Aardvark.Geometry
                               int[] triangleAttributeIndexArray)
             : base(null, triangleVertexIndexArray, triangleAttributeIndexArray)
         {
-            m_weightsArray = new WeightedIndex[0][];
+            m_weightsArray = [];
             m_positionArray = vertexPositionArray;
 
             TriangleCountMul3 = m_triangleVertexIndexArray.Length;
@@ -460,7 +446,7 @@ namespace Aardvark.Geometry
         {
             m_point = point;
             m_normal = normal;
-            m_zeroList = new List<int>(1) { tiMul3 };
+            m_zeroList = [tiMul3];
             m_negativeCount = 0;
             m_positiveCount = 0;
             m_positiveTree = null;
@@ -971,8 +957,8 @@ namespace Aardvark.Geometry
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
-            return new[]
-            {
+            return
+            [
                 new FieldCoder(0, "Point",
                     (c,o) => c.CodeV3d(ref ((BspNode)o).m_point) ),
                 new FieldCoder(1, "Normal",
@@ -987,7 +973,7 @@ namespace Aardvark.Geometry
                     (c,o) => c.CodeInt(ref ((BspNode)o).m_negativeCount) ),
                 new FieldCoder(6, "NegTree",
                     (c,o) => c.CodeT(ref ((BspNode)o).m_negativeTree) ),
-            };
+            ];
         }
 
         #endregion

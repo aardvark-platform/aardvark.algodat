@@ -1,5 +1,5 @@
 ﻿/*
-   Copyright (C) 2017-2022. Stefan Maierhofer.
+   Copyright (C) 2017-2025. Stefan Maierhofer.
 
    This code has been COPIED from https://github.com/stefanmaierhofer/LASzip.
 
@@ -22,29 +22,25 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 
+#pragma warning disable IDE0130 // Namespace does not match folder structure
+
 namespace LASZip
 {
     /// <summary>
     /// </summary>
-    public readonly struct Info
+    /// <remarks>
+    /// </remarks>
+    public readonly struct Info(long count, Box3d bounds)
     {
         /// <summary>
         /// Total number of points.
         /// </summary>
-        public readonly long Count;
+        public readonly long Count = count;
 
         /// <summary>
         /// Bounding box of point cloud.
         /// </summary>
-        public readonly Box3d Bounds;
-
-        /// <summary>
-        /// </summary>
-        public Info(long count, Box3d bounds)
-        {
-            Count = count;
-            Bounds = bounds;
-        }
+        public readonly Box3d Bounds = bounds;
     }
 
     /// <summary>

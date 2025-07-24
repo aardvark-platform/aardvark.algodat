@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2025. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -121,8 +121,8 @@ namespace Aardvark.Data.E57
             }
             else
             {
-                result = _value.Take(n).ToArray();
-                _value = new(_value.Skip(n));
+                result = [.. _value.Take(n)];
+                _value = [.. _value.Skip(n)];
             }
             return result;
         }

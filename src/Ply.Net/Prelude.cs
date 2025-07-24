@@ -1,5 +1,5 @@
 ﻿/*
-   Copyright (C) 2018-2022. Stefan Maierhofer.
+   Copyright (C) 2018-2025. Stefan Maierhofer.
 
    This code is based on https://github.com/stefanmaierhofer/Ply.Net (copied and extended).
 
@@ -16,9 +16,12 @@
    limitations under the License.
 */
 
+#pragma warning disable IDE0130 // Namespace does not match folder structure
+
 #if !NETCOREAPP
 using System;
 using System.ComponentModel;
+
 namespace System.Runtime.CompilerServices
 {
     [EditorBrowsable(EditorBrowsableState.Never)]
@@ -44,7 +47,7 @@ namespace Ply.Net
             return rs;
         }
 
-        public static readonly char[] s_whiteSpace = new char[] { ' ', '\t', '\n', '\r' };
+        public static readonly char[] s_whiteSpace = [' ', '\t', '\n', '\r'];
         public static string[] SplitOnWhitespace(this string s) => s.Split(s_whiteSpace, StringSplitOptions.RemoveEmptyEntries);
     }
 }

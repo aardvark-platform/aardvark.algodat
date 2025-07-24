@@ -1,6 +1,6 @@
 /*
    Aardvark Platform
-   Copyright (C) 2006-2024  Aardvark Platform Team
+   Copyright (C) 2006-2025  Aardvark Platform Team
    https://aardvark.graphics
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,6 +20,8 @@ using Aardvark.Base.Coder;
 using Aardvark.Base.Sorting;
 using System;
 using System.Collections.Generic;
+
+#pragma warning disable IDE0290 // Use primary constructor
 
 namespace Aardvark.Geometry
 {
@@ -53,15 +55,15 @@ namespace Aardvark.Geometry
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
-            return new[]
-            {
+            return
+            [
                 new FieldCoder(0, "PermArray",
                         (c,o) => c.CodeLongArray(ref ((PointRkdTree__cchar____sel__Data)o).PermArray) ),
                 new FieldCoder(1, "AxisArray",
                         (c,o) => c.CodeIntArray(ref ((PointRkdTree__cchar____sel__Data)o).AxisArray) ),
                 new FieldCoder(2, "RadiusArray",
                         (c,o) => c.Code__cname__Array(ref ((PointRkdTree__cchar____sel__Data)o).RadiusArray) ),
-            };
+            ];
         }
     }
 
@@ -324,7 +326,7 @@ namespace Aardvark.Geometry
             if (maxCount > 0)
                 return new List<IndexDist<__ctype__>>(maxCount + 1);
             else
-                return new List<IndexDist<__ctype__>>();
+                return [];
         }
 
         /// <summary>
@@ -568,13 +570,13 @@ namespace Aardvark.Geometry
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
-            return new[]
-            {
+            return
+            [
                 new FieldCoder(0, "PermArray",
                         (c,o) => c.CodeLongArray(ref ((PointKdTree__cchar__Data)o).PermArray) ),
                 new FieldCoder(1, "AxisArray",
                         (c,o) => c.CodeIntArray(ref ((PointKdTree__cchar__Data)o).AxisArray) ),
-            };
+            ];
         }
     }
 
@@ -814,7 +816,7 @@ namespace Aardvark.Geometry
             if (maxCount > 0)
                 return new List<IndexDist<__ctype__>>(maxCount + 1);
             else
-                return new List<IndexDist<__ctype__>>();
+                return [];
         }
 
         /// <summary>
@@ -969,15 +971,15 @@ namespace Aardvark.Geometry
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
-            return new[]
-            {
+            return
+            [
                 new FieldCoder(0, "PermArray",
                         (c,o) => c.CodeLongArray(ref ((PointVpTree__cchar__Data)o).PermArray) ),
                 new FieldCoder(1, "LMaxArray",
                         (c,o) => c.Code__cname__Array(ref ((PointVpTree__cchar__Data)o).LMaxArray) ),
                 new FieldCoder(2, "RMinArray",
                         (c,o) => c.Code__cname__Array(ref ((PointVpTree__cchar__Data)o).RMinArray) ),
-            };
+            ];
         }
     }
 
@@ -1155,7 +1157,7 @@ namespace Aardvark.Geometry
             if (maxCount > 0)
                 return new List<IndexDist<__ctype__>>(maxCount + 1);
             else
-                return new List<IndexDist<__ctype__>>();
+                return [];
         }
 
         /// <summary>
@@ -1462,12 +1464,12 @@ namespace Aardvark.Geometry
         private readonly static Func<__ctype__, __ctype__, __ctype__> c_dimDistFun__cchar__ = (a, b) => b - a;
 
         private readonly static Func<__ctype__, __ctype__, __ctype__>[] c_dimDistFunArray__cchar__ =
-            new Func<__ctype__, __ctype__, __ctype__>[] { c_dimDistFun__cchar__, c_dimDistFun__cchar__, c_dimDistFun__cchar__, c_dimDistFun__cchar__ };
+            [ c_dimDistFun__cchar__, c_dimDistFun__cchar__, c_dimDistFun__cchar__, c_dimDistFun__cchar__ ];
 
         private readonly static Func<__ctype__, __ctype__, __ctype__> c_dimDistConst1Fun__cchar__ = (a, b) => (__ctype__)1;
 
         private readonly static Func<__ctype__, __ctype__, __ctype__>[] c_dimDistConst1FunArray__cchar__ =
-            new Func<__ctype__, __ctype__, __ctype__>[] { c_dimDistConst1Fun__cchar__, c_dimDistConst1Fun__cchar__, c_dimDistConst1Fun__cchar__, c_dimDistConst1Fun__cchar__ };
+            [ c_dimDistConst1Fun__cchar__, c_dimDistConst1Fun__cchar__, c_dimDistConst1Fun__cchar__, c_dimDistConst1Fun__cchar__ ];
 
         #endregion
 

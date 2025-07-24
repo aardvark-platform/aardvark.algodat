@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2025. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -129,7 +129,6 @@ public static partial class Queries
                     var js = node.HasIntensities ? new int[ia.Length] : null;
                     var ks = node.HasClassifications ? new byte[ia.Length] : null;
                     var qs = PartIndexUtils.Subset(node.PartIndices, ia);
-                    //var ds = new double[ia.Count];
 
                     for (var i = 0; i < ia.Length; i++)
                     {
@@ -139,7 +138,6 @@ public static partial class Queries
                         if (node.HasNormals) ns![i] = node.Normals.Value[index];
                         if (node.HasIntensities) js![i] = node.Intensities.Value[index];
                         if (node.HasClassifications) ks![i] = node.Classifications.Value[index];
-                        //ds[i] = ia[i].Dist;
                     }
                     var chunk = new Chunk(ps, cs, ns, js, ks, qs, partIndexRange: null, bbox: null);
                     yield return chunk;

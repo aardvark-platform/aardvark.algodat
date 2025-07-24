@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2025. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -33,19 +33,19 @@ namespace Aardvark.Geometry
         public KdTreeSet()
             : base(Identifier)
         {
-            ConcreteKdTreeList = new List<ConcreteKdIntersectionTree>();
+            ConcreteKdTreeList = [];
         }
 
         public KdTreeSet(IEnumerable<ConcreteKdIntersectionTree> concreteKdTrees)
         {
             m_typeName = Identifier;
-            ConcreteKdTreeList = concreteKdTrees.ToList();
+            ConcreteKdTreeList = [.. concreteKdTrees];
         }
 
         public KdTreeSet(params ConcreteKdIntersectionTree[] concreteKdTrees)
         {
             m_typeName = Identifier;
-            ConcreteKdTreeList = concreteKdTrees.ToList();
+            ConcreteKdTreeList = [.. concreteKdTrees];
         }
 
         public KdTreeSet(List<ConcreteKdIntersectionTree> concreteKdTreeList)
@@ -117,8 +117,7 @@ namespace Aardvark.Geometry
             }
             if (kdTreeIndex < 0) return false;
 
-            if (hit.ObjectStack == null)
-                hit.ObjectStack = new List<SetObject>();
+            hit.ObjectStack ??= [];
             hit.ObjectStack.Add(new SetObject(this, kdTreeIndex));
             return true;
         }
@@ -154,8 +153,7 @@ namespace Aardvark.Geometry
             }
             if (kdTreeIndex < 0) return false;
 
-            if (closest.ObjectStack == null)
-                closest.ObjectStack = new List<SetObject>();
+            closest.ObjectStack ??= [];
             closest.ObjectStack.Add(new SetObject(this, kdTreeIndex));
             return true;
         }

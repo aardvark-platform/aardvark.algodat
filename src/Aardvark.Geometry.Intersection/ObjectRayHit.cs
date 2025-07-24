@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2025. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -81,7 +81,7 @@ namespace Aardvark.Geometry
         /// Create an addtional data structure that contains information
         /// about the hit that is not already part of the IntersectionRayHit.
         /// </summary>
-        public ObjectHitInfo GetIntersectionRayHitInfo()
+        public readonly ObjectHitInfo GetIntersectionRayHitInfo()
         {
             ObjectHitInfo hitInfo = new();
             SetObject.Set.ObjectHitInfo(this, ref hitInfo);
@@ -96,19 +96,10 @@ namespace Aardvark.Geometry
     /// the <see cref="IIntersectableObjectSet"/> it belongs to, and its
     /// index within this set.
     /// </summary>
-    public struct SetObject
+    public struct SetObject(IIntersectableObjectSet set, int index)
     {
-        public int Index;
-        public IIntersectableObjectSet Set;
-
-        #region Constructor
-
-        public SetObject(IIntersectableObjectSet set, int index)
-        {
-            Set = set; Index = index;
-        }
-
-        #endregion
+        public int Index = index;
+        public IIntersectableObjectSet Set = set;
 
         #region Static Constants
 
@@ -129,10 +120,7 @@ namespace Aardvark.Geometry
 
         #region Properties
 
-        public bool HasValidNormal
-        {
-            get { return Normal != V3d.Zero; }
-        }
+        public readonly bool HasValidNormal => Normal != V3d.Zero;
         
         #endregion
     }

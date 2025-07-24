@@ -109,7 +109,7 @@ namespace Aardvark.Physics.Sky
     {               
 
 static readonly double[] datasetRGB1 = 
-{
+[
 	// albedo 0, turbidity 1
 	-1.099459e+000,
 	-1.335146e-001,
@@ -1210,10 +1210,10 @@ static readonly double[] datasetRGB1 =
 	2.133578e-001,
 	-6.250292e-001,
 	6.658012e-001,
-};
+];
 
 static readonly double[] datasetRGBRad1 = 
-{
+[
 	// albedo 0, turbidity 1
 	1.962684e+000,
 	1.159831e+000,
@@ -1354,10 +1354,10 @@ static readonly double[] datasetRGBRad1 =
 	1.281159e+001,
 	5.154768e+001,
 	2.574284e+001,
-};
+];
 
 static readonly double[] datasetRGB2 = 
-{
+[
 	// albedo 0, turbidity 1
 	-1.140530e+000,
 	-1.982747e-001,
@@ -2458,10 +2458,10 @@ static readonly double[] datasetRGB2 =
 	4.174861e-001,
 	9.687435e-001,
 	6.588427e-001,
-};
+];
 
 static readonly double[] datasetRGBRad2 = 
-{
+[
 	// albedo 0, turbidity 1
 	1.590330e+000,
 	1.355401e+000,
@@ -2602,10 +2602,10 @@ static readonly double[] datasetRGBRad2 =
 	1.183675e+000,
 	5.503215e+001,
 	2.643066e+001,
-};
+];
 
 static readonly double[] datasetRGB3 = 
-{
+[
 	// albedo 0, turbidity 1
 	-1.372629e+000,
 	-4.905585e-001,
@@ -3706,10 +3706,10 @@ static readonly double[] datasetRGB3 =
 	1.531334e-001,
 	1.457846e+000,
 	6.966285e-001,
-};
+];
 
 static readonly double[] datasetRGBRad3 = 
-{
+[
 	// albedo 0, turbidity 1
 	9.926518e-001,
 	1.999494e+000,
@@ -3850,20 +3850,20 @@ static readonly double[] datasetRGBRad3 =
 	-7.487661e+000,
 	5.436622e+001,
 	2.893432e+001,
-};
+];
 
 static readonly double[][] datasetsRGB =
-{
+[
 	datasetRGB1,
 	datasetRGB2,
 	datasetRGB3
-};
+];
 
 static readonly double[][] datasetsRGBRad =
-{
+[
 	datasetRGBRad1,
 	datasetRGBRad2,
 	datasetRGBRad3
-};
+];
     }
 }

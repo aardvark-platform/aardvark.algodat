@@ -1,6 +1,6 @@
 ﻿/*
    Aardvark Platform
-   Copyright (C) 2006-2024  Aardvark Platform Team
+   Copyright (C) 2006-2025  Aardvark Platform Team
    https://aardvark.graphics
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -107,18 +107,18 @@ namespace Aardvark.Data.Points
 
             ImmutableList<V3d> ps;
             {
-                var ps0 = (a.Positions is ImmutableList<V3d> x0) ? x0 : ImmutableList<V3d>.Empty.AddRange(a.Positions);
-                var ps1 = (b.Positions is ImmutableList<V3d> x1) ? x1 : ImmutableList<V3d>.Empty.AddRange(b.Positions);
+                var ps0 = (a.Positions is ImmutableList<V3d> x0) ? x0 : [.. a.Positions];
+                var ps1 = (b.Positions is ImmutableList<V3d> x1) ? x1 : [.. b.Positions];
                 ps = ps0.AddRange(ps1);
             }
 
             ImmutableList<C4b>? cs = null;
             if (a.HasColors)
             {
-                var cs0 = (a.Colors is ImmutableList<C4b> x2) ? x2 : ImmutableList<C4b>.Empty.AddRange(a.Colors);
+                var cs0 = (a.Colors is ImmutableList<C4b> x2) ? x2 : [.. a.Colors];
                 if (b.HasColors)
                 {
-                    var cs1 = (b.Colors is ImmutableList<C4b> x3) ? x3 : ImmutableList<C4b>.Empty.AddRange(b.Colors);
+                    var cs1 = (b.Colors is ImmutableList<C4b> x3) ? x3 : [.. b.Colors];
                     cs = cs0.AddRange(cs1);
                 }
                 else
@@ -130,10 +130,10 @@ namespace Aardvark.Data.Points
             ImmutableList<V3f>? ns = null;
             if (a.HasNormals)
             {
-                var ns0 = (a.Normals is ImmutableList<V3f> x4) ? x4 : ImmutableList<V3f>.Empty.AddRange(a.Normals);
+                var ns0 = (a.Normals is ImmutableList<V3f> x4) ? x4 : [.. a.Normals];
                 if (b.HasNormals)
                 {
-                    var ns1 = (b.Normals is ImmutableList<V3f> x5) ? x5 : ImmutableList<V3f>.Empty.AddRange(b.Normals);
+                    var ns1 = (b.Normals is ImmutableList<V3f> x5) ? x5 : [.. b.Normals];
                     ns = ns0.AddRange(ns1);
                 }
                 else
@@ -145,10 +145,10 @@ namespace Aardvark.Data.Points
             ImmutableList<int>? js = null;
             if (a.HasIntensities)
             {
-                var js0 = (a.Intensities is ImmutableList<int> x6) ? x6 : ImmutableList<int>.Empty.AddRange(a.Intensities);
+                var js0 = (a.Intensities is ImmutableList<int> x6) ? x6 : [.. a.Intensities];
                 if (b.HasIntensities)
                 {
-                    var js1 = (b.Intensities is ImmutableList<int> x7) ? x7 : ImmutableList<int>.Empty.AddRange(b.Intensities);
+                    var js1 = (b.Intensities is ImmutableList<int> x7) ? x7 : [.. b.Intensities];
                     js = js0.AddRange(js1);
                 }
                 else
@@ -160,10 +160,10 @@ namespace Aardvark.Data.Points
             ImmutableList<byte>? ks = null;
             if (a.HasClassifications)
             {
-                var ks0 = (a.Classifications is ImmutableList<byte> x8) ? x8 : ImmutableList<byte>.Empty.AddRange(a.Classifications);
+                var ks0 = (a.Classifications is ImmutableList<byte> x8) ? x8 : [.. a.Classifications];
                 if (b.HasClassifications)
                 {
-                    var ks1 = (b.Classifications is ImmutableList<byte> x9) ? x9 : ImmutableList<byte>.Empty.AddRange(b.Classifications);
+                    var ks1 = (b.Classifications is ImmutableList<byte> x9) ? x9 : [.. b.Classifications];
                     ks = ks0.AddRange(ks1);
                 }
                 else
@@ -216,7 +216,7 @@ namespace Aardvark.Data.Points
         }
 
         public static Chunk ImmutableMerge(IEnumerable<Chunk> chunks)
-            => ImmutableMerge(chunks.ToArray());
+            => ImmutableMerge([.. chunks]);
 
         /// <summary>
         /// </summary>
@@ -331,14 +331,14 @@ namespace Aardvark.Data.Points
                 if (qs1s            != null && qs1s.Count            != positions.Count) minCount = Math.Min(minCount, qs1s.Count           );
                 if (qs1i            != null && qs1i.Count            != positions.Count) minCount = Math.Min(minCount, qs1i.Count           );
 
-                if (                           positions      .Count != minCount) positions       = positions      .Take(minCount).ToArray();
-                if (colors          != null && colors         .Count != minCount) colors          = colors         .Take(minCount).ToArray();
-                if (normals         != null && normals        .Count != minCount) normals         = normals        .Take(minCount).ToArray();
-                if (intensities     != null && intensities    .Count != minCount) intensities     = intensities    .Take(minCount).ToArray();
-                if (classifications != null && classifications.Count != minCount) classifications = classifications.Take(minCount).ToArray();
-                if (qs1b            != null && qs1b           .Count != minCount) partIndices     = qs1b           .Take(minCount).ToArray();
-                if (qs1s            != null && qs1s           .Count != minCount) partIndices     = qs1s           .Take(minCount).ToArray();
-                if (qs1i            != null && qs1i           .Count != minCount) partIndices     = qs1i           .Take(minCount).ToArray();
+                if (positions.Count != minCount                                 ) positions       = [.. positions      .Take(minCount)];
+                if (colors          != null && colors         .Count != minCount) colors          = [.. colors         .Take(minCount)];
+                if (normals         != null && normals        .Count != minCount) normals         = [.. normals        .Take(minCount)];
+                if (intensities     != null && intensities    .Count != minCount) intensities     = [.. intensities    .Take(minCount)];
+                if (classifications != null && classifications.Count != minCount) classifications = [.. classifications.Take(minCount)];
+                if (qs1b            != null && qs1b           .Count != minCount) partIndices     = qs1b               .Take(minCount).ToArray();
+                if (qs1s            != null && qs1s           .Count != minCount) partIndices     = qs1s               .Take(minCount).ToArray();
+                if (qs1i            != null && qs1i           .Count != minCount) partIndices     = qs1i               .Take(minCount).ToArray();
             }
 
             Positions       = positions;
@@ -367,7 +367,7 @@ namespace Aardvark.Data.Points
                 {
                     var qs = PartIndexUtils.Take(PartIndexUtils.Skip(PartIndices, i), chunksize);
                     yield return new Chunk(
-                        Positions.Skip(i).Take(chunksize).ToArray(),
+                        [.. Positions.Skip(i).Take(chunksize)],
                         colors: HasColors ? Colors.Skip(i).Take(chunksize).ToArray() : null,
                         normals: HasNormals ? Normals.Skip(i).Take(chunksize).ToArray() : null,
                         intensities: HasIntensities ? Intensities.Skip(i).Take(chunksize).ToArray() : null,
@@ -499,13 +499,13 @@ namespace Aardvark.Data.Points
         /// </summary>
         public Dictionary<TKey, Chunk> GroupBy<TKey>(Func<Chunk, int, TKey> keySelector)
         {
-            if (IsEmpty) return new Dictionary<TKey, Chunk>();
+            if (IsEmpty) return [];
 
             var dict = new Dictionary<TKey, List<int>>();
             for (var i = 0; i < Count; i++)
             {
                 var k = keySelector(this, i);
-                if (!dict.TryGetValue(k, out var ia)) dict[k] = ia = new List<int>();
+                if (!dict.TryGetValue(k, out var ia)) dict[k] = ia = [];
                 ia.Add(i);
             }
 
@@ -642,7 +642,7 @@ namespace Aardvark.Data.Points
                 }
 
                 var center = c.GetCenter();
-                var subias = new List<int>[8].SetByIndex(_ => new List<int>());
+                var subias = new List<int>[8].SetByIndex(_ => []);
                 for (var i = 0; i < ia.Count; i++)
                 {
                     var p = positions[ia[i]];

@@ -1,5 +1,5 @@
 ﻿/*
-   Copyright (C) 2018-2022. Stefan Maierhofer.
+   Copyright (C) 2018-2025. Stefan Maierhofer.
 
    This code is based on https://github.com/stefanmaierhofer/Ply.Net (copied and extended).
 
@@ -156,7 +156,7 @@ public static class PlyParser
             _          => ElementType.UserDefined,
         };
 
-        return new(type, ts[1], count, ImmutableList<Property>.Empty);
+        return new(type, ts[1], count, []);
     }
 
     private static Property ParsePropertyLine(string line)
@@ -298,11 +298,11 @@ public static class PlyParser
     {
         private delegate void PropertyParser(int rowIndex, Row rowData);
 
-        private class Row
+        private class Row(string line)
         {
-            private readonly string[] _ts;
-            private int _next;
-            public Row(string line) { _ts = line.SplitOnWhitespace(); _next = 0; }
+            private readonly string[] _ts = line.SplitOnWhitespace();
+            private int _next = 0;
+
             public string NextToken() => _ts[_next++];
         }
 
@@ -386,7 +386,7 @@ public static class PlyParser
                 for (var j = 0; j < element.Properties.Count; j++) parse[j](i, line);
             }
 
-            return new(element, data.ToImmutableList());
+            return new(element, [.. data]);
         }
 
         public static Dataset Parse(Header header, Stream f, Action<string>? log)
@@ -620,7 +620,7 @@ public static class PlyParser
                     log?.Invoke($"[PlyParser] parsed {chunkSizeInBytes,16:N0} bytes in {swChunk.Elapsed.TotalSeconds,6:N3} s | {bps,16:N0} MiB/s | {chunkRowCount,10:N0} points | {vps,16:N0} points/s");
                 }
 
-                yield return new(element, perPropertyData.ToImmutableList());
+                yield return new(element, [.. perPropertyData]);
             }
 
             swTotal.Stop();

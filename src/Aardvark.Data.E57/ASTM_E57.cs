@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2025. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -408,7 +408,7 @@ namespace Aardvark.Data.E57
                 EnsureElementType(root, "Structure");
                 return new E57Structure
                 {
-                    Children = root.Elements().Select(x => ParseE57Element(x, stream, verbose)).ToArray()
+                    Children = [.. root.Elements().Select(x => ParseE57Element(x, stream, verbose))]
                 };
             }
         }
@@ -442,7 +442,7 @@ namespace Aardvark.Data.E57
                 return new E57Vector
                 {
                     AllowHeterogenousChildren = TryGetLongAttribute(root, "allowHeterogeneousChildren") == 1,
-                    Children = root.Elements().Select(x => ParseE57Element(x, stream, verbose)).ToArray()
+                    Children = [.. root.Elements().Select(x => ParseE57Element(x, stream, verbose))]
                 };
             }
         }
@@ -496,7 +496,7 @@ namespace Aardvark.Data.E57
                     FileOffset = GetPhysicalOffsetAttribute(root, "fileOffset"), 
                     RecordCount = GetLongAttribute(root, "recordCount"),
                     Prototype = E57Structure.Parse(GetElement(root, "prototype"), stream, verbose),
-                    Codecs = GetElement(root, "codecs").Elements().Select(x => (E57Codec)ParseE57Element(x, stream, verbose)).ToArray(),
+                    Codecs = [.. GetElement(root, "codecs").Elements().Select(x => (E57Codec)ParseE57Element(x, stream, verbose))],
                     m_stream = stream
                 };
 
@@ -1262,7 +1262,7 @@ namespace Aardvark.Data.E57
             {
                 if (root == null) return null;
                 EnsureElementNameAndType(root, "data3D", "Vector");
-                return GetElements(root, "vectorChild").Select(x => Parse(x, stream, verbose)).ToArray();
+                return [.. GetElements(root, "vectorChild").Select(x => Parse(x, stream, verbose))];
             }
 
             public IEnumerable<(V3d[] Positions, ImmutableDictionary<PointPropertySemantics, Array> Properties)> StreamPointsFull(
@@ -1662,7 +1662,7 @@ namespace Aardvark.Data.E57
             {
                 if (root == null) return null;
                 EnsureElementNameAndType(root, "images2D", "Vector");
-                return GetElements(root, "vectorChild").Select(x => Parse(x, stream)).ToArray();
+                return [.. GetElements(root, "vectorChild").Select(x => Parse(x, stream))];
             }
 
             internal static E57Image2D Parse(XElement root, Stream stream)

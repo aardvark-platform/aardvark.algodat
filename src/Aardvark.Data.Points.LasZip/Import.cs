@@ -1,5 +1,5 @@
 ﻿/*
-   Copyright (C) 2017-2020. Stefan Maierhofer.
+   Copyright (C) 2017-2025. Stefan Maierhofer.
     
    This code has been COPIED from https://github.com/stefanmaierhofer/LASzip.
 
@@ -24,6 +24,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
+#pragma warning disable IDE0130 // Namespace does not match folder structure
+
 namespace Aardvark.Data.Points.Import
 {
     /// <summary>
@@ -39,7 +41,7 @@ namespace Aardvark.Data.Points.Import
 
         static Laszip()
         {
-            LaszipFormat = new PointCloudFileFormat("LASzip", new[] { ".las", ".laz" }, LaszipInfo, Chunks);
+            LaszipFormat = new PointCloudFileFormat("LASzip", [".las", ".laz"], LaszipInfo, Chunks);
             PointCloudFileFormat.Register(LaszipFormat);
         }
 

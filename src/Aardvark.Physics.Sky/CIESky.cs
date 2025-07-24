@@ -1,4 +1,21 @@
-﻿using Aardvark.Base;
+﻿/*
+    Aardvark Platform
+    Copyright (C) 2006-2025  Aardvark Platform Team
+    https://aardvark.graphics
+    
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+    
+        http://www.apache.org/licenses/LICENSE-2.0
+    
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+*/
+using Aardvark.Base;
 using System.ComponentModel;
 
 namespace Aardvark.Physics.Sky
@@ -113,22 +130,22 @@ namespace Aardvark.Physics.Sky
 
         #region Static Members
 
-        private static readonly double[] s_a = {      4.0,    4.0,    1.1,    1.1,    0.0,    0.0,    0.0,    0.0,   -1.0,   -1.0,   -1.0,   -1.0,   -1.0,   -1.0,   -1.0    };
-        private static readonly double[] s_b = {     -0.7,   -0.7,   -0.8,   -0.8,   -1.0,   -1.0,   -1.0,   -1.0,   -0.55,  -0.55,  -0.55,  -0.32,  -0.32,  -0.15,  -0.15   };
-        private static readonly double[] s_c = {      0.0,    2.0,    0.0,    2.0,    0.0,    2.0,    5.0,   10.0,    2.0,    5.0,   10.0,   10.0,   16.0,   16.0,   24.0    };
-        private static readonly double[] s_d = {     -1.0,   -1.5,   -1.0,   -1.5,   -1.0,   -1.5,   -2.5,   -3.0,   -1.5,   -2.5,   -3.0,   -3.0,   -3.0,   -3.0,   -2.8    };
-        private static readonly double[] s_e = {      0.0,    0.15,   0.0,    0.15,   0.0,    0.15,   0.3,    0.45,   0.15,   0.3,    0.45,   0.45,   0.3,    0.3,    0.15   };
+        private static readonly double[] s_a = [      4.0,    4.0,    1.1,    1.1,    0.0,    0.0,    0.0,    0.0,   -1.0,   -1.0,   -1.0,   -1.0,   -1.0,   -1.0,   -1.0    ];
+        private static readonly double[] s_b = [     -0.7,   -0.7,   -0.8,   -0.8,   -1.0,   -1.0,   -1.0,   -1.0,   -0.55,  -0.55,  -0.55,  -0.32,  -0.32,  -0.15,  -0.15   ];
+        private static readonly double[] s_c = [      0.0,    2.0,    0.0,    2.0,    0.0,    2.0,    5.0,   10.0,    2.0,    5.0,   10.0,   10.0,   16.0,   16.0,   24.0    ];
+        private static readonly double[] s_d = [     -1.0,   -1.5,   -1.0,   -1.5,   -1.0,   -1.5,   -2.5,   -3.0,   -1.5,   -2.5,   -3.0,   -3.0,   -3.0,   -3.0,   -2.8    ];
+        private static readonly double[] s_e = [      0.0,    0.15,   0.0,    0.15,   0.0,    0.15,   0.3,    0.45,   0.15,   0.3,    0.45,   0.45,   0.3,    0.3,    0.15   ];
 
 
-        private static readonly double[] s_Tv = {     45.0,   20.0,   45.0,   20.0,   45.0,  20.0,   12.0,   10.0,   12.0,   10.0,    4.0,    2.5,    4.5,   5.0,    4.0    };
-        private static readonly double[] s_A =  {      0.0,    0.0,    0.0,    0.0,    0.0,   0.0,   13.27,  10.33,   8.7,    8.28,   5.01,   3.3,    4.76,  4.86,   3.62   };
-        private static readonly double[] s_A1 = {      0.0,    0.0,    0.0,    0.0,    0.0,   0.0,   0.957,   0.83,   0.6,    0.567,  1.44,   1.036,  1.244, 0.881,  0.418  };
-        private static readonly double[] s_A2 = {      0.0,    0.0,    0.0,    0.0,    0.0,   0.0,   1.790,   2.03,   1.5,    2.610, -0.75,   0.710, -0.84,  0.453,  1.95   };
-        private static readonly double[] s_B =  {     54.63,  12.35,  48.3,   12.23,  42.59, 11.84, 21.72,   29.35,  10.34,  18.41,  24.41,  23.0,   27.45, 25.54,  28.08   };
-        private static readonly double[] s_C =  {      1.0,    3.68,   1.0,    3.57,   1.0,   3.53,  4.52,    4.94,   3.45,   4.27,   4.6,    4.43,   4.61,  4.4,    4.13   };
-        private static readonly double[] s_D =  {      0.0,    0.59,   0.0,    0.57,   0.0,   0.55,  0.63,    0.7,     0.5,   0.63,   0.72,   0.74,   0.76,  0.79,   0.79   };
-        private static readonly double[] s_E =  {      0.0,   50.47,   0.0,   44.27,   0.0,  38.78, 34.56,   30.41,   27.47, 24.04,  20.76,  18.52,  16.59, 14.56,  13.0    };
-        private static readonly double[] s_DvEv={      0.1,    0.18,   0.15,   0.22,   0.20,  0.38,  0.42,    0.41,    0.40,  0.36,   0.23,   0.1,    0.28,  0.28,   0.3    };
+        private static readonly double[] s_Tv   = [     45.0,   20.0,   45.0,   20.0,   45.0,  20.0,   12.0,   10.0,   12.0,   10.0,    4.0,    2.5,    4.5,   5.0,    4.0    ];
+        private static readonly double[] s_A    = [      0.0,    0.0,    0.0,    0.0,    0.0,   0.0,   13.27,  10.33,   8.7,    8.28,   5.01,   3.3,    4.76,  4.86,   3.62   ];
+        private static readonly double[] s_A1   = [      0.0,    0.0,    0.0,    0.0,    0.0,   0.0,   0.957,   0.83,   0.6,    0.567,  1.44,   1.036,  1.244, 0.881,  0.418  ];
+        private static readonly double[] s_A2   = [      0.0,    0.0,    0.0,    0.0,    0.0,   0.0,   1.790,   2.03,   1.5,    2.610, -0.75,   0.710, -0.84,  0.453,  1.95   ];
+        private static readonly double[] s_B    = [    54.63,  12.35,   48.3,   12.23,  42.59, 11.84, 21.72,   29.35,  10.34,  18.41,  24.41,  23.0,   27.45, 25.54,  28.08   ];
+        private static readonly double[] s_C    = [      1.0,   3.68,   1.0,    3.57,   1.0,   3.53,  4.52,    4.94,   3.45,   4.27,   4.6,    4.43,   4.61,  4.4,    4.13    ];
+        private static readonly double[] s_D    = [      0.0,   0.59,   0.0,    0.57,   0.0,   0.55,  0.63,    0.7,     0.5,   0.63,   0.72,   0.74,   0.76,  0.79,   0.79    ];
+        private static readonly double[] s_E    = [      0.0,  50.47,   0.0,   44.27,   0.0,  38.78, 34.56,   30.41,   27.47, 24.04,  20.76,  18.52,  16.59, 14.56,  13.0     ];
+        private static readonly double[] s_DvEv = [      0.1,   0.18,   0.15,   0.22,   0.20,  0.38,  0.42,    0.41,    0.40,  0.36,   0.23,   0.1,    0.28,  0.28,   0.3     ];
 
         #endregion
 

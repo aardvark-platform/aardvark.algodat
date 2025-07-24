@@ -1,4 +1,23 @@
+/*
+    Aardvark Platform
+    Copyright (C) 2006-2025  Aardvark Platform Team
+    https://aardvark.graphics
+    
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+    
+        http://www.apache.org/licenses/LICENSE-2.0
+    
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+*/
 using Aardvark.Base;
+
+#pragma warning disable IDE1006 // Naming Styles
 
 namespace Aardvark.Physics.Sky
 {
@@ -47,12 +66,12 @@ namespace Aardvark.Physics.Sky
 
         #region Static Members
 
-        private static readonly double[] s_ABCDE_Y = { -1.4630, 0.4275, 5.3251, -2.5771, 0.3703 };
-        private static readonly double[] s_ABCDET_Y = { 0.1787, -0.3554, -0.0227, 0.1206, -0.0670 };
-        private static readonly double[] s_ABCDE_x = { -0.2592, 0.0008, 0.2125, -0.8989, 0.0452 };
-        private static readonly double[] s_ABCDET_x = { -0.0193, -0.0665, -0.0004, -0.0641, -0.0033 };
-        private static readonly double[] s_ABCDE_y = { -0.2608, 0.0092, 0.2102, -1.6537, 0.0529 };
-        private static readonly double[] s_ABCDET_y = { -0.0167, -0.0950, -0.0079, -0.0441, -0.0109 };
+        private static readonly double[] s_ABCDE_Y = [-1.4630, 0.4275, 5.3251, -2.5771, 0.3703];
+        private static readonly double[] s_ABCDET_Y = [0.1787, -0.3554, -0.0227, 0.1206, -0.0670];
+        private static readonly double[] s_ABCDE_x = [-0.2592, 0.0008, 0.2125, -0.8989, 0.0452];
+        private static readonly double[] s_ABCDET_x = [-0.0193, -0.0665, -0.0004, -0.0641, -0.0033];
+        private static readonly double[] s_ABCDE_y = [-0.2608, 0.0092, 0.2102, -1.6537, 0.0529];
+        private static readonly double[] s_ABCDET_y = [-0.0167, -0.0950, -0.0079, -0.0441, -0.0109];
 
         #endregion
 

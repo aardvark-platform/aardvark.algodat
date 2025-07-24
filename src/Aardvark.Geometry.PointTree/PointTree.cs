@@ -1,6 +1,6 @@
 /*
    Aardvark Platform
-   Copyright (C) 2006-2024  Aardvark Platform Team
+   Copyright (C) 2006-2025  Aardvark Platform Team
    https://aardvark.graphics
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,19 +26,13 @@ namespace Aardvark.Geometry
     /// A small structure holding an index and a distance that is used in
     /// the list that is returned by queries to the PointKdTree.
     /// </summary>
-    public struct IndexDist<T> : IComparable<IndexDist<T>>
+    public readonly struct IndexDist<T>(long index, T dist) : IComparable<IndexDist<T>>
         where T : IComparable<T>
     {
-        public readonly long Index;
-        public readonly T Dist;
+        public readonly long Index = index;
+        public readonly T Dist = dist;
 
         #region Constructor
-
-        public IndexDist(long index, T dist)
-        {
-            Index = index;
-            Dist = dist;
-        }
 
         #endregion
 
@@ -145,7 +139,7 @@ namespace Aardvark.Geometry
             public override void Clear()
             {
                 base.Clear();
-                IndexSet = new DictSet<long>();
+                IndexSet = [];
             }
         }
 
@@ -162,7 +156,7 @@ namespace Aardvark.Geometry
             var q = new ClosestToLineQuery(
                                 maxDistance, maxDistPlusEps, maxCount,
                                 StaticCreateList(maxCount))
-                                { IndexSet = new DictSet<long>() };
+                                { IndexSet = [] };
             return q;
         }
 
@@ -445,7 +439,7 @@ namespace Aardvark.Geometry
             public override void Clear()
             {
                 base.Clear();
-                IndexSet = new DictSet<long>();
+                IndexSet = [];
             }
         }
 
@@ -462,7 +456,7 @@ namespace Aardvark.Geometry
             var q = new ClosestToLineQuery(
                                 maxDistance, maxDistPlusEps, maxCount,
                                 StaticCreateList(maxCount))
-            { IndexSet = new DictSet<long>() };
+            { IndexSet = [] };
             return q;
         }
 

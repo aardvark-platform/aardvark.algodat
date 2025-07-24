@@ -108,7 +108,7 @@ namespace Aardvark.Physics.Sky
     {               
 
 static readonly double[] datasetXYZ1 = 
-{
+[
 	// albedo 0, turbidity 1
 	-1.117001e+000,
 	-1.867262e-001,
@@ -1209,10 +1209,10 @@ static readonly double[] datasetXYZ1 =
 	3.262259e-001,
 	9.461672e-001,
 	6.232887e-001,
-};
+];
 
 static readonly double[] datasetXYZRad1 = 
-{
+[
 	// albedo 0, turbidity 1
 	1.560219e+000,
 	1.417388e+000,
@@ -1353,10 +1353,10 @@ static readonly double[] datasetXYZRad1 =
 	4.337793e+000,
 	5.092831e+001,
 	2.523432e+001,
-};
+];
 
 static readonly double[] datasetXYZ2 = 
-{
+[
 	// albedo 0, turbidity 1
 	-1.127942e+000,
 	-1.905548e-001,
@@ -2457,10 +2457,10 @@ static readonly double[] datasetXYZ2 =
 	3.329831e-001,
 	1.012066e+000,
 	6.118645e-001,
-};
+];
 
 static readonly double[] datasetXYZRad2 = 
-{
+[
 	// albedo 0, turbidity 1
 	1.632341e+000,
 	1.395230e+000,
@@ -2601,10 +2601,10 @@ static readonly double[] datasetXYZRad2 =
 	3.032665e+000,
 	5.434290e+001,
 	2.641780e+001,
-};
+];
 
 static readonly double[] datasetXYZ3 = 
-{
+[
 	// albedo 0, turbidity 1
 	-1.310023e+000,
 	-4.407658e-001,
@@ -3705,10 +3705,10 @@ static readonly double[] datasetXYZ3 =
 	2.272821e-001,
 	1.771114e+000,
 	6.791814e-001,
-};
+];
 
 static readonly double[] datasetXYZRad3 = 
-{
+[
 	// albedo 0, turbidity 1
 	1.168084e+000,
 	2.156455e+000,
@@ -3849,22 +3849,22 @@ static readonly double[] datasetXYZRad3 =
 	-6.798097e+000,
 	5.936468e+001,
 	3.110255e+001,
-};
+];
 
 
 
 static readonly double[][] datasetsXYZ =
-{
+[
 	datasetXYZ1,
 	datasetXYZ2,
 	datasetXYZ3
-};
+];
 
 static readonly double[][] datasetsXYZRad =
-{
+[
 	datasetXYZRad1,
 	datasetXYZRad2,
 	datasetXYZRad3
-};
+];
     }
 }

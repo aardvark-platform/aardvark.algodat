@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2025. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -20,17 +20,11 @@ using System.Linq;
 namespace Aardvark.Geometry
 {
     [RegisterTypeInfo]
-    public class SphereSet : SymMap, IIntersectableObjectSet, IAwakeable
+    public class SphereSet(IEnumerable<Sphere3d> sphere3ds) : SymMap(Identifier), IIntersectableObjectSet, IAwakeable
     {
         public static readonly Symbol Identifier = "SphereSet";
 
-        public List<Sphere3d> Sphere3ds;
-
-        public SphereSet(IEnumerable<Sphere3d> sphere3ds)
-            : base(Identifier)
-        {
-            Sphere3ds = sphere3ds.ToList();
-        } 
+        public List<Sphere3d> Sphere3ds = [.. sphere3ds];
 
         public int ObjectCount
         {

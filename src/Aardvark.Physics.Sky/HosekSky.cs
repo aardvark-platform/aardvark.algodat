@@ -1,5 +1,24 @@
-using System;
+/*
+    Aardvark Platform
+    Copyright (C) 2006-2025  Aardvark Platform Team
+    https://aardvark.graphics
+    
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+    
+        http://www.apache.org/licenses/LICENSE-2.0
+    
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+*/
 using Aardvark.Base;
+using System;
+
+#pragma warning disable IDE1006 // Naming Styles
 
 namespace Aardvark.Physics.Sky
 {
@@ -9,26 +28,20 @@ namespace Aardvark.Physics.Sky
     ///       1. direct and indirect intensity have to high differences
     ///       2. conversion from spectrum to XYZ not verified
     /// </summary>
-    public class AlienWorld : Sky, IPhysicalSky
+    public class AlienWorld(
+        double solarPhi,
+        double solarTheta,
+        double solar_intensity,
+        double solar_surface_temperature_kelvin,
+        double atmospheric_turbidity,
+        double ground_albedo
+            ) : Sky(solarPhi, solarTheta), IPhysicalSky
     {
-        readonly ArHosekSkyModelState model_state;
-
-        public AlienWorld(
-            double solarPhi,
-            double solarTheta,
-            double solar_intensity,
-            double solar_surface_temperature_kelvin,
-            double atmospheric_turbidity,
-            double ground_albedo
-            )
-            : base(solarPhi, solarTheta)
-        {
-            model_state = new ArHosekSkyModelState(Constant.PiHalf - solarTheta,
+        readonly ArHosekSkyModelState model_state = new(Constant.PiHalf - solarTheta,
                                                    solar_intensity,
                                                    solar_surface_temperature_kelvin,
                                                    atmospheric_turbidity,
                                                    ground_albedo);
-        }
 
         public C3f GetColor(V3d viewVec)
         {
@@ -60,27 +73,18 @@ namespace Aardvark.Physics.Sky
         }
     }
 
-    public class HosekSky : Sky, IPhysicalSky
+    public class HosekSky(
+        double solarPhi,
+        double solarTheta,
+        double atmospheric_turbidity,
+        C3f ground_albedo,
+        Col.Format color_format
+            ) : Sky(solarPhi, solarTheta), IPhysicalSky
     {
-        readonly ArHosekSkyModelState[]  model_states; // using 3 states because ground albedo is RGB
-        //C3f m_groundAlbedo;
-
-        public HosekSky(
-            double solarPhi,
-            double solarTheta,
-            double atmospheric_turbidity,
-            C3f ground_albedo,
-            Col.Format color_format
-            )
-            : base(solarPhi, solarTheta)
-        {
-            //m_groundAlbedo = ground_albedo;
-            
-            model_states = new ArHosekSkyModelState[3].SetByIndex(
+        readonly ArHosekSkyModelState[] model_states = new ArHosekSkyModelState[3].SetByIndex(
                 i => new ArHosekSkyModelState(Constant.PiHalf - solarTheta,
                                               atmospheric_turbidity,
-                                              ground_albedo[i], color_format));
-        }
+                                              ground_albedo[i], color_format)); // using 3 states because ground albedo is RGB
 
         public C3f GetColor(V3d viewVec)
         {
@@ -166,7 +170,7 @@ namespace Aardvark.Physics.Sky
         //   This is just the data from the Preetham paper, extended into the UV range.
 
         readonly double[] originalSolarRadianceTable =
-        {
+        [
              7500.0,
             12500.0,
             21127.5,
@@ -178,7 +182,7 @@ namespace Aardvark.Physics.Sky
             23212.1,
             21526.7,
             19870.8
-        };
+        ];
        
 
         internal double[][]  configs;

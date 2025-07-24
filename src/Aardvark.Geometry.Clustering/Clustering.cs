@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2025. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -222,7 +222,7 @@ namespace Aardvark.Geometry.Clustering
 
         public DynamicClustering()
         {
-            m_indexList = new List<int>();
+            m_indexList = [];
         }
 
         /// <summary>

@@ -291,6 +291,11 @@ namespace Scratch
 #pragma warning restore IDE0060 // Remove unused parameter
         {
             {
+                Console.WriteLine(M44d.Translation(2,3,4).ToString("0.00"));
+                Environment.Exit(1);
+            }
+
+            {
                 MeshExample.Run();
                 Environment.Exit(1);
             }

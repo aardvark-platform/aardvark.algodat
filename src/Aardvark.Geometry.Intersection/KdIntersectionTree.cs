@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2025. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -324,9 +324,9 @@ namespace Aardvark.Geometry
         /// </summary>
         public IEnumerable<int> ObjectsIntersectingBox(Box3d box)
         {
-            if (!box.Intersects(m_box)) return Enumerable.Empty<int>();
+            if (!box.Intersects(m_box)) return [];
             KdNode pruned = Tree.Intersect(ref box, m_box.OutsideFlags(box));
-            if (pruned == null) return Enumerable.Empty<int>();
+            if (pruned == null) return [];
             return pruned.Indices(
                 (interiorArray, f, c) => interiorArray.Elements(f, c),
                 (borderArray, f, c) => borderArray.ElementsWhere(f, c,
@@ -342,9 +342,9 @@ namespace Aardvark.Geometry
         /// </summary>
         public IEnumerable<int> ObjectsInsideBox(Box3d box)
         {
-            if (!box.Intersects(m_box)) return Enumerable.Empty<int>();
+            if (!box.Intersects(m_box)) return [];
             KdNode pruned = Tree.Intersect(ref box, m_box.OutsideFlags(box));
-            if (pruned == null) return Enumerable.Empty<int>();
+            if (pruned == null) return [];
             IEnumerable<int> inside(int[] leafArray, int f, int c) 
                 => leafArray.ElementsWhere(f, c, i => m_objectSet.ObjectIsInsideBox(i, box));
             return pruned.Indices(inside, inside);
@@ -540,7 +540,7 @@ namespace Aardvark.Geometry
                 {
                     var outParams2 = new OutputParameters();
                     Parallel.Invoke(
-                        new Action[] {
+                        [
                             delegate
                             {
                                 leftNode = CreateNode(inParams, outParams,
@@ -555,7 +555,7 @@ namespace Aardvark.Geometry
                                                        rightObjectIndexArray,
                                                        rightBox, out rightSplit);
                             }
-                        }
+                        ]
                         //, Kernel.TaskManager.CpuBoundLowPriority, TaskCreationOptions.None
                     );
                     outParams.Add(outParams2);
@@ -858,7 +858,7 @@ namespace Aardvark.Geometry
                         outParams.LeafCount > 0 ? outParams.ObjectCount / (double)outParams.LeafCount : 0
                 ); // building kd-tree
 
-            if (Tree == null) Tree = new KdLeaf(new int[0]);
+            Tree ??= new KdLeaf([]);
         }
 
         public void Flatten()
@@ -870,9 +870,9 @@ namespace Aardvark.Geometry
         // If you change the number of values in this table,
         // you need to update the progressStep accordingly.
         private static readonly double[] s_splitTryTable =
-        {
+        [
             0.5f, 0.25f, 0.75f, 0.375f, 0.625f, 0.125f, 0.875f
-        };
+        ];
 
         private byte CalculateSplitPlane(
             InputParameters inParams,
@@ -1100,8 +1100,8 @@ namespace Aardvark.Geometry
         /// For compact storage we use short names for all node types, and do
         /// not store any sizes and version number for the nodes.
         /// </summary>
-        static readonly TypeInfo[] s_typeInfoArray = new[]
-            {
+        static readonly TypeInfo[] s_typeInfoArray =
+            [
                 new TypeInfo("n", typeof(TypeCoder.Null), TypeInfo.Option.Active),
                 new TypeInfo("i", typeof(KdInner),      TypeInfo.Option.None),
                 new TypeInfo("b", typeof(KdInnerBoth),  TypeInfo.Option.None),
@@ -1113,10 +1113,10 @@ namespace Aardvark.Geometry
                 new TypeInfo("o", typeof(KdLeaf),       TypeInfo.Option.None),
                 new TypeInfo("s", typeof(KdLeafSlice),  TypeInfo.Option.None),
                 new TypeInfo("f", typeof(KdFlat),       TypeInfo.Option.None),
-            };
+            ];
 
-        static readonly TypeInfo[] s_floatTypeInfoArray = new[]
-            {
+        static readonly TypeInfo[] s_floatTypeInfoArray =
+            [
                 new TypeInfo("n", typeof(TypeCoder.Null), TypeInfo.Option.Active),
                 new TypeInfo("i", typeof(KdFloatInner),      TypeInfo.Option.None),
                 new TypeInfo("b", typeof(KdFloatInnerBoth),  TypeInfo.Option.None),
@@ -1126,12 +1126,12 @@ namespace Aardvark.Geometry
                 new TypeInfo("l", typeof(KdFloatInnerLeft),  TypeInfo.Option.None),
                 new TypeInfo("r", typeof(KdFloatInnerRight), TypeInfo.Option.None),
                 new TypeInfo("o", typeof(KdLeaf),       TypeInfo.Option.None),
-            };
+            ];
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
-            return new[]
-            {
+            return
+            [
                 new FieldCoder(0, "Tree",
                         (c,o) =>
                         {
@@ -1162,7 +1162,7 @@ namespace Aardvark.Geometry
                         (c,o) => c.CodeT(ref ((KdIntersectionTree)o).m_objectSet) ),
                 new FieldCoder(3, "LeafSet",
                         (c,o) => c.CodeT(ref ((KdIntersectionTree)o).m_leafSet) ),
-            };
+            ];
         }
 
         #endregion
@@ -1209,14 +1209,12 @@ namespace Aardvark.Geometry
         public int ObjectCount;
     }
 
-    internal struct AxisIndex
+    internal struct AxisIndex(short axis, int index)
     {
-        public AxisIndex(short axis, int index) { Axis = axis; Index = index; }
-
         public static AxisIndex Null = new(0, -1);
 
-        public short Axis;
-        public int Index;
+        public short Axis = axis;
+        public int Index = index;
     }
 
     #endregion
@@ -1658,14 +1656,14 @@ namespace Aardvark.Geometry
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
-            return new[]
-            {
+            return
+            [
                 new FieldCoder(0, "rootAxis", (c,o) => c.CodeShort(ref ((KdFlat)o).m_rootAxis) ),
                 new FieldCoder(1, "rootIndex", (c,o) => c.CodeInt(ref ((KdFlat)o).m_rootIndex) ),
                 new FieldCoder(2, "splitArray", (c,o) => c.CodeDoubleArray(ref ((KdFlat)o).m_splitArray) ),
                 new FieldCoder(3, "nodeArray", (c,o) => c.CodeIntArray(ref ((KdFlat)o).m_nodeArray) ),
                 new FieldCoder(4, "indexArray", (c,o) => c.CodeIntArray(ref ((KdFlat)o).m_indexArray) ),
-            };
+            ];
         }
     }
 
@@ -1682,13 +1680,13 @@ namespace Aardvark.Geometry
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
-            return new[]
-            {
+            return
+            [
                 new FieldCoder(0, "axis", (c,o) => c.CodeByte(ref ((KdInner)o).m_axis) ),
                 new FieldCoder(1, "value", (c,o) => c.CodeDouble(ref ((KdInner)o).m_value) ),
                 new FieldCoder(2, "left", (c,o) => c.CodeT(ref ((KdInner)o).m_left) ),
                 new FieldCoder(3, "right", (c,o) => c.CodeT(ref ((KdInner)o).m_right) ),
-            };
+            ];
         }
 
         public KdInner()
@@ -1802,7 +1800,7 @@ namespace Aardvark.Geometry
                 if (m_right != null)
                     return m_right.Indices(interiorSelector, borderSelector);
                 else
-                    return Enumerable.Empty<int>();
+                    return [];
             }
         }
 
@@ -1820,7 +1818,7 @@ namespace Aardvark.Geometry
                 if (m_right != null)
                     return m_right.Leafs();
                 else
-                    return Enumerable.Empty<KdLeaf>();
+                    return [];
             }
         }
 
@@ -1871,8 +1869,8 @@ namespace Aardvark.Geometry
         internal override void Count(Counts counts)
         {
             counts.InnerCount += 1;
-            if (m_left != null) m_left.Count(counts);
-            if (m_right != null) m_right.Count(counts);
+            m_left?.Count(counts);
+            m_right?.Count(counts);
         }
 
         internal override AxisIndex Flatten(Counts counts, KdFlat flat)
@@ -1907,13 +1905,13 @@ namespace Aardvark.Geometry
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
-            return new[]
-            {
+            return
+            [
                 new FieldCoder(0, "axis", (c,o) => c.CodeByte(ref ((KdInnerBoth)o).m_axis) ),
                 new FieldCoder(1, "value", (c,o) => c.CodeDouble(ref ((KdInnerBoth)o).m_value) ),
                 new FieldCoder(2, "left", (c,o) => c.CodeT(ref ((KdInnerBoth)o).m_left) ),
                 new FieldCoder(3, "right", (c,o) => c.CodeT(ref ((KdInnerBoth)o).m_right) ),
-            };
+            ];
         }
 
         public KdInnerBoth()
@@ -2086,12 +2084,12 @@ namespace Aardvark.Geometry
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
-            return new[]
-            {
+            return
+            [
                 new FieldCoder(0, "value", (c,o) => c.CodeDouble(ref ((KdInnerBothX)o).m_value) ),
                 new FieldCoder(1, "left", (c,o) => c.CodeT(ref ((KdInnerBothX)o).m_left) ),
                 new FieldCoder(2, "right", (c,o) => c.CodeT(ref ((KdInnerBothX)o).m_right) ),
-            };
+            ];
         }
 
         public KdInnerBothX()
@@ -2260,12 +2258,12 @@ namespace Aardvark.Geometry
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
-            return new[]
-            {
+            return
+            [
                 new FieldCoder(0, "value", (c,o) => c.CodeDouble(ref ((KdInnerBothY)o).m_value) ),
                 new FieldCoder(1, "left", (c,o) => c.CodeT(ref ((KdInnerBothY)o).m_left) ),
                 new FieldCoder(2, "right", (c,o) => c.CodeT(ref ((KdInnerBothY)o).m_right) ),
-            };
+            ];
         }
 
         public KdInnerBothY()
@@ -2434,12 +2432,12 @@ namespace Aardvark.Geometry
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
-            return new[]
-            {
+            return
+            [
                 new FieldCoder(0, "value", (c,o) => c.CodeDouble(ref ((KdInnerBothZ)o).m_value) ),
                 new FieldCoder(1, "left", (c,o) => c.CodeT(ref ((KdInnerBothZ)o).m_left) ),
                 new FieldCoder(2, "right", (c,o) => c.CodeT(ref ((KdInnerBothZ)o).m_right) ),
-            };
+            ];
         }
 
         public KdInnerBothZ()
@@ -2608,12 +2606,12 @@ namespace Aardvark.Geometry
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
-            return new[]
-            {
+            return
+            [
                 new FieldCoder(0, "axis", (c,o) => c.CodeByte(ref ((KdInnerLeft)o).m_axis) ),
                 new FieldCoder(1, "value", (c,o) => c.CodeDouble(ref ((KdInnerLeft)o).m_value) ),
                 new FieldCoder(2, "left", (c,o) => c.CodeT(ref ((KdInnerLeft)o).m_left) ),
-            };
+            ];
         }
 
         public KdInnerLeft()
@@ -2746,12 +2744,12 @@ namespace Aardvark.Geometry
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
-            return new[]
-            {
+            return
+            [
                 new FieldCoder(0, "axis", (c,o) => c.CodeByte(ref ((KdInnerRight)o).m_axis) ),
                 new FieldCoder(1, "value", (c,o) => c.CodeDouble(ref ((KdInnerRight)o).m_value) ),
                 new FieldCoder(2, "right", (c,o) => c.CodeT(ref ((KdInnerRight)o).m_right) ),
-            };
+            ];
         }
 
         public KdInnerRight()
@@ -3040,14 +3038,9 @@ namespace Aardvark.Geometry
 
     #region KdNodeRef
 
-    internal class KdNodeRef : KdNode
+    internal class KdNodeRef(KdNode node) : KdNode
     {
-        readonly KdNode m_node;
-
-        public KdNodeRef(KdNode node)
-        {
-            m_node = node;
-        }
+        readonly KdNode m_node = node;
 
         public override bool Intersect(ref KdIntersectionRay ray, ref TP3d tpmin, ref TP3d tpmax)
         {
@@ -3180,13 +3173,13 @@ namespace Aardvark.Geometry
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
-            return new[]
-            {
+            return
+            [
                 new FieldCoder(0, "axis", (c,o) => c.CodeByte(ref ((KdFloatInner)o).m_axis) ),
                 new FieldCoder(1, "value", (c,o) => c.CodeFloat(ref ((KdFloatInner)o).m_value) ),
                 new FieldCoder(2, "left", (c,o) => c.CodeT(ref ((KdFloatInner)o).m_left) ),
                 new FieldCoder(3, "right", (c,o) => c.CodeT(ref ((KdFloatInner)o).m_right) ),
-            };
+            ];
         }
 
         public KdFloatInner()
@@ -3218,13 +3211,13 @@ namespace Aardvark.Geometry
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
-            return new[]
-            {
+            return
+            [
                 new FieldCoder(0, "axis", (c,o) => c.CodeByte(ref ((KdFloatInnerBoth)o).m_axis) ),
                 new FieldCoder(1, "value", (c,o) => c.CodeFloat(ref ((KdFloatInnerBoth)o).m_value) ),
                 new FieldCoder(2, "left", (c,o) => c.CodeT(ref ((KdFloatInnerBoth)o).m_left) ),
                 new FieldCoder(3, "right", (c,o) => c.CodeT(ref ((KdFloatInnerBoth)o).m_right) ),
-            };
+            ];
         }
 
         public KdFloatInnerBoth()
@@ -3255,12 +3248,12 @@ namespace Aardvark.Geometry
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
-            return new[]
-            {
+            return
+            [
                 new FieldCoder(0, "value", (c,o) => c.CodeFloat(ref ((KdFloatInnerBothX)o).m_value) ),
                 new FieldCoder(1, "left", (c,o) => c.CodeT(ref ((KdFloatInnerBothX)o).m_left) ),
                 new FieldCoder(2, "right", (c,o) => c.CodeT(ref ((KdFloatInnerBothX)o).m_right) ),
-            };
+            ];
         }
 
         public KdFloatInnerBothX()
@@ -3291,12 +3284,12 @@ namespace Aardvark.Geometry
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
-            return new[]
-            {
+            return
+            [
                 new FieldCoder(0, "value", (c,o) => c.CodeFloat(ref ((KdFloatInnerBothY)o).m_value) ),
                 new FieldCoder(1, "left", (c,o) => c.CodeT(ref ((KdFloatInnerBothY)o).m_left) ),
                 new FieldCoder(2, "right", (c,o) => c.CodeT(ref ((KdFloatInnerBothY)o).m_right) ),
-            };
+            ];
         }
 
         public KdFloatInnerBothY()
@@ -3328,12 +3321,12 @@ namespace Aardvark.Geometry
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
-            return new[]
-            {
+            return
+            [
                 new FieldCoder(0, "value", (c,o) => c.CodeFloat(ref ((KdFloatInnerBothZ)o).m_value) ),
                 new FieldCoder(1, "left", (c,o) => c.CodeT(ref ((KdFloatInnerBothZ)o).m_left) ),
                 new FieldCoder(2, "right", (c,o) => c.CodeT(ref ((KdFloatInnerBothZ)o).m_right) ),
-            };
+            ];
         }
 
         public KdFloatInnerBothZ()
@@ -3364,12 +3357,12 @@ namespace Aardvark.Geometry
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
-            return new[]
-            {
+            return
+            [
                 new FieldCoder(0, "axis", (c,o) => c.CodeByte(ref ((KdFloatInnerLeft)o).m_axis) ),
                 new FieldCoder(1, "value", (c,o) => c.CodeFloat(ref ((KdFloatInnerLeft)o).m_value) ),
                 new FieldCoder(2, "left", (c,o) => c.CodeT(ref ((KdFloatInnerLeft)o).m_left) ),
-            };
+            ];
         }
 
         public KdFloatInnerLeft()
@@ -3400,12 +3393,12 @@ namespace Aardvark.Geometry
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
-            return new[]
-            {
+            return
+            [
                 new FieldCoder(0, "axis", (c,o) => c.CodeByte(ref ((KdFloatInnerRight)o).m_axis) ),
                 new FieldCoder(1, "value", (c,o) => c.CodeFloat(ref ((KdFloatInnerRight)o).m_value) ),
                 new FieldCoder(2, "right", (c,o) => c.CodeT(ref ((KdFloatInnerRight)o).m_right) ),
-            };
+            ];
         }
 
         public KdFloatInnerRight()

@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2025. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -47,9 +47,9 @@ namespace Aardvark.Geometry
             m_hideLastVertex = false;
             m_positionArray = null;
 
-            VertexAttributes = new SymbolDict<Array>();
-            LineAttributes = new SymbolDict<Array>();
-            InstanceAttributes = new SymbolDict<object>();
+            VertexAttributes = [];
+            LineAttributes = [];
+            InstanceAttributes = [];
         }
         
         #endregion
@@ -163,20 +163,10 @@ namespace Aardvark.Geometry
 
         #region Vertex
 
-        public struct Vertex : IEquatable<Vertex>
+        public readonly struct Vertex(PolyLine polyLine, int index) : IEquatable<Vertex>
         {
-            public readonly PolyLine PolyLine;
-            public readonly int Index;
-
-            #region Constructors
-
-            public Vertex(PolyLine polyLine, int index)
-            {
-                PolyLine = polyLine;
-                Index = index;
-            }
-
-            #endregion
+            public readonly PolyLine PolyLine = polyLine;
+            public readonly int Index = index;
 
             #region Operators
 
@@ -220,20 +210,10 @@ namespace Aardvark.Geometry
 
         #region Line
 
-        public struct Line : IEquatable<Line>
+        public readonly struct Line(PolyLine polyLine, int index) : IEquatable<Line>
         {
-            public readonly PolyLine PolyLine;
-            public readonly int Index;
-
-            #region Constructors
-
-            public Line(PolyLine polyLine, int index)
-            {
-                PolyLine = polyLine;
-                Index = index;
-            }
-
-            #endregion
+            public readonly PolyLine PolyLine = polyLine;
+            public readonly int Index = index;
 
             #region Operators
 

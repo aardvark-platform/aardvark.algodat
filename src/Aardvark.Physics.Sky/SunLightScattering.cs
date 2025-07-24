@@ -1,5 +1,21 @@
-﻿using Aardvark.Base;
-using System.Linq;
+﻿/*
+    Aardvark Platform
+    Copyright (C) 2006-2025  Aardvark Platform Team
+    https://aardvark.graphics
+    
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+    
+        http://www.apache.org/licenses/LICENSE-2.0
+    
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+*/
+using Aardvark.Base;
 
 namespace Aardvark.Physics.Sky
 {
@@ -7,28 +23,22 @@ namespace Aardvark.Physics.Sky
     /// An athmospheric scattering model for sun light simulation.
     /// It is baed on references found in the Preetham paper.
     /// </summary>
-    public class SunLightScattering : Sky
+    public class SunLightScattering(double sunPhi, double sunTheta, double turbidity = 1.9) : Sky(sunPhi, sunTheta)
     {
         // spectral quantities taken from preetham paper Table 2
         // radiance in W / cm^2 / μm / sr
-        static readonly double[] s_sunSpectralRadiance_380_to_780_10nm = { 1655.9, 1623.37, 2112.75, 2588.82, 2582.91, 2423.23, 2676.05, 2965.83, 3054.54, 3005.75, 3066.37, 2883.04, 2871.21, 2782.5, 2710.06, 2723.36, 2636.13, 2550.38, 2506.02, 2531.16, 2535.59, 2513.42, 2463.15, 2417.32, 2368.53, 2321.21, 2282.77, 2233.98, 2197.02, 2152.67, 2109.79, 2072.83, 2024.04, 1987.08, 1942.72, 1907.24, 1862.89, 1825.92, 0.0, 0.0, 0.0 };
-        static readonly double[] s_scatterK = { 0.650393, 0.653435, 0.656387, 0.657828, 0.660644, 0.662016, 0.663365, 0.665996, 0.667276, 0.668532, 0.669765, 0.670974, 0.67216, 0.673323, 0.674462, 0.675578, 0.67667, 0.677739, 0.678784, 0.678781, 0.679802, 0.6808, 0.681775, 0.681771, 0.682722, 0.683649, 0.683646, 0.68455, 0.684546, 0.685426, 0.686282, 0.686279, 0.687112, 0.687108, 0.687917, 0.687913, 0.688699, 0.688695, 0.688691, 0.689453, 0.689449 };
-        static readonly double[] s_sunSpectral_k_o = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.003, 0.006, 0.009, 0.014, 0.021, 0.03, 0.04, 0.048, 0.063, 0.075, 0.085, 0.103, 0.12, 0.12, 0.115, 0.125, 0.12, 0.105, 0.09, 0.079, 0.067, 0.057, 0.048, 0.036, 0.028, 0.023, 0.018, 0.014, 0.011, 0.01, 0.009, 0.007, 0.004, 0.0 };
-        static readonly double[] s_sunSpectral_k_wa = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.016, 0.024, 0.0125, 1, 0.87, 0.061, 0.001, 1e-05, 1e-05, 0.0006 };
-        static readonly double[] s_sunSpectral_k_g = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 0.21, 0.0 };
+        static readonly double[] s_sunSpectralRadiance_380_to_780_10nm = [1655.9, 1623.37, 2112.75, 2588.82, 2582.91, 2423.23, 2676.05, 2965.83, 3054.54, 3005.75, 3066.37, 2883.04, 2871.21, 2782.5, 2710.06, 2723.36, 2636.13, 2550.38, 2506.02, 2531.16, 2535.59, 2513.42, 2463.15, 2417.32, 2368.53, 2321.21, 2282.77, 2233.98, 2197.02, 2152.67, 2109.79, 2072.83, 2024.04, 1987.08, 1942.72, 1907.24, 1862.89, 1825.92, 0.0, 0.0, 0.0];
+        static readonly double[] s_scatterK = [0.650393, 0.653435, 0.656387, 0.657828, 0.660644, 0.662016, 0.663365, 0.665996, 0.667276, 0.668532, 0.669765, 0.670974, 0.67216, 0.673323, 0.674462, 0.675578, 0.67667, 0.677739, 0.678784, 0.678781, 0.679802, 0.6808, 0.681775, 0.681771, 0.682722, 0.683649, 0.683646, 0.68455, 0.684546, 0.685426, 0.686282, 0.686279, 0.687112, 0.687108, 0.687917, 0.687913, 0.688699, 0.688695, 0.688691, 0.689453, 0.689449];
+        static readonly double[] s_sunSpectral_k_o = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.003, 0.006, 0.009, 0.014, 0.021, 0.03, 0.04, 0.048, 0.063, 0.075, 0.085, 0.103, 0.12, 0.12, 0.115, 0.125, 0.12, 0.105, 0.09, 0.079, 0.067, 0.057, 0.048, 0.036, 0.028, 0.023, 0.018, 0.014, 0.011, 0.01, 0.009, 0.007, 0.004, 0.0];
+        static readonly double[] s_sunSpectral_k_wa = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.016, 0.024, 0.0125, 1, 0.87, 0.061, 0.001, 1e-05, 1e-05, 0.0006];
+        static readonly double[] s_sunSpectral_k_g = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 0.21, 0.0];
 
         /// <summary>
         /// The turbidity value for the PreethamSky. Valid values are positive 
         /// doubles, alltough too high values can cause disortions.
         /// Recommended values are between 1.9 and 10.0.
         /// </summary>
-        readonly double m_turbidity;
-
-        public SunLightScattering(double sunPhi, double sunTheta, double turbidity = 1.9)
-           : base(sunPhi, sunTheta)
-        {
-            m_turbidity = turbidity;
-        }
+        readonly double m_turbidity = turbidity;
 
         /// <summary>
         /// Simulates the sun color radiance in cd/m^2 in XYZ color space

@@ -1,4 +1,18 @@
-﻿using Aardvark.Base;
+﻿/*
+    Copyright (C) 2006-2025. Aardvark Platform Team. http://github.com/aardvark-platform.
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+using Aardvark.Base;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
@@ -35,7 +49,7 @@ public class FilterInsideBox3d(Box3d filter) : ISpatialFilter
         {
             var c = node.Center;
             var ps = node.Positions.Value;
-            return new HashSet<int>(selected.Where(i => Box.Contains(c + (V3d)ps[i])));
+            return [.. selected.Where(i => Box.Contains(c + (V3d)ps[i]))];
         }
         else
         {
@@ -101,7 +115,7 @@ public class FilterOutsideBox3d(Box3d filter) : ISpatialFilter
 
         if (selected != null)
         {
-            return new HashSet<int>(selected.Where(i => Box.Contains(c + (V3d)xs[i])));
+            return [.. selected.Where(i => Box.Contains(c + (V3d)xs[i]))];
         }
         else
         {

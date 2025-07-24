@@ -1,3 +1,20 @@
+/*
+    Aardvark Platform
+    Copyright (C) 2006-2025  Aardvark Platform Team
+    https://aardvark.graphics
+    
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+    
+        http://www.apache.org/licenses/LICENSE-2.0
+    
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+*/
 using Aardvark.Base;
 
 namespace Aardvark.Physics.Sky
@@ -38,20 +55,20 @@ namespace Aardvark.Physics.Sky
         }
     }
 
-    public class Sky
+    public class Sky(double sunPhi, double sunTheta)
     {
         /// <summary>
         /// Position of sun from south over west, north, east to south.
         /// in radians [0..2 PI] 0=2PI=south; PI/2=west, PI=north, 3PI/2=east
         /// </summary>
-        public readonly double SunPhi;
+        public readonly double SunPhi = sunPhi;
 
         /// <summary>
         /// Height of sun from zenith down in radians [0..PI] 0=zenith
         /// </summary>
-        public readonly double SunTheta;
+        public readonly double SunTheta = sunTheta;
 
-        public readonly V3d SunVec;
+        public readonly V3d SunVec = V3dFromPhiTheta(sunPhi, sunTheta);
 
         public static V3d V3dFromPhiTheta(double phi, double theta)
         {
@@ -67,13 +84,6 @@ namespace Aardvark.Physics.Sky
         public static V2d PhiThetaFromV3d(V3d vec)
         {
             return new V2d(Fun.Atan2(-vec.X, -vec.Y), Fun.Atan2(vec.XY.Length, vec.Z));
-        }
-
-        public Sky(double sunPhi, double sunTheta)
-        {
-            SunPhi = sunPhi;
-            SunTheta = sunTheta;
-            SunVec = V3dFromPhiTheta(sunPhi, sunTheta);
         }
     }
 }

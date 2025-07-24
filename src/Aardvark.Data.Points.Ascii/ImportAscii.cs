@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2025. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -174,7 +174,7 @@ namespace Aardvark.Data.Points.Import
         /// <summary>
         /// </summary>
         public static PointCloudFileFormat CreateFormat(string description, Token[] lineDefinition)
-            => new(description, new string[0],
+            => new(description, [],
                 (filename, config) => CustomAsciiInfo(filename, lineDefinition, config),
                 (filename, config) => Chunks(filename, lineDefinition, config)
                 );

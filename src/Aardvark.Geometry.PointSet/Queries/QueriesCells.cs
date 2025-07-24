@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2025. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -434,7 +434,7 @@ public static partial class Queries
 
                     if (!cache.TryGetValue(c, out var chunks))
                     {
-                        chunks = Chunk.ImmutableMerge(Root.CollectColumnXY(c, fromRelativeDepth).ToArray());
+                        chunks = Chunk.ImmutableMerge([.. Root.CollectColumnXY(c, fromRelativeDepth)]);
                         lock (Cache) cache[c] = chunks;
                         //cacheMisses++;
                     }

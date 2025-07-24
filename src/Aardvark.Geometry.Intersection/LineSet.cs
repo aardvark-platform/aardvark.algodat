@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2025. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -17,18 +17,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+#pragma warning disable IDE0130 // Namespace does not match folder structure
+
 namespace Aardvark.Geometry
 {
     [RegisterTypeInfo]
-    public class LineSet : IIntersectableObjectSet
+    public class LineSet(IEnumerable<Cylinder3d> cylinders) : IIntersectableObjectSet
     {
-        public List<Cylinder3d> Lines;
-
-        public LineSet(IEnumerable<Cylinder3d> cylinders)
-        {
-            Lines = cylinders.ToList();
-          //  m_typeName = "LineSet";
-        }
+        public List<Cylinder3d> Lines = [.. cylinders];
 
         public int ObjectCount
         {

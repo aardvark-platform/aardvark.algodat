@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2025. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -21,25 +21,15 @@ namespace Aardvark.Geometry
     /// <summary>
     /// Triangle set defined by vertices in V3f[] and int[] indices.
     /// </summary>
-    public class IntersectableTriangleSet : IIntersectableObjectSet
+    public class IntersectableTriangleSet(int[] indices, V3f[] positions) : IIntersectableObjectSet
     {
-        private readonly int[] m_indices;
-        private readonly V3f[] m_positions;
-        private Box3d m_bounds;
+        private readonly int[] m_indices = indices;
+        private readonly V3f[] m_positions = positions;
+        private Box3d m_bounds = indices != null ? new Box3d(indices.Select(i => (V3d)positions[i])) : new Box3d(positions.Select(v => (V3d)v));
 
         public int[] Indices { get { return m_indices; } }
         public V3f[] Positions { get { return m_positions; } }
         public Box3d Bounds { get { return m_bounds; } }
-
-        public IntersectableTriangleSet(int[] indices, V3f[] positions)
-        {
-            m_indices = indices;
-            m_positions = positions;
-            ObjectCount = indices != null ? indices.Length / 3 : positions.Length / 3;
-
-            m_bounds = indices != null ? new Box3d(indices.Select(i => (V3d)positions[i])) : new Box3d(positions.Select(v => (V3d)v));
-
-        }
 
         public IntersectableTriangleSet(V3f[] positions)
             : this(null, positions)
@@ -62,7 +52,7 @@ namespace Aardvark.Geometry
             }
         }
 
-        public int ObjectCount { get; }
+        public int ObjectCount { get; } = indices != null ? indices.Length / 3 : positions.Length / 3;
 
         public bool ClosestPoint(int[] objectIndexArray, int firstIndex, int indexCount, V3d queryPoint, Func<IIntersectableObjectSet, int, bool> ios_index_objectFilter, Func<IIntersectableObjectSet, int, int, ObjectClosestPoint, bool> ios_index_part_ocp_pointFilter, ref ObjectClosestPoint closestPoint)
         {
@@ -97,7 +87,7 @@ namespace Aardvark.Geometry
                     DistanceSquared = minDist2,
                     Point = minPos,
                     SetObject = new SetObject(this, minIndex),
-                    ObjectStack = new List<SetObject>(), // TODO
+                    ObjectStack = [], // TODO
                     Coord = V2d.Zero // TODO
                 };
 
@@ -168,7 +158,7 @@ namespace Aardvark.Geometry
                 hit = new ObjectRayHit()
                 {
                     SetObject = new SetObject(this, index),
-                    ObjectStack = new List<SetObject>(), // TODO
+                    ObjectStack = [], // TODO
                     RayHit = new RayHit3d()
                     {
                         Part = 0,

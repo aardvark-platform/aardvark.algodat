@@ -1,6 +1,6 @@
 ﻿/*
    Aardvark Platform
-   Copyright (C) 2006-2024  Aardvark Platform Team
+   Copyright (C) 2006-2025  Aardvark Platform Team
    https://aardvark.graphics
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -102,7 +102,7 @@ namespace Aardvark.Base
             Flush
         }
 
-        private struct Command
+        private readonly struct Command
         {
             public readonly CommandType Type;
             public readonly object Value;
@@ -116,22 +116,16 @@ namespace Aardvark.Base
             }
         }
 
-        private struct Entry
+        private readonly struct Entry(long sizeInBytes, long timestamp)
         {
-            public readonly long SizeInBytes;
-            public readonly long Timestamp;
-
-            public Entry(long sizeInBytes, long timestamp)
-            {
-                SizeInBytes = sizeInBytes;
-                Timestamp = timestamp;
-            }
+            public readonly long SizeInBytes = sizeInBytes;
+            public readonly long Timestamp = timestamp;
         }
-        
+
         private long m_nextTimestamp = 0;
-        private readonly Dictionary<object, Entry> m_entries = new();
-        private List<Command> m_clientQueue = new();
-        private List<Command> m_internalQueue = new();
+        private readonly Dictionary<object, Entry> m_entries = [];
+        private List<Command> m_clientQueue = [];
+        private List<Command> m_internalQueue = [];
         private readonly object m_lock = new();
 
         private void SwapQueues()
@@ -166,7 +160,7 @@ namespace Aardvark.Base
 
 
 
-        private readonly static HashSet<KeepAliveCache> s_allCaches = new();
+        private readonly static HashSet<KeepAliveCache> s_allCaches = [];
         private static bool s_active = false;
 
         private static void Register(KeepAliveCache cache)

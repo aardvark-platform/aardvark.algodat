@@ -1,6 +1,6 @@
 ﻿/*
    Aardvark Platform
-   Copyright (C) 2006-2024  Aardvark Platform Team
+   Copyright (C) 2006-2025  Aardvark Platform Team
    https://aardvark.graphics
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,7 +39,13 @@ namespace Aardvark.Data.Points
     }
 
     /// <summary></summary>
-    public class PointCloudFileFormat
+    /// <remarks></remarks>
+    public class PointCloudFileFormat(
+        string description,
+        string[] fileExtensions,
+        Func<string, ParseConfig, PointFileInfo>? parseFileInfo,
+        Func<string, ParseConfig, IEnumerable<Chunk>>? parseFile
+            )
     {
         static PointCloudFileFormat()
         {
@@ -68,10 +74,10 @@ namespace Aardvark.Data.Points
         }
 
         /// <summary></summary>
-        public string Description { get; }
+        public string Description { get; } = description ?? throw new ArgumentNullException(nameof(description));
 
         /// <summary></summary>
-        public string[] FileExtensions { get; }
+        public string[] FileExtensions { get; } = fileExtensions?.MapToArray(x => x.ToLowerInvariant()) ?? throw new ArgumentNullException(nameof(fileExtensions));
 
         /// <summary></summary>
         public PointFileInfo ParseFileInfo(string filename, ParseConfig config)
@@ -81,34 +87,20 @@ namespace Aardvark.Data.Points
         public IEnumerable<Chunk> ParseFile(string filename, ParseConfig config)
             => f_parseFile != null ? f_parseFile(filename, config) : throw new Exception("No parser defined.");
 
-        /// <summary></summary>
-        public PointCloudFileFormat(
-            string description,
-            string[] fileExtensions,
-            Func<string, ParseConfig, PointFileInfo>? parseFileInfo,
-            Func<string, ParseConfig, IEnumerable<Chunk>>? parseFile
-            )
-        { 
-            Description = description ?? throw new ArgumentNullException(nameof(description));
-            FileExtensions = fileExtensions?.MapToArray(x => x.ToLowerInvariant()) ?? throw new ArgumentNullException(nameof(fileExtensions));
-            f_parseFileInfo = parseFileInfo;
-            f_parseFile = parseFile;
-        }
-
-        private readonly Func<string, ParseConfig, PointFileInfo>? f_parseFileInfo;
-        private readonly Func<string, ParseConfig, IEnumerable<Chunk>>? f_parseFile;
+        private readonly Func<string, ParseConfig, PointFileInfo>? f_parseFileInfo = parseFileInfo;
+        private readonly Func<string, ParseConfig, IEnumerable<Chunk>>? f_parseFile = parseFile;
 
         #region Registry
 
         /// <summary>
         /// Unknown file format.
         /// </summary>
-        public static readonly PointCloudFileFormat Unknown = new("unknown", new string[0], null, null);
+        public static readonly PointCloudFileFormat Unknown = new("unknown", [], null, null);
 
         /// <summary>
         /// Unknown file format.
         /// </summary>
-        public static readonly PointCloudFileFormat Store = new("store", new string[0], null, null);
+        public static readonly PointCloudFileFormat Store = new("store", [], null, null);
 
         /// <summary>
         /// </summary>
@@ -167,7 +159,7 @@ namespace Aardvark.Data.Points
         }
 
         private static string GetExt(string filename) => Path.GetExtension(filename).ToLowerInvariant();
-        private static readonly Dictionary<string, PointCloudFileFormat> s_registry = new();
+        private static readonly Dictionary<string, PointCloudFileFormat> s_registry = [];
 
         #endregion
     }

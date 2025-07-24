@@ -1,6 +1,6 @@
 ﻿/*
    Aardvark Platform
-   Copyright (C) 2006-2024  Aardvark Platform Team
+   Copyright (C) 2006-2025  Aardvark Platform Team
    https://aardvark.graphics
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -192,7 +192,7 @@ namespace Aardvark.Data.Points
             IReadOnlyList<V2f> xs => xs.MapToArray(x => (V3d)x.XYO),
             IReadOnlyList<V2d> xs => xs.MapToArray(x => x.XYO),
             IReadOnlyList<V3f> xs => xs.MapToArray(x => (V3d)x),
-            IReadOnlyList<V3d> xs => xs.ToArray(),
+            IReadOnlyList<V3d> xs => [.. xs],
 
             _ => throw new Exception($"Unsupported positions type {Positions.GetType()}.")
         };
@@ -208,7 +208,7 @@ namespace Aardvark.Data.Points
             C4b[] xs => xs,
 
             IReadOnlyList<C3b> xs => xs.MapToArray(x => new C4b(x.R, x.G, x.B)),
-            IReadOnlyList<C4b> xs => xs.ToArray(),
+            IReadOnlyList<C4b> xs => [.. xs],
 
             _ => throw new Exception($"Unsupported colors type {Positions.GetType()}.")
         };
@@ -222,7 +222,7 @@ namespace Aardvark.Data.Points
 
             V3f[] xs => xs,
 
-            IReadOnlyList<V3f> xs => xs.ToArray(),
+            IReadOnlyList<V3f> xs => [.. xs],
 
             _ => throw new Exception($"Unsupported normals type {Positions.GetType()}.")
         };
@@ -244,7 +244,7 @@ namespace Aardvark.Data.Points
             IReadOnlyList<byte> xs => xs.MapToArray(x => (int)x),
             IReadOnlyList<short> xs => xs.MapToArray(x => (int)x),
             IReadOnlyList<ushort> xs => xs.MapToArray(x => (int)x),
-            IReadOnlyList<int> xs => xs.ToArray(),
+            IReadOnlyList<int> xs => [.. xs],
 
             _ => throw new Exception($"Unsupported intensities type {Positions.GetType()}.")
         };
@@ -258,7 +258,7 @@ namespace Aardvark.Data.Points
 
             byte[] xs => xs,
 
-            IReadOnlyList<byte> xs => xs.ToArray(),
+            IReadOnlyList<byte> xs => [.. xs],
 
             _ => throw new Exception($"Unsupported classifications type {Positions.GetType()}.")
         };
@@ -529,12 +529,12 @@ namespace Aardvark.Data.Points
         }
 
         public static GenericChunk ImmutableMerge(IEnumerable<GenericChunk> chunks)
-            => ImmutableMerge(chunks.ToArray());
+            => ImmutableMerge([.. chunks]);
 
         public GenericChunk?[] Split(Cell cell)
         {
             var sias = new List<int>[8];
-            for (var i = 0; i < 8; i++) sias[i] = new();
+            for (var i = 0; i < 8; i++) sias[i] = [];
             var o = cell.GetCenter();
             var ps = PositionsAsV3d;
             for (var i = 0; i < ps.Length; i++)
@@ -659,7 +659,7 @@ namespace Aardvark.Data.Points
             for (var i = 0; i < Count; i++)
             {
                 var k = keySelector(this, i);
-                if (!dict.TryGetValue(k, out var ia)) dict[k] = ia = new List<int>();
+                if (!dict.TryGetValue(k, out var ia)) dict[k] = ia = [];
                 ia.Add(i);
             }
 
@@ -931,7 +931,7 @@ namespace Aardvark.Data.Points
                 IReadOnlyList<V2f> ps => ps.MapToArray(p => (V3d)p.XYO),
                 IReadOnlyList<V2d> ps => ps.MapToArray(p => p.XYO),
                 IReadOnlyList<V3f> ps => ps.MapToArray(p => (V3d)p),
-                IReadOnlyList<V3d> ps => ps.ToArray(),
+                IReadOnlyList<V3d> ps => [.. ps],
 
                 _ => throw new Exception($"Unsupported type {Data[PositionsDef].GetType()}.")
             };
@@ -953,7 +953,7 @@ namespace Aardvark.Data.Points
                 }
 
                 var center = c.GetCenter();
-                var subias = new List<int>[8].SetByIndex(_ => new List<int>());
+                var subias = new List<int>[8].SetByIndex(_ => []);
                 for (var i = 0; i < ia.Count; i++)
                 {
                     var p = positions[ia[i]];

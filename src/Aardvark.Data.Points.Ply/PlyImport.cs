@@ -1,5 +1,5 @@
 ﻿/*
-   Copyright (C) 2017-2022. Aardvark Platform Team.
+   Copyright (C) 2017-2025. Aardvark Platform Team.
     
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
+#pragma warning disable IDE0130 // Namespace does not match folder structure
+
 namespace Aardvark.Data.Points.Import
 {
     /// <summary>
@@ -35,7 +37,7 @@ namespace Aardvark.Data.Points.Import
 
         static Ply()
         {
-            PlyFormat = new PointCloudFileFormat("PLY", new[] { ".ply" }, PlyInfo, Chunks);
+            PlyFormat = new PointCloudFileFormat("PLY", [".ply"], PlyInfo, Chunks);
             PointCloudFileFormat.Register(PlyFormat);
         }
 

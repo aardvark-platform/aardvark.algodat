@@ -1,6 +1,6 @@
 ﻿/*
    Aardvark Platform
-   Copyright (C) 2006-2024  Aardvark Platform Team
+   Copyright (C) 2006-2025  Aardvark Platform Team
    https://aardvark.graphics
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,26 +42,19 @@ namespace Aardvark.Base
 
         #region Private state
 
-        private class Entry
+        private class Entry(K key, V value, long size, Action<K, V, long>? onRemove)
         {
             public Entry? Prev;
             public Entry? Next;
-            public K Key;
-            public V Value;
-            public long Size;
-            public Action<K, V, long>? OnRemove;
-
-            public Entry(K key, V value, long size, Action<K, V, long>? onRemove)
-            {
-                Key = key;
-                Value = value;
-                Size = size;
-                OnRemove = onRemove;
-            }
+            public K Key = key;
+            public V Value = value;
+            public long Size = size;
+            public Action<K, V, long>? OnRemove = onRemove;
         }
+
         private Entry? m_first = null;
         private Entry? m_last = null;
-        private readonly Dictionary<K, Entry> m_k2e = new();
+        private readonly Dictionary<K, Entry> m_k2e = [];
 
         private void Unlink(Entry e)
         {

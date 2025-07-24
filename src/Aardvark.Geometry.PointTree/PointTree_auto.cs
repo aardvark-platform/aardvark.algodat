@@ -1,6 +1,6 @@
 /*
    Aardvark Platform
-   Copyright (C) 2006-2024  Aardvark Platform Team
+   Copyright (C) 2006-2025  Aardvark Platform Team
    https://aardvark.graphics
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,6 +21,8 @@ using Aardvark.Base.Sorting;
 using System;
 using System.Collections.Generic;
 
+#pragma warning disable IDE0290 // Use primary constructor
+
 namespace Aardvark.Geometry
 {
     // AUTO GENERATED CODE - DO NOT CHANGE!
@@ -39,15 +41,15 @@ namespace Aardvark.Geometry
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
-            return new[]
-            {
+            return
+            [
                 new FieldCoder(0, "PermArray",
                         (c,o) => c.CodeLongArray(ref ((PointRkdTreeFData)o).PermArray) ),
                 new FieldCoder(1, "AxisArray",
                         (c,o) => c.CodeIntArray(ref ((PointRkdTreeFData)o).AxisArray) ),
                 new FieldCoder(2, "RadiusArray",
                         (c,o) => c.CodeFloatArray(ref ((PointRkdTreeFData)o).RadiusArray) ),
-            };
+            ];
         }
     }
 
@@ -294,7 +296,7 @@ namespace Aardvark.Geometry
             if (maxCount > 0)
                 return new List<IndexDist<float>>(maxCount + 1);
             else
-                return new List<IndexDist<float>>();
+                return [];
         }
 
         /// <summary>
@@ -514,15 +516,15 @@ namespace Aardvark.Geometry
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
-            return new[]
-            {
+            return
+            [
                 new FieldCoder(0, "PermArray",
                         (c,o) => c.CodeLongArray(ref ((PointRkdTreeFSelectorData)o).PermArray) ),
                 new FieldCoder(1, "AxisArray",
                         (c,o) => c.CodeIntArray(ref ((PointRkdTreeFSelectorData)o).AxisArray) ),
                 new FieldCoder(2, "RadiusArray",
                         (c,o) => c.CodeFloatArray(ref ((PointRkdTreeFSelectorData)o).RadiusArray) ),
-            };
+            ];
         }
     }
 
@@ -769,7 +771,7 @@ namespace Aardvark.Geometry
             if (maxCount > 0)
                 return new List<IndexDist<float>>(maxCount + 1);
             else
-                return new List<IndexDist<float>>();
+                return [];
         }
 
         /// <summary>
@@ -988,13 +990,13 @@ namespace Aardvark.Geometry
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
-            return new[]
-            {
+            return
+            [
                 new FieldCoder(0, "PermArray",
                         (c,o) => c.CodeLongArray(ref ((PointKdTreeFData)o).PermArray) ),
                 new FieldCoder(1, "AxisArray",
                         (c,o) => c.CodeIntArray(ref ((PointKdTreeFData)o).AxisArray) ),
-            };
+            ];
         }
     }
 
@@ -1234,7 +1236,7 @@ namespace Aardvark.Geometry
             if (maxCount > 0)
                 return new List<IndexDist<float>>(maxCount + 1);
             else
-                return new List<IndexDist<float>>();
+                return [];
         }
 
         /// <summary>
@@ -1389,15 +1391,15 @@ namespace Aardvark.Geometry
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
-            return new[]
-            {
+            return
+            [
                 new FieldCoder(0, "PermArray",
                         (c,o) => c.CodeLongArray(ref ((PointVpTreeFData)o).PermArray) ),
                 new FieldCoder(1, "LMaxArray",
                         (c,o) => c.CodeFloatArray(ref ((PointVpTreeFData)o).LMaxArray) ),
                 new FieldCoder(2, "RMinArray",
                         (c,o) => c.CodeFloatArray(ref ((PointVpTreeFData)o).RMinArray) ),
-            };
+            ];
         }
     }
 
@@ -1575,7 +1577,7 @@ namespace Aardvark.Geometry
             if (maxCount > 0)
                 return new List<IndexDist<float>>(maxCount + 1);
             else
-                return new List<IndexDist<float>>();
+                return [];
         }
 
         /// <summary>
@@ -1713,15 +1715,15 @@ namespace Aardvark.Geometry
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
-            return new[]
-            {
+            return
+            [
                 new FieldCoder(0, "PermArray",
                         (c,o) => c.CodeLongArray(ref ((PointRkdTreeDData)o).PermArray) ),
                 new FieldCoder(1, "AxisArray",
                         (c,o) => c.CodeIntArray(ref ((PointRkdTreeDData)o).AxisArray) ),
                 new FieldCoder(2, "RadiusArray",
                         (c,o) => c.CodeDoubleArray(ref ((PointRkdTreeDData)o).RadiusArray) ),
-            };
+            ];
         }
     }
 
@@ -1968,7 +1970,7 @@ namespace Aardvark.Geometry
             if (maxCount > 0)
                 return new List<IndexDist<double>>(maxCount + 1);
             else
-                return new List<IndexDist<double>>();
+                return [];
         }
 
         /// <summary>
@@ -2188,15 +2190,15 @@ namespace Aardvark.Geometry
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
-            return new[]
-            {
+            return
+            [
                 new FieldCoder(0, "PermArray",
                         (c,o) => c.CodeLongArray(ref ((PointRkdTreeDSelectorData)o).PermArray) ),
                 new FieldCoder(1, "AxisArray",
                         (c,o) => c.CodeIntArray(ref ((PointRkdTreeDSelectorData)o).AxisArray) ),
                 new FieldCoder(2, "RadiusArray",
                         (c,o) => c.CodeDoubleArray(ref ((PointRkdTreeDSelectorData)o).RadiusArray) ),
-            };
+            ];
         }
     }
 
@@ -2443,7 +2445,7 @@ namespace Aardvark.Geometry
             if (maxCount > 0)
                 return new List<IndexDist<double>>(maxCount + 1);
             else
-                return new List<IndexDist<double>>();
+                return [];
         }
 
         /// <summary>
@@ -2662,13 +2664,13 @@ namespace Aardvark.Geometry
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
-            return new[]
-            {
+            return
+            [
                 new FieldCoder(0, "PermArray",
                         (c,o) => c.CodeLongArray(ref ((PointKdTreeDData)o).PermArray) ),
                 new FieldCoder(1, "AxisArray",
                         (c,o) => c.CodeIntArray(ref ((PointKdTreeDData)o).AxisArray) ),
-            };
+            ];
         }
     }
 
@@ -2908,7 +2910,7 @@ namespace Aardvark.Geometry
             if (maxCount > 0)
                 return new List<IndexDist<double>>(maxCount + 1);
             else
-                return new List<IndexDist<double>>();
+                return [];
         }
 
         /// <summary>
@@ -3063,15 +3065,15 @@ namespace Aardvark.Geometry
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
-            return new[]
-            {
+            return
+            [
                 new FieldCoder(0, "PermArray",
                         (c,o) => c.CodeLongArray(ref ((PointVpTreeDData)o).PermArray) ),
                 new FieldCoder(1, "LMaxArray",
                         (c,o) => c.CodeDoubleArray(ref ((PointVpTreeDData)o).LMaxArray) ),
                 new FieldCoder(2, "RMinArray",
                         (c,o) => c.CodeDoubleArray(ref ((PointVpTreeDData)o).RMinArray) ),
-            };
+            ];
         }
     }
 
@@ -3249,7 +3251,7 @@ namespace Aardvark.Geometry
             if (maxCount > 0)
                 return new List<IndexDist<double>>(maxCount + 1);
             else
-                return new List<IndexDist<double>>();
+                return [];
         }
 
         /// <summary>
@@ -4386,12 +4388,12 @@ namespace Aardvark.Geometry
         private readonly static Func<float, float, float> c_dimDistFunF = (a, b) => b - a;
 
         private readonly static Func<float, float, float>[] c_dimDistFunArrayF =
-            new Func<float, float, float>[] { c_dimDistFunF, c_dimDistFunF, c_dimDistFunF, c_dimDistFunF };
+            [c_dimDistFunF, c_dimDistFunF, c_dimDistFunF, c_dimDistFunF];
 
         private readonly static Func<float, float, float> c_dimDistConst1FunF = (a, b) => (float)1;
 
         private readonly static Func<float, float, float>[] c_dimDistConst1FunArrayF =
-            new Func<float, float, float>[] { c_dimDistConst1FunF, c_dimDistConst1FunF, c_dimDistConst1FunF, c_dimDistConst1FunF };
+            [c_dimDistConst1FunF, c_dimDistConst1FunF, c_dimDistConst1FunF, c_dimDistConst1FunF];
 
         #endregion
 
@@ -4896,12 +4898,12 @@ namespace Aardvark.Geometry
         private readonly static Func<double, double, double> c_dimDistFunD = (a, b) => b - a;
 
         private readonly static Func<double, double, double>[] c_dimDistFunArrayD =
-            new Func<double, double, double>[] { c_dimDistFunD, c_dimDistFunD, c_dimDistFunD, c_dimDistFunD };
+            [c_dimDistFunD, c_dimDistFunD, c_dimDistFunD, c_dimDistFunD];
 
         private readonly static Func<double, double, double> c_dimDistConst1FunD = (a, b) => (double)1;
 
         private readonly static Func<double, double, double>[] c_dimDistConst1FunArrayD =
-            new Func<double, double, double>[] { c_dimDistConst1FunD, c_dimDistConst1FunD, c_dimDistConst1FunD, c_dimDistConst1FunD };
+            [c_dimDistConst1FunD, c_dimDistConst1FunD, c_dimDistConst1FunD, c_dimDistConst1FunD];
 
         #endregion
 

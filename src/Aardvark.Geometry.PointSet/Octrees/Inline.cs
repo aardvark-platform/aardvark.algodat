@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2024. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2025. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -18,7 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-#nullable enable
+#pragma warning disable IDE0290 // Use primary constructor
 
 namespace Aardvark.Geometry.Points;
 
@@ -420,7 +420,8 @@ public static class InlineExtensions
             if (subnodes == null) throw new Exception("Assertion failed. Error 42565d4a-2e91-4961-a310-095b503fe6f1.");
             var nonEmptySubNodes = subnodes.Where(x => x != null).Select(x => x!).ToArray();
 
-            ps = nonEmptySubNodes
+            ps = [
+                .. nonEmptySubNodes
                 .SelectMany(n =>
                 {
                     var nCell = n.Cell;
@@ -429,20 +430,16 @@ public static class InlineExtensions
                     var xs = n.Positions.Value.Map(x => (V3f)((V3d)x + delta));
                     return xs;
                 })
-                .ToArray();
+                ];
 
             if (hasColors)
             {
-                cs = nonEmptySubNodes
-                    .SelectMany(n => n.Colors!.Value)
-                    .ToArray();
+                cs = [.. nonEmptySubNodes.SelectMany(n => n.Colors!.Value)];
             }
 
             if (hasClassifications)
             {
-                ks = nonEmptySubNodes
-                    .SelectMany(n => n.Classifications!.Value)
-                    .ToArray();
+                ks = [.. nonEmptySubNodes.SelectMany(n => n.Classifications!.Value)];
             }
 
             if (hasIntensities)

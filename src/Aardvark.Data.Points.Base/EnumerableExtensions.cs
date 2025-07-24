@@ -1,6 +1,6 @@
 ﻿/*
    Aardvark Platform
-   Copyright (C) 2006-2024  Aardvark Platform Team
+   Copyright (C) 2006-2025  Aardvark Platform Team
    https://aardvark.graphics
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -182,7 +182,7 @@ namespace Aardvark.Data.Points
                 Task.Delay(100).Wait();
             }
 
-            Task.WaitAll(ts.ToArray());
+            Task.WaitAll([.. ts]);
 
             sw.Stop();
             onFinish?.Invoke(sw.Elapsed);

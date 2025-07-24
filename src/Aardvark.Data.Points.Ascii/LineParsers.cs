@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2025. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -199,35 +199,35 @@ namespace Aardvark.Data.Points
         /// Expected line format: [double X] [double Y] [double Z] [int I] [byte R] [byte G] [byte B] \n
         /// </summary>
         public static Chunk XYZIRGB(byte[] buffer, int count, double filterDist, int? partIndices)
-            => Custom(buffer, count, filterDist, new[]
-            {
+            => Custom(buffer, count, filterDist,
+            [
                 Token.PositionX, Token.PositionY, Token.PositionZ,
                 Token.Intensity,
                 Token.ColorR, Token.ColorG, Token.ColorB
-            }, partIndices);
+            ], partIndices);
 
         /// <summary>
         /// Buffer is expected to contain ASCII. Lines separated by '\n'.
         /// Expected line format: [double X] [double Y] [double Z] [SKIP] [byte R] [byte G] [byte B] \n
         /// </summary>
         public static Chunk XYZSRGB(byte[] buffer, int count, double filterDist, int? partIndices)
-            => Custom(buffer, count, filterDist, new[]
-            {
+            => Custom(buffer, count, filterDist,
+            [
                 Token.PositionX, Token.PositionY, Token.PositionZ,
                 Token.Skip,
                 Token.ColorR, Token.ColorG, Token.ColorB
-            }, partIndices);
+            ], partIndices);
 
         /// <summary>
         /// Buffer is expected to contain ASCII. Lines separated by '\n'.
         /// Expected line format: [double X] [double Y] [double Z] [byte R] [byte G] [byte B] \n
         /// </summary>
         public static Chunk XYZRGB(byte[] buffer, int count, double filterDist, int? partIndices)
-            => Custom(buffer, count, filterDist, new[]
-            {
+            => Custom(buffer, count, filterDist,
+            [
                 Token.PositionX, Token.PositionY, Token.PositionZ,
                 Token.ColorR, Token.ColorG, Token.ColorB
-            }, partIndices);
+            ], partIndices);
 
         #region Private
         

@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2006-2023. Aardvark Platform Team. http://github.com/aardvark-platform.
+    Copyright (C) 2006-2025. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -51,11 +51,11 @@ namespace Aardvark.Geometry
 
         public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
         {
-            return new[]
-            {
+            return
+            [
                 new FieldCoder(0, "KdIntersectionTree", (c,o) => c.CodeT(ref ((ConcreteKdIntersectionTree)o).KdIntersectionTree) ),
                 new FieldCoder(1, "Trafo", (c,o) => c.CodeTrafo3d(ref ((ConcreteKdIntersectionTree)o).Trafo) ),
-            };
+            ];
         }
 
         #endregion
