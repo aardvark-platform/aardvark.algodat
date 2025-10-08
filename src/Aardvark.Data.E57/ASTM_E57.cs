@@ -2446,6 +2446,71 @@ namespace Aardvark.Data.E57
         }
 
         /// <summary>
+        /// Finds given byte pattern in logical bytes and returns physical offset of the pattern start.
+        /// To be used to find image start signatures (JPEG, PNG) in logical bytes.
+        /// </summary>
+        internal static E57PhysicalOffset FindPatternInLogicalBytes(Stream stream, E57PhysicalOffset start, byte[] pattern, int countLogical = 32)
+        {
+            checked
+            {
+                if (countLogical < 0) throw new ArgumentException(nameof(countLogical));
+
+                stream.Position = start.Value;
+
+                var buffer = new byte[countLogical];
+                var i = 0;
+                long crcIndex = 0;
+
+                while (countLogical > 0)
+                {
+                    var bytesLeftInPage = 1020 - (int)(stream.Position % 1024);
+                    if (bytesLeftInPage > countLogical) bytesLeftInPage = countLogical;
+                    var bytesRead = stream.Read(buffer, i, bytesLeftInPage);
+                    if (bytesRead != bytesLeftInPage) throw new InvalidOperationException();
+
+                    crcIndex = stream.Position;
+                    stream.Position += 4; // skip CRC
+                    
+                    i += bytesLeftInPage;
+                    countLogical -= bytesLeftInPage;
+                }
+
+                //search the read logical buffer
+                for(int j = 0; j<buffer.Length; j++)
+                {
+                    //match pattern
+                    for (int k = 0; k<pattern.Length && j+k<buffer.Length && buffer[j+k] == pattern[k]; k++)
+                    {
+                        if (k == pattern.Length - 1)
+                        {
+                            //if pattern found, calculate physical offset and return it
+                            var startPosition = start.Value + j;
+                            if (startPosition > crcIndex)
+                                startPosition += 4; // the search window is small (32 by default), so at most one CRC is crossed
+                            return new E57PhysicalOffset(start.Value + j);
+                        };
+                    }
+                }
+
+                return start;
+            }
+        }
+
+        /// <summary>
+        /// Searches next logical 32 bytes in stream to locate JPEG start (0xFFD8).
+        /// </summary>
+        private static E57PhysicalOffset FindJpegStart(Stream stream, E57PhysicalOffset offset)
+            => FindPatternInLogicalBytes(stream, offset, new byte[] { 0xFF, 0xD8 }, 34);
+
+        /// <summary>
+        /// Searches next logical 32 bytes in stream to locate PNG start (0x89504E470D0A1A0A).
+        /// </summary>
+        private static E57PhysicalOffset FindPngStart(Stream stream, E57PhysicalOffset offset)
+            => FindPatternInLogicalBytes(stream, offset, new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A }, 40);
+
+      
+
+        /// <summary>
         /// Read given number of logical bytes (excluding 32-bit CRC at the end of each 1024 byte page) from stream,
         /// starting at logical stream position 'start'.
         /// </summary>
@@ -2547,11 +2612,17 @@ namespace Aardvark.Data.E57
             // Mysterious!  Why is +16 required? 
             var start = blob.FileOffset.Value + 16;
             // If start falls in checksum region move it forward the the next page
-            if(start % 1024 >= 1020)
+            if (start % 1024 >= 1020)
             {
                 start += 1024 - (start % 1024);
             }
             var offest = new E57PhysicalOffset(start);
+
+            // even more mysterious! sometimes earlier +16 above is +20, and reading from +16 causes a 4 bytes shifted array and corrupted images.
+            // so to ensure the exact image start, we search for the image signature in the next 32 logical bytes after +16.
+            // this way, we no longer need to worry about different numbers other than 16.
+            offest = elementName == "jpegImage" ? FindJpegStart(stream, offest) : FindPngStart(stream, offest);
+
             return ReadLogicalBytes(stream, offest, (int)blob.Length);            
         }
         private static double? GetFloatOrInteger(XElement root, string elementName, bool required)
