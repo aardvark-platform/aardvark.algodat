@@ -1,3 +1,6 @@
+### 5.5.11
+- [e57] fixed corrupted images when binary blob section header crosses CRC
+
 ### 5.5.10
 - [PointSet] fixed QueryPointsNearRay
 - merged cleanups for latest LangVersion
