@@ -2546,25 +2546,15 @@ namespace Aardvark.Data.E57
 
             // The blob.FileOffset is the physical offset to the start of a Blob
             // binary section and not directly to the binary blob data.
-            // And such a section has a header of exactly 16 bytes
-            var start = blob.FileOffset.Value + 16;
-
-            // If start falls in checksum region move it forward the the next page
-            if (start % 1024 >= 1020)
-            {
-                start += 1024 - (start % 1024);
-            }
-
-            // But if the offset + 16 "Not only falls in CRC part", but also passes it,
-            // We need to add additonal 4 bytes to compensate for the CRC
-            if ((blob.FileOffset.Value % 1024) + 16 > 1020)
-            {
-                start += 4;
-            }
-
-            var offest = new E57PhysicalOffset(start);
-
-            return ReadLogicalBytes(stream, offest, (int)blob.Length);            
+            // And such a section has a header of exactly 16 bytes.
+            // Because the header could cross a CRC (in which case we would have
+            // to skip 20 bytes instead of 16), we immediately convert the physical offset
+            // to a logical offset, and skip the 16 bytes header in "logical address space",
+            // which will automatically handle all CRC-crossing corner cases for us.
+            // Finally, ReadLogicalBytes already has an overload for E57LogicalOffset,
+            // so we don't even have to convert back to a physical offset.
+            var start = (E57LogicalOffset)blob.FileOffset + 16;
+            return ReadLogicalBytes(stream, start, (int)blob.Length);            
         }
         private static double? GetFloatOrInteger(XElement root, string elementName, bool required)
         {
