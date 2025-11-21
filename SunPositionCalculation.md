@@ -22,19 +22,9 @@ let computeSunPosition (longitudeInDegrees: float32) (latitudeInDegrees: float32
     let piHalf = pi / 2.0f
     let piTimesTwo = pi * 2.0f
     let radiansPerDegree = pi / 180.0f
-    let degreesPerRadian = 180.0f / pi
     let au = 149597870700.0f // Astronomical Unit in meters
     let j2000 = 2451545.0f // Julian day of 1st January 2000 12:00 (J2000)
     let julianCenturiesPerDay = 1.0f / 36525.0f
-    
-    // Helper functions
-    let sin x = sin x
-    let cos x = cos x
-    let tan x = tan x
-    let asin x = asin x
-    let acos x = acos x
-    let atan2 y x = atan2 y x
-    let sqrt x = sqrt x
     
     // Convert year/seconds to Julian day
     // Calculate Julian day using standard formula for Gregorian calendar
