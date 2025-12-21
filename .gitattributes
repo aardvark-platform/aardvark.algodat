@@ -1,0 +1,37 @@
+* text=auto
+
+# Source code
+*.cs text eol=lf
+*.fs text eol=lf
+*.fsx text eol=lf
+*.fsi text eol=lf
+
+# Build files
+*.csproj text eol=lf
+*.fsproj text eol=lf
+*.sln text eol=lf
+*.props text eol=lf
+*.targets text eol=lf
+
+# Config
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Docs
+*.md text eol=lf
+*.txt text eol=lf
+
+# Scripts
+*.sh text eol=lf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Binary
+*.png binary
+*.jpg binary
+*.dll binary
+*.exe binary
+*.pdb binary
+*.nupkg binary
+*.zip binary
