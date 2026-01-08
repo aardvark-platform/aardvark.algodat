@@ -1,3 +1,6 @@
+### 5.6.0
+- update to Aardvark.Rendering 5.6.0
+
 ### 5.5.11
 - [e57] fixed corrupted images when binary blob section header crosses CRC
 

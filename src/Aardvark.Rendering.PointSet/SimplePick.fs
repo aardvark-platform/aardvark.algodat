@@ -12,7 +12,7 @@ open System.Runtime.InteropServices
 [<AutoOpen>]
 module SimplePickExtensions =
 
-    module Seq = 
+    module Seq =
         open System.Collections.Generic
 
         type private EnumeratorEnumerable<'a>(create : unit -> IEnumerator<'a>) =
@@ -108,143 +108,8 @@ module SimplePickExtensions =
             EnumeratorEnumerable newEnumerator :> seq<_>
 
 
-
-    //let private transform (trafo : Trafo3d) (part : RayPart) =
-    //    let ray = part.Ray.Ray
-    //    let np = trafo.Forward.TransformPos ray.Origin
-    //    let nd = trafo.Forward.TransformDir ray.Direction
-    //    let l = Vec.length nd
-    //    let nr = FastRay3d(Ray3d(np,nd / l))
-
-    //    let f = 1.0 / part.Ray.Ray.Direction.Length
-    //    let ntmi = part.TMin * f
-    //    let ntma = part.TMax * f
-
-    //    RayPart(nr,ntmi,ntma)
-
-
-    //type Circle2d with
-
-    //    member x.Intersects (ray : Ray2d, tMin : float, tMax : float, [<Out>] t0 : byref<float>, [<Out>] t1 : byref<float>) =
-    //        let o = ray.Origin - x.Center
-    //        let d = ray.Direction
-    //        let a = Vec.lengthSquared d
-    //        if Fun.IsTiny a then
-    //            false
-    //        else
-    //            let b = 2.0 * Vec.dot o d
-    //            let c = Vec.lengthSquared o - x.RadiusSquared
-    //            let r = b*b - 4.0*a*c
-    //            if r < 0.0 then 
-    //                false
-
-    //            elif Fun.IsTiny r then
-    //                let ta = -b / (2.0 * a)
-    //                if ta >= tMin && ta <= tMax then
-    //                    t0 <- ta
-    //                    t1 <- ta
-    //                    true
-    //                else
-    //                    false
-    //            else
-    //                let r = sqrt r
-    //                let ta = (-b + r) / (2.0 * a)
-    //                let tb = (-b - r) / (2.0 * a)
-
-    //                let ia = ta >= tMin && ta <= tMax
-    //                let ib = tb >= tMin && tb <= tMax
-    //                if ia && ib then
-    //                    t0 <- ta
-    //                    t1 <- tb
-    //                    true
-    //                elif ia then
-    //                    t0 <- ta
-    //                    t1 <- ta
-    //                    true
-    //                elif ib then
-    //                    t0 <- tb
-    //                    t1 <- tb
-    //                    true
-    //                else
-    //                    false
-
-    //    member x.Intersects (ray : Ray2d, tMin : float, tMax : float) =
-    //        let o = ray.Origin - x.Center
-    //        let d = ray.Direction
-    //        // |o + t * d| = r
-    //        // (ox + t*dx)^2 + (oy + t*dy)^2 + (oz + t*dz)^2 = r^2
-
-    //        // ox^2 + 2*t*ox*dx + t^2*dx^2 +
-    //        // oy^2 + 2*t*oy*dy + t^2*dy^2 +
-    //        // oz^2 + 2*t*oz*dz + t^2*dz^2 = r^2
-
-    //        // t^2*(dx^2 + dy^2 + dz^2) + t*2*(ox*dx + oy*dy + oz*dz) + (ox^2 + oy^2 + oz^2) = r^2
-
-    //        // t^2      * |d|^2         + 
-    //        // t        * 2*<d|o>       +
-    //        // 1        * |o|^2 - r^2
-    //        // = 0
-
-    //        let a = Vec.lengthSquared d
-    //        let b = 2.0 * Vec.dot o d
-    //        let c = Vec.lengthSquared o - x.RadiusSquared
-    //        let struct (t0, t1) = Polynomial.RealRootsOf(a,b,c)
-    //        (t0 >= tMin && t0 <= tMax) || 
-    //        (t1 >= tMin && t1 <= tMax)
-
-    //    member x.Intersects (line : Line2d, [<Out>] p0 : byref<V2d>, [<Out>] p1 : byref<V2d>) =
-    //        let ray = Ray2d(line.P0, line.P1 - line.P0)
-    //        let mutable t0 = 0.0
-    //        let mutable t1 = 0.0
-    //        if x.Intersects(ray, 0.0, 1.0, &t0, &t1) then
-    //            p0 <- ray.Origin + t0 * ray.Direction
-    //            p1 <- ray.Origin + t1 * ray.Direction
-    //            true
-    //        else
-    //            false
-
-    //    member x.Intersects (line : Line2d) =
-    //        x.Intersects(Ray2d(line.P0, line.P1 - line.P0), 0.0, 1.0)
-
-    //    member x.Intersects (t : Triangle2d) =
-    //        x.Contains t.P0 || x.Contains t.P1 || x.Contains t.P2 ||
-    //        t.Contains x.Center ||
-    //        x.Intersects t.Line01 || x.Intersects t.Line12 || x.Intersects t.Line20
-
-            
-    //    member x.IntersectsConvex (t : Polygon2d) =
-    //        t.Points |> Seq.exists x.Contains ||
-    //        t.Contains x.Center ||
-    //        t.EdgeLines |> Seq.exists x.Intersects
-
-    //type Ellipse2d with
-    //    member x.Contains (pt : V2d) =
-    //        let m = M22d.FromCols(x.Axis0, x.Axis1).Inverse
-    //        let p = m * (pt - x.Center)
-    //        p.LengthSquared <= 1.0
-            
-    //    member x.Intersects(ray : Ray2d, tMin : float, tMax : float) =
-    //        let m = M22d.FromCols(x.Axis0, x.Axis1).Inverse
-    //        let o = m * (ray.Origin - x.Center)
-    //        let d = m * ray.Direction
-
-    //        let a = Vec.lengthSquared d
-    //        let b = 2.0 * Vec.dot o d
-    //        let c = Vec.lengthSquared o - 1.0
-    //        let struct (t0, t1) = Polynomial.RealRootsOf(a,b,c)
-    //        (t0 >= tMin && t0 <= tMax) || 
-    //        (t1 >= tMin && t1 <= tMax)
-            
-    //    member x.Intersects (line : Line2d) =
-    //        x.Intersects(Ray2d(line.P0, line.P1 - line.P0), 0.0, 1.0)
-
-    //    member x.Intersects (t : Triangle2d) =
-    //        x.Contains t.P0 || x.Contains t.P1 || x.Contains t.P2 ||
-    //        t.Contains x.Center ||
-    //        x.Intersects t.Line01 || x.Intersects t.Line12 || x.Intersects t.Line20
-
     /// <summary>
-    /// Represents the result of a visual picking operation. 
+    /// Represents the result of a visual picking operation.
     /// Contains Position and optional attributes of a point.
     /// </summary>
     [<Struct>]
@@ -279,7 +144,7 @@ module SimplePickExtensions =
                     if rp.Ray.Intersects(b, &rp.TMin, &rp.TMax) && rp.TMin <= rp.TMax then Some rp
                     else None
 
-            
+
                 let leftBeforeRight (r : RayPart) (lBox : Box3d) (rBox : Box3d) =
                     let mutable lmin = r.TMin
                     let mutable rmin = r.TMin
@@ -292,7 +157,7 @@ module SimplePickExtensions =
                 {
                     intersectLeaf = tryIntersect
                     intersectBox = intersectBox
-                    //compareQuery = fun (l : RayPart) (r : RayPart) -> 
+                    //compareQuery = fun (l : RayPart) (r : RayPart) ->
                     //    if l.TMin >= r.TMax then
                     //        { overlap = false; order = false }
                     //    elif r.TMin >= l.TMax then
@@ -307,13 +172,13 @@ module SimplePickExtensions =
                 let intersectBox (r : Region3d) (b : Box3d) =
                     if Region3d.intersects b r then Some r
                     else None
-                    
+
                 let leftBeforeRight (r : Region3d) (lBox : Box3d) (rBox : Box3d) =
                     let i = lBox.Intersection rBox
                     let dim = i.MinorDim
                     let v = i.Center.[dim]
                     cam.[dim] < v
-                
+
 
                 {
                     intersectLeaf = tryIntersect
@@ -322,7 +187,7 @@ module SimplePickExtensions =
                     compare = fun (l : RayHit<'r>) (r : RayHit<'r>) -> compare l.T r.T
                     leftBeforeRight = leftBeforeRight
                 }
-            
+
         let rec traverse (t : BvhTraversal<'q, 'a, 'r>)  (data : 'a[]) (part : 'q) (node : BvhNode) =
             match node with
                 | BvhNode.Leaf id ->
@@ -365,7 +230,7 @@ module SimplePickExtensions =
                 //r3 - r2 |> toPlane  // far
             |]
 
-        type RegionQuery = 
+        type RegionQuery =
             {
                 viewProj : Trafo3d
                 region : Region3d
@@ -378,19 +243,19 @@ module SimplePickExtensions =
             if Region3d.intersects x.bounds query.region then
                 let bvh = x.bvh
                 match bvh.Root with
-                | Some _ -> 
+                | Some _ ->
                     let traversal = BvhTraversal.region query.cam (fun (r : Region3d) (t : SimplePickTree) -> t.FindInternal(query))
                     bvh.Traverse(traversal, query.region)
                     //intersections (fun r (t : SimplePickTree) -> t.FindInternal(r, radiusD, radiusK)) bvh.Data ray root
                 | None ->
-                    let hits = 
-                        
+                    let hits =
+
                         let mutable pi = 0
-                        x.positions |> Array.choose ( fun p -> 
+                        x.positions |> Array.choose ( fun p ->
                             let p = x.dataTrafo.Forward.TransformPos (V3d p)
                             if Region3d.contains p query.region then
                                 let t = Vec.length (p - query.cam)
-                                let getAttribute = 
+                                let getAttribute =
                                     let ci = pi
                                     fun (s : Symbol) -> x.attributes |> MapExt.tryFind s |> Option.map (fun atts -> atts,ci)
                                 let pt = {SimplePickPoint.DataPosition = p; SimplePickPoint.WorldPosition = x.dataTrafo.Backward.TransformPos p; SimplePickPoint.Ndc = V3d.Zero; TryGetAttribute = getAttribute}
@@ -409,20 +274,20 @@ module SimplePickExtensions =
             let dataViewProj = x.dataTrafo.Inverse * t * viewProj
             let cam = dataViewProj.Backward.TransformPosProj(V3d(0.0, 0.0, -100000.0))
 
-            let hull = 
+            let hull =
                 let c = box.Center
                 let scale = 2.0 / box.Size
-                
-                let lvp = 
+
+                let lvp =
                     dataViewProj *
                     Trafo3d.Scale(scale.X, scale.Y, 1.0) *
                     Trafo3d.Translation(-scale.X * c.X, -scale.Y * c.Y, 0.0)
 
                 toHull3d lvp
                 |> FastHull3d
-                
 
-            let region = 
+
+            let region =
                 Region3d.ofIntersectable {
                     new Intersectable3d() with
                         override x.Contains (pt : V3d) = hull.Hull.Contains pt
@@ -430,24 +295,24 @@ module SimplePickExtensions =
                         override x.Intersects (box : Box3d) = hull.Intersects box
                 }
 
-            x.FindInternal({ region = region; cam = cam; viewProj = viewProj }) 
-            |> Seq.map (fun hit -> 
+            x.FindInternal({ region = region; cam = cam; viewProj = viewProj })
+            |> Seq.map (fun hit ->
                 let wp = V3d hit.Value.WorldPosition |> t.Forward.TransformPos
                 let ndc = viewProj.Forward.TransformPosProj wp
                 RayHit(hit.T, { hit.Value with WorldPosition = wp; Ndc = ndc })
             )
-            
+
         member x.FindPoints(viewProj : Trafo3d, ellipse : Ellipse2d) =
             let ellipse =
-                let d = Vec.dot ellipse.Axis0 ellipse.Axis1 
+                let d = Vec.dot ellipse.Axis0 ellipse.Axis1
                 if Fun.IsTiny d then ellipse
                 else Ellipse2d.FromConjugateDiameters(ellipse.Center, ellipse.Axis0, ellipse.Axis1)
 
-            let bounds = 
+            let bounds =
                 Box2d [| ellipse.Center - ellipse.Axis0; ellipse.Center + ellipse.Axis0;  ellipse.Center - ellipse.Axis1; ellipse.Center + ellipse.Axis1 |]
-                
+
             let m = M22d.FromCols(ellipse.Axis0, ellipse.Axis1).Inverse
-           
+
             x.FindPoints(viewProj, bounds)
             |> Seq.filter (fun p -> Vec.lengthSquared (m * (p.Value.Ndc.XY - ellipse.Center)) <= 1.0)
 

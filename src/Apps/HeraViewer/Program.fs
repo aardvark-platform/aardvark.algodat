@@ -17,7 +17,7 @@ open Uncodium.SimpleStore
 open Aardvark.Data
 
 
-module Shaders = 
+module Shaders =
     open FShade
 
     let heatMapColors =
@@ -27,7 +27,7 @@ module Shaders =
                 byte ((i >>> 8) &&& 0xFF),
                 byte (i &&& 0xFF),
                 255uy
-            ).ToC4f().ToV4d()
+            ).ToC4f().ToV4f()
 
         Array.map fromInt [|
             0x1639fa
@@ -57,63 +57,63 @@ module Shaders =
         |]
 
     [<ReflectedDefinition>]
-    let heat (tc : float) =
-        let tc = clamp 0.0 1.0 tc
-        let fid = tc * float heatMapColors.Length - 0.5
+    let heat (tc : float32) =
+        let tc = clamp 0.0f 1.0f tc
+        let fid = tc * float32 heatMapColors.Length - 0.5f
 
         let id = int (floor fid)
-        if id < 0 then 
+        if id < 0 then
             heatMapColors.[0]
         elif id >= heatMapColors.Length - 1 then
             heatMapColors.[heatMapColors.Length - 1]
         else
             let c0 = heatMapColors.[id]
             let c1 = heatMapColors.[id + 1]
-            let t = fid - float id
-            (c0 * (1.0 - t) + c1 * t)
+            let t = fid - float32 id
+            (c0 * (1.0f - t) + c1 * t)
 
-    type Vertex = 
+    type Vertex =
         {
             [<Position>]
-            pos : V4d
+            pos : V4f
 
             [<PointSize>]
-            pointSize : float
+            pointSize : float32
 
             [<PointCoord>]
-            pointCoord : V2d
+            pointCoord : V2f
 
             [<Color>]
-            color : V4d
+            color : V4f
 
             [<Semantic("Density")>]
-            density : float
+            density : float32
         }
 
 
     let vs (v : Vertex) =
         vertex {
-            return 
+            return
                 { v with
                     pointSize = uniform?PointSize
                 }
         }
 
-    let fs (v : Vertex) = 
+    let fs (v : Vertex) =
         fragment {
-            let c = v.pointCoord * 2.0 - V2d.II
-            let f = Vec.dot c c - 1.0
-            if f > 0.0 then discard ()// || v.density > 0.11 then discard()
-            let dHeat = heat (v.density * 10.0)
-            return V4d(dHeat.XYZ * v.color.XYZ,0.01)
+            let c = v.pointCoord * 2.0f - V2f.II
+            let f = Vec.dot c c - 1.0f
+            if f > 0.0f then discard ()// || v.density > 0.11f then discard()
+            let dHeat = heat (v.density * 10.0f)
+            return V4f(dHeat.XYZ * v.color.XYZ,0.01f)
         }
 
-    let fs2 (v : Vertex) = 
+    let fs2 (v : Vertex) =
         fragment {
-            let c = v.pointCoord * 2.0 - V2d.II
-            let f = Vec.dot c c - 1.0
-            //if f > 0.0 then discard()
-            return V4d.IIII
+            let c = v.pointCoord * 2.0f - V2f.II
+            let f = Vec.dot c c - 1.0f
+            //if f > 0.0f then discard()
+            return V4f.IIII
         }
 
 
@@ -133,7 +133,7 @@ let main argv =
     //let outputfile = @"\\heap\sm\hera\converted\impact.0400.durable"
 
     //Report.BeginTimed("convert")
-    //Hera.convertFile inputfile outputfile 
+    //Hera.convertFile inputfile outputfile
     //Report.EndTimed() |> ignore
 
     //let data = Hera.deserialize outputfile
@@ -161,7 +161,7 @@ let main argv =
 
     //let harriChunk = Aardvark.Data.Points.Chunk(vertices |> Array.map V3d, null, normals, null, null);
 
-    //let config = 
+    //let config =
     //  ImportConfig.Default
     //    .WithInMemoryStore()
     //    .WithRandomKey()
@@ -170,17 +170,17 @@ let main argv =
     //    .WithMinDist(0.0)
     //    .WithOctreeSplitLimit(4096)
     //    .WithNormalizePointDensityGlobal(false)
-             
+
     //let p = PointCloud.Chunks(harriChunk, config)
-    
+
     //printfn "raw data bounds: %A" bb
     printfn "pointcloud bounds: %A" p.BoundingBox
 
     // easier way to construct.
     // why? want to do queries on data.
     //let p = Aardvark.Geometry.Points.PointSet.Create(storage, "p", data.Positions |> Array.map V3d, null, data.Normals, null, null, data.Velocities, 32768, false, false, System.Threading.CancellationToken.None)
-    
-    
+
+
     let min = Array.min densities
     let max = Array.max densities
     let histo = Histogram(float min,float max,100)
@@ -203,10 +203,10 @@ let main argv =
 
 
     let sw = System.Diagnostics.Stopwatch.StartNew()
-    let vertices = 
-        win.Time |> AVal.map (fun _ -> 
+    let vertices =
+        win.Time |> AVal.map (fun _ ->
             let t = (sw.Elapsed.TotalSeconds % 115.0 ) * 1.5
-            (vertices, velocities) ||> Array.map2 (fun p v -> 
+            (vertices, velocities) ||> Array.map2 (fun p v ->
                 p //+ float32 t * v |> V3f
             )
     )
@@ -215,7 +215,7 @@ let main argv =
 
     let stereoViews =
         let half = eyeSeparation * 0.5
-        c  |> AVal.map (fun v -> 
+        c  |> AVal.map (fun v ->
             let t = CameraView.viewTrafo v
             [|
                 t * Trafo3d.Translation(-half)
@@ -224,10 +224,10 @@ let main argv =
         )
 
     let stereoProjs =
-        win.Sizes 
+        win.Sizes
         // construct a standard perspective frustum (60 degrees horizontal field of view,
         // near plane 0.1, far plane 50.0 and aspect ratio x/y.
-        |> AVal.map (fun s -> 
+        |> AVal.map (fun s ->
             let ac = 30.0
             let ao = 30.0
             let near = 0.01
@@ -249,7 +249,7 @@ let main argv =
 
     let selected = cval [||]
 
-    win.Mouse.Down.Values.Add(fun e -> 
+    win.Mouse.Down.Values.Add(fun e ->
         let view = c |> AVal.force
         let f = f |> AVal.force
         let camera = Camera.create view f
@@ -266,10 +266,10 @@ let main argv =
         transact (fun _ -> selected.Value <- positions)
     )
 
-    let selectedSg = 
+    let selectedSg =
         Sg.draw IndexedGeometryMode.PointList
-        |> Sg.vertexAttribute DefaultSemantic.Positions selected    
-        |> Sg.shader {  
+        |> Sg.vertexAttribute DefaultSemantic.Positions selected
+        |> Sg.shader {
              do! DefaultSurfaces.trafo
              do! DefaultSurfaces.constantColor C4f.White
              do! DefaultSurfaces.pointSprite
@@ -277,13 +277,13 @@ let main argv =
            }
         |> Sg.uniform "PointSize" (AVal.constant 8.0)
 
-    let scene = 
+    let scene =
         Sg.draw IndexedGeometryMode.PointList
         |> Sg.vertexAttribute DefaultSemantic.Positions vertices
         |> Sg.vertexAttribute DefaultSemantic.Normals (AVal.constant normals)
         |> Sg.vertexAttribute (Sym.ofString "Density") (AVal.constant densities)
         |> Sg.vertexAttribute' DefaultSemantic.Colors (velocities |> Array.map ( fun v -> ((v.Normalized + V3f.III) * 0.5f) |> V3f ))
-        |> Sg.shader {  
+        |> Sg.shader {
              do! DefaultSurfaces.trafo
              do! Shaders.vs
              do! DefaultSurfaces.constantColor C4f.White
@@ -308,4 +308,4 @@ let main argv =
         |> Sg.compile app.Runtime win.FramebufferSignature
 
     win.Run()
-    0 
+    0

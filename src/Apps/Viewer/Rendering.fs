@@ -26,32 +26,32 @@ module Util =
                 let wp = uniform.ViewProjTrafoInv * v.pos
                 return { v with wp = wp / wp.W }
             }
-    
-        let hi = 70.0 / 255.0
-        let lo = 30.0 / 255.0
-        let qf = (V4d(hi,lo,lo,1.0))
-        let qb = (V4d(lo,hi,hi,1.0))
-        let ql = (V4d(lo,hi,lo,1.0))
-        let qr = (V4d(hi,lo,hi,1.0))
-        let qu = (V4d(lo,lo,hi,1.0))
-        let qd = (V4d(hi,hi,lo,1.0))
+
+        let hi = 70.0f / 255.0f
+        let lo = 30.0f / 255.0f
+        let qf = (V4f(hi,lo,lo,1.0f))
+        let qb = (V4f(lo,hi,hi,1.0f))
+        let ql = (V4f(lo,hi,lo,1.0f))
+        let qr = (V4f(hi,lo,hi,1.0f))
+        let qu = (V4f(lo,lo,hi,1.0f))
+        let qd = (V4f(hi,hi,lo,1.0f))
 
         let box (v : Effects.Vertex) =
             fragment {
                 let c = uniform.CameraLocation
                 let f = v.wp.XYZ
                 let dir = Vec.normalize (f - c)
-                
-                let absDir = V3d(abs dir.X, abs dir.Y, abs dir.Z)
 
-                if absDir.X > absDir.Y && absDir.X > absDir.Z then 
-                    if dir.X > 0.0 then return qf
+                let absDir = V3f(abs dir.X, abs dir.Y, abs dir.Z)
+
+                if absDir.X > absDir.Y && absDir.X > absDir.Z then
+                    if dir.X > 0.0f then return qf
                     else return qb
                 elif absDir.Y > absDir.X && absDir.Y > absDir.Z then
-                    if dir.Y > 0.0 then return ql
+                    if dir.Y > 0.0f then return ql
                     else return qr
                 else
-                    if dir.Z > 0.0 then return qu
+                    if dir.Z > 0.0f then return qu
                     else return qd
 
             }
@@ -67,21 +67,21 @@ module Util =
 
         let envMap (v : Effects.Vertex) =
             fragment {
-                
-                let vp = uniform.ProjTrafoInv * V4d(v.pos.X, v.pos.Y, -1.0, 1.0)
+
+                let vp = uniform.ProjTrafoInv * V4f(v.pos.X, v.pos.Y, -1.0f, 1.0f)
                 let vp = vp.XYZ / vp.W
 
-                let dir = (uniform.ViewTrafoInv * V4d(vp, 0.0)).XYZ |> Vec.normalize
+                let dir = (uniform.ViewTrafoInv * V4f(vp, 0.0f)).XYZ |> Vec.normalize
 
 
-                //let wp = uniform.ViewProjTrafoInv * V4d(v.pos.X, v.pos.Y, -1.0, 1.0)
+                //let wp = uniform.ViewProjTrafoInv * V4d(v.pos.X, v.pos.Y, -1.0f, 1.0f)
 
-                //let f = 1.0 / (uniform.ViewProjTrafoInv.M33 - uniform.ViewProjTrafoInv.M32)
-                
-                //let dir = 
-                //    f * uniform.ViewProjTrafoInv.C0.XYZ * v.pos.X + 
+                //let f = 1.0f / (uniform.ViewProjTrafoInv.M33 - uniform.ViewProjTrafoInv.M32)
+
+                //let dir =
+                //    f * uniform.ViewProjTrafoInv.C0.XYZ * v.pos.X +
                 //    f * uniform.ViewProjTrafoInv.C1.XYZ * v.pos.Y +
-                //    f * uniform.ViewProjTrafoInv.C2.XYZ * -1.0 +
+                //    f * uniform.ViewProjTrafoInv.C2.XYZ * -1.0f +
 
                 //    f * uniform.ViewProjTrafoInv.C3.XYZ +
                 //    (uniform.ViewProjTrafoInv.C2.XYZ) / (-uniform.ViewProjTrafoInv.M32)
@@ -100,11 +100,9 @@ module Util =
                 do! Shader.reverseTrafo
                 do! Shader.box
             }
-    
 
 module Rendering =
     open Aardvark.Geometry
-
 
     let pointClouds (win : IRenderWindow) (msaa : bool) (camera : aval<CameraView>) (frustum : aval<Frustum>) (pcs : aset<LodTreeInstance>) =
         let picktrees : cmap<ILodTreeNode,SimplePickTree> = cmap()
@@ -133,27 +131,18 @@ module Rendering =
                 ssaoSharpness = AVal.init 4.0
             }
 
-        
+
 
         let pcs =
             pcs |> ASet.map (fun t ->
                 { t with uniforms = MapExt.add "Overlay" (config.overlayAlpha |> AVal.map ((*) V4d.IIII) :> IAdaptiveValue) t.uniforms }
             )
-        
+
         let trafo = Trafo3d.Identity
-            //let bb = 
-            //    pcs |> List.map (fun i -> 
-            //        match i.root with
-            //        | :? LodTreeInstance.PointTreeNode as n -> n.Original.BoundingBoxApproximate
-            //        | _ -> i.root.WorldBoundingBox
-            //    ) |> Box3d
-            //Trafo3d.Translation(-bb.Center) * 
-            //Trafo3d.Scale(300.0 / bb.Size.NormMax) *
-            //Trafo3d.Translation(bb.Center)
 
         let pcs =
             pcs |> ASet.map (LodTreeInstance.transform trafo >> AVal.init)
-            
+
         let cfg =
             RenderConfig.toSg win config
 
@@ -161,9 +150,9 @@ module Rendering =
         let v = (camera |> AVal.map CameraView.viewTrafo)
         let p = (frustum |> AVal.map Frustum.projTrafo)
 
-        let reset = AVal.init 0 
+        let reset = AVal.init 0
         let filterPartIndex = AVal.init -1
-        
+
         //let filter : ModRef<Option<Hull3d>> = AVal.init None
 
         let instances = pcs |> ASet.mapA (fun a -> a :> aval<_>)
@@ -193,7 +182,7 @@ module Rendering =
                         splitfactor = config.splitfactor
                         budget = config.budget
                     }
-                ssaoConfig = 
+                ssaoConfig =
                     {
                         radius = config.ssaoRadius
                         threshold = config.ssaoThreshold
@@ -205,36 +194,13 @@ module Rendering =
                 pickCallback = Some pick
             }
 
-        let sg = 
+        let sg =
             Sg.pointSetsFilter renderConfig instances filterPartIndex
-            
+
         let sg =
             sg
             |> Sg.andAlso cfg
             |> Sg.uniform "ViewportSize" win.Sizes
-            //Sg.LodTreeNode(config.stats, picktrees, true, config.budget, config.splitfactor, config.renderBounds, config.maxSplits, win.Time, instances) :> ISg
-            //|> Sg.uniform "PointSize" config.pointSize
-            //|> Sg.uniform "ViewportSize" win.Sizes
-            //|> Sg.uniform "PointVisualization" vis
-            //|> Sg.uniform "MagicExp" config.magicExp
-            //|> Sg.shader {
-            //    //do! fun (v : PointSetShaders.PointVertex) -> vertex { return { v with col = V4d.IIII } }
-            //    do! PointSetShaders.lodPointSize
-            //    //do! PointSetShaders.cameraLight
-            //    //if msaa then
-            //    //    do! PointSetShaders.lodPointCircularMSAA
-            //    //else
-            //    do! PointSetShaders.lodPointCircular
-            //    //do! PointSetShaders.envMap
-            //}
-            ////|> Sg.andAlso thing
-            //|> Sg.multisample (AVal.constant true)
-            //|> Sg.viewTrafo v
-            //|> Sg.projTrafo p
-            //|> Sg.andAlso cfg
-            ////|> Sg.andAlso bla
-            //|> Sg.blendMode (AVal.constant BlendMode.None)
-
 
         let switchActive = win.Keyboard.IsDown Keys.M
         let switchThread =
@@ -245,19 +211,19 @@ module Rendering =
                         System.Threading.Thread.Sleep(rand.UniformInt(100))
                         if AVal.force switchActive then
                             transact (fun () -> reset.Value <- reset.Value + 1)
-                    
+
                 ) |> ignore
 
-        let p = 
-            (camera, frustum, win.Mouse.Position) 
-            |||> AVal.bind3 (fun c f p -> 
-                win.Sizes |> AVal.map (fun s -> 
+        let p =
+            (camera, frustum, win.Mouse.Position)
+            |||> AVal.bind3 (fun c f p ->
+                win.Sizes |> AVal.map (fun s ->
                     let pts = pick.Value p.Position 20 800
                     pts |> Array.map (fun p -> p.World |> Trafo3d.Translation)
-                    
+
                     //if pts.Length = 0 then V3d.III
                     //elif pts.Length < 3 then V3d.III
-                    //else 
+                    //else
                     //    let z = pts.Median(fun a b -> compare a.Ndc.Z b.Ndc.Z).Ndc.Z
                     //    let view = CameraView.viewTrafo c
                     //    let proj = Frustum.projTrafo f
@@ -281,10 +247,10 @@ module Rendering =
             | Keys.Delete ->
                 let i = pcs.[0].Value
                 match i.root with
-                | :? LodTreeInstance.PointTreeNode as n -> 
+                | :? LodTreeInstance.PointTreeNode as n ->
                     match n.Delete (Box3d.FromCenterAndSize(i.root.WorldBoundingBox.Center, V3d(10.0, 10.0, 1000.0))) with
                     | Some r ->
-                        transact (fun () -> 
+                        transact (fun () ->
                             pcs.[0].Value <- { i with root = r }
                         )
                     | None ->
@@ -307,11 +273,11 @@ module Rendering =
                             pcs.[0].Value <- { pc with root = pp }
                         | None ->
                             Log.warn "hinig"
-                    | _ -> 
+                    | _ ->
                         match LodTreeInstance.filter (FilterInsideConvexHull3d f1) pc with
-                        | Some pc -> 
+                        | Some pc ->
                             pcs.[0].Value <- pc
-                        | None -> 
+                        | None ->
                             Log.warn "hinig"
                 )
             | Keys.I ->
@@ -324,19 +290,19 @@ module Rendering =
                 )
             | Keys.D0 -> transact (fun () -> config.ssaoSigma.Value <- min 5.0 (config.ssaoSigma.Value + 0.1)); Log.line "sigma: %A" config.ssaoSigma.Value
             | Keys.D9 -> transact (fun () -> config.ssaoSigma.Value <- max 0.0 (config.ssaoSigma.Value - 0.1)); Log.line "sigma: %A" config.ssaoSigma.Value
-            
+
             | Keys.D8 -> transact (fun () -> config.ssaoSamples.Value <- min 8 (config.ssaoSamples.Value + 1)); Log.line "samples: %A" config.ssaoSamples.Value
             //| Keys.D7 -> transact (fun () -> config.ssaoSamples.Value <- max 1 (config.ssaoSamples.Value - 1)); Log.line "samples: %A" config.ssaoSamples.Value
-            
+
            // | Keys.D6 -> transact (fun () -> config.ssaoSampleDirections.Value <- min 8 (config.ssaoSampleDirections.Value + 1)); Log.line "dirs: %A" config.ssaoSampleDirections.Value
             //| Keys.D5 -> transact (fun () -> config.ssaoSampleDirections.Value <- max 1 (config.ssaoSampleDirections.Value - 1)); Log.line "dirs: %A" config.ssaoSampleDirections.Value
-            
+
             | Keys.D4 -> transact (fun () -> config.ssaoRadius.Value <- min 2.0 (config.ssaoRadius.Value + 0.01)); Log.line "radius: %A" config.ssaoRadius.Value
             | Keys.D3 -> transact (fun () -> config.ssaoRadius.Value <- max 0.01 (config.ssaoRadius.Value - 0.01)); Log.line "radius: %A" config.ssaoRadius.Value
-            
+
             | Keys.D2 -> transact (fun () -> config.ssaoSharpness.Value <- min 4.0 (config.ssaoSharpness.Value + 0.1)); Log.line "sharpness: %A" config.ssaoSharpness.Value
             | Keys.D1 -> transact (fun () -> config.ssaoSharpness.Value <- max 0.01 (config.ssaoSharpness.Value - 0.1)); Log.line "sharpness: %A" config.ssaoSharpness.Value
-            
+
             | Keys.F4 -> transact (fun _ -> filterPartIndex.Value <- -1); Log.line $"PartFilter {filterPartIndex.Value}"
             | Keys.F5 -> transact (fun _ -> filterPartIndex.Value <- max (filterPartIndex.Value-1) -1); Log.line $"PartFilter {filterPartIndex.Value}"
             | Keys.F6 -> transact (fun _ -> filterPartIndex.Value <- filterPartIndex.Value+1); Log.line $"PartFilter {filterPartIndex.Value}"
@@ -344,30 +310,30 @@ module Rendering =
                 transact (fun () ->
                     config.lighting.Value <- not config.lighting.Value
                 )
-            //| Keys.M -> 
+            //| Keys.M ->
             //    transact ( fun () -> reset.Value <- reset.Value + 1 )
 
             | Keys.O -> transact (fun () -> config.pointSize.Value <- config.pointSize.Value / 1.3)
             | Keys.P -> transact (fun () -> config.pointSize.Value <- config.pointSize.Value * 1.3)
             | Keys.Subtract | Keys.OemMinus -> transact (fun () -> config.overlayAlpha.Value <- max 0.0 (config.overlayAlpha.Value - 0.1))
             | Keys.Add | Keys.OemPlus -> transact (fun () -> config.overlayAlpha.Value <- min 1.0 (config.overlayAlpha.Value + 0.1))
-        
+
             //| Keys.Up -> transact (fun () -> config.maxSplits.Value <- config.maxSplits.Value + 1); printfn "splits: %A" config.maxSplits.Value
             //| Keys.Down -> transact (fun () -> config.maxSplits.Value <- max 1 (config.maxSplits.Value - 1)); printfn "splits: %A" config.maxSplits.Value
             | Keys.F -> transact (fun () -> if config.maxSplits.Value = 0 then printfn "unfreeze"; config.maxSplits.Value <- 12 else printfn "freeze"; config.maxSplits.Value <- 0)
             | Keys.C -> transact (fun () -> if config.budget.Value > 0L && config.budget.Value < (1L <<< 30) then config.budget.Value <- 2L * config.budget.Value); Log.line "budget: %A" config.budget.Value
             | Keys.X -> transact (fun () -> if config.budget.Value > (256L <<< 10) then config.budget.Value <- max (config.budget.Value / 2L) (256L <<< 10)); Log.line "budget: %A" config.budget.Value
-        
+
             | Keys.B -> transact (fun () -> config.renderBounds.Value <- not config.renderBounds.Value); Log.line "bounds: %A" config.renderBounds.Value
-            
+
             | Keys.N -> transact (fun () -> config.sort.Value <- not config.sort.Value); Log.line "sort: %A" config.sort.Value
 
             | Keys.Y -> transact (fun () -> config.budget.Value <- -config.budget.Value)
-            
-            | Keys.Space -> 
-                transact (fun () -> 
+
+            | Keys.Space ->
+                transact (fun () ->
                     match config.background.Value with
-                    | Background.Skybox s -> 
+                    | Background.Skybox s ->
                         match s with
                         | Skybox.Miramar -> config.background.Value <- Background.Skybox Skybox.ViolentDays
                         | Skybox.ViolentDays -> config.background.Value <- Background.Skybox Skybox.Wasserleonburg
@@ -382,7 +348,7 @@ module Rendering =
             //| Keys.N -> transact (fun () -> reset.Value <- reset.Value + 1)
             | Keys.Return -> Log.line "%A" config.stats.Value
 
-            | k -> 
+            | k ->
                 ()
         )
         config, Sg.ofList [sg; psg]
@@ -395,7 +361,7 @@ module Rendering =
                     use s = typeof<Args>.Assembly.GetManifestResourceStream("Viewer.CubeMap." + name)
                     PixImage.Load(s)
                     //PixImage.Create(s, PixLoadOptions.Default)
-                
+
                 PixCube [|
                     PixImageMipMap(
                         load (name.Replace("$", "rt"))
@@ -405,7 +371,7 @@ module Rendering =
                         load (name.Replace("$", "lf"))
                         |> trafo ImageTrafo.Rot270
                     )
-                
+
                     PixImageMipMap(
                         load (name.Replace("$", "bk"))
                     )
@@ -413,7 +379,7 @@ module Rendering =
                         load (name.Replace("$", "ft"))
                         |> trafo ImageTrafo.Rot180
                     )
-                
+
                     PixImageMipMap(
                         load (name.Replace("$", "up"))
                         |> trafo ImageTrafo.Rot90
@@ -424,7 +390,7 @@ module Rendering =
                     )
                 |]
 
-            PixTextureCube(env, TextureParams.mipmapped) :> ITexture
+            PixTextureCube(env, TextureParams.WantMipMaps) :> ITexture
         )
 
     let rftSky =
@@ -436,7 +402,7 @@ module Rendering =
                     use s = typeof<Args>.Assembly.GetManifestResourceStream("Viewer.CubeMap." + name)
                     PixImage.Load(s)
                     //PixImage.Create(s, PixLoadOptions.Default)
-                
+
                 PixCube [|
                     PixImageMipMap(
                         load (name.Replace("$", "l"))
@@ -446,7 +412,7 @@ module Rendering =
                         load (name.Replace("$", "r"))
                         |> trafo ImageTrafo.Rot270
                     )
-                
+
                     PixImageMipMap(
                         load (name.Replace("$", "b"))
                     )
@@ -454,7 +420,7 @@ module Rendering =
                         load (name.Replace("$", "f"))
                         |> trafo ImageTrafo.Rot180
                     )
-                
+
                     PixImageMipMap(
                         load (name.Replace("$", "u"))
                         |> trafo ImageTrafo.Rot180
@@ -465,7 +431,7 @@ module Rendering =
                     )
                 |]
 
-            PixTextureCube(env, TextureParams.mipmapped) :> ITexture
+            PixTextureCube(env, TextureParams.WantMipMaps) :> ITexture
         )
 
     let skyboxes =
@@ -479,7 +445,7 @@ module Rendering =
 
     let show (args : Args) (pcs : list<LodTreeInstance>) =
         Aardvark.Init()
-
+        Aardvark.Data.PixImageSharp.Init()
 
         let pcs = cset pcs
 
@@ -489,9 +455,9 @@ module Rendering =
         win.VSync <- false
         win.DropFiles.Add(fun e ->
             match e with
-            | [| e |] when Directory.Exists e -> 
+            | [| e |] when Directory.Exists e ->
                 let key = Path.combine [e; "key.txt"]
-                if File.Exists key then 
+                if File.Exists key then
                     let kk = File.ReadAllText(key).Trim()
                     match LodTreeInstance.load "asdasdasd" kk e [] with
                     | Some inst ->
@@ -500,15 +466,15 @@ module Rendering =
                         )
                     | None ->
                         ()
-            
+
                 Log.warn "dropped: %A" e
             | _ ->
                 ()
         )
-            
-        let bb = 
+
+        let bb =
             pcs |> ASet.toAVal |> AVal.map (fun pcs ->
-                pcs |> Seq.map (fun i -> 
+                pcs |> Seq.map (fun i ->
                     match i.root with
                     | :? LodTreeInstance.PointTreeNode as n -> n.Original.BoundingBoxApproximate
                     | _ -> i.root.WorldBoundingBox
@@ -518,48 +484,48 @@ module Rendering =
         let locAndCenter =
             pcs |> ASet.toAVal |> AVal.map (fun pcs ->
                 let pc = pcs |> Seq.tryHead
-        
+
                 match pc with
                 | Some pc ->
                     let rand = RandomSystem()
                     match pc.root with
-                    | :? LodTreeInstance.PointTreeNode as n -> 
+                    | :? LodTreeInstance.PointTreeNode as n ->
                         let c = n.Original.Center + V3d n.Original.CentroidLocal
                         let clstddev = max 1.0 (float n.Original.CentroidLocalStdDev)
                         let pos = c + rand.UniformV3dDirection() * 2.0 * clstddev
                         pos, c
-                    | _ -> 
+                    | _ ->
                         let bb = pc.root.WorldBoundingBox
                         bb.Max, bb.Center
                 | None  ->
                     V3d.III * 6.0, V3d.Zero
             )
         let speed = AVal.init 2.0
-        
+
         let initial = CameraView.ofTrafo <| Trafo3d.Parse "[[[-0.707106781186548, 0.707106781186548, 0, 0], [-0.408248290463863, -0.408248290463863, 0.816496580927726, 0], [0.577350269189626, 0.577350269189626, 0.577350269189626, -342.288592930008], [0, 0, 0, 1]], [[-0.707106781186548, -0.408248290463863, 0.577350269189626, 197.620411268678], [0.707106781186548, -0.408248290463863, 0.577350269189626, 197.620411268678], [0, 0.816496580927726, 0.577350269189626, 197.620411268678], [0, 0, 0, 1]]]"
         let target = CameraView.ofTrafo <| Trafo3d.Parse "[[[-0.567502843343406, 0.823371436714408, 0, -0.0700798647066693], [-0.362138228540449, -0.249601170524128, 0.898084160367263, 0.212820843806073], [0.739456845412046, 0.509665314570097, 0.439823647496845, -1.68800745703926], [0, 0, 0, 1]], [[-0.567502843343406, -0.362138228540449, 0.739456845412046, 1.28550871010452], [0.823371436714408, -0.249601170524128, 0.509665314570097, 0.971140942202795], [0, 0.898084160367263, 0.439823647496845, 0.551294567938653], [0, 0, 0, 1]]]"
-        
-        
+
+
 
         let custom = AVal.init None
         let camera =
-            custom |> AVal.bind (fun (custom : Option<CameraView>) -> 
+            custom |> AVal.bind (fun (custom : Option<CameraView>) ->
                 printfn "%A" (locAndCenter |> AVal.force)
                 printfn "%A" (initial.Location)
-                match custom with 
-                | None -> 
+                match custom with
+                | None ->
                     locAndCenter |> AVal.bind (fun (loc, center) ->
                         CameraView.lookAt loc center V3d.OOI
                         |> DefaultCameraController.controlWithSpeed speed win.Mouse win.Keyboard win.Time
                     )
-                | Some cv -> 
-                    locAndCenter |> AVal.map (fun (_,center) -> 
+                | Some cv ->
+                    locAndCenter |> AVal.map (fun (_,center) ->
                         cv.WithLocation (cv.Location + center)
                     )
                     //AVal.constant cv
             )
         //let bb = Box3d.FromCenterAndSize(V3d.Zero, V3d.III * 300.0)
-        
+
         win.Keyboard.DownWithRepeats.Values.Add(function
             | Keys.PageUp | Keys.Up -> transact(fun () -> speed.Value <- speed.Value * 1.5)
             | Keys.PageDown | Keys.Down -> transact(fun () -> speed.Value <- speed.Value / 1.5)
@@ -576,7 +542,7 @@ module Rendering =
                 let bb = bb.GetValue t
 
                 let (minPt, maxPt) = bb.GetMinMaxInDirection(c.Forward)
-                
+
                 let near = Vec.dot c.Forward (minPt - c.Location)
                 let far = Vec.dot c.Forward (maxPt - c.Location)
                 let near = max (max 0.05 near) (far / 100000.0)
@@ -586,7 +552,7 @@ module Rendering =
 
 
         let config, pcs = pointClouds win args.msaa camera frustum pcs
-        
+
         let sg =
             Sg.ofList [
                 pcs
@@ -610,6 +576,6 @@ module Rendering =
             |> Sg.viewTrafo (camera |> AVal.map CameraView.viewTrafo)
             |> Sg.projTrafo (frustum |> AVal.map Frustum.projTrafo)
             //|> Sg.uniform "EnvMap" skyboxes.[Skybox.ViolentDays]
-    
+
         win.RenderTask <- Sg.compile app.Runtime win.FramebufferSignature sg
         win.Run()

@@ -39,19 +39,19 @@ module HeatMap =
             0xeb3b22
         |]
 
-    let color (tc : float) =
-        let tc = clamp 0.0 1.0 tc
-        let fid = tc * float heatMapColors.Length - 0.5
+    let color (tc : float32) =
+        let tc = clamp 0.0f 1.0f tc
+        let fid = tc * float32 heatMapColors.Length - 0.5f
 
         let id = int (floor fid)
-        if id < 0 then 
+        if id < 0 then
             heatMapColors.[0]
         elif id >= heatMapColors.Length - 1 then
             heatMapColors.[heatMapColors.Length - 1]
         else
             let c0 = heatMapColors.[id]
             let c1 = heatMapColors.[id + 1]
-            let t = fid - float id
-            (c0 * (1.0 - t) + c1 * t)
+            let t = fid - float32 id
+            (c0 * (1.0f - t) + c1 * t)
 
 

@@ -17,9 +17,9 @@ module internal FXAA =
         //   0.333 - too little (faster)
         //   0.250 - low quality
         //   0.166 - default
-        //   0.125 - high quality 
+        //   0.125 - high quality
         //   0.063 - overkill (slower)
-        member x.EdgeThreshold     : float = x?Global?EdgeThreshold
+        member x.EdgeThreshold     : float32 = x?Global?EdgeThreshold
 
         // Only used on FXAA Quality.
         // This used to be the FXAA_QUALITY__EDGE_THRESHOLD_MIN define.
@@ -34,7 +34,7 @@ module internal FXAA =
         //   will appear very dark in the green channel!
         //   Tune by looking at mostly non-green content,
         //   then start at zero and increase until aliasing is a problem.
-        member x.EdgeThresholdMin  : float = x?Global?EdgeThresholdMin         
+        member x.EdgeThresholdMin  : float32 = x?Global?EdgeThresholdMin
 
         // Only used on FXAA Quality.
         // This used to be the FXAA_QUALITY__SUBPIX define.
@@ -46,8 +46,8 @@ module internal FXAA =
         //   0.50 - lower limit (sharper, less sub-pixel aliasing removal)
         //   0.25 - almost off
         //   0.00 - completely off
-        member x.Subpix            : float = x?Global?Subpix 
-               
+        member x.Subpix            : float32 = x?Global?Subpix
+
     type EDGETHRESHOLD =
         | LOWER = 0
         | LOW = 1
@@ -63,7 +63,7 @@ module internal FXAA =
         | EDGETHRESHOLD.HIGH     -> 0.125f
         | EDGETHRESHOLD.OVERKILL -> 0.063f
         | _ -> 0.333f
-    
+
     type EDGETHRESHOLDMIN =
         | DEFAULT = 0
         | QUALITY = 1
@@ -75,7 +75,7 @@ module internal FXAA =
         | EDGETHRESHOLDMIN.QUALITY -> 0.0625f
         | EDGETHRESHOLDMIN.LIMIT   -> 0.0312f
         | _ -> 0.0833f
-    
+
     type SUBPIX =
         | SOFT = 0
         | DEFAULT = 1
@@ -91,12 +91,12 @@ module internal FXAA =
         | SUBPIX.LOWER   -> 0.25f
         | SUBPIX.OFF     -> 0.00f
         | _ -> 0.0f
-    
-    type PRESET =    
+
+    type PRESET =
         | Dither10 = 0
-        | Dither11 = 1  
-        | Dither12 = 2 
-        | Dither13 = 3 
+        | Dither11 = 1
+        | Dither12 = 2
+        | Dither13 = 3
         | Dither14 = 4
         | Dither15 = 5
         | Quality20 = 6
@@ -111,196 +111,196 @@ module internal FXAA =
         | Quality29 = 15
         | Extreme39 = 16
 
-    let private FXAA_PRESET_10__P = 
+    let private FXAA_PRESET_10__P =
         [|
-            1.5
-            3.0
-            12.0
+            1.5f
+            3.0f
+            12.0f
         |]
 
-    let private FXAA_PRESET_11__P = 
+    let private FXAA_PRESET_11__P =
         [|
-            1.0
-            1.5
-            3.0
-            12.0
+            1.0f
+            1.5f
+            3.0f
+            12.0f
         |]
 
-    let private FXAA_PRESET_12__P = 
+    let private FXAA_PRESET_12__P =
         [|
-            1.0
-            1.5
-            2.0
-            4.0
-            12.0
+            1.0f
+            1.5f
+            2.0f
+            4.0f
+            12.0f
         |]
 
-    let private FXAA_PRESET_13__P = 
+    let private FXAA_PRESET_13__P =
         [|
-            1.0
-            1.5
-            2.0
-            2.0
-            4.0
-            12.0
+            1.0f
+            1.5f
+            2.0f
+            2.0f
+            4.0f
+            12.0f
         |]
 
-    let private FXAA_PRESET_14__P = 
+    let private FXAA_PRESET_14__P =
         [|
-            1.0
-            1.5
-            2.0
-            2.0
-            2.0
-            4.0
-            12.0
+            1.0f
+            1.5f
+            2.0f
+            2.0f
+            2.0f
+            4.0f
+            12.0f
         |]
 
-    let private FXAA_PRESET_15__P = 
+    let private FXAA_PRESET_15__P =
         [|
-            1.0
-            1.5
-            2.0
-            2.0
-            2.0
-            2.0
-            4.0
-            12.0
+            1.0f
+            1.5f
+            2.0f
+            2.0f
+            2.0f
+            2.0f
+            4.0f
+            12.0f
         |]
 
-    let private FXAA_PRESET_20__P = 
+    let private FXAA_PRESET_20__P =
         [|
-            1.0
-            1.5
-            8.0
+            1.0f
+            1.5f
+            8.0f
         |]
 
-    let private FXAA_PRESET_21__P = 
+    let private FXAA_PRESET_21__P =
         [|
-            1.0
-            1.5
-            2.0
-            8.0
+            1.0f
+            1.5f
+            2.0f
+            8.0f
         |]
 
-    let private FXAA_PRESET_22__P = 
+    let private FXAA_PRESET_22__P =
         [|
-            1.0
-            1.5
-            2.0
-            2.0
-            8.0
+            1.0f
+            1.5f
+            2.0f
+            2.0f
+            8.0f
         |]
 
-    let private FXAA_PRESET_23__P = 
+    let private FXAA_PRESET_23__P =
         [|
-            1.0
-            1.5
-            2.0
-            2.0
-            2.0
-            8.0
+            1.0f
+            1.5f
+            2.0f
+            2.0f
+            2.0f
+            8.0f
         |]
 
-    let private FXAA_PRESET_24__P = 
+    let private FXAA_PRESET_24__P =
         [|
-            1.0
-            1.5
-            2.0
-            2.0
-            2.0
-            3.0
-            8.0
+            1.0f
+            1.5f
+            2.0f
+            2.0f
+            2.0f
+            3.0f
+            8.0f
         |]
 
-    let private FXAA_PRESET_25__P = 
+    let private FXAA_PRESET_25__P =
         [|
-            1.0
-            1.5
-            2.0
-            2.0
-            2.0
-            2.0
-            4.0
-            8.0
+            1.0f
+            1.5f
+            2.0f
+            2.0f
+            2.0f
+            2.0f
+            4.0f
+            8.0f
         |]
 
-    let private FXAA_PRESET_26__P = 
+    let private FXAA_PRESET_26__P =
         [|
-            1.0
-            1.5
-            2.0
-            2.0
-            2.0
-            2.0
-            2.0
-            4.0
-            8.0
+            1.0f
+            1.5f
+            2.0f
+            2.0f
+            2.0f
+            2.0f
+            2.0f
+            4.0f
+            8.0f
         |]
 
-    let private FXAA_PRESET_27__P = 
+    let private FXAA_PRESET_27__P =
         [|
-            1.0
-            1.5
-            2.0
-            2.0
-            2.0
-            2.0
-            2.0
-            2.0
-            4.0
-            8.0
+            1.0f
+            1.5f
+            2.0f
+            2.0f
+            2.0f
+            2.0f
+            2.0f
+            2.0f
+            4.0f
+            8.0f
         |]
 
-    let private FXAA_PRESET_28__P = 
+    let private FXAA_PRESET_28__P =
         [|
-            1.0
-            1.5
-            2.0
-            2.0
-            2.0
-            2.0
-            2.0
-            2.0
-            2.0
-            4.0
-            8.0
+            1.0f
+            1.5f
+            2.0f
+            2.0f
+            2.0f
+            2.0f
+            2.0f
+            2.0f
+            2.0f
+            4.0f
+            8.0f
         |]
 
-    let private FXAA_PRESET_29__P = 
+    let private FXAA_PRESET_29__P =
         [|
-            1.0
-            1.5
-            2.0
-            2.0
-            2.0
-            2.0
-            2.0
-            2.0
-            2.0
-            2.0
-            4.0
-            8.0
+            1.0f
+            1.5f
+            2.0f
+            2.0f
+            2.0f
+            2.0f
+            2.0f
+            2.0f
+            2.0f
+            2.0f
+            4.0f
+            8.0f
         |]
 
-    let private FXAA_PRESET_39__P = 
+    let private FXAA_PRESET_39__P =
         [|
-            1.0
-            1.0
-            1.0
-            1.0
-            1.0
-            1.5
-            2.0
-            2.0
-            2.0
-            2.0
-            4.0
-            8.0
+            1.0f
+            1.0f
+            1.0f
+            1.0f
+            1.0f
+            1.5f
+            2.0f
+            2.0f
+            2.0f
+            2.0f
+            4.0f
+            8.0f
         |]
 
     [<GLSLIntrinsic("{0} = {1}")>] [<KeepCall>]
-    let set (a: 'a) (b : 'a) = onlyInShaderCode "set" 
+    let set (a: 'a) (b : 'a) = onlyInShaderCode "set"
 
     [<GLSLIntrinsic("break")>] [<KeepCall>]
     let brk() = onlyInShaderCode "break"
@@ -309,11 +309,11 @@ module internal FXAA =
     type Sampler2dExtensions private() =
 
         [<Extension; ReflectedDefinition; Inline>]
-        static member SampleLevelFXAA(x : Sampler2d, fragCoord : V2d, level : float, preset : PRESET, edgeThreshold : float, edgeThresholdMin : float, subpix : float) =
-            let inverseVP = 1.0 / V2d (x.GetSize (int level))
-            let luma = V3d(0.299, 0.587, 0.114)
-            
-            let P = 
+        static member SampleLevelFXAA(x : Sampler2d, fragCoord : V2f, level : float32, preset : PRESET, edgeThreshold : float32, edgeThresholdMin : float32, subpix : float32) =
+            let inverseVP = 1.0f / V2f (x.GetSize (int level))
+            let luma = V3f(0.299f, 0.587f, 0.114f)
+
+            let P =
                 match preset with
                 | PRESET.Dither10 -> FXAA_PRESET_10__P
                 | PRESET.Dither11 -> FXAA_PRESET_11__P
@@ -335,13 +335,13 @@ module internal FXAA =
                 | _ -> FXAA_PRESET_10__P
 
             let mutable posM = fragCoord;
-            let mutable lumaS = Vec.dot (x.SampleLevel(posM + V2d( 0.0,  1.0) * inverseVP, level).XYZ) luma
-            let mutable lumaE = Vec.dot (x.SampleLevel(posM + V2d( 1.0,  0.0) * inverseVP, level).XYZ) luma
-            let mutable lumaN = Vec.dot (x.SampleLevel(posM + V2d( 0.0, -1.0) * inverseVP, level).XYZ) luma
-            let mutable lumaW = Vec.dot (x.SampleLevel(posM + V2d(-1.0,  0.0) * inverseVP, level).XYZ) luma
-            let rgbM = x.SampleLevel(posM, 0.0)
+            let mutable lumaS = Vec.dot (x.SampleLevel(posM + V2f( 0.0f,  1.0f) * inverseVP, level).XYZ) luma
+            let mutable lumaE = Vec.dot (x.SampleLevel(posM + V2f( 1.0f,  0.0f) * inverseVP, level).XYZ) luma
+            let mutable lumaN = Vec.dot (x.SampleLevel(posM + V2f( 0.0f, -1.0f) * inverseVP, level).XYZ) luma
+            let mutable lumaW = Vec.dot (x.SampleLevel(posM + V2f(-1.0f,  0.0f) * inverseVP, level).XYZ) luma
+            let rgbM = x.SampleLevel(posM, 0.0f)
             let lumaM = Vec.dot rgbM.XYZ luma
-                        
+
             let maxSM = max lumaS lumaM
             let minSM = min lumaS lumaM
             let maxESM = max lumaE maxSM
@@ -358,41 +358,41 @@ module internal FXAA =
             if (earlyExit) then
                 rgbM
             else
-                let lumaNW = Vec.dot (x.SampleLevel(posM + V2d(-1.0, -1.0) * inverseVP, level).XYZ) luma
-                let lumaSE = Vec.dot (x.SampleLevel(posM + V2d( 1.0,  1.0) * inverseVP, level).XYZ) luma
-                let lumaNE = Vec.dot (x.SampleLevel(posM + V2d( 1.0, -1.0) * inverseVP, level).XYZ) luma
-                let lumaSW = Vec.dot (x.SampleLevel(posM + V2d(-1.0,  1.0) * inverseVP, level).XYZ) luma
+                let lumaNW = Vec.dot (x.SampleLevel(posM + V2f(-1.0f, -1.0f) * inverseVP, level).XYZ) luma
+                let lumaSE = Vec.dot (x.SampleLevel(posM + V2f( 1.0f,  1.0f) * inverseVP, level).XYZ) luma
+                let lumaNE = Vec.dot (x.SampleLevel(posM + V2f( 1.0f, -1.0f) * inverseVP, level).XYZ) luma
+                let lumaSW = Vec.dot (x.SampleLevel(posM + V2f(-1.0f,  1.0f) * inverseVP, level).XYZ) luma
 
                 let lumaNS = lumaN + lumaS
                 let lumaWE = lumaW + lumaE
-                let subpixRcpRange = 1.0/range
+                let subpixRcpRange = 1.0f/range
                 let subpixNSWE = lumaNS + lumaWE
-                let edgeHorz1 = (-2.0 * lumaM) + lumaNS
-                let edgeVert1 = (-2.0 * lumaM) + lumaWE
+                let edgeHorz1 = (-2.0f * lumaM) + lumaNS
+                let edgeVert1 = (-2.0f * lumaM) + lumaWE
 
                 let lumaNESE = lumaNE + lumaSE
                 let lumaNWNE = lumaNW + lumaNE
-                let edgeHorz2 = (-2.0 * lumaE) + lumaNESE
-                let edgeVert2 = (-2.0 * lumaN) + lumaNWNE
+                let edgeHorz2 = (-2.0f * lumaE) + lumaNESE
+                let edgeVert2 = (-2.0f * lumaN) + lumaNWNE
 
                 let lumaNWSW = lumaNW + lumaSW
                 let lumaSWSE = lumaSW + lumaSE
-                let edgeHorz4 = (abs edgeHorz1 * 2.0) + abs edgeHorz2
-                let edgeVert4 = (abs edgeVert1 * 2.0) + abs edgeVert2
-                let edgeHorz3 = (-2.0 * lumaW) + lumaNWSW
-                let edgeVert3 = (-2.0 * lumaS) + lumaSWSE
+                let edgeHorz4 = (abs edgeHorz1 * 2.0f) + abs edgeHorz2
+                let edgeVert4 = (abs edgeVert1 * 2.0f) + abs edgeVert2
+                let edgeHorz3 = (-2.0f * lumaW) + lumaNWSW
+                let edgeVert3 = (-2.0f * lumaS) + lumaSWSE
                 let edgeHorz = abs(edgeHorz3) + edgeHorz4
                 let edgeVert = abs(edgeVert3) + edgeVert4
 
                 let subpixNWSWNESE = lumaNWSW + lumaNESE
                 let mutable lengthSign = inverseVP.X
                 let horzSpan = edgeHorz >= edgeVert
-                let subpixA = subpixNSWE * 2.0 + subpixNWSWNESE
+                let subpixA = subpixNSWE * 2.0f + subpixNWSWNESE
 
                 if not horzSpan then lumaN <- lumaW
                 if not horzSpan then lumaS <- lumaE
                 if horzSpan then lengthSign <- inverseVP.Y
-                let subpixB = (subpixA * (1.0/12.0)) - lumaM
+                let subpixB = (subpixA * (1.0f/12.0f)) - lumaM
 
                 let gradientN = lumaN - lumaM
                 let gradientS = lumaS - lumaM
@@ -405,68 +405,68 @@ module internal FXAA =
 
                 let mutable posB = posM
                 let mutable offNP = inverseVP
-                if not horzSpan then set offNP.X 0.0
-                if horzSpan then set offNP.Y 0.0
-                if not horzSpan then set posB.X (posB.X + lengthSign * 0.5)
-                if horzSpan then set posB.Y (posB.Y + lengthSign * 0.5)
+                if not horzSpan then set offNP.X 0.0f
+                if horzSpan then set offNP.Y 0.0f
+                if not horzSpan then set posB.X (posB.X + lengthSign * 0.5f)
+                if horzSpan then set posB.Y (posB.Y + lengthSign * 0.5f)
 
                 let mutable posN = posB - offNP * P.[0]
                 let mutable posP = posB + offNP * P.[0]
 
-                let subpixD = ((-2.0)*subpixC) + 3.0
+                let subpixD = ((-2.0f)*subpixC) + 3.0f
                 let mutable lumaEndN = Vec.dot (x.SampleLevel(posN, level).XYZ) luma
                 let subpixE = subpixC * subpixC
                 let mutable lumaEndP = Vec.dot (x.SampleLevel(posP, level).XYZ) luma
 
                 if not pairN then lumaNN <- lumaSS
-                let gradientScaled = gradient * 1.0/4.0
-                let lumaMM = lumaM - lumaNN * 0.5
+                let gradientScaled = gradient * 1.0f/4.0f
+                let lumaMM = lumaM - lumaNN * 0.5f
                 let subpixF = subpixD * subpixE
-                let lumaMLTZero = lumaMM < 0.0
+                let lumaMLTZero = lumaMM < 0.0f
 
-                lumaEndN <- lumaEndN - lumaNN * 0.5
-                lumaEndP <- lumaEndP - lumaNN * 0.5
+                lumaEndN <- lumaEndN - lumaNN * 0.5f
+                lumaEndP <- lumaEndP - lumaNN * 0.5f
                 let mutable doneN = abs lumaEndN >= gradientScaled
                 let mutable doneP = abs lumaEndP >= gradientScaled
                 if not doneN then posN <- posN - offNP * P.[1]
                 let mutable doneNP = (not doneN) || (not doneP)
                 if not doneP then posP <- posP + offNP * P.[1]
-                
+
                 for i in 2..P.Length-1 do
                     if not doneNP then brk()
                     if not doneN then lumaEndN <- Vec.dot (x.SampleLevel(posN, level).XYZ) luma
                     if not doneP then lumaEndP <- Vec.dot (x.SampleLevel(posP, level).XYZ) luma
-                    if not doneN then lumaEndN <- lumaEndN - lumaNN * 0.5
-                    if not doneP then lumaEndP <- lumaEndP - lumaNN * 0.5
+                    if not doneN then lumaEndN <- lumaEndN - lumaNN * 0.5f
+                    if not doneP then lumaEndP <- lumaEndP - lumaNN * 0.5f
                     doneN <- abs lumaEndN >= gradientScaled
                     doneP <- abs lumaEndP >= gradientScaled
                     if not doneN then posN <- posN - offNP * P.[i]
                     doneNP <- (not doneN) || (not doneP)
                     if not doneP then posP <- posP + offNP * P.[i]
-                    
+
                 let mutable dstN = posM.X - posN.X
                 let mutable dstP = posP.X - posM.X
                 if not horzSpan then dstN <- posM.Y - posN.Y
                 if not horzSpan then dstP <- posP.Y - posM.Y
 
-                let goodSpanN = (lumaEndN < 0.0) <> lumaMLTZero
+                let goodSpanN = (lumaEndN < 0.0f) <> lumaMLTZero
                 let spanLength = (dstP + dstN)
-                let goodSpanP = (lumaEndP < 0.0) <> lumaMLTZero
-                let spanLengthRcp = 1.0/spanLength
+                let goodSpanP = (lumaEndP < 0.0f) <> lumaMLTZero
+                let spanLengthRcp = 1.0f/spanLength
 
                 let directionN = dstN < dstP
                 let dst = min dstN dstP
                 let goodSpan = if directionN then goodSpanN else goodSpanP
                 let subpixG = subpixF * subpixF
-                let pixelOffset = (dst * (-spanLengthRcp)) + 0.5
+                let pixelOffset = (dst * (-spanLengthRcp)) + 0.5f
                 let subpixH = subpixG * subpix
 
-                let pixelOffsetGood = if goodSpan then pixelOffset else 0.0
+                let pixelOffsetGood = if goodSpan then pixelOffset else 0.0f
                 let pixelOffsetSubpix = max pixelOffsetGood subpixH
                 if not horzSpan then set posM.X (posM.X + pixelOffsetSubpix * lengthSign)
                 if horzSpan then set posM.Y (posM.Y + pixelOffsetSubpix * lengthSign)
 
-                V4d(x.SampleLevel(posM, level).XYZ, rgbM.W)
+                V4f(x.SampleLevel(posM, level).XYZ, rgbM.W)
 
     let diffuseSampler =
         sampler2d {
@@ -479,21 +479,21 @@ module internal FXAA =
     open Aardvark.Rendering
 
     type Vertex = {
-        [<TexCoord>] tc : V2d
+        [<TexCoord>] tc : V2f
         }
-         
+
     let fxaaUniform (preset : PRESET) (v : Vertex) =
             fragment {
-                return diffuseSampler.SampleLevelFXAA(v.tc, 0.0, preset, uniform.EdgeThreshold, uniform.EdgeThresholdMin, uniform.Subpix)
+                return diffuseSampler.SampleLevelFXAA(v.tc, 0.0f, preset, uniform.EdgeThreshold, uniform.EdgeThresholdMin, uniform.Subpix)
             }
 
-    let EffectUniform(preset : PRESET) = 
+    let EffectUniform(preset : PRESET) =
         toEffect (fxaaUniform preset)
 
-    let fxaa (preset : PRESET) (edgeThreshold : float) (edgeThresholdMin : float) (subpix : float) (v : Vertex) =
+    let fxaa (preset : PRESET) (edgeThreshold : float32) (edgeThresholdMin : float32) (subpix : float32) (v : Vertex) =
             fragment {
-                return diffuseSampler.SampleLevelFXAA(v.tc, 0.0, preset, edgeThreshold, edgeThresholdMin, subpix)
+                return diffuseSampler.SampleLevelFXAA(v.tc, 0.0f, preset, edgeThreshold, edgeThresholdMin, subpix)
             }
 
-    let Effect(preset : PRESET, edgeThreshold, edgeThresholdMin, subpix) = 
+    let Effect(preset : PRESET, edgeThreshold, edgeThresholdMin, subpix) =
         toEffect (fxaa preset edgeThreshold edgeThresholdMin subpix)
