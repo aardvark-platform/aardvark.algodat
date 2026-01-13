@@ -1,4 +1,5 @@
-﻿using Aardvark.Base;
+using Aardvark.Algodat.Tests.Bugs;
+using Aardvark.Base;
 using Aardvark.Data;
 using Aardvark.Data.Points;
 using Aardvark.Data.Points.Import;
@@ -2946,7 +2947,10 @@ namespace Aardvark.Geometry.Tests
         {
             await Task.CompletedTask; // avoid warning if no async methods are called here ...
 
-            await CylStoreIssue_20250723();
+            //await CreateStore(@"W:\Datasets\Vgm\Data\2026-01-12_bugreport\aussen_color.e57", @"e:\tmp\2026-01-12_bugreport", minDist: 0.0);
+            Bug20260112.Run();
+
+            //await CylStoreIssue_20250723();
 
             //EnumerateOctreeNodes(@"E:\tmp\BLK360_Atotech.e57_005_vgm", "188ac686-9567-4a7e-ae30-58dfef89bcf4");
 

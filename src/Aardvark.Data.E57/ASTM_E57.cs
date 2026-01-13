@@ -1,5 +1,5 @@
-﻿/*
-    Copyright (C) 2006-2025. Aardvark Platform Team. http://github.com/aardvark-platform.
+/*
+    Copyright (C) 2006-2026. Aardvark Platform Team. http://github.com/aardvark-platform.
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -504,11 +504,76 @@ namespace Aardvark.Data.E57
                 return v;
             }
 
+            private List<E57PhysicalOffset> CollectDataPacketOffsets(
+                Stream stream,
+                E57PhysicalOffset indexStartOffset,
+                bool verbose
+                )
+            {
+                var dataPacketOffsets = new List<E57PhysicalOffset>();
+                var indexPacketsToVisit = new Queue<E57PhysicalOffset>();
+                indexPacketsToVisit.Enqueue(indexStartOffset);
+
+                while (indexPacketsToVisit.Count > 0)
+                {
+                    var indexOffset = indexPacketsToVisit.Dequeue();
+
+                    // read 16-byte index packet header
+                    var indexHeader = E57IndexPacketHeader.Parse(
+                        ReadLogicalBytes(stream, indexOffset, 16)
+                    );
+
+                    if (verbose)
+                    {
+                        Report.Line($"[E57CompressedVector] traversing index packet at offset {indexOffset}");
+                        Report.Line($"[E57CompressedVector]   EntryCount = {indexHeader.EntryCount}");
+                        Report.Line($"[E57CompressedVector]   IndexLevel = {indexHeader.IndexLevel}");
+                    }
+
+                    // read address entries (16 bytes each, immediately after header)
+                    var entriesOffset = (E57LogicalOffset)indexOffset + 16;
+                    for (var i = 0; i < indexHeader.EntryCount; i++)
+                    {
+                        var entryBytes = ReadLogicalBytes(stream, entriesOffset + (i * 16), 16);
+                        var entry = E57IndexPacketAddressEntry.Parse(entryBytes);
+
+                        if (indexHeader.IndexLevel == 0)
+                        {
+                            // Leaf node: entry points to data packet
+                            dataPacketOffsets.Add(entry.PacketOffset);
+                            if (verbose)
+                            {
+                                Report.Line($"[E57CompressedVector]     Entry {i}: data packet at {entry.PacketOffset}");
+                            }
+                        }
+                        else
+                        {
+                            // Non-leaf: entry points to child index packet
+                            indexPacketsToVisit.Enqueue(entry.PacketOffset);
+                            if (verbose)
+                            {
+                                Report.Line($"[E57CompressedVector]     Entry {i}: index packet at {entry.PacketOffset}");
+                            }
+                        }
+                    }
+                }
+
+                // sort by physical offset for sequential reading (better disk performance)
+                dataPacketOffsets.Sort((a, b) => a.Value.CompareTo(b.Value));
+
+                if (verbose)
+                {
+                    Report.Line($"[E57CompressedVector] collected {dataPacketOffsets.Count} data packet offsets");
+                }
+
+                return dataPacketOffsets;
+            }
+
             public IEnumerable<ImmutableDictionary<PointPropertySemantics, Array>> ReadDataFull(
                 int maxChunkPointCount,
                 ImmutableDictionary<PointPropertySemantics, int> sem2idx,
                 E57IntensityLimits intensityLimits,
-                bool verbose
+                bool verbose, bool verboseDetail
                 )
             {
                 var compressedVectorHeader = E57CompressedVectorHeader.Parse(ReadLogicalBytes(m_stream, FileOffset, 32));
@@ -536,14 +601,40 @@ namespace Aardvark.Data.E57
 
                 bool has(PointPropertySemantics sem) => sem2idx.ContainsKey(sem);
 
-                if (compressedVectorHeader.DataStartOffset.Value == 0) throw new Exception($"Unexpected compressedVectorHeader.DataStartOffset (0).");
-                if (compressedVectorHeader.IndexStartOffset.Value != 0) throw new Exception($"Unexpected compressedVectorHeader.IndexStartOffset ({compressedVectorHeader.IndexStartOffset})");
+                if (compressedVectorHeader.DataStartOffset.Value == 0) throw new Exception(
+                    $"Unexpected compressedVectorHeader.DataStartOffset (0). " +
+                    $"Error 060bd3ba-b363-4bcd-97e0-f6b28e71dd10."
+                    );
 
                 var actualKeys = sem2idx.Keys.Where(k => !ignoreByteStream[sem2idx[k]]).ToArray();
                 var data = new ValueBufferSet(actualKeys);
 
+                // check if file uses index packets
+                if (compressedVectorHeader.IndexStartOffset.Value != 0)
+                {
+                    // file uses index packets
+                    if (verbose)
+                    {
+                        Report.Line($"[E57CompressedVector] index packets detected (IndexStartOffset = {compressedVectorHeader.IndexStartOffset})");
+                    }
+
+                    var dataPacketOffsets = CollectDataPacketOffsets(
+                        m_stream,
+                        compressedVectorHeader.IndexStartOffset,
+                        verbose
+                    );
+
+                    if (verbose)
+                    {
+                        Report.Line($"[E57CompressedVector] index contains {dataPacketOffsets.Count} starting offsets");
+                    }
+
+                    // Note: index packets exist but we still read sequentially from DataStartOffset
+                    // The index provides seek points for random access (we can implement in the future when needed)
+                }
+
+                // always read sequentially from DataStartOffset (indexed or not)
                 var offset = (E57LogicalOffset)compressedVectorHeader.DataStartOffset;
-                var verboseDetail = false; // verbose
                 while (bytesLeftToConsume > 0)
                 {
                     if (verboseDetail) Console.WriteLine($"[E57CompressedVector] bytesLeftToConsume = {bytesLeftToConsume}");
@@ -743,23 +834,26 @@ namespace Aardvark.Data.E57
                     }
                     else if (sectionId == E57_INDEX_PACKET)
                     {
-                        Console.WriteLine($"[E57CompressedVector] INDEX PACKET");
+                        // index packets may appear in the data stream when reading sequentially
+                        // skip as they don't contain point data
                         var indexPacketHeader = E57IndexPacketHeader.Parse(ReadLogicalBytes(m_stream, offset, 16));
-                        Console.WriteLine($"[E57CompressedVector]   EntryCount         = {indexPacketHeader.EntryCount}");
-                        Console.WriteLine($"[E57CompressedVector]   IndexLevel         = {indexPacketHeader.IndexLevel}");
-                        Console.WriteLine($"[E57CompressedVector]   PacketLengthMinus1 = {indexPacketHeader.PacketLengthMinus1}");
-                        if (indexPacketHeader.EntryCount > 0)
+
+                        if (verbose)
                         {
-                            throw new Exception("Not supported. E57CompressedVector/IndexPacket. Error 1c01e61a-fd16-4264-83c1-64929865c1fd.");
+                            Report.Line($"[E57CompressedVector] INDEX PACKET (skipping)");
+                            Report.Line($"[E57CompressedVector]   EntryCount = {indexPacketHeader.EntryCount}");
+                            Report.Line($"[E57CompressedVector]   IndexLevel = {indexPacketHeader.IndexLevel}");
                         }
-                        else
-                        {
-                            Console.WriteLine($"[E57CompressedVector]   WARNING: invalid EntryCount 0 -> skipping");
-                        }
+
+                        offset = packetStart + indexPacketHeader.PacketLengthMinus1 + 1;
+                        bytesLeftToConsume -= indexPacketHeader.PacketLengthMinus1 + 1;
                     }
                     else
                     {
-                        throw new Exception($"Unexpected sectionId ({sectionId}).");
+                        throw new Exception(
+                            $"Unexpected sectionId ({sectionId}) at offset {packetStart}. " +
+                            $"Error 6a29f07e-8bb9-4e8f-a249-e907c4fd6ab8."
+                            );
                     }
                 }
 
@@ -1271,8 +1365,11 @@ namespace Aardvark.Data.E57
                 ImmutableHashSet<PointPropertySemantics> exclude
                 )
             {
+                // [DEBUGGING] set to true, to get more debug output
+                var verboseDetail = false;
+
                 var filteredSem2Index = Sem2Index.Where(kv => !exclude.Contains(kv.Key)).ToImmutableDictionary();
-                var chunks = Points.ReadDataFull(maxChunkPointCount, filteredSem2Index, IntensityLimits, verbose);
+                var chunks = Points.ReadDataFull(maxChunkPointCount, filteredSem2Index, IntensityLimits, verbose, verboseDetail);
                 foreach (var _chunk in chunks)
                 {
                     var chunk = _chunk;

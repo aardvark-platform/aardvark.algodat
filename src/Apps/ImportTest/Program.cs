@@ -1,4 +1,4 @@
-﻿using Aardvark.Base;
+using Aardvark.Base;
 using Aardvark.Data.Points;
 using Aardvark.Data.Points.Import;
 using Aardvark.Geometry.Points;
@@ -15,16 +15,27 @@ namespace ImportTest
 {
     class Program
     {
+        private static readonly JsonSerializerOptions DefaultJsonOptions = new()
+        {
+            WriteIndented = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            PropertyNameCaseInsensitive = true,
+        };
+
         static void Main(string[] args)
         {
-            if (args.Length != 1)
+            if (args.Length != 2)
             {
-                Console.WriteLine("usage: ImportTest <basedir>");
-                Console.WriteLine("         <basedir> contains point cloud files or folders with such files");
+                Console.WriteLine("usage: ImportTest <basedir> <importdir>");
+                Console.WriteLine("         <basedir>   contains point cloud files or folders with such files");
+                Console.WriteLine("         <importdir> all pointclouds will be imported into this directory");
                 return;
             }
 
             var basedir = args[0];
+            var importdir = args[1];
+
+            Directory.CreateDirectory(importdir); // ensure import dir exists
 
             var _1 = E57.E57Format;
             var _2 = Pts.PtsFormat;
@@ -42,14 +53,14 @@ namespace ImportTest
             var tsStart = DateTimeOffset.UtcNow;
 
             var files = GetPointCloudsInDirectory(basedir);
-            foreach (var x in files.files) stats.Add(ImportFile(x, x));
+            foreach (var x in files.files) stats.Add(ImportFile(x, importdir, x));
 
             var dirs = Directory.GetDirectories(basedir)
                 .Where(x => !x.EndsWith("_STORE"))
                 .Select(GetPointCloudsInDirectory)
                 .Where(x => x.files.Length > 0)
                 .ToArray();
-            foreach (var x in dirs) stats.Add(ImportFile(x.dir, x.files));
+            foreach (var x in dirs) stats.Add(ImportFile(x.dir, importdir, x.files));
 
 
             var tsEnd = DateTimeOffset.UtcNow;
@@ -59,19 +70,20 @@ namespace ImportTest
                 tsEnd,
                 durationInSeconds = Math.Round((tsEnd - tsStart).TotalSeconds, 2),
                 stats
-            }, new JsonSerializerOptions { WriteIndented = true });
+            }, DefaultJsonOptions);
             var n = DateTimeOffset.Now;
             var statsFileName = Path.Combine(basedir, $"stats_{n.Year:0000}{n.Month:00}{n.Day:00}_{n.Hour:00}{n.Minute:00}{n.Second:00}.json");
             File.WriteAllText(statsFileName, json);
         }
 
-        static object ImportFile(string path, params string[] filenames)
+        static object ImportFile(string path, string targetdir, params string[] filenames)
         {
             var tsStart = DateTimeOffset.UtcNow;
 
             try
             {
-                var storePath = path + "_STORE";
+                var name = Path.GetFileName(path);
+                var storePath = Path.Combine(targetdir, $"{name}_{DateTime.Now:yyyy-MM-dd_HHmmss}.uds");
 
                 if (Directory.Exists(storePath))
                 {
@@ -81,7 +93,7 @@ namespace ImportTest
 
                 var store = new SimpleDiskStore(storePath).ToPointCloudStore();
 
-                Report.BeginTimed($"importing");
+                Report.BeginTimed($"importing {storePath}");
                 var sw = new Stopwatch(); sw.Start();
                 var keys = new List<string>();
                 var pointCount = 0L;

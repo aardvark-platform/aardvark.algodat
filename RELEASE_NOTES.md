@@ -1,3 +1,6 @@
+### 5.6.1
+- [e57] parse e57 files containing index packets
+
 ### 5.6.0
 - update to Aardvark.Rendering 5.6.0
 
