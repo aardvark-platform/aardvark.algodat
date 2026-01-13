@@ -36,12 +36,14 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         global-json-file: global.json
-    - name: Cache NuGet packages
+    - name: Cache Paket
       uses: actions/cache@v4
       with:
-        path: ~/.nuget/packages
-        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.fsproj') }}
+        path: |
+          ~/.nuget/packages
+          paket-files
+        key: ${{ runner.os }}-paket-${{ hashFiles('paket.lock') }}
         restore-keys: |
-          ${{ runner.os }}-nuget-
+          ${{ runner.os }}-paket-
     - name: Build
       run: ${{ matrix.run-build }}
