@@ -101,13 +101,13 @@ module LodTreeInstance =
                                 world : obj,
                                 cache : LruDictionary<string, obj>,
                                 source : Symbol,
-                                getCustomIndexedAttributes :  Guid * (IPointCloudNode -> int -> MapExt<Symbol, CustomIndexedAttribute>),
+                                getCustomIndexedAttributes :  Guid * (IPointCloudNodeOld -> int -> MapExt<Symbol, CustomIndexedAttribute>),
                                 globalTrafo : Similarity3d,
                                 root : Option<PointTreeNode>,
                                 parent : Option<PointTreeNode>,
                                 level : int,
                                 partIndexOffset : int,
-                                self : IPointCloudNode) as this =
+                                self : IPointCloudNodeOld) as this =
 
         let customAttributeId = fst getCustomIndexedAttributes
         let getCustomIndexedAttributes = snd getCustomIndexedAttributes
@@ -122,18 +122,18 @@ module LodTreeInstance =
             sb.Append( sprintf "%E %E %E" s.Trans.X s.Trans.Y s.Trans.Z ) |> ignore
             sb.ToString()
 
-        static let nodeId (n : IPointCloudNode) (customIndexedAttributeId : Guid) (globalTrafo : Similarity3d) (level : int) =
+        static let nodeId (n : IPointCloudNodeOld) (customIndexedAttributeId : Guid) (globalTrafo : Similarity3d) (level : int) =
             (string n.Id) + (string customIndexedAttributeId) + (simToString globalTrafo) + (sprintf "%d" level) + "PointTreeNode"
 
 
-        static let cacheId (n : IPointCloudNode) (customIndexedAttributeVersion : string) (globalTrafo : Similarity3d) (level : int) =
+        static let cacheId (n : IPointCloudNodeOld) (customIndexedAttributeVersion : string) (globalTrafo : Similarity3d) (level : int) =
             (string n.Id) + (customIndexedAttributeVersion) + (simToString globalTrafo) + (sprintf "%d" level) + "GeometryData"
 
         static let load (ct : CancellationToken)
                         (ips : MapExt<string, Type>)
                         (cache : LruDictionary<string, obj>)
                         (customIndexedAttributes : MapExt<Symbol,CustomIndexedAttribute>)
-                        (self : IPointCloudNode)
+                        (self : IPointCloudNodeOld)
                         (globalTrafo : Similarity3d)
                         (localBounds : Box3d)
                         (level : int)
@@ -410,13 +410,13 @@ module LodTreeInstance =
         //member x.AcquireChild() =
         //    Interlocked.Increment(&livingChildren) |> ignore
 
-        static member Create(pointCloudId : System.Guid, world : obj, cache : LruDictionary<string, obj>, source : Symbol, getCustomIndexedAttributes : Guid * (IPointCloudNode -> int -> MapExt<Symbol,CustomIndexedAttribute>), globalTrafo : Similarity3d, root : Option<PointTreeNode>, parent : Option<PointTreeNode>, level : int, partIndexOffset : int, self : IPointCloudNode) =
+        static member Create(pointCloudId : System.Guid, world : obj, cache : LruDictionary<string, obj>, source : Symbol, getCustomIndexedAttributes : Guid * (IPointCloudNodeOld -> int -> MapExt<Symbol,CustomIndexedAttribute>), globalTrafo : Similarity3d, root : Option<PointTreeNode>, parent : Option<PointTreeNode>, level : int, partIndexOffset : int, self : IPointCloudNodeOld) =
             if isNull self then
                 None
             else
                 PointTreeNode(pointCloudId, world, cache, source, getCustomIndexedAttributes, globalTrafo, root, parent, level, partIndexOffset, self) |> Some
 
-        static member Create(pointCloudId : System.Guid, world : obj, cache : LruDictionary<string, obj>, source : Symbol, globalTrafo : Similarity3d, root : Option<PointTreeNode>, parent : Option<PointTreeNode>, level : int, partIndexOffset : int, self : IPointCloudNode) =
+        static member Create(pointCloudId : System.Guid, world : obj, cache : LruDictionary<string, obj>, source : Symbol, globalTrafo : Similarity3d, root : Option<PointTreeNode>, parent : Option<PointTreeNode>, level : int, partIndexOffset : int, self : IPointCloudNodeOld) =
             PointTreeNode.Create(pointCloudId, world, cache, source, (Guid.NewGuid(),(fun _ _ -> MapExt.empty)), globalTrafo, root, parent, level, partIndexOffset, self)
 
         member x.ReleaseChildren() =
@@ -431,7 +431,7 @@ module LodTreeInstance =
             | Some o -> o |> List.iter (fun o -> cache.Add(nodeId (unbox<PointTreeNode> o).Original customAttributeId globalTrafo level, o, 1L <<< 10) |> ignore)
             | None -> ()
 
-        member x.WithPointCloudNode(r : IPointCloudNode) =
+        member x.WithPointCloudNode(r : IPointCloudNodeOld) =
             assert(level = 0 && Option.isNone parent)
             if isNull r then
                 None
@@ -452,8 +452,8 @@ module LodTreeInstance =
 
 
         member x.Delete(b : Box3d) =
-            let nodeFullyInside = Func<_,_>(fun (node : IPointCloudNode) -> b.Contains(node.Cell.BoundingBox))
-            let nodeFullyOutside = Func<_,_>(fun (node : IPointCloudNode) -> not(b.Contains(node.Cell.BoundingBox)) && not(b.Intersects(node.Cell.BoundingBox)))
+            let nodeFullyInside = Func<_,_>(fun (node : IPointCloudNodeOld) -> b.Contains(node.Cell.BoundingBox))
+            let nodeFullyOutside = Func<_,_>(fun (node : IPointCloudNodeOld) -> not(b.Contains(node.Cell.BoundingBox)) && not(b.Intersects(node.Cell.BoundingBox)))
             let pointCountains = Func<_,_>(fun (v : V3d) -> b.Contains(v))
             let n = self.Delete(nodeFullyInside,nodeFullyOutside,pointCountains,self.Storage,CancellationToken.None, 8192)
             if isNull n then
@@ -471,7 +471,7 @@ module LodTreeInstance =
                 | None ->
                     ()
             )
-        member x.Original : IPointCloudNode = self
+        member x.Original : IPointCloudNodeOld = self
 
         member x.Root : PointTreeNode =
             match root with
@@ -758,8 +758,8 @@ module LodTreeInstance =
         use input = PointCloud.OpenStore(input, LruDictionary(1L <<< 30))
         let set = input.GetPointSet(key)
 
-        let storeStructure (node : IPointCloudNode) =
-            let queue = Queue<IPointCloudNode>()
+        let storeStructure (node : IPointCloudNodeOld) =
+            let queue = Queue<IPointCloudNodeOld>()
             queue.Enqueue(node)
 
             let mutable i = 0
@@ -779,8 +779,8 @@ module LodTreeInstance =
 
                 i <- i + 1
 
-        let storeAttributes (node : IPointCloudNode) =
-            let queue = Queue<IPointCloudNode>()
+        let storeAttributes (node : IPointCloudNodeOld) =
+            let queue = Queue<IPointCloudNodeOld>()
             queue.Enqueue(node)
 
             let mutable i = 0
@@ -924,7 +924,7 @@ module LodTreeInstance =
         | None ->
             None
 
-    let ofPointCloudNode (uniforms : list<string * IAdaptiveValue>) (partIndexOffset : int) (root : IPointCloudNode) =
+    let ofPointCloudNode (uniforms : list<string * IAdaptiveValue>) (partIndexOffset : int) (root : IPointCloudNodeOld) =
         let store = root.Storage
         let root = PointTreeNode.Create(System.Guid.NewGuid(), null, store.Cache, Symbol.CreateNewGuid(), Similarity3d.Identity, None, None, 0, partIndexOffset, root)
         match root with

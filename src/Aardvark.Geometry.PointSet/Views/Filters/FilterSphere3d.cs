@@ -53,25 +53,28 @@ public class FilterInsideSphere3d(Sphere3d sphere) : ISpatialFilter
     }
 
     /// <summary></summary>
-    public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null)
+    public HashSet<int> FilterPoints(IPointNode node, HashSet<int>? selected = null)
     {
+        var p = node.Positions;
+        var contained = new HashSet<int>();
         if (selected != null)
         {
-            var c = node.Center;
-            var ps = node.Positions.Value;
-            return [.. selected.Where(i => Contains(c + (V3d)ps[i]))];
+            foreach (var i in selected)
+            {
+                if(Contains(p[i]))
+                {
+                    contained.Add(i);
+                }
+            }
         }
         else
         {
-            var c = node.Center;
-            var ps = node.Positions.Value;
-            var result = new HashSet<int>();
-            for (var i = 0; i < ps.Length; i++)
+            for (var i = 0; i < p.Length; i++)
             {
-                if (Contains(c + (V3d)ps[i])) result.Add(i);
+                if (Contains(p[i])) contained.Add(i);
             }
-            return result;
         }
+        return contained;
     }
 
     /// <summary></summary>
@@ -80,9 +83,9 @@ public class FilterInsideSphere3d(Sphere3d sphere) : ISpatialFilter
         return box.ComputeCorners().TrueForAll(Contains);
     }
     /// <summary></summary>
-    public bool IsFullyInside(IPointCloudNode node)
+    public bool IsFullyInside(IPointNode node)
     {
-        return IsFullyInside(node.BoundingBoxExactGlobal);
+        return IsFullyInside(node.DataBounds);
     }
 
     /// <summary></summary>
@@ -92,9 +95,9 @@ public class FilterInsideSphere3d(Sphere3d sphere) : ISpatialFilter
     }
 
     /// <summary></summary>
-    public bool IsFullyOutside(IPointCloudNode node)
+    public bool IsFullyOutside(IPointNode node)
     {
-        return IsFullyOutside(node.BoundingBoxExactGlobal);
+        return IsFullyOutside(node.DataBounds);
     }
 
     /// <summary></summary>

@@ -30,17 +30,17 @@ public static partial class Queries
     public static IEnumerable<Chunk> QueryPointsInsideConvexHull(
         this PointSet self, Hull3d query, int minCellExponent = int.MinValue
         )
-        => QueryPointsInsideConvexHull(self.Root.Value, query, minCellExponent);
+        => QueryPointsInsideConvexHull(self.Root.Value.ToPointNode(), query, minCellExponent);
 
     /// <summary>
     /// All points inside convex hull (including boundary).
     /// </summary>
     public static IEnumerable<Chunk> QueryPointsInsideConvexHull(
-        this IPointCloudNode self, Hull3d query, int minCellExponent = int.MinValue
+        this IPointNode self, Hull3d query, int minCellExponent = int.MinValue
         )
         => QueryPoints(self,
-            n => query.Contains(n.BoundingBoxExactGlobal),
-            n => !query.Intersects(n.BoundingBoxExactGlobal),
+            n => query.Contains(n.DataBounds),
+            n => !query.Intersects(n.DataBounds),
             p => query.Contains(p),
             minCellExponent);
 
@@ -50,13 +50,13 @@ public static partial class Queries
     public static IEnumerable<Chunk> QueryPointsOutsideConvexHull(
         this PointSet self, Hull3d query, int minCellExponent = int.MinValue
         )
-        => QueryPointsOutsideConvexHull(self.Root.Value, query, minCellExponent);
+        => QueryPointsOutsideConvexHull(self.Root.Value.ToPointNode(), query, minCellExponent);
 
     /// <summary>
     /// All points outside convex hull (excluding boundary).
     /// </summary>
     public static IEnumerable<Chunk> QueryPointsOutsideConvexHull(
-        this IPointCloudNode self, Hull3d query, int minCellExponent = int.MinValue
+        this IPointNode self, Hull3d query, int minCellExponent = int.MinValue
         )
         => QueryPointsInsideConvexHull(self, query.Reversed(), minCellExponent);
 
@@ -70,17 +70,17 @@ public static partial class Queries
     internal static long CountPointsInsideConvexHull(
         this PointSet self, Hull3d query, int minCellExponent = int.MinValue
         )
-        => CountPointsInsideConvexHull(self.Root.Value, query, minCellExponent);
+        => CountPointsInsideConvexHull(self.Root.Value.ToPointNode(), query, minCellExponent);
 
     /// <summary>
     /// Counts points inside convex hull.
     /// </summary>
     internal static long CountPointsInsideConvexHull(
-        this IPointCloudNode self, Hull3d query, int minCellExponent = int.MinValue
+        this IPointNode self, Hull3d query, int minCellExponent = int.MinValue
         )
         => CountPoints(self,
-            n => query.Contains(n.BoundingBoxExactGlobal),
-            n => !query.Intersects(n.BoundingBoxExactGlobal),
+            n => query.Contains(n.DataBounds),
+            n => !query.Intersects(n.DataBounds),
             p => query.Contains(p),
             minCellExponent);
 
@@ -90,13 +90,13 @@ public static partial class Queries
     internal static long CountPointsOutsideConvexHull(
         this PointSet self, Hull3d query, int minCellExponent = int.MinValue
         )
-        => CountPointsOutsideConvexHull(self.Root.Value, query, minCellExponent);
+        => CountPointsOutsideConvexHull(self.Root.Value.ToPointNode(), query, minCellExponent);
 
     /// <summary>
     /// Counts points outside convex hull.
     /// </summary>
     internal static long CountPointsOutsideConvexHull(
-        this IPointCloudNode self, Hull3d query, int minCellExponent = int.MinValue
+        this IPointNode self, Hull3d query, int minCellExponent = int.MinValue
         )
         => CountPointsInsideConvexHull(self, query.Reversed(), minCellExponent);
 
@@ -111,18 +111,18 @@ public static partial class Queries
     internal static long CountPointsApproximatelyInsideConvexHull(
         this PointSet self, Hull3d query, int minCellExponent = int.MinValue
         )
-        => CountPointsApproximatelyInsideConvexHull(self.Root.Value, query, minCellExponent);
+        => CountPointsApproximatelyInsideConvexHull(self.Root.Value.ToPointNode(), query, minCellExponent);
 
     /// <summary>
     /// Counts points inside convex hull (approximately).
     /// Result is always equal or greater than exact number.
     /// </summary>
     internal static long CountPointsApproximatelyInsideConvexHull(
-        this IPointCloudNode self, Hull3d query, int minCellExponent = int.MinValue
+        this IPointNode self, Hull3d query, int minCellExponent = int.MinValue
         )
         => CountPointsApproximately(self,
-            n => query.Contains(n.BoundingBoxExactGlobal),
-            n => !query.Intersects(n.BoundingBoxExactGlobal),
+            n => query.Contains(n.DataBounds),
+            n => !query.Intersects(n.DataBounds),
             minCellExponent);
 
     /// <summary>
@@ -132,18 +132,18 @@ public static partial class Queries
     internal static long CountPointsApproximatelyOutsideConvexHull(
         this PointSet self, Hull3d query, int minCellExponent = int.MinValue
         )
-        => CountPointsApproximatelyOutsideConvexHull(self.Root.Value, query, minCellExponent);
+        => CountPointsApproximatelyOutsideConvexHull(self.Root.Value.ToPointNode(), query, minCellExponent);
 
     /// <summary>
     /// Counts points outside convex hull (approximately).
     /// Result is always equal or greater than exact number.
     /// </summary>
     internal static long CountPointsApproximatelyOutsideConvexHull(
-        this IPointCloudNode self, Hull3d query, int minCellExponent = int.MinValue
+        this IPointNode self, Hull3d query, int minCellExponent = int.MinValue
         )
         => CountPointsApproximately(self,
-            n => !query.Intersects(n.BoundingBoxExactGlobal),
-            n => query.Contains(n.BoundingBoxExactGlobal),
+            n => !query.Intersects(n.DataBounds),
+            n => query.Contains(n.DataBounds),
             minCellExponent);
 
     #endregion

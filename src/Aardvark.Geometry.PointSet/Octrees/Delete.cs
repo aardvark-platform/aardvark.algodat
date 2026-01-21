@@ -37,8 +37,8 @@ public static class DeleteExtensions
     /// Returns null, if no points are left.
     /// </summary>
     public static PointSet? Delete(this PointSet? pointSet,
-        Func<IPointCloudNode, bool> isNodeFullyInside,
-        Func<IPointCloudNode, bool> isNodeFullyOutside,
+        Func<IPointCloudNodeOld, bool> isNodeFullyInside,
+        Func<IPointCloudNodeOld, bool> isNodeFullyOutside,
         Func<V3d, PointDeleteAttributes, bool> isPositionInside,
         Storage storage, CancellationToken ct
         )
@@ -55,8 +55,8 @@ public static class DeleteExtensions
     }
 
     public static PointSet? Delete(this PointSet? pointSet,
-        Func<IPointCloudNode, bool> isNodeFullyInside,
-        Func<IPointCloudNode, bool> isNodeFullyOutside,
+        Func<IPointCloudNodeOld, bool> isNodeFullyInside,
+        Func<IPointCloudNodeOld, bool> isNodeFullyOutside,
         Func<V3d, bool> isPositionInside,
         Storage storage, CancellationToken ct
         )
@@ -74,9 +74,9 @@ public static class DeleteExtensions
     /// Returns new octree with all points deleted which are inside.
     /// Returns null, if no points are left.
     /// </summary>
-    public static IPointCloudNode? Delete(this IPointCloudNode? root,
-        Func<IPointCloudNode, bool> isNodeFullyInside,
-        Func<IPointCloudNode, bool> isNodeFullyOutside,
+    public static IPointCloudNodeOld? Delete(this IPointCloudNodeOld? root,
+        Func<IPointCloudNodeOld, bool> isNodeFullyInside,
+        Func<IPointCloudNodeOld, bool> isNodeFullyOutside,
         Func<V3d, PointDeleteAttributes, bool> isPositionInside,
         Storage storage, CancellationToken ct,
         int splitLimit
@@ -86,19 +86,20 @@ public static class DeleteExtensions
 
         if (root is FilteredNode f)
         {
-            if (f.Filter is ISpatialFilter filter)
-            {
-                bool remove(IPointCloudNode n) => filter.IsFullyInside(n) && isNodeFullyInside(n);
-                bool keep(IPointCloudNode n) => filter.IsFullyOutside(n) || isNodeFullyOutside(n);
-                bool contains(V3d pt, PointDeleteAttributes att) => filter.Contains(pt) && isPositionInside(pt, att);
-                var res = f.Node.Delete(remove, keep, contains, storage, ct, splitLimit);
-                if (res == null) return null;
-                return FilteredNode.Create(res, f.Filter);
-            }
-            else
-            {
-                throw new Exception("Delete is not supported on PointCloud with non-spatial filter. Error 1885c46f-2eef-4dfb-807b-439c1b9c673d.");
-            }
+            // if (f.Filter is ISpatialFilter filter)
+            // {
+            //     bool remove(IPointCloudNodeOld n) => filter.IsFullyInside(n) && isNodeFullyInside(n);
+            //     bool keep(IPointCloudNodeOld n) => filter.IsFullyOutside(n) || isNodeFullyOutside(n);
+            //     bool contains(V3d pt, PointDeleteAttributes att) => filter.Contains(pt) && isPositionInside(pt, att);
+            //     var res = f.Node.Delete(remove, keep, contains, storage, ct, splitLimit);
+            //     if (res == null) return null;
+            //     return FilteredNode.Create(res, f.Filter);
+            // }
+            // else
+            // {
+            //     throw new Exception("Delete is not supported on PointCloud with non-spatial filter. Error 1885c46f-2eef-4dfb-807b-439c1b9c673d.");
+            // }
+            throw new Exception("Delete is not supported on PointCloud with non-spatial filter. Error 1885c46f-2eef-4dfb-807b-439c1b9c673d.");
         }
 
 
@@ -446,9 +447,9 @@ public static class DeleteExtensions
             }
         } // if (root.IsLeaf)
     } // Delete
-    public static IPointCloudNode? Delete(this IPointCloudNode? root,
-        Func<IPointCloudNode, bool> isNodeFullyInside,
-        Func<IPointCloudNode, bool> isNodeFullyOutside,
+    public static IPointCloudNodeOld? Delete(this IPointCloudNodeOld? root,
+        Func<IPointCloudNodeOld, bool> isNodeFullyInside,
+        Func<IPointCloudNodeOld, bool> isNodeFullyOutside,
         Func<V3d, bool> isPositionInside,
         Storage storage, CancellationToken ct,
         int splitLimit

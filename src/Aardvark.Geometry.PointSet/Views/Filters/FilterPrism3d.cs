@@ -39,31 +39,26 @@ public class FilterInsidePrismXY : ISpatialFilter
     public bool IsFullyOutside(Box3d box)
         => box.Max.Z < ZRange.Min || box.Min.Z > ZRange.Max || !Shape.Overlaps(PolyRegionModule.ofBox(new Box2d(box.Min.XY, box.Max.XY)));
 
-    public bool IsFullyInside(IPointCloudNode node) => IsFullyInside(node.BoundingBoxExactGlobal);
+    public bool IsFullyInside(IPointNode node) => IsFullyInside(node.DataBounds);
 
-    public bool IsFullyOutside(IPointCloudNode node) => IsFullyOutside(node.BoundingBoxExactGlobal);
+    public bool IsFullyOutside(IPointNode node) => IsFullyOutside(node.DataBounds);
 
-    public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null)
+    public HashSet<int> FilterPoints(IPointNode node, HashSet<int>? selected = null)
     {
         if (selected != null)
         {
-            var c = node.Center;
-            var ps = node.Positions.Value;
             return [.. selected.Where(i =>
             {
-                var p = c + (V3d)ps[i];
+                var p = node.Positions[i];
                 return p.Z >= ZRange.Min && p.Z <= ZRange.Max && Shape.Contains(p.XY);
             })];
         }
         else
         {
-            var c = node.Center;
-            var ps = node.Positions.Value;
-            
             var result = new HashSet<int>();
-            for (var i = 0; i < ps.Length; i++)
+            for (var i = 0; i < node.Positions.Length; i++)
             {
-                var p = c + (V3d)ps[i];
+                var p = node.Positions[i];
                 if (p.Z >= ZRange.Min && p.Z <= ZRange.Max && Shape.Contains(p.XY)) result.Add(i);
             }
             return result;

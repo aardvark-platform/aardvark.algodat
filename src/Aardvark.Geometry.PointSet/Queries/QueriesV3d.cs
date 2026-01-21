@@ -45,7 +45,7 @@ public static partial class Queries
     /// Points within given distance to a query point.
     /// </summary>
     public static PointsNearObject<V3d> QueryPointsNearPoint(
-        this IPointCloudNode node, V3d query, double maxDistanceToPoint, int maxCount
+        this IPointCloudNodeOld node, V3d query, double maxDistanceToPoint, int maxCount
         )
     {
         if (node == null) return PointsNearObject<V3d>.Empty;

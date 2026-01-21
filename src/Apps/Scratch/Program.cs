@@ -138,7 +138,7 @@ namespace Scratch
             Report.Line($"    used     bytes: {storeRaw.GetUsedBytes(),20:N0}");
             Report.Line($"    reserved bytes: {storeRaw.GetReservedBytes(),20:N0}");
 
-            static void CheckDuplicateProperties(IPointCloudNode node, IEnumerable<Durable.Def> defs)
+            static void CheckDuplicateProperties(IPointCloudNodeOld node, IEnumerable<Durable.Def> defs)
             {
                 var exist = default(List<Durable.Def>);
                 foreach (var def in defs)

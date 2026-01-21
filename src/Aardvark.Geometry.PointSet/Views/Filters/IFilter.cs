@@ -24,16 +24,16 @@ namespace Aardvark.Geometry.Points;
 public interface IFilter : IEquatable<IFilter>
 {
     /// <summary></summary>
-    bool IsFullyInside(IPointCloudNode node);
+    bool IsFullyInside(IPointNode node);
 
     /// <summary></summary>
-    bool IsFullyOutside(IPointCloudNode node);
+    bool IsFullyOutside(IPointNode node);
 
     /// <summary>
     /// Computes indices of selected/visible points, starting from already selected points.
     /// If 'selected' is null, then ALL points are selected to begin with.
     /// </summary>
-    HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null);
+    HashSet<int> FilterPoints(IPointNode node, HashSet<int>? selected = null);
 
     /// <summary></summary>
     JsonNode Serialize();

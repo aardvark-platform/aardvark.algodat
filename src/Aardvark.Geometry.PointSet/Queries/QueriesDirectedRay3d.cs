@@ -37,7 +37,7 @@ public static partial class Queries
         ) 
     {
         if (ps.Root == null) return [];
-        return ps.Root.Value.QueryPointsNearRay(ray,maxDistanceToRay,tMin,tMax,minCellExponent);
+        return ps.Root.Value.ToPointNode().QueryPointsNearRay(ray,maxDistanceToRay,tMin,tMax,minCellExponent);
     } 
 
     /// <summary>
@@ -45,7 +45,7 @@ public static partial class Queries
     /// Chunks are approximately sorted along the ray direction.
     /// </summary>
     public static IEnumerable<Chunk> QueryPointsNearRay(
-        this IPointCloudNode node, 
+        this IPointNode node, 
         Ray3d ray,
         double maxDistanceToRay,
         double tMin,
@@ -58,7 +58,7 @@ public static partial class Queries
         double t0 = double.NegativeInfinity;
         double t1 = double.PositiveInfinity;
 
-        var bbeg = node.BoundingBoxExactGlobal;
+        var bbeg = node.DataBounds;
         var offset = new V3d(maxDistanceToRay);
         var box = new Box3d(bbeg.Min - offset, bbeg.Max + offset);
 
@@ -68,17 +68,18 @@ public static partial class Queries
             {
                 yield break;
             }
-
-            if (node.IsLeaf || node.Cell.Exponent == minCellExponent)
+            
+            var nodeCell = new Cell(node.CellBounds);
+            if (node.Children.Length == 0 || nodeCell.Exponent == minCellExponent)
             {
-                var qs = node.Positions.Value;
+                var qs = node.Positions;
 
                 var ps = new List<V3d>();
-                var ia = new List<int>();
+                var ia = new HashSet<int>();
 
                 for (var i = 0; i < qs.Length; i++)
                 {
-                    var pWorld = (V3d)qs[i] + node.Center;
+                    var pWorld = node.Positions[i];
                     var d = ray.GetMinimalDistanceTo(pWorld);
                     var tp = ray.GetTOfProjectedPoint(pWorld);
                     if (d > maxDistanceToRay || tp < tMin || tp > tMax) continue;
@@ -87,21 +88,12 @@ public static partial class Queries
                     ia.Add(i);
                 }
  
-                if (ia.Count > 0) yield return new Chunk(
-                    ps, 
-                    node.Colors?.Value.Subset(ia),
-                    node.Normals?.Value.Subset(ia),
-                    node.Intensities?.Value.Subset(ia),
-                    node.Classifications?.Value.Subset(ia),
-                    PartIndexUtils.Subset(node.PartIndices, ia),
-                    partIndexRange: null,
-                    bbox: null
-                    );
+                if (ia.Count > 0) yield return node.ToChunk(ia);
             } 
             else 
             {
-                var sorted = node.Subnodes.OrderBy(
-                    c => c == null ? double.PositiveInfinity : Vec.Distance(new V3d(c.Value.BoundingBoxExactGlobal.Center), ray.Origin)
+                var sorted = node.Children.OrderBy(
+                    c => c == null ? double.PositiveInfinity : Vec.Distance(new V3d(c.DataBounds.Center), ray.Origin)
                     );
 
                 foreach (var c in sorted)
@@ -109,7 +101,7 @@ public static partial class Queries
                     if (c == null) continue;
                     if (t0 > tMin) tMin = t0;
                     if (t1 < tMax) tMax = t1;
-                    var ress = c.Value.QueryPointsNearRay(ray, maxDistanceToRay, tMin, tMax, minCellExponent);
+                    var ress = c.QueryPointsNearRay(ray, maxDistanceToRay, tMin, tMax, minCellExponent);
                     foreach (var res in ress) yield return res;
                 }
             }

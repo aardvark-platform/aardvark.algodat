@@ -24,17 +24,17 @@ public static partial class Queries
     /// Enumerates (chunked) all points in pointset.
     /// </summary>
     public static IEnumerable<Chunk> QueryAllPoints(this PointSet self)
-        => QueryAllPoints(self.Root.Value);
+        => QueryAllPoints(self.Root.Value.ToPointNode());
 
     /// <summary>
     /// Enumerates (chunked) all points in tree.
     /// </summary>
-    public static IEnumerable<Chunk> QueryAllPoints(this IPointCloudNode node)
+    public static IEnumerable<Chunk> QueryAllPoints(this IPointNode node)
         => node.QueryPoints(_ => true, _ => false, _ => true);
 
     /// <summary>
     /// Enumerates (chunked) all points in tree.
     /// </summary>
-    public static IEnumerable<Chunk> QueryAllPoints(this IPointCloudNode node, int minCellExponent)
+    public static IEnumerable<Chunk> QueryAllPoints(this IPointNode node, int minCellExponent)
         => node.QueryPoints(_ => true, _ => false, _ => true, minCellExponent);
 }

@@ -19,7 +19,7 @@ namespace Aardvark.Geometry.Points;
 
 /// <summary>
 /// </summary>
-public class CellQueryResult(IPointCloudNode cell, bool isFullyInside)
+public class CellQueryResult(IPointCloudNodeOld cell, bool isFullyInside)
 {
     /// <summary>
     /// </summary>
@@ -27,7 +27,7 @@ public class CellQueryResult(IPointCloudNode cell, bool isFullyInside)
 
     /// <summary>
     /// </summary>
-    public IPointCloudNode Cell { get; } = cell;
+    public IPointCloudNodeOld Cell { get; } = cell;
 
     /// <summary>
     /// </summary>

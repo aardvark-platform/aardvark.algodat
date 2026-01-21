@@ -27,16 +27,16 @@ public static partial class Queries
     /// Max tree depth.
     /// </summary>
     public static int CountOctreeLevels(this PointSet self)
-        => CountOctreeLevels(self.Root.Value);
+        => CountOctreeLevels(self.Root.Value.ToPointNode());
 
     /// <summary>
     /// Max tree depth.
     /// </summary>
-    public static int CountOctreeLevels(this IPointCloudNode? root)
+    public static int CountOctreeLevels(this IPointNode? root)
     {
         if (root == null) return 0;
-        if (root.Subnodes == null) return 1;
-        return root.Subnodes.Select(n => CountOctreeLevels(n?.Value)).Max() + 1;
+        if (root.Children.Length == 0) return 1;
+        return root.Children.Select(n => CountOctreeLevels(n)).Max() + 1;
     }
     
 
@@ -47,13 +47,13 @@ public static partial class Queries
     public static int GetMaxOctreeLevelWithLessThanGivenPointCount(
         this PointSet self, long maxPointCount
         )
-        => GetMaxOctreeLevelWithLessThanGivenPointCount(self.Root.Value, maxPointCount);
+        => GetMaxOctreeLevelWithLessThanGivenPointCount(self.Root.Value.ToPointNode(), maxPointCount);
 
     /// <summary>
     /// Finds deepest octree level which still contains less than given number of points. 
     /// </summary>
     public static int GetMaxOctreeLevelWithLessThanGivenPointCount(
-        this IPointCloudNode node, long maxPointCount
+        this IPointNode node, long maxPointCount
         )
     {
         var imax = node.CountOctreeLevels();
@@ -74,13 +74,13 @@ public static partial class Queries
     public static int GetMaxOctreeLevelWithLessThanGivenPointCount(
         this PointSet self, long maxPointCount, Box3d bounds
         )
-        => GetMaxOctreeLevelWithLessThanGivenPointCount(self.Root.Value, maxPointCount, bounds);
+        => GetMaxOctreeLevelWithLessThanGivenPointCount(self.Root.Value.ToPointNode(), maxPointCount, bounds);
 
     /// <summary>
     /// Finds deepest octree level which still contains less than given number of points within given bounds. 
     /// </summary>
     public static int GetMaxOctreeLevelWithLessThanGivenPointCount(
-        this IPointCloudNode node, long maxPointCount, Box3d bounds
+        this IPointNode node, long maxPointCount, Box3d bounds
         )
     {
         var imax = node.CountOctreeLevels();
@@ -101,30 +101,28 @@ public static partial class Queries
     public static long CountPointsInOctreeLevel(
         this PointSet self, int level
         )
-        => CountPointsInOctreeLevel(self.Root.Value, level);
+        => CountPointsInOctreeLevel(self.Root.Value.ToPointNode(), level);
 
     /// <summary>
     /// Gets total number of lod-points in all cells at given octree level.
     /// </summary>
     public static long CountPointsInOctreeLevel(
-        this IPointCloudNode node, int level
+        this IPointNode node, int level
         )
     {
         if (level < 0) return 0;
 
-        if (level == 0 || node.IsLeaf())
+        if (level == 0 || node.Children.Length == 0)
         {
-            return node.Positions.Value.Count();
+            return node.Positions.Length;
         }
         else
         {
             var nextLevel = level - 1;
             var sum = 0L;
-            for (var i = 0; i < 8; i++)
+            foreach(var n in node.Children)
             {
-                var n = node.Subnodes![i];
-                if (n == null) continue;
-                sum += CountPointsInOctreeLevel(n.Value, nextLevel);
+                sum += CountPointsInOctreeLevel(n, nextLevel);
             }
             return sum;
         }
@@ -140,7 +138,7 @@ public static partial class Queries
     public static long CountPointsInOctreeLevel(
         this PointSet self, int level, Box3d bounds
         )
-        => CountPointsInOctreeLevel(self.Root.Value, level, bounds);
+        => CountPointsInOctreeLevel(self.Root.Value.ToPointNode(), level, bounds);
 
     /// <summary>
     /// Gets approximate number of points at given octree level within given bounds.
@@ -148,28 +146,23 @@ public static partial class Queries
     /// For performance reasons, in order to avoid per-point bounds checks.
     /// </summary>
     public static long CountPointsInOctreeLevel(
-        this IPointCloudNode node, int level, Box3d bounds
+        this IPointNode node, int level, Box3d bounds
         )
     {
         if (level < 0) return 0;
-        if (!node.BoundingBoxExactGlobal.Intersects(bounds)) return 0;
+        if (!node.DataBounds.Intersects(bounds)) return 0;
 
-        if (level == 0 || node.IsLeaf())
+        if (level == 0 || node.Children.Length == 0)
         {
-            return node.Positions.Value.Length;
+            return node.Positions.Length;
         }
         else
         {
+            var nextLevel = level - 1;
             var sum = 0L;
-            if (node.Subnodes != null)
+            foreach(var n in node.Children)
             {
-                var nextLevel = level - 1;
-                for (var i = 0; i < 8; i++)
-                {
-                    var n = node.Subnodes[i];
-                    if (n == null) continue;
-                    sum += CountPointsInOctreeLevel(n.Value, nextLevel, bounds);
-                }
+                sum += CountPointsInOctreeLevel(n, nextLevel, bounds);
             }
             return sum;
         }
@@ -183,21 +176,21 @@ public static partial class Queries
     public static IEnumerable<Chunk> QueryPointsInOctreeLevel(
         this PointSet self, int level
         )
-        => QueryPointsInOctreeLevel(self.Root.Value, level);
+        => QueryPointsInOctreeLevel(self.Root.Value.ToPointNode(), level);
 
     /// <summary>
     /// Returns LoD points for given octree depth/front, where level 0 is the root node.
     /// Front will include leafs higher up than given level.
     /// </summary>
     public static IEnumerable<Chunk> QueryPointsInOctreeLevel(
-        this IPointCloudNode node, int level
+        this IPointNode node, int level
         )
     {
         if (level < 0) yield break;
 
-        if (level == 0 || node.IsLeaf())
+        if (level == 0 || node.Children.Length == 0)
         {
-            var ps = node.PositionsAbsolute;
+            var ps = node.Positions;
 
             T[]? Verified<T>(T[]? xs, string name)
             {
@@ -214,29 +207,39 @@ public static partial class Queries
                 for (var i = imax; i < ps.Length; i++) rs[i] = lastX;
                 return rs;
             }
-            var cs = Verified(node.TryGetColors4b()?.Value, "colors");
-            var ns = Verified(node.TryGetNormals3f()?.Value, "normals");
-            var js = Verified(node.TryGetIntensities()?.Value, "intensities");
-            var ks = Verified(node.TryGetClassifications()?.Value, "classifications");
-            var qs = node.PartIndices;
+
+            C4b[] cs = null;
+            if(node.TryGetAttribute(PointNodeAttributes.Colors, out var csData) && csData is C4b[] csArr)
+            {
+                cs = Verified(csArr, "colors");
+            }
+            V3f[] ns = null;
+            if(node.TryGetAttribute(PointNodeAttributes.Normals, out var nsData) && nsData is V3f[] nsArr)
+            {
+                ns = Verified(nsArr, "normals");
+            }
+            int[] js = null;
+            if(node.TryGetAttribute(PointNodeAttributes.Intensities, out var jsData) && jsData is int[] jsArr)
+            {
+                js = Verified(jsArr, "intensities");
+            }
+            byte[] ks = null;
+            if(node.TryGetAttribute(PointNodeAttributes.Classifications, out var ksData) && ksData is byte[] ksArr)
+            {
+                ks = Verified(ksArr, "classifications");
+            }
+            node.TryGetAttribute(PointNodeAttributes.PartIndices, out var qs);
 
             var chunk = new Chunk(ps, cs, ns, js, ks, qs, partIndexRange: null, bbox: null);
             yield return chunk;
         }
         else
         {
-            if (node.Subnodes == null) yield break;
-
-            for (var i = 0; i < 8; i++)
-            {
-                var n = node.Subnodes[i];
-                if (n == null) continue;
-                foreach (var x in QueryPointsInOctreeLevel(n.Value, level - 1)) yield return x;
+            foreach (var c in node.Children) {
+                foreach (var x in QueryPointsInOctreeLevel(c, level - 1)) yield return x;
             }
         }
     }
-
-
 
     /// <summary>
     /// Returns lod points for given octree depth/front of cells intersecting given bounds, where level 0 is the root node.
@@ -245,37 +248,27 @@ public static partial class Queries
     public static IEnumerable<Chunk> QueryPointsInOctreeLevel(
         this PointSet self, int level, Box3d bounds
         )
-        => QueryPointsInOctreeLevel(self.Root.Value, level, bounds);
+        => QueryPointsInOctreeLevel(self.Root.Value.ToPointNode(), level, bounds);
 
     /// <summary>
     /// Returns lod points for given octree depth/front of cells intersecting given bounds, where level 0 is the root node.
     /// Front will include leafs higher up than given level.
     /// </summary>
     public static IEnumerable<Chunk> QueryPointsInOctreeLevel(
-        this IPointCloudNode node, int level, Box3d bounds
+        this IPointNode node, int level, Box3d bounds
         )
     {
         if (level < 0) yield break;
-        if (!node.BoundingBoxExactGlobal.Intersects(bounds)) yield break;
+        if (!node.DataBounds.Intersects(bounds)) yield break;
 
-        if (level == 0 || node.IsLeaf())
+        if (level == 0 || node.Children.Length == 0)
         {
-            var chunk = new Chunk(
-                node.PositionsAbsolute, node.Colors?.Value, node.Normals?.Value, node.Intensities?.Value, node.Classifications?.Value,
-                node.PartIndices, partIndexRange: null,
-                bbox: null
-                );
-            yield return chunk;
+            yield return node.ToChunk();
         }
         else
         {
-            if (node.Subnodes == null) yield break;
-
-            for (var i = 0; i < 8; i++)
-            {
-                var n = node.Subnodes[i];
-                if (n == null) continue;
-                foreach (var x in QueryPointsInOctreeLevel(n.Value, level - 1, bounds)) yield return x;
+            foreach(var c in node.Children) {
+                foreach (var x in QueryPointsInOctreeLevel(c, level - 1, bounds)) yield return x;
             }
         }
     }

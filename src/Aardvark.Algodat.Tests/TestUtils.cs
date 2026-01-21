@@ -15,7 +15,7 @@ namespace Aardvark.Geometry.Tests
             set.Root?.Value?.ValidateTree(set.SplitLimit, hasLod);
         }
 
-        public static void ValidateTree(this IPointCloudNode node, int splitLimit, bool hasLod = true)
+        public static void ValidateTree(this IPointCloudNodeOld node, int splitLimit, bool hasLod = true)
         {
             if (node != null)
             {
@@ -74,7 +74,7 @@ namespace Aardvark.Geometry.Tests
         }
 
 
-        public static bool NoPointIn(this IPointCloudNode node, Func<V3d, bool> bad) =>
+        public static bool NoPointIn(this IPointCloudNodeOld node, Func<V3d, bool> bad) =>
             node == null || (
                 !node.PositionsAbsolute.Any(p => bad(p)) &&
                 (node.IsLeaf || node.Subnodes.All(c => c?.Value?.NoPointIn(bad) ?? true))

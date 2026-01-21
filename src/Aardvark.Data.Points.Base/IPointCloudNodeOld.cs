@@ -27,7 +27,7 @@ namespace Aardvark.Geometry.Points
     /// <summary>
     /// An immutable point cloud octree node.
     /// </summary>
-    public interface IPointCloudNode
+    public interface IPointCloudNodeOld
     {
         /// <summary>
         /// Backing store.
@@ -48,12 +48,12 @@ namespace Aardvark.Geometry.Points
         /// Returns materialized version of this node.
         /// E.g. a non-materialized filtered node is converted into a PointSetNode (which is stored in Storage).
         /// </summary>
-        IPointCloudNode Materialize();
+        IPointCloudNodeOld Materialize();
 
         /// <summary>
         /// Writes this node to store.
         /// </summary>
-        IPointCloudNode WriteToStore();
+        IPointCloudNodeOld WriteToStore();
 
         /// <summary>
         /// </summary>
@@ -95,12 +95,12 @@ namespace Aardvark.Geometry.Points
         /// Entries are null if there is no subnode.
         /// There is at least 1 non-null entry.
         /// </summary>
-        PersistentRef<IPointCloudNode>?[]? Subnodes { get; }
+        PersistentRef<IPointCloudNodeOld>?[]? Subnodes { get; }
 
         /// <summary>
         /// Returns new node with replaced subnodes.
         /// </summary>
-        IPointCloudNode WithSubNodes(IPointCloudNode?[] subnodes);
+        IPointCloudNodeOld WithSubNodes(IPointCloudNodeOld?[] subnodes);
 
         /// <summary>
         /// Node has no subnodes.
@@ -116,7 +116,7 @@ namespace Aardvark.Geometry.Points
         /// <summary>
         /// Gets given property, or returns false if node has no such property.
         /// </summary>
-        bool TryGetValue(Durable.Def what, [NotNullWhen(true)]out object? o);
+        bool TryGetValue(Durable.Def what, [NotNullWhen(true)] out object? o);
 
         /// <summary>
         /// Gets all properties.
@@ -128,7 +128,7 @@ namespace Aardvark.Geometry.Points
         /// Node is NOT written to store.
         /// Call WriteToStore on the result if you want this.
         /// </summary>
-        IPointCloudNode With(IReadOnlyDictionary<Durable.Def, object> replacements);
+        IPointCloudNodeOld With(IReadOnlyDictionary<Durable.Def, object> replacements);
 
         #region Positions
 
@@ -370,10 +370,10 @@ namespace Aardvark.Geometry.Points
     {
         private PointRkdTreeF<V3f[], V3f> m_tree;
         private V3d m_offset;
-        
+
         public PointRkdTreeF<V3f[], V3f> Tree => m_tree;
         public V3d Offset => m_offset;
-        
+
         public PointKdTree(PointRkdTreeF<V3f[], V3f> tree, V3d offset)
         {
             m_tree = tree;
@@ -392,20 +392,20 @@ namespace Aardvark.Geometry.Points
         public static Symbol Intensities = Symbol.Create("Intensities");
         public static Symbol Classifications = Symbol.Create("Classifications");
         public static Symbol PartIndices = Symbol.Create("PartIndices");
-        
+
     }
 
 
     public interface IPointNode
     {
-        
+
         Box3d CellBounds { get; }
         Box3d DataBounds { get; }
-        
+
         /// <summary>
         /// global world-space positions of the points
         /// </summary>
-        V3d[] Position { get; }
+        V3d[] Positions { get; }
 
         PointKdTree? KdTree { get; }
 
@@ -415,18 +415,23 @@ namespace Aardvark.Geometry.Points
         IPointNode[] Children { get; }
     }
 
-    internal class PointNodeAdapter : IPointNode
+    public class PointNodeAdapter : IPointNode
     {
-        private IPointCloudNode m_node;
+        private IPointCloudNodeOld m_node;
 
-        public PointNodeAdapter(IPointCloudNode node)
+        public PointNodeAdapter(IPointCloudNodeOld node)
         {
             m_node = node;
         }
-        
+
+        public IPointCloudNodeOld OriginalNode => m_node;
         public Box3d CellBounds => m_node.Cell.BoundingBox;
-        public Box3d DataBounds => m_node.HasBoundingBoxExactGlobal ? m_node.BoundingBoxExactGlobal : m_node.Cell.BoundingBox;
-        public V3d[] Position => m_node.PositionsAbsolute;
+
+        public Box3d DataBounds =>
+            m_node.HasBoundingBoxExactGlobal ? m_node.BoundingBoxExactGlobal : m_node.Cell.BoundingBox;
+
+        public V3d[] Positions => m_node.PositionsAbsolute;
+
         public PointKdTree? KdTree
         {
             get
@@ -436,10 +441,11 @@ namespace Aardvark.Geometry.Points
                     var kdTreeF = m_node.KdTree.Value;
                     return new PointKdTree(kdTreeF, m_node.Center);
                 }
+
                 return null;
             }
         }
-            
+
         public bool TryGetAttribute(Symbol attName, out Array data)
         {
             if (attName == PointNodeAttributes.Positions)
@@ -447,27 +453,32 @@ namespace Aardvark.Geometry.Points
                 data = m_node.PositionsAbsolute;
                 return true;
             }
+
             if (attName == PointNodeAttributes.Normals && m_node.HasNormals)
             {
                 data = m_node.Normals!.Value;
                 return true;
             }
+
             if (attName == PointNodeAttributes.Colors && m_node.HasColors)
             {
                 data = m_node.Colors!.Value;
                 return true;
             }
+
             if (attName == PointNodeAttributes.Intensities && m_node.HasIntensities)
             {
                 data = m_node.Intensities!.Value;
                 return true;
             }
+
             if (attName == PointNodeAttributes.Classifications && m_node.HasClassifications)
             {
                 data = m_node.Classifications!.Value;
                 return true;
             }
-            if(attName == PointNodeAttributes.PartIndices && m_node.HasPartIndices) 
+
+            if (attName == PointNodeAttributes.PartIndices && m_node.HasPartIndices)
             {
                 data = PartIndexUtils.Expand(m_node.PartIndices, m_node.PointCountCell)!;
                 return true;
@@ -476,14 +487,14 @@ namespace Aardvark.Geometry.Points
             data = null!;
             return false;
         }
-        
+
         public IPointNode[] Children
         {
             get
             {
                 if (m_node.IsLeaf || m_node.Subnodes == null)
                     return [];
-                
+
                 var children = new List<IPointNode>();
                 foreach (var subnodeRef in m_node.Subnodes)
                 {
@@ -496,21 +507,173 @@ namespace Aardvark.Geometry.Points
                         }
                     }
                 }
+
                 return children.ToArray();
             }
         }
-        
-        
-        
+
+
+
     }
 
 
     public static class PointCloudAdapterExtensions
     {
-        public static IPointNode ToPointNode(this IPointCloudNode node)
+        public static IPointNode ToPointNode(this IPointCloudNodeOld node)
         {
             return new PointNodeAdapter(node);
         }
-    }
 
+        public static Chunk ToChunk(this IPointNode node, HashSet<int> filter)
+        {
+            var positions = node.Positions;
+            var filteredPositions = new V3d[filter.Count];
+            C4b[]? filteredColors = null;
+            V3f[]? filteredNormals = null;
+            int[]? filteredIntensities = null;
+            byte[]? filteredClassifications = null;
+            object? filteredPartIndices = null;
+            Range1i? filteredPartIndexRange = null;
+
+            var bb = Box3d.Invalid;
+            var index = 0;
+            foreach (var i in filter)
+            {
+                filteredPositions[index++] = positions[i];
+                bb.ExtendBy(positions[i]);
+            }
+
+            if (node.TryGetAttribute(PointNodeAttributes.Colors, out var colorsObj) && colorsObj is C4b[] colors)
+            {
+                filteredColors = new C4b[filter.Count];
+                index = 0;
+                foreach (var i in filter)
+                {
+                    filteredColors[index++] = colors[i];
+                }
+            }
+
+            if (node.TryGetAttribute(PointNodeAttributes.Normals, out var normalsObj) && normalsObj is V3f[] normals)
+            {
+                filteredNormals = new V3f[filter.Count];
+                index = 0;
+                foreach (var i in filter)
+                {
+                    filteredNormals[index++] = normals[i];
+                }
+            }
+
+            if (node.TryGetAttribute(PointNodeAttributes.Intensities, out var intensitiesObj) &&
+                intensitiesObj is int[] intensities)
+            {
+                filteredIntensities = new int[filter.Count];
+                index = 0;
+                foreach (var i in filter)
+                {
+                    filteredIntensities[index++] = intensities[i];
+                }
+            }
+
+            if (node.TryGetAttribute(PointNodeAttributes.Classifications, out var classificationsObj) &&
+                classificationsObj is byte[] classifications)
+            {
+                filteredClassifications = new byte[filter.Count];
+                index = 0;
+                foreach (var i in filter)
+                {
+                    filteredClassifications[index++] = classifications[i];
+                }
+            }
+
+            if (node.TryGetAttribute(PointNodeAttributes.PartIndices, out var partIndicesObj))
+            {
+                var expandedPartIndices = PartIndexUtils.Expand(partIndicesObj, positions.Length);
+                if (expandedPartIndices != null)
+                {
+                    var filteredPartIndicesArray = new int[filter.Count];
+                    index = 0;
+                    foreach (var i in filter)
+                    {
+                        filteredPartIndicesArray[index++] = expandedPartIndices[i];
+                    }
+
+                    filteredPartIndices = filteredPartIndicesArray;
+                }
+            }
+
+            if (filteredPartIndices != null)
+            {
+                var partIndicesArray = (int[])filteredPartIndices;
+                int minPartIndex = int.MaxValue;
+                int maxPartIndex = int.MinValue;
+                foreach (var partIndex in partIndicesArray)
+                {
+                    if (partIndex < minPartIndex) minPartIndex = partIndex;
+                    if (partIndex > maxPartIndex) maxPartIndex = partIndex;
+                }
+
+                filteredPartIndexRange = new Range1i(minPartIndex, maxPartIndex);
+            }
+
+            return new Chunk(filteredPositions, filteredColors, filteredNormals, filteredIntensities,
+                filteredClassifications, filteredPartIndices, filteredPartIndexRange, bb);
+        }
+
+        public static Chunk ToChunk(this IPointNode node)
+        {
+            var positions = node.Positions;
+            C4b[]? filteredColors = null;
+            V3f[]? filteredNormals = null;
+            int[]? filteredIntensities = null;
+            byte[]? filteredClassifications = null;
+            object? filteredPartIndices = null;
+            Range1i? filteredPartIndexRange = null;
+
+
+            if (node.TryGetAttribute(PointNodeAttributes.Colors, out var colorsObj) && colorsObj is C4b[] colors)
+            {
+                filteredColors = colors;
+            }
+
+            if (node.TryGetAttribute(PointNodeAttributes.Normals, out var normalsObj) && normalsObj is V3f[] normals)
+            {
+                filteredNormals = normals;
+            }
+
+            if (node.TryGetAttribute(PointNodeAttributes.Intensities, out var intensitiesObj) &&
+                intensitiesObj is int[] intensities)
+            {
+                filteredIntensities = intensities;
+            }
+
+            if (node.TryGetAttribute(PointNodeAttributes.Classifications, out var classificationsObj) &&
+                classificationsObj is byte[] classifications)
+            {
+                filteredClassifications = classifications;
+            }
+
+            if (node.TryGetAttribute(PointNodeAttributes.PartIndices, out var partIndicesObj))
+            {
+                var expandedPartIndices = PartIndexUtils.Expand(partIndicesObj, positions.Length);
+                if (expandedPartIndices != null)
+                {
+                    int minPartIndex = int.MaxValue;
+                    int maxPartIndex = int.MinValue;
+                    foreach (var partIndex in expandedPartIndices)
+                    {
+                        if (partIndex < minPartIndex) minPartIndex = partIndex;
+                        if (partIndex > maxPartIndex) maxPartIndex = partIndex;
+                    }
+
+                    filteredPartIndices = expandedPartIndices;
+                    filteredPartIndexRange = new Range1i(minPartIndex, maxPartIndex);
+                }
+            }
+
+            return new Chunk(positions, filteredColors, filteredNormals, filteredIntensities, filteredClassifications,
+                filteredPartIndices, filteredPartIndexRange, node.DataBounds);
+
+        }
+
+    }
 }

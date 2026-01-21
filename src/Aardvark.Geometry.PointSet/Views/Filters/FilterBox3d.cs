@@ -38,30 +38,33 @@ public class FilterInsideBox3d(Box3d filter) : ISpatialFilter
     public bool IsFullyOutside(Box3d box) => !Box.Intersects(box);
 
     /// <summary></summary>
-    public bool IsFullyInside(IPointCloudNode node) => IsFullyInside(node.BoundingBoxExactGlobal);
+    public bool IsFullyInside(IPointNode node) => IsFullyInside(node.DataBounds);
 
     /// <summary></summary>
-    public bool IsFullyOutside(IPointCloudNode node) => IsFullyOutside(node.BoundingBoxExactGlobal);
+    public bool IsFullyOutside(IPointNode node) => IsFullyOutside(node.DataBounds);
     /// <summary></summary>
-    public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null)
+    public HashSet<int> FilterPoints(IPointNode node, HashSet<int>? selected = null)
     {
+        var p = node.Positions;
+        var contained = new HashSet<int>();
         if (selected != null)
         {
-            var c = node.Center;
-            var ps = node.Positions.Value;
-            return [.. selected.Where(i => Box.Contains(c + (V3d)ps[i]))];
+            foreach (var i in selected)
+            {
+                if(Box.Contains(p[i]))
+                {
+                    contained.Add(i);
+                }
+            }
         }
         else
         {
-            var c = node.Center;
-            var ps = node.Positions.Value;
-            var result = new HashSet<int>();
-            for (var i = 0; i < ps.Length; i++)
+            for (var i = 0; i < p.Length; i++)
             {
-                if (Box.Contains(c + (V3d)ps[i])) result.Add(i);
+                if (Box.Contains(p[i])) contained.Add(i);
             }
-            return result;
         }
+        return contained;
     }
 
     /// <summary></summary>
@@ -102,30 +105,34 @@ public class FilterOutsideBox3d(Box3d filter) : ISpatialFilter
     public bool IsFullyOutside(Box3d box) => Box.Contains(box);
 
     /// <summary></summary>
-    public bool IsFullyInside(IPointCloudNode node) => IsFullyInside(node.BoundingBoxExactGlobal);
+    public bool IsFullyInside(IPointNode node) => IsFullyInside(node.DataBounds);
 
     /// <summary></summary>
-    public bool IsFullyOutside(IPointCloudNode node) => IsFullyOutside(node.BoundingBoxExactGlobal);
+    public bool IsFullyOutside(IPointNode node) => IsFullyOutside(node.DataBounds);
 
     /// <summary></summary>
-    public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null)
+    public HashSet<int> FilterPoints(IPointNode node, HashSet<int>? selected = null)
     {
-        var c = node.Center;
-        var xs = node.Positions.Value;
-
+        var p = node.Positions;
+        var contained = new HashSet<int>();
         if (selected != null)
         {
-            return [.. selected.Where(i => Box.Contains(c + (V3d)xs[i]))];
+            foreach (var i in selected)
+            {
+                if(!Box.Contains(p[i]))
+                {
+                    contained.Add(i);
+                }
+            }
         }
         else
         {
-            var result = new HashSet<int>();
-            for (var i = 0; i < xs.Length; i++)
+            for (var i = 0; i < p.Length; i++)
             {
-                if (Box.Contains(c + (V3d)xs[i])) result.Add(i);
+                if (!Box.Contains(p[i])) contained.Add(i);
             }
-            return result;
         }
+        return contained;
     }
 
     /// <summary></summary>

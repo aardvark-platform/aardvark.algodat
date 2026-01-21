@@ -39,7 +39,7 @@ public static class LodExtensions
         return fractions;
     }
 
-    internal static double[] ComputeLodFractions(IPointCloudNode?[] subnodes)
+    internal static double[] ComputeLodFractions(IPointCloudNodeOld?[] subnodes)
     {
         if (subnodes.Length != 8) throw new ArgumentOutOfRangeException(nameof(subnodes));
 
@@ -323,7 +323,7 @@ public static class LodExtensions
         return result.Result;
     }
 
-    internal static async Task<IPointCloudNode> GenerateLod(this PointSetNode self,
+    internal static async Task<IPointCloudNodeOld> GenerateLod(this PointSetNode self,
         int octreeSplitLimit, Action callback,
         CancellationToken ct)
     {
@@ -392,7 +392,7 @@ public static class LodExtensions
             //////////////////////////////////////////////////////////////////
             // generate LoD data ...
 
-            bool subnodesHaveAttribute(Func<IPointCloudNode, bool> check, string kind)
+            bool subnodesHaveAttribute(Func<IPointCloudNodeOld, bool> check, string kind)
             {
                 var has = 0; var hasNot = 0;
                 foreach (var n in subcells)
@@ -459,7 +459,7 @@ public static class LodExtensions
             store?.Add(lodNsKey, lodNs);
             upsertData = upsertData.Add(Durable.Octree.Normals3fReference, lodNsKey);
 
-            void addAttributeByRef<T>(string kind, Durable.Def def, Func<IPointCloudNode, bool> has, Func<IPointCloudNode?, T[]?> getData)
+            void addAttributeByRef<T>(string kind, Durable.Def def, Func<IPointCloudNodeOld, bool> has, Func<IPointCloudNodeOld?, T[]?> getData)
             {
                 var hasAttribute = subnodesHaveAttribute(has, kind);
                 if (hasAttribute)

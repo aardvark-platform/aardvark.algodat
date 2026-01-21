@@ -31,7 +31,7 @@ namespace Aardvark.Geometry.Tests
         private static V3f[] RandomPositions(int n) => new V3f[n].SetByIndex(_ => RandomPosition());
         private static int[] RandomIntensities(int n) => new int[n].SetByIndex(_ => -999 + r.Next(1998));
 
-        private static IPointCloudNode CreateNode(Storage storage, V3f[] psGlobal, int[] intensities = null)
+        private static IPointCloudNodeOld CreateNode(Storage storage, V3f[] psGlobal, int[] intensities = null)
         {
             var id = Guid.NewGuid();
             var cell = new Cell(psGlobal);
@@ -71,7 +71,7 @@ namespace Aardvark.Geometry.Tests
             return result;
         }
 
-        private static void CheckPartIndices(IPointCloudNode n)
+        private static void CheckPartIndices(IPointCloudNodeOld n)
         {
             if (n.TryGetPartIndices(out var qs))
             {
@@ -359,7 +359,7 @@ namespace Aardvark.Geometry.Tests
             var a = CreateNode(storage, RandomPositions(100));
 
             var f = (FilteredNode)FilteredNode.Create(a, new FilterInsideBox3d(a.BoundingBoxExactGlobal + new V3d(0.5, 0.0, 0.0)));
-            var buffer = ((IPointCloudNode)f).Encode();
+            var buffer = ((IPointCloudNodeOld)f).Encode();
             ClassicAssert.IsTrue(buffer != null);
 
             CheckPartIndices(f);

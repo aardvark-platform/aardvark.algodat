@@ -205,12 +205,12 @@ public class InlinedNodes
     public Box3d BoundingBoxExactGlobal => Root.BoundingBoxExactGlobal;
     public Cell Cell => Root.Cell;
     public long PointCountTreeLeafs => Root.PointCountTreeLeafs;
-    public IPointCloudNode NativeRootNode { get;  } 
+    public IPointCloudNodeOld NativeRootNode { get;  } 
     public Guid RootId => Root.NodeId;
     public V3d Centroid { get; }
     public double CentroidStdDev { get; }
 
-    public InlinedNodes(InlineConfig config, IPointCloudNode nativeRootNode, InlinedNode root, IEnumerable<InlinedNode> nodes, long totalNodeCount)
+    public InlinedNodes(InlineConfig config, IPointCloudNodeOld nativeRootNode, InlinedNode root, IEnumerable<InlinedNode> nodes, long totalNodeCount)
     {
         Config = config;
         NativeRootNode = nativeRootNode;
@@ -269,7 +269,7 @@ public static class InlineExtensions
     /// Enumerate inlined (self-contained, no external data is referenced) octree nodes.
     /// </summary>
     public static InlinedNodes EnumerateOctreeInlined(
-        this IPointCloudNode root, InlineConfig config
+        this IPointCloudNodeOld root, InlineConfig config
         )
     {
         if (root == null) throw new ArgumentNullException(nameof(root));
@@ -284,13 +284,13 @@ public static class InlineExtensions
             -1
             );
 
-        static IEnumerable<InlinedNode> EnumerateRec(IPointCloudNode root, InlineConfig config)
+        static IEnumerable<InlinedNode> EnumerateRec(IPointCloudNodeOld root, InlineConfig config)
         {
             var survive = new HashSet<Guid> { root.Id };
             foreach (var x in EnumerateRecImpl(root, survive, config, 0L)) yield return x;
         }
 
-        static IEnumerable<InlinedNode> EnumerateRecImpl(IPointCloudNode node, HashSet<Guid> survive, InlineConfig config, long processedNodeCount)
+        static IEnumerable<InlinedNode> EnumerateRecImpl(IPointCloudNodeOld node, HashSet<Guid> survive, InlineConfig config, long processedNodeCount)
         {
             var isLeafNode = node.IsLeaf;
 
@@ -343,7 +343,7 @@ public static class InlineExtensions
     /// <summary>
     /// Inlines and exports pointset to another store.
     /// </summary>
-    public static void ExportInlinedPointCloud(this IPointCloudNode root, Storage targetStore, InlineConfig config)
+    public static void ExportInlinedPointCloud(this IPointCloudNodeOld root, Storage targetStore, InlineConfig config)
     {
         Report.BeginTimed("inlining octree");
 
@@ -370,7 +370,7 @@ public static class InlineExtensions
     #region Helpers
 
     private static InlinedNode ConvertToInline(
-        this IPointCloudNode node,
+        this IPointCloudNodeOld node,
         InlineConfig config,
         HashSet<Guid> survive
         )

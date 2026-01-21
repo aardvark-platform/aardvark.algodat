@@ -64,7 +64,7 @@ public static class MergeExtensions
         }
         return eq;
     }
-    private static bool DidMergeWork(IPointCloudNode x, IPointCloudNode y,IPointCloudNode m)
+    private static bool DidMergeWork(IPointCloudNodeOld x, IPointCloudNodeOld y,IPointCloudNodeOld m)
     {
         object? xqs = null;
         object? mqs = null;
@@ -109,7 +109,7 @@ public static class MergeExtensions
     /// Collects all leaf per-point properties into given lists.
     /// Returns number of leaves that have been collected.
     /// </summary>
-    internal static int CollectEverything(IPointCloudNode self, List<V3d> ps, List<C4b>? cs, List<V3f>? ns, List<int>? js, List<byte>? ks, ref object? qs)
+    internal static int CollectEverything(IPointCloudNodeOld self, List<V3d> ps, List<C4b>? cs, List<V3f>? ns, List<int>? js, List<byte>? ks, ref object? qs)
     {
         if (self == null) return 0;
 
@@ -145,7 +145,7 @@ public static class MergeExtensions
         }
     }
 
-    internal static (IPointCloudNode, bool) CollapseLeafNodes(this IPointCloudNode self, ImportConfig config)
+    internal static (IPointCloudNodeOld, bool) CollapseLeafNodes(this IPointCloudNodeOld self, ImportConfig config)
     {
         if (!self.IsTemporaryImportNode) throw new InvalidOperationException(
             "CollapseLeafNodes is only valid for temporary import nodes. Invariant 4aa0809d-4cb0-422b-97ee-fa5b6dc4785e."
@@ -325,7 +325,7 @@ public static class MergeExtensions
     /// If node is a leaf, it will be split once (non-recursive, without taking into account any split limit).
     /// If node is not a leaf, this is an invalid operation.
     /// </summary>
-    internal static IPointCloudNode ForceSplitLeaf(this IPointCloudNode self, ImportConfig config)
+    internal static IPointCloudNodeOld ForceSplitLeaf(this IPointCloudNodeOld self, ImportConfig config)
     {
         if (!self.IsTemporaryImportNode) throw new InvalidOperationException(
             "ForceSplitLeaf is only valid for temporary import nodes. Invariant 3bfca971-be98-45b7-86e7-de436b78cefb."
@@ -423,7 +423,7 @@ public static class MergeExtensions
     /// <summary>
     /// Returns union of trees as new tree (immutable operation).
     /// </summary>
-    public static (IPointCloudNode, bool) Merge(this IPointCloudNode a, IPointCloudNode b, Action<long> pointsMergedCallback, ImportConfig config)
+    public static (IPointCloudNodeOld, bool) Merge(this IPointCloudNodeOld a, IPointCloudNodeOld b, Action<long> pointsMergedCallback, ImportConfig config)
     {
         if (!a.IsTemporaryImportNode || !b.IsTemporaryImportNode) throw new InvalidOperationException(
             "Merge is only allowed on temporary import nodes. Invariant d53042e7-a032-47a9-98dc-034c0749a649."
@@ -579,7 +579,7 @@ public static class MergeExtensions
         if (a.Cell.IsCenteredAtOrigin || b.Cell.IsCenteredAtOrigin)
         {
             // enumerate all non-IsCenteredAtOrigin (sub)cells of A and B
-            var parts = new List<IPointCloudNode?>();
+            var parts = new List<IPointCloudNodeOld?>();
             if (a.Cell.IsCenteredAtOrigin)
             {
                 if (a.IsLeaf)
@@ -619,7 +619,7 @@ public static class MergeExtensions
             }
 
             // special case: there is only 1 part -> finished
-            List<IPointCloudNode> partsNonNull = parts.Where(x => x != null).ToList()!;
+            List<IPointCloudNodeOld> partsNonNull = parts.Where(x => x != null).ToList()!;
             if (partsNonNull.Count == 0) throw new InvalidOperationException();
             if (partsNonNull.Count == 1)
             {
@@ -631,7 +631,7 @@ public static class MergeExtensions
 
             // common case: multiple parts
             var rootCell = new Cell(a.Cell, b.Cell);
-            var roots = new IPointCloudNode[8];
+            var roots = new IPointCloudNodeOld[8];
 
             static int octant(Cell x)
             {
@@ -644,7 +644,7 @@ public static class MergeExtensions
             {
                 var oi = octant(x.Cell);
                 var oct = rootCell.GetOctant(oi);
-                IPointCloudNode r;
+                IPointCloudNodeOld r;
                 if (roots[oi] == null)
                 {
                     if (x.Cell != oct)
@@ -712,7 +712,7 @@ public static class MergeExtensions
         var isExactlyOne = false;
 #endif
         var processedPointCount = 0L;
-        IPointCloudNode?[] subcells = a.Subnodes?.Map(x => x?.Value) ?? new IPointCloudNode?[8];
+        IPointCloudNodeOld?[] subcells = a.Subnodes?.Map(x => x?.Value) ?? new IPointCloudNodeOld?[8];
         for (var i = 0; i < 8; i++)
         {
             var subcellIndex = a.Cell.GetOctant(i);
@@ -740,7 +740,7 @@ public static class MergeExtensions
 #if DEBUG
         if (!isExactlyOne) throw new InvalidOperationException();
 #endif
-        IPointCloudNode result2;
+        IPointCloudNodeOld result2;
         if (a.IsLeaf)
         {
             result2 = a.WithSubNodes(subcells!);
@@ -768,7 +768,7 @@ public static class MergeExtensions
         return rs;
     }
     
-    private static IPointCloudNode JoinNonOverlappingTrees(Cell rootCell, IPointCloudNode a, IPointCloudNode b,
+    private static IPointCloudNodeOld JoinNonOverlappingTrees(Cell rootCell, IPointCloudNodeOld a, IPointCloudNodeOld b,
         Action<long> pointsMergedCallback, ImportConfig config
         )
     {
@@ -825,7 +825,7 @@ public static class MergeExtensions
             if (a.PointCountCell != 0) throw new InvalidOperationException();
 #endif
 
-            var subcells = new IPointCloudNode?[8];
+            var subcells = new IPointCloudNodeOld?[8];
             for (var i = 0; i < 8; i++)
             {
                 var rootCellOctant = rootCell.GetOctant(i);
@@ -907,7 +907,7 @@ public static class MergeExtensions
             if (b.Cell.IsCenteredAtOrigin) throw new InvalidOperationException();
 #endif
 
-            var subcells = new IPointCloudNode[8];
+            var subcells = new IPointCloudNodeOld[8];
             var doneA = false;
             var doneB = false;
             for (var i = 0; i < 8; i++)
@@ -967,7 +967,7 @@ public static class MergeExtensions
 #endregion
     }
 
-    internal static IPointCloudNode JoinTreeToRootCell(Cell rootCell, IPointCloudNode a, ImportConfig config, bool collapse = true)
+    internal static IPointCloudNodeOld JoinTreeToRootCell(Cell rootCell, IPointCloudNodeOld a, ImportConfig config, bool collapse = true)
     {
         if (!rootCell.Contains(a.Cell)) throw new InvalidOperationException();
 
@@ -977,7 +977,7 @@ public static class MergeExtensions
         }
         if (rootCell == a.Cell) return a;
 
-        var subcells = new IPointCloudNode[8];
+        var subcells = new IPointCloudNodeOld[8];
         for (var i = 0; i < 8; i++)
         {
             var subcell = rootCell.GetOctant(i);
@@ -996,7 +996,7 @@ public static class MergeExtensions
 
         if (a.HasPartIndexRange) data = data.Add(Durable.Octree.PartIndexRange, a.PartIndexRange);
 
-        var result = (IPointCloudNode)new PointSetNode(data, config.Storage, writeToStore: false);
+        var result = (IPointCloudNodeOld)new PointSetNode(data, config.Storage, writeToStore: false);
         if (collapse) result = result.CollapseLeafNodes(config).Item1;
         else result = result.WriteToStore();
 
@@ -1004,7 +1004,7 @@ public static class MergeExtensions
         return result;
     }
 
-    private static IPointCloudNode MergeLeafAndLeafWithIdenticalRootCell(IPointCloudNode a, IPointCloudNode b, ImportConfig config)
+    private static IPointCloudNodeOld MergeLeafAndLeafWithIdenticalRootCell(IPointCloudNodeOld a, IPointCloudNodeOld b, ImportConfig config)
     {
         if (!a.IsTemporaryImportNode || !b.IsTemporaryImportNode) throw new InvalidOperationException(
             "MergeLeafAndLeafWithIdenticalRootCell is only valid for temporary import nodes. Invariant 2d68b9d2-a001-47a8-b481-87488f33b85d."
@@ -1039,7 +1039,7 @@ public static class MergeExtensions
         return result;
     }
 
-    private static IPointCloudNode MergeLeafAndTreeWithIdenticalRootCell(IPointCloudNode a, IPointCloudNode b, ImportConfig config)
+    private static IPointCloudNodeOld MergeLeafAndTreeWithIdenticalRootCell(IPointCloudNodeOld a, IPointCloudNodeOld b, ImportConfig config)
     {
         if (a == null) throw new ArgumentNullException(nameof(a));
         if (b == null) throw new ArgumentNullException(nameof(b));
@@ -1053,7 +1053,7 @@ public static class MergeExtensions
         return result;
     }
 
-    private static IPointCloudNode MergeTreeAndTreeWithIdenticalRootCell(IPointCloudNode a, IPointCloudNode b,
+    private static IPointCloudNodeOld MergeTreeAndTreeWithIdenticalRootCell(IPointCloudNodeOld a, IPointCloudNodeOld b,
         Action<long> pointsMergedCallback,
         ImportConfig config
         )
@@ -1065,7 +1065,7 @@ public static class MergeExtensions
         if (a.HasPartIndexRange != b.HasPartIndexRange) throw new Exception("Invariant 0103f130-f022-42e5-8efc-da4e5747177a.");
 
         var pointCountTree = 0L;
-        var subcells = new IPointCloudNode?[8];
+        var subcells = new IPointCloudNodeOld?[8];
         var subcellsDebug = new int[8];
         Range1i? qsRange = null;
         for (var i = 0; i < 8; i++)
@@ -1150,9 +1150,9 @@ public static class MergeExtensions
         return node;
     }
 
-    private static IPointCloudNode InjectPointsIntoTree(
+    private static IPointCloudNodeOld InjectPointsIntoTree(
         IList<V3d> psAbsolute, IList<C4b>? cs, IList<V3f>? ns, IList<int>? js, IList<byte>? ks, object? qs,
-        IPointCloudNode a, Cell cell, ImportConfig config
+        IPointCloudNodeOld a, Cell cell, ImportConfig config
         )
     {
         if (a != null && !a.IsTemporaryImportNode) throw new InvalidOperationException(
@@ -1227,7 +1227,7 @@ public static class MergeExtensions
 
         if (pss.Sum(x => x?.Count) != psAbsolute.Count) throw new InvalidOperationException();
 
-        var subcells = new IPointCloudNode?[8];
+        var subcells = new IPointCloudNodeOld?[8];
         for (var j = 0; j < 8; j++)
         {
             var subCell = cell.GetOctant(j);

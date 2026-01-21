@@ -65,26 +65,6 @@ public class FilterInsideConvexHulls3d : ISpatialFilter
     public bool IsFullyInside(Box3d box)
     {
         return Hulls.Any(h => h.Contains(box));
-        //var boxhull = new Hull3d(box);
-        //for(int i = 0; i<Hulls.Length; i++)
-        //{
-        //    var h = Hulls[i];
-        //    var clipped = new Hull3d(h.PlaneArray.Append(boxhull.PlaneArray));
-        //    var corners = clipped.ComputeCorners();
-
-        //    var interior =
-        //        corners.All(c =>
-        //        {
-        //            for (int j = 0; j < Hulls.Length; j++)
-        //            {
-        //                if (j != i && Hulls[j].Contains(c)) return true;
-        //            }
-        //            return false;
-        //        });
-        //    if (!interior) return false;
-        //}
-        
-        //return Contains(box.Min);
 
     }
 
@@ -93,32 +73,34 @@ public class FilterInsideConvexHulls3d : ISpatialFilter
     public bool IsFullyOutside(Box3d box) => Hulls.All(h => !h.Intersects(box));
 
     /// <summary></summary>
-    public bool IsFullyInside(IPointCloudNode node) => IsFullyInside(node.BoundingBoxExactGlobal);
+    public bool IsFullyInside(IPointNode node) => IsFullyInside(node.DataBounds);
 
     /// <summary></summary>
-    public bool IsFullyOutside(IPointCloudNode node) => IsFullyOutside(node.BoundingBoxExactGlobal);
+    public bool IsFullyOutside(IPointNode node) => IsFullyOutside(node.DataBounds);
 
     /// <summary></summary>
-    public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null)
+    public HashSet<int> FilterPoints(IPointNode node, HashSet<int>? selected = null)
     {
+        var p = node.Positions;
+        var contained = new HashSet<int>();
         if (selected != null)
         {
-            var c = node.Center;
-            var ps = node.Positions.Value;
-            return [.. selected.Where(i => Contains(c + (V3d)ps[i]))];
+            foreach (var i in selected)
+            {
+                if(Contains(p[i]))
+                {
+                    contained.Add(i);
+                }
+            }
         }
         else
         {
-            var c = node.Center;
-            var ps = node.Positions.Value;
-
-            var result = new HashSet<int>();
-            for (var i = 0; i < ps.Length; i++)
+            for (var i = 0; i < p.Length; i++)
             {
-                if (Contains(c + (V3d)ps[i])) result.Add(i);
+                if (Contains(p[i])) contained.Add(i);
             }
-            return result;
         }
+        return contained;
     }
 
     /// <summary></summary>

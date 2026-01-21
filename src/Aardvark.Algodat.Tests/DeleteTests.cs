@@ -228,7 +228,7 @@ namespace Aardvark.Geometry.Tests
                 ClassicAssert.IsTrue(b.Root?.Value.NoPointIn(p => q1.Contains(p)));
                 var c = b.Root?.Value.Delete(n => false, n => false, (p, att) => att.PartIndex == 1, a.Storage, CancellationToken.None, 256);
                 // Did it really delete the partIndex 1?
-                Action<IPointCloudNode> test =
+                Action<IPointCloudNodeOld> test =
                     (node) =>
                     {
                         node.TryGetPartIndices(out int[] indices);

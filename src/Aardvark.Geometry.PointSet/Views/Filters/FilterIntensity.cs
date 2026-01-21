@@ -31,16 +31,16 @@ public class FilterIntensity(Range1i range) : IFilter
     /// <summary></summary>
     public Range1i Range { get; } = range;
 
-    private int[]? GetValues(IPointCloudNode node) => node.HasIntensities ? node.Intensities.Value : null;
+    private int[]? GetValues(IPointNode node) => node.TryGetAttribute(PointNodeAttributes.Intensities, out var data) && data is int[] ? (int[])data : null;
 
     /// <summary></summary>
-    public bool IsFullyInside(IPointCloudNode node) => false;
+    public bool IsFullyInside(IPointNode node) => false;
 
     /// <summary></summary>
-    public bool IsFullyOutside(IPointCloudNode node) => false;
+    public bool IsFullyOutside(IPointNode node) => false;
 
     /// <summary></summary>
-    public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null)
+    public HashSet<int> FilterPoints(IPointNode node, HashSet<int>? selected = null)
     {
         var xs = GetValues(node);
         if (xs == null) return [];

@@ -45,16 +45,16 @@ public class FilterNormalDirection : IFilter
 
     private readonly float m_eps;
 
-    private V3f[]? GetValues(IPointCloudNode node) => node.HasNormals ? node.Normals.Value : null;
+    private V3f[]? GetValues(IPointNode node) => node.TryGetAttribute(PointNodeAttributes.Normals, out var data) && data is V3f[] ? (V3f[])data : null;
 
     /// <summary></summary>
-    public bool IsFullyInside(IPointCloudNode node) => false;
+    public bool IsFullyInside(IPointNode node) => false;
 
     /// <summary></summary>
-    public bool IsFullyOutside(IPointCloudNode node) => false;
+    public bool IsFullyOutside(IPointNode node) => false;
 
     /// <summary></summary>
-    public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null)
+    public HashSet<int> FilterPoints(IPointNode node, HashSet<int>? selected = null)
     {
         var xs = GetValues(node);
         if (xs == null) return [];

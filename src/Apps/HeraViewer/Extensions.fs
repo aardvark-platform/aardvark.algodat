@@ -22,7 +22,7 @@ module GenericList =
 
 [<AutoOpen>]
 module PcExtension = 
-    type IPointCloudNode with
+    type IPointCloudNodeOld with
 
         member node.ToGenericChunk (customAttribs : array<Durable.Def>) =
             let mutable data =
@@ -37,8 +37,8 @@ module PcExtension =
 module Queries = 
 
 
-    let rec QueryPointsCustom (node : IPointCloudNode) (isNodeFullyInside : IPointCloudNode ->bool) 
-                          (isNodeFullyOutside : IPointCloudNode -> bool)
+    let rec QueryPointsCustom (node : IPointCloudNodeOld) (isNodeFullyInside : IPointCloudNodeOld ->bool) 
+                          (isNodeFullyOutside : IPointCloudNodeOld -> bool)
                           (isPositionInside : V3d -> bool) (customAttribs : array<Durable.Def>) (minCellExponent' : Option<int>) = 
 
         let minCellExponent = defaultArg minCellExponent' System.Int32.MinValue

@@ -29,17 +29,17 @@ public static partial class Queries
     public static IEnumerable<Chunk> QueryPointsInsideBoxXY(
         this PointSet self, Box2d query, int minCellExponent = int.MinValue
         )
-        => QueryPointsInsideBoxXY(self.Root.Value, query, minCellExponent);
+        => QueryPointsInsideBoxXY(self.Root.Value.ToPointNode(), query, minCellExponent);
 
     /// <summary>
     /// All points p.XY inside axis-aligned box (including boundary).
     /// </summary>
     public static IEnumerable<Chunk> QueryPointsInsideBoxXY(
-        this IPointCloudNode self, Box2d query, int minCellExponent = int.MinValue
+        this IPointNode self, Box2d query, int minCellExponent = int.MinValue
         )
         => QueryPoints(self,
-            n => query.Contains(n.Cell.BoundingBox.XY),
-            n => !query.Intersects(n.Cell.BoundingBox.XY),
+            n => query.Contains(n.CellBounds.XY),
+            n => !query.Intersects(n.CellBounds.XY),
             p => query.Contains(p.XY),
             minCellExponent);
 
@@ -47,11 +47,11 @@ public static partial class Queries
     /// All points p.XY inside axis-aligned box (including boundary).
     /// </summary>
     public static bool QueryContainsPointsInsideBoxXY(
-        this IPointCloudNode self, Box2d query, int minCellExponent = int.MinValue
+        this IPointNode self, Box2d query, int minCellExponent = int.MinValue
         )
         => QueryContainsPoints(self,
-            n => query.Contains(n.Cell.BoundingBox.XY),
-            n => !query.Intersects(n.Cell.BoundingBox.XY),
+            n => query.Contains(n.CellBounds.XY),
+            n => !query.Intersects(n.CellBounds.XY),
             p => query.Contains(p.XY),
             minCellExponent);
 
@@ -61,17 +61,17 @@ public static partial class Queries
     public static IEnumerable<Chunk> QueryPointsOutsideBoxXY(
         this PointSet self, Box2d query, int minCellExponent = int.MinValue
         )
-        => QueryPointsOutsideBoxXY(self.Root.Value, query, minCellExponent);
+        => QueryPointsOutsideBoxXY(self.Root.Value.ToPointNode(), query, minCellExponent);
 
     /// <summary>
     /// All points p.Y outside axis-aligned box (excluding boundary).
     /// </summary>
     public static IEnumerable<Chunk> QueryPointsOutsideBoxXY(
-        this IPointCloudNode self, Box2d query, int minCellExponent = int.MinValue
+        this IPointNode self, Box2d query, int minCellExponent = int.MinValue
         )
         => QueryPoints(self,
-            n => !query.Intersects(n.BoundingBoxExactGlobal.XY),
-            n => query.Contains(n.BoundingBoxExactGlobal.XY),
+            n => !query.Intersects(n.DataBounds.XY),
+            n => query.Contains(n.DataBounds.XY),
             p => !query.Contains(p.XY),
             minCellExponent);
 
@@ -85,17 +85,17 @@ public static partial class Queries
     public static long CountPointsInsideBoxXY(
         this PointSet self, Box2d query, int minCellExponent = int.MinValue
         )
-        => CountPointsInsideBoxXY(self.Root.Value, query, minCellExponent);
+        => CountPointsInsideBoxXY(self.Root.Value.ToPointNode(), query, minCellExponent);
 
     /// <summary>
     /// Counts points p.XY inside axis-aligned box.
     /// </summary>
     public static long CountPointsInsideBoxXY(
-        this IPointCloudNode self, Box2d query, int minCellExponent = int.MinValue
+        this IPointNode self, Box2d query, int minCellExponent = int.MinValue
         )
         => CountPoints(self,
-            n => query.Contains(n.BoundingBoxExactGlobal.XY),
-            n => !query.Intersects(n.BoundingBoxExactGlobal.XY),
+            n => query.Contains(n.DataBounds.XY),
+            n => !query.Intersects(n.DataBounds.XY),
             p => query.Contains(p.XY),
             minCellExponent);
 
@@ -105,17 +105,17 @@ public static partial class Queries
     public static long CountPointsOutsideBoxXY(
         this PointSet self, Box2d query, int minCellExponent = int.MinValue
         )
-        => CountPointsOutsideBoxXY(self.Root.Value, query, minCellExponent);
+        => CountPointsOutsideBoxXY(self.Root.Value.ToPointNode(), query, minCellExponent);
 
     /// <summary>
     /// Counts points p.XY outside axis-aligned box.
     /// </summary>
     public static long CountPointsOutsideBoxXY(
-        this IPointCloudNode self, Box2d query, int minCellExponent = int.MinValue
+        this IPointNode self, Box2d query, int minCellExponent = int.MinValue
         )
         => CountPoints(self,
-            n => !query.Intersects(n.BoundingBoxExactGlobal.XY),
-            n => query.Contains(n.BoundingBoxExactGlobal.XY),
+            n => !query.Intersects(n.DataBounds.XY),
+            n => query.Contains(n.DataBounds.XY),
             p => !query.Contains(p.XY),
             minCellExponent);
 
@@ -131,7 +131,7 @@ public static partial class Queries
     public static long CountPointsApproximatelyInsideBoxXY(
         this PointSet self, Box2d query, int minCellExponent = int.MinValue
         )
-        => CountPointsApproximatelyInsideBoxXY(self.Root.Value, query, minCellExponent);
+        => CountPointsApproximatelyInsideBoxXY(self.Root.Value.ToPointNode(), query, minCellExponent);
 
     /// <summary>
     /// Counts points p.XY approximately inside axis-aligned box (cell granularity).
@@ -139,11 +139,11 @@ public static partial class Queries
     /// Faster than CountPointsInsideBoxXY.
     /// </summary>
     public static long CountPointsApproximatelyInsideBoxXY(
-        this IPointCloudNode self, Box2d query, int minCellExponent = int.MinValue
+        this IPointNode self, Box2d query, int minCellExponent = int.MinValue
         )
         => CountPointsApproximately(self,
-            n => query.Contains(n.BoundingBoxExactGlobal.XY),
-            n => !query.Intersects(n.BoundingBoxExactGlobal.XY),
+            n => query.Contains(n.DataBounds.XY),
+            n => !query.Intersects(n.DataBounds.XY),
             minCellExponent);
 
     /// <summary>
@@ -154,7 +154,7 @@ public static partial class Queries
     public static long CountPointsApproximatelyOutsideBoxXY(
         this PointSet self, Box2d query, int minCellExponent = int.MinValue
         )
-        => CountPointsApproximatelyOutsideBoxXY(self.Root.Value, query, minCellExponent);
+        => CountPointsApproximatelyOutsideBoxXY(self.Root.Value.ToPointNode(), query, minCellExponent);
 
     /// <summary>
     /// Counts points p.XY approximately outside axis-aligned box (cell granularity).
@@ -162,11 +162,11 @@ public static partial class Queries
     /// Faster than CountPointsOutsideBoxXY.
     /// </summary>
     public static long CountPointsApproximatelyOutsideBoxXY(
-        this IPointCloudNode self, Box2d query, int minCellExponent = int.MinValue
+        this IPointNode self, Box2d query, int minCellExponent = int.MinValue
         )
         => CountPointsApproximately(self,
-            n => !query.Intersects(n.BoundingBoxExactGlobal.XY),
-            n => query.Contains(n.BoundingBoxExactGlobal.XY),
+            n => !query.Intersects(n.DataBounds.XY),
+            n => query.Contains(n.DataBounds.XY),
             minCellExponent);
 
     #endregion

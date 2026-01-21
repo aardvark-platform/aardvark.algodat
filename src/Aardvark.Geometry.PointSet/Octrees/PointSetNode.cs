@@ -29,7 +29,7 @@ namespace Aardvark.Geometry.Points;
 /// <summary>
 /// An immutable point cloud node.
 /// </summary>
-public class PointSetNode : IPointCloudNode
+public class PointSetNode : IPointCloudNodeOld
 {
     private static readonly string GuidEmptyString = Guid.Empty.ToString();
 
@@ -135,11 +135,11 @@ public class PointSetNode : IPointCloudNode
 
         if (Data.TryGetValue(Durable.Octree.SubnodesGuids, out var o) && o is Guid[] subNodeIds)
         {
-            Subnodes = new PersistentRef<IPointCloudNode>[8];
+            Subnodes = new PersistentRef<IPointCloudNodeOld>[8];
             for (var i = 0; i < 8; i++)
             {
                 if (subNodeIds[i] == Guid.Empty) continue;
-                var pRef = new PersistentRef<IPointCloudNode>(subNodeIds[i].ToString(), storage.GetPointCloudNode, storage.TryGetPointCloudNode);
+                var pRef = new PersistentRef<IPointCloudNodeOld>(subNodeIds[i].ToString(), storage.GetPointCloudNode, storage.TryGetPointCloudNode);
                 Subnodes[i] = pRef;
 
 #if DEBUG
@@ -477,7 +477,7 @@ public class PointSetNode : IPointCloudNode
         return this;
     }
 
-    IPointCloudNode IPointCloudNode.WriteToStore() => WriteToStore();
+    IPointCloudNodeOld IPointCloudNodeOld.WriteToStore() => WriteToStore();
 
 #endregion
 
@@ -912,6 +912,7 @@ public class PointSetNode : IPointCloudNode
     {
         get
         {
+            
             if (Data.TryGetValue(Durable.Octree.PerCellPartIndex1i, out var pcpi)) return pcpi;
             else if (Data.TryGetValue(Durable.Octree.PerCellPartIndex1ui, out var pcpui)) return pcpui;
             else if (Data.TryGetValue(Durable.Octree.PerPointPartIndex1b, out var pppi1b)) return pppi1b;
@@ -1103,7 +1104,7 @@ public class PointSetNode : IPointCloudNode
     /// Subnodes (8), or null if leaf.
     /// </summary>
     [JsonIgnore]
-    public readonly PersistentRef<IPointCloudNode>[]? Subnodes;
+    public readonly PersistentRef<IPointCloudNodeOld>[]? Subnodes;
 
     /// <summary>
     /// Center of this node's cell.
@@ -1151,7 +1152,7 @@ public class PointSetNode : IPointCloudNode
     /// All node properties (except Cell, BoundingBoxExactGlobal, PointCountTreeLeafs, and PartIndexRange) are removed, because they would no longer be valid for new subnode data.
     /// Use LodExtensions.GenerateLod to recompute these properties.
     /// </summary>
-    public IPointCloudNode WithSubNodes(IPointCloudNode?[] subnodes)
+    public IPointCloudNodeOld WithSubNodes(IPointCloudNodeOld?[] subnodes)
     {
         if (subnodes == null) throw new ArgumentNullException(nameof(subnodes));
 
@@ -1279,13 +1280,13 @@ public class PointSetNode : IPointCloudNode
 
     #region IPointCloudNode
 
-    Guid IPointCloudNode.Id => Id;
+    Guid IPointCloudNodeOld.Id => Id;
 
-    Cell IPointCloudNode.Cell => Cell;
+    Cell IPointCloudNodeOld.Cell => Cell;
 
-    V3d IPointCloudNode.Center => Center;
+    V3d IPointCloudNodeOld.Center => Center;
 
-    long IPointCloudNode.PointCountTree => PointCountTree;
+    long IPointCloudNodeOld.PointCountTree => PointCountTree;
 
     /// <summary></summary>
     public bool Has(Durable.Def what) => Data.ContainsKey(what);
@@ -1296,7 +1297,7 @@ public class PointSetNode : IPointCloudNode
     /// <summary></summary>
     public IReadOnlyDictionary<Durable.Def, object> Properties => Data;
 
-    Storage IPointCloudNode.Storage => Storage;
+    Storage IPointCloudNodeOld.Storage => Storage;
 
     /// <summary></summary>
     public bool IsMaterialized => true;
@@ -1304,9 +1305,9 @@ public class PointSetNode : IPointCloudNode
     public bool IsEmpty => Id == Guid.Empty;
 
     /// <summary></summary>
-    public IPointCloudNode Materialize() => this;
+    public IPointCloudNodeOld Materialize() => this;
 
-    PersistentRef<IPointCloudNode>[]? IPointCloudNode.Subnodes => Subnodes;
+    PersistentRef<IPointCloudNodeOld>[]? IPointCloudNodeOld.Subnodes => Subnodes;
 
     public Box3d BoundingBoxApproximate
     {
@@ -1334,7 +1335,7 @@ public class PointSetNode : IPointCloudNode
         }        
     }
 
-    IPointCloudNode IPointCloudNode.With(IReadOnlyDictionary<Durable.Def, object> replacements) => With(replacements);
+    IPointCloudNodeOld IPointCloudNodeOld.With(IReadOnlyDictionary<Durable.Def, object> replacements) => With(replacements);
 
     #endregion
 }

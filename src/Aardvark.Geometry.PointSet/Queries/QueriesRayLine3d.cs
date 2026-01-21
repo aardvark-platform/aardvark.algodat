@@ -96,7 +96,7 @@ public static partial class Queries
     /// Points within given distance of a line segment (at most 1000).
     /// </summary>
     public static IEnumerable<Chunk> QueryPointsNearLineSegment(
-        this IPointCloudNode node, Line3d lineSegment, double maxDistanceToRay, int minCellExponent = int.MinValue
+        this IPointCloudNodeOld node, Line3d lineSegment, double maxDistanceToRay, int minCellExponent = int.MinValue
         )
     {
         if (!node.HasPositions) yield break;
@@ -187,7 +187,7 @@ public static partial class Queries
     /// Points within given distance of a line segment (at most 1000).
     /// </summary>
     public static IEnumerable<GenericChunk> QueryPointsNearLineSegmentCustom(
-        this IPointCloudNode node, Line3d lineSegment, double maxDistanceToRay, params Durable.Def[] customAttributes
+        this IPointCloudNodeOld node, Line3d lineSegment, double maxDistanceToRay, params Durable.Def[] customAttributes
         )
         => QueryPointsNearLineSegmentCustom(node, lineSegment, maxDistanceToRay, int.MinValue, customAttributes);
 
@@ -195,7 +195,7 @@ public static partial class Queries
     /// Points within given distance of a line segment (at most 1000).
     /// </summary>
     public static IEnumerable<GenericChunk> QueryPointsNearLineSegmentCustom(
-        this IPointCloudNode node, Line3d lineSegment, double maxDistanceToRay, int minCellExponent, params Durable.Def[] customAttributes
+        this IPointCloudNodeOld node, Line3d lineSegment, double maxDistanceToRay, int minCellExponent, params Durable.Def[] customAttributes
         )
     {
         if (!node.HasPositions) yield break;

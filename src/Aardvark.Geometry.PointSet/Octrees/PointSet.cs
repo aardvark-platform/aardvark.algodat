@@ -76,15 +76,15 @@ public class PointSet
         SplitLimit = splitLimit;
 
         Root = rootCellId != Guid.Empty
-            ? new PersistentRef<IPointCloudNode>(rootCellId.ToString(), storage.GetPointCloudNode, storage.TryGetPointCloudNode)
-            : new PersistentRef<IPointCloudNode>(Guid.Empty, PointSetNode.Empty)
+            ? new PersistentRef<IPointCloudNodeOld>(rootCellId.ToString(), storage.GetPointCloudNode, storage.TryGetPointCloudNode)
+            : new PersistentRef<IPointCloudNodeOld>(Guid.Empty, PointSetNode.Empty)
             ;
     }
 
     /// <summary>
     /// Creates pointset from given root cell.
     /// </summary>
-    public PointSet(Storage storage, string key, IPointCloudNode root, int splitLimit)
+    public PointSet(Storage storage, string key, IPointCloudNodeOld root, int splitLimit)
     {
         if (root == null) throw new ArgumentNullException(nameof(root));
 
@@ -93,8 +93,8 @@ public class PointSet
         SplitLimit = splitLimit;
 
         Root = root.IsEmpty
-            ? new PersistentRef<IPointCloudNode>(Guid.Empty, PointSetNode.Empty)
-            : new PersistentRef<IPointCloudNode>(root.Id.ToString(), storage.GetPointCloudNode, storage.TryGetPointCloudNode)
+            ? new PersistentRef<IPointCloudNodeOld>(Guid.Empty, PointSetNode.Empty)
+            : new PersistentRef<IPointCloudNodeOld>(root.Id.ToString(), storage.GetPointCloudNode, storage.TryGetPointCloudNode)
             ;
     }
 
@@ -124,7 +124,7 @@ public class PointSet
     
     /// <summary>
     /// </summary>
-    public PersistentRef<IPointCloudNode> Root { get; init; }
+    public PersistentRef<IPointCloudNodeOld> Root { get; init; }
 
     #endregion
 
@@ -154,7 +154,7 @@ public class PointSet
         if (octreeId == "" || octreeId == Guid.Empty.ToString()) octreeId = null;
 
         var octreeRef = octreeId != null
-            ? new PersistentRef<IPointCloudNode>(octreeId, storage.GetPointCloudNode, storage.TryGetPointCloudNode)
+            ? new PersistentRef<IPointCloudNodeOld>(octreeId, storage.GetPointCloudNode, storage.TryGetPointCloudNode)
             : null 
             ;
         var octree = octreeRef?.Value;

@@ -32,7 +32,7 @@ public static partial class Queries
         /// <summary>
         /// Query root node.
         /// </summary>
-        private readonly IPointCloudNode Root;
+        private readonly IPointNode Root;
 
         /// <summary>
         /// Result cell.
@@ -55,7 +55,8 @@ public static partial class Queries
 
             var chunks = m_result.Collect(fromRelativeDepth);
 
-            if (m_result.Cell != Cell)
+            var m_resultCell = new Cell(m_result.CellBounds);
+            if (m_resultCell != Cell)
             {
                 chunks = chunks.Select(c => c.ImmutableFilterByCell(Cell));
             }
@@ -122,21 +123,21 @@ public static partial class Queries
         /// Represents a cell 'resultCell' inside an octree ('root'),
         /// where 'resultNode' is root's smallest subnode (incl. root) containing 'resultCell'.
         /// </summary>
-        internal CellQueryResult(IPointCloudNode root, Cell resultCell, IPointCloudNode resultNode)
+        internal CellQueryResult(IPointNode root, Cell resultCell, IPointNode resultNode)
         {
             Root = root ?? throw new ArgumentNullException(nameof(root));
             Cell = resultCell;
             m_result = resultNode;
 
-            if (!root.Cell.Contains(resultNode.Cell)) throw new Exception(
-                $"Root node {root.Cell} must contain resultNode {resultNode.Cell}. Invariant fb8dc278-fa35-4022-8aa8-281855dd41af."
+            if (!root.CellBounds.Contains(resultNode.CellBounds)) throw new Exception(
+                $"Root node {root.CellBounds} must contain resultNode {resultNode.CellBounds}. Invariant fb8dc278-fa35-4022-8aa8-281855dd41af."
                 );
         }
 
         /// <summary>
         /// Result node corresponding to result cell (same cell, or parent if octree is not deep enough).
         /// </summary>
-        private readonly IPointCloudNode m_result;
+        private readonly IPointNode m_result;
     }
 
     /// <summary>
@@ -145,30 +146,33 @@ public static partial class Queries
     /// Result chunk contains 0 points, if cell is covered by octree, but no points are inside given cell.
     /// </summary>
     public static CellQueryResult? QueryCell(this PointSet pointset, Cell cell)
-        => pointset.Root.Value != null ? QueryCell(pointset.Root.Value, cell) : null;
+        => pointset.Root.Value != null ? QueryCell(pointset.Root.Value.ToPointNode(), cell) : null;
 
     /// <summary>
     /// Returns points in given cell,
     /// or null if octree does not cover given cell.
     /// Result chunk contains 0 points, if cell is covered by octree, but no points are inside given cell.
     /// </summary>
-    public static CellQueryResult QueryCell(this IPointCloudNode root, Cell cell)
+    public static CellQueryResult QueryCell(this IPointNode root, Cell cell)
     {
         if (root == null)
         {
             throw new ArgumentNullException(nameof(root));
         }
 
-        if (!root.Cell.Contains(cell))
+        var rootCell = new Cell(root.CellBounds);
+        if (!rootCell.Contains(cell))
         {
             return new CellQueryResult(root, cell, root);
         }
 
         return QueryCellRecursive(root);
 
-        CellQueryResult QueryCellRecursive(IPointCloudNode n)
+        CellQueryResult QueryCellRecursive(IPointNode n)
         {
-            if (n.Cell == cell || n.IsLeaf)
+            var nCell = new Cell(n.CellBounds);
+            var nCenter = nCell.GetCenter();
+            if (nCell == cell || n.Children.Length == 0)
             {
                 // found!
                 return new CellQueryResult(root, cell, n);
@@ -176,13 +180,13 @@ public static partial class Queries
             else
             {
                 // continue search in subnode ...
-                var octant = n.Cell.GetOctant(cell);
+                var octant = nCell.GetOctant(cell);
                 if (octant.HasValue)
                 {
-                    var subNodeRef = n.Subnodes![octant.Value];
+                    var subNodeRef = n.Children.FirstOrDefault((c) => c.CellBounds.Contains(nCenter));
                     if (subNodeRef != null)
                     {
-                        return QueryCellRecursive(subNodeRef.Value);
+                        return QueryCellRecursive(subNodeRef);
                     }
                     else
                     {
@@ -203,13 +207,13 @@ public static partial class Queries
     /// Cell size is 2^cellExponent, e.g. -2 gives 0.25, -1 gives 0.50, 0 gives 1.00, 1 gives 2.00, and so on.
     /// </summary>
     public static IEnumerable<CellQueryResult> EnumerateCells(this PointSet pointset, int cellExponent)
-        => EnumerateCells(pointset.Root.Value, cellExponent);
+        => EnumerateCells(pointset.Root.Value.ToPointNode(), cellExponent);
 
     /// <summary>
     /// Enumerates all points in chunks of a given cell size (given by cellExponent).
     /// Cell size is 2^cellExponent, e.g. -2 gives 0.25, -1 gives 0.50, 0 gives 1.00, 1 gives 2.00, and so on.
     /// </summary>
-    public static IEnumerable<CellQueryResult> EnumerateCells(this IPointCloudNode root, int cellExponent)
+    public static IEnumerable<CellQueryResult> EnumerateCells(this IPointNode root, int cellExponent)
         => EnumerateCells(root, cellExponent, V3i.III);
 
     /// <summary>
@@ -217,14 +221,14 @@ public static partial class Queries
     /// Cell size is 2^cellExponent, e.g. -2 gives 0.25, -1 gives 0.50, 0 gives 1.00, 1 gives 2.00, and so on.
     /// </summary>
     public static IEnumerable<CellQueryResult> EnumerateCells(this PointSet pointset, int cellExponent, V3i stride)
-        => EnumerateCells(pointset.Root.Value, cellExponent, stride);
+        => EnumerateCells(pointset.Root.Value.ToPointNode(), cellExponent, stride);
 
     /// <summary>
     /// Enumerates all points in chunks of a given cell size (given by cellExponent).
     /// Cell size is 2^cellExponent, e.g. -2 gives 0.25, -1 gives 0.50, 0 gives 1.00, 1 gives 2.00, and so on.
     /// Stride is step size (default is V3i.III), which must be greater 0 for each coordinate axis.
     /// </summary>
-    public static IEnumerable<CellQueryResult> EnumerateCells(this IPointCloudNode root, int cellExponent, V3i stride)
+    public static IEnumerable<CellQueryResult> EnumerateCells(this IPointNode root, int cellExponent, V3i stride)
     {
         if (root == null)
         {
@@ -235,9 +239,10 @@ public static partial class Queries
             $"Stride must be positive, but is {stride}. Invariant be88ccad-798f-4f7d-bcea-6d3eb96c4cb2."
             );
 
-        if (root.Cell.Exponent < cellExponent)
+        var rootCell = new Cell(root.CellBounds);
+        if (rootCell.Exponent < cellExponent)
         { 
-            var c = root.Cell;
+            var c = rootCell;
             do { c = c.Parent; } while (c.Exponent < cellExponent);
             return [new CellQueryResult(root, c, root)];
         }
@@ -246,24 +251,25 @@ public static partial class Queries
 
         bool IsOnStride(Cell c) => c.X % stride.X == 0 && c.Y % stride.Y == 0 && c.Z % stride.Z == 0;
 
-        IEnumerable<CellQueryResult> EnumerateCellsOfSizeRecursive(IPointCloudNode n)
+        IEnumerable<CellQueryResult> EnumerateCellsOfSizeRecursive(IPointNode n)
         {
-            if (n.Cell.Exponent == cellExponent)
+            var nCell = new Cell(n.CellBounds);
+            if (nCell.Exponent == cellExponent)
             {
                 // done (reached requested cell size)
-                if (IsOnStride(n.Cell))
+                if (IsOnStride(nCell))
                 {
-                    yield return new CellQueryResult(root, n.Cell, n);
+                    yield return new CellQueryResult(root, nCell, n);
                 }
                 else
                 {
                     yield break;
                 }
             }
-            else if (n.IsLeaf())
+            else if (n.Children.Length == 0)
             {
                 // reached leaf which is still too big => split
-                var xs = Split(n.Cell, n.ToChunk());
+                var xs = Split(nCell, n.ToChunk());
                 foreach (var (c, _) in xs)
                 {
                     if (IsOnStride(c))
@@ -274,14 +280,10 @@ public static partial class Queries
             }
             else
             {
-                for (var i = 0; i < 8; i++)
+                foreach (var subnode in n.Children)
                 {
-                    var subnode = n.Subnodes![i];
-                    if (subnode != null)
-                    {
-                        var xs = EnumerateCellsOfSizeRecursive(subnode.Value);
-                        foreach (var x in xs) yield return x;
-                    }
+                    var xs = EnumerateCellsOfSizeRecursive(subnode);
+                    foreach (var x in xs) yield return x;
                 }
             }
         }
@@ -340,7 +342,7 @@ public static partial class Queries
         /// <summary>
         /// Query root node.
         /// </summary>
-        private readonly IPointCloudNode Root;
+        private readonly IPointCloudNodeOld Root;
 
         /// <summary>
         /// Result (central) column.
@@ -484,7 +486,7 @@ public static partial class Queries
         /// <summary>
         /// Represents a cell 'resultCell' inside an octree ('root').
         /// </summary>
-        internal CellQueryResult2d(IPointCloudNode root, Cell2d resultCell, ColZ colz, CellQueryResult2dCache cache)
+        internal CellQueryResult2d(IPointCloudNodeOld root, Cell2d resultCell, ColZ colz, CellQueryResult2dCache cache)
         {
             Root = root ?? throw new ArgumentNullException(nameof(root));
             Cell = resultCell;
@@ -546,7 +548,7 @@ public static partial class Queries
     /// Cell size is 2^cellExponent, e.g. -2 gives 0.25, -1 gives 0.50, 0 gives 1.00, 1 gives 2.00, and so on.
     /// Stride is step size (default is V3i.III), which must be greater 0 for each coordinate axis.
     /// </summary>
-    public static IEnumerable<CellQueryResult2d> EnumerateCellColumns(this IPointCloudNode root, int cellExponent)
+    public static IEnumerable<CellQueryResult2d> EnumerateCellColumns(this IPointCloudNodeOld root, int cellExponent)
         => EnumerateCellColumns(root, cellExponent, V2i.II);
 
     /// <summary>
@@ -562,7 +564,7 @@ public static partial class Queries
     /// Cell size is 2^cellExponent, e.g. -2 gives 0.25, -1 gives 0.50, 0 gives 1.00, 1 gives 2.00, and so on.
     /// Stride is step size (default is V3i.III), which must be greater 0 for each coordinate axis.
     /// </summary>
-    public static IEnumerable<CellQueryResult2d> EnumerateCellColumns(this IPointCloudNode root, int cellExponent, V2i stride)
+    public static IEnumerable<CellQueryResult2d> EnumerateCellColumns(this IPointCloudNodeOld root, int cellExponent, V2i stride)
     {
         if (root == null)
         {
@@ -594,22 +596,22 @@ public static partial class Queries
     public class ColZ
     {
         public Cell2d Footprint { get; }
-        public IPointCloudNode[] Nodes { get; }
+        public IPointCloudNodeOld[] Nodes { get; }
         public Chunk Rest { get; }
-        public ColZ(IPointCloudNode n)
+        public ColZ(IPointCloudNodeOld n)
         {
             Footprint = new Cell2d(n.Cell.X, n.Cell.Y, n.Cell.Exponent);
             Nodes = [n ?? throw new ArgumentNullException(nameof(n))];
             Rest = Chunk.Empty;
         }
-        public ColZ(IPointCloudNode n, Cell2d footprint)
+        public ColZ(IPointCloudNodeOld n, Cell2d footprint)
         {
             Footprint = footprint;
             Nodes = [n ?? throw new ArgumentNullException(nameof(n))];
             Rest = Chunk.Empty;
         }
 
-        private ColZ(Cell2d footprint, IPointCloudNode[] nodes, Chunk rest)
+        private ColZ(Cell2d footprint, IPointCloudNodeOld[] nodes, Chunk rest)
         {
             Footprint = footprint;
             Nodes = nodes ?? throw new ArgumentNullException(nameof(nodes));
@@ -698,7 +700,7 @@ public static partial class Queries
         private ColZ?[] Split()
         {
             // inner ...
-            var nss = new List<IPointCloudNode>[4].SetByIndex(_ => []);
+            var nss = new List<IPointCloudNodeOld>[4].SetByIndex(_ => []);
             foreach (var n in Nodes.Where(n => !n.IsLeaf))
             {
                 for (var i = 0; i < 8; i++)

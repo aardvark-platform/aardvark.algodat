@@ -49,10 +49,10 @@ public class FilterClassification(HashSet<byte> filter) : IFilter
     /// <summary></summary>
     public FilterClassification(params byte[] filter) : this(new HashSet<byte>(filter)) { }
 
-    private byte[]? GetValues(IPointCloudNode node) => node.HasClassifications ? node.Classifications.Value : null;
+    private byte[]? GetValues(IPointNode node) => node.TryGetAttribute(PointNodeAttributes.Classifications, out var data) && data is byte[] ? (byte[])data : null;
 
     /// <summary></summary>
-    public bool IsFullyInside(IPointCloudNode node)
+    public bool IsFullyInside(IPointNode node)
     {
         var xs = GetValues(node);
         if (xs == null) return true;
@@ -66,7 +66,7 @@ public class FilterClassification(HashSet<byte> filter) : IFilter
     }
 
     /// <summary></summary>
-    public bool IsFullyOutside(IPointCloudNode node)
+    public bool IsFullyOutside(IPointNode node)
     {
         var xs = GetValues(node);
         if (xs == null) return false;
@@ -80,7 +80,7 @@ public class FilterClassification(HashSet<byte> filter) : IFilter
     }
 
     /// <summary></summary>
-    public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null)
+    public HashSet<int> FilterPoints(IPointNode node, HashSet<int>? selected = null)
     {
         var xs = GetValues(node);
         if (xs == null) return [];

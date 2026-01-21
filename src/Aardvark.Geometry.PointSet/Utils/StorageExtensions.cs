@@ -752,7 +752,7 @@ public static class StorageExtensions
     }
 
     /// <summary></summary>
-    public static void Add(this Storage storage, string key, IPointCloudNode data)
+    public static void Add(this Storage storage, string key, IPointCloudNodeOld data)
     {
         storage.f_add(key, data, () =>
         {
@@ -763,16 +763,16 @@ public static class StorageExtensions
 
     /// <summary>
     /// </summary>
-    public static IPointCloudNode GetPointCloudNode(this Storage storage, Guid key)
+    public static IPointCloudNodeOld GetPointCloudNode(this Storage storage, Guid key)
         => GetPointCloudNode(storage, key.ToString());
 
     /// <summary>
     /// </summary>
-    public static IPointCloudNode GetPointCloudNode(this Storage storage, string key)
+    public static IPointCloudNodeOld GetPointCloudNode(this Storage storage, string key)
     {
         if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
         {
-            if (o is not IPointCloudNode r) throw new InvalidOperationException(
+            if (o is not IPointCloudNodeOld r) throw new InvalidOperationException(
                 $"Invariant d1cb769c-36b6-4374-8248-b8c1ca31d495. " +
                 $"[GetPointCloudNode] Store key {key} is not IPointCloudNode. " +
                 $"Error 7aebf7f1-3783-42fb-b405-47384e08f716."
@@ -803,7 +803,7 @@ public static class StorageExtensions
             }
         }
 
-        IPointCloudNode TryDecodeBuffer(byte[] buffer)
+        IPointCloudNodeOld TryDecodeBuffer(byte[] buffer)
         {
             var guid = new Guid(buffer.TakeToArray(16));
             if (guid == Durable.Octree.Node.Id)
@@ -816,18 +816,18 @@ public static class StorageExtensions
                     );
                 return data;
             }
-            else if (guid == FilteredNode.Defs.FilteredNode.Id)
-            {
-                var fn = FilteredNode.Decode(storage, buffer);
-                if (key != fn.Id.ToString()) throw new InvalidOperationException("Invariant 14511080-b605-4f6b-ac49-2495899ccdec.");
-
-
-                if (storage.HasCache) storage.Cache.Add(
-                    key, fn, buffer.Length, onRemove: default // what to add here?
-                    );
-
-                return fn;
-            }
+            // else if (guid == FilteredNode.Defs.FilteredNode.Id)
+            // {
+            //     var fn = FilteredNode.Decode(storage, buffer);
+            //     if (key != fn.Id.ToString()) throw new InvalidOperationException("Invariant 14511080-b605-4f6b-ac49-2495899ccdec.");
+            //
+            //
+            //     if (storage.HasCache) storage.Cache.Add(
+            //         key, fn, buffer.Length, onRemove: default // what to add here?
+            //         );
+            //
+            //     return fn;
+            // }
             //else if (guid == Durable.Octree.MultiNodeIndex.Id)
             //{
             //    var index = MultiNodeIndex.Decode(buffer);
@@ -865,7 +865,7 @@ public static class StorageExtensions
 
     /// <summary>
     /// </summary>
-    public static bool TryGetPointCloudNode(this Storage storage, string key, [NotNullWhen(true)]out IPointCloudNode? result)
+    public static bool TryGetPointCloudNode(this Storage storage, string key, [NotNullWhen(true)]out IPointCloudNodeOld? result)
     {
         if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
         {
@@ -891,7 +891,7 @@ public static class StorageExtensions
     /// </summary>
 
     [Obsolete("Use TryGetPointCloudNode with out parameter instead.")]
-    public static (bool, IPointCloudNode?) TryGetPointCloudNode(this Storage storage, string key)
+    public static (bool, IPointCloudNodeOld?) TryGetPointCloudNode(this Storage storage, string key)
     {
         if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
         {
@@ -918,7 +918,7 @@ public static class StorageExtensions
     /// Try to load PointSet or PointCloudNode with given key.
     /// Returns octree root node when found.
     /// </summary>
-    public static bool TryGetOctree(this Storage storage, string key, [NotNullWhen(true)]out IPointCloudNode? root)
+    public static bool TryGetOctree(this Storage storage, string key, [NotNullWhen(true)]out IPointCloudNodeOld? root)
     {
         var bs = storage.f_get.Invoke(key);
         if (bs != null)

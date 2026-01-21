@@ -31,7 +31,7 @@ public static class IPointCloudNodeExtensions
     /// <summary>
     /// Enumerates all nodes depth-first.
     /// </summary>
-    public static IEnumerable<IPointCloudNode> EnumerateNodes(this IPointCloudNode root)
+    public static IEnumerable<IPointCloudNodeOld> EnumerateNodes(this IPointCloudNodeOld root)
     {
         if (root.Subnodes != null)
         {
@@ -53,7 +53,7 @@ public static class IPointCloudNodeExtensions
     /// Calls action for each node in this tree.
     /// </summary>
     public static void ForEachNode(
-        this IPointCloudNode self, bool outOfCore, Action<IPointCloudNode> action)
+        this IPointCloudNodeOld self, bool outOfCore, Action<IPointCloudNodeOld> action)
     {
         action(self);
 
@@ -81,8 +81,8 @@ public static class IPointCloudNodeExtensions
 
     /// <summary>
     /// </summary>
-    public static IEnumerable<IPointCloudNode> ForEachNode(
-       this IPointCloudNode self, int minCellExponent = int.MinValue
+    public static IEnumerable<IPointCloudNodeOld> ForEachNode(
+       this IPointCloudNodeOld self, int minCellExponent = int.MinValue
        )
     {
         if (self == null) yield break;
@@ -106,8 +106,8 @@ public static class IPointCloudNodeExtensions
     /// Calls action for each (node, fullyInside) in this pointset, that is intersecting the given hull.
     /// </summary>
     public static void ForEachIntersectingNode(
-        this IPointCloudNode self, bool outOfCore, Hull3d hull, bool doNotTraverseSubnodesWhenFullyInside,
-        Action<IPointCloudNode, bool> action, CancellationToken ct = default
+        this IPointCloudNodeOld self, bool outOfCore, Hull3d hull, bool doNotTraverseSubnodesWhenFullyInside,
+        Action<IPointCloudNodeOld, bool> action, CancellationToken ct = default
         )
     {
         ct.ThrowIfCancellationRequested();
@@ -161,7 +161,7 @@ public static class IPointCloudNodeExtensions
     /// Calls action for each (node, fullyInside) in this tree that is intersecting the given hull.
     /// </summary>
     public static IEnumerable<CellQueryResult> ForEachNodeIntersecting(
-        this IPointCloudNode self,
+        this IPointCloudNodeOld self,
         Hull3d hull, bool doNotTraverseSubnodesWhenFullyInside, int minCellExponent = int.MinValue
         )
     {
@@ -206,7 +206,7 @@ public static class IPointCloudNodeExtensions
     /// Index of subnode for given point.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int GetSubIndex(this IPointCloudNode self, in V3d p)
+    public static int GetSubIndex(this IPointCloudNodeOld self, in V3d p)
     {
         var i = 0;
         var c = self.Center;
@@ -219,14 +219,14 @@ public static class IPointCloudNodeExtensions
     /// <summary>
     /// Returns true if this node intersects the space within a given distance to a plane.
     /// </summary>
-    public static bool Intersects(this IPointCloudNode self, Plane3d plane, double distance)
+    public static bool Intersects(this IPointCloudNodeOld self, Plane3d plane, double distance)
         => self.BoundingBoxExactGlobal.Intersects(plane, distance);
 
     /// <summary>
     /// Returns true if this node intersects the positive halfspace defined by given plane.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IntersectsPositiveHalfSpace(this IPointCloudNode self, in Plane3d plane)
+    public static bool IntersectsPositiveHalfSpace(this IPointCloudNodeOld self, in Plane3d plane)
     {
         var corners = self.BoundingBoxExactGlobal.ComputeCorners();
         for (var i = 0; i < 8; i++)
@@ -239,7 +239,7 @@ public static class IPointCloudNodeExtensions
     /// <summary>
     /// Returns true if this node intersects the negative halfspace defined by given plane.
     /// </summary>
-    public static bool IntersectsNegativeHalfSpace(this IPointCloudNode self, in Plane3d plane)
+    public static bool IntersectsNegativeHalfSpace(this IPointCloudNodeOld self, in Plane3d plane)
     {
         var corners = self.BoundingBoxExactGlobal.ComputeCorners();
         for (var i = 0; i < 8; i++)
@@ -253,7 +253,7 @@ public static class IPointCloudNodeExtensions
     /// Returns true if this node is fully inside the positive halfspace defined by given plane.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool InsidePositiveHalfSpace(this IPointCloudNode self, in Plane3d plane)
+    public static bool InsidePositiveHalfSpace(this IPointCloudNodeOld self, in Plane3d plane)
     {
         self.BoundingBoxExactGlobal.GetMinMaxInDirection(plane.Normal, out V3d min, out V3d _);
         return plane.Height(min) > 0;
@@ -263,7 +263,7 @@ public static class IPointCloudNodeExtensions
     /// Returns true if this node is fully inside the negative halfspace defined by given plane.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool InsideNegativeHalfSpace(this IPointCloudNode self, in Plane3d plane)
+    public static bool InsideNegativeHalfSpace(this IPointCloudNodeOld self, in Plane3d plane)
     {
         self.BoundingBoxExactGlobal.GetMinMaxInDirection(-plane.Normal, out V3d min, out V3d _);
         return plane.Height(min) < 0;
@@ -276,7 +276,7 @@ public static class IPointCloudNodeExtensions
     /// <summary>
     /// Eagerly counts all points in octree (without using PointCountTree property).
     /// </summary>
-    public static long CountPoints(this IPointCloudNode self)
+    public static long CountPoints(this IPointCloudNodeOld self)
     {
         if (self == null) return 0;
 
@@ -302,7 +302,7 @@ public static class IPointCloudNodeExtensions
     /// <summary>
     /// Gets minimum point count of all tree nodes (eager).
     /// </summary>
-    public static long GetMinimumNodePointCount(this IPointCloudNode self)
+    public static long GetMinimumNodePointCount(this IPointCloudNodeOld self)
     {
         if (self == null) return 0;
 
@@ -325,7 +325,7 @@ public static class IPointCloudNodeExtensions
     /// <summary>
     /// Gets maximum point count of all tree nodes (eager).
     /// </summary>
-    public static long GetMaximumNodePointCount(this IPointCloudNode self)
+    public static long GetMaximumNodePointCount(this IPointCloudNodeOld self)
     {
         if (self == null) return 0;
 
@@ -348,14 +348,14 @@ public static class IPointCloudNodeExtensions
     /// <summary>
     /// Gets average point count of all tree nodes (eager).
     /// </summary>
-    public static double GetAverageNodePointCount(this IPointCloudNode self)
+    public static double GetAverageNodePointCount(this IPointCloudNodeOld self)
     {
         if (self == null) return 0;
         long sum = 0, count = 0;
         GetAverageNodePointCountImpl(self, ref sum, ref count);
         return sum / (double)count;
     }
-    private static void GetAverageNodePointCountImpl(this IPointCloudNode self, ref long sum, ref long count)
+    private static void GetAverageNodePointCountImpl(this IPointCloudNodeOld self, ref long sum, ref long count)
     {
         sum += self.PointCountCell;
         count++;
@@ -372,7 +372,7 @@ public static class IPointCloudNodeExtensions
     /// <summary>
     /// Total number of nodes.
     /// </summary>
-    public static long CountNodes(this IPointCloudNode self, bool outOfCore)
+    public static long CountNodes(this IPointCloudNodeOld self, bool outOfCore)
     {
         var count = 1L;
         if (self.Subnodes != null)
@@ -435,7 +435,7 @@ public static class IPointCloudNodeExtensions
     /// <summary>
     /// Number of leaf nodes.
     /// </summary>
-    public static long CountLeafNodes(this IPointCloudNode self, bool outOfCore)
+    public static long CountLeafNodes(this IPointCloudNodeOld self, bool outOfCore)
     {
         if (self.Subnodes == null) return 1;
 
@@ -465,7 +465,7 @@ public static class IPointCloudNodeExtensions
     /// <summary>
     /// Gets minimum point count of leaf nodes.
     /// </summary>
-    public static long GetMinimumLeafPointCount(this IPointCloudNode self, bool outOfCore)
+    public static long GetMinimumLeafPointCount(this IPointCloudNodeOld self, bool outOfCore)
     {
         var min = long.MaxValue;
         if (self.Subnodes != null)
@@ -504,7 +504,7 @@ public static class IPointCloudNodeExtensions
     /// <summary>
     /// Gets maximum point count of leaf nodes.
     /// </summary>
-    public static long GetMaximumLeafPointCount(this IPointCloudNode self, bool outOfCore)
+    public static long GetMaximumLeafPointCount(this IPointCloudNodeOld self, bool outOfCore)
     {
         var max = long.MinValue;
         if (self.Subnodes != null)
@@ -543,7 +543,7 @@ public static class IPointCloudNodeExtensions
     /// <summary>
     /// Gets average point count of leaf nodes.
     /// </summary>
-    public static double GetAverageLeafPointCount(this IPointCloudNode self, bool outOfCore)
+    public static double GetAverageLeafPointCount(this IPointCloudNodeOld self, bool outOfCore)
     {
         return self.PointCountTree / (double)self.CountNodes(outOfCore);
     }
@@ -551,7 +551,7 @@ public static class IPointCloudNodeExtensions
     /// <summary>
     /// Depth of tree (minimum).
     /// </summary>
-    public static int GetMinimumTreeDepth(this IPointCloudNode self, bool outOfCore)
+    public static int GetMinimumTreeDepth(this IPointCloudNodeOld self, bool outOfCore)
     {
         if (self.Subnodes == null) return 1;
 
@@ -590,7 +590,7 @@ public static class IPointCloudNodeExtensions
     /// <summary>
     /// Depth of tree (maximum).
     /// </summary>
-    public static int GetMaximiumTreeDepth(this IPointCloudNode self, bool outOfCore)
+    public static int GetMaximiumTreeDepth(this IPointCloudNodeOld self, bool outOfCore)
     {
         if (self.Subnodes == null) return 1;
 
@@ -629,13 +629,13 @@ public static class IPointCloudNodeExtensions
     /// <summary>
     /// Depth of tree (average).
     /// </summary>
-    public static double GetAverageTreeDepth(this IPointCloudNode self, bool outOfCore)
+    public static double GetAverageTreeDepth(this IPointCloudNodeOld self, bool outOfCore)
     {
         long sum = 0, count = 0;
         self.GetAverageTreeDepth(outOfCore, 1, ref sum, ref count);
         return sum / (double)count;
     }
-    private static void GetAverageTreeDepth(this IPointCloudNode self, bool outOfCore, int depth, ref long sum, ref long count)
+    private static void GetAverageTreeDepth(this IPointCloudNodeOld self, bool outOfCore, int depth, ref long sum, ref long count)
     {
         if (self.Subnodes == null)
         {
@@ -671,19 +671,19 @@ public static class IPointCloudNodeExtensions
     #region TryGet*
 
     /// <summary>Returns null if node has no colors.</summary>
-    public static PersistentRef<C4b[]>? TryGetColors4b(this IPointCloudNode self)
+    public static PersistentRef<C4b[]>? TryGetColors4b(this IPointCloudNodeOld self)
         => self.HasColors ? self.Colors : null;
 
     /// <summary>Returns null if node has no normals.</summary>
-    public static PersistentRef<V3f[]>? TryGetNormals3f(this IPointCloudNode self)
+    public static PersistentRef<V3f[]>? TryGetNormals3f(this IPointCloudNodeOld self)
         => self.HasNormals ? self.Normals : null;
 
     /// <summary>Returns null if node has no intensities.</summary>
-    public static PersistentRef<int[]>? TryGetIntensities(this IPointCloudNode self)
+    public static PersistentRef<int[]>? TryGetIntensities(this IPointCloudNodeOld self)
         => self.HasIntensities ? self.Intensities : null;
 
     /// <summary>Returns null if node has no classifications.</summary>
-    public static PersistentRef<byte[]>? TryGetClassifications(this IPointCloudNode self)
+    public static PersistentRef<byte[]>? TryGetClassifications(this IPointCloudNodeOld self)
         => self.HasClassifications ? self.Classifications : null;
 
     #endregion
@@ -694,10 +694,10 @@ public static class IPointCloudNodeExtensions
     /// Collects all points from nodes for which predicate is true.
     /// Subnodes of nodes for which predicate is true are not traversed.  
     /// </summary>
-    public static IEnumerable<Chunk> Collect(this IPointCloudNode self, Func<IPointCloudNode, bool> predicate)
+    public static IEnumerable<Chunk> Collect(this IPointNode self, Func<IPointNode, bool> predicate)
     {
         if (self == null) yield break;
-        if (self.IsLeaf)
+        if (self.Children.Length == 0)
         {
             yield return self.ToChunk();
         }
@@ -707,7 +707,7 @@ public static class IPointCloudNodeExtensions
             foreach (var chunk in chunks) yield return chunk;
         }
 
-        static IEnumerable<Chunk> CollectRec(IPointCloudNode n, Func<IPointCloudNode, bool> _collectMe)
+        static IEnumerable<Chunk> CollectRec(IPointNode n, Func<IPointNode, bool> _collectMe)
         {
             if (n == null) yield break;
             
@@ -717,13 +717,10 @@ public static class IPointCloudNodeExtensions
             }
             else
             {
-                foreach (var x in n.Subnodes!)
+                foreach (var x in n.Children)
                 {
-                    if (x != null)
-                    {
-                        var chunks = CollectRec(x.Value, _collectMe);
-                        foreach (var chunk in chunks) yield return chunk;
-                    }
+                    var chunks = CollectRec(x, _collectMe);
+                    foreach (var chunk in chunks) yield return chunk;
                 }
             }
         }
@@ -733,16 +730,18 @@ public static class IPointCloudNodeExtensions
     /// Collects all points from nodes at given relative depth.
     /// E.g. 0 returns points from self, 1 gets points from children, aso.
     /// </summary>
-    public static IEnumerable<Chunk> Collect(this IPointCloudNode self, int fromRelativeDepth)
+    public static IEnumerable<Chunk> Collect(this IPointNode self, int fromRelativeDepth)
     {
-        var d = self.Cell.Exponent - fromRelativeDepth;
-        return self.Collect(x => x.IsLeaf || x.Cell.Exponent <= d);
+        var sCell = new Cell(self.CellBounds);
+        var d = sCell.Exponent - fromRelativeDepth;
+        var maxSize = Math.Pow(2.0, d);
+        return self.Collect(x => x.Children.Length == 0 || x.CellBounds.Size.NormMax <= maxSize);
     }
 
     /// <summary>
     /// Returns points in cells column along z-axis at given xy-position.
     /// </summary>
-    public static IEnumerable<Chunk> CollectColumnXY(this IPointCloudNode root, Cell2d columnXY, int fromRelativeDepth)
+    public static IEnumerable<Chunk> CollectColumnXY(this IPointCloudNodeOld root, Cell2d columnXY, int fromRelativeDepth)
     {
         if (root == null)
         {
@@ -775,7 +774,7 @@ public static class IPointCloudNodeExtensions
 
         return QueryRec(root);
 
-        IEnumerable<Chunk> QueryRec(IPointCloudNode n)
+        IEnumerable<Chunk> QueryRec(IPointCloudNodeOld n)
         {
             if (n.Cell.Exponent < columnXY.Exponent)
             {
@@ -828,15 +827,15 @@ public static class IPointCloudNodeExtensions
 
 
     /// <summary></summary>
-    public static bool IsLeaf(this IPointCloudNode self) => self.Subnodes == null;
+    public static bool IsLeaf(this IPointCloudNodeOld self) => self.Subnodes == null;
 
     /// <summary></summary>
-    public static bool IsNotLeaf(this IPointCloudNode self) => self.Subnodes != null;
+    public static bool IsNotLeaf(this IPointCloudNodeOld self) => self.Subnodes != null;
 
     /// <summary>
     /// Throws if node misses any standard derived attributes.
     /// </summary>
-    public static void CheckDerivedAttributes(this IPointCloudNode self)
+    public static void CheckDerivedAttributes(this IPointCloudNodeOld self)
     {
         var isTmpNode = self.Has(PointSetNode.TemporaryImportNode);
 
@@ -897,7 +896,7 @@ public static class IPointCloudNodeExtensions
     /// <summary>
     /// Converts node to Chunk.
     /// </summary>
-    public static Chunk ToChunk(this IPointCloudNode self)
+    public static Chunk ToChunk(this IPointCloudNodeOld self)
     {
         var cs = self.HasColors ? self.Colors.Value : null;
         var ns = self.HasNormals ? self.Normals.Value : null;
@@ -910,7 +909,7 @@ public static class IPointCloudNodeExtensions
     /// <summary>
     /// Converts node to Chunks (by collecting subnodes from given relative depth).
     /// </summary>
-    public static IEnumerable<Chunk> ToChunk(this IPointCloudNode self, int fromRelativeDepth)
+    public static IEnumerable<Chunk> ToChunk(this IPointCloudNodeOld self, int fromRelativeDepth)
     {
         if (fromRelativeDepth < 0) throw new InvalidOperationException(
                $"FromRelativeDepth must be positive, but is {fromRelativeDepth}. Invariant f94781c3-cad7-4f46-b2e1-573cd1df227b."

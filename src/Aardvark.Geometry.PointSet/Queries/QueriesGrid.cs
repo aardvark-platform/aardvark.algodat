@@ -33,14 +33,14 @@ public static partial class Queries
     public static IEnumerable<IGridQueryXY> EnumerateGridCellsXY(
         this PointSet self, int gridCellExponent
         )
-        => new GridQueryXY(self.Root.Value).EnumerateGridCellsXY(gridCellExponent);
+        => new GridQueryXY(self.Root.Value.ToPointNode()).EnumerateGridCellsXY(gridCellExponent);
 
     /// <summary>
     /// Enumerate over point cloud in a grid of cells of size gridCellExponent.
     /// Empty grid cells are skipped.
     /// </summary>
     public static IEnumerable<IGridQueryXY> EnumerateGridCellsXY(
-        this IPointCloudNode self, int gridCellExponent
+        this IPointNode self, int gridCellExponent
         )
         => new GridQueryXY(self).EnumerateGridCellsXY(gridCellExponent);
 
@@ -54,22 +54,30 @@ public static partial class Queries
 
     public class GridQueryXY : IGridQueryXY
     {
-        private IPointCloudNode[] Roots { get; }
+        private IPointNode[] Roots { get; }
         private Chunk Rest { get; }
         public Cell2d Footprint { get; }
-        //public int GridCellExponent { get; }
         public long Count { get; }
 
-        public GridQueryXY(IPointCloudNode root)
+        public GridQueryXY(IPointNode root)
         {
-            Footprint = new Cell2d(root.Cell.X, root.Cell.Y, root.Cell.Exponent);
+            var rootCell = new Cell(root.CellBounds);
+            var pct = 0L;
+            if(root is PointNodeAdapter pna)
+            {
+                pct = pna.OriginalNode.PointCountTree;
+            }
+            else
+            {
+                Report.Error("PointCountTree not implemented for node type {0}.", root.GetType().Name);
+            }
+            Footprint = new Cell2d(rootCell.X, rootCell.Y, rootCell.Exponent);
             Roots = [root];
             Rest = Chunk.Empty;
-            Count = root.PointCountTree;
-            //GridCellExponent = gridCellExponent;
+            Count = pct;
         }
 
-        private GridQueryXY(Cell2d footprint, IPointCloudNode[]? roots, Chunk rest)
+        private GridQueryXY(Cell2d footprint, IPointNode[]? roots, Chunk rest)
         {
             if ((roots == null || roots.Length == 0) && (rest == null || rest.Count == 0))
                 throw new InvalidOperationException("Invariant 0ee8c852-9580-44fb-9c19-a9f2f2dd7c93.");
@@ -77,8 +85,18 @@ public static partial class Queries
             Footprint = footprint;
             Roots = roots ?? [];
             Rest = rest ?? Chunk.Empty;
-            //GridCellExponent = gridCellExponent;
-            Count = Roots.Sum(r => r.PointCountTree) + Rest.Count;
+            Count = Roots.Sum(r => { 
+                    var pct = 0L;
+                    if(r is PointNodeAdapter pna)
+                    {
+                        pct = pna.OriginalNode.PointCountTree;
+                    }
+                    else
+                    {
+                        Report.Error("PointCountTree not implemented for node type {0}.", r.GetType().Name);
+                    }
+                return pct;
+            }) + Rest.Count;
         }
 
         /// <summary>
@@ -140,17 +158,17 @@ public static partial class Queries
                         ;
 
                     // split roots ...
-                    List<IPointCloudNode>[]? newRoots = null;
-                    void addRoot(int i, IPointCloudNode? n)
+                    List<IPointNode>[]? newRoots = null;
+                    void addRoot(int i, IPointNode? n)
                     {
                         if (n == null) return;
-                        newRoots ??= new List<IPointCloudNode>[4];
+                        newRoots ??= new List<IPointNode>[4];
                         if (newRoots[i] == null) newRoots[i] = [n];
                         else newRoots[i].Add(n);
                     }
                     foreach (var r in Roots)
                     {
-                        if (r.IsLeaf)
+                        if (r.Children.Length == 0)
                         {
                             var leafChunk = r.ToChunk();
                             qbbs.Map((bb, i) =>
@@ -159,8 +177,8 @@ public static partial class Queries
                         }
                         else
                         {
-                            var ns = r.Subnodes!;
-                            for (var i = 0; i < 8; i++) addRoot(i & 0b11, ns[i]?.Value);
+                            var ns = r.Children;
+                            for (var i = 0; i < 8; i++) addRoot(i & 0b11, ns[i]);
                         }
                     }
 
@@ -297,15 +315,15 @@ public static partial class Queries
     public static IEnumerable<GridQueryBox2dResult> QueryGridXY(
         this PointSet self, V2d stride, int minCellExponent = int.MinValue
         )
-        => QueryGridXY(self.Root.Value, stride, minCellExponent);
+        => QueryGridXY(self, stride, minCellExponent);
 
     /// <summary>
     /// </summary>
     public static IEnumerable<GridQueryBox2dResult> QueryGridXY(
-        this IPointCloudNode self, V2d stride, int maxInMemoryPointCount = 10 * 1024 * 1024, int minCellExponent = int.MinValue
+        this IPointNode self, V2d stride, int maxInMemoryPointCount = 10 * 1024 * 1024, int minCellExponent = int.MinValue
         )
     {
-        var bbw = self.BoundingBoxExactGlobal;  // bounding box (world space)
+        var bbw = self.DataBounds;  // bounding box (world space)
         var bbt = new Box2l(                    // bounding box (tile space)
             new V2l((long)Math.Floor(bbw.Min.X / stride.X), (long)Math.Floor(bbw.Min.Y / stride.Y)),
             new V2l((long)Math.Floor(bbw.Max.X / stride.X) + 1L, (long)Math.Floor(bbw.Max.Y / stride.Y) + 1L)
@@ -339,7 +357,7 @@ public static partial class Queries
             }
         }
     }
-    private static IEnumerable<GridQueryBox2dResult> QueryGridRecXY(Box2l bb, V2d stride, int maxInMemoryPointCount, int minCellExponent, List<IPointCloudNode> roots)
+    private static IEnumerable<GridQueryBox2dResult> QueryGridRecXY(Box2l bb, V2d stride, int maxInMemoryPointCount, int minCellExponent, List<IPointNode> roots)
     {
         var area = bb.Area;
         if (area == 0 || roots.Count == 0) yield break;
@@ -352,20 +370,20 @@ public static partial class Queries
         }
         else
         {
-            var newRoots = new List<IPointCloudNode>();
+            var newRoots = new List<IPointNode>();
             foreach (var r in roots)
             {
-                if (r.IsLeaf) newRoots.Add(r);
+                if (r.Children.Length == 0) newRoots.Add(r);
                 else
                 {
-                    var _bb = r.BoundingBoxExactGlobal.XY;
+                    var _bb = r.DataBounds.XY;
                     if (!q.Intersects(_bb)) { }
                     else if (q.Contains(_bb)) newRoots.Add(r);
                     else
                     {
-                        var sub = r.Subnodes!;
-                        void add(int i) { if (sub[i] != null) { newRoots.Add(sub[i]!.Value); } }
-                        var c = r.Center.XY;
+                        var sub = r.Children;
+                        void add(int i) { if (sub[i] != null) { newRoots.Add(sub[i]); } }
+                        var c = r.DataBounds.Center.XY;
                         if (q.Max.X < c.X)
                         {
                             // left cells
@@ -392,7 +410,20 @@ public static partial class Queries
             }
 
             var sbbs = bb.SplitAtCenter();
-            var total = newRoots.Sum(r => r.PointCountTree);
+            var total = newRoots.Sum(r =>
+            {
+                var pct = 0L;
+                if (r is PointNodeAdapter pna)
+                {
+                    pct = pna.OriginalNode.PointCountTree;
+                }
+                else
+                {
+                    Report.Error("PointCountTree not implemented for node type {0}.", r.GetType().Name);
+                }
+
+                return pct;
+            });
             if (total <= maxInMemoryPointCount)
             {
                 var chunk = Chunk.ImmutableMerge(newRoots.SelectMany(r => r.QueryPointsInsideBoxXY(q)));

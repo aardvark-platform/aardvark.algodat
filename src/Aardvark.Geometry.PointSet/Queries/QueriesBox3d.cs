@@ -29,17 +29,17 @@ public static partial class Queries
     public static IEnumerable<Chunk> QueryPointsInsideBox(
         this PointSet self, Box3d query, int minCellExponent = int.MinValue
         )
-        => QueryPointsInsideBox(self.Root.Value, query, minCellExponent);
+        => QueryPointsInsideBox(self.Root.Value.ToPointNode(), query, minCellExponent);
 
     /// <summary>
     /// All points inside axis-aligned box (including boundary).
     /// </summary>
     public static IEnumerable<Chunk> QueryPointsInsideBox(
-        this IPointCloudNode self, Box3d query, int minCellExponent = int.MinValue
+        this IPointNode self, Box3d query, int minCellExponent = int.MinValue
         )
         => QueryPoints(self,
-            n => query.Contains(n.BoundingBoxExactGlobal),
-            n => !query.Intersects(n.BoundingBoxExactGlobal),
+            n => query.Contains(n.DataBounds),
+            n => !query.Intersects(n.DataBounds),
             p => query.Contains(p),
             minCellExponent);
 
@@ -49,17 +49,17 @@ public static partial class Queries
     public static IEnumerable<Chunk> QueryPointsOutsideBox(
         this PointSet self, Box3d query, int minCellExponent = int.MinValue
         )
-        => QueryPointsOutsideBox(self.Root.Value, query, minCellExponent);
+        => QueryPointsOutsideBox(self.Root.Value.ToPointNode(), query, minCellExponent);
 
     /// <summary>
     /// All points outside axis-aligned box (excluding boundary).
     /// </summary>
     public static IEnumerable<Chunk> QueryPointsOutsideBox(
-        this IPointCloudNode self, Box3d query, int minCellExponent = int.MinValue
+        this IPointNode self, Box3d query, int minCellExponent = int.MinValue
         )
         => QueryPoints(self,
-            n => !query.Intersects(n.BoundingBoxExactGlobal),
-            n => query.Contains(n.BoundingBoxExactGlobal),
+            n => !query.Intersects(n.DataBounds),
+            n => query.Contains(n.DataBounds),
             p => !query.Contains(p),
             minCellExponent);
 
@@ -73,17 +73,17 @@ public static partial class Queries
     public static long CountPointsInsideBox(
         this PointSet self, Box3d query, int minCellExponent = int.MinValue
         )
-        => CountPointsInsideBox(self.Root.Value, query, minCellExponent);
+        => CountPointsInsideBox(self.Root.Value.ToPointNode(), query, minCellExponent);
 
     /// <summary>
     /// Counts points inside axis-aligned box.
     /// </summary>
     public static long CountPointsInsideBox(
-        this IPointCloudNode self, Box3d query, int minCellExponent = int.MinValue
+        this IPointNode self, Box3d query, int minCellExponent = int.MinValue
         )
         => CountPoints(self,
-            n => query.Contains(n.BoundingBoxExactGlobal),
-            n => !query.Intersects(n.BoundingBoxExactGlobal),
+            n => query.Contains(n.DataBounds),
+            n => !query.Intersects(n.DataBounds),
             p => query.Contains(p),
             minCellExponent);
 
@@ -93,17 +93,17 @@ public static partial class Queries
     public static long CountPointsOutsideBox(
         this PointSet self, Box3d query, int minCellExponent = int.MinValue
         )
-        => CountPointsOutsideBox(self.Root.Value, query, minCellExponent);
+        => CountPointsOutsideBox(self.Root.Value.ToPointNode(), query, minCellExponent);
 
     /// <summary>
     /// Counts points outside axis-aligned box.
     /// </summary>
     public static long CountPointsOutsideBox(
-        this IPointCloudNode self, Box3d query, int minCellExponent = int.MinValue
+        this IPointNode self, Box3d query, int minCellExponent = int.MinValue
         )
         => CountPoints(self,
-            n => !query.Intersects(n.BoundingBoxExactGlobal),
-            n => query.Contains(n.BoundingBoxExactGlobal),
+            n => !query.Intersects(n.DataBounds),
+            n => query.Contains(n.DataBounds),
             p => !query.Contains(p),
             minCellExponent);
 
@@ -119,7 +119,7 @@ public static partial class Queries
     public static long CountPointsApproximatelyInsideBox(
         this PointSet self, Box3d query, int minCellExponent = int.MinValue
         )
-        => CountPointsApproximatelyInsideBox(self.Root.Value, query, minCellExponent);
+        => CountPointsApproximatelyInsideBox(self.Root.Value.ToPointNode(), query, minCellExponent);
 
     /// <summary>
     /// Counts points approximately inside axis-aligned box (cell granularity).
@@ -127,11 +127,11 @@ public static partial class Queries
     /// Faster than CountPointsInsideBox.
     /// </summary>
     public static long CountPointsApproximatelyInsideBox(
-        this IPointCloudNode self, Box3d query, int minCellExponent = int.MinValue
+        this IPointNode self, Box3d query, int minCellExponent = int.MinValue
         )
         => CountPointsApproximately(self,
-            n => query.Contains(n.BoundingBoxExactGlobal),
-            n => !query.Intersects(n.BoundingBoxExactGlobal),
+            n => query.Contains(n.DataBounds),
+            n => !query.Intersects(n.DataBounds),
             minCellExponent);
 
     /// <summary>
@@ -142,7 +142,7 @@ public static partial class Queries
     public static long CountPointsApproximatelyOutsideBox(
         this PointSet self, Box3d query, int minCellExponent = int.MinValue
         )
-        => CountPointsApproximatelyOutsideBox(self.Root.Value, query, minCellExponent);
+        => CountPointsApproximatelyOutsideBox(self.Root.Value.ToPointNode(), query, minCellExponent);
 
     /// <summary>
     /// Counts points approximately outside axis-aligned box (cell granularity).
@@ -150,11 +150,11 @@ public static partial class Queries
     /// Faster than CountPointsOutsideBox.
     /// </summary>
     public static long CountPointsApproximatelyOutsideBox(
-        this IPointCloudNode self, Box3d query, int minCellExponent = int.MinValue
+        this IPointNode self, Box3d query, int minCellExponent = int.MinValue
         )
         => CountPointsApproximately(self,
-            n => !query.Intersects(n.BoundingBoxExactGlobal),
-            n => query.Contains(n.BoundingBoxExactGlobal),
+            n => !query.Intersects(n.DataBounds),
+            n => query.Contains(n.DataBounds),
             minCellExponent);
 
     #endregion

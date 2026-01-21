@@ -31,17 +31,17 @@ public static partial class Queries
     public static IEnumerable<Chunk> QueryPointsNearPlane(
         this PointSet self, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
         )
-        => QueryPointsNearPlane(self.Root.Value, plane, maxDistance, minCellExponent);
+        => QueryPointsNearPlane(self.Root.Value.ToPointNode(), plane, maxDistance, minCellExponent);
 
     /// <summary>
     /// All points within maxDistance of given plane.
     /// </summary>
     public static IEnumerable<Chunk> QueryPointsNearPlane(
-        this IPointCloudNode node, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
+        this IPointNode node, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
         )
         => QueryPoints(node,
-            n => plane.Contains(maxDistance, node.BoundingBoxExactGlobal),
-            n => !node.BoundingBoxExactGlobal.Intersects(plane, maxDistance),
+            n => plane.Contains(maxDistance, node.DataBounds),
+            n => !node.DataBounds.Intersects(plane, maxDistance),
             p => Math.Abs(plane.Height(p)) <= maxDistance,
             minCellExponent
             );
@@ -52,17 +52,17 @@ public static partial class Queries
     public static IEnumerable<Chunk> QueryPointsNearPlanes(
         this PointSet self, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
         )
-        => QueryPointsNearPlanes(self.Root.Value, planes, maxDistance, minCellExponent);
+        => QueryPointsNearPlanes(self.Root.Value.ToPointNode(), planes, maxDistance, minCellExponent);
 
     /// <summary>
     /// All points within maxDistance of ANY of the given planes.
     /// </summary>
     public static IEnumerable<Chunk> QueryPointsNearPlanes(
-        this IPointCloudNode node, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
+        this IPointNode node, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
         )
         => QueryPoints(node,
-            n => planes.Any(plane => plane.Contains(maxDistance, node.BoundingBoxExactGlobal)),
-            n => !planes.Any(plane => node.BoundingBoxExactGlobal.Intersects(plane, maxDistance)),
+            n => planes.Any(plane => plane.Contains(maxDistance, node.DataBounds)),
+            n => !planes.Any(plane => node.DataBounds.Intersects(plane, maxDistance)),
             p => planes.Any(plane => Math.Abs(plane.Height(p)) <= maxDistance),
             minCellExponent
             );
@@ -73,17 +73,17 @@ public static partial class Queries
     public static IEnumerable<Chunk> QueryPointsNotNearPlane(
         this PointSet self, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
         )
-        => QueryPointsNotNearPlane(self.Root.Value, plane, maxDistance, minCellExponent);
+        => QueryPointsNotNearPlane(self.Root.Value.ToPointNode(), plane, maxDistance, minCellExponent);
 
     /// <summary>
     /// All points NOT within maxDistance of given plane.
     /// </summary>
     public static IEnumerable<Chunk> QueryPointsNotNearPlane(
-        this IPointCloudNode node, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
+        this IPointNode node, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
         )
         => QueryPoints(node,
-            n => !node.BoundingBoxExactGlobal.Intersects(plane, maxDistance),
-            n => plane.Contains(maxDistance, node.BoundingBoxExactGlobal),
+            n => !node.DataBounds.Intersects(plane, maxDistance),
+            n => plane.Contains(maxDistance, node.DataBounds),
             p => Math.Abs(plane.Height(p)) > maxDistance,
             minCellExponent
             );
@@ -94,17 +94,17 @@ public static partial class Queries
     public static IEnumerable<Chunk> QueryPointsNotNearPlanes(
         this PointSet self, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
         )
-        => QueryPointsNotNearPlanes(self.Root.Value, planes, maxDistance, minCellExponent);
+        => QueryPointsNotNearPlanes(self.Root.Value.ToPointNode(), planes, maxDistance, minCellExponent);
 
     /// <summary>
     /// All points NOT within maxDistance of ALL the given planes.
     /// </summary>
     public static IEnumerable<Chunk> QueryPointsNotNearPlanes(
-        this IPointCloudNode node, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
+        this IPointNode node, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
         )
         => QueryPoints(node,
-            n => !planes.Any(plane => node.BoundingBoxExactGlobal.Intersects(plane, maxDistance)),
-            n => planes.Any(plane => plane.Contains(maxDistance, node.BoundingBoxExactGlobal)),
+            n => !planes.Any(plane => node.DataBounds.Intersects(plane, maxDistance)),
+            n => planes.Any(plane => plane.Contains(maxDistance, node.DataBounds)),
             p => !planes.Any(plane => Math.Abs(plane.Height(p)) <= maxDistance),
             minCellExponent
             );
@@ -119,17 +119,17 @@ public static partial class Queries
     public static long CountPointsNearPlane(
         this PointSet self, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
         )
-        => CountPointsNearPlane(self.Root.Value, plane, maxDistance, minCellExponent);
+        => CountPointsNearPlane(self.Root.Value.ToPointNode(), plane, maxDistance, minCellExponent);
 
     /// <summary>
     /// Count points within maxDistance of given plane.
     /// </summary>
     public static long CountPointsNearPlane(
-        this IPointCloudNode node, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
+        this IPointNode node, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
         )
         => CountPoints(node,
-            n => plane.Contains(maxDistance, node.BoundingBoxExactGlobal),
-            n => !node.BoundingBoxExactGlobal.Intersects(plane, maxDistance),
+            n => plane.Contains(maxDistance, node.DataBounds),
+            n => !node.DataBounds.Intersects(plane, maxDistance),
             p => Math.Abs(plane.Height(p)) <= maxDistance,
             minCellExponent
             );
@@ -140,17 +140,17 @@ public static partial class Queries
     public static long CountPointsNearPlanes(
         this PointSet self, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
         )
-        => CountPointsNearPlanes(self.Root.Value, planes, maxDistance, minCellExponent);
+        => CountPointsNearPlanes(self.Root.Value.ToPointNode(), planes, maxDistance, minCellExponent);
 
     /// <summary>
     /// Count points within maxDistance of ANY of the given planes.
     /// </summary>
     public static long CountPointsNearPlanes(
-        this IPointCloudNode node, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
+        this IPointNode node, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
         )
         => CountPoints(node,
-            n => planes.Any(plane => plane.Contains(maxDistance, node.BoundingBoxExactGlobal)),
-            n => !planes.Any(plane => node.BoundingBoxExactGlobal.Intersects(plane, maxDistance)),
+            n => planes.Any(plane => plane.Contains(maxDistance, node.DataBounds)),
+            n => !planes.Any(plane => node.DataBounds.Intersects(plane, maxDistance)),
             p => planes.Any(plane => Math.Abs(plane.Height(p)) <= maxDistance),
             minCellExponent
             );
@@ -161,17 +161,17 @@ public static partial class Queries
     public static long CountPointsNotNearPlane(
         this PointSet self, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
         )
-        => CountPointsNotNearPlane(self.Root.Value, plane, maxDistance, minCellExponent);
+        => CountPointsNotNearPlane(self.Root.Value.ToPointNode(), plane, maxDistance, minCellExponent);
 
     /// <summary>
     /// Count points NOT within maxDistance of given plane.
     /// </summary>
     public static long CountPointsNotNearPlane(
-        this IPointCloudNode node, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
+        this IPointNode node, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
         )
         => CountPoints(node,
-            n => !node.BoundingBoxExactGlobal.Intersects(plane, maxDistance),
-            n => plane.Contains(maxDistance, node.BoundingBoxExactGlobal),
+            n => !node.DataBounds.Intersects(plane, maxDistance),
+            n => plane.Contains(maxDistance, node.DataBounds),
             p => Math.Abs(plane.Height(p)) > maxDistance,
             minCellExponent
             );
@@ -182,17 +182,17 @@ public static partial class Queries
     public static long CountPointsNotNearPlanes(
         this PointSet self, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
         )
-        => CountPointsNotNearPlanes(self.Root.Value, planes, maxDistance, minCellExponent);
+        => CountPointsNotNearPlanes(self.Root.Value.ToPointNode(), planes, maxDistance, minCellExponent);
 
     /// <summary>
     /// Count points NOT within maxDistance of ALL the given planes.
     /// </summary>
     public static long CountPointsNotNearPlanes(
-        this IPointCloudNode node, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
+        this IPointNode node, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
         )
         => CountPoints(node,
-            n => !planes.Any(plane => node.BoundingBoxExactGlobal.Intersects(plane, maxDistance)),
-            n => planes.Any(plane => plane.Contains(maxDistance, node.BoundingBoxExactGlobal)),
+            n => !planes.Any(plane => node.DataBounds.Intersects(plane, maxDistance)),
+            n => planes.Any(plane => plane.Contains(maxDistance, node.DataBounds)),
             p => !planes.Any(plane => Math.Abs(plane.Height(p)) <= maxDistance),
             minCellExponent
             );
@@ -209,7 +209,7 @@ public static partial class Queries
     public static long CountPointsApproximatelyNearPlane(
         this PointSet self, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
         )
-        => CountPointsApproximatelyNearPlane(self.Root.Value, plane, maxDistance, minCellExponent);
+        => CountPointsApproximatelyNearPlane(self.Root.Value.ToPointNode(), plane, maxDistance, minCellExponent);
 
     /// <summary>
     /// Count points approximately within maxDistance of given plane.
@@ -217,11 +217,11 @@ public static partial class Queries
     /// Faster than CountPointsNearPlane.
     /// </summary>
     public static long CountPointsApproximatelyNearPlane(
-        this IPointCloudNode node, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
+        this IPointNode node, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
         )
         => CountPointsApproximately(node,
-            n => plane.Contains(maxDistance, node.BoundingBoxExactGlobal),
-            n => !node.BoundingBoxExactGlobal.Intersects(plane, maxDistance),
+            n => plane.Contains(maxDistance, node.DataBounds),
+            n => !node.DataBounds.Intersects(plane, maxDistance),
             minCellExponent
             );
 
@@ -233,7 +233,7 @@ public static partial class Queries
     public static long CountPointsApproximatelyNearPlanes(
         this PointSet self, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
         )
-        => CountPointsApproximatelyNearPlanes(self.Root.Value, planes, maxDistance, minCellExponent);
+        => CountPointsApproximatelyNearPlanes(self.Root.Value.ToPointNode(), planes, maxDistance, minCellExponent);
 
     /// <summary>
     /// Count points approximately within maxDistance of ANY of the given planes.
@@ -241,11 +241,11 @@ public static partial class Queries
     /// Faster than CountPointsNearPlanes.
     /// </summary>
     public static long CountPointsApproximatelyNearPlanes(
-        this IPointCloudNode node, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
+        this IPointNode node, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
         )
         => CountPointsApproximately(node,
-            n => planes.Any(plane => plane.Contains(maxDistance, node.BoundingBoxExactGlobal)),
-            n => !planes.Any(plane => node.BoundingBoxExactGlobal.Intersects(plane, maxDistance)),
+            n => planes.Any(plane => plane.Contains(maxDistance, node.DataBounds)),
+            n => !planes.Any(plane => node.DataBounds.Intersects(plane, maxDistance)),
             minCellExponent
             );
 
@@ -257,7 +257,7 @@ public static partial class Queries
     public static long CountPointsApproximatelyNotNearPlane(
         this PointSet self, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
         )
-        => CountPointsApproximatelyNotNearPlane(self.Root.Value, plane, maxDistance, minCellExponent);
+        => CountPointsApproximatelyNotNearPlane(self.Root.Value.ToPointNode(), plane, maxDistance, minCellExponent);
 
     /// <summary>
     /// Count points approximately NOT within maxDistance of given plane.
@@ -265,11 +265,11 @@ public static partial class Queries
     /// Faster than CountPointsNotNearPlane.
     /// </summary>
     public static long CountPointsApproximatelyNotNearPlane(
-        this IPointCloudNode node, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
+        this IPointNode node, Plane3d plane, double maxDistance, int minCellExponent = int.MinValue
         )
         => CountPointsApproximately(node,
-            n => !node.BoundingBoxExactGlobal.Intersects(plane, maxDistance),
-            n => plane.Contains(maxDistance, node.BoundingBoxExactGlobal),
+            n => !node.DataBounds.Intersects(plane, maxDistance),
+            n => plane.Contains(maxDistance, node.DataBounds),
             minCellExponent
             );
 
@@ -281,7 +281,7 @@ public static partial class Queries
     public static long CountPointsApproximatelyNotNearPlanes(
         this PointSet self, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
         )
-        => CountPointsApproximatelyNotNearPlanes(self.Root.Value, planes, maxDistance, minCellExponent);
+        => CountPointsApproximatelyNotNearPlanes(self.Root.Value.ToPointNode(), planes, maxDistance, minCellExponent);
 
     /// <summary>
     /// Count points approximately NOT within maxDistance of ALL the given planes.
@@ -289,11 +289,11 @@ public static partial class Queries
     /// Faster than CountPointsNotNearPlanes.
     /// </summary>
     public static long CountPointsApproximatelyNotNearPlanes(
-        this IPointCloudNode node, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
+        this IPointNode node, Plane3d[] planes, double maxDistance, int minCellExponent = int.MinValue
         )
         => CountPointsApproximately(node,
-            n => !planes.Any(plane => node.BoundingBoxExactGlobal.Intersects(plane, maxDistance)),
-            n => planes.Any(plane => plane.Contains(maxDistance, node.BoundingBoxExactGlobal)),
+            n => !planes.Any(plane => node.DataBounds.Intersects(plane, maxDistance)),
+            n => planes.Any(plane => plane.Contains(maxDistance, node.DataBounds)),
             minCellExponent
             );
     

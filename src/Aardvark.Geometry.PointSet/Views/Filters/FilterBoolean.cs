@@ -35,13 +35,13 @@ public class FilterOr(IFilter left, IFilter right) : IFilter
     public IFilter Right { get; } = right ?? throw new ArgumentNullException(nameof(right));
 
     /// <summary></summary>
-    public bool IsFullyInside(IPointCloudNode node) => Left.IsFullyInside(node) || Right.IsFullyInside(node);
+    public bool IsFullyInside(IPointNode node) => Left.IsFullyInside(node) || Right.IsFullyInside(node);
 
     /// <summary></summary>
-    public bool IsFullyOutside(IPointCloudNode node) => Left.IsFullyOutside(node) || Right.IsFullyOutside(node);
+    public bool IsFullyOutside(IPointNode node) => Left.IsFullyOutside(node) || Right.IsFullyOutside(node);
 
     /// <summary></summary>
-    public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null)
+    public HashSet<int> FilterPoints(IPointNode node, HashSet<int>? selected = null)
     {
         var a = Left.FilterPoints(node, selected);
         if (selected != null && a.Count == selected.Count) return a;
@@ -82,13 +82,13 @@ public class FilterAnd(IFilter left, IFilter right) : IFilter
     public IFilter Right { get; } = right ?? throw new ArgumentNullException(nameof(right));
 
     /// <summary></summary>
-    public bool IsFullyInside(IPointCloudNode node) => Left.IsFullyInside(node) && Right.IsFullyInside(node);
+    public bool IsFullyInside(IPointNode node) => Left.IsFullyInside(node) && Right.IsFullyInside(node);
 
     /// <summary></summary>
-    public bool IsFullyOutside(IPointCloudNode node) => Left.IsFullyOutside(node) && Right.IsFullyOutside(node);
+    public bool IsFullyOutside(IPointNode node) => Left.IsFullyOutside(node) && Right.IsFullyOutside(node);
 
     /// <summary></summary>
-    public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null)
+    public HashSet<int> FilterPoints(IPointNode node, HashSet<int>? selected = null)
     {
         var a = Left.FilterPoints(node, selected);
         var b = Right.FilterPoints(node, selected);

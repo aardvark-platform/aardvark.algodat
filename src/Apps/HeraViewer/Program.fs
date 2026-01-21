@@ -145,7 +145,7 @@ let main argv =
     let bb = p.Root.Value.BoundingBoxExactGlobal
     let root = p.Root.Value
 
-    let collectLeafData (extract : IPointCloudNode -> 'a[]) (root : IPointCloudNode) : 'a[] =
+    let collectLeafData (extract : IPointCloudNodeOld -> 'a[]) (root : IPointCloudNodeOld) : 'a[] =
         root.EnumerateNodes () |> Seq.filter (fun n -> n.IsLeaf) |> Seq.map extract |> Array.concat
 
     let vertices   = root |> collectLeafData (fun n -> n.PositionsAbsolute |> Array.map V3f)
