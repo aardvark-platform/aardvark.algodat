@@ -364,4 +364,153 @@ namespace Aardvark.Geometry.Points
 
         #endregion
     }
+
+
+    public struct PointKdTree
+    {
+        private PointRkdTreeF<V3f[], V3f> m_tree;
+        private V3d m_offset;
+        
+        public PointRkdTreeF<V3f[], V3f> Tree => m_tree;
+        public V3d Offset => m_offset;
+        
+        public PointKdTree(PointRkdTreeF<V3f[], V3f> tree, V3d offset)
+        {
+            m_tree = tree;
+            m_offset = offset;
+        }
+    }
+
+    public static class PointNodeAttributes
+    {
+        // let Positions = Symbol.Create "Positions"
+        // let Normals = Symbol.Create "Normals"
+        // let Colors = Symbol.Create "Colors"
+        public static Symbol Positions = Symbol.Create("Positions");
+        public static Symbol Normals = Symbol.Create("Normals");
+        public static Symbol Colors = Symbol.Create("Colors");
+        public static Symbol Intensities = Symbol.Create("Intensities");
+        public static Symbol Classifications = Symbol.Create("Classifications");
+        public static Symbol PartIndices = Symbol.Create("PartIndices");
+        
+    }
+
+
+    public interface IPointNode
+    {
+        
+        Box3d CellBounds { get; }
+        Box3d DataBounds { get; }
+        
+        /// <summary>
+        /// global world-space positions of the points
+        /// </summary>
+        V3d[] Position { get; }
+
+        PointKdTree? KdTree { get; }
+
+        bool TryGetAttribute(Symbol name, out Array data);
+
+
+        IPointNode[] Children { get; }
+    }
+
+    internal class PointNodeAdapter : IPointNode
+    {
+        private IPointCloudNode m_node;
+
+        public PointNodeAdapter(IPointCloudNode node)
+        {
+            m_node = node;
+        }
+        
+        public Box3d CellBounds => m_node.Cell.BoundingBox;
+        public Box3d DataBounds => m_node.HasBoundingBoxExactGlobal ? m_node.BoundingBoxExactGlobal : m_node.Cell.BoundingBox;
+        public V3d[] Position => m_node.PositionsAbsolute;
+        public PointKdTree? KdTree
+        {
+            get
+            {
+                if (m_node.HasKdTree)
+                {
+                    var kdTreeF = m_node.KdTree.Value;
+                    return new PointKdTree(kdTreeF, m_node.Center);
+                }
+                return null;
+            }
+        }
+            
+        public bool TryGetAttribute(Symbol attName, out Array data)
+        {
+            if (attName == PointNodeAttributes.Positions)
+            {
+                data = m_node.PositionsAbsolute;
+                return true;
+            }
+            if (attName == PointNodeAttributes.Normals && m_node.HasNormals)
+            {
+                data = m_node.Normals!.Value;
+                return true;
+            }
+            if (attName == PointNodeAttributes.Colors && m_node.HasColors)
+            {
+                data = m_node.Colors!.Value;
+                return true;
+            }
+            if (attName == PointNodeAttributes.Intensities && m_node.HasIntensities)
+            {
+                data = m_node.Intensities!.Value;
+                return true;
+            }
+            if (attName == PointNodeAttributes.Classifications && m_node.HasClassifications)
+            {
+                data = m_node.Classifications!.Value;
+                return true;
+            }
+            if(attName == PointNodeAttributes.PartIndices && m_node.HasPartIndices) 
+            {
+                data = PartIndexUtils.Expand(m_node.PartIndices, m_node.PointCountCell)!;
+                return true;
+            }
+
+            data = null!;
+            return false;
+        }
+        
+        public IPointNode[] Children
+        {
+            get
+            {
+                if (m_node.IsLeaf || m_node.Subnodes == null)
+                    return [];
+                
+                var children = new List<IPointNode>();
+                foreach (var subnodeRef in m_node.Subnodes)
+                {
+                    if (subnodeRef != null)
+                    {
+                        var subnode = subnodeRef.Value;
+                        if (subnode != null)
+                        {
+                            children.Add(new PointNodeAdapter(subnode));
+                        }
+                    }
+                }
+                return children.ToArray();
+            }
+        }
+        
+        
+        
+    }
+
+
+    public static class PointCloudAdapterExtensions
+    {
+        public static IPointNode ToPointNode(this IPointCloudNode node)
+        {
+            return new PointNodeAdapter(node);
+        }
+    }
+
 }
