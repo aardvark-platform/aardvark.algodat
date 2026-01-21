@@ -15,6 +15,7 @@
 using Aardvark.Base;
 using Aardvark.Data.Points;
 using System;
+using System.Collections.Generic;
 
 namespace Aardvark.Geometry.Points;
 
@@ -30,7 +31,7 @@ public static partial class Queries
     public static PointsNearObject<V3d> QueryPointsNearPoint(
         this PointSet self, V3d query, double maxDistanceToPoint, int maxCount
         )
-        => QueryPointsNearPoint(self.Root.Value, query, maxDistanceToPoint, maxCount);
+        => QueryPointsNearPoint(self.Root.Value.ToPointNode(), query, maxDistanceToPoint, maxCount);
 
 #if TODO
     /// <summary>
@@ -45,39 +46,33 @@ public static partial class Queries
     /// Points within given distance to a query point.
     /// </summary>
     public static PointsNearObject<V3d> QueryPointsNearPoint(
-        this IPointCloudNodeOld node, V3d query, double maxDistanceToPoint, int maxCount
+        this IPointNode node, V3d query, double maxDistanceToPoint, int maxCount
         )
     {
         if (node == null) return PointsNearObject<V3d>.Empty;
 
         // if query point is farther from bounding box than maxDistanceToPoint,
         // then there cannot be a result and we are done
-        var eps = node.BoundingBoxExactGlobal.Distance(query);
+        var eps = node.DataBounds.Distance(query);
         if (eps > maxDistanceToPoint) return PointsNearObject<V3d>.Empty;
 
-        if (node.IsLeaf())
+        if (node.Children.Length == 0)
         {
             var nodePositions = node.Positions;
 #if PARANOID
-            if (nodePositions.Value.Length <= 0) throw new InvalidOperationException();
+            if (nodePositions.Length <= 0) throw new InvalidOperationException();
 #endif
 
-            var center = node.Center;
+            var center = node.DataBounds.Center;
 
-            var closest = node.KdTree!.Value.GetClosest((V3f)(query - center), (float)maxDistanceToPoint, maxCount).ToArray();
+            var closest = node.KdTree!.Value.Tree.GetClosest((V3f)(query - center), (float)maxDistanceToPoint, maxCount).ToArray();
             if (closest.Length > 0)
             {
-                var ia = closest.Map(x => (int)x.Index);
                 var ds = closest.Map(x => (double)x.Dist);
-                var ps = node.PositionsAbsolute.Subset(ia);
-                var cs = node.Colors?.Value?.Subset(ia);
-                var ns = node.Normals?.Value?.Subset(ia);
-                var js = node.Intensities?.Value?.Subset(ia);
-                node.TryGetPartIndices(out var pis);
-                pis = pis?.Subset(ia);
-                var ks = node.Classifications?.Value?.Subset(ia);
-                var chunk = new PointsNearObject<V3d>(query, maxDistanceToPoint, ps, cs, ns, js, pis, ks, ds);
-                return chunk;
+                var ia = new HashSet<int>(closest.Map(x => (int)x.Index));
+                var chunk = node.ToChunk(ia);
+                var pno = new PointsNearObject<V3d>(query, maxDistanceToPoint, chunk, ds);
+                return pno;
             }
             else
             {

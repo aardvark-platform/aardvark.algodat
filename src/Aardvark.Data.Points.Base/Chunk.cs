@@ -16,6 +16,7 @@
    limitations under the License.
 */
 using Aardvark.Base;
+using Aardvark.Base.Sorting;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -218,6 +219,26 @@ namespace Aardvark.Data.Points
         public static Chunk ImmutableMerge(IEnumerable<Chunk> chunks)
             => ImmutableMerge([.. chunks]);
 
+        public Chunk ImmutableReorder(int[] ia)
+        {
+            // Positions.Reordered(ia),
+            // Colors?.Length > 0 ? Colors.Reordered(ia) : Colors,
+            // Normals?.Length > 0 ? Normals.Reordered(ia) : Normals,
+            // Intensities?.Length > 0 ? Intensities.Reordered(ia) : Intensities,
+            // PartIndices?.Length > 0 ? PartIndices.Reordered(ia) : PartIndices,
+            // Classifications?.Length > 0 ? Classifications.Reordered(ia) : Classifications,
+            return new Chunk(
+                (V3d[])Positions.Reordered(ia),
+                HasColors          ? (C4b[])Colors         .Reordered(ia) : null,
+                HasNormals         ? (V3f[])Normals        .Reordered(ia) : null,
+                HasIntensities     ? (int[])Intensities    .Reordered(ia) : null,
+                HasClassifications ? (byte[])Classifications.Reordered(ia) : null,
+                HasPartIndices     ? PartIndexUtils.Expand(PartIndices,ia.Length)?.Reordered(ia) : null,
+                PartIndexRange,
+                BoundingBox
+                );
+        }
+
         /// <summary>
         /// </summary>
         /// <param name="positions">Optional.</param>
@@ -365,22 +386,42 @@ namespace Aardvark.Data.Points
                 var i = 0;
                 while (i < Count)
                 {
-                    var qs = PartIndexUtils.Take(PartIndexUtils.Skip(PartIndices, i), chunksize);
-                    yield return new Chunk(
-                        [.. Positions.Skip(i).Take(chunksize)],
-                        colors: HasColors ? Colors.Skip(i).Take(chunksize).ToArray() : null,
-                        normals: HasNormals ? Normals.Skip(i).Take(chunksize).ToArray() : null,
-                        intensities: HasIntensities ? Intensities.Skip(i).Take(chunksize).ToArray() : null,
-                        classifications: HasClassifications ? Classifications.Skip(i).Take(chunksize).ToArray() : null,
-                        partIndices: qs,
-                        partIndexRange: PartIndexUtils.GetRange(qs),
-                        bbox: null
-                        );
+                    yield return GetRange(i, chunksize);
 
                     i += chunksize;
                 }
             }
         }
+
+        /// <summary>
+        /// Returns a new Chunk which contains at most <paramref name="length"/> elements starting at <paramref name="offset"/>.
+        /// If offset is out of bounds or length is zero, an empty Chunk is returned.
+        /// Each optional array is sliced consistently; if an optional array is null on the source it remains null on the result.
+        /// The returned Chunk will have bbox == null so it is recomputed by the constructor.
+        /// </summary>
+        public Chunk GetRange(int offset, int length)
+        {
+            if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset));
+            if (length < 0) throw new ArgumentOutOfRangeException(nameof(length));
+            if (length == 0) return Empty;
+            if (Positions == null || Positions.Count == 0) return Empty;
+            if (offset >= Count) return Empty;
+
+            var take = Math.Min(length, Count - offset);
+
+            var ps = Positions.Skip(offset).Take(take).ToList();
+            var cs = HasColors          ? Colors     .Skip(offset).Take(take).ToList() : null;
+            var ns = HasNormals         ? Normals    .Skip(offset).Take(take).ToList() : null;
+            var js = HasIntensities     ? Intensities.Skip(offset).Take(take).ToList() : null;
+            var ks = HasClassifications ? Classifications.Skip(offset).Take(take).ToList() : null;
+
+            var qs = PartIndexUtils.Take(PartIndexUtils.Skip(PartIndices, offset), take);
+
+            return new Chunk(ps, cs, ns, js, ks, qs, PartIndexUtils.GetRange(qs), bbox: null);
+        }
+        
+        public Chunk Take(int length) => GetRange(0, length);
+        public Chunk Skip(int offset) => GetRange(offset, Count - offset);
 
         /// <summary>
         /// Creates new chunk which is union of this chunk and other. 
@@ -754,3 +795,4 @@ namespace Aardvark.Data.Points
         #endregion
     }
 }
+

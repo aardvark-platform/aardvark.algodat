@@ -14,6 +14,7 @@
 using System;
 using Aardvark.Base;
 using Aardvark.Base.Sorting;
+using Aardvark.Data.Points;
 
 namespace Aardvark.Geometry.Points;
 
@@ -45,7 +46,7 @@ public class PointsNearObject<T>
 {
     /// <summary></summary>
     public static readonly PointsNearObject<T> Empty = new(
-        default!, 0.0, [], [], [], [], [], [], []
+        default!, 0.0, Chunk.Empty, null!
         );
 
     /// <summary></summary>
@@ -55,49 +56,28 @@ public class PointsNearObject<T>
     public double MaxDistance { get; }
 
     /// <summary></summary>
-    public V3d[] Positions { get; }
+    public Chunk Chunk { get; }
+
+    public double[] Distances { get; }
 
     /// <summary></summary>
-    public C4b[]? Colors { get; }
-
-    /// <summary></summary>
-    public V3f[]? Normals { get; }
-
-    /// <summary></summary>
-    public int[]? Intensities { get; }
-
-    /// <summary></summary>
-    public int[]? PartIndices { get; }
-
-    /// <summary></summary>
-    public byte[]? Classifications { get; }
-
-    /// <summary></summary>
-    public double[]? Distances { get; }
-
-    /// <summary></summary>
-    public PointsNearObject(T obj, double maxDistance, V3d[] positions, C4b[]? colors, V3f[]? normals, int[]? intensities, int[]? partIndices, byte[]? classifications, double[]? distances)
+    public PointsNearObject(T obj, double maxDistance, Chunk chunk, double[] distances)
     {
         if (maxDistance < 0.0) throw new ArgumentOutOfRangeException(nameof(maxDistance), $"Parameter 'maxDistance' must not be less than 0.0, but is {maxDistance}.");
 
         Object = obj;
         MaxDistance = maxDistance;
-        Positions = positions ?? throw new ArgumentNullException(nameof(positions));
-        Colors = colors;
-        Normals = normals;
-        Intensities = intensities;
-        PartIndices = partIndices;
-        Classifications = classifications;
+        Chunk = chunk;
         Distances = distances;
     }
 
     /// <summary>
     /// </summary>
-    public int Count => Positions.Length;
+    public int Count => Chunk.Count;
 
     /// <summary>
     /// </summary>
-    public bool IsEmpty => Positions.Length == 0;
+    public bool IsEmpty => Chunk.Count == 0;
 
     /// <summary>
     /// Returns this PointsNearObject merged with other PointsNearObject.
@@ -108,14 +88,11 @@ public class PointsNearObject<T>
         if (maxCount == 0) return Empty;
         if (other == null || other.IsEmpty) return this;
 
+        var mergedChunks = Chunk.ImmutableMerge(other.Chunk);
+        
         var merged = new PointsNearObject<T>(Object,
             Math.Max(MaxDistance, other.MaxDistance),
-            Positions.Append(other.Positions)!,
-            Colors?.Append(other.Colors),
-            Normals.Append(other.Normals),
-            Intensities.Append(other.Intensities),
-            PartIndices.Append(other.PartIndices),
-            Classifications.Append(other.Classifications),
+            mergedChunks,
             Distances.Append(other.Distances)
             );
 
@@ -143,13 +120,8 @@ public class PointsNearObject<T>
     /// </summary>
     public PointsNearObject<T> Reordered(int[] ia) => new(
         Object, MaxDistance,
-        Positions.Reordered(ia),
-        Colors?.Length > 0 ? Colors.Reordered(ia) : Colors,
-        Normals?.Length > 0 ? Normals.Reordered(ia) : Normals,
-        Intensities?.Length > 0 ? Intensities.Reordered(ia) : Intensities,
-        PartIndices?.Length > 0 ? PartIndices.Reordered(ia) : PartIndices,
-        Classifications?.Length > 0 ? Classifications.Reordered(ia) : Classifications,
-        Distances!.Reordered(ia)
+        Chunk.ImmutableReorder(ia),
+        Distances.Reordered(ia)
         );
 
     /// <summary>
@@ -159,13 +131,11 @@ public class PointsNearObject<T>
     {
         if (count >= Count) return this;
         var ds = Distances!.Take(count);
-        return new PointsNearObject<T>(Object, ds.Max(),
-            Positions.Take(count), Colors?.Take(count), Normals?.Take(count), Intensities?.Take(count), PartIndices?.Take(count), Classifications!.Take(count), ds
-            );
+        return new PointsNearObject<T>(Object, ds.Max(), Chunk.Take(count), ds);
     }
 
     /// <summary>
     /// </summary>
     public PointsNearObject<U> WithObject<U>(U other)
-        => new(other, MaxDistance, Positions, Colors, Normals, Intensities, PartIndices, Classifications, Distances);
+        => new(other, MaxDistance, Chunk, Distances);
 }

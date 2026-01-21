@@ -33,8 +33,8 @@ public static partial class Queries
         )
     {
         ray.Direction = ray.Direction.Normalized;
-        var data = self.Root.Value;
-        var bbox = data.BoundingBoxExactGlobal;
+        var data = self.Root.Value.ToPointNode();
+        var bbox = data.DataBounds;
 
         var line = Clip(bbox, ray);
         if (!line.HasValue) return [];
@@ -45,7 +45,7 @@ public static partial class Queries
     /// <summary>
     /// Points within given distance of a ray.
     /// </summary>
-    public static IEnumerable<GenericChunk> QueryPointsNearRayCustom(
+    public static IEnumerable<Chunk> QueryPointsNearRayCustom(
         this PointSet self, Ray3d ray, double maxDistanceToRay, params Durable.Def[] customAttributes
         )
         => QueryPointsNearRayCustom(self, ray, maxDistanceToRay, int.MinValue, customAttributes);
@@ -53,13 +53,13 @@ public static partial class Queries
     /// <summary>
     /// Points within given distance of a ray.
     /// </summary>
-    public static IEnumerable<GenericChunk> QueryPointsNearRayCustom(
+    public static IEnumerable<Chunk> QueryPointsNearRayCustom(
         this PointSet self, Ray3d ray, double maxDistanceToRay, int minCellExponent, params Durable.Def[] customAttributes
         )
     {
         ray.Direction = ray.Direction.Normalized;
-        var data = self.Root.Value;
-        var bbox = data.BoundingBoxExactGlobal;
+        var data = self.Root.Value.ToPointNode();
+        var bbox = data.DataBounds;
 
         var line = Clip(bbox, ray);
         if (!line.HasValue) return [];
@@ -73,12 +73,12 @@ public static partial class Queries
     public static IEnumerable<Chunk> QueryPointsNearLineSegment(
         this PointSet self, Line3d lineSegment, double maxDistanceToRay, int minCellExponent = int.MinValue
         )
-        => QueryPointsNearLineSegment(self.Root.Value, lineSegment, maxDistanceToRay, minCellExponent);
+        => QueryPointsNearLineSegment(self.Root.Value.ToPointNode(), lineSegment, maxDistanceToRay, minCellExponent);
 
     /// <summary>
     /// Points within given distance of a line segment (at most 1000).
     /// </summary>
-    public static IEnumerable<GenericChunk> QueryPointsNearLineSegmentCustom(
+    public static IEnumerable<Chunk> QueryPointsNearLineSegmentCustom(
         this PointSet self, Line3d lineSegment, double maxDistanceToRay, params Durable.Def[] customAttributes
         )
         => QueryPointsNearLineSegmentCustom(self, lineSegment, maxDistanceToRay, int.MinValue, customAttributes);
@@ -86,98 +86,72 @@ public static partial class Queries
     /// <summary>
     /// Points within given distance of a line segment (at most 1000).
     /// </summary>
-    public static IEnumerable<GenericChunk> QueryPointsNearLineSegmentCustom(
+    public static IEnumerable<Chunk> QueryPointsNearLineSegmentCustom(
         this PointSet self, Line3d lineSegment, double maxDistanceToRay, int minCellExponent, params Durable.Def[] customAttributes
         )
-        => QueryPointsNearLineSegmentCustom(self.Root.Value, lineSegment, maxDistanceToRay, minCellExponent, customAttributes);
+        => QueryPointsNearLineSegmentCustom(self.Root.Value.ToPointNode(), lineSegment, maxDistanceToRay, minCellExponent, customAttributes);
 
 
     /// <summary>
     /// Points within given distance of a line segment (at most 1000).
     /// </summary>
     public static IEnumerable<Chunk> QueryPointsNearLineSegment(
-        this IPointCloudNodeOld node, Line3d lineSegment, double maxDistanceToRay, int minCellExponent = int.MinValue
+        this IPointNode node, Line3d lineSegment, double maxDistanceToRay, int minCellExponent = int.MinValue
         )
     {
-        if (!node.HasPositions) yield break;
+        if (node.Positions.Length == 0) yield break;
 
-        var centerGlobal = node.Center;
+        var centerGlobal = node.DataBounds.Center;
         var s0Local = lineSegment.P0 - centerGlobal;
         var s1Local = lineSegment.P1 - centerGlobal;
         var rayLocal = new Ray3d(s0Local, (s1Local - s0Local).Normalized);
 
-        var worstCaseDist = node.BoundingBoxExactLocal.Size3f.Length * 0.5 + maxDistanceToRay;
-        var d0 = rayLocal.GetMinimalDistanceTo((V3d)node.BoundingBoxExactLocal.Center);
-        if (d0 > worstCaseDist) yield break;
+        var worstCaseDist = node.DataBounds.Size3d.Length * 0.5 + maxDistanceToRay;
+        // var d0 = rayLocal.GetMinimalDistanceTo(node.BoundigBoxExactLocal.Center);
+        // if (d0 > worstCaseDist) yield break;
 
-        if (node.IsLeaf || node.Cell.Exponent == minCellExponent)
+        var nodeCell = new Cell(node.CellBounds);
+        if (node.Children.Length == 0 || nodeCell.Exponent == minCellExponent)
         {
-            if (node.HasKdTree)
+            if (node.KdTree != null)
             {
-                var indexArray = node.KdTree.Value.GetClosestToLine(
+                var indexArray = node.KdTree.Value.Tree.GetClosestToLine(
                     (V3f)s0Local, (V3f)s1Local,
                     (float)maxDistanceToRay,
-                    node.PointCountCell
+                    node.Positions.Length
                     );
 
                 if (indexArray.Count > 0)
                 {
-                    var ia = indexArray.MapToArray(x => (int)x.Index);
-                    var ps = new V3d[ia.Length];
-                    var cs = node.HasColors ? new C4b[ia.Length] : null;
-                    var ns = node.HasNormals ? new V3f[ia.Length] : null;
-                    var js = node.HasIntensities ? new int[ia.Length] : null;
-                    var ks = node.HasClassifications ? new byte[ia.Length] : null;
-                    var qs = PartIndexUtils.Subset(node.PartIndices, ia);
-
-                    for (var i = 0; i < ia.Length; i++)
-                    {
-                        var index = ia[i];
-                        ps[i] = centerGlobal + (V3d)node.Positions.Value[index];
-                        if (node.HasColors) cs![i] = node.Colors.Value[index];
-                        if (node.HasNormals) ns![i] = node.Normals.Value[index];
-                        if (node.HasIntensities) js![i] = node.Intensities.Value[index];
-                        if (node.HasClassifications) ks![i] = node.Classifications.Value[index];
-                    }
-                    var chunk = new Chunk(ps, cs, ns, js, ks, qs, partIndexRange: null, bbox: null);
-                    yield return chunk;
+                    var ia = new HashSet<int>(indexArray.MapToArray(x => (int)x.Index));
+                    yield return node.ToChunk(ia);
                 }
             }
             else
             {
                 // do it without kd-tree ;-)
-                var psLocal = node.Positions.Value;
+                var psLocal = node.Positions;
 
-                var ia = new List<int>();
+                var res = new List<int>();
                 for (var i = 0; i < psLocal.Length; i++)
                 {
-                    var d = rayLocal.GetMinimalDistanceTo((V3d)psLocal[i]);
+                    var d = rayLocal.GetMinimalDistanceTo(psLocal[i]);
                     if (d > maxDistanceToRay) continue;
-                    ia.Add(i);
+                    res.Add(i);
                 }
+
+                var ia = new HashSet<int>(res);
 
                 if (ia.Count > 0)
                 {
-                    yield return new Chunk(
-                        node.PositionsAbsolute.Subset(ia),
-                        node.Colors?.Value.Subset(ia),
-                        node.Normals?.Value.Subset(ia),
-                        node.Intensities?.Value.Subset(ia),
-                        node.Classifications?.Value.Subset(ia),
-                        partIndices: PartIndexUtils.Subset(node.PartIndices, ia),
-                        partIndexRange: null,
-                        bbox: null);
-                    throw new NotImplementedException("PARTINDICES");
+                    yield return node.ToChunk(ia);
                 }
             }
         }
         else // inner node
         {
-            for (var i = 0; i < 8; i++)
-            {
-                var n = node.Subnodes![i];
-                if (n == null) continue;
-                var xs = QueryPointsNearLineSegment(n.Value, lineSegment, maxDistanceToRay, minCellExponent);
+            foreach(var n in node.Children) {
+                var xs = QueryPointsNearLineSegment(n, lineSegment, maxDistanceToRay, minCellExponent);
                 foreach (var x in xs) yield return x;
             }
         }
@@ -186,66 +160,65 @@ public static partial class Queries
     /// <summary>
     /// Points within given distance of a line segment (at most 1000).
     /// </summary>
-    public static IEnumerable<GenericChunk> QueryPointsNearLineSegmentCustom(
-        this IPointCloudNodeOld node, Line3d lineSegment, double maxDistanceToRay, params Durable.Def[] customAttributes
+    public static IEnumerable<Chunk> QueryPointsNearLineSegmentCustom(
+        this IPointNode node, Line3d lineSegment, double maxDistanceToRay, params Durable.Def[] customAttributes
         )
         => QueryPointsNearLineSegmentCustom(node, lineSegment, maxDistanceToRay, int.MinValue, customAttributes);
 
     /// <summary>
     /// Points within given distance of a line segment (at most 1000).
     /// </summary>
-    public static IEnumerable<GenericChunk> QueryPointsNearLineSegmentCustom(
-        this IPointCloudNodeOld node, Line3d lineSegment, double maxDistanceToRay, int minCellExponent, params Durable.Def[] customAttributes
+    public static IEnumerable<Chunk> QueryPointsNearLineSegmentCustom(
+        this IPointNode node, Line3d lineSegment, double maxDistanceToRay, int minCellExponent, params Durable.Def[] customAttributes
         )
     {
-        if (!node.HasPositions) yield break;
+        if (node.Positions.Length == 0) yield break;
 
-        var centerGlobal = node.Center;
+        var centerGlobal = node.DataBounds.Center;
         var s0Local = lineSegment.P0 - centerGlobal;
         var s1Local = lineSegment.P1 - centerGlobal;
         var rayLocal = new Ray3d(s0Local, (s1Local - s0Local).Normalized);
 
-        var worstCaseDist = node.BoundingBoxExactLocal.Size3f.Length * 0.5 + maxDistanceToRay;
-        var d0 = rayLocal.GetMinimalDistanceTo((V3d)node.BoundingBoxExactLocal.Center);
-        if (d0 > worstCaseDist) yield break;
+        var worstCaseDist = node.DataBounds.Size3d.Length * 0.5 + maxDistanceToRay;
+        // var d0 = rayLocal.GetMinimalDistanceTo((V3d)node.BoundingBoxExactLocal.Center);
+        // if (d0 > worstCaseDist) yield break;
 
-        if (node.IsLeaf || node.Cell.Exponent == minCellExponent)
+        var nodeCell = new Cell(node.CellBounds);
+        if (node.Children.Length == 0 || nodeCell.Exponent == minCellExponent)
         {
-            if (!node.HasKdTree) throw new Exception("No kd-tree. Error 575ebf66-6fdf-4656-85d6-b2a9e387fea9.");
+            if (node.KdTree == null ) throw new Exception("No kd-tree. Error 575ebf66-6fdf-4656-85d6-b2a9e387fea9.");
             
-            var closest = node.KdTree.Value.GetClosestToLine(
+            var closest = node.KdTree.Value.Tree.GetClosestToLine(
                 (V3f)s0Local, (V3f)s1Local,
                 (float)maxDistanceToRay,
-                node.PointCountCell
+                node.Positions.Length
                 );
 
             if (closest.Count > 0)
             {
-                var ia = closest.Map(x => (int)x.Index);
-                var ps = node.PositionsAbsolute.Subset(ia);
-                var data =
-                    ImmutableDictionary<Durable.Def, object>.Empty
-                    .Add(GenericChunk.Defs.Positions3d, ps)
-                    ;
+                var ia = new HashSet<int>(closest.Map(x => (int)x.Index).ToArray());
+                
+                // var ps = node.Positions.Subset(ia);
+                // var data =
+                //     ImmutableDictionary<Durable.Def, object>.Empty
+                //     .Add(GenericChunk.Defs.Positions3d, ps)
+                //     ;
+                //
+                // var attributes = customAttributes.Where(node.Has).Select(def => (def, value: node.Properties[def]));
+                // foreach (var (def, value) in attributes)
+                // {
+                //     data = data.Add(def, value.Subset(ia));
+                // }
+                //
+                // var chunk = new GenericChunk(data);
 
-                var attributes = customAttributes.Where(node.Has).Select(def => (def, value: node.Properties[def]));
-                foreach (var (def, value) in attributes)
-                {
-                    data = data.Add(def, value.Subset(ia));
-                }
-
-                var chunk = new GenericChunk(data);
-
-                yield return chunk;
+                yield return node.ToChunk(ia);
             }
         }
         else // inner node
         {
-            for (var i = 0; i < 8; i++)
-            {
-                var n = node.Subnodes![i];
-                if (n == null) continue;
-                var xs = QueryPointsNearLineSegmentCustom(n.Value, lineSegment, maxDistanceToRay, minCellExponent, customAttributes);
+            foreach(var n in node.Children) {
+                var xs = QueryPointsNearLineSegmentCustom(n, lineSegment, maxDistanceToRay, minCellExponent, customAttributes);
                 foreach (var x in xs) yield return x;
             }
         }

@@ -37,6 +37,18 @@ namespace Aardvark.Data.Points
         public static T[] Subset<T>(this IList<T> xs, List<int> subsetIndices) => subsetIndices.MapToArray(i => xs[i]);
         public static T[] Subset<T>(this IReadOnlyList<T> xs, int[] subsetIndices) => subsetIndices.MapToArray(i => xs[i]);
         public static T[] Subset<T>(this IReadOnlyList<T> xs, IReadOnlyList<int> subsetIndices) => subsetIndices.MapToArray(i => xs[i]);
+        
+        // Reordered: returns a new array where element i is original[ia[i]].
+        public static T[] Reordered<T>(this IReadOnlyList<T> xs, IReadOnlyList<int> ia)
+        {
+            if (xs == null) throw new ArgumentNullException(nameof(xs));
+            if (ia == null) throw new ArgumentNullException(nameof(ia));
+            if (xs.Count != ia.Count) throw new ArgumentException(nameof(ia));
+
+            var res = new T[ia.Count];
+            for (var i = 0; i < ia.Count; i++) res[i] = xs[ia[i]];
+            return res;
+        }
 
         public static Array Subset(this object array, IReadOnlyList<int> subsetIndices) => array switch
         {
@@ -119,6 +131,91 @@ namespace Aardvark.Data.Points
             IReadOnlyList<Trafo2f> xs => Subset(xs, subsetIndices),
             IReadOnlyList<Trafo3d> xs => Subset(xs, subsetIndices),
             IReadOnlyList<Trafo3f> xs => Subset(xs, subsetIndices),
+
+            _ => throw new Exception($"Type {array.GetType()} is not supported.")
+        };
+
+        public static Array Reordered(this object array, IReadOnlyList<int> ia) => array switch
+        {
+            Guid   [] xs => Reordered(xs, ia),
+            string [] xs => Reordered(xs, ia),
+            byte   [] xs => Reordered(xs, ia),
+            sbyte  [] xs => Reordered(xs, ia),
+            short  [] xs => Reordered(xs, ia),
+            ushort [] xs => Reordered(xs, ia),
+            int    [] xs => Reordered(xs, ia),
+            uint   [] xs => Reordered(xs, ia),
+            long   [] xs => Reordered(xs, ia),
+            ulong  [] xs => Reordered(xs, ia),
+            float  [] xs => Reordered(xs, ia),
+            double [] xs => Reordered(xs, ia),
+            decimal[] xs => Reordered(xs, ia),
+            V2d    [] xs => Reordered(xs, ia),
+            V2f    [] xs => Reordered(xs, ia),
+            V2i    [] xs => Reordered(xs, ia),
+            V2l    [] xs => Reordered(xs, ia),
+            V3d    [] xs => Reordered(xs, ia),
+            V3f    [] xs => Reordered(xs, ia),
+            V3i    [] xs => Reordered(xs, ia),
+            V3l    [] xs => Reordered(xs, ia),
+            V4d    [] xs => Reordered(xs, ia),
+            V4f    [] xs => Reordered(xs, ia),
+            V4i    [] xs => Reordered(xs, ia),
+            V4l    [] xs => Reordered(xs, ia),
+            C3b    [] xs => Reordered(xs, ia),
+            C3f    [] xs => Reordered(xs, ia),
+            C4b    [] xs => Reordered(xs, ia),
+            C4f    [] xs => Reordered(xs, ia),
+            M22f   [] xs => Reordered(xs, ia),
+            M22d   [] xs => Reordered(xs, ia),
+            M33f   [] xs => Reordered(xs, ia),
+            M33d   [] xs => Reordered(xs, ia),
+            M44f   [] xs => Reordered(xs, ia),
+            M44d   [] xs => Reordered(xs, ia),
+            Trafo2d[] xs => Reordered(xs, ia),
+            Trafo2f[] xs => Reordered(xs, ia),
+            Trafo3d[] xs => Reordered(xs, ia),
+            Trafo3f[] xs => Reordered(xs, ia),
+
+            IReadOnlyList<Guid   > xs => Reordered(xs, ia),
+            IReadOnlyList<string > xs => Reordered(xs, ia),
+            IReadOnlyList<byte   > xs => Reordered(xs, ia),
+            IReadOnlyList<sbyte  > xs => Reordered(xs, ia),
+            IReadOnlyList<short  > xs => Reordered(xs, ia),
+            IReadOnlyList<ushort > xs => Reordered(xs, ia),
+            IReadOnlyList<int    > xs => Reordered(xs, ia),
+            IReadOnlyList<uint   > xs => Reordered(xs, ia),
+            IReadOnlyList<long   > xs => Reordered(xs, ia),
+            IReadOnlyList<ulong  > xs => Reordered(xs, ia),
+            IReadOnlyList<float  > xs => Reordered(xs, ia),
+            IReadOnlyList<double > xs => Reordered(xs, ia),
+            IReadOnlyList<decimal> xs => Reordered(xs, ia),
+            IReadOnlyList<V2d    > xs => Reordered(xs, ia),
+            IReadOnlyList<V2f    > xs => Reordered(xs, ia),
+            IReadOnlyList<V2i    > xs => Reordered(xs, ia),
+            IReadOnlyList<V2l    > xs => Reordered(xs, ia),
+            IReadOnlyList<V3d    > xs => Reordered(xs, ia),
+            IReadOnlyList<V3f    > xs => Reordered(xs, ia),
+            IReadOnlyList<V3i    > xs => Reordered(xs, ia),
+            IReadOnlyList<V3l    > xs => Reordered(xs, ia),
+            IReadOnlyList<V4d    > xs => Reordered(xs, ia),
+            IReadOnlyList<V4f    > xs => Reordered(xs, ia),
+            IReadOnlyList<V4i    > xs => Reordered(xs, ia),
+            IReadOnlyList<V4l    > xs => Reordered(xs, ia),
+            IReadOnlyList<C3b    > xs => Reordered(xs, ia),
+            IReadOnlyList<C3f    > xs => Reordered(xs, ia),
+            IReadOnlyList<C4b    > xs => Reordered(xs, ia),
+            IReadOnlyList<C4f    > xs => Reordered(xs, ia),
+            IReadOnlyList<M22f   > xs => Reordered(xs, ia),
+            IReadOnlyList<M22d   > xs => Reordered(xs, ia),
+            IReadOnlyList<M33f   > xs => Reordered(xs, ia),
+            IReadOnlyList<M33d   > xs => Reordered(xs, ia),
+            IReadOnlyList<M44f   > xs => Reordered(xs, ia),
+            IReadOnlyList<M44d   > xs => Reordered(xs, ia),
+            IReadOnlyList<Trafo2d> xs => Reordered(xs, ia),
+            IReadOnlyList<Trafo2f> xs => Reordered(xs, ia),
+            IReadOnlyList<Trafo3d> xs => Reordered(xs, ia),
+            IReadOnlyList<Trafo3f> xs => Reordered(xs, ia),
 
             _ => throw new Exception($"Type {array.GetType()} is not supported.")
         };
