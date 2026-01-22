@@ -694,10 +694,10 @@ public static class IPointCloudNodeExtensions
     /// Collects all points from nodes for which predicate is true.
     /// Subnodes of nodes for which predicate is true are not traversed.  
     /// </summary>
-    public static IEnumerable<Chunk> Collect(this IPointNode self, Func<IPointNode, bool> predicate)
+    public static IEnumerable<Chunk> Collect(this IPointCloudNodeOld self, Func<IPointCloudNodeOld, bool> predicate)
     {
         if (self == null) yield break;
-        if (self.Children.Length == 0)
+        if (self.IsLeaf)
         {
             yield return self.ToChunk();
         }
@@ -707,7 +707,7 @@ public static class IPointCloudNodeExtensions
             foreach (var chunk in chunks) yield return chunk;
         }
 
-        static IEnumerable<Chunk> CollectRec(IPointNode n, Func<IPointNode, bool> _collectMe)
+        static IEnumerable<Chunk> CollectRec(IPointCloudNodeOld n, Func<IPointCloudNodeOld, bool> _collectMe)
         {
             if (n == null) yield break;
             
@@ -717,10 +717,13 @@ public static class IPointCloudNodeExtensions
             }
             else
             {
-                foreach (var x in n.Children)
+                foreach (var x in n.Subnodes!)
                 {
-                    var chunks = CollectRec(x, _collectMe);
-                    foreach (var chunk in chunks) yield return chunk;
+                    if (x != null)
+                    {
+                        var chunks = CollectRec(x.Value, _collectMe);
+                        foreach (var chunk in chunks) yield return chunk;
+                    }
                 }
             }
         }
@@ -730,12 +733,10 @@ public static class IPointCloudNodeExtensions
     /// Collects all points from nodes at given relative depth.
     /// E.g. 0 returns points from self, 1 gets points from children, aso.
     /// </summary>
-    public static IEnumerable<Chunk> Collect(this IPointNode self, int fromRelativeDepth)
+    public static IEnumerable<Chunk> Collect(this IPointCloudNodeOld self, int fromRelativeDepth)
     {
-        var sCell = new Cell(self.CellBounds);
-        var d = sCell.Exponent - fromRelativeDepth;
-        var maxSize = Math.Pow(2.0, d);
-        return self.Collect(x => x.Children.Length == 0 || x.CellBounds.Size.NormMax <= maxSize);
+        var d = self.Cell.Exponent - fromRelativeDepth;
+        return self.Collect(x => x.IsLeaf || x.Cell.Exponent <= d);
     }
 
     /// <summary>

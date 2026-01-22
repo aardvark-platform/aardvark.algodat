@@ -125,29 +125,29 @@ namespace Aardvark.Geometry.Tests
         }
 
         #endregion
-
+        
         #region V3d
-
+        
         [Test]
         public void CanQueryPointsNearPoint_1()
         {
             var pointset = CreateRandomPointsInUnitCube(1024, 1024);
             ClassicAssert.IsTrue(pointset.Root.Value.IsLeaf());
-
+        
             var ps = pointset.QueryPointsNearPoint(new V3d(0.5, 0.5, 0.5), 1.0, 10000);
             ClassicAssert.IsTrue(ps.Count == 1024);
         }
-
+        
         [Test]
         public void CanQueryPointsNearPoint_2()
         {
             var pointset = CreateRandomPointsInUnitCube(1024, 32);
             ClassicAssert.IsTrue(pointset.Root.Value.IsNotLeaf());
-
+        
             var ps = pointset.QueryPointsNearPoint(new V3d(0.5, 0.5, 0.5), 1.0, 10000);
             ClassicAssert.IsTrue(ps.Count == 1024);
         }
-
+        
         [Test]
         public void CanQueryPointsNearPoint_3()
         {
@@ -155,7 +155,7 @@ namespace Aardvark.Geometry.Tests
             var ps = pointset.QueryPointsNearPoint(new V3d(2.5, 0.5, 0.5), 1.0, 10000);
             ClassicAssert.IsTrue(ps.Count == 0);
         }
-
+        
         [Test]
         public void CanQueryPointsNearPoint_4()
         {
@@ -168,24 +168,24 @@ namespace Aardvark.Geometry.Tests
         public void CanQueryPointsNearPoint_5()
         {
             var pointset = CreateRandomPointsInUnitCube(1024, 32);
-
+        
             var ps100 = pointset.QueryPointsNearPoint(new V3d(0.75, 0.5, 0.25), 0.50, 100);
             ClassicAssert.IsTrue(ps100.Count == 100);
-
+        
             var ps10 = pointset.QueryPointsNearPoint(new V3d(0.75, 0.5, 0.25), 0.25, 10);
             ClassicAssert.IsTrue(ps10.Count == 10);
-
+        
             var ps1 = pointset.QueryPointsNearPoint(new V3d(0.75, 0.5, 0.25), 0.25, 1);
             ClassicAssert.IsTrue(ps1.Count == 1);
         }
-
-
+        
+        
         [Test]
         public void CanQueryPointsNearPoint_6()
         {
             var pointset = CreateClusteredPointsInUnitCube(100000, 32);
             var xs = pointset.QueryAllPoints().SelectMany(x => x.Positions).ToArray();
-
+        
             var nonEmtpyResultCount = 0;
             var rand = new Random();
             for (var round = 0; round < 100; round++)
@@ -193,25 +193,25 @@ namespace Aardvark.Geometry.Tests
                 var query = new V3d(rand.NextDouble() * 3 - 1, rand.NextDouble() * 3 - 1, rand.NextDouble() * 3 - 1);
                 var maxDistanceToPoint = rand.NextDouble();
                 var maxCount = rand.Next(1024 + 1);
-
+        
                 var correctResult = new HashSet<V3d>(xs
                     .Where(x => (x - query).Length <= maxDistanceToPoint)
                     .OrderBy(x => (x - query).Length)
                     .Take(maxCount)
                     );
-
+        
                 var ps = pointset.QueryPointsNearPoint(query, maxDistanceToPoint, maxCount);
-                var queryResult = new HashSet<V3d>(ps.Positions);
-
+                var queryResult = new HashSet<V3d>(ps.Chunk.Positions);
+        
                 ClassicAssert.IsTrue(queryResult.Count == correctResult.Count);
                 foreach (var x in correctResult) ClassicAssert.IsTrue(queryResult.Contains(x));
-
+        
                 if (queryResult.Count > 0) nonEmtpyResultCount++;
             }
-
+        
             if (nonEmtpyResultCount == 0) Assert.Inconclusive();
         }
-
+        
         #endregion
 
         #region Plane3d
@@ -774,15 +774,15 @@ namespace Aardvark.Geometry.Tests
         #endregion
 
         #region Octree levels
-
+        
         private static PointSet InternalCreateRandomPointSetForOctreeLevelTests()
         {
             var r = new Random();
             var storage = PointSetTests.CreateStorage();
-
+        
             var ps = new V3d[51200].SetByIndex(_ => new V3d(r.NextDouble(), r.NextDouble(), r.NextDouble()));
             var cs = ps.Map(_ => C4b.White);
-
+        
             var config = ImportConfig.Default.WithKey("Test").WithOctreeSplitLimit(1);
             return PointSet
                 .Create(
@@ -792,15 +792,15 @@ namespace Aardvark.Geometry.Tests
                 .GenerateLod(config)
                 ;
         }
-
+        
         [Test]
         public void QueryOctreeLevel()
         {
             var pointset = InternalCreateRandomPointSetForOctreeLevelTests();
-
-            var depth = pointset.Root.Value.CountOctreeLevels();
+        
+            var depth = pointset.Root.Value.ToPointNode().CountOctreeLevels();
             ClassicAssert.IsTrue(depth > 0);
-
+        
             for (var i = 0; i < depth; i++)
             {
                 var countNodes = 0;
@@ -810,16 +810,16 @@ namespace Aardvark.Geometry.Tests
                 ClassicAssert.IsTrue(countNodes <= System.Math.Pow(8, i));
             }
         }
-
+        
         [Test]
         public void QueryOctreeLevelWithBounds()
         {
             var pointset = InternalCreateRandomPointSetForOctreeLevelTests();
             var bounds = Box3d.FromMinAndSize(new V3d(0.2, 0.4, 0.8), new V3d(0.2, 0.15, 0.1));
-
-            var depth = pointset.Root.Value.CountOctreeLevels();
+        
+            var depth = pointset.Root.Value.ToPointNode().CountOctreeLevels();
             ClassicAssert.IsTrue(depth > 0);
-
+        
             for (var i = 1; i < depth; i++)
             {
                 var countNodes0 = 0;
@@ -832,41 +832,41 @@ namespace Aardvark.Geometry.Tests
                 ClassicAssert.IsTrue(countNodes0 > countNodes1);
             }
         }
-
+        
         [Test]
         public void QueryOctreeLevel_NegativeLevel()
         {
             var pointset = InternalCreateRandomPointSetForOctreeLevelTests();
-
-            var depth = pointset.Root.Value.CountOctreeLevels();
+        
+            var depth = pointset.Root.Value.ToPointNode().CountOctreeLevels();
             ClassicAssert.IsTrue(depth > 0);
             
             foreach (var _ in pointset.QueryPointsInOctreeLevel(-1)) Assert.Fail();
         }
-
+        
         [Test]
         public void QueryOctreeLevel_StopsAtLeafs()
         {
             var pointset = InternalCreateRandomPointSetForOctreeLevelTests();
-
-            var depth = pointset.Root.Value.CountOctreeLevels();
+        
+            var depth = pointset.Root.Value.ToPointNode().CountOctreeLevels();
             ClassicAssert.IsTrue(depth > 0);
-
+        
             // query octree level depth*2 -> should not crash and give number of original points
             var countNodes = 0;
             var countPoints = 0;
             foreach (var x in pointset.QueryPointsInOctreeLevel(depth * 2)) { countNodes++; countPoints += x.Count; }
             ClassicAssert.IsTrue(countPoints == 51200);
         }
-
+        
         [Test]
         public void CountPointsInOctreeLevel()
         {
             var pointset = InternalCreateRandomPointSetForOctreeLevelTests();
-
-            var depth = pointset.Root.Value.CountOctreeLevels();
+        
+            var depth = pointset.Root.Value.ToPointNode().CountOctreeLevels();
             ClassicAssert.IsTrue(depth > 0);
-
+        
             var countPoints = 0L;
             for (var i = 0; i < depth; i++)
             {
@@ -875,14 +875,14 @@ namespace Aardvark.Geometry.Tests
                 countPoints = c;
             }
         }
-
+        
         [Test]
         public void CountPointsInOctreeLevelWithBounds()
         {
             var pointset = InternalCreateRandomPointSetForOctreeLevelTests();
             var bounds = Box3d.FromMinAndSize(new V3d(0.2, 0.4, 0.8), new V3d(0.2, 0.15, 0.1));
-
-            var depth = pointset.Root.Value.CountOctreeLevels();
+        
+            var depth = pointset.Root.Value.ToPointNode().CountOctreeLevels();
             ClassicAssert.IsTrue(depth > 0);
             
             for (var i = 1; i < depth; i++)
@@ -892,20 +892,20 @@ namespace Aardvark.Geometry.Tests
                 ClassicAssert.IsTrue(c0 > c1);
             }
         }
-
+        
         [Test]
         public void CountPointsInOctreeLevel_StopsAtLeafs()
         {
             var pointset = InternalCreateRandomPointSetForOctreeLevelTests();
-
-            var depth = pointset.Root.Value.CountOctreeLevels();
+        
+            var depth = pointset.Root.Value.ToPointNode().CountOctreeLevels();
             ClassicAssert.IsTrue(depth > 0);
-
+        
             // query point count at level depth*2 -> should not crash and give number of original points
             var countPoints = pointset.CountPointsInOctreeLevel(depth * 2);
             ClassicAssert.IsTrue(countPoints == 51200);
         }
-
+        
         [Test]
         public void CountPointsInOctreeLevel_NegativeLevel()
         {
@@ -914,132 +914,132 @@ namespace Aardvark.Geometry.Tests
             var countPoints = pointset.CountPointsInOctreeLevel(-1);
             ClassicAssert.IsTrue(countPoints == 0);
         }
-
+        
         [Test]
         public void GetMaxOctreeLevelWithLessThanGivenPointCount()
         {
             var pointset = InternalCreateRandomPointSetForOctreeLevelTests();
-
-            var depth = pointset.Root.Value.CountOctreeLevels();
+        
+            var depth = pointset.Root.Value.ToPointNode().CountOctreeLevels();
             ClassicAssert.IsTrue(depth > 0);
-
+        
             var l0 = pointset.GetMaxOctreeLevelWithLessThanGivenPointCount(0);
             ClassicAssert.IsTrue(l0 == -1);
-
+        
             var l1 = pointset.GetMaxOctreeLevelWithLessThanGivenPointCount(100);
             ClassicAssert.IsTrue(l1 == -1);
-
+        
             var l2 = pointset.GetMaxOctreeLevelWithLessThanGivenPointCount(101);
             ClassicAssert.IsTrue(l2 == 0);
-
+        
             var l3 = pointset.GetMaxOctreeLevelWithLessThanGivenPointCount(800);
             ClassicAssert.IsTrue(l3 == 0);
-
+        
             var l4 = pointset.GetMaxOctreeLevelWithLessThanGivenPointCount(801);
             ClassicAssert.IsTrue(l4 == 1);
-
+        
             var l5 = pointset.GetMaxOctreeLevelWithLessThanGivenPointCount(51200);
             ClassicAssert.IsTrue(l5 == depth - 2);
-
+        
             var l6 = pointset.GetMaxOctreeLevelWithLessThanGivenPointCount(51201);
             ClassicAssert.IsTrue(l6 == depth - 1);
         }
-
+        
         #endregion
-
+        
         #region QueryPoints (generic query traversal, base for most other queries)
-
+        
         [Test]
         public void CanQueryPointsWithEverythingInside_Single()
         {
             var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps = new List<V3d> { new(0.5, 0.5, 0.5) };
             var root = InMemoryPointSet.Build(ps, null, null, null, null, null, Cell.Unit, 1).ToPointSetNode(storage, isTemporaryImportNode: false);
-
-            var rs = root.QueryPoints(cell => true, cell => false, p => true).SelectMany(x => x.Positions).ToArray();
+        
+            var rs = root.ToPointNode().QueryPoints(cell => true, cell => false, p => true).SelectMany(x => x.Positions).ToArray();
             ClassicAssert.IsTrue(rs.Length == 1);
             ClassicAssert.IsTrue(rs[0] == new V3d(0.5, 0.5, 0.5));
         }
-
+        
         [Test]
         public void CanQueryPointsWithEverythingInside_Many()
         {
             var root = CreateRegularPointsInUnitCube(4, 1).Root.Value;
             ClassicAssert.IsTrue(root.PointCountTree == 4 * 4 * 4);
-
-            var rs1 = root.QueryPoints(cell => true, cell => false, p => true).SelectMany(x => x.Positions).ToArray();
+        
+            var rs1 = root.ToPointNode().QueryPoints(cell => true, cell => false, p => true).SelectMany(x => x.Positions).ToArray();
             ClassicAssert.IsTrue(rs1.Length == 4 * 4 * 4);
-
-            var rs2 = root.QueryPoints(cell => false, cell => false, p => true).SelectMany(x => x.Positions).ToArray();
+        
+            var rs2 = root.ToPointNode().QueryPoints(cell => false, cell => false, p => true).SelectMany(x => x.Positions).ToArray();
             ClassicAssert.IsTrue(rs2.Length == 4 * 4 * 4);
         }
-
+        
         [Test]
         public void CanQueryPointsWithEverythingOutside_Single()
         {
             var storage = PointCloud.CreateInMemoryStore(cache: default);
             var ps = new List<V3d> { new(0.5, 0.5, 0.5) };
             var root = InMemoryPointSet.Build(ps, null, null, null, null, null, Cell.Unit, 1).ToPointSetNode(storage, isTemporaryImportNode: false);
-
-            var rs = root.QueryPoints(cell => false, cell => true, p => false).SelectMany(x => x.Positions).ToArray();
+        
+            var rs = root.ToPointNode().QueryPoints(cell => false, cell => true, p => false).SelectMany(x => x.Positions).ToArray();
             ClassicAssert.IsTrue(rs.Length == 0);
         }
-
+        
         [Test]
         public void CanQueryPointsWithEverythingOutside_Many()
         {
             var root = CreateRegularPointsInUnitCube(4, 1).Root.Value;
             ClassicAssert.IsTrue(root.PointCountTree == 4 * 4 * 4);
-
-            var rs1 = root.QueryPoints(cell => false, cell => true, p => false).SelectMany(x => x.Positions).ToArray();
+        
+            var rs1 = root.ToPointNode().QueryPoints(cell => false, cell => true, p => false).SelectMany(x => x.Positions).ToArray();
             ClassicAssert.IsTrue(rs1.Length == 0);
-
-            var rs2 = root.QueryPoints(cell => false, cell => false, p => false).SelectMany(x => x.Positions).ToArray();
+        
+            var rs2 = root.ToPointNode().QueryPoints(cell => false, cell => false, p => false).SelectMany(x => x.Positions).ToArray();
             ClassicAssert.IsTrue(rs2.Length == 0);
         }
-
+        
         #endregion
-
+        
         #region Cells
-
+        
         [Test]
         public void EnumerateSingleCells()
         {
             var ps = CreateRandomPointsInUnitCube(8000, 100);
             var n = ps.Root.Value;
-
-            var r = n.QueryCell(new Cell(1,0,1,-1));
+        
+            var r = n.ToPointNode().QueryCell(new Cell(1,0,1,-1));
             ClassicAssert.IsTrue(r.Cell == new Cell(1, 0, 1, -1));
             ClassicAssert.IsTrue(r.GetPoints(0).Sum(x => x.Count) == 100);
             ClassicAssert.IsTrue(r.GetPoints(int.MaxValue).Sum(x => x.Count).ApproximateEquals(1000, 50));
         }
-
+        
         [Test]
         public void EnumerateSingleCells_ViaView()
         {
             var ps = CreateRandomPointsInUnitCube(8000, 100);
-            var n = FilteredNode.Create(ps.Root.Value, new FilterInsideBox3d(new Box3d(new V3d(0, 0, 0), new V3d(1, 1, 0.5))));
-
+            var n = FilteredNode.Create(ps.Root.Value.ToPointNode(), new FilterInsideBox3d(new Box3d(new V3d(0, 0, 0), new V3d(1, 1, 0.5))));
+        
             var r = n.QueryCell(new Cell(1, 0, 0, -1));
             ClassicAssert.IsTrue(r.Cell == new Cell(1, 0, 0, -1));
             ClassicAssert.IsTrue(r.GetPoints(0).Union().Count == 100);
             ClassicAssert.IsTrue(r.GetPoints(int.MaxValue).Union().Count.ApproximateEquals(1000, 50));
         }
-
+        
         [Test]
         public void EnumerateSingleCells_ViaView_2()
         {
             var ps = CreateRandomPointsInUnitCube(8000, 100);
-            var n = FilteredNode.Create(ps.Root.Value, new FilterInsideBox3d(new Box3d(new V3d(0, 0, 0), new V3d(1, 1, 0.5))));
-
+            var n = FilteredNode.Create(ps.Root.Value.ToPointNode(), new FilterInsideBox3d(new Box3d(new V3d(0, 0, 0), new V3d(1, 1, 0.5))));
+        
             var r = n.QueryCell(new Cell(1, 0, 1, -1));
             ClassicAssert.IsTrue(r.Cell == new Cell(1, 0, 1, -1));
             ClassicAssert.IsTrue(r.GetPoints(0).Union().Count == 0);
             ClassicAssert.IsTrue(r.GetPoints(int.MaxValue).Union().Count == 0);
         }
-
-
-
+        
+        
+        
         [Test]
         public void EnumerateCells()
         {
@@ -1047,8 +1047,8 @@ namespace Aardvark.Geometry.Tests
             {
                 var ps = CreateRandomPointsInUnitCube(8000, 100);
                 var n = ps.Root.Value;
-
-                var l0 = n.EnumerateCells(0).ToArray();
+        
+                var l0 = n.ToPointNode().EnumerateCells(0).ToArray();
                 ClassicAssert.IsTrue(l0.Length == 1);
                 ClassicAssert.IsTrue(l0.Map(x => x.Cell).Contains(new Cell(0, 0, 0, 0)));
                 ClassicAssert.IsTrue(l0[0].Cell == new Cell(0, 0, 0, 0));
@@ -1056,8 +1056,8 @@ namespace Aardvark.Geometry.Tests
                 ClassicAssert.IsTrue(foo == 100);
                 ClassicAssert.IsTrue(l0[0].GetPoints(1).Union().Count == 800);
                 ClassicAssert.IsTrue(l0[0].GetPoints(int.MaxValue).Union().Count == 8000);
-
-                var l1 = n.EnumerateCells(-1).ToArray();
+        
+                var l1 = n.ToPointNode().EnumerateCells(-1).ToArray();
                 ClassicAssert.IsTrue(l1.Length == 8);
                 ClassicAssert.IsTrue(l1.Sum(x => x.GetPoints(0).Union().Count) == 800);
                 ClassicAssert.IsTrue(l1.Sum(x => x.GetPoints(int.MaxValue).Union().Count) == 8000);
@@ -1071,27 +1071,27 @@ namespace Aardvark.Geometry.Tests
                 ClassicAssert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(1, 1, 1, -1)));
             }
         }
-
+        
         [Test]
         public void EnumerateCells_2()
         {
             var ps = CreateRandomPointsInUnitCube(8000, 100);
             var n = ps.Root.Value;
-
-            var l0 = n.EnumerateCells(1).ToArray();
+        
+            var l0 = n.ToPointNode().EnumerateCells(1).ToArray();
             ClassicAssert.IsTrue(l0.Length == 1);
             ClassicAssert.IsTrue(l0[0].Cell == new Cell(0,0,0,1));
             ClassicAssert.IsTrue(l0[0].GetPoints(0).Union().Count == 100);
         }
-
+        
         [Test]
         public void EnumerateCells_ViaView()
         {
             //for (var i = 0; i < 100; i++)
             {
                 var ps = CreateRandomPointsInUnitCube(8000, 100);
-                var n = FilteredNode.Create(ps.Root.Value, new FilterInsideBox3d(new Box3d(new V3d(0, 0, 0), new V3d(1, 1, 0.5))));
-
+                var n = FilteredNode.Create(ps.Root.Value.ToPointNode(), new FilterInsideBox3d(new Box3d(new V3d(0, 0, 0), new V3d(1, 1, 0.5))));
+        
                 var l0 = n.EnumerateCells(0).ToArray();
                 ClassicAssert.IsTrue(l0.Length == 1);
                 ClassicAssert.IsTrue(l0.Map(x => x.Cell).Contains(new Cell(0, 0, 0, 0)));
@@ -1099,7 +1099,7 @@ namespace Aardvark.Geometry.Tests
                 ClassicAssert.IsTrue(l0[0].GetPoints(0).Union().Count.ApproximateEquals(50, 5));
                 ClassicAssert.IsTrue(l0[0].GetPoints(1).Union().Count.ApproximateEquals(400, 20));
                 ClassicAssert.IsTrue(l0[0].GetPoints(int.MaxValue).Union().Count.ApproximateEquals(4000, 200));
-
+        
                 var l1 = n.EnumerateCells(-1).ToArray();
                 ClassicAssert.IsTrue(l1.Length == 4);
                 ClassicAssert.IsTrue(l1.Sum(x => x.GetPoints(0).Union().Count).ApproximateEquals(400, 20));
@@ -1110,15 +1110,15 @@ namespace Aardvark.Geometry.Tests
                 ClassicAssert.IsTrue(l1.Map(x => x.Cell).Contains(new Cell(1, 1, 0, -1)));
             }
         }
-
-
+        
+        
         [Test]
         public void EnumerateCells_Linq()
         {
             var ps = CreateRandomPointsInUnitCube(8000, 100);
             var n = ps.Root.Value;
-
-            var l1 = n.EnumerateCells(-1).Where(x => x.Cell.Z == 0).ToArray();
+        
+            var l1 = n.ToPointNode().EnumerateCells(-1).Where(x => x.Cell.Z == 0).ToArray();
             ClassicAssert.IsTrue(l1.Length == 4);
             ClassicAssert.IsTrue(l1.Sum(x => x.GetPoints(0).Union().Count).ApproximateEquals(400, 20));
             ClassicAssert.IsTrue(l1.Sum(x => x.GetPoints(int.MaxValue).Union().Count).ApproximateEquals(4000, 200));
@@ -1131,17 +1131,17 @@ namespace Aardvark.Geometry.Tests
             ClassicAssert.IsTrue(!l1.Map(x => x.Cell).Contains(new Cell(0, 1, 1, -1)));
             ClassicAssert.IsTrue(!l1.Map(x => x.Cell).Contains(new Cell(1, 1, 1, -1)));
         }
-
-
+        
+        
         [Test]
         public void EnumerateCells_Kernel()
         {
             var ps = CreateRandomPointsInUnitCube(8000, 100);
             var n = ps.Root.Value;
             var k = new Box3i(new V3i(-1,-1,-1), new V3i(+1,+1,+1));
-
+        
             var dict = new Dictionary<Cell, Queries.CellQueryResult>();
-            foreach (var kv in n.EnumerateCells(-1).Select(x => new KeyValuePair<Cell, Queries.CellQueryResult>(x.Cell, x))) dict.Add(kv.Key, kv.Value);
+            foreach (var kv in n.ToPointNode().EnumerateCells(-1).Select(x => new KeyValuePair<Cell, Queries.CellQueryResult>(x.Cell, x))) dict.Add(kv.Key, kv.Value);
             ClassicAssert.IsTrue(dict.Count == 8);
             ClassicAssert.IsTrue(dict[new Cell(0, 0, 0, -1)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 800);
             ClassicAssert.IsTrue(dict[new Cell(1, 0, 0, -1)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 800);
@@ -1152,16 +1152,16 @@ namespace Aardvark.Geometry.Tests
             ClassicAssert.IsTrue(dict[new Cell(0, 1, 1, -1)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 800);
             ClassicAssert.IsTrue(dict[new Cell(1, 1, 1, -1)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 800);
         }
-
+        
         [Test]
         public void EnumerateCells_Kernel_2()
         {
             var ps = CreateRandomPointsInUnitCube(64000, 100);
             var n = ps.Root.Value;
             var k = new Box3i(new V3i(-1, -1, -1), new V3i(+1, +1, +1));
-
+        
             var dict = new Dictionary<Cell, Queries.CellQueryResult>();
-            foreach (var kv in n.EnumerateCells(-2).Select(x => new KeyValuePair<Cell, Queries.CellQueryResult>(x.Cell, x))) dict.Add(kv.Key, kv.Value);
+            foreach (var kv in n.ToPointNode().EnumerateCells(-2).Select(x => new KeyValuePair<Cell, Queries.CellQueryResult>(x.Cell, x))) dict.Add(kv.Key, kv.Value);
             ClassicAssert.IsTrue(dict.Count == 64);
             ClassicAssert.IsTrue(dict[new Cell(0, 0, 0, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 8);
             ClassicAssert.IsTrue(dict[new Cell(1, 0, 0, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 12);
@@ -1171,14 +1171,14 @@ namespace Aardvark.Geometry.Tests
             ClassicAssert.IsTrue(dict[new Cell(1, 0, 1, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 18);
             ClassicAssert.IsTrue(dict[new Cell(0, 1, 1, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 18);
             ClassicAssert.IsTrue(dict[new Cell(1, 1, 1, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 27);
-
-
+        
+        
             ClassicAssert.IsTrue(dict[new Cell(3, 3, 3, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 8);
         }
-
+        
         #endregion
-
-
+        
+        
         [Test]
         public void CanQueryPointsWithAttributes()
         {
@@ -1196,10 +1196,11 @@ namespace Aardvark.Geometry.Tests
             var pir = new Range1i(pis);
             chunk = chunk.WithPartIndices(pis, pir);
             var pointset = PointCloud.Chunks(chunk, config);
-
+        
             var q = pointset.QueryPointsNearPoint(V3d.Zero, 1.0, 5);
-            ClassicAssert.IsTrue(q.PartIndices != null);
-            ClassicAssert.IsTrue(q.PartIndices.All(x => x >= 0 && x <= 3));
+            ClassicAssert.IsTrue(q.Chunk.PartIndices != null);
+            var ppis = PartIndexUtils.Expand(q.Chunk.PartIndices, q.Chunk.Count);
+            ClassicAssert.IsTrue(ppis!.All(x => x >= 0 && x <= 3));
         }
     }
 }

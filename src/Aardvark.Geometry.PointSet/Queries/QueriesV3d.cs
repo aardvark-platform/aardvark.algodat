@@ -81,23 +81,28 @@ public static partial class Queries
         }
         else
         {
-            // first traverse octant containing query point
-            var index = node.GetSubIndex(query);
-            var n = node.Subnodes![index];
-            var result = n != null ? n.Value.QueryPointsNearPoint(query, maxDistanceToPoint, maxCount) : PointsNearObject<V3d>.Empty;
-            if (!result.IsEmpty && result.MaxDistance < maxDistanceToPoint) maxDistanceToPoint = result.MaxDistance;
-
-            // now traverse other octants
-            for (var i = 0; i < 8; i++)
+            var result = PointsNearObject<V3d>.Empty;
+            var ci = node.Children.FirstIndexOf((c) => c.CellBounds.Contains(query));
+            var maxDistanceToPointLocal = maxDistanceToPoint;
+            if (ci >= 0)
             {
-                if (i == index) continue;
-                n = node.Subnodes[i];
-                if (n == null) continue;
-                var x = n.Value.QueryPointsNearPoint(query, maxDistanceToPoint, maxCount);
-                result = result.Merge(x, maxCount);
-                if (!result.IsEmpty && result.MaxDistance < maxDistanceToPoint) maxDistanceToPoint = result.MaxDistance;
+                // first child containing query point sets the initial max distance
+                var childNode = node.Children[ci];
+                var closest = childNode.QueryPointsNearPoint(query, maxDistanceToPointLocal, maxCount);
+                if (!closest.IsEmpty && closest.MaxDistance < maxDistanceToPointLocal)
+                    maxDistanceToPointLocal = closest.MaxDistance;
+                if (closest.Count >= maxCount)
+                    return closest;
+                
+                    foreach (var c in node.Children)
+                    {
+                        if (c == childNode) continue;
+                        var x = c.QueryPointsNearPoint(query, maxDistanceToPointLocal, maxCount);
+                        result = result.Merge(x, maxCount);
+                        if (!result.IsEmpty && result.MaxDistance < maxDistanceToPointLocal)
+                            maxDistanceToPointLocal = result.MaxDistance;
+                    }
             }
-
             return result;
         }
     }

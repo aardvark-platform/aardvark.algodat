@@ -194,7 +194,7 @@ public static partial class Queries
 
             T[]? Verified<T>(T[]? xs, string name)
             {
-                if (ps == null || xs == null) return xs;
+                if (ps == null! || xs == null) return xs;
 
                 if (ps.Length == xs.Length) return xs;
                 Report.ErrorNoPrefix($"[QueryPointsInOctreeLevel] inconsistent length: {ps.Length} positions, but {xs.Length} {name}.");
@@ -208,25 +208,25 @@ public static partial class Queries
                 return rs;
             }
 
-            C4b[] cs = null;
+            C4b[] cs = null!;
             if(node.TryGetAttribute(PointNodeAttributes.Colors, out var csData) && csData is C4b[] csArr)
             {
-                cs = Verified(csArr, "colors");
+                cs = Verified(csArr, "colors")!;
             }
-            V3f[] ns = null;
+            V3f[] ns = null!;
             if(node.TryGetAttribute(PointNodeAttributes.Normals, out var nsData) && nsData is V3f[] nsArr)
             {
-                ns = Verified(nsArr, "normals");
+                ns = Verified(nsArr, "normals")!;
             }
-            int[] js = null;
+            int[] js = null!;
             if(node.TryGetAttribute(PointNodeAttributes.Intensities, out var jsData) && jsData is int[] jsArr)
             {
-                js = Verified(jsArr, "intensities");
+                js = Verified(jsArr, "intensities")!;
             }
-            byte[] ks = null;
-            if(node.TryGetAttribute(PointNodeAttributes.Classifications, out var ksData) && ksData is byte[] ksArr)
+            byte[] ks = null!;
+            if(node.TryGetAttribute(PointNodeAttributes.Classifications, out var ksData) && ksData is byte[] ksArr )
             {
-                ks = Verified(ksArr, "classifications");
+                ks = Verified(ksArr, "classifications")!;
             }
             node.TryGetAttribute(PointNodeAttributes.PartIndices, out var qs);
 

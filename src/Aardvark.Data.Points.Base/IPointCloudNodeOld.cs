@@ -366,14 +366,30 @@ namespace Aardvark.Geometry.Points
     }
 
 
+    /// <summary>
+    /// Wrapper for a kd-tree associated with a point node.
+    /// todo: describe exact semantics of Tree and Offset.
+    /// </summary>
     public struct PointKdTree
     {
         private PointRkdTreeF<V3f[], V3f> m_tree;
         private V3d m_offset;
 
+        /// <summary>
+        /// Underlying kd-tree implementation.
+        /// </summary>
         public PointRkdTreeF<V3f[], V3f> Tree => m_tree;
+
+        /// <summary>
+        /// Offset applied to kd-tree coordinates (e.g. node center).
+        /// </summary>
         public V3d Offset => m_offset;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PointKdTree"/> struct.
+        /// </summary>
+        /// <param name="tree">Underlying kd-tree.</param>
+        /// <param name="offset">Offset for kd-tree coordinates.</param>
         public PointKdTree(PointRkdTreeF<V3f[], V3f> tree, V3d offset)
         {
             m_tree = tree;
@@ -381,57 +397,130 @@ namespace Aardvark.Geometry.Points
         }
     }
 
+    /// <summary>
+    /// Symbols for commonly used point node attributes.
+    /// </summary>
     public static class PointNodeAttributes
     {
         // let Positions = Symbol.Create "Positions"
         // let Normals = Symbol.Create "Normals"
         // let Colors = Symbol.Create "Colors"
+        /// <summary>
+        /// Symbol for position attribute.
+        /// </summary>
         public static Symbol Positions = Symbol.Create("Positions");
+
+        /// <summary>
+        /// Symbol for normal attribute.
+        /// </summary>
         public static Symbol Normals = Symbol.Create("Normals");
+
+        /// <summary>
+        /// Symbol for color attribute.
+        /// </summary>
         public static Symbol Colors = Symbol.Create("Colors");
+
+        /// <summary>
+        /// Symbol for intensities attribute.
+        /// </summary>
         public static Symbol Intensities = Symbol.Create("Intensities");
+
+        /// <summary>
+        /// Symbol for classifications attribute.
+        /// </summary>
         public static Symbol Classifications = Symbol.Create("Classifications");
+
+        /// <summary>
+        /// Symbol for part indices attribute.
+        /// </summary>
         public static Symbol PartIndices = Symbol.Create("PartIndices");
 
     }
 
-
+    /// <summary>
+    /// Represents a point node abstraction used by adapters and consumers.
+    /// todo: provide a more detailed description of the intended semantics.
+    /// </summary>
     public interface IPointNode
     {
-
+        /// <summary>
+        /// Bounding box of the octree cell that this node represents.
+        /// todo: clarify whether this is inclusive/exclusive and which coordinate space is used.
+        /// </summary>
         Box3d CellBounds { get; }
+
+        /// <summary>
+        /// Bounding box of the actual data (points) contained in this node.
+        /// todo: clarify coordinate space and guarantees (e.g. valid/invalid states).
+        /// </summary>
         Box3d DataBounds { get; }
 
         /// <summary>
-        /// global world-space positions of the points
+        /// Global world-space positions of the points in this node.
         /// </summary>
         V3d[] Positions { get; }
 
+        /// <summary>
+        /// Optional kd-tree for this node. Null if not available.
+        /// </summary>
         PointKdTree? KdTree { get; }
 
+        /// <summary>
+        /// Tries to retrieve an attribute by symbol name. Returns true and sets <paramref name="data"/>
+        /// when attribute exists.
+        /// </summary>
+        /// <param name="name">Symbol identifying the attribute.</param>
+        /// <param name="data">Out parameter that receives the attribute array when found.</param>
+        /// <returns>True if attribute was found; otherwise false.</returns>
         bool TryGetAttribute(Symbol name, out Array data);
 
 
+        /// <summary>
+        /// Child nodes of this node. Returns an empty array for leaf nodes.
+        /// </summary>
         IPointNode[] Children { get; }
     }
 
+    /// <summary>
+    /// Adapter that exposes an <see cref="IPointCloudNodeOld"/> as an <see cref="IPointNode"/>.
+    /// </summary>
     public class PointNodeAdapter : IPointNode
     {
         private IPointCloudNodeOld m_node;
 
+        /// <summary>
+        /// The original underlying point cloud node that this adapter wraps.
+        /// </summary>
         public PointNodeAdapter(IPointCloudNodeOld node)
         {
             m_node = node;
         }
 
+        /// <summary>
+        /// The original underlying node being adapted.
+        /// </summary>
         public IPointCloudNodeOld OriginalNode => m_node;
+
+        /// <summary>
+        /// Bounding box of the cell of the original node.
+        /// </summary>
         public Box3d CellBounds => m_node.Cell.BoundingBox;
 
+        /// <summary>
+        /// Bounding box of the data contained in the node. Falls back to the cell bounds
+        /// when exact data bounds are not available.
+        /// </summary>
         public Box3d DataBounds =>
             m_node.HasBoundingBoxExactGlobal ? m_node.BoundingBoxExactGlobal : m_node.Cell.BoundingBox;
 
+        /// <summary>
+        /// Global positions of the points in the original node.
+        /// </summary>
         public V3d[] Positions => m_node.PositionsAbsolute;
 
+        /// <summary>
+        /// Optional kd-tree of the original node. Returns null if not present.
+        /// </summary>
         public PointKdTree? KdTree
         {
             get
@@ -446,6 +535,10 @@ namespace Aardvark.Geometry.Points
             }
         }
 
+        /// <summary>
+        /// Tries to obtain a named attribute from the underlying node. Known attribute
+        /// names are provided by <see cref="PointNodeAttributes"/>.
+        /// </summary>
         public bool TryGetAttribute(Symbol attName, out Array data)
         {
             if (attName == PointNodeAttributes.Positions)
@@ -488,6 +581,9 @@ namespace Aardvark.Geometry.Points
             return false;
         }
 
+        /// <summary>
+        /// Child adapters for the underlying node's subnodes. Returns an empty array for leaf nodes.
+        /// </summary>
         public IPointNode[] Children
         {
             get
@@ -517,13 +613,22 @@ namespace Aardvark.Geometry.Points
     }
 
 
+    /// <summary>
+    /// Extension methods to convert between point node representations and chunks.
+    /// </summary>
     public static class PointCloudAdapterExtensions
     {
+        /// <summary>
+        /// Wraps an <see cref="IPointCloudNodeOld"/> as an <see cref="IPointNode"/>.
+        /// </summary>
         public static IPointNode ToPointNode(this IPointCloudNodeOld node)
         {
             return new PointNodeAdapter(node);
         }
 
+        /// <summary>
+        /// Creates a Chunk containing only the points indexed by <paramref name="filter"/>.
+        /// </summary>
         public static Chunk ToChunk(this IPointNode node, HashSet<int> filter)
         {
             var positions = node.Positions;
@@ -619,6 +724,9 @@ namespace Aardvark.Geometry.Points
                 filteredClassifications, filteredPartIndices, filteredPartIndexRange, bb);
         }
 
+        /// <summary>
+        /// Creates a Chunk containing all points and available attributes from the node.
+        /// </summary>
         public static Chunk ToChunk(this IPointNode node)
         {
             var positions = node.Positions;
@@ -675,5 +783,56 @@ namespace Aardvark.Geometry.Points
 
         }
 
+
+        /// <summary>
+        /// Collects all points from nodes for which predicate is true.
+        /// Subnodes of nodes for which predicate is true are not traversed.
+        /// </summary>
+        public static IEnumerable<Chunk> Collect(this IPointNode self, Func<IPointNode, bool> predicate)
+        {
+            if (self == null) yield break;
+            if (self.Children.Length == 0)
+            {
+                yield return self.ToChunk();
+            }
+            else
+            {
+                var chunks = CollectRec(self, predicate);
+                foreach (var chunk in chunks) yield return chunk;
+            }
+
+            static IEnumerable<Chunk> CollectRec(IPointNode n, Func<IPointNode, bool> _collectMe)
+            {
+                if (n == null) yield break;
+
+                if (_collectMe(n))
+                {
+                    yield return n.ToChunk();
+                }
+                else
+                {
+                    foreach (var x in n.Children)
+                    {
+                        var chunks = CollectRec(x, _collectMe);
+                        foreach (var chunk in chunks) yield return chunk;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Collects all points from nodes at given relative depth.
+        /// E.g. 0 returns points from self, 1 gets points from children, aso.
+        /// </summary>
+        public static IEnumerable<Chunk> Collect(this IPointNode self, int fromRelativeDepth)
+        {
+            var sCell = new Cell(self.CellBounds);
+            var d = sCell.Exponent - fromRelativeDepth;
+            var maxSize = Math.Pow(2.0, d);
+            return self.Collect(x => x.Children.Length == 0 || x.CellBounds.Size.NormMax <= maxSize);
+        }
+
     }
 }
+
+
