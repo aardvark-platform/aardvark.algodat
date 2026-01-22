@@ -101,13 +101,13 @@ module LodTreeInstance =
                                 world : obj,
                                 cache : LruDictionary<string, obj>,
                                 source : Symbol,
-                                getCustomIndexedAttributes :  Guid * (IPointCloudNodeOld -> int -> MapExt<Symbol, CustomIndexedAttribute>),
+                                getCustomIndexedAttributes :  Guid * (IPointNode -> int -> MapExt<Symbol, CustomIndexedAttribute>),
                                 globalTrafo : Similarity3d,
                                 root : Option<PointTreeNode>,
                                 parent : Option<PointTreeNode>,
                                 level : int,
                                 partIndexOffset : int,
-                                self : IPointCloudNodeOld) as this =
+                                self : IPointNode) as this =
 
         let customAttributeId = fst getCustomIndexedAttributes
         let getCustomIndexedAttributes = snd getCustomIndexedAttributes
@@ -122,18 +122,20 @@ module LodTreeInstance =
             sb.Append( sprintf "%E %E %E" s.Trans.X s.Trans.Y s.Trans.Z ) |> ignore
             sb.ToString()
 
-        static let nodeId (n : IPointCloudNodeOld) (customIndexedAttributeId : Guid) (globalTrafo : Similarity3d) (level : int) =
-            (string n.Id) + (string customIndexedAttributeId) + (simToString globalTrafo) + (sprintf "%d" level) + "PointTreeNode"
+        static let nodeId (n : IPointNode) (customIndexedAttributeId : Guid) (globalTrafo : Similarity3d) (level : int) =
+            failwith "todo"
+            //(string n.Id) + (string customIndexedAttributeId) + (simToString globalTrafo) + (sprintf "%d" level) + "PointTreeNode"
 
 
-        static let cacheId (n : IPointCloudNodeOld) (customIndexedAttributeVersion : string) (globalTrafo : Similarity3d) (level : int) =
-            (string n.Id) + (customIndexedAttributeVersion) + (simToString globalTrafo) + (sprintf "%d" level) + "GeometryData"
+        static let cacheId (n : IPointNode) (customIndexedAttributeVersion : string) (globalTrafo : Similarity3d) (level : int) =
+            failwith "todo"
+            //(string n.Id) + (customIndexedAttributeVersion) + (simToString globalTrafo) + (sprintf "%d" level) + "GeometryData"
 
         static let load (ct : CancellationToken)
                         (ips : MapExt<string, Type>)
                         (cache : LruDictionary<string, obj>)
                         (customIndexedAttributes : MapExt<Symbol,CustomIndexedAttribute>)
-                        (self : IPointCloudNodeOld)
+                        (self : IPointNode)
                         (globalTrafo : Similarity3d)
                         (localBounds : Box3d)
                         (level : int)
@@ -144,64 +146,64 @@ module LodTreeInstance =
 
             cache.GetOrCreate(cid, fun () ->
                 let scale = globalTrafo.Scale
-                let center = self.Center
+                //let center = self.Center
                 let attributes = SymbolDict<Array>()
                 let mutable uniforms = MapExt.empty
                 let mutable vertexSize = 0L
                 try
 
-                    let original =
-                        if self.HasPositions then self.Positions.Value
-                        else [| V3f(System.Single.NaN, System.Single.NaN, System.Single.NaN) |]
-
-                    let globalTrafo1 = globalTrafo * Euclidean3d(Rot3d.Identity, center)
-                    let positions =
-                        let inline fix (p : V3f) = globalTrafo1.TransformPos (V3d p) |> V3f
-                        original |> Array.map fix
+                    // let original =
+                    //     if self.HasPositions then self.Positions.Value
+                    //     else [| V3f(System.Single.NaN, System.Single.NaN, System.Single.NaN) |]
+                    //
+                    // let globalTrafo1 = globalTrafo * Euclidean3d(Rot3d.Identity, center)
+                    // let positions =
+                    //     let inline fix (p : V3f) = globalTrafo1.TransformPos (V3d p) |> V3f
+                    //     original |> Array.map fix
+                    let positions = self.Positions
                     attributes.[DefaultSemantic.Positions] <- positions
                     vertexSize <- vertexSize + 12L
 
                     if MapExt.containsKey "Colors" ips then
                         let colors =
-                            if self.HasColors  then self.Colors.Value
-                            else Array.create original.Length C4b.White
+                            match self.TryGetAttribute(PointNodeAttributes.Colors) with
+                            | (true,data) -> data.ToArrayOfT<C4b>()  |> Array.map (_.Clamped(0uy,255uy))
+                            | _ -> Array.replicate positions.Length C4b.White
                         attributes.[DefaultSemantic.Colors] <- colors
                         vertexSize <- vertexSize + 4L
 
                     if MapExt.containsKey "Normals" ips then
                         let normals =
-                            if self.HasNormals then self.Normals.Value
-                            else Array.create original.Length V3f.OOO
-
+                            match self.TryGetAttribute(PointNodeAttributes.Normals) with
+                            | (true,data) -> data.ToArrayOfT<V3f>()
+                            | _ -> Array.replicate positions.Length V3f.OOI
                         let normals =
                             let normalMat = (Trafo3d globalTrafo.Euclidean.Rot).Backward.Transposed.UpperLeftM33()
                             let inline fix (p : V3f) = normalMat * (V3d p) |> V3f
                             normals |> Array.map fix
-
                         attributes.[DefaultSemantic.Normals] <- normals
                         vertexSize <- vertexSize + 12L
 
                     if MapExt.containsKey "Intensities" ips then
                         let arr =
-                            if self.HasIntensities then (self.Intensities.Value)
-                            else Array.replicate original.Length 0
-
+                            match self.TryGetAttribute(PointNodeAttributes.Intensities) with
+                            | (true,data) -> data
+                            | _ ->  Array.replicate positions.Length 0
                         attributes.[Semantic.Intensities] <- arr
                         vertexSize <- vertexSize + 4L
 
                     if MapExt.containsKey "Classifications" ips then
                         let arr =
-                            if self.HasClassifications then (self.Classifications.Value |> Array.map int)
-                            else Array.replicate original.Length 0
-
+                            match self.TryGetAttribute(PointNodeAttributes.Classifications) with
+                            | (true,data) -> data
+                            | _ ->  Array.replicate positions.Length 0
                         attributes.[Semantic.Classifications] <- arr
                         vertexSize <- vertexSize + 4L
 
                     if MapExt.containsKey "PartIndices" ips then
                         let arr =
-                            match self.TryGetPartIndices() with
-                            | (true, v) ->
-                                v |> Array.map (fun i -> i + partIndexOffset)
+                            match self.TryGetAttribute(PointNodeAttributes.PartIndices) with
+                            | (true, v) -> v.ToArrayOfT<int>() |> Array.map (fun i -> i + partIndexOffset)
                             | _ ->
                                 Array.replicate original.Length -1
 
