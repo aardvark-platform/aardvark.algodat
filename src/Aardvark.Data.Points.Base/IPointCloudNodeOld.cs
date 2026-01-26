@@ -443,6 +443,8 @@ namespace Aardvark.Geometry.Points
     /// </summary>
     public interface IPointNode
     {
+        string Id { get; }
+
         /// <summary>
         /// Bounding box of the octree cell that this node represents.
         /// todo: clarify whether this is inclusive/exclusive and which coordinate space is used.
@@ -500,6 +502,11 @@ namespace Aardvark.Geometry.Points
         /// The original underlying node being adapted.
         /// </summary>
         public IPointCloudNodeOld OriginalNode => m_node;
+
+        /// <summary>
+        /// Id.
+        /// </summary>
+        public string Id => m_node.Id.ToString();
 
         /// <summary>
         /// Bounding box of the cell of the original node.

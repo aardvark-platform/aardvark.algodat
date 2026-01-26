@@ -250,20 +250,23 @@ let main argv =
     let selected = cval [||]
 
     win.Mouse.Down.Values.Add(fun e ->
-        let view = c |> AVal.force
-        let f = f |> AVal.force
-        let camera = Camera.create view f
-        let pixelPos = PixelPosition(V2i win.MousePosition, Box2i.FromMinAndSize(V2i.Zero, win.Sizes |> AVal.force))
-        let ray = Camera.pickRay camera pixelPos
-
-        let result = p.QueryPointsNearRayCustom(ray, 0.25, Hera.Defs.Velocities, Hera.Defs.Pressures) |> Seq.toArray
-        let extract f = result |> Array.map f |> Array.concat
-        let positions  = extract (fun c -> c.PositionsAsV3d |> Array.map V3f)
-        let velocities = extract (fun c -> c.Data.[Hera.Defs.Velocities] :?> V3f[])
-        let pressures  = extract (fun c -> c.Data.[Hera.Defs.Pressures] :?> float32[])
-
-        printfn "n.Length = %d; %A" positions.Length (positions |> Array.tryHead)
-        transact (fun _ -> selected.Value <- positions)
+        //TODO: reimplement picking
+        ()
+        
+        // let view = c |> AVal.force
+        // let f = f |> AVal.force
+        // let camera = Camera.create view f
+        // let pixelPos = PixelPosition(V2i win.MousePosition, Box2i.FromMinAndSize(V2i.Zero, win.Sizes |> AVal.force))
+        // let ray = Camera.pickRay camera pixelPos
+        //
+        // let result = p.QueryPointsNearRayCustom(ray, 0.25, Hera.Defs.Velocities, Hera.Defs.Pressures) |> Seq.toArray
+        // let extract f = result |> Array.map f |> Array.concat
+        // let positions  = extract (fun c -> c.PositionsAsV3d |> Array.map V3f)
+        // let velocities = extract (fun c -> c.Data.[Hera.Defs.Velocities] :?> V3f[])
+        // let pressures  = extract (fun c -> c.Data.[Hera.Defs.Pressures] :?> float32[])
+        //
+        // printfn "n.Length = %d; %A" positions.Length (positions |> Array.tryHead)
+        // transact (fun _ -> selected.Value <- positions)
     )
 
     let selectedSg =

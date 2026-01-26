@@ -123,13 +123,11 @@ module LodTreeInstance =
             sb.ToString()
 
         static let nodeId (n : IPointNode) (customIndexedAttributeId : Guid) (globalTrafo : Similarity3d) (level : int) =
-            failwith "todo"
-            //(string n.Id) + (string customIndexedAttributeId) + (simToString globalTrafo) + (sprintf "%d" level) + "PointTreeNode"
+            n.Id + (string customIndexedAttributeId) + (simToString globalTrafo) + (sprintf "%d" level) + "PointTreeNode"
 
 
         static let cacheId (n : IPointNode) (customIndexedAttributeVersion : string) (globalTrafo : Similarity3d) (level : int) =
-            failwith "todo"
-            //(string n.Id) + (customIndexedAttributeVersion) + (simToString globalTrafo) + (sprintf "%d" level) + "GeometryData"
+            string n.Id + (customIndexedAttributeVersion) + (simToString globalTrafo) + (sprintf "%d" level) + "GeometryData"
 
         static let load (ct : CancellationToken)
                         (ips : MapExt<string, Type>)
@@ -146,21 +144,19 @@ module LodTreeInstance =
 
             cache.GetOrCreate(cid, fun () ->
                 let scale = globalTrafo.Scale
-                //let center = self.Center
                 let attributes = SymbolDict<Array>()
                 let mutable uniforms = MapExt.empty
                 let mutable vertexSize = 0L
                 try
 
-                    // let original =
-                    //     if self.HasPositions then self.Positions.Value
-                    //     else [| V3f(System.Single.NaN, System.Single.NaN, System.Single.NaN) |]
-                    //
-                    // let globalTrafo1 = globalTrafo * Euclidean3d(Rot3d.Identity, center)
-                    // let positions =
-                    //     let inline fix (p : V3f) = globalTrafo1.TransformPos (V3d p) |> V3f
-                    //     original |> Array.map fix
-                    let positions = self.Positions
+                    let original =
+                        if self.Positions.Length > 0 then self.Positions
+                        else [| V3d.NaN |]
+                    
+                    let globalTrafo1 = globalTrafo
+                    let positions =
+                        let inline fix (p : V3d) = globalTrafo1.TransformPos p |> V3f
+                        original |> Array.map fix
                     attributes.[DefaultSemantic.Positions] <- positions
                     vertexSize <- vertexSize + 12L
 
@@ -178,7 +174,7 @@ module LodTreeInstance =
                             | (true,data) -> data.ToArrayOfT<V3f>()
                             | _ -> Array.replicate positions.Length V3f.OOI
                         let normals =
-                            let normalMat = (Trafo3d globalTrafo.Euclidean.Rot).Backward.Transposed.UpperLeftM33()
+                            let normalMat : M33d = globalTrafo.Euclidean.Rot |> Rot3d.op_Explicit
                             let inline fix (p : V3f) = normalMat * (V3d p) |> V3f
                             normals |> Array.map fix
                         attributes.[DefaultSemantic.Normals] <- normals
@@ -216,40 +212,10 @@ module LodTreeInstance =
                             vertexSize <- vertexSize + size
                     )
 
-
-
-                    if MapExt.containsKey "AvgPointDistance" ips then
-                        let dist =
-                            match self.HasPointDistanceAverage with
-                            | true -> float self.PointDistanceAverage
-                            | _ -> 0.0
-
-                        let avgDist =
-                            //bounds.Size.NormMax / 40.0
-                            if dist <= 0.0 then localBounds.Size.NormMax / 40.0 else dist
-
-                        uniforms <- MapExt.add "AvgPointDistance" ([| float32 (scale * avgDist) |] :> System.Array) uniforms
-
                     if MapExt.containsKey "TreeLevel" ips then
                         let arr = [| float32 level |] :> System.Array
                         uniforms <- MapExt.add "TreeLevel" arr uniforms
-
-                    if MapExt.containsKey "MaxTreeDepth" ips then
-                        let depth =
-                            match self.HasMaxTreeDepth with
-                                | true -> self.MaxTreeDepth
-                                | _ -> 1
-                        let arr = [| depth |] :> System.Array
-                        uniforms <- MapExt.add "MaxTreeDepth" arr uniforms
-
-                    if MapExt.containsKey "MinTreeDepth" ips then
-                        let depth =
-                            match self.HasMinTreeDepth with
-                            | true -> self.MinTreeDepth
-                            | _ -> 1
-                        let arr = [| depth |] :> System.Array
-                        uniforms <- MapExt.add "MinTreeDepth" arr uniforms
-
+                        
                     if original.Length = 0 then
                         let someAttributes =
                             SymDict.ofList [
@@ -299,17 +265,16 @@ module LodTreeInstance =
 
         let globalTrafoTrafo = Trafo3d globalTrafo
 
-        let worldBounds = self.BoundingBoxExactGlobal  //  todo hackihack
-        let worldCellBounds = self.Cell.BoundingBox //.BoundingBoxExactGlobal
+        let worldBounds = self.DataBounds
+        let worldCellBounds = self.CellBounds
         let localBounds = worldBounds.Transformed(globalTrafoTrafo)
         let localCellBounds = worldCellBounds.Transformed(globalTrafoTrafo)
-        let cell = self.Cell
-        let isLeaf = self.IsLeaf
+        let isLeaf = self.Children.Length = 0
         let id = self.Id
 
         //let mutable refCount = 0
         //let mutable livingChildren = 0
-        let mutable children : Option<list<ILodTreeNode>> = None
+        let mutable children : Option<ILodTreeNode[]> = None
 
         let getAverageDistance (original : V3f[]) (positions : V3f[]) (tree : PointRkdTreeF<_,_>) =
             let heap = List<float>(positions.Length)
@@ -412,13 +377,13 @@ module LodTreeInstance =
         //member x.AcquireChild() =
         //    Interlocked.Increment(&livingChildren) |> ignore
 
-        static member Create(pointCloudId : System.Guid, world : obj, cache : LruDictionary<string, obj>, source : Symbol, getCustomIndexedAttributes : Guid * (IPointCloudNodeOld -> int -> MapExt<Symbol,CustomIndexedAttribute>), globalTrafo : Similarity3d, root : Option<PointTreeNode>, parent : Option<PointTreeNode>, level : int, partIndexOffset : int, self : IPointCloudNodeOld) =
+        static member Create(pointCloudId : System.Guid, world : obj, cache : LruDictionary<string, obj>, source : Symbol, getCustomIndexedAttributes : Guid * (IPointNode -> int -> MapExt<Symbol,CustomIndexedAttribute>), globalTrafo : Similarity3d, root : Option<PointTreeNode>, parent : Option<PointTreeNode>, level : int, partIndexOffset : int, self : IPointNode) =
             if isNull self then
                 None
             else
                 PointTreeNode(pointCloudId, world, cache, source, getCustomIndexedAttributes, globalTrafo, root, parent, level, partIndexOffset, self) |> Some
 
-        static member Create(pointCloudId : System.Guid, world : obj, cache : LruDictionary<string, obj>, source : Symbol, globalTrafo : Similarity3d, root : Option<PointTreeNode>, parent : Option<PointTreeNode>, level : int, partIndexOffset : int, self : IPointCloudNodeOld) =
+        static member Create(pointCloudId : System.Guid, world : obj, cache : LruDictionary<string, obj>, source : Symbol, globalTrafo : Similarity3d, root : Option<PointTreeNode>, parent : Option<PointTreeNode>, level : int, partIndexOffset : int, self : IPointNode) =
             PointTreeNode.Create(pointCloudId, world, cache, source, (Guid.NewGuid(),(fun _ _ -> MapExt.empty)), globalTrafo, root, parent, level, partIndexOffset, self)
 
         member x.ReleaseChildren() =
@@ -430,10 +395,10 @@ module LodTreeInstance =
                 )
 
             match old with
-            | Some o -> o |> List.iter (fun o -> cache.Add(nodeId (unbox<PointTreeNode> o).Original customAttributeId globalTrafo level, o, 1L <<< 10) |> ignore)
+            | Some o -> o |> Array.iter (fun o -> cache.Add(nodeId (unbox<PointTreeNode> o).Original customAttributeId globalTrafo level, o, 1L <<< 10) |> ignore)
             | None -> ()
 
-        member x.WithPointCloudNode(r : IPointCloudNodeOld) =
+        member x.WithPointCloudNode(r : IPointNode) =
             assert(level = 0 && Option.isNone parent)
             if isNull r then
                 None
@@ -457,7 +422,8 @@ module LodTreeInstance =
             let nodeFullyInside = Func<_,_>(fun (node : IPointCloudNodeOld) -> b.Contains(node.Cell.BoundingBox))
             let nodeFullyOutside = Func<_,_>(fun (node : IPointCloudNodeOld) -> not(b.Contains(node.Cell.BoundingBox)) && not(b.Intersects(node.Cell.BoundingBox)))
             let pointCountains = Func<_,_>(fun (v : V3d) -> b.Contains(v))
-            let n = self.Delete(nodeFullyInside,nodeFullyOutside,pointCountains,self.Storage,CancellationToken.None, 8192)
+            //let n = self.Delete(nodeFullyInside,nodeFullyOutside,pointCountains,self.Storage,CancellationToken.None, 8192)
+            let n = self //TODO: implement delete
             if isNull n then
                 None
             else
@@ -473,7 +439,7 @@ module LodTreeInstance =
                 | None ->
                     ()
             )
-        member x.Original : IPointCloudNodeOld = self
+        member x.Original : IPointNode = self
 
         member x.Root : PointTreeNode =
             match root with
@@ -489,37 +455,24 @@ module LodTreeInstance =
                     | Some c -> c :> seq<_>
                     | None ->
                         let c =
-                            if isNull self.Subnodes || self.Storage.IsDisposed then
-                                []
-                            else
-                                self.Subnodes |> Seq.toList |> List.choose (fun c ->
-                                    if isNull c then
-                                        None
-                                    else
-                                        try
-                                            if self.Storage.IsDisposed then None
-                                            else
-                                                let c = c.Value
-
-                                                if isNull c then
-                                                    None
-                                                else
-                                                    let id = nodeId c customAttributeId globalTrafo level
-                                                    match cache.TryGetValue id with
-                                                    | (true, n) ->
-                                                        cache.Remove id |> ignore
-                                                        unbox<ILodTreeNode> n |> Some
-                                                    | _ ->
-                                                        //Log.warn "alloc %A" id
-                                                        PointTreeNode(pointCloudId, world, cache, source, (customAttributeId,getCustomIndexedAttributes), globalTrafo, Some this.Root, Some this, level + 1, partIndexOffset, c) :> ILodTreeNode |> Some
-                                        with
-                                        | :? ObjectDisposedException ->
-                                            None
-                                        | e ->
-                                            //let debug = c.Value
-                                            Log.warn "[Lod] Exception during GetChildren:\n%A" e
-                                            None
-                                )
+                            self.Children |> Array.choose (fun c ->
+                                try
+                                    let id = nodeId c customAttributeId globalTrafo level
+                                    match cache.TryGetValue id with
+                                    | (true, n) ->
+                                        cache.Remove id |> ignore
+                                        unbox<ILodTreeNode> n |> Some
+                                    | _ ->
+                                        //Log.warn "alloc %A" id
+                                        PointTreeNode(pointCloudId, world, cache, source, (customAttributeId,getCustomIndexedAttributes), globalTrafo, Some this.Root, Some this, level + 1, partIndexOffset, c) :> ILodTreeNode |> Some
+                                with
+                                | :? ObjectDisposedException ->
+                                    None
+                                | e ->
+                                    //let debug = c.Value
+                                    Log.warn "[Lod] Exception during GetChildren:\n%A" e
+                                    None
+                            )
                         children <- Some c
                         c :> seq<_>
 
@@ -566,12 +519,12 @@ module LodTreeInstance =
             member x.ShouldCollapse(s,q,v,p) = x.ShouldCollapse(s,q,v,p)
             member x.SplitQuality(s,v,p) = x.SplitQuality(s,v,p)
             member x.CollapseQuality(s,v,p) = x.CollapseQuality(s,v,p)
-            member x.DataSize = self.PointCountCell
-            member x.TotalDataSize = int self.PointCountTree
+            member x.DataSize = self.Positions.Length
+            member x.TotalDataSize = self.Positions.Length //TODO: add children sizes
             member x.GetData(ct, ips) = x.GetData(ct, ips)
             member x.WorldBoundingBox = worldBounds
             member x.WorldCellBoundingBox = worldCellBounds
-            member x.Cell = cell
+            member x.Cell = Cell(self.CellBounds)
             member x.DataTrafo = globalTrafoTrafo.Inverse
             member x.Acquire() = x.Acquire()
             member x.Release() = x.Release()
@@ -876,7 +829,7 @@ module LodTreeInstance =
 
         let trafo = Similarity3d(1.0, Euclidean3d(Rot3d.Identity, -bounds.Center))
         let source = Symbol.Create sourceName
-        let root = PointTreeNode.Create(System.Guid.NewGuid(), null, store.Cache, source, trafo, None, None, 0, 0, root)
+        let root = PointTreeNode.Create(System.Guid.NewGuid(), null, store.Cache, source, trafo, None, None, 0, 0, root.ToPointNode())
         match root with
         | Some root ->
             let uniforms = MapExt.ofList uniforms
@@ -915,7 +868,7 @@ module LodTreeInstance =
 
     let ofPointSet (uniforms : list<string * IAdaptiveValue>) (partIndexOffset : int) (set : PointSet) =
         let store = set.Storage
-        let root = PointTreeNode.Create(System.Guid.NewGuid(), null, store.Cache, Symbol.CreateNewGuid(), Similarity3d.Identity, None, None, 0, partIndexOffset, set.Root.Value)
+        let root = PointTreeNode.Create(System.Guid.NewGuid(), null, store.Cache, Symbol.CreateNewGuid(), Similarity3d.Identity, None, None, 0, partIndexOffset, set.Root.Value.ToPointNode())
         match root with
         | Some root ->
             let uniforms = MapExt.ofList uniforms
@@ -928,7 +881,26 @@ module LodTreeInstance =
 
     let ofPointCloudNode (uniforms : list<string * IAdaptiveValue>) (partIndexOffset : int) (root : IPointCloudNodeOld) =
         let store = root.Storage
-        let root = PointTreeNode.Create(System.Guid.NewGuid(), null, store.Cache, Symbol.CreateNewGuid(), Similarity3d.Identity, None, None, 0, partIndexOffset, root)
+        let root = PointTreeNode.Create(System.Guid.NewGuid(), null, store.Cache, Symbol.CreateNewGuid(), Similarity3d.Identity, None, None, 0, partIndexOffset, root.ToPointNode())
+        match root with
+        | Some root ->
+            let uniforms = MapExt.ofList uniforms
+            Some {
+                root = root
+                uniforms = uniforms
+            }
+        | None ->
+            None
+            
+    let ofPointNode (uniforms : list<string * IAdaptiveValue>) (partIndexOffset : int) (root : IPointNode) =
+        let cache = LruDictionary(1L<<<30)
+        
+        // let filter = FilterInsideSphere3d(Sphere3d(root.DataBounds.Center, 32.0))
+        // let filtered = FilteredNode.Create(root, filter)
+        // let root = filtered
+        
+        let globalTrafo = Similarity3d.Translation(-root.CellBounds.Center)
+        let root = PointTreeNode.Create(System.Guid.NewGuid(), null, cache, Symbol.CreateNewGuid(), globalTrafo, None, None, 0, partIndexOffset, root)
         match root with
         | Some root ->
             let uniforms = MapExt.ofList uniforms
@@ -1089,7 +1061,6 @@ module PointSetShaders =
     type UniformScope with
         member x.MagicExp : float32 = x?MagicExp
         member x.PointVisualization : PointVisualization = x?PointVisualization
-        member x.Overlay : V4f[] = x?StorageBuffer?Overlay
         member x.ModelTrafos : M44f[] = x?StorageBuffer?ModelTrafos
         member x.ModelViewTrafos : M44f[] = x?StorageBuffer?ModelViewTrafos
         member x.Scales : V4f[] = x?StorageBuffer?Scales
@@ -1104,7 +1075,6 @@ module PointSetShaders =
         {
             [<Position>] pos : V4f
             [<Color; Interpolation(InterpolationMode.Flat)>] col : V4f
-            //[<Normal>] n : V3d
             [<Semantic("ViewCenter"); Interpolation(InterpolationMode.Flat)>] vc : V3f
             [<Semantic("ViewPosition")>] vp : V3f
             [<Semantic("AvgPointDistance")>] dist : float32
@@ -1114,7 +1084,6 @@ module PointSetShaders =
             [<PointCoord>] c : V2f
             [<Normal>] n : V3f
             [<Semantic("TreeId")>] id : int
-            [<Semantic("MaxTreeDepth")>] treeDepth : int
             [<FragCoord>] fc : V4f
             [<SamplePosition>] sp : V2f
         }
@@ -1181,14 +1150,6 @@ module PointSetShaders =
                 else
                     V3f.III //v.n.XYZ * 0.5 + 0.5
 
-            let o = uniform.Overlay.[v.id].X
-            let h = heat (float32 v.treeDepth / 6.0f)
-            let col =
-                if uniform.PointVisualization &&& PointVisualization.OverlayLod <> PointVisualization.None then
-                    o * h.XYZ + (1.0f - o) * col
-                else
-                    col
-
             let pixelDist =
                 if uniform.PointVisualization &&& PointVisualization.Antialias <> PointVisualization.None then pixelDist + 1.0f
                 else pixelDist
@@ -1239,22 +1200,12 @@ module PointSetShaders =
                 else
                     V3f.III
 
-            let o = uniform.Overlay.[v.id].X
-            let h = heat (float32 v.treeDepth / 6.0f)
-            let col =
-                if uniform.PointVisualization &&& PointVisualization.OverlayLod <> PointVisualization.None then
-                    o * h.XYZ + (1.0f - o) * col
-                else
-                    col
-
             let pixelSize =
                 if uniform.PointVisualization &&& PointVisualization.Antialias <> PointVisualization.None then pixelSize + 1.0f
                 else pixelSize
 
             return { v with ps = float32 (int pixelSize); n = vn; s = pixelSize; pos = fpp; depthRange = depthRange; vp = vpz.XYZ; vc = vpz.XYZ; col = V4f(col, v.col.W) }
         }
-
-
 
     type Fragment =
         {

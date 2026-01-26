@@ -36,19 +36,20 @@ public class FilteredNode : IPointNode
     /// <summary>
     /// Creates a FilteredNode.
     /// </summary>
-    public static IPointNode Create(Guid id, IPointNode node, IFilter filter)
+    public static IPointNode Create(string id, IPointNode node, IFilter filter)
     {
         return new FilteredNode(id, node, filter);
     }
     
     public static IPointNode Create(IPointNode node, IFilter filter)
-        => Create(Guid.NewGuid(), node, filter);
+        => Create(node.Id, node, filter);
 
+    private string m_id;
     /// <summary>
     /// </summary>
-    private FilteredNode(Guid id, IPointNode node, IFilter filter)
+    private FilteredNode(string id, IPointNode node, IFilter filter)
     {
-        Id = id;
+        m_id = id;
         Node = node ?? throw new ArgumentNullException(nameof(node));
         Filter = filter ?? throw new ArgumentNullException(nameof(filter));
 
@@ -62,7 +63,7 @@ public class FilteredNode : IPointNode
     private readonly HashSet<int>? m_activePoints;
 
     /// <summary></summary>
-    public Guid Id { get; }
+    public string Id => m_id.ToString();
 
     /// <summary> </summary>
     public IPointNode Node { get; }
@@ -70,14 +71,14 @@ public class FilteredNode : IPointNode
     /// <summary></summary>
     public IFilter Filter { get; }
 
-    private Lazy<HashSet<int>> filteredIndices => new (() => Filter.FilterPoints(Node));
+    private Lazy<int[]> filteredIndices => new (() => Filter.FilterPoints(Node).ToArray());
     
     /// <summary></summary>
     public bool IsEmpty => Node.Positions.Length == 0 && Node.Children.Length == 0;
 
     public Box3d CellBounds => Node.CellBounds;
     public Box3d DataBounds => Node.DataBounds;
-    public V3d[] Positions => filteredIndices.Value.Select((i) => Node.Positions[i]).ToArray();
+    public V3d[] Positions => filteredIndices.Value.Map((i) => Node.Positions[i]);
 
     public PointKdTree? KdTree {
         get
@@ -89,7 +90,16 @@ public class FilteredNode : IPointNode
 
     public bool TryGetAttribute(Symbol name, out Array data)
     {
-        throw new NotImplementedException();
+        if (Node.TryGetAttribute(name, out var innerDate))
+        {
+            var res = innerDate.Subset(filteredIndices.Value);
+            data = res;
+            return true;
+        }
+
+        data = null;
+        return false;
+        
     }
 
     /// <summary></summary>
@@ -164,14 +174,14 @@ public class FilteredNode : IPointNode
                     }
                     else if (!spatial.IsFullyOutside(child.CellBounds))
                     {
-                        result.Add(Create(Id, child, Filter));
+                        result.Add(Create(child.Id, child, Filter));
                     }
                 }
 
                 return result.ToArray();
             }
             else {
-                return Node.Children.Map(c => FilteredNode.Create(Id, c, Filter));
+                return Node.Children.Map(c => FilteredNode.Create(c.Id, c, Filter));
             }
 
         }

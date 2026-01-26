@@ -131,13 +131,6 @@ module Rendering =
                 ssaoSharpness = AVal.init 4.0
             }
 
-
-
-        let pcs =
-            pcs |> ASet.map (fun t ->
-                { t with uniforms = MapExt.add "Overlay" (config.overlayAlpha |> AVal.map ((*) V4d.IIII) :> IAdaptiveValue) t.uniforms }
-            )
-
         let trafo = Trafo3d.Identity
 
         let pcs =
@@ -219,8 +212,17 @@ module Rendering =
             |||> AVal.bind3 (fun c f p ->
                 win.Sizes |> AVal.map (fun s ->
                     let pts = pick.Value p.Position 20 800
-                    pts |> Array.map (fun p -> p.World |> Trafo3d.Translation)
+                    //let res = pts |> Array.map (fun p -> p.World |> Trafo3d.Translation)
 
+                    if pts.Length > 0 then 
+                        instances |> ASet.force |> Seq.collect (fun i ->
+                            let n = i.root |> unbox<LodTreeInstance.PointTreeNode>
+                            let o = n.Original
+                            let qq = o.QueryPointsInsideBox(Box3d.FromCenterAndSize(pts.[0].World, V3d.III*1.0))
+                            qq |> Seq.collect (fun c -> c.Positions)
+                        ) |> Seq.toArray |> Array.map Trafo3d.Translation
+                    else
+                        [|Trafo3d.Identity|]
                     //if pts.Length = 0 then V3d.III
                     //elif pts.Length < 3 then V3d.III
                     //else
@@ -476,7 +478,7 @@ module Rendering =
             pcs |> ASet.toAVal |> AVal.map (fun pcs ->
                 pcs |> Seq.map (fun i ->
                     match i.root with
-                    | :? LodTreeInstance.PointTreeNode as n -> n.Original.BoundingBoxApproximate
+                    | :? LodTreeInstance.PointTreeNode as n -> n.Original.DataBounds
                     | _ -> i.root.WorldBoundingBox
                 ) |> Box3d
             )
@@ -490,9 +492,10 @@ module Rendering =
                     let rand = RandomSystem()
                     match pc.root with
                     | :? LodTreeInstance.PointTreeNode as n ->
-                        let c = n.Original.Center + V3d n.Original.CentroidLocal
-                        let clstddev = max 1.0 (float n.Original.CentroidLocalStdDev)
-                        let pos = c + rand.UniformV3dDirection() * 2.0 * clstddev
+                        // let c = n.Original.Center + V3d n.Original.CentroidLocal
+                        // let clstddev = max 1.0 (float n.Original.CentroidLocalStdDev)
+                        let c = n.Original.DataBounds.Center
+                        let pos = c + rand.UniformV3dDirection() * 30.0 //clstddev
                         pos, c
                     | _ ->
                         let bb = pc.root.WorldBoundingBox
@@ -544,8 +547,8 @@ module Rendering =
                 let (minPt, maxPt) = bb.GetMinMaxInDirection(c.Forward)
 
                 let near = Vec.dot c.Forward (minPt - c.Location)
-                let far = Vec.dot c.Forward (maxPt - c.Location)
-                let near = max (max 0.05 near) (far / 100000.0)
+                let far = 10000.0 //Vec.dot c.Forward (maxPt - c.Location)
+                let near = 0.5 //max (max 0.05 near) (far / 100000.0)
 
                 Frustum.perspective args.fov near far (float s.X / float s.Y)
             )

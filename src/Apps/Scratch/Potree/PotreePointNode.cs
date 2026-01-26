@@ -10,12 +10,13 @@ using System.Threading.Tasks;
 
 namespace Aardvark.Data.Potree
 {
-    public class PotreePointCloudNode : IPointNode
+    public class PotreePointNode : IPointNode
     {
-        public PotreePointCloudNode Parent { get; }
+        public PotreePointNode Parent { get; }
         public PotreeNode PotreeNodeData { get; }
         public PotreeStorage PotreeStorage { get; }
 
+        public string Id { get; }
         public Box3d CellBounds => PotreeNodeData.BoundingBox;
 
         public Box3d DataBounds => PotreeNodeData.BoundingBox;
@@ -34,8 +35,9 @@ namespace Aardvark.Data.Potree
         /// <summary>
         /// Creates node.
         /// </summary>
-        public PotreePointCloudNode(PotreePointCloudNode parent, PotreeNode node, PotreeStorage storage)
+        public PotreePointNode(string id, PotreePointNode parent, PotreeNode node, PotreeStorage storage)
         {
+            Id = id;
             Parent = parent;
             PotreeNodeData = node;
             PotreeStorage = storage;

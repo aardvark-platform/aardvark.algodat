@@ -550,7 +550,6 @@ module RenderConfig =
         let lines =
             [
                 "Scale",            "O", "P", cfg.pointSize |> AVal.map (sprintf "%.2f")
-                "Overlay",          "-", "+", cfg.overlayAlpha |> AVal.map (sprintf "%.1f")
                 "Boxes",            "B", "B", cfg.renderBounds |> AVal.map (function true -> "on" | false -> "off")
                 "Budget",           "X", "C/Y", cfg.budget |> AVal.map (fun v -> if v < 0L then "off" else string (Numeric v))
                 "Light",            "L", "L", cfg.lighting |> AVal.map (function true -> "on" | false -> "off")

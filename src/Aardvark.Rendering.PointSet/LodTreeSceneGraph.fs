@@ -246,7 +246,6 @@ module private DeferredPointSetShaders =
             [<Normal>] n : V3f
             [<Semantic("TreeId")>] id : int
             [<Semantic("PartIndices")>] partIndex : int
-            [<Semantic("MaxTreeDepth")>] treeDepth : int
             [<Semantic("Normal32"); Interpolation(InterpolationMode.Flat)>] n32 : int
             [<FragCoord>] fc : V4f
             [<SamplePosition>] sp : V2f
@@ -307,14 +306,6 @@ module private DeferredPointSetShaders =
 
 
             let col = v.col.XYZ
-
-            let o = uniform.Overlay.[v.id].X
-            let col =
-                if o > 0.0f then
-                    let h = heat (float32 v.treeDepth / 6.0f)
-                    o * h.XYZ + (1.0f - o) * col
-                else
-                    v.col.XYZ
 
             return
                 { v with

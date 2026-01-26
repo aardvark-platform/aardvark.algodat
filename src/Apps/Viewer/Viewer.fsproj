@@ -30,6 +30,7 @@
     <EmbeddedResource Include="CubeMap\miramar_lf.png" />
     <EmbeddedResource Include="CubeMap\miramar_rt.png" />
     <EmbeddedResource Include="CubeMap\miramar_up.png" />
+    <Compile Include="Potree.fs" />
     <Compile Include="Utilities.fs" />
     <Compile Include="Prelude.fs" />
     <Compile Include="Args.fs" />

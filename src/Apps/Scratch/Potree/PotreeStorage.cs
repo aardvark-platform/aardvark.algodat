@@ -125,7 +125,7 @@ namespace Aardvark.Data.Potree
         {
             if(Storage.Cache.TryGetValue(key, out var o))
             {
-                if (o is not PotreePointCloudNode node) throw new InvalidOperationException(
+                if (o is not PotreePointNode node) throw new InvalidOperationException(
                     $"Invariant 26EA902D-4168-447B-9102-88E0C63A49E7. " +
                     $"[get] Store key {key} is not PotreeNode."
                     );
@@ -170,7 +170,7 @@ namespace Aardvark.Data.Potree
             return GetPointCloudNode(root);
         }
 
-        public IPointNode GetPointCloudNode(PotreeNode node, PotreePointCloudNode parent = null)
+        public IPointNode GetPointCloudNode(PotreeNode node, PotreePointNode parent = null)
         {
             if (!Storage.HasCache)
                 throw new InvalidOperationException("PotreeStorage without cache is not valid");
@@ -179,7 +179,7 @@ namespace Aardvark.Data.Potree
 
             if (Storage.Cache.TryGetValue(key, out object o))
             {
-                if (o is not PotreePointCloudNode cn) throw new InvalidOperationException(
+                if (o is not PotreePointNode cn) throw new InvalidOperationException(
                     $"Invariant 56D238F3-40DC-40B8-9D94-BDBC8975B869" +
                     $"[GetPointCloudNode] Store key {key} is not PotreeNode."
                     );
@@ -187,7 +187,7 @@ namespace Aardvark.Data.Potree
                 return cn;
             }
             //add points from parent
-            var n = new PotreePointCloudNode(parent, node, this);
+            var n = new PotreePointNode(key, parent, node, this);
             Storage.Cache.Add(key, n, 1);
 
             var buffer = Storage.f_get(key) ?? throw new Exception(
@@ -208,7 +208,7 @@ namespace Aardvark.Data.Potree
 
             if (Storage.Cache.TryGetValue(key, out object o))
             {
-                if (o is not PotreePointCloudNode n) throw new InvalidOperationException(
+                if (o is not PotreePointNode n) throw new InvalidOperationException(
                     $"Invariant B09EF0AA-05B1-458B-9921-97BC0FDB5407." +
                     $"[GetPointCloudNode] Store key {key} is not PotreeNode."
                     );

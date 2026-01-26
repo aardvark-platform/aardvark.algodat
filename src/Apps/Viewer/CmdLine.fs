@@ -15,6 +15,7 @@ open System.IO
 open System.Linq
 open System.Text.Json
 open System.Net.Http
+open Aardvark.Data.Potree
 
 [<AutoOpen>]
 module CmdLine = 
@@ -26,6 +27,13 @@ module CmdLine =
         json
             |> Seq.map (fun j -> Box3d.Parse(j.GetProperty("Bounds").GetString()))
             |> Array.ofSeq
+           
+    let viewPotree (store : string) (args : Args) =
+        let s = new PotreeStorage(store, LruDictionary(1L <<< 30))
+        let r = s.LoadRoot()
+        Rendering.show args (List.choose id [
+            LodTreeInstance.ofPointNode List.empty 0 r 
+        ])
             
     let view (store : string) (ids : list<string>) (args : Args) =
         Rendering.show args (ids |> List.choose (fun id ->

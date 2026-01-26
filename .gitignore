@@ -28,4 +28,6 @@ obj/
 **/.DS_STORE
 .ionide
 .boss
-/.claude/settings.local.json
+**/.claude/settings.local.json
+**/.idea/**
+*.user
