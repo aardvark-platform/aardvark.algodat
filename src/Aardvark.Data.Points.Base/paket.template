@@ -1,5 +1,5 @@
 type project
-id Aardvark.Data.Points.Base
+id Aardvark.Data.Points.Base.Experimental
 authors Aardvark Platform Team
 owners Aardvark Platform Team
 projectUrl http://github.com/aardvark-platform

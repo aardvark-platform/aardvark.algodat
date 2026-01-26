@@ -1,5 +1,5 @@
 type project
-id Aardvark.Data.Points.Ply
+id Aardvark.Data.Points.Ply.Experimental
 authors Aardvark Platform Team
 owners Aardvark Platform Team
 projectUrl https://github.com/aardvark-platform/aardvark.algodat

@@ -447,13 +447,11 @@ namespace Aardvark.Geometry.Points
 
         /// <summary>
         /// Bounding box of the octree cell that this node represents.
-        /// todo: clarify whether this is inclusive/exclusive and which coordinate space is used.
         /// </summary>
         Box3d CellBounds { get; }
 
         /// <summary>
         /// Bounding box of the actual data (points) contained in this node.
-        /// todo: clarify coordinate space and guarantees (e.g. valid/invalid states).
         /// </summary>
         Box3d DataBounds { get; }
 

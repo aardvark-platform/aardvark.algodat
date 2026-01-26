@@ -1,5 +1,5 @@
 type project
-id Ply.Net
+id Ply.Net.Experimental
 authors Stefan Maierhofer
 owners Stefan Maierhofer
 projectUrl https://github.com/aardvark-platform/aardvark.algodat/tree/master/src/Ply.Net

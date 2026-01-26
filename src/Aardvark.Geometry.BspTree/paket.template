@@ -1,5 +1,5 @@
 type project
-id Aardvark.Geometry.BspTree
+id Aardvark.Geometry.BspTree.Experimental
 authors Aardvark Platform Team
 owners Aardvark Platform Team
 projectUrl http://github.com/aardvark-platform
