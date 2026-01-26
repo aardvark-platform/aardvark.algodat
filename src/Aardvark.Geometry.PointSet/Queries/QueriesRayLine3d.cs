@@ -102,19 +102,21 @@ public static partial class Queries
         if (node.Positions.Length == 0) yield break;
 
         var centerGlobal = node.DataBounds.Center;
-        var s0Local = lineSegment.P0 - centerGlobal;
-        var s1Local = lineSegment.P1 - centerGlobal;
-        var rayLocal = new Ray3d(s0Local, (s1Local - s0Local).Normalized);
+        var s0 = lineSegment.P0;
+        var s1 = lineSegment.P1;
+        var ray = new Ray3d(s0, (s1 - s0).Normalized);
 
         var worstCaseDist = node.DataBounds.Size3d.Length * 0.5 + maxDistanceToRay;
-        // var d0 = rayLocal.GetMinimalDistanceTo(node.BoundigBoxExactLocal.Center);
-        // if (d0 > worstCaseDist) yield break;
+        var d0 = ray.GetMinimalDistanceTo(node.DataBounds.Center);
+        if (d0 > worstCaseDist) yield break;
 
         var nodeCell = new Cell(node.CellBounds);
         if (node.Children.Length == 0 || nodeCell.Exponent == minCellExponent)
         {
             if (node.KdTree != null)
             {
+                var s0Local = s0 - node.KdTree.Value.Offset;
+                var s1Local = s1 - node.KdTree.Value.Offset;
                 var indexArray = node.KdTree.Value.Tree.GetClosestToLine(
                     (V3f)s0Local, (V3f)s1Local,
                     (float)maxDistanceToRay,
@@ -130,12 +132,12 @@ public static partial class Queries
             else
             {
                 // do it without kd-tree ;-)
-                var psLocal = node.Positions;
+                var ps = node.Positions;
 
                 var res = new List<int>();
-                for (var i = 0; i < psLocal.Length; i++)
+                for (var i = 0; i < ps.Length; i++)
                 {
-                    var d = rayLocal.GetMinimalDistanceTo(psLocal[i]);
+                    var d = ray.GetMinimalDistanceTo(ps[i]);
                     if (d > maxDistanceToRay) continue;
                     res.Add(i);
                 }
