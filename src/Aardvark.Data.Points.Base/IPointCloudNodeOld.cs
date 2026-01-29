@@ -496,6 +496,19 @@ namespace Aardvark.Geometry.Points
             m_node = node;
         }
 
+        public override int GetHashCode()
+        {
+            return m_node.GetHashCode();
+        }
+
+        public override bool Equals(object? o)
+        {
+            var other = o as PointNodeAdapter;
+            if (other != null)
+                return m_node.Equals(other.m_node);
+            return false;
+        }
+
         /// <summary>
         /// The original underlying node being adapted.
         /// </summary>

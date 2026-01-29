@@ -49,8 +49,6 @@ public static partial class Queries
         this IPointNode node, V3d query, double maxDistanceToPoint, int maxCount
         )
     {
-        if (node == null) return PointsNearObject<V3d>.Empty;
-
         // if query point is farther from bounding box than maxDistanceToPoint,
         // then there cannot be a result and we are done
         var eps = node.DataBounds.Distance(query);
@@ -63,9 +61,8 @@ public static partial class Queries
             if (nodePositions.Length <= 0) throw new InvalidOperationException();
 #endif
 
-            var center = node.DataBounds.Center;
-
-            var closest = node.KdTree!.Value.Tree.GetClosest((V3f)(query - center), (float)maxDistanceToPoint, maxCount).ToArray();
+            
+            var closest = node.KdTree!.Value.Tree.GetClosest((V3f)(query - node.KdTree!.Value.Offset), (float)maxDistanceToPoint, maxCount).ToArray();
             if (closest.Length > 0)
             {
                 var ds = closest.Map(x => (double)x.Dist);
@@ -89,19 +86,20 @@ public static partial class Queries
                 // first child containing query point sets the initial max distance
                 var childNode = node.Children[ci];
                 var closest = childNode.QueryPointsNearPoint(query, maxDistanceToPointLocal, maxCount);
+                result = closest;
                 if (!closest.IsEmpty && closest.MaxDistance < maxDistanceToPointLocal)
-                    maxDistanceToPointLocal = closest.MaxDistance;
+                    maxDistanceToPointLocal = result.MaxDistance;
                 if (closest.Count >= maxCount)
-                    return closest;
+                    return result;
                 
-                    foreach (var c in node.Children)
-                    {
-                        if (c == childNode) continue;
-                        var x = c.QueryPointsNearPoint(query, maxDistanceToPointLocal, maxCount);
-                        result = result.Merge(x, maxCount);
-                        if (!result.IsEmpty && result.MaxDistance < maxDistanceToPointLocal)
-                            maxDistanceToPointLocal = result.MaxDistance;
-                    }
+                foreach (var c in node.Children)
+                {
+                    if (c.Id == childNode.Id) continue;
+                    var x = c.QueryPointsNearPoint(query, maxDistanceToPointLocal, maxCount);
+                    result = result.Merge(x, maxCount);
+                    if (!result.IsEmpty && result.MaxDistance < maxDistanceToPointLocal)
+                        maxDistanceToPointLocal = result.MaxDistance;
+                }
             }
             return result;
         }

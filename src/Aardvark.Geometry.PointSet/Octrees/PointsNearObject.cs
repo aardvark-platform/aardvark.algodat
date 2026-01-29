@@ -87,8 +87,9 @@ public class PointsNearObject<T>
         if (maxCount < 0) throw new ArgumentOutOfRangeException(nameof(maxCount));
         if (maxCount == 0) return Empty;
         if (other == null || other.IsEmpty) return this;
+        if (IsEmpty) return other;
 
-        var mergedChunks = Chunk.ImmutableMerge(other.Chunk);
+        var mergedChunks = Chunk.ImmutableMerge(Chunk, other.Chunk);
         
         var merged = new PointsNearObject<T>(Object,
             Math.Max(MaxDistance, other.MaxDistance),
@@ -96,7 +97,7 @@ public class PointsNearObject<T>
             Distances.Append(other.Distances)
             );
 
-        if (Count + other.Count > maxCount)
+        if (mergedChunks.Count > maxCount)
         {
             // take 'maxCount' nearest items
             merged = merged.OrderedByDistanceAscending().Take(maxCount); 
