@@ -16,6 +16,7 @@ using Aardvark.Base;
 using Aardvark.Data.Points;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Aardvark.Geometry.Points;
 
@@ -79,27 +80,21 @@ public static partial class Queries
         else
         {
             var result = PointsNearObject<V3d>.Empty;
-            var ci = node.Children.FirstIndexOf((c) => c.CellBounds.Contains(query));
-            var maxDistanceToPointLocal = maxDistanceToPoint;
-            if (ci >= 0)
-            {
-                // first child containing query point sets the initial max distance
-                var childNode = node.Children[ci];
-                var closest = childNode.QueryPointsNearPoint(query, maxDistanceToPointLocal, maxCount);
-                result = closest;
-                if (!closest.IsEmpty && closest.MaxDistance < maxDistanceToPointLocal)
-                    maxDistanceToPointLocal = result.MaxDistance;
-                if (closest.Count >= maxCount)
-                    return result;
-                
-                foreach (var c in node.Children)
+            var orderedChildren =
+                node.Children.Select((c) =>
                 {
-                    if (c.Id == childNode.Id) continue;
-                    var x = c.QueryPointsNearPoint(query, maxDistanceToPointLocal, maxCount);
-                    result = result.Merge(x, maxCount);
-                    if (!result.IsEmpty && result.MaxDistance < maxDistanceToPointLocal)
-                        maxDistanceToPointLocal = result.MaxDistance;
-                }
+                    var minDist = c.CellBounds.GetMinimalDistanceTo(query);
+                    return (c, minDist);
+                }).OrderBy(t => t.Item2).ToArray();
+            var maxDistanceToPointLocal = maxDistanceToPoint;
+            foreach (var t in orderedChildren)
+            {
+                if (t.Item2 > maxDistanceToPointLocal) break;
+                var c = t.Item1;
+                var x = c.QueryPointsNearPoint(query, maxDistanceToPointLocal, maxCount);
+                result = result.Merge(x, maxCount);
+                if (!result.IsEmpty && result.MaxDistance < maxDistanceToPointLocal)
+                    maxDistanceToPointLocal = result.MaxDistance;
             }
             return result;
         }

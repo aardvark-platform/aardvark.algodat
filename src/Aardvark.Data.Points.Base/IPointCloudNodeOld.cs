@@ -439,8 +439,9 @@ namespace Aardvark.Geometry.Points
 
     /// <summary>
     /// Represents a point node abstraction used by adapters and consumers.
-    /// todo: provide a more detailed description of the intended semantics.
+    /// Does not support Equality or Comparison.
     /// </summary>
+    [Microsoft.FSharp.Core.NoEquality,Microsoft.FSharp.Core.NoComparison]
     public interface IPointNode
     {
         string Id { get; }
@@ -498,15 +499,31 @@ namespace Aardvark.Geometry.Points
 
         public override int GetHashCode()
         {
+            throw new Exception("No Equality for PointNodeAdapter");
             return m_node.GetHashCode();
         }
 
         public override bool Equals(object? o)
         {
+            throw new Exception("No Equality for PointNodeAdapter");
             var other = o as PointNodeAdapter;
             if (other != null)
                 return m_node.Equals(other.m_node);
             return false;
+        }
+        
+        public static bool operator ==(PointNodeAdapter? a, PointNodeAdapter? b)
+        {
+            throw new Exception("No Equality for PointNodeAdapter");
+            if (a is null && b is null) return true;
+            if (a is null || b is null) return false;
+            return a.m_node.Equals(b.m_node);
+        }
+        
+        public static bool operator !=(PointNodeAdapter? a, PointNodeAdapter? b)
+        {
+            throw new Exception("No Equality for PointNodeAdapter");
+            return !(a == b);
         }
 
         /// <summary>
