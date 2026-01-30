@@ -795,11 +795,42 @@ namespace Aardvark.Data.E57
                                                 else if (type == typeof(ulong[])) js = ((ulong[])raw).Map(x => (int)x);
                                                 else
                                                 {
-                                                    throw new Exception($"Unspecified classification format {raw.GetType()}.");
+                                                    throw new Exception($"Unspecified {sem} format {raw.GetType()}.");
                                                 }
                                             }
 
                                             data.Append(sem, js);
+                                            break;
+                                        }
+
+                                    case (PointPropertySemantics.ReturnCount, _):
+                                    case (PointPropertySemantics.ReturnIndex, _):
+                                        {
+                                            uint[] xs;
+
+                                            var type = raw.GetType();
+                                            if (type == typeof(uint[]))
+                                            {
+                                                xs = (uint[])raw;
+                                            }
+                                            else
+                                            {
+                                                if (type == typeof(float[])) xs = ((float[])raw).Map(x => (uint)x);
+                                                else if (type == typeof(double[])) xs = ((double[])raw).Map(x => (uint)x);
+                                                else if (type == typeof(sbyte[])) xs = ((sbyte[])raw).Map(x => (uint)x);
+                                                else if (type == typeof(byte[])) xs = ((byte[])raw).Map(x => (uint)x);
+                                                else if (type == typeof(short[])) xs = ((short[])raw).Map(x => (uint)x);
+                                                else if (type == typeof(ushort[])) xs = ((ushort[])raw).Map(x => (uint)x);
+                                                else if (type == typeof(int[])) xs = ((int[])raw).Map(x => (uint)x);
+                                                else if (type == typeof(long[])) xs = ((long[])raw).Map(x => (uint)x);
+                                                else if (type == typeof(ulong[])) xs = ((ulong[])raw).Map(x => (uint)x);
+                                                else
+                                                {
+                                                    throw new Exception($"Unspecified {sem} format {raw.GetType()}. Error b8560e04-a717-4689-be31-dd58e640e1af.");
+                                                }
+                                            }
+
+                                            data.Append(sem, xs);
                                             break;
                                         }
 
@@ -1282,7 +1313,7 @@ namespace Aardvark.Data.E57
                     SensorFirmwareVersion = GetString(root, "sensorFirmwareVersion", false),
                     Temperature = Check("temperature", GetFloat(root, "temperature", false), x => !x.HasValue || x >= -273.15, ">= -273.15"),
                     RelativeHumidity = Check("relativeHumidity", GetFloat(root, "relativeHumidity", false), x => !x.HasValue || (x >= 0 && x <= 100), "[0,100]"),
-                    AtmosphericPressure = Check("atmosphericPressure", GetFloat(root, "atmosphericPressure", false), x => !x.HasValue || x > 0, "positive"),
+                    AtmosphericPressure = Check("atmosphericPressure", GetFloat(root, "atmosphericPressure", false), x => !x.HasValue || x >= 0, "positive"),
 
                     Sem2Index = sem2Index,
                 };
@@ -1343,7 +1374,8 @@ namespace Aardvark.Data.E57
                 if (data3d.Has(PointPropertySemantics.ColumnIndex) && data3d.IndexBounds == null)
                     throw new ArgumentException("[8.4.3.6] IndexBounds must be defined (if columnIndex is defined).");
                 if (data3d.Has(PointPropertySemantics.ReturnIndex) && data3d.IndexBounds == null)
-                    throw new ArgumentException("[8.4.3.6] IndexBounds must be defined (if returnIndex is defined).");
+                    //throw new ArgumentException("[8.4.3.6] IndexBounds must be defined (if returnIndex is defined).");
+                    if (verbose) Report.Warn("[8.4.3.6] IndexBounds must be defined (if returnIndex is defined).");
                 #endregion
                 #region 8.4.3.7 (nop)
                 #endregion

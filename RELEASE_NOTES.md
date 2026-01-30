@@ -1,3 +1,7 @@
+### 5.6.2
+- [e57] missing 'ReturnIndex' element: replaced exception with warning 
+- [e57] E57Data3D.Points.ReadDataFull(...) now also returns 'ReturnCount' and 'ReturnIndex' data
+
 ### 5.6.1
 - [e57] parse e57 files containing index packets
 

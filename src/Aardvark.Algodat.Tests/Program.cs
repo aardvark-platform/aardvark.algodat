@@ -159,6 +159,26 @@ namespace Aardvark.Geometry.Tests
             WriteLine($"\r[{100.0 * totalPointCount / info.PointCount,6:N2}%] {sw.Elapsed} {totalPointCount,16:N0}/{info.PointCount:N0}");
         }
 
+        internal static void ParseE57File(string filename, bool verbose)
+        {
+            var info = PointCloud.ParseFileInfo(filename, ParseConfig.Default);
+            var totalPointCount = 0L;
+            var nextReport = DateTime.Now.AddSeconds(1);
+            var sw = Stopwatch.StartNew();
+            WriteLine($"parsing {filename}");
+            var chunks = E57.ChunksFull(filename, ParseConfig.Default.WithVerbose(verbose));
+            foreach (var chunk in chunks)
+            {
+                totalPointCount += chunk.Count;
+                if (DateTime.Now > nextReport)
+                {
+                    Write($"\r[{100.0 * totalPointCount / info.PointCount,6:N2}%] {sw.Elapsed} {totalPointCount,16:N0}/{info.PointCount:N0}");
+                    nextReport = nextReport.AddSeconds(1);
+                }
+            }
+            WriteLine($"\r[{100.0 * totalPointCount / info.PointCount,6:N2}%] {sw.Elapsed} {totalPointCount,16:N0}/{info.PointCount:N0}");
+        }
+
         #endregion
 
         internal static void PerfTestJuly2019()
@@ -2947,8 +2967,12 @@ namespace Aardvark.Geometry.Tests
         {
             await Task.CompletedTask; // avoid warning if no async methods are called here ...
 
-            //await CreateStore(@"W:\Datasets\Vgm\Data\2026-01-12_bugreport\aussen_color.e57", @"e:\tmp\2026-01-12_bugreport", minDist: 0.0);
-            Bug20260112.Run();
+            //ParseE57File("W:\\Datasets\\Vgm\\Data\\E57\\Lichthof grob.e57", verbose: true);
+            //ParseE57File(@"E:\tmp\e57\Lichthof grob_simple.e57", verbose: true);
+            //ParseE57File(@"D:\Datasets\e57\chcnav_utb_20251025085420394.e57", verbose: true);
+
+            await CreateStore(@"D:\Datasets\e57\chcnav_utb_20251025085420394.e57", @"e:\tmp\2027-01-29_chcnav_utb_20251025085420394.e57", minDist: 0.0);
+            //Bug20260112.Run();
 
             //await CylStoreIssue_20250723();
 
