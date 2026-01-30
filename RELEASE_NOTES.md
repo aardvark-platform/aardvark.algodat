@@ -1,4 +1,4 @@
-### 5.6.2
+### 5.6.2 
 - [e57] missing 'ReturnIndex' element: replaced exception with warning 
 - [e57] E57Data3D.Points.ReadDataFull(...) now also returns 'ReturnCount' and 'ReturnIndex' data
 
