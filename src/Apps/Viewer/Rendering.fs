@@ -214,7 +214,8 @@ module Rendering =
                     let pts = pick.Value p.Position 20 800
                     //let res = pts |> Array.map (fun p -> p.World |> Trafo3d.Translation)
 
-                    if pts.Length > 0 then 
+                    if pts.Length > 0 then
+                        Log.line "pick %A" pts.[0].World
                         instances |> ASet.force |> Seq.collect (fun i ->
                             let n = i.root |> unbox<LodTreeInstance.PointTreeNode>
                             let o = n.Original

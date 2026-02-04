@@ -163,7 +163,7 @@ module LodTreeInstance =
                     if MapExt.containsKey "Colors" ips then
                         let colors =
                             match self.TryGetAttribute(PointNodeAttributes.Colors) with
-                            | (true,data) -> data.ToArrayOfT<C4b>()  |> Array.map (_.Clamped(0uy,255uy))
+                            | (true,data) -> data.ToArrayOfT<C4b>()
                             | _ -> Array.replicate positions.Length C4b.White
                         attributes.[DefaultSemantic.Colors] <- colors
                         vertexSize <- vertexSize + 4L
@@ -215,6 +215,10 @@ module LodTreeInstance =
                     if MapExt.containsKey "TreeLevel" ips then
                         let arr = [| float32 level |] :> System.Array
                         uniforms <- MapExt.add "TreeLevel" arr uniforms
+                        
+                    if MapExt.containsKey "AvgPointDistance" ips then
+                        let avgDist =  localBounds.Size.NormMax / 40.0 
+                        uniforms <- MapExt.add "AvgPointDistance" ([| float32 (scale * avgDist) |] :> System.Array) uniforms
                         
                     if original.Length = 0 then
                         let someAttributes =
