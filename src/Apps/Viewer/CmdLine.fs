@@ -86,27 +86,35 @@ module CmdLine =
 
     let private mapReduce cfg (chunks : seq<Chunk>) = PointCloud.Chunks(chunks, cfg)
     let private batchImport dirname (cfg : ImportConfig) (args : Args) =
-        getKnownFileExtensions ()
-        |> Seq.collect (fun x -> Directory.EnumerateFiles(dirname, "*" + x, SearchOption.AllDirectories))
+        let exts = getKnownFileExtensions()
+        Directory.EnumerateFiles(dirname, "*", SearchOption.AllDirectories)
+        |> Seq.choose (fun x ->
+            let ext = Path.GetExtension(x).ToLowerInvariant()
+            match Map.tryFind ext exts with
+            | Some fmt ->
+                Some (x,fmt)
+            | None -> None
+        )
         |> Seq.skip args.skip
         |> Seq.truncate args.take
-        |> Seq.collect (fun f ->
-            printfn "importing file %s" f
-            Pts.Chunks(f, cfg.ParseConfig)
+        |> Seq.collect (fun (path,fmt) ->
+            printfn "importing file %s format %A" path fmt.Description
+            fmt.ParseFile(path,cfg.ParseConfig)
+            //Pts.Chunks(f, cfg.ParseConfig)
             )
         |> mapReduce cfg
 
-    let import (filename : string) (store : string) (id : string) (args : Args) =
+    let import (filename : string) (storePath : string) (id : string) (args : Args) =
     
         let isBatchImport = try Directory.Exists(filename) with _ -> false
 
         let filename =
             if filename.StartsWith "http" then
-                if not (Directory.Exists(store)) then
-                    Directory.CreateDirectory(store) |> ignore
+                if not (Directory.Exists(storePath)) then
+                    Directory.CreateDirectory(storePath) |> ignore
                 let wc = new HttpClient()
                 let fn = Uri(filename).Segments.Last()
-                let targetFilename = Path.Combine(store, fn)
+                let targetFilename = Path.Combine(storePath, fn)
                 printfn "downloading %s to %s" filename targetFilename
                 let fs = File.OpenWrite(targetFilename);
                 wc.GetStreamAsync(filename).Result.CopyToAsync(fs).Wait()
@@ -116,7 +124,7 @@ module CmdLine =
             else
                 filename
             
-        use store = PointCloud.OpenStore(store, LruDictionary(1L <<< 30))
+        use store = PointCloud.OpenStore(storePath, LruDictionary(1L <<< 30))
         
         let mutable cfg =
             ImportConfig.Default
@@ -148,11 +156,18 @@ module CmdLine =
                                PointCloud.Chunks(chunks, cfg)
 
             // batch, known formats
-            | true, None    -> batchImport filename cfg args
+            | true, _    -> batchImport filename cfg args
 
-            // batch, custom ascii
-            | _             -> failwith "batch import with custom ascii format is not supported"
-
+        let keyPath =
+            if File.Exists storePath then
+                Path.combine [Path.GetDirectoryName(storePath); "key.txt"]
+            else
+                Path.combine [storePath; "key.txt"]
+                
+        try
+            File.writeAllTextSafe keyPath id
+        with e -> Log.error "Failed to write key.txt: %A" e
+        
         Console.WriteLine("point count   {0:N0}", ps.PointCount)
         Console.WriteLine("bounds        {0}", ps.BoundingBox)
 
@@ -160,4 +175,4 @@ module CmdLine =
 
         let xs = Download.listHrefsForKnownFormats baseurl
         Console.WriteLine("found {0:N0} point cloud files", xs.Count())
-        Download.batchDownload baseurl targetdir xs
+        Download.batchDownload baseurl targetdir (xs |> Seq.map fst)

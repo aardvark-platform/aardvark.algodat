@@ -67,7 +67,7 @@ module Prelude =
     /// Known file extensions.
     let getKnownFileExtensions () =
         formats
-        |> List.collect (fun x -> x.FileExtensions |> List.ofArray)
-        |> List.map (fun x -> x.ToLowerInvariant())
+        |> List.collect (fun x -> x.FileExtensions |> List.ofArray |> List.map (fun e -> e.ToLowerInvariant(),x))
+        |> Map.ofList
         
   
