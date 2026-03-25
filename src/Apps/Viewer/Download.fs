@@ -22,7 +22,12 @@ module Download =
     let listHrefsForKnownFormats (url : string) =
         let known = getKnownFileExtensions ()
         let hrefs = listHrefs url
-        hrefs |> Seq.filter (fun x -> List.contains (Path.GetExtension(x).ToLowerInvariant()) known)
+        hrefs |> Seq.choose (fun x ->
+            let ext = Path.GetExtension(x).ToLowerInvariant()
+            match Map.tryFind ext known with
+            | Some fmt -> Some (x,fmt)
+            | None -> None
+        )
 
     let batchDownload (baseUrl : string) (targetDirectory : string) (filenames : seq<string>)  =
         if not (Directory.Exists(targetDirectory)) then
