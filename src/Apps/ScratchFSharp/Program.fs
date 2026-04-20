@@ -543,11 +543,12 @@ module Bla =
             
     let panoCompare() =
         
-        let panospath = "/Users/schorsch/Desktop"
+        let panospath = "C:/bla/stores-geos-rmdata/out"
         let inputs =
             [|
-                "/Users/schorsch/Desktop/Bf Tapfheim- 137 org.e57", "/Users/schorsch/Desktop/Bf Tapfheim- 137.e57"
-                "/Users/schorsch/Desktop/Bf Tapfheim- 140 org.e57", "/Users/schorsch/Desktop/Bf Tapfheim- 140.e57"
+                // "C:/bla/bahnhof-compare/unbereinigt/Bf Tapfheim- 137.e57", "C:/bla/bahnhof-compare/bereinigt/Bf Tapfheim- 137.e57"
+                // "C:/bla/bahnhof-compare/unbereinigt/Bf Tapfheim- 140.e57", "C:/bla/bahnhof-compare/bereinigt/Bf Tapfheim- 140.e57"
+                "C:/bla/bahnhof-compare/unbereinigt/Bf Tapfheim- 143.e57", "C:/bla/bahnhof-compare/bereinigt/Bf Tapfheim- 143.e57"
             |]
         
         let mutable partIndex = 0
@@ -644,20 +645,247 @@ module Bla =
             let dimg2 = PixImage<byte>(Col.Format.RGBA, dimg.Size)
             dimg2.GetMatrix<C4b>().SetMap2(dmat, dmatCleaned, fun oDepth cleanedDepth ->
                 if cleanedDepth >= 1000.0f then
-                    if oDepth < 1000.0f then C4b.White
+                    if oDepth < 1000.0f then C4b.Red
                     else C4b.Black
                 else
-                    heat(sqrt(float oDepth / maxDepth)).ToC4b()
+                    C4b.Blue
+                    //heat(sqrt(float oDepth / maxDepth)).ToC4b()
             ) |> ignore
             dimg2.SaveImageSharp (Path.Combine(panospath, $"%03d{partIndex}.png"))
             partIndex <- partIndex + 1
             
+    let extractColmap (e57Path : string) (outDir : string) =
+        let ensureDir (p : string) =
+            if not (Directory.Exists p) then Directory.CreateDirectory p |> ignore
+            p
+        let outDir = ensureDir outDir
+        let imagesDir = ensureDir (Path.Combine(outDir, "images"))
+        let depthDir = ensureDir (Path.Combine(outDir, "depth"))
+        let sparseDir = ensureDir (Path.Combine(outDir, "sparse", "0"))
+
+        Log.line $"opening {e57Path}"
+        let actualSize = FileInfo(e57Path).Length
+        use stream = File.OpenRead e57Path
+        let info = Aardvark.Data.E57.ASTM_E57.E57FileHeader.Parse(stream, actualSize, false)
+
+        let images = info.E57Root.Images2D
+        if isNull images || images.Length = 0 then
+            Log.warn "no Image2D entries found in %s" e57Path
+        else
+            Log.line "found %d Image2D entries" images.Length
+
+        let entries = ResizeArray()
+        let mutable nextId = 1
+        for img in images do
+            match img.PinholeRepresentation, img.Pose with
+            | null, _ ->
+                Log.warn "image %s has no PinholeRepresentation - skipping" img.Guid
+            | _, null ->
+                Log.warn "image %s has no Pose - skipping" img.Guid
+            | pin, pose ->
+                let id = nextId
+                nextId <- nextId + 1
+
+                let fx = pin.FocalLength / pin.PixelWidth
+                let fy = pin.FocalLength / pin.PixelHeight
+                let cx = pin.PrincipalPointX
+                let cy = pin.PrincipalPointY
+                let w = pin.ImageWidth
+                let h = pin.ImageHeight
+
+                let ext, bytes =
+                    if not (isNull pin.JpegImage) then "jpg", pin.JpegImage
+                    elif not (isNull pin.PngImage) then "png", pin.PngImage
+                    else failwithf "image %s has neither JPEG nor PNG data" img.Guid
+
+                let stem = sprintf "image_%04d" id
+                let imageName = sprintf "%s.%s" stem ext
+                let depthName = sprintf "%s.bin" stem
+                File.WriteAllBytes(Path.Combine(imagesDir, imageName), bytes)
+
+                // COLMAP: p_cam = R_cw * p_world + t_cw  where R_cw, t_cw encode world->camera
+                // E57 Pose: p_world = R_e57 * p_local + t_e57  (local == camera CS, which matches COLMAP axes)
+                // => R_cw = R_e57^-1,  t_cw = -R_e57^-1 * t_e57
+                let rInv = pose.Rotation.Inverse
+                let tcw = rInv.Transform(-pose.Translation)
+                let worldToCam = pose.RigidBodyTransform.Inverse.Forward
+
+                entries.Add((id, w, h, fx, fy, cx, cy, rInv, tcw, worldToCam, imageName, depthName))
+                Log.line "  #%d %s  %dx%d  fx=%.2f fy=%.2f cx=%.2f cy=%.2f  pose t=%A"
+                    id imageName w h fx fy cx cy pose.Translation
+
+        let invariant = System.Globalization.CultureInfo.InvariantCulture
+        use camsW = new StreamWriter(Path.Combine(sparseDir, "cameras.txt"))
+        camsW.WriteLine "# Camera list with one line of data per camera:"
+        camsW.WriteLine "#   CAMERA_ID, MODEL, WIDTH, HEIGHT, PARAMS[]"
+        camsW.WriteLine (sprintf "# Number of cameras: %d" entries.Count)
+        for (id, w, h, fx, fy, cx, cy, _, _, _, _, _) in entries do
+            camsW.WriteLine (
+                System.String.Format(invariant,
+                    "{0} PINHOLE {1} {2} {3:R} {4:R} {5:R} {6:R}",
+                    id, w, h, fx, fy, cx, cy))
+
+        use imgsW = new StreamWriter(Path.Combine(sparseDir, "images.txt"))
+        imgsW.WriteLine "# Image list with two lines of data per image:"
+        imgsW.WriteLine "#   IMAGE_ID, QW, QX, QY, QZ, TX, TY, TZ, CAMERA_ID, NAME"
+        imgsW.WriteLine "#   POINTS2D[] as (X, Y, POINT3D_ID)"
+        imgsW.WriteLine (sprintf "# Number of images: %d" entries.Count)
+        for (id, _, _, _, _, _, _, rInv, tcw, _, name, _) in entries do
+            imgsW.WriteLine (
+                System.String.Format(invariant,
+                    "{0} {1:R} {2:R} {3:R} {4:R} {5:R} {6:R} {7:R} {0} {8}",
+                    id, rInv.W, rInv.X, rInv.Y, rInv.Z, tcw.X, tcw.Y, tcw.Z, name))
+            imgsW.WriteLine ""
+
+        File.WriteAllText(Path.Combine(sparseDir, "points3D.txt"),
+            "# 3D point list with one line of data per point:\n" +
+            "#   POINT3D_ID, X, Y, Z, R, G, B, ERROR, TRACK[] as (IMAGE_ID, POINT2D_IDX)\n" +
+            "# Number of points: 0\n")
+
+        let depthMats =
+            entries |> Seq.map (fun (id, w, h, _, _, _, _, _, _, _, _, _) ->
+                let img = PixImage<float32>(Col.Format.Gray, V2i(w, h))
+                img.GetChannel(0L).Set(System.Single.PositiveInfinity) |> ignore
+                id, img
+            ) |> dict
+
+        Log.startTimed "rendering depth images"
+        let entryArr = entries.ToArray()
+        let nCams = entryArr.Length
+        let cw  = Array.zeroCreate<int> nCams
+        let ch  = Array.zeroCreate<int> nCams
+        let cfx = Array.zeroCreate<float> nCams
+        let cfy = Array.zeroCreate<float> nCams
+        let ccx = Array.zeroCreate<float> nCams
+        let ccy = Array.zeroCreate<float> nCams
+        let m00 = Array.zeroCreate<float> nCams
+        let m01 = Array.zeroCreate<float> nCams
+        let m02 = Array.zeroCreate<float> nCams
+        let m03 = Array.zeroCreate<float> nCams
+        let m10 = Array.zeroCreate<float> nCams
+        let m11 = Array.zeroCreate<float> nCams
+        let m12 = Array.zeroCreate<float> nCams
+        let m13 = Array.zeroCreate<float> nCams
+        let m20 = Array.zeroCreate<float> nCams
+        let m21 = Array.zeroCreate<float> nCams
+        let m22 = Array.zeroCreate<float> nCams
+        let m23 = Array.zeroCreate<float> nCams
+        let buffers = Array.zeroCreate<float32[]> nCams
+        for i in 0 .. nCams - 1 do
+            let (id, w, h, fx, fy, cx, cy, _, _, wtc, _, _) = entryArr.[i]
+            cw.[i]  <- w
+            ch.[i]  <- h
+            cfx.[i] <- fx
+            cfy.[i] <- fy
+            ccx.[i] <- cx
+            ccy.[i] <- cy
+            m00.[i] <- wtc.M00; m01.[i] <- wtc.M01; m02.[i] <- wtc.M02; m03.[i] <- wtc.M03
+            m10.[i] <- wtc.M10; m11.[i] <- wtc.M11; m12.[i] <- wtc.M12; m13.[i] <- wtc.M13
+            m20.[i] <- wtc.M20; m21.[i] <- wtc.M21; m22.[i] <- wtc.M22; m23.[i] <- wtc.M23
+            buffers.[i] <- depthMats.[id].Volume.Data
+
+        let scans = info.E57Root.Data3D
+        let scanCount = scans.Length
+        Log.line "splatting %d cameras over %d scan(s)" nCams scanCount
+        let overall = System.Diagnostics.Stopwatch.StartNew()
+        let mutable totalPoints = 0L
+        let mutable scanIdx = 0
+        for data in scans do
+            scanIdx <- scanIdx + 1
+            let scanTimer = System.Diagnostics.Stopwatch.StartNew()
+            let mutable scanPoints = 0L
+            let mutable chunkIdx = 0
+            Log.line "  scan %d/%d: %s  (opening point stream...)" scanIdx scanCount data.Guid
+            let chunks =
+                data.StreamPointsFull(1 <<< 28, false, System.Collections.Immutable.ImmutableHashSet.Empty)
+                |> Seq.map (fun struct(a,b) -> E57.E57Chunk(b, data, a))
+            for c in chunks do
+                chunkIdx <- chunkIdx + 1
+                let chunkTimer = System.Diagnostics.Stopwatch.StartNew()
+                let count = c.Count
+                let positions = c.Positions
+                Log.line "    chunk %d: %d pts  (projecting into %d cameras...)" chunkIdx count nCams
+                scanPoints <- scanPoints + int64 count
+                totalPoints <- totalPoints + int64 count
+                let progressStep = max 1 (count / 20)  // ~5% increments
+                let mutable nextProgress = progressStep
+                for pi in 0 .. count - 1 do
+                    let pw = positions.[pi]
+                    let pwx = pw.X
+                    let pwy = pw.Y
+                    let pwz = pw.Z
+                    for i in 0 .. nCams - 1 do
+                        let pcx = m00.[i]*pwx + m01.[i]*pwy + m02.[i]*pwz + m03.[i]
+                        let pcy = m10.[i]*pwx + m11.[i]*pwy + m12.[i]*pwz + m13.[i]
+                        let pcz = m20.[i]*pwx + m21.[i]*pwy + m22.[i]*pwz + m23.[i]
+                        if pcz > 0.0 then
+                            let u = cfx.[i] * pcx / pcz + ccx.[i]
+                            let v = cfy.[i] * pcy / pcz + ccy.[i]
+                            let ix = int (floor u)
+                            let iy = int (floor v)
+                            let w = cw.[i]
+                            let h = ch.[i]
+                            if ix >= 0 && ix < w && iy >= 0 && iy < h then
+                                let buf = buffers.[i]
+                                let idx = iy * w + ix
+                                let d = float32 pcz
+                                if d < buf.[idx] then buf.[idx] <- d
+                    if pi >= nextProgress then
+                        nextProgress <- nextProgress + progressStep
+                        let secs = chunkTimer.Elapsed.TotalSeconds
+                        let rate = float (pi + 1) / max secs 1e-6 / 1.0e6
+                        let pct = 100.0 * float (pi + 1) / float count
+                        Log.line "      %.1f%%  %d/%d pts  %.2fs  %.2f Mpts/s" pct (pi+1) count secs rate
+                let secs = chunkTimer.Elapsed.TotalSeconds
+                let rate = float count / max secs 1e-6 / 1.0e6
+                Log.line "    chunk %d done: %d pts in %.2fs (%.2f Mpts/s), scan total %d"
+                    chunkIdx count secs rate scanPoints
+            Log.line "  scan %d/%d done: %d pts in %.2fs"
+                scanIdx scanCount scanPoints scanTimer.Elapsed.TotalSeconds
+        Log.line "projected %d points into %d cameras in %.2fs"
+            totalPoints nCams overall.Elapsed.TotalSeconds
+        Log.stop()
+
+        for (id, w, h, _, _, _, _, _, _, _, _, depthName) in entries do
+            let img = depthMats.[id]
+            use srcPtr = fixed img.Volume.Data
+            let sizeInBytes = w * h * sizeof<float32>
+            let src = System.Span<byte>(NativePtr.toVoidPtr srcPtr, sizeInBytes)
+            let dst = Array.zeroCreate<byte> sizeInBytes
+            src.CopyTo(dst)
+            File.WriteAllBytes(Path.Combine(depthDir, depthName), dst)
+
+            let mutable dmat = img.GetChannel(0L)
+            let mutable range = Range1f.Invalid
+            dmat.ForeachIndex(fun (i : int64) ->
+                let d = dmat.[i]
+                if d < System.Single.PositiveInfinity then range <- range.ExtendedBy d
+            )
+            let preview = PixImage<byte>(Col.Format.RGBA, V2i(w, h))
+            let lo = range.Min
+            let span = max (range.Max - range.Min) 1e-6f
+            preview.GetMatrix<C4b>().SetMap(dmat, fun d ->
+                if d < System.Single.PositiveInfinity then
+                    let t = float ((d - lo) / span) |> clamp 0.0 1.0
+                    heat(t).ToC4b()
+                else C4b.Black
+            ) |> ignore
+            let previewName = Path.ChangeExtension(depthName, ".png")
+            preview.SaveImageSharp (Path.Combine(depthDir, previewName))
+
+        Log.line "wrote %d cameras, %d images, %d depth maps to %s"
+            entries.Count entries.Count entries.Count outDir
+
+
     [<EntryPoint>]
     let main a =
-        
+
+        extractColmap @"D:\bla\JB_Haus_2022_KG\JB_Haus_2022_KG.e57" @"D:\bla\JB_Haus_2022_KG\colmap"
+        exit 0
+
         // panoCompare()
         // exit 0
-        
+
         let ensure storepath =
             if not (Directory.Exists storepath) then Directory.CreateDirectory storepath |> ignore
             storepath
@@ -665,17 +893,18 @@ module Bla =
                 
         let inputs =
                 [
-                    @"D:\Clouds\Kindergarten\KG1__010.e57"
-                    @"D:\Clouds\Kindergarten\KG1__011.e57"
-                    @"D:\Clouds\Kindergarten\KG1__012.e57"
-                    @"D:\Clouds\Kindergarten\KG1__013.e57"
-                    @"D:\Clouds\Kindergarten\KG1__014.e57"
-                    @"D:\Clouds\Kindergarten\KG1__015.e57"
-                    @"D:\Clouds\Kindergarten\KG1__016.e57"
-                    @"D:\Clouds\Kindergarten\KG1__017.e57"
-                    @"D:\Clouds\Kindergarten\KG1__018.e57"
+                    // @"D:\Clouds\Kindergarten\KG1__010.e57"
+                    // @"D:\Clouds\Kindergarten\KG1__011.e57"
+                    // @"D:\Clouds\Kindergarten\KG1__012.e57"
+                    // @"D:\Clouds\Kindergarten\KG1__013.e57"
+                    // @"D:\Clouds\Kindergarten\KG1__014.e57"
+                    // @"D:\Clouds\Kindergarten\KG1__015.e57"
+                    // @"D:\Clouds\Kindergarten\KG1__016.e57"
+                    // @"D:\Clouds\Kindergarten\KG1__017.e57"
+                    // @"D:\Clouds\Kindergarten\KG1__018.e57"
+                    @"D:\bla\JB_Haus_2022_KG\JB_Haus_2022_KG.e57"
                 ]
-        let outdir = @"D:\stores\kindergarten" |> ensure
+        let outdir = @"D:\bla\jbhaus-panos" |> ensure
         let storepath = Path.combine [outdir; "store"] |> ensure
         let panospath = Path.combine [outdir; "panos"] |> ensure
         let maskspath = Path.combine [outdir; "masks"] |> ensure
