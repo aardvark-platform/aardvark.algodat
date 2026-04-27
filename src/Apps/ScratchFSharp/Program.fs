@@ -674,7 +674,12 @@ module Bla =
         else
             Log.line "found %d Image2D entries" images.Length
 
+        // map scan GUID -> scan index, so each Image2D can be tied back to the scan that captured it.
+        let scanIdxByGuid = System.Collections.Generic.Dictionary<string, int>()
+        info.E57Root.Data3D |> Array.iteri (fun i d -> scanIdxByGuid.[d.Guid] <- i)
+
         let entries = ResizeArray()
+        let scanIdxList = ResizeArray<int>()  // parallel to entries: scan index per camera (-1 if unknown)
         let mutable nextId = 1
         for img in images do
             match img.PinholeRepresentation, img.Pose with
@@ -685,6 +690,15 @@ module Bla =
             | pin, pose ->
                 let id = nextId
                 nextId <- nextId + 1
+                let scanIdx =
+                    if isNull img.AssociatedData3DGuid then -1
+                    else
+                        match scanIdxByGuid.TryGetValue img.AssociatedData3DGuid with
+                        | true, v -> v
+                        | _ -> -1
+                if scanIdx < 0 then
+                    Log.warn "image %s has no resolvable AssociatedData3DGuid; tie-point visibility gating disabled for this camera" img.Guid
+                scanIdxList.Add scanIdx
 
                 let fx = pin.FocalLength / pin.PixelWidth
                 let fy = pin.FocalLength / pin.PixelHeight
@@ -878,6 +892,7 @@ module Bla =
         Log.startTimed "tie points"
         Log.line "  candidate voxels: %d (voxel size %.3fm)" tieDict.Count tieVoxelSize
         let imageIdByCam = entryArr |> Array.map (fun (id,_,_,_,_,_,_,_,_,_,_,_) -> id)
+        let scanIdxByCam = scanIdxList.ToArray()  // parallel to entryArr
         let featuresPerCam = Array.init nCams (fun _ -> ResizeArray<struct(float * float * int)>())
         let tiePointRows = ResizeArray<string>()
         let tiePositions = ResizeArray<V3d>()  // only the tie points that end up in points3D.txt
@@ -894,19 +909,23 @@ module Bla =
                 let px = cell.[0] * inv
                 let py = cell.[1] * inv
                 let pz = cell.[2] * inv
-                // project into each camera to build TRACK[]
+                // project into each camera to build TRACK[];
+                // gate by the tie's scan-mask so only cameras whose scan actually saw the voxel contribute.
                 let track = ResizeArray<struct(int * int)>()
                 for i in 0 .. nCams - 1 do
-                    let pcx = m00.[i]*px + m01.[i]*py + m02.[i]*pz + m03.[i]
-                    let pcy = m10.[i]*px + m11.[i]*py + m12.[i]*pz + m13.[i]
-                    let pcz = m20.[i]*px + m21.[i]*py + m22.[i]*pz + m23.[i]
-                    if pcz > 0.0 then
-                        let u = cfx.[i] * pcx / pcz + ccx.[i]
-                        let v = cfy.[i] * pcy / pcz + ccy.[i]
-                        if u >= 0.0 && u < float cw.[i] && v >= 0.0 && v < float ch.[i] then
-                            let pt2dIdx = featuresPerCam.[i].Count
-                            featuresPerCam.[i].Add(struct(u, v, nextTieId))
-                            track.Add(struct(imageIdByCam.[i], pt2dIdx))
+                    let sIdx = scanIdxByCam.[i]
+                    let camSawIt = sIdx >= 0 && (mask &&& (1u <<< sIdx)) <> 0u
+                    if camSawIt then
+                        let pcx = m00.[i]*px + m01.[i]*py + m02.[i]*pz + m03.[i]
+                        let pcy = m10.[i]*px + m11.[i]*py + m12.[i]*pz + m13.[i]
+                        let pcz = m20.[i]*px + m21.[i]*py + m22.[i]*pz + m23.[i]
+                        if pcz > 0.0 then
+                            let u = cfx.[i] * pcx / pcz + ccx.[i]
+                            let v = cfy.[i] * pcy / pcz + ccy.[i]
+                            if u >= 0.0 && u < float cw.[i] && v >= 0.0 && v < float ch.[i] then
+                                let pt2dIdx = featuresPerCam.[i].Count
+                                featuresPerCam.[i].Add(struct(u, v, nextTieId))
+                                track.Add(struct(imageIdByCam.[i], pt2dIdx))
                 if track.Count > 0 then
                     visibleTies <- visibleTies + 1
                     let sb = System.Text.StringBuilder()
