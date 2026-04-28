@@ -660,7 +660,6 @@ module Bla =
             p
         let outDir = ensureDir outDir
         let imagesDir = ensureDir (Path.Combine(outDir, "images"))
-        let depthDir = ensureDir (Path.Combine(outDir, "depth"))
         let sparseDir = ensureDir (Path.Combine(outDir, "sparse", "0"))
 
         Log.line $"opening {e57Path}"
@@ -712,43 +711,71 @@ module Bla =
                     elif not (isNull pin.PngImage) then "png", pin.PngImage
                     else failwithf "image %s has neither JPEG nor PNG data" img.Guid
 
-                let stem = sprintf "image_%04d" id
-                let imageName = sprintf "%s.%s" stem ext
-                let depthName = sprintf "%s.bin" stem
-                File.WriteAllBytes(Path.Combine(imagesDir, imageName), bytes)
+                // Aardvark.Data.E57.GetImageBytes does its 16-byte BlobSectionHeader
+                // skip in physical space; when the header straddles a 1024-byte page
+                // boundary the read starts 4 bytes too early and prepends 00 00 00 00
+                // to the payload. Scan a small window for the real magic and trim.
+                let magic =
+                    if ext = "jpg" then [| 0xFFuy; 0xD8uy; 0xFFuy |]
+                    else [| 0x89uy; 0x50uy; 0x4Euy; 0x47uy; 0x0Duy; 0x0Auy; 0x1Auy; 0x0Auy |]
+                let scanLimit = min 64 (bytes.Length - magic.Length)
+                let mutable off = -1
+                let mutable i = 0
+                while off < 0 && i <= scanLimit do
+                    let mutable matched = true
+                    let mutable j = 0
+                    while matched && j < magic.Length do
+                        if bytes.[i + j] <> magic.[j] then matched <- false
+                        j <- j + 1
+                    if matched then off <- i
+                    i <- i + 1
+                if off < 0 then
+                    failwithf "image %s: no %s magic found in first %d bytes" img.Guid (ext.ToUpper()) (scanLimit + magic.Length)
+                let bytesOut =
+                    if off = 0 then bytes
+                    else
+                        Log.warn "image %s: stripped %d leading garbage byte(s) before %s magic (E57 reader header-alignment bug)" img.Guid off (ext.ToUpper())
+                        let dst = Array.zeroCreate<byte> (bytes.Length - off)
+                        Buffer.BlockCopy(bytes, off, dst, 0, dst.Length)
+                        dst
+
+                let imageName = sprintf "image_%04d.%s" id ext
+                File.WriteAllBytes(Path.Combine(imagesDir, imageName), bytesOut)
 
                 // COLMAP: p_cam = R_cw * p_world + t_cw  where R_cw, t_cw encode world->camera
                 // E57 Pose: p_world = R_e57 * p_local + t_e57  (local == camera CS, which matches COLMAP axes)
                 // => R_cw = R_e57^-1,  t_cw = -R_e57^-1 * t_e57
                 let rInv = pose.Rotation.Inverse
+                let rInv = Rot3d.RotationX(Constant.Pi) * rInv 
                 let tcw = rInv.Transform(-pose.Translation)
-                let worldToCam = pose.RigidBodyTransform.Inverse.Forward
+                let worldToCam = (M44d.FromDiagonal V4d.PNNP) * pose.RigidBodyTransform.Inverse.Forward
 
-                entries.Add((id, w, h, fx, fy, cx, cy, rInv, tcw, worldToCam, imageName, depthName))
+                entries.Add((id, w, h, fx, fy, cx, cy, rInv, tcw, worldToCam, imageName))
                 Log.line "  #%d %s  %dx%d  fx=%.2f fy=%.2f cx=%.2f cy=%.2f  pose t=%A"
                     id imageName w h fx fy cx cy pose.Translation
 
+        // Spec §8: UTF-8 (no BOM), Unix line endings.
+        let utf8NoBom = System.Text.UTF8Encoding(false)
+        let openTextWriter (path : string) =
+            let sw = new StreamWriter(path, false, utf8NoBom)
+            sw.NewLine <- "\n"
+            sw
+
         let invariant = System.Globalization.CultureInfo.InvariantCulture
-        use camsW = new StreamWriter(Path.Combine(sparseDir, "cameras.txt"))
-        camsW.WriteLine "# Camera list with one line of data per camera:"
-        camsW.WriteLine "#   CAMERA_ID, MODEL, WIDTH, HEIGHT, PARAMS[]"
-        camsW.WriteLine (sprintf "# Number of cameras: %d" entries.Count)
-        for (id, w, h, fx, fy, cx, cy, _, _, _, _, _) in entries do
-            camsW.WriteLine (
-                System.String.Format(invariant,
-                    "{0} PINHOLE {1} {2} {3:R} {4:R} {5:R} {6:R}",
-                    id, w, h, fx, fy, cx, cy))
 
-        // images.txt and points3D.txt written later, after tie-point extraction.
+        // --- cameras.txt ---
+        do
+            use camsW = openTextWriter (Path.Combine(sparseDir, "cameras.txt"))
+            camsW.WriteLine "# Camera list with one line of data per camera:"
+            camsW.WriteLine "#   CAMERA_ID, MODEL, WIDTH, HEIGHT, PARAMS[]"
+            camsW.WriteLine (sprintf "# Number of cameras: %d" entries.Count)
+            for (id, w, h, fx, fy, cx, cy, _, _, _, _) in entries do
+                camsW.WriteLine (
+                    System.String.Format(invariant,
+                        "{0} PINHOLE {1} {2} {3:R} {4:R} {5:R} {6:R}",
+                        id, w, h, fx, fy, cx, cy))
 
-        let depthMats =
-            entries |> Seq.map (fun (id, w, h, _, _, _, _, _, _, _, _, _) ->
-                let img = PixImage<float32>(Col.Format.Gray, V2i(w, h))
-                img.GetChannel(0L).Set(System.Single.PositiveInfinity) |> ignore
-                id, img
-            ) |> dict
-
-        Log.startTimed "rendering depth images"
+        // --- Per-camera intrinsics + worldToCam, flat arrays for the tie-point projection step ---
         let entryArr = entries.ToArray()
         let nCams = entryArr.Length
         let cw  = Array.zeroCreate<int> nCams
@@ -769,9 +796,8 @@ module Bla =
         let m21 = Array.zeroCreate<float> nCams
         let m22 = Array.zeroCreate<float> nCams
         let m23 = Array.zeroCreate<float> nCams
-        let buffers = Array.zeroCreate<float32[]> nCams
         for i in 0 .. nCams - 1 do
-            let (id, w, h, fx, fy, cx, cy, _, _, wtc, _, _) = entryArr.[i]
+            let (_, w, h, fx, fy, cx, cy, _, _, wtc, _) = entryArr.[i]
             cw.[i]  <- w
             ch.[i]  <- h
             cfx.[i] <- fx
@@ -781,21 +807,20 @@ module Bla =
             m00.[i] <- wtc.M00; m01.[i] <- wtc.M01; m02.[i] <- wtc.M02; m03.[i] <- wtc.M03
             m10.[i] <- wtc.M10; m11.[i] <- wtc.M11; m12.[i] <- wtc.M12; m13.[i] <- wtc.M13
             m20.[i] <- wtc.M20; m21.[i] <- wtc.M21; m22.[i] <- wtc.M22; m23.[i] <- wtc.M23
-            buffers.[i] <- depthMats.[id].Volume.Data
 
         let scans = info.E57Root.Data3D
         let scanCount = scans.Length
         if scanCount > 32 then
             Log.warn "more than 32 scans (%d); tie-point scan-mask uses uint32 and will wrap" scanCount
-        Log.line "splatting %d cameras over %d scan(s)" nCams scanCount
 
         // Tie-point voxel hashing: one representative per voxel per scan;
         // a voxel seen by >= 2 scans becomes a tie point at the mean of contributions.
         let tieVoxelSize = 0.05
         let invTieVoxel = 1.0 / tieVoxelSize
+        // float[9] = [|sumX; sumY; sumZ; count; maskAsDouble; sumR; sumG; sumB; colorCount|]
         let tieDict = System.Collections.Generic.Dictionary<struct(int * int * int), float[]>()
-        // float[5] = [|sumX; sumY; sumZ; count; maskAsDouble|]  (mask packed as double to keep it a flat primitive array)
 
+        Log.startTimed "scanning points for tie-voxel hashing"
         let overall = System.Diagnostics.Stopwatch.StartNew()
         let mutable totalPoints = 0L
         let mutable scanIdx = 0
@@ -815,7 +840,9 @@ module Bla =
                 let chunkTimer = System.Diagnostics.Stopwatch.StartNew()
                 let count = c.Count
                 let positions = c.Positions
-                Log.line "    chunk %d: %d pts  (projecting into %d cameras...)" chunkIdx count nCams
+                let colors = c.Colors  // C3b[] or null; cache once — the property reallocates on each access
+                let hasColors = not (isNull colors)
+                Log.line "    chunk %d: %d pts  (hashing into voxels%s...)" chunkIdx count (if hasColors then ", with color" else "")
                 scanPoints <- scanPoints + int64 count
                 totalPoints <- totalPoints + int64 count
                 let progressStep = max 1 (count / 20)  // ~5% increments
@@ -825,24 +852,6 @@ module Bla =
                     let pwx = pw.X
                     let pwy = pw.Y
                     let pwz = pw.Z
-                    for i in 0 .. nCams - 1 do
-                        let pcx = m00.[i]*pwx + m01.[i]*pwy + m02.[i]*pwz + m03.[i]
-                        let pcy = m10.[i]*pwx + m11.[i]*pwy + m12.[i]*pwz + m13.[i]
-                        let pcz = m20.[i]*pwx + m21.[i]*pwy + m22.[i]*pwz + m23.[i]
-                        if pcz > 0.0 then
-                            let u = cfx.[i] * pcx / pcz + ccx.[i]
-                            let v = cfy.[i] * pcy / pcz + ccy.[i]
-                            let ix = int (floor u)
-                            let iy = int (floor v)
-                            let w = cw.[i]
-                            let h = ch.[i]
-                            if ix >= 0 && ix < w && iy >= 0 && iy < h then
-                                let buf = buffers.[i]
-                                let idx = iy * w + ix
-                                let d = float32 pcz
-                                if d < buf.[idx] then buf.[idx] <- d
-
-                    // Tie-voxel: first time this scan visits the voxel, add to global dict.
                     let kx = int (floor (pwx * invTieVoxel))
                     let ky = int (floor (pwy * invTieVoxel))
                     let kz = int (floor (pwz * invTieVoxel))
@@ -852,7 +861,7 @@ module Bla =
                             match tieDict.TryGetValue key with
                             | true, v -> v
                             | _ ->
-                                let v = Array.zeroCreate<float> 5
+                                let v = Array.zeroCreate<float> 9
                                 tieDict.[key] <- v
                                 v
                         cell.[0] <- cell.[0] + pwx
@@ -861,6 +870,12 @@ module Bla =
                         cell.[3] <- cell.[3] + 1.0
                         let oldMask = uint32 (int64 cell.[4])
                         cell.[4] <- float (oldMask ||| scanBit)
+                        if hasColors then
+                            let col = colors.[pi]
+                            cell.[5] <- cell.[5] + float col.R
+                            cell.[6] <- cell.[6] + float col.G
+                            cell.[7] <- cell.[7] + float col.B
+                            cell.[8] <- cell.[8] + 1.0
 
                     if pi >= nextProgress then
                         nextProgress <- nextProgress + progressStep
@@ -874,31 +889,21 @@ module Bla =
                     chunkIdx count secs rate scanPoints
             Log.line "  scan %d/%d done: %d pts in %.2fs"
                 scanIdx scanCount scanPoints scanTimer.Elapsed.TotalSeconds
-        Log.line "projected %d points into %d cameras in %.2fs"
-            totalPoints nCams overall.Elapsed.TotalSeconds
+        Log.line "hashed %d points in %.2fs"
+            totalPoints overall.Elapsed.TotalSeconds
         Log.stop()
 
-        // Write raw float32 depth .bin files (tie-point overlays go on the preview PNGs below).
-        for (id, w, h, _, _, _, _, _, _, _, _, depthName) in entries do
-            let img = depthMats.[id]
-            use srcPtr = fixed img.Volume.Data
-            let sizeInBytes = w * h * sizeof<float32>
-            let src = System.Span<byte>(NativePtr.toVoidPtr srcPtr, sizeInBytes)
-            let dst = Array.zeroCreate<byte> sizeInBytes
-            src.CopyTo(dst)
-            File.WriteAllBytes(Path.Combine(depthDir, depthName), dst)
-
-        // --- Tie points: voxels that >=2 distinct scans agree on ---
+        // --- Build tie points + per-camera 2D feature lists ---
         Log.startTimed "tie points"
         Log.line "  candidate voxels: %d (voxel size %.3fm)" tieDict.Count tieVoxelSize
-        let imageIdByCam = entryArr |> Array.map (fun (id,_,_,_,_,_,_,_,_,_,_,_) -> id)
+        let imageIdByCam = entryArr |> Array.map (fun (id,_,_,_,_,_,_,_,_,_,_) -> id)
         let scanIdxByCam = scanIdxList.ToArray()  // parallel to entryArr
         let featuresPerCam = Array.init nCams (fun _ -> ResizeArray<struct(float * float * int)>())
         let tiePointRows = ResizeArray<string>()
-        let tiePositions = ResizeArray<V3d>()  // only the tie points that end up in points3D.txt
         let mutable nextTieId = 1
         let mutable acceptedTies = 0
         let mutable visibleTies = 0
+        let mutable totalTrackLen = 0
         for kv in tieDict do
             let cell = kv.Value
             let mask = uint32 (int64 cell.[4])
@@ -928,97 +933,77 @@ module Bla =
                                 track.Add(struct(imageIdByCam.[i], pt2dIdx))
                 if track.Count > 0 then
                     visibleTies <- visibleTies + 1
+                    totalTrackLen <- totalTrackLen + track.Count
+                    // Average color across contributing scans, fall back to gray if no scan exposed color.
+                    let cc = cell.[8]
+                    let r, g, b =
+                        if cc > 0.0 then
+                            let invc = 1.0 / cc
+                            int (clamp 0.0 255.0 (cell.[5] * invc + 0.5)),
+                            int (clamp 0.0 255.0 (cell.[6] * invc + 0.5)),
+                            int (clamp 0.0 255.0 (cell.[7] * invc + 0.5))
+                        else
+                            128, 128, 128
                     let sb = System.Text.StringBuilder()
                     sb.AppendFormat(invariant,
-                        "{0} {1:R} {2:R} {3:R} 128 128 128 0 ",
-                        nextTieId, px, py, pz) |> ignore
+                        "{0} {1:R} {2:R} {3:R} {4} {5} {6} 0 ",
+                        nextTieId, px, py, pz, r, g, b) |> ignore
                     for t in track do
                         let struct(imgId, pt2d) = t
                         sb.AppendFormat(invariant, "{0} {1} ", imgId, pt2d) |> ignore
                     if sb.Length > 0 && sb.[sb.Length - 1] = ' ' then sb.Length <- sb.Length - 1
                     tiePointRows.Add(sb.ToString())
-                    tiePositions.Add(V3d(px, py, pz))
                     nextTieId <- nextTieId + 1
         Log.line "  %d tie points (%d with >=1 visible camera, %d total candidate voxels)"
             acceptedTies visibleTies tieDict.Count
         Log.stop()
 
-        // --- Write tie-point cloud as a Leica-style .pts file ---
-        let ptsPath = Path.Combine(outDir, "tie_points.pts")
-        use ptsW = new StreamWriter(ptsPath)
-        ptsW.WriteLine(tiePositions.Count.ToString(invariant))
-        for p in tiePositions do
-            ptsW.WriteLine(System.String.Format(invariant,
-                "{0:R} {1:R} {2:R} 0 255 0 0", p.X, p.Y, p.Z))
-        Log.line "wrote %d tie points to %s" tiePositions.Count ptsPath
+        // --- images.txt ---
+        let totalObs = featuresPerCam |> Array.sumBy (fun f -> f.Count)
+        let meanObs = if nCams = 0 then 0.0 else float totalObs / float nCams
+        do
+            use imgsW = openTextWriter (Path.Combine(sparseDir, "images.txt"))
+            imgsW.WriteLine "# Image list with two lines of data per image:"
+            imgsW.WriteLine "#   IMAGE_ID, QW, QX, QY, QZ, TX, TY, TZ, CAMERA_ID, NAME"
+            imgsW.WriteLine "#   POINTS2D[] as (X, Y, POINT3D_ID)"
+            imgsW.WriteLine (System.String.Format(invariant,
+                "# Number of images: {0}, mean observations per image: {1:R}",
+                entries.Count, meanObs))
+            for i in 0 .. nCams - 1 do
+                let (id, _, _, _, _, _, _, rInv, tcw, _, name) = entryArr.[i]
+                // Spec §6: re-normalize quaternion before writing.
+                let qLen = sqrt (rInv.W*rInv.W + rInv.X*rInv.X + rInv.Y*rInv.Y + rInv.Z*rInv.Z)
+                let qw = rInv.W / qLen
+                let qx = rInv.X / qLen
+                let qy = rInv.Y / qLen
+                let qz = rInv.Z / qLen
+                imgsW.WriteLine (
+                    System.String.Format(invariant,
+                        "{0} {1:R} {2:R} {3:R} {4:R} {5:R} {6:R} {7:R} {0} {8}",
+                        id, qw, qx, qy, qz, tcw.X, tcw.Y, tcw.Z, name))
+                let feats = featuresPerCam.[i]
+                let sb = System.Text.StringBuilder()
+                for fi in 0 .. feats.Count - 1 do
+                    let struct(u, v, tid) = feats.[fi]
+                    if fi > 0 then sb.Append ' ' |> ignore
+                    sb.AppendFormat(invariant, "{0:R} {1:R} {2}", u, v, tid) |> ignore
+                imgsW.WriteLine (sb.ToString())
 
-        // --- Write preview PNGs with red cross overlays at tie-point projections ---
-        let crossRadius = 5
-        let crossColor = C4b.Red
-        for i in 0 .. entryArr.Length - 1 do
-            let (id, w, h, _, _, _, _, _, _, _, _, depthName) = entryArr.[i]
-            let img = depthMats.[id]
-            let mutable dmat = img.GetChannel(0L)
-            let mutable range = Range1f.Invalid
-            dmat.ForeachIndex(fun (j : int64) ->
-                let d = dmat.[j]
-                if d < System.Single.PositiveInfinity then range <- range.ExtendedBy d
-            )
-            let preview = PixImage<byte>(Col.Format.RGBA, V2i(w, h))
-            let lo = range.Min
-            let span = max (range.Max - range.Min) 1e-6f
-            let mutable pmat = preview.GetMatrix<C4b>()
-            pmat.SetMap(dmat, fun d ->
-                if d < System.Single.PositiveInfinity then
-                    let t = float ((d - lo) / span) |> clamp 0.0 1.0
-                    heat(t).ToC4b()
-                else C4b.Black
-            ) |> ignore
-            let feats = featuresPerCam.[i]
-            for fi in 0 .. feats.Count - 1 do
-                let struct(u, v, _) = feats.[fi]
-                let cx = int (floor u)
-                let cy = int (floor v)
-                for dx in -crossRadius .. crossRadius do
-                    let x = cx + dx
-                    if x >= 0 && x < w && cy >= 0 && cy < h then
-                        pmat.[int64 x, int64 cy] <- crossColor
-                for dy in -crossRadius .. crossRadius do
-                    let y = cy + dy
-                    if cx >= 0 && cx < w && y >= 0 && y < h then
-                        pmat.[int64 cx, int64 y] <- crossColor
-            let previewName = Path.ChangeExtension(depthName, ".png")
-            preview.SaveImageSharp (Path.Combine(depthDir, previewName))
+        // --- points3D.txt ---
+        let meanTrack =
+            if tiePointRows.Count = 0 then 0.0
+            else float totalTrackLen / float tiePointRows.Count
+        do
+            use p3W = openTextWriter (Path.Combine(sparseDir, "points3D.txt"))
+            p3W.WriteLine "# 3D point list with one line of data per point:"
+            p3W.WriteLine "#   POINT3D_ID, X, Y, Z, R, G, B, ERROR, TRACK[] as (IMAGE_ID, POINT2D_IDX)"
+            p3W.WriteLine (System.String.Format(invariant,
+                "# Number of points: {0}, mean track length: {1:R}",
+                tiePointRows.Count, meanTrack))
+            for row in tiePointRows do p3W.WriteLine row
 
-        // --- Write images.txt (with per-image POINTS2D features pointing at tie IDs) ---
-        use imgsW = new StreamWriter(Path.Combine(sparseDir, "images.txt"))
-        imgsW.WriteLine "# Image list with two lines of data per image:"
-        imgsW.WriteLine "#   IMAGE_ID, QW, QX, QY, QZ, TX, TY, TZ, CAMERA_ID, NAME"
-        imgsW.WriteLine "#   POINTS2D[] as (X, Y, POINT3D_ID)"
-        imgsW.WriteLine (sprintf "# Number of images: %d" entries.Count)
-        for i in 0 .. nCams - 1 do
-            let (id, _, _, _, _, _, _, rInv, tcw, _, name, _) = entryArr.[i]
-            imgsW.WriteLine (
-                System.String.Format(invariant,
-                    "{0} {1:R} {2:R} {3:R} {4:R} {5:R} {6:R} {7:R} {0} {8}",
-                    id, rInv.W, rInv.X, rInv.Y, rInv.Z, tcw.X, tcw.Y, tcw.Z, name))
-            let feats = featuresPerCam.[i]
-            let sb = System.Text.StringBuilder()
-            for fi in 0 .. feats.Count - 1 do
-                let struct(u, v, tid) = feats.[fi]
-                if fi > 0 then sb.Append ' ' |> ignore
-                sb.AppendFormat(invariant, "{0:R} {1:R} {2}", u, v, tid) |> ignore
-            imgsW.WriteLine (sb.ToString())
-
-        // --- Write points3D.txt ---
-        use p3W = new StreamWriter(Path.Combine(sparseDir, "points3D.txt"))
-        p3W.WriteLine "# 3D point list with one line of data per point:"
-        p3W.WriteLine "#   POINT3D_ID, X, Y, Z, R, G, B, ERROR, TRACK[] as (IMAGE_ID, POINT2D_IDX)"
-        p3W.WriteLine (sprintf "# Number of points: %d" tiePointRows.Count)
-        for row in tiePointRows do p3W.WriteLine row
-
-        Log.line "wrote %d cameras, %d images, %d depth maps, %d tie points to %s"
-            entries.Count entries.Count entries.Count tiePointRows.Count outDir
+        Log.line "wrote %d cameras, %d images, %d tie points to %s"
+            entries.Count entries.Count tiePointRows.Count outDir
 
 
     [<EntryPoint>]
