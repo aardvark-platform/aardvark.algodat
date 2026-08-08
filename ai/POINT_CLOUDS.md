@@ -90,6 +90,30 @@ foreach (var chunk in pointSet.QueryPointsInsideBox(queryBox))
 long count = pointSet.CountPointsInsideBox(queryBox);
 ```
 
+### Enumerating XY Cell Columns
+
+```csharp
+using Aardvark.Base;
+using Aardvark.Geometry.Points;
+
+// Enumerate non-empty 0.25-unit columns on an asymmetric absolute-grid stride.
+foreach (var column in pointSet.EnumerateCellColumns(
+    cellExponent: -2,
+    stride: new V2i(2, 3)
+))
+{
+    var points = column.CollectPoints(int.MaxValue).Points;
+    // column.Cell.X is divisible by 2 and column.Cell.Y is divisible by 3.
+}
+```
+
+Column coordinates are absolute indices on the grid defined by `cellExponent`.
+Both stride components must be positive; a column is returned only when
+`X % stride.X == 0` and `Y % stride.Y == 0`. Stride filters the non-empty
+columns inside the root's actual XY footprint and never pads that footprint or
+creates kernel-center columns. The default stride `(1, 1)` (`V2i.II`) returns
+every non-empty target-exponent column.
+
 ### Spatial Queries with KD-Tree
 
 ```csharp

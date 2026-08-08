@@ -24,7 +24,7 @@ namespace Aardvark.Geometry
     {
         public static readonly Symbol Identifier = "SphereSet";
 
-        public List<Sphere3d> Sphere3ds = [.. sphere3ds];
+        public List<Sphere3d> Sphere3ds = [.. (sphere3ds ?? throw new ArgumentNullException(nameof(sphere3ds)))];
 
         public int ObjectCount
         {

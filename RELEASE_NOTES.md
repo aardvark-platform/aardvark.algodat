@@ -1,3 +1,6 @@
+- [PointSet] Fixed root-anchored XY cell-column enumeration and documented absolute-grid stride filtering.
+- [Dependencies] Updated SharpCompress to the patched 0.48 line and restored the SphereSet null-input contract.
+
 ### 5.6.2
 - [e57] missing 'ReturnIndex' element: replaced exception with warning 
 - [e57] E57Data3D.Points.ReadDataFull(...) now also returns 'ReturnCount' and 'ReturnIndex' data

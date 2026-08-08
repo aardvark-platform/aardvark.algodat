@@ -460,7 +460,7 @@ module Hera =
         
         use fs = File.Open(tgzFileName, FileMode.Open, FileAccess.Read, FileShare.Read)
         use zs = new GZipStream(fs, CompressionMode.Decompress)
-        let reader = ReaderFactory.Open(zs)
+        use reader = ReaderFactory.OpenReader(zs)
 
         while reader.MoveToNextEntry() do
             let filename =  Path.GetFileName(reader.Entry.Key)
@@ -538,7 +538,6 @@ module Hera =
         Task.WhenAll(workers).Wait()
 
         ()
-
 
 
 
