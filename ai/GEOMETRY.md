@@ -88,6 +88,25 @@ var planeClustering = new PlaneEpsilonClustering<Plane3d[]>(
 - **Random merge ties** – Merging uses random bits to prevent pathological tree depth; results may vary slightly.
 - **Hash grid epsilon is for acceleration** – In `PointEpsilonClustering`, epsilon defines grid size; actual distance checks use squared epsilon.
 
+## Aardvark.Geometry.PointTree
+
+Point kd-trees provide reusable nearest-neighbor queries with optional filtering. A query filter is an inclusion predicate over indices in the original input array; only indices for which it returns `true` enter the result.
+
+```csharp
+var tree = points.CreateRkdTreeDist2(absoluteEps: 1e-12);
+var query = tree.CreateClosestToPointQuery(maxDistance: 0.25, maxCount: 16);
+
+query.Filter = index => classifications[(int)index] != excludedClass;
+foreach (var center in centers)
+{
+    query.Clear();
+    var neighbors = tree.GetClosest(query, center);
+    // neighbors contain original point indices and their distances
+}
+```
+
+Calls on the same query accumulate results. Call `Clear()` before an independent query; it clears results and restores the original distance limit while preserving `Filter`. A null filter includes every point and uses the unchanged unfiltered traversal. Rejected points do not enter the result heap or tighten its distance limit.
+
 ## Aardvark.Geometry.Intersection
 
 Kd-tree–based ray-object intersection with custom object sets.

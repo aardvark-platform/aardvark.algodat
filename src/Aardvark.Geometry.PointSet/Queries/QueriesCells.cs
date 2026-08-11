@@ -534,33 +534,35 @@ public static partial class Queries
     }
 
     /// <summary>
-    /// Enumerates all columns of a given cell size (given by cellExponent).
-    /// Cell size is 2^cellExponent, e.g. -2 gives 0.25, -1 gives 0.50, 0 gives 1.00, 1 gives 2.00, and so on.
-    /// Stride is step size (default is V3i.III), which must be greater 0 for each coordinate axis.
+    /// Enumerates all non-empty XY columns of size 2^<paramref name="cellExponent"/>
+    /// inside the point set root's XY footprint. The default stride <see cref="V2i.II"/>
+    /// selects every target-exponent column.
     /// </summary>
     public static IEnumerable<CellQueryResult2d> EnumerateCellColumns(this PointSet pointset, int cellExponent)
         => EnumerateCellColumns(pointset.Root.Value, cellExponent);
 
     /// <summary>
-    /// Enumerates all columns of a given cell size (given by cellExponent).
-    /// Cell size is 2^cellExponent, e.g. -2 gives 0.25, -1 gives 0.50, 0 gives 1.00, 1 gives 2.00, and so on.
-    /// Stride is step size (default is V3i.III), which must be greater 0 for each coordinate axis.
+    /// Enumerates all non-empty XY columns of size 2^<paramref name="cellExponent"/>
+    /// inside the root's XY footprint. The default stride <see cref="V2i.II"/>
+    /// selects every target-exponent column.
     /// </summary>
     public static IEnumerable<CellQueryResult2d> EnumerateCellColumns(this IPointCloudNode root, int cellExponent)
         => EnumerateCellColumns(root, cellExponent, V2i.II);
 
     /// <summary>
-    /// Enumerates all columns of a given cell size (given by cellExponent).
-    /// Cell size is 2^cellExponent, e.g. -2 gives 0.25, -1 gives 0.50, 0 gives 1.00, 1 gives 2.00, and so on.
-    /// Stride is step size (default is V3i.III), which must be greater 0 for each coordinate axis.
+    /// Enumerates non-empty XY columns of size 2^<paramref name="cellExponent"/> inside the
+    /// point set root's XY footprint. A column is selected when its absolute target-grid X and Y
+    /// coordinates are divisible by <paramref name="stride"/>. Both stride components must be positive;
+    /// stride filters columns and does not pad the root footprint.
     /// </summary>
     public static IEnumerable<CellQueryResult2d> EnumerateCellColumns(this PointSet pointset, int cellExponent, V2i stride)
         => EnumerateCellColumns(pointset.Root.Value, cellExponent, stride);
 
     /// <summary>
-    /// Enumerates all columns of a given cell size (given by cellExponent).
-    /// Cell size is 2^cellExponent, e.g. -2 gives 0.25, -1 gives 0.50, 0 gives 1.00, 1 gives 2.00, and so on.
-    /// Stride is step size (default is V3i.III), which must be greater 0 for each coordinate axis.
+    /// Enumerates non-empty XY columns of size 2^<paramref name="cellExponent"/> inside the root's
+    /// XY footprint. A column is selected when its absolute target-grid X and Y coordinates are divisible
+    /// by <paramref name="stride"/>. Both stride components must be positive; stride filters columns and
+    /// does not pad the root footprint.
     /// </summary>
     public static IEnumerable<CellQueryResult2d> EnumerateCellColumns(this IPointCloudNode root, int cellExponent, V2i stride)
     {
@@ -575,14 +577,7 @@ public static partial class Queries
 
         var cache = new CellQueryResult2dCache();
 
-        // new-style
-        var dx = Fun.PowerOfTwo(cellExponent) * (ulong)(stride.X - 1 / 2); // FIXME: missing parantheses?
-        var dy = Fun.PowerOfTwo(cellExponent) * (ulong)(stride.Y - 1 / 2);
-        var bbCell = new Cell2d(root.Cell.X, root.Cell.X, root.Cell.Exponent).BoundingBox;
-        var bb = new Box2d(bbCell.Min - new V2d(dx, dy), bbCell.Max + new V2d(dx, dy));
-        var enlargedFootprint = new Cell2d(bb);
-
-        var cs = new ColZ(root, enlargedFootprint).EnumerateColumns(cellExponent, stride);
+        var cs = new ColZ(root).EnumerateColumns(cellExponent, stride);
         foreach (var c in cs)
         {
             yield return new CellQueryResult2d(root, c.Footprint, c, cache);

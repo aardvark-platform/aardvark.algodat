@@ -1176,6 +1176,143 @@ namespace Aardvark.Geometry.Tests
             ClassicAssert.IsTrue(dict[new Cell(3, 3, 3, -2)].GetPoints(0, k).Union().ImmutableDeduplicate(verbose: false).Count == 100 * 8);
         }
 
+        [Test]
+        public void EnumerateCellColumns_LeafRootAdjacentToAxes()
+        {
+            var rootCell = new Cell(-1, 0, 0, 2);
+            var positions = new List<V3d>();
+            for (var x = -4; x < 0; x++)
+            {
+                for (var y = 0; y < 4; y++)
+                {
+                    positions.Add(new V3d(x + 0.25, y + 0.25, 0.25));
+                    positions.Add(new V3d(x + 0.75, y + 0.75, 3.75));
+                }
+            }
+
+            var root = BuildColumnTestRoot(positions, rootCell, positions.Count);
+            ClassicAssert.IsTrue(root.IsLeaf());
+
+            var rootColumn = root.EnumerateCellColumns(rootCell.Exponent).Single();
+            Assert.That(rootColumn.Cell, Is.EqualTo(new Cell2d(-1, 0, 2)));
+
+            AssertCellColumns(root, positions, rootCell.Exponent, V2i.II);
+            AssertCellColumns(root, positions, rootCell.Exponent, new V2i(1, 2));
+
+            foreach (var stride in new[]
+            {
+                V2i.II,
+                new V2i(2, 2),
+                new V2i(3, 3),
+                new V2i(2, 3),
+                new V2i(3, 2)
+            })
+            {
+                AssertCellColumns(root, positions, 0, stride);
+            }
+        }
+
+        [Test]
+        public void EnumerateCellColumns_SubdividedNegativeOffsetRoot()
+        {
+            var rootCell = new Cell(-2, -5, 1, 3);
+            var positions = new List<V3d>();
+            for (var x = -16; x < -8; x++)
+            {
+                for (var y = -40; y < -32; y++)
+                {
+                    positions.Add(new V3d(x + 0.25, y + 0.25, 8.25));
+                    positions.Add(new V3d(x + 0.75, y + 0.75, 15.75));
+                }
+            }
+
+            var root = BuildColumnTestRoot(positions, rootCell, 1);
+            ClassicAssert.IsTrue(root.IsNotLeaf());
+
+            var cells = root.EnumerateCellColumns(0).Select(x => x.Cell).ToArray();
+            Assert.That(cells, Does.Contain(new Cell2d(-16, -40, 0)));
+            Assert.That(cells, Does.Contain(new Cell2d(-9, -33, 0)));
+
+            foreach (var stride in new[]
+            {
+                V2i.II,
+                new V2i(2, 2),
+                new V2i(3, 3),
+                new V2i(2, 3),
+                new V2i(3, 2)
+            })
+            {
+                AssertCellColumns(root, positions, 0, stride);
+            }
+        }
+
+        private static IPointCloudNode BuildColumnTestRoot(List<V3d> positions, Cell rootCell, int splitLimit)
+        {
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
+            return InMemoryPointSet
+                .Build(positions, null, null, null, null, null, rootCell, splitLimit)
+                .ToPointSetNode(storage, isTemporaryImportNode: false);
+        }
+
+        private static void AssertCellColumns(
+            IPointCloudNode root,
+            IReadOnlyCollection<V3d> inputPositions,
+            int cellExponent,
+            V2i stride
+            )
+        {
+            var cellSize = Math.Pow(2.0, cellExponent);
+            var expectedByCell = inputPositions
+                .GroupBy(p => new Cell2d(
+                    (long)Math.Floor(p.X / cellSize),
+                    (long)Math.Floor(p.Y / cellSize),
+                    cellExponent
+                    ))
+                .Where(g => g.Key.X % stride.X == 0 && g.Key.Y % stride.Y == 0)
+                .ToDictionary(g => g.Key, g => g.ToArray());
+
+            var results = root.EnumerateCellColumns(cellExponent, stride).ToArray();
+            var rootFootprint = new Cell2d(root.Cell.X, root.Cell.Y, root.Cell.Exponent);
+
+            Assert.That(results.Select(x => x.Cell).Distinct().Count(), Is.EqualTo(results.Length));
+            Assert.That(results.Select(x => x.Cell), Is.EquivalentTo(expectedByCell.Keys));
+            Assert.That(results.Sum(x => x.ColZ.CountTotal),
+                Is.EqualTo(expectedByCell.Values.Sum(x => (long)x.Length)));
+
+            foreach (var result in results)
+            {
+                Assert.That(result.Cell.IsInvalid, Is.False);
+                Assert.That(result.Cell.IsCenteredAtOrigin, Is.False);
+                Assert.That(result.Cell.Exponent, Is.EqualTo(cellExponent));
+                Assert.That(result.Cell.X % stride.X, Is.Zero);
+                Assert.That(result.Cell.Y % stride.Y, Is.Zero);
+                Assert.That(rootFootprint.Contains(result.Cell), Is.True);
+                Assert.That(result.ColZ.Footprint, Is.EqualTo(result.Cell));
+
+                var collected = result.CollectPoints(int.MaxValue);
+                var collectedPositions = collected.Points.Positions.ToArray();
+                var expectedPositions = expectedByCell[result.Cell];
+
+                Assert.That(collected.Footprint, Is.EqualTo(result.Cell));
+                Assert.That(result.ColZ.CountTotal, Is.EqualTo(expectedPositions.LongLength));
+                Assert.That(collectedPositions.Length, Is.EqualTo(expectedPositions.Length));
+                Assert.That(collectedPositions, Is.EquivalentTo(expectedPositions));
+                Assert.That(collectedPositions.All(p => result.Cell.BoundingBox.Contains(p.XY)), Is.True);
+            }
+
+            if (stride == V2i.II)
+            {
+                var collectedPositions = results
+                    .SelectMany(x => x.CollectPoints(int.MaxValue).Points.Positions)
+                    .ToArray();
+
+                Assert.That(collectedPositions.Length, Is.EqualTo(inputPositions.Count));
+                Assert.That(collectedPositions, Is.EquivalentTo(inputPositions));
+                Assert.That(root.EnumerateCellColumns(cellExponent).Select(x => x.Cell),
+                    Is.EquivalentTo(results.Select(x => x.Cell)));
+            }
+        }
+
         #endregion
 
 
