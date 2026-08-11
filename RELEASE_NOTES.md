@@ -1,3 +1,4 @@
+- [PointTree] Enforced reusable closest-point query filters across kd-tree traversals (#11, #38).
 - [PointSet] Fixed root-anchored XY cell-column enumeration and documented absolute-grid stride filtering.
 - [Dependencies] Updated SharpCompress to the patched 0.48 line and restored the SphereSet null-input contract.
 

@@ -272,6 +272,11 @@ namespace Aardvark.Geometry
             public TPoint Point;
             public Func<TPoint, TPoint, __ctype__> Dist;
             public __dimDistType__ DimDist__selArray__;
+            /// <summary>
+            /// Optional inclusion predicate over original indices in the input array.
+            /// Only indices for which the predicate returns true enter the result;
+            /// null includes all indices.
+            /// </summary>
             public Func<long, bool> Filter;
 
             public ClosestToPointQuery(
@@ -475,9 +480,9 @@ namespace Aardvark.Geometry
             if (q.Filter(index))
                 q.List.Add(new IndexDist<__ctype__>(m_perm[top], __ctype__.MinValue));
             long t1 = 2 * top + 1; if (t1 >= m_size) return;
-            GetAllList(q, t1);
+            GetAllListFilter(q, t1);
             long t2 = t1 + 1; if (t2 >= m_size) return;
-            GetAllList(q, t2);
+            GetAllListFilter(q, t2);
         }
 
         private void GetClosestFilter(ClosestToPointQuery q, long top)
@@ -496,9 +501,9 @@ namespace Aardvark.Geometry
                     if (t1 >= m_size) return;
                     if (delta < -m_radius[top])
                     {
-                        GetAllList(q, t1);
+                        GetAllListFilter(q, t1);
                         long t2 = t1 + 1; if (t2 >= m_size) return;
-                        GetAllList(q, t2);
+                        GetAllListFilter(q, t2);
                         return;
                     }
                 }
@@ -763,6 +768,11 @@ namespace Aardvark.Geometry
             public TPoint Point;
             public Func<TPoint, TPoint, __ctype__> Dist;
             public Func<long, __ctype__, __ctype__, __ctype__> DimDist;
+            /// <summary>
+            /// Optional inclusion predicate over original indices in the input array.
+            /// Only indices for which the predicate returns true enter the result;
+            /// null includes all indices.
+            /// </summary>
             public Func<long, bool> Filter;
 
             public ClosestToPointQuery(
@@ -845,7 +855,10 @@ namespace Aardvark.Geometry
                 ClosestToPointQuery query, TPoint point)
         {
             query.Point = point;
-            GetClosest(query, 0);
+            if (query.Filter == null)
+                GetClosest(query, 0);
+            else
+                GetClosestFilter(query, 0);
             return query.List;
         }
 
@@ -949,6 +962,50 @@ namespace Aardvark.Geometry
                 if (t2 < m_size) GetClosest(q, t2);
                 if (q.MaxDistEps < q.DimDist(dim, s, x)) return;
                 GetClosest(q, t1);
+            }
+        }
+
+        private void GetClosestFilter(ClosestToPointQuery q, long top)
+        {
+            long index = m_perm[top];
+            var splitPoint = m_aget(m_array, index);
+            var dist = q.Dist(q.Point, splitPoint);
+            if (dist <= q.MaxDist)
+            {
+                if (q.DynamicSize)
+                {
+                    if (q.Filter(index))
+                        q.List.Add(new IndexDist<__ctype__>(index, dist));
+                }
+                else
+                {
+                    if (q.Filter(index))
+                        q.List.HeapDescendingEnqueue(new IndexDist<__ctype__>(index, dist));
+                    if (q.List.Count > q.MaxCount)
+                    {
+                        q.List.HeapDescendingDequeue();
+                        var md = q.List[0].Dist;
+                        q.MaxDist = md; q.MaxDistEps = md + m_eps;
+                    }
+                }
+            }
+            long t1 = 2 * top + 1; if (t1 >= m_size) return;
+            var dim = m_axis[top];
+            var x = m_vget(q.Point, dim);
+            var s = m_vget(splitPoint, dim);
+            if (x < s)
+            {
+                GetClosestFilter(q, t1);
+                if (q.MaxDistEps < q.DimDist(dim, x, s)) return;
+                long t2 = t1 + 1; if (t2 >= m_size) return;
+                GetClosestFilter(q, t2);
+            }
+            else
+            {
+                long t2 = t1 + 1;
+                if (t2 < m_size) GetClosestFilter(q, t2);
+                if (q.MaxDistEps < q.DimDist(dim, s, x)) return;
+                GetClosestFilter(q, t1);
             }
         }
 
