@@ -12,6 +12,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
+using Aardvark.Data;
 using Aardvark.Data.Points;
 using Aardvark.Geometry.Points;
 using NUnit.Framework;
@@ -80,6 +81,250 @@ namespace Aardvark.Geometry.Tests
         }
 
         #region Ray3d, Line3d
+
+        private static readonly Line3d LineSegmentQuery = new(
+            new V3d(0.25, 0.5, 0.5),
+            new V3d(0.75, 0.5, 0.5)
+            );
+
+        private const double LineSegmentQueryRadius = 0.04;
+
+        private static readonly Durable.Def LineSegmentCustomAttribute = new(
+            new Guid("5813c587-d8ab-4b40-a0e9-11887818ed61"),
+            "Tests.LineSegmentCustomAttribute",
+            "Per-point values used to verify line-segment custom queries.",
+            Durable.Primitives.Int32Array.Id,
+            isArray: true
+            );
+
+        private static readonly Durable.Def LineSegmentUnrequestedAttribute = new(
+            new Guid("01d7ec80-4cab-4940-91da-e60f9590e4f1"),
+            "Tests.LineSegmentUnrequestedAttribute",
+            "Per-point values that line-segment custom queries must omit unless requested.",
+            Durable.Primitives.Int32Array.Id,
+            isArray: true
+            );
+
+        private static (
+            V3d[] Positions,
+            C4b[] Colors,
+            V3f[] Normals,
+            int[] Intensities,
+            byte[] Classifications,
+            int[] PartIndices
+            ) CreateLineSegmentQueryData()
+        {
+            var positions = new[]
+            {
+                new V3d(0.1250, 0.500000, 0.5), // beyond P0
+                new V3d(0.5000, 0.468750, 0.5), // selected
+                new V3d(0.5000, 0.625000, 0.5), // too far from the segment
+                new V3d(0.3125, 0.515625, 0.5), // selected
+                new V3d(0.8750, 0.500000, 0.5), // beyond P1
+                new V3d(0.6875, 0.500000, 0.5), // selected
+            };
+            var colors = new C4b[positions.Length];
+            var normals = new V3f[positions.Length];
+            var intensities = new int[positions.Length];
+            var classifications = new byte[positions.Length];
+            var partIndices = new int[positions.Length];
+            for (var i = 0; i < positions.Length; i++)
+            {
+                colors[i] = new C4b((byte)(10 + i), (byte)(20 + i), (byte)(30 + i), (byte)255);
+                normals[i] = new V3f(i + 1, i + 2, i + 3);
+                intensities[i] = 100 + i;
+                classifications[i] = (byte)(40 + i);
+                partIndices[i] = 200 + i;
+            }
+            return (positions, colors, normals, intensities, classifications, partIndices);
+        }
+
+        private static PointSetNode CreateLineSegmentQueryNode(bool temporary, object partIndices, int splitLimit)
+        {
+            var data = CreateLineSegmentQueryData();
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
+            return InMemoryPointSet.Build(
+                data.Positions,
+                data.Colors,
+                data.Normals,
+                data.Intensities,
+                data.Classifications,
+                partIndices,
+                Cell.Unit,
+                splitLimit
+                ).ToPointSetNode(storage, isTemporaryImportNode: temporary);
+        }
+
+        private static (
+            V3d Position,
+            C4b Color,
+            V3f Normal,
+            int Intensity,
+            byte Classification,
+            int PartIndex
+            )[] GetLineSegmentQueryRows(IEnumerable<Chunk> chunks)
+        {
+            var result = new List<(V3d, C4b, V3f, int, byte, int)>();
+            foreach (var chunk in chunks)
+            {
+                for (var i = 0; i < chunk.Count; i++)
+                {
+                    result.Add((
+                        chunk.Positions[i],
+                        chunk.Colors![i],
+                        chunk.Normals![i],
+                        chunk.Intensities![i],
+                        chunk.Classifications![i],
+                        PartIndexUtils.Get(chunk.PartIndices, i) ?? -1
+                        ));
+                }
+            }
+            result.Sort((a, b) => a.Item1.X.CompareTo(b.Item1.X));
+            return result.ToArray();
+        }
+
+        [Test]
+        public void QueryPointsNearLineSegmentTraversesTemporaryTreesAndPreservesAttributes()
+        {
+            var data = CreateLineSegmentQueryData();
+            var root = CreateLineSegmentQueryNode(temporary: true, data.PartIndices, splitLimit: 1);
+
+            Assert.That(root.IsLeaf, Is.False);
+            Assert.That(root.HasPositions, Is.False);
+            Assert.That(root.EnumerateNodes().Where(x => x.IsLeaf), Has.All.Matches<IPointCloudNode>(x => !x.HasKdTree));
+
+            var chunks = root.QueryPointsNearLineSegment(LineSegmentQuery, LineSegmentQueryRadius).ToArray();
+            var actual = GetLineSegmentQueryRows(chunks);
+            var expectedIndices = new[] { 3, 1, 5 };
+
+            Assert.That(chunks, Has.Length.GreaterThan(1), "Enumeration must continue after the first matching node.");
+            Assert.That(actual, Has.Length.EqualTo(expectedIndices.Length));
+            for (var i = 0; i < expectedIndices.Length; i++)
+            {
+                var index = expectedIndices[i];
+                Assert.That(actual[i].Position, Is.EqualTo(data.Positions[index]));
+                Assert.That(actual[i].Color, Is.EqualTo(data.Colors[index]));
+                Assert.That(actual[i].Normal, Is.EqualTo(data.Normals[index]));
+                Assert.That(actual[i].Intensity, Is.EqualTo(data.Intensities[index]));
+                Assert.That(actual[i].Classification, Is.EqualTo(data.Classifications[index]));
+                Assert.That(actual[i].PartIndex, Is.EqualTo(data.PartIndices[index]));
+                Assert.That(LineSegmentQuery.GetMinimalDistanceTo(actual[i].Position), Is.LessThanOrEqualTo(LineSegmentQueryRadius));
+            }
+
+            Assert.That(actual.Select(x => x.Position), Does.Not.Contain(data.Positions[0]));
+            Assert.That(actual.Select(x => x.Position), Does.Not.Contain(data.Positions[4]));
+            Assert.That(
+                root.QueryPointsNearLineSegment(LineSegmentQuery, LineSegmentQueryRadius, root.Cell.Exponent),
+                Is.Empty,
+                "A positionless node made terminal by minCellExponent must not fabricate results."
+                );
+
+            var scalarRoot = CreateLineSegmentQueryNode(temporary: true, partIndices: 17, splitLimit: 1);
+            var scalarChunks = scalarRoot.QueryPointsNearLineSegment(LineSegmentQuery, LineSegmentQueryRadius).ToArray();
+            Assert.That(scalarChunks.Sum(x => x.Count), Is.EqualTo(expectedIndices.Length));
+            Assert.That(scalarChunks, Has.All.Matches<Chunk>(x => x.PartIndices is int value && value == 17));
+        }
+
+        [Test]
+        public void QueryPointsNearLineSegmentMatchesKdTreeAndBruteForce()
+        {
+            var kdTreeRoot = CreateLineSegmentQueryNode(temporary: false, partIndices: null, splitLimit: 1);
+            var bruteForceRoot = CreateLineSegmentQueryNode(temporary: true, partIndices: null, splitLimit: 1);
+
+            Assert.That(kdTreeRoot.EnumerateNodes().Where(x => x.IsLeaf), Has.All.Matches<IPointCloudNode>(x => x.HasKdTree));
+            Assert.That(bruteForceRoot.EnumerateNodes().Where(x => x.IsLeaf), Has.All.Matches<IPointCloudNode>(x => !x.HasKdTree));
+
+            var kdTreeRows = GetLineSegmentQueryRows(kdTreeRoot.QueryPointsNearLineSegment(LineSegmentQuery, LineSegmentQueryRadius));
+            var bruteForceRows = GetLineSegmentQueryRows(bruteForceRoot.QueryPointsNearLineSegment(LineSegmentQuery, LineSegmentQueryRadius));
+            Assert.That(bruteForceRows, Is.EqualTo(kdTreeRows));
+        }
+
+        [Test]
+        public void QueryPointsNearLineSegmentCustomSubsetsAttributesWithoutKdTree()
+        {
+            var data = CreateLineSegmentQueryData();
+            var customValues = Enumerable.Range(1000, data.Positions.Length).ToArray();
+            var unrequestedValues = Enumerable.Range(2000, data.Positions.Length).ToArray();
+
+            IPointCloudNode AddCustomAttributes(IPointCloudNode node)
+            {
+                if (node.IsLeaf)
+                {
+                    var positions = node.PositionsAbsolute;
+                    var selectedCustomValues = new int[positions.Length];
+                    var selectedUnrequestedValues = new int[positions.Length];
+                    for (var i = 0; i < positions.Length; i++)
+                    {
+                        var originalIndex = Array.IndexOf(data.Positions, positions[i]);
+                        Assert.That(originalIndex, Is.GreaterThanOrEqualTo(0));
+                        selectedCustomValues[i] = customValues[originalIndex];
+                        selectedUnrequestedValues[i] = unrequestedValues[originalIndex];
+                    }
+                    return node.With(new Dictionary<Durable.Def, object>
+                    {
+                        [LineSegmentCustomAttribute] = selectedCustomValues,
+                        [LineSegmentUnrequestedAttribute] = selectedUnrequestedValues,
+                    }).WriteToStore();
+                }
+
+                var subnodes = new IPointCloudNode[8];
+                for (var i = 0; i < subnodes.Length; i++)
+                {
+                    var child = node.Subnodes![i];
+                    if (child != null) subnodes[i] = AddCustomAttributes(child.Value);
+                }
+                return node.WithSubNodes(subnodes);
+            }
+
+            var root = AddCustomAttributes(
+                CreateLineSegmentQueryNode(temporary: true, data.PartIndices, splitLimit: 1)
+                );
+
+            Assert.That(root.IsLeaf, Is.False);
+            Assert.That(root.HasPositions, Is.False);
+            Assert.That(root.HasBoundingBoxExactLocal, Is.False);
+            Assert.That(root.HasKdTree, Is.False);
+
+            var chunks = root.QueryPointsNearLineSegmentCustom(
+                LineSegmentQuery,
+                LineSegmentQueryRadius,
+                LineSegmentCustomAttribute
+                ).ToArray();
+            var actual = new List<(V3d Position, int Value)>();
+            foreach (var chunk in chunks)
+            {
+                Assert.That(chunk.Data.ContainsKey(LineSegmentUnrequestedAttribute), Is.False);
+                var positions = chunk.PositionsAsV3d;
+                var values = (int[])chunk.Data[LineSegmentCustomAttribute];
+                for (var i = 0; i < chunk.Count; i++) actual.Add((positions[i], values[i]));
+            }
+            actual.Sort((a, b) => a.Position.X.CompareTo(b.Position.X));
+
+            var expectedIndices = new[] { 3, 1, 5 };
+            Assert.That(actual, Has.Count.EqualTo(expectedIndices.Length));
+            for (var i = 0; i < expectedIndices.Length; i++)
+            {
+                var index = expectedIndices[i];
+                Assert.That(actual[i].Position, Is.EqualTo(data.Positions[index]));
+                Assert.That(actual[i].Value, Is.EqualTo(customValues[index]));
+            }
+
+            var standardPositions = root
+                .QueryPointsNearLineSegment(LineSegmentQuery, LineSegmentQueryRadius)
+                .SelectMany(x => x.Positions)
+                .OrderBy(x => x.X)
+                .ToArray();
+            Assert.That(actual.Select(x => x.Position), Is.EqualTo(standardPositions));
+            Assert.That(
+                root.QueryPointsNearLineSegmentCustom(
+                    LineSegmentQuery,
+                    LineSegmentQueryRadius,
+                    root.Cell.Exponent,
+                    LineSegmentCustomAttribute
+                    ).Sum(x => x.Count),
+                Is.Zero
+                );
+        }
 
         [Test]
         public void CanQueryPointsAlongRay()
