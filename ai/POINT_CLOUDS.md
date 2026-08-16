@@ -116,6 +116,25 @@ if (node.HasKdTree)
 }
 ```
 
+### Querying Near a Finite Line Segment
+
+```csharp
+var segment = new Line3d(start, end);
+foreach (var chunk in pointSet.QueryPointsNearLineSegment(segment, 0.05))
+{
+    Process(chunk.Positions, chunk.Colors, chunk.PartIndices);
+}
+```
+
+The query returns every point within the requested distance of the finite
+segment; it has no implicit result-count limit. Points collinear with the
+segment but beyond either endpoint are tested against the nearest endpoint.
+Leaf nodes use their kd-tree when available and otherwise scan local positions,
+so temporary import nodes are supported transparently. The `Custom` overload
+uses the same candidate selection and returns requested per-point arrays in a
+`GenericChunk`. When `minCellExponent` makes a node terminal, a node without
+stored positions yields no chunk.
+
 ### Working with Chunks (Streaming Import)
 
 ```csharp

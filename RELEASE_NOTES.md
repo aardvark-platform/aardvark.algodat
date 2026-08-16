@@ -1,3 +1,5 @@
+- [PointSet] fixed finite line-segment queries for temporary and kd-tree-free nodes (#42)
+
 ### 5.6.3
 - Updated SharpCompress to 0.48.1 to address CVE-2026-44788
 
