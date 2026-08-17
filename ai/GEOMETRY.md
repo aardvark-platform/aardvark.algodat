@@ -162,12 +162,28 @@ V3f[] normals = await points.EstimateNormalsAsync(k: 16);
 // Estimate normals + local density
 var (normals, densities) = points.EstimateNormalsAndLocalDensity(k: 16);
 // densities[i] = average squared distance of k-nearest points to centroid
+
+// Estimate normals + scale-independent planar quality
+var (normals, qualities) = points.EstimateNormalsAndQuality(k: 16);
+for (var i = 0; i < normals.Length; i++)
+{
+    if (qualities[i] < 0.1f) normals[i] = V3f.ZAxis;
+}
 ```
+
+For sorted covariance eigenvalues `λmin ≤ λmiddle ≤ λmax`, normal quality is
+`clamp((λmiddle - λmin) / λmax, 0, 1)`. Quality is zero when `λmax` is
+non-positive or a required eigenvalue is non-finite. Values near zero indicate
+collinear, coincident, or otherwise ambiguous neighborhoods; values near one
+indicate a well-defined local plane. Choose the threshold for the scale and
+noise characteristics of the application. The metric is invariant under
+uniform scaling and translation.
 
 ### Gotchas
 
 - **k must be ≥ 3** – At least 3 points needed for PCA; throws `ArgumentOutOfRangeException` otherwise.
 - **Normal orientation is arbitrary** – Eigenvector for smallest eigenvalue has undefined sign; post-process to orient consistently.
+- **Quality does not orient normals** – `EstimateNormalsAndQuality` exposes PCA degeneracy, but the returned normal still has arbitrary sign.
 - **Temporary kd-tree cost** – Overloads without kd-tree parameter build one internally; reuse kd-tree for multiple calls.
 - **Local density is squared distance** – In `EstimateNormalsAndLocalDensity`, density values are not distances but squared distances.
 - **V3d arrays return V3f normals** – Normals are always `V3f[]` regardless of input precision.
