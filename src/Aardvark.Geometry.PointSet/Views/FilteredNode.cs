@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 using static Aardvark.Data.Durable;
 
@@ -88,6 +89,8 @@ public class FilteredNode : IPointCloudNode
     #region Properties
 
     private PersistentRef<IPointCloudNode>?[]? m_subnodes_cache;
+    private IReadOnlyDictionary<Def, object>? m_properties_cache;
+    private Dictionary<Guid, object>? m_property_values_cache;
 
     private readonly HashSet<int>? m_activePoints;
 
@@ -214,10 +217,82 @@ public class FilteredNode : IPointCloudNode
     public bool Has(Def what) => Node.Has(what);
 
     /// <summary></summary>
-    public bool TryGetValue(Def what, [NotNullWhen(true)]out object? o) => Node.TryGetValue(what, out o);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryGetValue(Def what, [NotNullWhen(true)]out object? o)
+        => m_activePoints == null
+            ? Node.TryGetValue(what, out o)
+            : TryGetFilteredValue(what, out o);
+
+    private bool TryGetFilteredValue(Def what, [NotNullWhen(true)]out object? o)
+    {
+        if (m_properties_cache != null) return m_properties_cache.TryGetValue(what, out o);
+        if (m_property_values_cache?.TryGetValue(what.Id, out o) == true) return true;
+        if (!Node.TryGetValue(what, out var value))
+        {
+            o = null;
+            return false;
+        }
+
+        o = GetPropertyValue(what, value);
+        return true;
+    }
 
     /// <summary></summary>
-    public IReadOnlyDictionary<Def, object> Properties => Node.Properties;
+    public IReadOnlyDictionary<Def, object> Properties
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => m_properties_cache ?? (m_activePoints == null
+            ? m_properties_cache = Node.Properties
+            : CreateProperties());
+    }
+
+    private IReadOnlyDictionary<Def, object> CreateProperties()
+    {
+        var result = ImmutableDictionary.CreateBuilder<Def, object>();
+        foreach (var property in Node.Properties)
+        {
+            result.Add(property.Key, GetPropertyValue(property.Key, property.Value));
+        }
+
+        return m_properties_cache = result.ToImmutable();
+    }
+
+    private object GetPropertyValue(Def def, object value)
+    {
+        m_property_values_cache ??= [];
+        if (m_property_values_cache.TryGetValue(def.Id, out var result)) return result;
+
+        // Custom per-point arrays have one element per backing position. Subnode IDs are
+        // structural metadata and must remain unchanged even for nodes containing 8 points.
+        if (def.IsArray &&
+            def != Octree.SubnodesGuids &&
+            value is Array source &&
+            source.Rank == 1 &&
+            source.Length == Node.PointCountCell)
+        {
+            result = Subset(source, SubsetIndexArray!);
+        }
+        else
+        {
+            result = value;
+        }
+
+        m_property_values_cache.Add(def.Id, result);
+        return result;
+    }
+
+    private static Array Subset(Array source, int[] indices)
+    {
+        var elementType = source.GetType().GetElementType() ?? throw new InvalidOperationException(
+            $"Expected one-dimensional array, but got {source.GetType()}. Invariant 38bf7906-0a2a-4200-8bec-f2639b5a2ccd."
+            );
+        var result = Array.CreateInstance(elementType, indices.Length);
+        for (var i = 0; i < indices.Length; i++)
+        {
+            Array.Copy(source, indices[i], result, i, 1);
+        }
+        return result;
+    }
 
     /// <summary></summary>
     public PersistentRef<IPointCloudNode>[]? Subnodes

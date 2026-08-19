@@ -307,6 +307,10 @@ var updatedNode = node.With(new Dictionary<Durable.Def, object>
 updatedNode = updatedNode.WriteToStore();  // Now persisted
 ```
 
+### 6. Custom Attributes in Filtered Views
+
+`FilteredNode.Properties` and `FilteredNode.TryGetValue()` keep custom per-point arrays aligned with filtered positions. Partial, empty, and nested views project arrays through the same source indices and preserve source order and element type. Projected values are cached and shared by both accessors. Scalar, reference, and structural metadata such as `Octree.SubnodesGuids` remains unchanged; fully included views return the backing node's dictionary and values directly.
+
 ## See Also
 
 - [IMPORTERS.md](IMPORTERS.md) - Importing point clouds from various file formats
