@@ -17,8 +17,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-#pragma warning disable CS9113 // Parameter is unread.
-
 namespace Aardvark.Geometry.Points;
 
 /// <summary>
@@ -178,128 +176,41 @@ public static partial class Queries
         }
     }
 
-    //public class GridQueryResult
-    //{
-    //    /// <summary>Grid cell bounding box.</summary>
-    //    public Cell2d Footprint { get; }
-
-    //    /// <summary>Total number of points in grid cell.</summary>
-    //    public long Count { get; }
-
-    //    /// <summary>All points in cell.</summary>
-    //    public Chunk[] Points { get; }
-
-    //    public GridQueryResult(Cell2d footprint, IEnumerable<Chunk> points)
-    //    {
-    //        Footprint = footprint;
-    //        Points = points;
-    //    }
-    //}
-
-    ///// <summary>
-    ///// </summary>
-    //public static IEnumerable<GridQueryResult> QueryGridXY(
-    //    this PointSet self, int stride, int minCellExponent = int.MinValue
-    //    )
-    //    => QueryGridXY(self.Root.Value, stride, minCellExponent);
-
-    ///// <summary>
-    ///// </summary>
-    //public static IEnumerable<GridQueryResult> QueryGridXY(
-    //    this IPointCloudNode self, int stride, int minCellExponent = int.MinValue
-    //    )
-    //{
-    //    var bbw = self.BoundingBoxExactGlobal;  // bounding box (world space)
-    //    var bbt = new Box2l(                    // bounding box (tile space)
-    //        new V2l((long)Math.Floor(bbw.Min.X / stride.X), (long)Math.Floor(bbw.Min.Y / stride.Y)),
-    //        new V2l((long)Math.Floor(bbw.Max.X / stride.X) + 1L, (long)Math.Floor(bbw.Max.Y / stride.Y) + 1L)
-    //        );
-
-    //    return QueryRecGridXY(bbt, stride, minCellExponent, new List<IPointCloudNode> { self });
-    //}
-
-    //private static IEnumerable<GridQueryResult> QueryRecGridXY(Box2l bb, int stride, int minCellExponent, List<IPointCloudNode> roots)
-    //{
-    //    var area = bb.Area;
-    //    if (area == 0 || roots.Count == 0) yield break;
-
-    //    var q = new Box2d(bb.Min.X * stride.X, bb.Min.Y * stride.Y, bb.Max.X * stride.X, bb.Max.Y * stride.Y);
-
-    //    if (area == 1)
-    //    {
-    //        yield return new GridQueryBox2dResult(q, roots.SelectMany(root => root.QueryPointsInsideBoxXY(q)));
-    //    }
-    //    else
-    //    {
-    //        var newRoots = new List<IPointCloudNode>();
-    //        foreach (var r in roots)
-    //        {
-    //            if (r.IsLeaf) newRoots.Add(r);
-    //            else
-    //            {
-    //                var _bb = r.BoundingBoxExactGlobal.XY;
-    //                if (!q.Intersects(_bb)) { }
-    //                else if (q.Contains(_bb)) newRoots.Add(r);
-    //                else
-    //                {
-    //                    var sub = r.Subnodes;
-    //                    void add(int i) { if (sub[i] != null) { newRoots.Add(sub[i].Value); } }
-    //                    var c = r.Center.XY;
-    //                    if (q.Max.X < c.X)
-    //                    {
-    //                        // left cells
-    //                        if (q.Max.Y < c.Y) { add(0); add(4); } // left/bottom
-    //                        else if (q.Min.Y >= c.Y) { add(2); add(6); } // left/top
-    //                        else { add(0); add(4); add(2); add(6); }
-    //                    }
-    //                    else if (q.Min.X >= c.X)
-    //                    {
-    //                        // right cells
-    //                        if (q.Max.Y < c.Y) { add(1); add(5); } // right/bottom
-    //                        else if (q.Min.Y >= c.Y) { add(3); add(7); } // right/top
-    //                        else { add(1); add(5); add(3); add(7); }
-    //                    }
-    //                    else
-    //                    {
-    //                        // left/right cells
-    //                        if (q.Max.Y < c.Y) { add(0); add(1); add(4); add(5); } // bottom
-    //                        else if (q.Min.Y >= c.Y) { add(2); add(3); add(6); add(7); } // top
-    //                        else { newRoots.Add(r); }
-    //                    }
-    //                }
-    //            }
-    //        }
-
-    //        var sbbs = bb.SplitAtCenter();
-    //        foreach (var sbb in sbbs)
-    //        {
-    //            if (sbb.Min.X == sbb.Max.X || sbb.Min.Y == sbb.Max.Y) continue;
-    //            var xs = QueryRecGridXY(sbb, stride, minCellExponent, newRoots);
-    //            foreach (var x in xs) yield return x;
-    //        }
-    //    }
-    //}
-
     #endregion
 
     #region grid query (arbitrary stride)
 
     /// <summary>
+    /// Result for one half-open grid cell.
     /// </summary>
-    /// <param name="Footprint">Grid cell bounding box.</param>
-    /// <param name="Points"></param>
-    public class GridQueryBox2dResult(Box2d Footprint, IEnumerable<Chunk> Points)
+    public class GridQueryBox2dResult
     {
+        /// <summary>Grid cell bounding box. Points on Min are included; points on Max are excluded.</summary>
+        public Box2d Footprint { get; }
+
+        /// <summary>Points in this grid cell.</summary>
+        public IEnumerable<Chunk> Points { get; }
+
+        /// <summary>
+        /// Creates a result for one grid cell.
+        /// </summary>
+        public GridQueryBox2dResult(Box2d footprint, IEnumerable<Chunk> points)
+        {
+            Footprint = footprint;
+            Points = points;
+        }
     }
 
     /// <summary>
+    /// Lazily partitions points into half-open grid cells [Min, Max).
     /// </summary>
     public static IEnumerable<GridQueryBox2dResult> QueryGridXY(
         this PointSet self, V2d stride, int minCellExponent = int.MinValue
         )
-        => QueryGridXY(self.Root.Value, stride, minCellExponent);
+        => QueryGridXY(self.Root.Value, stride, minCellExponent: minCellExponent);
 
     /// <summary>
+    /// Lazily partitions points into half-open grid cells [Min, Max).
     /// </summary>
     public static IEnumerable<GridQueryBox2dResult> QueryGridXY(
         this IPointCloudNode self, V2d stride, int maxInMemoryPointCount = 10 * 1024 * 1024, int minCellExponent = int.MinValue
@@ -309,7 +220,7 @@ public static partial class Queries
         var bbt = new Box2l(                    // bounding box (tile space)
             new V2l((long)Math.Floor(bbw.Min.X / stride.X), (long)Math.Floor(bbw.Min.Y / stride.Y)),
             new V2l((long)Math.Floor(bbw.Max.X / stride.X) + 1L, (long)Math.Floor(bbw.Max.Y / stride.Y) + 1L)
-            ) ;
+            );
 
         return QueryGridRecXY(bbt, stride, maxInMemoryPointCount, minCellExponent, [self]);
     }
@@ -319,8 +230,7 @@ public static partial class Queries
         var area = bb.Area;
         if (area == 0 || chunk.Count == 0) yield break;
 
-        var q = new Box2d(bb.Min.X * stride.X, bb.Min.Y * stride.Y, bb.Max.X * stride.X, bb.Max.Y * stride.Y);
-
+        var q = GetGridBounds(bb, stride);
         var newChunk = chunk.ImmutableFilterByBoxXY(q);
         if (newChunk.Count == 0) yield break;
 
@@ -330,8 +240,7 @@ public static partial class Queries
         }
         else
         {
-            var sbbs = bb.SplitAtCenter();
-            foreach (var sbb in sbbs)
+            foreach (var sbb in bb.SplitAtCenter())
             {
                 if (sbb.Min.X == sbb.Max.X || sbb.Min.Y == sbb.Max.Y) continue;
                 var xs = QueryGridRecInMemoryXY(sbb, stride, newChunk);
@@ -339,81 +248,194 @@ public static partial class Queries
             }
         }
     }
-    private static IEnumerable<GridQueryBox2dResult> QueryGridRecXY(Box2l bb, V2d stride, int maxInMemoryPointCount, int minCellExponent, List<IPointCloudNode> roots)
+
+    private static IEnumerable<GridQueryBox2dResult> QueryGridRecXY(
+        Box2l bb,
+        V2d stride,
+        int maxInMemoryPointCount,
+        int minCellExponent,
+        List<IPointCloudNode> roots
+        )
     {
         var area = bb.Area;
         if (area == 0 || roots.Count == 0) yield break;
 
-        var q = new Box2d(bb.Min.X * stride.X, bb.Min.Y * stride.Y, bb.Max.X * stride.X, bb.Max.Y * stride.Y);
-
+        var q = GetGridBounds(bb, stride);
         if (area == 1)
         {
-            yield return new GridQueryBox2dResult(q, roots.SelectMany(root => root.QueryPointsInsideBoxXY(q)));
+            if (ContainsPointsInsideHalfOpenBoxXY(roots, q, minCellExponent))
+            {
+                var points = QueryPointsInsideHalfOpenBoxXY(roots, q, minCellExponent);
+                yield return new GridQueryBox2dResult(q, points);
+            }
+            yield break;
+        }
+
+        var newRoots = new List<IPointCloudNode>();
+        foreach (var root in roots)
+        {
+            CollectIntersectingNodes(root, q, minCellExponent, newRoots);
+        }
+        if (newRoots.Count == 0) yield break;
+
+        var sbbs = bb.SplitAtCenter();
+        var total = newRoots.Sum(root => root.PointCountTree);
+        if (total <= maxInMemoryPointCount)
+        {
+            var chunk = Chunk.ImmutableMerge(
+                QueryPointsInsideHalfOpenBoxXY(newRoots, q, minCellExponent)
+                );
+            foreach (var sbb in sbbs)
+            {
+                if (sbb.Min.X == sbb.Max.X || sbb.Min.Y == sbb.Max.Y) continue;
+                var xs = QueryGridRecInMemoryXY(sbb, stride, chunk);
+                foreach (var x in xs) yield return x;
+            }
         }
         else
         {
-            var newRoots = new List<IPointCloudNode>();
-            foreach (var r in roots)
+            foreach (var sbb in sbbs)
             {
-                if (r.IsLeaf) newRoots.Add(r);
-                else
-                {
-                    var _bb = r.BoundingBoxExactGlobal.XY;
-                    if (!q.Intersects(_bb)) { }
-                    else if (q.Contains(_bb)) newRoots.Add(r);
-                    else
-                    {
-                        var sub = r.Subnodes!;
-                        void add(int i) { if (sub[i] != null) { newRoots.Add(sub[i]!.Value); } }
-                        var c = r.Center.XY;
-                        if (q.Max.X < c.X)
-                        {
-                            // left cells
-                            if (q.Max.Y < c.Y) { add(0); add(4); } // left/bottom
-                            else if (q.Min.Y >= c.Y) { add(2); add(6); } // left/top
-                            else { add(0); add(4); add(2); add(6); }
-                        }
-                        else if (q.Min.X >= c.X)
-                        {
-                            // right cells
-                            if (q.Max.Y < c.Y) { add(1); add(5); } // right/bottom
-                            else if (q.Min.Y >= c.Y) { add(3); add(7); } // right/top
-                            else { add(1); add(5); add(3); add(7); }
-                        }
-                        else
-                        {
-                            // left/right cells
-                            if (q.Max.Y < c.Y) { add(0); add(1); add(4); add(5); } // bottom
-                            else if (q.Min.Y >= c.Y) { add(2); add(3); add(6); add(7); } // top
-                            else { newRoots.Add(r); }
-                        }
-                    }
-                }
-            }
-
-            var sbbs = bb.SplitAtCenter();
-            var total = newRoots.Sum(r => r.PointCountTree);
-            if (total <= maxInMemoryPointCount)
-            {
-                var chunk = Chunk.ImmutableMerge(newRoots.SelectMany(r => r.QueryPointsInsideBoxXY(q)));
-                foreach (var sbb in sbbs)
-                {
-                    if (sbb.Min.X == sbb.Max.X || sbb.Min.Y == sbb.Max.Y) continue;
-                    var xs = QueryGridRecInMemoryXY(sbb, stride, chunk);
-                    foreach (var x in xs) yield return x;
-                }
-            }
-            else
-            {
-                foreach (var sbb in sbbs)
-                {
-                    if (sbb.Min.X == sbb.Max.X || sbb.Min.Y == sbb.Max.Y) continue;
-                    var xs = QueryGridRecXY(sbb, stride, maxInMemoryPointCount, minCellExponent, newRoots);
-                    foreach (var x in xs) yield return x;
-                }
+                if (sbb.Min.X == sbb.Max.X || sbb.Min.Y == sbb.Max.Y) continue;
+                var xs = QueryGridRecXY(sbb, stride, maxInMemoryPointCount, minCellExponent, newRoots);
+                foreach (var x in xs) yield return x;
             }
         }
     }
+
+    private static void CollectIntersectingNodes(
+        IPointCloudNode node,
+        Box2d query,
+        int minCellExponent,
+        List<IPointCloudNode> result
+        )
+    {
+        if (node.Cell.Exponent < minCellExponent) return;
+
+        var bounds = node.BoundingBoxExactGlobal.XY;
+        if (!IntersectsHalfOpen(query, bounds)) return;
+
+        if (ContainsHalfOpen(query, bounds) || node.IsLeaf || node.Cell.Exponent == minCellExponent)
+        {
+            result.Add(node);
+            return;
+        }
+
+        foreach (var subnode in node.Subnodes!)
+        {
+            if (subnode == null) continue;
+            var child = subnode.Value;
+            if (child.Cell.Exponent >= minCellExponent &&
+                IntersectsHalfOpen(query, child.BoundingBoxExactGlobal.XY))
+            {
+                result.Add(child);
+            }
+        }
+    }
+
+    private static bool ContainsPointsInsideHalfOpenBoxXY(
+        List<IPointCloudNode> roots,
+        Box2d query,
+        int minCellExponent
+        )
+    {
+        var stack = new Stack<(IPointCloudNode Node, bool FullyInside)>(roots.Count);
+        for (var i = roots.Count - 1; i >= 0; i--) stack.Push((roots[i], false));
+
+        while (stack.Count > 0)
+        {
+            var entry = stack.Pop();
+            var node = entry.Node;
+            if (node.Cell.Exponent < minCellExponent) continue;
+
+            var fullyInside = entry.FullyInside;
+            if (!fullyInside)
+            {
+                var bounds = node.BoundingBoxExactGlobal.XY;
+                if (!IntersectsHalfOpen(query, bounds)) continue;
+                fullyInside = ContainsHalfOpen(query, bounds);
+            }
+
+            if (node.IsLeaf || node.Cell.Exponent == minCellExponent)
+            {
+                if (fullyInside && node.PointCountCell > 0) return true;
+                foreach (var position in node.PositionsAbsolute)
+                {
+                    if (ContainsHalfOpen(query, position.XY)) return true;
+                }
+                continue;
+            }
+
+            var subnodes = node.Subnodes!;
+            for (var i = subnodes.Length - 1; i >= 0; i--)
+            {
+                var subnode = subnodes[i];
+                if (subnode != null) stack.Push((subnode.Value, fullyInside));
+            }
+        }
+
+        return false;
+    }
+
+    private static IEnumerable<Chunk> QueryPointsInsideHalfOpenBoxXY(
+        List<IPointCloudNode> roots,
+        Box2d query,
+        int minCellExponent
+        )
+    {
+        var stack = new Stack<(IPointCloudNode Node, bool FullyInside)>(roots.Count);
+        for (var i = roots.Count - 1; i >= 0; i--) stack.Push((roots[i], false));
+
+        while (stack.Count > 0)
+        {
+            var entry = stack.Pop();
+            var node = entry.Node;
+            if (node.Cell.Exponent < minCellExponent) continue;
+
+            var fullyInside = entry.FullyInside;
+            if (!fullyInside)
+            {
+                var bounds = node.BoundingBoxExactGlobal.XY;
+                if (!IntersectsHalfOpen(query, bounds)) continue;
+                fullyInside = ContainsHalfOpen(query, bounds);
+            }
+
+            if (node.IsLeaf || node.Cell.Exponent == minCellExponent)
+            {
+                var chunk = node.ToChunk();
+                if (!fullyInside) chunk = chunk.ImmutableFilterByBoxXY(query);
+                if (chunk.Count > 0) yield return chunk;
+                continue;
+            }
+
+            var subnodes = node.Subnodes!;
+            for (var i = subnodes.Length - 1; i >= 0; i--)
+            {
+                var subnode = subnodes[i];
+                if (subnode != null) stack.Push((subnode.Value, fullyInside));
+            }
+        }
+    }
+
+    private static Box2d GetGridBounds(Box2l bounds, V2d stride)
+        => new(
+            bounds.Min.X * stride.X,
+            bounds.Min.Y * stride.Y,
+            bounds.Max.X * stride.X,
+            bounds.Max.Y * stride.Y
+            );
+
+    private static bool IntersectsHalfOpen(Box2d query, Box2d bounds)
+        => bounds.Max.X >= query.Min.X && bounds.Min.X < query.Max.X &&
+           bounds.Max.Y >= query.Min.Y && bounds.Min.Y < query.Max.Y;
+
+    private static bool ContainsHalfOpen(Box2d query, Box2d bounds)
+        => bounds.Min.X >= query.Min.X && bounds.Max.X < query.Max.X &&
+           bounds.Min.Y >= query.Min.Y && bounds.Max.Y < query.Max.Y;
+
+    private static bool ContainsHalfOpen(Box2d query, V2d point)
+        => point.X >= query.Min.X && point.X < query.Max.X &&
+           point.Y >= query.Min.Y && point.Y < query.Max.Y;
 
     #endregion
 }

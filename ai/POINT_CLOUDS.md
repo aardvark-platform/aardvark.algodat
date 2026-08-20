@@ -90,6 +90,22 @@ foreach (var chunk in pointSet.QueryPointsInsideBox(queryBox))
 long count = pointSet.CountPointsInsideBox(queryBox);
 ```
 
+### Partitioning XY with Arbitrary Strides
+
+```csharp
+var stride = new V2d(10.0, 5.0);
+foreach (var tile in pointSet.QueryGridXY(stride, minCellExponent: -4))
+{
+    Box2d footprint = tile.Footprint;
+    foreach (var chunk in tile.Points)
+    {
+        // Process this tile's points.
+    }
+}
+```
+
+`QueryGridXY` assigns every point to the unique half-open tile `[Min, Max)`, so a point on an X or Y boundary belongs to the tile beginning at that boundary. Tile indices use `floor(position / stride)`, including for negative coordinates. `minCellExponent` selects the octree LoD front to partition. The `IPointCloudNode` overload also accepts `maxInMemoryPointCount`; this only controls when candidate nodes are materialized into an in-memory chunk and does not change tile ownership or results. Tile and point enumeration remain lazy.
+
 ### Spatial Queries with KD-Tree
 
 ```csharp
