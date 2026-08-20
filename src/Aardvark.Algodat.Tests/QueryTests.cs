@@ -1178,6 +1178,233 @@ namespace Aardvark.Geometry.Tests
 
         #endregion
 
+        #region QueryGridXY
+
+        [Test]
+        public void QueryGridXY_AssignsBoundaryPointsExactlyOnce()
+        {
+            var fixture = CreateGridQueryFixture();
+            var stride = new V2d(1.0, 0.5);
+            var expected = fixture.Positions;
+
+            var pointSetOwners = AssertGridQuery(
+                fixture.PointSet.QueryGridXY(stride), stride, expected, fixture, checkNormals: true
+                );
+            var inMemoryOwners = AssertGridQuery(
+                fixture.PointSet.Root.Value.QueryGridXY(stride, maxInMemoryPointCount: int.MaxValue),
+                stride, expected, fixture, checkNormals: true
+                );
+            var outOfCoreOwners = AssertGridQuery(
+                fixture.PointSet.Root.Value.QueryGridXY(stride, maxInMemoryPointCount: 0),
+                stride, expected, fixture, checkNormals: true
+                );
+
+            AssertOwnerMapsEqual(pointSetOwners, inMemoryOwners);
+            AssertOwnerMapsEqual(pointSetOwners, outOfCoreOwners);
+        }
+
+        [Test]
+        public void QueryGridXY_RespectsMinCellExponent()
+        {
+            var fixture = CreateGridQueryFixture();
+            var root = fixture.PointSet.Root.Value;
+            var minCellExponent = root.Cell.Exponent;
+            var stride = new V2d(1.0, 0.5);
+            var front = root.QueryAllPoints(minCellExponent)
+                .SelectMany(chunk => chunk.Positions)
+                .ToArray();
+
+            ClassicAssert.IsTrue(front.Length > 0);
+            ClassicAssert.Less(front.Length, fixture.Positions.Length);
+
+            var pointSetOwners = AssertGridQuery(
+                fixture.PointSet.QueryGridXY(stride, minCellExponent),
+                stride, front, fixture, checkNormals: false
+                );
+            var inMemoryOwners = AssertGridQuery(
+                root.QueryGridXY(stride, maxInMemoryPointCount: int.MaxValue, minCellExponent: minCellExponent),
+                stride, front, fixture, checkNormals: false
+                );
+            var outOfCoreOwners = AssertGridQuery(
+                root.QueryGridXY(stride, maxInMemoryPointCount: 0, minCellExponent: minCellExponent),
+                stride, front, fixture, checkNormals: false
+                );
+
+            AssertOwnerMapsEqual(pointSetOwners, inMemoryOwners);
+            AssertOwnerMapsEqual(pointSetOwners, outOfCoreOwners);
+        }
+
+        private sealed class GridQueryFixture
+        {
+            public PointSet PointSet { get; }
+            public V3d[] Positions { get; }
+            public C4b[] Colors { get; }
+            public V3f[] Normals { get; }
+            public int[] Intensities { get; }
+            public byte[] Classifications { get; }
+            public int[] PartIndices { get; }
+
+            public GridQueryFixture(
+                PointSet pointSet,
+                V3d[] positions,
+                C4b[] colors,
+                V3f[] normals,
+                int[] intensities,
+                byte[] classifications,
+                int[] partIndices
+                )
+            {
+                PointSet = pointSet;
+                Positions = positions;
+                Colors = colors;
+                Normals = normals;
+                Intensities = intensities;
+                Classifications = classifications;
+                PartIndices = partIndices;
+            }
+        }
+
+        private static GridQueryFixture CreateGridQueryFixture()
+        {
+            var positions = new[]
+            {
+                new V3d(-2.0, -2.0, 0.00),
+                new V3d(-1.0, -1.0, 0.01),
+                new V3d(-1.0,  0.0, 0.02),
+                new V3d( 0.0, -1.0, 0.03),
+                new V3d( 0.0,  0.0, 0.04),
+                new V3d( 1.0,  0.0, 0.05),
+                new V3d( 0.0,  1.0, 0.06),
+                new V3d( 1.0,  1.0, 0.07),
+                new V3d( 2.0,  2.0, 0.08),
+                new V3d(-0.25, -0.25, 0.09),
+                new V3d( 0.25,  0.25, 0.10),
+                new V3d( 0.999, -1.001, 0.11),
+                new V3d(-1.001,  0.999, 0.12),
+                new V3d( 1.0, -1.0, 0.13),
+                new V3d(-1.0,  1.0, 0.14),
+                new V3d( 2.0, -2.0, 0.15)
+            };
+            var colors = new C4b[positions.Length].SetByIndex(i =>
+                new C4b((byte)(i + 1), (byte)(i + 17), (byte)(i + 33), (byte)255)
+                );
+            var normals = new V3f[positions.Length].SetByIndex(i => new V3f(i + 1, i + 2, i + 3).Normalized);
+            var intensities = new int[positions.Length].SetByIndex(i => 1000 + i);
+            var classifications = new byte[positions.Length].SetByIndex(i => (byte)(50 + i));
+            var partIndices = new int[positions.Length].SetByIndex(i => 200 + i);
+            var chunk = new Chunk(
+                positions,
+                colors,
+                normals,
+                intensities,
+                classifications,
+                partIndices,
+                partIndexRange: null,
+                bbox: null
+                );
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithKey("query-grid-xy")
+                .WithOctreeSplitLimit(2);
+            var pointSet = PointCloud.Chunks(chunk, config);
+            var storedPositions = new V3d[positions.Length];
+            foreach (var storedChunk in pointSet.QueryAllPoints())
+            {
+                for (var i = 0; i < storedChunk.Count; i++)
+                {
+                    storedPositions[storedChunk.Intensities[i] - 1000] = storedChunk.Positions[i];
+                }
+            }
+            return new GridQueryFixture(
+                pointSet, storedPositions, colors, normals, intensities, classifications, partIndices
+                );
+        }
+
+        private static Dictionary<V3d, Box2d> AssertGridQuery(
+            IEnumerable<Queries.GridQueryBox2dResult> results,
+            V2d stride,
+            V3d[] expectedPositions,
+            GridQueryFixture fixture,
+            bool checkNormals
+            )
+        {
+            var expected = expectedPositions.ToHashSet();
+            var sourceIndices = fixture.Positions
+                .Select((position, index) => (key: PositionKey(position), index))
+                .ToDictionary(pair => pair.key, pair => pair.index);
+            var owners = new Dictionary<V3d, Box2d>();
+            var footprints = new HashSet<Box2d>();
+
+            foreach (var result in results)
+            {
+                var footprint = result.Footprint;
+                ClassicAssert.IsTrue(footprints.Add(footprint));
+                ClassicAssert.AreEqual(footprint.Min + stride, footprint.Max);
+                var resultPointCount = 0;
+
+                foreach (var chunk in result.Points)
+                {
+                    resultPointCount += chunk.Count;
+                    ClassicAssert.IsTrue(chunk.Count > 0);
+                    ClassicAssert.AreEqual(chunk.Count, chunk.Colors?.Count);
+                    ClassicAssert.AreEqual(chunk.Count, chunk.Normals?.Count);
+                    ClassicAssert.AreEqual(chunk.Count, chunk.Intensities?.Count);
+                    ClassicAssert.AreEqual(chunk.Count, chunk.Classifications?.Count);
+                    var partIndices = chunk.TryGetPartIndices();
+                    ClassicAssert.IsNotNull(partIndices);
+                    ClassicAssert.AreEqual(chunk.Count, partIndices.Count);
+
+                    for (var i = 0; i < chunk.Count; i++)
+                    {
+                        var position = chunk.Positions[i];
+                        ClassicAssert.IsTrue(expected.Contains(position));
+                        ClassicAssert.IsTrue(position.X >= footprint.Min.X && position.X < footprint.Max.X);
+                        ClassicAssert.IsTrue(position.Y >= footprint.Min.Y && position.Y < footprint.Max.Y);
+                        ClassicAssert.IsTrue(owners.TryAdd(position, footprint));
+
+                        var expectedMin = new V2d(
+                            Math.Floor(position.X / stride.X) * stride.X,
+                            Math.Floor(position.Y / stride.Y) * stride.Y
+                            );
+                        ClassicAssert.AreEqual(expectedMin, footprint.Min);
+
+                        var sourceIndex = sourceIndices[PositionKey(position)];
+                        ClassicAssert.AreEqual(fixture.Colors[sourceIndex], chunk.Colors[i]);
+                        if (checkNormals) ClassicAssert.AreEqual(fixture.Normals[sourceIndex], chunk.Normals[i]);
+                        ClassicAssert.AreEqual(fixture.Intensities[sourceIndex], chunk.Intensities[i]);
+                        ClassicAssert.AreEqual(fixture.Classifications[sourceIndex], chunk.Classifications[i]);
+                        ClassicAssert.AreEqual(fixture.PartIndices[sourceIndex], partIndices[i]);
+                    }
+                }
+
+                ClassicAssert.Greater(resultPointCount, 0, $"Empty grid result for {footprint}.");
+            }
+
+            ClassicAssert.AreEqual(expected.Count, owners.Count);
+            ClassicAssert.IsTrue(expected.SetEquals(owners.Keys));
+            return owners;
+        }
+
+        private static V2l PositionKey(V3d position)
+            => new(
+                (long)Math.Round(position.X * 1000.0),
+                (long)Math.Round(position.Y * 1000.0)
+                );
+
+        private static void AssertOwnerMapsEqual(
+            IReadOnlyDictionary<V3d, Box2d> expected,
+            IReadOnlyDictionary<V3d, Box2d> actual
+            )
+        {
+            ClassicAssert.AreEqual(expected.Count, actual.Count);
+            foreach (var pair in expected)
+            {
+                ClassicAssert.IsTrue(actual.TryGetValue(pair.Key, out var footprint));
+                ClassicAssert.AreEqual(pair.Value, footprint);
+            }
+        }
+
+        #endregion
 
         [Test]
         public void CanQueryPointsWithAttributes()
