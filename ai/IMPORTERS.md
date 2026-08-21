@@ -44,6 +44,8 @@ var config = ImportConfig.Default
 var pointset = PointCloud.Import(filename, config);
 ```
 
+`WithMinDist` accepts an exact, unsquared distance in the point cloud's coordinate units. By default, import filtering retains the first point and then skips each point whose Manhattan (L1) distance from the previous retained point is strictly less than `MinDist`; points exactly at the threshold are retained. Enabling `WithNormalizePointDensityGlobal(true)` instead selects one point per global density cell derived from the same unsquared value.
+
 ### Low-Level Chunk Access
 
 Each importer exposes a `Chunks()` method for direct chunk iteration:
