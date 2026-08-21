@@ -1,3 +1,5 @@
+- [Points] fixed `GenericChunk` sequential L1 filtering to use exact, unsquared minimum-distance thresholds (#51)
+
 ### 5.6.3
 - Updated SharpCompress to 0.48.1 to address CVE-2026-44788
 

@@ -552,7 +552,7 @@ namespace Aardvark.Data.Points
         }
 
         /// <summary>
-        /// Removes points which are less than minDist from previous point (L2, Euclidean).
+        /// Removes points whose Euclidean distance from the previous retained point is less than the exact, unsquared <paramref name="minDist"/>.
         /// </summary>
         public Chunk ImmutableFilterSequentialMinDistL2(double minDist)
         {
@@ -584,7 +584,7 @@ namespace Aardvark.Data.Points
         }
 
         /// <summary>
-        /// Removes points which are less than minDist from previous point (L1, Manhattan).
+        /// Removes points whose Manhattan distance from the previous retained point is less than the exact, unsquared <paramref name="minDist"/>.
         /// </summary>
         public Chunk ImmutableFilterSequentialMinDistL1(double minDist)
         {
@@ -615,7 +615,7 @@ namespace Aardvark.Data.Points
         }
 
         /// <summary>
-        /// Returns chunk with duplicate point positions removed.
+        /// Keeps the first point in input order for each terminal density cell. The cell level is selected from the exact, unsquared <see cref="ParseConfig.MinDist"/>.
         /// </summary>
         public Chunk ImmutableFilterMinDistByCell(Cell bounds, ParseConfig config)
         {
