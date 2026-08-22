@@ -13,7 +13,6 @@
 */
 using Aardvark.Base;
 using System;
-using System.Collections.Generic;
 
 #pragma warning disable IDE0130 // Namespace does not match folder structure
 
@@ -26,6 +25,10 @@ namespace Aardvark.Geometry
 
         public int ObjectCount => m_boxes.Length;
 
+        /// <summary>
+        /// Finds the nearest object in the supplied index-array slice that is accepted by the object filter and is strictly closer than the incoming <see cref="ObjectClosestPoint.DistanceSquared"/> cutoff.
+        /// A null object filter accepts all objects. On success, the distance, point, and set object are updated consistently; unrelated result state is preserved. The point filter is currently ignored.
+        /// </summary>
         public bool ClosestPoint(int[] objectIndexArray, int firstIndex, int indexCount, V3d queryPoint, Func<IIntersectableObjectSet, int, bool> ios_index_objectFilter, Func<IIntersectableObjectSet, int, int, ObjectClosestPoint, bool> ios_index_part_ocp_pointFilter, ref ObjectClosestPoint closestPoint)
         {
             var minDist2 = closestPoint.DistanceSquared;
@@ -35,39 +38,20 @@ namespace Aardvark.Geometry
             for (int i = 0; i < indexCount; i++)
             {
                 var id = objectIndexArray[firstIndex + i];
+                if (ios_index_objectFilter != null && !ios_index_objectFilter(this, id)) continue;
 
-                if (ios_index_objectFilter(this, id))
+                var p = m_boxes[id].GetClosestPointOn(queryPoint);
+                var d = Vec.DistanceSquared(p, queryPoint);
+
+                if (d < minDist2)
                 {
-                    var p = m_boxes[id].GetClosestPointOn(queryPoint);
-                    var d = Vec.DistanceSquared(p, queryPoint);
-
-                    if (d < minDist2)
-                    {
-                        minIndex = id;
-                        minPos = p;
-                    }
+                    minDist2 = d;
+                    minIndex = id;
+                    minPos = p;
                 }
             }
 
-            if (minIndex >= 0)
-            {
-                closestPoint = new ObjectClosestPoint()
-                {
-                    Distance = Fun.Sqrt(minDist2),
-                    DistanceSquared = minDist2,
-                    Point = minPos,
-                    SetObject = new SetObject(this, minIndex),
-                    ObjectStack = [], // TODO
-                    Coord = V2d.Zero // TODO
-
-                };
-
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            return minIndex >= 0 && closestPoint.Set(minDist2, minPos, this, minIndex);
         }
 
         public Box3d ObjectBoundingBox(int objectIndex = -1)
