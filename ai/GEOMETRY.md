@@ -96,7 +96,8 @@ Kd-tree–based ray-object intersection with custom object sets.
 |------|---------|
 | `IIntersectableObjectSet` | Interface for ray-intersectable object collections |
 | `KdIntersectionTree` | Kd-tree accelerating ray intersections and closest-point queries |
-| `IntersectableTriangleSet` | Triangle soup implementation of `IIntersectableObjectSet` |
+| `IntersectableBoxSet` | Axis-aligned box implementation of `IIntersectableObjectSet` |
+| `IntersectableTriangleSet` | Indexed or unindexed triangle implementation of `IIntersectableObjectSet` |
 | `ObjectRayHit` | Ray intersection result with t-parameter, point, and object reference |
 | `ObjectClosestPoint` | Closest-point query result with distance and coordinates |
 | `FastRay3d` | Precomputed ray data for efficient kd-tree traversal |
@@ -122,20 +123,30 @@ if (kdTree.Intersect(ray, tmin: 0, tmax: double.MaxValue, ref hit))
 }
 
 // Closest point query
-var closest = new ObjectClosestPoint { DistanceSquared = double.MaxValue };
+var closest = ObjectClosestPoint.MaxRange;
 if (kdTree.ClosestPoint(queryPoint, ref closest))
 {
     V3d nearestPoint = closest.Point;
     double distance = closest.Distance;
+    int objectIndex = closest.SetObject.Index;
 }
+
+// Finite in/out cutoff: initialize both fields consistently.
+var limited = ObjectClosestPoint.MaxRange;
+limited.Distance = 2.0;
+limited.DistanceSquared = 4.0;
+bool foundWithinCutoff = kdTree.ClosestPoint(queryPoint, ref limited);
 ```
+
+Closest-point queries use `DistanceSquared` as a strict incoming cutoff and return `true` only when an accepted candidate is closer. Successful queries set `DistanceSquared`, `Distance`, `Point`, and `SetObject` to the exact nearest result while preserving `Coord` and `ObjectStack`; unsuccessful queries leave the complete result unchanged. `IntersectableBoxSet` and `IntersectableTriangleSet` treat a null object filter as accepting all objects and honor selective object filters. Their point-filter argument remains unused.
 
 ### Gotchas
 
 - **BuildFlags control quality/speed tradeoff** – `FastIntersection` splits at 7 objects, `Raytracing` uses slower build with better quality.
 - **FastRay3d precomputes reciprocals** – Construct once per ray; do not modify direction.
 - **Hit parameter is in/out** – Pass existing hit with `t` limit; updated only if closer intersection found.
-- **Object filters can skip tests** – Supply `null` for no filtering; filters allow skipping objects or hits.
+- **Closest-point cutoff is in/out** – Keep `DistanceSquared` and `Distance` consistent for finite kd-tree cutoffs; candidates at exactly the cutoff are not updates.
+- **Object filters can skip tests** – Supply `null` for no filtering; closest-point point filters are not yet applied by box or triangle sets.
 - **Parallel build enabled by default** – Use `BuildFlags.NoMultithreading` to force single-threaded construction.
 
 ## Aardvark.Geometry.Normals

@@ -83,11 +83,10 @@ namespace Aardvark.Geometry
                 );
 
         /// <summary>
-        /// Computes the closest point of all the objects in the supplied
-        /// index array with respect to the query point, as long as its
-        /// closer than the point supplied in closestPoint. Returns true
-        /// if a closer point was found and updates the closestPoint as
-        /// necessary. Note that the supplied filters are not used as of yet.
+        /// Computes the nearest point among the objects in the supplied index-array slice that is strictly closer than the incoming
+        /// <see cref="ObjectClosestPoint.DistanceSquared"/> cutoff. Returns true and updates the distance, point, and set object when a closer
+        /// candidate is found; otherwise returns false and leaves the result unchanged. A null object filter requests no object filtering.
+        /// Object-filter support is implementation-specific, and the point filter is not used as of yet.
         /// </summary>
         bool ClosestPoint(
                 int[] objectIndexArray, int firstIndex, int indexCount,
