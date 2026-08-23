@@ -40,6 +40,7 @@ public class CellQueryResult(IPointCloudNode cell, bool isFullyInside)
 }
 
 /// <summary>
+/// Point-query result with aligned positions, distances, and optional standard attributes.
 /// </summary>
 public class PointsNearObject<T>
 {
@@ -48,13 +49,13 @@ public class PointsNearObject<T>
         default!, 0.0, [], [], [], [], [], [], []
         );
 
-    /// <summary></summary>
+    /// <summary>The object used as the query target.</summary>
     public T Object { get; }
 
     /// <summary></summary>
     public double MaxDistance { get; }
 
-    /// <summary></summary>
+    /// <summary>Retained positions.</summary>
     public V3d[] Positions { get; }
 
     /// <summary></summary>
@@ -72,7 +73,7 @@ public class PointsNearObject<T>
     /// <summary></summary>
     public byte[]? Classifications { get; }
 
-    /// <summary></summary>
+    /// <summary>Distances aligned with <see cref="Positions"/> and all available standard attributes.</summary>
     public double[]? Distances { get; }
 
     /// <summary></summary>
@@ -100,13 +101,20 @@ public class PointsNearObject<T>
     public bool IsEmpty => Positions.Length == 0;
 
     /// <summary>
-    /// Returns this PointsNearObject merged with other PointsNearObject.
+    /// Returns this result merged with <paramref name="other"/>, retaining at most <paramref name="maxCount"/> nearest entries.
+    /// If this result is empty, the nonempty result's query <see cref="Object"/> is preserved.
     /// </summary>
     public PointsNearObject<T> Merge(PointsNearObject<T> other, int maxCount)
     {
         if (maxCount < 0) throw new ArgumentOutOfRangeException(nameof(maxCount));
         if (maxCount == 0) return Empty;
         if (other == null || other.IsEmpty) return this;
+        if (IsEmpty)
+        {
+            return other.Count <= maxCount
+                ? other
+                : other.OrderedByDistanceAscending().Take(maxCount);
+        }
 
         var merged = new PointsNearObject<T>(Object,
             Math.Max(MaxDistance, other.MaxDistance),

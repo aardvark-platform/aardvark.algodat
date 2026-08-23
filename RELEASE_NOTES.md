@@ -1,3 +1,5 @@
+- [PointSet] fixed nearest-point queries for temporary trees, zero caps, and empty-octant merges (#55)
+
 ### 5.6.3
 - Updated SharpCompress to 0.48.1 to address CVE-2026-44788
 
