@@ -95,19 +95,24 @@ public static class PlyParser
 
     #region Header
 
-    private static string ReadLine(Stream stream, int maxLength)
+    private static string? ReadLine(Stream stream, int maxLength)
     {
         var sb = new StringBuilder();
-        var c = stream.ReadByte();
-
-        while (c == '\n' || c == '\r') c = stream.ReadByte();
-
-        while (c != -1 && c != '\n' && c != '\r' && sb.Length < maxLength)
+        while (true)
         {
+            var c = stream.ReadByte();
+            if (c < 0) return sb.Length == 0 ? null : sb.ToString();
+            if (c == '\n') return sb.ToString();
+            if (c == '\r')
+            {
+                var next = stream.ReadByte();
+                if (next >= 0 && next != '\n') stream.Position--;
+                return sb.ToString();
+            }
+            if (sb.Length == maxLength)
+                throw new InvalidDataException($"PLY header line exceeds {maxLength} bytes.");
             sb.Append((char)c);
-            c = stream.ReadByte();
         }
-        return sb.ToString();
     }
 
     private static Format ParseFormatLine(string line)
@@ -175,6 +180,8 @@ public static class PlyParser
         else if (ts.Length == 5 && ts[1] == "list")
         {
             var listCountType = ParseDataType(ts[2]);
+            if (!IsIntegerDataType(listCountType))
+                throw new InvalidDataException($"PLY list count type must be an integer, but found \"{ts[2]}\".");
             var datatype = ParseDataType(ts[3]);
             return new(datatype, Name: ts[4].ToLower(), listCountType);
         }
@@ -184,6 +191,12 @@ public static class PlyParser
             throw new Exception(); // make compiler happy
         }
     }
+
+    private static bool IsIntegerDataType(DataType type) => type is
+        DataType.Int8 or DataType.UInt8 or
+        DataType.Int16 or DataType.UInt16 or
+        DataType.Int32 or DataType.UInt32 or
+        DataType.Int64 or DataType.UInt64;
 
     private static DataType ParseDataType(string s) => s switch
     {
@@ -288,7 +301,7 @@ public static class PlyParser
 
     public static Header ParseHeader(string filename, Action<string>? log = null)
     {
-        var f = File.OpenRead(filename);
+        using var f = File.OpenRead(filename);
         return ParseHeader(f, log);
     }
 
@@ -402,7 +415,7 @@ public static class PlyParser
         private static readonly Dictionary<DataType, int> DataTypeSizes = new()
         {
             { DataType.Int8,    1 },
-            { DataType.UInt8,   1 }, 
+            { DataType.UInt8,   1 },
             { DataType.Int16,   2 },
             { DataType.UInt16,  2 },
             { DataType.Int32,   4 },
@@ -416,7 +429,21 @@ public static class PlyParser
         /// <summary>
         /// Size of element in bytes, or null if element contains one or more list properties (there is no fixed size in this case).
         /// </summary>
-        private static int? GetSizeInBytes(Element e) => e.ContainsListProperty ? null : e.Properties.Sum(p => DataTypeSizes[p.DataType]);
+        private static int? GetSizeInBytes(Element element)
+        {
+            if (element.ContainsListProperty) return null;
+            try
+            {
+                var size = 0;
+                foreach (var property in element.Properties)
+                    size = checked(size + DataTypeSizes[property.DataType]);
+                return size;
+            }
+            catch (OverflowException e)
+            {
+                throw new InvalidDataException($"PLY element '{element.Name}' has an invalid fixed record size.", e);
+            }
+        }
 
         private static Array AllocArray(Property p, int count) => (p.IsListProperty, p.DataType) switch
         {
@@ -430,15 +457,354 @@ public static class PlyParser
             (false, DataType.UInt64 ) => new ulong [count], (true , DataType.UInt64 ) => new ulong [count][],
             (false, DataType.Float32) => new float [count], (true , DataType.Float32) => new float [count][],
             (false, DataType.Float64) => new double[count], (true , DataType.Float64) => new double[count][],
-            _ => throw new Exception($"Error 8ba1684a-21e9-4e6c-9767-74bca998df53. {p} not supported.")
+            _ => throw new InvalidDataException($"PLY property '{p.Name}' has unsupported type {p.DataType}.")
         };
 
-        private static IEnumerable<ElementData> ParseElement(Stream f, Element element, int maxChunkSize, Action<string>? log)
+        private sealed class BinaryInput
         {
-            var swTotal = new Stopwatch(); swTotal.Restart();
-            var swChunk = new Stopwatch();
+            private const int BufferSize = 4096;
 
-            // row property offsets
+            private readonly Stream _stream;
+            private long _remaining;
+            private byte[]? _buffer;
+            private int _bufferOffset;
+            private int _bufferCount;
+
+            public BinaryInput(Stream stream)
+            {
+                _stream = stream;
+                _remaining = stream.Length - stream.Position;
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void EnsureAvailable(int byteCount)
+            {
+                if (_remaining < byteCount)
+                    throw new EndOfStreamException("Unexpected end of binary PLY data.");
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public byte ReadByte()
+            {
+                EnsureBuffered(1);
+                _remaining--;
+                _bufferCount--;
+                return _buffer![_bufferOffset++];
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public unsafe T ReadNative<T>() where T : unmanaged
+            {
+                var byteCount = sizeof(T);
+                EnsureBuffered(byteCount);
+                _remaining -= byteCount;
+                T value;
+                fixed (byte* p = &_buffer![_bufferOffset]) value = *(T*)p;
+                _bufferOffset += byteCount;
+                _bufferCount -= byteCount;
+                return value;
+            }
+
+            public void ReadNativeArray(Array target, int byteCount)
+            {
+                EnsureAvailable(byteCount);
+                var totalByteCount = byteCount;
+                var targetOffset = 0;
+                while (byteCount > 0)
+                {
+                    if (_bufferCount == 0) EnsureBuffered(1);
+                    var count = Math.Min(byteCount, _bufferCount);
+                    Buffer.BlockCopy(_buffer!, _bufferOffset, target, targetOffset, count);
+                    _bufferOffset += count;
+                    _bufferCount -= count;
+                    targetOffset += count;
+                    byteCount -= count;
+                }
+                _remaining -= totalByteCount;
+            }
+
+            public void ReadExactly(byte[] target, int offset, int count)
+            {
+                EnsureAvailable(count);
+                var totalByteCount = count;
+
+                if (_bufferCount > 0)
+                {
+                    var bufferedCount = Math.Min(count, _bufferCount);
+                    Buffer.BlockCopy(_buffer!, _bufferOffset, target, offset, bufferedCount);
+                    _bufferOffset += bufferedCount;
+                    _bufferCount -= bufferedCount;
+                    offset += bufferedCount;
+                    count -= bufferedCount;
+                }
+
+                if (count >= BufferSize)
+                {
+                    var read = _stream.Read(target, offset, count);
+                    if (read <= 0) throw new EndOfStreamException("Unexpected end of binary PLY data.");
+                    if (read < count) ReadFromStream(target, offset + read, count - read);
+                    _remaining -= totalByteCount;
+                    return;
+                }
+
+                while (count > 0)
+                {
+                    EnsureBuffered(1);
+                    var bufferedCount = Math.Min(count, _bufferCount);
+                    Buffer.BlockCopy(_buffer!, _bufferOffset, target, offset, bufferedCount);
+                    _bufferOffset += bufferedCount;
+                    _bufferCount -= bufferedCount;
+                    offset += bufferedCount;
+                    count -= bufferedCount;
+                }
+                _remaining -= totalByteCount;
+            }
+
+            private void EnsureBuffered(int requiredCount)
+            {
+                EnsureAvailable(requiredCount);
+                if (_bufferCount >= requiredCount) return;
+
+                _buffer ??= new byte[BufferSize];
+                if (_bufferCount > 0)
+                    Buffer.BlockCopy(_buffer, _bufferOffset, _buffer, 0, _bufferCount);
+                _bufferOffset = 0;
+
+                while (_bufferCount < requiredCount)
+                {
+                    var availableInStream = _remaining - _bufferCount;
+                    var readCount = (int)Math.Min(_buffer.Length - _bufferCount, availableInStream);
+                    var read = _stream.Read(_buffer, _bufferCount, readCount);
+                    if (read <= 0) throw new EndOfStreamException("Unexpected end of binary PLY data.");
+                    _bufferCount += read;
+                }
+            }
+
+            private void ReadFromStream(byte[] target, int offset, int count)
+            {
+                while (count > 0)
+                {
+                    var read = _stream.Read(target, offset, count);
+                    if (read <= 0) throw new EndOfStreamException("Unexpected end of binary PLY data.");
+                    offset += read;
+                    count -= read;
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static ushort DecodeUInt16(byte[] data, int offset, bool littleEndian)
+            => littleEndian
+                ? (ushort)(data[offset] | data[offset + 1] << 8)
+                : (ushort)(data[offset] << 8 | data[offset + 1]);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static uint DecodeUInt32(byte[] data, int offset, bool littleEndian)
+            => littleEndian
+                ? (uint)(data[offset] | data[offset + 1] << 8 | data[offset + 2] << 16 | data[offset + 3] << 24)
+                : (uint)(data[offset] << 24 | data[offset + 1] << 16 | data[offset + 2] << 8 | data[offset + 3]);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static ulong DecodeUInt64(byte[] data, int offset, bool littleEndian)
+        {
+            if (littleEndian)
+            {
+                return data[offset]
+                    | (ulong)data[offset + 1] << 8
+                    | (ulong)data[offset + 2] << 16
+                    | (ulong)data[offset + 3] << 24
+                    | (ulong)data[offset + 4] << 32
+                    | (ulong)data[offset + 5] << 40
+                    | (ulong)data[offset + 6] << 48
+                    | (ulong)data[offset + 7] << 56;
+            }
+
+            return (ulong)data[offset] << 56
+                | (ulong)data[offset + 1] << 48
+                | (ulong)data[offset + 2] << 40
+                | (ulong)data[offset + 3] << 32
+                | (ulong)data[offset + 4] << 24
+                | (ulong)data[offset + 5] << 16
+                | (ulong)data[offset + 6] << 8
+                | data[offset + 7];
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static short DecodeInt16(byte[] data, int offset, bool littleEndian)
+            => unchecked((short)DecodeUInt16(data, offset, littleEndian));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int DecodeInt32(byte[] data, int offset, bool littleEndian)
+            => unchecked((int)DecodeUInt32(data, offset, littleEndian));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static long DecodeInt64(byte[] data, int offset, bool littleEndian)
+            => unchecked((long)DecodeUInt64(data, offset, littleEndian));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static unsafe float DecodeFloat32(byte[] data, int offset, bool littleEndian)
+        {
+            var bits = DecodeUInt32(data, offset, littleEndian);
+            return *(float*)&bits;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static unsafe double DecodeFloat64(byte[] data, int offset, bool littleEndian)
+        {
+            var bits = DecodeUInt64(data, offset, littleEndian);
+            return *(double*)&bits;
+        }
+
+        private static int CheckedListCount(long count, DataType type)
+        {
+            if (count < 0 || count > int.MaxValue)
+                throw new InvalidDataException($"PLY list count {count} encoded as {type} is outside [0, {int.MaxValue}].");
+            return (int)count;
+        }
+
+        private static int CheckedListCount(ulong count, DataType type)
+        {
+            if (count > int.MaxValue)
+                throw new InvalidDataException($"PLY list count {count} encoded as {type} is outside [0, {int.MaxValue}].");
+            return (int)count;
+        }
+
+        private static int GetListByteCount(int listCount, int valueSize, Property property)
+        {
+            try
+            {
+                return checked(listCount * valueSize);
+            }
+            catch (OverflowException e)
+            {
+                throw new InvalidDataException($"PLY list property '{property.Name}' is too large.", e);
+            }
+        }
+
+        private static void DecodeFixedProperty(
+            PropertyData propertyData,
+            byte[] source,
+            int sourceOffset,
+            int sourceStride,
+            int count,
+            bool littleEndian
+            )
+        {
+            switch (propertyData.Property.DataType)
+            {
+                case DataType.Int8:
+                {
+                    var target = (sbyte[])propertyData.Data;
+                    for (var i = 0; i < count; i++, sourceOffset += sourceStride) target[i] = unchecked((sbyte)source[sourceOffset]);
+                    break;
+                }
+                case DataType.UInt8:
+                {
+                    var target = (byte[])propertyData.Data;
+                    for (var i = 0; i < count; i++, sourceOffset += sourceStride) target[i] = source[sourceOffset];
+                    break;
+                }
+                case DataType.Int16:
+                {
+                    var target = (short[])propertyData.Data;
+                    for (var i = 0; i < count; i++, sourceOffset += sourceStride) target[i] = DecodeInt16(source, sourceOffset, littleEndian);
+                    break;
+                }
+                case DataType.UInt16:
+                {
+                    var target = (ushort[])propertyData.Data;
+                    for (var i = 0; i < count; i++, sourceOffset += sourceStride) target[i] = DecodeUInt16(source, sourceOffset, littleEndian);
+                    break;
+                }
+                case DataType.Int32:
+                {
+                    var target = (int[])propertyData.Data;
+                    for (var i = 0; i < count; i++, sourceOffset += sourceStride) target[i] = DecodeInt32(source, sourceOffset, littleEndian);
+                    break;
+                }
+                case DataType.UInt32:
+                {
+                    var target = (uint[])propertyData.Data;
+                    for (var i = 0; i < count; i++, sourceOffset += sourceStride) target[i] = DecodeUInt32(source, sourceOffset, littleEndian);
+                    break;
+                }
+                case DataType.Int64:
+                {
+                    var target = (long[])propertyData.Data;
+                    for (var i = 0; i < count; i++, sourceOffset += sourceStride) target[i] = DecodeInt64(source, sourceOffset, littleEndian);
+                    break;
+                }
+                case DataType.UInt64:
+                {
+                    var target = (ulong[])propertyData.Data;
+                    for (var i = 0; i < count; i++, sourceOffset += sourceStride) target[i] = DecodeUInt64(source, sourceOffset, littleEndian);
+                    break;
+                }
+                case DataType.Float32:
+                {
+                    var target = (float[])propertyData.Data;
+                    for (var i = 0; i < count; i++, sourceOffset += sourceStride) target[i] = DecodeFloat32(source, sourceOffset, littleEndian);
+                    break;
+                }
+                case DataType.Float64:
+                {
+                    var target = (double[])propertyData.Data;
+                    for (var i = 0; i < count; i++, sourceOffset += sourceStride) target[i] = DecodeFloat64(source, sourceOffset, littleEndian);
+                    break;
+                }
+                default:
+                    throw new InvalidDataException($"Unsupported PLY property type {propertyData.Property.DataType}.");
+            }
+        }
+
+        private static unsafe void CopyNativeFixedProperty(
+            PropertyData propertyData,
+            byte[] source,
+            int sourceOffset,
+            int sourceStride,
+            int count
+            )
+        {
+            fixed (byte* sourceStart = &source[sourceOffset])
+            {
+                static void Copy<T>(byte* source, int stride, T[] target, int count) where T : unmanaged
+                {
+                    fixed (T* targetStart = &target[0])
+                    {
+                        var t = targetStart;
+                        for (var i = 0; i < count; i++, source += stride, t++) *t = *(T*)source;
+                    }
+                }
+
+                switch (propertyData.Property.DataType)
+                {
+                    case DataType.Int8   : Copy(sourceStart, sourceStride, (sbyte [])propertyData.Data, count); break;
+                    case DataType.UInt8  : Copy(sourceStart, sourceStride, (byte  [])propertyData.Data, count); break;
+                    case DataType.Int16  : Copy(sourceStart, sourceStride, (short [])propertyData.Data, count); break;
+                    case DataType.UInt16 : Copy(sourceStart, sourceStride, (ushort[])propertyData.Data, count); break;
+                    case DataType.Int32  : Copy(sourceStart, sourceStride, (int   [])propertyData.Data, count); break;
+                    case DataType.UInt32 : Copy(sourceStart, sourceStride, (uint  [])propertyData.Data, count); break;
+                    case DataType.Int64  : Copy(sourceStart, sourceStride, (long  [])propertyData.Data, count); break;
+                    case DataType.UInt64 : Copy(sourceStart, sourceStride, (ulong [])propertyData.Data, count); break;
+                    case DataType.Float32: Copy(sourceStart, sourceStride, (float [])propertyData.Data, count); break;
+                    case DataType.Float64: Copy(sourceStart, sourceStride, (double[])propertyData.Data, count); break;
+                    default: throw new InvalidDataException($"Unsupported PLY property type {propertyData.Property.DataType}.");
+                }
+            }
+        }
+
+        private static IEnumerable<ElementData> ParseElement(
+            BinaryInput input,
+            Element element,
+            int maxChunkSize,
+            bool littleEndian,
+            Action<string>? log
+            )
+        {
+            var totalStopwatch = Stopwatch.StartNew();
+            var chunkStopwatch = new Stopwatch();
+            var nativeEndian = littleEndian == BitConverter.IsLittleEndian;
+
             var propertiesCount = element.Properties.Count;
             var offsets = new int[propertiesCount];
             var offset = 0;
@@ -448,11 +814,10 @@ public static class PlyParser
                 offset += DataTypeSizes[element.Properties[pi].DataType];
             }
 
-            // chunks
             var rowCount = element.Count;
             for (var rowIndex = 0L; rowIndex < rowCount; rowIndex += maxChunkSize)
             {
-                swChunk.Restart();
+                chunkStopwatch.Restart();
 
                 var chunkRowCount = (int)Math.Min(rowCount - rowIndex, maxChunkSize);
                 var perPropertyData = element.Properties.Select(p => new PropertyData(p, AllocArray(p, chunkRowCount))).ToArray();
@@ -460,182 +825,211 @@ public static class PlyParser
 
                 if (element.ContainsListProperty)
                 {
-                    var parse = new Action<int>[element.Properties.Count];
-                    for (var pi = 0; pi < element.Properties.Count; pi++)
+                    var parse = new Action<int>[propertiesCount];
+                    for (var pi = 0; pi < propertiesCount; pi++)
                     {
-                        var p = element.Properties[pi];
-                        var xs = perPropertyData[pi].Data;
+                        var property = element.Properties[pi];
+                        var target = perPropertyData[pi].Data;
 
-                        if (p.IsListProperty)
+                        if (property.IsListProperty)
                         {
                             var rawCount = new byte[8];
-                            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                            int parseCount<T>(int bytes, Func<byte[], int, T> decode) where T : unmanaged
+
+                            T ReadSwappedCount<T>(int byteCount, Func<byte[], int, bool, T> decode)
                             {
-                                var c = f.Read(rawCount, 0, bytes);
-                                if (c != bytes) throw new Exception("Error 70fe730c-cba7-4e8e-a5b2-53f410e78546.");
-                                return (int)(object)decode(rawCount, 0);
+                                input.ReadExactly(rawCount, 0, byteCount);
+                                return decode(rawCount, 0, littleEndian);
                             }
 
-                            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                            void parseList<T>(int i, Func<int> getListSize, int valueBytes, Func<byte[], int, T> valueDecode) where T : unmanaged
+                            Func<int> readListCount = nativeEndian
+                                ? property.ListCountType switch
+                                {
+                                    DataType.Int8   => () => CheckedListCount(unchecked((sbyte)input.ReadByte()), DataType.Int8),
+                                    DataType.UInt8  => () => input.ReadByte(),
+                                    DataType.Int16  => () => CheckedListCount(input.ReadNative<short>(), DataType.Int16),
+                                    DataType.UInt16 => () => input.ReadNative<ushort>(),
+                                    DataType.Int32  => () => CheckedListCount(input.ReadNative<int>(), DataType.Int32),
+                                    DataType.UInt32 => () => CheckedListCount(input.ReadNative<uint>(), DataType.UInt32),
+                                    DataType.Int64  => () => CheckedListCount(input.ReadNative<long>(), DataType.Int64),
+                                    DataType.UInt64 => () => CheckedListCount(input.ReadNative<ulong>(), DataType.UInt64),
+                                    _ => throw new InvalidDataException($"PLY list count type must be an integer, but found {property.ListCountType}.")
+                                }
+                                : property.ListCountType switch
+                                {
+                                    DataType.Int8   => () => CheckedListCount(unchecked((sbyte)input.ReadByte()), DataType.Int8),
+                                    DataType.UInt8  => () => input.ReadByte(),
+                                    DataType.Int16  => () => CheckedListCount(ReadSwappedCount(2, DecodeInt16), DataType.Int16),
+                                    DataType.UInt16 => () => ReadSwappedCount(2, DecodeUInt16),
+                                    DataType.Int32  => () => CheckedListCount(ReadSwappedCount(4, DecodeInt32), DataType.Int32),
+                                    DataType.UInt32 => () => CheckedListCount(ReadSwappedCount(4, DecodeUInt32), DataType.UInt32),
+                                    DataType.Int64  => () => CheckedListCount(ReadSwappedCount(8, DecodeInt64), DataType.Int64),
+                                    DataType.UInt64 => () => CheckedListCount(ReadSwappedCount(8, DecodeUInt64), DataType.UInt64),
+                                    _ => throw new InvalidDataException($"PLY list count type must be an integer, but found {property.ListCountType}.")
+                                };
+
+                            void ParseNativeList<T>(int row, int valueSize) where T : unmanaged
                             {
-                                var listSize = getListSize();
-                                var listItems = new T[listSize];
+                                var listCount = readListCount();
+                                var byteCount = GetListByteCount(listCount, valueSize, property);
+                                input.EnsureAvailable(byteCount);
 
-                                var raw = new byte[listSize * valueBytes];
-                                var c = f.Read(raw, 0, raw.Length);
-                                if (c != raw.Length) throw new Exception("Error a8c446bf-3eba-450d-9b4b-5b3667efc904.");
-
-                                Buffer.BlockCopy(raw, 0, listItems, 0, raw.Length);
-
-                                ((T[][])xs)[i] = listItems;
+                                var values = new T[listCount];
+                                input.ReadNativeArray(values, byteCount);
+                                ((T[][])target)[row] = values;
                             }
 
-                            Func<int> getListSize = p.ListCountType switch
+                            void ParseSwappedList<T>(
+                                int row,
+                                int valueSize,
+                                Func<byte[], int, bool, T> decode
+                                ) where T : unmanaged
                             {
-                                DataType.Int8    => () => f.ReadByte(),
-                                DataType.UInt8   => () => f.ReadByte(),
-                                DataType.Int16   => () => parseCount(2, BitConverter.ToInt16),
-                                DataType.UInt16  => () => parseCount(2, BitConverter.ToUInt16),
-                                DataType.Int32   => () => parseCount(4, BitConverter.ToInt32),
-                                DataType.UInt32  => () => parseCount(4, BitConverter.ToUInt32),
-                                DataType.Int64   => () => parseCount(8, BitConverter.ToInt64),
-                                DataType.UInt64  => () => parseCount(8, BitConverter.ToUInt64),
-                                DataType.Float32 => () => parseCount(4, BitConverter.ToSingle),
-                                DataType.Float64 => () => parseCount(8, BitConverter.ToDouble),
+                                var listCount = readListCount();
+                                var byteCount = GetListByteCount(listCount, valueSize, property);
+                                input.EnsureAvailable(byteCount);
 
-                                _ => throw new Exception($"Error 4171e079-b7de-4c75-8efa-677565405ed6. {p.DataType} not supported.")
-                            };
+                                var raw = byteCount == 0 ? [] : new byte[byteCount];
+                                input.ReadExactly(raw, 0, byteCount);
+                                var values = new T[listCount];
+                                for (var i = 0; i < listCount; i++) values[i] = decode(raw, i * valueSize, littleEndian);
+                                ((T[][])target)[row] = values;
+                            }
 
-                            parse[pi] = p.DataType switch
-                            {
-                                DataType.Int8    => i => parseList(i, getListSize, 1, (_raw, _i) => (sbyte)_raw[i]),
-                                DataType.UInt8   => i => parseList(i, getListSize, 1, (_raw, _i) => (byte )_raw[i]),
-                                DataType.Int16   => i => parseList(i, getListSize, 2, BitConverter.ToInt16),
-                                DataType.UInt16  => i => parseList(i, getListSize, 2, BitConverter.ToUInt16),
-                                DataType.Int32   => i => parseList(i, getListSize, 4, BitConverter.ToInt32),
-                                DataType.UInt32  => i => parseList(i, getListSize, 4, BitConverter.ToUInt32),
-                                DataType.Int64   => i => parseList(i, getListSize, 8, BitConverter.ToInt64),
-                                DataType.UInt64  => i => parseList(i, getListSize, 8, BitConverter.ToUInt64),
-                                DataType.Float32 => i => parseList(i, getListSize, 4, BitConverter.ToSingle),
-                                DataType.Float64 => i => parseList(i, getListSize, 8, BitConverter.ToDouble),
-
-                                _ => throw new Exception($"Error 329d239c-dabf-420d-9386-bbf77e8031ff. {p.DataType} not supported.")
-                            };
+                            parse[pi] = nativeEndian
+                                ? property.DataType switch
+                                {
+                                    DataType.Int8    => row => ParseNativeList<sbyte >(row, 1),
+                                    DataType.UInt8   => row => ParseNativeList<byte  >(row, 1),
+                                    DataType.Int16   => row => ParseNativeList<short >(row, 2),
+                                    DataType.UInt16  => row => ParseNativeList<ushort>(row, 2),
+                                    DataType.Int32   => row => ParseNativeList<int   >(row, 4),
+                                    DataType.UInt32  => row => ParseNativeList<uint  >(row, 4),
+                                    DataType.Int64   => row => ParseNativeList<long  >(row, 8),
+                                    DataType.UInt64  => row => ParseNativeList<ulong >(row, 8),
+                                    DataType.Float32 => row => ParseNativeList<float >(row, 4),
+                                    DataType.Float64 => row => ParseNativeList<double>(row, 8),
+                                    _ => throw new InvalidDataException($"Unsupported PLY list value type {property.DataType}.")
+                                }
+                                : property.DataType switch
+                                {
+                                    DataType.Int8    => row => ParseSwappedList(row, 1, (raw, i, _) => unchecked((sbyte)raw[i])),
+                                    DataType.UInt8   => row => ParseSwappedList(row, 1, (raw, i, _) => raw[i]),
+                                    DataType.Int16   => row => ParseSwappedList(row, 2, DecodeInt16),
+                                    DataType.UInt16  => row => ParseSwappedList(row, 2, DecodeUInt16),
+                                    DataType.Int32   => row => ParseSwappedList(row, 4, DecodeInt32),
+                                    DataType.UInt32  => row => ParseSwappedList(row, 4, DecodeUInt32),
+                                    DataType.Int64   => row => ParseSwappedList(row, 8, DecodeInt64),
+                                    DataType.UInt64  => row => ParseSwappedList(row, 8, DecodeUInt64),
+                                    DataType.Float32 => row => ParseSwappedList(row, 4, DecodeFloat32),
+                                    DataType.Float64 => row => ParseSwappedList(row, 8, DecodeFloat64),
+                                    _ => throw new InvalidDataException($"Unsupported PLY list value type {property.DataType}.")
+                                };
                         }
                         else
                         {
                             var raw = new byte[8];
-                            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                            void parseScalar<T>(int i, int bytes, Func<byte[], int, T> decode)
+
+                            void ParseScalar<T>(int row, int byteCount, Func<byte[], int, bool, T> decode)
                             {
-                                var c = f.Read(raw, 0, bytes);
-                                if (c != bytes) throw new Exception("Error 9239b42a-6ef4-4eb5-aea6-c5c07e3947f8.");
-                                ((T[])xs)[i] = decode(raw, 0);
+                                input.ReadExactly(raw, 0, byteCount);
+                                ((T[])target)[row] = decode(raw, 0, littleEndian);
                             }
 
-                            parse[pi] = p.DataType switch
-                            {
-                                DataType.Int8    => i => { ((sbyte[])xs)[i] = (sbyte)f.ReadByte(); },
-                                DataType.UInt8   => i => { ((byte [])xs)[i] = (byte )f.ReadByte(); },
-                                DataType.Int16   => i => parseScalar(i, 2, BitConverter.ToInt16),
-                                DataType.UInt16  => i => parseScalar(i, 2, BitConverter.ToUInt16),
-                                DataType.Int32   => i => parseScalar(i, 4, BitConverter.ToInt32),
-                                DataType.UInt32  => i => parseScalar(i, 4, BitConverter.ToUInt32),
-                                DataType.Int64   => i => parseScalar(i, 8, BitConverter.ToInt64),
-                                DataType.UInt64  => i => parseScalar(i, 8, BitConverter.ToUInt64),
-                                DataType.Float32 => i => parseScalar(i, 4, BitConverter.ToSingle),
-                                DataType.Float64 => i => parseScalar(i, 8, BitConverter.ToDouble),
-                                _ => throw new Exception($"Error 329d239c-dabf-420d-9386-bbf77e8031ff. {p.DataType} not supported.")
-                            };
+                            parse[pi] = nativeEndian
+                                ? property.DataType switch
+                                {
+                                    DataType.Int8    => row => ((sbyte[])target)[row] = unchecked((sbyte)input.ReadByte()),
+                                    DataType.UInt8   => row => ((byte[])target)[row] = input.ReadByte(),
+                                    DataType.Int16   => row => ((short [])target)[row] = input.ReadNative<short>(),
+                                    DataType.UInt16  => row => ((ushort[])target)[row] = input.ReadNative<ushort>(),
+                                    DataType.Int32   => row => ((int   [])target)[row] = input.ReadNative<int>(),
+                                    DataType.UInt32  => row => ((uint  [])target)[row] = input.ReadNative<uint>(),
+                                    DataType.Int64   => row => ((long  [])target)[row] = input.ReadNative<long>(),
+                                    DataType.UInt64  => row => ((ulong [])target)[row] = input.ReadNative<ulong>(),
+                                    DataType.Float32 => row => ((float [])target)[row] = input.ReadNative<float>(),
+                                    DataType.Float64 => row => ((double[])target)[row] = input.ReadNative<double>(),
+                                    _ => throw new InvalidDataException($"Unsupported PLY scalar type {property.DataType}.")
+                                }
+                                : property.DataType switch
+                                {
+                                    DataType.Int8    => row => ((sbyte[])target)[row] = unchecked((sbyte)input.ReadByte()),
+                                    DataType.UInt8   => row => ((byte[])target)[row] = input.ReadByte(),
+                                    DataType.Int16   => row => ParseScalar(row, 2, DecodeInt16),
+                                    DataType.UInt16  => row => ParseScalar(row, 2, DecodeUInt16),
+                                    DataType.Int32   => row => ParseScalar(row, 4, DecodeInt32),
+                                    DataType.UInt32  => row => ParseScalar(row, 4, DecodeUInt32),
+                                    DataType.Int64   => row => ParseScalar(row, 8, DecodeInt64),
+                                    DataType.UInt64  => row => ParseScalar(row, 8, DecodeUInt64),
+                                    DataType.Float32 => row => ParseScalar(row, 4, DecodeFloat32),
+                                    DataType.Float64 => row => ParseScalar(row, 8, DecodeFloat64),
+                                    _ => throw new InvalidDataException($"Unsupported PLY scalar type {property.DataType}.")
+                                };
                         }
                     }
 
                     for (var chunkRowIndex = 0; chunkRowIndex < chunkRowCount; chunkRowIndex++)
                     {
-                        for (var pi = 0; pi < element.Properties.Count; pi++) parse[pi](chunkRowIndex);
+                        for (var pi = 0; pi < propertiesCount; pi++) parse[pi](chunkRowIndex);
                     }
                 }
                 else
                 {
-                    var rowSizeInBytes = GetSizeInBytes(element) ?? throw new Exception($"Error 4f56dae5-94e8-4bfb-a290-0e20d1396ca6.");
-                    chunkSizeInBytes = chunkRowCount * rowSizeInBytes;
-
-                    var chunk = new byte[chunkSizeInBytes];
-                    var c = f.Read(chunk, 0, chunkSizeInBytes);
-                    if (c != chunkSizeInBytes) throw new Exception("Error a6d0f241-be6a-408b-baa5-5872b311b6a0.");
-
-                    var tasks = new List<Task>();
-                    for (var _pi = 0; _pi < element.Properties.Count; _pi++)
+                    var rowSizeInBytes = GetSizeInBytes(element) ?? throw new InvalidDataException($"PLY element '{element.Name}' has no fixed record size.");
+                    try
                     {
-                        var pi = _pi;
-                        void Process()
+                        chunkSizeInBytes = checked(chunkRowCount * rowSizeInBytes);
+                    }
+                    catch (OverflowException e)
+                    {
+                        throw new InvalidDataException($"PLY chunk for element '{element.Name}' is too large.", e);
+                    }
+
+                    input.EnsureAvailable(chunkSizeInBytes);
+                    var chunk = new byte[chunkSizeInBytes];
+                    input.ReadExactly(chunk, 0, chunkSizeInBytes);
+
+                    var tasks = new List<Task>(propertiesCount);
+                    for (var pi = 0; pi < propertiesCount; pi++)
+                    {
+                        var propertyIndex = pi;
+                        tasks.Add(Task.Run(() =>
                         {
-                            unsafe
-                            {
-                                fixed (byte* p0 = &chunk[0])
-                                {
-                                    var p = p0 + offsets[pi];
-                                    var a = perPropertyData[pi].Data;
-
-                                    static bool Copy<T>(byte* source, int sourceStride, Array target, int count) where T : unmanaged
-                                    {
-                                        fixed (T* _t = &((T[])target)[0])
-                                        {
-                                            var t = _t;
-                                            for (int i = 0; i < count; i++, source += sourceStride, t++) *t = *(T*)source;
-                                        }
-                                        return true;
-                                    }
-
-                                    _ = element.Properties[pi].DataType switch
-                                    {
-                                        DataType.Int8    => Copy<sbyte >(p, rowSizeInBytes, a, chunkRowCount),
-                                        DataType.UInt8   => Copy<byte  >(p, rowSizeInBytes, a, chunkRowCount),
-                                        DataType.Int16   => Copy<short >(p, rowSizeInBytes, a, chunkRowCount),
-                                        DataType.UInt16  => Copy<ushort>(p, rowSizeInBytes, a, chunkRowCount),
-                                        DataType.Int32   => Copy<int   >(p, rowSizeInBytes, a, chunkRowCount),
-                                        DataType.UInt32  => Copy<uint  >(p, rowSizeInBytes, a, chunkRowCount),
-                                        DataType.Int64   => Copy<long  >(p, rowSizeInBytes, a, chunkRowCount),
-                                        DataType.UInt64  => Copy<ulong >(p, rowSizeInBytes, a, chunkRowCount),
-                                        DataType.Float32 => Copy<float >(p, rowSizeInBytes, a, chunkRowCount),
-                                        DataType.Float64 => Copy<double>(p, rowSizeInBytes, a, chunkRowCount),
-                                        _ => throw new Exception()
-                                    };
-                                }
-                            }
-                        }
-
-                        tasks.Add(Task.Run(Process));
+                            if (nativeEndian)
+                                CopyNativeFixedProperty(perPropertyData[propertyIndex], chunk, offsets[propertyIndex], rowSizeInBytes, chunkRowCount);
+                            else
+                                DecodeFixedProperty(perPropertyData[propertyIndex], chunk, offsets[propertyIndex], rowSizeInBytes, chunkRowCount, littleEndian);
+                        }));
                     }
                     Task.WhenAll(tasks).Wait();
                 }
 
-                swChunk.Stop();
+                chunkStopwatch.Stop();
                 if (log != null)
                 {
-                    var bps = chunkSizeInBytes / swChunk.Elapsed.TotalSeconds;
-                    var vps = chunkRowCount / swChunk.Elapsed.TotalSeconds;
-                    log?.Invoke($"[PlyParser] parsed {chunkSizeInBytes,16:N0} bytes in {swChunk.Elapsed.TotalSeconds,6:N3} s | {bps,16:N0} MiB/s | {chunkRowCount,10:N0} points | {vps,16:N0} points/s");
+                    var bps = chunkSizeInBytes / chunkStopwatch.Elapsed.TotalSeconds;
+                    var vps = chunkRowCount / chunkStopwatch.Elapsed.TotalSeconds;
+                    log($"[PlyParser] parsed {chunkSizeInBytes,16:N0} bytes in {chunkStopwatch.Elapsed.TotalSeconds,6:N3} s | {bps,16:N0} MiB/s | {chunkRowCount,10:N0} points | {vps,16:N0} points/s");
                 }
 
                 yield return new(element, [.. perPropertyData]);
             }
 
-            swTotal.Stop();
-            log?.Invoke($"[PlyParser] total {swTotal.Elapsed}");
+            totalStopwatch.Stop();
+            log?.Invoke($"[PlyParser] total {totalStopwatch.Elapsed}");
         }
 
-        public static Dataset Parse(Header header, Stream f, int maxChunkSize, Action<string>? log)
+        public static Dataset Parse(Header header, Stream stream, int maxChunkSize, Action<string>? log)
         {
-            if (BitConverter.IsLittleEndian && header.Format == Format.BinaryBigEndian)
-                throw new Exception("Parsing binary big endian on little endian machine is not supported.");
+            if (maxChunkSize <= 0) throw new ArgumentOutOfRangeException(nameof(maxChunkSize));
+            var littleEndian = header.Format switch
+            {
+                Format.BinaryLittleEndian => true,
+                Format.BinaryBigEndian => false,
+                _ => throw new InvalidDataException($"Expected binary PLY format, but found {header.Format}.")
+            };
 
-            if (!BitConverter.IsLittleEndian && header.Format == Format.BinaryLittleEndian)
-                throw new Exception("Parsing binary little endian on big endian machine is not supported.");
-
-            var data = header.Elements.SelectMany(e => ParseElement(f, e, maxChunkSize, log));
+            var input = new BinaryInput(stream);
+            var data = header.Elements.SelectMany(element => ParseElement(input, element, maxChunkSize, littleEndian, log));
             return new(header, data);
         }
     }

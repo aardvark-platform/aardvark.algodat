@@ -222,7 +222,10 @@ foreach (var chunk in chunks)
 - Classifications: `scalar_classification` or `classification` (byte values)
 
 **Key Features:**
-- Supports ASCII and binary (little/big endian) PLY formats
+- Supports ASCII and binary PLY formats; binary little- and big-endian payloads are decoded according to the file declaration, independently of host byte order
+- Supports all declared integer and floating-point widths for scalar and list values
+- List lengths must use an integer PLY type and fit the nonnegative `int` range; negative, oversized, malformed, or truncated lists are rejected before item-array allocation
+- Accepts both LF and CRLF header framing without consuming payload bytes
 - Auto-type conversion for numeric properties
 - Intensity value rescaling (preserves 0-255 for small values, scales larger ranges)
 - Color alpha channel defaults to 255 if missing
