@@ -12,7 +12,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
-using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace Aardvark.Geometry.Points;
@@ -98,7 +97,7 @@ public static class BaseExtensions
     }
 
     /// <summary>
-    /// Returns true if the Hull3d completely contains the box.
+    /// Returns true if the outward-facing planes of the Hull3d completely contain the valid box, including its boundary.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool Contains(
@@ -106,11 +105,11 @@ public static class BaseExtensions
     {
         var planes = self.PlaneArray;
         var imax = self.PlaneCount;
-        var corners = box.Corners.ToArray();
         for (var i = 0; i < imax; i++)
         {
             var plane = planes[i];
-            for (var j = 0; j < 8; j++) if (plane.Height(corners[j]) > 0) return false;
+            box.GetMinMaxInDirection(plane.Normal, out _, out var max);
+            if (plane.Height(max) > 0) return false;
         }
         return true;
     }
