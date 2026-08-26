@@ -133,6 +133,11 @@ var chunk = new Chunk(
     bbox: null  // Auto-computed
 );
 
+// Position replacement and mapping preserve aligned optional attributes and
+// part indices, and derive a new bounding box from the resulting coordinates.
+var translatedChunk = chunk.ImmutableMapPositions(p => p + translation);
+var replacedPositions = chunk.WithPositions(newPositions);
+
 // Filter chunk
 var filteredChunk = chunk.ImmutableFilterByBox3d(
     new Box3d(new V3d(-5, -5, -5), new V3d(5, 5, 5))

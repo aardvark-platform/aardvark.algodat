@@ -235,12 +235,20 @@ foreach (var chunk in chunks)
 
 **Problem:** Importers do not perform coordinate system transformations. E57 applies pose transformations, but other formats assume the coordinate system is as-stored.
 
-**Solution:** Apply coordinate transformations manually after import if needed:
+**Solution:** Configure reprojection as part of import so transformed coordinates and bounds reach density filtering and octree construction together:
 
 ```csharp
+var rotation = Rot3d.RotationZ(Math.PI / 2);
+var config = ImportConfig.Default
+    .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+    .WithReproject(positions => positions
+        .Select(p => rotation.Transform(p))
+        .ToArray());
+
 var pointset = PointCloud.Import("scan.las", config);
-var transformed = pointset.Transform(Matrix4x4.FromRotationZ(Math.PI / 2));
 ```
+
+`WithReproject` keeps returned position index `i` paired with source attribute and part-index `i`, and recomputes every transformed `Chunk.BoundingBox`. Avoid post-import position replacement when the octree must represent the transformed coordinate system.
 
 ### 2. Memory Usage with Large Files
 
