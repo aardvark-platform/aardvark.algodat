@@ -90,7 +90,8 @@ public static partial class PointCloud
             }
         });
 
-        // reproject positions
+        // Reproject before density filtering and map/reduce. WithPositions derives
+        // each chunk's bounds from the returned coordinates.
         if (config.Reproject != null)
         {
             Chunk map(Chunk x, CancellationToken ct)

@@ -412,9 +412,10 @@ namespace Aardvark.Data.Points
         }
 
         /// <summary>
-        /// Immutable update of positions.
+        /// Immutable update of positions. The bounding box is recomputed from <paramref name="newPositions"/>;
+        /// optional attributes and part indices retain their source index alignment.
         /// </summary>
-        public Chunk WithPositions(IList<V3d> newPositions) => new(newPositions, Colors, Normals, Intensities, Classifications, PartIndices, PartIndexRange, BoundingBox);
+        public Chunk WithPositions(IList<V3d> newPositions) => new(newPositions, Colors, Normals, Intensities, Classifications, PartIndices, PartIndexRange, bbox: null);
 
         /// <summary>
         /// Immutable update of colors.
@@ -485,8 +486,25 @@ namespace Aardvark.Data.Points
             }
         }
 
+        /// <summary>
+        /// Returns a chunk with mapped positions and bounds derived from the mapped coordinates.
+        /// Optional attributes and part indices retain their source alignment.
+        /// </summary>
         public Chunk ImmutableMapPositions(Func<V3d, V3d> mapping)
-            => IsEmpty ? Empty : new(Positions.Map(mapping), Colors, Normals, Intensities, Classifications, PartIndices, PartIndexRange, BoundingBox);
+        {
+            if (IsEmpty) return Empty;
+
+            var positions = new V3d[Count];
+            var bounds = Box3d.Invalid;
+            for (var i = 0; i < positions.Length; i++)
+            {
+                var position = mapping(Positions[i]);
+                positions[i] = position;
+                bounds.ExtendBy(position);
+            }
+
+            return new Chunk(positions, Colors, Normals, Intensities, Classifications, PartIndices, PartIndexRange, bounds);
+        }
 
         public Chunk ImmutableMergeWith(IEnumerable<Chunk> others)
             => ImmutableMerge(this, ImmutableMerge(others));
