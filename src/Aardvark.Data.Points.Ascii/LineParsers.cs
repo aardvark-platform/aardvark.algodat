@@ -34,7 +34,8 @@ namespace Aardvark.Data.Points
     }
     
     /// <summary>
-    /// Various line parsers.
+    /// Single-pass numeric line parsers for LF- or CRLF-delimited ASCII point records.
+    /// Floating-point fields support invariant decimal and scientific notation.
     /// </summary>
     public static class LineParsers
     {
@@ -83,7 +84,6 @@ namespace Aardvark.Data.Points
             var js = hasIntensity ? new List<int>() : null;
 
             var prev = V3d.PositiveInfinity;
-            var filterDistM = -filterDist;
             var doFilterDist = filterDist > 0.0;
 
             var tokenParsers = layout.Map(x => s_parsers[x]);
@@ -146,7 +146,6 @@ namespace Aardvark.Data.Points
             var js = hasIntensity ? new List<int>() : null;
 
             var prev = V3d.PositiveInfinity;
-            var filterDistM = -filterDist;
             var doFilterDist = filterDist > 0.0;
 
             var tokenParsers = layout.Map(x => s_parsers[x]);
@@ -232,267 +231,307 @@ namespace Aardvark.Data.Points
         #region Private
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsDelimiter(byte c)
+            => c == ' ' || c == '\t' || c == '\r' || c == '\n';
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static unsafe bool SkipToNextLine(LineParserState state)
         {
-            while (state.p < state.end && *state.p != '\n') state.p++;
-            state.p++;
-            return state.p < state.end;
+            var p = state.p;
+            while (p < state.end && *p != '\n') p++;
+            if (p < state.end) p++;
+            state.p = p;
+            return p < state.end;
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static unsafe void ParseFloat64(LineParserState state, Action<double> setResult)
         {
-            if (state.p >= state.end) { state.IsInvalid = true; return; }
-
-            while ((*state.p == ' ' || *state.p == '\t') && state.p < state.end) state.p++;
-            if (state.p >= state.end || *state.p == '\n' || *state.p == '\r') { state.IsInvalid = true; return; }
-
-            var minus = *state.p == ((byte)'-');
-            if (minus) state.p++;
-            else if (*state.p == ((byte)'+')) state.p++;
-
-            var x = 0.0;
-            var parse = true;
-            while (parse && state.p < state.end)
+            var p = state.p;
+            var end = state.end;
+            while (p < end && (*p == ' ' || *p == '\t')) p++;
+            if (p >= end || *p == '\n' || *p == '\r')
             {
-                switch ((char)*state.p)
-                {
-                    case '0': x *= 10.0; break;
-                    case '1': x = x * 10.0 + 1.0; break;
-                    case '2': x = x * 10.0 + 2.0; break;
-                    case '3': x = x * 10.0 + 3.0; break;
-                    case '4': x = x * 10.0 + 4.0; break;
-                    case '5': x = x * 10.0 + 5.0; break;
-                    case '6': x = x * 10.0 + 6.0; break;
-                    case '7': x = x * 10.0 + 7.0; break;
-                    case '8': x = x * 10.0 + 8.0; break;
-                    case '9': x = x * 10.0 + 9.0; break;
-                    case '.': parse = false; break;
-                    case '\n':
-                    case '\r':
-                    case '\t':
-                    case ' ': setResult(minus ? -x : x); return;
-                    default: { state.IsInvalid = true; return; }
-                }
-                state.p++;
-            }
-            if (state.p >= state.end) { setResult(minus ? -x : x); return; }
-
-            var y = 0.0;
-            var r = 0.1;
-            var noExponent = true;
-            while (noExponent && state.p < state.end)
-            {
-                switch ((char)*state.p)
-                {
-                    case '0': break;
-                    case '1': y += r; break;
-                    case '2': y += r * 2; break;
-                    case '3': y += r * 3; break;
-                    case '4': y += r * 4; break;
-                    case '5': y += r * 5; break;
-                    case '6': y += r * 6; break;
-                    case '7': y += r * 7; break;
-                    case '8': y += r * 8; break;
-                    case '9': y += r * 9; break;
-                    case 'e':
-                    case 'E': noExponent = false; break;
-                    case '\n':
-                    case '\r':
-                    case '\t':
-                    case ' ': setResult(minus ? -x - y : x + y); return;
-                    default: { state.IsInvalid = true; return; };
-                }
-                r *= 0.1;
-                state.p++;
+                state.p = p;
+                state.IsInvalid = true;
+                return;
             }
 
-            if (!noExponent)
-            {
-                var minusExponent = *state.p == ((byte)'-');
-                if (minusExponent) state.p++;
-                else if (*state.p == ((byte)'+')) state.p++;
+            var minus = *p == '-';
+            if (minus || *p == '+') p++;
 
-                var e = 0;
-                while (state.p < state.end)
+            var value = 0.0;
+            var hasDigits = false;
+            while (p < end)
+            {
+                var digit = (uint)(*p - '0');
+                if (digit > 9) break;
+                value = value * 10.0 + digit;
+                hasDigits = true;
+                p++;
+            }
+
+            var fraction = 0.0;
+            if (p < end && *p == '.')
+            {
+                p++;
+                var scale = 0.1;
+                while (p < end)
                 {
-                    switch ((char)*state.p)
-                    {
-                        case '0': e *= 10; break;
-                        case '1': e = e * 10 + 1; break;
-                        case '2': e = e * 10 + 2; break;
-                        case '3': e = e * 10 + 3; break;
-                        case '4': e = e * 10 + 4; break;
-                        case '5': e = e * 10 + 5; break;
-                        case '6': e = e * 10 + 6; break;
-                        case '7': e = e * 10 + 7; break;
-                        case '8': e = e * 10 + 8; break;
-                        case '9': e = e * 10 + 9; break;
-                        case '\n':
-                        case '\r':
-                        case '\t':
-                        case ' ': setResult((minus ? -x - y : x + y) * Math.Pow(10, minusExponent ? -e : e)); return;
-                        default: { state.IsInvalid = true; return; }
-                    }
-                    state.p++;
+                    var digit = (uint)(*p - '0');
+                    if (digit > 9) break;
+                    fraction += digit * scale;
+                    scale *= 0.1;
+                    hasDigits = true;
+                    p++;
                 }
             }
 
-            setResult(minus ? -x - y : x + y);
+            if (!hasDigits)
+            {
+                state.p = p;
+                state.IsInvalid = true;
+                return;
+            }
+
+            var exponent = 0;
+            var minusExponent = false;
+            if (p < end && (*p == 'e' || *p == 'E'))
+            {
+                p++;
+                if (p < end && (*p == '-' || *p == '+'))
+                {
+                    minusExponent = *p == '-';
+                    p++;
+                }
+
+                var hasExponentDigits = false;
+                while (p < end)
+                {
+                    var digit = (uint)(*p - '0');
+                    if (digit > 9) break;
+                    exponent = exponent < 1000 ? exponent * 10 + (int)digit : 10000;
+                    hasExponentDigits = true;
+                    p++;
+                }
+
+                if (!hasExponentDigits)
+                {
+                    state.p = p;
+                    state.IsInvalid = true;
+                    return;
+                }
+            }
+
+            if (p < end && !IsDelimiter(*p))
+            {
+                state.p = p;
+                state.IsInvalid = true;
+                return;
+            }
+
+            value += fraction;
+            if (exponent != 0 && value != 0.0)
+                value *= Math.Pow(10.0, minusExponent ? -exponent : exponent);
+
+            state.p = p;
+            setResult(minus ? -value : value);
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static unsafe void ParseFloat32(LineParserState state, Action<float> setResult)
         {
-            if (state.p >= state.end) { state.IsInvalid = true; return; }
-
-            while ((*state.p == ' ' || *state.p == '\t') && state.p < state.end) state.p++;
-            if (state.p >= state.end || *state.p == '\n' || *state.p == '\r') { state.IsInvalid = true; return; }
-
-            var minus = *state.p == ((byte)'-');
-            if (minus) state.p++;
-            else if (*state.p == ((byte)'+')) state.p++;
-
-            var x = 0.0f;
-            var parse = true;
-            while (parse && state.p < state.end)
+            var p = state.p;
+            var end = state.end;
+            while (p < end && (*p == ' ' || *p == '\t')) p++;
+            if (p >= end || *p == '\n' || *p == '\r')
             {
-                switch ((char)*state.p)
-                {
-                    case '0': x *= 10.0f; break;
-                    case '1': x = x * 10.0f + 1.0f; break;
-                    case '2': x = x * 10.0f + 2.0f; break;
-                    case '3': x = x * 10.0f + 3.0f; break;
-                    case '4': x = x * 10.0f + 4.0f; break;
-                    case '5': x = x * 10.0f + 5.0f; break;
-                    case '6': x = x * 10.0f + 6.0f; break;
-                    case '7': x = x * 10.0f + 7.0f; break;
-                    case '8': x = x * 10.0f + 8.0f; break;
-                    case '9': x = x * 10.0f + 9.0f; break;
-                    case '.': parse = false; break;
-                    case '\t':
-                    case ' ': setResult(minus ? -x : x); return;
-                    default: { state.IsInvalid = true; return; }
-                }
-                state.p++;
+                state.p = p;
+                state.IsInvalid = true;
+                return;
             }
-            if (state.p >= state.end) { setResult(minus ? -x : x); return; }
 
-            var y = 0.0f;
-            var r = 0.1f;
-            while (state.p < state.end)
+            var minus = *p == '-';
+            if (minus || *p == '+') p++;
+
+            var value = 0.0f;
+            var hasDigits = false;
+            while (p < end)
             {
-                switch ((char)*state.p)
-                {
-                    case '0': break;
-                    case '1': y += r; break;
-                    case '2': y += r * 2; break;
-                    case '3': y += r * 3; break;
-                    case '4': y += r * 4; break;
-                    case '5': y += r * 5; break;
-                    case '6': y += r * 6; break;
-                    case '7': y += r * 7; break;
-                    case '8': y += r * 8; break;
-                    case '9': y += r * 9; break;
-                    case '\t':
-                    case ' ': setResult(minus ? -x - y : x + y); return;
-                    default: { state.IsInvalid = true; return; }
-                }
-                r *= 0.1f;
-                state.p++;
+                var digit = (uint)(*p - '0');
+                if (digit > 9) break;
+                value = value * 10.0f + digit;
+                hasDigits = true;
+                p++;
             }
-            setResult(minus ? -x - y : x + y);
+
+            var fraction = 0.0f;
+            if (p < end && *p == '.')
+            {
+                p++;
+                var scale = 0.1f;
+                while (p < end)
+                {
+                    var digit = (uint)(*p - '0');
+                    if (digit > 9) break;
+                    fraction += digit * scale;
+                    scale *= 0.1f;
+                    hasDigits = true;
+                    p++;
+                }
+            }
+
+            if (!hasDigits)
+            {
+                state.p = p;
+                state.IsInvalid = true;
+                return;
+            }
+
+            var exponent = 0;
+            var minusExponent = false;
+            if (p < end && (*p == 'e' || *p == 'E'))
+            {
+                p++;
+                if (p < end && (*p == '-' || *p == '+'))
+                {
+                    minusExponent = *p == '-';
+                    p++;
+                }
+
+                var hasExponentDigits = false;
+                while (p < end)
+                {
+                    var digit = (uint)(*p - '0');
+                    if (digit > 9) break;
+                    exponent = exponent < 1000 ? exponent * 10 + (int)digit : 10000;
+                    hasExponentDigits = true;
+                    p++;
+                }
+
+                if (!hasExponentDigits)
+                {
+                    state.p = p;
+                    state.IsInvalid = true;
+                    return;
+                }
+            }
+
+            if (p < end && !IsDelimiter(*p))
+            {
+                state.p = p;
+                state.IsInvalid = true;
+                return;
+            }
+
+            value += fraction;
+            if (exponent != 0 && value != 0.0f)
+                value = (float)(value * Math.Pow(10.0, minusExponent ? -exponent : exponent));
+
+            state.p = p;
+            setResult(minus ? -value : value);
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static unsafe void ParseInt(LineParserState state, Action<int> setResult)
         {
-            if (state.p >= state.end) { state.IsInvalid = true; return; }
-
-            while ((*state.p == ' ' || *state.p == '\t') && state.p < state.end) state.p++;
-            if (state.p >= state.end || *state.p == '\n' || *state.p == '\r') { state.IsInvalid = true; return; }
-
-            var minus = *state.p == ((byte)'-');
-            if (minus) state.p++;
-
-            var x = 0;
-            while (state.p < state.end)
+            var p = state.p;
+            var end = state.end;
+            while (p < end && (*p == ' ' || *p == '\t')) p++;
+            if (p >= end || *p == '\n' || *p == '\r')
             {
-                switch ((char)*state.p)
-                {
-                    case '0': x *= 10; break;
-                    case '1': x = x * 10 + 1; break;
-                    case '2': x = x * 10 + 2; break;
-                    case '3': x = x * 10 + 3; break;
-                    case '4': x = x * 10 + 4; break;
-                    case '5': x = x * 10 + 5; break;
-                    case '6': x = x * 10 + 6; break;
-                    case '7': x = x * 10 + 7; break;
-                    case '8': x = x * 10 + 8; break;
-                    case '9': x = x * 10 + 9; break;
-                    case '\r':
-                    case '\n':
-                    case '\t':
-                    case ' ': setResult(minus ? -x : x); return;
-                    default: { state.IsInvalid = true; return; }
-                }
-                state.p++;
+                state.p = p;
+                state.IsInvalid = true;
+                return;
             }
-            setResult(minus ? -x : x);
+
+            var minus = *p == '-';
+            if (minus) p++;
+
+            var value = 0;
+            while (p < end)
+            {
+                var digit = (uint)(*p - '0');
+                if (digit <= 9)
+                {
+                    value = value * 10 + (int)digit;
+                    p++;
+                    continue;
+                }
+
+                if (IsDelimiter(*p))
+                {
+                    state.p = p;
+                    setResult(minus ? -value : value);
+                    return;
+                }
+
+                state.p = p;
+                state.IsInvalid = true;
+                return;
+            }
+
+            state.p = p;
+            setResult(minus ? -value : value);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static unsafe void ParseByte(LineParserState state, Action<byte> setResult)
         {
-            if (state.p >= state.end) { state.IsInvalid = true; return; }
-
-            while (*state.p == ' ' && state.p < state.end) state.p++;
-            if (state.p >= state.end || *state.p == '\n' || *state.p == '\r') { state.IsInvalid = true; return; }
-            
-            var x = 0;
-            while (state.p < state.end)
+            var p = state.p;
+            var end = state.end;
+            while (p < end && *p == ' ') p++;
+            if (p >= end || *p == '\n' || *p == '\r')
             {
-                switch ((char)*state.p)
-                {
-                    case '0': x *= 10; break;
-                    case '1': x = x * 10 + 1; break;
-                    case '2': x = x * 10 + 2; break;
-                    case '3': x = x * 10 + 3; break;
-                    case '4': x = x * 10 + 4; break;
-                    case '5': x = x * 10 + 5; break;
-                    case '6': x = x * 10 + 6; break;
-                    case '7': x = x * 10 + 7; break;
-                    case '8': x = x * 10 + 8; break;
-                    case '9': x = x * 10 + 9; break;
-                    case '\r':
-                    case '\n':
-                    case ' ': if (x < 256) setResult((byte)x); else state.IsInvalid = true; return;
-                    default: { state.IsInvalid = true; return; }
-                }
-                state.p++;
+                state.p = p;
+                state.IsInvalid = true;
+                return;
             }
-            if (x < 256) setResult((byte)x); else state.IsInvalid = true;
+            
+            var value = 0;
+            while (p < end)
+            {
+                var digit = (uint)(*p - '0');
+                if (digit <= 9)
+                {
+                    value = value * 10 + (int)digit;
+                    p++;
+                    continue;
+                }
+
+                if (*p == ' ' || *p == '\r' || *p == '\n')
+                {
+                    state.p = p;
+                    if (value < 256) setResult((byte)value);
+                    else state.IsInvalid = true;
+                    return;
+                }
+
+                state.p = p;
+                state.IsInvalid = true;
+                return;
+            }
+
+            state.p = p;
+            if (value < 256) setResult((byte)value);
+            else state.IsInvalid = true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static unsafe void ParseSkip(LineParserState state)
         {
-            if (state.p >= state.end) { state.IsInvalid = true; return; }
-
-            while ((*state.p == ' ' || *state.p == '\t') && state.p < state.end) state.p++;
-            if (state.p >= state.end || *state.p == '\n' || *state.p == '\r') { state.IsInvalid = true; return; }
-            
-            while (state.p < state.end)
+            var p = state.p;
+            var end = state.end;
+            while (p < end && (*p == ' ' || *p == '\t')) p++;
+            if (p >= end || *p == '\n' || *p == '\r')
             {
-                switch ((char)*state.p)
-                {
-                    case '\r':
-                    case '\n':
-                    case '\t':
-                    case ' ': return;
-                }
-                state.p++;
+                state.p = p;
+                state.IsInvalid = true;
+                return;
             }
+
+            while (p < end && !IsDelimiter(*p)) p++;
+            state.p = p;
         }
 
         #endregion
