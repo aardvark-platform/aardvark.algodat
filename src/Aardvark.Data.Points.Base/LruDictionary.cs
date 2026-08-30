@@ -19,20 +19,27 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace Aardvark.Base
 {
     /// <summary>
+    /// Thread-safe, size-bounded dictionary that evicts the least recently used entries.
+    /// Successful value retrieval and replacement refresh recency; membership checks do not.
     /// </summary>
     public class LruDictionary<K, V> : IDictionary<K, V>
     {
-        /// <summary></summary>
+        /// <summary>Maximum combined entry size retained by the dictionary.</summary>
         public readonly long MaxSize;
 
-        /// <summary></summary>
-        public long CurrentSize { get; private set; }
+        /// <summary>Gets the combined size of all currently retained entries.</summary>
+        public long CurrentSize
+        {
+            get { lock (m_k2e) return m_currentSize; }
+        }
 
         /// <summary>
+        /// Creates an empty dictionary with the supplied positive size limit.
         /// </summary>
         public LruDictionary(long maxSize)
         {
@@ -55,18 +62,21 @@ namespace Aardvark.Base
         private Entry? m_first = null;
         private Entry? m_last = null;
         private readonly Dictionary<K, Entry> m_k2e = [];
+        private long m_currentSize;
 
-        private void Unlink(Entry e)
+        private void UnlinkLocked(Entry e)
         {
             if (e.Prev != null) e.Prev.Next = e.Next; else m_first = e.Next;
             if (e.Next != null) e.Next.Prev = e.Prev; else m_last = e.Prev;
+            e.Prev = null;
+            e.Next = null;
         }
-        private void InsertAtFront(Entry e)
+
+        private void InsertAtFrontLocked(Entry e)
         {
             if (m_first != null)
             {
                 m_first.Prev = e;
-                e.Prev = null;
                 e.Next = m_first;
                 m_first = e;
             }
@@ -76,23 +86,86 @@ namespace Aardvark.Base
                 m_first = m_last = e;
             }
         }
-        private void RemoveLast()
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void TouchLocked(Entry e)
         {
-            Entry? removed = null;
-            lock (m_k2e)
+            var first = m_first;
+            if (ReferenceEquals(first, e)) return;
+
+            var previous = e.Prev!;
+            var next = e.Next;
+            previous.Next = next;
+            if (next != null) next.Prev = previous; else m_last = previous;
+
+            e.Prev = null;
+            e.Next = first;
+            first!.Prev = e;
+            m_first = e;
+        }
+
+        private Entry RemoveEntryLocked(Entry e)
+        {
+            if (!m_k2e.Remove(e.Key)) throw new InvalidOperationException();
+            UnlinkLocked(e);
+            m_currentSize -= e.Size;
+            return e;
+        }
+
+        private Entry? EvictLocked()
+        {
+            Entry? first = null;
+            Entry? last = null;
+            while (m_currentSize > MaxSize)
             {
-                if (CurrentSize <= MaxSize) return;
-                if (m_last == null) return;
-                removed = m_last;
-                m_k2e.Remove(removed.Key);
-                CurrentSize -= m_last.Size;
-                m_last = m_last.Prev;
-                if (m_last == null) throw new InvalidOperationException();
-                m_last.Next = null;
+                var e = RemoveEntryLocked(m_last ?? throw new InvalidOperationException());
+                if (e.OnRemove != null)
+                {
+                    if (last != null) last.Next = e; else first = e;
+                    last = e;
+                }
+            }
+            return first;
+        }
+
+        private bool AddOrUpdateLocked(
+            K key, V value, long size, Action<K, V, long>? onRemove,
+            out Entry? evicted)
+        {
+            bool added;
+            if (m_k2e.TryGetValue(key, out var e))
+            {
+                m_currentSize -= e.Size;
+                e.Value = value;
+                e.Size = size;
+                e.OnRemove = onRemove;
+                TouchLocked(e);
+                added = false;
+            }
+            else
+            {
+                e = new Entry(key, value, size, onRemove);
+                m_k2e.Add(key, e);
+                InsertAtFrontLocked(e);
+                added = true;
             }
 
-            removed.OnRemove?.Invoke(removed.Key, removed.Value, removed.Size);
+            m_currentSize += size;
+            evicted = EvictLocked();
+            return added;
         }
+
+        private static void InvokeRemovalCallbacks(Entry? entry)
+        {
+            while (entry != null)
+            {
+                var next = entry.Next;
+                entry.Next = null;
+                entry.OnRemove?.Invoke(entry.Key, entry.Value, entry.Size);
+                entry = next;
+            }
+        }
+
         private List<Entry> GetEntriesInOrder()
         {
             var es = new List<Entry>();
@@ -110,75 +183,50 @@ namespace Aardvark.Base
 
         #endregion
 
-        /// <summary>
-        /// </summary>
-        public int Count => m_k2e.Count;
+        /// <summary>Gets the number of currently retained entries.</summary>
+        public int Count
+        {
+            get { lock (m_k2e) return m_k2e.Count; }
+        }
 
         /// <summary>
-        /// Adds or refreshes key/value pair.
-        /// Returns true if key did not exist.
+        /// Adds a new entry or atomically replaces an existing entry's value, size, and removal callback,
+        /// moving it to the most-recently-used position. Returns true only when a new key was inserted.
+        /// Replacement does not invoke the previous callback. Capacity-eviction callbacks receive the
+        /// latest tuple and run after the dictionary state lock has been released.
         /// </summary>
         public bool Add(K key, V value, long size, Action<K, V, long>? onRemove = null)
         {
             if (size > MaxSize || size < 0) throw new ArgumentOutOfRangeException(nameof(size));
 
-            Entry? e = null;
+            bool added;
+            Entry? evicted;
             lock (m_k2e)
-            {
-                if (m_k2e.TryGetValue(key, out e))
-                {
-                    Unlink(e);
-                    CurrentSize -= e.Size; e.Size = size; 
-                }
-                else
-                {
-                    e = new Entry(key, value, size, onRemove);
-                    m_k2e[key] = e;
-                }
-                
-                InsertAtFront(e);
-                CurrentSize += e.Size;
-            }
-            
-            while (CurrentSize > MaxSize)
-            {
-                RemoveLast();
-            }
+                added = AddOrUpdateLocked(key, value, size, onRemove, out evicted);
 
-            return e == null;
+            InvokeRemovalCallbacks(evicted);
+            return added;
         }
 
         /// <summary>
-        /// Removes entry with given key, or nothing if key does not exist.
-        /// Returns true if entry did exist.
+        /// Removes the entry with the supplied key. Returns false when no such key exists.
+        /// If requested, invokes its current removal callback after releasing the state lock.
         /// </summary>
         public bool Remove(K key, bool callOnRemove)
         {
-            Entry? e = null;
-
+            Entry e;
             lock (m_k2e)
             {
-                if (m_k2e.TryGetValue(key, out e))
-                {
-                    m_k2e.Remove(key);
-                    if (e.Prev != null) e.Prev.Next = e.Next; else m_first = e.Next;
-                    if (e.Next != null) e.Next.Prev = e.Prev; else m_last = e.Prev;
-                    CurrentSize -= e.Size;
-                }
-                else
-                {
-                    return false;
-                }
+                if (!m_k2e.TryGetValue(key, out e)) return false;
+                RemoveEntryLocked(e);
             }
 
-            if (callOnRemove)
-            {
-                e.OnRemove?.Invoke(key, e.Value, e.Size);
-            }
+            if (callOnRemove) e.OnRemove?.Invoke(e.Key, e.Value, e.Size);
             return true;
         }
 
         /// <summary>
+        /// Tests membership without changing recency.
         /// </summary>
         public bool ContainsKey(K key)
         {
@@ -189,6 +237,8 @@ namespace Aardvark.Base
         }
 
         /// <summary>
+        /// Gets a value and moves a successful hit to the most-recently-used position.
+        /// Misses do not alter recency.
         /// </summary>
         public bool TryGetValue(K key, out V value)
         {
@@ -196,6 +246,7 @@ namespace Aardvark.Base
             {
                 if (m_k2e.TryGetValue(key, out Entry e))
                 {
+                    TouchLocked(e);
                     value = e.Value;
                     return true;
                 }
@@ -210,21 +261,34 @@ namespace Aardvark.Base
         }
 
         /// <summary>
+        /// Returns an existing value and refreshes its recency, or creates and inserts a value on a miss.
+        /// The factory may run concurrently for the same key; only the first inserted tuple is retained.
+        /// Capacity-eviction callbacks run after the state lock has been released.
         /// </summary>
         public V GetOrCreate(K key, Func<(V, long)> create, Action<K, V, long>? onRemove = null)
         {
             if (TryGetValue(key, out V value)) return value;
 
             var (createdValue, size) = create();
+            Entry? evicted;
             lock (m_k2e)
             {
-                if (TryGetValue(key, out V v)) return v;
-                Add(key, createdValue, size, onRemove);
-                return createdValue;
+                if (m_k2e.TryGetValue(key, out var e))
+                {
+                    TouchLocked(e);
+                    return e.Value;
+                }
+
+                if (size > MaxSize || size < 0) throw new ArgumentOutOfRangeException(nameof(size));
+                AddOrUpdateLocked(key, createdValue, size, onRemove, out evicted);
             }
+
+            InvokeRemovalCallbacks(evicted);
+            return createdValue;
         }
 
         /// <summary>
+        /// Removes all entries without invoking removal callbacks.
         /// </summary>
         public void Clear()
         {
@@ -233,7 +297,7 @@ namespace Aardvark.Base
                 m_k2e.Clear();
                 m_first = null;
                 m_last = null;
-                CurrentSize = 0;
+                m_currentSize = 0;
             }
         }
 
@@ -252,7 +316,7 @@ namespace Aardvark.Base
         /// <summary></summary>
         public bool IsReadOnly => false;
 
-        /// <summary></summary>
+        /// <summary>Gets a value and refreshes its recency. Setting is unsupported because entry size is required.</summary>
         public V this[K key]
         {
             get => TryGetValue(key, out V value) ? value : throw new KeyNotFoundException($"Key '{key}' not found. Use TryGetValue instead.");
@@ -268,18 +332,31 @@ namespace Aardvark.Base
         /// <summary></summary>
         public bool Remove(K key) => Remove(key, true);
 
-        /// <summary></summary>
-        public bool Remove(KeyValuePair<K, V> item) => Remove(item.Key, true);
+        /// <summary>
+        /// Removes an entry only when both its key and current value match, invoking its current callback outside the lock.
+        /// </summary>
+        public bool Remove(KeyValuePair<K, V> item)
+        {
+            Entry e;
+            lock (m_k2e)
+            {
+                if (!m_k2e.TryGetValue(item.Key, out e)) return false;
+                if (!EqualityComparer<V>.Default.Equals(e.Value, item.Value)) return false;
+                RemoveEntryLocked(e);
+            }
 
-        /// <summary></summary>
+            e.OnRemove?.Invoke(e.Key, e.Value, e.Size);
+            return true;
+        }
+
+        /// <summary>Tests for an exact key/value pair without changing recency.</summary>
         public bool Contains(KeyValuePair<K, V> item)
         {
-            if (TryGetValue(item.Key, out V value))
+            lock (m_k2e)
             {
-                if (item.Value != null) return item.Value.Equals(value);
-                else return value == null;
+                return m_k2e.TryGetValue(item.Key, out var e)
+                    && EqualityComparer<V>.Default.Equals(e.Value, item.Value);
             }
-            return false;
         }
 
         /// <summary></summary>
