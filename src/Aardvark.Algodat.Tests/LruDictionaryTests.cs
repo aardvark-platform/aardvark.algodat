@@ -17,6 +17,7 @@ using NUnit.Framework.Legacy;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -467,6 +468,170 @@ namespace Aardvark.Geometry.Tests
             ClassicAssert.IsTrue(removed.Contains(1));
             ClassicAssert.IsTrue(!removed.Contains(-1));
             ClassicAssert.IsTrue(a.Count == 0);
+        }
+
+        #endregion
+
+        #region LRU semantics
+
+        [Test]
+        public void AddReturnsInsertionStatusAndReplacementUpdatesTuple()
+        {
+            var cache = new LruDictionary<int, string>(5);
+            var removed = new List<(int Key, string Value, long Size, string Callback)>();
+
+            ClassicAssert.IsTrue(cache.Add(1, "one", 2, (k, v, s) => removed.Add((k, v, s, "old"))));
+            ClassicAssert.IsTrue(cache.Add(2, "two", 2, (k, v, s) => removed.Add((k, v, s, "two"))));
+            ClassicAssert.IsFalse(cache.Add(1, "ONE", 3, (k, v, s) => removed.Add((k, v, s, "new"))));
+
+            ClassicAssert.AreEqual(2, cache.Count);
+            ClassicAssert.AreEqual(5, cache.CurrentSize);
+            ClassicAssert.AreEqual("ONE", cache[1]);
+            ClassicAssert.IsEmpty(removed);
+            CollectionAssert.AreEqual(new[] { 1, 2 }, cache.Keys);
+
+            ClassicAssert.IsTrue(cache.Add(3, "three", 3));
+
+            ClassicAssert.AreEqual(1, cache.Count);
+            ClassicAssert.AreEqual(3, cache.CurrentSize);
+            CollectionAssert.AreEqual(new[] { 3 }, cache.Keys);
+            CollectionAssert.AreEqual(new[] { 2, 1 }, removed.Select(x => x.Key));
+            ClassicAssert.AreEqual((2, "two", 2L, "two"), removed[0]);
+            ClassicAssert.AreEqual((1, "ONE", 3L, "new"), removed[1]);
+            ClassicAssert.IsFalse(removed.Any(x => x.Callback == "old"));
+        }
+
+        [Test]
+        public void TryGetValueRefreshesRecencyBeforeCapacityEviction()
+        {
+            var cache = new LruDictionary<int, string>(3);
+            cache.Add(1, "one", 1);
+            cache.Add(2, "two", 1);
+            cache.Add(3, "three", 1);
+            CollectionAssert.AreEqual(new[] { 3, 2, 1 }, cache.Keys);
+
+            ClassicAssert.IsTrue(cache.TryGetValue(1, out var value));
+            ClassicAssert.AreEqual("one", value);
+            CollectionAssert.AreEqual(new[] { 1, 3, 2 }, cache.Keys);
+
+            cache.Add(4, "four", 1);
+            CollectionAssert.AreEqual(new[] { 4, 1, 3 }, cache.Keys);
+            ClassicAssert.IsFalse(cache.ContainsKey(2));
+        }
+
+        [Test]
+        public void ContainsKeyDoesNotRefreshRecency()
+        {
+            var cache = new LruDictionary<int, string>(3);
+            cache.Add(1, "one", 1);
+            cache.Add(2, "two", 1);
+            cache.Add(3, "three", 1);
+
+            ClassicAssert.IsTrue(cache.ContainsKey(1));
+            CollectionAssert.AreEqual(new[] { 3, 2, 1 }, cache.Keys);
+
+            cache.Add(4, "four", 1);
+            ClassicAssert.IsFalse(cache.ContainsKey(1));
+            CollectionAssert.AreEqual(new[] { 4, 3, 2 }, cache.Keys);
+        }
+
+        [Test]
+        public void IndexerAndGetOrCreateHitsRefreshRecency()
+        {
+            var cache = new LruDictionary<int, string>(3);
+            cache.Add(1, "one", 1);
+            cache.Add(2, "two", 1);
+            cache.Add(3, "three", 1);
+
+            ClassicAssert.AreEqual("one", cache[1]);
+            CollectionAssert.AreEqual(new[] { 1, 3, 2 }, cache.Keys);
+            cache.Add(4, "four", 1);
+            ClassicAssert.IsFalse(cache.ContainsKey(2));
+
+            var created = false;
+            ClassicAssert.AreEqual("three", cache.GetOrCreate(3, () => { created = true; return ("THREE", 1); }));
+            ClassicAssert.IsFalse(created);
+            CollectionAssert.AreEqual(new[] { 3, 4, 1 }, cache.Keys);
+
+            cache.Add(5, "five", 1);
+            ClassicAssert.IsFalse(cache.ContainsKey(1));
+            CollectionAssert.AreEqual(new[] { 5, 3, 4 }, cache.Keys);
+        }
+
+        [Test]
+        public void RemovePairRequiresExactCurrentValue()
+        {
+            var callbackCount = 0;
+            var cache = new LruDictionary<int, string>(2);
+            cache.Add(1, "one", 1, (k, v, s) => callbackCount++);
+            cache.Add(2, "two", 1, (k, v, s) => callbackCount++);
+            IDictionary<int, string> dictionary = cache;
+
+            ClassicAssert.IsFalse(dictionary.Remove(new KeyValuePair<int, string>(1, "ONE")));
+            ClassicAssert.AreEqual(0, callbackCount);
+            CollectionAssert.AreEqual(new[] { 2, 1 }, cache.Keys);
+
+            cache.Add(3, "three", 1);
+            ClassicAssert.IsFalse(cache.ContainsKey(1));
+            ClassicAssert.AreEqual(1, callbackCount);
+
+            ClassicAssert.IsTrue(dictionary.Remove(new KeyValuePair<int, string>(2, "two")));
+            ClassicAssert.AreEqual(2, callbackCount);
+            ClassicAssert.IsFalse(cache.ContainsKey(2));
+        }
+
+        [Test]
+        public void EvictionCallbacksRunOutsideLockAndClearDoesNotInvokeThem()
+        {
+            var cache = new LruDictionary<int, string>(1);
+            var callbackCompleted = false;
+            cache.Add(1, "one", 1, (k, v, s) =>
+            {
+                var lookup = Task.Run(() => cache.ContainsKey(2));
+                callbackCompleted = lookup.Wait(TimeSpan.FromSeconds(5)) && lookup.Result;
+            });
+
+            ClassicAssert.AreEqual("two", cache.GetOrCreate(2, () => ("two", 1)));
+            ClassicAssert.IsTrue(callbackCompleted);
+
+            var clearCallbackCount = 0;
+            cache.Add(3, "three", 1, (k, v, s) => clearCallbackCount++);
+            cache.Clear();
+            ClassicAssert.AreEqual(0, clearCallbackCount);
+            ClassicAssert.AreEqual(0, cache.Count);
+            ClassicAssert.AreEqual(0, cache.CurrentSize);
+        }
+
+        [Test]
+        public void ConcurrentOperationsPreserveStateInvariants()
+        {
+            const int capacity = 32;
+            var cache = new LruDictionary<int, int>(capacity);
+            var tasks = Enumerable.Range(0, 8).Select(worker => Task.Run(() =>
+            {
+                for (var i = 0; i < 50_000; i++)
+                {
+                    var key = (worker * 17 + i * 31) & 63;
+                    switch ((worker + i) & 3)
+                    {
+                        case 0: cache.Add(key, worker * 100_000 + i, 1); break;
+                        case 1: cache.TryGetValue(key, out _); break;
+                        case 2: cache.Remove(key, callOnRemove: false); break;
+                        default: cache.GetOrCreate(key, () => (worker * 100_000 + i, 1)); break;
+                    }
+                }
+            })).ToArray();
+
+            Task.WaitAll(tasks);
+
+            var keys = cache.Keys.ToArray();
+            var values = cache.Values.ToArray();
+            ClassicAssert.AreEqual(cache.Count, keys.Length);
+            ClassicAssert.AreEqual(cache.Count, values.Length);
+            ClassicAssert.AreEqual(cache.Count, keys.Distinct().Count());
+            ClassicAssert.AreEqual(cache.Count, cache.CurrentSize);
+            ClassicAssert.LessOrEqual(cache.CurrentSize, cache.MaxSize);
+            ClassicAssert.IsTrue(keys.All(cache.ContainsKey));
         }
 
         #endregion
