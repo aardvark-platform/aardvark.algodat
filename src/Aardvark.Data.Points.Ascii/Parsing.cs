@@ -162,7 +162,7 @@ namespace Aardvark.Data.Points
 
                         return r;
                     },
-                    config.MaxChunkPointCount,
+                    config.MaxDegreeOfParallelism,
                     elapsed =>
                     {
                         if (config.Verbose)
