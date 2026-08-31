@@ -35,7 +35,9 @@ var pointset = PointCloud.Import(filename, config);
 var config = ImportConfig.Default
     .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
     .WithKey("my-pointcloud")
-    .WithMaxChunkPointCount(65536)              // Chunk size control
+    .WithMaxDegreeOfParallelism(4)               // Parser/import worker limit; <= 0 uses the CPU count
+    .WithMaxChunkPointCount(65536)               // Point chunk sizing and merging
+    .WithReadBufferSizeInBytes(64 * 1024 * 1024) // Raw input buffer size (especially relevant to ASCII)
     .WithPartIndexOffset(42)                     // Multi-file tracking
     .WithEnabledPartIndices(true)                // Enable part indices
     .WithMinDist(0.01)                           // Point density filtering
@@ -155,6 +157,13 @@ var customChunks = Ascii.Chunks("scan.txt", customFormat.LineDefinition, ParseCo
 - Progress reporting and verbose logging
 - Null handling for missing colors/normals/intensities
 
+**Parallelism and sizing controls:**
+- `MaxDegreeOfParallelism` bounds concurrent ASCII buffer parsers. Values less than one retain the shared mapper default of `Environment.ProcessorCount`.
+- `ReadBufferSizeInBytes` controls the raw stream buffers split at newline boundaries and therefore the natural input granularity and per-parser memory footprint.
+- `MaxChunkPointCount` controls point chunk sizing or merging in importer stages that support it; it does not control ASCII parser worker concurrency.
+
+These settings are independent. For example, reducing `MaxChunkPointCount` does not serialize parsing, and increasing it does not create more parser workers.
+
 ### LAS/LAZ Format
 
 LiDAR data format (LAS 1.0-1.4) with optional compression (.laz).
@@ -246,17 +255,19 @@ var transformed = pointset.Transform(Matrix4x4.FromRotationZ(Math.PI / 2));
 
 **Problem:** Loading entire point clouds into memory can exhaust resources.
 
-**Solution:** Use chunked processing and configure `MaxChunkPointCount`:
+**Solution:** Use chunked processing and configure point chunk size separately from parser concurrency and raw input buffering:
 
 ```csharp
-var config = ImportConfig.Default
-    .WithMaxChunkPointCount(32768)  // Smaller chunks
-    .WithStorage(PointCloud.CreateInMemoryStore(cache: default));
+var lasConfig = ParseConfig.Default
+    .WithMaxChunkPointCount(32768); // Smaller LAS/LAZ point chunks
+foreach (var chunk in Laszip.Chunks("huge.laz", lasConfig))
+    ProcessChunk(chunk);
 
-foreach (var chunk in Laszip.Chunks("huge.laz", ParseConfig.Default))
-{
-    ProcessChunk(chunk);  // Process one chunk at a time
-}
+var asciiConfig = ParseConfig.Default
+    .WithMaxDegreeOfParallelism(4)               // At most four ASCII buffer parsers
+    .WithReadBufferSizeInBytes(32 * 1024 * 1024); // Smaller raw ASCII buffers
+foreach (var chunk in Pts.Chunks("huge.pts", asciiConfig))
+    ProcessChunk(chunk);
 ```
 
 ### 3. Missing Properties Are Null

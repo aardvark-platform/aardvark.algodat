@@ -1,3 +1,5 @@
+- [ASCII] honor `MaxDegreeOfParallelism` when parsing input buffers (#69)
+
 ### 5.6.3
 - Updated SharpCompress to 0.48.1 to address CVE-2026-44788
 
