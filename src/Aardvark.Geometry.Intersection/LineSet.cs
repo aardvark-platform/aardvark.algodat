@@ -15,7 +15,6 @@ using Aardvark.Base;
 using Aardvark.Base.Coder;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 #pragma warning disable IDE0130 // Namespace does not match folder structure
 
@@ -26,14 +25,16 @@ namespace Aardvark.Geometry
     {
         public List<Cylinder3d> Lines = [.. cylinders];
 
-        public int ObjectCount
-        {
-            get { return Lines.Count(); }
-        }
+        public int ObjectCount => Lines.Count;
 
         public Box3d ObjectBoundingBox(int objectIndex = -1)
         {
-            return new Box3d(from line in Lines select line.BoundingBox3d);
+            if (objectIndex >= 0) return Lines[objectIndex].BoundingBox3d;
+
+            var bounds = Box3d.Invalid;
+            for (var i = 0; i < Lines.Count; i++)
+                bounds.ExtendBy(Lines[i].BoundingBox3d);
+            return bounds;
         }
 
         public bool ObjectsIntersectRay(
@@ -44,50 +45,53 @@ namespace Aardvark.Geometry
                 double tmin, double tmax,
                 ref ObjectRayHit hit)
         {
-            bool result = false;
+            var found = false;
+            var bestIndex = -1;
+            var bestHit = hit.RayHit;
+            var bestT = Fun.Min(tmax, bestHit.T);
+            var candidate = new RayHit3d(bestT);
+
             if (objectFilter == null)
             {
                 for (int i = firstIndex, e = firstIndex + indexCount; i < e; i++)
                 {
                     var index = objectIndexArray[i];
-                    if (fastRay.Ray.Hits(Lines[index], tmin, tmax, ref hit.RayHit))
+                    candidate.T = bestT;
+                    if (fastRay.Ray.Hits(Lines[index], tmin, bestT, ref candidate)
+                        && candidate.T > tmin && candidate.T < bestT
+                        && (hitFilter == null || !hitFilter(this, index, 0, candidate)))
                     {
-                       // Report.Line("hit shell of cylinder " + index + " at " + hit.RayHit.Point);
-                        if (hitFilter == null)
-                        {
-                            result = hit.Set(this, index);
-                            break;
-                        }
-
-                        if (!hitFilter(this, index, 0, hit.RayHit))
-                        {
-                            result = hit.Set(this, index);
-                            break;
-                        }
-                        else
-                        {
-                            //continue shooting
-                            //Report.Line("Filtered");
- 
-                            hit.RayHit.T = tmax;
-                        }
-                        
+                        found = true;
+                        bestIndex = index;
+                        bestHit = candidate;
+                        bestT = candidate.T;
                     }
                 }
             }
             else
             {
-                foreach (int index in objectIndexArray)
+                for (int i = firstIndex, e = firstIndex + indexCount; i < e; i++)
+                {
+                    var index = objectIndexArray[i];
                     if (objectFilter(this, index))
                     {
-                        if (fastRay.Ray.Hits(Lines[index], tmin, tmax, ref hit.RayHit)
-                            && (hitFilter == null || !hitFilter(this, index, 0, hit.RayHit)))
+                        candidate.T = bestT;
+                        if (fastRay.Ray.Hits(Lines[index], tmin, bestT, ref candidate)
+                            && candidate.T > tmin && candidate.T < bestT
+                            && (hitFilter == null || !hitFilter(this, index, 0, candidate)))
                         {
-                            result = hit.Set(this, index);
+                            found = true;
+                            bestIndex = index;
+                            bestHit = candidate;
+                            bestT = candidate.T;
                         }
                     }
+                }
             }
-            return result;
+
+            if (!found) return false;
+            hit.RayHit = bestHit;
+            return hit.Set(this, bestIndex);
         }
 
         public void ObjectHitInfo(
