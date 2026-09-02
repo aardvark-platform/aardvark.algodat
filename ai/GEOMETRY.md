@@ -80,6 +80,14 @@ var planeClustering = new PlaneEpsilonClustering<Plane3d[]>(
 );
 ```
 
+### Dense results and representatives
+
+After clustering initialization, `IndexArray[i]` is a dense cluster ID in `[0, Count)`, and `CountArray[c]` is exactly the number of entries mapped to `c`. `ClusterConsolidate` resolves every parent to its actual root with full path compression; `CompactAndComputeCountArray` then assigns dense IDs in ascending root-index order. The array and list overloads have identical output semantics.
+
+`NormalsClustering` does not modify its input. Parallel and antiparallel members share a cluster; antiparallel vectors are sign-aligned before summation. `SumArray` uses dense cluster-ID order, so `SumArray[c]` corresponds directly to members whose `IndexArray` entry is `c`. A whole cluster's sum may be globally negated depending on its representative, but its members do not cancel merely because their input signs differ.
+
+Hash-based point and plane clustering use random bits only to choose which root remains the representative after a merge. This balances parent trees; it does not change epsilon predicates or cluster membership. Supply a deterministic `IRandomUniform` when reproducible representative IDs are required.
+
 ### Gotchas
 
 - **Call `ClusterConsolidate` before `CompactAndComputeCountArray`** – Cluster indices must point to root before compaction.
