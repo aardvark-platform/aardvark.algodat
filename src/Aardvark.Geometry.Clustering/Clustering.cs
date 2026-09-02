@@ -25,24 +25,46 @@ namespace Aardvark.Geometry.Clustering
     public static class ClusteringExtensions
     {
         /// <summary>
-        /// Obtain the cluster index of item i in the given cluster index
-        /// array. Note that hte cluster index array may be modified to
-        /// improve subsequent performance.
+        /// Obtains the root cluster index of item <paramref name="i"/> and fully compresses
+        /// every parent link on the traversed path. The operation is allocation-free.
         /// </summary>
         public static int GetClusterIndex(this int[] clusterIndexArray, int i)
         {
-            int ci = clusterIndexArray[i];
-            if (clusterIndexArray[i] != ci)
+            var root = clusterIndexArray[i];
+            if (root == i) return root;
+            while (clusterIndexArray[root] != root) root = clusterIndexArray[root];
+
+            while (clusterIndexArray[i] != i)
             {
-                do { ci = clusterIndexArray[ci]; } while (clusterIndexArray[ci] != ci);
-                clusterIndexArray[i] = ci;
+                var parent = clusterIndexArray[i];
+                clusterIndexArray[i] = root;
+                i = parent;
             }
-            return ci;
+            return root;
+        }
+
+        /// <summary>
+        /// Obtains the root cluster index of item <paramref name="i"/> and fully compresses
+        /// every parent link on the traversed path. The operation is allocation-free.
+        /// </summary>
+        public static int GetClusterIndex(this List<int> clusterIndexList, int i)
+        {
+            var root = clusterIndexList[i];
+            if (root == i) return root;
+            while (clusterIndexList[root] != root) root = clusterIndexList[root];
+
+            while (clusterIndexList[i] != i)
+            {
+                var parent = clusterIndexList[i];
+                clusterIndexList[i] = root;
+                i = parent;
+            }
+            return root;
         }
 
         /// <summary>
         /// Given two cluster indices (ci and cj) obtained with
-        /// <see cref="GetClusterIndex"/> and an item index (j) merge the two
+        /// <see cref="GetClusterIndex(int[], int)"/> and an item index (j) merge the two
         /// clusters so that the get the left cluster index (ci), and add the
         /// item to the combined cluster.
         /// </summary>
@@ -54,7 +76,7 @@ namespace Aardvark.Geometry.Clustering
 
         /// <summary>
         /// Given two cluster indices (ci and cj) obtained with
-        /// <see cref="GetClusterIndex"/> and an item index (i) merge the two
+        /// <see cref="GetClusterIndex(int[], int)"/> and an item index (i) merge the two
         /// clusters so that the get the right cluster index (cj) and add the
         /// item to the combined cluster.  In a typical double loop with the
         /// outer loop iterating over elements i with cluster ci, and the
@@ -76,28 +98,24 @@ namespace Aardvark.Geometry.Clustering
         /// <param name="clusterIndexArray"></param>
         public static void ClusterConsolidate(this int[] clusterIndexArray)
         {
-            var count = clusterIndexArray.Length;
-            var ca = clusterIndexArray;
-            for (int i = 0; i < count; i++)
-            {
-                int ci = ca[i]; if (ca[ci] != ci) { do { ci = ca[ci]; } while (ca[ci] != ci); ca[i] = ci; }
-            }
+            for (var i = 0; i < clusterIndexArray.Length; i++)
+                clusterIndexArray.GetClusterIndex(i);
         }
 
+        /// <summary>
+        /// Rewrites every list entry to directly reference its cluster root, fully compressing
+        /// intermediate parent paths without allocating temporary storage.
+        /// </summary>
         public static void ClusterConsolidate(this List<int> clusterIndexList)
         {
-            var count = clusterIndexList.Count;
-            var ca = clusterIndexList;
-            for (int i = 0; i < count; i++)
-            {
-                int ci = ca[i]; if (ca[ci] != ci) { do { ci = ca[ci]; } while (ca[ci] != ci); ca[i] = ci; }
-            }
+            for (var i = 0; i < clusterIndexList.Count; i++)
+                clusterIndexList.GetClusterIndex(i);
         }
         
         /// <summary>
-        /// Finally this call compacts the cluster indices to be contiguous
-        /// and returns a cluster count array containing the counts of each
-        /// cluster.
+        /// Compacts consolidated root indices to contiguous IDs in ascending root-index order
+        /// and returns the exact item count of each dense cluster. After the call, every item
+        /// index is in the range [0, returned array length).
         /// </summary>
         /// <param name="clusterIndexArray"></param>
         /// <returns></returns>
@@ -136,6 +154,11 @@ namespace Aardvark.Geometry.Clustering
             return clusterCountArray;
         }
 
+        /// <summary>
+        /// Compacts consolidated root indices to contiguous IDs in ascending root-index order
+        /// and returns the exact item count of each dense cluster. This is equivalent to the
+        /// array overload.
+        /// </summary>
         public static int[] CompactAndComputeCountArray(
                 this List<int> clusterIndexList)
         {
@@ -154,11 +177,11 @@ namespace Aardvark.Geometry.Clustering
             {
                 int ci = clusterIndexList[i];
                 if (ci < 0)
-                    clusterIndexList[i] = -ci - 1;
+                    clusterCountArray[-ci - 1] = i;
                 else
                 {
                     ci = clusterIndexList[ci];
-                    clusterIndexList[i] = ci < 0 ? -ci - 1 : ci;
+                    clusterIndexList[i] = -ci - 1;
                 }
             }
             for (int i = 0; i < clusterCount; i++)
@@ -231,12 +254,13 @@ namespace Aardvark.Geometry.Clustering
         public int Count { get; private set; }
 
         /// <summary>
-        /// An array containing the sizes of all clusters.
+        /// Dense cluster counts. <c>CountArray[c]</c> is the number of items whose
+        /// <see cref="IndexList"/> entry equals <c>c</c>.
         /// </summary>
         public int[] CountArray { get; private set; }
 
         /// <summary>
-        /// An array that contains index of the clsuter for each item.
+        /// A list containing the dense cluster ID for each item after <see cref="Init"/>.
         /// </summary>
         public List<int> IndexList => m_indexList;
 
@@ -248,18 +272,18 @@ namespace Aardvark.Geometry.Clustering
 
         public void MergeLeft(int i, int j)
         {
-            var ca = m_indexList;
-            int ci = ca[i]; if (ca[ci] != ci) { do { ci = ca[ci]; } while (ca[ci] != ci); ca[i] = ci; }
-            int cj = ca[j]; if (ca[cj] != cj) { do { cj = ca[cj]; } while (ca[cj] != cj); ca[j] = cj; }
-            ca[cj] = ci; ca[j] = ci;
+            var ci = m_indexList.GetClusterIndex(i);
+            var cj = m_indexList.GetClusterIndex(j);
+            m_indexList[cj] = ci;
+            m_indexList[j] = ci;
         }
 
         public void MergeRight(int i, int j)
         {
-            var ca = m_indexList;
-            int ci = ca[i]; if (ca[ci] != ci) { do { ci = ca[ci]; } while (ca[ci] != ci); ca[i] = ci; }
-            int cj = ca[j]; if (ca[cj] != cj) { do { cj = ca[cj]; } while (ca[cj] != cj); ca[j] = cj; }
-            ca[ci] = cj; ca[i] = cj;
+            var ci = m_indexList.GetClusterIndex(i);
+            var cj = m_indexList.GetClusterIndex(j);
+            m_indexList[ci] = cj;
+            m_indexList[i] = cj;
         }
 
         public void Init()
@@ -282,12 +306,13 @@ namespace Aardvark.Geometry.Clustering
         public int Count => m_count;
 
         /// <summary>
-        /// An array containing the sizes of all clusters.
+        /// Dense cluster counts. <c>CountArray[c]</c> is the number of items whose
+        /// <see cref="IndexArray"/> entry equals <c>c</c>.
         /// </summary>
         public int[] CountArray => m_countArray;
 
         /// <summary>
-        /// An array that contains index of the clsuter for each item.
+        /// An array containing the dense cluster ID for each item.
         /// </summary>
         public int[] IndexArray => m_indexArray;
 
@@ -299,24 +324,29 @@ namespace Aardvark.Geometry.Clustering
         protected void Init()
         {
             m_indexArray.ClusterConsolidate();
+            InitConsolidated();
+        }
+
+        protected void InitConsolidated()
+        {
             m_countArray = m_indexArray.CompactAndComputeCountArray();
             m_count = m_countArray.Length;
         }
 
         public void MergeLeft(int i, int j)
         {
-            var ca = m_indexArray;
-            int ci = ca[i]; if (ca[ci] != ci) { do { ci = ca[ci]; } while (ca[ci] != ci); ca[i] = ci; }
-            int cj = ca[j]; if (ca[cj] != cj) { do { cj = ca[cj]; } while (ca[cj] != cj); ca[j] = cj; }
-            ca[cj] = ci; ca[j] = ci;
+            var ci = m_indexArray.GetClusterIndex(i);
+            var cj = m_indexArray.GetClusterIndex(j);
+            m_indexArray[cj] = ci;
+            m_indexArray[j] = ci;
         }
 
         public void MergeRight(int i, int j)
         {
-            var ca = m_indexArray;
-            int ci = ca[i]; if (ca[ci] != ci) { do { ci = ca[ci]; } while (ca[ci] != ci); ca[i] = ci; }
-            int cj = ca[j]; if (ca[cj] != cj) { do { cj = ca[cj]; } while (ca[cj] != cj); ca[j] = cj; }
-            ca[ci] = cj; ca[i] = cj;
+            var ci = m_indexArray.GetClusterIndex(i);
+            var cj = m_indexArray.GetClusterIndex(j);
+            m_indexArray[ci] = cj;
+            m_indexArray[i] = cj;
         }
 
         public void ClusterMinSize(int minSize)

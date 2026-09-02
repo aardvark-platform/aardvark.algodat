@@ -1,3 +1,5 @@
+- [Clustering] repair root compression, dense compaction, normal sums, and plane representatives (#73)
+
 ### 5.6.3
 - Updated SharpCompress to 0.48.1 to address CVE-2026-44788
 
