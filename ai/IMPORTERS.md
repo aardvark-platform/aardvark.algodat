@@ -44,6 +44,12 @@ var config = ImportConfig.Default
 var pointset = PointCloud.Import(filename, config);
 ```
 
+### Parallel Chunk Transformations
+
+`MapParallel` uses the maximum parallelism supplied by its caller; non-positive values default to `Environment.ProcessorCount`. Point-cloud chunk reprojection forwards `ImportConfig.MaxDegreeOfParallelism` unchanged. The mapper keeps at most the effective parallelism number of source items, workers, and completed results live at once, so buffering and coordinator memory do not grow with the total number of chunks.
+
+Mapped chunks are emitted exactly once in worker-completion order, which may differ from input order. Worker or source-enumerator failures are rethrown directly and stop further source consumption. External cancellation, pipeline failure, and early enumerator disposal cancel the linked token supplied to every in-flight mapping function; mapping functions should observe that token to stop promptly. A completion callback, when supplied to `MapParallel` directly, runs once only after the sequence is fully and successfully consumed.
+
 ### Low-Level Chunk Access
 
 Each importer exposes a `Chunks()` method for direct chunk iteration:
