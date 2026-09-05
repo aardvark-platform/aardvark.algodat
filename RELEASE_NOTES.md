@@ -1,3 +1,5 @@
+- [Point Clouds] unify empty Chunk and GenericChunk import results and progress (#77)
+
 ### 5.6.3
 - Updated SharpCompress to 0.48.1 to address CVE-2026-44788
 

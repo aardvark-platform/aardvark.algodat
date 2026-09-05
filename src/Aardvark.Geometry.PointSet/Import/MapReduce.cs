@@ -26,6 +26,8 @@ namespace Aardvark.Geometry.Points
     {
         /// <summary>
         /// Maps a sequence of point chunks to point sets, which are then reduced to one single point set.
+        /// Empty and all-empty sequences return a persisted, storage-bound empty point set under
+        /// the effective key and report completed progress.
         /// </summary>
         public static PointSet MapReduce(this IEnumerable<Chunk> chunks, ImportConfig config)
         {
@@ -86,7 +88,7 @@ namespace Aardvark.Geometry.Points
             var totalPointSetsCount = pointsets.Count;
             if (totalPointSetsCount == 0)
             {
-                return PointSet.Empty;
+                return CreateAndPersistEmptyPointSet(config, key);
             }
 
             var doneCount = 0;
@@ -165,6 +167,14 @@ namespace Aardvark.Geometry.Points
             return final;
 
             static string formatCell(Cell c) => c.IsCenteredAtOrigin ? $"[centered, {c.Exponent}]" : c.ToString();
+        }
+
+        private static PointSet CreateAndPersistEmptyPointSet(ImportConfig config, string key)
+        {
+            var empty = new PointSet(config.Storage, key, Guid.Empty, config.OctreeSplitLimit);
+            config.Storage.Add(key, empty);
+            config.ProgressCallback(1.0);
+            return empty;
         }
     }
 }

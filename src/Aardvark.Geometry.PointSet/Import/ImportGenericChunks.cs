@@ -67,7 +67,8 @@ public static partial class PointCloud
         => Chunks(chunk, config);
 
     /// <summary>
-    /// Imports sequence of chunks.
+    /// Imports a sequence of chunks. Empty and all-empty inputs produce a persisted empty point
+    /// set under the effective key, retain the configured split limit, and complete progress.
     /// </summary>
     public static PointSet Chunks(IEnumerable<GenericChunk> chunks, ImportConfig config)
     {
@@ -145,19 +146,15 @@ public static partial class PointCloud
         // create LOD data
         if (config.Verbose) Report.BeginTimed("generate lod");
         final = final.GenerateLod(config.WithRandomKey().WithProgressCallback(x => config.ProgressCallback(0.66 + x * 0.34)));
-        if (config.Storage.GetPointCloudNode(final.Root.Value.Id) == null) throw new InvalidOperationException("Invariant 4d633e55-bf84-45d7-b9c3-c534a799242e.");
+        if (!final.IsEmpty && (final.Root.Value == null || config.Storage.GetPointCloudNode(final.Root.Value.Id) == null)) throw new InvalidOperationException("Invariant 4d633e55-bf84-45d7-b9c3-c534a799242e.");
         if (config.Verbose) Report.End();
 
-        // create final point set with specified key (or random key when no key is specified)
-        var key = config.Key ?? Guid.NewGuid().ToString();
-        final = new PointSet(config.Storage, key, final.Root.Value.Id, config.OctreeSplitLimit);
-        config.Storage.Add(key, final);
-
-        return final;
+        return PersistFinalPointSet(final, config);
     }
 
     /// <summary>
-    /// Imports sequence of chunks.
+    /// Imports a sequence of chunks with the same persisted empty-result and progress semantics
+    /// as <see cref="Chunks(IEnumerable{GenericChunk}, ImportConfig)"/>.
     /// </summary>
     public static PointSet Import(IEnumerable<GenericChunk> chunks, ImportConfig config) => Chunks(chunks, config);
 }

@@ -64,6 +64,12 @@ foreach (var chunk in Laszip.Chunks(filename, config))
 }
 ```
 
+### Empty Inputs and Progress
+
+`PointCloud.Chunks`, `PointCloud.Import`, and both `MapReduce` chunk overloads ignore empty chunks. An empty sequence, or a sequence containing only empty chunks, produces an empty `PointSet` bound to the configured storage, retaining `OctreeSplitLimit`. The result is persisted under `ImportConfig.Key`; when no key is configured, its generated effective key is available through `PointSet.Id`. Empty roots use `Guid.Empty` directly and have no backing node payload.
+
+A successful direct `MapReduce` reports terminal progress `1.0`. Top-level `Chunks` and `Import` calls report `0.0` before processing and terminate at `1.0`, including empty inputs. Calling `GenerateLod` on an empty point set returns the same object and reports completion.
+
 ### File Metadata Extraction
 
 ```csharp
