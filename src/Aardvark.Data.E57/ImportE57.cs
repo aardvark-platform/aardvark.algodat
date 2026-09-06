@@ -38,6 +38,22 @@ namespace Aardvark.Data.Points.Import
         /// </summary>
         public static readonly PointCloudFileFormat E57Format;
 
+        private static readonly ImmutableHashSet<PointPropertySemantics> s_excludedSemantics =
+            ImmutableHashSet<PointPropertySemantics>.Empty
+                //.Add(PointPropertySemantics.CartesianInvalidState)
+                .Add(PointPropertySemantics.ColumnIndex)
+                .Add(PointPropertySemantics.IsColorInvalid)
+                .Add(PointPropertySemantics.IsIntensityInvalid)
+                .Add(PointPropertySemantics.IsTimeStampInvalid)
+                .Add(PointPropertySemantics.ReturnCount)
+                .Add(PointPropertySemantics.ReturnIndex)
+                .Add(PointPropertySemantics.RowIndex)
+                .Add(PointPropertySemantics.SphericalInvalidState)
+                .Add(PointPropertySemantics.TimeStamp);
+
+        private static readonly ImmutableHashSet<PointPropertySemantics>[] s_excludedSemanticsBySelection =
+            new ImmutableHashSet<PointPropertySemantics>[16];
+
         static E57()
         {
             E57Format = new PointCloudFileFormat("e57", [".e57"], E57Info, Chunks);
@@ -45,7 +61,7 @@ namespace Aardvark.Data.Points.Import
         }
         
         /// <summary>
-        /// Parses .e57 file.
+        /// Parses an E57 file, excluding optional standard semantics disabled by the configuration.
         /// </summary>
         public static IEnumerable<Chunk> Chunks(string filename, ParseConfig config)
         {
@@ -160,28 +176,18 @@ namespace Aardvark.Data.Points.Import
         }
 
         /// <summary>
-        /// Parses .e57 stream.
+        /// Parses an E57 stream, excluding optional standard semantics disabled by the configuration.
         /// </summary>
         public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, ParseConfig config)
             => Chunks(stream, streamLengthInBytes, config, verifyChecksums: false);
 
         /// <summary>
-        /// Parses .e57 stream.
+        /// Parses an E57 stream, optionally verifies checksums, and excludes optional standard
+        /// semantics disabled by the configuration. Cartesian validity data remains available for filtering.
         /// </summary>
         public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, ParseConfig config, bool verifyChecksums)
         {
-            var exclude = ImmutableHashSet<PointPropertySemantics>.Empty
-                //.Add(PointPropertySemantics.CartesianInvalidState)
-                .Add(PointPropertySemantics.ColumnIndex)
-                .Add(PointPropertySemantics.IsColorInvalid)
-                .Add(PointPropertySemantics.IsIntensityInvalid)
-                .Add(PointPropertySemantics.IsTimeStampInvalid)
-                .Add(PointPropertySemantics.ReturnCount)
-                .Add(PointPropertySemantics.ReturnIndex)
-                .Add(PointPropertySemantics.RowIndex)
-                .Add(PointPropertySemantics.SphericalInvalidState)
-                .Add(PointPropertySemantics.TimeStamp)
-                ;
+            var exclude = GetExcludedSemantics(config.EnabledProperties);
 
             checked
             {
@@ -227,27 +233,32 @@ namespace Aardvark.Data.Points.Import
                         var e57chunk = new E57Chunk(Properties, data3d, Positions);
 
                         // ensure that there are colors (if e57 chunk has no colors then add colors)
-                        var cs = e57chunk.Colors?.Map(c => new C4b(c)) ?? Positions.Map(_ => config.EnabledProperties.DefaultColor);
+                        var cs = config.EnabledProperties.Colors
+                            ? e57chunk.Colors?.Map(c => new C4b(c)) ?? Positions.Map(_ => config.EnabledProperties.DefaultColor)
+                            : null;
 
-                        // ensure that there are normals, if any e57 chunk has normals (according to 'semanticsAll') 
-                        var ns = e57chunk.Normals;
-                        if (ns == null && semanticsAll.Contains(PointPropertySemantics.NormalX))
+                        // ensure that there are normals, if any e57 chunk has normals (according to 'semanticsAll')
+                        var ns = config.EnabledProperties.Normals ? e57chunk.Normals : null;
+                        if (config.EnabledProperties.Normals && ns == null && semanticsAll.Contains(PointPropertySemantics.NormalX))
                         {
                             ns = new V3f[Positions.Length];
                             for (var i = 0; i < ns.Length; i++) ns[i] = config.EnabledProperties.DefaultNormal;
                         }
 
-                        // ensure that there are intensities, if any e57 chunk has intensities (according to 'semanticsAll') 
-                        var js = e57chunk.Intensities;
-                        if (js == null && semanticsAll.Contains(PointPropertySemantics.Intensity))
+                        // ensure that there are intensities, if any e57 chunk has intensities (according to 'semanticsAll')
+                        var js = config.EnabledProperties.Intensities ? e57chunk.Intensities : null;
+                        if (config.EnabledProperties.Intensities && js == null && semanticsAll.Contains(PointPropertySemantics.Intensity))
                         {
                             js = new int[Positions.Length];
                             for (var i = 0; i < js.Length; i++) js[i] = config.EnabledProperties.DefaultIntensity;
                         }
 
-                        // ensure that there are classifications, if any e57 chunk has classifications (according to 'semanticsAll') 
-                        var ks = e57chunk.Classification?.Map(x => (byte)x);
-                        if (ks == null && semanticsAll.Contains(PointPropertySemantics.Intensity))
+                        // ensure that there are classifications, if any e57 chunk has classifications (according to 'semanticsAll')
+                        var ks = config.EnabledProperties.Classifications ? e57chunk.Classification?.Map(x => (byte)x) : null;
+                        // Intensity preserves the historical all-enabled default; Classification covers mixed scans.
+                        if (config.EnabledProperties.Classifications && ks == null &&
+                            (semanticsAll.Contains(PointPropertySemantics.Classification) ||
+                             semanticsAll.Contains(PointPropertySemantics.Intensity)))
                         {
                             ks = new byte[Positions.Length];
                             for (var i = 0; i < ks.Length; i++) ks[i] = config.EnabledProperties.DefaultClassification;
@@ -291,6 +302,37 @@ namespace Aardvark.Data.Points.Import
 
                 if (config.Verbose) Report.Line();
             }
+        }
+
+        private static ImmutableHashSet<PointPropertySemantics> GetExcludedSemantics(EnabledProperties enabled)
+        {
+            var mask =
+                (enabled.Colors ? 0 : 1) |
+                (enabled.Normals ? 0 : 2) |
+                (enabled.Intensities ? 0 : 4) |
+                (enabled.Classifications ? 0 : 8);
+            if (mask == 0) return s_excludedSemantics;
+
+            var cached = Volatile.Read(ref s_excludedSemanticsBySelection[mask]);
+            if (cached != null) return cached;
+
+            var result = s_excludedSemantics;
+            if ((mask & 1) != 0)
+                result = result
+                    .Add(PointPropertySemantics.ColorRed)
+                    .Add(PointPropertySemantics.ColorGreen)
+                    .Add(PointPropertySemantics.ColorBlue);
+            if ((mask & 2) != 0)
+                result = result
+                    .Add(PointPropertySemantics.NormalX)
+                    .Add(PointPropertySemantics.NormalY)
+                    .Add(PointPropertySemantics.NormalZ);
+            if ((mask & 4) != 0)
+                result = result.Add(PointPropertySemantics.Intensity);
+            if ((mask & 8) != 0)
+                result = result.Add(PointPropertySemantics.Classification);
+
+            return Interlocked.CompareExchange(ref s_excludedSemanticsBySelection[mask], result, null) ?? result;
         }
 
         /// <summary>
