@@ -274,13 +274,10 @@ namespace Aardvark.Data.Points
         }
 
         /// <summary>
-        /// Merges many chunks into a single chunk. 
+        /// Merges many chunks into a single chunk. Empty chunks are neutral; nonempty chunks must
+        /// have matching optional-property presence.
         /// </summary>
         public static Chunk Union(this IEnumerable<Chunk> chunks)
-        {
-            var result = Chunk.Empty;
-            foreach (var chunk in chunks) result = result.Union(chunk);
-            return result;
-        }
+            => Chunk.ImmutableMerge(chunks);
     }
 }
