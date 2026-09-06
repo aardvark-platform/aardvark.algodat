@@ -53,13 +53,13 @@ namespace Aardvark.Data.Points.Import
         }
 
         /// <summary>
-        /// Parses PLY (.ply) file.
+        /// Parses a PLY (.ply) file and omits optional standard properties disabled by the configuration.
         /// </summary>
         public static IEnumerable<Chunk> Chunks(string filename, ParseConfig config)
             => PlyParser.Parse(filename, config.MaxChunkPointCount, config.Verbose ? (s => Report.Line(s)) : null).Chunks(config);
 
         /// <summary>
-        /// Parses PLY (.ply) file.
+        /// Parses a PLY (.ply) stream and omits optional standard properties disabled by the configuration.
         /// </summary>
 #pragma warning disable IDE0060 // Remove unused parameter
         public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, ParseConfig config)
@@ -73,7 +73,7 @@ namespace Aardvark.Data.Points.Import
             => Chunks(data, ParseConfig.Default);
 
         /// <summary>
-        /// Parses Ply.Net dataset.
+        /// Converts a Ply.Net dataset while omitting optional standard properties disabled by the configuration.
         /// </summary>
         public static IEnumerable<Chunk> Chunks(this PlyParser.Dataset data, ParseConfig config)
         {
@@ -121,10 +121,10 @@ namespace Aardvark.Data.Points.Import
 
                 #region colors
 
-                var cr = vd["red"];
-                var cg = vd["green"];
-                var cb = vd["blue"];
-                var ca = vd["alpha"];
+                var cr = config.EnabledProperties.Colors ? vd["red"] : null;
+                var cg = config.EnabledProperties.Colors ? vd["green"] : null;
+                var cb = config.EnabledProperties.Colors ? vd["blue"] : null;
+                var ca = config.EnabledProperties.Colors ? vd["alpha"] : null;
                 var hasColors = cr != null || cg != null || cb != null || ca != null;
                 var cs = hasColors ? new C4b[count] : null;
                 if (hasColors && ca == null) for (var i = 0; i < count; i++) cs![i].A = 255;
@@ -157,9 +157,9 @@ namespace Aardvark.Data.Points.Import
 
                 #region normals
 
-                var nx = vd["nx"];
-                var ny = vd["ny"];
-                var nz = vd["nz"];
+                var nx = config.EnabledProperties.Normals ? vd["nx"] : null;
+                var ny = config.EnabledProperties.Normals ? vd["ny"] : null;
+                var nz = config.EnabledProperties.Normals ? vd["nz"] : null;
                 var hasNormals = nx != null || ny != null || nz != null;
                 var ns = hasNormals ? new V3f[count] : null;
 
@@ -190,7 +190,7 @@ namespace Aardvark.Data.Points.Import
 
                 #region intensities
 
-                var j = vd["scalar_intensity"] ?? vd["intensity"];
+                var j = config.EnabledProperties.Intensities ? vd["scalar_intensity"] ?? vd["intensity"] : null;
                 var hasIntensities = j != null;
                 var js = hasIntensities ? new int[count] : null;
 
@@ -237,7 +237,7 @@ namespace Aardvark.Data.Points.Import
 
                 #region classifications
 
-                var k = vd["scalar_classification"] ?? vd["classification"];
+                var k = config.EnabledProperties.Classifications ? vd["scalar_classification"] ?? vd["classification"] : null;
                 var hasClassification = k != null;
                 var ks = hasClassification ? new byte[count] : null;
 

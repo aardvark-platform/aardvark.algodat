@@ -1,3 +1,5 @@
+- [Importers] enforce EnabledProperties for optional chunk attributes (#79)
+
 ### 5.6.3
 - Updated SharpCompress to 0.48.1 to address CVE-2026-44788
 

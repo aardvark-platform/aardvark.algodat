@@ -28,6 +28,13 @@ namespace Aardvark.Data.Points.Import
         /// </summary>
         public static readonly PointCloudFileFormat YxhFormat;
 
+        private static readonly Ascii.Token[] s_lineDefinition =
+        [
+            Ascii.Token.PositionX, Ascii.Token.PositionY, Ascii.Token.PositionZ,
+            Ascii.Token.Intensity,
+            Ascii.Token.ColorR, Ascii.Token.ColorG, Ascii.Token.ColorB,
+        ];
+
         static Yxh()
         {
             YxhFormat = new PointCloudFileFormat("yxh", [".yxh"], YxhInfo, Chunks);
@@ -35,16 +42,16 @@ namespace Aardvark.Data.Points.Import
         }
 
         /// <summary>
-        /// Parses .yxh file.
+        /// Parses a YXH file while omitting disabled color and intensity output.
         /// </summary>
         public static IEnumerable<Chunk> Chunks(string filename, ParseConfig config)
-            => Parsing.AsciiLines(LineParsers.XYZIRGB, filename, config);
+            => Ascii.Chunks(filename, s_lineDefinition, config);
 
         /// <summary>
-        /// Parses .yxh stream.
+        /// Parses a YXH stream while omitting disabled color and intensity output.
         /// </summary>
         public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, ParseConfig config)
-            => Parsing.AsciiLines(LineParsers.XYZIRGB, stream, streamLengthInBytes, config);
+            => Ascii.Chunks(stream, streamLengthInBytes, s_lineDefinition, config);
 
         /// <summary>
         /// Gets general info for .pts file.

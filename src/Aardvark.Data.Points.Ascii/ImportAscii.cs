@@ -171,6 +171,35 @@ namespace Aardvark.Data.Points.Import
                layout.Contains(Token.CustomFloat64)
                ;
 
+        private static bool IsColorToken(Token token)
+            => token == Token.ColorR || token == Token.ColorRf ||
+               token == Token.ColorG || token == Token.ColorGf ||
+               token == Token.ColorB || token == Token.ColorBf ||
+               token == Token.ColorA || token == Token.ColorAf;
+
+        private static bool IsNormalToken(Token token)
+            => token == Token.NormalX || token == Token.NormalY || token == Token.NormalZ;
+
+        internal static Token[] ApplyEnabledProperties(Token[] layout, EnabledProperties enabled)
+        {
+            if (enabled.Colors && enabled.Normals && enabled.Intensities) return layout;
+
+            Token[]? result = null;
+            for (var i = 0; i < layout.Length; i++)
+            {
+                var token = layout[i];
+                var disabled =
+                    (!enabled.Colors && IsColorToken(token)) ||
+                    (!enabled.Normals && IsNormalToken(token)) ||
+                    (!enabled.Intensities && token == Token.Intensity);
+                if (!disabled) continue;
+
+                result ??= (Token[])layout.Clone();
+                result[i] = Token.Skip;
+            }
+            return result ?? layout;
+        }
+
         /// <summary>
         /// </summary>
         public static PointCloudFileFormat CreateFormat(string description, Token[] lineDefinition)
@@ -180,22 +209,26 @@ namespace Aardvark.Data.Points.Import
                 );
 
         /// <summary>
-        /// Parses ASCII file.
+        /// Parses an ASCII file, consuming disabled standard-property tokens as skips without
+        /// modifying the supplied line definition.
         /// </summary>
         public static IEnumerable<Chunk> Chunks(string filename, Token[] lineDefinition, ParseConfig config)
         {
+            var effectiveLineDefinition = ApplyEnabledProperties(lineDefinition, config.EnabledProperties);
             Chunk lineParser(byte[] buffer, int count, double filterDist, int? partIndices)
-                => LineParsers.Custom(buffer, count, filterDist, lineDefinition, partIndices);
+                => LineParsers.Custom(buffer, count, filterDist, effectiveLineDefinition, partIndices);
             return Parsing.AsciiLines(lineParser, filename, config);
         }
 
         /// <summary>
-        /// Parses ASCII stream.
+        /// Parses an ASCII stream, consuming disabled standard-property tokens as skips without
+        /// modifying the supplied line definition.
         /// </summary>
         public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, Token[] lineDefinition, ParseConfig config)
         {
+            var effectiveLineDefinition = ApplyEnabledProperties(lineDefinition, config.EnabledProperties);
             Chunk lineParser(byte[] buffer, int count, double filterDist, int? partIndices)
-                => LineParsers.Custom(buffer, count, filterDist, lineDefinition, partIndices);
+                => LineParsers.Custom(buffer, count, filterDist, effectiveLineDefinition, partIndices);
             return Parsing.AsciiLines(lineParser, stream, streamLengthInBytes, config);
         }
 

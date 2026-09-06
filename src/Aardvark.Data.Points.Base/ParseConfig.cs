@@ -21,7 +21,9 @@ using System.Threading;
 namespace Aardvark.Data.Points
 {
     /// <summary>
-    /// Specifies properties to parse and import.
+    /// Specifies optional standard properties to parse and import. Importer chunk APIs always
+    /// retain positions and independently omit disabled color, normal, intensity,
+    /// classification, and part-index arrays.
     /// </summary>
     public class EnabledProperties
     {

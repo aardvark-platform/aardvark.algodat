@@ -64,6 +64,14 @@ foreach (var chunk in Laszip.Chunks(filename, config))
 }
 ```
 
+### Standard Property Selection
+
+`ParseConfig.EnabledProperties` controls which optional standard arrays are emitted by custom ASCII, PTS/YXH, PLY, LAS/LAZ, and filtered E57 `Chunks` APIs. Positions are always parsed. Colors, normals, intensities, and classifications are omitted when their respective flag is disabled, avoiding their importer-side extraction and result allocation. Part-index selection is independent of these flags.
+
+Custom ASCII layouts are not modified: disabled standard-property tokens are consumed as `Skip`, while custom tokens remain unchanged. E57 `Chunks` still applies Cartesian validity filtering and fills enabled properties that are missing from individual scans when another scan provides that semantic. `E57.ChunksFull` intentionally returns all source semantics regardless of selection flags.
+
+A later `PointCloud.Import` processes chunks into an octree and generates LoD data. LoD construction may estimate normals even when source-normal parsing was disabled, so inspect low-level chunks when the distinction between imported and generated normals matters.
+
 ### File Metadata Extraction
 
 ```csharp
