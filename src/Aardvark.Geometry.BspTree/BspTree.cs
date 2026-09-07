@@ -39,7 +39,9 @@ namespace Aardvark.Geometry
     /// <summary>
     /// A BspTree holds a triangle vertex index array and a tree of BspNodes
     /// that allow the sorting of the triangle vertex index array based on
-    /// an eye point.
+    /// an eye point. On a finalized tree, both sorting APIs support trees
+    /// built with or without triangle attribute indices, without modifying
+    /// the tree. Concurrent sorts must use separate output buffers.
     /// </summary>
     [RegisterTypeInfo]
     public class BspTree : IFieldCodeable
@@ -86,24 +88,35 @@ namespace Aardvark.Geometry
         #region Sorting An Array
 
         /// <summary>
-        /// Sorts index array (optionally single threaded)
-        /// Both variants return a CountdownEvent. For
-        /// sequential execution (parallel = false), the
-        /// returned event initially is signalled.
+        /// Sorts triangle vertex indices on a finalized tree, whether or not
+        /// it contains triangle attribute indices. The vertex output agrees
+        /// with <see cref="SortVertexAndAttributeIndexArrays"/>.
         /// </summary>
+        /// <param name="order">The requested triangle order.</param>
+        /// <param name="eye">The viewpoint used for sorting.</param>
+        /// <param name="vertexIndexArray">Output with at least
+        /// <see cref="BspTreeBuilder.TriangleCountMul3"/> entries, using the
+        /// finalized count (including split fragments). Extra entries are untouched.</param>
+        /// <param name="parallel">Whether to sort asynchronously using worker tasks.</param>
+        /// <returns>A completion event that must be awaited before reading the output
+        /// and disposed afterward. For serial execution it is already signalled.</returns>
         public CountdownEvent SortVertexIndexArray(
             Order order, V3d eye, int[] vertexIndexArray, bool parallel = true)
         {
-            var target = new TargetArray()
-            {
-                Via = vertexIndexArray,
-                Finished = new CountdownEvent(1)
-            };
+            // Packing with attributes stores triangle ordinals; without attributes
+            // it stores vertex-index offsets. The output API does not determine this.
+            if (m_triangleAttributeIndexArray != null)
+                return SortVertexAndAttributeIndexArrays(order, eye, vertexIndexArray, null, parallel);
 
-            void runParallel(Action a) => Task.Factory.StartNew(a);
-            void runSequential(Action a) => a();
+            return SortVertexIndexArray(order, eye, new TargetArray(vertexIndexArray), parallel);
+        }
+
+        private CountdownEvent SortVertexIndexArray(
+            Order order, V3d eye, TargetArray target, bool parallel)
+        {
+            static void runParallel(Action a) => Task.Run(a);
+            static void runSequential(Action a) => a();
             Action<Action> runChild = parallel ? runParallel : runSequential;
-                        
 
             if (order == Order.BackToFront)
                 runChild(() =>
@@ -120,21 +133,35 @@ namespace Aardvark.Geometry
 
             if (!parallel) target.Finished.Wait();
 
-			return target.Finished;
+            return target.Finished;
         }
 
-		public CountdownEvent SortVertexAndAttributeIndexArrays(
+        /// <summary>
+        /// Sorts aligned triangle vertex and attribute indices on a finalized tree.
+        /// Either packed layout is supported. Supplied attribute IDs follow their
+        /// triangles, including split fragments; trees built without attributes
+        /// write zero for every output triangle.
+        /// </summary>
+        /// <param name="order">The requested triangle order.</param>
+        /// <param name="eye">The viewpoint used for sorting.</param>
+        /// <param name="vertexIndexArray">Output with at least
+        /// <see cref="BspTreeBuilder.TriangleCountMul3"/> entries.</param>
+        /// <param name="attributeIndexArray">Output with at least
+        /// <see cref="BspTreeBuilder.TriangleCountMul3"/> / 3 entries, or null to
+        /// omit attributes. Both output sizes use the finalized count, including
+        /// split fragments. Extra entries are untouched.</param>
+        /// <param name="parallel">Whether to sort asynchronously using worker tasks.</param>
+        /// <returns>A completion event that must be awaited before reading the output
+        /// and disposed afterward. For serial execution it is already signalled.</returns>
+        public CountdownEvent SortVertexAndAttributeIndexArrays(
             Order order, V3d eye, int[] vertexIndexArray, int[] attributeIndexArray, bool parallel = true)
         {
-            var target = new TargetArrays()
-            {
-                // Count = 0,
-                Via = vertexIndexArray,
-                Aia = attributeIndexArray,
-                Finished = new CountdownEvent(1)
-            };
+            var target = new TargetArrays(vertexIndexArray, attributeIndexArray);
 
-            static void runParallel(Action a) => Task.Factory.StartNew(a);
+            if (m_triangleAttributeIndexArray == null)
+                return SortVertexIndexArray(order, eye, target, parallel);
+
+            static void runParallel(Action a) => Task.Run(a);
             static void runSequential(Action a) => a();
             Action<Action> runChild = parallel ? runParallel : runSequential;
 
@@ -150,7 +177,7 @@ namespace Aardvark.Geometry
                     m_tree.SortFrontToBack(this, target, 0, eye, true, runChild);
                     target.Finished.Signal();
                 });
-			return target.Finished;
+            return target.Finished;
         }
 
         #endregion
@@ -193,12 +220,13 @@ namespace Aardvark.Geometry
 
     /// <summary>
     /// A BspTreeBuilder is only used while building a BspTree, after
-    /// it has been built, it can be retrived via the property 
+    /// it has been built, it can be retrieved via the property
     /// <see cref="BspTree"/>. Afterward the BspTreeBuilder is not needed
     /// anymore.
     /// </summary>
     public class BspTreeBuilder : BspTree
     {
+        /// <summary>Whether triangle attribute indices were supplied to the builder.</summary>
         public readonly bool HasAttributeArray;
 
         private readonly int m_originalVertexCount;
@@ -236,6 +264,7 @@ namespace Aardvark.Geometry
                               int[] triangleAttributeIndexArray)
             : base(null, triangleVertexIndexArray, triangleAttributeIndexArray)
         {
+            HasAttributeArray = triangleAttributeIndexArray != null;
             m_weightsArray = [];
             m_positionArray = vertexPositionArray;
 
@@ -261,6 +290,10 @@ namespace Aardvark.Geometry
 
         #region Properties
 
+        /// <summary>
+        /// Finalized triangle count multiplied by three, including split fragments.
+        /// Use this for vertex-index output sizing and divide by three for attribute output.
+        /// </summary>
         public int TriangleCountMul3 { get; private set; }
 
         public int VertexCount { get; private set; }
@@ -286,7 +319,9 @@ namespace Aardvark.Geometry
 
         /// <summary>
         /// This property should only be read once to obtain a finalized
-        /// BspTree.
+        /// BspTree. Sorting supports both output APIs regardless of whether
+        /// attributes were supplied. Keep <see cref="TriangleCountMul3"/> for
+        /// output sizing and <see cref="PositionArray"/> for split vertices.
         /// </summary>
         public BspTree BspTree
         {
@@ -411,19 +446,18 @@ namespace Aardvark.Geometry
     }
 
     /// <summary>
-    /// Volatile array for parallel bsp sorting.
+    /// Per-sort buffers, published to worker tasks with immutable references.
+    /// Each node writes a disjoint range; completion synchronizes output reads.
     /// </summary>
-    internal class TargetArray
+    internal class TargetArray(int[] via)
     {
-        public CountdownEvent Finished;
-        public volatile int[] Via;
+        public readonly CountdownEvent Finished = new(1);
+        public readonly int[] Via = via;
     }
 
-    internal class TargetArrays
+    internal class TargetArrays(int[] via, int[] aia) : TargetArray(via)
     {
-        public CountdownEvent Finished;
-        public volatile int[] Via;
-        public volatile int[] Aia;
+        public readonly int[] Aia = aia;
     }
 
     internal class BspNode : IFieldCodeable
@@ -670,11 +704,73 @@ namespace Aardvark.Geometry
 
         private const int c_taskChunkSize = 32768;
 
-        /// <summary>
-        /// Note, that the parallel implementation of this method could be
-        /// optimized, by providing separate node types for parallel and non
-        /// parallel execution.
-        /// </summary>
+        // Keep task closures out of recursive traversal methods: only scheduled
+        // subtrees need a closure, not every visited node. Index units still come
+        // from the stored layout, independently of the requested output buffers.
+        private void ScheduleSort(BspTree tree, TargetArray target, int index, V3d eye,
+            bool backToFront, Action<Action> runChild)
+        {
+            target.Finished.AddCount(1);
+            runChild(() =>
+            {
+                if (tree.m_triangleAttributeIndexArray == null)
+                {
+                    if (backToFront) SortBackToFront(tree, target, index, eye, false, runChild);
+                    else SortFrontToBack(tree, target, index, eye, false, runChild);
+                }
+                else
+                {
+                    var arrays = (TargetArrays)target;
+                    if (backToFront) SortBackToFront(tree, arrays, index, eye, false, runChild);
+                    else SortFrontToBack(tree, arrays, index, eye, false, runChild);
+                }
+                target.Finished.Signal();
+            });
+        }
+
+        // The layout-specific copy loops share both sort orders and cache immutable
+        // buffer references. Node indices need not be assumed contiguous.
+        private void CopyIndices(BspTree tree, TargetArray target, int index3)
+        {
+            var source = tree.m_triangleVertexIndexArray;
+            var vertices = target.Via;
+            int start3 = index3;
+            int count = m_zeroList.Count;
+            for (int i = 0; i < count; i++)
+            {
+                int source3 = m_zeroList[i];
+                vertices[index3] = source[source3];
+                vertices[index3 + 1] = source[source3 + 1];
+                vertices[index3 + 2] = source[source3 + 2];
+                index3 += 3;
+            }
+            // Clear just this node's output during the same traversal. Vertex-only
+            // calls need neither a dummy attribute array nor a clearing pass.
+            if (target is TargetArrays arrays && arrays.Aia != null)
+                Array.Clear(arrays.Aia, start3 / 3, count);
+        }
+
+        private void CopyIndices(BspTree tree, TargetArrays target, int index)
+        {
+            var source = tree.m_triangleVertexIndexArray;
+            var sourceAttributes = tree.m_triangleAttributeIndexArray;
+            var vertices = target.Via;
+            var attributes = target.Aia;
+            int index3 = index * 3;
+            int count = m_zeroList.Count;
+            for (int i = 0; i < count; i++)
+            {
+                int sourceIndex = m_zeroList[i];
+                int source3 = sourceIndex * 3;
+                vertices[index3] = source[source3];
+                vertices[index3 + 1] = source[source3 + 1];
+                vertices[index3 + 2] = source[source3 + 2];
+                if (attributes != null) attributes[index] = sourceAttributes[sourceIndex];
+                index3 += 3;
+                index++;
+            }
+        }
+
         internal void SortBackToFront(
             BspTree t, TargetArray via,
             int ti3, V3d eye, bool mainTask, Action<Action> runChild)
@@ -684,39 +780,21 @@ namespace Aardvark.Geometry
             if (height >= 0.0)
             {
                 ti3 += m_negativeCount;
-                foreach (int tiMul3 in m_zeroList)
-                {
-                    t.GetTriangleVertexIndices(tiMul3,
-                        out via.Via[ti3],
-                        out via.Via[ti3 + 1],
-                        out via.Via[ti3 + 2]);
-                    ti3 += 3;
-                }
+                CopyIndices(t, via, ti3);
+                ti3 += m_zeroList.Count * 3;
             }
             else
             {
                 nti3 += m_positiveCount;
-                foreach (int tiMul3 in m_zeroList)
-                {
-                    t.GetTriangleVertexIndices(tiMul3,
-                        out via.Via[nti3],
-                        out via.Via[nti3 + 1],
-                        out via.Via[nti3 + 2]);
-                    nti3 += 3;
-                }
+                CopyIndices(t, via, nti3);
+                nti3 += m_zeroList.Count * 3;
             }
+
             if (m_negativeTree != null)
             {
                 if (mainTask && m_negativeCount < c_taskChunkSize)
                 {
-                    // via.Count += 1;
-					via.Finished.AddCount(1);
-                    runChild(() =>
-                    {
-                        m_negativeTree.SortBackToFront(
-                            t, via, nti3, eye, false, runChild);
-                        via.Finished.Signal();
-                    });
+                    m_negativeTree.ScheduleSort(t, via, nti3, eye, true, runChild);
                 }
                 else
                     m_negativeTree.SortBackToFront(
@@ -726,14 +804,7 @@ namespace Aardvark.Geometry
             {
                 if (mainTask && m_positiveCount < c_taskChunkSize)
                 {
-                    // via.Count += 1;
-					via.Finished.AddCount(1);
-                    runChild(() =>
-                    {
-                        m_positiveTree.SortBackToFront(
-                            t, via, ti3, eye, false, runChild);
-                        via.Finished.Signal();
-                    });
+                    m_positiveTree.ScheduleSort(t, via, ti3, eye, true, runChild);
                 }
                 else
                     m_positiveTree.SortBackToFront(
@@ -750,38 +821,21 @@ namespace Aardvark.Geometry
             if (height < 0.0)
             {
                 ti3 += m_negativeCount;
-                foreach (int tiMul3 in m_zeroList)
-                {
-                    t.GetTriangleVertexIndices(tiMul3,
-                        out via.Via[ti3],
-                        out via.Via[ti3 + 1],
-                        out via.Via[ti3 + 2]);
-                    ti3 += 3;
-                }
+                CopyIndices(t, via, ti3);
+                ti3 += m_zeroList.Count * 3;
             }
             else
             {
                 nti3 += m_positiveCount;
-                foreach (int tiMul3 in m_zeroList)
-                {
-                    t.GetTriangleVertexIndices(tiMul3,
-                        out via.Via[nti3],
-                        out via.Via[nti3 + 1],
-                        out via.Via[nti3 + 2]);
-                    nti3 += 3;
-                }
+                CopyIndices(t, via, nti3);
+                nti3 += m_zeroList.Count * 3;
             }
+
             if (m_positiveTree != null)
             {
                 if (mainTask && m_positiveCount < c_taskChunkSize)
                 {
-					via.Finished.AddCount(1);
-                    runChild(() =>
-                    {
-                        m_positiveTree.SortFrontToBack(
-                            t, via, ti3, eye, false, runChild);
-                        via.Finished.Signal();
-                    });
+                    m_positiveTree.ScheduleSort(t, via, ti3, eye, false, runChild);
                 }
                 else
                     m_positiveTree.SortFrontToBack(
@@ -791,13 +845,7 @@ namespace Aardvark.Geometry
             {
                 if (mainTask && m_negativeCount < c_taskChunkSize)
                 {
-					via.Finished.AddCount(1);
-                    runChild(() =>
-                    {
-                        m_negativeTree.SortFrontToBack(
-                            t, via, nti3, eye, false, runChild);
-                        via.Finished.Signal();
-                    });
+                    m_negativeTree.ScheduleSort(t, via, nti3, eye, false, runChild);
                 }
                 else
                     m_negativeTree.SortFrontToBack(
@@ -805,11 +853,6 @@ namespace Aardvark.Geometry
             }
         }
 
-        /// <summary>
-        /// Note, that the parallel implementation of this method could be
-        /// optimized, by providing separate node types for parallel and non
-        /// parallel execution.
-        /// </summary>
         internal void SortBackToFront(
             BspTree t, TargetArrays target,
             int ti, V3d eye, bool mainTask, Action<Action> runChild)
@@ -819,44 +862,20 @@ namespace Aardvark.Geometry
             if (height >= 0.0)
             {
                 ti += m_negativeCount;
-                var ti3 = ti * 3;
-                foreach (int oti in m_zeroList)
-                {
-                    t.GetTriangleVertexIndices(oti * 3,
-                        out target.Via[ti3],
-                        out target.Via[ti3 + 1],
-                        out target.Via[ti3 + 2]);
-                    ti3 += 3;
-                    target.Aia[ti] = (t.m_triangleAttributeIndexArray != null) ? t.m_triangleAttributeIndexArray[oti] : 0;
-                    ti++;
-                }
+                CopyIndices(t, target, ti);
+                ti += m_zeroList.Count;
             }
             else
             {
                 nti += m_positiveCount;
-                var nti3 = nti * 3;
-                foreach (int oti in m_zeroList)
-                {
-                    t.GetTriangleVertexIndices(oti * 3,
-                        out target.Via[nti3],
-                        out target.Via[nti3 + 1],
-                        out target.Via[nti3 + 2]);
-                    nti3 += 3;
-                    target.Aia[nti] = (t.m_triangleAttributeIndexArray != null) ? t.m_triangleAttributeIndexArray[oti] : 0;
-                    nti++;
-                }
+                CopyIndices(t, target, nti);
+                nti += m_zeroList.Count;
             }
             if (m_negativeTree != null)
             {
                 if (mainTask && m_negativeCount < c_taskChunkSize)
                 {
-					target.Finished.AddCount(1);
-                    runChild(() => 
-                    { 
-                        m_negativeTree.SortBackToFront(
-                            t, target, nti, eye, false, runChild);
-                        target.Finished.Signal();
-                    });
+                    m_negativeTree.ScheduleSort(t, target, nti, eye, true, runChild);
                 }
                 else
                     m_negativeTree.SortBackToFront(
@@ -866,13 +885,7 @@ namespace Aardvark.Geometry
             {
                 if (mainTask && m_positiveCount < c_taskChunkSize)
                 {
-					target.Finished.AddCount(1);
-                    runChild(() =>
-                    {
-                        m_positiveTree.SortBackToFront(
-                            t, target, ti, eye, false, runChild);
-                        target.Finished.Signal();
-                    });
+                    m_positiveTree.ScheduleSort(t, target, ti, eye, true, runChild);
                 }
                 else
                     m_positiveTree.SortBackToFront(
@@ -889,44 +902,20 @@ namespace Aardvark.Geometry
             if (height < 0.0)
             {
                 ti += m_negativeCount;
-                var ti3 = ti * 3;
-                foreach (int oti in m_zeroList)
-                {
-                    t.GetTriangleVertexIndices(oti * 3,
-                        out target.Via[ti3],
-                        out target.Via[ti3 + 1],
-                        out target.Via[ti3 + 2]);
-                    ti3 += 3;
-                    target.Aia[ti] = (t.m_triangleAttributeIndexArray != null) ? t.m_triangleAttributeIndexArray[oti] : 0;
-                    ti++;
-                }
+                CopyIndices(t, target, ti);
+                ti += m_zeroList.Count;
             }
             else
             {
                 nti += m_positiveCount;
-                var nti3 = nti * 3;
-                foreach (int oti in m_zeroList)
-                {
-                    t.GetTriangleVertexIndices(oti * 3,
-                        out target.Via[nti3],
-                        out target.Via[nti3 + 1],
-                        out target.Via[nti3 + 2]);
-                    nti3 += 3;
-                    target.Aia[nti] = (t.m_triangleAttributeIndexArray != null) ? t.m_triangleAttributeIndexArray[oti] : 0;
-                    nti++;
-                }
+                CopyIndices(t, target, nti);
+                nti += m_zeroList.Count;
             }
             if (m_positiveTree != null)
             {
                 if (mainTask && m_positiveCount < c_taskChunkSize)
                 {
-					target.Finished.AddCount(1);
-                    runChild (() => 
-                    {
-                        m_positiveTree.SortFrontToBack(
-                            t, target, ti, eye, false, runChild);
-                        target.Finished.Signal();
-                    });
+                    m_positiveTree.ScheduleSort(t, target, ti, eye, false, runChild);
                 }
                 else
                     m_positiveTree.SortFrontToBack(
@@ -936,14 +925,7 @@ namespace Aardvark.Geometry
             {
                 if (mainTask && m_negativeCount < c_taskChunkSize)
                 {
-					target.Finished.AddCount(1);
-                    runChild(() =>
-                    {
-                        m_negativeTree.SortFrontToBack(
-                            t, target, nti, eye, false, runChild);
-                        target.Finished.Signal();
-                    }
-                    );
+                    m_negativeTree.ScheduleSort(t, target, nti, eye, false, runChild);
                 }
                 else
                     m_negativeTree.SortFrontToBack(
