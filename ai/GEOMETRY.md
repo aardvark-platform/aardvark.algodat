@@ -25,21 +25,38 @@ var builder = new BspTreeBuilder(indices, positions, absoluteEpsilon: 1e-6);
 var bspTree = builder.BspTree;
 
 // Sort indices back-to-front for transparency rendering
-var sortedIndices = new int[indices.Length];
-var countdown = bspTree.SortVertexIndexArray(
+var sortedIndices = new int[builder.TriangleCountMul3]; // Includes split fragments
+using var countdown = bspTree.SortVertexIndexArray(
     BspTree.Order.BackToFront,
     eyePosition,
     sortedIndices,
     parallel: true
 );
 countdown.Wait(); // Block until sorting completes
+
+// The paired API works on the same tree, even when no attributes were supplied.
+var sortedAttributes = new int[builder.TriangleCountMul3 / 3];
+using var paired = bspTree.SortVertexAndAttributeIndexArrays(
+    BspTree.Order.BackToFront, eyePosition, sortedIndices, sortedAttributes,
+    parallel: false
+);
+// Serial completion is already signalled; sortedAttributes contains zeros here.
 ```
+
+### Sorting Contract
+
+- Both output APIs work on finalized trees built with or without `triangleAttributeIndexArray`, in either order and execution mode. For the same viewpoint/order their vertex outputs agree.
+- Attribute IDs remain aligned with triangles, including all split fragments. When the tree has no attributes, the paired API overwrites each requested triangle's attribute with zero. Passing a null attribute output omits attribute writes.
+- Allocate vertex output using `builder.TriangleCountMul3` and attribute output using `builder.TriangleCountMul3 / 3`, not the original input count. Entries beyond those counts are untouched. Keep `builder.PositionArray` to resolve newly generated split vertices.
+- Finalize once via `builder.BspTree`; do not sort the builder itself. Finalized trees are not mutated or repacked during sorting and support repeated/concurrent calls with separate output buffers.
+- Wait for the returned `CountdownEvent` before reading or reusing outputs, then dispose it. Serial calls return an already-signalled event; parallel work uses the default task scheduler.
+- Serialized layouts remain unchanged: node indices/counts use vertex-index units without attributes and triangle units with attributes. Sorting selects those units from the stored attribute presence, not the output API.
 
 ### Gotchas
 
-- **BspTreeBuilder modifies input arrays** – Always pass copies of index/position arrays.
+- **BspTreeBuilder modifies input arrays** – Always pass copies of index/position arrays and any attribute-index array.
 - **Epsilon controls splitting** – Too small creates deep trees; too large loses precision.
-- **Parallel sorting returns async event** – `SortVertexIndexArray` returns `CountdownEvent`; call `.Wait()` to block.
+- **Parallel sorting returns async event** – Both sorting APIs return `CountdownEvent`; call `.Wait()` to block, then dispose it.
 - **Tree construction uses shuffle** – Triangles are inserted in shuffled order to reduce tree depth.
 - **Split triangles are duplicated** – Triangles straddling planes are cloned into fragments; final triangle count may exceed original.
 
