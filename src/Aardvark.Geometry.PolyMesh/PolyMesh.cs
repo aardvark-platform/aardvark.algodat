@@ -1090,14 +1090,10 @@ namespace Aardvark.Geometry
         }
 
         /// <summary>
-        /// Returns a (hopeflully) manifold copy of the mesh, by using non-
-        /// manifold edge connections to combine faces with inconsistent
-        /// vertex order. If the vertex order is the only problem preventing
-        /// the mesh from being manifold, the returned mesh is indeed
-        /// manifold. If you need more control consider 'Analyze'
-        /// and 'FaceReversedCopy'. Note, that topology
-        /// information is not copied or built, since the actual euler
-        /// characteristic of the mesh is not known.
+        /// Returns a copy with faces reversed according to
+        /// <see cref="Analyze(out uint[], out bool[])"/>. Face order and component membership are
+        /// preserved. The result is manifold when inconsistent face winding was the only obstruction.
+        /// Valid source topology is required; result topology is intentionally not copied or rebuilt.
         /// </summary>
         public PolyMesh ManifoldCopy()
         {
@@ -1241,12 +1237,14 @@ namespace Aardvark.Geometry
         }
 
         /// <summary>
-        /// Analyze the mesh with respect to components, without taking non-
-        /// manifold edges into account. Returns the number of components,
-        /// and the component index index of each face.
+        /// Analyzes edge-connected face components without traversing non-manifold edge links.
+        /// Returns the component count and, for each face, its zero-based component index.
+        /// Valid topology must have been built before calling this method.
         /// </summary>
+        /// <exception cref="InvalidOperationException">The mesh has no built topology.</exception>
         public uint Analyze(out uint[] faceComponentIndexArray)
         {
+            if (!HasTopology) throw new InvalidOperationException("Analyze requires topology.");
             var cia = new uint[m_faceCount].Set(uint.MaxValue);
             var cc = Analyze(cia, null);
             faceComponentIndexArray = cia;
@@ -1254,17 +1252,16 @@ namespace Aardvark.Geometry
         }
 
         /// <summary>
-        /// Analyze the mesh with respect to components, taking non-manifold
-        /// edges into account. Returns the number of components, the
-        /// component index index of each face, and a bool for each face
-        /// if it is flipped with respect to the first face of the component
-        /// (first face being the one with the lowest face index).
-        /// NOTE: Mesh requires valid topology.
+        /// Analyzes edge-connected face components, following non-manifold edge links as needed.
+        /// Returns the component count, each face's zero-based component index, and whether each
+        /// face must be reversed relative to the lowest-indexed face in its component. Valid topology
+        /// must have been built before calling this method.
         /// </summary>
+        /// <exception cref="InvalidOperationException">The mesh has no built topology.</exception>
         public uint Analyze(out uint[] faceComponentIndexArray,
                 out bool[] faceReversedArray)
         {
-            if (!HasTopology) throw new Exception("Analyze requires topology");
+            if (!HasTopology) throw new InvalidOperationException("Analyze requires topology.");
             var fcia = new uint[m_faceCount].Set(uint.MaxValue);
             var ffa = new bool[m_faceCount];
             var cc = Analyze(fcia, ffa);
@@ -1293,7 +1290,7 @@ namespace Aardvark.Geometry
                 if (fcia[fi] < uint.MaxValue) continue;
                 if (ffa != null) ffa[fi] = false;
                 fcia[fi] = cc;
-                var fec = EdgeCountOfFace(0);
+                var fec = EdgeCountOfFace(fi);
                 for (int fs = 0; fs < fec; fs++)
                     queue.Enqueue(new EdgeRefReversion(EdgeRefOfFace(fi, fs), false));
                 while (queue.Count > 0)
@@ -2204,8 +2201,9 @@ namespace Aardvark.Geometry
         {
             var fia = m_firstIndexArray;
             int fvi = fia[faceIndex], fvc = fia[faceIndex + 1] - fvi;
-            if (faceSide < 0) faceSide = faceSide % fvc + fvc;
-            return m_faceEdgeRefArray[fvi + (faceSide + faceSide) % fvc];
+            faceSide %= fvc;
+            if (faceSide < 0) faceSide += fvc;
+            return m_faceEdgeRefArray[fvi + faceSide];
         }
 
         internal FaceRef TurnedFaceRef(FaceRef faceRef, int turnCount)
@@ -3482,21 +3480,22 @@ namespace Aardvark.Geometry
                 => FaceIndex == faceIndex || OppositeFaceIndex == faceIndex;
 
             /// <summary>
-            /// Returns all connected edges of this vertex.
-            /// Note: The vertex must be connected to this edge.
+            /// Returns the other edges incident to the supplied vertex when it is an endpoint of
+            /// this edge. Returns an empty sequence for an unrelated vertex. Valid topology is required.
             /// </summary>
             public IEnumerable<Edge> GetConnectedEdgesAt(int vertexIndex)
                 => GetConnectedEdgesAt(new Vertex(Mesh, vertexIndex));
 
             /// <summary>
-            /// Returns all connected edges of this vertex.
+            /// Returns the other edges incident to the supplied vertex when it belongs to this mesh
+            /// and is an endpoint of this edge. Returns an empty sequence otherwise. Valid topology is required.
             /// </summary>
             public IEnumerable<Edge> GetConnectedEdgesAt(Vertex vertex)
             {
-                if (IsConnectedToVertex(vertex))
+                if (vertex.Mesh != Mesh || !IsConnectedToVertex(vertex.Index))
                     return Enumerable.Empty<Edge>();
-                var ei = Index;
-                return vertex.Edges.Where(e => e.Index != ei);
+                var edgeIndex = Index;
+                return vertex.Edges.Where(edge => edge.Index != edgeIndex);
             }
 
             /// <summary>
