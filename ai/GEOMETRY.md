@@ -122,13 +122,17 @@ if (kdTree.Intersect(ray, tmin: 0, tmax: double.MaxValue, ref hit))
 }
 
 // Closest point query
-var closest = new ObjectClosestPoint { DistanceSquared = double.MaxValue };
+var closest = ObjectClosestPoint.MaxRange;
 if (kdTree.ClosestPoint(queryPoint, ref closest))
 {
     V3d nearestPoint = closest.Point;
     double distance = closest.Distance;
 }
 ```
+
+`MaxRange` initializes an unbounded query. For a finite bound, set both `Distance` and `DistanceSquared` consistently. Only a strictly closer result replaces the supplied value; otherwise the call returns `false` and leaves it unchanged.
+
+The [triangle-set implementation](../src/Aardvark.Geometry.Intersection/IntersectableTriangleSet.cs) accepts a null object filter for all triangles, or a predicate to select candidates. Its separate point-result filter is ignored. Filter support for other object sets depends on their implementation.
 
 ### Gotchas
 
