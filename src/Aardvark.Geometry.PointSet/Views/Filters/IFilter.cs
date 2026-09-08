@@ -20,19 +20,35 @@ using System.Text.Json.Nodes;
 namespace Aardvark.Geometry.Points;
 
 /// <summary>
+/// Point selection with conservative node classification for filtered views.
 /// </summary>
 public interface IFilter : IEquatable<IFilter>
 {
-    /// <summary></summary>
+    /// <summary>
+    /// Returns true when the node can be accepted in full. False does not imply
+    /// fully outside. Boolean OR requires either operand fully inside; AND requires both.
+    /// </summary>
     bool IsFullyInside(IPointCloudNode node);
 
-    /// <summary></summary>
+    /// <summary>
+    /// Returns true when the node can be rejected in full. False does not imply
+    /// fully inside. Boolean OR requires both operands fully outside; AND requires either.
+    /// </summary>
     bool IsFullyOutside(IPointCloudNode node);
 
     /// <summary>
-    /// Computes indices of selected/visible points, starting from already selected points.
-    /// If 'selected' is null, then ALL points are selected to begin with.
+    /// Computes the accepted subset of the supplied selection without modifying it.
     /// </summary>
+    /// <param name="node">Node whose local point indices are filtered.</param>
+    /// <param name="selected">Read-only input domain of valid local point indices.
+    /// Null denotes all indices from zero to <see cref="IPointCloudNode.PointCountCell"/>
+    /// (exclusive); an empty set denotes no points.</param>
+    /// <returns>
+    /// A non-null subset of the input domain. An unchanged selection may be returned
+    /// by reference; otherwise the result must be independently owned by the caller,
+    /// not reused or modified by the filter after returning. Callers must not mutate a result that
+    /// aliases their supplied selection unless they own that selection exclusively.
+    /// </returns>
     HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null);
 
     /// <summary></summary>
