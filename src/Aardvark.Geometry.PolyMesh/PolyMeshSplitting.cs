@@ -59,9 +59,8 @@ namespace Aardvark.Geometry
 
         /// <summary>
         /// Represents a value at an interpolated point between two indexed
-        /// values of an indexable set of values. This is implemented as a
-        /// class in order to avoid duplicating interpolated points in some
-        /// algorithms.
+        /// values of an indexable set of values. One entry is shared by all
+        /// faces cutting the same indexed edge.
         /// </summary>
         public struct SplitPoint
         {
@@ -132,9 +131,11 @@ namespace Aardvark.Geometry
 
         /// <summary>
         /// A splitter can split a vertex-indexed face set, based on the
-        /// supplied array of vertexHeights, which indicate for each vertex
-        /// vi if it belongs to the negative split side (vertexHeights[vi]
-        /// &lt; 0.0) or positive split side (vertexHeights[vi] &gt;= 0.0).
+        /// supplied array of vertexHeights. Heights below -eps belong to the
+        /// negative side, heights above eps to the positive side, and intervening
+        /// heights are coplanar. Only requested sides are constructed; None produces
+        /// neither side. Wholly coplanar input prefers the requested positive side;
+        /// coplanar faces within mixed input belong to the positive side.
         /// </summary>
         public PolygonSplitter(
                 int[] fia, int faceCount,
@@ -142,28 +143,35 @@ namespace Aardvark.Geometry
                 double[] vertexHeights, double eps,
                 SplitterOptions options)
         {
-            int vc = vertexHeights.Length;
-            int vertexIndexCount = fia[faceCount];
-
             bool doNeg = (options & SplitterOptions.Negative) != 0;
             bool doPos = (options & SplitterOptions.Positive) != 0;
+            if (!doNeg && !doPos) return;
 
-            if (doPos && vertexHeights.All(h => h >= -eps))
+            int vc = vertexHeights.Length;
+
+            // Direct scans preserve the whole-side fast path without allocating
+            // predicate closures or invoking a delegate for every vertex height.
+            if (doPos)
             {
-                m_pfia = fia; m_pvia = via; m_ofia = null; return;
+                int i = 0;
+                while (i < vc && vertexHeights[i] >= -eps) ++i;
+                if (i == vc) { m_pfia = fia; m_pvia = via; m_ofia = null; return; }
             }
 
-            if (doNeg && vertexHeights.All(h => h <= eps))
+            if (doNeg)
             {
-                m_nfia = fia; m_nvia = via; m_ofia = null; return;
+                int i = 0;
+                while (i < vc && vertexHeights[i] <= eps) ++i;
+                if (i == vc) { m_nfia = fia; m_nvia = via; m_ofia = null; return; }
             }
 
             m_ofia = fia;
 
             var lineMap = new Dict<Line1i, (int, int, int)>();
 
-            m_spl = doNeg ? new List<SplitPoint>() : null;
-            m_nvl = doPos ? new List<Vertex>() : null;
+            // Every requested side needs the shared edge-intersection data.
+            m_spl = new List<SplitPoint>();
+            m_nvl = doNeg ? new List<Vertex>() : null;
             m_pvl = doPos ? new List<Vertex>() : null;
             m_nfl = doNeg ? new List<Face>() : null;
             m_pfl = doPos ? new List<Face>() : null;
@@ -208,8 +216,8 @@ namespace Aardvark.Geometry
                 else
                 {
                     if (zc > 2) Report.Warn("non-convex polygon encountered");
-                    var nfvl = new List<FaceVertex>(nc + 2);
-                    var pfvl = new List<FaceVertex>(pc + 2);
+                    var nfvl = doNeg ? new List<FaceVertex>(nc + 2) : null;
+                    var pfvl = doPos ? new List<FaceVertex>(pc + 2) : null;
 
                     int sb = ha[0] > eps ? 1 : (ha[0] < -eps ? -1 : 0), vib = via[fvi];
                     int i0 = 0, s0 = sb, vi0 = vib;
@@ -392,13 +400,15 @@ namespace Aardvark.Geometry
                 else
                 {
                     var forwardMap = new int[va.Length].Set(-1);
+                    var nia = new int[newFaceCount];
                     int nac = 0;
                     for (int fi = 0; fi < faceBackCount; fi++)
-                        forwardMap.ForwardMapAdd(ia[faceBackMap[fi]], ref nac);
+                        nia[fi] = forwardMap.ForwardMapAdd(ia[faceBackMap[fi]], ref nac);
 
-                    var nia = faceBackMap.Map(newFaceCount, i => forwardMap[ia[i]]);
-                    for (int i = 0; i < newFaceCount; i++)
-                        nia[faceBackCount + i] = forwardMap[newFaceList[i].OldIndex];
+                    // Fragments inherit their source face's attribute index,
+                    // including values not referenced by any retained face.
+                    for (int i = 0; i < newFaceList.Count; i++)
+                        nia[faceBackCount + i] = forwardMap.ForwardMapAdd(ia[newFaceList[i].OldIndex], ref nac);
 
                     return new PolyMesh.Attribute<T>(
                             Name, nia,
@@ -486,7 +496,7 @@ namespace Aardvark.Geometry
                 if (indexArray == null)
                 {
                     var newValueArray = new T[faceVertexCount];
-                    valueArray.BackMappedGroupCopyTo(faceBackMap, faceCount, ofia, newValueArray, 0);
+                    valueArray.BackMappedGroupCopyTo(faceBackMap, faceBackMap.Length, ofia, newValueArray, 0);
 
                     var newFaceVertexIndex = fia[faceBackMap.Length];
                     foreach (var f in newFaceList)
@@ -499,7 +509,6 @@ namespace Aardvark.Geometry
                             else
                             {
                                 var vertex = newVertexList[-1 - v.OldSide];
-                                var sp = splitPointList[vertex.SplitIndex];
                                 int ofve = ofia[f.OldIndex + 1];
                                 int ofvi0 = ofvi + vertex.OldSide, ofvi1 = ofvi0 + 1;
                                 if (ofvi1 == ofve) ofvi1 = ofvi;
@@ -550,7 +559,6 @@ namespace Aardvark.Geometry
                             else
                             {
                                 var vertex = newVertexList[-1 - v.OldSide];
-                                var sp = splitPointList[vertex.SplitIndex];
                                 int ofve = ofia[f.OldIndex + 1];
                                 int ofvi0 = ofvi + vertex.OldSide, ofvi1 = ofvi0 + 1;
                                 if (ofvi1 == ofve) ofvi1 = ofvi;
@@ -573,11 +581,23 @@ namespace Aardvark.Geometry
         /// <summary>
         /// Splits the mesh on the specified plane in a pair containing the negative
         /// (element 0) and the positive side (element 1) of the plane.
-        /// Note that the normal vector of the plane need not be normalized.
+        /// Unrequested or absent sides are null; None returns neither side.
+        /// The plane normal need not be normalized; epsilon is in plane-height units.
         /// </summary>
+        /// <remarks>
+        /// Input arrays are not modified. A wholly retained side returns this mesh;
+        /// new meshes retain its instance attributes by reference. Cut vertices are
+        /// shared along indexed edges, but corner attributes interpolate independently
+        /// along each original face edge. No caps are generated.
+        /// Coplanar faces in mixed input go to the positive side. Wholly coplanar input
+        /// is returned on the positive side if requested, otherwise on the negative side.
+        /// </remarks>
         public (PolyMesh, PolyMesh) SplitOnPlane(
                 Plane3d plane, double epsilon, SplitterOptions options)
         {
+            if ((options & SplitterOptions.NegativeAndPositive) == SplitterOptions.None)
+                return default;
+
             var heightArray = m_positionArray.Map(
                                 m_vertexCount, p => plane.Height(p));
             var splitter = new PolygonSplitter(
@@ -592,24 +612,14 @@ namespace Aardvark.Geometry
                 var fia = splitter.FirstIndexArray(side);
                 if (fia != null)
                 {
+                    PolyMesh pm;
                     if (splitter.IsEqualToInput(side))
                     {
-                        //result[side] = this;
-                        switch (side)
-                        {
-                            case 0:
-                                result = (this, result.Item2);
-                                break;
-                            case 1:
-                                result = (result.Item1, this);
-                                break;
-                            default:
-                                throw new IndexOutOfRangeException();
-                        }
+                        pm = this;
                     }
                     else
                     {
-                        var pm = new PolyMesh()
+                        pm = new PolyMesh()
                         {
                             FirstIndexArray = fia,
                             VertexIndexArray = splitter.VertexIndexArray(side),
@@ -621,20 +631,9 @@ namespace Aardvark.Geometry
                             FaceVertexAttributes = FaceVertexIAttributes.Select(
                                     a => splitter.FaceVertexAttribute(side, a)).ToSymbolDict(),
                         };
-
-                        //result[side] = pm;
-                        switch (side)
-                        {
-                            case 0:
-                                result = (pm, result.Item2);
-                                break;
-                            case 1:
-                                result = (result.Item1, pm);
-                                break;
-                            default:
-                                throw new IndexOutOfRangeException();
-                        }
                     }
+                    if (side == 0) result.Item1 = pm;
+                    else result.Item2 = pm;
                 }
             }
 
