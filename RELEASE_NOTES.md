@@ -1,3 +1,5 @@
+- [PointSet] Repair plane/hull fingerprints; invalidate caches using old geometry fingerprints (#95).
+
 ### 5.6.3
 - Updated SharpCompress to 0.48.1 to address CVE-2026-44788
 
