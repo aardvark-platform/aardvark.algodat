@@ -12,6 +12,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using System;
+using System.Buffers;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -342,88 +344,145 @@ public static class HashExtensions
 
     #region Plane3d
 
-    /// <summary>Computes MD5 hash of given data.</summary>
+    /// <summary>
+    /// Hashes the stored Normal.X, Normal.Y, Normal.Z and Distance as four
+    /// little-endian IEEE 754 doubles, without normalization. The digest bytes
+    /// form a Guid. This replaces the old Point-based fingerprint; callers must
+    /// invalidate caches keyed by the old plane/hull fingerprints.
+    /// </summary>
     public static Guid ComputeMd5Hash(this Plane3d plane)
-    {
-        return ComputeMd5Hash(bw => {
-            bw.Write(plane.Point.X); bw.Write(plane.Point.Y); bw.Write(plane.Point.Z);
-            bw.Write(plane.Distance);
-        });
-    }
-    /// <summary>Computes MD5 hash of given data.</summary>
+        => ComputeGeometryHash(writer => writer.WritePlane(plane));
+
+    /// <summary>
+    /// Hashes ordered plane coefficient records using the scalar encoding,
+    /// without a collection header. A singleton hashes like its scalar plane.
+    /// </summary>
+    /// <exception cref="NullReferenceException">The array is null.</exception>
     public static Guid ComputeMd5Hash(this Plane3d[] planes)
-    {
-        return ComputeMd5Hash(bw => {
-            foreach (var plane in planes)
-            {
-                bw.Write(plane.Point.X); bw.Write(plane.Point.Y); bw.Write(plane.Point.Z);
-                bw.Write(plane.Distance);
-            }
+        => ComputeGeometryHash(writer => {
+            foreach (var plane in planes) writer.WritePlane(plane);
         });
-    }
-    /// <summary>Computes MD5 hash of given data.</summary>
+
+    /// <summary>
+    /// Hashes ordered plane coefficient records using the scalar encoding,
+    /// enumerating the sequence once without a collection header.
+    /// </summary>
+    /// <exception cref="NullReferenceException">The sequence is null.</exception>
     public static Guid ComputeMd5Hash(this IEnumerable<Plane3d> planes)
-    {
-        return ComputeMd5Hash(bw => {
-            foreach (var plane in planes)
-            {
-                bw.Write(plane.Point.X); bw.Write(plane.Point.Y); bw.Write(plane.Point.Z);
-                bw.Write(plane.Distance);
-            }
+        => ComputeGeometryHash(writer => {
+            foreach (var plane in planes) writer.WritePlane(plane);
         });
-    }
 
     #endregion
 
     #region Hull3d
 
-    /// <summary>Computes MD5 hash of given data.</summary>
+    /// <summary>
+    /// Hashes the little-endian Int32 plane count followed by ordered plane
+    /// coefficient records, without normalization or reordering. An invalid hull
+    /// (null PlaneArray) returns Guid.Empty. This replaces the old unframed,
+    /// Point-based fingerprint; callers must invalidate caches using it.
+    /// </summary>
     public static Guid ComputeMd5Hash(this Hull3d hull)
     {
         if (hull.PlaneArray == null) return Guid.Empty;
-
-        return ComputeMd5Hash(bw => {
-            foreach (var plane in hull.PlaneArray)
-            {
-                bw.Write(plane.Point.X); bw.Write(plane.Point.Y); bw.Write(plane.Point.Z);
-                bw.Write(plane.Distance);
-            }
-        });
+        return ComputeGeometryHash(writer => writer.WriteHull(hull));
     }
-    /// <summary>Computes MD5 hash of given data.</summary>
+
+    /// <summary>
+    /// Hashes ordered hull records using the scalar count/coefficients encoding.
+    /// A valid singleton hashes like its scalar hull; an empty array differs from
+    /// one empty hull. A null array returns Guid.Empty.
+    /// </summary>
+    /// <exception cref="NullReferenceException">An element has a null PlaneArray.</exception>
     public static Guid ComputeMd5Hash(this Hull3d[] hulls)
     {
         if (hulls == null) return Guid.Empty;
-
-        return ComputeMd5Hash(bw => {
-            foreach (var hull in hulls)
-            {
-                foreach (var plane in hull.PlaneArray)
-                {
-                    bw.Write(plane.Point.X); bw.Write(plane.Point.Y); bw.Write(plane.Point.Z);
-                    bw.Write(plane.Distance);
-                }
-            }
+        return ComputeGeometryHash(writer => {
+            foreach (var hull in hulls) writer.WriteHull(hull);
         });
     }
-    /// <summary>Computes MD5 hash of given data.</summary>
+
+    /// <summary>
+    /// Hashes ordered hull records using the scalar count/coefficients encoding,
+    /// enumerating the sequence once. A null sequence returns Guid.Empty.
+    /// </summary>
+    /// <exception cref="NullReferenceException">An element has a null PlaneArray.</exception>
     public static Guid ComputeMd5Hash(this IEnumerable<Hull3d> hulls)
     {
         if (hulls == null) return Guid.Empty;
-
-        return ComputeMd5Hash(bw => {
-            foreach (var hull in hulls)
-            {
-                foreach (var plane in hull.PlaneArray)
-                {
-                    bw.Write(plane.Point.X); bw.Write(plane.Point.Y); bw.Write(plane.Point.Z);
-                    bw.Write(plane.Distance);
-                }
-            }
+        return ComputeGeometryHash(writer => {
+            foreach (var hull in hulls) writer.WriteHull(hull);
         });
     }
 
     #endregion
+
+    private static Guid ComputeGeometryHash(Action<GeometryHashWriter> writeData)
+    {
+        using var writer = new GeometryHashWriter();
+        writeData(writer);
+        return writer.Finish();
+    }
+
+    // Geometry framing can push a growing MemoryStream across a capacity boundary.
+    // Feed bounded batches to MD5 instead, with no input-size-dependent allocations
+    // or count pass. Keep unrelated vector/color hashing on its established path.
+    private sealed class GeometryHashWriter : IDisposable
+    {
+        private const int BufferSize = 4096;
+        private readonly byte[] m_buffer = ArrayPool<byte>.Shared.Rent(BufferSize);
+        private int m_count;
+        private IncrementalHash? m_hash;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WritePlane(Plane3d plane)
+        {
+            var bytes = Reserve(32);
+            BinaryPrimitives.WriteInt64LittleEndian(bytes, BitConverter.DoubleToInt64Bits(plane.Normal.X));
+            BinaryPrimitives.WriteInt64LittleEndian(bytes.Slice(8), BitConverter.DoubleToInt64Bits(plane.Normal.Y));
+            BinaryPrimitives.WriteInt64LittleEndian(bytes.Slice(16), BitConverter.DoubleToInt64Bits(plane.Normal.Z));
+            BinaryPrimitives.WriteInt64LittleEndian(bytes.Slice(24), BitConverter.DoubleToInt64Bits(plane.Distance));
+        }
+
+        public void WriteHull(Hull3d hull)
+        {
+            var planes = hull.PlaneArray;
+            var count = planes.Length; // Invalid elements retain their NullReferenceException contract.
+            BinaryPrimitives.WriteInt32LittleEndian(Reserve(4), count);
+            foreach (var plane in planes) WritePlane(plane);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private Span<byte> Reserve(int size)
+        {
+            if (m_count + size > BufferSize) Flush();
+            var bytes = m_buffer.AsSpan(m_count, size);
+            m_count += size;
+            return bytes;
+        }
+
+        private void Flush()
+        {
+            // Lazy creation also keeps rented-buffer cleanup exception-safe if
+            // creating the platform hash provider fails.
+            m_hash ??= IncrementalHash.CreateHash(HashAlgorithmName.MD5);
+            m_hash.AppendData(m_buffer, 0, m_count);
+            m_count = 0;
+        }
+
+        public Guid Finish()
+        {
+            Flush();
+            return new Guid(m_hash!.GetHashAndReset());
+        }
+
+        public void Dispose()
+        {
+            m_hash?.Dispose();
+            ArrayPool<byte>.Shared.Return(m_buffer);
+        }
+    }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Guid ComputeMd5Hash(Action<BinaryWriter> writeDataToHash)
