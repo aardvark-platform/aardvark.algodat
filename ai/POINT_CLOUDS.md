@@ -195,6 +195,26 @@ if (!node.IsLeaf)
 }
 ```
 
+### Classification Views
+
+`FilterClassification` accepts points whose byte classification is in its live, mutable `Filter` set. A supplied `HashSet<byte>` is retained by reference; the byte-array constructor creates an independent set. `FilterPoints` treats a supplied selection as a read-only domain and returns a fresh set of matching local indices. Null selects from all local points. Points without classifications are not selected, even when all 256 byte values are accepted.
+
+Internal-node classifications are LoD samples, not subtree summaries. `IsFullyInside` therefore returns false (unknown) for internal nodes; `IsFullyOutside` also returns false unless the accepted set is empty, which rejects any subtree. These predicates do not load internal classification payloads or descendants. An absent internal payload likewise says nothing about descendants. Classified leaves retain early-exit scans; leaves without classifications are outside.
+
+```csharp
+var filter = new FilterClassification((byte)2);
+var view = FilteredNode.Create(pointSet.Root.Value, filter);
+var chunks = view.QueryAllPoints(); // complete filtered leaf enumeration
+var exactCount = view.CountPointsInsideBox(pointSet.Bounds);
+
+// Both endpoints are excluded, including 255; overlaps are harmless.
+var withoutHighClasses = FilterClassification.AllExcept(new Range1b(250, 255));
+```
+
+`AllExcept` considers the entire byte domain 0–255. Ranges are inclusive; inverted ranges exclude nothing. The `Type`/`Filter` JSON representation is unchanged.
+
+A filtered view's `PointCountTree` (and its enclosing `PointSet.PointCount`) remains an LoD-derived estimate, not an exact classification count. Use leaf enumeration or an exact query with the default leaf-level resolution instead. Mutating the filter affects subsequent filter calls; already constructed views retain their existing cached selections.
+
 ### Merging Point Clouds
 
 ```csharp
