@@ -293,6 +293,23 @@ var treeCount = node.PointCountTree;   // Points in entire subtree (sum of leave
 // For inner nodes: cellCount may be 0, treeCount > 0
 ```
 
+#### Leaf Point Statistics
+
+`GetMinimumLeafPointCount`, `GetMaximumLeafPointCount`, and `GetAverageLeafPointCount` aggregate `PointCountCell` only at reached terminal leaves (`Subnodes == null`). Internal-node LoD samples do not contribute. The average is the sum of visited leaf counts divided by the number of those leaves, not an average of child averages or a ratio using `PointCountTree` and all nodes. Filtered views contribute their actual visible leaf counts, not parent estimates.
+
+An empty physical leaf contributes a zero and counts as one leaf. An internal node whose child slots are all null, or whose references are all unavailable under the chosen traversal mode, contributes no leaves. With no reached leaves, minimum is `long.MaxValue`, maximum is `long.MinValue`, and average is `double.NaN`.
+
+```csharp
+var minimum = node.GetMinimumLeafPointCount(outOfCore: true);
+var maximum = node.GetMaximumLeafPointCount(outOfCore: true);
+var average = node.GetAverageLeafPointCount(outOfCore: true);
+if (double.IsNaN(average)) { /* traversal reached no leaves */ }
+```
+
+Traversal preserves the existing reference-resolution policies: extrema use `Value` when `outOfCore` is true, otherwise `TryGetFromCache`, skipping unavailable references. Average uses durable child references and leaf-count metadata for ordinary persisted subtrees in out-of-core mode, reusing cached nodes when available. It need not reload the supplied root, so an unwritten `With()` root works with its persisted children. Transient/interface nodes and legacy records use node traversal; filtered averages retain their `TryGetFromCache` child policy in both modes.
+
+`TryGetFromCache` is a reference callback, not a guarantee of zero I/O: the default storage callback may load on a cache miss. No storage/cache policy is changed by these statistics. Ordinary persisted out-of-core averages avoid loading external position/attribute arrays; legacy leaves missing count metadata may require decoding. Aggregation is streaming and linear, without materializing leaf lists or a preliminary counting pass.
+
 ### 5. Immutable Updates and Storage
 
 **Problem:** Calling `With()` creates a new node with a new ID but does **not** write to storage automatically. You must call `WriteToStore()` explicitly.
