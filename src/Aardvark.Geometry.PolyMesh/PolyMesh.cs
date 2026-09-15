@@ -3753,13 +3753,19 @@ namespace Aardvark.Geometry
         #region Normals
 
         /// <summary>
-        /// Generates Normals and Centroids for faces. Note, that for
-        /// degenerate faces, the returned normals are Zero, and in this
-        /// case the centroids are also set to Zero. If you need centroids
-        /// for degenerate faces, you should scan the array for zero normals
-        /// and recalculate the centroid.
+        /// Generates per-face unit Normals, nonnegative Areas and area-weighted Centroids.
+        /// For planar polygon faces with at least three vertices, signed fan contributions
+        /// preserve concave regions. Collinear or repeated leading vertices do not establish
+        /// the orientation of centroid weights. Reversing winding reverses the normal, not
+        /// the area or centroid; cyclic starting indices describe the same face geometry.
+        /// Faces with zero accumulated normal have zero normal, area and centroid. If a
+        /// centroid is needed for such a degenerate face, it must be calculated separately.
         /// </summary>
-        /// <param name="warn"></param>
+        /// <remarks>
+        /// Replaces the three face-attribute arrays without changing input geometry or topology.
+        /// Traversal is linear in face-vertex count, with no triangulation or per-face buffers.
+        /// </remarks>
+        /// <param name="warn">Report counts of zero or NaN accumulated normals.</param>
         public void AddFaceNormalsAreasCentroids(bool warn = true)
         {
             var pa = m_positionArray;
@@ -3775,22 +3781,44 @@ namespace Aardvark.Geometry
             for (int fvi = fia[0], fi = 0; fi < faceCount; fi++)
             {
                 V3d p0 = pa[via[fvi++]], p1 = pa[via[fvi++]], p2 = pa[via[fvi++]];
-                V3d e0 = p1 - p0, e1 = p2 - p0;
-                var n0 = Vec.Cross(e0, e1);
-                var normal = n0;
-                var a0 = n0.Length;
-                var area = a0;
-                var centroid = (p0 + p1 + p2) * a0;
-                for (int fve = fia[fi + 1]; fvi < fve; fvi++)
+                var edge = p2 - p0;
+                var n0 = Vec.Cross(p1 - p0, edge);
+                // Scalar accumulators retain the original arithmetic without carrying vector
+                // temporaries through the fan loop.
+                var mx = n0.X; var my = n0.Y; var mz = n0.Z;
+                var orientationArea = n0.Length;
+                var area = orientationArea;
+                var cx = (p0.X + p1.X + p2.X) * orientationArea;
+                var cy = (p0.Y + p1.Y + p2.Y) * orientationArea;
+                var cz = (p0.Z + p1.Z + p2.Z) * orientationArea;
+                var fve = fia[fi + 1];
+                if (fvi < fve)
                 {
-                    p1 = p2; p2 = pa[via[fvi]];
-                    e0 = e1; e1 = p2 - p0;
-                    var n = Vec.Cross(e0, e1);
-                    normal += n;
-                    var a = Vec.Dot(n0, n) > 0 ? n.Length : -n.Length;
-                    area += a;
-                    centroid += (p0 + p1 + p2) * a;
+                    var nx = n0.X; var ny = n0.Y; var nz = n0.Z;
+                    do
+                    {
+                        p1 = p2; p2 = pa[via[fvi++]];
+                        var next = p2 - p0;
+                        var n = Vec.Cross(edge, next);
+                        edge = next;
+                        mx += n.X; my += n.Y; mz += n.Z;
+                        var a = n.Length;
+                        // Until a nonzero fan normal is found, there is no orientation.
+                        // Use it only as the reference for weights; n contributes just once.
+                        if (orientationArea == 0)
+                        {
+                            nx = n.X; ny = n.Y; nz = n.Z;
+                            orientationArea = a;
+                        }
+                        if (!(nx * n.X + ny * n.Y + nz * n.Z > 0)) a = -a;
+                        area += a;
+                        cx += (p0.X + p1.X + p2.X) * a;
+                        cy += (p0.Y + p1.Y + p2.Y) * a;
+                        cz += (p0.Z + p1.Z + p2.Z) * a;
+                    }
+                    while (fvi < fve);
                 }
+                var normal = new V3d(mx, my, mz);
                 var len2 = normal.LengthSquared;
                 if (len2 == 0)
                     ++zeroCount;
@@ -3798,7 +3826,7 @@ namespace Aardvark.Geometry
                     ++nanCount;
                 else
                 {
-                    centroidArray[fi] = centroid / (3.0 * area);
+                    centroidArray[fi] = new V3d(cx, cy, cz) / (3.0 * area);
                     area = Fun.Sqrt(len2);
                     normalArray[fi] = normal / area;
                     areaArray[fi] = area * 0.5;
