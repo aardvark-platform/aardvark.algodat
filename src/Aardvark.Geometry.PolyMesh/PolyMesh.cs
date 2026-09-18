@@ -1467,65 +1467,229 @@ namespace Aardvark.Geometry
         }
 
         /// <summary>
-        /// Removes degenerated edges from the vertex index array.
-        /// Faces may degnerated to empty faces (may use NonDegenerateFaceIndices and SubSetOfFaces or WithoutDegeneratedFaces)
+        /// Returns a copy with consecutive repeated vertex indices removed independently in
+        /// each face. The last corner of each run survives; a closing run matching the first
+        /// is removed. Distinct indices are not welded by position. Face slots are retained,
+        /// including empty faces; fewer than two surviving corners produce an empty slot.
         /// </summary>
+        /// <remarks>
+        /// Positive-key face-vertex arrays, including indexed-attribute indices, follow the
+        /// retained source corners. Negative-key value pools and unaffected attributes are
+        /// preserved. Source arrays and dictionaries are not changed. Connectivity changes
+        /// invalidate copied topology. Active counts, offsets and ranges ignore spare capacity.
+        /// Compaction is linear and does not allocate a separate corner map. Empty face slots
+        /// can subsequently be removed with NonDegenerateFaceIndices and SubSetOfFaces or
+        /// WithoutDegeneratedFaces.
+        /// </remarks>
         public PolyMesh WithoutDegeneratedEdges()
         {
-            var fia = m_firstIndexArray;
-            var via = m_vertexIndexArray;
-
-            var fixedVIA = new int[via.Length];
-            var fixedFIA = new int[fia.Length];
+            var fia = m_firstIndexArray ?? Array.Empty<int>();
+            var via = m_vertexIndexArray ?? Array.Empty<int>();
             var fc = m_faceCount;
-            int fiaDst = 1; // start first face
-            int viaDst = 0;
+            var fixedVIA = new int[via.Length];
+            var fixedFIA = new int[Math.Max(fc + 1, fia.Length)];
+            var hasCornerAttributes = false;
+            foreach (var attribute in m_faceVertexAttributes)
+                if (attribute.Key.IsPositive) { hasCornerAttributes = true; break; }
 
-            var faceVertexCountRange = Range1i.Invalid;
-
-            for (int fvi = fia[0], fi = 0; fi < fc; fi++)
+            var shifted = fc > 0 && fia[0] != 0;
+            // When projection becomes necessary, reuse the output buffer as a source-corner
+            // map. Convert it to vertex indices only after every corner array is projected.
+            int[] cornerMap;
+            int viaDst;
+            Range1i faceVertexCountRange;
+            if (!hasCornerAttributes)
             {
-                var vfirst = via[fvi++];    // first Vertex-Index (for check with last)
-                var vi0 = vfirst;           // current Vertex-Index
-
-                var dst0 = viaDst;  // start vertex-index
-
-                for (int fve = fia[fi + 1]; fvi < fve; fvi++)
-                {
-                    var vi1 = via[fvi];     // next Vertex-Index
-
-                    if (vi0 != vi1)
-                        fixedVIA[viaDst++] = vi0;   // not equal -> insert into VIA
-
-                    vi0 = vi1;  // move to next vertex index
-                }
-
-                // last check
-                if (vfirst != vi0)
-                    fixedVIA[viaDst++] = vi0;
-
-                var faceVertexCount = viaDst - dst0;
-                if (faceVertexCount < 2)
-                {
-                    viaDst = dst0;  // degenerated face -> reset via-index
-                    faceVertexCountRange.ExtendBy(0);
-                }
-                else
-                    faceVertexCountRange.ExtendBy(faceVertexCount);
-
-                fixedFIA[fiaDst++] = viaDst; // new face-vertex count (can be 0 -> to maintain face-attributes)
+                // Dispatch once, keeping all corner-map bookkeeping out of this traversal.
+                cornerMap = null;
+                viaDst = CompactCleanupIndices(fia, via, fc, fixedFIA, fixedVIA, out faceVertexCountRange);
+            }
+            else
+            {
+                viaDst = CompactCleanupCorners(fia, via, fc, fixedFIA, fixedVIA, shifted,
+                    out cornerMap, out faceVertexCountRange);
             }
 
-            var result = this.Copy();
+            var changed = shifted || viaDst != m_vertexIndexCount;
+            var result = CopyForEdgeCleanup(changed);
+            if (cornerMap != null)
+            {
+                var attributes = m_faceVertexAttributes.Copy();
+                foreach (var attribute in m_faceVertexAttributes)
+                    if (attribute.Key.IsPositive)
+                        attributes[attribute.Key] = ProjectCleanupCorners(attribute.Value, cornerMap, viaDst);
+                result.FaceVertexAttributes = attributes;
+                for (var i = 0; i < viaDst; i++) fixedVIA[i] = via[cornerMap[i]];
+            }
 
-            // face count is still the same
-            result.VertexIndexArray = fixedVIA;
-            result.VertexIndexCount = viaDst; // set valid count
+            // Assign active counts separately from capacities. The ordinary setters derive
+            // counts from array lengths and can reallocate an empty index array.
+            result.m_faceCount = fc;
+            result[Property.FaceCount] = fc;
+            result.m_vertexIndexArray = fixedVIA;
+            result[Property.VertexIndexArray] = fixedVIA;
+            result.m_vertexIndexCount = viaDst;
+            result[Property.VertexIndexCount] = viaDst;
             result.m_firstIndexArray = fixedFIA;
             result[Property.FirstIndexArray] = fixedFIA;
             result.m_faceVertexCountRange = faceVertexCountRange;
             result[Property.FaceVertexCountRange] = faceVertexCountRange;
+            return result;
+        }
 
+        private static int CompactCleanupIndices(int[] first, int[] indices, int faceCount,
+            int[] outputFirst, int[] outputIndices, out Range1i faceVertexCountRange)
+        {
+            var dst = 0;
+            var range = Range1i.Invalid;
+            for (var face = 0; face < faceCount; face++)
+            {
+                var start = first[face];
+                var end = first[face + 1];
+                var dst0 = dst;
+                if (start < end)
+                {
+                    var initial = indices[start++];
+                    var current = initial;
+                    for (; start < end; start++)
+                    {
+                        var next = indices[start];
+                        if (current != next) outputIndices[dst++] = current;
+                        current = next;
+                    }
+                    if (current != initial) outputIndices[dst++] = current;
+                }
+                var count = dst - dst0;
+                if (count < 2) { dst = dst0; count = 0; }
+                range.ExtendBy(count);
+                outputFirst[face + 1] = dst;
+            }
+            faceVertexCountRange = range;
+            return dst;
+        }
+
+        private static int CompactCleanupCorners(int[] first, int[] indices, int faceCount,
+            int[] outputFirst, int[] outputIndices, bool shifted, out int[] cornerMap, out Range1i faceVertexCountRange)
+        {
+            var dst = 0;
+            var range = Range1i.Invalid;
+            var firstChanged = shifted ? 0 : CopyCleanupPrefix(first, indices, faceCount, outputFirst, outputIndices, out dst, out range);
+            if (firstChanged == faceCount)
+            {
+                cornerMap = null;
+                faceVertexCountRange = range;
+                return dst;
+            }
+            BeginCleanupCornerMap(outputIndices, dst);
+            for (var face = firstChanged; face < faceCount; face++)
+            {
+                var start = first[face];
+                var end = first[face + 1];
+                var dst0 = dst;
+                if (start < end)
+                {
+                    var initial = indices[start];
+                    var current = initial;
+                    for (var corner = start + 1; corner < end; corner++)
+                    {
+                        var next = indices[corner];
+                        if (current != next) outputIndices[dst++] = corner - 1;
+                        current = next;
+                    }
+                    if (current != initial) outputIndices[dst++] = end - 1;
+                }
+                var count = dst - dst0;
+                if (count < 2) { dst = dst0; count = 0; }
+                range.ExtendBy(count);
+                outputFirst[face + 1] = dst;
+            }
+            cornerMap = outputIndices;
+            faceVertexCountRange = range;
+            return dst;
+        }
+
+        private static int CopyCleanupPrefix(int[] first, int[] indices, int faceCount,
+            int[] outputFirst, int[] outputIndices, out int count, out Range1i faceVertexCountRange)
+        {
+            var dst = 0;
+            var range = Range1i.Invalid;
+            for (var face = 0; face < faceCount; face++)
+            {
+                var start = first[face];
+                var end = first[face + 1];
+                var dst0 = dst;
+                if (start < end)
+                {
+                    var initial = indices[start];
+                    var current = initial;
+                    for (var corner = start + 1; corner < end; corner++)
+                    {
+                        var next = indices[corner];
+                        if (current == next)
+                        {
+                            count = dst0;
+                            faceVertexCountRange = range;
+                            return face;
+                        }
+                        outputIndices[dst++] = current;
+                        current = next;
+                    }
+                    if (current == initial)
+                    {
+                        count = dst0;
+                        faceVertexCountRange = range;
+                        return face;
+                    }
+                    outputIndices[dst++] = current;
+                }
+                range.ExtendBy(end - start);
+                outputFirst[face + 1] = dst;
+            }
+            count = dst;
+            faceVertexCountRange = range;
+            return faceCount;
+        }
+
+        private static void BeginCleanupCornerMap(int[] output, int count)
+        {
+            // Before the first changed face, emitted corners are an identity prefix.
+            // Only that face is revisited; prefix replay and the remaining pass stay linear.
+            for (var i = 0; i < count; i++) output[i] = i;
+        }
+
+        private static Array ProjectCleanupCorners(Array source, int[] map, int count)
+        {
+            // BackMappedCopy uses zero as "the whole map", and supports only common types.
+            var result = count > 0 ? source.BackMappedCopy(map, count) : null;
+            if (result != null) return result;
+            result = Array.CreateInstance(source.GetType().GetElementType(), count);
+            for (var i = 0; i < count;)
+            {
+                var end = i + 1;
+                while (end < count && map[end] == map[i] + end - i) end++;
+                Array.Copy(source, map[i], result, i, end - i);
+                i = end;
+            }
+            return result;
+        }
+
+        private PolyMesh CopyForEdgeCleanup(bool changed)
+        {
+            if (m_positionArray != null && m_vertexCount != 0)
+                return Copy(changed ? OverridesNoTopology : null);
+
+            // Awake writes the position entry through a shared vertex dictionary, and may
+            // allocate positions for empty/non-V3d meshes. Isolate those writes locally;
+            // restore the unchanged vertex representation after using the usual copy path.
+            var overrides = changed ? OverridesNoTopology.Copy() : new SymbolDict<object>();
+            overrides[Property.VertexAttributes] = m_vertexAttributes.Copy();
+            overrides[Property.VertexCount] = 0;
+            var result = Copy(overrides);
+            result.m_vertexAttributes = m_vertexAttributes;
+            result[Property.VertexAttributes] = m_vertexAttributes;
+            result.m_positionArray = m_positionArray;
+            result.m_vertexCount = m_vertexCount;
+            result[Property.VertexCount] = m_vertexCount;
             return result;
         }
 
