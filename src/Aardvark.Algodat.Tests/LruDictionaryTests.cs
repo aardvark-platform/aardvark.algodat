@@ -518,5 +518,37 @@ namespace Aardvark.Geometry.Tests
         }
 
         #endregion
+
+        #region Re-add existing key
+
+        [Test]
+        public void AddExistingKey_UpdatesValueAndSize()
+        {
+            var a = new LruDictionary<int, string>(100);
+            a.Add(1, "foo", 10, onRemove: default);
+            ClassicAssert.AreEqual("foo", a[1]);
+            ClassicAssert.AreEqual(10, a.CurrentSize);
+
+            a.Add(1, "bar", 20, onRemove: default);
+            ClassicAssert.AreEqual(1, a.Count);
+            ClassicAssert.AreEqual("bar", a[1]);
+            ClassicAssert.AreEqual(20, a.CurrentSize);
+        }
+
+        [Test]
+        public void AddExistingKey_UpdatesOnRemove()
+        {
+            var a = new LruDictionary<int, string>(100);
+            var removedFirst = false;
+            var removedSecond = false;
+            a.Add(1, "foo", 10, onRemove: (_, _, _) => removedFirst = true);
+            a.Add(1, "bar", 20, onRemove: (_, _, _) => removedSecond = true);
+
+            a.Remove(1, callOnRemove: true);
+            ClassicAssert.IsFalse(removedFirst);
+            ClassicAssert.IsTrue(removedSecond);
+        }
+
+        #endregion
     }
 }

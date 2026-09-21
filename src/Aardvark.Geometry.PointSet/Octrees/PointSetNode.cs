@@ -1016,8 +1016,43 @@ public class PointSetNode : IPointCloudNode
     /// <summary></summary>
     public bool HasCentroidLocal => PointCountCell > 0 || Data.ContainsKey(Durable.Octree.PositionsLocal3fCentroid);
 
-    private V3f? m_centroid;
-    private float? m_centroidStdDev;
+    /// <summary>
+    /// Memoized centroid and std dev. A reference (not a nullable struct pair), so publication is atomic:
+    /// concurrent readers may compute it twice, but never observe a torn value.
+    /// </summary>
+    private sealed class CentroidInfo(V3f centroid, float stdDev)
+    {
+        public readonly V3f Centroid = centroid;
+        public readonly float StdDev = stdDev;
+    }
+
+    private CentroidInfo? m_centroidInfo;
+
+    private CentroidInfo GetCentroidInfo()
+    {
+        var x = m_centroidInfo;
+        if (x != null) return x;
+
+        var hasCentroid = Data.TryGetValue(Durable.Octree.PositionsLocal3fCentroid, out var storedCentroid);
+        var hasStdDev = Data.TryGetValue(Durable.Octree.PositionsLocal3fDistToCentroidStdDev, out var storedStdDev);
+
+        V3f centroid; float stdDev;
+        if (hasCentroid && hasStdDev)
+        {
+            centroid = (V3f)storedCentroid;
+            stdDev = (float)storedStdDev;
+        }
+        else
+        {
+            (centroid, stdDev) = ComputeStuffs(Positions.Value);
+            if (hasCentroid) centroid = (V3f)storedCentroid;
+            if (hasStdDev) stdDev = (float)storedStdDev;
+        }
+
+        x = new CentroidInfo(centroid, stdDev);
+        m_centroidInfo = x;
+        return x;
+    }
 
     private static (V3f, float) ComputeStuffs(V3f[] ps)
     {
@@ -1046,19 +1081,7 @@ public class PointSetNode : IPointCloudNode
     /// <summary></summary>
     public V3f CentroidLocal
     {
-        get
-        {
-            if (m_centroid != null) return m_centroid.Value;
-            if (Data.TryGetValue(Durable.Octree.PositionsLocal3fCentroid, out var local))
-            {
-                m_centroid = (V3f)local;
-                return m_centroid.Value;
-            }
-            var (centroid, stddev) = ComputeStuffs(Positions.Value);
-            m_centroid = centroid;
-            m_centroidStdDev = stddev;
-            return m_centroid.Value;
-        }
+        get => GetCentroidInfo().Centroid;
     }
 
     /// <summary></summary>
@@ -1067,19 +1090,7 @@ public class PointSetNode : IPointCloudNode
     /// <summary></summary>
     public float CentroidLocalStdDev
     {
-        get
-        {
-            if (m_centroidStdDev != null) return m_centroidStdDev.Value;
-            if (Data.TryGetValue(Durable.Octree.PositionsLocal3fDistToCentroidStdDev, out var local))
-            {
-                m_centroidStdDev = (float)local;
-                return m_centroidStdDev.Value;
-            }
-            var (centroid, stddev) = ComputeStuffs(Positions.Value);
-            m_centroid = centroid;
-            m_centroidStdDev = stddev;
-            return m_centroidStdDev.Value;
-        }
+        get => GetCentroidInfo().StdDev;
     }
 
     #endregion

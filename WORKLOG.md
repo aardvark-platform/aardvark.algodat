@@ -50,7 +50,7 @@ Real hazards:
 | 1 | Never write to the store during decode; build missing kd-trees lazily in memory instead | done |
 | 2 | Make `FilteredNode` lazy state thread-safe (`Lazy<T>` with ExecutionAndPublication) | done |
 | 3 | Copy attribute arrays in `ToChunk` / octree-level query so chunks never alias cached arrays | done |
-| 4 | Small cleanups: centroid memo, `LruDictionary.Add` value update | todo |
+| 4 | Small cleanups: centroid memo, `LruDictionary.Add` value update | done |
 
 After these, parallelization of the Vgm.Api endpoints is re-evaluated; the remaining
 serialization point is the SimpleDiskStore lock on cache misses.
@@ -103,3 +103,30 @@ serialization point is the SimpleDiskStore lock on cache misses.
   octree-level queries, inside-box, Collect and cell enumeration must not change node data
   or later queries, for plain and partially filtered leaves. Verified the tests fail against
   the pre-fix library (3/3 fail) and pass with it.
+- 2026-09-21: **Step 4 done.** `PointSetNode`: the two nullable-struct memos `m_centroid` /
+  `m_centroidStdDev` became one immutable `CentroidInfo` reference published atomically
+  (`GetCentroidInfo`); per-field preference for stored values is preserved.
+  `LruDictionary.Add` on an existing key now updates value and onRemove (not only size);
+  `Count` reads under the lock. Two new LruDictionary tests. Full suite: 453 passed,
+  2 skipped, 0 failed.
+
+## State after the fixes
+
+Query path shared state, as of the end of step 4:
+
+| Component | Status |
+|-----------|--------|
+| Query functions (`Queries*.cs`) | pure, allocate per call |
+| `Chunk` handed to callers | owns all arrays (step 3) |
+| `PointSetNode` | immutable `Data`; `PersistentRefs` written only in ctor; centroid memo atomic (step 4); no store writes on read (step 1) |
+| `FilteredNode` | all derived state `Lazy<T>` ExecutionAndPublication (step 2) |
+| `LruDictionary` | locked per operation |
+| `SimpleDiskStore` | one global lock per operation, including the copy out of the mmap |
+
+Remaining serialization point for concurrent endpoint calls: the SimpleDiskStore lock on LRU
+cache misses. Candidates for the parallelization pass: copy outside the store lock (or a
+reader/writer lock in SimpleDiskStore), and reducing decode fan-out in the `PointSetNode`
+constructor (it eagerly loads positions for the length consistency check and recursively
+loads children when a stored inner node lacks `BoundingBoxExactGlobal`).
+
+Not touched: Vgm.Api (no in-place writes found there; its wrappers are thin).

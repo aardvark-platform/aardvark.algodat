@@ -112,7 +112,7 @@ namespace Aardvark.Base
 
         /// <summary>
         /// </summary>
-        public int Count => m_k2e.Count;
+        public int Count { get { lock (m_k2e) return m_k2e.Count; } }
 
         /// <summary>
         /// Adds or refreshes key/value pair.
@@ -128,7 +128,10 @@ namespace Aardvark.Base
                 if (m_k2e.TryGetValue(key, out e))
                 {
                     Unlink(e);
-                    CurrentSize -= e.Size; e.Size = size; 
+                    CurrentSize -= e.Size;
+                    e.Value = value;
+                    e.Size = size;
+                    e.OnRemove = onRemove;
                 }
                 else
                 {
