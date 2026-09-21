@@ -130,3 +130,124 @@ constructor (it eagerly loads positions for the length consistency check and rec
 loads children when a stored inner node lacks `BoundingBoxExactGlobal`).
 
 Not touched: Vgm.Api (no in-place writes found there; its wrappers are thin).
+
+## Parallelization evaluation (2026-09-21, after the fixes)
+
+### Harness
+
+`src/Aardvark.Algodat.Tests/ParallelQueryBenchmark.cs` (`[Explicit]`, run with
+`dotnet test -c Release --filter FullyQualifiedName~ParallelQueryBenchmark --logger "console;verbosity=normal"`).
+Imports 1M random points with colors (585 nodes, split limit 8192) into a SimpleDiskStore in
+the temp folder, reopens it with a fresh 1 GB LRU, and runs a mixed workload per thread
+(300 ops; each op = one near-ray query, one 0.1³ inside-box query, one cell query at
+exponent -3), from 1, 2, 4, 8, 16 threads, cold (LRU cleared before the run) and warm.
+Best of 3. The underlying `Storage.f_get` is wrapped to count calls, bytes and time spent in
+the store (i.e. under the SimpleDiskStore lock, waiting included). Machine: Ryzen 7 7700,
+8 cores / 16 threads. Note: "cold" means LRU-cold; the 43 MB store file stays in the OS file
+cache, so this does not measure disk I/O.
+
+### Baseline (after steps 0-4, before the changes below)
+
+| threads | mode | ops/s | speedup | store gets | store MB | store share of thread time |
+|--------:|------|------:|--------:|-----------:|---------:|---------------------------:|
+| 1 | cold | 1 419 | 1.00 | 1 824 | 42.7 | 29 % |
+| 1 | warm | 3 244 | 1.00 | 0 | 0 | 0 % |
+| 4 | cold | 6 748 | 4.76 | 2 102 | 50.6 | 16 % |
+| 4 | warm | 9 307 | 2.87 | 0 | 0 | 0 % |
+| 8 | cold | 11 533 | 8.13 | 2 439 | 65.3 | 15 % |
+| 8 | warm | 15 099 | 4.66 | 0 | 0 | 0 % |
+| 16 | cold | 16 716 | 11.78 | 3 024 | 88.0 | 11 % |
+| 16 | warm | 19 693 | 6.07 | 0 | 0 | 0 % |
+
+Reading: (a) warm scaling reaches ~6x on 8 physical cores; (b) cold "speedup" > thread
+count is an artifact (the decode work is shared by all threads, while ops scale with
+threads); (c) at 16 threads the store is read twice as much as at 1 thread (3 024 vs 1 824
+gets, 88 vs 43 MB): concurrent misses on the same key each load and decode it; (d) the
+store lock accounts for 11-29 % of thread time, falling with thread count.
+
+### Experiment 1: lock-free reads in `LruDictionary`
+
+Hypothesis: every `PersistentRef.Value` takes the LRU lock, limiting warm scaling.
+Change: `m_k2e` is a `ConcurrentDictionary`; `TryGetValue`/`ContainsKey`/`Count` no longer
+lock; mutations still lock (`m_lock`). Result: no measurable change (16 threads warm
+19.7k -> 20.4k ops/s, within noise). Hypothesis rejected; kept the change because it is
+strictly less contention for free.
+
+### Experiment 2: server GC
+
+`DOTNET_gcServer=1`: 16 threads warm 19.7k -> 24.1k ops/s (+22 %), 8 threads warm
+15.1k -> 16.9k. The workload allocates heavily (chunk copies, filtered lists), so the
+API host process should run with server GC (`<ServerGarbageCollection>true</ServerGarbageCollection>`
+or `DOTNET_gcServer=1`). Together with 8 physical cores, warm scaling (9.1x at 16 threads,
+6.4x at 8) is close to the hardware limit: the warm path is CPU-bound, not lock-bound.
+
+### Experiment 3: in-flight deduplication of cache misses
+
+Change: `LruDictionary.TryGetOrAdd(key, create, out value)` runs `create` once per key even
+under concurrent misses (in-flight `ConcurrentDictionary<K, Lazy<...>>`, re-check inside
+the factory, callers unregister only their own entry). `StorageExtensions` load functions
+(`GetV3fArray`, `GetIntArray`, `GetInt16Array`, `GetC4bArray`, both kd-tree data loaders,
+`GetPointSet`, `GetPointCloudNode`) go through a common `GetOrLoad` that uses it.
+Side effects: nodes parsed by `ObsoleteNodeParser` are now cached like all other nodes;
+classifications (`Classifications1bReference`) are now cached (`GetByteArrayCached`),
+previously every access re-read them from the store.
+Result: store gets are constant at 1 824 for every thread count (was 3 024 at 16), bytes
+constant at 42.7 MB (was 88), store share of thread time at 16 threads 11 % -> 4 %.
+Test: `ConcurrencyTests.ParallelColdLoads_LoadEachKeyOnce` asserts no key is loaded twice
+under 16 concurrent cold threads.
+
+### Experiment 4: reader/writer lock in SimpleDiskStore (prototype, separate repo)
+
+Repo `C:\repo\Uncodium.SimpleStore`, branch `concurrent-reads` (from main at 3.0.30+2).
+`SimpleDiskStore.cs`: the single `lock (m_lock)` became a `ReaderWriterLockSlim`
+(recursive, because Add -> EnsureSpaceFor -> ReOpenMemoryMappedFile nest). `Contains`,
+`GetSize`, `Get`, `GetSlice`, `GetStream` take the shared lock via `ReadLockWithOpenMmf()`,
+which first re-opens the mapping under the exclusive lock if a previous resize failed (a
+shared lock cannot be upgraded); `List` takes the plain shared lock (index only, must work
+while the file is closed on disk-full). `Add`, `AddStream`, `Remove`, `Flush`, `Dispose`,
+`EnsureSpaceFor`, `ReOpenMemoryMappedFile` take the exclusive lock. The in-memory index is
+plain dictionaries, safe for concurrent readers when writers are excluded;
+`MemoryMappedViewAccessor.ReadArray` is safe for concurrent reads.
+Tests: existing suite 74 passed / 10 skipped (Azure) / 0 failed on net10.0. New
+`ConcurrentReadTests`: 8 readers verify values while a writer appends 96 MB and forces
+resizes; and `ReadersOverlap`: 8 readers of a 64 MB blob take 0.245 s vs 0.171 s for one
+reader (serialized would be ~1.37 s).
+Effect on the algodat benchmark (DLL swapped into bin/Release for the run): none beyond
+noise, because after experiment 3 the store is only 4-6 % of thread time and the file is in
+the OS cache. The lock matters when reads are disk-bound (page faults inside the lock
+serialize I/O) or blobs are large; the micro-test shows that case. Not consumed by algodat
+yet (paket pins 3.0.30); adopting it needs a SimpleStore release.
+
+### Table after experiments 1, 3, 4 (same harness, same machine, workstation GC)
+
+| threads | mode | ops/s | speedup | store gets | store MB | store share |
+|--------:|------|------:|--------:|-----------:|---------:|------------:|
+| 1 | cold | 1 493 | 1.00 | 1 824 | 42.7 | 37 % |
+| 1 | warm | 3 217 | 1.00 | 0 | 0 | 0 % |
+| 4 | cold | 7 818 | 5.24 | 1 824 | 42.7 | 19 % |
+| 4 | warm | 10 384 | 3.23 | 0 | 0 | 0 % |
+| 8 | cold | 8 987 | 6.02 | 1 824 | 42.7 | 12 % |
+| 8 | warm | 14 796 | 4.60 | 0 | 0 | 0 % |
+| 16 | cold | 17 376 | 11.64 | 1 824 | 42.7 | 6 % |
+| 16 | warm | 20 341 | 6.32 | 0 | 0 | 0 % |
+
+### Conclusions for Vgm.Api
+
+1. Concurrent calls to the query endpoints are safe now (steps 1-4) and need no lock in
+   Vgm.Api; its wrappers are stateless forwards.
+2. Throughput scales with physical cores on the warm path; run the host with server GC
+   (+20 % at 16 threads here) and let the thread pool size the parallelism.
+3. Cold loads no longer multiply with the number of concurrent callers (experiment 3);
+   each blob is read and decoded once per LRU lifetime.
+4. The SimpleDiskStore lock is the last serialization point, relevant for disk-bound or
+   large-blob reads; the prototype on `concurrent-reads` removes it for readers.
+5. Not measured here and left as candidates: the eager `Positions.Value` load in the
+   `PointSetNode` constructor (one extra blob per decoded inner node), and the recursive
+   child load when a stored inner node lacks `BoundingBoxExactGlobal` (old stores only).
+   The benchmark's cold path is decode-bound (~70 % of thread time outside the store at
+   1 thread), so decode cost, not locking, is where further cold-path gains would come from.
+
+Files (this repo): `Aardvark.Data.Points.Base/LruDictionary.cs` (lock-free reads,
+`TryGetOrAdd`), `Aardvark.Geometry.PointSet/Utils/StorageExtensions.cs` (`GetOrLoad`,
+`GetByteArrayCached`, `LoadPointCloudNode`), `Octrees/PointSetNode.cs` (cached
+classifications), tests `ConcurrencyTests.cs`, `ParallelQueryBenchmark.cs`.

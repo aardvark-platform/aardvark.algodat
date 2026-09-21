@@ -17,8 +17,10 @@
 */
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace Aardvark.Base
 {
@@ -54,7 +56,13 @@ namespace Aardvark.Base
 
         private Entry? m_first = null;
         private Entry? m_last = null;
-        private readonly Dictionary<K, Entry> m_k2e = [];
+
+        /// <summary>
+        /// Key lookup. Reads (TryGetValue, ContainsKey) are lock-free; all mutations of the
+        /// dictionary and of the LRU list happen under m_lock.
+        /// </summary>
+        private readonly ConcurrentDictionary<K, Entry> m_k2e = new();
+        private readonly object m_lock = new();
 
         private void Unlink(Entry e)
         {
@@ -79,12 +87,12 @@ namespace Aardvark.Base
         private void RemoveLast()
         {
             Entry? removed = null;
-            lock (m_k2e)
+            lock (m_lock)
             {
                 if (CurrentSize <= MaxSize) return;
                 if (m_last == null) return;
                 removed = m_last;
-                m_k2e.Remove(removed.Key);
+                m_k2e.TryRemove(removed.Key, out _);
                 CurrentSize -= m_last.Size;
                 m_last = m_last.Prev;
                 if (m_last == null) throw new InvalidOperationException();
@@ -96,7 +104,7 @@ namespace Aardvark.Base
         private List<Entry> GetEntriesInOrder()
         {
             var es = new List<Entry>();
-            lock (m_k2e)
+            lock (m_lock)
             {
                 var e = m_first;
                 while (e != null)
@@ -112,7 +120,7 @@ namespace Aardvark.Base
 
         /// <summary>
         /// </summary>
-        public int Count { get { lock (m_k2e) return m_k2e.Count; } }
+        public int Count => m_k2e.Count;
 
         /// <summary>
         /// Adds or refreshes key/value pair.
@@ -123,7 +131,7 @@ namespace Aardvark.Base
             if (size > MaxSize || size < 0) throw new ArgumentOutOfRangeException(nameof(size));
 
             Entry? e = null;
-            lock (m_k2e)
+            lock (m_lock)
             {
                 if (m_k2e.TryGetValue(key, out e))
                 {
@@ -159,11 +167,11 @@ namespace Aardvark.Base
         {
             Entry? e = null;
 
-            lock (m_k2e)
+            lock (m_lock)
             {
                 if (m_k2e.TryGetValue(key, out e))
                 {
-                    m_k2e.Remove(key);
+                    m_k2e.TryRemove(key, out _);
                     if (e.Prev != null) e.Prev.Next = e.Next; else m_first = e.Next;
                     if (e.Next != null) e.Next.Prev = e.Prev; else m_last = e.Prev;
                     CurrentSize -= e.Size;
@@ -183,43 +191,79 @@ namespace Aardvark.Base
 
         /// <summary>
         /// </summary>
-        public bool ContainsKey(K key)
-        {
-            lock (m_k2e)
-            {
-                return m_k2e.ContainsKey(key);
-            }
-        }
+        public bool ContainsKey(K key) => m_k2e.ContainsKey(key);
 
         /// <summary>
         /// </summary>
         public bool TryGetValue(K key, out V value)
         {
-            lock (m_k2e)
+            // lock-free: lookups do not touch the LRU order
+            if (m_k2e.TryGetValue(key, out var e))
             {
-                if (m_k2e.TryGetValue(key, out Entry e))
-                {
-                    value = e.Value;
-                    return true;
-                }
-                else
+                value = e.Value;
+                return true;
+            }
+            else
+            {
+#pragma warning disable CS8601
+                value = default;
+#pragma warning restore CS8601
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// </summary>
+        /// <summary>
+        /// In-flight loads, so that concurrent misses on the same key run 'create' only once.
+        /// </summary>
+        private readonly ConcurrentDictionary<K, Lazy<(bool ok, V value, long size)>> m_inflight = new();
+
+        /// <summary>
+        /// Returns the cached value for key, or runs 'create' to load it and caches the result.
+        /// If several threads miss on the same key at the same time, 'create' runs exactly once and
+        /// all callers get the same value. If 'create' returns ok == false, nothing is cached and
+        /// the method returns false.
+        /// </summary>
+        public bool TryGetOrAdd(K key, Func<(bool ok, V value, long size)> create, out V value, Action<K, V, long>? onRemove = null)
+        {
+            if (TryGetValue(key, out value)) return true;
+
+            var lazy = m_inflight.GetOrAdd(key, _ => new Lazy<(bool, V, long)>(() =>
+            {
+                // re-check: another thread may have completed (and unregistered) the load
+                // between our TryGetValue above and the creation of this in-flight entry
+                if (TryGetValue(key, out var cached)) return (true, cached, -1L);
+                return create();
+            }, LazyThreadSafetyMode.ExecutionAndPublication));
+            try
+            {
+                var (ok, v, size) = lazy.Value;
+                if (!ok)
                 {
 #pragma warning disable CS8601
                     value = default;
 #pragma warning restore CS8601
                     return false;
                 }
+                if (size >= 0) Add(key, v, size, onRemove); // size -1: was already cached
+                value = v;
+                return true;
+            }
+            finally
+            {
+                // unregister only our own in-flight entry (a later loader may have registered a new one)
+                ((ICollection<KeyValuePair<K, Lazy<(bool ok, V value, long size)>>>)m_inflight)
+                    .Remove(new KeyValuePair<K, Lazy<(bool ok, V value, long size)>>(key, lazy));
             }
         }
 
-        /// <summary>
-        /// </summary>
         public V GetOrCreate(K key, Func<(V, long)> create, Action<K, V, long>? onRemove = null)
         {
             if (TryGetValue(key, out V value)) return value;
 
             var (createdValue, size) = create();
-            lock (m_k2e)
+            lock (m_lock)
             {
                 if (TryGetValue(key, out V v)) return v;
                 Add(key, createdValue, size, onRemove);
@@ -231,7 +275,7 @@ namespace Aardvark.Base
         /// </summary>
         public void Clear()
         {
-            lock (m_k2e)
+            lock (m_lock)
             {
                 m_k2e.Clear();
                 m_first = null;
@@ -293,12 +337,7 @@ namespace Aardvark.Base
 
         /// <summary></summary>
         public IEnumerator<KeyValuePair<K, V>> GetEnumerator()
-        {
-            lock (m_k2e)
-            {
-                return m_k2e.Select(kv => new KeyValuePair<K, V>(kv.Key, kv.Value.Value)).ToList().GetEnumerator();
-            }
-        }
+            => m_k2e.Select(kv => new KeyValuePair<K, V>(kv.Key, kv.Value.Value)).ToList().GetEnumerator();
 
         /// <summary></summary>
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

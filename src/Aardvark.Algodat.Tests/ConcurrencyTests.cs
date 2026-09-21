@@ -17,6 +17,7 @@ using Aardvark.Geometry.Points;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -216,6 +217,38 @@ namespace Aardvark.Geometry.Tests
             finally
             {
                 Cleanup(storage, dir);
+            }
+        }
+
+        /// <summary>
+        /// Concurrent cache misses on the same key must load and decode it only once.
+        /// </summary>
+        [Test]
+        public void ParallelColdLoads_LoadEachKeyOnce()
+        {
+            var inner = PointCloud.CreateInMemoryStore(cache: default);
+            var cache = new LruDictionary<string, object>(1L << 30);
+            var gets = new ConcurrentDictionary<string, int>();
+            var storage = new Storage(
+                inner.f_add,
+                key => { gets.AddOrUpdate(key, 1, (_, n) => n + 1); return inner.f_get(key); },
+                inner.f_getSlice, inner.f_remove, inner.f_dispose, inner.f_flush, cache);
+
+            var config = ImportConfig.Default.WithStorage(storage).WithKey("test").WithOctreeSplitLimit(SplitLimit);
+            var root = PointCloud.Chunks(CreateTestChunk(0), config).Root.Value;
+            var expected = RunQueries(root);
+
+            for (var round = 0; round < Rounds; round++)
+            {
+                cache.Clear();
+                gets.Clear();
+                RunConcurrently(Threads, _ => AssertSameSummary(expected, RunQueries(root)));
+
+                var duplicates = gets.Where(kv => kv.Value > 1).ToArray();
+                ClassicAssert.IsTrue(gets.Count > 0);
+                ClassicAssert.IsTrue(duplicates.Length == 0,
+                    $"round {round}: {duplicates.Length} of {gets.Count} keys were loaded more than once " +
+                    $"(e.g. {duplicates.FirstOrDefault().Key} x{duplicates.FirstOrDefault().Value})");
             }
         }
 

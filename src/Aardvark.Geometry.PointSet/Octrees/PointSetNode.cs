@@ -187,7 +187,7 @@ public class PointSetNode : IPointCloudNode
         }
         if (nsId != null) PersistentRefs[Durable.Octree.Normals3fReference        ] = new PersistentRef<V3f[] >(nsId.Value, throwWhenNull(storage.GetV3fArray ), storage.TryGetV3fArrayFromCache );
         if (isId != null) PersistentRefs[Durable.Octree.Intensities1iReference    ] = new PersistentRef<int[] >(isId.Value, throwWhenNull(storage.GetIntArray ), storage.TryGetIntArrayFromCache );
-        if (ksId != null) PersistentRefs[Durable.Octree.Classifications1bReference] = new PersistentRef<byte[]>(ksId.Value, throwWhenNull(storage.GetByteArray), storage.TryGetByteArrayFromCache);
+        if (ksId != null) PersistentRefs[Durable.Octree.Classifications1bReference] = new PersistentRef<byte[]>(ksId.Value, throwWhenNull(storage.GetByteArrayCached), storage.TryGetByteArrayFromCache);
 
         #endregion
 

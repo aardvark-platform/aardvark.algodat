@@ -255,6 +255,29 @@ public static class StorageExtensions
         }
     }
 
+    /// <summary>
+    /// Returns the cached value for key, or loads the buffer from the store, decodes it, and caches the result.
+    /// Concurrent misses on the same key load and decode only once (see LruDictionary.TryGetOrAdd).
+    /// Returns null if the key does not exist.
+    /// </summary>
+    private static T? GetOrLoad<T>(this Storage storage, string key, Func<byte[], T> decode) where T : class
+    {
+        if (!storage.HasCache)
+        {
+            var buffer = storage.f_get(key);
+            return buffer == null ? null : decode(buffer);
+        }
+
+        var ok = storage.Cache.TryGetOrAdd(key, () =>
+        {
+            var buffer = storage.f_get(key);
+            if (buffer == null) return (false, null!, 0L);
+            return (true, (object)decode(buffer), buffer.Length);
+        }, out var o);
+
+        return ok ? (T)o : null;
+    }
+
     #endregion
 
     #region Stores
@@ -327,6 +350,12 @@ public static class StorageExtensions
 
     /// <summary></summary>
     public static byte[]? GetByteArray(this Storage storage, string key) => storage.f_get(key);
+
+    /// <summary>
+    /// Like GetByteArray, but goes through the cache (for per-point attributes stored as raw bytes, e.g. classifications).
+    /// </summary>
+    public static byte[]? GetByteArrayCached(this Storage storage, string key)
+        => storage.GetOrLoad(key, buffer => buffer);
 
     /// <summary></summary>
     public static byte[]? GetByteArray(this Storage storage, Guid key) => storage.f_get(key.ToString());
@@ -430,18 +459,7 @@ public static class StorageExtensions
 
     /// <summary></summary>
     public static V3f[]? GetV3fArray(this Storage storage, string key)
-    {
-        if (storage.HasCache && storage.Cache.TryGetValue(key, out var o)) return (V3f[])o;
-        
-        var buffer = storage.f_get(key);
-        if (buffer == null) return null;
-        var data = Codec.BufferToV3fArray(buffer);
-        
-        if (storage.HasCache)
-            storage.Cache.Add(key, data, buffer.Length, onRemove: default);
-
-        return data;
-    }
+        => storage.GetOrLoad(key, Codec.BufferToV3fArray);
 
     /// <summary></summary>
     public static bool TryGetV3fArrayFromCache(this Storage storage, string key, [NotNullWhen(true)] out V3f[]? result) => TryGetFromCache(storage, key, out result);
@@ -463,18 +481,7 @@ public static class StorageExtensions
 
     /// <summary></summary>
     public static int[]? GetIntArray(this Storage storage, string key)
-    {
-        if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (int[])o;
-
-        var buffer = storage.f_get(key);
-        if (buffer == null) return null;
-        var data = Codec.BufferToIntArray(buffer);
-
-        if (storage.HasCache)
-            storage.Cache.Add(key, data, buffer.Length, onRemove: default);
-
-        return data;
-    }
+        => storage.GetOrLoad(key, Codec.BufferToIntArray);
 
     /// <summary></summary>
     public static (bool, int[]?) TryGetIntArray(this Storage storage, string key)
@@ -508,18 +515,7 @@ public static class StorageExtensions
 
     /// <summary></summary>
     public static short[]? GetInt16Array(this Storage storage, string key)
-    {
-        if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (short[])o;
-
-        var buffer = storage.f_get(key);
-        if (buffer == null) return null;
-        var data = Codec.BufferToInt16Array(buffer);
-
-        if (storage.HasCache)
-            storage.Cache.Add(key, data, buffer.Length, onRemove: default);
-
-        return data;
-    }
+        => storage.GetOrLoad(key, Codec.BufferToInt16Array);
 
     /// <summary></summary>
     public static (bool, short[]?) TryGetInt16Array(this Storage storage, string key)
@@ -549,18 +545,7 @@ public static class StorageExtensions
 
     /// <summary></summary>
     public static C4b[]? GetC4bArray(this Storage storage, string key)
-    {
-        if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (C4b[])o;
-
-        var buffer = storage.f_get(key);
-        if (buffer == null) return null;
-        var data = Codec.BufferToC4bArray(buffer);
-
-        if (storage.HasCache)
-            storage.Cache.Add(key, data, buffer.Length, onRemove: default);
-
-        return data;
-    }
+        => storage.GetOrLoad(key, Codec.BufferToC4bArray);
 
     /// <summary></summary>
     public static (bool, C4b[]?) TryGetC4bArray(this Storage storage, string key)
@@ -590,15 +575,7 @@ public static class StorageExtensions
 
     /// <summary></summary>
     public static PointRkdTreeDData? GetPointRkdTreeDData(this Storage storage, string key)
-    {
-        if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (PointRkdTreeDData)o;
-        
-        var buffer = storage.f_get(key);
-        if (buffer == null) return null;
-        var data = Codec.BufferToPointRkdTreeDData(buffer);
-        if (storage.HasCache) storage.Cache.Add(key, data, buffer.Length, onRemove: default);
-        return data;
-    }
+        => storage.GetOrLoad(key, Codec.BufferToPointRkdTreeDData);
 
     /// <summary></summary>
     public static (bool, PointRkdTreeDData?) TryGetPointRkdTreeDData(this Storage storage, string key)
@@ -641,32 +618,21 @@ public static class StorageExtensions
     public static PointRkdTreeFData? GetPointRkdTreeFData(this Storage storage, string key)
     {
         if (storage == null) return null;
-        if (storage.HasCache == true && storage.Cache.TryGetValue(key, out object o)) return (PointRkdTreeFData)o;
-
-        var buffer = storage.f_get(key);
-        if (buffer == null) return null;
-        var data = Codec.BufferToPointRkdTreeFData(buffer);
-        if (storage.HasCache) storage.Cache.Add(key, data, buffer.Length, onRemove: default);
-        return data;
+        return storage.GetOrLoad(key, Codec.BufferToPointRkdTreeFData);
     }
 
     /// <summary></summary>
     public static PointRkdTreeFData? GetPointRkdTreeFDataFromD(this Storage storage, string key)
-    {
-        if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (PointRkdTreeFData)o;
-
-        var buffer = storage.f_get(key);
-        if (buffer == null) return default;
-        var data0 = Codec.BufferToPointRkdTreeDData(buffer);
-        var data = new PointRkdTreeFData
+        => storage.GetOrLoad(key, buffer =>
         {
-            AxisArray = data0.AxisArray,
-            PermArray = data0.PermArray,
-            RadiusArray = data0.RadiusArray.Map(x => (float)x)
-        };
-        if (storage.HasCache) storage.Cache.Add(key, data, buffer.Length, onRemove: default);
-        return data;
-    }
+            var data0 = Codec.BufferToPointRkdTreeDData(buffer);
+            return new PointRkdTreeFData
+            {
+                AxisArray = data0.AxisArray,
+                PermArray = data0.PermArray,
+                RadiusArray = data0.RadiusArray.Map(x => (float)x)
+            };
+        });
 
     /// <summary></summary>
     public static (bool, PointRkdTreeFData?) TryGetPointRkdTreeFData(this Storage storage, string key)
@@ -720,20 +686,12 @@ public static class StorageExtensions
 
     /// <summary></summary>
     public static PointSet? GetPointSet(this Storage storage, string key)
-    {
-        if (storage.HasCache && storage.Cache.TryGetValue(key, out object o)) return (PointSet)o;
-
-        var buffer = storage.f_get(key);
-        if (buffer == null) return null;
-        var jsonUTF8 = Encoding.UTF8.GetString(buffer);
-        var json = JsonNode.Parse(jsonUTF8, new JsonNodeOptions() { PropertyNameCaseInsensitive = true }) ?? throw new Exception($"Failed to parse Json. Error 7949aa24-075c-4cb4-8787-69d2de06f892.\n{jsonUTF8}");
-        var data = PointSet.Parse(json, storage);
-
-        if (storage.HasCache) storage.Cache.Add(
-            key, data, buffer.Length, onRemove: default
-            );
-        return data;
-    }
+        => storage.GetOrLoad(key, buffer =>
+        {
+            var jsonUTF8 = Encoding.UTF8.GetString(buffer);
+            var json = JsonNode.Parse(jsonUTF8, new JsonNodeOptions() { PropertyNameCaseInsensitive = true }) ?? throw new Exception($"Failed to parse Json. Error 7949aa24-075c-4cb4-8787-69d2de06f892.\n{jsonUTF8}");
+            return PointSet.Parse(json, storage);
+        });
     public static PointSet? GetPointSet(this Storage storage, Guid key)
         => GetPointSet(storage, key.ToString());
 
@@ -770,7 +728,9 @@ public static class StorageExtensions
     /// </summary>
     public static IPointCloudNode GetPointCloudNode(this Storage storage, string key)
     {
-        if (storage.HasCache && storage.Cache.TryGetValue(key, out object o))
+        if (!storage.HasCache) return LoadPointCloudNode(storage, key, out _);
+
+        if (storage.Cache.TryGetValue(key, out object o))
         {
             if (o is not IPointCloudNode r) throw new InvalidOperationException(
                 $"Invariant d1cb769c-36b6-4374-8248-b8c1ca31d495. " +
@@ -780,10 +740,25 @@ public static class StorageExtensions
             return r;
         }
 
+        // concurrent misses on the same key load and decode once
+        storage.Cache.TryGetOrAdd(key, () =>
+        {
+            var node = LoadPointCloudNode(storage, key, out var size);
+            return (true, (object)node, size);
+        }, out var loaded);
+        return (IPointCloudNode)loaded;
+    }
+
+    /// <summary>
+    /// Loads and decodes a node from the store (no cache interaction).
+    /// </summary>
+    private static IPointCloudNode LoadPointCloudNode(Storage storage, string key, out long sizeInBytes)
+    {
         var buffer = storage.f_get(key) ?? throw new Exception(
             $"PointCloudNode not found (id={key}). " +
             $"Error b2ef55c1-1470-465d-80ea-034464c53638."
             );
+        sizeInBytes = buffer.Length;
 
         try
         {
@@ -810,22 +785,12 @@ public static class StorageExtensions
             {
                 var data = PointSetNode.Decode(storage, buffer);
                 if (key != data.Id.ToString()) throw new InvalidOperationException("Invariant 32554e4b-1e53-4e30-8b3c-c218c5b63c46.");
-
-                if (storage.HasCache) storage.Cache.Add(
-                    key, data, buffer.Length, onRemove: default
-                    );
                 return data;
             }
             else if (guid == FilteredNode.Defs.FilteredNode.Id)
             {
                 var fn = FilteredNode.Decode(storage, buffer);
                 if (key != fn.Id.ToString()) throw new InvalidOperationException("Invariant 14511080-b605-4f6b-ac49-2495899ccdec.");
-
-
-                if (storage.HasCache) storage.Cache.Add(
-                    key, fn, buffer.Length, onRemove: default // what to add here?
-                    );
-
                 return fn;
             }
             //else if (guid == Durable.Octree.MultiNodeIndex.Id)
