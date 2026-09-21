@@ -89,7 +89,6 @@ public class FilteredNode : IPointCloudNode
         m_subnodes = new(ComputeSubnodes, mode);
         m_subsetIndexArray = new(ComputeSubsetIndexArray, mode);
         m_positions = new(ComputePositions, mode);
-        m_positionsAbsolute = new(ComputePositionsAbsolute, mode);
         m_boundingBoxExactLocal = new(ComputeBoundingBoxExactLocal, mode);
         m_kdTree = new(ComputeKdTree, mode);
         m_colors = new(() => SubsetOf(Node.Colors), mode);
@@ -111,7 +110,6 @@ public class FilteredNode : IPointCloudNode
     private readonly Lazy<PersistentRef<IPointCloudNode>?[]?> m_subnodes;
     private readonly Lazy<int[]?> m_subsetIndexArray;
     private readonly Lazy<PersistentRef<V3f[]>> m_positions;
-    private readonly Lazy<V3d[]> m_positionsAbsolute;
     private readonly Lazy<Box3f> m_boundingBoxExactLocal;
     private readonly Lazy<PersistentRef<PointRkdTreeF<V3f[], V3f>>> m_kdTree;
     private readonly Lazy<PersistentRef<C4b[]>?> m_colors;
@@ -314,17 +312,20 @@ public class FilteredNode : IPointCloudNode
     /// <summary></summary>
     public PersistentRef<V3f[]> Positions => m_positions.Value;
 
-    /// <summary></summary>
-    public V3d[] PositionsAbsolute => m_positionsAbsolute.Value;
+    /// <summary>
+    /// Point positions (absolute). Returns a new array on each call (like PointSetNode), so callers own it.
+    /// </summary>
+    public V3d[] PositionsAbsolute
+    {
+        get
+        {
+            var c = Center;
+            return Positions.Value.Map(p => (V3d)p + c);
+        }
+    }
 
     private PersistentRef<V3f[]> ComputePositions()
         => SubsetOf(Node.Positions) ?? throw new InvalidOperationException("Invariant 8a3f0c1e-2d44-4b8e-9c47-5f0c2b7a1d90.");
-
-    private V3d[] ComputePositionsAbsolute()
-    {
-        var c = Center;
-        return Positions.Value.Map(p => (V3d)p + c);
-    }
 
     private Box3f ComputeBoundingBoxExactLocal()
     {
