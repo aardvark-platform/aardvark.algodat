@@ -47,7 +47,7 @@ Real hazards:
 | Step | What | Status |
 |------|------|--------|
 | 0 | Concurrency characterization test (parallel cell / ray / near-point queries on plain and filtered nodes; assert same results as sequential) | done |
-| 1 | Never write to the store during decode; build missing kd-trees lazily in memory instead | todo |
+| 1 | Never write to the store during decode; build missing kd-trees lazily in memory instead | done |
 | 2 | Make `FilteredNode` lazy state thread-safe (`Lazy<T>` with ExecutionAndPublication) | todo |
 | 3 | Copy attribute arrays in `ToChunk` / octree-level query so chunks never alias cached arrays | todo |
 | 4 | Small cleanups: centroid memo, `LruDictionary.Add` value update | todo |
@@ -66,3 +66,17 @@ serialization point is the SimpleDiskStore lock on cache misses.
   the filtered-node test fails (6 of 128 runs returned 0 points instead of 10053), which is
   hazard 2: `FilteredNode.Subnodes` publishes `m_subnodes_cache` before filling it, so a
   second thread sees an all-null subnode array.
+- 2026-09-21: **Step 1 done.** `Octrees/PointSetNode.cs`: the constructor's kd-tree block now
+  branches on `writeToStore`. Write path (import, merge, `WriteToStore`): unchanged, computes
+  and persists the kd-tree. Read path (`Decode`, i.e. `writeToStore: false`): no store write;
+  a `Lazy<PointRkdTreeF>` (ExecutionAndPublication) is registered as an in-memory
+  `PersistentRef` under the kd-tree key, so `HasKdTree`/`KdTree` keep working and the tree is
+  built at most once per node instance. `HasKdTree` now also reports in-memory trees;
+  `KdTreeId` stays null for them. The `#if !READONLY` guards were removed (the symbol was
+  never defined). The DEBUG leaf invariant `KdTreeId == null` became `!HasKdTree`.
+  Extracted `ComputeKdTree` from `ComputeAndStoreKdTree`.
+  New tests in `ReadPathStoreWriteTests.cs`: decoding a node stored without kd-tree does
+  not add anything to the store (counting `Storage` wrapper), near-point and line-segment
+  queries stay correct, concurrent queries build exactly one tree, and the write path still
+  persists a kd-tree. Full suite: 447 passed, 2 skipped, 1 failed (the expected filtered-node
+  concurrency test).

@@ -23,6 +23,7 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.Json.Serialization;
+using System.Threading;
 
 namespace Aardvark.Geometry.Points;
 
@@ -325,15 +326,31 @@ public class PointSetNode : IPointCloudNode
 
         if (HasPositions && !HasKdTree && !IsTemporaryImportNode)
         {
-#if !READONLY
-            kdId = ComputeAndStoreKdTree(Storage, Positions.Value);
-            Data = Data.Add(Durable.Octree.PointRkdTreeFDataReference, kdId);
-            PersistentRefs[Durable.Octree.PointRkdTreeFDataReference] =
-                new PersistentRef<PointRkdTreeF<V3f[], V3f>>(kdId.Value, LoadKdTree, TryLoadKdTreeOut)
-                ;
-#else
-            //Debugger.Break();
-#endif
+            if (writeToStore)
+            {
+                // write path (import, merge, ...): compute kd-tree and persist it alongside the node
+                kdId = ComputeAndStoreKdTree(Storage, Positions.Value);
+                Data = Data.Add(Durable.Octree.PointRkdTreeFDataReference, kdId);
+                PersistentRefs[Durable.Octree.PointRkdTreeFDataReference] =
+                    new PersistentRef<PointRkdTreeF<V3f[], V3f>>(kdId.Value, LoadKdTree, TryLoadKdTreeOut)
+                    ;
+            }
+            else
+            {
+                // read path (e.g. decoding a node that was stored without a kd-tree):
+                // never write to the store here, build the kd-tree lazily in memory instead
+                var lazyKdTree = new Lazy<PointRkdTreeF<V3f[], V3f>>(
+                    () => ComputeKdTree(Positions.Value), LazyThreadSafetyMode.ExecutionAndPublication
+                    );
+                bool tryGetLazyKdTree(string _, [NotNullWhen(true)] out PointRkdTreeF<V3f[], V3f>? result)
+                {
+                    result = lazyKdTree.IsValueCreated ? lazyKdTree.Value : null;
+                    return result != null;
+                }
+                PersistentRefs[Durable.Octree.PointRkdTreeFDataReference] =
+                    new PersistentRef<PointRkdTreeF<V3f[], V3f>>(Guid.Empty, _ => lazyKdTree.Value, tryGetLazyKdTree)
+                    ;
+            }
         }
 
         #endregion
@@ -388,10 +405,9 @@ public class PointSetNode : IPointCloudNode
                 if (Has(Durable.Octree.PositionsLocal3fReference) && PositionsId == null)
                     throw new InvalidOperationException("Invariant ba64ffe9-ada4-4fff-a4e9-0916c1cc9992.");
 
-                #if !READONLY
-                if (KdTreeId == null && !Has(TemporaryImportNode))
+                // kd-tree is either stored (KdTreeId) or built lazily in memory (read path)
+                if (!HasKdTree && !Has(TemporaryImportNode))
                     throw new InvalidOperationException("Invariant 606e8a7b-6e75-496a-bc2a-dfbe6e2c9b10.");
-                #endif
             }
         }
 #endif
@@ -973,7 +989,8 @@ public class PointSetNode : IPointCloudNode
     [MemberNotNullWhen(true, nameof(KdTree))]
     public bool HasKdTree =>
         Data.ContainsKey(Durable.Octree.PointRkdTreeFDataReference) ||
-        Data.ContainsKey(Durable.Octree.PointRkdTreeDDataReference)
+        Data.ContainsKey(Durable.Octree.PointRkdTreeDDataReference) ||
+        PersistentRefs.ContainsKey(Durable.Octree.PointRkdTreeFDataReference) // in-memory kd-tree (node stored without one)
         ;
 
     /// <summary></summary>
@@ -1246,16 +1263,22 @@ public class PointSetNode : IPointCloudNode
     /// </summary>
     private static Guid ComputeAndStoreKdTree(Storage storage, V3f[] ps)
     {
-        var kdTree = new PointRkdTreeF<V3f[], V3f>(
+        var kdTree = ComputeKdTree(ps);
+        Guid kdId = Guid.NewGuid();
+        storage.Add(kdId, kdTree.Data);
+        return kdId;
+    }
+
+    /// <summary>
+    /// Computes kd-tree from given points (in memory only).
+    /// </summary>
+    private static PointRkdTreeF<V3f[], V3f> ComputeKdTree(V3f[] ps)
+        => new(
             3, ps.Length, ps,
             (xs, i) => xs[(int)i], (v, i) => (float)v[i],
             (a, b) => Vec.Distance(a, b), (i, a, b) => b - a,
             (a, b, c) => Vec.DistanceToLine(a, b, c), Fun.Lerp, 0.000001f
             );
-        Guid kdId = Guid.NewGuid();
-        storage.Add(kdId, kdTree.Data);
-        return kdId;
-    }
 
     #endregion
 
