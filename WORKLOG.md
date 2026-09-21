@@ -46,7 +46,7 @@ Real hazards:
 
 | Step | What | Status |
 |------|------|--------|
-| 0 | Concurrency characterization test (parallel cell / ray / near-point queries on plain and filtered nodes; assert same results as sequential) | todo |
+| 0 | Concurrency characterization test (parallel cell / ray / near-point queries on plain and filtered nodes; assert same results as sequential) | done |
 | 1 | Never write to the store during decode; build missing kd-trees lazily in memory instead | todo |
 | 2 | Make `FilteredNode` lazy state thread-safe (`Lazy<T>` with ExecutionAndPublication) | todo |
 | 3 | Copy attribute arrays in `ToChunk` / octree-level query so chunks never alias cached arrays | todo |
@@ -58,3 +58,11 @@ serialization point is the SimpleDiskStore lock on cache misses.
 ## Log
 
 - 2026-09-21: branch created, plan committed.
+- 2026-09-21: **Step 0 done.** Added `src/Aardvark.Algodat.Tests/ConcurrencyTests.cs` with three
+  tests: parallel queries (cell enumeration at exponent -2, near-ray, near-point, inside-box)
+  from 16 threads over 8 rounds, with the LRU cache cleared each round so node/attribute loads
+  happen concurrently. Variants: plain node on disk store, plain node on in-memory store,
+  shared `FilteredNode` on disk store. Result before fixes: both plain-node tests pass;
+  the filtered-node test fails (6 of 128 runs returned 0 points instead of 10053), which is
+  hazard 2: `FilteredNode.Subnodes` publishes `m_subnodes_cache` before filling it, so a
+  second thread sees an all-null subnode array.
