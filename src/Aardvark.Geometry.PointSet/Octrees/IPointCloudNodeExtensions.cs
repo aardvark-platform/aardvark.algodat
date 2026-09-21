@@ -23,6 +23,30 @@ using System.Threading;
 namespace Aardvark.Geometry.Points;
 
 /// <summary>
+/// Helpers for handing out per-point attributes without aliasing arrays owned by the store cache.
+/// Node attribute arrays (PersistentRef.Value) are shared between all readers of a node;
+/// anything handed to callers inside a Chunk must be a copy.
+/// </summary>
+internal static class OwnedAttributes
+{
+    /// <summary>
+    /// Returns a copy of the given array, or null.
+    /// </summary>
+    public static T[]? Copy<T>(T[]? xs) => xs == null ? null : (T[])xs.Clone();
+
+    /// <summary>
+    /// Returns a copy of per-point part indices. Per-cell part indices (int/uint) are immutable and returned as is.
+    /// </summary>
+    public static object? CopyPartIndices(object? qs) => qs switch
+    {
+        byte[] xs => (byte[])xs.Clone(),
+        short[] xs => (short[])xs.Clone(),
+        int[] xs => (int[])xs.Clone(),
+        _ => qs,
+    };
+}
+
+/// <summary>
 /// </summary>
 public static class IPointCloudNodeExtensions
 {
@@ -899,11 +923,13 @@ public static class IPointCloudNodeExtensions
     /// </summary>
     public static Chunk ToChunk(this IPointCloudNode self)
     {
-        var cs = self.HasColors ? self.Colors.Value : null;
-        var ns = self.HasNormals ? self.Normals.Value : null;
-        var js = self.HasIntensities ? self.Intensities.Value : null;
-        var ks = self.HasClassifications ? self.Classifications!.Value : null;
-        var qs = self.HasPartIndices ? self.PartIndices : null;
+        // Attribute arrays are copied: the node's arrays are shared through the store cache,
+        // and Chunk exposes them as (writable) IList<T>. A chunk must own its data.
+        var cs = self.HasColors ? OwnedAttributes.Copy(self.Colors.Value) : null;
+        var ns = self.HasNormals ? OwnedAttributes.Copy(self.Normals.Value) : null;
+        var js = self.HasIntensities ? OwnedAttributes.Copy(self.Intensities.Value) : null;
+        var ks = self.HasClassifications ? OwnedAttributes.Copy(self.Classifications!.Value) : null;
+        var qs = self.HasPartIndices ? OwnedAttributes.CopyPartIndices(self.PartIndices) : null;
         return new Chunk(self.PositionsAbsolute, cs, ns, js, ks, qs, partIndexRange: null, bbox: null);
     }
 
@@ -918,12 +944,7 @@ public static class IPointCloudNodeExtensions
 
         if (fromRelativeDepth == 0 || self.IsLeaf)
         {
-            var cs = self.HasColors ? self.Colors.Value : null;
-            var ns = self.HasNormals ? self.Normals.Value : null;
-            var js = self.HasIntensities ? self.Intensities.Value : null;
-            var ks = self.HasClassifications ? self.Classifications!.Value : null;
-            var qs = self.HasPartIndices ? self.PartIndices : null;
-            yield return new Chunk(self.PositionsAbsolute, cs, ns, js, ks, qs, partIndexRange: null, bbox: null);
+            yield return self.ToChunk();
         }
         else
         {

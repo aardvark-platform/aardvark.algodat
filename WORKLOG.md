@@ -49,7 +49,7 @@ Real hazards:
 | 0 | Concurrency characterization test (parallel cell / ray / near-point queries on plain and filtered nodes; assert same results as sequential) | done |
 | 1 | Never write to the store during decode; build missing kd-trees lazily in memory instead | done |
 | 2 | Make `FilteredNode` lazy state thread-safe (`Lazy<T>` with ExecutionAndPublication) | done |
-| 3 | Copy attribute arrays in `ToChunk` / octree-level query so chunks never alias cached arrays | todo |
+| 3 | Copy attribute arrays in `ToChunk` / octree-level query so chunks never alias cached arrays | done |
 | 4 | Small cleanups: centroid memo, `LruDictionary.Add` value update | todo |
 
 After these, parallelization of the Vgm.Api endpoints is re-evaluated; the remaining
@@ -89,4 +89,17 @@ serialization point is the SimpleDiskStore lock on cache misses.
   unchanged with one deliberate improvement: the kd-tree is no longer built as a side effect
   of touching positions, only when `KdTree` is accessed. `GetSubArray` became the pure
   `SubsetOf`. The filtered-node concurrency test now passes (32 tests in
-  ConcurrencyTests, Views*, ReadPathStoreWriteTests green).
+  ConcurrencyTests, Views*, ReadPathStoreWriteTests green). Full suite afterwards: 448 passed,
+  2 skipped, 0 failed.
+- 2026-09-21: **Step 3 done.** New internal helper `OwnedAttributes` (in
+  `Octrees/IPointCloudNodeExtensions.cs`) copies attribute arrays and per-point part indices.
+  `ToChunk()` now copies colors / normals / intensities / classifications / part indices;
+  `ToChunk(fromRelativeDepth)` and the bounded `QueryPointsInOctreeLevel` delegate to it; the
+  unbounded `QueryPointsInOctreeLevel` copies after its length check. Positions were already
+  fresh for `PointSetNode`; `FilteredNode.PositionsAbsolute` no longer memoizes and returns a
+  new array per call, matching `PointSetNode`. Sites that already copied (near-ray, near-point,
+  line-segment, custom-attribute queries via `Subset`) are unchanged.
+  New `ChunkOwnershipTests.cs`: scribbling into chunks from ToChunk, ToChunk(0), both
+  octree-level queries, inside-box, Collect and cell enumeration must not change node data
+  or later queries, for plain and partially filtered leaves. Verified the tests fail against
+  the pre-fix library (3/3 fail) and pass with it.
