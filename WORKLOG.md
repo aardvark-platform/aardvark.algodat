@@ -48,7 +48,7 @@ Real hazards:
 |------|------|--------|
 | 0 | Concurrency characterization test (parallel cell / ray / near-point queries on plain and filtered nodes; assert same results as sequential) | done |
 | 1 | Never write to the store during decode; build missing kd-trees lazily in memory instead | done |
-| 2 | Make `FilteredNode` lazy state thread-safe (`Lazy<T>` with ExecutionAndPublication) | todo |
+| 2 | Make `FilteredNode` lazy state thread-safe (`Lazy<T>` with ExecutionAndPublication) | done |
 | 3 | Copy attribute arrays in `ToChunk` / octree-level query so chunks never alias cached arrays | todo |
 | 4 | Small cleanups: centroid memo, `LruDictionary.Add` value update | todo |
 
@@ -80,3 +80,13 @@ serialization point is the SimpleDiskStore lock on cache misses.
   queries stay correct, concurrent queries build exactly one tree, and the write path still
   persists a kd-tree. Full suite: 447 passed, 2 skipped, 1 failed (the expected filtered-node
   concurrency test).
+- 2026-09-21: **Step 2 done.** `Views/FilteredNode.cs` rewritten without the untyped
+  `Dictionary m_cache`, the `m_ensuredPositionsAndDerived` flag, `m_subnodes_cache` and
+  `_subsetIndexArray`. Every derived value is now its own `Lazy<T>` initialized in the
+  constructor with `LazyThreadSafetyMode.ExecutionAndPublication`: subnodes, subset index
+  array, positions, absolute positions, exact local bbox, kd-tree, colors, normals,
+  intensities, classifications, per-point part indices, part index range. Semantics are
+  unchanged with one deliberate improvement: the kd-tree is no longer built as a side effect
+  of touching positions, only when `KdTree` is accessed. `GetSubArray` became the pure
+  `SubsetOf`. The filtered-node concurrency test now passes (32 tests in
+  ConcurrencyTests, Views*, ReadPathStoreWriteTests green).
