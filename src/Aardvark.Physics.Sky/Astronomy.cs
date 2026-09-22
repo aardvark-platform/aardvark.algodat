@@ -17,7 +17,6 @@
 */
 using Aardvark.Base;
 using System;
-using System.Linq;
 
 namespace Aardvark.Physics.Sky
 {
@@ -354,6 +353,16 @@ namespace Aardvark.Physics.Sky
                             0, -sa,  ca);
         }
 
+        /// <summary>
+        /// Evaluates the 106-term IAU 1980 nutation series for the ecliptic of date.
+        /// </summary>
+        /// <param name="jd">Terrestrial Time (TT) as a Julian date; no time-scale conversion is performed.</param>
+        /// <returns>Nutation in longitude (delta psi), then nutation in obliquity (delta epsilon), both in radians.</returns>
+        /// <remarks>
+        /// Both constant and time-dependent amplitudes use 0.0001 arcsecond units, with the
+        /// latter multiplied by Julian centuries of TT from J2000. Evaluation allocates no
+        /// managed memory after type initialization.
+        /// </remarks>
         public static (double, double) CalcNutation(double jd)
         {
             // difference from J2000.0 in Julian centuries
@@ -378,20 +387,18 @@ namespace Aardvark.Physics.Sky
             //Mean longitude of the ascending lunar node
             var alpha5 = (450160.280 - (5 * r + 482890.539) * T + 7.455 * T2 + 0.008 * T3) / 3600 * Constant.RadiansPerDegree;
 
-            var alphas = new[] { alpha1, alpha2, alpha3, alpha4, alpha5 };
-
-            var (delta_psi, delta_epsilon) = NutationModelCoefficients.Aggregate((0.0, 0.0), (x, row) =>
+            var delta_psi = 0.0;
+            var delta_epsilon = 0.0;
+            foreach (var row in NutationModelCoefficients)
             {
-                var alphaSum = alphas.Zip(row.Take(5), (a, b) => a * b).Sum();
-                var r_psi = (row[6] * 1e-4 + row[7] * T) * Fun.Sin(alphaSum);
-                var r_epsilon = (row[8] * 1e-4 + row[9] * T) * Fun.Cos(alphaSum);
-                return (x.Item1 + r_psi, x.Item2 + r_epsilon);
-            });
+                var argument = row[0] * alpha1 + row[1] * alpha2 + row[2] * alpha3
+                             + row[3] * alpha4 + row[4] * alpha5;
+                delta_psi += (row[6] + row[7] * T) * Fun.Sin(argument);
+                delta_epsilon += (row[8] + row[9] * T) * Fun.Cos(argument);
+            }
 
-            delta_psi = delta_psi / 3600 * Constant.RadiansPerDegree;
-            delta_epsilon = delta_epsilon / 3600 * Constant.RadiansPerDegree;
-
-            return (delta_psi, delta_epsilon);
+            var coefficientToRadians = 1e-4 / 3600 * Constant.RadiansPerDegree;
+            return (delta_psi * coefficientToRadians, delta_epsilon * coefficientToRadians);
         }
         
         /// <summary>
@@ -473,6 +480,11 @@ namespace Aardvark.Physics.Sky
             return epsilonArcsec / 3600 * Constant.RadiansPerDegree;
         }
 
+        /// <summary>
+        /// Builds the mean-to-true equatorial rotation using IAU 1980 nutation and
+        /// the existing AA2010 mean obliquity, preserving the passive-rotation convention.
+        /// </summary>
+        /// <param name="jd">Terrestrial Time (TT) as a Julian date.</param>
         public static M33d BuildNutationTransform(double jd)
         {
             var epsilon = GetEarthMeanObliquityAA2010(jd);
@@ -505,6 +517,8 @@ namespace Aardvark.Physics.Sky
         /// Celestial Ephemeris Pole (CEP) coordinates accounting for Precession and Nutation effects.
         /// https://gssc.esa.int/navipedia/index.php/ICRF_to_CEP
         /// </summary>
+        /// <param name="jd">Terrestrial Time (TT) as a Julian date.</param>
+        /// <returns>Nutation times precession (N * P), acting on column vectors.</returns>
         static public M33d ICRFtoCEP(double jd)
         {
             var P = BuildPrecessionTransform(jd);
@@ -513,9 +527,10 @@ namespace Aardvark.Physics.Sky
             return N * P;
         }
 
-        // IAU1980 Theory of Nutation model
+        // IAU1980 Theory of Nutation model: A0/B0 in 0.0001 arcseconds,
+        // A1/B1 in 0.0001 arcseconds per Julian century of TT from J2000.
         //         |      Acoeff 1..5      |  Period  |    A0j   A1j   |    B0j   B1j |
-        //         | ki1 ki2 ki3 ki4 ki5   |  (days)  |  x10-e4   ''   |  x10-e4   '' |
+        //         | ki1 ki2 ki3 ki4 ki5   |  (days)  | longitude sine | obliquity cos |
         static readonly double[][] NutationModelCoefficients =
         [
             [0  , 0   ,0   ,0   ,1   , -6798.4, -171996, -174.2, 92025, 8.9    ],

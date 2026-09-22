@@ -1,3 +1,5 @@
+- [Sky] Correct IAU 1980 nutation coefficient scaling and remove evaluation allocations (#106).
+
 ### 5.6.3
 - Updated SharpCompress to 0.48.1 to address CVE-2026-44788
 

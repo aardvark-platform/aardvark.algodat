@@ -17,7 +17,7 @@ Physics-based sky illumination models and astronomical position calculations for
 | Sun | `SunPosition` | ~1° | Position, distance, twilight times, solar transit |
 | Moon | `MoonPosition` | Low-precision | Position, distance |
 | Planets | `Astronomy.PlanetDirectionAndDistance` | 0.03-1.08° | Position, distance (AU) |
-| Stars | `Astronomy.ICRFtoCEP`, `Astronomy.CEPtoITRF` | High-precision | Coordinate transformations |
+| Stars | `Astronomy.ICRFtoCEP`, `Astronomy.CEPtoITRF` | Legacy precession/nutation and Earth-rotation models | Coordinate transformations |
 
 ## Usage
 
@@ -171,21 +171,48 @@ double angularDiameterRad = Astronomy.AngularDiameter(Planet.Jupiter, distanceAU
 double diameterMeters = Astronomy.GetPlanetDiameter(Planet.Jupiter);
 ```
 
-### Star Positions (Advanced)
+### Nutation
 
-Transform star catalog coordinates to observer frame.
+`Astronomy.CalcNutation(jdTt)` evaluates the existing **106-term IAU 1980** series.
+Its input is a Julian date in **Terrestrial Time (TT)**, not UTC or UT1. The method
+does not convert time scales: supply TT directly or obtain the date-dependent
+TT−UTC offset from an authoritative time source. `ComputeJulianDay()` alone does
+not perform that conversion.
+
+The returned tuple is **(nutation in longitude Δψ, nutation in obliquity Δε)**,
+both in **radians**, relative to the ecliptic of date. Both constant amplitudes
+and time-dependent amplitudes use **0.0001 arcseconds**; time-dependent columns
+are per Julian century of TT from J2000. Each term uses `(A0 + A1*T)*sin(argument)`
+or `(B0 + B1*T)*cos(argument)`, and both accumulated sums receive the same radian
+conversion. Scalar evaluation has no steady-state managed allocations.
 
 ```csharp
-// ICRF (celestial) to local observer coordinates
-double jd = DateTime.UtcNow.ComputeJulianDay();
+var (deltaPsi, deltaEpsilon) = Astronomy.CalcNutation(2453736.5); // JD(TT)
+// Approximately (-9.64365835323e-6, 4.06005100688e-5) radians.
+```
 
+`BuildNutationTransform(jdTt)` retains the AA2010 mean-obliquity formula and the
+existing passive-rotation convention. `ICRFtoCEP(jdTt)` remains **N * P**, acting
+on column vectors: precession first, then nutation. This repair does not upgrade
+the model to IAU 2000/2006 nutation, add frame-bias terms, or change other astronomy
+formulas. Offline regressions use fixed results from
+[ERFA's pinned IAU-1980 implementation](https://github.com/liberfa/erfa/blob/1a8044cde5b7763295d472a6443387239127c6c8/src/nut80.c).
+
+### Star Positions (Advanced)
+
+Transform star catalog coordinates to observer frame. Supply `jdTt` and `jdUt1`
+from a time-scale/Earth-orientation source; they are not interchangeable with UTC.
+The existing `CEPtoITRF` is an approximation: it reuses one date for Earth rotation
+and its internal nutation correction rather than accepting separate UT1 and TT.
+
+```csharp
 // ICRF to Celestial Ephemeris Pole (accounts for precession/nutation)
-M33d icrf2cep = Astronomy.ICRFtoCEP(jd);
+M33d icrf2cep = Astronomy.ICRFtoCEP(jdTt);
 
-// CEP to International Terrestrial Reference Frame
+// CEP to International Terrestrial Reference Frame (existing approximation)
 M33d cep2itrf = Astronomy.CEPtoITRF(
-    jd: jd,
-    xp: 0.0,  // Earth orientation parameters (arcsec)
+    jd: jdUt1,
+    xp: 0.0,  // Earth orientation parameters in radians
     yp: 0.0
 );
 
@@ -252,7 +279,8 @@ var custom = CoordinateSystem.FromProj4(
 **Astronomy:**
 - GPS longitude: **east-positive** (opposite of some conventions)
 - GPS latitude: **north-positive**
-- Times: UTC in Julian days; subtract timezone offset (hours/24) for local time
+- Sun/Moon/planet time parameters documented as UTC use Julian days; subtract timezone offset (hours/24) for local time
+- Nutation, `BuildNutationTransform`, and `ICRFtoCEP` require **TT** Julian dates; timezone adjustment is not UTC-to-TT conversion
 - Angles: radians unless specified otherwise
 
 ### Julian Day Calculations
@@ -290,7 +318,7 @@ double daysSinceJ2000 = jd - Astronomy.J2000;  // J2000 = 2451545.0
 - **Preetham:** Fastest, suitable for real-time (few trig operations)
 - **CIE:** Moderate, lookup tables + evaluation
 - **Hosek:** Slowest, high-quality (polynomial evaluation + optional spectral conversion)
-- **Astronomy:** Sun/Moon ~microseconds, planets ~10 microseconds, star transforms sub-microsecond
+- **Astronomy:** Costs depend on the model/runtime; nutation directly evaluates 106 terms without per-call arrays or LINQ. Benchmark complete transforms rather than assuming sub-microsecond execution.
 - **Geodetics:** Batch transformations much faster than individual calls
 
 ## See Also
