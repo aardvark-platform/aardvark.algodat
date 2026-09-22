@@ -42,6 +42,7 @@ module Readback =
                 filter Filter.MinMagPoint
             }
 
+        [<System.Obsolete("Broken. Use Atomic.Add instead.")>]
         [<GLSLIntrinsic("atomicAdd({0}, {1})"); KeepCall>]
         let atomicAdd (l : int) (v : int) : int = onlyInShaderCode "atomicAdd"
 
@@ -63,7 +64,7 @@ module Readback =
                             if d > 0.0f && d < 1.0f then
                                 let tc = (V2f (id - offset) + V2f.Half) / V2f size
                                 let ndc = V3f(tc.X * 2.0f - 1.0f, tc.Y * 2.0f - 1.0f, d * 2.0f - 1.0f)
-                                let idx = atomicAdd cnt.[0] 1
+                                let idx = Atomic.Add(&&cnt.[0], 1)
                                 ndcs.[idx] <- V4f(ndc, dither)
             }
 

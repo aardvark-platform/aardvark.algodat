@@ -23,6 +23,10 @@ nuget Aardvark.Application.Utilities    ~> 5.6.1
 nuget Aardvark.Application.Slim.Vulkan  ~> 5.6.1
 
 ////////////////////////////////////////////////////////////////////////
+// https://github.com/krauthaufen/FShade
+nuget FShade                            ~> 5.7.19
+
+////////////////////////////////////////////////////////////////////////
 // https://github.com/aardvark-community/aardvark.data.durable.dotnet
 nuget Aardvark.Data.Durable             ~> 0.4.4
 nuget Aardvark.Data.Durable.Codec       ~> 0.4.4
