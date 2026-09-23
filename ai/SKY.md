@@ -57,7 +57,10 @@ var sky2 = new CIESky(
 
 ### Hosek-Wilkie Sky
 
-High-quality physically-based sky model supporting spectral, XYZ, and RGB output.
+High-quality physically-based sky model with fitted tristimulus and spectral paths.
+`HosekSky` evaluates **diffuse sky only**, without a direct solar disc. Use
+`ArHosekSkyModelState` with `Col.Format.None` for wavelength-based spectral calls;
+`Col.Format.None` is not a spectral-to-XYZ mode for the `HosekSky` wrapper.
 
 ```csharp
 // Standard Earth sky
@@ -66,7 +69,7 @@ var sky = new HosekSky(
     solarTheta: Math.PI / 3,
     atmospheric_turbidity: 3.0,      // 1.0 = pristine, 10.0 = heavy pollution
     ground_albedo: new C3f(0.3f),    // RGB ground reflectance
-    color_format: Col.Format.CieXYZ  // XYZ, RGB, or spectral
+    color_format: Col.Format.CieXYZ  // XYZ tristimulus channels (RGB also available)
 );
 
 C3f radiance = sky.GetRadiance(viewVec);  // cd/m² in XYZ
@@ -82,6 +85,39 @@ var alienSky = new AlienWorld(
     ground_albedo: 0.25
 );
 ```
+
+**Spectral sky versus sun:**
+
+```csharp
+var spectral = new ArHosekSkyModelState(
+    solar_elevation: Math.PI / 4,
+    atmospheric_turbidity: 3.0,
+    ground_albedo: 0.3,
+    color_format: Col.Format.None
+);
+double theta = Math.PI / 4;  // View zenith angle, radians
+double gamma = Math.PI / 2;  // Angular separation from the sun, radians
+var diffuse = spectral.arhosekskymodel_radiance(theta, gamma, 560.0);
+var total = spectral.arhosekskymodel_solar_radiance(theta, gamma, 560.0);
+// Here total == diffuse: this direction is outside the solar disc.
+```
+
+- Wavelengths are in **nanometers**. The direct-sun component supports **320–720 nm**,
+  including both endpoints; diffuse sky retains its existing band interpolation
+  and wavelength handling independently of the solar component.
+- Direct sunlight requires **absolute angular separation strictly less than the
+  instance's solar radius** and a positive disc sample cosine. Exact-boundary,
+  off-disc and numerical grazing samples receive no direct sunlight. Checking
+  the angle also excludes the opposite direction, which a sine-only test would admit.
+- Earth's radius is `ArHosekSkyModelState.earth_solar_radius` (**0.255°** in radians).
+  Alien-world radii depend on intensity and surface temperature, not a fixed Earth
+  cutoff. Diffuse circumsolar scattering remains present outside the disc.
+- `AlienWorld.GetRadiance` integrates sky-plus-sun spectral samples at 380–780 nm
+  for a normalized view direction. Off-disc it therefore integrates diffuse sky
+  only. Its existing 41-sample spectrum buffer and spectral-to-XYZ scaling remain
+  unchanged; the wrapper's noted conversion/brightness limitations are separate.
+- Individual warmed spectral evaluations allocate no managed scratch arrays;
+  `AlienWorld.GetRadiance` still allocates its spectrum buffer.
 
 ### Preetham Sky
 
