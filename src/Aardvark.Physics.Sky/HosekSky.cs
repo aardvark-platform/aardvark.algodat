@@ -48,6 +48,12 @@ namespace Aardvark.Physics.Sky
             return HosekSky.XYZTosRGBScaledToFit(GetRadiance(viewVec));
         }
 
+        /// <summary>
+        /// Integrates spectral sky radiance plus direct sunlight for a normalized view direction.
+        /// Direct sunlight is confined to the interior of this world's solar disc; off-disc
+        /// directions retain only the diffuse sky spectrum. The existing 41-sample XYZ
+        /// conversion and scaling are unchanged.
+        /// </summary>
         public C3f GetRadiance(V3d viewVec)
         {
             var theta = Fun.Acos(viewVec.Z);
@@ -92,7 +98,8 @@ namespace Aardvark.Physics.Sky
         }
 
         /// <summary>
-        /// returns the sky luminance in cd/m² as XYZ-color in a V3d. 
+        /// Returns diffuse sky radiance in the selected tristimulus format (normally XYZ).
+        /// This fitted sky-only path does not add a direct solar disc.
         /// </summary>
         public C3f GetRadiance(V3d viewVec)
         {
@@ -102,7 +109,7 @@ namespace Aardvark.Physics.Sky
             double X = model_states[0].arhosek_tristim_skymodel_radiance(theta, gamma, 0);
             double Y = model_states[1].arhosek_tristim_skymodel_radiance(theta, gamma, 1);
             double Z = model_states[2].arhosek_tristim_skymodel_radiance(theta, gamma, 2);
-            return new C3f(X, Y, Z) * 1000; // conversion from kcd/m² to cd/m²
+            return new C3f(X, Y, Z) * 1000; // conversion from kcd/mÂ² to cd/mÂ²
         }
 
         public static C3f XYZTosRGBScaledToFit(C3f XYZ)
@@ -517,6 +524,12 @@ namespace Aardvark.Physics.Sky
                 (configuration[2] + configuration[3] * expM + configuration[5] * rayM + configuration[6] * mieM + configuration[7] * zenith);
         }
 
+        /// <summary>
+        /// Returns diffuse spectral sky radiance, without the direct solar-disc contribution.
+        /// </summary>
+        /// <param name="theta">View zenith angle in radians.</param>
+        /// <param name="gamma">Angular separation from the sun in radians.</param>
+        /// <param name="wavelength">Wavelength in nanometers, using the existing spectral-band interpolation.</param>
         public double arhosekskymodel_radiance(
             double                  theta, 
             double                  gamma, 
@@ -602,13 +615,24 @@ namespace Aardvark.Physics.Sky
             if (wavelength < 320.0 || wavelength > 720.0)
                 return 0;
 
-            //assert(
-            //    wavelength >= 320.0
-            //    && wavelength <= 720.0
-            //    && state->turbidity >= 1.0
-            //    && state->turbidity <= 10.0
-            //    );
+            // Angular separation is necessary: sin(gamma) alone also admits the opposite sun.
+            if (Fun.Abs(gamma) >= solar_radius)
+                return 0;
 
+            // Keep rejection on a small path, without setting up the interpolation's live locals.
+            return arhosekskymodel_solar_radiance_on_disc(wavelength, elevation, gamma);
+        }
+
+        double arhosekskymodel_solar_radiance_on_disc(double wavelength, double elevation, double gamma)
+        {
+            double sol_rad_sin = Fun.Sin(solar_radius);
+            double ar2 = 1 / (sol_rad_sin * sol_rad_sin);
+            double singamma = Fun.Sin(gamma);
+            double sc2 = 1.0 - ar2 * singamma * singamma;
+            // Reject numerical grazing before interpolation, as in the reference's zero-cosine check:
+            // https://github.com/mmp/pbrt-v3/blob/13d871faae88233b327d04cda24022b8bb0093ee/src/ext/ArHosekSkyModel.c
+            if (sc2 <= 0.0)
+                return 0;
 
             int     turb_low  = (int) turbidity - 1;
             double  turb_frac = turbidity - (double) (turb_low + 1);
@@ -663,21 +687,15 @@ namespace Aardvark.Physics.Sky
                         )
                        );
 
-            double[] ldCoefficient = new double[6];
-
-            for ( int i = 0; i < 6; i++ )
-                ldCoefficient[i] =
-                    (1.0 - wl_frac) * limbDarkeningDatasets[wl_low  ][i]
-                    +        wl_frac  * limbDarkeningDatasets[wl_low+1][i];
-
-            // sun distance to diameter ratio, squared
-
-            double sol_rad_sin = Fun.Sin(solar_radius);
-            double ar2 = 1 / ( sol_rad_sin * sol_rad_sin );
-            double singamma = Fun.Sin(gamma);
-            double sc2 = 1.0 - ar2 * singamma * singamma;
-            if (sc2 < 0.0 ) sc2 = 0.0;
-            double sampleCosine = Fun.Sqrt (sc2);
+            var ldLow = limbDarkeningDatasets[wl_low];
+            var ldHigh = limbDarkeningDatasets[wl_low + 1];
+            double ld0 = (1.0 - wl_frac) * ldLow[0] + wl_frac * ldHigh[0];
+            double ld1 = (1.0 - wl_frac) * ldLow[1] + wl_frac * ldHigh[1];
+            double ld2 = (1.0 - wl_frac) * ldLow[2] + wl_frac * ldHigh[2];
+            double ld3 = (1.0 - wl_frac) * ldLow[3] + wl_frac * ldHigh[3];
+            double ld4 = (1.0 - wl_frac) * ldLow[4] + wl_frac * ldHigh[4];
+            double ld5 = (1.0 - wl_frac) * ldLow[5] + wl_frac * ldHigh[5];
+            double sampleCosine = Fun.Sqrt(sc2);
 
             //   The following will be improved in future versions of the model:
             //   here, we directly use fitted 5th order polynomials provided by the
@@ -687,19 +705,29 @@ namespace Aardvark.Physics.Sky
             //   dataset based on quadratic polynomials will be provided in a future
             //   release.
 
-            double  darkeningFactor =
-                ldCoefficient[0]
-                + ldCoefficient[1] * sampleCosine
-                    + ldCoefficient[2] * Fun.Pow( sampleCosine, 2.0 )
-                    + ldCoefficient[3] * Fun.Pow( sampleCosine, 3.0 )
-                    + ldCoefficient[4] * Fun.Pow( sampleCosine, 4.0 )
-                    + ldCoefficient[5] * Fun.Pow( sampleCosine, 5.0 );
+            // Preserve the original interpolation and term order, without a heap scratch array.
+            double darkeningFactor =
+                ld0
+                + ld1 * sampleCosine
+                    + ld2 * Fun.Pow( sampleCosine, 2.0 )
+                    + ld3 * Fun.Pow( sampleCosine, 3.0 )
+                    + ld4 * Fun.Pow( sampleCosine, 4.0 )
+                    + ld5 * Fun.Pow( sampleCosine, 5.0 );
 
             direct_radiance *= darkeningFactor;
 
             return direct_radiance;
         }
 
+        /// <summary>
+        /// Returns diffuse spectral sky radiance plus direct solar radiance. Direct sunlight
+        /// requires absolute angular separation strictly smaller than this instance's solar
+        /// radius and a positive disc sample cosine; off-disc and grazing samples are diffuse-only.
+        /// </summary>
+        /// <param name="theta">View zenith angle in radians.</param>
+        /// <param name="gamma">Angular separation from the sun in radians (normally in [0, pi]).</param>
+        /// <param name="wavelength">Wavelength in nanometers. Direct light supports 320 through 720 nm;
+        /// the diffuse component retains its own existing wavelength handling.</param>
         public double arhosekskymodel_solar_radiance(
             double                  theta, 
             double                  gamma, 
