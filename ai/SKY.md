@@ -23,7 +23,8 @@ Physics-based sky illumination models and astronomical position calculations for
 
 ### CIE Sky
 
-Standard sky model for architectural lighting with 15 types from overcast to clear.
+Standard sky model for architectural lighting with 15 types from overcast to clear
+(CIE S 011/E:2003). `CIESkyType` values 0–14 correspond to CIE standard types 1–15.
 
 ```csharp
 using Aardvark.Physics.Sky;
@@ -49,6 +50,40 @@ var sky2 = new CIESky(
     globIllu: 80000     // Global illuminance (lux)
 );
 ```
+
+**Angular distribution and units:**
+
+All angles in the distribution equations are **radians**. For angular separation
+`chi` between sun and view, the scattering indicatrix is:
+
+```text
+f(chi) = 1 + C * (exp(D * chi) - exp(D * pi/2)) + E * cos(chi)^2
+```
+
+The tabulated `D` multiplies a radian angle, not a degree value. The same function
+is used in the cached zenith denominator. For view zenith angle `Z`, the relative
+luminance is `phi(Z) * f(chi) / (phi(0) * f(Zs))`.
+
+- Gradation retains `phi(Z) = 1 + A * exp(B / (abs(cos(Z)) + 1e-6))`.
+  Its epsilon slightly differs from the unregularized CIE formula; allow for this
+  and the returned float XYZ components when comparing external references.
+- Calibration and cached normalization retain a solar-zenith clamp of **10°–170°**.
+  The supplied sun vector used for angular separation is unchanged. When the clamp
+  changes the angle, the actual zenith sample need not equal the calibrated `Lz`.
+- `GetRadiance` requires a normalized view vector and returns XYZ, with **Y in cd/m²**.
+  The existing absolute-luminance/turbidity calibration and color conversion are
+  separate from the CIE relative distribution. Both measured illuminances must be
+  supplied (nonnegative) to select the measured path; otherwise defaults are used.
+- The existing measured-air-mass calculation uses solar elevation in degrees in
+  its own empirical expression. That conversion is unrelated to `chi` and remains.
+- For `ClearSky2`, sun azimuth/zenith **0°/45°**, view **0°/40°** gives
+  `Y / Yzenith ≈ 5.41944`. Types `OvercastSky1`, `OvercastSky3`, and `UniformSky`
+  have zero circumsolar coefficients and remain azimuth-independent.
+- Warmed `GetRadiance` evaluation allocates no managed memory.
+
+Independent distribution references are available in the
+[pinned Colour implementation](https://github.com/colour-science/colour/blob/5259f87c012e42b570778007f3d2560c15549518/colour/phenomena/sky/cie2003.py).
+No Colour dependency is required at runtime.
 
 **CIE Sky Types:**
 - 0-4: Overcast (uniform to moderate gradation)
@@ -282,7 +317,7 @@ double daysSinceJ2000 = jd - Astronomy.J2000;  // J2000 = 2451545.0
 
 - Sun/planet below horizon: valid calculations, theta > π/2
 - Polar regions: sunrise/sunset may return `double.NaN` (polar day/night)
-- CIE sky: clamped to prevent invalid sun positions near horizon (±10°)
+- CIE sky: calibration/normalization clamp the solar zenith angle to 10°–170° (near zenith/nadir, not the horizon); the supplied sun direction remains unchanged
 - Coordinate transforms: ensure correct EPSG codes and units (degrees vs. meters)
 
 ## Performance
@@ -298,7 +333,7 @@ double daysSinceJ2000 = jd - Astronomy.J2000;  // J2000 = 2451545.0
 - Aardvark.Base - V3d, C3f, color space conversions
 - [EPSG Registry](https://epsg.io/) - Coordinate system codes
 - [Astronomy Answers](https://www.aa.quae.nl/en/reken/) - Sun/planet calculation reference
-- [CIE Standard](http://mathinfo.univ-reims.fr/IMG/pdf/other2.pdf) - Sky model specification
+- [CIE S 011/E:2003](https://cie.co.at/publications/spatial-distribution-daylight-cie-standard-general-sky) - CIE Standard General Sky
 - Hosek-Wilkie (2012) - "An Analytic Model for Full Spectral Sky-Dome Radiance"
 - Preetham (1999) - "A Practical Analytic Model for Daylight"
 - [Julian Day](https://en.wikipedia.org/wiki/Julian_day) - Time system reference

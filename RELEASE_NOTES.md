@@ -1,3 +1,5 @@
+- [Sky] Use radians consistently in CIE sky scattering and zenith normalization (#110).
+
 ### 5.6.3
 - Updated SharpCompress to 0.48.1 to address CVE-2026-44788
 
