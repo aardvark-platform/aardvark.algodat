@@ -55,10 +55,18 @@ namespace Aardvark.Physics.Sky
     }
 
     /// <summary>
-    /// CIESky is the implementation of a physically based sky illumination
-    /// according the paper CIE GENERAL SKY STANDARD DEFINING LUMINANCE DISTRIBUTIONS .
-    /// http://mathinfo.univ-reims.fr/IMG/pdf/other2.pdf.
+    /// CIE Standard General Sky luminance distribution (CIE S 011/E:2003).
+    /// All distribution angles are in radians. The scattering indicatrix is
+    /// f(chi) = 1 + C * (exp(D * chi) - exp(D * pi/2)) + E * cos(chi)^2,
+    /// used for both the view direction and cached zenith normalization.
     /// </summary>
+    /// <remarks>
+    /// Retains the existing gradation 1 + A * exp(B / (abs(cos(Z)) + 1e-6)),
+    /// 10-to-170-degree solar-zenith clamp for calibration/normalization, absolute
+    /// luminance calibration and XYZ color conversion. The supplied sun direction
+    /// itself is not clamped. Sky types 0 through 14 correspond to CIE types 1 through 15.
+    /// See https://cie.co.at/publications/spatial-distribution-daylight-cie-standard-general-sky.
+    /// </remarks>
     public class CIESky : Sky, IPhysicalSky
     {
         // CIE Sky model type
@@ -153,8 +161,8 @@ namespace Aardvark.Physics.Sky
 
         #pragma warning disable IDE1006 // Naming Styles
 
-        // luminance gradation function
-        // 0 <= Z <=p pi/2 // zenith to horizon
+        // Luminance gradation function, with the existing absolute-cosine regularization.
+        // 0 <= Z <= pi/2 // zenith to horizon
         // phi(pi/2) = 1
         // Zenith angle (Z) [radians]
         private double phi(double A, double B, double Z)
@@ -162,11 +170,14 @@ namespace Aardvark.Physics.Sky
             return 1 + A * Fun.Exp(B / (Z.Cos().Abs() + 0.000001));
         }
 
-        // Standard indicatrices
-        // Scattering angle (chi) [radians]
-        private double f(double C, double D, double E, double chi) 
+        // CIE S 011/E:2003 scattering indicatrix. Both exponential arguments use radians;
+        // the tabulated D must not be multiplied by an angle converted to degrees.
+        // Independently implemented at colour-science/colour, revision
+        // 5259f87c012e42b570778007f3d2560c15549518, colour/phenomena/sky/cie2003.py.
+        private double f(double C, double D, double E, double chi)
         {
-            return 1 + C * (Fun.Exp(D * chi.DegreesFromRadians()) - Fun.Exp(D * (Constant.Pi / 2))) + E * chi.Cos() * chi.Cos();
+            var cosChi = chi.Cos();
+            return 1 + C * (Fun.Exp(D * chi) - Fun.Exp(D * (Constant.Pi / 2))) + E * cosChi * cosChi;
         }
 
         // Gradation and Indicatrix Function
@@ -249,8 +260,11 @@ namespace Aardvark.Physics.Sky
         }
 
         /// <summary>
-        /// returns the sky luminance in cd/m² as XYZ-color in a V3d. 
+        /// Returns sky radiance as an XYZ color; its Y component is luminance in cd/m².
+        /// The relative distribution is phi(Z) * f(chi) / (phi(0) * f(Zs)),
+        /// with all angles in radians and the existing regularized gradation.
         /// </summary>
+        /// <param name="viewVec">Normalized view direction in the sky coordinate system.</param>
         public C3f GetRadiance(V3d viewVec)
         {
             // Below horizont black... can be CHANGED in future versions
