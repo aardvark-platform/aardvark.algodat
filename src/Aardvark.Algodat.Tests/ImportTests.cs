@@ -17,6 +17,7 @@ using Aardvark.Geometry.Points;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -131,6 +132,147 @@ namespace Aardvark.Geometry.Tests
             if (config.ParseConfig.EnabledProperties.PartIndices) chunk = chunk.WithPartIndices(42u, null);
             var pointcloud = PointCloud.Chunks(chunk, config);
             ClassicAssert.IsTrue(pointcloud.BoundingBox == bb + V3d.OIO);
+        }
+
+        [Test]
+        public void ReprojectedChunkUsesTransformedBoundsAcrossOctreeSplits()
+        {
+            var positions = (
+                from x in Enumerable.Range(0, 4)
+                from y in Enumerable.Range(0, 4)
+                from z in Enumerable.Range(0, 4)
+                select new V3d(x, y, z)
+                ).ToArray();
+            var colors = new C4b[positions.Length].SetByIndex(i => new C4b((byte)i, (byte)(i + 1), (byte)(i + 2), byte.MaxValue));
+            var normals = new V3f[positions.Length].SetByIndex(i => new V3f(i + 1, i + 2, i + 3).Normalized);
+            var intensities = new int[positions.Length].SetByIndex(i => 1000 + i);
+            var classifications = new byte[positions.Length].SetByIndex(i => (byte)(i % 32));
+            var partIndices = new short[positions.Length].SetByIndex(i => (short)(200 + i));
+            var chunk = new Chunk(
+                positions, colors, normals, intensities, classifications,
+                partIndices, partIndexRange: null, bbox: null
+                );
+            var sourceBounds = chunk.BoundingBox;
+            var translation = new V3d(1_000_000, -2_000_000, 3_000_000);
+            var expectedPositions = positions.Map(p => p + translation);
+            var expectedBounds = new Box3d(expectedPositions);
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithRandomKey()
+                .WithOctreeSplitLimit(2)
+                .WithMaxDegreeOfParallelism(1)
+                .WithReproject(ps => ps.Map(p => p + translation));
+
+            var pointSet = PointCloud.Chunks(chunk, config);
+
+            ClassicAssert.AreEqual(positions.Length, pointSet.PointCount);
+            ClassicAssert.AreEqual(expectedBounds, pointSet.BoundingBox);
+            ClassicAssert.AreEqual(expectedBounds, pointSet.Root.Value.BoundingBoxExactGlobal);
+            ClassicAssert.AreEqual(sourceBounds, chunk.BoundingBox);
+            CollectionAssert.AreEqual(positions, chunk.Positions);
+
+            var allPositions = pointSet.QueryAllPoints().SelectMany(x => x.Positions).ToArray();
+            ClassicAssert.AreEqual(positions.Length, allPositions.Length);
+            ClassicAssert.AreEqual(positions.Length, allPositions.Count(expectedBounds.Contains));
+            var queried = pointSet.QueryPointsInsideBox(expectedBounds.EnlargedBy(0.01)).ToArray();
+            ClassicAssert.AreEqual(positions.Length, queried.Sum(x => x.Count));
+            var seen = new bool[positions.Length];
+            foreach (var result in queried)
+            {
+                var resultParts = result.TryGetPartIndices();
+                for (var i = 0; i < result.Count; i++)
+                {
+                    var sourceIndex = result.Intensities[i] - 1000;
+                    ClassicAssert.IsFalse(seen[sourceIndex]);
+                    seen[sourceIndex] = true;
+                    ClassicAssert.AreEqual(expectedPositions[sourceIndex], result.Positions[i]);
+                    ClassicAssert.AreEqual(colors[sourceIndex], result.Colors[i]);
+                    ClassicAssert.AreEqual(normals[sourceIndex], result.Normals[i]);
+                    ClassicAssert.AreEqual(classifications[sourceIndex], result.Classifications[i]);
+                    ClassicAssert.AreEqual(partIndices[sourceIndex], resultParts[i]);
+                }
+            }
+            ClassicAssert.IsTrue(seen.All(x => x));
+        }
+
+        [Test]
+        public void NonlinearReprojectionRecomputesImportBounds()
+        {
+            var positions = new[]
+            {
+                new V3d(-2, -1, 0.5),
+                new V3d(-1, 2, -0.5),
+                new V3d(0.5, -3, 2),
+                new V3d(3, 1, -2)
+            };
+            V3d Reproject(V3d p) => new(p.X * p.X, p.Y + p.X * p.Z, p.Z * p.Z - p.X);
+            var expected = positions.Map(Reproject);
+            var chunk = new Chunk(positions);
+            var config = ImportConfig.Default
+                .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                .WithRandomKey()
+                .WithOctreeSplitLimit(2)
+                .WithMaxDegreeOfParallelism(1)
+                .WithReproject(ps => ps.Map(Reproject));
+
+            var pointSet = PointCloud.Chunks(chunk, config);
+            var actual = pointSet.QueryAllPoints().SelectMany(x => x.Positions).ToArray();
+
+            ClassicAssert.AreEqual(new Box3d(expected), pointSet.BoundingBox);
+            ClassicAssert.AreEqual(new Box3d(expected), pointSet.Root.Value.BoundingBoxExactGlobal);
+            ClassicAssert.AreEqual(expected.Length, actual.Length);
+            foreach (var p in expected)
+                ClassicAssert.IsTrue(actual.Any(q => q.ApproximateEquals(p, 1e-6)));
+        }
+
+        [Test]
+        public void GloballyNormalizedMinDistIsInvariantUnderAlignedTranslation()
+        {
+            var positions = new[]
+            {
+                new V3d( 0.10, 0.10, 0.10), new V3d( 0.20, 0.20, 0.20),
+                new V3d( 0.60, 0.10, 0.10), new V3d( 0.70, 0.20, 0.20),
+                new V3d( 1.10, 0.10, 0.10), new V3d( 1.20, 0.20, 0.20),
+                new V3d(-0.40, 0.10, 0.10), new V3d(-0.30, 0.20, 0.20)
+            };
+            var intensities = new int[positions.Length].SetByIndex(i => 500 + i);
+            var parts = new int[positions.Length].SetByIndex(i => 50 + i);
+            var source = new Chunk(
+                positions, colors: null, normals: null, intensities, classifications: null,
+                parts, partIndexRange: null, bbox: null
+                );
+            var translation = new V3d(16, -8, 4);
+
+            PointSet Import(string key, Func<IList<V3d>, IList<V3d>> reproject)
+            {
+                var config = ImportConfig.Default
+                    .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
+                    .WithKey(key)
+                    .WithMinDist(0.5)
+                    .WithNormalizePointDensityGlobal(true)
+                    .WithOctreeSplitLimit(4)
+                    .WithMaxDegreeOfParallelism(1)
+                    .WithReproject(reproject);
+                return PointCloud.Chunks(source, config);
+            }
+
+            var original = Import("mindist-original", null);
+            var translated = Import("mindist-translated", ps => ps.Map(p => p + translation));
+            var originalChunks = original.QueryAllPoints().ToArray();
+            var translatedChunks = translated.QueryAllPoints().ToArray();
+            var originalIntensities = originalChunks.SelectMany(x => x.Intensities).OrderBy(x => x).ToArray();
+            var translatedIntensities = translatedChunks.SelectMany(x => x.Intensities).OrderBy(x => x).ToArray();
+
+            ClassicAssert.Less(originalIntensities.Length, positions.Length);
+            CollectionAssert.AreEqual(originalIntensities, translatedIntensities);
+            var originalByIntensity = originalChunks
+                .SelectMany(chunk => chunk.Positions.Zip(chunk.Intensities, (position, intensity) => (position, intensity)))
+                .ToDictionary(x => x.intensity, x => x.position);
+            var translatedByIntensity = translatedChunks
+                .SelectMany(chunk => chunk.Positions.Zip(chunk.Intensities, (position, intensity) => (position, intensity)))
+                .ToDictionary(x => x.intensity, x => x.position);
+            foreach (var intensity in originalIntensities)
+                ClassicAssert.IsTrue(translatedByIntensity[intensity].ApproximateEquals(originalByIntensity[intensity] + translation, 1e-6));
         }
 
         [Test]

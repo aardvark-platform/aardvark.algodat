@@ -1,3 +1,5 @@
+- [PointSet] recompute chunk bounds after replacing or reprojecting positions (#61)
+
 ### 5.6.3
 - Updated SharpCompress to 0.48.1 to address CVE-2026-44788
 

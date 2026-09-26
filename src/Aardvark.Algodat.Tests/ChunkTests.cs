@@ -155,6 +155,86 @@ namespace Aardvark.Geometry.Tests
         }
 
         [Test]
+        public void Chunk_WithPositionsRecomputesBoundsAndPreservesAlignment()
+        {
+            var sourcePositions = new[] { new V3d(1, 2, 3), new V3d(4, 5, 6), new V3d(-2, 8, 1) };
+            var colors = new[] { C4b.Red, C4b.Green, C4b.Blue };
+            var normals = new[] { V3f.XAxis, V3f.YAxis, V3f.ZAxis };
+            var intensities = new[] { 10, 20, 30 };
+            var classifications = new byte[] { 1, 2, 3 };
+            var partIndices = new[] { 100, 200, 300 };
+            var sourceBounds = new Box3d(new V3d(-100), new V3d(100));
+            var source = new Chunk(
+                sourcePositions, colors, normals, intensities, classifications,
+                partIndices, partIndexRange: null, bbox: sourceBounds
+                );
+            var transformedPositions = sourcePositions.Map(p => p + new V3d(1000, -2000, 3000));
+
+            var transformed = source.WithPositions(transformedPositions);
+
+            ClassicAssert.AreEqual(new Box3d(transformedPositions), transformed.BoundingBox);
+            ClassicAssert.AreEqual(sourceBounds, source.BoundingBox);
+            CollectionAssert.AreEqual(sourcePositions, source.Positions);
+            CollectionAssert.AreEqual(transformedPositions, transformed.Positions);
+            ClassicAssert.AreSame(colors, transformed.Colors);
+            ClassicAssert.AreSame(normals, transformed.Normals);
+            ClassicAssert.AreSame(intensities, transformed.Intensities);
+            ClassicAssert.AreSame(classifications, transformed.Classifications);
+            ClassicAssert.AreSame(partIndices, transformed.PartIndices);
+            CollectionAssert.AreEqual(partIndices, transformed.TryGetPartIndices());
+            ClassicAssert.AreEqual(new Range1i(100, 300), transformed.PartIndexRange);
+        }
+
+        [Test]
+        public void Chunk_ImmutableMapPositionsFusesNonlinearMappingAndBounds()
+        {
+            var positions = new[]
+            {
+                new V3d(-2, 1, 3),
+                new V3d(1, -4, 2),
+                new V3d(3, 2, -1)
+            };
+            var colors = new[] { C4b.Red, C4b.Green, C4b.Blue };
+            var intensities = new[] { 11, 22, 33 };
+            var partIndices = new short[] { 7, 8, 9 };
+            var source = new Chunk(
+                positions, colors, normals: null, intensities, classifications: null,
+                partIndices, partIndexRange: null, bbox: null
+                );
+            var calls = 0;
+            V3d Mapping(V3d p)
+            {
+                calls++;
+                return new V3d(p.X * p.X, p.Y - 2.0 * p.X, p.Z * p.X);
+            }
+            var expected = positions.Map(p => new V3d(p.X * p.X, p.Y - 2.0 * p.X, p.Z * p.X));
+
+            var transformed = source.ImmutableMapPositions(Mapping);
+
+            ClassicAssert.AreEqual(positions.Length, calls);
+            CollectionAssert.AreEqual(expected, transformed.Positions);
+            ClassicAssert.AreEqual(new Box3d(expected), transformed.BoundingBox);
+            CollectionAssert.AreEqual(positions, source.Positions);
+            ClassicAssert.AreSame(colors, transformed.Colors);
+            ClassicAssert.AreSame(intensities, transformed.Intensities);
+            ClassicAssert.AreSame(partIndices, transformed.PartIndices);
+            CollectionAssert.AreEqual(new[] { 7, 8, 9 }, transformed.TryGetPartIndices());
+        }
+
+        [Test]
+        public void Chunk_ImmutableMapPositionsPreservesEmptyBehavior()
+        {
+            var calls = 0;
+            var transformed = Chunk.Empty.ImmutableMapPositions(p => { calls++; return p + V3d.III; });
+            var replaced = Chunk.Empty.WithPositions(Array.Empty<V3d>());
+
+            ClassicAssert.AreSame(Chunk.Empty, transformed);
+            ClassicAssert.AreEqual(0, calls);
+            ClassicAssert.IsTrue(replaced.IsEmpty);
+            ClassicAssert.AreEqual(Box3d.Invalid, replaced.BoundingBox);
+        }
+
+        [Test]
         public void Chunk_ImmutableDeduplicate_1()
         {
             var a = new Chunk(new[] { new V3d(1, 2, 3), new V3d(4, 5, 6), new V3d(1, 2, 3), new V3d(4, 5, 6) });

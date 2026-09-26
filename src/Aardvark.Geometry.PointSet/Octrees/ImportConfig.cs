@@ -127,7 +127,10 @@ public class ImportConfig
     /// <summary></summary>
     public ImportConfig WithMaxChunkPointCount(int x) => new(this) { ParseConfig = ParseConfig.WithMaxChunkPointCount(Math.Max(x, 1)) };
 
-    /// <summary></summary>
+    /// <summary>
+    /// Reprojects each chunk's positions before density filtering and octree construction.
+    /// Chunk bounds are recomputed from the returned positions; position index i remains paired with optional attribute index i.
+    /// </summary>
     public ImportConfig WithReproject(Func<IList<V3d>, IList<V3d>> x) => new(this) { Reproject = x };
 
     /// <summary></summary>
