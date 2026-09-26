@@ -19,7 +19,7 @@ using Aardvark.Base;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -133,6 +133,26 @@ namespace Aardvark.Data.Points
             return rs;
         }
 
+        /// <summary>
+        /// Maps a sequence concurrently and yields results in worker-completion order. At most
+        /// the effective parallelism number of source items, workers, and completed results are
+        /// retained at any time. Null results are yielded like any other result.
+        /// </summary>
+        /// <remarks>
+        /// A non-positive <paramref name="maxLevelOfParallelism"/> uses
+        /// <see cref="Environment.ProcessorCount"/>. Worker and source exceptions are rethrown
+        /// without an aggregate wrapper. Failure, external cancellation, or early disposal of
+        /// the returned enumerator cancels the linked token supplied to all in-flight workers;
+        /// mapping functions should observe that token for prompt shutdown. <paramref name="onFinish"/>
+        /// is invoked once only after successful complete enumeration.
+        /// </remarks>
+        /// <param name="items">The lazily consumed source sequence.</param>
+        /// <param name="map">The mapping function. Its token links external and pipeline cancellation.</param>
+        /// <param name="maxLevelOfParallelism">Maximum concurrent mappings, or a non-positive value for the processor count.</param>
+        /// <param name="onFinish">Optional callback invoked after successful complete enumeration.</param>
+        /// <param name="ct">External cancellation token.</param>
+        /// <returns>A lazy sequence of mapped results in completion order.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="map"/> is null.</exception>
         public static IEnumerable<R> MapParallel<T, R>(this IEnumerable<T> items,
             Func<T, CancellationToken, R> map,
             int maxLevelOfParallelism,
@@ -143,66 +163,180 @@ namespace Aardvark.Data.Points
             if (map == null) throw new ArgumentNullException(nameof(map));
             if (maxLevelOfParallelism < 1) maxLevelOfParallelism = Environment.ProcessorCount;
 
-            var queue = new Queue<R>();
-            var queueSemapore = new SemaphoreSlim(maxLevelOfParallelism);
+            var completions = new Queue<MapParallelCompletion<R>>(maxLevelOfParallelism);
+            var completionAvailable = new SemaphoreSlim(0, maxLevelOfParallelism);
+            var workers = new Task?[maxLevelOfParallelism];
+            var workerCount = 0;
+            var linkedCancellation = ct.CanBeCanceled
+                ? CancellationTokenSource.CreateLinkedTokenSource(ct)
+                : new CancellationTokenSource();
+            var sw = Stopwatch.StartNew();
+            var completedSuccessfully = false;
+            IEnumerator<T>? enumerator = null;
 
-            var inFlightCount = 0;
-
-            var sw = new Stopwatch(); sw.Start();
-
-            var ts = new List<Task>();
-            foreach (var item in items)
+            try
             {
-                ct.ThrowIfCancellationRequested();
+                enumerator = items.GetEnumerator();
+                var sourceCompleted = false;
 
-                queueSemapore.Wait();
-                ct.ThrowIfCancellationRequested();
-                Interlocked.Increment(ref inFlightCount);
-                ts.Add(Task.Run(() =>
+                while (true)
                 {
-                    try
-                    {
-                        var r = map(item, ct);
-                        ct.ThrowIfCancellationRequested();
-                        lock (queue) queue.Enqueue(r);
-                    }
-                    finally
-                    {
-                        Interlocked.Decrement(ref inFlightCount);
-                        queueSemapore.Release();
-                    }
-                }));
+                    ct.ThrowIfCancellationRequested();
 
-                while (queue.TryDequeue(out R? r)) { ct.ThrowIfCancellationRequested(); yield return r; }
+                    MapParallelCompletion<R>? completion = null;
+                    lock (completions)
+                    {
+                        if (completions.Count > 0)
+                        {
+                            completion = completions.Dequeue();
+                            completionAvailable.Wait(0);
+                        }
+                    }
+
+                    if (completion.HasValue)
+                    {
+                        var value = completion.Value;
+                        workers[value.Slot]!.GetAwaiter().GetResult();
+                        workers[value.Slot] = null;
+                        workerCount--;
+                        value.Error?.Throw();
+                        yield return value.Result!;
+                        continue;
+                    }
+
+                    if (!sourceCompleted && workerCount < maxLevelOfParallelism)
+                    {
+                        T item;
+                        try
+                        {
+                            if (enumerator!.MoveNext())
+                            {
+                                item = enumerator.Current;
+                            }
+                            else
+                            {
+                                sourceCompleted = true;
+                                var finishedEnumerator = enumerator;
+                                enumerator = null;
+                                finishedEnumerator.Dispose();
+                                continue;
+                            }
+                        }
+                        catch
+                        {
+                            CancelWithoutThrowing(linkedCancellation);
+                            if (enumerator != null)
+                            {
+                                try { enumerator.Dispose(); }
+                                catch { }
+                                enumerator = null;
+                            }
+                            throw;
+                        }
+
+                        var slot = 0;
+                        while (workers[slot] != null) slot++;
+
+                        var worker = Task.Run(() =>
+                        {
+                            R? result = null;
+                            ExceptionDispatchInfo? error = null;
+                            try
+                            {
+                                result = map(item, linkedCancellation.Token);
+                                linkedCancellation.Token.ThrowIfCancellationRequested();
+                            }
+                            catch (Exception e)
+                            {
+                                error = ExceptionDispatchInfo.Capture(e);
+                            }
+
+                            lock (completions)
+                            {
+                                completions.Enqueue(new MapParallelCompletion<R>(slot, result, error));
+                                completionAvailable.Release();
+                            }
+
+                            if (error != null) CancelWithoutThrowing(linkedCancellation);
+                        });
+                        workers[slot] = worker;
+                        workerCount++;
+                        continue;
+                    }
+
+                    if (workerCount > 0)
+                    {
+                        completionAvailable.Wait(ct);
+                        continue;
+                    }
+
+                    break;
+                }
+
+                sw.Stop();
+                onFinish?.Invoke(sw.Elapsed);
+                completedSuccessfully = true;
             }
-
-            while (inFlightCount > 0 || queue.Count > 0)
+            finally
             {
-                while (queue.TryDequeue(out R? r)) { ct.ThrowIfCancellationRequested(); yield return r; }
-                Task.Delay(100).Wait();
+                if (!completedSuccessfully) CancelWithoutThrowing(linkedCancellation);
+
+                try
+                {
+                    enumerator?.Dispose();
+                }
+                finally
+                {
+                    if (workerCount == 0)
+                    {
+                        completionAvailable.Dispose();
+                        linkedCancellation.Dispose();
+                    }
+                    else
+                    {
+                        var pending = new Task[workerCount];
+                        for (int i = 0, j = 0; i < workers.Length; i++)
+                            if (workers[i] != null) pending[j++] = workers[i]!;
+
+                        _ = Task.WhenAll(pending).ContinueWith(
+                            t =>
+                            {
+                                try
+                                {
+                                    if (t.IsFaulted) _ = t.Exception;
+                                    completionAvailable.Dispose();
+                                    linkedCancellation.Dispose();
+                                }
+                                catch { }
+                            },
+                            CancellationToken.None,
+                            TaskContinuationOptions.ExecuteSynchronously,
+                            TaskScheduler.Default
+                            );
+                    }
+                }
             }
-
-            Task.WaitAll([.. ts]);
-
-            sw.Stop();
-            onFinish?.Invoke(sw.Elapsed);
         }
 
-        private static bool TryDequeue<T>(this Queue<T> queue, [NotNullWhen(true)] out T? item) where T : class
+        private readonly struct MapParallelCompletion<R> where R : class
         {
-            lock (queue)
+            public MapParallelCompletion(int slot, R? result, ExceptionDispatchInfo? error)
             {
-                if (queue.Count > 0)
-                {
-                    item = queue.Dequeue();
-                    return true;
-                }
-                else
-                {
-                    item = default;
-                    return false;
-                }
+                Slot = slot;
+                Result = result;
+                Error = error;
             }
+
+            public readonly int Slot;
+            public readonly R? Result;
+            public readonly ExceptionDispatchInfo? Error;
+        }
+
+        private static void CancelWithoutThrowing(CancellationTokenSource cancellation)
+        {
+            try { cancellation.Cancel(); }
+            catch (ObjectDisposedException) { }
+            catch (AggregateException) { }
         }
     }
 }

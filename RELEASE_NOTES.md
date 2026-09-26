@@ -1,3 +1,5 @@
+- [Point Clouds] make parallel mapping bounded, event-driven, and promptly cancellable (#75)
+
 ### 5.6.3
 - Updated SharpCompress to 0.48.1 to address CVE-2026-44788
 
