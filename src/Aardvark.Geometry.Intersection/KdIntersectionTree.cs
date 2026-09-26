@@ -267,8 +267,8 @@ namespace Aardvark.Geometry
         }
 
         /// <summary>
-        /// Return the closest point of all objects in the kd-tree to the
-        /// supplied query point.
+        /// Finds the nearest point in the kd-tree that is strictly closer than the incoming <see cref="ObjectClosestPoint.DistanceSquared"/> cutoff.
+        /// On success the exact squared distance, distance, point, and set object are updated; otherwise the result is unchanged.
         /// </summary>
         public bool ClosestPoint(
                 V3d query,
@@ -279,9 +279,9 @@ namespace Aardvark.Geometry
         }
 
         /// <summary>
-        /// Return the closest point of all objects in the kd-tree to the
-        /// supplied query point. Note that the supplied filter functions
-        /// are ignored (the functionality has not been implemented yet).
+        /// Finds the nearest accepted point in the kd-tree that is strictly closer than the incoming <see cref="ObjectClosestPoint.DistanceSquared"/> cutoff.
+        /// The object filter is forwarded to the object set and null requests no object filtering. The point filter is currently ignored by object sets
+        /// that do not implement it. On success the exact squared distance, distance, point, and set object are updated; otherwise the result is unchanged.
         /// </summary>
         public bool ClosestPoint(
             V3d query,
