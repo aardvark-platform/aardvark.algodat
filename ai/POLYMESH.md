@@ -189,21 +189,29 @@ Half-edge topology must be built explicitly before accessing edges.
 mesh.BuildTopology();
 
 // Traverse edges around a face
-var face = mesh.Faces[0];
+var face = mesh.GetFace(0);
 foreach (var edge in face.Edges)
 {
     var start = edge.FromVertex.Position;
     var end = edge.ToVertex.Position;
-    var opposite = edge.Opposite; // may be null on boundary
+    var opposite = edge.Opposite;
 }
 
 // Traverse edges around a vertex
-var vertex = mesh.Vertices[0];
-foreach (var edge in vertex.OutgoingEdges)
+var vertex = mesh.GetVertex(0);
+foreach (var edge in vertex.Edges)
 {
-    var neighbor = edge.ToVertex;
+    var neighbor = edge.GetOppositeVertex(vertex);
 }
+
+// Enumerate this edge's other neighbors at one endpoint
+var selected = face.Edge(0);
+var neighbors = selected.GetConnectedEdgesAt(selected.FromVertex);
 ```
+
+`Analyze` and all edge/vertex topology traversal require `BuildTopology()` first. Components are connected through shared edges, not merely shared vertices. `Analyze(out components)` does not cross non-manifold edge links; `Analyze(out components, out reversed)` follows those links and marks faces whose winding differs from the lowest-indexed face in each component.
+
+`ManifoldCopy()` applies that reversal array while preserving face order, but deliberately returns a mesh without built topology. Call `BuildTopology()` on the result before further topology queries. `Edge.GetConnectedEdgesAt` excludes the selected edge and returns each other incident edge once only when the supplied vertex is one of its endpoints; unrelated vertices produce an empty sequence.
 
 ## Attributes
 
@@ -264,7 +272,7 @@ mesh.FaceVertexAttributes[-MyTemperature] = tempIndices;
 7. **Vertex clustering can throw** - Use try-catch when clustering with small delta values.
 8. **SubSetOfFaces compactVertices flag** - `true` reindexes vertices, `false` preserves original indices.
 9. **Group() requires matching attributes** - All meshes must have same attribute keys or operation fails.
-10. **FaceReversedCopy() blindly flips** - Analyze orientation first (check normals vs face winding), don't flip unnecessarily.
+10. **FaceReversedCopy() follows its selector exactly** - Build topology and use `Analyze(..., out reversed)` when reversal should be derived from face connectivity and winding.
 
 ## See Also
 
