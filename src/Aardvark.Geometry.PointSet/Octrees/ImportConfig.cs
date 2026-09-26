@@ -45,7 +45,8 @@ public class ImportConfig
     public int MaxDegreeOfParallelism => ParseConfig.MaxDegreeOfParallelism;
 
     /// <summary>
-    /// Remove points on import with less than this distance to previous point.
+    /// Minimum point-density filtering distance in coordinate units, supplied as an exact, unsquared value.
+    /// Non-global filtering uses Manhattan distance from the previous retained point and retains points at exactly this distance.
     /// </summary>
     public double MinDist => ParseConfig.MinDist;
     /// <summary>
@@ -53,7 +54,7 @@ public class ImportConfig
     /// </summary>
     public int ReadBufferSizeInBytes => ParseConfig.ReadBufferSizeInBytes;
 
-    /// <summary>Normalizes point density globally using MinDist distance.</summary>
+    /// <summary>Uses cell-based global point-density filtering derived from the exact, unsquared <see cref="MinDist"/> value.</summary>
     public bool NormalizePointDensityGlobal { get; private set; } = false;
 
     /// <summary>
@@ -109,10 +110,10 @@ public class ImportConfig
     /// <summary></summary>
     public ImportConfig WithMaxDegreeOfParallelism(int x) => new(this) { ParseConfig = ParseConfig.WithMaxDegreeOfParallelism(x) };
 
-    /// <summary></summary>
+    /// <summary>Sets the exact, unsquared minimum distance used for point-density filtering.</summary>
     public ImportConfig WithMinDist(double x) => new(this) { ParseConfig = ParseConfig.WithMinDist(x) };
 
-    /// <summary></summary>
+    /// <summary>Sets whether point density is normalized globally with cells derived from the exact, unsquared <see cref="MinDist"/> value.</summary>
     public ImportConfig WithNormalizePointDensityGlobal(bool x) => new(this) { NormalizePointDensityGlobal = x };
 
     /// <summary></summary>

@@ -688,7 +688,7 @@ namespace Aardvark.Data.Points
         }
 
         /// <summary>
-        /// Removes points which are less than minDist from previous point (L2, Euclidean).
+        /// Removes points whose Euclidean distance from the previous retained point is less than the exact, unsquared <paramref name="minDist"/>.
         /// </summary>
         public GenericChunk ImmutableFilterSequentialMinDistL2(double minDist)
         {
@@ -801,12 +801,11 @@ namespace Aardvark.Data.Points
         }
 
         /// <summary>
-        /// Removes points which are less than minDist from previous point (L1, Manhattan).
+        /// Removes points whose Manhattan distance from the previous retained point is less than the exact, unsquared <paramref name="minDist"/>.
         /// </summary>
         public GenericChunk ImmutableFilterSequentialMinDistL1(double minDist)
         {
             if (minDist <= 0.0 || Count <= 1) return this;
-            var minDistSquared = minDist * minDist;
 
             switch (Data[PositionsDef])
             {
@@ -817,7 +816,7 @@ namespace Aardvark.Data.Points
                         for (var i = 0; i < ps.Length; i++)
                         {
                             var p = ps[i];
-                            if (Utils.DistLessThanL1(ref p, ref last, minDistSquared)) continue;
+                            if (Utils.DistLessThanL1(ref p, ref last, minDist)) continue;
                             last = p; ia.Add(i);
                         }
                         return Subset(ia);
@@ -829,7 +828,7 @@ namespace Aardvark.Data.Points
                         for (var i = 0; i < ps.Length; i++)
                         {
                             var p = ps[i];
-                            if (Utils.DistLessThanL1(ref p, ref last, minDistSquared)) continue;
+                            if (Utils.DistLessThanL1(ref p, ref last, minDist)) continue;
                             last = p; ia.Add(i);
                         }
                         return Subset(ia);
@@ -841,7 +840,7 @@ namespace Aardvark.Data.Points
                         for (var i = 0; i < ps.Length; i++)
                         {
                             var p = ps[i];
-                            if (Utils.DistLessThanL1(ref p, ref last, minDistSquared)) continue;
+                            if (Utils.DistLessThanL1(ref p, ref last, minDist)) continue;
                             last = p; ia.Add(i);
                         }
                         return Subset(ia);
@@ -853,7 +852,7 @@ namespace Aardvark.Data.Points
                         for (var i = 0; i < ps.Length; i++)
                         {
                             var p = ps[i];
-                            if (Utils.DistLessThanL1(ref p, ref last, minDistSquared)) continue;
+                            if (Utils.DistLessThanL1(ref p, ref last, minDist)) continue;
                             last = p; ia.Add(i);
                         }
                         return Subset(ia);
@@ -866,7 +865,7 @@ namespace Aardvark.Data.Points
                         for (var i = 0; i < ps.Count; i++)
                         {
                             var p = ps[i];
-                            if (Utils.DistLessThanL1(ref p, ref last, minDistSquared)) continue;
+                            if (Utils.DistLessThanL1(ref p, ref last, minDist)) continue;
                             last = p; ia.Add(i);
                         }
                         return Subset(ia);
@@ -878,7 +877,7 @@ namespace Aardvark.Data.Points
                         for (var i = 0; i < ps.Count; i++)
                         {
                             var p = ps[i];
-                            if (Utils.DistLessThanL1(ref p, ref last, minDistSquared)) continue;
+                            if (Utils.DistLessThanL1(ref p, ref last, minDist)) continue;
                             last = p; ia.Add(i);
                         }
                         return Subset(ia);
@@ -890,7 +889,7 @@ namespace Aardvark.Data.Points
                         for (var i = 0; i < ps.Count; i++)
                         {
                             var p = ps[i];
-                            if (Utils.DistLessThanL1(ref p, ref last, minDistSquared)) continue;
+                            if (Utils.DistLessThanL1(ref p, ref last, minDist)) continue;
                             last = p; ia.Add(i);
                         }
                         return Subset(ia);
@@ -902,7 +901,7 @@ namespace Aardvark.Data.Points
                         for (var i = 0; i < ps.Count; i++)
                         {
                             var p = ps[i];
-                            if (Utils.DistLessThanL1(ref p, ref last, minDistSquared)) continue;
+                            if (Utils.DistLessThanL1(ref p, ref last, minDist)) continue;
                             last = p; ia.Add(i);
                         }
                         return Subset(ia);
@@ -914,7 +913,7 @@ namespace Aardvark.Data.Points
         }
 
         /// <summary>
-        /// Returns chunk with duplicate point positions removed.
+        /// Keeps the first point in input order for each terminal density cell. The cell level is selected from the exact, unsquared <see cref="ParseConfig.MinDist"/>.
         /// </summary>
         public GenericChunk ImmutableFilterMinDistByCell(Cell bounds, ParseConfig config)
         {
@@ -948,7 +947,6 @@ namespace Aardvark.Data.Points
                 if (c.Exponent == smallestCellExponent)
                 {
                     take[ia[0]] = true;
-                    ia.Add(ia[0]);
                     return;
                 }
 

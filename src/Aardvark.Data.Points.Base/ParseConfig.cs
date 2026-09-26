@@ -186,7 +186,8 @@ namespace Aardvark.Data.Points
         public int MaxDegreeOfParallelism;
 
         /// <summary>
-        /// Skip points which are less than given distance from previous point.
+        /// Minimum point-density filtering distance in coordinate units, supplied as an exact, unsquared value.
+        /// Sequential filtering compares the Manhattan distance from the previous retained point and retains points at exactly this distance.
         /// </summary>
         public double MinDist;
 
@@ -276,7 +277,9 @@ namespace Aardvark.Data.Points
         /// <summary></summary>
         public ParseConfig WithMaxDegreeOfParallelism(int v) => new(this) { MaxDegreeOfParallelism = v };
 
-        /// <summary></summary>
+        /// <summary>
+        /// Sets the exact, unsquared minimum distance used for point-density filtering.
+        /// </summary>
         public ParseConfig WithMinDist(double v) => new(this) { MinDist = v };
 
         /// <summary></summary>
