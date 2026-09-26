@@ -18,6 +18,7 @@ using Aardvark.Geometry.Points;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 
@@ -27,11 +28,27 @@ namespace Aardvark.Geometry.Tests
     public class ViewsFilterTests
     {
         private static readonly Random r = new();
+        private static readonly Durable.Def CustomIntAttribute = new(
+            new Guid("ef96d640-cb31-4b4a-9a01-4c0bf17f52b1"),
+            "Tests.CustomIntAttribute", "Custom per-point integer values.",
+            Durable.Primitives.Int32Array.Id, true
+            );
+        private static readonly Durable.Def CustomVectorAttribute = new(
+            new Guid("21877b7e-aee6-47fe-b12f-28668d7fca6c"),
+            "Tests.CustomVectorAttribute", "Custom per-point vector values.",
+            Durable.Aardvark.V3fArray.Id, true
+            );
+
         private static V3f RandomPosition() => new(r.NextDouble(), r.NextDouble(), r.NextDouble());
         private static V3f[] RandomPositions(int n) => new V3f[n].SetByIndex(_ => RandomPosition());
         private static int[] RandomIntensities(int n) => new int[n].SetByIndex(_ => -999 + r.Next(1998));
 
-        private static IPointCloudNode CreateNode(Storage storage, V3f[] psGlobal, int[] intensities = null)
+        private static IPointCloudNode CreateNode(
+            Storage storage,
+            V3f[] psGlobal,
+            int[] intensities = null,
+            IReadOnlyDictionary<Durable.Def, object> properties = null
+            )
         {
             var id = Guid.NewGuid();
             var cell = new Cell(psGlobal);
@@ -66,6 +83,8 @@ namespace Aardvark.Geometry.Tests
                 storage.Add(jsId, intensities);
                 data = data.Add(Durable.Octree.Intensities1iReference, jsId);
             }
+
+            if (properties != null) data = data.AddRange(properties);
 
             var result = new PointSetNode(data, storage, writeToStore: true);
             return result;
@@ -353,6 +372,112 @@ namespace Aardvark.Geometry.Tests
         #region FilteredNode
 
         [Test]
+        public void CustomAttributes_AllInsideUseBackingValues()
+        {
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
+            var positions = CustomAttributePositions();
+            var (integers, vectors) = CustomAttributeValues();
+            var source = CreateNode(storage, positions, properties: CustomProperties(integers, vectors));
+            var filtered = FilteredNode.CreateTransient(source, new FilterInsideBox3d(source.BoundingBoxExactGlobal));
+
+            ClassicAssert.AreSame(source.Properties, filtered.Properties);
+            ClassicAssert.IsTrue(filtered.TryGetValue(CustomIntAttribute, out var integerValue));
+            ClassicAssert.IsTrue(filtered.TryGetValue(CustomVectorAttribute, out var vectorValue));
+            ClassicAssert.AreSame(integers, integerValue);
+            ClassicAssert.AreSame(vectors, vectorValue);
+        }
+
+        [Test]
+        public void CustomAttributes_PartialAndEmptyStayAligned()
+        {
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
+            var positions = CustomAttributePositions();
+            var (integers, vectors) = CustomAttributeValues();
+            var source = CreateNode(storage, positions, properties: CustomProperties(integers, vectors));
+
+            var partial = FilteredNode.CreateTransient(source, new FilterInsideBox3d(
+                new Box3d(new V3d(0.3, -1.0, -1.0), new V3d(0.8, 1.0, 1.0))
+                ));
+            AssertCustomAttributes(partial, new[] { 40, 70 }, new[] { vectors[1], vectors[2] });
+
+            var empty = FilteredNode.CreateTransient(source, new FilterInsideBox3d(
+                new Box3d(new V3d(2.0, -1.0, -1.0), new V3d(3.0, 1.0, 1.0))
+                ));
+            AssertCustomAttributes(empty, Array.Empty<int>(), Array.Empty<V3f>());
+        }
+
+        [Test]
+        public void CustomAttributes_NestedAndEncodedViewsStayAligned()
+        {
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
+            var positions = CustomAttributePositions();
+            var (integers, vectors) = CustomAttributeValues();
+            var source = CreateNode(storage, positions, properties: CustomProperties(integers, vectors));
+            var first = FilteredNode.CreateTransient(source, new FilterInsideBox3d(
+                new Box3d(new V3d(0.3, -1.0, -1.0), new V3d(1.0, 1.0, 1.0))
+                ));
+            var nested = FilteredNode.CreateTransient(first, new FilterInsideBox3d(
+                new Box3d(new V3d(0.6, -1.0, -1.0), new V3d(1.0, 1.0, 1.0))
+                ));
+
+            AssertCustomAttributes(nested, new[] { 70, 90 }, new[] { vectors[2], vectors[3] });
+
+            var decoded = FilteredNode.Decode(storage, first.Encode());
+            AssertCustomAttributes(decoded, new[] { 40, 70, 90 }, new[] { vectors[1], vectors[2], vectors[3] });
+        }
+
+        [Test]
+        public void CustomAttributes_PreserveStructuralMetadata()
+        {
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
+            var positions = new V3f[8].SetByIndex(i => new V3f((i + 0.5) / 8.0, 0.0, 0.0));
+            var subnodeIds = new Guid[8];
+            var properties = ImmutableDictionary<Durable.Def, object>.Empty
+                .Add(Durable.Octree.SubnodesGuids, subnodeIds);
+            var source = CreateNode(storage, positions, properties: properties);
+            var filtered = FilteredNode.CreateTransient(source, new FilterInsideBox3d(
+                new Box3d(new V3d(0.25, -1.0, -1.0), new V3d(0.75, 1.0, 1.0))
+                ));
+
+            ClassicAssert.AreSame(subnodeIds, filtered.Properties[Durable.Octree.SubnodesGuids]);
+            ClassicAssert.IsTrue(filtered.TryGetValue(Durable.Octree.SubnodesGuids, out var value));
+            ClassicAssert.AreSame(subnodeIds, value);
+            ClassicAssert.AreSame(source.Properties[Durable.Octree.NodeId], filtered.Properties[Durable.Octree.NodeId]);
+            ClassicAssert.AreSame(source.Properties[Durable.Octree.PositionsLocal3fReference], filtered.Properties[Durable.Octree.PositionsLocal3fReference]);
+        }
+
+        [Test]
+        public void CustomLineQueryKeepsFilteredAttributesAligned()
+        {
+            var storage = PointCloud.CreateInMemoryStore(cache: default);
+            var positions = CustomAttributePositions();
+            var (integers, vectors) = CustomAttributeValues();
+            var source = CreateNode(storage, positions, properties: CustomProperties(integers, vectors));
+            var filtered = FilteredNode.CreateTransient(source, new FilterInsideBox3d(
+                new Box3d(new V3d(0.6, -1.0, -1.0), new V3d(1.0, 1.0, 1.0))
+                ));
+
+            var chunks = filtered.QueryPointsNearLineSegmentCustom(
+                new Line3d(new V3d(0.7, -1.0, 0.0), new V3d(0.7, 1.0, 0.0)),
+                0.25,
+                CustomIntAttribute
+                ).ToArray();
+            var pairs = chunks
+                .SelectMany(chunk => chunk.PositionsAsV3d.Zip(
+                    (int[])chunk.Data[CustomIntAttribute],
+                    (position, value) => (position, value)
+                    ))
+                .OrderBy(pair => pair.position.X)
+                .ToArray();
+
+            ClassicAssert.AreEqual(2, pairs.Length);
+            ClassicAssert.AreEqual(0.7, pairs[0].position.X, 1e-6);
+            ClassicAssert.AreEqual(70, pairs[0].value);
+            ClassicAssert.AreEqual(0.9, pairs[1].position.X, 1e-6);
+            ClassicAssert.AreEqual(90, pairs[1].value);
+        }
+
+        [Test]
         public void EncodeDecodeRoundtrip()
         {
             var storage = PointCloud.CreateInMemoryStore(cache: default);
@@ -373,6 +498,47 @@ namespace Aardvark.Geometry.Tests
             var fFilterJson = f.Filter.Serialize().ToString();
             var gFilterJson = g.Filter.Serialize().ToString();
             ClassicAssert.IsTrue(fFilterJson == gFilterJson);
+        }
+
+        private static V3f[] CustomAttributePositions() => new[]
+        {
+            new V3f(0.1, 0.0, 0.0),
+            new V3f(0.4, 0.0, 0.0),
+            new V3f(0.7, 0.0, 0.0),
+            new V3f(0.9, 0.0, 0.0)
+        };
+
+        private static (int[] integers, V3f[] vectors) CustomAttributeValues() => (
+            new[] { 10, 40, 70, 90 },
+            new[]
+            {
+                new V3f(1.0, 10.0, 100.0),
+                new V3f(4.0, 40.0, 400.0),
+                new V3f(7.0, 70.0, 700.0),
+                new V3f(9.0, 90.0, 900.0)
+            }
+            );
+
+        private static ImmutableDictionary<Durable.Def, object> CustomProperties(int[] integers, V3f[] vectors)
+            => ImmutableDictionary<Durable.Def, object>.Empty
+                .Add(CustomIntAttribute, integers)
+                .Add(CustomVectorAttribute, vectors);
+
+        private static void AssertCustomAttributes(IPointCloudNode node, int[] expectedIntegers, V3f[] expectedVectors)
+        {
+            ClassicAssert.IsTrue(node.TryGetValue(CustomIntAttribute, out var integerValue));
+            var integers = (int[])integerValue;
+            var properties = node.Properties;
+            ClassicAssert.AreSame(integers, properties[CustomIntAttribute]);
+            ClassicAssert.AreSame(properties, node.Properties);
+            ClassicAssert.AreEqual(typeof(int[]), integers.GetType());
+            CollectionAssert.AreEqual(expectedIntegers, integers);
+
+            var vectors = (V3f[])properties[CustomVectorAttribute];
+            ClassicAssert.IsTrue(node.TryGetValue(CustomVectorAttribute, out var vectorValue));
+            ClassicAssert.AreSame(vectors, vectorValue);
+            ClassicAssert.AreEqual(typeof(V3f[]), vectors.GetType());
+            CollectionAssert.AreEqual(expectedVectors, vectors);
         }
 
         #endregion
