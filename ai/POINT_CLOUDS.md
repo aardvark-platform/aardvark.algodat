@@ -62,6 +62,22 @@ var json = /* load JSON from storage.Get("myPointCloud.json") */;
 var pointSet = PointSet.Parse(JsonNode.Parse(json), storage);
 ```
 
+### Persisting Prism-Filtered Views
+
+`FilterInsidePrismXY` persists its complete XY `PolyRegion` and exact `ZRange`. The existing JSON fields remain `Type`, `Shape` (an array of 2D contours), and `Range` (the two Z bounds). Every contour is reconstructed with even-odd/XOR semantics: disconnected islands, holes, and islands nested inside holes are retained. An empty `Shape` restores `PolyRegion.Empty`; a single contour uses the direct construction path.
+
+```csharp
+var prism = new FilterInsidePrismXY(region, new Range1d(zMin, zMax));
+var restored = (FilterInsidePrismXY)Filter.Deserialize(prism.Serialize());
+var view = FilteredNode.Create(node, restored);
+```
+
+This also applies to `FilteredNode.Encode`/`Decode`, which stores the filter definition and recomputes the selected points on reload. Reconstruction uses a balanced XOR reduction to avoid repeatedly tessellating an ever-growing contour prefix.
+
+Filter equality is structural: complete ordered contour sequences are compared using exact `Polygon2d` operators, followed by exact Z-range comparison. Extra contours are significant. Geometrically equivalent regions with different contour ordering, vertex ordering, or winding need not compare equal; assess persisted geometry independently of `Equals`.
+
+Per-point filtering still delegates to the pinned `PolyRegion.Contains` implementation, whose separate hole-containment limitation is not repaired here. Hole persistence should be checked through region operations or even-odd triangulation, not by treating that containment behavior as a topology oracle.
+
 ### Querying Points by Bounding Box
 
 ```csharp

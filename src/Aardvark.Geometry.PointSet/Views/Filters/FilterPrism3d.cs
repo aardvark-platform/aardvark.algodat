@@ -21,6 +21,10 @@ using System.Text.Json.Nodes;
 
 namespace Aardvark.Geometry.Points;
 
+/// <summary>
+/// An XY polygon region extruded over a Z range. Persistence retains every
+/// contour with even-odd semantics, including holes and disconnected islands.
+/// </summary>
 public class FilterInsidePrismXY : ISpatialFilter
 {
     public const string Type = "FilterInsidePrismXY";
@@ -82,8 +86,24 @@ public class FilterInsidePrismXY : ISpatialFilter
 
     public bool Contains(V3d pt) => pt.Z >= ZRange.Min && pt.Z <= ZRange.Max && Shape.Contains(pt.XY);
 
+    /// <summary>
+    /// Compares the complete ordered contour sequences and Z ranges exactly,
+    /// not merely geometric equivalence or a shared contour prefix.
+    /// </summary>
     public bool Equals(IFilter other)
-        => other is FilterInsidePrismXY x && Shape.Polygons.ZipPairs(x.Shape.Polygons).All(p => p.Item1 == p.Item2) && x.ZRange == ZRange;
+    {
+        if (other is not FilterInsidePrismXY x) return false;
+        var left = Shape.Polygons;
+        var right = x.Shape.Polygons;
+        while (!left.IsEmpty)
+        {
+            // Use Polygon2d's exact operator, not its different Equals semantics.
+            if (right.IsEmpty || left.Head != right.Head) return false;
+            left = left.Tail;
+            right = right.Tail;
+        }
+        return right.IsEmpty && x.ZRange == ZRange;
+    }
 
     #region Serialization
 
@@ -99,12 +119,29 @@ public class FilterInsidePrismXY : ISpatialFilter
     }
     private Dto ToDto() => new(this);
     private static FilterInsidePrismXY FromDto(Dto dto) => new(
-        new PolyRegion(new Polygon2d(dto.Shape[0].Map(p => new V2d(p[0], p[1])))),
+        FromContours(dto.Shape, 0, dto.Shape.Length),
         new Range1d(dto.Range[0], dto.Range[1])
         );
 
+    private static PolyRegion FromContours(V2d[][] contours, int start, int count)
+    {
+        if (count == 0) return PolyRegion.Empty;
+        if (count == 1) return new PolyRegion(new Polygon2d(contours[start]));
+
+        // XOR preserves holes and nested islands regardless of contour winding.
+        // Balance the reduction rather than repeatedly tessellating a growing prefix.
+        var half = count / 2;
+        return PolyRegion.Xor(
+            FromContours(contours, start, half),
+            FromContours(contours, start + half, count - half));
+    }
+
     public JsonNode Serialize() => JsonSerializer.SerializeToNode(ToDto())!;
 
+    /// <summary>
+    /// Restores all serialized contours and the Z range without changing the
+    /// JSON schema. An empty Shape restores PolyRegion.Empty.
+    /// </summary>
     public static FilterInsidePrismXY Deserialize(JsonNode json)
         => FromDto(JsonSerializer.Deserialize<Dto>(json)!);
 
