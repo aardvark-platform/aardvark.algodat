@@ -16,10 +16,12 @@ using Aardvark.Data.Points;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using static Aardvark.Data.Points.Import.Ascii;
 
 namespace Aardvark.Geometry.Tests
@@ -97,6 +99,147 @@ namespace Aardvark.Geometry.Tests
 
         #region ParseBuffers
 
+        private static readonly TimeSpan s_synchronizationTimeout = TimeSpan.FromSeconds(15);
+
+        private static IEnumerable<Aardvark.Data.Points.Buffer> CreateNumberedBuffers(int count)
+        {
+            for (var i = 0; i < count; i++)
+                yield return Aardvark.Data.Points.Buffer.Create(new[] { (byte)i }, 0, 1);
+        }
+
+        private static void UpdatePeak(ref int peak, int value)
+        {
+            var current = Volatile.Read(ref peak);
+            while (value > current)
+            {
+                var previous = Interlocked.CompareExchange(ref peak, value, current);
+                if (previous == current) return;
+                current = previous;
+            }
+        }
+
+        private static (Chunk[] Chunks, int Peak) RunSynchronizedParse(
+            int bufferCount, int maxDegreeOfParallelism, int maxChunkPointCount)
+        {
+            var expectedParallelism = Math.Min(
+                bufferCount,
+                maxDegreeOfParallelism > 0 ? maxDegreeOfParallelism : Environment.ProcessorCount);
+            using var entered = new CountdownEvent(expectedParallelism);
+            using var release = new ManualResetEventSlim(false);
+            var active = 0;
+            var peak = 0;
+            var started = 0;
+
+            Chunk Parse(byte[] data, int count, double minDist, int? partIndex)
+            {
+                var current = Interlocked.Increment(ref active);
+                UpdatePeak(ref peak, current);
+                var invocation = Interlocked.Increment(ref started);
+                if (invocation <= expectedParallelism) entered.Signal();
+                try
+                {
+                    release.Wait();
+                    return new Chunk(new[] { new V3d(data[0], 0.0, 0.0) });
+                }
+                finally
+                {
+                    Interlocked.Decrement(ref active);
+                }
+            }
+
+            var config = ParseConfig.Default
+                .WithMaxDegreeOfParallelism(maxDegreeOfParallelism)
+                .WithMaxChunkPointCount(maxChunkPointCount)
+                .WithVerbose(false);
+            var parseTask = Task.Run(() => CreateNumberedBuffers(bufferCount)
+                .ParseBuffers(bufferCount, Parse, config)
+                .ToArray());
+
+            var reachedConfiguredParallelism = false;
+            var activeWhileBlocked = 0;
+            try
+            {
+                reachedConfiguredParallelism = entered.Wait(s_synchronizationTimeout);
+                activeWhileBlocked = Volatile.Read(ref active);
+            }
+            finally
+            {
+                release.Set();
+            }
+
+            ClassicAssert.IsTrue(
+                parseTask.Wait(s_synchronizationTimeout),
+                "Synchronized ParseBuffers run did not complete.");
+            ClassicAssert.IsTrue(
+                reachedConfiguredParallelism,
+                $"Expected {expectedParallelism} parsers to overlap, but observed {activeWhileBlocked}.");
+            ClassicAssert.AreEqual(expectedParallelism, activeWhileBlocked);
+            ClassicAssert.LessOrEqual(peak, expectedParallelism);
+
+            var chunks = parseTask.Result;
+            ClassicAssert.AreEqual(bufferCount, chunks.Length);
+            CollectionAssert.AreEqual(
+                Enumerable.Range(0, bufferCount),
+                chunks.SelectMany(x => x.Positions).Select(p => (int)p.X).OrderBy(x => x));
+            return (chunks, peak);
+        }
+
+        [Test]
+        public void ParseBuffers_DegreeOfOnePreventsParserOverlap()
+        {
+            var result = RunSynchronizedParse(
+                bufferCount: 8,
+                maxDegreeOfParallelism: 1,
+                maxChunkPointCount: 128);
+
+            ClassicAssert.AreEqual(1, result.Peak);
+        }
+
+        [Test]
+        public void ParseBuffers_ConfiguredDegreeAllowsButBoundsParserOverlap()
+        {
+            var result = RunSynchronizedParse(
+                bufferCount: 16,
+                maxDegreeOfParallelism: 3,
+                maxChunkPointCount: 128);
+
+            ClassicAssert.AreEqual(3, result.Peak);
+        }
+
+        [Test]
+        public void ParseBuffers_MaxChunkPointCountDoesNotControlParserConcurrency()
+        {
+            var result = RunSynchronizedParse(
+                bufferCount: 8,
+                maxDegreeOfParallelism: 2,
+                maxChunkPointCount: 1);
+
+            ClassicAssert.AreEqual(2, result.Peak);
+        }
+
+        [Test]
+        public void ParseBuffers_ParallelCompletionReturnsEveryOutputExactlyOnce()
+        {
+            var result = RunSynchronizedParse(
+                bufferCount: 64,
+                maxDegreeOfParallelism: 4,
+                maxChunkPointCount: 97);
+
+            ClassicAssert.AreEqual(64, result.Chunks.Sum(x => x.Count));
+        }
+
+        [TestCase(0)]
+        [TestCase(-1)]
+        public void ParseBuffers_NonPositiveDegreeUsesMapParallelDefault(int configuredDegree)
+        {
+            var result = RunSynchronizedParse(
+                bufferCount: 4,
+                maxDegreeOfParallelism: configuredDegree,
+                maxChunkPointCount: 1);
+
+            ClassicAssert.AreEqual(Math.Min(Environment.ProcessorCount, 4), result.Peak);
+        }
+
         [Test]
         public void ParseBuffers_Works()
         {
@@ -110,7 +253,7 @@ namespace Aardvark.Geometry.Tests
                 .ChunkStreamAtNewlines(10, 5, CancellationToken.None)
                 .ParseBuffers(buffer.LongLength, parse, config)
                 .ToArray();
-            ClassicAssert.IsTrue(xs != null);
+            ClassicAssert.AreEqual(4, xs.Length);
         }
 
         #endregion
