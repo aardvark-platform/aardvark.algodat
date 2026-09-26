@@ -145,6 +145,23 @@ Normal estimation from k-nearest neighbors via PCA.
 | Type | Purpose |
 |------|---------|
 | `Normals` (static) | Extension methods for estimating normals from point clouds |
+| `KdTreeExtensions` (static) | Builds and reconstructs point kd-trees for `V3f` and `V3d` collections |
+
+### Building Point KD-Trees
+
+```csharp
+V3d[] worldPoints = LoadWorldPoints();
+var kdTree = worldPoints.BuildKdTree();
+
+// Reconstruct a tree from persisted topology without reordering the input.
+PointRkdTreeDData data = kdTree.Data;
+var restored = ((IList<V3d>)worldPoints).ToKdTree(data);
+```
+
+All synchronous and asynchronous `V3d` builders, including reconstruction from
+`PointRkdTreeDData`, access coordinates as `double`. This retains distinctions at
+large world-coordinate offsets that a conversion to `float` would lose. `V3f`
+overloads intentionally remain single precision.
 
 ### Usage
 

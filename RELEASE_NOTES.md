@@ -1,3 +1,5 @@
+- [Normals] Preserved full double precision in V3d kd-tree construction and reconstruction (#40)
+
 ### 5.6.3
 - Updated SharpCompress to 0.48.1 to address CVE-2026-44788
 

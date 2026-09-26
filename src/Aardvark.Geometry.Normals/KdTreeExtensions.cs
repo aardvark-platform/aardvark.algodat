@@ -52,6 +52,7 @@ namespace Aardvark.Geometry
 
         /// <summary>
         /// Constructs rkd-tree from points and kd-tree data.
+        /// V3d coordinates retain their full double precision.
         /// </summary>
         public static PointRkdTreeD<V3d[], V3d> ToKdTree(this V3d[] points, PointRkdTreeDData data)
             => new PointRkdTreeD<V3d[], V3d>(
@@ -64,11 +65,12 @@ namespace Aardvark.Geometry
 
         /// <summary>
         /// Constructs rkd-tree from points and kd-tree data.
+        /// V3d coordinates retain their full double precision.
         /// </summary>
         public static PointRkdTreeD<V3d[], V3d> ToKdTree(this IList<V3d> points, PointRkdTreeDData data)
             => new PointRkdTreeD<V3d[], V3d>(
                     3, points.Count, (points is V3d[] ps) ? ps : ((points is List<V3d> ps2) ? ps2.ToArray() : points.ToArray(points.Count)),
-                    (xs, i) => xs[(int)i], (v, i) => (float)v[i],
+                    (xs, i) => xs[(int)i], (v, i) => v[i],
                     (a, b) => Vec.Distance(a, b), (i, a, b) => b - a,
                     (a, b, c) => Vec.DistanceToLine(a, b, c), Fun.Lerp, 1e-12,
                     data
@@ -110,6 +112,7 @@ namespace Aardvark.Geometry
 
         /// <summary>
         /// Computes rkd-tree from given points.
+        /// V3d coordinates retain their full double precision.
         /// </summary>
         public static PointRkdTreeD<V3d[], V3d> BuildKdTree(this V3d[] points, double kdTreeEps = 1e-12)
         {
@@ -117,7 +120,7 @@ namespace Aardvark.Geometry
             if (points.Length == 0) return points.ToKdTree(new PointRkdTreeDData());
             return new PointRkdTreeD<V3d[], V3d>(
                 3, points.Length, points,
-                (xs, i) => xs[(int)i], (v, i) => (float)v[i],
+                (xs, i) => xs[(int)i], (v, i) => v[i],
                 (a, b) => Vec.Distance(a, b), (i, a, b) => b - a,
                 (a, b, c) => Vec.DistanceToLine(a, b, c), Fun.Lerp, kdTreeEps
                 );
@@ -125,6 +128,7 @@ namespace Aardvark.Geometry
 
         /// <summary>
         /// Computes rkd-tree from given points.
+        /// V3d coordinates retain their full double precision.
         /// </summary>
         public static PointRkdTreeD<V3d[], V3d> BuildKdTree(this IList<V3d> points, double kdTreeEps = 1e-12)
         {
@@ -132,7 +136,7 @@ namespace Aardvark.Geometry
             if (points.Count == 0) return points.ToKdTree(new PointRkdTreeDData());
             return new PointRkdTreeD<V3d[], V3d>(
                 3, points.Count, (points is V3d[] ps) ? ps : ((points is List<V3d> ps2) ? ps2.ToArray() : points.ToArray(points.Count)),
-                (xs, i) => xs[(int)i], (v, i) => (float)v[i],
+                (xs, i) => xs[(int)i], (v, i) => v[i],
                 (a, b) => Vec.Distance(a, b), (i, a, b) => b - a,
                 (a, b, c) => Vec.DistanceToLine(a, b, c), Fun.Lerp, kdTreeEps
                 );
@@ -175,6 +179,7 @@ namespace Aardvark.Geometry
 
         /// <summary>
         /// Computes rkd-tree from given points.
+        /// V3d coordinates retain their full double precision.
         /// </summary>
         public static async Task<PointRkdTreeD<V3d[], V3d>> BuildKdTreeAsync(this V3d[] points, double kdTreeEps = 1e-12)
         {
@@ -185,6 +190,7 @@ namespace Aardvark.Geometry
 
         /// <summary>
         /// Computes rkd-tree from given points.
+        /// V3d coordinates retain their full double precision.
         /// </summary>
         public static async Task<PointRkdTreeD<V3d[], V3d>> BuildKdTreeAsync(this IList<V3d> points, float kdTreeEps = 1e-6f)
         {
