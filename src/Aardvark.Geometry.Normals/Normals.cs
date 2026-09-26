@@ -306,6 +306,209 @@ namespace Aardvark.Geometry
 
         #endregion
 
+        #region EstimateNormalsAndQuality
+
+        /// <summary>
+        /// Estimates normals and their local planar quality from k-nearest neighbours.
+        /// </summary>
+        /// <remarks>
+        /// For sorted covariance eigenvalues λmin ≤ λmiddle ≤ λmax, quality is
+        /// clamp((λmiddle - λmin) / λmax, 0, 1). Quality is zero if λmax is
+        /// non-positive or a required eigenvalue is non-finite. Zero denotes a
+        /// collinear, coincident, or invalid neighbourhood; values near one denote a
+        /// well-defined local plane. Normal orientation is arbitrary because eigenvector
+        /// signs are undefined. A caller can, for example, replace normals whose quality
+        /// is below a chosen application-specific threshold.
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// var (normals, qualities) = points.EstimateNormalsAndQuality(16, kdTree);
+        /// for (var i = 0; i &lt; normals.Length; i++)
+        ///     if (qualities[i] &lt; 0.1f) normals[i] = V3f.ZAxis;
+        /// </code>
+        /// </example>
+        public static (V3f[] normals, float[] qualities) EstimateNormalsAndQuality(
+            this V3f[] points, int k, PointRkdTreeF<V3f[], V3f> kdtree
+            )
+        {
+            if (points == null) throw new ArgumentNullException(nameof(points));
+            if (k < 3) throw new ArgumentOutOfRangeException($"Expected k >= 3, but k is {k}.");
+            if (kdtree == null) throw new ArgumentNullException(nameof(kdtree));
+
+            var ns = points.Length > 0 ? new V3f[points.Length] : Array.Empty<V3f>();
+            var qs = points.Length > 0 ? new float[points.Length] : Array.Empty<float>();
+            var count = Math.Min(k, points.Length);
+
+            for (var i = 0; i < points.Length; i++)
+            {
+                var closest = kdtree.GetClosest(points[i], float.MaxValue, count);
+                if (closest.Count == 0) continue;
+
+                var c = points[closest[0].Index];
+                for (var j = 1; j < closest.Count; j++) c += points[closest[j].Index];
+                c /= closest.Count;
+
+                var cvm = M33f.Zero;
+                for (var j = 0; j < closest.Count; j++) cvm.AddOuterProduct(points[closest[j].Index] - c);
+                cvm /= closest.Count;
+
+                Eigensystems.Dsyevh3((M33d)cvm, out M33d eigenvectors, out V3d eigenvalues);
+                (ns[i], qs[i]) = SelectNormalAndQuality(eigenvectors, eigenvalues);
+            }
+
+            return (normals: ns, qualities: qs);
+        }
+
+        /// <summary>
+        /// Estimates normals and quality values in [0, 1] from k-nearest neighbours.
+        /// </summary>
+        /// <remarks>
+        /// Quality is clamp((λmiddle - λmin) / λmax, 0, 1) for the sorted covariance
+        /// eigenvalues. Quality is zero if λmax is non-positive or a required eigenvalue
+        /// is non-finite. Zero identifies degenerate or invalid neighbourhoods and values
+        /// near one identify well-defined local planes. Normal orientation is arbitrary.
+        /// </remarks>
+        public static (V3f[] normals, float[] qualities) EstimateNormalsAndQuality(
+            this V3d[] points, int k, PointRkdTreeD<V3d[], V3d> kdtree
+            )
+        {
+            if (points == null) throw new ArgumentNullException(nameof(points));
+            if (k < 3) throw new ArgumentOutOfRangeException($"Expected k >= 3, but k is {k}.");
+            if (kdtree == null) throw new ArgumentNullException(nameof(kdtree));
+
+            var ns = points.Length > 0 ? new V3f[points.Length] : Array.Empty<V3f>();
+            var qs = points.Length > 0 ? new float[points.Length] : Array.Empty<float>();
+            var count = Math.Min(k, points.Length);
+
+            for (var i = 0; i < points.Length; i++)
+            {
+                var closest = kdtree.GetClosest(points[i], float.MaxValue, count);
+                if (closest.Count == 0) continue;
+
+                var c = points[closest[0].Index];
+                for (var j = 1; j < closest.Count; j++) c += points[closest[j].Index];
+                c /= closest.Count;
+
+                var cvm = M33d.Zero;
+                for (var j = 0; j < closest.Count; j++) cvm.AddOuterProduct(points[closest[j].Index] - c);
+                cvm /= closest.Count;
+
+                Eigensystems.Dsyevh3(cvm, out M33d eigenvectors, out V3d eigenvalues);
+                (ns[i], qs[i]) = SelectNormalAndQuality(eigenvectors, eigenvalues);
+            }
+
+            return (normals: ns, qualities: qs);
+        }
+
+        /// <summary>
+        /// Asynchronously estimates normals and planar quality using a supplied kd-tree.
+        /// Quality is in [0, 1]; zero is degenerate and values near one are planar.
+        /// Normal orientation is arbitrary.
+        /// </summary>
+        public static async Task<(V3f[] normals, float[] qualities)> EstimateNormalsAndQualityAsync(
+            this V3f[] points, int k, PointRkdTreeF<V3f[], V3f> kdtree
+            )
+        {
+            if (points == null) throw new ArgumentNullException(nameof(points));
+            if (k < 3) throw new ArgumentOutOfRangeException($"Expected k >= 3, but k is {k}.");
+            if (kdtree == null) throw new ArgumentNullException(nameof(kdtree));
+            return await Task.Run(() => EstimateNormalsAndQuality(points, k, kdtree));
+        }
+
+        /// <summary>
+        /// Asynchronously estimates normals and planar quality using a supplied kd-tree.
+        /// Quality is in [0, 1]; zero is degenerate and values near one are planar.
+        /// Normal orientation is arbitrary.
+        /// </summary>
+        public static async Task<(V3f[] normals, float[] qualities)> EstimateNormalsAndQualityAsync(
+            this V3d[] points, int k, PointRkdTreeD<V3d[], V3d> kdtree
+            )
+        {
+            if (points == null) throw new ArgumentNullException(nameof(points));
+            if (k < 3) throw new ArgumentOutOfRangeException($"Expected k >= 3, but k is {k}.");
+            if (kdtree == null) throw new ArgumentNullException(nameof(kdtree));
+            return await Task.Run(() => EstimateNormalsAndQuality(points, k, kdtree));
+        }
+
+        /// <summary>
+        /// Estimates normals and planar quality, building a temporary kd-tree.
+        /// Quality is in [0, 1]; zero is degenerate and values near one are planar.
+        /// Normal orientation is arbitrary.
+        /// </summary>
+        public static (V3f[] normals, float[] qualities) EstimateNormalsAndQuality(this V3f[] points, int k)
+        {
+            if (points == null) throw new ArgumentNullException(nameof(points));
+            if (k < 3) throw new ArgumentOutOfRangeException($"Expected k >= 3, but k is {k}.");
+            if (points.Length == 0) return (Array.Empty<V3f>(), Array.Empty<float>());
+            return EstimateNormalsAndQuality(points, k, points.BuildKdTree());
+        }
+
+        /// <summary>
+        /// Estimates normals and planar quality, building a temporary kd-tree.
+        /// Quality is in [0, 1]; zero is degenerate and values near one are planar.
+        /// Normal orientation is arbitrary.
+        /// </summary>
+        public static (V3f[] normals, float[] qualities) EstimateNormalsAndQuality(this V3d[] points, int k)
+        {
+            if (points == null) throw new ArgumentNullException(nameof(points));
+            if (k < 3) throw new ArgumentOutOfRangeException($"Expected k >= 3, but k is {k}.");
+            if (points.Length == 0) return (Array.Empty<V3f>(), Array.Empty<float>());
+            return EstimateNormalsAndQuality(points, k, points.BuildKdTree());
+        }
+
+        /// <summary>
+        /// Asynchronously estimates normals and planar quality, building a temporary kd-tree.
+        /// Quality is in [0, 1]; zero is degenerate and values near one are planar.
+        /// Normal orientation is arbitrary.
+        /// </summary>
+        public static async Task<(V3f[] normals, float[] qualities)> EstimateNormalsAndQualityAsync(this V3f[] points, int k)
+        {
+            if (points == null) throw new ArgumentNullException(nameof(points));
+            if (k < 3) throw new ArgumentOutOfRangeException($"Expected k >= 3, but k is {k}.");
+            if (points.Length == 0) return (Array.Empty<V3f>(), Array.Empty<float>());
+            return await EstimateNormalsAndQualityAsync(points, k, await points.BuildKdTreeAsync());
+        }
+
+        /// <summary>
+        /// Asynchronously estimates normals and planar quality, building a temporary kd-tree.
+        /// Quality is in [0, 1]; zero is degenerate and values near one are planar.
+        /// Normal orientation is arbitrary.
+        /// </summary>
+        public static async Task<(V3f[] normals, float[] qualities)> EstimateNormalsAndQualityAsync(this V3d[] points, int k)
+        {
+            if (points == null) throw new ArgumentNullException(nameof(points));
+            if (k < 3) throw new ArgumentOutOfRangeException($"Expected k >= 3, but k is {k}.");
+            if (points.Length == 0) return (Array.Empty<V3f>(), Array.Empty<float>());
+            return await EstimateNormalsAndQualityAsync(points, k, await points.BuildKdTreeAsync());
+        }
+
+        private static (V3f normal, float quality) SelectNormalAndQuality(M33d eigenvectors, V3d eigenvalues)
+        {
+            var normal = (V3f)((eigenvalues.X < eigenvalues.Y)
+                ? ((eigenvalues.X < eigenvalues.Z) ? eigenvectors.C0 : eigenvectors.C2)
+                : ((eigenvalues.Y < eigenvalues.Z) ? eigenvectors.C1 : eigenvectors.C2));
+
+            var minimum = eigenvalues.X;
+            var middle = eigenvalues.Y;
+            var maximum = eigenvalues.Z;
+            if (minimum > middle) (minimum, middle) = (middle, minimum);
+            if (middle > maximum) (middle, maximum) = (maximum, middle);
+            if (minimum > middle) (minimum, middle) = (middle, minimum);
+
+            if (!IsFinite(minimum) || !IsFinite(middle) || !IsFinite(maximum) || maximum <= 0.0)
+                return (normal, 0.0f);
+
+            var quality = (middle - minimum) / maximum;
+            if (quality <= 0.0) return (normal, 0.0f);
+            if (quality >= 1.0) return (normal, 1.0f);
+            return (normal, (float)quality);
+        }
+
+        private static bool IsFinite(double value)
+            => !double.IsNaN(value) && !double.IsInfinity(value);
+
+        #endregion
+
         #region EstimateNormalsAndLocalDensity
 
         /// <summary>

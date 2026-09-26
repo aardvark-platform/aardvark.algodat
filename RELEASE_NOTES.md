@@ -1,3 +1,5 @@
+- [Normals] added PCA quality estimates for detecting degenerate neighbourhoods (#20)
+
 ### 5.6.3
 - Updated SharpCompress to 0.48.1 to address CVE-2026-44788
 
@@ -380,4 +382,3 @@
 
 ### 5.1.1
 - updated to FSharp.Data.Adaptive 1.1 and base 5.1 track
-
