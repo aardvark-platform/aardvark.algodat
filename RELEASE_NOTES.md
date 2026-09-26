@@ -1,3 +1,5 @@
+- [PointSet] fixed convex-hull complement queries and exposed convex-hull count APIs (#59)
+
 ### 5.6.3
 - Updated SharpCompress to 0.48.1 to address CVE-2026-44788
 

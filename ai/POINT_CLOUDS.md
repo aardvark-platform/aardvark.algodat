@@ -90,6 +90,24 @@ foreach (var chunk in pointSet.QueryPointsInsideBox(queryBox))
 long count = pointSet.CountPointsInsideBox(queryBox);
 ```
 
+### Querying Points by Convex Hull
+
+`Hull3d` plane normals point outward. A point is inside when its signed height is nonpositive for every plane, so hull boundaries belong to the inside query and are excluded from its strict outside complement.
+
+```csharp
+var hull = new Hull3d(outwardFacingPlanes);
+
+IEnumerable<Chunk> inside = pointSet.QueryPointsInsideConvexHull(hull);
+IEnumerable<Chunk> outside = pointSet.QueryPointsOutsideConvexHull(hull);
+
+long exactInside = pointSet.CountPointsInsideConvexHull(hull);
+long exactOutside = pointSet.CountPointsOutsideConvexHull(hull);
+long upperInside = pointSet.CountPointsApproximatelyInsideConvexHull(hull);
+long upperOutside = pointSet.CountPointsApproximatelyOutsideConvexHull(hull);
+```
+
+All enumeration and count APIs are also available on `IPointCloudNode`. The approximate counts use cell granularity and are upper bounds for their corresponding exact counts. Passing `minCellExponent` evaluates the selected LoD front consistently for enumeration, exact counts, and approximate counts.
+
 ### Spatial Queries with KD-Tree
 
 ```csharp
