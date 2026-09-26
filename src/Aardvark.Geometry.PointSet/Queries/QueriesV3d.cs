@@ -15,6 +15,7 @@
 using Aardvark.Base;
 using Aardvark.Data.Points;
 using System;
+using System.Collections.Generic;
 
 namespace Aardvark.Geometry.Points;
 
@@ -25,7 +26,8 @@ public static partial class Queries
     #region Query points
 
     /// <summary>
-    /// Points within given distance to a query point.
+    /// Returns at most <paramref name="maxCount"/> nearest points within <paramref name="maxDistanceToPoint"/> of <paramref name="query"/>.
+    /// A zero count returns an empty result. Temporary leaves without kd-trees are scanned without creating or persisting an index.
     /// </summary>
     public static PointsNearObject<V3d> QueryPointsNearPoint(
         this PointSet self, V3d query, double maxDistanceToPoint, int maxCount
@@ -42,13 +44,15 @@ public static partial class Queries
         => QueryPointsNearPointCustom(self.Root.Value, query, maxDistanceToPoint, maxCount, customAttributes);
 #endif
     /// <summary>
-    /// Points within given distance to a query point.
+    /// Returns at most <paramref name="maxCount"/> nearest points within <paramref name="maxDistanceToPoint"/> of <paramref name="query"/>.
+    /// A zero count returns an empty result. Temporary leaves without kd-trees are scanned without creating or persisting an index.
+    /// Returned distances and all available standard attributes use the same retained source indices.
     /// </summary>
     public static PointsNearObject<V3d> QueryPointsNearPoint(
         this IPointCloudNode node, V3d query, double maxDistanceToPoint, int maxCount
         )
     {
-        if (node == null) return PointsNearObject<V3d>.Empty;
+        if (node == null || maxCount == 0) return PointsNearObject<V3d>.Empty;
 
         // if query point is farther from bounding box than maxDistanceToPoint,
         // then there cannot be a result and we are done
@@ -63,8 +67,12 @@ public static partial class Queries
 #endif
 
             var center = node.Center;
-
-            var closest = node.KdTree!.Value.GetClosest((V3f)(query - center), (float)maxDistanceToPoint, maxCount).ToArray();
+            var queryLocal = (V3f)(query - center);
+            var maxDistance = (float)maxDistanceToPoint;
+            var closest = node.HasKdTree
+                ? node.KdTree.Value.GetClosest(queryLocal, maxDistance, maxCount).ToArray()
+                : GetClosestByScan(nodePositions.Value, queryLocal, maxDistance, maxCount)
+                ;
             if (closest.Length > 0)
             {
                 var ia = closest.Map(x => (int)x.Index);
@@ -90,7 +98,7 @@ public static partial class Queries
             var index = node.GetSubIndex(query);
             var n = node.Subnodes![index];
             var result = n != null ? n.Value.QueryPointsNearPoint(query, maxDistanceToPoint, maxCount) : PointsNearObject<V3d>.Empty;
-            if (!result.IsEmpty && result.MaxDistance < maxDistanceToPoint) maxDistanceToPoint = result.MaxDistance;
+            maxDistanceToPoint = GetPruningDistance(result, maxCount, maxDistanceToPoint);
 
             // now traverse other octants
             for (var i = 0; i < 8; i++)
@@ -100,11 +108,43 @@ public static partial class Queries
                 if (n == null) continue;
                 var x = n.Value.QueryPointsNearPoint(query, maxDistanceToPoint, maxCount);
                 result = result.Merge(x, maxCount);
-                if (!result.IsEmpty && result.MaxDistance < maxDistanceToPoint) maxDistanceToPoint = result.MaxDistance;
+                maxDistanceToPoint = GetPruningDistance(result, maxCount, maxDistanceToPoint);
             }
 
             return result;
         }
+    }
+
+    private static IndexDist<float>[] GetClosestByScan(
+        V3f[] positions,
+        V3f query,
+        float maxDistance,
+        int maxCount
+        )
+    {
+        var closest = new List<IndexDist<float>>(Math.Min(maxCount, positions.Length));
+        for (var i = 0; i < positions.Length; i++)
+        {
+            var distance = Vec.Distance(query, positions[i]);
+            if (distance > maxDistance) continue;
+
+            closest.HeapDescendingEnqueue(new IndexDist<float>(i, distance));
+            if (closest.Count > maxCount) closest.HeapDescendingDequeue();
+        }
+        return closest.ToArray();
+    }
+
+    private static double GetPruningDistance(
+        PointsNearObject<V3d> result,
+        int maxCount,
+        double currentDistance
+        )
+    {
+        if (result.Count < maxCount || result.Distances == null) return currentDistance;
+
+        var farthest = 0.0;
+        foreach (var distance in result.Distances) farthest = Math.Max(farthest, distance);
+        return Math.Min(currentDistance, farthest);
     }
 
 #if TODO

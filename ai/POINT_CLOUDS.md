@@ -90,10 +90,31 @@ foreach (var chunk in pointSet.QueryPointsInsideBox(queryBox))
 long count = pointSet.CountPointsInsideBox(queryBox);
 ```
 
+### Nearest-Point Queries
+
+```csharp
+var query = new V3d(10.0, 20.0, 30.0);
+var nearest = pointSet.QueryPointsNearPoint(
+    query,
+    maxDistanceToPoint: 2.0,
+    maxCount: 16
+    );
+
+for (var i = 0; i < nearest.Count; i++)
+{
+    V3d position = nearest.Positions[i];
+    double distance = nearest.Distances[i];
+    // Colors, normals, intensities, classifications, and part indices
+    // use the same source index when present.
+}
+```
+
+`QueryPointsNearPoint` returns at most `maxCount` points inside the finite radius. A zero count always returns an empty result. Processed leaves retain their kd-tree path; temporary import leaves without kd-trees are scanned with bounded nearest-candidate selection and are not modified. The result's `Object` remains the supplied query point even when its containing octant is empty. Octree traversal tightens its search radius to the farthest retained point only after the result has filled the requested count.
+
 ### Spatial Queries with KD-Tree
 
 ```csharp
-// Access node's KD-tree (automatically computed for leaf nodes)
+// Access node's KD-tree (automatically computed for processed leaf nodes)
 var node = pointSet.Root.Value;
 if (node.HasKdTree)
 {
