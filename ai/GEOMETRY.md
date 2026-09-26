@@ -97,6 +97,7 @@ Kd-tree–based ray-object intersection with custom object sets.
 | `IIntersectableObjectSet` | Interface for ray-intersectable object collections |
 | `KdIntersectionTree` | Kd-tree accelerating ray intersections and closest-point queries |
 | `IntersectableTriangleSet` | Triangle soup implementation of `IIntersectableObjectSet` |
+| `LineSet` | Finite cylinders exposed as ray-intersectable line objects |
 | `ObjectRayHit` | Ray intersection result with t-parameter, point, and object reference |
 | `ObjectClosestPoint` | Closest-point query result with distance and coordinates |
 | `FastRay3d` | Precomputed ray data for efficient kd-tree traversal |
@@ -129,6 +130,14 @@ if (kdTree.ClosestPoint(queryPoint, ref closest))
     double distance = closest.Distance;
 }
 ```
+
+### LineSet ray-query semantics
+
+`LineSet` treats each `Cylinder3d` as one object. `ObjectBoundingBox()` returns aggregate bounds, while `ObjectBoundingBox(index)` returns only the selected cylinder's bounds.
+
+`ObjectsIntersectRay` evaluates exactly `objectIndexArray[firstIndex .. firstIndex + indexCount]` and returns the nearest accepted cylinder regardless of index order. The effective upper bound is the smaller of `tmax` and the incoming `hit.RayHit.T`, and candidates must be strictly closer than that bound. Rejected candidates do not tighten it, so a rejected near hit cannot hide an accepted farther hit. If no candidate is accepted, the complete incoming `ObjectRayHit` remains unchanged.
+
+A non-null object filter returns `true` to include a cylinder. For the historical LineSet hit-filter convention, `true` rejects a candidate and `false` accepts it. Passing a null object filter uses the dedicated allocation-free scan path.
 
 ### Gotchas
 
