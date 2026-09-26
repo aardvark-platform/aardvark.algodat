@@ -136,8 +136,16 @@ namespace Aardvark.Geometry.Clustering
         #endregion
     }
 
+    /// <summary>
+    /// Clusters parallel and antiparallel normals without modifying the supplied array.
+    /// Antiparallel members are sign-aligned before their vectors are accumulated.
+    /// </summary>
     public class NormalsClustering : Clustering
     {
+        /// <summary>
+        /// Signed normal sums in dense cluster-ID order. <c>SumArray[c]</c> aggregates exactly
+        /// the input normals whose <see cref="Clustering.IndexArray"/> entry equals <c>c</c>.
+        /// </summary>
         public readonly V3d[] SumArray;
 
         #region Constructor
@@ -145,11 +153,12 @@ namespace Aardvark.Geometry.Clustering
         public NormalsClustering(V3d[] normalArray, double delta)
         {
             var count = normalArray.Length;
+            var immutableNormals = (V3d[])normalArray.Clone();
+            var suma = (V3d[])normalArray.Clone();
             Alloc(count);
             var ca = m_indexArray;
             var sa = new int[count].Set(1);
-            var suma = SumArray;
-            var kdTree = normalArray.CreateRkdTreeDistDotProduct(0);
+            var kdTree = immutableNormals.CreateRkdTreeDistDotProduct(0);
             var query = kdTree.CreateClosestToPointQuery(delta, 0);
             for (int i = 0; i < count; i++)
             {
@@ -174,11 +183,22 @@ namespace Aardvark.Geometry.Clustering
                     V3d sum = suma[ci] + (avgDot > 0 ? suma[cj] : -suma[cj]);
                     if (si < sj) { ca[ci] = cj; ca[i] = cj; ci = cj; }
                     else { ca[cj] = ci; ca[j] = ci; }
-                    si += sj; sa[ci] = si; suma[ci] = sum;
+                    si += sj;
+                    sa[ci] = si;
+                    suma[ci] = sum;
+                    avgNormali = sum.Normalized;
                 }
                 query.Clear();
             }
-            Init();
+
+            ca.ClusterConsolidate();
+            var clusterCount = 0;
+            for (var i = 0; i < count; i++)
+                if (ca[i] == i) clusterCount++;
+            SumArray = new V3d[clusterCount];
+            for (int i = 0, ci = 0; i < count; i++)
+                if (ca[i] == i) SumArray[ci++] = suma[i];
+            InitConsolidated();
         }
 
         #endregion
@@ -354,6 +374,11 @@ namespace Aardvark.Geometry.Clustering
         #endregion
     }
 
+    /// <summary>
+    /// Clusters planes by normal and offset epsilon using a hash grid. Random bits select
+    /// which merged root remains the representative, balancing parent trees without changing
+    /// distance tests or cluster membership.
+    /// </summary>
     public class PlaneEpsilonClustering<TArray> : Clustering
     {
         #region Constructor
@@ -399,7 +424,7 @@ namespace Aardvark.Geometry.Clustering
                         var dd = Fun.Square(di - getDist(pa, j)); if (dd >= de2) continue;
                         var dn = Vec.DistanceSquared(ni, getNormal(pa, j)); if (dn >= ne2) continue;
                         var d = dn + dd; if (d < dmin) dmin = d;
-                        bit >>= 1; if (bit == 0) { rnd.UniformInt(); bit = 1 << 30; }
+                        bit >>= 1; if (bit == 0) { rndBits = rnd.UniformInt(); bit = 1 << 30; }
                         if ((rndBits & bit) != 0) { ca[ci] = cj; ca[i] = cj; ci = cj; }
                         else { ca[cj] = ci; ca[j] = ci; }
                     }
@@ -412,6 +437,11 @@ namespace Aardvark.Geometry.Clustering
         #endregion
     }
 
+    /// <summary>
+    /// Clusters planes by normal and offset epsilon using a hash grid. Random bits select
+    /// which merged root remains the representative, balancing parent trees without changing
+    /// distance tests or cluster membership.
+    /// </summary>
     public class PlaneEpsilonClustering : Clustering
     {
         #region Constructor
@@ -455,7 +485,7 @@ namespace Aardvark.Geometry.Clustering
                         var dd = Fun.Square(di - pa[j].Distance); if (dd >= de2) continue;
                         var dn = Vec.DistanceSquared(ni, pa[j].Normal); if (dn >= ne2) continue;
                         var d = dn + dd; if (d < dmin) dmin = d;
-                        bit >>= 1; if (bit == 0) { rnd.UniformInt(); bit = 1 << 30; }
+                        bit >>= 1; if (bit == 0) { rndBits = rnd.UniformInt(); bit = 1 << 30; }
                         if ((rndBits & bit) != 0) { ca[ci] = cj; ca[i] = cj; ci = cj; }
                         else { ca[cj] = ci; ca[j] = ci; }
                     }
