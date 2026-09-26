@@ -15,6 +15,7 @@ using Aardvark.Base;
 using Aardvark.Data;
 using Aardvark.Data.Points;
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -463,89 +464,169 @@ public static class IPointCloudNodeExtensions
     }
 
     /// <summary>
-    /// Gets minimum point count of leaf nodes.
+    /// Minimum PointCountCell among visited leaves, excluding internal LoD samples.
+    /// An empty physical leaf contributes zero. Returns long.MaxValue when no leaves are reached.
+    /// With outOfCore, resolves children through Value; otherwise uses TryGetFromCache and skips
+    /// unavailable references. The latter callback may itself load data, depending on the reference.
     /// </summary>
     public static long GetMinimumLeafPointCount(this IPointCloudNode self, bool outOfCore)
     {
+        var subnodes = self.Subnodes;
+        if (subnodes == null) return self.PointCountCell;
+
         var min = long.MaxValue;
-        if (self.Subnodes != null)
+        for (var i = 0; i < 8; i++)
         {
-            if (outOfCore)
-            {
-                for (var i = 0; i < 8; i++)
-                {
-                    var n = self.Subnodes[i];
-                    if (n != null)
-                    {
-                        var x = n.Value.GetMinimumLeafPointCount(outOfCore);
-                        if (x < min) min = x;
-                    }
-                }
-            }
-            else
-            {
-                for (var i = 0; i < 8; i++)
-                {
-                    var n = self.Subnodes[i];
-                    if (n != null)
-                    {
-                        if (n.TryGetFromCache(out var node))
-                        {
-                            var x = node.GetMinimumLeafPointCount(outOfCore);
-                            if (x < min) min = x;
-                        }
-                    }
-                }
-            }
+            var reference = subnodes[i];
+            if (reference == null) continue;
+            IPointCloudNode? node;
+            if (outOfCore) node = reference.Value;
+            else if (!reference.TryGetFromCache(out node)) continue;
+
+            var x = node.GetMinimumLeafPointCount(outOfCore);
+            if (x < min) min = x;
         }
         return min;
     }
 
     /// <summary>
-    /// Gets maximum point count of leaf nodes.
+    /// Maximum PointCountCell among visited leaves, excluding internal LoD samples.
+    /// An empty physical leaf contributes zero. Returns long.MinValue when no leaves are reached.
+    /// With outOfCore, resolves children through Value; otherwise uses TryGetFromCache and skips
+    /// unavailable references. The latter callback may itself load data, depending on the reference.
     /// </summary>
     public static long GetMaximumLeafPointCount(this IPointCloudNode self, bool outOfCore)
     {
+        var subnodes = self.Subnodes;
+        if (subnodes == null) return self.PointCountCell;
+
         var max = long.MinValue;
-        if (self.Subnodes != null)
+        for (var i = 0; i < 8; i++)
         {
-            if (outOfCore)
-            {
-                for (var i = 0; i < 8; i++)
-                {
-                    var n = self.Subnodes[i];
-                    if (n != null)
-                    {
-                        var x = n.Value.GetMinimumLeafPointCount(outOfCore);
-                        if (x > max) max = x;
-                    }
-                }
-            }
-            else
-            {
-                for (var i = 0; i < 8; i++)
-                {
-                    var n = self.Subnodes[i];
-                    if (n != null)
-                    {
-                        if (n.TryGetFromCache(out var node))
-                        {
-                            var x = node.GetMinimumLeafPointCount(outOfCore);
-                            if (x > max) max = x;
-                        }
-                    }
-                }
-            }
+            var reference = subnodes[i];
+            if (reference == null) continue;
+            IPointCloudNode? node;
+            if (outOfCore) node = reference.Value;
+            else if (!reference.TryGetFromCache(out node)) continue;
+
+            var x = node.GetMaximumLeafPointCount(outOfCore);
+            if (x > max) max = x;
         }
         return max;
     }
 
     /// <summary>
-    /// Gets average point count of leaf nodes.
+    /// Sum of visited leaf PointCountCell values divided by the number of those leaves.
+    /// Internal LoD samples and parent PointCountTree estimates do not contribute. An empty physical
+    /// leaf contributes zero; no reached leaves yield double.NaN. Aggregation is streaming and linear.
     /// </summary>
+    /// <remarks>
+    /// With outOfCore, ordinary persisted subtrees use cached nodes or durable child/count metadata,
+    /// without materializing every node or loading external point attributes. Transient nodes and
+    /// legacy records use interface traversal. Otherwise children resolve through TryGetFromCache,
+    /// skipping unavailable references; this callback may itself load data. FilteredNode retains its
+    /// existing TryGetFromCache child-resolution policy in both modes and contributes visible leaf counts.
+    /// </remarks>
     public static double GetAverageLeafPointCount(this IPointCloudNode self, bool outOfCore)
     {
-        return self.PointCountTree / (double)self.CountNodes(outOfCore);
+        var subnodes = self.Subnodes;
+        if (subnodes == null) return self.PointCountCell;
+
+        long sum = 0, count = 0;
+        if (outOfCore) AccumulateLeafPointCounts(self, subnodes, ref sum, ref count);
+        else AccumulateCachedLeafPointCounts(subnodes, ref sum, ref count);
+        return sum / (double)count;
+    }
+
+    private static void AccumulateCachedLeafPointCounts(
+        PersistentRef<IPointCloudNode>?[] subnodes, ref long sum, ref long count)
+    {
+        foreach (var reference in subnodes)
+        {
+            if (reference == null || !reference.TryGetFromCache(out var child)) continue;
+            var children = child.Subnodes;
+            if (children == null)
+            {
+                sum += child.PointCountCell;
+                count++;
+            }
+            else AccumulateCachedLeafPointCounts(children, ref sum, ref count);
+        }
+    }
+
+    private static void AccumulateLeafPointCounts(
+        IPointCloudNode node, PersistentRef<IPointCloudNode>?[]? subnodes,
+        ref long sum, ref long count)
+    {
+        if (subnodes == null)
+        {
+            sum += node.PointCountCell;
+            count++;
+            return;
+        }
+
+        if (node is PointSetNode)
+        {
+            // The supplied node may be an unwritten With() result. Only its durable child
+            // references need storage resolution, not its own (possibly transient) ID.
+            var storage = node.Storage;
+            foreach (var child in subnodes)
+                if (child != null) AccumulateStoredLeafPointCounts(storage, child.Id, ref sum, ref count);
+        }
+        else
+        {
+            var resolveValue = node is not FilteredNode;
+            foreach (var reference in subnodes)
+            {
+                if (reference == null) continue;
+                IPointCloudNode? child;
+                if (resolveValue) child = reference.Value;
+                else if (!reference.TryGetFromCache(out child)) continue;
+                AccumulateLeafPointCounts(child, child.Subnodes, ref sum, ref count);
+            }
+        }
+    }
+
+    private static void AccumulateStoredLeafPointCounts(Storage storage, string key, ref long sum, ref long count)
+    {
+        if (storage.HasCache && storage.Cache.TryGetValue(key, out var cached) && cached is IPointCloudNode node)
+        {
+            AccumulateLeafPointCounts(node, node.Subnodes, ref sum, ref count);
+            return;
+        }
+
+        var buffer = storage.GetByteArray(key);
+        if (buffer != null)
+        {
+            buffer = StorageExtensions.UnGZip(buffer);
+            // Inspect the durable definition without allocating a Guid byte array. Unknown
+            // headers (including legacy binary nodes and view wrappers) use the existing loader.
+            if (buffer.Length >= 16 && new Guid(
+                BinaryPrimitives.ReadInt32LittleEndian(buffer),
+                BinaryPrimitives.ReadInt16LittleEndian(buffer.AsSpan(4)),
+                BinaryPrimitives.ReadInt16LittleEndian(buffer.AsSpan(6)),
+                buffer[8], buffer[9], buffer[10], buffer[11], buffer[12], buffer[13], buffer[14], buffer[15]
+                ) == Durable.Octree.Node.Id)
+            {
+                var data = (IDictionary<Durable.Def, object>)Data.Codec.Deserialize(buffer).Item2;
+                if (data.TryGetValue(Durable.Octree.SubnodesGuids, out var children))
+                {
+                    foreach (var id in (Guid[])children)
+                        if (id != Guid.Empty) AccumulateStoredLeafPointCounts(storage, id.ToString(), ref sum, ref count);
+                    return;
+                }
+                if (data.TryGetValue(Durable.Octree.PointCountCell, out var pointCount))
+                {
+                    sum += (int)pointCount;
+                    count++;
+                    return;
+                }
+                // Older durable leaves may need node decoding to recover their local count.
+            }
+        }
+
+        var fallback = storage.GetPointCloudNode(key);
+        AccumulateLeafPointCounts(fallback, fallback.Subnodes, ref sum, ref count);
     }
 
     /// <summary>
