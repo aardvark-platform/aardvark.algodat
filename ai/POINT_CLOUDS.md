@@ -148,6 +148,10 @@ foreach (var subChunk in chunk.Split(chunksize: 4096))
 }
 ```
 
+`Chunk.Union`, `ImmutableMerge`, and `ImmutableMergeWith` require all nonempty inputs to agree on whether colors, normals, intensities, classifications, and part indices are present. A schema mismatch throws `InvalidOperationException` before point or attribute data is copied; optional arrays are never silently dropped or partially aligned. Compatible part-index representations may differ and are concatenated using the smallest supported scalar or array representation.
+
+Empty chunks, including empty chunks carrying optional arrays, are neutral. A composition containing exactly one nonempty chunk returns that object without copying, while an empty or all-empty composition returns the canonical `Chunk.Empty`. These rules also apply when `PointCloud.Chunks` coalesces small input chunks.
+
 ### Accessing Node Attributes
 
 ```csharp

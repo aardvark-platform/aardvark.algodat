@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 #pragma warning disable CS1591
@@ -28,7 +29,9 @@ using System.Threading.Tasks;
 namespace Aardvark.Data.Points
 {
     /// <summary>
-    /// Parsers emit a sequence of chunks of points with optional colors, normals, and intensities.
+    /// Parsers emit a sequence of chunks of points with optional colors, normals, intensities,
+    /// classifications, and part indices. Composition requires every nonempty chunk to have the
+    /// same optional-property presence; empty chunks are neutral.
     /// </summary>
     public class Chunk
     {
@@ -45,6 +48,9 @@ namespace Aardvark.Data.Points
             return ll;
         }
 
+        /// <summary>
+        /// Canonical empty chunk and the result of composing an empty or all-empty input.
+        /// </summary>
         public static readonly Chunk Empty = new(Array.Empty<V3d>(), null, null, null, null, null, null, Box3d.Invalid);
 
         public readonly IList<V3d> Positions;
@@ -100,10 +106,48 @@ namespace Aardvark.Data.Points
             return PartIndexUtils.Expand(PartIndices, Count);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int GetMergeSchema(Chunk chunk)
+            => (chunk.Colors != null ? 1 : 0) |
+               (chunk.Normals != null ? 2 : 0) |
+               (chunk.Intensities != null ? 4 : 0) |
+               (chunk.Classifications != null ? 8 : 0) |
+               (chunk.PartIndices != null ? 16 : 0);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ValidateMergeSchema(Chunk expected, Chunk actual)
+        {
+            var differences = GetMergeSchema(expected) ^ GetMergeSchema(actual);
+            if (differences != 0) ThrowMergeSchemaMismatch(differences);
+        }
+
+        [DoesNotReturn]
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void ThrowMergeSchemaMismatch(int differences)
+        {
+            var names = new List<string>(5);
+            if ((differences & 1) != 0) names.Add("colors");
+            if ((differences & 2) != 0) names.Add("normals");
+            if ((differences & 4) != 0) names.Add("intensities");
+            if ((differences & 8) != 0) names.Add("classifications");
+            if ((differences & 16) != 0) names.Add("part indices");
+
+            throw new InvalidOperationException(
+                $"Cannot merge nonempty chunks with different optional properties: {string.Join(", ", names)}. " +
+                "Each property must either be present in every nonempty chunk or absent from every nonempty chunk."
+                );
+        }
+
+        /// <summary>
+        /// Merges two chunks without modifying them. Empty chunks are neutral. Nonempty chunks
+        /// must have matching optional-property presence or an <see cref="InvalidOperationException"/> is thrown.
+        /// </summary>
         public static Chunk ImmutableMerge(Chunk a, Chunk b)
         {
-            if (a is null || a.IsEmpty) return b;
+            if (a is null || a.IsEmpty) return b is null || b.IsEmpty ? Empty : b;
             if (b is null || b.IsEmpty) return a;
+
+            ValidateMergeSchema(a, b);
 
             ImmutableList<V3d> ps;
             {
@@ -116,60 +160,32 @@ namespace Aardvark.Data.Points
             if (a.HasColors)
             {
                 var cs0 = (a.Colors is ImmutableList<C4b> x2) ? x2 : [.. a.Colors];
-                if (b.HasColors)
-                {
-                    var cs1 = (b.Colors is ImmutableList<C4b> x3) ? x3 : [.. b.Colors];
-                    cs = cs0.AddRange(cs1);
-                }
-                else
-                {
-                    cs = cs0;
-                }
+                var cs1 = (b.Colors is ImmutableList<C4b> x3) ? x3 : [.. b.Colors!];
+                cs = cs0.AddRange(cs1);
             }
 
             ImmutableList<V3f>? ns = null;
             if (a.HasNormals)
             {
                 var ns0 = (a.Normals is ImmutableList<V3f> x4) ? x4 : [.. a.Normals];
-                if (b.HasNormals)
-                {
-                    var ns1 = (b.Normals is ImmutableList<V3f> x5) ? x5 : [.. b.Normals];
-                    ns = ns0.AddRange(ns1);
-                }
-                else
-                {
-                    ns = ns0;
-                }
+                var ns1 = (b.Normals is ImmutableList<V3f> x5) ? x5 : [.. b.Normals!];
+                ns = ns0.AddRange(ns1);
             }
 
             ImmutableList<int>? js = null;
             if (a.HasIntensities)
             {
                 var js0 = (a.Intensities is ImmutableList<int> x6) ? x6 : [.. a.Intensities];
-                if (b.HasIntensities)
-                {
-                    var js1 = (b.Intensities is ImmutableList<int> x7) ? x7 : [.. b.Intensities];
-                    js = js0.AddRange(js1);
-                }
-                else
-                {
-                    js = js0;
-                }
+                var js1 = (b.Intensities is ImmutableList<int> x7) ? x7 : [.. b.Intensities!];
+                js = js0.AddRange(js1);
             }
 
             ImmutableList<byte>? ks = null;
             if (a.HasClassifications)
             {
                 var ks0 = (a.Classifications is ImmutableList<byte> x8) ? x8 : [.. a.Classifications];
-                if (b.HasClassifications)
-                {
-                    var ks1 = (b.Classifications is ImmutableList<byte> x9) ? x9 : [.. b.Classifications];
-                    ks = ks0.AddRange(ks1);
-                }
-                else
-                {
-                    ks = ks0;
-                }
+                var ks1 = (b.Classifications is ImmutableList<byte> x9) ? x9 : [.. b.Classifications!];
+                ks = ks0.AddRange(ks1);
             }
 
             var qs = PartIndexUtils.ConcatIndices(a.PartIndices, a.Count, b.PartIndices, b.Count);
@@ -178,13 +194,43 @@ namespace Aardvark.Data.Points
             return new Chunk(ps, cs, ns, js, ks, qs, qsRange, new Box3d(a.BoundingBox, b.BoundingBox));
         }
 
+        /// <summary>
+        /// Merges chunks without modifying them. Empty chunks are neutral and an all-empty input
+        /// returns <see cref="Empty"/>. Nonempty chunks must have matching optional-property presence.
+        /// A single nonempty chunk is returned unchanged.
+        /// </summary>
         public static Chunk ImmutableMerge(params Chunk[] chunks)
-        {
-            if (chunks == null || chunks.Length == 0) return Empty;
-            if (chunks.Length == 1) return chunks[0];
+            => chunks == null ? Empty : ImmutableMergeCore(chunks);
 
-            var head = chunks[0];
-            var totalCount = chunks.Sum(c => c.Count);
+        private static Chunk ImmutableMergeCore(IReadOnlyList<Chunk> chunks)
+        {
+            Chunk? head = null;
+            var nonemptyCount = 0;
+            var totalCount = 0;
+            var totalBounds = Box3d.Invalid;
+
+            for (var i = 0; i < chunks.Count; i++)
+            {
+                var chunk = chunks[i] ?? throw new ArgumentException($"Chunk at index {i} is null.", nameof(chunks));
+                if (chunk.IsEmpty) continue;
+
+                if (head == null)
+                {
+                    head = chunk;
+                    totalBounds = chunk.BoundingBox;
+                }
+                else
+                {
+                    ValidateMergeSchema(head, chunk);
+                    totalBounds = new Box3d(totalBounds, chunk.BoundingBox);
+                }
+
+                checked { totalCount += chunk.Count; }
+                nonemptyCount++;
+            }
+
+            if (head == null) return Empty;
+            if (nonemptyCount == 1) return head;
 
             var ps = new V3d[totalCount];
             var cs = head.HasColors ? new C4b[totalCount] : null;
@@ -192,31 +238,39 @@ namespace Aardvark.Data.Points
             var js = head.HasIntensities ? new int[totalCount] : null;
             var ks = head.HasClassifications ? new byte[totalCount] : null;
 
+            object? qs = null;
+            Range1i? qsRange = null;
             var offset = 0;
-            foreach (var chunk in chunks)
+            for (var i = 0; i < chunks.Count; i++)
             {
+                var chunk = chunks[i];
                 if (chunk.IsEmpty) continue;
 
-#pragma warning disable CS8602
-                if (ps != null) chunk.Positions.CopyTo(ps, offset);
-                if (cs != null) chunk.Colors.CopyTo(cs, offset);
-                if (ns != null) chunk.Normals.CopyTo(ns, offset);
-                if (js != null) chunk.Intensities.CopyTo(js, offset);
-                if (ks != null) chunk.Classifications.CopyTo(ks, offset);
-#pragma warning restore CS8602
+                chunk.Positions.CopyTo(ps, offset);
+                if (cs != null) chunk.Colors!.CopyTo(cs, offset);
+                if (ns != null) chunk.Normals!.CopyTo(ns, offset);
+                if (js != null) chunk.Intensities!.CopyTo(js, offset);
+                if (ks != null) chunk.Classifications!.CopyTo(ks, offset);
 
+                qs = PartIndexUtils.ConcatIndices(qs, offset, chunk.PartIndices, chunk.Count);
+                qsRange = PartIndexUtils.MergeRanges(qsRange, chunk.PartIndexRange);
                 offset += chunk.Count;
             }
 
-            if (ps == null) throw new Exception("Invariant 4cc7d585-9a46-4ba2-892a-95fce9ed06da.");
-
-            var qs = PartIndexUtils.ConcatIndices(chunks.Select(x => (indices: x.PartIndices, count: x.Count)));
-            var qsRanges = PartIndexUtils.MergeRanges(chunks.Select(x => x.PartIndexRange));
-            return new Chunk(ps, cs, ns, js, ks, qs, qsRanges, bbox: new Box3d(chunks.Select(x => x.BoundingBox)));
+            return new Chunk(ps, cs, ns, js, ks, qs, qsRange, totalBounds);
         }
 
+        /// <summary>
+        /// Merges a sequence of chunks according to the same schema and empty-input contract as
+        /// <see cref="ImmutableMerge(Chunk[])"/>.
+        /// </summary>
         public static Chunk ImmutableMerge(IEnumerable<Chunk> chunks)
-            => ImmutableMerge([.. chunks]);
+        {
+            if (chunks == null) throw new ArgumentNullException(nameof(chunks));
+            return chunks is IReadOnlyList<Chunk> list
+                ? ImmutableMergeCore(list)
+                : ImmutableMergeCore(chunks.ToArray());
+        }
 
         /// <summary>
         /// </summary>
@@ -383,11 +437,15 @@ namespace Aardvark.Data.Points
         }
 
         /// <summary>
-        /// Creates new chunk which is union of this chunk and other. 
+        /// Creates a new chunk which is the union of this chunk and <paramref name="other"/>.
+        /// Empty chunks are neutral. Nonempty chunks must have matching optional-property presence.
         /// </summary>
         public Chunk Union(Chunk other)
         {
+            if (IsEmpty) return other.IsEmpty ? Empty : other;
             if (other.IsEmpty) return this;
+
+            ValidateMergeSchema(this, other);
 
             var ps = Append(Positions, other.Positions);
             return ps == null
@@ -488,11 +546,31 @@ namespace Aardvark.Data.Points
         public Chunk ImmutableMapPositions(Func<V3d, V3d> mapping)
             => IsEmpty ? Empty : new(Positions.Map(mapping), Colors, Normals, Intensities, Classifications, PartIndices, PartIndexRange, BoundingBox);
 
+        /// <summary>
+        /// Merges this chunk and a sequence of chunks without modifying them. Empty chunks are neutral;
+        /// nonempty chunks must have matching optional-property presence.
+        /// </summary>
         public Chunk ImmutableMergeWith(IEnumerable<Chunk> others)
-            => ImmutableMerge(this, ImmutableMerge(others));
+        {
+            if (others == null) throw new ArgumentNullException(nameof(others));
+            var chunks = new List<Chunk> { this };
+            chunks.AddRange(others);
+            return ImmutableMergeCore(chunks);
+        }
 
+        /// <summary>
+        /// Merges this chunk and the supplied chunks without modifying them. Empty chunks are neutral;
+        /// nonempty chunks must have matching optional-property presence.
+        /// </summary>
         public Chunk ImmutableMergeWith(params Chunk[] others)
-            => ImmutableMerge(this, ImmutableMerge(others));
+        {
+            if (others == null || others.Length == 0) return IsEmpty ? Empty : this;
+
+            var chunks = new Chunk[others.Length + 1];
+            chunks[0] = this;
+            Array.Copy(others, 0, chunks, 1, others.Length);
+            return ImmutableMergeCore(chunks);
+        }
 
         /// <summary>
         /// Splits this chunk into multiple chunks according to key of i-th point in chunk.
