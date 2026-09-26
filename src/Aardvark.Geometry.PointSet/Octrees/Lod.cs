@@ -299,11 +299,16 @@ public static class LodExtensions
     }
 
     /// <summary>
-    /// Returns new octree with LOD data created.
+    /// Returns new octree with LOD data created. Empty point sets are returned unchanged and
+    /// report successful completion through the configured progress callback.
     /// </summary>
     public static PointSet GenerateLod(this PointSet self, ImportConfig config)
     {
-        if (self.Root == null || self.Root.Value.IsEmpty) return self;
+        if (self.Root == null || self.IsEmpty || self.Root.Value.IsEmpty)
+        {
+            config.ProgressCallback(1.0);
+            return self;
+        }
 
         var nodeCount = self.Root.Value.CountNodes(true);
         var loddedNodesCount = 0L;
