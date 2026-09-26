@@ -195,6 +195,21 @@ if (!node.IsLeaf)
 }
 ```
 
+### Boolean Filter Composition
+
+`FilterAnd` intersects and `FilterOr` unions point selections. `IFilter.FilterPoints(node, selected)` treats `selected` as a read-only domain of local indices: null means all `node.PointCountCell` points, while an empty set means none. Results must stay within that domain.
+
+A pass-through result may be the same set as `selected`, including through nested expressions. Otherwise the returned set is independently owned by the caller. Do not mutate a borrowed result; copy it only if mutation is needed. AND narrows provided selections before evaluating its right operand and stops when the left result is empty. Full coverage reuses the original domain. Null inputs retain the primitive filter's contiguous all-points scan and intersect owned results, avoiding selection-iterator overhead; full or empty results need no intersection scan. OR evaluates operands independently on the original domain, stops after full coverage, and unions only safely owned partial results. Neither composition mutates the supplied selection.
+
+Node classification is conservative and short-circuits:
+
+| Composition | Fully inside | Fully outside |
+|-------------|--------------|---------------|
+| OR | Either operand fully inside | Both operands fully outside |
+| AND | Both operands fully inside | Either operand fully outside |
+
+False means “not proven,” not the opposite classification. For example, two partial OR operands can collectively accept every point without proving the node fully inside. `FilteredNode` uses these classifications to accept or prune whole nodes; an OR must not prune a partially matching node merely because the other operand is disjoint.
+
 ### Merging Point Clouds
 
 ```csharp

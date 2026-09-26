@@ -1,3 +1,5 @@
+- [PointSet] Repair Boolean filter pruning and selection ownership (#87).
+
 ### 5.6.3
 - Updated SharpCompress to 0.48.1 to address CVE-2026-44788
 

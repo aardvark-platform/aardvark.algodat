@@ -20,9 +20,15 @@ using System.Text.Json.Nodes;
 namespace Aardvark.Geometry.Points;
 
 /// <summary>
-/// NOT IMPLEMENTED
+/// Union of two filters within the original selection domain. A node is
+/// fully inside if either operand is fully inside, and fully outside only
+/// if both operands are fully outside. Classification short-circuits.
 /// </summary>
-/// <remarks></remarks>
+/// <remarks>
+/// Both operands receive the same read-only selection. A full-domain result
+/// may be returned directly, including a pass-through alias of the selection;
+/// only independently owned partial results are combined.
+/// </remarks>
 public class FilterOr(IFilter left, IFilter right) : IFilter
 {
     /// <summary></summary>
@@ -38,15 +44,25 @@ public class FilterOr(IFilter left, IFilter right) : IFilter
     public bool IsFullyInside(IPointCloudNode node) => Left.IsFullyInside(node) || Right.IsFullyInside(node);
 
     /// <summary></summary>
-    public bool IsFullyOutside(IPointCloudNode node) => Left.IsFullyOutside(node) || Right.IsFullyOutside(node);
+    public bool IsFullyOutside(IPointCloudNode node) => Left.IsFullyOutside(node) && Right.IsFullyOutside(node);
 
     /// <summary></summary>
     public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null)
     {
+        var count = selected?.Count ?? node.PointCountCell;
+        if (count == 0) return selected ?? [];
+
         var a = Left.FilterPoints(node, selected);
-        if (selected != null && a.Count == selected.Count) return a;
+        if (a.Count == 0) return Right.FilterPoints(node, selected);
+        if (a.Count == count) return a;
         var b = Right.FilterPoints(node, selected);
-        if (selected != null && b.Count == selected.Count) return b;
+        if (b.Count == count) return b;
+        if (b.Count == 0) return a;
+
+        // Both are proper subsets, so neither aliases selected. IFilter gives
+        // ownership of non-pass-through results to its caller. Grow the larger
+        // set to avoid scanning it and unnecessarily resizing the smaller one.
+        if (a.Count < b.Count) (a, b) = (b, a);
         a.UnionWith(b);
         return a;
     }
@@ -68,8 +84,15 @@ public class FilterOr(IFilter left, IFilter right) : IFilter
 }
 
 /// <summary>
+/// Intersection of two filters within the supplied selection domain. A node
+/// is fully inside only if both operands are fully inside, and fully outside
+/// if either operand is fully outside. Classification short-circuits.
 /// </summary>
-/// <remarks></remarks>
+/// <remarks>
+/// The right operand normally filters the left result, stopping early when it is
+/// empty. Null domains retain the all-points scan and intersect owned results.
+/// The caller's selection remains read-only, including nested pass-through aliases.
+/// </remarks>
 public class FilterAnd(IFilter left, IFilter right) : IFilter
 {
     /// <summary></summary>
@@ -85,14 +108,30 @@ public class FilterAnd(IFilter left, IFilter right) : IFilter
     public bool IsFullyInside(IPointCloudNode node) => Left.IsFullyInside(node) && Right.IsFullyInside(node);
 
     /// <summary></summary>
-    public bool IsFullyOutside(IPointCloudNode node) => Left.IsFullyOutside(node) && Right.IsFullyOutside(node);
+    public bool IsFullyOutside(IPointCloudNode node) => Left.IsFullyOutside(node) || Right.IsFullyOutside(node);
 
     /// <summary></summary>
     public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null)
     {
+        if (selected is { Count: 0 }) return selected;
         var a = Left.FilterPoints(node, selected);
-        var b = Right.FilterPoints(node, selected);
-        if (selected != null && a.Count == selected.Count && b.Count == selected.Count) return selected;
+        if (a.Count == 0) return a;
+
+        if (selected != null)
+        {
+            if (a.Count < selected.Count) return Right.FilterPoints(node, a);
+            var result = Right.FilterPoints(node, selected);
+            return result.Count == selected.Count ? selected : result;
+        }
+
+        // Keep primitive filters' contiguous all-points scans for null domains,
+        // avoiding selection-iterator allocations. A null input cannot alias
+        // either result, so these sets can safely be intersected in place.
+        var count = node.PointCountCell;
+        if (a.Count == count) return Right.FilterPoints(node, null);
+        var b = Right.FilterPoints(node, null);
+        if (b.Count == count) return a;
+        if (b.Count == 0) return b;
         a.IntersectWith(b);
         return a;
     }
