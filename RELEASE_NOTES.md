@@ -1,3 +1,5 @@
+- [PointSet] fixed `QueryGridXY` result access, LoD forwarding, and half-open tile ownership (#49)
+
 ### 5.6.3
 - Updated SharpCompress to 0.48.1 to address CVE-2026-44788
 
