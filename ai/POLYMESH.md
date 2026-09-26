@@ -129,7 +129,7 @@ mesh.FaceVertexAttributes = new SymbolDict<Array>
 | SubSetOfFaces(indices, compact) | Extract face subset |
 | Transformed(Trafo3d) | Apply transformation |
 | Group(meshes) | Merge multiple meshes |
-| WithoutDegeneratedEdges() | Remove zero-length edges |
+| WithoutDegeneratedEdges() | Remove consecutive repeated vertex indices |
 | WithoutDegeneratedFaces() | Remove zero-area faces |
 | GetIndexedGeometry() | Convert to IndexedGeometry for rendering |
 
@@ -167,6 +167,29 @@ var merged = PolyMesh.Group(meshes); // requires matching attribute sets
 ```
 
 ### Cleanup
+
+`WithoutDegeneratedEdges()` compacts each face's own index interval, including
+empty intervals. It removes consecutive repetitions of the **same vertex
+index**, not distinct indices at coincident positions. The last source corner
+of a repeated run survives; a closing run equal to the first is dropped. For
+`[0,0,1,2]`, the retained source corners are `[1,2,3]`.
+
+Face slots and face attributes are retained. A face with fewer than two
+surviving corners becomes an empty slot; two distinct corners remain. Repeated
+cleanup is stable, and an empty face never consumes corners from the next face.
+Active counts, offsets and `FaceVertexCountRange` exclude spare capacity.
+
+Positive-key corner arrays follow the retained source corners, including the
+`int[]` indices of indexed attributes. Their negative-key value pools are
+preserved by reference. Source arrays/dictionaries and unaffected vertex, face
+and instance attributes are not changed. Changed connectivity invalidates
+copied topology through the normal topology-free copy path; rebuild it before
+using edge traversal. No-op cleanup retains existing topology.
+
+Compaction is linear. When projection is needed, the output index buffer also
+serves temporarily as the corner map, so no separate map is allocated. No-op
+corner attributes remain shared, as do unaffected attributes under the usual
+shallow-copy semantics. Remove empty face slots separately if desired:
 
 ```csharp
 var cleaned = mesh
