@@ -206,6 +206,16 @@ var merged = pointSet1.Merge(
 );
 ```
 
+### Geometry Fingerprints
+
+`Plane3d.ComputeMd5Hash()` encodes the stored `Normal.X`, `Normal.Y`, `Normal.Z`, and `Distance` as four little-endian IEEE 754 doubles, in that order. It does not derive `Plane.Point`, normalize coefficients, or canonicalize signed zeros/NaN payloads. Plane arrays and enumerables concatenate these 32-byte records in input order; a singleton matches its scalar plane.
+
+`Hull3d.ComputeMd5Hash()` prefixes each hull with its little-endian Int32 plane count, then writes its ordered plane records. Hull arrays/enumerables concatenate those framed hull records without an outer count. This preserves hull grouping, empty hulls, and ordering; an empty collection differs from one empty hull, while a valid scalar hull matches its singleton collection. These are representation fingerprints, not canonical geometric-equivalence tests.
+
+The MD5 digest bytes are returned as a `Guid`. Scalar invalid hulls (`PlaneArray == null`) and null hull collections retain `Guid.Empty`; invalid hull elements in collections still throw `NullReferenceException`. Null plane collections also retain their `NullReferenceException` behavior. Empty collections hash the empty byte sequence. Sequences are traversed once, using a bounded pooled buffer rather than materializing/counting the input.
+
+**Compatibility:** Plane and hull fingerprints intentionally change from the old Point-based, unframed encoding. Callers must invalidate caches keyed by those old geometry fingerprints. Vector/color fingerprints, `FileHelpers.ComputeMd5Hash`, and file-import storage keys are unchanged.
+
 ### Custom Storage Backend
 
 ```csharp
