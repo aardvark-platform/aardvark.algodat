@@ -1,3 +1,5 @@
+- [Ascii] support scientific float notation and safely reject malformed or truncated records (#63)
+
 ### 5.6.3
 - Updated SharpCompress to 0.48.1 to address CVE-2026-44788
 

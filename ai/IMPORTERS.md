@@ -149,6 +149,12 @@ var customChunks = Ascii.Chunks("scan.txt", customFormat.LineDefinition, ParseCo
 - Custom data: `CustomByte`, `CustomInt32`, `CustomFloat32`, `CustomFloat64`
 - `Skip` (ignore field)
 
+**Numeric and line syntax:**
+- Floating-point fields use invariant decimal syntax and accept scientific notation with or without a decimal point (for example, `1e3`, `-2.5E-4`, or `.5e+2`).
+- Floating-point tokens end at a space, tab, CR/LF, or the end of the input buffer.
+- Records may use LF or CRLF endings; a complete final record does not require a trailing newline, and trailing whitespace is accepted.
+- Records with malformed, incomplete, or truncated configured fields are skipped without affecting subsequent records.
+
 **Key Features:**
 - Stream-based line-by-line parsing
 - Empty lines skipped automatically

@@ -145,6 +145,38 @@ namespace Aardvark.Geometry.Tests
             ParseAscii_Float32_Test("-0", 0);
         }
 
+        [TestCase("1e3", 1000.0f)]
+        [TestCase("1E+3", 1000.0f)]
+        [TestCase("-2e-2", -0.02f)]
+        [TestCase("+.5e+2", 50.0f)]
+        [TestCase("5.e-1", 0.5f)]
+        [TestCase("0e9999", 0.0f)]
+        [TestCase("1.25e2 ", 125.0f)]
+        [TestCase("1.25e2\t", 125.0f)]
+        [TestCase("1.25e2\r", 125.0f)]
+        [TestCase("1.25e2\n", 125.0f)]
+        [TestCase("1.25e2\r\n", 125.0f)]
+        public void ParseAscii_Float32ScientificNotationAndDelimiters(string text, float expected)
+            => ParseAscii_Float32_Test(text, expected);
+
+        [TestCase(".")]
+        [TestCase("+")]
+        [TestCase("-.")]
+        [TestCase("e3")]
+        [TestCase("1e")]
+        [TestCase("1e+")]
+        [TestCase("1e-")]
+        [TestCase("1..2")]
+        [TestCase("1e2x")]
+        public void ParseAscii_Float32MalformedTokensAreSkippedAndParsingRecovers(string malformed)
+        {
+            var buffer = Encoding.ASCII.GetBytes($"{malformed}\n2.5e0\n");
+            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, new[] { Token.NormalX }, partIndices: null);
+
+            ClassicAssert.AreEqual(1, data.Count);
+            ClassicAssert.IsTrue(data.Normals[0].X.ApproximateEquals(2.5f, 1e-6f));
+        }
+
         #endregion
 
         #region Float64
@@ -173,6 +205,38 @@ namespace Aardvark.Geometry.Tests
             ParseAscii_Float64_Test("-0.45678", -0.45678);
             ParseAscii_Float64_Test("-.314", -0.314);
             ParseAscii_Float64_Test("-0", 0);
+        }
+
+        [TestCase("1e3", 1000.0)]
+        [TestCase("1E+3", 1000.0)]
+        [TestCase("-2e-12", -2e-12)]
+        [TestCase("+.5e+2", 50.0)]
+        [TestCase("5.e-1", 0.5)]
+        [TestCase("0e9999", 0.0)]
+        [TestCase("1.25e2 ", 125.0)]
+        [TestCase("1.25e2\t", 125.0)]
+        [TestCase("1.25e2\r", 125.0)]
+        [TestCase("1.25e2\n", 125.0)]
+        [TestCase("1.25e2\r\n", 125.0)]
+        public void ParseAscii_Float64ScientificNotationAndDelimiters(string text, double expected)
+            => ParseAscii_Float64_Test(text, expected);
+
+        [TestCase(".")]
+        [TestCase("+")]
+        [TestCase("-.")]
+        [TestCase("e3")]
+        [TestCase("1e")]
+        [TestCase("1e+")]
+        [TestCase("1e-")]
+        [TestCase("1..2")]
+        [TestCase("1e2x")]
+        public void ParseAscii_Float64MalformedTokensAreSkippedAndParsingRecovers(string malformed)
+        {
+            var buffer = Encoding.ASCII.GetBytes($"{malformed}\n2.5e0\n");
+            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, new[] { Token.PositionX }, partIndices: null);
+
+            ClassicAssert.AreEqual(1, data.Count);
+            ClassicAssert.IsTrue(data.Positions[0].X.ApproximateEquals(2.5, 1e-15));
         }
 
         #endregion
@@ -527,6 +591,98 @@ namespace Aardvark.Geometry.Tests
             ClassicAssert.IsTrue(data.Positions[0] == new V3d(1.2, 3.4, 5.6));
             ClassicAssert.IsTrue(data.Colors[0] == new C4b(10, 20, 30));
             ClassicAssert.IsTrue(data.Intensities[0] == 8765);
+        }
+
+        [TestCase("\n")]
+        [TestCase("\r\n")]
+        public void ParseAscii_MultilineRecordsEndingInNormalsSupportCommonLineEndings(string newline)
+        {
+            var text = $"1e0 2e0 3e0 1e-1 2e-1 3e-1{newline}4e0 5e0 6e0 4e-1 5e-1 6e-1{newline}";
+            var buffer = Encoding.ASCII.GetBytes(text);
+            var layout = new[]
+            {
+                Token.PositionX, Token.PositionY, Token.PositionZ,
+                Token.NormalX, Token.NormalY, Token.NormalZ
+            };
+
+            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout, partIndices: null);
+            var durableData = LineParsers.CustomDurable(buffer, buffer.Length, 0.0, layout, partIndices: null);
+
+            ClassicAssert.AreEqual(2, data.Count);
+            CollectionAssert.AreEqual(new[] { new V3d(1, 2, 3), new V3d(4, 5, 6) }, data.Positions);
+            ClassicAssert.IsTrue(data.Normals[0].ApproximateEquals(new V3f(0.1, 0.2, 0.3), 1e-6f));
+            ClassicAssert.IsTrue(data.Normals[1].ApproximateEquals(new V3f(0.4, 0.5, 0.6), 1e-6f));
+            CollectionAssert.AreEqual(data.Positions, durableData.Positions);
+            CollectionAssert.AreEqual(data.Normals, durableData.Normals);
+        }
+
+        [Test]
+        public void ParseAscii_TrailingWhitespaceAfterLastFieldIsAccepted()
+        {
+            var buffer = Encoding.ASCII.GetBytes("1e0\t2e0 3e0 \t  \r\n");
+            var layout = new[] { Token.PositionX, Token.PositionY, Token.PositionZ };
+
+            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout, partIndices: null);
+
+            ClassicAssert.AreEqual(1, data.Count);
+            ClassicAssert.AreEqual(new V3d(1, 2, 3), data.Positions[0]);
+        }
+
+        [TestCase("1e")]
+        [TestCase("1e+")]
+        [TestCase("-.")]
+        public void ParseAscii_IncompleteFloatingTokensAtBufferEndAreRejected(string text)
+        {
+            var buffer = Encoding.ASCII.GetBytes(text);
+            var doubles = LineParsers.Custom(buffer, buffer.Length, 0.0, new[] { Token.PositionX }, partIndices: null);
+            var floats = LineParsers.Custom(buffer, buffer.Length, 0.0, new[] { Token.NormalX }, partIndices: null);
+
+            ClassicAssert.IsTrue(doubles.IsEmpty);
+            ClassicAssert.IsTrue(floats.IsEmpty);
+        }
+
+        [TestCase("1 2")]
+        [TestCase("1 2 ")]
+        [TestCase("1 2\n")]
+        [TestCase("1 2\r\n")]
+        public void ParseAscii_TruncatedRecordsAreRejected(string text)
+        {
+            var buffer = Encoding.ASCII.GetBytes(text);
+            var layout = new[] { Token.PositionX, Token.PositionY, Token.PositionZ };
+
+            var data = LineParsers.Custom(buffer, buffer.Length, 0.0, layout, partIndices: null);
+
+            ClassicAssert.IsTrue(data.IsEmpty);
+        }
+
+        [Test]
+        public void ParseAscii_ScannersRespectLogicalBufferEnd()
+        {
+            var floatBuffer = Encoding.ASCII.GetBytes("1e3x");
+            var floatData = LineParsers.Custom(floatBuffer, 3, 0.0, new[] { Token.PositionX }, partIndices: null);
+            ClassicAssert.AreEqual(1, floatData.Count);
+            ClassicAssert.AreEqual(1000.0, floatData.Positions[0].X);
+
+            var byteBuffer = Encoding.ASCII.GetBytes("255x");
+            var byteData = LineParsers.Custom(byteBuffer, 3, 0.0, new[] { Token.ColorR }, partIndices: null);
+            ClassicAssert.AreEqual(1, byteData.Count);
+            ClassicAssert.AreEqual(255, byteData.Colors[0].R);
+
+            var skipBuffer = Encoding.ASCII.GetBytes("1 opaque");
+            var skipData = LineParsers.Custom(skipBuffer, skipBuffer.Length, 0.0, new[] { Token.PositionX, Token.Skip }, partIndices: null);
+            ClassicAssert.AreEqual(1, skipData.Count);
+            ClassicAssert.AreEqual(1.0, skipData.Positions[0].X);
+        }
+
+        [Test]
+        public void ParseAscii_ScientificNotationPreservesMinimumDistanceFiltering()
+        {
+            var buffer = Encoding.ASCII.GetBytes("0e0 0 0\n1e-1 0 0\n1e0 0 0\n");
+            var layout = new[] { Token.PositionX, Token.PositionY, Token.PositionZ };
+
+            var data = LineParsers.Custom(buffer, buffer.Length, 0.5, layout, partIndices: null);
+
+            CollectionAssert.AreEqual(new[] { V3d.Zero, V3d.XAxis }, data.Positions);
         }
 
         #endregion
