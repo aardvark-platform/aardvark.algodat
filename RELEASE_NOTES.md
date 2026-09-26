@@ -1,3 +1,5 @@
+- [PointSet] Make classification subtree pruning conservative and terminate inclusive byte exclusions (#97).
+
 ### 5.6.3
 - Updated SharpCompress to 0.48.1 to address CVE-2026-44788
 
