@@ -1,3 +1,5 @@
+- [PLY] fixed host-independent binary endian decoding, integer list counts, and CRLF payload alignment (#57)
+
 ### 5.6.3
 - Updated SharpCompress to 0.48.1 to address CVE-2026-44788
 
