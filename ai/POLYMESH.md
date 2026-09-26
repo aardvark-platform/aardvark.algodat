@@ -143,6 +143,25 @@ if (mesh.FaceVertexCountRange.Max > 3)
 }
 ```
 
+### Plane Splitting
+
+```csharp
+var plane = new Plane3d(V3d.IOO, 0.0); // x = 0
+var (negative, positive) = mesh.SplitOnPlane(
+    plane, 1e-9, SplitterOptions.NegativeAndPositive);
+var positiveOnly = mesh.SplitOnPlane(plane, 1e-9, SplitterOptions.Positive).Item2;
+```
+
+`SplitOnPlane` partitions convex faces without generating caps or building topology. Tuple element 0 is negative and element 1 is positive. Unrequested or absent sides are null; `SplitterOptions.None` returns `(null, null)` without scanning geometry. One-sided calls only construct the requested side. The plane normal need not be normalized: `epsilon` is a tolerance on `plane.Height(position)`, so scale it along with the plane equation.
+
+- Whole-side results return the original mesh, including its arrays. Splitting does not modify source arrays; new fragment meshes also share the source instance-attribute dictionary. Copy before mutating shared results or instance data.
+- Shared indexed edges reuse a single cut vertex per side. Retained faces come first, followed by fragments in source-face order; face winding is preserved.
+- Face attributes follow each fragment's original face. Indexed face attributes are compacted from the source attribute indices used by retained faces and fragments, preserving the value-array type. Indexed storage uses `int[]` indices under the positive semantic key and values under the negative key; for example, source face index `[1]` into values `[11,22]` becomes `[0]` into `[22]`.
+- Vertex attributes interpolate at cut points using their registered interpolators. Corner attributes interpolate along each original face edge, independently on adjacent faces, so shared geometric vertices do not weld attribute seams. For a crossing quad with corner values `[10,20,30,40]`, midpoint cuts interpolate to 15 and 35.
+- Existing coplanar ownership is preserved: a coplanar face in mixed input belongs to the positive side (and is omitted by a negative-only request). Wholly coplanar input is returned on the positive side when requested, otherwise on the negative side. Empty input follows the same whole-side preference. Points within the height tolerance are not projected onto the plane.
+
+This operation does not change grouping or topology rules, and does not repair `ClipByPlane` cap generation.
+
 ### Face Subset Extraction
 
 ```csharp
