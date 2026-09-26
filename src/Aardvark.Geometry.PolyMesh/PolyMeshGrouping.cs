@@ -58,6 +58,10 @@ namespace Aardvark.Geometry
             public SymbolDict<IAttributeArray> FaceVertexAttributeArrays;
             public IEnumerable<IGrouping<PolyMesh, Face>> Groups;
 
+            /// <summary>
+            /// Indicates whether all grouped meshes have compatible instance, face, vertex,
+            /// and face-vertex attributes and can be materialized through <see cref="Mesh"/>.
+            /// </summary>
             public bool Valid
             {
                 get
@@ -80,6 +84,10 @@ namespace Aardvark.Geometry
                 }
             }
 
+            /// <summary>
+            /// Materializes the grouped faces in first-mesh and selected-face order.
+            /// Callers must check <see cref="Valid"/> before accessing this property.
+            /// </summary>
             public PolyMesh Mesh
             {
                 get
@@ -209,7 +217,7 @@ namespace Aardvark.Geometry
                                 else
                                 {
                                     for (int fi = 0; fi < fbm.Length; fi++)
-                                        afm[fi] = ac++;
+                                        afm.ForwardMapAdd(fbm[fi], ref ac);
                                 }
                                 afma[mi] = afm;
                             }
@@ -224,13 +232,13 @@ namespace Aardvark.Geometry
                                 var fo = foa[mi];
                                 if (mia != null)
                                 {
-                                    for (int fi = 0; fi < fbma.Length; fi++)
+                                    for (int fi = 0; fi < fbm.Length; fi++)
                                         indexArray[fo + fi] = afm[mia[fbm[fi]]];
                                 }
                                 else
                                 {
-                                    for (int fi = 0; fi < fbma.Length; fi++)
-                                        indexArray[fo + fi] = afm[fi];
+                                    for (int fi = 0; fi < fbm.Length; fi++)
+                                        indexArray[fo + fi] = afm[fbm[fi]];
                                 }
                                 aa[mi].ForwardMappedCopyTo(afm, valueArray, 0);
                             }
@@ -269,7 +277,7 @@ namespace Aardvark.Geometry
                                 else
                                 {
                                     for (int vi = 0; vi < vbm.Length; vi++)
-                                        afm[vi] = ac++;
+                                        afm.ForwardMapAdd(vbm[vi], ref ac);
                                 }
                                 afma[mi] = afm;
                             }
@@ -289,8 +297,8 @@ namespace Aardvark.Geometry
                                 }
                                 else
                                 {
-                                    for (int vi = 0; vi < vbma.Length; vi++)
-                                        indexArray[vo + vi] = afm[vi];
+                                    for (int vi = 0; vi < vbm.Length; vi++)
+                                        indexArray[vo + vi] = afm[vbm[vi]];
                                 }
                                 aa[mi].ForwardMappedCopyTo(afm, valueArray, 0);
                             }
@@ -310,7 +318,7 @@ namespace Aardvark.Geometry
                             var va = Array.CreateInstance(kvp.Value.Type, vic);
                             for (int mi = 0; mi < mc; mi++)
                                 aa[mi].BackMappedGroupCopyTo(
-                                        fbma[mi], fc, ma[mi].VertexIndexArray, va, fvoa[mi]);
+                                        fbma[mi], fbma[mi].Length, ma[mi].FirstIndexArray, va, fvoa[mi]);
                             faceVertexAttributes[kvp.Key] = va;
                         }
                         else
@@ -322,7 +330,6 @@ namespace Aardvark.Geometry
                                 var mia = aa[mi].IndexArray;
                                 var afm = new int[aa[mi].ValueArray.Length].Set(-1);
                                 var fbm = fbma[mi];
-                                var fvo = fvoa[mi];
                                 var mfia = ma[mi].FirstIndexArray;
                                 if (mia != null)
                                 {
@@ -336,9 +343,13 @@ namespace Aardvark.Geometry
                                 }
                                 else
                                 {
-                                    var fve = fvoa[mi + 1];
-                                    for (int fvi = 0; fvo < fve; fvo++, fvi++)
-                                        afm[fvi] = fvo;
+                                    for (int fi = 0; fi < fbm.Length; fi++)
+                                    {
+                                        var ofi = fbm[fi];
+                                        int ofvi = mfia[ofi], ofve = mfia[ofi + 1];
+                                        while (ofvi < ofve)
+                                            afm.ForwardMapAdd(ofvi++, ref ac);
+                                    }
                                 }
                                 afma[mi] = afm;
                             }
@@ -364,9 +375,13 @@ namespace Aardvark.Geometry
                                 }
                                 else
                                 {
-                                    var fve = fvoa[mi + 1];
-                                    for (int fvi = 0; fvo < fve; fvo++, fvi++)
-                                        indexArray[fvo] = afm[fvi];
+                                    for (int fi = 0; fi < fbm.Length; fi++)
+                                    {
+                                        var ofi = fbm[fi];
+                                        int ofvi = mfia[ofi], ofve = mfia[ofi + 1];
+                                        while (ofvi < ofve)
+                                            indexArray[fvo++] = afm[ofvi++];
+                                    }
                                 }
                                 aa[mi].ForwardMappedCopyTo(afm, valueArray, 0);
                             }
@@ -394,12 +409,20 @@ namespace Aardvark.Geometry
 
     public static class PolyMeshGroupingExtensions
     {
+        /// <summary>
+        /// Creates a grouping descriptor for all faces of the supplied meshes.
+        /// Check <see cref="PolyMesh.Grouping.Valid"/> before materializing its mesh.
+        /// </summary>
         public static PolyMesh.Grouping Group(
                 this IEnumerable<PolyMesh> meshes, SymbolDict<object> defaultInstanceValues = null)
         {
             return Group(from m in meshes from f in m.Faces select f, defaultInstanceValues);
         }
 
+        /// <summary>
+        /// Creates a grouping descriptor for the selected faces, preserving first-mesh and per-mesh face order.
+        /// Check <see cref="PolyMesh.Grouping.Valid"/> before materializing its mesh.
+        /// </summary>
         public static PolyMesh.Grouping Group(
                 this IEnumerable<PolyMesh.Face> faces, SymbolDict<object> defaultInstanceValues = null)
         {

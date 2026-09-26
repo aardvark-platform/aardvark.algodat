@@ -116,8 +116,8 @@ var uvIndices = new int[] { 0, 1, 2, 3, 1, 2, 3, 0 }; // 2 quads sharing UVs
 
 mesh.FaceVertexAttributes = new SymbolDict<Array>
 {
-    [PolyMesh.Property.DiffuseColorCoordinates] = uvData,
-    [-PolyMesh.Property.DiffuseColorCoordinates] = uvIndices // negative key for indices
+    [PolyMesh.Property.DiffuseColorCoordinates] = uvIndices,
+    [-PolyMesh.Property.DiffuseColorCoordinates] = uvData
 };
 ```
 
@@ -128,7 +128,7 @@ mesh.FaceVertexAttributes = new SymbolDict<Array>
 | TriangulatedCopy() | Triangulate all faces |
 | SubSetOfFaces(indices, compact) | Extract face subset |
 | Transformed(Trafo3d) | Apply transformation |
-| Group(meshes) | Merge multiple meshes |
+| Group(meshes) | Describe a merge of meshes with compatible attributes |
 | WithoutDegeneratedEdges() | Remove zero-length edges |
 | WithoutDegeneratedFaces() | Remove zero-area faces |
 | GetIndexedGeometry() | Convert to IndexedGeometry for rendering |
@@ -161,10 +161,18 @@ var transformed = mesh.Transformed(trafo);
 
 ### Mesh Grouping
 
+`Group()` returns a grouping descriptor rather than a mesh. Check `Valid` before materializing `Mesh`: validity requires compatible instance attributes, no instance/face key collision, and matching face, vertex, and face-vertex attribute names and value types across all inputs.
+
 ```csharp
 var meshes = new[] { mesh1, mesh2, mesh3 };
-var merged = PolyMesh.Group(meshes); // requires matching attribute sets
+var grouping = meshes.Group();
+if (!grouping.Valid)
+    throw new InvalidOperationException("Meshes have incompatible attributes.");
+
+var merged = grouping.Mesh;
 ```
+
+`Mesh` assumes a valid grouping and preserves the order in which meshes first occur, followed by selected face order within each mesh. Calling `Group()` on a face sequence merges only those faces and compacts their referenced vertices and indexed attribute values. Source meshes and attribute arrays are not mutated.
 
 ### Cleanup
 
@@ -230,8 +238,8 @@ var normalIndices = new int[] { 0, 0, 0, 1, 1, 1, 2, 2, 2 }; // 3 triangles
 
 mesh.FaceVertexAttributes = new SymbolDict<Array>
 {
-    [PolyMesh.Property.Normals] = normalData,
-    [-PolyMesh.Property.Normals] = normalIndices // negative key
+    [PolyMesh.Property.Normals] = normalIndices,
+    [-PolyMesh.Property.Normals] = normalData
 };
 ```
 
@@ -249,8 +257,8 @@ mesh.FaceAttributes[MyTemperature] = new float[] { 20.0f, 21.0f };
 // Per-face-vertex (indexed)
 var temps = new float[] { 15f, 20f, 25f };
 var tempIndices = new int[] { 0, 1, 2, 1, 2, 0 };
-mesh.FaceVertexAttributes[MyTemperature] = temps;
-mesh.FaceVertexAttributes[-MyTemperature] = tempIndices;
+mesh.FaceVertexAttributes[MyTemperature] = tempIndices;
+mesh.FaceVertexAttributes[-MyTemperature] = temps;
 ```
 
 ## Gotchas
@@ -258,12 +266,12 @@ mesh.FaceVertexAttributes[-MyTemperature] = tempIndices;
 1. **Shallow copy by default** - `new PolyMesh(other)` shares arrays. Mutate carefully.
 2. **Cached attributes don't update** - `Transformed()` updates positions/normals but cached derived data (areas, volumes) may be stale.
 3. **Topology not automatic** - Call `BuildTopology()` before accessing `Edges`, `Vertices.OutgoingEdges`, etc.
-4. **Indexed attributes require both arrays** - Set data array with positive key, index array with negative key.
+4. **Indexed attributes require both arrays** - The positive semantic key stores the `int[]` index array; its negative key stores the typed value array.
 5. **Triangulation is expensive** - Check `FaceVertexCountRange.Max` before calling `TriangulatedCopy()`.
 6. **Imported meshes have degenerate faces** - Call `WithoutDegeneratedFaces()` before processing.
 7. **Vertex clustering can throw** - Use try-catch when clustering with small delta values.
 8. **SubSetOfFaces compactVertices flag** - `true` reindexes vertices, `false` preserves original indices.
-9. **Group() requires matching attributes** - All meshes must have same attribute keys or operation fails.
+9. **Group() requires matching attributes** - Check `Group().Valid` before reading `Mesh`; incompatible groupings are descriptors but cannot be materialized safely.
 10. **FaceReversedCopy() blindly flips** - Analyze orientation first (check normals vs face winding), don't flip unnecessarily.
 
 ## See Also
