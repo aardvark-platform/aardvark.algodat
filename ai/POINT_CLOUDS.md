@@ -62,6 +62,22 @@ var json = /* load JSON from storage.Get("myPointCloud.json") */;
 var pointSet = PointSet.Parse(JsonNode.Parse(json), storage);
 ```
 
+### Exporting a Point Cloud or Filtered View
+
+```csharp
+var result = sourceStorage.ExportPointSet(
+    pointSetId: "myPointCloud.json",
+    exportStorage: destinationStorage,
+    onProgress: info => Console.WriteLine($"{info.Progress:P0}"),
+    verbose: false,
+    ct: cancellationToken
+);
+```
+
+Export copies pointset metadata and the complete persisted reference closure. Ordinary nodes, filtered wrappers (including nested wrappers), backing octrees, and referenced attribute/kd-tree blobs retain their IDs and filter definitions. The destination can be reopened independently of the source. The metadata path traverses stored maps without evaluating filters, materializing filtered point arrays, or following transient filtered-child IDs; the legacy node-ID fallback remains supported.
+
+This is a **reference-preserving copy, not a redacted export**: a filtered view requires its entire unfiltered backing tree, including unselected points. Progress therefore counts backing-tree leaf points rather than the view's selected-point estimate. Reports are finite and monotonic for valid trees; progress reaches 1 only after all dependencies are copied, including empty exports and views selecting no points. Verbose output reports the number of copied nodes without a separate counting pass. Cancellation or a storage/callback exception propagates and can leave a partial destination; completion is not reported for an interrupted copy. Export does not flush or dispose either store.
+
 ### Querying Points by Bounding Box
 
 ```csharp
