@@ -68,7 +68,7 @@ public static partial class Queries
     }
 
     /// <summary>
-    /// Points within given distance of a line segment (at most 1000).
+    /// Enumerates chunks containing points within the given distance of a finite line segment.
     /// </summary>
     public static IEnumerable<Chunk> QueryPointsNearLineSegment(
         this PointSet self, Line3d lineSegment, double maxDistanceToRay, int minCellExponent = int.MinValue
@@ -76,7 +76,7 @@ public static partial class Queries
         => QueryPointsNearLineSegment(self.Root.Value, lineSegment, maxDistanceToRay, minCellExponent);
 
     /// <summary>
-    /// Points within given distance of a line segment (at most 1000).
+    /// Enumerates chunks containing points within the given distance of a finite line segment.
     /// </summary>
     public static IEnumerable<GenericChunk> QueryPointsNearLineSegmentCustom(
         this PointSet self, Line3d lineSegment, double maxDistanceToRay, params Durable.Def[] customAttributes
@@ -84,7 +84,7 @@ public static partial class Queries
         => QueryPointsNearLineSegmentCustom(self, lineSegment, maxDistanceToRay, int.MinValue, customAttributes);
     
     /// <summary>
-    /// Points within given distance of a line segment (at most 1000).
+    /// Enumerates chunks containing points within the given distance of a finite line segment.
     /// </summary>
     public static IEnumerable<GenericChunk> QueryPointsNearLineSegmentCustom(
         this PointSet self, Line3d lineSegment, double maxDistanceToRay, int minCellExponent, params Durable.Def[] customAttributes
@@ -93,83 +93,31 @@ public static partial class Queries
 
 
     /// <summary>
-    /// Points within given distance of a line segment (at most 1000).
+    /// Enumerates chunks containing points within the given distance of a finite line segment.
     /// </summary>
     public static IEnumerable<Chunk> QueryPointsNearLineSegment(
         this IPointCloudNode node, Line3d lineSegment, double maxDistanceToRay, int minCellExponent = int.MinValue
         )
     {
-        if (!node.HasPositions) yield break;
+        var isTerminal = node.IsLeaf || node.Cell.Exponent == minCellExponent;
+        if (isTerminal && !node.HasPositions) yield break;
 
-        var centerGlobal = node.Center;
-        var s0Local = lineSegment.P0 - centerGlobal;
-        var s1Local = lineSegment.P1 - centerGlobal;
-        var rayLocal = new Ray3d(s0Local, (s1Local - s0Local).Normalized);
+        var lineLocal = ToLocalLineSegment(node, lineSegment);
+        if (!MayContainPointsNearLineSegment(node, lineLocal, maxDistanceToRay)) yield break;
 
-        var worstCaseDist = node.BoundingBoxExactLocal.Size3f.Length * 0.5 + maxDistanceToRay;
-        var d0 = rayLocal.GetMinimalDistanceTo((V3d)node.BoundingBoxExactLocal.Center);
-        if (d0 > worstCaseDist) yield break;
-
-        if (node.IsLeaf || node.Cell.Exponent == minCellExponent)
+        if (isTerminal)
         {
-            if (node.HasKdTree)
-            {
-                var indexArray = node.KdTree.Value.GetClosestToLine(
-                    (V3f)s0Local, (V3f)s1Local,
-                    (float)maxDistanceToRay,
-                    node.PointCountCell
-                    );
+            var ia = GetLineSegmentCandidateIndices(node, lineLocal, maxDistanceToRay);
+            if (ia.Count == 0) yield break;
 
-                if (indexArray.Count > 0)
-                {
-                    var ia = indexArray.MapToArray(x => (int)x.Index);
-                    var ps = new V3d[ia.Length];
-                    var cs = node.HasColors ? new C4b[ia.Length] : null;
-                    var ns = node.HasNormals ? new V3f[ia.Length] : null;
-                    var js = node.HasIntensities ? new int[ia.Length] : null;
-                    var ks = node.HasClassifications ? new byte[ia.Length] : null;
-                    var qs = PartIndexUtils.Subset(node.PartIndices, ia);
+            var ps = GetSelectedGlobalPositions(node, ia);
+            var cs = node.Colors?.Value.Subset(ia);
+            var ns = node.Normals?.Value.Subset(ia);
+            var js = node.Intensities?.Value.Subset(ia);
+            var ks = node.Classifications?.Value.Subset(ia);
+            var qs = PartIndexUtils.Subset(node.PartIndices, ia);
 
-                    for (var i = 0; i < ia.Length; i++)
-                    {
-                        var index = ia[i];
-                        ps[i] = centerGlobal + (V3d)node.Positions.Value[index];
-                        if (node.HasColors) cs![i] = node.Colors.Value[index];
-                        if (node.HasNormals) ns![i] = node.Normals.Value[index];
-                        if (node.HasIntensities) js![i] = node.Intensities.Value[index];
-                        if (node.HasClassifications) ks![i] = node.Classifications.Value[index];
-                    }
-                    var chunk = new Chunk(ps, cs, ns, js, ks, qs, partIndexRange: null, bbox: null);
-                    yield return chunk;
-                }
-            }
-            else
-            {
-                // do it without kd-tree ;-)
-                var psLocal = node.Positions.Value;
-
-                var ia = new List<int>();
-                for (var i = 0; i < psLocal.Length; i++)
-                {
-                    var d = rayLocal.GetMinimalDistanceTo((V3d)psLocal[i]);
-                    if (d > maxDistanceToRay) continue;
-                    ia.Add(i);
-                }
-
-                if (ia.Count > 0)
-                {
-                    yield return new Chunk(
-                        node.PositionsAbsolute.Subset(ia),
-                        node.Colors?.Value.Subset(ia),
-                        node.Normals?.Value.Subset(ia),
-                        node.Intensities?.Value.Subset(ia),
-                        node.Classifications?.Value.Subset(ia),
-                        partIndices: PartIndexUtils.Subset(node.PartIndices, ia),
-                        partIndexRange: null,
-                        bbox: null);
-                    throw new NotImplementedException("PARTINDICES");
-                }
-            }
+            yield return new Chunk(ps, cs, ns, js, ks, qs, partIndexRange: null, bbox: null);
         }
         else // inner node
         {
@@ -184,7 +132,7 @@ public static partial class Queries
     }
 
     /// <summary>
-    /// Points within given distance of a line segment (at most 1000).
+    /// Enumerates chunks containing points within the given distance of a finite line segment.
     /// </summary>
     public static IEnumerable<GenericChunk> QueryPointsNearLineSegmentCustom(
         this IPointCloudNode node, Line3d lineSegment, double maxDistanceToRay, params Durable.Def[] customAttributes
@@ -192,52 +140,36 @@ public static partial class Queries
         => QueryPointsNearLineSegmentCustom(node, lineSegment, maxDistanceToRay, int.MinValue, customAttributes);
 
     /// <summary>
-    /// Points within given distance of a line segment (at most 1000).
+    /// Enumerates chunks containing points within the given distance of a finite line segment.
     /// </summary>
     public static IEnumerable<GenericChunk> QueryPointsNearLineSegmentCustom(
         this IPointCloudNode node, Line3d lineSegment, double maxDistanceToRay, int minCellExponent, params Durable.Def[] customAttributes
         )
     {
-        if (!node.HasPositions) yield break;
+        var isTerminal = node.IsLeaf || node.Cell.Exponent == minCellExponent;
+        if (isTerminal && !node.HasPositions) yield break;
 
-        var centerGlobal = node.Center;
-        var s0Local = lineSegment.P0 - centerGlobal;
-        var s1Local = lineSegment.P1 - centerGlobal;
-        var rayLocal = new Ray3d(s0Local, (s1Local - s0Local).Normalized);
+        var lineLocal = ToLocalLineSegment(node, lineSegment);
+        if (!MayContainPointsNearLineSegment(node, lineLocal, maxDistanceToRay)) yield break;
 
-        var worstCaseDist = node.BoundingBoxExactLocal.Size3f.Length * 0.5 + maxDistanceToRay;
-        var d0 = rayLocal.GetMinimalDistanceTo((V3d)node.BoundingBoxExactLocal.Center);
-        if (d0 > worstCaseDist) yield break;
-
-        if (node.IsLeaf || node.Cell.Exponent == minCellExponent)
+        if (isTerminal)
         {
-            if (!node.HasKdTree) throw new Exception("No kd-tree. Error 575ebf66-6fdf-4656-85d6-b2a9e387fea9.");
-            
-            var closest = node.KdTree.Value.GetClosestToLine(
-                (V3f)s0Local, (V3f)s1Local,
-                (float)maxDistanceToRay,
-                node.PointCountCell
-                );
+            var ia = GetLineSegmentCandidateIndices(node, lineLocal, maxDistanceToRay);
+            if (ia.Count == 0) yield break;
 
-            if (closest.Count > 0)
+            var ps = GetSelectedGlobalPositions(node, ia);
+            var data =
+                ImmutableDictionary<Durable.Def, object>.Empty
+                .Add(GenericChunk.Defs.Positions3d, ps)
+                ;
+
+            var attributes = customAttributes.Where(node.Has).Select(def => (def, value: node.Properties[def]));
+            foreach (var (def, value) in attributes)
             {
-                var ia = closest.Map(x => (int)x.Index);
-                var ps = node.PositionsAbsolute.Subset(ia);
-                var data =
-                    ImmutableDictionary<Durable.Def, object>.Empty
-                    .Add(GenericChunk.Defs.Positions3d, ps)
-                    ;
-
-                var attributes = customAttributes.Where(node.Has).Select(def => (def, value: node.Properties[def]));
-                foreach (var (def, value) in attributes)
-                {
-                    data = data.Add(def, value.Subset(ia));
-                }
-
-                var chunk = new GenericChunk(data);
-
-                yield return chunk;
+                data = data.Add(def, value.Subset(ia));
             }
+
+            yield return new GenericChunk(data);
         }
         else // inner node
         {
@@ -249,6 +181,59 @@ public static partial class Queries
                 foreach (var x in xs) yield return x;
             }
         }
+    }
+
+    private static Line3d ToLocalLineSegment(IPointCloudNode node, Line3d lineSegment)
+        => new(lineSegment.P0 - node.Center, lineSegment.P1 - node.Center);
+
+    private static bool MayContainPointsNearLineSegment(
+        IPointCloudNode node, Line3d lineSegmentLocal, double maxDistanceToLineSegment
+        )
+    {
+        var boundsLocal = node.HasBoundingBoxExactLocal
+            ? (Box3d)node.BoundingBoxExactLocal
+            : node.BoundingBoxApproximate - node.Center;
+        var worstCaseDistance = boundsLocal.Size.Length * 0.5 + maxDistanceToLineSegment;
+        return lineSegmentLocal.GetMinimalDistanceTo(boundsLocal.Center) <= worstCaseDistance;
+    }
+
+    private static IReadOnlyList<int> GetLineSegmentCandidateIndices(
+        IPointCloudNode node, Line3d lineSegmentLocal, double maxDistanceToLineSegment
+        )
+    {
+        if (node.HasKdTree)
+        {
+            var closest = node.KdTree.Value.GetClosestToLine(
+                (V3f)lineSegmentLocal.P0,
+                (V3f)lineSegmentLocal.P1,
+                (float)maxDistanceToLineSegment,
+                node.PointCountCell
+                );
+            return closest.MapToArray(x => (int)x.Index);
+        }
+
+        var positionsLocal = node.Positions.Value;
+        var result = new List<int>();
+        for (var i = 0; i < positionsLocal.Length; i++)
+        {
+            if (lineSegmentLocal.GetMinimalDistanceTo((V3d)positionsLocal[i]) <= maxDistanceToLineSegment)
+            {
+                result.Add(i);
+            }
+        }
+        return result;
+    }
+
+    private static V3d[] GetSelectedGlobalPositions(IPointCloudNode node, IReadOnlyList<int> indices)
+    {
+        var centerGlobal = node.Center;
+        var positionsLocal = node.Positions.Value;
+        var result = new V3d[indices.Count];
+        for (var i = 0; i < result.Length; i++)
+        {
+            result[i] = centerGlobal + (V3d)positionsLocal[indices[i]];
+        }
+        return result;
     }
 
     /// <summary>
