@@ -143,6 +143,28 @@ if (mesh.FaceVertexCountRange.Max > 3)
 }
 ```
 
+### Planar Face Normals, Areas and Centroids
+
+`mesh.AddFaceNormalsAreasCentroids(warn: true)` replaces the three direct face
+attributes `PolyMesh.Property.Normals`, `Areas` and `Centroids`. Faces need at
+least three vertices. For planar polygon faces:
+
+- Normals are unit vectors following winding; reversing winding reverses only
+  the normal. Areas are nonnegative and centroids are area-weighted.
+- Signed fan contributions retain cancellation for concave regions. Cyclic
+  starting indices and collinear midpoint insertion do not change the geometry.
+- Zero-area leading fan triangles, including repeated vertices, cannot orient
+  centroid weights. The first nonzero normal encountered during the same fan
+  traversal supplies the reference; its contribution is accumulated exactly once.
+- A zero accumulated normal yields zero normal, area **and centroid**, not a
+  vertex average. Applications needing a degenerate-face centroid must compute
+  it separately. The optional warnings count zero and NaN accumulated normals.
+
+The method leaves positions, indices, other attributes and topology unchanged.
+It traverses linearly, allocates only the three output arrays on warmed calls,
+and uses neither triangulation nor per-face buffers. These planar semantics do
+not define a surface centroid for nonplanar or self-intersecting polygons.
+
 ### Face Subset Extraction
 
 ```csharp
