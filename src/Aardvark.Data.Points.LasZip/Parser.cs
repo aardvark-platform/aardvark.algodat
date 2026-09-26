@@ -132,10 +132,14 @@ namespace LASZip
         /// Reads point data from file and returns chunks of given size.
         /// </summary>
         public static IEnumerable<Points> ReadPoints(string filename, int numberOfPointsPerChunk, bool verbose)
+            => ReadPoints(filename, numberOfPointsPerChunk, verbose, colors: true, intensities: true, classifications: true);
+
+        internal static IEnumerable<Points> ReadPoints(string filename, int numberOfPointsPerChunk, bool verbose,
+            bool colors, bool intensities, bool classifications)
         {
             var reader = new laszip();
             reader.open_reader(filename, out _);
-            return ReadPoints(reader, numberOfPointsPerChunk, verbose);
+            return ReadPoints(reader, numberOfPointsPerChunk, verbose, colors, intensities, classifications);
         }
         /// <summary>
         /// Reads point data from file and returns chunks of given size.
@@ -147,10 +151,14 @@ namespace LASZip
         /// Reads point data from stream and returns chunks of given size.
         /// </summary>
         public static IEnumerable<Points> ReadPoints(Stream stream, int numberOfPointsPerChunk, bool verbose)
+            => ReadPoints(stream, numberOfPointsPerChunk, verbose, colors: true, intensities: true, classifications: true);
+
+        internal static IEnumerable<Points> ReadPoints(Stream stream, int numberOfPointsPerChunk, bool verbose,
+            bool colors, bool intensities, bool classifications)
         {
             var reader = new laszip();
             reader.open_reader_stream(stream, out _, true);
-            return ReadPoints(reader, numberOfPointsPerChunk, verbose);
+            return ReadPoints(reader, numberOfPointsPerChunk, verbose, colors, intensities, classifications);
         }
         /// <summary>
         /// Reads point data from stream and returns chunks of given size.
@@ -158,7 +166,8 @@ namespace LASZip
         public static IEnumerable<Points> ReadPoints(Stream stream, int numberOfPointsPerChunk)
             => ReadPoints(stream, numberOfPointsPerChunk, verbose: false);
 
-        private static IEnumerable<Points> ReadPoints(laszip reader, int numberOfPointsPerChunk, bool verbose)
+        private static IEnumerable<Points> ReadPoints(laszip reader, int numberOfPointsPerChunk, bool verbose,
+            bool readColors, bool readIntensities, bool readClassifications)
         {
             if (numberOfPointsPerChunk < 1) throw new ArgumentOutOfRangeException(nameof(numberOfPointsPerChunk));
 
@@ -178,12 +187,12 @@ namespace LASZip
                 // POINT10
                 var p = new double[3];
                 var ps = new V3d[numberOfPointsPerChunk];
-                var intensities = new ushort[numberOfPointsPerChunk];
+                var intensities = readIntensities ? new ushort[numberOfPointsPerChunk] : null;
                 var returnNumbers = new byte[numberOfPointsPerChunk];
                 var numberOfReturnsOfPulses = new byte[numberOfPointsPerChunk];
                 var scanDirectionFlags = new BitArray(numberOfPointsPerChunk);
                 var edgeOfFlightLines = new BitArray(numberOfPointsPerChunk);
-                var classifications = new byte[numberOfPointsPerChunk];
+                var classifications = readClassifications ? new byte[numberOfPointsPerChunk] : null;
                 var scanAngleRanks = new byte[numberOfPointsPerChunk];
                 var userDatas = new byte[numberOfPointsPerChunk];
                 var pointSourceIds = new ushort[numberOfPointsPerChunk];
@@ -192,7 +201,7 @@ namespace LASZip
                 var gpsTimes = hasGpsTime ? new double[numberOfPointsPerChunk] : null;
 
                 // RGB12
-                var colorsRaw = hasColor ? new C3us[numberOfPointsPerChunk] : null;
+                var colorsRaw = readColors && hasColor ? new C3us[numberOfPointsPerChunk] : null;
                 bool colorIs8Bit = true;
 
                 // WAVEPACKET13
@@ -210,19 +219,19 @@ namespace LASZip
 
                     reader.get_coordinates(p);
                     ps[i] = new V3d(p);
-                    intensities[i] = reader.point.intensity;
+                    if (readIntensities) intensities![i] = reader.point.intensity;
                     returnNumbers[i] = reader.point.return_number;
                     numberOfReturnsOfPulses[i] = Math.Max(reader.point.number_of_returns, reader.point.extended_number_of_returns);
                     scanDirectionFlags[i] = reader.point.scan_direction_flag != 0;
                     edgeOfFlightLines[i] = reader.point.edge_of_flight_line != 0;
-                    classifications[i] = reader.point.classification;
+                    if (readClassifications) classifications![i] = reader.point.classification;
                     scanAngleRanks[i] = (byte)reader.point.scan_angle_rank;
                     userDatas[i] = reader.point.user_data;
                     pointSourceIds[i] = reader.point.point_source_ID;
 
                     if (hasGpsTime) gpsTimes![i] = reader.point.gps_time;
 
-                    if (hasColor)
+                    if (colorsRaw != null)
                     {
                         var c = new C3us(reader.point.rgb[0], reader.point.rgb[1], reader.point.rgb[2]);
                         colorsRaw![i] = c;

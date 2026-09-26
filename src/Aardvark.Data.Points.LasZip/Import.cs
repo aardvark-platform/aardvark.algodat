@@ -53,16 +53,26 @@ namespace Aardvark.Data.Points.Import
         }
 
         /// <summary>
-        /// Parses LASzip (.las, .laz) file.
+        /// Parses a LAS/LAZ file without allocating optional standard arrays disabled by the configuration.
         /// </summary>
         public static IEnumerable<Chunk> Chunks(string filename, ParseConfig config)
-            => Chunks(LASZip.Parser.ReadPoints(filename, config.MaxChunkPointCount, config.Verbose), partIndices: config.EnabledProperties.PartIndices ? config.PartIndexOffset : null);
+            => Chunks(LASZip.Parser.ReadPoints(
+                filename, config.MaxChunkPointCount, config.Verbose,
+                config.EnabledProperties.Colors,
+                config.EnabledProperties.Intensities,
+                config.EnabledProperties.Classifications),
+                partIndices: config.EnabledProperties.PartIndices ? config.PartIndexOffset : null);
 
         /// <summary>
-        /// Parses LASzip (.las, .laz) stream.
+        /// Parses a LAS/LAZ stream without allocating optional standard arrays disabled by the configuration.
         /// </summary>
         public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, ParseConfig config)
-            => Chunks(LASZip.Parser.ReadPoints(stream, config.MaxChunkPointCount, config.Verbose), partIndices: config.EnabledProperties.PartIndices ? config.PartIndexOffset : null);
+            => Chunks(LASZip.Parser.ReadPoints(
+                stream, config.MaxChunkPointCount, config.Verbose,
+                config.EnabledProperties.Colors,
+                config.EnabledProperties.Intensities,
+                config.EnabledProperties.Classifications),
+                partIndices: config.EnabledProperties.PartIndices ? config.PartIndexOffset : null);
 
         private static IEnumerable<Chunk> Chunks(this IEnumerable<LASZip.Points> xs, object? partIndices)
             => xs.Select(x => new Chunk(
