@@ -148,6 +148,14 @@ foreach (var subChunk in chunk.Split(chunksize: 4096))
 }
 ```
 
+`Chunk.Split` is lazy: positive sizes are validated on enumeration, and only
+consumed slices are materialized. Each slice keeps attributes aligned, recomputes
+bounds and part-index ranges, and copies byte/short/int part-index arrays or
+`IList` ranges without materializing unused suffixes. Sliced part-index lists
+become same-element-type arrays; scalar `uint` retains its existing conversion to
+`int`. If the size is at least `Count`, the sequence contains the original chunk,
+even when empty, preserving its metadata and attribute identities.
+
 ### Accessing Node Attributes
 
 ```csharp

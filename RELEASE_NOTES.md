@@ -1,3 +1,5 @@
+- [Points] Avoid repeated suffix copies when splitting chunks with per-point part indices.
+
 ### 5.6.3
 - Updated SharpCompress to 0.48.1 to address CVE-2026-44788
 

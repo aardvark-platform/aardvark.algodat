@@ -353,6 +353,12 @@ namespace Aardvark.Data.Points
 
         public Chunk(IList<V3d>? positions) : this(positions, null, null, null, null, null, null, null) { }
 
+        /// <summary>
+        /// Lazily yields consecutive slices of at most <paramref name="chunksize"/> points,
+        /// copying only the consumed ranges with aligned attributes and recomputed bounds/ranges.
+        /// If the size is at least <see cref="Count"/>, yields this instance, including when empty.
+        /// The size must be positive; validation occurs when enumeration starts.
+        /// </summary>
         public IEnumerable<Chunk> Split(int chunksize)
         {
             if (chunksize < 1) throw new Exception();
@@ -365,7 +371,7 @@ namespace Aardvark.Data.Points
                 var i = 0;
                 while (i < Count)
                 {
-                    var qs = PartIndexUtils.Take(PartIndexUtils.Skip(PartIndices, i), chunksize);
+                    var qs = CopyPartIndexRange(PartIndices, i, chunksize);
                     yield return new Chunk(
                         [.. Positions.Skip(i).Take(chunksize)],
                         colors: HasColors ? Colors.Skip(i).Take(chunksize).ToArray() : null,
@@ -380,6 +386,32 @@ namespace Aardvark.Data.Points
                     i += chunksize;
                 }
             }
+        }
+
+        private static object? CopyPartIndexRange(object? source, int start, int count)
+        {
+            // Avoid collection interface checks for the unchanged null/scalar paths.
+            if (source is null or int or uint)
+                return PartIndexUtils.Take(source, count);
+
+            return source switch
+            {
+                IList<byte> xs => CopyPartIndexRange(xs, start, count),
+                IList<short> xs => CopyPartIndexRange(xs, start, count),
+                IList<int> xs => CopyPartIndexRange(xs, start, count),
+                _ => PartIndexUtils.Skip(source, start) // Preserve unsupported-type validation.
+            };
+        }
+
+        private static T[] CopyPartIndexRange<T>(IList<T> source, int start, int count)
+        {
+            count = Math.Min(count, Math.Max(0, source.Count - start));
+            if (count == 0) return Array.Empty<T>();
+
+            var result = new T[count];
+            if (source is T[] array) Array.Copy(array, start, result, 0, count);
+            else for (var i = 0; i < count; i++) result[i] = source[start + i];
+            return result;
         }
 
         /// <summary>
