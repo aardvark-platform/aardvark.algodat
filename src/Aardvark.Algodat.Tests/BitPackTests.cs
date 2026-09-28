@@ -12,6 +12,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using System;
+using System.Collections.Generic;
 using Aardvark.Base;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
@@ -306,6 +307,229 @@ namespace Aardvark.Geometry.Tests
         {
             ulong x = 0b10101010_11001100_01100110_10011101;
             ClassicAssert.IsTrue(BitPack.GetBits(x, 17, 6) == 0b100110);
+        }
+
+        #endregion
+
+        #region Independent decoding regressions
+
+        // Set individual wire bits without using Pack, PushBits, or any production decoder.
+        // Ones outside the requested values detect leaking prefix/padding bits.
+        private static byte[] EncodeIndependently(ulong[] values, int bits, int start = 0)
+        {
+            var result = new byte[(start + values.Length * bits + 7) / 8];
+            Array.Fill(result, (byte)255);
+            for (var i = 0; i < values.Length; i++)
+                for (var bit = 0; bit < bits; bit++)
+                {
+                    var position = start + i * bits + bit;
+                    var mask = (byte)(1 << (position % 8));
+                    if (((values[i] >> bit) & 1UL) == 0) result[position / 8] &= (byte)~mask;
+                    else result[position / 8] |= mask;
+                }
+            return result;
+        }
+
+        private static ulong[] Patterns(int bits)
+        {
+            var mask = bits == 64 ? ulong.MaxValue : (1UL << bits) - 1;
+            var values = new List<ulong> { 0, mask, 0x0123456789abcdefUL & mask, 0xfedcba9876543210UL & mask };
+            for (var bit = 0; bit < bits; bit++) values.Add(1UL << bit);
+            var state = 0x9e3779b97f4a7c15UL ^ (ulong)bits;
+            for (var i = 0; i < 8; i++)
+            {
+                state ^= state << 13; state ^= state >> 7; state ^= state << 17;
+                values.Add(state & mask);
+            }
+            return values.ToArray();
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Unpack24PreservesEveryByte(bool dispatch)
+        {
+            var bytes = new byte[] { 0, 0, 1, 0x56, 0x34, 0x12, 0xff, 0xff, 0xff, 0, 0xff, 1 };
+            var original = (byte[])bytes.Clone();
+            var actual = dispatch ? BitPack.UnpackIntegers(bytes, 24) : BitPack.OptimizedUnpackInt24(bytes);
+            Assert.That(actual, Is.TypeOf<int[]>().And.EqualTo(new[] { 0x010000, 0x123456, 0xffffff, 0x01ff00 }));
+            Assert.That(bytes, Is.EqualTo(original));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Unpack24MatchesIndependentPatterns(bool dispatch)
+        {
+            var values = Patterns(24);
+            var bytes = EncodeIndependently(values, 24);
+            var expected = Array.ConvertAll(values, x => (int)x);
+            var actual = dispatch ? BitPack.UnpackIntegers(bytes, 24) : BitPack.OptimizedUnpackInt24(bytes);
+            Assert.That(actual, Is.TypeOf<int[]>().And.EqualTo(expected));
+        }
+
+        [Test]
+        public void GetULongPreservesDistinctWordHalves()
+        {
+            var bytes = new byte[] { 0x10, 0x32, 0x54, 0x76, 0x98, 0xba, 0xdc, 0xfe };
+            var buffer = new BitPack.BitBuffer(bytes, 64);
+            Assert.That(buffer.GetULong(0, 64), Is.EqualTo(0xfedcba9876543210UL));
+            Assert.That(buffer.GetULong(0, 32), Is.EqualTo(0x76543210UL));
+            Assert.That(buffer.GetULong(32, 32), Is.EqualTo(0xfedcba98UL));
+        }
+
+        [Test]
+        public void GetULongPreservesAllWidthsAndOffsets([Range(1, 64)] int bits, [Range(0, 7)] int offset)
+        {
+            var expected = Patterns(bits);
+            var start = 8 + offset;
+            var bytes = EncodeIndependently(expected, bits, start);
+            var original = (byte[])bytes.Clone();
+            var buffer = new BitPack.BitBuffer(bytes, 1);
+            // Each pattern is tested at every within-byte offset across these eight cases.
+            for (var i = expected.Length - 1; i >= 0; i--)
+            {
+                var bit = start + i * bits;
+                Assert.That(buffer.GetULong(bit, bits), Is.EqualTo(expected[i]), $"value {i}");
+                if (bits <= 32) Assert.That(buffer.GetUInt(bit, bits), Is.EqualTo((uint)expected[i]));
+            }
+            Assert.That(bytes, Is.EqualTo(original));
+        }
+
+        [Test]
+        public void UnpackCallbacksPreserveValuesIndicesAndRequestedCount([Range(1, 64)] int bits)
+        {
+            var expected = Patterns(bits);
+            var bytes = EncodeIndependently(expected, bits);
+            var original = (byte[])bytes.Clone();
+            foreach (var count in new[] { 0, 1, expected.Length - 1, expected.Length })
+            {
+                var seen = 0;
+                BitPack.Unpack(bytes, bits, count, (value, index) =>
+                {
+                    Assert.That(index, Is.EqualTo(seen));
+                    Assert.That(value, Is.EqualTo(expected[index]));
+                    seen++;
+                });
+                Assert.That(seen, Is.EqualTo(count));
+            }
+            Assert.That(bytes, Is.EqualTo(original));
+        }
+
+        [Test]
+        public void DispatcherKeepsNarrowReturnTypes([Range(1, 32)] int bits)
+        {
+            var mask = bits == 32 ? uint.MaxValue : (1UL << bits) - 1;
+            var expected = new[] { 0UL, 1UL, mask, mask / 2, 0xabcdefUL & mask, 0x76543210UL & mask, 0UL, mask };
+            var actual = BitPack.UnpackIntegers(EncodeIndependently(expected, bits), bits);
+            var type = bits switch
+            {
+                2 or 4 or 8 => typeof(byte[]),
+                12 or 16 => typeof(short[]),
+                20 or 24 or 32 => typeof(int[]),
+                _ => typeof(uint[])
+            };
+            Assert.That(actual, Is.TypeOf(type));
+            Assert.That(actual.Length, Is.EqualTo(expected.Length));
+            for (var i = 0; i < actual.Length; i++)
+            {
+                // Signed dispatcher storage retains the complete underlying unsigned bits.
+                var value = actual.GetValue(i) switch
+                {
+                    byte x => (ulong)x,
+                    short x => unchecked((ushort)x),
+                    int x => unchecked((uint)x),
+                    uint x => x,
+                    _ => throw new InvalidOperationException()
+                };
+                Assert.That(value, Is.EqualTo(expected[i]));
+            }
+        }
+
+        [Test]
+        public void DispatcherKeepsSigned64BitStorage()
+        {
+            var expected = Patterns(64);
+            var actual = BitPack.UnpackIntegers(EncodeIndependently(expected, 64), 64);
+            Assert.That(actual, Is.TypeOf<long[]>().And.EqualTo(Array.ConvertAll(expected, x => unchecked((long)x))));
+        }
+
+        [Test]
+        public void DispatcherStillRejectsUnsupportedWideWidths([Range(33, 63)] int bits)
+            => Assert.Throws<Exception>(() => BitPack.UnpackIntegers(new byte[16], bits));
+
+        [TestCase(-1)]
+        [TestCase(0)]
+        [TestCase(65)]
+        public void InvalidReadWidthsKeepTheirExceptions(int bits)
+        {
+            var buffer = new BitPack.BitBuffer(64);
+            Assert.That(Assert.Throws<ArgumentOutOfRangeException>(() => buffer.GetUInt(0, bits)).ParamName, Is.EqualTo("bitCount"));
+            Assert.That(Assert.Throws<ArgumentOutOfRangeException>(() => buffer.GetULong(0, bits)).ParamName, Is.EqualTo("bitCount"));
+            Assert.That(Assert.Throws<ArgumentOutOfRangeException>(() => BitPack.UnpackIntegers(Array.Empty<byte>(), bits)).ParamName, Is.EqualTo("bits"));
+            Assert.That(Assert.Throws<ArgumentException>(() => BitPack.Unpack(Array.Empty<byte>(), bits, 0, (_, _) => { })).ParamName, Is.EqualTo("bits"));
+        }
+
+        [TestCase(1)]
+        [TestCase(2)]
+        [TestCase(4)]
+        [TestCase(5)]
+        public void Unpack24RejectsIncompleteTriples(int length)
+        {
+            Assert.Throws<ArgumentException>(() => BitPack.OptimizedUnpackInt24(new byte[length]));
+            Assert.Throws<ArgumentException>(() => BitPack.UnpackIntegers(new byte[length], 24));
+        }
+
+        [Test]
+        public void GetULongChecksLogicalLength([Values(1, 32, 33, 64)] int bits, [Values(0, 7)] int offset)
+        {
+            var buffer = new BitPack.BitBuffer(offset + bits - 1);
+            Assert.Throws<InvalidOperationException>(() => buffer.GetULong(offset, bits));
+            if (bits <= 32) Assert.Throws<InvalidOperationException>(() => buffer.GetUInt(offset, bits));
+        }
+
+        [Test]
+        public void UnpackTruncationStopsBeforeAnIncompleteValue([Values(24, 32, 33, 63, 64)] int bits)
+        {
+            var values = new[] { 0UL, 1UL, 0UL, 1UL };
+            var bytes = EncodeIndependently(values, bits);
+            Array.Resize(ref bytes, bytes.Length - 1);
+            var seen = 0;
+            Assert.Throws<InvalidOperationException>(() => BitPack.Unpack(bytes, bits, values.Length, (value, index) =>
+            {
+                Assert.That(index, Is.EqualTo(seen));
+                Assert.That(value, Is.EqualTo(values[index]));
+                seen++;
+            }));
+            Assert.That(seen, Is.EqualTo(bytes.Length * 8 / bits));
+        }
+
+        [Test]
+        public void EmptyAndZeroCountReadsKeepTheirBehavior([Values(1, 24, 32, 33, 64)] int bits)
+        {
+            var bytes = Array.Empty<byte>();
+            var buffer = new BitPack.BitBuffer(bytes, bits);
+            Assert.That(buffer.LengthInBits, Is.Zero);
+            Assert.Throws<InvalidOperationException>(() => buffer.GetULong(0, bits));
+            BitPack.Unpack(bytes, bits, 0, (_, _) => Assert.Fail("Unexpected callback"));
+            BitPack.Unpack(bytes, bits, -1, (_, _) => Assert.Fail("Unexpected callback"));
+            if (bits <= 32 || bits == 64) Assert.That(BitPack.UnpackIntegers(bytes, bits).Length, Is.Zero);
+            Assert.That(BitPack.OptimizedUnpackInt24(bytes), Is.Empty);
+            Assert.Throws<ArgumentNullException>(() => BitPack.Unpack(null, bits, 0, (_, _) => { }));
+        }
+
+        [TestCase(32)]
+        [TestCase(33)]
+        [TestCase(64)]
+        public void WarmedGetULongDoesNotAllocate(int bits)
+        {
+            var expected = bits == 64 ? ulong.MaxValue : (1UL << bits) - 1;
+            var buffer = new BitPack.BitBuffer(EncodeIndependently(new[] { expected }, bits), 1);
+            var checksum = 0UL;
+            for (var i = 0; i < 4096; i++) checksum ^= buffer.GetULong(0, bits);
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            for (var i = 0; i < 4097; i++) checksum ^= buffer.GetULong(0, bits);
+            var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+            Assert.That(allocated, Is.Zero);
+            Assert.That(checksum, Is.EqualTo(expected));
         }
 
         #endregion

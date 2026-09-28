@@ -115,6 +115,13 @@ foreach (var chunk in chunks)
 - Optional grid-based point organization (row/column indices)
 - Checksum verification
 
+**Bit decoding helpers:** `Aardvark.Base.BitPack.OptimizedUnpackInt24` reads
+least-significant-byte-first triples into nonnegative `int` values, preserving
+all 24 bits. `BitBuffer.GetULong` and callback-based `BitPack.Unpack` read 1–64
+bits least-significant-bit first and preserve the full unsigned value, including
+bits 32–63. `UnpackIntegers` retains its width-specific return types and supports
+only widths 1–32 and 64, not 33–63. The separate streaming `BitPacker` is unchanged.
+
 ### ASCII Formats
 
 Highly flexible custom ASCII parsing via token definitions.

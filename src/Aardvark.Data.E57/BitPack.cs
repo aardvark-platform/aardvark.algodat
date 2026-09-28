@@ -158,7 +158,11 @@ namespace Aardvark.Base
     /// <summary></summary>
     public static class BitPack
     {
-        /// <summary></summary>
+        /// <summary>
+        /// Unpacks widths 1–32 and 64 using their existing width-specific array types.
+        /// The 24-bit path reads least-significant-byte-first triples into nonnegative ints.
+        /// Widths 33–63 are not supported by this dispatcher; use Unpack for those widths.
+        /// </summary>
         public static Array UnpackIntegers(byte[] buffer, int bits)
         {
             if (bits < 1 || bits > 64) throw new ArgumentOutOfRangeException(nameof(bits),
@@ -261,7 +265,10 @@ namespace Aardvark.Base
                 return xs;
             }
         }
-        /// <summary></summary>
+        /// <summary>
+        /// Unpacks least-significant-byte-first triples into ints in [0, 0xffffff],
+        /// preserving all 24 bits. The buffer length must be a multiple of three bytes.
+        /// </summary>
         public static int[] OptimizedUnpackInt24(byte[] buffer)
         {
             checked
@@ -271,7 +278,7 @@ namespace Aardvark.Base
                 for (int i = 0, j = 0; i < xs.Length;)
                 {
                     var x0 = buffer[j++]; var x1 = buffer[j++]; var x2 = buffer[j++];
-                    xs[i++] = x0 + (x1 << 8) + (x2 << 8);
+                    xs[i++] = x0 + (x1 << 8) + (x2 << 16);
                 }
                 return xs;
             }
@@ -418,7 +425,11 @@ namespace Aardvark.Base
                 return (a | b) & ((1u << bitCount) - 1);
             }
 
-            /// <summary></summary>
+            /// <summary>
+            /// Reads 1–32 bits starting at startBit in least-significant-bit-first order,
+            /// without sign extension.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public uint GetUInt(int startBit, int bitCount)
             {
                 if (bitCount < 1 || bitCount > 32) throw new ArgumentOutOfRangeException(nameof(bitCount));
@@ -434,14 +445,18 @@ namespace Aardvark.Base
                 return x;
             }
 
-            /// <summary></summary>
+            /// <summary>
+            /// Reads 1–64 bits starting at startBit in least-significant-bit-first order.
+            /// The first bit becomes result bit zero; all requested bits, including the
+            /// upper 32 bits of a full-width value, are preserved without sign extension.
+            /// </summary>
             public ulong GetULong(int startBit, int bitCount)
             {
                 if (bitCount < 1 || bitCount > 64) throw new ArgumentOutOfRangeException(nameof(bitCount));
                 if (startBit + bitCount > LengthInBits) throw new InvalidOperationException();
 
                 return bitCount > 32
-                    ? GetUInt(startBit, 32) | GetUInt(startBit + 32, bitCount - 32)
+                    ? GetUInt(startBit, 32) | ((ulong)GetUInt(startBit + 32, bitCount - 32) << 32)
                     : GetUInt(startBit, bitCount);
             }
 
@@ -462,7 +477,11 @@ namespace Aardvark.Base
             return buffer.Buffer;
         }
         
-        /// <summary></summary>
+        /// <summary>
+        /// Reads count consecutive unsigned values of 1–64 bits in least-significant-bit-first
+        /// order, invoking the callback with each full-width value and its zero-based index.
+        /// Reading past the available complete values throws; earlier callbacks remain delivered.
+        /// </summary>
         public static void Unpack(byte[] buffer, int bits, int count, Action<ulong, int> nextValueAndIndex)
         {
             if (buffer == null) throw new ArgumentNullException(nameof(buffer));

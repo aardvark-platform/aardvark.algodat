@@ -1,3 +1,5 @@
+- [E57] Preserve high bits in 24-bit and 33–64-bit BitPack decoding.
+
 ### 5.6.3
 - Updated SharpCompress to 0.48.1 to address CVE-2026-44788
 
