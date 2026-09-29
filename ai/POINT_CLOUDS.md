@@ -206,6 +206,21 @@ var merged = pointSet1.Merge(
 );
 ```
 
+### Deleting Points
+
+`PointSet.Delete` and `IPointCloudNode.Delete` cooperatively observe their supplied
+`CancellationToken` before reads and predicate work, between points and subtrees,
+and around aggregation, persistence and result publication. Cancellation throws
+`OperationCanceledException` carrying that token. Null input still returns null,
+even for a cancelled token. Spatial views retain their existing filter semantics.
+
+Cancellation cannot interrupt an in-flight callback, node decode, storage call or
+synchronous helper such as KD-tree construction. Completed writes are **not rolled
+back**: cancelled deletion can leave new immutable payloads or descriptors in storage,
+while the original point set remains unchanged and readable. Node payloads use the
+supplied destination storage; a `PointSet` descriptor still uses the source set's
+storage. Use the same store for both when the returned set must resolve its new root.
+
 ### Custom Storage Backend
 
 ```csharp
