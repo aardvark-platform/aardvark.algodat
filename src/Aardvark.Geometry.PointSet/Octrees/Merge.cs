@@ -19,6 +19,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Threading;
 
 #pragma warning disable IDE0130 // Namespace does not match folder structure
 
@@ -109,9 +110,10 @@ public static class MergeExtensions
     /// Collects all leaf per-point properties into given lists.
     /// Returns number of leaves that have been collected.
     /// </summary>
-    internal static int CollectEverything(IPointCloudNode self, List<V3d> ps, List<C4b>? cs, List<V3f>? ns, List<int>? js, List<byte>? ks, ref object? qs)
+    internal static int CollectEverything(IPointCloudNode self, List<V3d> ps, List<C4b>? cs, List<V3f>? ns, List<int>? js, List<byte>? ks, ref object? qs, CancellationToken ct = default)
     {
         if (self == null) return 0;
+        ct.ThrowIfCancellationRequested();
 
         if (self.IsLeaf)
         {
@@ -120,11 +122,17 @@ public static class MergeExtensions
             var off = self.Center;
             ps.AddRange(self.Positions.Value.Map(p => off + (V3d)p));
 
+            ct.ThrowIfCancellationRequested();
             if (self.HasColors          && cs != null) cs.AddRange(self.Colors.Value         );
+            ct.ThrowIfCancellationRequested();
             if (self.HasNormals         && ns != null) ns.AddRange(self.Normals.Value        );
+            ct.ThrowIfCancellationRequested();
             if (self.HasIntensities     && js != null) js.AddRange(self.Intensities.Value    );
+            ct.ThrowIfCancellationRequested();
             if (self.HasClassifications && ks != null) ks.AddRange(self.Classifications.Value);
+            ct.ThrowIfCancellationRequested();
             qs = PartIndexUtils.ConcatIndices(qs, initialCount, self.PartIndices, self.PointCountCell);
+            ct.ThrowIfCancellationRequested();
 
             return 1;
         }
@@ -133,11 +141,13 @@ public static class MergeExtensions
             var leaves = 0;
             foreach (var x in self.Subnodes)
             {
+                ct.ThrowIfCancellationRequested();
                 if (x != null)
                 {
-                    leaves += CollectEverything(x.Value, ps, cs, ns, js, ks, ref qs);
+                    leaves += CollectEverything(x.Value, ps, cs, ns, js, ks, ref qs, ct);
                 }
             }
+            ct.ThrowIfCancellationRequested();
 
             if (leaves == 0) throw new Exception($"Expected at least 1 leaf. Error 5c37764f-0c38-4da2-b2cd-2840af83c687.");
 

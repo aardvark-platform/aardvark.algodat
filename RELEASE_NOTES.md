@@ -1,3 +1,5 @@
+- [Points] Honor cooperative cancellation during point deletion without modifying the source tree.
+
 ### 5.6.3
 - Updated SharpCompress to 0.48.1 to address CVE-2026-44788
 
