@@ -37,6 +37,11 @@ public class FilterInsideConvexHulls3d : ISpatialFilter
     /// <summary></summary>
     public FilterInsideConvexHulls3d(IEnumerable<Hull3d> filter) { Hulls = [.. filter]; }
 
+    /// <summary>
+    /// Extrudes the footprint along local Z from zRange.Min to zRange.Max, including
+    /// both caps, then applies trafo to the complete prism. Concave footprints are
+    /// decomposed into convex hulls; polygon validation and decomposition tolerances apply.
+    /// </summary>
     public FilterInsideConvexHulls3d(Polygon2d footprint, Range1d zRange, Trafo3d trafo)
     {
         var basePoly = footprint;
@@ -54,7 +59,7 @@ public class FilterInsideConvexHulls3d : ISpatialFilter
                     var n = new V3d(dir.Y, -dir.X, 0);
                     return new Plane3d(n, new V3d(l.P0, 0)).Transformed(trafo);
                 }).Append([ 
-                    new Plane3d(V3d.OON,zRange.Min).Transformed(trafo),
+                    new Plane3d(V3d.OON,-zRange.Min).Transformed(trafo),
                     new Plane3d(V3d.OOI,zRange.Max).Transformed(trafo)
                 ]);
             return new Hull3d(planes);

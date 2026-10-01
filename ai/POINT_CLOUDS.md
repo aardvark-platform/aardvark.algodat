@@ -90,6 +90,17 @@ foreach (var chunk in pointSet.QueryPointsInsideBox(queryBox))
 long count = pointSet.CountPointsInsideBox(queryBox);
 ```
 
+### Extruded Footprint Filters
+
+`FilterInsideConvexHulls3d(footprint, zRange, trafo)` interprets the footprint in
+local XY and extrudes it over the **inclusive local Z interval**
+`[zRange.Min, zRange.Max]`. It constructs both caps and the side planes locally,
+then transforms the complete prism with `trafo`; query positions are in the
+transformed coordinate system. The bounds need not start at zero, and equal
+bounds describe a zero-height extrusion. Concave decomposition and existing
+floating-point boundary behavior, including rounding at transformed seams, are
+unchanged.
+
 ### Spatial Queries with KD-Tree
 
 ```csharp
