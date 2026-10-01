@@ -14,6 +14,7 @@
 using Aardvark.Base;
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 #pragma warning disable IDE0130 // Namespace does not match folder structure
 
@@ -97,47 +98,40 @@ namespace Aardvark.Geometry
             return box.Contains(m_boxes[objectIndex]);
         }
 
+        /// <summary>
+        /// Finds the nearest accepted box overlap in the supplied index slice, clipped to
+        /// tmin, tmax and the incoming hit's T. A start inside a box reports tmin, not its exit.
+        /// Preserves FastRay3d's boundary and tie rules. A null object filter accepts all
+        /// objects; false skips an object. A null hit filter accepts all candidates; true
+        /// rejects a complete candidate without changing the retained cutoff or hit.
+        /// Accepted hits have Part=0, Coord=Zero and BackSide=false. Only RayHit and SetObject
+        /// are updated: Tag and ObjectStack are preserved. If no candidate is accepted, hit is unchanged.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ObjectsIntersectRay(int[] objectIndexArray, int firstIndex, int indexCount, FastRay3d ray, Func<IIntersectableObjectSet, int, bool> ios_index_objectFilter, Func<IIntersectableObjectSet, int, int, RayHit3d, bool> ios_index_part_hit_hitFilter, double tmin, double tmax, ref ObjectRayHit hit)
         {
-            var found = false;
             var index = -1;
-            tmax = Fun.Min(tmax, hit.RayHit.T);
+            ReadOnlySpan<Box3d> boxes = m_boxes;
+            var interval = new Range1d(tmin, Fun.Min(tmax, hit.RayHit.T));
 
-            for (int i = 0; i < indexCount; i++)
+            for (int i = firstIndex; indexCount > 0; i++, indexCount--)
             {
-                var id = objectIndexArray[firstIndex + i];
-                if (ios_index_objectFilter(this, id))
-                {
-                    var t = tmin;
-                    if (ray.Intersects(m_boxes[id], ref t, ref tmax))
-                    {
-                        tmax = t;
-                        found = true;
-                        index = id;
-                    }
-                }
+                var id = objectIndexArray[i];
+                if (ios_index_objectFilter != null && !ios_index_objectFilter(this, id)) continue;
+
+                // A failed overlap can still change both bounds of this local interval.
+                var candidate = interval;
+                if (!ray.Intersects(boxes[id], ref candidate.Min, ref candidate.Max)) continue;
+                if (ios_index_part_hit_hitFilter != null && ios_index_part_hit_hitFilter(this, id, 0,
+                    new RayHit3d { T = candidate.Min, Point = ray.Ray.GetPointOnRay(candidate.Min) })) continue;
+
+                interval.Max = candidate.Min;
+                index = id;
             }
+            if (index < 0) return false;
 
-            if (found)
-            {
-                hit = new ObjectRayHit()
-                {
-                    SetObject = new SetObject(this, index),
-                    ObjectStack = [], // TODO
-                    RayHit = new RayHit3d()
-                    {
-                        Part = 0,
-                        Point = ray.Ray.GetPointOnRay(tmax),
-                        T = tmax,
-
-                        Coord = V2d.Zero, // TODO
-                        BackSide = false // TODO
-                    }
-                };
-
-                return true;
-            }
-            else return false;
+            hit.RayHit = new RayHit3d { T = interval.Max, Point = ray.Ray.GetPointOnRay(interval.Max) };
+            return hit.Set(this, index);
         }
     }
 }

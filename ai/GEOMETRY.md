@@ -97,6 +97,7 @@ Kd-tree–based ray-object intersection with custom object sets.
 | `IIntersectableObjectSet` | Interface for ray-intersectable object collections |
 | `KdIntersectionTree` | Kd-tree accelerating ray intersections and closest-point queries |
 | `IntersectableTriangleSet` | Triangle soup implementation of `IIntersectableObjectSet` |
+| `IntersectableBoxSet` | Axis-aligned boxes with clipped ray-overlap queries |
 | `ObjectRayHit` | Ray intersection result with t-parameter, point, and object reference |
 | `ObjectClosestPoint` | Closest-point query result with distance and coordinates |
 | `FastRay3d` | Precomputed ray data for efficient kd-tree traversal |
@@ -137,6 +138,26 @@ if (kdTree.ClosestPoint(queryPoint, ref closest))
 - **Hit parameter is in/out** – Pass existing hit with `t` limit; updated only if closer intersection found.
 - **Object filters can skip tests** – Supply `null` for no filtering; filters allow skipping objects or hits.
 - **Parallel build enabled by default** – Use `BuildFlags.NoMultithreading` to force single-threaded construction.
+
+### Box-Ray Overlaps
+
+`IntersectableBoxSet.ObjectsIntersectRay` scans the requested index slice and
+clips each box independently to `tmin`, `tmax`, and the incoming hit's `T`.
+This is a **volume-overlap query**, not an exit-surface query: starting inside a
+box reports `tmin`. Shared `FastRay3d` boundary/tie rules are unchanged: a surface
+entry exactly at the upper cutoff is rejected, equal surface entries keep the
+first accepted box, and equally clipped interior overlaps can select a later box.
+
+A null object filter accepts all objects; otherwise **true includes** the object.
+A null hit filter accepts all candidates; otherwise **true rejects** the complete
+candidate `RayHit3d`. Misses and rejections cannot reduce the retained cutoff.
+Hits retain the existing payload convention (`Part = 0`, `Coord = Zero`,
+`BackSide = false`), without identifying a box face.
+
+A successful direct call updates only `RayHit` and `SetObject`, preserving the
+caller's `Tag` and `ObjectStack`. If no candidate is accepted, the entire incoming
+hit is unchanged. The surrounding kd-tree traversal is unchanged and still clears
+`ObjectStack` after a successful flat-set query.
 
 ## Aardvark.Geometry.Normals
 
