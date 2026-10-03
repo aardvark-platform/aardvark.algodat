@@ -83,18 +83,16 @@ public static partial class Queries
     }
 
     /// <summary>
-    /// Enumerates cells/front at given cell exponent (or higher if given depth is not reached).
-    /// E.g. with minCellExponent = 0 all cells of size 1 (or larger) are numerated.
+    /// Enumerates unfiltered chunks, equivalent to <see cref="QueryAllPoints(IPointCloudNode, int)"/>.
+    /// By default, visits all leaves in depth-first octant order. At minCellExponent,
+    /// emits the node's stored samples (including inner-node LoD data); coarser leaves
+    /// are emitted without further subdivision. A node below the requested exponent
+    /// contributes no chunks, so a cutoff above the root yields an empty enumeration.
+    /// Cell exponent describes size (2^exponent), not relative tree depth.
     /// </summary>
     public static IEnumerable<Chunk> QueryPoints(this IPointCloudNode node,
         int minCellExponent = int.MinValue
-        ) => QueryPoints(
-            node, 
-            _ => true, 
-            _ => throw new InvalidOperationException("Invariant 482cbeed-88f2-46af-9cc0-6b0f6f1fc61a."),
-            _ => throw new InvalidOperationException("Invariant 31b005a8-f65d-406f-b2a1-96f133d357d3."),
-            minCellExponent
-            );
+        ) => QueryAllPoints(node, minCellExponent);
 
     #endregion
 

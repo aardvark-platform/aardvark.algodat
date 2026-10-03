@@ -998,6 +998,164 @@ namespace Aardvark.Geometry.Tests
             ClassicAssert.IsTrue(rs2.Length == 0);
         }
 
+        private static V3d UnfilteredPosition(int id, int side)
+            => new((id / (side * side) + 0.5) / side, ((id / side) % side + 0.5) / side, (id % side + 0.5) / side);
+
+        private static C4b UnfilteredColor(int id)
+            => new((byte)id, (byte)(id >> 1), (byte)(255 - (id & 255)), (byte)255);
+
+        private static V3f UnfilteredNormal(int id) => id % 3 == 0 ? V3f.IOO : id % 3 == 1 ? V3f.OIO : V3f.OOI;
+
+        private static IPointCloudNode CreateAttributedQueryRoot(Storage storage, int side, int splitLimit)
+        {
+            var ids = Enumerable.Range(0, side * side * side).ToArray();
+            var chunk = new Chunk(ids.Select(i => UnfilteredPosition(i, side)).ToArray(), ids.Select(UnfilteredColor).ToArray(),
+                ids.Select(UnfilteredNormal).ToArray(), ids.Select(i => 5000 + i).ToArray(), ids.Select(i => (byte)(i % 31)).ToArray(),
+                ids.Select(i => 20000 + i).ToArray(), null, null);
+            return PointCloud.Chunks(chunk, ImportConfig.Default.WithStorage(storage).WithRandomKey()
+                .WithOctreeSplitLimit(splitLimit).WithEnabledPartIndices(true)).Root.Value;
+        }
+
+        // A stack-based frontier oracle, independent of the query enumerators.
+        private static IPointCloudNode[] UnfilteredFrontier(IPointCloudNode root, int cutoff)
+        {
+            var result = new List<IPointCloudNode>();
+            var pending = new Stack<IPointCloudNode>();
+            pending.Push(root);
+            while (pending.Count > 0)
+            {
+                var node = pending.Pop();
+                if (node.Cell.Exponent < cutoff) continue;
+                if (node.IsLeaf || node.Cell.Exponent == cutoff) result.Add(node);
+                else for (var i = 7; i >= 0; i--)
+                    if (node.Subnodes[i] != null) pending.Push(node.Subnodes[i].Value);
+            }
+            return result.ToArray();
+        }
+
+        private static void AssertUnfilteredChunks(Chunk[] actual, IPointCloudNode[] frontier, int side, string context)
+        {
+            Assert.That(actual.Length, Is.EqualTo(frontier.Length), context + ", chunk count");
+            for (var c = 0; c < actual.Length; c++)
+            {
+                var chunk = actual[c];
+                var node = frontier[c];
+                var label = $"{context}, chunk={c}, cell={node.Cell}";
+                Assert.That(chunk.Positions, Is.EqualTo(node.PositionsAbsolute), label + ", ordered positions");
+                Assert.That((chunk.HasColors, chunk.HasNormals, chunk.HasIntensities, chunk.HasClassifications, chunk.HasPartIndices),
+                    Is.EqualTo((true, true, true, true, true)), label + ", attribute presence");
+                Assert.That((chunk.Colors.Count, chunk.Normals.Count, chunk.Intensities.Count, chunk.Classifications.Count),
+                    Is.EqualTo((chunk.Count, chunk.Count, chunk.Count, chunk.Count)), label + ", attribute counts");
+                var parts = chunk.TryGetPartIndices();
+                Assert.That(parts.Count, Is.EqualTo(chunk.Count), label + ", part count");
+                // LoD generation recomputes normals: preserve that node's stored normals.
+                Assert.That(chunk.Normals, Is.EqualTo(node.Normals.Value), label + ", normals");
+                for (var i = 0; i < chunk.Count; i++)
+                {
+                    var p = chunk.Positions[i];
+                    var id = (int)(p.X * side) * side * side + (int)(p.Y * side) * side + (int)(p.Z * side);
+                    Assert.That(p, Is.EqualTo(UnfilteredPosition(id, side)), label + $", point={i}");
+                    Assert.That(chunk.Colors[i], Is.EqualTo(UnfilteredColor(id)), label + $", color={i}");
+                    Assert.That(chunk.Intensities[i], Is.EqualTo(5000 + id), label + $", intensity={i}");
+                    Assert.That(chunk.Classifications[i], Is.EqualTo((byte)(id % 31)), label + $", classification={i}");
+                    Assert.That(parts[i], Is.EqualTo(20000 + id), label + $", part={i}");
+                    if (node.IsLeaf) Assert.That(chunk.Normals[i], Is.EqualTo(UnfilteredNormal(id)), label + $", leaf normal={i}");
+                }
+            }
+        }
+
+        [Test]
+        public void UnfilteredQueryReturnsCompleteAttributedLeaf()
+        {
+            using var storage = PointCloud.CreateInMemoryStore(cache: null);
+            var root = CreateAttributedQueryRoot(storage, 4, 64);
+            Assert.That(root.IsLeaf, Is.True);
+            Assert.That(root.Cell.Exponent, Is.Zero);
+            foreach (var exponent in new int?[] { null, int.MinValue, 0, -1, -2 })
+            {
+                var context = $"leaf, exponent={exponent?.ToString() ?? "default"}";
+                var query = exponent.HasValue ? root.QueryPoints(exponent.Value) : root.QueryPoints();
+                var chunks = query.ToArray();
+                AssertUnfilteredChunks(chunks, new[] { root }, 4, context);
+                Assert.That(chunks.Single().Positions, Is.EqualTo(Enumerable.Range(0, 64).Select(i => UnfilteredPosition(i, 4))), context);
+                AssertUnfilteredChunks(root.QueryAllPoints(exponent ?? int.MinValue).ToArray(), new[] { root }, 4, context + ", reference");
+                AssertUnfilteredChunks(query.ToArray(), new[] { root }, 4, context + ", repeated enumeration");
+            }
+        }
+
+        [Test]
+        public void UnfilteredQueryPreservesLodFrontierAndChunkOrder()
+        {
+            foreach (var side in new[] { 4, 8 })
+            using (var storage = PointCloud.CreateInMemoryStore(cache: null))
+            {
+                var root = CreateAttributedQueryRoot(storage, side, 8);
+                Assert.That(root.IsLeaf, Is.False);
+                Assert.That(root.Cell.Exponent, Is.Zero);
+                Assert.That(root.PointCountCell, Is.EqualTo(8));
+                Assert.That(root.PointCountTree, Is.EqualTo(side * side * side));
+                foreach (var exponent in new int?[] { null, int.MinValue, 0, -1, -2, -3 })
+                {
+                    var cutoff = exponent ?? int.MinValue;
+                    var context = $"side={side}, exponent={exponent?.ToString() ?? "default"}";
+                    var frontier = UnfilteredFrontier(root, cutoff);
+                    var query = exponent.HasValue ? root.QueryPoints(exponent.Value) : root.QueryPoints();
+                    var chunks = query.ToArray();
+                    AssertUnfilteredChunks(chunks, frontier, side, context);
+                    AssertUnfilteredChunks(root.QueryAllPoints(cutoff).ToArray(), frontier, side, context + ", reference");
+                    Assert.That(chunks.Sum(c => c.Count), Is.EqualTo(cutoff == 0 ? 8 : side == 8 && cutoff == -1 ? 64 : side * side * side), context);
+                    if (cutoff < -1 || (side == 4 && cutoff < 0))
+                        Assert.That(chunks.SelectMany(c => c.Intensities).OrderBy(i => i),
+                            Is.EqualTo(Enumerable.Range(5000, side * side * side)), context + ", complete leaf points");
+                    AssertUnfilteredChunks(query.Take(1).ToArray(), frontier.Take(1).ToArray(), side, context + ", partial enumeration");
+                }
+            }
+        }
+
+        [Test]
+        public void UnfilteredQueryAboveTheRootYieldsNoChunks()
+        {
+            foreach (var splitLimit in new[] { 8, 64 })
+            using (var storage = PointCloud.CreateInMemoryStore(cache: null))
+            {
+                var root = CreateAttributedQueryRoot(storage, 4, splitLimit);
+                foreach (var exponent in new[] { root.Cell.Exponent + 1, int.MaxValue })
+                {
+                    var context = $"split={splitLimit}, exponent={exponent}";
+                    Assert.That(root.QueryPoints(exponent), Is.Empty, context);
+                    Assert.That(root.QueryAllPoints(exponent), Is.Empty, context + ", reference");
+                }
+            }
+        }
+
+        [Test]
+        public void UnfilteredQueryMatchesQueryAllPointsForEmptyNodes()
+        {
+            using var storage = PointCloud.CreateInMemoryStore(cache: null);
+            var emptyCell = InMemoryPointSet.Build(Chunk.Empty, Cell.Unit, 8).ToPointSetNode(storage, isTemporaryImportNode: true);
+            foreach (IPointCloudNode node in new[] { PointSetNode.Empty, emptyCell })
+            foreach (var exponent in new int?[] { null, int.MinValue, node.Cell.Exponent, 0, 1, int.MaxValue }.Distinct())
+            {
+                var cutoff = exponent ?? int.MinValue;
+                var context = $"cell={node.Cell}, exponent={exponent?.ToString() ?? "default"}";
+                var actual = (exponent.HasValue ? node.QueryPoints(exponent.Value) : node.QueryPoints()).ToArray();
+                var expected = node.QueryAllPoints(cutoff).ToArray();
+                Assert.That(actual.Length, Is.EqualTo(node.Cell.Exponent < cutoff ? 0 : 1), context);
+                Assert.That(actual.Length, Is.EqualTo(expected.Length), context);
+                for (var i = 0; i < actual.Length; i++)
+                {
+                    Assert.That(actual[i].Positions, Is.Empty, context);
+                    Assert.That(actual[i].Colors, Is.EqualTo(expected[i].Colors), context);
+                    Assert.That(actual[i].Normals, Is.EqualTo(expected[i].Normals), context);
+                    Assert.That(actual[i].Intensities, Is.EqualTo(expected[i].Intensities), context);
+                    Assert.That(actual[i].Classifications, Is.EqualTo(expected[i].Classifications), context);
+                    Assert.That(actual[i].PartIndices, Is.EqualTo(expected[i].PartIndices), context);
+                    Assert.That(actual[i].PartIndexRange, Is.EqualTo(expected[i].PartIndexRange), context);
+                    Assert.That(actual[i].BoundingBox, Is.EqualTo(expected[i].BoundingBox), context);
+                }
+            }
+        }
+
         #endregion
 
         #region Cells

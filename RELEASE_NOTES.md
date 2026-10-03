@@ -1,3 +1,5 @@
+- [Points] Make unfiltered QueryPoints enumerate through QueryAllPoints instead of throwing.
+
 ### 5.6.3
 - Updated SharpCompress to 0.48.1 to address CVE-2026-44788
 
