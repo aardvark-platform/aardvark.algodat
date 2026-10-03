@@ -90,6 +90,20 @@ foreach (var chunk in pointSet.QueryPointsInsideBox(queryBox))
 long count = pointSet.CountPointsInsideBox(queryBox);
 ```
 
+### Unfiltered Queries and Cell-Exponent Cutoffs
+
+`node.QueryPoints()` is equivalent to `node.QueryAllPoints()`: it lazily emits
+leaf chunks in depth-first octant-index order, with absolute positions and aligned
+standard attributes and part indices. The explicit overload
+`node.QueryPoints(minCellExponent)` forwards to `node.QueryAllPoints(minCellExponent)`.
+
+The cutoff is a **cell-size exponent**, not relative tree depth. At that exponent,
+queries emit a node's stored samples, including inner-node LoD data. Coarser leaves
+are emitted as-is; nodes below the cutoff contribute no chunks. In particular, a
+cutoff above the root yields no chunks, one equal to the root returns its stored
+samples, and the default `int.MinValue` descends to all leaves. Empty-node behavior
+is identical to `QueryAllPoints`, including empty chunks for eligible empty leaves.
+
 ### Spatial Queries with KD-Tree
 
 ```csharp
