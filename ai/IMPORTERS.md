@@ -1,345 +1,101 @@
-# Point Cloud File Format Importers
+# Point Cloud Importers
 
-This document describes the point cloud file format importers provided by the Aardvark platform. All importers follow a unified API pattern and automatically register with the `PointCloud.Import()` system.
+File import produces a stored `PointSet`; direct parsers yield chunks. These are point-cloud importers, not general mesh import/export APIs.
 
-## Supported Formats
+| Format | Entry points | Source |
+|--------|--------------|--------|
+| E57 | `E57.Chunks`, `E57.ChunksFull`, `E57.E57Info` | [Aardvark.Data.E57](../src/Aardvark.Data.E57/ImportE57.cs) |
+| LAS/LAZ | `Laszip.Chunks`, `Laszip.LaszipInfo` | [Aardvark.Data.Points.LasZip](../src/Aardvark.Data.Points.LasZip/Import.cs) |
+| PLY | `Ply.Chunks`, `Ply.PlyInfo`, `PlyParser` | [Aardvark.Data.Points.Ply](../src/Aardvark.Data.Points.Ply/PlyImport.cs), [Ply.Net](../src/Ply.Net) |
+| ASCII | `Pts.Chunks`, `Yxh.Chunks`, `Ascii.Chunks` | [Aardvark.Data.Points.Ascii](../src/Aardvark.Data.Points.Ascii) |
 
-| Format | Project | Extensions | Features |
-|--------|---------|------------|----------|
-| E57 | Aardvark.Data.E57 | `.e57` | ASTM E2807-11 standard, multi-scan support, coordinate transforms, multi-return data, grid-based organization, GPS timestamps |
-| ASCII | Aardvark.Data.Points.Ascii | Custom | Flexible token-based parsing, PTS format (XYZ+RGB), YXH format (XYZ+IRGB), user-defined layouts |
-| LAS/LAZ | Aardvark.Data.Points.LasZip | `.las`, `.laz` | LiDAR data, LAS 1.0-1.4, compressed/uncompressed, return metadata, scan direction, GPS times |
-| PLY | Aardvark.Data.Points.Ply | `.ply` | Polygon File Format, ASCII and binary (little/big endian), auto-type conversion, intensity rescaling |
+Include the format's project/package in the application. `PointCloud.Import` selects registered formats by extension; [PointCloudFileFormat](../src/Aardvark.Data.Points.Base/PointCloudFileFormat.cs) discovers importer classes through introspection. A custom ASCII layout is supplied explicitly rather than inferred from an arbitrary `.txt` extension.
 
-## Import API Patterns
+## Import to a Store
 
-All importers follow a consistent pattern for integration with `PointCloud.Import()`:
-
-### Basic Import
+This example requires an existing `scan.e57` file:
 
 ```csharp
-using Aardvark.Data;
+using Aardvark.Data.Points;
 using Aardvark.Geometry.Points;
 
-var filename = "scan.e57";
+using var storage = PointCloud.OpenStore("scan.uds");
 var config = ImportConfig.Default
-    .WithStorage(PointCloud.CreateInMemoryStore())
-    .WithKey("my-pointcloud");
-
-var pointset = PointCloud.Import(filename, config);
+    .WithStorage(storage)
+    .WithKey("scan")
+    .WithMaxChunkPointCount(65536);
+var pointSet = PointCloud.Import("scan.e57", config);
+storage.Flush();
 ```
 
-### Advanced Configuration
+[ImportConfig](../src/Aardvark.Geometry.PointSet/Octrees/ImportConfig.cs) uses `With*` methods that return new configurations. `WithEnabledPartIndices` and `WithPartIndexOffset` control source-part tracking; `WithProgressCallback` reports import progress. `WithMinDist` filters point density and `WithReproject` maps positions during import. Reprojection of positions does not itself transform normals.
+
+See [Point clouds](POINT_CLOUDS.md) for storage lifetime, chunk types, and queries. Chunked parsing bounds working batches, not the size of an in-memory store.
+
+## Direct Chunk Processing
+
+Direct parsers take **ParseConfig**, not `ImportConfig`:
 
 ```csharp
-var config = ImportConfig.Default
-    .WithStorage(PointCloud.CreateInMemoryStore(cache: default))
-    .WithKey("my-pointcloud")
-    .WithMaxChunkPointCount(65536)              // Chunk size control
-    .WithPartIndexOffset(42)                     // Multi-file tracking
-    .WithEnabledPartIndices(true)                // Enable part indices
-    .WithMinDist(0.01)                           // Point density filtering
-    .WithVerbose(true);                          // Enable logging
-
-var pointset = PointCloud.Import(filename, config);
-```
-
-### Low-Level Chunk Access
-
-Each importer exposes a `Chunks()` method for direct chunk iteration:
-
-```csharp
+using System;
+using Aardvark.Data.Points;
 using Aardvark.Data.Points.Import;
 
-var filename = "scan.las";
-var config = ParseConfig.Default;
-
-foreach (var chunk in Laszip.Chunks(filename, config))
+var parseConfig = ParseConfig.Default.WithMaxChunkPointCount(32768);
+foreach (var chunk in Laszip.Chunks("scan.laz", parseConfig))
 {
-    V3d[] positions = chunk.Positions;
-    C3b[] colors = chunk.Colors;          // May be null
-    V3f[] normals = chunk.Normals;        // May be null
-    int[] intensities = chunk.Intensities; // May be null
-    byte[] classifications = chunk.Classifications; // May be null
+    Console.WriteLine(chunk.Count);
+    if (chunk.Colors != null && chunk.Count > 0)
+        Console.WriteLine(chunk.Colors[0]);
 }
 ```
 
-### File Metadata Extraction
+`Laszip.Chunks`, `Ply.Chunks`, and `E57.Chunks` return the common [Chunk representation](POINT_CLOUDS.md#chunks). Raw format properties are not necessarily retained there.
+
+## Format-Specific Behavior
+
+### E57
+
+- Positions have the scan pose applied; normals are rotated when a pose is present.
+- `Chunks` filters nonzero `CartesianInvalidState` entries. It supplies default colors and may fill attributes missing from individual scans to make their data compatible.
+- `ChunksFull` returns `E57.E57Chunk`, preserving `RawData` and `Data3D`. It does **not** perform the same invalid-state filtering. If filtering it yourself, apply the mask to every aligned attribute, not only positions.
+- Full chunks expose optional `uint[]` row/column and return indices, `C3b[]` colors, and `DateTimeOffset[]` timestamps. Timestamp conversion uses acquisition metadata or an epoch heuristic; consult `RawData` for the decoded timestamp values.
+- Checksum verification is opt-in through the stream overloads with `verifyChecksums`.
+
+### LAS/LAZ
+
+`Laszip.Chunks` normalizes colors to `C4b` and intensities to `int`; it does not expose return numbers, flight-line flags, or GPS times. For those fields use [LASZip.Parser.ReadPoints](../src/Aardvark.Data.Points.LasZip/Parser.cs) and its raw `LASZip.Points` batches.
+
+### ASCII
+
+Token order must match the file's columns. For an `X Y Z R G B` text file:
 
 ```csharp
-var e57Info = E57.E57Info("scan.e57", ParseConfig.Default);
-var laszipInfo = Laszip.LaszipInfo("scan.las", ParseConfig.Default);
-var plyInfo = Ply.PlyInfo("scan.ply", ParseConfig.Default);
-
-// Header-only parsing for PLY
-var header = PlyParser.ParseHeader("scan.ply");
-Console.WriteLine($"Vertex count: {header.Vertex?.Count}");
-```
-
-## Format-Specific Usage
-
-### E57 Format
-
-E57 is an XML-based format with binary data sections (ASTM E2807-11) commonly used for terrestrial laser scanning.
-
-```csharp
-using Aardvark.Data.Points.Import;
-
-var chunks = E57.ChunksFull("scan.e57", ParseConfig.Default);
-
-foreach (var chunk in chunks)
-{
-    // Standard properties
-    V3d[] positions = chunk.Positions;
-    C3b[] colors = chunk.Colors;
-    V3f[] normals = chunk.Normals;
-    int[] intensities = chunk.Intensities;
-
-    // E57-specific metadata
-    int?[] rowIndices = chunk.RowIndex;
-    int?[] columnIndices = chunk.ColumnIndex;
-    int[] returnCounts = chunk.ReturnCount;
-    int[] returnIndices = chunk.ReturnIndex;
-    double[] timestamps = chunk.Timestamps;  // GPS or Unix epoch
-    int[] cartesianInvalidState = chunk.CartesianInvalidState;
-
-    // Access all raw properties
-    var rawData = chunk.RawData;  // ImmutableDictionary<PointPropertySemantics, Array>
-}
-```
-
-**Key Features:**
-- Multiple Data3D objects (different scans) in one file
-- Coordinate transformations via pose (rotation + translation)
-- Multi-return sensor data support
-- Optional grid-based point organization (row/column indices)
-- Checksum verification
-
-### ASCII Formats
-
-Highly flexible custom ASCII parsing via token definitions.
-
-```csharp
+using Aardvark.Data.Points;
 using Aardvark.Data.Points.Import;
 using static Aardvark.Data.Points.Import.Ascii;
 
-// Built-in PTS format: X Y Z R G B
-var ptsChunks = Pts.Chunks("scan.pts", ParseConfig.Default);
-
-// Built-in YXH format: X Y Z Intensity R G B
-var yxhChunks = Yxh.Chunks("scan.yxh", ParseConfig.Default);
-
-// Custom format definition
-var customFormat = Ascii.CreateFormat("MyFormat", new[] {
+var layout = new[]
+{
     Token.PositionX, Token.PositionY, Token.PositionZ,
-    Token.ColorR, Token.ColorG, Token.ColorB,
-    Token.Intensity,
-    Token.NormalX, Token.NormalY, Token.NormalZ
-});
-
-var customChunks = Ascii.Chunks("scan.txt", customFormat.LineDefinition, ParseConfig.Default);
-```
-
-**Available Tokens:**
-- Position: `PositionX`, `PositionY`, `PositionZ`
-- Normal: `NormalX`, `NormalY`, `NormalZ`
-- Color (byte 0-255): `ColorR`, `ColorG`, `ColorB`, `ColorA`
-- Color (float 0.0-1.0): `ColorRf`, `ColorGf`, `ColorBf`, `ColorAf`
-- `Intensity`
-- Custom data: `CustomByte`, `CustomInt32`, `CustomFloat32`, `CustomFloat64`
-- `Skip` (ignore field)
-
-**Key Features:**
-- Stream-based line-by-line parsing
-- Empty lines skipped automatically
-- Progress reporting and verbose logging
-- Null handling for missing colors/normals/intensities
-
-### LAS/LAZ Format
-
-LiDAR data format (LAS 1.0-1.4) with optional compression (.laz).
-
-```csharp
-using Aardvark.Data.Points.Import;
-
-var chunks = Laszip.Chunks("scan.laz", ParseConfig.Default);
-
-foreach (var chunk in chunks)
-{
-    V3d[] positions = chunk.Positions;
-    ushort[] intensities = chunk.Intensities;
-    byte[] classifications = chunk.Classifications;
-    C3b[] colors = chunk.Colors;
-
-    // LiDAR-specific metadata
-    byte[] returnNumbers = chunk.ReturnNumbers;
-    byte[] numberOfReturnsOfPulses = chunk.NumberOfReturnsOfPulses;
-    bool[] scanDirectionFlags = chunk.ScanDirectionFlags;
-    bool[] edgeOfFlightLines = chunk.EdgeOfFlightLines;
-    double[] gpsTimes = chunk.GpsTimes;
-}
-```
-
-**Key Features:**
-- Wraps laszip.net native library
-- Supports both compressed (.laz) and uncompressed (.las)
-- Handles LiDAR-specific metadata (return counts, scan direction)
-- Efficient chunked reading
-- GPS time support
-
-**Dependencies:**
-- `Unofficial.laszip.netstandard` package
-
-### PLY Format
-
-Polygon File Format supporting ASCII and binary encodings.
-
-```csharp
-using Aardvark.Data.Points.Import;
-
-// High-level import
-var chunks = Ply.Chunks("scan.ply", ParseConfig.Default);
-
-// Low-level parsing with Ply.Net
-var dataset = PlyParser.Parse("scan.ply", maxChunkSize: 10000);
-var plyChunks = Ply.Chunks(dataset, ParseConfig.Default);
-
-foreach (var chunk in chunks)
-{
-    V3d[] positions = chunk.Positions;  // Required: x, y, z
-    C3b[] colors = chunk.Colors;        // Optional: red, green, blue, alpha
-    V3f[] normals = chunk.Normals;      // Optional: nx, ny, nz
-    int[] intensities = chunk.Intensities;  // Optional: scalar_intensity or intensity
-    byte[] classifications = chunk.Classifications;  // Optional: scalar_classification or classification
-}
-```
-
-**Property Detection:**
-- Positions: `x`, `y`, `z` (required, auto-converts from any numeric type)
-- Colors: `red`, `green`, `blue`, `alpha` (byte values, auto-scales from float 0.0-1.0)
-- Normals: `nx`, `ny`, `nz` (float values)
-- Intensities: `scalar_intensity` or `intensity` (auto-scales to 0-255 range)
-- Classifications: `scalar_classification` or `classification` (byte values)
-
-**Key Features:**
-- Supports ASCII and binary (little/big endian) PLY formats
-- Auto-type conversion for numeric properties
-- Intensity value rescaling (preserves 0-255 for small values, scales larger ranges)
-- Color alpha channel defaults to 255 if missing
-- Chunked processing for large files
-- Property names are case-insensitive
-
-## Gotchas
-
-### 1. Coordinate System Assumptions
-
-**Problem:** Importers do not perform coordinate system transformations. E57 applies pose transformations, but other formats assume the coordinate system is as-stored.
-
-**Solution:** Apply coordinate transformations manually after import if needed:
-
-```csharp
-var pointset = PointCloud.Import("scan.las", config);
-var transformed = pointset.Transform(Matrix4x4.FromRotationZ(Math.PI / 2));
-```
-
-### 2. Memory Usage with Large Files
-
-**Problem:** Loading entire point clouds into memory can exhaust resources.
-
-**Solution:** Use chunked processing and configure `MaxChunkPointCount`:
-
-```csharp
-var config = ImportConfig.Default
-    .WithMaxChunkPointCount(32768)  // Smaller chunks
-    .WithStorage(PointCloud.CreateInMemoryStore(cache: default));
-
-foreach (var chunk in Laszip.Chunks("huge.laz", ParseConfig.Default))
-{
-    ProcessChunk(chunk);  // Process one chunk at a time
-}
-```
-
-### 3. Missing Properties Are Null
-
-**Problem:** Not all formats support all properties (colors, normals, intensities, classifications). Missing properties are `null`, not empty arrays.
-
-**Solution:** Always null-check before accessing:
-
-```csharp
-var chunk = chunks.First();
-if (chunk.Colors != null)
-{
-    var avgColor = chunk.Colors.Average(c => c.R);
-}
-```
-
-### 4. ASCII Format Token Order Matters
-
-**Problem:** Custom ASCII format definitions must match the exact column order in the file.
-
-**Solution:** Verify token sequence matches file layout:
-
-```csharp
-// File: "X Y Z R G B I"
-var correct = new[] {
-    Token.PositionX, Token.PositionY, Token.PositionZ,
-    Token.ColorR, Token.ColorG, Token.ColorB,
-    Token.Intensity
+    Token.ColorR, Token.ColorG, Token.ColorB
 };
-
-// Wrong order will produce garbage data
-var wrong = new[] {
-    Token.PositionX, Token.PositionZ, Token.PositionY,  // Y and Z swapped!
-    Token.ColorR, Token.ColorG, Token.ColorB,
-    Token.Intensity
-};
+var chunks = Ascii.Chunks("scan.txt", layout, ParseConfig.Default);
 ```
 
-### 5. E57 Invalid State Filtering
+The token enum also provides normals, float colors, intensity, custom scalar fields, and `Skip`; check [Ascii.Token](../src/Aardvark.Data.Points.Ascii/ImportAscii.cs) when defining a layout. `Pts` and `Yxh` have built-in layouts.
 
-**Problem:** E57 files can contain invalid points (direction-only or invalid coordinates) marked by `CartesianInvalidState`.
+### PLY
 
-**Solution:** Filter invalid points explicitly:
+The parser supports ASCII and both binary byte orders. The point importer reads vertex properties, not polygon faces:
 
-```csharp
-foreach (var chunk in E57.ChunksFull("scan.e57", ParseConfig.Default))
-{
-    if (chunk.CartesianInvalidState != null)
-    {
-        var validMask = chunk.CartesianInvalidState
-            .Select(state => state == 0)  // 0 = valid
-            .ToArray();
+- Position channels: `x`, `y`, `z`; normal channels: `nx`, `ny`, `nz`.
+- Colors: `red`, `green`, `blue`, `alpha`; float colors are scaled from [0,1], and missing alpha defaults to 255 when colors exist.
+- Intensity: `scalar_intensity` or `intensity`; classification: `scalar_classification` or `classification`.
+- Intensity conversion depends on source type. Up to signed 32-bit integer values are retained; unsigned 32-bit, 64-bit, and floating-point values use per-batch rescaling to [0,255] when outside that range. This may lose precision and comparability between batches. Use `PlyParser.Parse` directly when raw values matter.
 
-        var validPositions = chunk.Positions
-            .Where((pos, i) => validMask[i])
-            .ToArray();
-    }
-}
-```
+## Related
 
-### 6. PLY Intensity Rescaling
-
-**Problem:** PLY intensity values are auto-rescaled to 0-255 range, which may lose precision for scientific applications.
-
-**Solution:** Use Ply.Net directly to access raw intensity values:
-
-```csharp
-var dataset = PlyParser.Parse("scan.ply", maxChunkSize: 10000);
-foreach (var elementData in dataset.Data)
-{
-    if (elementData.Element.Type == ElementType.Vertex)
-    {
-        var rawIntensity = elementData["intensity"].Data as double[];
-        // Work with raw values instead of rescaled 0-255
-    }
-}
-```
-
-## See Also
-
-- [POINT_CLOUDS.md](POINT_CLOUDS.md) - Point cloud processing and storage
-- [ASTM E2807-11](https://www.astm.org/e2807-11.html) - E57 format specification
-- [LAS Specification](https://www.asprs.org/divisions-committees/lidar-division/laser-las-file-format-exchange-activities) - LAS file format
-- [PLY Format](http://paulbourke.net/dataformats/ply/) - Polygon File Format
-- [ply.net](https://github.com/aardvark-platform/ply.net) - PLY parser library
-- [laszip.net](https://github.com/aardvark-community/laszip.net) - LAS/LAZ parser wrapper
+- [Geodetics](GEOMETRY.md#geodetics): explicit coordinate-system transformations
+- [E57 specification](https://www.astm.org/e2807-11.html)
+- [PLY format](http://paulbourke.net/dataformats/ply/)

@@ -1,316 +1,93 @@
-# Point Cloud Data Structures and APIs
+# Point Clouds
 
-## Purpose
+`PointSet` is a stored octree; `IPointCloudNode` exposes its nodes. [PointSet source](../src/Aardvark.Geometry.PointSet) contains octree operations, spatial queries, LOD generation, and filtered views.
 
-Point cloud storage and spatial query infrastructure for large-scale 3D point datasets. Provides octree-based hierarchical storage (`PointSet`), spatial acceleration structures (`PointTree`), and generic chunk-based data flow (`Chunk`, `GenericChunk`).
+## Create, Store, and Load
 
-## Major Types
-
-| Type | Purpose | Key Properties |
-|------|---------|----------------|
-| `PointSet` | Immutable octree-based point cloud container | `Root`, `Storage`, `PointCount`, `Bounds`, `SplitLimit` |
-| `PointSetNode` | Octree node with per-point attributes | `Id`, `Cell`, `Positions`, `Colors`, `Normals`, `Intensities`, `Classifications`, `Subnodes`, `KdTree` |
-| `IPointCloudNode` | Interface for octree nodes | `Cell`, `PointCountTree`, `BoundingBoxExactGlobal`, `HasPositions`, `IsLeaf` |
-| `Chunk` | Streaming point data with attributes | `Positions`, `Colors`, `Normals`, `Intensities`, `Classifications`, `PartIndices`, `BoundingBox` |
-| `GenericChunk` | Extensible chunk with custom attributes | `Data` (ImmutableDictionary), `BoundingBox` |
-| `Storage` | Persistence layer for point cloud data | `Add()`, `Get()`, `Remove()`, `Flush()`, `Cache` |
-| `PointRkdTreeF<TArray, TPoint>` | KD-tree for fast spatial queries | `GetClosest()`, `GetClosestToLine()` |
-| `Cell` | Octree cell index/bounds representation | `BoundingBox`, `Exponent`, `GetOctant()` |
-| `PersistentRef<T>` | Lazy-loaded reference to stored data | `Id`, `Value` (lazy loaded) |
-
-## Usage Patterns
-
-### Creating a Point Cloud
+This in-memory example creates a small cloud. For file input, see [Importers](IMPORTERS.md).
 
 ```csharp
-using Aardvark.Geometry.Points;
-using Aardvark.Data.Points;
+using System;
 using Aardvark.Base;
-
-// Create storage backend
-var storage = /* SimpleDiskStorage, SimpleMemoryStorage, etc. */;
-
-// Prepare point data
-var positions = new List<V3d> { /* ... */ };
-var colors = new List<C4b> { /* ... */ };
-var normals = new List<V3f> { /* ... */ };
-
-// Create point cloud with octree structure
-var pointSet = PointSet.Create(
-    storage: storage,
-    pointSetId: "myPointCloud.json",
-    positions: positions,
-    colors: colors,
-    normals: normals,
-    intensities: null,
-    classifications: null,
-    partIndices: null,
-    octreeSplitLimit: 8192,
-    generateLod: true,
-    isTemporaryImportNode: false
-);
-
-Console.WriteLine($"Point count: {pointSet.PointCount}");
-Console.WriteLine($"Bounds: {pointSet.BoundingBox}");
-```
-
-### Loading an Existing Point Cloud
-
-```csharp
-var storage = /* load storage */;
-var json = /* load JSON from storage.Get("myPointCloud.json") */;
-var pointSet = PointSet.Parse(JsonNode.Parse(json), storage);
-```
-
-### Querying Points by Bounding Box
-
-```csharp
+using Aardvark.Data.Points;
 using Aardvark.Geometry.Points;
 
-var queryBox = new Box3d(new V3d(-10, -10, -10), new V3d(10, 10, 10));
+using var storage = PointCloud.CreateInMemoryStore();
+var chunk = new Chunk(new[] { V3d.Zero, V3d.IOO, V3d.OIO });
+var config = ImportConfig.Default.WithStorage(storage).WithKey("example")
+    .WithEnabledPartIndices(false); // This hand-built chunk has no part indices.
+var pointSet = PointCloud.Import(chunk, config);
 
-// Stream chunks of points inside the box
-foreach (var chunk in pointSet.QueryPointsInsideBox(queryBox))
-{
-    foreach (var pos in chunk.Positions)
-    {
-        // Process point
-    }
-
-    if (chunk.HasColors)
-    {
-        foreach (var color in chunk.Colors)
-        {
-            // Process color
-        }
-    }
-}
-
-// Count points without materializing
-long count = pointSet.CountPointsInsideBox(queryBox);
+Console.WriteLine($"{pointSet.PointCount} points in {pointSet.Bounds}");
+var loaded = PointCloud.Load("example", storage);
 ```
 
-### Spatial Queries with KD-Tree
+For persistent storage, use `PointCloud.OpenStore(path)` instead. Keep the store alive while using its clouds and lazy references; flush pending writes with `storage.Flush()` and dispose it when finished. An in-memory store still retains all stored data: a smaller cache does not make it out-of-core.
+
+`PointCloud.Load(key, storage)` throws if the key is absent. [Storage](../src/Aardvark.Data.Points.Base/Storage.cs) also supports custom backends through read, write, slice, remove, flush, and dispose delegates.
+
+## Chunks
+
+[Chunk](../src/Aardvark.Data.Points.Base/Chunk.cs) is the common streaming representation:
+
+| Member | Type |
+|--------|------|
+| `Positions` | `IList<V3d>`; global coordinates |
+| `Colors` | `IList<C4b>` or null |
+| `Normals` | `IList<V3f>` or null |
+| `Intensities` | `IList<int>` or null |
+| `Classifications` | `IList<byte>` or null |
+
+Optional per-point lists must align with `Positions`. Check null or the corresponding `Has*` property before access. Use `TryGetPartIndices()` to expand compact part indices to a per-point list.
+
+`ImmutableFilterByBox3d`, `ImmutableMapPositions`, `Chunk.ImmutableMerge`, and `Split(chunksize)` return new chunks. [GenericChunk](../src/Aardvark.Data.Points.Base/GenericChunk.cs) uses a `Durable.Def`-keyed dictionary for additional attributes; `chunk.ToGenericChunk()` converts the standard representation.
+
+## Spatial Queries
+
+Continuing the example above:
 
 ```csharp
-// Access node's KD-tree (automatically computed for leaf nodes)
+var box = new Box3d(new V3d(-1), new V3d(1));
+foreach (var result in pointSet.QueryPointsInsideBox(box))
+    foreach (var position in result.Positions)
+        Console.WriteLine(position);
+
+long count = pointSet.CountPointsInsideBox(box);
+```
+
+Box queries include the boundary. The default visits full-resolution data; `minCellExponent` can stop traversal at a coarser level. Count queries avoid returning point lists but still load node data. See [Queries](../src/Aardvark.Geometry.PointSet/Queries) for nearest-point, polygon, and frustum queries.
+
+## Node Contracts
+
+- `Positions.Value` is a `V3f[]` relative to `node.Center`; `PositionsAbsolute` returns global `V3d[]` coordinates.
+- `PointCountCell` counts this node's stored points, including LOD samples on inner nodes. `PointCountTree` counts full-resolution points in the subtree, not the sum of LOD samples at every level.
+- `Subnodes` contains up to eight child references with null entries for empty octants. Use `IsLeaf` to distinguish leaves.
+- Attributes are accessed through `PersistentRef<T>.Value`. This may load from storage or return cached/in-memory data; retain the returned array when processing it repeatedly.
+
+### Node-Local KD Queries
+
+```csharp
 var node = pointSet.Root.Value;
 if (node.HasKdTree)
 {
-    var kdTree = node.KdTree.Value;
-
-    // Find K nearest neighbors
-    var queryPoint = new V3f(0, 0, 0);
-    var nearest = kdTree.GetClosest(
-        point: queryPoint,
-        maxDistance: double.MaxValue,
-        maxCount: 10
-    );
-
-    foreach (var result in nearest)
-    {
-        var point = node.Positions.Value[result.Index];
-        var distance = result.Dist;
-        // Process neighbor
-    }
+    var positions = node.Positions.Value;
+    var nearest = node.KdTree.Value.GetClosest(V3f.Zero, float.MaxValue, 10);
+    foreach (var hit in nearest)
+        Console.WriteLine(positions[hit.Index]);
 }
 ```
 
-### Working with Chunks (Streaming Import)
+The query and results above are in **local coordinates**, and search only this node's points, not the entire cloud. Results with a count limit are in heap order, not nearest-first order.
 
-```csharp
-using Aardvark.Data.Points;
+KD-trees are not restricted to leaves. Non-temporary nodes with positions compute a missing KD-tree during construction. Temporary import nodes can receive one through `WithComputedKdTree()`; test `HasKdTree` rather than inferring availability from node type.
 
-// Create chunk from raw data
-var chunk = new Chunk(
-    positions: new V3d[] { /* ... */ },
-    colors: new C4b[] { /* ... */ },
-    normals: null,
-    intensities: null,
-    classifications: null,
-    partIndices: null,
-    partIndexRange: null,
-    bbox: null  // Auto-computed
-);
+### Immutable Updates
 
-// Filter chunk
-var filteredChunk = chunk.ImmutableFilterByBox3d(
-    new Box3d(new V3d(-5, -5, -5), new V3d(5, 5, 5))
-);
+`node.With(replacements)` creates a node with a new ID but does not persist that node. Call `WriteToStore()` on the result. This does not update a parent or a point set to reference the new ID; update those references separately. See [PointSetNode](../src/Aardvark.Geometry.PointSet/Octrees/PointSetNode.cs).
 
-// Merge chunks
-var mergedChunk = Chunk.ImmutableMerge(chunk1, chunk2, chunk3);
+`pointSet.Merge(other, pointsMergedCallback, config)` returns a merged cloud. Supply the import configuration and keep its storage available throughout the operation.
 
-// Split large chunk
-foreach (var subChunk in chunk.Split(chunksize: 4096))
-{
-    // Process sub-chunk
-}
-```
+## Related
 
-### Accessing Node Attributes
-
-```csharp
-var node = pointSet.Root.Value;
-
-// Check attribute availability
-if (node.HasPositions)
-{
-    var positions = node.Positions.Value;  // V3f[] (local coords)
-    var absolute = node.PositionsAbsolute; // V3d[] (global coords)
-}
-
-if (node.HasColors)
-{
-    var colors = node.Colors.Value;  // C4b[]
-}
-
-if (node.HasNormals)
-{
-    var normals = node.Normals.Value;  // V3f[]
-}
-
-if (node.HasIntensities)
-{
-    var intensities = node.Intensities.Value;  // int[]
-}
-
-if (node.HasClassifications)
-{
-    var classifications = node.Classifications.Value;  // byte[]
-}
-
-// Tree structure
-if (!node.IsLeaf)
-{
-    for (int i = 0; i < 8; i++)
-    {
-        var subnode = node.Subnodes?[i];
-        if (subnode != null)
-        {
-            var childNode = subnode.Value;  // Lazy-loaded
-            // Process child
-        }
-    }
-}
-```
-
-### Merging Point Clouds
-
-```csharp
-var config = ImportConfig.Default;
-var merged = pointSet1.Merge(
-    other: pointSet2,
-    pointsMergedCallback: count => Console.WriteLine($"Merged {count} points"),
-    config: config
-);
-```
-
-### Custom Storage Backend
-
-```csharp
-var storage = new Storage(
-    add: (key, value, createBuffer) =>
-    {
-        var buffer = createBuffer();
-        // Write buffer to custom backend
-    },
-    get: key =>
-    {
-        // Read from custom backend, return byte[] or null
-        return /* byte[] */;
-    },
-    getSlice: (key, offset, count) =>
-    {
-        // Read slice from custom backend
-        return /* byte[] */;
-    },
-    remove: key =>
-    {
-        // Remove from custom backend
-    },
-    dispose: () =>
-    {
-        // Clean up resources
-    },
-    flush: () =>
-    {
-        // Flush pending writes
-    },
-    cache: new LruDictionary<string, object>(capacity: 1024)
-);
-```
-
-## Gotchas
-
-### 1. Local vs. Global Coordinates
-
-**Problem:** `PointSetNode.Positions` returns positions in **local cell coordinates** (relative to `node.Center`), not global coordinates.
-
-```csharp
-var node = pointSet.Root.Value;
-var localPos = node.Positions.Value[0];    // Wrong: relative to cell center
-var globalPos = node.PositionsAbsolute[0];  // Correct: absolute coordinates
-// Or manually: globalPos = new V3d(node.Center + localPos)
-```
-
-### 2. Lazy-Loaded Data Access
-
-**Problem:** Accessing `PersistentRef<T>.Value` triggers storage I/O. Repeated access loads from storage each time unless cached.
-
-```csharp
-// Inefficient: loads from storage twice
-for (int i = 0; i < node.Positions.Value.Length; i++)
-    Process(node.Positions.Value[i]);
-
-// Efficient: cache the array reference
-var positions = node.Positions.Value;
-for (int i = 0; i < positions.Length; i++)
-    Process(positions[i]);
-```
-
-### 3. KD-Tree Availability
-
-**Problem:** KD-trees are only computed for **leaf nodes** and only if `isTemporaryImportNode = false`. Querying inner nodes or temporary import nodes will return `HasKdTree = false`.
-
-```csharp
-if (!node.IsLeaf || node.IsTemporaryImportNode)
-{
-    // No KD-tree available - use octree traversal instead
-}
-```
-
-### 4. Point Count Semantics
-
-**Problem:** `PointCountCell` vs. `PointCountTree` have different meanings.
-
-```csharp
-var node = pointSet.Root.Value;
-var cellCount = node.PointCountCell;   // Points in THIS cell only
-var treeCount = node.PointCountTree;   // Points in entire subtree (sum of leaves)
-
-// For leaf nodes: cellCount == treeCount
-// For inner nodes: cellCount may be 0, treeCount > 0
-```
-
-### 5. Immutable Updates and Storage
-
-**Problem:** Calling `With()` creates a new node with a new ID but does **not** write to storage automatically. You must call `WriteToStore()` explicitly.
-
-```csharp
-var updatedNode = node.With(new Dictionary<Durable.Def, object>
-{
-    [Durable.Octree.Colors4b] = newColors
-});
-// updatedNode exists only in memory!
-
-updatedNode = updatedNode.WriteToStore();  // Now persisted
-```
-
-## See Also
-
-- [IMPORTERS.md](IMPORTERS.md) - Importing point clouds from various file formats
-- [GEOMETRY.md](GEOMETRY.md) - Geometric primitives (Box3d, Cell, V3d, etc.)
-- `Queries*.cs` - Specialized spatial queries (Box3d, Polygon3d, ViewFrustum, etc.)
-- `Filter*.cs` - View filtering (boolean operations, classification, intensity ranges)
-- `LodExtensions` - Level-of-detail generation and management
+- [Geometry](GEOMETRY.md): normal estimation and standalone spatial structures
+- [Rendering](RENDERING.md): LOD scene-graph integration
