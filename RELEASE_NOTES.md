@@ -1,4 +1,5 @@
 - Fixed triangle closest-point queries throwing with null object filters and returning incorrect nearest points and distances.
+- Fixed concurrent queries on filtered point clouds returning incomplete results or corrupting lazy attribute caches; failed child initialization can now be retried.
 
 ### 5.6.3
 - Updated SharpCompress to 0.48.1 to address CVE-2026-44788

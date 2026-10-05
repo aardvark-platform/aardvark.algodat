@@ -30,6 +30,11 @@ namespace Aardvark.Geometry.Points;
 /// <summary>
 /// A filtered view onto a point cloud.
 /// </summary>
+/// <remarks>
+/// Lazy node and attribute caches are synchronized for concurrent read-only queries.
+/// The underlying storage and shared filter must support concurrent reads, and callers
+/// must not mutate returned arrays or dispose the storage while queries are running.
+/// </remarks>
 public class FilteredNode : IPointCloudNode
 {
     #region Construction
@@ -220,59 +225,48 @@ public class FilteredNode : IPointCloudNode
     public IReadOnlyDictionary<Def, object> Properties => Node.Properties;
 
     /// <summary></summary>
-    public PersistentRef<IPointCloudNode>[]? Subnodes
+    public PersistentRef<IPointCloudNode>?[]? Subnodes
     {
         get
         {
-            if (Node.Subnodes == null) return null;
+            var subnodes = Node.Subnodes;
+            if (subnodes == null) return null;
 
-            if (m_subnodes_cache == null)
+            lock (m_cache)
             {
-                m_subnodes_cache = new PersistentRef<IPointCloudNode>[8];
+                if (m_subnodes_cache != null) return m_subnodes_cache;
+
+                var filtered = new PersistentRef<IPointCloudNode>?[8];
+                var spatial = Filter as ISpatialFilter;
                 for (var i = 0; i < 8; i++)
                 {
                     var subCell = Cell.GetOctant(i);
-
-                    var spatial = Filter as ISpatialFilter;
-
                     if (spatial != null && spatial.IsFullyInside(subCell.BoundingBox))
                     {
-                        m_subnodes_cache[i] = Node.Subnodes[i];
+                        filtered[i] = subnodes[i];
                     }
-                    else if (spatial != null && spatial.IsFullyOutside(subCell.BoundingBox))
+                    else if (spatial == null || !spatial.IsFullyOutside(subCell.BoundingBox))
                     {
-                        m_subnodes_cache[i] = null;
-                    }
-                    else
-                    {
-                        var id = (Id + "." + i).ToGuid();
-                        var n0 = Node.Subnodes[i]?.Value;
-                        if (n0 != null)
+                        var n0 = subnodes[i]?.Value;
+                        if (n0 == null) continue;
+
+                        if (Filter.IsFullyInside(n0))
                         {
-                            if (Filter.IsFullyInside(n0))
-                            {
-                                m_subnodes_cache[i] = Node.Subnodes[i];
-                            }
-                            else if (Filter.IsFullyOutside(n0))
-                            {
-                                m_subnodes_cache[i] = null;
-                            }
-                            else if (n0 != null)
-                            {
-                                var n = new FilteredNode(id, false, n0, Filter);
-                                m_subnodes_cache[i] = new PersistentRef<IPointCloudNode>(id, n);
-                            }
+                            filtered[i] = subnodes[i];
                         }
-                        else
+                        else if (!Filter.IsFullyOutside(n0))
                         {
-                            m_subnodes_cache[i] = null;
+                            var id = (Id + "." + i).ToGuid();
+                            var n = new FilteredNode(id, false, n0, Filter);
+                            filtered[i] = new PersistentRef<IPointCloudNode>(id, n);
                         }
                     }
-
-
                 }
+
+                // Publish only a complete array; failed initialization can be retried.
+                m_subnodes_cache = filtered;
+                return m_subnodes_cache;
             }
-            return m_subnodes_cache!;
         }
     }
 
@@ -292,8 +286,11 @@ public class FilteredNode : IPointCloudNode
     {
         get
         {
-            EnsurePositionsAndDerived();
-            return (PersistentRef<V3f[]>)m_cache[Octree.PositionsLocal3f.Id];
+            lock (m_cache)
+            {
+                EnsurePositionsAndDerived();
+                return (PersistentRef<V3f[]>)m_cache[Octree.PositionsLocal3f.Id];
+            }
         }
     }
 
@@ -302,12 +299,16 @@ public class FilteredNode : IPointCloudNode
     {
         get
         {
-            EnsurePositionsAndDerived();
-            return (V3d[])m_cache[Octree.PositionsGlobal3d.Id];
+            lock (m_cache)
+            {
+                EnsurePositionsAndDerived();
+                return (V3d[])m_cache[Octree.PositionsGlobal3d.Id];
+            }
         }
     }
 
     private bool m_ensuredPositionsAndDerived = false;
+    // Caller holds m_cache's lock through initialization and reading the result.
     private void EnsurePositionsAndDerived()
     {
         if (m_ensuredPositionsAndDerived) return;
@@ -343,8 +344,11 @@ public class FilteredNode : IPointCloudNode
     {
         get
         {
-            EnsurePositionsAndDerived();
-            return (Box3f)m_cache[Octree.BoundingBoxExactLocal.Id];
+            lock (m_cache)
+            {
+                EnsurePositionsAndDerived();
+                return (Box3f)m_cache[Octree.BoundingBoxExactLocal.Id];
+            }
         }
     }
 
@@ -387,8 +391,11 @@ public class FilteredNode : IPointCloudNode
     {
         get
         {
-            EnsurePositionsAndDerived();
-            return (PersistentRef<PointRkdTreeF<V3f[], V3f>>)m_cache[Octree.PointRkdTreeFData.Id];
+            lock (m_cache)
+            {
+                EnsurePositionsAndDerived();
+                return (PersistentRef<PointRkdTreeF<V3f[], V3f>>)m_cache[Octree.PointRkdTreeFData.Id];
+            }
         }
     }
 
@@ -458,36 +465,20 @@ public class FilteredNode : IPointCloudNode
     {
         get
         {
-            if (HasPartIndices)
+            if (!HasPartIndices) return null;
+
+            lock (m_cache)
             {
-                if (SubsetIndexArray == null)
-                {
-                    return Node.PartIndexRange;
-                }
-                else
-                {
-                    if (m_cache.TryGetValue(Octree.PartIndexRange.Id, out var _range))
-                    {
-                        return (Range1i)_range;
-                    }
-                    else
-                    {
-                        if (TryGetPartIndices(out var qs))
-                        {
-                            var range = new Range1i(qs);
-                            m_cache[Octree.PartIndexRange.Id] = range;
-                            return range;
-                        }
-                        else
-                        {
-                            throw new Exception($"Expected part indices exist. Error 8d191c4a-042c-4179-ac30-8a10aab16436.");
-                        }
-                    }
-                }
-            }
-            else
-            {
-                return null;
+                if (SubsetIndexArray == null) return Node.PartIndexRange;
+                if (m_cache.TryGetValue(Octree.PartIndexRange.Id, out var range)) return (Range1i)range;
+
+                if (!TryGetPartIndices(out var qs)) throw new Exception(
+                    "Expected part indices exist. Error 8d191c4a-042c-4179-ac30-8a10aab16436."
+                    );
+
+                var result = new Range1i(qs);
+                m_cache[Octree.PartIndexRange.Id] = result;
+                return result;
             }
         }
     }
@@ -501,7 +492,14 @@ public class FilteredNode : IPointCloudNode
     /// <summary>
     /// Octree. Per-point or per-cell part indices.
     /// </summary>
-    public object? PartIndices => SubsetIndexArray != null ? PartIndexUtils.Subset(Node.PartIndices, SubsetIndexArray) : Node.PartIndices;
+    public object? PartIndices
+    {
+        get
+        {
+            var indices = SubsetIndexArray;
+            return indices != null ? PartIndexUtils.Subset(Node.PartIndices, indices) : Node.PartIndices;
+        }
+    }
 
     /// <summary>
     /// Get per-point part indices as an int array (regardless of internal representation).
@@ -509,15 +507,15 @@ public class FilteredNode : IPointCloudNode
     /// </summary>
     public bool TryGetPartIndices([NotNullWhen(true)] out int[]? result)
     {
-        var qs = PartIndices;
+        lock (m_cache)
+        {
+            if (m_cache.TryGetValue(Octree.PerPointPartIndex1i.Id, out var cached))
+            {
+                result = (int[])cached;
+                return true;
+            }
 
-        if (m_cache.TryGetValue(Octree.PerPointPartIndex1i.Id, out var _result))
-        {
-            result = (int[])_result;
-            return true;
-        }
-        else
-        {
+            var qs = PartIndices;
             switch (qs)
             {
                 case null: result = null; return false;
@@ -534,7 +532,6 @@ public class FilteredNode : IPointCloudNode
             }
 
             m_cache[Octree.PerPointPartIndex1i.Id] = result;
-
             return true;
         }
     }
@@ -612,21 +609,24 @@ public class FilteredNode : IPointCloudNode
 
     #endregion
 
+    // This private lock protects all lazy state, including every dictionary read.
     private readonly Dictionary<Guid, object> m_cache = [];
 
     private PersistentRef<T[]>? GetSubArray<T>(Def def, PersistentRef<T[]>? originalValue)
     {
-        if (m_cache.TryGetValue(def.Id, out var o) && o is PersistentRef<T[]> x) return x;
+        lock (m_cache)
+        {
+            if (m_cache.TryGetValue(def.Id, out var o) && o is PersistentRef<T[]> x) return x;
 
-        if (originalValue == null) return null;
-        // should be empty not null, right?
-        if (m_activePoints == null) return originalValue;
+            if (originalValue == null) return null;
+            if (m_activePoints == null) return originalValue;
 
-        var key = (Id + originalValue.Id).ToGuid().ToString();
-        var xs = originalValue.Value.Where((_, i) => m_activePoints.Contains(i)).ToArray();
-        var result = new PersistentRef<T[]>(key, xs);
-        m_cache[def.Id] = result;
-        return result;
+            var key = (Id + originalValue.Id).ToGuid().ToString();
+            var xs = originalValue.Value.Where((_, i) => m_activePoints.Contains(i)).ToArray();
+            var result = new PersistentRef<T[]>(key, xs);
+            m_cache[def.Id] = result;
+            return result;
+        }
     }
 
     private int[]? _subsetIndexArray = null;
@@ -634,12 +634,16 @@ public class FilteredNode : IPointCloudNode
     {
         get
         {
-            if (_subsetIndexArray != null) return _subsetIndexArray;
             if (m_activePoints == null) return null;
 
-            var xs = m_activePoints.ToArray();
-            xs.QuickSortAscending();
-            return _subsetIndexArray = xs;
+            lock (m_cache)
+            {
+                if (_subsetIndexArray != null) return _subsetIndexArray;
+
+                var xs = m_activePoints.ToArray();
+                xs.QuickSortAscending();
+                return _subsetIndexArray = xs;
+            }
         }
     }
 
