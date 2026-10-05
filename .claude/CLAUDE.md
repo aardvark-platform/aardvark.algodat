@@ -1,3 +1,3 @@
-# AI Documentation
+# Repository Guidance
 
-Read `ai/README.md` for indexed reference docs.
+Read [AGENTS.md](../AGENTS.md) for workflow rules and the API reference index.

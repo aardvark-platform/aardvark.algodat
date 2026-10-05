@@ -1,4 +1,11 @@
-- [PointSet] kept custom per-point attributes aligned in filtered views (#47)
+- [PointSet] Keep custom per-point attributes aligned and publish filtered property caches thread-safely (#47).
+
+### 5.6.4-prerelease0004
+- [PointSet] FilteredNode: all lazily derived state (subnodes, positions, kd-tree, attribute subsets, part indices) is now thread-safe; a FilteredNode shared by concurrent queries no longer returns missing points
+- [PointSet] PointSetNode: decoding a node without a stored kd-tree no longer writes to the store; the kd-tree is built lazily in memory (read-only stores and concurrent readers)
+- [PointSet] chunks returned by ToChunk and the octree-level queries own their attribute arrays (no aliasing of cached node data); FilteredNode.PositionsAbsolute returns a fresh array
+- [Tests] concurrent query correctness and performance suites (synthetic store + optional real store via ALGODAT_REAL_STORE)
+- Fixed triangle closest-point queries throwing with null object filters and returning incorrect nearest points and distances.
 
 ### 5.6.3
 - Updated SharpCompress to 0.48.1 to address CVE-2026-44788

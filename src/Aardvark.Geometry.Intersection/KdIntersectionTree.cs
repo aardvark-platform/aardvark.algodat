@@ -267,8 +267,9 @@ namespace Aardvark.Geometry
         }
 
         /// <summary>
-        /// Return the closest point of all objects in the kd-tree to the
-        /// supplied query point.
+        /// Finds the closest point to the query, provided it is strictly closer
+        /// than the supplied result. Returns true and updates closest on success;
+        /// otherwise returns false and leaves it unchanged.
         /// </summary>
         public bool ClosestPoint(
                 V3d query,
@@ -279,9 +280,10 @@ namespace Aardvark.Geometry
         }
 
         /// <summary>
-        /// Return the closest point of all objects in the kd-tree to the
-        /// supplied query point. Note that the supplied filter functions
-        /// are ignored (the functionality has not been implemented yet).
+        /// Finds the closest point to the query, provided it is strictly closer
+        /// than the supplied result. Returns true and updates closest on success;
+        /// otherwise returns false and leaves it unchanged.
+        /// Filters are forwarded to the object set; support depends on its implementation.
         /// </summary>
         public bool ClosestPoint(
             V3d query,

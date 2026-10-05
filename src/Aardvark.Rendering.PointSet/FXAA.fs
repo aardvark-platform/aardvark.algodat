@@ -299,9 +299,6 @@ module internal FXAA =
             8.0f
         |]
 
-    [<GLSLIntrinsic("{0} = {1}")>] [<KeepCall>]
-    let set (a: 'a) (b : 'a) = onlyInShaderCode "set"
-
     [<GLSLIntrinsic("break")>] [<KeepCall>]
     let brk() = onlyInShaderCode "break"
 
@@ -405,10 +402,10 @@ module internal FXAA =
 
                 let mutable posB = posM
                 let mutable offNP = inverseVP
-                if not horzSpan then set offNP.X 0.0f
-                if horzSpan then set offNP.Y 0.0f
-                if not horzSpan then set posB.X (posB.X + lengthSign * 0.5f)
-                if horzSpan then set posB.Y (posB.Y + lengthSign * 0.5f)
+                if not horzSpan then offNP.X <- 0.0f
+                if horzSpan then offNP.Y <- 0.0f
+                if not horzSpan then posB.X <- (posB.X + lengthSign * 0.5f)
+                if horzSpan then posB.Y <- (posB.Y + lengthSign * 0.5f)
 
                 let mutable posN = posB - offNP * P.[0]
                 let mutable posP = posB + offNP * P.[0]
@@ -463,8 +460,8 @@ module internal FXAA =
 
                 let pixelOffsetGood = if goodSpan then pixelOffset else 0.0f
                 let pixelOffsetSubpix = max pixelOffsetGood subpixH
-                if not horzSpan then set posM.X (posM.X + pixelOffsetSubpix * lengthSign)
-                if horzSpan then set posM.Y (posM.Y + pixelOffsetSubpix * lengthSign)
+                if not horzSpan then posM.X <- (posM.X + pixelOffsetSubpix * lengthSign)
+                if horzSpan then posM.Y <- (posM.Y + pixelOffsetSubpix * lengthSign)
 
                 V4f(x.SampleLevel(posM, level).XYZ, rgbM.W)
 

@@ -1,225 +1,60 @@
-# Point Cloud Rendering System
+# Point Cloud Rendering
 
-## Purpose
+`Aardvark.Rendering.PointSet` integrates stored point clouds with Aardvark scene graphs. It provides LOD point splats, optional plane fitting and lighting, SSAO, antialiasing, and picking. This repository consumes the core rendering and scene-graph packages; it does not define them.
 
-This document describes the point cloud rendering architecture in `Aardvark.Rendering.PointSet`. The system implements a deferred rendering pipeline with advanced features including sphere-based point splats, SSAO, plane fitting, and LOD-aware rendering.
+## Integration
 
-## Core Rendering Components
+The host supplies a `PointSetRenderConfig` containing its runtime, adaptive viewport size, view/projection transforms, display settings, and LOD/SSAO configuration. See the [record definition](../src/Aardvark.Rendering.PointSet/LodTreeSceneGraph.fs) and the viewer's [complete configuration](../src/Apps/Viewer/Rendering.fs).
 
-| Component | Location | Purpose |
-|-----------|----------|---------|
-| `LodTreeSceneGraph` | `LodTreeSceneGraph.fs` | Deferred rendering pipeline, point splatting, depth readback |
-| `LodTreeInstance` | `LodTreeInstance.fs` | Scene graph node wrapper, data loading, attribute management |
-| `SSAO` | `SSAO.fs` | Screen-space ambient occlusion (HBAO implementation) |
-| `FXAA` | `FXAA.fs` | Fast approximate anti-aliasing |
-| `SimplePick` | `SimplePick.fs` | Point picking via BVH traversal and region queries |
-| `PointSetShaders` | `LodTreeInstance.fs:1046-1507` | Vertex/fragment shaders for point rendering |
-
-## Integration with Aardvark Rendering Pipeline
-
-### Scene Graph Integration
+Given that configuration and an existing store/key:
 
 ```fsharp
-// Create render configuration
-let renderConfig : PointSetRenderConfig = {
-    runtime = win.Runtime
-    viewTrafo = viewTrafo
-    projTrafo = projTrafo
-    size = win.Sizes
-    colors = AVal.init true
-    pointSize = AVal.init 2.25
-    planeFit = AVal.init true
-    planeFitTol = AVal.constant 0.009
-    planeFitRadius = AVal.constant 7.0
-    ssao = AVal.init true
-    diffuse = AVal.init true
-    gamma = AVal.init 1.4
-    lodConfig = { /* ... */ }
-    ssaoConfig = { /* ... */ }
-    pickCallback = None
-}
+open FSharp.Data.Adaptive
+open Aardvark.Rendering.PointSet
 
-// Render point clouds
-let sg = Sg.pointSets renderConfig instances
+let tryScene (config : PointSetRenderConfig) (key : string) (path : string) =
+    match LodTreeInstance.load "cloud" key path [] with
+    | Some instance -> Some (Sg.pointSets config (ASet.single instance))
+    | None -> None
 ```
 
-### Rendering Stages
+`LodTreeInstance.load` takes a source name, key, store path, and uniform list. Handle `None`; loading failures may also throw. If you already own a `PointSet`, use `LodTreeInstance.ofPointSet uniforms partIndexOffset pointSet` rather than reopen its store.
 
-**Stage 1: Point Rasterization** (`LodTreeSceneGraph.fs:822-903`)
-- Renders points to offscreen buffers (color + depth)
-- Uses `lodPointSizeSimple` + `lodPointSphereSimple` shaders
-- Outputs: `TextureFormat.Rgba8` color, `TextureFormat.Depth24Stencil8` depth
+## Configuration
 
-**Stage 2: Normal Estimation** (`LodTreeSceneGraph.fs:924-959`)
-- Applies plane fitting for normal computation
-- Computes lighting from estimated normals
-- Uses `blitPlaneFit` shader with PCA-based plane fitting
+| Settings | Purpose |
+|----------|---------|
+| `colors`, `pointSize` | Stored colors and screen-space point size |
+| `planeFit`, `planeFitRadius`, `planeFitTol` | Surface fitting and its neighborhood/tolerance |
+| `diffuse`, `ssao`, `gamma` | Lighting, ambient occlusion, output correction |
+| `ssaoConfig` | `radius`, `threshold`, `sigma`, `sharpness`, `sampleDirections`, `samples` |
+| `lodConfig` | Adaptive time, bounds display, statistics, picking trees, `budget`, `splitfactor`, `maxSplits`, and alpha-to-coverage |
 
-**Stage 3: SSAO** (`SSAO.fs:507-685`)
-- Horizon-based ambient occlusion (HBAO)
-- Bilateral blur with depth awareness
-- Outputs occlusion term multiplied by lit colors
+These settings are adaptive except where the record specifies otherwise. Update changeable values inside `transact`. Smaller `splitfactor` requests finer LOD; point size and SSAO sampling also affect rendering cost. Measure with the target data, viewport, and GPU rather than treating the viewer's values as universal recommendations.
 
-**Stage 4: Composition** (`SSAO.fs:483-505`)
-- FXAA anti-aliasing
-- Gamma correction
-- Final output to framebuffer
+The renderer forwards `LodTreeRenderConfig` scheduling and budget settings to Aardvark.Rendering. Check the resolved package's semantics when changing those controls; they are not defined by this repository's point-storage API.
 
-## Usage Patterns
+## Picking
 
-### Basic Point Cloud Rendering
+`pickCallback` is an optional reference to a function of type `V2i -> int -> int -> PickPoint[]`. Install it before constructing the scene graph:
 
 ```fsharp
-// Load point cloud
-let instance =
-    LodTreeInstance.load "mycloud" "key" "store.uds" []
-    |> Option.get
+open Aardvark.Base
 
-// Create instances set
-let instances = ASet.single instance
-
-// Render
-let renderConfig = { /* see configuration above */ }
-let sg = Sg.pointSets renderConfig instances
+let withPicking (config : PointSetRenderConfig) =
+    let pick = ref (fun (_ : V2i) (_ : int) (_ : int) -> Array.empty<PickPoint>)
+    { config with pickCallback = Some pick }, pick
 ```
 
-### LOD Configuration
+Render using the returned configuration. After rendering, call `pick.Value pixel radius maxPoints`, where the radius is in pixels. Results contain `World`, `View`, `Ndc`, and `Pixel` coordinates. This callback reads rendered depth; it is distinct from the LOD picking trees used by [SimplePick](../src/Aardvark.Rendering.PointSet/SimplePick.fs).
 
-```fsharp
-let lodConfig : LodTreeRenderConfig = {
-    time = win.Time                      // Adaptive updates
-    renderBounds = AVal.init false       // Debug bounding boxes
-    stats = AVal.init Unchecked.defaultof<_>
-    pickTrees = Some pickTreeCache       // Enable picking
-    alphaToCoverage = false
-    maxSplits = AVal.init 8              // Max LOD splits per frame
-    splitfactor = AVal.init 0.1          // Angular threshold (degrees)
-    budget = AVal.init -(256L <<< 10)    // Negative = point count limit
-}
-```
+## Resource Ownership
 
-### SSAO Configuration
+Keep the underlying store alive while the scene graph may request point data. A custom cache is supplied when opening the store; see [point-cloud storage](POINT_CLOUDS.md#create-store-and-load). `PointTreeNode.Release()` is part of the LOD lifecycle, not a promise to dispose the store or evict every cached point array. Tear down rendering users before disposing storage you own.
 
-```fsharp
-let ssaoConfig : SSAOConfig = {
-    radius = AVal.init 0.04              // Sample radius in view space
-    threshold = AVal.init 0.1            // Depth difference threshold
-    sigma = AVal.init 5.0                // Blur sigma (pixels)
-    sharpness = AVal.init 4.0            // Depth-aware blur sharpness
-    sampleDirections = AVal.init 2       // Directional samples (1-32)
-    samples = AVal.init 4                // Samples per direction (1-32)
-}
-```
+## Source Navigation
 
-### Point Picking
-
-```fsharp
-// Setup picking callback
-let pick = ref (fun _ _ _ -> [||])
-let renderConfig = { renderConfig with pickCallback = Some pick }
-
-// Use after rendering
-let pickPoint (pixel : V2i) =
-    let radius = 20              // Pixel radius
-    let maxPoints = 800          // Max points to return
-    let points = pick.Value pixel radius maxPoints
-
-    // Process picked points
-    points |> Array.iter (fun pt ->
-        printfn "World: %A, View: %A, Ndc: %A"
-            pt.World pt.View pt.Ndc
-    )
-```
-
-### Shader Customization
-
-```fsharp
-// Example: Custom point visualization
-let customVis =
-    Sg.pointSets renderConfig instances
-    |> Sg.uniform "PointVisualization"
-        (AVal.constant (PointVisualization.Color |||
-                       PointVisualization.Lighting |||
-                       PointVisualization.Antialias))
-    |> Sg.uniform "MagicExp" (AVal.init 1.0)  // Point size scaling exponent
-```
-
-## Advanced Features
-
-### Deferred Point Splatting
-
-The system renders point sprites as oriented disks in screen space:
-
-1. **Vertex Shader** (`lodPointSizeSimple`, line 197): Projects point, calculates screen-space radius
-2. **Fragment Shader** (`lodPointSphereSimple`, line 229): Computes sphere depth offset via `sqrt(1.0 - r²)`
-3. Depth modification enables proper occlusion between overlapping points
-
-### Plane Fitting
-
-Optional surface reconstruction via local PCA (`blitPlaneFit`, line 748):
-
-- Samples 24 neighboring points within `planeFitRadius`
-- Fits plane using covariance matrix eigendecomposition
-- Adjusts depth to plane intersection for smoother surfaces
-- Tolerance `planeFitTol` filters outliers
-
-### Adaptive LOD
-
-LOD decisions based on angular size (`equivalentAngle60`, line 384):
-
-```
-angle = 60° * (avgPointDistance / minDistance) / fov
-split if angle > splitfactor / quality
-```
-
-## Gotchas
-
-| Issue | Symptom | Solution |
-|-------|---------|----------|
-| **Large point size artifacts** | Points clipped at viewport edges | System expands viewport by `max(32, pointSize)` pixels. Increase if clipping persists. |
-| **Plane fit introduces holes** | Black pixels where plane fit fails | Reduce `planeFitRadius` or increase `planeFitTol`. Disable with `planeFit = false`. |
-| **SSAO over-darkens** | Excessive darkening in cavities | Reduce `ssaoConfig.radius` or `samples`. Typical values: radius 0.02-0.06. |
-| **LOD pop-in** | Visible transitions during LOD changes | Increase `budget` (more points), decrease `splitfactor` (finer LOD). |
-| **Slow performance** | Low FPS with large datasets | Set `budget` to negative value (point count limit). Start with `-262144` (256K points). |
-| **Picking returns no points** | Empty array from pick callback | Ensure `pickTrees = Some cmap()` in `lodConfig`. Check radius and maxPoints values. |
-| **Depth readback fails** | Picking crashes on older GPUs | Compute shader readback requires OpenGL 4.3+. Fallback path exists but may be slower. |
-
-## Performance Tuning
-
-### Point Size vs Performance
-- Larger point sizes increase fill rate
-- Threshold: Performance degrades beyond ~20 pixels/point
-- Use `lodConfig.budget` to maintain frame rate
-
-### SSAO Cost
-- Dominant factor: `samples * sampleDirections`
-- Conservative values: 2 directions × 4 samples = 8 total
-- Aggressive values: 8 directions × 8 samples = 64 total (expensive)
-
-### LOD Overhead
-- `maxSplits` controls LOD updates per frame
-- Higher values = smoother LOD but more CPU overhead
-- Recommended: 6-12 for interactive applications
-
-## Memory Management
-
-Point data loaded on-demand via `LruDictionary` cache (default 1 GB):
-
-```fsharp
-let cache = LruDictionary(1L <<< 30)  // 1 GB cache
-let store = PointCloud.OpenStore(path, cache)
-```
-
-Release memory explicitly when done:
-
-```fsharp
-node.Release()  // Releases node and children from cache
-```
-
-## See Also
-
-- [POINT_CLOUDS.md](POINT_CLOUDS.md) - Point cloud data structures, LOD trees
-- [IMPORTERS.md](IMPORTERS.md) - Import/export formats
-- Aardvark.Rendering - Core scene graph and rendering abstractions
-- Aardvark.SceneGraph - Scene graph combinators and uniform management
-- FShade - Shader composition framework used for effect definitions
+- [LodTreeInstance](../src/Aardvark.Rendering.PointSet/LodTreeInstance.fs): loading, LOD nodes, point attributes and shaders
+- [LodTreeSceneGraph](../src/Aardvark.Rendering.PointSet/LodTreeSceneGraph.fs): scene integration and depth picking
+- [SSAO](../src/Aardvark.Rendering.PointSet/SSAO.fs), [FXAA](../src/Aardvark.Rendering.PointSet/FXAA.fs): post-processing
+- [Importers](IMPORTERS.md): preparing stored datasets

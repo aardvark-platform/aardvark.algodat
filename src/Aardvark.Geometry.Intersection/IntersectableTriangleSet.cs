@@ -54,6 +54,11 @@ namespace Aardvark.Geometry
 
         public int ObjectCount { get; } = indices != null ? indices.Length / 3 : positions.Length / 3;
 
+        /// <summary>
+        /// Finds the closest point to the query. Returns true and updates the result
+        /// only if it is strictly closer; otherwise returns false without changing it.
+        /// A null object filter accepts all triangles. The point-result filter is ignored.
+        /// </summary>
         public bool ClosestPoint(int[] objectIndexArray, int firstIndex, int indexCount, V3d queryPoint, Func<IIntersectableObjectSet, int, bool> ios_index_objectFilter, Func<IIntersectableObjectSet, int, int, ObjectClosestPoint, bool> ios_index_part_ocp_pointFilter, ref ObjectClosestPoint closestPoint)
         {
             var minDist2 = closestPoint.DistanceSquared;
@@ -64,7 +69,7 @@ namespace Aardvark.Geometry
             {
                 var id = objectIndexArray[firstIndex + i];
 
-                if (ios_index_objectFilter(this, id))
+                if (ios_index_objectFilter == null || ios_index_objectFilter(this, id))
                 {
                     GetTriangle(id, out V3d p0, out V3d p1, out V3d p2);
                     var p = queryPoint.GetClosestPointOnTriangle(p0, p1, p2);
@@ -72,6 +77,7 @@ namespace Aardvark.Geometry
 
                     if (d < minDist2)
                     {
+                        minDist2 = d;
                         minIndex = id;
                         minPos = p;
                     }
