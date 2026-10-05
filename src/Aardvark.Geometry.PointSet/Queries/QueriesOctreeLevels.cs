@@ -214,11 +214,12 @@ public static partial class Queries
                 for (var i = imax; i < ps.Length; i++) rs[i] = lastX;
                 return rs;
             }
-            var cs = Verified(node.TryGetColors4b()?.Value, "colors");
-            var ns = Verified(node.TryGetNormals3f()?.Value, "normals");
-            var js = Verified(node.TryGetIntensities()?.Value, "intensities");
-            var ks = Verified(node.TryGetClassifications()?.Value, "classifications");
-            var qs = node.PartIndices;
+            // attribute arrays are copied, so that the chunk never aliases arrays shared through the store cache
+            var cs = OwnedAttributes.Copy(Verified(node.TryGetColors4b()?.Value, "colors"));
+            var ns = OwnedAttributes.Copy(Verified(node.TryGetNormals3f()?.Value, "normals"));
+            var js = OwnedAttributes.Copy(Verified(node.TryGetIntensities()?.Value, "intensities"));
+            var ks = OwnedAttributes.Copy(Verified(node.TryGetClassifications()?.Value, "classifications"));
+            var qs = OwnedAttributes.CopyPartIndices(node.PartIndices);
 
             var chunk = new Chunk(ps, cs, ns, js, ks, qs, partIndexRange: null, bbox: null);
             yield return chunk;
@@ -260,12 +261,7 @@ public static partial class Queries
 
         if (level == 0 || node.IsLeaf())
         {
-            var chunk = new Chunk(
-                node.PositionsAbsolute, node.Colors?.Value, node.Normals?.Value, node.Intensities?.Value, node.Classifications?.Value,
-                node.PartIndices, partIndexRange: null,
-                bbox: null
-                );
-            yield return chunk;
+            yield return node.ToChunk();
         }
         else
         {

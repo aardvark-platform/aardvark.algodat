@@ -63,6 +63,7 @@ Box queries include the boundary. The default visits full-resolution data; `minC
 - `PointCountCell` counts this node's stored points, including LOD samples on inner nodes. `PointCountTree` counts full-resolution points in the subtree, not the sum of LOD samples at every level.
 - `Subnodes` contains up to eight child references with null entries for empty octants. Use `IsLeaf` to distinguish leaves.
 - Attributes are accessed through `PersistentRef<T>.Value`. This may load from storage or return cached/in-memory data; retain the returned array when processing it repeatedly.
+- Filtered views and in-memory KD-trees use `Lazy<T>`, which caches initialization exceptions. After resolving a transient failure, recreate the view, or evict the failed stored node's ID from `storage.Cache` and reload it. Existing references to the failed instance remain failed; no automatic retry or eviction is performed.
 
 ### Node-Local KD Queries
 
@@ -79,11 +80,11 @@ if (node.HasKdTree)
 
 The query and results above are in **local coordinates**, and search only this node's points, not the entire cloud. Results with a count limit are in heap order, not nearest-first order.
 
-KD-trees are not restricted to leaves. Non-temporary nodes with positions compute a missing KD-tree during construction. Temporary import nodes can receive one through `WithComputedKdTree()`; test `HasKdTree` rather than inferring availability from node type.
+KD-trees are not restricted to leaves. Non-temporary nodes with positions offer a KD-tree even without a stored KD reference: read-only construction builds it lazily in memory, without writing to storage. Explicit writes persist a missing tree. Temporary import nodes can receive one through `WithComputedKdTree()`; test `HasKdTree` rather than inferring availability from node type.
 
 ### Immutable Updates
 
-`node.With(replacements)` creates a node with a new ID but does not persist that node. Call `WriteToStore()` on the result. This does not update a parent or a point set to reference the new ID; update those references separately. See [PointSetNode](../src/Aardvark.Geometry.PointSet/Octrees/PointSetNode.cs).
+`node.With(replacements)` creates a node with a new ID but does not persist that node. Call `WriteToStore()` and use its returned node: writing a missing KD-tree can return a new instance with the same ID and a persisted KD reference. This does not update a parent or a point set to reference the new ID; update those references separately. See [PointSetNode](../src/Aardvark.Geometry.PointSet/Octrees/PointSetNode.cs).
 
 `pointSet.Merge(other, pointsMergedCallback, config)` returns a merged cloud. Supply the import configuration and keep its storage available throughout the operation.
 

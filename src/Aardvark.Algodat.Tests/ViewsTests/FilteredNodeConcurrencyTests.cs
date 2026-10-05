@@ -5,6 +5,7 @@ using Aardvark.Geometry.Points;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.Json.Nodes;
 using System.Threading;
@@ -126,7 +127,7 @@ public class FilteredNodeConcurrencyTests
     }
 
     [Test]
-    public void FailedSubnodeInitializationCanBeRetried()
+    public void FailedSubnodeInitializationRecoversWithNewView()
     {
         using var storage = PointCloud.CreateInMemoryStore();
         var root = CreateOctree(storage);
@@ -135,7 +136,92 @@ public class FilteredNodeConcurrencyTests
         var filtered = FilteredNode.CreateTransient(root, filter);
 
         Assert.Throws<InvalidOperationException>(() => filtered.EnumerateCells(-1).ToArray());
-        Assert.That(filtered.EnumerateCells(-1).Count(), Is.EqualTo(4));
+        Assert.Throws<InvalidOperationException>(() => filtered.EnumerateCells(-1).ToArray());
+        var recreated = FilteredNode.CreateTransient(root, filter);
+        Assert.That(recreated.EnumerateCells(-1).Count(), Is.EqualTo(4));
+    }
+
+    [Test]
+    public void RecursiveSubnodeInitializationRecoversWithNewView()
+    {
+        using var storage = PointCloud.CreateInMemoryStore();
+        IPointCloudNode filtered = null;
+        var filter = new PausingFilter(new FilterInsideBox3d(FilterBox), () => _ = filtered.Subnodes);
+        var root = CreateOctree(storage);
+        filtered = FilteredNode.CreateTransient(root, filter);
+
+        Assert.Throws<InvalidOperationException>(() => _ = filtered.Subnodes);
+        Assert.Throws<InvalidOperationException>(() => _ = filtered.Subnodes);
+        var recreated = FilteredNode.CreateTransient(root, filter);
+        Assert.That(recreated.EnumerateCells(-1).Count(), Is.EqualTo(4));
+    }
+
+    [Test]
+    public void ConcurrentFailedReadersRecoverWithNewView()
+    {
+        using var storage = PointCloud.CreateInMemoryStore();
+        using var entered = new ManualResetEventSlim();
+        using var release = new ManualResetEventSlim();
+        var failure = new InvalidOperationException("Simulated transient failure.");
+        var filter = new PausingFilter(new FilterInsideBox3d(FilterBox), () =>
+        {
+            entered.Set();
+            if (!release.Wait(Timeout)) throw new TimeoutException("Subnode initialization was not released.");
+            throw failure;
+        });
+        var root = CreateOctree(storage);
+        var filtered = FilteredNode.CreateTransient(root, filter);
+        int Read()
+        {
+            try { return filtered.EnumerateCells(-1).Count(); }
+            catch (InvalidOperationException e)
+            {
+                Assert.That(e, Is.SameAs(failure));
+                return -1;
+            }
+        }
+
+        var (first, second) = ReadDuringInitialization(Read, entered, release);
+        Assert.That(first, Is.EqualTo(-1), "The failed call must propagate the initialization error.");
+        Assert.That(second, Is.EqualTo(-1), "Readers of the same failed initialization see its exception.");
+        Assert.That(Read(), Is.EqualTo(-1));
+        var recreated = FilteredNode.CreateTransient(root, filter);
+        Assert.That(recreated.EnumerateCells(-1).Count(), Is.EqualTo(4));
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void AttributeInitializationRecoversWithNewView(bool positions)
+    {
+        using var backing = PointCloud.CreateInMemoryStore();
+        var positionsId = Guid.NewGuid();
+        var normalsId = Guid.NewGuid();
+        var targetKey = (positions ? positionsId : normalsId).ToString();
+        var enabled = false;
+        var reads = 0;
+        byte[] Get(string key)
+        {
+            if (enabled && key == targetKey && Interlocked.Increment(ref reads) == 1)
+                throw new IOException("Simulated transient read error.");
+            return backing.f_get(key);
+        }
+        using var storage = new Storage(backing.f_add, Get, backing.f_getSlice, backing.f_remove,
+            () => { }, backing.f_flush, backing.Cache);
+        var root = CreateAttributedLeaf(storage, positionsId, normalsId);
+        var filter = new FilterInsideBox3d(FilterBox);
+        var filtered = FilteredNode.CreateTransient(root, filter);
+        storage.Cache.Clear();
+        enabled = true;
+        PersistentRef<V3f[]> Read() => positions ? filtered.Positions : filtered.Normals;
+
+        Assert.Throws<IOException>(() => _ = Read());
+        Assert.Throws<IOException>(() => _ = Read());
+        Assert.That(reads, Is.EqualTo(1), "A failed lazy does not silently repeat the storage operation.");
+        filtered = FilteredNode.CreateTransient(root, filter);
+        var recovered = Read();
+        Assert.That(recovered.Value.Length, Is.EqualTo(2));
+        Assert.That(Read(), Is.SameAs(recovered));
+        Assert.That(reads, Is.EqualTo(2));
     }
 
     private static IPointCloudNode CreateAttributedLeaf(Storage storage, Guid positionsId, Guid normalsId)
