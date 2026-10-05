@@ -20,6 +20,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using static Aardvark.Geometry.Tests.Concurrency.Harness;
 
 #pragma warning disable CS8632
@@ -33,6 +34,9 @@ namespace Aardvark.Geometry.Tests.Concurrency
     ///   (b) every result equals the sequential result,
     /// on a cold store (all loads happen concurrently) and on a warm store (pure query path),
     /// for plain nodes and for a shared FilteredNode (Vgm.Api filterByHull / filterByPrism).
+    ///
+    /// Every test runs all of its rounds and reports the accumulated exceptions (grouped) and
+    /// result mismatches at the end, so a stress run (env ALGODAT_ROUNDS=10) shows the full picture.
     ///
     /// Runs against the synthetic store and, if present, the real store
     /// (env ALGODAT_REAL_STORE, default D:\bla\stores\lowergetikum_keller; read-only).
@@ -63,11 +67,14 @@ namespace Aardvark.Geometry.Tests.Concurrency
         private Summary[] m_refNear;
         private Summary[] m_refFilteredCells;
         private Summary[] m_refFilteredRays;
+        private readonly Dictionary<string, Exception> m_referenceErrors = new Dictionary<string, Exception>();
 
         public ConcurrentQueryCorrectnessTests(string kind) { m_kind = kind; }
 
         private IPointCloudNode Filtered(IPointCloudNode root)
             => FilteredNode.CreateTransient(root, new FilterInsideConvexHull3d(m_plan.FilterHull));
+
+        #region setup
 
         [OneTimeSetUp]
         public void Setup()
@@ -91,12 +98,10 @@ namespace Aardvark.Geometry.Tests.Concurrency
                 m_refFilteredRays = Reference("filtered rays", () => { var w = new RayWorkload(filtered, m_plan); return RunSequential(w.Count, w.Run); });
 
                 Log($"[{m_kind}] sequential references computed in {sw.Elapsed.TotalSeconds:0.0} s: " +
-                    $"cells {Describe(m_refCells)}, rays {Describe(m_refRays)}, near-point {Describe(m_refNear)}, " +
-                    $"filtered cells {Describe(m_refFilteredCells)}, filtered rays {Describe(m_refFilteredRays)}");
+                    $"cells {DescribeRef(m_refCells)}, rays {DescribeRef(m_refRays)}, near-point {DescribeRef(m_refNear)}, " +
+                    $"filtered cells {DescribeRef(m_refFilteredCells)}, filtered rays {DescribeRef(m_refFilteredRays)}");
             }
         }
-
-        private readonly Dictionary<string, Exception> m_referenceErrors = new Dictionary<string, Exception>();
 
         /// <summary>
         /// Computes a sequential reference; a failure here is a finding of its own (see SequentialReferences_Succeed)
@@ -113,7 +118,7 @@ namespace Aardvark.Geometry.Tests.Concurrency
             }
         }
 
-        private static string Describe(Summary[] xs) => xs == null ? "FAILED" : $"{xs.Length} items / {xs.Sum(x => x.Count):N0} pts";
+        private static string DescribeRef(Summary[] xs) => xs == null ? "FAILED" : $"{xs.Length} items / {xs.Sum(x => x.Count):N0} pts";
 
         private Summary[] Require(Summary[] reference, string name)
         {
@@ -121,99 +126,191 @@ namespace Aardvark.Geometry.Tests.Concurrency
             return reference;
         }
 
-        [Test]
-        public void SequentialReferences_Succeed()
+        #endregion
+
+        #region rounds (accumulate, report at the end)
+
+        private sealed class Outcome
         {
-            if (m_referenceErrors.Count == 0) return;
-            var sb = new System.Text.StringBuilder();
-            sb.AppendLine($"[{Variant}] {m_referenceErrors.Count} sequential (single-threaded) reference run(s) failed on the {m_kind} store:");
-            foreach (var kv in m_referenceErrors) sb.AppendLine($"--- {kv.Key} ---\n{kv.Value}");
+            public readonly string Name;
+            public int Rounds;
+            public int RoundsWithExceptions;
+            public int RoundsWithMismatches;
+            public int Items;
+            public int FailedItems;
+            public int MismatchedItems;
+            public readonly Dictionary<string, (int count, string stack)> Exceptions = new Dictionary<string, (int, string)>();
+            public readonly List<string> MismatchSamples = new List<string>();
+            public double Seconds;
+            public Outcome(string name) { Name = name; }
+        }
+
+        /// <summary>
+        /// Runs one concurrent round, compares with the sequential reference and records
+        /// exceptions and mismatches instead of asserting immediately.
+        /// </summary>
+        private void Round(Outcome o, int n, Func<Summary[]> run, Summary[] expected)
+        {
+            o.Rounds++;
+            o.Items += n;
+            var sw = Stopwatch.StartNew();
+            Summary[] actual = null;
+            try
+            {
+                actual = run();
+            }
+            catch (AggregateException ae)
+            {
+                var all = ae.Flatten().InnerExceptions;
+                o.RoundsWithExceptions++;
+                o.FailedItems += all.Count;
+                foreach (var e in all)
+                {
+                    var key = $"{e.GetType().Name}: {Shorten(e.Message)}";
+                    if (o.Exceptions.TryGetValue(key, out var x)) o.Exceptions[key] = (x.count + 1, x.stack);
+                    else o.Exceptions[key] = (1, e.StackTrace ?? "");
+                }
+            }
+            o.Seconds += sw.Elapsed.TotalSeconds;
+            if (actual == null) return;
+
+            var mismatches = 0;
+            for (var i = 0; i < expected.Length; i++)
+            {
+                if (expected[i] == actual[i]) continue;
+                mismatches++;
+                if (o.MismatchSamples.Count < 5) o.MismatchSamples.Add($"round {o.Rounds - 1} item {i}: expected {expected[i]}, got {actual[i]}");
+            }
+            if (mismatches > 0) { o.RoundsWithMismatches++; o.MismatchedItems += mismatches; }
+        }
+
+        private static string Shorten(string s)
+        {
+            s = (s ?? "").Replace("\r", " ").Replace("\n", " ");
+            return s.Length > 240 ? s.Substring(0, 240) + "…" : s;
+        }
+
+        private void Finish(Outcome o)
+        {
+            Log($"[{m_kind}] {o.Name} ({Variant}): {o.Rounds} rounds, {o.Items} items, {o.Seconds:0.00} s; " +
+                $"exceptions: {o.FailedItems} items in {o.RoundsWithExceptions} rounds; mismatches: {o.MismatchedItems} items in {o.RoundsWithMismatches} rounds");
+            if (o.FailedItems == 0 && o.MismatchedItems == 0) return;
+
+            var sb = new StringBuilder();
+            sb.AppendLine($"[{Variant}] {o.Name} on the {m_kind} store: {o.Rounds} rounds, {o.Items} items.");
+            if (o.FailedItems > 0)
+            {
+                sb.AppendLine($"EXCEPTIONS: {o.FailedItems} items failed in {o.RoundsWithExceptions} of {o.Rounds} rounds, {o.Exceptions.Count} distinct:");
+                foreach (var kv in o.Exceptions.OrderByDescending(kv => kv.Value.count).Take(8))
+                {
+                    sb.AppendLine($"  [{kv.Value.count}x] {kv.Key}");
+                    foreach (var line in kv.Value.stack.Split('\n').Take(6)) sb.AppendLine("        " + line.Trim());
+                }
+            }
+            if (o.MismatchedItems > 0)
+            {
+                sb.AppendLine($"WRONG RESULTS: {o.MismatchedItems} items differ from the sequential run in {o.RoundsWithMismatches} of {o.Rounds} rounds, e.g.");
+                foreach (var m in o.MismatchSamples) sb.AppendLine("  " + m);
+            }
             Assert.Fail(sb.ToString());
         }
+
+        #endregion
 
         #region plain nodes
 
         [Test]
         public void Cells_TaskPerItem_ColdStore()
         {
+            var expected = Require(m_refCells, "cells");
+            var o = new Outcome("cells, task per cell, cold store");
             for (var round = 0; round < ColdRounds; round++)
             {
                 using var s = Open(m_spec);
-                var sw = Stopwatch.StartNew();
                 var w = new CellWorkload(s.Root, m_plan);
-                var actual = RunOrFail($"cells cold round {round}", w.Count, () => RunTaskPerItem(w.Count, w.Run));
-                Log($"[{m_kind}] cells cold round {round}: {w.Count} cells in {sw.Elapsed.TotalSeconds:0.00} s");
-                AssertSameResults($"cells cold round {round}", Require(m_refCells, "cells"), actual);
+                Round(o, w.Count, () => RunTaskPerItem(w.Count, w.Run), expected);
             }
+            Finish(o);
         }
 
         [Test]
         public void Cells_Threads_WarmStore()
         {
+            var expected = Require(m_refCells, "cells");
+            var o = new Outcome($"cells, {Threads} threads, warm store");
             using var s = Open(m_spec);
             var w = new CellWorkload(s.Root, m_plan);
-            AssertSameResults("cells warm-up", Require(m_refCells, "cells"), RunSequential(w.Count, w.Run));
-            for (var round = 0; round < WarmRounds; round++)
-            {
-                var sw = Stopwatch.StartNew();
-                var actual = RunOrFail($"cells warm round {round}", w.Count, () => RunThreads(Threads, w.Count, w.Run));
-                Log($"[{m_kind}] cells warm round {round}: {w.Count} cells on {Threads} threads in {sw.Elapsed.TotalSeconds:0.00} s");
-                AssertSameResults($"cells warm round {round}", Require(m_refCells, "cells"), actual);
-            }
+            Round(o, w.Count, () => RunSequential(w.Count, w.Run), expected); // warm-up
+            for (var round = 0; round < WarmRounds; round++) Round(o, w.Count, () => RunThreads(Threads, w.Count, w.Run), expected);
+            Finish(o);
         }
 
         [Test]
         public void Rays_TaskPerItem_ColdStore()
         {
+            var expected = Require(m_refRays, "rays");
+            var o = new Outcome("rays, task per ray, cold store");
             for (var round = 0; round < ColdRounds; round++)
             {
                 using var s = Open(m_spec);
-                var sw = Stopwatch.StartNew();
                 var w = new RayWorkload(s.Root, m_plan);
-                var actual = RunOrFail($"rays cold round {round}", w.Count, () => RunTaskPerItem(w.Count, w.Run));
-                Log($"[{m_kind}] rays cold round {round}: {w.Count} rays in {sw.Elapsed.TotalSeconds:0.00} s");
-                AssertSameResults($"rays cold round {round}", Require(m_refRays, "rays"), actual);
+                Round(o, w.Count, () => RunTaskPerItem(w.Count, w.Run), expected);
             }
+            Finish(o);
+        }
+
+        [Test]
+        public void Rays_Threads_ColdStore()
+        {
+            // all threads start at the root of an empty cache: maximum contention on the same loads
+            var expected = Require(m_refRays, "rays");
+            var o = new Outcome($"rays, {Threads} threads, cold store");
+            for (var round = 0; round < ColdRounds; round++)
+            {
+                using var s = Open(m_spec);
+                var w = new RayWorkload(s.Root, m_plan);
+                Round(o, w.Count, () => RunThreads(Threads, w.Count, w.Run), expected);
+            }
+            Finish(o);
         }
 
         [Test]
         public void Rays_Threads_WarmStore()
         {
+            var expected = Require(m_refRays, "rays");
+            var o = new Outcome($"rays, {Threads} threads, warm store");
             using var s = Open(m_spec);
             var w = new RayWorkload(s.Root, m_plan);
-            AssertSameResults("rays warm-up", Require(m_refRays, "rays"), RunSequential(w.Count, w.Run));
-            for (var round = 0; round < WarmRounds; round++)
-            {
-                var sw = Stopwatch.StartNew();
-                var actual = RunOrFail($"rays warm round {round}", w.Count, () => RunThreads(Threads, w.Count, w.Run));
-                Log($"[{m_kind}] rays warm round {round}: {w.Count} rays on {Threads} threads in {sw.Elapsed.TotalSeconds:0.00} s");
-                AssertSameResults($"rays warm round {round}", Require(m_refRays, "rays"), actual);
-            }
+            Round(o, w.Count, () => RunSequential(w.Count, w.Run), expected); // warm-up
+            for (var round = 0; round < WarmRounds; round++) Round(o, w.Count, () => RunThreads(Threads, w.Count, w.Run), expected);
+            Finish(o);
         }
 
         [Test]
         public void NearPoint_TaskPerItem_ColdStore()
         {
+            var expected = Require(m_refNear, "near-point");
+            var o = new Outcome("near-point, task per query, cold store");
             for (var round = 0; round < ColdRounds; round++)
             {
                 using var s = Open(m_spec);
-                var sw = Stopwatch.StartNew();
                 var w = new NearPointWorkload(s.Root, m_plan);
-                var actual = RunOrFail($"near-point cold round {round}", w.Count, () => RunTaskPerItem(w.Count, w.Run));
-                Log($"[{m_kind}] near-point cold round {round}: {w.Count} queries in {sw.Elapsed.TotalSeconds:0.00} s");
-                AssertSameResults($"near-point cold round {round}", Require(m_refNear, "near-point"), actual);
+                Round(o, w.Count, () => RunTaskPerItem(w.Count, w.Run), expected);
             }
+            Finish(o);
         }
 
         [Test]
         public void Mixed_TaskPerItem_ColdStore()
         {
             // cells, rays and near-point queries interleaved on one cold store
-            Require(m_refCells, "cells"); Require(m_refRays, "rays"); Require(m_refNear, "near-point");
+            var refCells = Require(m_refCells, "cells");
+            var refRays = Require(m_refRays, "rays");
+            var refNear = Require(m_refNear, "near-point");
+            var o = new Outcome("mixed cells + rays + near-point, task per query, cold store");
             for (var round = 0; round < ColdRounds; round++)
             {
                 using var s = Open(m_spec);
-                var sw = Stopwatch.StartNew();
                 var cells = new CellWorkload(s.Root, m_plan);
                 var rays = new RayWorkload(s.Root, m_plan);
                 var near = new NearPointWorkload(s.Root, m_plan);
@@ -221,15 +318,14 @@ namespace Aardvark.Geometry.Tests.Concurrency
                 var max = Math.Max(cells.Count, rays.Count);
                 for (var i = 0; i < max; i++)
                 {
-                    if (i < cells.Count) items.Add((cells.Run, i, m_refCells[i]));
-                    if (i < rays.Count) items.Add((rays.Run, i, m_refRays[i]));
-                    if (i < near.Count) items.Add((near.Run, i, m_refNear[i]));
+                    if (i < cells.Count) items.Add((cells.Run, i, refCells[i]));
+                    if (i < rays.Count) items.Add((rays.Run, i, refRays[i]));
+                    if (i < near.Count) items.Add((near.Run, i, refNear[i]));
                 }
                 var expected = items.Select(x => x.expected).ToArray();
-                var actual = RunOrFail($"mixed cold round {round}", items.Count, () => RunTaskPerItem(items.Count, k => items[k].f(items[k].i)));
-                Log($"[{m_kind}] mixed cold round {round}: {items.Count} queries in {sw.Elapsed.TotalSeconds:0.00} s");
-                AssertSameResults($"mixed cold round {round}", expected, actual);
+                Round(o, items.Count, () => RunTaskPerItem(items.Count, k => items[k].f(items[k].i)), expected);
             }
+            Finish(o);
         }
 
         #endregion
@@ -239,60 +335,60 @@ namespace Aardvark.Geometry.Tests.Concurrency
         [Test]
         public void FilteredCells_TaskPerItem_ColdStore()
         {
+            var expected = Require(m_refFilteredCells, "filtered cells");
+            var o = new Outcome("filtered cells, task per cell, cold store");
             for (var round = 0; round < ColdRounds; round++)
             {
                 using var s = Open(m_spec);
-                var sw = Stopwatch.StartNew();
                 var w = new CellWorkload(Filtered(s.Root), m_plan);
-                var actual = RunOrFail($"filtered cells cold round {round}", w.Count, () => RunTaskPerItem(w.Count, w.Run));
-                Log($"[{m_kind}] filtered cells cold round {round}: {w.Count} cells in {sw.Elapsed.TotalSeconds:0.00} s");
-                AssertSameResults($"filtered cells cold round {round}", Require(m_refFilteredCells, "filtered cells"), actual);
+                Round(o, w.Count, () => RunTaskPerItem(w.Count, w.Run), expected);
             }
+            Finish(o);
         }
 
         [Test]
         public void FilteredCells_Threads_WarmStore()
         {
+            var expected = Require(m_refFilteredCells, "filtered cells");
+            var o = new Outcome($"filtered cells, {Threads} threads, warm store");
             using var s = Open(m_spec);
             Warm(s.Root);
             for (var round = 0; round < WarmRounds; round++)
             {
                 // a fresh FilteredNode per round, shared by all threads (its lazy state is what is under test)
-                var sw = Stopwatch.StartNew();
                 var w = new CellWorkload(Filtered(s.Root), m_plan);
-                var actual = RunOrFail($"filtered cells warm round {round}", w.Count, () => RunThreads(Threads, w.Count, w.Run));
-                Log($"[{m_kind}] filtered cells warm round {round}: {w.Count} cells on {Threads} threads in {sw.Elapsed.TotalSeconds:0.00} s");
-                AssertSameResults($"filtered cells warm round {round}", Require(m_refFilteredCells, "filtered cells"), actual);
+                Round(o, w.Count, () => RunThreads(Threads, w.Count, w.Run), expected);
             }
+            Finish(o);
         }
 
         [Test]
         public void FilteredRays_TaskPerItem_ColdStore()
         {
+            var expected = Require(m_refFilteredRays, "filtered rays");
+            var o = new Outcome("filtered rays, task per ray, cold store");
             for (var round = 0; round < ColdRounds; round++)
             {
                 using var s = Open(m_spec);
-                var sw = Stopwatch.StartNew();
                 var w = new RayWorkload(Filtered(s.Root), m_plan);
-                var actual = RunOrFail($"filtered rays cold round {round}", w.Count, () => RunTaskPerItem(w.Count, w.Run));
-                Log($"[{m_kind}] filtered rays cold round {round}: {w.Count} rays in {sw.Elapsed.TotalSeconds:0.00} s");
-                AssertSameResults($"filtered rays cold round {round}", Require(m_refFilteredRays, "filtered rays"), actual);
+                Round(o, w.Count, () => RunTaskPerItem(w.Count, w.Run), expected);
             }
+            Finish(o);
         }
 
         [Test]
         public void FilteredRays_Threads_WarmStore()
         {
+            var expected = Require(m_refFilteredRays, "filtered rays");
+            var o = new Outcome($"filtered rays, {Threads} threads, warm store");
             using var s = Open(m_spec);
             Warm(s.Root);
             for (var round = 0; round < WarmRounds; round++)
             {
-                var sw = Stopwatch.StartNew();
                 var w = new RayWorkload(Filtered(s.Root), m_plan);
-                var actual = RunOrFail($"filtered rays warm round {round}", w.Count, () => RunThreads(Threads, w.Count, w.Run));
-                Log($"[{m_kind}] filtered rays warm round {round}: {w.Count} rays on {Threads} threads in {sw.Elapsed.TotalSeconds:0.00} s");
-                AssertSameResults($"filtered rays warm round {round}", Require(m_refFilteredRays, "filtered rays"), actual);
+                Round(o, w.Count, () => RunThreads(Threads, w.Count, w.Run), expected);
             }
+            Finish(o);
         }
 
         #endregion
@@ -305,8 +401,9 @@ namespace Aardvark.Geometry.Tests.Concurrency
             using var s = Open(m_spec, countAccesses: true);
             var cells = new CellWorkload(s.Root, m_plan);
             var rays = new RayWorkload(s.Root, m_plan);
-            RunOrFail("no-write cells", cells.Count, () => RunTaskPerItem(cells.Count, cells.Run));
-            RunOrFail("no-write rays", rays.Count, () => RunTaskPerItem(rays.Count, rays.Run));
+            var o = new Outcome("no-write check (cells + rays, task per item, cold store)");
+            Round(o, cells.Count, () => RunTaskPerItem(cells.Count, cells.Run), Require(m_refCells, "cells"));
+            Round(o, rays.Count, () => RunTaskPerItem(rays.Count, rays.Run), Require(m_refRays, "rays"));
             Warm(s.Root);
             Log($"[{m_kind}] store accesses during read-only use: gets={s.Counters.Gets:N0} adds={s.Counters.Adds:N0} removes={s.Counters.Removes:N0}");
             Assert.That(s.Counters.Adds, Is.EqualTo(0),
@@ -343,9 +440,19 @@ namespace Aardvark.Geometry.Tests.Concurrency
                 if (after != before) leaking.Add(i);
             }
             if (tested == 0) Assert.Inconclusive("no cell with colors or intensities found");
-            Log($"[{m_kind}] chunk aliasing: {leaking.Count} of {tested} mutated result chunks changed the data returned by the next query of the same cell");
+            Log($"[{m_kind}] chunk aliasing ({Variant}): {leaking.Count} of {tested} mutated result chunks changed the data returned by the next query of the same cell");
             Assert.That(leaking, Is.Empty,
                 $"[{Variant}] mutating a result chunk changed the data returned by the next query of the same cell for {leaking.Count} of {tested} cells (e.g. cells {string.Join(", ", leaking.Take(5))})");
+        }
+
+        [Test]
+        public void SequentialReferences_Succeed()
+        {
+            if (m_referenceErrors.Count == 0) return;
+            var sb = new StringBuilder();
+            sb.AppendLine($"[{Variant}] {m_referenceErrors.Count} sequential (single-threaded) reference run(s) failed on the {m_kind} store:");
+            foreach (var kv in m_referenceErrors) sb.AppendLine($"--- {kv.Key} ---\n{kv.Value}");
+            Assert.Fail(sb.ToString());
         }
 
         #endregion
@@ -402,7 +509,7 @@ namespace Aardvark.Geometry.Tests.Concurrency
             Log($"[{m_kind}] inventory ({Variant}): {m_spec}");
             Log($"[{m_kind}]   points {root.PointCountTree:N0}, nodes {nodes:N0}, leaves {leaves:N0}, depth {maxDepth}, root cell {root.Cell}, bbox {root.BoundingBoxExactGlobal}");
             Log($"[{m_kind}]   attributes: {string.Join(", ", attributes)}; nodes with kd-tree ref: {withKdTreeRef:N0}; leaves without kd-tree ref: {leavesWithoutKdTreeRef:N0}");
-            Log($"[{m_kind}]   kd-tree: null {kdTreeNull:N0}, blob missing in store {kdTreeBlobMissing:N0}, load failed {kdTreeLoadFailed:N0}" +
+            Log($"[{m_kind}]   kd-tree: null {kdTreeNull:N0}, blob missing in store {kdTreeBlobMissing:N0}, load/query failed {kdTreeLoadFailed:N0}" +
                 (kdErrors.Count > 0 ? " (" + string.Join("; ", kdErrors.Select(kv => $"{kv.Value}x {kv.Key}")) + ")" : ""));
             Log($"[{m_kind}]   store gets while loading all nodes: {s.Counters.Gets:N0}, store writes attempted: {s.Counters.Adds:N0} ({sw.Elapsed.TotalSeconds:0.0} s)");
 
@@ -412,7 +519,6 @@ namespace Aardvark.Geometry.Tests.Concurrency
             if (leaf.Properties.TryGetValue(Durable.Octree.PointRkdTreeFDataReference, out var kdRef))
             {
                 var blob = s.Storage.GetByteArray((Guid)kdRef);
-                var head = blob != null && blob.Length >= 16 ? new Guid(blob.Take(16).ToArray()).ToString() : "n/a";
                 string decoded;
                 try
                 {
@@ -421,7 +527,7 @@ namespace Aardvark.Geometry.Tests.Concurrency
                 }
                 catch (Exception e) { decoded = $"decode failed: {e.GetType().Name}: {e.Message}"; }
                 var ascii = blob == null ? "" : new string(blob.Select(b => b >= 32 && b < 127 ? (char)b : '.').ToArray());
-                Log($"[{m_kind}]   first leaf {leaf.Id}: {leaf.PointCountCell} points, kd-tree blob {kdRef}: {blob?.Length ?? -1} bytes, first 16 bytes as guid {head}, decoded: {decoded}");
+                Log($"[{m_kind}]   first leaf {leaf.Id}: {leaf.PointCountCell} points, kd-tree blob {kdRef}: {blob?.Length ?? -1} bytes, decoded: {decoded}");
                 Log($"[{m_kind}]   kd-tree blob as text: {ascii}");
             }
             Log($"[{m_kind}]   plan: {m_plan}");
