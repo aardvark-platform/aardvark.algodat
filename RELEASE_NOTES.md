@@ -1,10 +1,9 @@
+### 5.6.4-prerelease0005
+- [PointSet] PointSetNode.WriteToStore persists a missing kd-tree (e.g. after With/Without); use the returned node, it may be a new instance with the same id and a stored kd-tree reference. Decoding and queries remain read-only.
+- [PointSet] documented: FilteredNode and in-memory kd-trees cache initialization exceptions; recreate the view (or evict and reload the node) after a transient failure
+- [Tests] exact filtered-node concurrency, attribute-alignment and recovery regressions; explicit-write kd-tree persistence tests
+
 ### 5.6.4-prerelease0004
-
-**Unreleased follow-up (not included in the published prerelease):**
-- [PointSet] Explicit node writes persist a missing kd-tree; decoding and queries remain read-only.
-- [Tests] Exact filtered-node concurrency and attribute-alignment regressions; failed lazy initialization is recovered by recreating the view/node, not by changing the read path.
-
-**Published changes:**
 - [PointSet] FilteredNode: all lazily derived state (subnodes, positions, kd-tree, attribute subsets, part indices) is now thread-safe; a FilteredNode shared by concurrent queries no longer returns missing points
 - [PointSet] PointSetNode: decoding a node without a stored kd-tree no longer writes to the store; the kd-tree is built lazily in memory (read-only stores and concurrent readers)
 - [PointSet] chunks returned by ToChunk and the octree-level queries own their attribute arrays (no aliasing of cached node data); FilteredNode.PositionsAbsolute returns a fresh array
