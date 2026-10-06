@@ -61,7 +61,21 @@ var localTimes = times.ToDateTime(timeZone: 1);
 
 Transitions are returned as Julian days. Nonexistent transitions (for example polar day/night) are `double.NaN`; `ToDateTime` converts those to `DateTime.MinValue`. Its timezone argument is a fixed output offset in hours.
 
-[SunPosition](../src/Aardvark.Physics.Sky/SunPosition.cs) also provides `CivilDuskAndDawn`, `NauticalDuskAndDawn`, and `AstronomicalDuskAndDawn` for solar elevations −6°, −12°, and −18°.
+[SunPosition](../src/Aardvark.Physics.Sky/SunPosition.cs) uses an approximate solar
+model, not a precision ephemeris. `HorizonTransit(jd, longitude, latitude, elevation)`
+returns rising crossing, solar transit, and setting crossing. The elevation is the
+solar center's angle above the local horizon in degrees (negative below it), **not
+solar declination**. Its initial estimate uses declination at transit; two refinements
+use the declination at each event. Agreement with roots of this model's altitude
+equation does not guarantee real-world timing accuracy.
+
+`SunRiseAndSet` uses −0.83°, approximating the solar disk radius and standard sea-level
+refraction. `CivilDuskAndDawn`, `NauticalDuskAndDawn`, and `AstronomicalDuskAndDawn`
+use −6°, −12°, and −18°. `GetTwilightTimes` uses those same levels, plus −0.3° for
+sunrise end/sunset start and +6° for golden-hour end/start. Missing crossings remain
+NaN while solar transit is retained. The legacy three-argument `HorizonTransit`
+overload estimates geometric-horizon (0°) crossings without these two refinements;
+it is not the −0.83° sunrise/sunset wrapper.
 
 ## Star-Catalog Transformations
 

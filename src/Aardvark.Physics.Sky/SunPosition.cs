@@ -24,7 +24,7 @@ namespace Aardvark.Physics.Sky
     /// This class holds a sun position calculation
     /// based on Astronomy Answers by Dr Louis Strous
     /// https://www.aa.quae.nl/en/reken/zonpositie.html
-    /// The accuracy is ~1°
+    /// This is an approximate solar model, not a precision ephemeris.
     /// </summary>
     public static class SunPosition
     {
@@ -135,10 +135,9 @@ namespace Aardvark.Physics.Sky
         }
 
         /// <summary>
-        /// Calculates the time of sun rise and set closest to the specified day.
-        /// The sun rise and set is specified as the time when the top of the solar disk touches the horizon as seen at sea level 
-        /// and also accounts for the refraction due to the atmosphere and thereby the time when the sun declination is -0.83°.
-        /// If no solution if found double.NaN is returned.
+        /// Estimates sunrise, solar transit and sunset nearest the specified UTC Julian day.
+        /// Uses a solar-center elevation of -0.83 degrees, approximating the disk radius
+        /// and standard sea-level refraction. Missing crossings are returned as double.NaN.
         /// https://www.aa.quae.nl/en/reken/zonpositie.html#10
         /// </summary>
         /// <param name="jd">Date and time in Julian days</param>
@@ -151,9 +150,9 @@ namespace Aardvark.Physics.Sky
         }
 
         /// <summary>
-        /// Calculates the time where the civil dusk starts and the civil dawn ends closest to the date specified.
-        /// The civil dusk is defined when the geometric center of the sun (declination) is -6 degrees below the horizon.
-        /// If no solution if found double.NaN is returned.
+        /// Estimates civil dawn, solar transit and civil dusk at solar-center elevation -6 degrees.
+        /// Uses the approximate model of <see cref="HorizonTransit(double, double, double, double)"/>;
+        /// missing crossings are returned as double.NaN.
         /// </summary>
         public static (double, double, double) CivilDuskAndDawn(double jd, double longitudeInDegrees, double latitudeInDegrees)
         {
@@ -161,9 +160,9 @@ namespace Aardvark.Physics.Sky
         }
 
         /// <summary>
-        /// Calculates the time where the nautical dusk starts and the nautical dawn ends closest to the date specified.
-        /// The nautical dusk is defined when the geometric center of the sun (declination) is -12 degrees below the horizon.
-        /// If no solution if found double.NaN is returned.
+        /// Estimates nautical dawn, solar transit and nautical dusk at solar-center elevation -12 degrees.
+        /// Uses the approximate model of <see cref="HorizonTransit(double, double, double, double)"/>;
+        /// missing crossings are returned as double.NaN.
         /// </summary>
         public static (double, double, double) NauticalDuskAndDawn(double jd, double longitudeInDegrees, double latitudeInDegrees)
         {
@@ -171,9 +170,9 @@ namespace Aardvark.Physics.Sky
         }
 
         /// <summary>
-        /// Calculates the time where the astronomical dusk starts and the astronomical dawn ends closest to the date specified.
-        /// The astronomical dusk is defined when the geometric center of the sun (declination) is -18 degrees below the horizon.
-        /// If no solution if found double.NaN is returned.
+        /// Estimates astronomical dawn, solar transit and astronomical dusk at solar-center elevation -18 degrees.
+        /// Uses the approximate model of <see cref="HorizonTransit(double, double, double, double)"/>;
+        /// missing crossings are returned as double.NaN.
         /// </summary>
         /// <returns>Time where astronomical dawn starts, time of solar transit, and time where astronomical dusk ends</returns>
         public static (double, double, double) AstronomicalDuskAndDawn(double jd, double longitudeInDegrees, double latitudeInDegrees)
@@ -182,14 +181,17 @@ namespace Aardvark.Physics.Sky
         }
 
         /// <summary>
-        /// Calculates the previous and next time where the center of the solar disk is at specified declination closest to the given date.
-        /// If no solution if found double.NaN is returned.
+        /// Estimates rising and setting crossings of a specified solar-center elevation,
+        /// around the solar transit nearest the supplied UTC Julian day.
+        /// The initial transit-declination approximation is refined twice using declination
+        /// at each event. These approximate-model times have no ephemeris-accuracy guarantee.
+        /// Missing crossings, including polar rejection, are returned as double.NaN.
         /// https://www.aa.quae.nl/en/reken/zonpositie.html#10
         /// </summary>
         /// <param name="jd">Date and time in Julian days</param>
         /// <param name="longitudeInDegrees">Longitude GPS coordinate in degrees east</param>
         /// <param name="latitudeInDegrees">Latitude GPS coordinate in degrees north</param>
-        /// <param name="h0InDegrees">Declination angle in degrees</param>
+        /// <param name="h0InDegrees">Solar-center elevation above the local horizon in degrees; negative below it, not equatorial declination.</param>
         /// <returns>Time of horizon transit during sun rise, solar transit, and time of horizon transit during sun set</returns>
         public static (double, double, double) HorizonTransit(double jd, double longitudeInDegrees, double latitudeInDegrees, double h0InDegrees)
         {
@@ -271,8 +273,11 @@ namespace Aardvark.Physics.Sky
         }
 
         /// <summary>
-        /// Calculates the start and end times of all twilight levels closest to the given date.
-        /// If no solution if found double.NaN is returned.
+        /// Estimates event times around the solar transit nearest the supplied UTC Julian day.
+        /// Solar-center elevations are -18, -12 and -6 degrees for twilight, -0.83 degrees
+        /// for sunrise/sunset, -0.3 degrees for sunrise end/sunset start, and +6 degrees for
+        /// golden-hour end/start. These approximate-model estimates are not precision ephemerides.
+        /// Missing event fields are double.NaN; solar transit is retained.
         /// https://www.aa.quae.nl/en/reken/zonpositie.html#10
         /// </summary>
         /// <param name="jd">Date and time in Julian days</param>
@@ -288,7 +293,7 @@ namespace Aardvark.Physics.Sky
 
             var (goldEnd, goldStart) = HorizonTransit(jtransit, sunDeclination, longitudeInDegrees, latitudeInDegrees, 6);
             var (riseStart, setEnd) = HorizonTransit(jtransit, sunDeclination, longitudeInDegrees, latitudeInDegrees, -0.83);
-            var (riseEnd, setStart) = HorizonTransit(jtransit, sunDeclination, longitudeInDegrees, latitudeInDegrees, -0.3); // sun diameter ~0.53°
+            var (riseEnd, setStart) = HorizonTransit(jtransit, sunDeclination, longitudeInDegrees, latitudeInDegrees, -0.3); // sun diameter ~0.53Â°
             var (civilStart, civilEnd) = HorizonTransit(jtransit, sunDeclination, longitudeInDegrees, latitudeInDegrees, -6);
             var (nautStart, nautEnd) = HorizonTransit(jtransit, sunDeclination, longitudeInDegrees, latitudeInDegrees, -12);
             var (astroStart, astroEnd) = HorizonTransit(jtransit, sunDeclination, longitudeInDegrees, latitudeInDegrees, -18);
@@ -319,7 +324,7 @@ namespace Aardvark.Physics.Sky
             var cosPhi = Fun.Cos(phi);
             var sinPhi = Fun.Sin(phi);
 
-            var h0 = h0InDegrees * Constant.RadiansPerDegree; // sun declination angle when top of solar disk touches the horizon on sea level (includes disk radius + refraction of atmosphere)
+            var h0 = h0InDegrees * Constant.RadiansPerDegree; // Target solar-center elevation, not declination.
             var sinh0 = Fun.Sin(h0);
 
             // early exit if initial approximation is already not found
@@ -336,15 +341,15 @@ namespace Aardvark.Physics.Sky
             // perform 2 iteration of refinement
             for (int i = 0; i < 2; i++)
             {
-                // sun hour angle in degrees
-                var hrise = HourAngleDeg(jrise, longitudeInDegrees);
-                var hset = HourAngleDeg(jset, longitudeInDegrees);
+                // Share ecliptic longitude and obliquity for each event's declination and right ascension.
+                var (deltaRise, alphaRise) = GetEquatorialCoordinates(jrise);
+                var (deltaSet, alphaSet) = GetEquatorialCoordinates(jset);
+                var lw = -longitudeInDegrees;
+                var hrise = Fun.AngleDifference(0, Astronomy.SideralTime(jrise) - lw * Constant.RadiansPerDegree - alphaRise) * Constant.DegreesPerRadian;
+                var hset = Fun.AngleDifference(0, Astronomy.SideralTime(jset) - lw * Constant.RadiansPerDegree - alphaSet) * Constant.DegreesPerRadian;
 
-                var deltaRise = GetDeclination(jrise);
-                var deltaSet = GetDeclination(jset);
-
-                var htrise = Fun.Acos((sinh0 - sinPhi * Fun.Sin(deltaRise)) / (cosPhi * Fun.Cos(delta))) * Constant.DegreesPerRadian;
-                var htset = Fun.Acos((sinh0 - sinPhi * Fun.Sin(deltaSet)) / (cosPhi * Fun.Cos(delta))) * Constant.DegreesPerRadian;
+                var htrise = Fun.Acos((sinh0 - sinPhi * Fun.Sin(deltaRise)) / (cosPhi * Fun.Cos(deltaRise))) * Constant.DegreesPerRadian;
+                var htset = Fun.Acos((sinh0 - sinPhi * Fun.Sin(deltaSet)) / (cosPhi * Fun.Cos(deltaSet))) * Constant.DegreesPerRadian;
 
                 // iteration of refinement
                 jrise -= (hrise + htrise) / 360 * J3; // Eq. 50  :  J3 = average length of a solar day
@@ -418,7 +423,9 @@ namespace Aardvark.Physics.Sky
         }
 
         /// <summary>
-        /// Calculates the previous and next time where the sun declination is 0 closest to the specified time.
+        /// Approximates crossings of solar-center elevation zero (the geometric horizon).
+        /// This legacy overload uses an unrefined transit offset; it is not the -0.83-degree
+        /// sunrise/sunset estimate returned by <see cref="SunRiseAndSet"/>.
         /// https://www.aa.quae.nl/en/reken/zonpositie.html#10
         /// </summary>
         /// <param name="jd">Date and time in Julian days</param>
@@ -435,8 +442,8 @@ namespace Aardvark.Physics.Sky
         }
 
         /// <summary>
-        /// Calculates the time offset to where the sun declination is equal to 0° given the time of
-        /// the solar transit and a GPS latitude coordinate.
+        /// Approximates the time offset from solar transit to a geometric horizon crossing
+        /// (solar-center elevation zero), using declination at transit without event refinement.
         /// https://www.aa.quae.nl/en/reken/zonpositie.html#10
         /// </summary>
         /// <param name="jdSolarTransit">Date and time of solar transit in Julian days</param>
