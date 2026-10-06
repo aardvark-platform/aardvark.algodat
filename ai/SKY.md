@@ -33,7 +33,7 @@ See [CIESky](../src/Aardvark.Physics.Sky/CIESky.cs), [HosekSky](../src/Aardvark.
 
 ## Time and Observer Coordinates
 
-Longitude is east-positive and latitude north-positive, both in degrees. Julian-day overloads take **UTC**. DateTime overloads subtract the supplied timezone offset; pass **zero with `DateTime.UtcNow`**. They do not infer a civil timezone or daylight-saving rules.
+Longitude is east-positive and latitude north-positive, both in degrees. Observer-position Julian-day overloads take **UTC**. DateTime overloads subtract the supplied timezone offset; pass **zero with `DateTime.UtcNow`**. They do not infer a civil timezone or daylight-saving rules.
 
 ```csharp
 var utc = DateTime.UtcNow;
@@ -48,6 +48,17 @@ var (phi, theta, distanceAU) = Astronomy.PlanetDirectionAndDistance(
 Sun and Moon return `SphericalCoordinate` and distance in meters; planets return azimuth, zenith angle, and distance in astronomical units. Below-horizon directions are valid astronomy results, not necessarily valid inputs to every daylight sky model. Accuracy limits for planet calculations are documented in [Astronomy](../src/Aardvark.Physics.Sky/Astronomy.cs).
 
 `ComputeJulianDay()` converts the supplied clock fields. For local time, subtract `offsetHours / 24.0` once. `DateTimeExtensions.ComputeDateFromJulianDay(jd)` performs the reverse conversion; `Astronomy.J2000` is Julian day 2451545.0.
+
+## Long-Term Mean Obliquity
+
+`Astronomy.GetEarthMeanObliquityLaskar(jd)` returns the Earth's mean obliquity of
+the ecliptic in **radians**, using the tenth-order Laskar (1986) approximation.
+Supply a Julian ephemeris day in **TT**; the method does not convert UTC to TT.
+Its polynomial variable is `U = (jd - Astronomy.J2000) / 3652500`: 10,000 Julian
+years, or 100 Julian centuries, per unit. The intended long-term range is
+±10,000 Julian years around J2000 (`|U| <= 1`), not an enforced input limit or
+a guarantee of physical accuracy. `ComputeJulianDay()` does not perform the
+UTC-to-TT conversion. The DE200 and AA2010 approximations are unchanged.
 
 ## Sunrise, Sunset, and Twilight
 

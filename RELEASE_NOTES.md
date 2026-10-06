@@ -1,3 +1,5 @@
+- [Sky] Correct the 10,000-year time scale in Laskar mean obliquity.
+
 ### 5.6.4-prerelease0004
 - [PointSet] FilteredNode: all lazily derived state (subnodes, positions, kd-tree, attribute subsets, part indices) is now thread-safe; a FilteredNode shared by concurrent queries no longer returns missing points
 - [PointSet] PointSetNode: decoding a node without a stored kd-tree no longer writes to the store; the kd-tree is built lazily in memory (read-only stores and concurrent readers)
