@@ -629,7 +629,12 @@ namespace Aardvark.Physics.Sky
         /// <summary>
         /// Builds the transformation matrix from Celestial Ephemeris Pole (CEP) to 
         /// International Terrestrial Reference Frame (ITRF) coordinates for the given 
-        /// date in Julian days (jd) and the Earth Orientation Parameters (EOP) xp and yp.
+        /// UT1 date in Julian days (jd) and the Earth Orientation Parameters (EOP) xp and yp.
+        /// Uses the full-date IAU 1982 GMST-UT1 polynomial and fractional solar-day hours;
+        /// Julian days start at noon, so the polynomial constant is shifted by 12 hours.
+        /// UTC may approximate UT1, but no UTC-to-UT1 conversion is performed. The existing
+        /// nutation correction also uses jd, without a separate TT input; this is not a
+        /// precision Earth-orientation model. SideralTime computes ERA, not this GMST.
         /// https://gssc.esa.int/navipedia/index.php/CEP_to_ITRF
         /// 
         /// The ITRS is a reference system co-rotating with the Earth in its diurnal motion in space.
@@ -638,31 +643,30 @@ namespace Aardvark.Physics.Sky
         /// The X-axis is the intersection of the orthogonal plane to the Z-axis and the Greenwich mean meridian.
         /// The Y-axis is orthogonal to the Z- and X-axis.
         /// </summary>
-        /// <param name="jd">date in Julian days</param>
+        /// <param name="jd">UT1 Julian date; integer Julian days begin at noon, civil midnight has fraction 0.5.</param>
         /// <param name="xp">earth orientation parameter xp in radians</param>
         /// <param name="yp">earth orientation parameter yp in radians</param>
         /// <returns></returns>
         public static M33d CEPtoITRF(double jd, double xp, double yp)
         {
-            // rotation around the CEP pole 
-            var Tu = (jd - J2000) * JulianCenturiesPerDay;
-            var Tu2 = Tu * Tu;
-            var Tu3 = Tu2 * Tu;
-            
-            // GMST at 0h (sidereal time) / orientation relative to stars at 0h of given date
-            var theta_G0_sec = (6 * 3600 + 41 * 60 + 50.54841 + 8640184.812866 * Tu + 0.093104 * Tu2 - 6.2e-6 * Tu3);
-            var theta_G0_h = theta_G0_sec / 3600 % 24.0; // h (24 => 360°)
+            // Full UT1 date in Julian centuries, not truncated to midnight.
+            var ut1Centuries = (jd - J2000) * JulianCenturiesPerDay;
+            var ut1Centuries2 = ut1Centuries * ut1Centuries;
+            var ut1Centuries3 = ut1Centuries2 * ut1Centuries;
 
-            // time of day
-            var ut1 = Fun.Frac(jd) * 24; // ut = 12h + solar time (same as frac of jd)
+            // GMST-UT1 offset in seconds; -43200 accounts for Julian noon phasing.
+            var meanSiderealOffsetSeconds = (6 * 3600 + 41 * 60 + 50.54841 - 43200 + 8640184.812866 * ut1Centuries + 0.093104 * ut1Centuries2 - 6.2e-6 * ut1Centuries3);
+            var meanSiderealOffsetHours = meanSiderealOffsetSeconds / 3600 % 24.0;
 
-            var theta_G_h = 1.002737909350795 * ut1 + theta_G0_h; // ~1° per hour (360° per day) + offset due to orbit around the sun
-            var theta_G_rad = (theta_G_h / 24 * 360) * Constant.RadiansPerDegree; // hour angle to radians
+            // Fractional Julian-day solar hours. The polynomial already includes sidereal drift.
+            var solarHours = Fun.Frac(jd) * 24;
+            var meanSiderealHours = solarHours + meanSiderealOffsetHours;
+            var meanSiderealRadians = (meanSiderealHours / 24 * 360) * Constant.RadiansPerDegree;
 
             var N = BuildNutationTransform(jd);
             var alpha_E = Fun.Atan(N.M01 / N.M00);
 
-            var Theta_G = theta_G_rad + alpha_E;
+            var Theta_G = meanSiderealRadians + alpha_E;
             
             var Rs = RotationZ(Theta_G);
 
