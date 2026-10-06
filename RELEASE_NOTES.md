@@ -1,3 +1,5 @@
+- [Sky] Correct Julian-noon phasing and fractional-day rotation in CEPtoITRF.
+
 ### 5.6.4-prerelease0005
 - [PointSet] PointSetNode.WriteToStore persists a missing kd-tree (e.g. after With/Without); use the returned node, it may be a new instance with the same id and a stored kd-tree reference. Decoding and queries remain read-only.
 - [PointSet] documented: FilteredNode and in-memory kd-trees cache initialization exceptions; recreate the view (or evict and reload the node) after a transient failure

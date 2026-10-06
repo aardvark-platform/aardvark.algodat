@@ -33,7 +33,7 @@ See [CIESky](../src/Aardvark.Physics.Sky/CIESky.cs), [HosekSky](../src/Aardvark.
 
 ## Time and Observer Coordinates
 
-Longitude is east-positive and latitude north-positive, both in degrees. Julian-day overloads take **UTC**. DateTime overloads subtract the supplied timezone offset; pass **zero with `DateTime.UtcNow`**. They do not infer a civil timezone or daylight-saving rules.
+Longitude is east-positive and latitude north-positive, both in degrees. Observer-position Julian-day overloads take **UTC**. DateTime overloads subtract the supplied timezone offset; pass **zero with `DateTime.UtcNow`**. They do not infer a civil timezone or daylight-saving rules.
 
 ```csharp
 var utc = DateTime.UtcNow;
@@ -65,7 +65,7 @@ Transitions are returned as Julian days. Nonexistent transitions (for example po
 
 ## Star-Catalog Transformations
 
-For a catalog direction `V3d starICRF` and UTC Julian day `jd`:
+For a catalog direction `V3d starICRF` and UTC Julian day `jd` (used here only as an approximation to UT1 for Earth rotation):
 
 ```csharp
 M33d icrf2cep = Astronomy.ICRFtoCEP(jd);
@@ -74,7 +74,21 @@ M33d itrf2local = Astronomy.ITRFtoLocal(16.37, 48.21);
 V3d starLocal = (itrf2local * cep2itrf * icrf2cep) * starICRF;
 ```
 
-`xp` and `yp` are polar-motion inputs; zero omits that correction. This is an astronomical frame transformation, not an EPSG projection.
+`CEPtoITRF` requires **UT1** Julian days for Earth rotation. If UT1−UTC is available
+in seconds, supply `jdUt1 = jdUtc + (UT1−UTC) / 86400`; the method does not perform
+that conversion. Using UTC instead introduces the corresponding rotation-time
+error. Its IAU 1982 GMST−UT1 polynomial uses the **full date**, not midnight. Integer
+Julian days begin at noon (civil midnight has fraction 0.5), accounted for by a
+−43,200-second constant shift before adding fractional solar-day hours. There is
+no additional sidereal-rate multiplier: the polynomial already includes that drift.
+`SideralTime` computes ERA and is not a replacement for this GMST calculation.
+
+The existing nutation-derived `alpha_E` correction is retained and uses the same
+`jd`; this API has no separate TT input for nutation. The combined transform remains
+an approximate model, not a modern precision Earth-orientation solution. `xp` and
+`yp` are polar-motion inputs in radians; zero omits that correction. The composition
+remains passive `Rx(-xp) * Ry(-yp) * Rz(GMST + alpha_E)`. This is an astronomical
+frame transformation, not an EPSG projection.
 
 ## Related
 
