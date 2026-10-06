@@ -824,11 +824,16 @@ namespace Aardvark.Physics.Sky
         }
 
         /// <summary>
+        /// Calculates true anomaly from mean anomaly for elliptic and hyperbolic orbits.
+        /// For e &gt; 1, Newton refinement solves e*sinh(H) - H = M using derivative
+        /// e*cosh(H) - 1 before converting hyperbolic anomaly H to true anomaly.
+        /// The initial estimate and stopping criterion are retained, as are the circular
+        /// passthrough and legacy parabolic branch; no new convergence guarantees are imposed.
         /// https://aa.quae.nl/en/reken/kepler.html
         /// </summary>
         /// <param name="M">Mean Anomaly in radians</param>
         /// <param name="e">eccentricity</param>
-        /// <param name="a">aphelion in AU</param>
+        /// <param name="a">aphelion in AU; retained for compatibility, not used by this calculation</param>
         /// <returns>True Anomaly in radians</returns>
 #pragma warning disable IDE0060 // Remove unused parameter
         public static double CalculateTrueAnomaly(double M, double e, double a)
@@ -881,7 +886,7 @@ namespace Aardvark.Physics.Sky
                     else // e > 1 // hyperbolic orbit
                     {
                         si = e * Fun.Sinh(Ei);
-                        ci = 1 - e * Fun.Cosh(Ei);
+                        ci = e * Fun.Cosh(Ei) - 1;
                         di = si - Ei - M;
                     }
 
