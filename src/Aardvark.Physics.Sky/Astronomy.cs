@@ -443,16 +443,17 @@ namespace Aardvark.Physics.Sky
         }
 
         /// <summary>
-        /// Gets the earth mean angle of obliquity for a given date.
-        /// A 10rd order fit for long term approximations from Laskar 1986 is used for the approximation,
-        /// good to 0.02″ over 1000 years and several arcseconds over 10,000 years.
+        /// Gets the Earth's mean obliquity of the ecliptic in radians.
+        /// The tenth-order Laskar (1986) approximation uses U = (jd - J2000) / 3652500,
+        /// in units of 10,000 Julian years (100 Julian centuries). Its intended range is
+        /// within 10,000 Julian years of J2000 (|U| &lt;= 1); this range is not enforced.
         /// </summary>
-        /// <param name="jd">UTC time in Julian days</param>
-        /// <returns>Earths angle obliquity in radians</returns>
+        /// <param name="jd">Julian ephemeris day (TT); no UTC-to-TT conversion is performed.</param>
+        /// <returns>Mean obliquity in radians.</returns>
         public static double GetEarthMeanObliquityLaskar(double jd)
         {
-           // difference from J2000.0 in multiples of 10000 years
-           var T = (jd - J2000) * JulianCenturiesPerDay * 100;
+           // Difference from J2000.0 in units of 10,000 Julian years.
+           var T = (jd - J2000) * (JulianCenturiesPerDay / 100);
 
             var T2 = T * T;
             var T3 = T2 * T;
