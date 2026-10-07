@@ -96,7 +96,9 @@ public static partial class Queries
 
 
     /// <summary>
-    /// Gets total number of points in all cells at given octree level.
+    /// Counts stored points on the relative-depth front using node metadata.
+    /// Level 0 is the root; earlier leaves are included and negative levels return zero.
+    /// Filtered views or node initialization may still load positions.
     /// </summary>
     public static long CountPointsInOctreeLevel(
         this PointSet self, int level
@@ -104,7 +106,9 @@ public static partial class Queries
         => CountPointsInOctreeLevel(self.Root.Value, level);
 
     /// <summary>
-    /// Gets total number of lod-points in all cells at given octree level.
+    /// Counts stored LoD points on the relative-depth front using PointCountCell,
+    /// not subtree counts. Level 0 is this node; earlier leaves are included.
+    /// Negative levels return zero. Filtered views or node initialization may still load positions.
     /// </summary>
     public static long CountPointsInOctreeLevel(
         this IPointCloudNode node, int level
@@ -114,7 +118,7 @@ public static partial class Queries
 
         if (level == 0 || node.IsLeaf())
         {
-            return node.Positions.Value.Count();
+            return node.PointCountCell;
         }
         else
         {
@@ -133,9 +137,10 @@ public static partial class Queries
 
 
     /// <summary>
-    /// Gets approximate number of points at given octree level within given bounds.
-    /// For cells that only partially overlap the specified bounds all points are counted anyway.
-    /// For performance reasons, in order to avoid per-point bounds checks.
+    /// Counts stored points on the relative-depth front whose exact node bounds intersect bounds.
+    /// Level 0 is the root; earlier leaves are included and negative levels return zero.
+    /// Partially overlapping nodes contribute all their stored points, without per-point checks.
+    /// Uses node metadata; filtered views or node initialization may still load positions.
     /// </summary>
     public static long CountPointsInOctreeLevel(
         this PointSet self, int level, Box3d bounds
@@ -143,9 +148,10 @@ public static partial class Queries
         => CountPointsInOctreeLevel(self.Root.Value, level, bounds);
 
     /// <summary>
-    /// Gets approximate number of points at given octree level within given bounds.
-    /// For cells that only partially overlap the specified bounds all points are counted anyway.
-    /// For performance reasons, in order to avoid per-point bounds checks.
+    /// Counts stored LoD points on the relative-depth front whose exact node bounds intersect bounds.
+    /// Level 0 is this node; earlier leaves are included and negative levels return zero.
+    /// Partially overlapping nodes contribute their entire PointCountCell, not their subtree count.
+    /// Filtered views or node initialization may still load positions.
     /// </summary>
     public static long CountPointsInOctreeLevel(
         this IPointCloudNode node, int level, Box3d bounds
@@ -156,7 +162,7 @@ public static partial class Queries
 
         if (level == 0 || node.IsLeaf())
         {
-            return node.Positions.Value.Length;
+            return node.PointCountCell;
         }
         else
         {

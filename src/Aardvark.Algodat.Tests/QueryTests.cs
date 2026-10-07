@@ -13,11 +13,13 @@
 */
 using Aardvark.Base;
 using Aardvark.Data.Points;
+using Aardvark.Data;
 using Aardvark.Geometry.Points;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -774,6 +776,192 @@ namespace Aardvark.Geometry.Tests
         #endregion
 
         #region Octree levels
+
+        // Keep decoded nodes resident but evict their separately stored position payloads.
+        // Decoding itself validates array lengths; that existing I/O is not terminal counting I/O.
+        private sealed class LevelCountStore : IDisposable
+        {
+            public readonly Storage Storage;
+            public readonly Guid RootId;
+            public readonly HashSet<string> PayloadKeys = new();
+            public int PayloadReads, Writes;
+
+            public LevelCountStore(bool tree)
+            {
+                var inner = PointCloud.CreateInMemoryStore(cache: default);
+                byte[] Get(string key)
+                {
+                    var bytes = inner.f_get(key);
+                    if (PayloadKeys.Contains(key)) PayloadReads++;
+                    return bytes;
+                }
+                Storage = new Storage(
+                    (key, value, encode) => { Writes++; inner.f_add(key, value, encode); },
+                    Get, (key, offset, length) =>
+                    {
+                        var bytes = inner.f_getSlice(key, offset, length);
+                        if (PayloadKeys.Contains(key)) PayloadReads++;
+                        return bytes;
+                    }, inner.f_remove, inner.Dispose, inner.f_flush,
+                    new LruDictionary<string, object>(1L << 24));
+                var ids = new List<Guid>();
+                (Guid Id, long Count) Store(Cell cell, int count, params (int Octant, Guid Id, long Count)[] children)
+                {
+                    var id = Guid.NewGuid();
+                    var payloadId = Guid.NewGuid();
+                    var positions = Enumerable.Range(1, count)
+                        .Select(i => (V3f)(cell.BoundingBox.Size * ((double)i / (count + 1)) - cell.BoundingBox.Size * 0.5))
+                        .ToArray();
+                    var global = positions.Select(p => (V3d)p + cell.GetCenter()).ToArray();
+                    var subtreeCount = children.Length == 0 ? count : children.Sum(c => c.Count);
+                    var bounds = new Box3d(global);
+                    foreach (var child in children)
+                        bounds.ExtendBy(Storage.GetPointCloudNode(child.Id).BoundingBoxExactGlobal);
+                    Storage.Add(payloadId, positions);
+                    PayloadKeys.Add(payloadId.ToString());
+                    var data = ImmutableDictionary<Durable.Def, object>.Empty
+                        .Add(Durable.Octree.NodeId, id).Add(Durable.Octree.Cell, cell)
+                        .Add(Durable.Octree.PointCountCell, count)
+                        .Add(Durable.Octree.PointCountTreeLeafs, subtreeCount)
+                        .Add(Durable.Octree.BoundingBoxExactGlobal, bounds)
+                        .Add(Durable.Octree.BoundingBoxExactLocal, new Box3f(positions))
+                        .Add(Durable.Octree.PositionsLocal3fReference, payloadId);
+                    if (children.Length > 0)
+                    {
+                        var childIds = new Guid[8];
+                        foreach (var child in children) childIds[child.Octant] = child.Id;
+                        data = data.Add(Durable.Octree.SubnodesGuids, childIds);
+                    }
+                    Storage.Add(id.ToString(), Aardvark.Data.Codec.Serialize(Durable.Octree.Node, data));
+                    ids.Add(id);
+                    return (id, subtreeCount);
+                }
+                var rootCell = new Cell(0, 0, 0, 3);
+                if (tree)
+                {
+                    var shallow = Store(rootCell.GetOctant(0), 2);
+                    var branchCell = rootCell.GetOctant(7);
+                    var a = Store(branchCell.GetOctant(0), 3);
+                    var b = Store(branchCell.GetOctant(7), 4);
+                    var branch = Store(branchCell, 2, (0, a.Id, a.Count), (7, b.Id, b.Count));
+                    RootId = Store(rootCell, 3, (0, shallow.Id, shallow.Count), (7, branch.Id, branch.Count)).Id;
+                }
+                else RootId = Store(rootCell, 7).Id;
+                foreach (var id in ids) _ = Storage.GetPointCloudNode(id);
+                ColdPayloads();
+            }
+
+            public void ColdPayloads()
+            {
+                foreach (var key in PayloadKeys) Storage.Cache.Remove(key);
+                PayloadReads = Writes = 0;
+            }
+            public void Dispose() => Storage.Dispose();
+        }
+
+        private static IEnumerable<V3d> LevelFrontPositions(IPointCloudNode root, int level, Box3d? bounds)
+        {
+            var pending = new Stack<(IPointCloudNode Node, int Depth)>();
+            if (level >= 0) pending.Push((root, 0));
+            while (pending.Count > 0)
+            {
+                var (node, depth) = pending.Pop();
+                if (bounds.HasValue && !node.BoundingBoxExactGlobal.Intersects(bounds.Value)) continue;
+                var children = node.Subnodes;
+                if (depth >= level || children == null)
+                {
+                    foreach (var p in node.PositionsAbsolute) yield return p;
+                }
+                else
+                    foreach (var child in children)
+                        if (child != null) pending.Push((child.Value, depth + 1));
+            }
+        }
+
+        [Test]
+        public void LevelCountsUseMetadataWithoutTerminalPayloadIo()
+        {
+            var unexpectedReads = new List<string>();
+            foreach (var tree in new[] { false, true })
+            {
+                using var store = new LevelCountStore(tree);
+                var root = store.Storage.GetPointCloudNode(store.RootId);
+                var starts = tree ? new[] { root, root.Subnodes[7].Value } : new[] { root };
+                foreach (var start in starts)
+                foreach (var level in new[] { int.MinValue, -1, 0, 1, 2, 3, 20 })
+                foreach (var bounds in new Box3d?[] { null, root.BoundingBoxExactGlobal,
+                    new Box3d(new V3d(1.2), new V3d(1.4)), new Box3d(new V3d(20), new V3d(21)) })
+                {
+                    var expected = LevelFrontPositions(start, level, bounds).LongCount();
+                    var set = new PointSet(store.Storage, "level-count", start.Id, 8);
+                    var context = $"tree={tree}, start={start.Cell}, level={level}, bounds={bounds}";
+                    // Both node overloads and their PointSet forwarding overloads must stay read-only.
+                    foreach (var useSet in new[] { false, true })
+                    {
+                        store.ColdPayloads();
+                        var actual = bounds.HasValue
+                            ? (useSet ? set.CountPointsInOctreeLevel(level, bounds.Value) : start.CountPointsInOctreeLevel(level, bounds.Value))
+                            : (useSet ? set.CountPointsInOctreeLevel(level) : start.CountPointsInOctreeLevel(level));
+                        Assert.That(actual, Is.EqualTo(expected), context);
+                        if (store.PayloadReads != 0)
+                            unexpectedReads.Add($"{context}, useSet={useSet}, payloadReads={store.PayloadReads}");
+                        Assert.That(store.Writes, Is.Zero, context);
+                    }
+                }
+                if (tree)
+                {
+                    Assert.That(root.CountPointsInOctreeLevel(0), Is.EqualTo(3));
+                    Assert.That(root.CountPointsInOctreeLevel(1), Is.EqualTo(4));
+                    Assert.That(root.CountPointsInOctreeLevel(20), Is.EqualTo(9));
+                    Assert.That(root.PointCountTree, Is.EqualTo(9));
+                    var partial = new Box3d(new V3d(1.2), new V3d(1.4));
+                    Assert.That(root.CountPointsInOctreeLevel(1, partial), Is.EqualTo(2), "Whole overlapping leaf, not per-point clipping.");
+                    Assert.That(LevelFrontPositions(root, 1, partial).Count(partial.Contains), Is.EqualTo(1));
+                }
+            }
+            Assert.That(unexpectedReads, Is.Empty, string.Join(Environment.NewLine, unexpectedReads));
+        }
+
+        [Test]
+        public void LevelCountsRetainLegacyMetadataInitialization()
+        {
+            using var store = new LevelCountStore(false);
+            var root = store.Storage.GetPointCloudNode(store.RootId);
+            var legacy = root.Properties.ToImmutableDictionary().Remove(Durable.Octree.PointCountCell);
+            store.Storage.Add(root.Id.ToString(), Aardvark.Data.Codec.Serialize(Durable.Octree.Node, legacy));
+            store.Storage.Cache.Remove(root.Id.ToString());
+            store.ColdPayloads();
+            var reloaded = store.Storage.GetPointCloudNode(root.Id);
+            Assert.That(reloaded.CountPointsInOctreeLevel(0), Is.EqualTo(7));
+            Assert.That(reloaded.CountPointsInOctreeLevel(20, root.BoundingBoxExactGlobal), Is.EqualTo(7));
+            Assert.That(store.PayloadReads, Is.GreaterThan(0), "Missing metadata still initializes from positions.");
+            Assert.That(store.Writes, Is.Zero);
+        }
+
+        [Test]
+        public void FilteredLevelCountsMatchIndependentlyEnumeratedFronts()
+        {
+            foreach (var tree in new[] { false, true })
+            foreach (var filterBounds in new[] { new Box3d(new V3d(-1), new V3d(9)),
+                new Box3d(V3d.Zero, new V3d(5)), new Box3d(new V3d(20), new V3d(21)) })
+            {
+                using var store = new LevelCountStore(tree);
+                var root = store.Storage.GetPointCloudNode(store.RootId);
+                var view = FilteredNode.CreateTransient(root, new FilterInsideBox3d(filterBounds));
+                if (filterBounds.Max.X == 5)
+                    Assert.That(store.PayloadReads, Is.GreaterThan(0), "Partial-view selection still loads positions.");
+                foreach (var level in new[] { -1, 0, 1, 2, 20 })
+                foreach (var bounds in new Box3d?[] { null, root.BoundingBoxExactGlobal,
+                    new Box3d(new V3d(1.2), new V3d(1.4)), new Box3d(new V3d(20), new V3d(21)) })
+                {
+                    var expected = LevelFrontPositions(view, level, bounds).LongCount();
+                    store.ColdPayloads();
+                    var actual = bounds.HasValue ? view.CountPointsInOctreeLevel(level, bounds.Value) : view.CountPointsInOctreeLevel(level);
+                    Assert.That(actual, Is.EqualTo(expected), $"tree={tree}, filter={filterBounds}, level={level}, bounds={bounds}");
+                    Assert.That(store.Writes, Is.Zero, "Filtered counting remains read-only; view initialization may read positions.");
+                }
+            }
+        }
 
         private static PointSet InternalCreateRandomPointSetForOctreeLevelTests()
         {

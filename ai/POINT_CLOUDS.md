@@ -57,6 +57,22 @@ long count = pointSet.CountPointsInsideBox(box);
 
 Box queries include the boundary. The default visits full-resolution data; `minCellExponent` can stop traversal at a coarser level. Count queries avoid returning point lists but still load node data. See [Queries](../src/Aardvark.Geometry.PointSet/Queries) for nearest-point, polygon, and frustum queries.
 
+### Octree-Level Counts
+
+`CountPointsInOctreeLevel(level)` counts `PointCountCell` on a relative-depth front:
+level 0 is the starting node, earlier leaves remain on deeper fronts, and negative
+levels return zero. Inner nodes contribute their stored LoD samples, not
+`PointCountTree`. The bounds overload rejects nodes whose exact global bounds do
+not intersect the query; partially overlapping terminal nodes contribute all
+their stored points, without per-point clipping.
+
+Counting uses metadata rather than fetching terminal position arrays. Resident
+ordinary nodes can therefore be counted even when their external position
+payloads have been evicted from the cache. This is not a guarantee of payload-free
+cold traversal: node decoding validates arrays, legacy metadata initialization
+may load positions, and filtered views may load positions to select points or
+derive bounds. Point enumeration is unchanged.
+
 ## Node Contracts
 
 - `Positions.Value` is a `V3f[]` relative to `node.Center`; `PositionsAbsolute` returns global `V3d[]` coordinates.
