@@ -57,6 +57,23 @@ long count = pointSet.CountPointsInsideBox(box);
 
 Box queries include the boundary. The default visits full-resolution data; `minCellExponent` can stop traversal at a coarser level. Count queries avoid returning point lists but still load node data. See [Queries](../src/Aardvark.Geometry.PointSet/Queries) for nearest-point, polygon, and frustum queries.
 
+### Approximate Polygon Counts
+
+`CountPointsApproximatelyNearPolygon(s)` uses each polygon's axis-aligned bounds,
+expanded by `maxDistance` along its normal, to prune disjoint nodes. It counts all
+stored points in each retained leaf or node at `minCellExponent`, including
+partial overlaps and inner-node LoD samples. Nodes below the cutoff are skipped;
+multiple overlapping polygon bounds do not count a node twice. An empty polygon
+array returns zero.
+
+The `NotNear` variants retain their existing full-front upper bound, including
+overlapping nodes, even for an empty polygon array. They are not the complement
+of the `Near` approximation: the shared approximate traversal does not use its
+fully-inside predicate. Neither approximation checks per-point polygon
+containment or constructs projected 2D polygons. Bounds still scan the input
+vertices; this is not a constant-time query. Exact counts and point enumeration
+retain their plane/projection and containment work.
+
 ## Node Contracts
 
 - `Positions.Value` is a `V3f[]` relative to `node.Center`; `PositionsAbsolute` returns global `V3d[]` coordinates.

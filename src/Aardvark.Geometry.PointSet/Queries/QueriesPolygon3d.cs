@@ -249,9 +249,10 @@ public static partial class Queries
     #region Count approximately
 
     /// <summary>
-    /// Count points approximately within maxDistance of given polygon.
-    /// Result is always equal or greater than exact number.
-    /// Faster than CountPointsNearPolygon.
+    /// Counts all stored points on a leaf/cutoff front whose node bounds intersect
+    /// the polygon's axis-aligned bounds expanded along its normal by maxDistance.
+    /// Nodes below minCellExponent are skipped; partially overlapping nodes count in full.
+    /// No per-point containment or projected polygon is used.
     /// </summary>
     public static long CountPointsApproximatelyNearPolygon(
         this PointSet self, Polygon3d polygon, double maxDistance, int minCellExponent = int.MinValue
@@ -259,18 +260,16 @@ public static partial class Queries
         => CountPointsApproximatelyNearPolygon(self.Root.Value, polygon, maxDistance, minCellExponent);
 
     /// <summary>
-    /// Count points approximately within maxDistance of given polygon.
-    /// Result is always equal or greater than exact number.
-    /// Faster than CountPointsNearPolygon.
+    /// Counts all stored points on a leaf/cutoff front whose node bounds intersect
+    /// the polygon's axis-aligned bounds expanded along its normal by maxDistance.
+    /// Nodes below minCellExponent are skipped; partially overlapping nodes count in full.
+    /// No per-point containment or projected polygon is used.
     /// </summary>
     public static long CountPointsApproximatelyNearPolygon(
         this IPointCloudNode node, Polygon3d polygon, double maxDistance, int minCellExponent = int.MinValue
         )
     {
         var bounds = polygon.BoundingBox3d(maxDistance);
-        var plane = polygon.GetPlane3d();
-        var w2p = plane.GetWorldToPlane();
-        var poly2d = new Polygon2d(polygon.GetPointArray().Map(p => w2p.TransformPos(p).XY));
         return CountPointsApproximately(node,
             n => false,
             n => !n.BoundingBoxExactGlobal.Intersects(bounds),
@@ -279,9 +278,10 @@ public static partial class Queries
     }
 
     /// <summary>
-    /// Count points approximately within maxDistance of ANY of the given polygons.
-    /// Result is always equal or greater than exact number.
-    /// Faster than CountPointsNearPolygons.
+    /// Counts whole nodes on the leaf/cutoff front intersecting any polygon's
+    /// axis-aligned bounds expanded along its normal by maxDistance, without double counting.
+    /// Nodes below minCellExponent are skipped; an empty polygon array counts zero.
+    /// No per-point containment or projected polygons are used.
     /// </summary>
     public static long CountPointsApproximatelyNearPolygons(
         this PointSet self, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
@@ -289,18 +289,16 @@ public static partial class Queries
         => CountPointsApproximatelyNearPolygons(self.Root.Value, polygons, maxDistance, minCellExponent);
 
     /// <summary>
-    /// Count points approximately within maxDistance of ANY of the given polygons.
-    /// Result is always equal or greater than exact number.
-    /// Faster than CountPointsNearPolygons.
+    /// Counts whole nodes on the leaf/cutoff front intersecting any polygon's
+    /// axis-aligned bounds expanded along its normal by maxDistance, without double counting.
+    /// Nodes below minCellExponent are skipped; an empty polygon array counts zero.
+    /// No per-point containment or projected polygons are used.
     /// </summary>
     public static long CountPointsApproximatelyNearPolygons(
         this IPointCloudNode node, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
         )
     {
         var bounds = polygons.Map(x => x.BoundingBox3d(maxDistance));
-        var planes = polygons.Map(x => x.GetPlane3d());
-        var w2p = planes.Map(x => x.GetWorldToPlane());
-        var poly2d = polygons.Map((x, i) => new Polygon2d(x.GetPointArray().Map(p => w2p[i].TransformPos(p).XY)));
         return CountPointsApproximately(node,
             n => false,
             n => !bounds.Any(b => n.BoundingBoxExactGlobal.Intersects(b)),
@@ -309,9 +307,10 @@ public static partial class Queries
     }
 
     /// <summary>
-    /// Count points approximately NOT within maxDistance of given polygon.
-    /// Result is always equal or greater than exact number.
-    /// Faster than CountPointsNotNearPolygon.
+    /// Retains the existing upper-bound approximation: counts the complete leaf/cutoff front,
+    /// including overlapping nodes, without per-point containment or projected polygons.
+    /// Nodes below minCellExponent are skipped; terminal nodes contribute stored LoD points.
+    /// This is not the complement of CountPointsApproximatelyNearPolygon.
     /// </summary>
     public static long CountPointsApproximatelyNotNearPolygon(
         this PointSet self, Polygon3d polygon, double maxDistance, int minCellExponent = int.MinValue
@@ -319,18 +318,16 @@ public static partial class Queries
         => CountPointsApproximatelyNotNearPolygon(self.Root.Value, polygon, maxDistance, minCellExponent);
 
     /// <summary>
-    /// Count points approximately NOT within maxDistance of given polygon.
-    /// Result is always equal or greater than exact number.
-    /// Faster than CountPointsNotNearPolygon.
+    /// Retains the existing upper-bound approximation: counts the complete leaf/cutoff front,
+    /// including overlapping nodes, without per-point containment or projected polygons.
+    /// Nodes below minCellExponent are skipped; terminal nodes contribute stored LoD points.
+    /// This is not the complement of CountPointsApproximatelyNearPolygon.
     /// </summary>
     public static long CountPointsApproximatelyNotNearPolygon(
         this IPointCloudNode node, Polygon3d polygon, double maxDistance, int minCellExponent = int.MinValue
         )
     {
         var bounds = polygon.BoundingBox3d(maxDistance);
-        var plane = polygon.GetPlane3d();
-        var w2p = plane.GetWorldToPlane();
-        var poly2d = new Polygon2d(polygon.GetPointArray().Map(p => w2p.TransformPos(p).XY));
         return CountPointsApproximately(node,
             n => !n.BoundingBoxExactGlobal.Intersects(bounds),
             n => false,
@@ -339,9 +336,10 @@ public static partial class Queries
     }
 
     /// <summary>
-    /// Count points approximately NOT within maxDistance of ALL the given polygons.
-    /// Result is always equal or greater than exact number.
-    /// Faster than CountPointsNotNearPolygons.
+    /// Retains the existing upper-bound approximation: counts the complete leaf/cutoff front,
+    /// including overlapping nodes, even for an empty polygon array.
+    /// Nodes below minCellExponent are skipped; terminal nodes contribute stored LoD points.
+    /// No per-point containment is used; this is not the complement of the Near approximation.
     /// </summary>
     public static long CountPointsApproximatelyNotNearPolygons(
         this PointSet self, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
@@ -349,18 +347,16 @@ public static partial class Queries
         => CountPointsApproximatelyNotNearPolygons(self.Root.Value, polygons, maxDistance, minCellExponent);
 
     /// <summary>
-    /// Count points approximately NOT within maxDistance of ALL the given polygons.
-    /// Result is always equal or greater than exact number.
-    /// Faster than CountPointsNotNearPolygons.
+    /// Retains the existing upper-bound approximation: counts the complete leaf/cutoff front,
+    /// including overlapping nodes, even for an empty polygon array.
+    /// Nodes below minCellExponent are skipped; terminal nodes contribute stored LoD points.
+    /// No per-point containment is used; this is not the complement of the Near approximation.
     /// </summary>
     public static long CountPointsApproximatelyNotNearPolygons(
         this IPointCloudNode node, Polygon3d[] polygons, double maxDistance, int minCellExponent = int.MinValue
         )
     {
         var bounds = polygons.Map(x => x.BoundingBox3d(maxDistance));
-        var planes = polygons.Map(x => x.GetPlane3d());
-        var w2p = planes.Map(x => x.GetWorldToPlane());
-        var poly2d = polygons.Map((x, i) => new Polygon2d(x.GetPointArray().Map(p => w2p[i].TransformPos(p).XY)));
         return CountPointsApproximately(node,
             n => !bounds.Any(b => n.BoundingBoxExactGlobal.Intersects(b)),
             n => false,

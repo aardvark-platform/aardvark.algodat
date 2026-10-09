@@ -391,6 +391,141 @@ namespace Aardvark.Geometry.Tests
 
         #region Polygon3d
 
+        private static Polygon3d ApproximationRectangle(V3d center, V3d u, V3d v)
+            => new(center - u - v, center + u - v, center + u + v, center - u + v);
+
+        // Enumerate the retained front independently of the shared recursive counting code.
+        // Near prunes expanded polygon boxes; NotNear deliberately retains the entire front.
+        private static long BoundingFrontCount(IPointCloudNode root, Box3d[] bounds, bool notNear, int cutoff)
+        {
+            var pending = new Stack<IPointCloudNode>();
+            pending.Push(root);
+            var count = 0L;
+            while (pending.Count > 0)
+            {
+                var node = pending.Pop();
+                if (node.Cell.Exponent < cutoff) continue;
+                if (!notNear && !bounds.Any(b => node.BoundingBoxExactGlobal.Intersects(b))) continue;
+                if (node.Subnodes == null || node.Cell.Exponent == cutoff)
+                    count += node.PositionsAbsolute.LongLength;
+                else
+                    foreach (var child in node.Subnodes)
+                        if (child != null) pending.Push(child.Value);
+            }
+            return count;
+        }
+
+        [Test]
+        public void ApproximatePolygonCountsPreserveBoundingFrontSemantics()
+        {
+            var obliqueNormal = new V3d(1, 1, 1).Normalized;
+            var obliqueU = new V3d(1, -1, 0).Normalized * .3;
+            var obliqueV = Vec.Cross(obliqueNormal, obliqueU);
+            var shapes = new[]
+            {
+                (ApproximationRectangle(new V3d(.5), new V3d(1, 0, 0), new V3d(0, 1, 0)), V3d.OOI),
+                (ApproximationRectangle(new V3d(.5), new V3d(.1, 0, 0), new V3d(0, .1, 0)), V3d.OOI),
+                (ApproximationRectangle(new V3d(.5), new V3d(0, .3, 0), new V3d(0, 0, .3)), V3d.IOO),
+                (ApproximationRectangle(new V3d(.5), obliqueU, obliqueV), obliqueNormal),
+                (ApproximationRectangle(new V3d(3), new V3d(.1, 0, 0), new V3d(0, .1, 0)), V3d.OOI)
+            };
+            foreach (var split in new[] { 512, 8 })
+            {
+                var set = CreateRegularPointsInUnitCube(8, split);
+                using var storage = set.Storage;
+                var root = set.Root.Value;
+                Assert.That(root.IsLeaf(), Is.EqualTo(split == 512));
+                foreach (var indices in new[] { new[] { 0 }, new[] { 1 }, new[] { 2 }, new[] { 3 }, new[] { 4 },
+                    new[] { 1, 1 }, new[] { 1, 2, 3 }, new[] { 1, 4 }, Array.Empty<int>() })
+                foreach (var distance in new[] { 0.0, .05, .2 })
+                foreach (var cutoff in new[] { int.MinValue, root.Cell.Exponent - 2, root.Cell.Exponent - 1,
+                    root.Cell.Exponent, root.Cell.Exponent + 1 })
+                foreach (var notNear in new[] { false, true })
+                {
+                    var polygons = indices.Select(i => shapes[i].Item1).ToArray();
+                    // Componentwise normal expansion is independent of BoundingBox3d(maxDistance).
+                    var bounds = indices.Select(i =>
+                    {
+                        var box = new Box3d(shapes[i].Item1.GetPointArray());
+                        var offset = shapes[i].Item2.Abs() * distance;
+                        return new Box3d(box.Min - offset, box.Max + offset);
+                    }).ToArray();
+                    var expected = BoundingFrontCount(root, bounds, notNear, cutoff);
+                    var context = $"split={split}, polygons=[{string.Join(',', indices)}], distance={distance}, cutoff={cutoff}, notNear={notNear}";
+                    var nodeCount = notNear
+                        ? root.CountPointsApproximatelyNotNearPolygons(polygons, distance, cutoff)
+                        : root.CountPointsApproximatelyNearPolygons(polygons, distance, cutoff);
+                    var setCount = notNear
+                        ? set.CountPointsApproximatelyNotNearPolygons(polygons, distance, cutoff)
+                        : set.CountPointsApproximatelyNearPolygons(polygons, distance, cutoff);
+                    Assert.That(nodeCount, Is.EqualTo(expected), context);
+                    Assert.That(setCount, Is.EqualTo(expected), context);
+                    if (polygons.Length == 1)
+                    {
+                        nodeCount = notNear
+                            ? root.CountPointsApproximatelyNotNearPolygon(polygons[0], distance, cutoff)
+                            : root.CountPointsApproximatelyNearPolygon(polygons[0], distance, cutoff);
+                        setCount = notNear
+                            ? set.CountPointsApproximatelyNotNearPolygon(polygons[0], distance, cutoff)
+                            : set.CountPointsApproximatelyNearPolygon(polygons[0], distance, cutoff);
+                        Assert.That(nodeCount, Is.EqualTo(expected), context);
+                        Assert.That(setCount, Is.EqualTo(expected), context);
+                    }
+                }
+                Assert.That(root.CountPointsApproximatelyNearPolygon(shapes[1].Item1, .05, root.Cell.Exponent),
+                    Is.EqualTo(root.Positions.Value.LongLength), "Partial root overlap counts stored LoD, not clipped points or subtree totals.");
+                Assert.That(root.CountPointsApproximatelyNotNearPolygon(shapes[0].Item1, .2),
+                    Is.EqualTo(512), "NotNear retains its full-front upper bound, even when Near also includes points.");
+            }
+        }
+
+        private static Polygon3d ApproximationRing(int count, V3d center)
+            => new(Enumerable.Range(0, count).Select(i => center + .1 * new V3d(
+                Math.Cos(i * 2 * Math.PI / count), Math.Sin(i * 2 * Math.PI / count), 0)).ToArray());
+
+        [Test]
+        public void ApproximatePolygonCountAllocationsDoNotScaleWithVertices()
+        {
+            const int repetitions = 32;
+            var excessiveAllocations = new List<string>();
+            foreach (var split in new[] { 512, 8 })
+            {
+                var set = CreateRegularPointsInUnitCube(8, split);
+                using var storage = set.Storage;
+                var root = set.Root.Value;
+                foreach (var pruned in new[] { false, true })
+                foreach (var multiple in new[] { false, true })
+                foreach (var notNear in new[] { false, true })
+                {
+                    var center = new V3d(pruned ? .5 : 3);
+                    var small = ApproximationRing(4, center);
+                    var large = ApproximationRing(4096, center);
+                    var smalls = Enumerable.Repeat(small, 4).ToArray();
+                    var larges = Enumerable.Repeat(large, 4).ToArray();
+                    var cutoff = pruned ? root.Cell.Exponent + 1 : int.MinValue;
+                    long Count(Polygon3d polygon, Polygon3d[] polygons) => multiple
+                        ? (notNear ? root.CountPointsApproximatelyNotNearPolygons(polygons, .05, cutoff) : root.CountPointsApproximatelyNearPolygons(polygons, .05, cutoff))
+                        : (notNear ? root.CountPointsApproximatelyNotNearPolygon(polygon, .05, cutoff) : root.CountPointsApproximatelyNearPolygon(polygon, .05, cutoff));
+                    long Measure(Polygon3d polygon, Polygon3d[] polygons, out long sum)
+                    {
+                        sum = 0;
+                        var before = GC.GetAllocatedBytesForCurrentThread();
+                        for (var i = 0; i < repetitions; i++) sum += Count(polygon, polygons);
+                        return GC.GetAllocatedBytesForCurrentThread() - before;
+                    }
+                    for (var i = 0; i < repetitions; i++) { _ = Count(small, smalls); _ = Count(large, larges); }
+                    var smallBytes = Measure(small, smalls, out var smallSum);
+                    var largeBytes = Measure(large, larges, out var largeSum);
+                    var context = $"split={split}, cutoffPruned={pruned}, multiple={multiple}, notNear={notNear}, small={smallBytes}, large={largeBytes}";
+                    Assert.That(largeSum, Is.EqualTo(smallSum), context);
+                    Assert.That(smallSum, Is.EqualTo(notNear && !pruned ? 512L * repetitions : 0), context);
+                    // Allow constant runtime noise, but not full-size projected vertex arrays per call.
+                    if (largeBytes > smallBytes + repetitions * 1024L) excessiveAllocations.Add(context);
+                }
+            }
+            Assert.That(excessiveAllocations, Is.Empty, string.Join(Environment.NewLine, excessiveAllocations));
+        }
+
         [Test]
         public void Polygon3dBoundingBox()
         {
