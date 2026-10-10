@@ -13,6 +13,7 @@
 */
 
 using Aardvark.Base;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
@@ -74,10 +75,21 @@ public class FilterInsideSphere3d(Sphere3d sphere) : ISpatialFilter
         }
     }
 
-    /// <summary></summary>
+    /// <summary>
+    /// Tests inclusive containment using the maximum squared endpoint distance on each axis,
+    /// without allocating corners. The X/Y/Z sum and NaN propagation retain corner-test semantics.
+    /// </summary>
     public bool IsFullyInside(Box3d box)
     {
-        return box.ComputeCorners().TrueForAll(Contains);
+        var c = Sphere.Center;
+        var x0 = box.Min.X - c.X;
+        var x1 = box.Max.X - c.X;
+        var y0 = box.Min.Y - c.Y;
+        var y1 = box.Max.Y - c.Y;
+        var z0 = box.Min.Z - c.Z;
+        var z1 = box.Max.Z - c.Z;
+        return Math.Max(x0 * x0, x1 * x1) + Math.Max(y0 * y0, y1 * y1) +
+            Math.Max(z0 * z0, z1 * z1) <= m_radiusSquared;
     }
     /// <summary></summary>
     public bool IsFullyInside(IPointCloudNode node)

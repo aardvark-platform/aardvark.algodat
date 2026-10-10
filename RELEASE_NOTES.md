@@ -1,3 +1,4 @@
+- [PointSet] Remove corner allocations from spherical-view whole-box containment while preserving inclusive boundaries.
 - [Sky] Correct the Newton derivative for hyperbolic true-anomaly calculation.
 
 ### 5.6.4-prerelease0005
