@@ -1,3 +1,4 @@
+- [PointSet] Correct outside-box view selections and exclude closed-box boundaries after reload.
 - [Sky] Correct the Newton derivative for hyperbolic true-anomaly calculation.
 
 ### 5.6.4-prerelease0005

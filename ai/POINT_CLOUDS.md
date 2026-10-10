@@ -57,6 +57,20 @@ long count = pointSet.CountPointsInsideBox(box);
 
 Box queries include the boundary. The default visits full-resolution data; `minCellExponent` can stop traversal at a coarser level. Count queries avoid returning point lists but still load node data. See [Queries](../src/Aardvark.Geometry.PointSet/Queries) for nearest-point, polygon, and frustum queries.
 
+### Outside-Box Views
+
+`FilterOutsideBox3d` selects the complement of a closed box: points on its faces,
+edges and corners are excluded along with interior points. A supplied index
+selection is narrowed without being modified; filtered attributes and part
+indices retain the selected points' source order. Whole nodes are accepted only
+when their bounds are strictly separated from the filter box on some axis;
+touching or degenerate boundary bounds must not bypass point selection.
+
+Persisted filtered views retain the same filter JSON and reapply this exclusion
+when reloaded. Reloading an existing outside-box view therefore uses the corrected
+selection rather than reproducing the former inside-point or touching-boundary
+selection errors. The backing point cloud is not modified.
+
 ## Node Contracts
 
 - `Positions.Value` is a `V3f[]` relative to `node.Center`; `PositionsAbsolute` returns global `V3d[]` coordinates.
