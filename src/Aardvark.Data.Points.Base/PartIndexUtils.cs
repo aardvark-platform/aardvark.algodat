@@ -304,13 +304,21 @@ public static class PartIndexUtils
     }
 
     /// <summary>
-    /// Concatenates part indices (null, int, [byte|short|int] array).
+    /// Concatenates part indices (null, int, [byte|short|int] array) in source order.
+    /// Consumes the source once and disposes its enumerator on completion or failure.
+    /// Empty input returns null; a singleton retains its original representation and identity.
+    /// Subsequent elements use the binary overload with accumulated declared counts.
     /// </summary>
     public static object? ConcatIndices(IEnumerable<(object? indices, int count)> xs)
     {
-        var (resultIndices, resultCount) = xs.FirstOrDefault();
-        foreach (var (xIndices, xCount) in xs.Skip(1))
+        // Retain the null-argument name previously reported by LINQ.
+        if (xs == null) throw new ArgumentNullException("source");
+        using var e = xs.GetEnumerator();
+        if (!e.MoveNext()) return null;
+        var (resultIndices, resultCount) = e.Current;
+        while (e.MoveNext())
         {
+            var (xIndices, xCount) = e.Current;
             resultIndices = ConcatIndices(resultIndices, resultCount, xIndices, xCount);
             resultCount += xCount;
         }
