@@ -1,3 +1,4 @@
+- [Points] Concatenate enumerable part-index segments in one disposed pass without dropping forward-only input.
 - [Sky] Correct the Newton derivative for hyperbolic true-anomaly calculation.
 
 ### 5.6.4-prerelease0005
