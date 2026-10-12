@@ -207,7 +207,9 @@ public static partial class Queries
     #region QueryContainsPoints
 
     /// <summary>
-    /// Exact count.
+    /// Tests whether the selected leaf or minCellExponent front contains a matching
+    /// stored point. At the cutoff, uses local LoD samples rather than descendants;
+    /// an empty front or a cutoff above the root returns false.
     /// </summary>
     public static bool QueryContainsPoints(this PointSet node,
         Func<IPointCloudNode, bool> isNodeFullyInside,
@@ -218,7 +220,10 @@ public static partial class Queries
         => QueryContainsPoints(node.Root.Value, isNodeFullyInside, isNodeFullyOutside, isPositionInside, minCellExponent);
 
     /// <summary>
-    /// Exact count.
+    /// Tests for a matching stored point, visiting leaves unless minCellExponent
+    /// stops traversal at a LoD front. Fully outside nodes are rejected first;
+    /// fully inside terminal nodes succeed only when PointCountCell is positive.
+    /// Empty local data on a nonterminal node does not reject its descendants.
     /// </summary>
     public static bool QueryContainsPoints(this IPointCloudNode node,
         Func<IPointCloudNode, bool> isNodeFullyInside,
@@ -235,7 +240,7 @@ public static partial class Queries
         {
             if (isNodeFullyInside(node))
             {
-                return true;
+                return node.PointCountCell > 0;
             }
             else // partially inside
             {

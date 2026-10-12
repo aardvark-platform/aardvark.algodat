@@ -12,6 +12,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Aardvark.Base;
+using Aardvark.Data;
 using Aardvark.Data.Points;
 using Aardvark.Geometry.Points;
 using NUnit.Framework;
@@ -948,6 +949,179 @@ namespace Aardvark.Geometry.Tests
         #endregion
 
         #region QueryPoints (generic query traversal, base for most other queries)
+
+        private static PointSetNode ExistenceLeaf(Storage storage, Cell cell, params V3f[] positions)
+        {
+            var localBounds = new Box3f(positions);
+            var node = new PointSetNode(storage, writeToStore: false,
+                (Durable.Octree.NodeId, Guid.NewGuid()), (Durable.Octree.Cell, cell),
+                (Durable.Octree.PositionsLocal3f, positions),
+                (Durable.Octree.PointCountCell, positions.Length),
+                (Durable.Octree.PointCountTreeLeafs, (long)positions.Length),
+                (Durable.Octree.BoundingBoxExactLocal, localBounds),
+                (Durable.Octree.BoundingBoxExactGlobal, (Box3d)localBounds + cell.GetCenter()));
+            storage.Add(node.Id.ToString(), node);
+            return node;
+        }
+
+        private static IPointCloudNode ExistenceTree(Storage storage, bool populatedLast)
+        {
+            var cell = Cell.Unit;
+            var children = new IPointCloudNode[8];
+            children[0] = ExistenceLeaf(storage, cell.GetOctant(0));
+            children[7] = populatedLast
+                ? ExistenceLeaf(storage, cell.GetOctant(7), V3f.Zero)
+                : ExistenceLeaf(storage, cell.GetOctant(7));
+            return ExistenceLeaf(storage, cell).WithSubNodes(children);
+        }
+
+        private static PointSet ExistenceSet(Storage storage, IPointCloudNode root) =>
+            new PointSet(storage, "existence", Guid.Empty, 8)
+            {
+                Root = new PersistentRef<IPointCloudNode>(root.Id, root)
+            };
+
+        private static void AssertExistenceParity(
+            IPointCloudNode root, PointSet pointSet, Func<IPointCloudNode, bool> inside,
+            Func<IPointCloudNode, bool> outside, Func<V3d, bool> position,
+            int cutoff, long expected, string context)
+        {
+            var nodeCount = root.CountPoints(inside, outside, position, cutoff);
+            var setCount = pointSet.CountPoints(inside, outside, position, cutoff);
+            var nodeRows = root.QueryPoints(inside, outside, position, cutoff).Sum(x => (long)x.Positions.Count);
+            var setRows = pointSet.QueryPoints(inside, outside, position, cutoff).Sum(x => (long)x.Positions.Count);
+            Assert.That(nodeCount, Is.EqualTo(expected), context + ": node count");
+            Assert.That(setCount, Is.EqualTo(expected), context + ": set count");
+            Assert.That(nodeRows, Is.EqualTo(expected), context + ": node enumeration");
+            Assert.That(setRows, Is.EqualTo(expected), context + ": set enumeration");
+            Assert.That(root.QueryContainsPoints(inside, outside, position, cutoff),
+                Is.EqualTo(expected > 0), context + ": node existence");
+            Assert.That(pointSet.QueryContainsPoints(inside, outside, position, cutoff),
+                Is.EqualTo(expected > 0), context + ": set existence");
+        }
+
+        [Test]
+        public void PointExistenceRejectsEmptyLeafViewAndTreeFronts()
+        {
+            using var storage = PointCloud.CreateInMemoryStore();
+            var backing = ExistenceLeaf(storage, Cell.Unit, V3f.Zero);
+            var view = FilteredNode.CreateTransient(backing,
+                new FilterInsideBox3d(new Box3d(new V3d(4), new V3d(5))));
+            var cases = new (string Name, IPointCloudNode Root)[]
+            {
+                ("canonical", PointSetNode.Empty),
+                ("finite leaf", ExistenceLeaf(storage, Cell.Unit)),
+                ("offset leaf", ExistenceLeaf(storage, new Cell(4, -2, 1, 1))),
+                ("zero-selected view", view),
+                ("empty subdivided tree", ExistenceTree(storage, populatedLast: false))
+            };
+            Assert.That(view.PointCountCell, Is.Zero, "view selects no backing points");
+            Assert.That(cases.Last().Root.IsLeaf(), Is.False, "empty tree retains real children");
+            Assert.Multiple(() =>
+            {
+                foreach (var item in cases)
+                foreach (var cutoff in new[] { int.MinValue, item.Root.Cell.Exponent }.Distinct())
+                {
+                    var pointSet = ExistenceSet(storage, item.Root);
+                    var context = $"{item.Name}, cutoff={cutoff}";
+                    AssertExistenceParity(item.Root, pointSet, _ => true, _ => false,
+                        _ => throw new InvalidOperationException("Fully inside terminals do not scan points"),
+                        cutoff, 0, context);
+                    var box = item.Root.Cell.IsValid
+                        ? new Box2d(item.Root.Cell.BoundingBox.Min.XY - new V2d(1), item.Root.Cell.BoundingBox.Max.XY + new V2d(1))
+                        : new Box2d(new V2d(-1), new V2d(1));
+                    Assert.That(item.Root.QueryContainsPointsInsideBoxXY(box, cutoff), Is.False, context + ": XY existence");
+                    Assert.That(item.Root.CountPointsInsideBoxXY(box, cutoff), Is.Zero, context + ": XY count");
+                    Assert.That(item.Root.QueryPointsInsideBoxXY(box, cutoff).Sum(x => x.Positions.Count), Is.Zero, context + ": XY enumeration");
+                }
+            });
+        }
+
+        [Test]
+        public void PointExistenceUsesLodFrontWithoutPruningEmptyParents()
+        {
+            using var storage = PointCloud.CreateInMemoryStore();
+            var root = ExistenceTree(storage, populatedLast: true);
+            var pointSet = ExistenceSet(storage, root);
+            Assert.That(root.PointCountCell, Is.Zero, "empty local LoD front");
+            Assert.That(root.PointCountTree, Is.EqualTo(1), "populated descendants");
+            Assert.That(root.IsLeaf(), Is.False, "nonterminal root");
+            Assert.Multiple(() =>
+            {
+                foreach (var cutoff in new[] { int.MinValue, root.Cell.Exponent - 1, root.Cell.Exponent, root.Cell.Exponent + 1 })
+                {
+                    var expected = cutoff < root.Cell.Exponent ? 1L : 0L;
+                    var context = $"empty-parent tree, cutoff={cutoff}";
+                    AssertExistenceParity(root, pointSet, _ => true, _ => false,
+                        _ => throw new InvalidOperationException("Fully inside terminals do not scan points"),
+                        cutoff, expected, context);
+                    var box = new Box2d(new V2d(-1), new V2d(2));
+                    Assert.That(root.QueryContainsPointsInsideBoxXY(box, cutoff), Is.EqualTo(expected > 0), context + ": XY existence");
+                    Assert.That(root.CountPointsInsideBoxXY(box, cutoff), Is.EqualTo(expected), context + ": XY count");
+                    Assert.That(root.QueryPointsInsideBoxXY(box, cutoff).Sum(x => (long)x.Positions.Count), Is.EqualTo(expected), context + ": XY enumeration");
+                }
+                foreach (var viaSet in new[] { false, true })
+                {
+                    var first = root.Subnodes[0].Value; var last = root.Subnodes[7].Value;
+                    string name(IPointCloudNode n) => n.Id == root.Id ? "root" : n.Id == first.Id ? "empty" : n.Id == last.Id ? "populated" : "unexpected";
+                    var visits = new List<string>();
+                    Func<IPointCloudNode, bool> outside = n => { visits.Add("outside:" + name(n)); return false; };
+                    Func<IPointCloudNode, bool> inside = n => { visits.Add("inside:" + name(n)); return true; };
+                    var found = viaSet
+                        ? pointSet.QueryContainsPoints(inside, outside, _ => false)
+                        : root.QueryContainsPoints(inside, outside, _ => false);
+                    Assert.That(found, Is.True, $"later populated child, viaSet={viaSet}");
+                    Assert.That(visits, Is.EqualTo(new[] { "outside:root", "outside:empty", "inside:empty", "outside:populated", "inside:populated" }),
+                        $"ordered traversal past empty first child, viaSet={viaSet}");
+                }
+            });
+        }
+
+        [Test]
+        public void PointExistenceRetainsPartialOutsideAndCutoffOrdering()
+        {
+            using var storage = PointCloud.CreateInMemoryStore();
+            var leaf = ExistenceLeaf(storage, Cell.Unit, new V3f(-.25f), new V3f(.25f));
+            var tree = InMemoryPointSet.Build(new Chunk(new[] { new V3d(.25), new V3d(.75) }), Cell.Unit, 1)
+                .ToPointSetNode(storage, isTemporaryImportNode: false)
+                .With(new Dictionary<Durable.Def, object>
+                {
+                    [Durable.Octree.PositionsLocal3f] = new[] { new V3f(-.25f), new V3f(.25f) },
+                    [Durable.Octree.PointCountCell] = 2
+                });
+            Assert.That(tree.IsLeaf(), Is.False, "nonempty subdivided control");
+            Assert.That(tree.PointCountCell, Is.EqualTo(2), "nonempty LoD front control");
+            Assert.Multiple(() =>
+            {
+                foreach (var root in new IPointCloudNode[] { leaf, tree })
+                foreach (var cutoff in new[] { int.MinValue, root.Cell.Exponent, root.Cell.Exponent + 1 })
+                foreach (var mode in new[] { "inside", "partial-hit", "partial-miss", "outside" })
+                {
+                    var frontCount = cutoff > root.Cell.Exponent ? 0 : cutoff == root.Cell.Exponent ? root.PointCountCell : 2;
+                    var expected = mode == "inside" ? frontCount : mode == "partial-hit" && frontCount > 0 ? 1 : 0;
+                    var context = $"leaf={root.IsLeaf()}, mode={mode}, cutoff={cutoff}";
+                    var pointSet = ExistenceSet(storage, root);
+                    var insideCalls = 0; var outsideCalls = 0; var positionCalls = 0;
+                    Func<IPointCloudNode, bool> inside = _ => { insideCalls++; return mode == "inside" || mode == "outside"; };
+                    Func<IPointCloudNode, bool> outside = _ => { outsideCalls++; return mode == "outside"; };
+                    Func<V3d, bool> position = p => { positionCalls++; return mode == "partial-hit" && p.X < .5; };
+                    AssertExistenceParity(root, pointSet, inside, outside, position, cutoff, expected, context);
+                    if (mode == "inside" || mode == "outside") Assert.That(positionCalls, Is.Zero, context + ": no point scan");
+                    if (mode == "outside") Assert.That(insideCalls, Is.Zero, context + ": outside wins");
+                    if (cutoff > root.Cell.Exponent) Assert.That(outsideCalls + insideCalls + positionCalls, Is.Zero, context + ": cutoff wins");
+                    foreach (var box in new[]
+                    {
+                        new Box2d(new V2d(-1), new V2d(2)), new Box2d(V2d.Zero, new V2d(.5)),
+                        new Box2d(new V2d(2), new V2d(3))
+                    })
+                    {
+                        var count = root.CountPointsInsideBoxXY(box, cutoff);
+                        Assert.That(root.QueryContainsPointsInsideBoxXY(box, cutoff), Is.EqualTo(count > 0), context + $": XY box={box}");
+                        Assert.That(root.QueryPointsInsideBoxXY(box, cutoff).Sum(x => (long)x.Positions.Count), Is.EqualTo(count), context + $": XY parity box={box}");
+                    }
+                }
+            });
+        }
 
         [Test]
         public void CanQueryPointsWithEverythingInside_Single()

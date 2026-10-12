@@ -1,3 +1,5 @@
+- [PointSet] Point-existence queries no longer report matches for empty leaves, zero-selected views or empty LoD fronts, including XY-box queries.
+
 ### 5.6.4-prerelease0006
 - [e57] fixed offset calculation bug
 - [Sky] Correct the Newton derivative for hyperbolic true-anomaly calculation.
