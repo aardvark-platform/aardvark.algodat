@@ -258,7 +258,7 @@ namespace Aardvark.Geometry.Tests.Concurrency
 
         #endregion
 
-        #region Summaries (order independent, exact)
+        #region Summaries (order-independent checksums, not exact point/attribute comparisons)
 
         public readonly record struct Summary(long Count, long X, long Y, long Z, long Color, long Intensity)
         {

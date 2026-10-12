@@ -31,7 +31,8 @@ namespace Aardvark.Geometry.Tests.Concurrency
     /// Correctness of concurrent point queries: reproduces the Vgm.Api consumer access patterns
     /// (one task per cell / per ray, F# Async.Parallel style) and checks that
     ///   (a) no exceptions occur and
-    ///   (b) every result equals the sequential result,
+    ///   (b) every result's count and rounded-coordinate/attribute checksums match the sequential run,
+    /// supplemented by the small exact attribute-alignment tests in FilteredNodeConcurrencyTests,
     /// on a cold store (all loads happen concurrently) and on a warm store (pure query path),
     /// for plain nodes and for a shared FilteredNode (Vgm.Api filterByHull / filterByPrism).
     ///

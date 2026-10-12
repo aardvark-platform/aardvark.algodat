@@ -76,6 +76,20 @@ V3d starLocal = (itrf2local * cep2itrf * icrf2cep) * starICRF;
 
 `xp` and `yp` are polar-motion inputs; zero omits that correction. This is an astronomical frame transformation, not an EPSG projection.
 
+## Orbital Anomalies
+
+`Astronomy.CalculateTrueAnomaly(M, e, a)` takes mean anomaly `M` in radians and
+returns true anomaly in radians. For hyperbolic orbits (`e > 1`), it solves
+`e * sinh(H) - H = M` using Newton derivative `e * cosh(H) - 1`, then converts
+hyperbolic anomaly `H` to true anomaly. For example, `M = 1` and `e = 1.5` give
+approximately `1.727196007387909` radians, with negative `M` giving the opposite sign.
+
+The elliptic derivative, initial estimate and stopping criterion are unchanged.
+Circular orbits (`e = 0`) still return `M` exactly, and the legacy parabolic branch
+(`e = 1`) is retained without redesign. This correction adds no parameter validation
+or broader convergence guarantee for extreme or non-finite inputs. The `a` argument
+is retained for compatibility but is not used by this calculation.
+
 ## Related
 
 - [Geodetics](GEOMETRY.md#geodetics): WGS84, UTM, and custom map projections

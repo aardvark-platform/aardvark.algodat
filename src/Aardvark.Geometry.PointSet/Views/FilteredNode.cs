@@ -31,7 +31,9 @@ namespace Aardvark.Geometry.Points;
 
 /// <summary>
 /// A filtered view onto a point cloud.
-/// Instances may be shared across threads: all derived state is computed lazily and thread-safely.
+/// Derived state is initialized lazily and thread-safely. Initialization exceptions are cached;
+/// recreate a failed view to retry after resolving the cause.
+/// Concurrent reads require thread-safe storage/filter reads, live storage, and no mutation of cached arrays.
 /// </summary>
 public class FilteredNode : IPointCloudNode
 {

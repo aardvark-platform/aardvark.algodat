@@ -19,6 +19,7 @@ using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using System;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Threading;
 
@@ -30,6 +31,8 @@ namespace Aardvark.Geometry.Tests
     [TestFixture]
     public class ReadPathStoreWriteTests
     {
+        static ReadPathStoreWriteTests() => Aardvark.Base.Coder.TypeInfo.Add(typeof(PointRkdTreeFData));
+
         /// <summary>
         /// Wraps an in-memory store and counts every add.
         /// </summary>
@@ -42,7 +45,7 @@ namespace Aardvark.Geometry.Tests
                 get: inner.f_get,
                 getSlice: inner.f_getSlice,
                 remove: inner.f_remove,
-                dispose: inner.f_dispose,
+                dispose: inner.Dispose,
                 flush: inner.f_flush,
                 cache: new LruDictionary<string, object>(1L << 24)
                 );
@@ -92,6 +95,7 @@ namespace Aardvark.Geometry.Tests
         public void DecodingNodeWithoutKdTree_DoesNotWriteToStore()
         {
             var (storage, addCount) = CreateCountingStorage();
+            using var ownedStorage = storage;
             var (id, psGlobal) = StoreLeafWithoutKdTree(storage, 2000, seed: 1);
             var addsAfterSetup = addCount();
 
@@ -127,6 +131,7 @@ namespace Aardvark.Geometry.Tests
         public void DecodingNodeWithoutKdTree_Concurrently_BuildsOneTree()
         {
             var (storage, addCount) = CreateCountingStorage();
+            using var ownedStorage = storage;
             var (id, psGlobal) = StoreLeafWithoutKdTree(storage, 2000, seed: 2);
             var addsAfterSetup = addCount();
 
@@ -147,11 +152,88 @@ namespace Aardvark.Geometry.Tests
             ClassicAssert.AreSame(a, node.KdTree.Value, "lazy kd-tree must be built exactly once");
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void InMemoryKdTreeRecoversWithNewNode(bool recursive)
+        {
+            var (backing, addCount) = CreateCountingStorage();
+            using var ownedBacking = backing;
+            string targetKey = null;
+            PointSetNode node = null;
+            var reads = 0;
+            byte[] Get(string key)
+            {
+                if (key == targetKey && Interlocked.Increment(ref reads) == 1)
+                {
+                    if (recursive) _ = node.KdTree.Value;
+                    else throw new IOException("Simulated transient read error.");
+                }
+                return backing.f_get(key);
+            }
+            using var storage = new Storage(backing.f_add, Get, backing.f_getSlice, backing.f_remove,
+                () => { }, backing.f_flush, backing.Cache);
+            var (id, _) = StoreLeafWithoutKdTree(storage, 500, seed: 4);
+            node = (PointSetNode)storage.GetPointCloudNode(id);
+            var addsBefore = addCount();
+            targetKey = node.PositionsId.Value.ToString();
+            storage.Cache.Remove(targetKey);
+
+            var errorType = recursive ? typeof(InvalidOperationException) : typeof(IOException);
+            Assert.Throws(errorType, () => _ = node.KdTree.Value);
+            Assert.Throws(errorType, () => _ = node.KdTree.Value);
+            Assert.That(reads, Is.EqualTo(1));
+            Assert.That(storage.Cache.Remove(id.ToString()), Is.True);
+            var recreated = (PointSetNode)storage.GetPointCloudNode(id);
+            Assert.That(recreated, Is.Not.SameAs(node));
+            var recovered = recreated.KdTree.Value;
+            Assert.That(recovered.GetClosest(V3f.Zero, float.MaxValue, 2).Count, Is.EqualTo(2));
+            Assert.That(recreated.KdTree.Value, Is.SameAs(recovered));
+            Assert.That(reads, Is.EqualTo(2));
+            Assert.That(addCount(), Is.EqualTo(addsBefore), "Recreating a node must not persist the tree.");
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void ExplicitWritePersistsMissingKdTree(bool updateNode)
+        {
+            var (storage, addCount) = CreateCountingStorage();
+            using var ownedStorage = storage;
+            var (id, _) = StoreLeafWithoutKdTree(storage, 500, seed: 5);
+            var node = (PointSetNode)storage.GetPointCloudNode(id);
+            var addsBefore = addCount();
+            if (updateNode) node = node.Without(Durable.Octree.PointRkdTreeFDataReference);
+            var inMemoryTree = node.KdTree.Value;
+            Assert.That(node.KdTreeId, Is.Null);
+            Assert.That(addCount(), Is.EqualTo(addsBefore), "Construction and reads must not persist the tree.");
+
+            var written = node.WriteToStore();
+            Assert.That(written.Id, Is.EqualTo(node.Id));
+            Assert.That(written.KdTreeId.HasValue, Is.True);
+            var persistedData = written.KdTree.Value.Data;
+            Assert.That(persistedData.PermArray, Is.EqualTo(inMemoryTree.Data.PermArray));
+            Assert.That(persistedData.AxisArray, Is.EqualTo(inMemoryTree.Data.AxisArray));
+            Assert.That(persistedData.RadiusArray, Is.EqualTo(inMemoryTree.Data.RadiusArray));
+            Assert.That(node.KdTree.Value, Is.SameAs(inMemoryTree));
+            Assert.That(addCount(), Is.EqualTo(addsBefore + 2), "Persist the tree and the node, once each.");
+            Assert.That(node.KdTreeId, Is.Null, "Writing must not mutate the original immutable node.");
+
+            storage.Cache.Clear();
+            var reloaded = (PointSetNode)storage.GetPointCloudNode(written.Id);
+            Assert.That(reloaded.KdTreeId, Is.EqualTo(written.KdTreeId));
+            Assert.That(reloaded.KdTree.Value.GetClosest(V3f.Zero, float.MaxValue, 2).Count, Is.EqualTo(2));
+            Assert.That(addCount(), Is.EqualTo(addsBefore + 2), "Reloading must remain read-only.");
+
+            // An existing persisted tree is not regenerated by another explicit write.
+            reloaded.WriteToStore();
+            Assert.That(addCount(), Is.EqualTo(addsBefore + 3));
+        }
+
         [Test]
         public void WritingNodeWithoutKdTree_StoresKdTree()
         {
             // the write path (import, merge) must still compute and persist the kd-tree
             var (storage, addCount) = CreateCountingStorage();
+            using var ownedStorage = storage;
             var (id, _) = StoreLeafWithoutKdTree(storage, 500, seed: 3);
             var decoded = (PointSetNode)storage.GetPointCloudNode(id);
             var addsBefore = addCount();

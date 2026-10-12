@@ -1,4 +1,10 @@
 - [PointSet] Keep custom per-point attributes aligned and publish filtered property caches thread-safely (#47).
+- [Sky] Correct the Newton derivative for hyperbolic true-anomaly calculation.
+
+### 5.6.4-prerelease0005
+- [PointSet] PointSetNode.WriteToStore persists a missing kd-tree (e.g. after With/Without); use the returned node, it may be a new instance with the same id and a stored kd-tree reference. Decoding and queries remain read-only.
+- [PointSet] documented: FilteredNode and in-memory kd-trees cache initialization exceptions; recreate the view (or evict and reload the node) after a transient failure
+- [Tests] exact filtered-node concurrency, attribute-alignment and recovery regressions; explicit-write kd-tree persistence tests
 
 ### 5.6.4-prerelease0004
 - [PointSet] FilteredNode: all lazily derived state (subnodes, positions, kd-tree, attribute subsets, part indices) is now thread-safe; a FilteredNode shared by concurrent queries no longer returns missing points

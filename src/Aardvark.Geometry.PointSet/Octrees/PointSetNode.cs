@@ -484,13 +484,25 @@ public class PointSetNode : IPointCloudNode
     }
 
     /// <summary>
-    /// Writes this node to store.
+    /// Writes this node to store, persisting a missing kd-tree for non-temporary nodes.
+    /// Returns the stored node; it may be a new instance with the same id and a persisted kd-tree reference.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public PointSetNode WriteToStore()
     {
+        if (KdTreeId == null && HasPositions && !IsTemporaryImportNode) return WriteWithKdTree();
+
         this.CheckDerivedAttributes();
         Storage?.Add(Id.ToString(), this);
         return this;
+    }
+
+    // Keep the common write path small; this extra work is only for nodes without persisted KD data.
+    private PointSetNode WriteWithKdTree()
+    {
+        var kdId = Guid.NewGuid();
+        Storage.Add(kdId, KdTree!.Value.Data);
+        return new PointSetNode(Data.Add(Durable.Octree.PointRkdTreeFDataReference, kdId), Storage, writeToStore: true);
     }
 
     IPointCloudNode IPointCloudNode.WriteToStore() => WriteToStore();
