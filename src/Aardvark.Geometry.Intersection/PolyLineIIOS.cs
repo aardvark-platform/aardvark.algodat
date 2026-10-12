@@ -38,6 +38,13 @@ namespace Aardvark.Geometry
             return false;
         }
 
+        /// <summary>
+        /// Finds the nearest segment in the index slice strictly below the incoming
+        /// squared-distance cutoff. Object-filter true includes the original segment
+        /// index; false skips it before computing geometry. A null filter accepts all.
+        /// The point-result filter is ignored. Rejected or absent results leave the
+        /// supplied value unchanged; successful updates retain Coord and ObjectStack.
+        /// </summary>
         public bool ClosestPoint(
                 int[] objectIndexArray, int firstIndex, int indexCount, V3d queryPoint,
                 Func<IIntersectableObjectSet, int, bool> ios_index_objectFilter,
@@ -49,6 +56,7 @@ namespace Aardvark.Geometry
             for (int i = firstIndex, e = firstIndex + indexCount; i < e; i++)
             {
                 int li = objectIndexArray[i];
+                if (ios_index_objectFilter != null && !ios_index_objectFilter(this, li)) continue;
                 V3d p = queryPoint.GetClosestPointOnLine(pa[li], pa[li + 1]);
                 double d2 = Vec.DistanceSquared(queryPoint, p);
                 if (d2 < closestPoint.DistanceSquared)
