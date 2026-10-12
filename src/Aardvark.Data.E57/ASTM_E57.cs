@@ -597,13 +597,21 @@ namespace Aardvark.Data.E57
                 var recordsLeftToConsumePerByteStream = new long[ByteStreamsCount].Set(RecordCount);
                 for (var i = 0; i < ByteStreamsCount; i++) if (ignoreByteStream[i]) recordsLeftToConsumePerByteStream[i] = 0L;
 
-                var bytesLeftToConsume = compressedVectorHeader.SectionLength - 32;
+                // SectionLength includes any image blobs between the header and DataStartOffset.
+                var sectionStart = (E57LogicalOffset)FileOffset;
+                var sectionEnd = new E57LogicalOffset(checked(sectionStart.Value + compressedVectorHeader.SectionLength));
 
                 bool has(PointPropertySemantics sem) => sem2idx.ContainsKey(sem);
 
                 if (compressedVectorHeader.DataStartOffset.Value == 0) throw new Exception(
                     $"Unexpected compressedVectorHeader.DataStartOffset (0). " +
                     $"Error 060bd3ba-b363-4bcd-97e0-f6b28e71dd10."
+                    );
+
+                var offset = (E57LogicalOffset)compressedVectorHeader.DataStartOffset;
+                if (offset.Value < sectionStart.Value + 32 || offset.Value > sectionEnd.Value ||
+                    (RecordCount > 0 && offset.Value == sectionEnd.Value)) throw new InvalidDataException(
+                    $"Invalid E57 data start {offset}; header ends at {sectionStart.Value + 32}, section ends at {sectionEnd}."
                     );
 
                 var actualKeys = sem2idx.Keys.Where(k => !ignoreByteStream[sem2idx[k]]).ToArray();
@@ -634,27 +642,51 @@ namespace Aardvark.Data.E57
                 }
 
                 // always read sequentially from DataStartOffset (indexed or not)
-                var offset = (E57LogicalOffset)compressedVectorHeader.DataStartOffset;
-                while (bytesLeftToConsume > 0)
+                while (offset.Value < sectionEnd.Value)
                 {
-                    if (verboseDetail) Console.WriteLine($"[E57CompressedVector] bytesLeftToConsume = {bytesLeftToConsume}");
+                    if (verboseDetail) Console.WriteLine($"[E57CompressedVector] bytesLeftToConsume = {sectionEnd.Value - offset.Value}");
                     var packetStart = offset;
                     var sectionId = ReadLogicalBytes(m_stream, offset, 1)[0];
+                    var headerLength = sectionId switch
+                    {
+                        E57_DATA_PACKET => 6,
+                        E57_INDEX_PACKET => 16,
+                        _ => throw new Exception(
+                            $"Unexpected sectionId ({sectionId}) at offset {packetStart}. " +
+                            $"Error 6a29f07e-8bb9-4e8f-a249-e907c4fd6ab8."
+                            )
+                    };
+                    if (headerLength > sectionEnd.Value - offset.Value) throw new InvalidDataException(
+                        $"Truncated E57 packet header at {packetStart}."
+                        );
+
+                    var packetHeader = ReadLogicalBytes(m_stream, offset, headerLength);
+                    var packetLength = BitConverter.ToUInt16(packetHeader, 2) + 1;
+                    if (packetLength < headerLength || packetLength > sectionEnd.Value - offset.Value) throw new InvalidDataException(
+                        $"Invalid E57 packet length ({packetLength}) at {packetStart}; section ends at {sectionEnd}."
+                        );
+                    var packetEnd = packetStart + packetLength;
                     if (verboseDetail) Console.WriteLine($"[E57CompressedVector][OFFSET] {offset}, sectionId = {sectionId}");
 
-                    if (sectionId == E57_COMPRESSED_VECTOR_SECTION)
+                    if (sectionId == E57_DATA_PACKET)
                     {
                         if (verboseDetail) Console.WriteLine($"[E57CompressedVector] DATA PACKET");
-                        var dataPacketHeader = E57DataPacketHeader.Parse(ReadLogicalBytes(m_stream, offset, 6));
+                        var dataPacketHeader = E57DataPacketHeader.Parse(packetHeader);
                         if (verboseDetail) Console.WriteLine($"[E57CompressedVector]   ByteStreamCount    = {dataPacketHeader.ByteStreamCount}");
                         if (verboseDetail) Console.WriteLine($"[E57CompressedVector]   PacketLengthMinus1 = {dataPacketHeader.PacketLengthMinus1}");
 
                         // read bytestream buffer lengths
                         offset += 6;
                         if (verboseDetail) Console.WriteLine($"[E57CompressedVector][OFFSET] {offset}");
+                        if (dataPacketHeader.ByteStreamCount * sizeof(ushort) > packetEnd.Value - offset.Value) throw new InvalidDataException(
+                            $"E57 bytestream length table exceeds packet boundary at {packetStart}."
+                            );
                         var bytestreamBufferLengths = ReadLogicalUnsignedShorts(m_stream, offset, dataPacketHeader.ByteStreamCount);
                         
                         offset += dataPacketHeader.ByteStreamCount * sizeof(ushort);
+                        if (bytestreamBufferLengths.Sum(x => (long)x) > packetEnd.Value - offset.Value) throw new InvalidDataException(
+                            $"E57 bytestream buffers exceed packet boundary at {packetStart}."
+                            );
                         if (verboseDetail) Console.WriteLine($"[E57CompressedVector][OFFSET] {offset}");
 
                         // read bytestream buffers
@@ -858,16 +890,12 @@ namespace Aardvark.Data.E57
                                 yield return partialResult;
                             }
                         }
-
-                        // move to next packet
-                        offset = packetStart + dataPacketHeader.PacketLengthMinus1 + 1;
-                        bytesLeftToConsume -= dataPacketHeader.PacketLengthMinus1 + 1;
                     }
-                    else if (sectionId == E57_INDEX_PACKET)
+                    else
                     {
                         // index packets may appear in the data stream when reading sequentially
                         // skip as they don't contain point data
-                        var indexPacketHeader = E57IndexPacketHeader.Parse(ReadLogicalBytes(m_stream, offset, 16));
+                        var indexPacketHeader = E57IndexPacketHeader.Parse(packetHeader);
 
                         if (verbose)
                         {
@@ -875,17 +903,9 @@ namespace Aardvark.Data.E57
                             Report.Line($"[E57CompressedVector]   EntryCount = {indexPacketHeader.EntryCount}");
                             Report.Line($"[E57CompressedVector]   IndexLevel = {indexPacketHeader.IndexLevel}");
                         }
+                    }
 
-                        offset = packetStart + indexPacketHeader.PacketLengthMinus1 + 1;
-                        bytesLeftToConsume -= indexPacketHeader.PacketLengthMinus1 + 1;
-                    }
-                    else
-                    {
-                        throw new Exception(
-                            $"Unexpected sectionId ({sectionId}) at offset {packetStart}. " +
-                            $"Error 6a29f07e-8bb9-4e8f-a249-e907c4fd6ab8."
-                            );
-                    }
+                    offset = packetEnd;
                 }
 
                 if (data.CountMin > 0)

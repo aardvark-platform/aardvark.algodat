@@ -2967,11 +2967,14 @@ namespace Aardvark.Geometry.Tests
         {
             await Task.CompletedTask; // avoid warning if no async methods are called here ...
 
+            Test_Parse_Regression();
+
             //ParseE57File("W:\\Datasets\\Vgm\\Data\\E57\\Lichthof grob.e57", verbose: true);
             //ParseE57File(@"E:\tmp\e57\Lichthof grob_simple.e57", verbose: true);
             //ParseE57File(@"D:\Datasets\e57\chcnav_utb_20251025085420394.e57", verbose: true);
+            //ParseE57File(@"D:\Datasets\e57\chcnav_20260909104213731.e57", verbose: true);
 
-            await CreateStore(@"D:\Datasets\e57\chcnav_utb_20251025085420394.e57", @"e:\tmp\2027-01-29_chcnav_utb_20251025085420394.e57", minDist: 0.0);
+            //await CreateStore(@"D:\Datasets\e57\chcnav_utb_20251025085420394.e57", @"e:\tmp\2027-01-29_chcnav_utb_20251025085420394.e57", minDist: 0.0);
             //Bug20260112.Run();
 
             //await CylStoreIssue_20250723();
@@ -2984,8 +2987,6 @@ namespace Aardvark.Geometry.Tests
             //    minDist: 0.005,
             //    maxDegreeOfParallelism: 0
             //    );
-
-            //Test_Parse_Regression();
 
             //Test_Import_Regression();
 
