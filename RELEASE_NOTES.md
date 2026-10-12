@@ -1,3 +1,4 @@
+- [PointSet] Avoid unused plane projections and 2D polygons in approximate polygon counts.
 - [Sky] Correct the Newton derivative for hyperbolic true-anomaly calculation.
 
 ### 5.6.4-prerelease0005
