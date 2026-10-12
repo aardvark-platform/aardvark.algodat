@@ -65,6 +65,16 @@ Box queries include the boundary. The default visits full-resolution data; `minC
 - Attributes are accessed through `PersistentRef<T>.Value`. This may load from storage or return cached/in-memory data; retain the returned array when processing it repeatedly.
 - Filtered views and in-memory KD-trees use `Lazy<T>`, which caches initialization exceptions. After resolving a transient failure, recreate the view, or evict the failed stored node's ID from `storage.Cache` and reload it. Existing references to the failed instance remain failed; no automatic retry or eviction is performed.
 
+### Custom Attributes in Filtered Views
+
+`FilteredNode.Properties` and `TryGetValue` lazily project custom per-point arrays
+through the sorted source indices used by positions, preserving runtime array types.
+Concurrent readers share one projected value per key across both accessors, including
+partial, empty and nested views. Scalar, reference and structural metadata such as
+`Octree.SubnodesGuids` is unchanged. Fully included views retain backing dictionaries
+and values. Property-cache synchronization does not lock standard attribute or query
+paths; callers must not mutate the shared backing or projected arrays while reading.
+
 ### Node-Local KD Queries
 
 ```csharp

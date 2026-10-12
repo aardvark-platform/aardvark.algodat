@@ -1,3 +1,4 @@
+- [PointSet] Keep custom per-point attributes aligned and publish filtered property caches thread-safely (#47).
 - [Sky] Correct the Newton derivative for hyperbolic true-anomaly calculation.
 
 ### 5.6.4-prerelease0005
