@@ -1,3 +1,4 @@
+- [Intersection] Honor triangle-ray hit rejection before narrowing the cutoff and preserve caller hit metadata without replacement-stack allocation.
 - [Sky] Correct the Newton derivative for hyperbolic true-anomaly calculation.
 
 ### 5.6.4-prerelease0005

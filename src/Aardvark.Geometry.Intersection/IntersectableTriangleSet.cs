@@ -137,9 +137,15 @@ namespace Aardvark.Geometry
             return box.Contains(p0) && box.Contains(p1) && box.Contains(p2);
         }
 
+        /// <summary>
+        /// Finds the nearest accepted hit in the index slice, including tmin but excluding
+        /// tmax and the incoming hit's T. Object-filter true includes; hit-filter true rejects.
+        /// Null filters accept all. Hit filters receive complete payloads with Part=0,
+        /// Coord=Zero and BackSide=false. Rejection or failure leaves the incoming hit unchanged;
+        /// success replaces only RayHit and SetObject, retaining Tag and ObjectStack.
+        /// </summary>
         public bool ObjectsIntersectRay(int[] objectIndexArray, int firstIndex, int indexCount, FastRay3d ray, Func<IIntersectableObjectSet, int, bool> ios_index_objectFilter, Func<IIntersectableObjectSet, int, int, RayHit3d, bool> ios_index_part_hit_hitFilter, double tmin, double tmax, ref ObjectRayHit hit)
         {
-            var found = false;
             var index = -1;
             tmax = Fun.Min(tmax, hit.RayHit.T);
 
@@ -152,28 +158,32 @@ namespace Aardvark.Geometry
 
                     if (ray.Ray.IntersectsTriangle(p0, p1, p2, tmin, tmax, out double t))
                     {
+                        if (ios_index_part_hit_hitFilter != null && ios_index_part_hit_hitFilter(this, id, 0,
+                            new RayHit3d
+                            {
+                                T = t,
+                                Point = ray.Ray.GetPointOnRay(t),
+                                Part = 0,
+                                Coord = V2d.Zero,
+                                BackSide = false
+                            })) continue;
+
                         tmax = t;
-                        found = true;
                         index = id;
                     }
                 }
             }
 
-            if (found)
+            if (index >= 0)
             {
-                hit = new ObjectRayHit()
+                hit.SetObject = new SetObject(this, index);
+                hit.RayHit = new RayHit3d
                 {
-                    SetObject = new SetObject(this, index),
-                    ObjectStack = [], // TODO
-                    RayHit = new RayHit3d()
-                    {
-                        Part = 0,
-                        Point = ray.Ray.GetPointOnRay(tmax),
-                        T = tmax,
-
-                        Coord = V2d.Zero, // TODO
-                        BackSide = false // TODO
-                    }
+                    T = tmax,
+                    Point = ray.Ray.GetPointOnRay(tmax),
+                    Part = 0,
+                    Coord = V2d.Zero,
+                    BackSide = false
                 };
 
                 return true;
