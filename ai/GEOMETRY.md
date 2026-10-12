@@ -68,6 +68,8 @@ if (tree.ClosestPoint(queryPoint, ref closest))
 
 The [triangle-set implementation](../src/Aardvark.Geometry.Intersection/IntersectableTriangleSet.cs) accepts a null object filter for all triangles, or a predicate to select candidates. Its separate point-result filter is ignored. Filter support for other object sets depends on their implementation.
 
+[PolyLine.ClosestPoint](../src/Aardvark.Geometry.Intersection/PolyLineIIOS.cs) uses an inclusion predicate over original segment indices: `true` includes, `false` skips the segment before geometry is computed, and a null object filter accepts all. This also applies through `KdIntersectionTree`. Index slices and strict incoming distance cutoffs are retained; rejection leaves the supplied result unchanged, and successful updates preserve `Coord` and `ObjectStack`. PolyLine's separate point-result filter remains ignored.
+
 ## Normal Estimation
 
 For a nonempty `V3f[]` or `V3d[] points`:

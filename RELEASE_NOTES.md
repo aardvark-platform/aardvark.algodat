@@ -1,3 +1,5 @@
+- [Geometry] PolyLine closest-point queries now exclude segments rejected by the object filter, including through KdIntersectionTree; null filters still accept all.
+
 ### 5.6.4-prerelease0006
 - [e57] fixed offset calculation bug
 - [Sky] Correct the Newton derivative for hyperbolic true-anomaly calculation.
