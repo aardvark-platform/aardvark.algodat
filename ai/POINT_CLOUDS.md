@@ -57,6 +57,8 @@ long count = pointSet.CountPointsInsideBox(box);
 
 Box queries include the boundary. The default visits full-resolution data; `minCellExponent` can stop traversal at a coarser level. Count queries avoid returning point lists but still load node data. See [Queries](../src/Aardvark.Geometry.PointSet/Queries) for nearest-point, polygon, and frustum queries.
 
+`QueryContainsPoints` tests for a matching stored point on the same leaf/LoD front as generic counts and enumeration. A fully inside terminal node succeeds only when `PointCountCell > 0`; empty leaves, zero-selected views and empty LoD fronts return false. At `minCellExponent`, only that node's local samples are considered, even if descendants contain points; a cutoff above the root returns false. Below the cutoff, a node with no local samples still searches its descendants. `QueryContainsPointsInsideBoxXY` follows the same existence semantics.
+
 ## Node Contracts
 
 - `Positions.Value` is a `V3f[]` relative to `node.Center`; `PositionsAbsolute` returns global `V3d[]` coordinates.
