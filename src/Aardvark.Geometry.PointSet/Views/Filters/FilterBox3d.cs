@@ -15,6 +15,7 @@
 using Aardvark.Base;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -85,8 +86,12 @@ public class FilterInsideBox3d(Box3d filter) : ISpatialFilter
 }
 
 /// <summary>
+/// Selects points strictly outside a closed box; faces, edges and corners are excluded.
 /// </summary>
-/// <remarks></remarks>
+/// <remarks>
+/// Persisted views store this filter and apply the same closed-box exclusion on reload.
+/// Whole nodes are accepted only when their bounds are strictly separated from the box.
+/// </remarks>
 public class FilterOutsideBox3d(Box3d filter) : ISpatialFilter
 {
     /// <summary></summary>
@@ -95,8 +100,12 @@ public class FilterOutsideBox3d(Box3d filter) : ISpatialFilter
     /// <summary></summary>
     public Box3d Box { get; } = filter;
 
-    /// <summary></summary>
-    public bool IsFullyInside(Box3d box) => !Box.Intersects(box);
+    /// <summary>True only for bounds strictly separated from the closed filter box.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool IsFullyInside(Box3d box) =>
+        Box.Min.X > box.Max.X || Box.Max.X < box.Min.X ||
+        Box.Min.Y > box.Max.Y || Box.Max.Y < box.Min.Y ||
+        Box.Min.Z > box.Max.Z || Box.Max.Z < box.Min.Z;
 
     /// <summary></summary>
     public bool IsFullyOutside(Box3d box) => Box.Contains(box);
@@ -107,25 +116,31 @@ public class FilterOutsideBox3d(Box3d filter) : ISpatialFilter
     /// <summary></summary>
     public bool IsFullyOutside(IPointCloudNode node) => IsFullyOutside(node.BoundingBoxExactGlobal);
 
-    /// <summary></summary>
+    /// <summary>
+    /// Selects source indices outside the closed box, narrowing but not modifying a supplied domain.
+    /// Filtered views project these indices in source order.
+    /// </summary>
     public HashSet<int> FilterPoints(IPointCloudNode node, HashSet<int>? selected = null)
     {
         var c = node.Center;
         var xs = node.Positions.Value;
+        var result = new HashSet<int>();
 
         if (selected != null)
         {
-            return [.. selected.Where(i => Box.Contains(c + (V3d)xs[i]))];
+            foreach (var i in selected)
+            {
+                if (!Box.Contains(c + (V3d)xs[i])) result.Add(i);
+            }
         }
         else
         {
-            var result = new HashSet<int>();
             for (var i = 0; i < xs.Length; i++)
             {
-                if (Box.Contains(c + (V3d)xs[i])) result.Add(i);
+                if (!Box.Contains(c + (V3d)xs[i])) result.Add(i);
             }
-            return result;
         }
+        return result;
     }
 
     /// <summary></summary>
