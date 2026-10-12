@@ -1,3 +1,5 @@
+### 5.6.4-prerelease0006
+- [e57] fixed offset calculation bug
 - [Sky] Correct the Newton derivative for hyperbolic true-anomaly calculation.
 
 ### 5.6.4-prerelease0005
