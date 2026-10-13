@@ -21,6 +21,8 @@ var mesh = new PolyMesh
 
 Primitives live in [PolyMeshPrimitives](../src/Aardvark.Geometry.PolyMesh/PolyMeshPrimitives.cs), for example `PolyMeshPrimitives.Box(Box3d.Unit, C4b.White)`. For epsilon-based vertex deduplication, see [Clustering](GEOMETRY.md#clustering).
 
+The `Sphere`, `Cylinder` and `Torus` overloads accepting both `tangentName` and `binormalName` allow each output independently: pass `Symbol.Empty` for either unwanted output, or both. Binormal-only construction creates indexed binormals without a tangent or empty-symbol attribute. Geometry, UVs and the existing tangent/binormal calculations are unchanged.
+
 ## Attributes
 
 | Dictionary | Direct attribute length |

@@ -1,3 +1,5 @@
+- [PolyMesh] Sphere, Cylinder and Torus now support binormal-only output without throwing or creating an unwanted tangent attribute; tangent and binormal outputs can be requested independently.
+
 ### 5.6.4-prerelease0006
 - [e57] fixed offset calculation bug
 - [Sky] Correct the Newton derivative for hyperbolic true-anomaly calculation.
