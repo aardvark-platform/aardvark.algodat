@@ -282,6 +282,8 @@ namespace Aardvark.Geometry
         /// Returns a unit sphere polymesh.
         /// vertical segments = tessellation
         /// horizontal segments = tessellation * 2
+        /// Tangent and binormal output names are independently optional;
+        /// use Symbol.Empty to omit either output, or both.
         /// </summary>
         public static PolyMesh Sphere(
                 int tessellation,
@@ -292,10 +294,11 @@ namespace Aardvark.Geometry
                 Symbol binormalName
             )
         {
-            var pmesh = Sphere(tessellation, radius, color, coordinateName, tangentName);
+            var sharingName = tangentName.IsNotEmpty ? tangentName : binormalName;
+            var pmesh = Sphere(tessellation, radius, color, coordinateName, sharingName);
 
             if (binormalName.IsNotEmpty || tangentName.IsNotEmpty)
-                pmesh.AddPerFaceVertexTangents(coordinateName, tangentName, binormalName, pmesh.FaceVertexAttributes[tangentName].ToArrayOfT<int>());
+                pmesh.AddPerFaceVertexTangents(coordinateName, tangentName, binormalName, pmesh.FaceVertexAttributes[sharingName].ToArrayOfT<int>());
 
             return pmesh;
         }
@@ -725,6 +728,10 @@ namespace Aardvark.Geometry
             return pmesh;
         }
 
+        /// <summary>
+        /// Generates a cylinder with independently optional tangent and binormal
+        /// outputs. Use Symbol.Empty to omit either output, or both.
+        /// </summary>
         public static PolyMesh Cylinder(
             int tessellation,
             double height,
@@ -735,10 +742,11 @@ namespace Aardvark.Geometry
             Symbol binormalName
             )
         {
-            var pmesh = Cylinder(tessellation, height, radius, color, coordinateName, tangentName);
+            var sharingName = tangentName.IsNotEmpty ? tangentName : binormalName;
+            var pmesh = Cylinder(tessellation, height, radius, color, coordinateName, sharingName);
             
             if (binormalName.IsNotEmpty || tangentName.IsNotEmpty)
-                pmesh.AddPerFaceVertexTangents(coordinateName, tangentName, binormalName, pmesh.FaceVertexAttributes[tangentName].ToArrayOfT<int>());
+                pmesh.AddPerFaceVertexTangents(coordinateName, tangentName, binormalName, pmesh.FaceVertexAttributes[sharingName].ToArrayOfT<int>());
 
             return pmesh;
         }
@@ -1080,6 +1088,10 @@ namespace Aardvark.Geometry
             return pmesh;
         }
 
+        /// <summary>
+        /// Generates a torus with independently optional tangent and binormal
+        /// outputs. Use Symbol.Empty to omit either output, or both.
+        /// </summary>
         public static PolyMesh Torus(
             double majorRadius, double minorRadius,
             int majorTesselation, int minorTesselation,
@@ -1089,10 +1101,11 @@ namespace Aardvark.Geometry
             Symbol binormalName
             )
         {
-            var pmesh = Torus(majorRadius, minorRadius, majorTesselation, minorTesselation, color, coordinateName, tangentName);
+            var sharingName = tangentName.IsNotEmpty ? tangentName : binormalName;
+            var pmesh = Torus(majorRadius, minorRadius, majorTesselation, minorTesselation, color, coordinateName, sharingName);
 
             if (binormalName.IsNotEmpty || tangentName.IsNotEmpty)
-                pmesh.AddPerFaceVertexTangents(coordinateName, tangentName, binormalName, pmesh.FaceVertexAttributes[tangentName].ToArrayOfT<int>());
+                pmesh.AddPerFaceVertexTangents(coordinateName, tangentName, binormalName, pmesh.FaceVertexAttributes[sharingName].ToArrayOfT<int>());
 
             return pmesh;
         }
