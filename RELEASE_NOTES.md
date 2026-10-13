@@ -1,3 +1,5 @@
+- [Geometry] PolyLine.Line boxed equality now matches typed owner/index equality, restoring object-keyed collection lookups and deduplication; comparisons with vertices and other types safely return false.
+
 ### 5.6.4-prerelease0006
 - [e57] fixed offset calculation bug
 - [Sky] Correct the Newton derivative for hyperbolic true-anomaly calculation.
