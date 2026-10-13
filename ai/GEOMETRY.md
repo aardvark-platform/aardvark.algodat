@@ -68,6 +68,10 @@ if (tree.ClosestPoint(queryPoint, ref closest))
 
 The [triangle-set implementation](../src/Aardvark.Geometry.Intersection/IntersectableTriangleSet.cs) accepts a null object filter for all triangles, or a predicate to select candidates. Its separate point-result filter is ignored. Filter support for other object sets depends on their implementation.
 
+## Polyline Elements
+
+[PolyLine](../src/Aardvark.Geometry.Intersection/PolyLine.cs) line equality uses the owning polyline and segment index, not endpoint coordinates. Typed and boxed `Line` comparisons share that identity, including in hash collections. Comparing a line with a `Vertex`, null or an unrelated type returns false; operators and hash codes retain their existing behavior.
+
 ## Normal Estimation
 
 For a nonempty `V3f[]` or `V3d[] points`:
