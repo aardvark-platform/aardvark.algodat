@@ -42,6 +42,8 @@ Optional per-point lists must align with `Positions`. Check null or the correspo
 
 `ImmutableFilterByBox3d`, `ImmutableMapPositions`, `Chunk.ImmutableMerge`, and `Split(chunksize)` return new chunks. [GenericChunk](../src/Aardvark.Data.Points.Base/GenericChunk.cs) uses a `Durable.Def`-keyed dictionary for additional attributes; `chunk.ToGenericChunk()` converts the standard representation.
 
+`GenericChunk.Subset` copies selected positions and all aligned attributes in requested order, including repeated indices, without modifying the source. Bounds accumulate only the copied positions in double precision (Z=0 for 2D); no full-source `V3d[]` conversion is allocated for `V2f`, `V2d` or `V3f` inputs. Thus fixed-size selections allocate independently of source size, and `GroupBy` avoids repeating that source conversion for each partition. An empty selection from a nonempty source has `Box3d.Invalid` bounds; an empty source retains its original bounds, including explicitly supplied bounds.
+
 ## Spatial Queries
 
 Continuing the example above:
