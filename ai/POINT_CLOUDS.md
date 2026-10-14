@@ -38,7 +38,7 @@ For persistent storage, use `PointCloud.OpenStore(path)` instead. Keep the store
 | `Intensities` | `IList<int>` or null |
 | `Classifications` | `IList<byte>` or null |
 
-Optional per-point lists must align with `Positions`. Check null or the corresponding `Has*` property before access. Use `TryGetPartIndices()` to expand compact part indices to a per-point list.
+Optional per-point lists must align with `Positions`. Check null or the corresponding `Has*` property before access. `PartIndices` accepts null, an `int`/`uint` scalar, or `IList<byte>`, `IList<short>` and `IList<int>` (including arrays and read-only wrappers); no `IReadOnlyList` implementation is required for construction or reads. Automatic ranges and `TryGetPartIndices()` support these list-backed inputs without mutating them. Empty lists retain the corresponding array's invalid range and expand to an empty array. Expansion uses collection length/count rather than the scalar repeat count; existing `int[]` inputs are returned unchanged. Serialization and other part-index operations retain their existing type contracts.
 
 `ImmutableFilterByBox3d`, `ImmutableMapPositions`, `Chunk.ImmutableMerge`, and `Split(chunksize)` return new chunks. [GenericChunk](../src/Aardvark.Data.Points.Base/GenericChunk.cs) uses a `Durable.Def`-keyed dictionary for additional attributes; `chunk.ToGenericChunk()` converts the standard representation.
 

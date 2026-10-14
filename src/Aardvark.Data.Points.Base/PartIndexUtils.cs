@@ -64,7 +64,9 @@ public static class PartIndexUtils
     }
 
     /// <summary>
-    /// Expands part indices: All input types are expanded into an int array.
+    /// Expands null, int/uint scalars and byte/short/int arrays or IList inputs.
+    /// Scalars use ct; arrays and lists use their own length/count.
+    /// An int array is returned unchanged; lists produce a new int array.
     /// </summary>
     public static int[]? Expand(object? o, int ct)
     {
@@ -76,6 +78,24 @@ public static class PartIndexUtils
             case byte[] xs: return xs.Map(x => (int)x);
             case short[] xs: return xs.Map(x => (int)x);
             case int[] xs: return xs;
+            case IList<byte> xs:
+                {
+                    var result = new int[xs.Count];
+                    for (var i = 0; i < result.Length; i++) result[i] = xs[i];
+                    return result;
+                }
+            case IList<short> xs:
+                {
+                    var result = new int[xs.Count];
+                    for (var i = 0; i < result.Length; i++) result[i] = xs[i];
+                    return result;
+                }
+            case IList<int> xs:
+                {
+                    var result = new int[xs.Count];
+                    for (var i = 0; i < result.Length; i++) result[i] = xs[i];
+                    return result;
+                }
             default:
                 throw new Exception(
                 $"Unexpected type {o.GetType().FullName}. " +
@@ -142,7 +162,8 @@ public static class PartIndexUtils
     };
 
     /// <summary>
-    /// Get intex-th part index.
+    /// Gets the index-th part index from a byte/short/int array or IList.
+    /// Null returns null; int/uint scalars return their value regardless of index.
     /// </summary>
     public static int? Get(object? o, int index) => o switch
     {
@@ -152,6 +173,9 @@ public static class PartIndexUtils
         byte[] xs  => xs[index],
         short[] xs => xs[index],
         int[] xs   => xs[index],
+        IList<byte> xs  => xs[index],
+        IList<short> xs => xs[index],
+        IList<int> xs   => xs[index],
         _ => throw new Exception($"Unexpected type {o.GetType().FullName}. Invariant 98f41e6c-6065-4dd3-aa9e-6619cc71873d.")
 
     };
@@ -317,6 +341,10 @@ public static class PartIndexUtils
         return resultIndices;
     }
 
+    /// <summary>
+    /// Gets the range of null, int/uint scalars or byte/short/int arrays and IList inputs.
+    /// Empty lists retain the corresponding array's invalid range; no intermediate array is created.
+    /// </summary>
     public static Range1i? GetRange(object? qs) => qs switch
     {
         null => null,
@@ -325,6 +353,9 @@ public static class PartIndexUtils
         byte[] xs => new Range1i(xs.Select(x => (int)x)),
         short[] xs => new Range1i(xs.Select(x => (int)x)),
         int[] xs => new Range1i(xs),
+        IList<byte> xs => new Range1i(xs.Select(x => (int)x)),
+        IList<short> xs => new Range1i(xs.Select(x => (int)x)),
+        IList<int> xs => new Range1i(xs),
         _ => throw new Exception($"Unexpected type {qs.GetType().FullName}. Error 8a975735-bb10-42bf-9f7f-4d570e5223e3.")
     };
 
