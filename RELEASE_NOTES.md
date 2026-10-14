@@ -1,3 +1,5 @@
+- [PointSet] GenericChunk subsets and grouping no longer allocate full-source double-coordinate conversions for 2D or float positions; selected types, attributes and double-precision bounds are preserved.
+
 ### 5.6.4-prerelease0006
 - [e57] fixed offset calculation bug
 - [Sky] Correct the Newton derivative for hyperbolic true-anomaly calculation.

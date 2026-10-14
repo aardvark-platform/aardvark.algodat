@@ -563,6 +563,12 @@ namespace Aardvark.Data.Points
         public GenericChunk Union(GenericChunk other)
             => ImmutableMerge(this, other);
 
+        /// <summary>
+        /// Copies selected points and aligned attributes in the requested order.
+        /// Bounds accumulate selected coordinates in double precision without a
+        /// full-source position conversion. Empty sources retain their bounds;
+        /// an empty selection from a nonempty source has invalid bounds.
+        /// </summary>
         public GenericChunk Subset(List<int> subsetIndices)
         {
             var data = ImmutableDictionary<Durable.Def, object>.Empty;
@@ -570,8 +576,24 @@ namespace Aardvark.Data.Points
             {
                 data = data.Add(kv.Key, kv.Value.Subset(subsetIndices));
             }
-            var ps = PositionsAsV3d;
-            var bb = ps.Length > 0 ? new Box3d(subsetIndices.Select(i => ps[i])) : BoundingBox;
+            var bb = Count > 0 ? Box3d.Invalid : BoundingBox;
+            switch (data[PositionsDef])
+            {
+                case V2f[] ps:
+                    foreach (var p in ps) bb.ExtendBy((V3d)p.XYO);
+                    break;
+                case V2d[] ps:
+                    foreach (var p in ps) bb.ExtendBy(p.XYO);
+                    break;
+                case V3f[] ps:
+                    foreach (var p in ps) bb.ExtendBy((V3d)p);
+                    break;
+                case V3d[] ps:
+                    foreach (var p in ps) bb.ExtendBy(p);
+                    break;
+                default:
+                    throw new Exception($"Unsupported positions type {data[PositionsDef].GetType()}.");
+            }
             return new GenericChunk(data, bb);
         }
 
