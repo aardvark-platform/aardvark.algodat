@@ -225,7 +225,7 @@ namespace Aardvark.Data.Points
         /// <param name="normals">Optional. Either null or same number of elements as positions.</param>
         /// <param name="intensities">Optional. Either null or same number of elements as positions.</param>
         /// <param name="classifications">Optional. Either null or same number of elements as positions.</param>
-        /// <param name="partIndices">Optional. Either (A) null, or (B) single uint value for all points in cell, or (3) array with same number of elements (byte|short|int) as positions.</param>
+        /// <param name="partIndices">Optional. Null, an int/uint scalar for all points, or an IList of byte/short/int with the same count as positions. Arrays and read-only wrappers are supported; IReadOnlyList is not required for construction or reads.</param>
         /// <param name="partIndexRange">Optional. If null and partIndices not null, then it will be automatically computed from partIndices.</param>
         /// <param name="bbox">Optional. If null, then bbox will be constructed from positions.</param>
         public Chunk(

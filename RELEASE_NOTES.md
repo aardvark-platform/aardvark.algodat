@@ -1,3 +1,5 @@
+- [PointSet] List-backed byte, short and int part indices now support automatic Chunk ranges, per-point expansion and indexed reads, including read-only and IList-only implementations.
+
 ### 5.6.4-prerelease0006
 - [e57] fixed offset calculation bug
 - [Sky] Correct the Newton derivative for hyperbolic true-anomaly calculation.
