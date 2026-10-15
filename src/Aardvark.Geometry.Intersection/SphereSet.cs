@@ -98,14 +98,15 @@ namespace Aardvark.Geometry
         }
 
         /// <summary>
-        /// 
+        /// Finds a strictly closer sphere surface point within the requested index slice.
+        /// Accepted candidates update the nearest result without changing Coord or ObjectStack.
         /// </summary>
         /// <param name="objectIndexArray"></param>
         /// <param name="firstIndex"></param>
         /// <param name="indexCount"></param>
         /// <param name="query"></param>
-        /// <param name="ios_index_objectFilter">not implemented</param>
-        /// <param name="ios_index_part_ocp_pointFilter">not implemented</param>
+        /// <param name="ios_index_objectFilter">Optional inclusion predicate, called with the original sphere index before geometry is read. Null accepts all spheres.</param>
+        /// <param name="ios_index_part_ocp_pointFilter">Unused; point-result filtering is not implemented.</param>
         /// <param name="closest"></param>
         /// <returns></returns>
         public bool ClosestPoint(
@@ -119,6 +120,7 @@ namespace Aardvark.Geometry
             for (int i = firstIndex, e = firstIndex + indexCount; i < e; i++)
             {
                 int index = objectIndexArray[i];
+                if (ios_index_objectFilter != null && !ios_index_objectFilter(this, index)) continue;
                 V3d p = query.GetClosestPointOn(Sphere3ds[index]);
                 double d2 = Vec.DistanceSquared(query, p);
                 if (d2 < closest.DistanceSquared)

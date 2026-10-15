@@ -1,3 +1,5 @@
+- [Geometry] SphereSet closest-point queries now honor object inclusion filters, including through kd-trees; the separate point-result filter remains unsupported.
+
 ### 5.6.4-prerelease0006
 - [e57] fixed offset calculation bug
 - [Sky] Correct the Newton derivative for hyperbolic true-anomaly calculation.
