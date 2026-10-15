@@ -1888,12 +1888,19 @@ namespace Aardvark.Geometry
             // StoreDefName = 0x00100000,
         }
 
+        /// <summary>
+        /// Copies all face, vertex and face-vertex attributes to direct per-vertex arrays,
+        /// including indexed attributes selected by their positive names. Face attributes
+        /// override same-named vertex attributes; face-vertex attributes override both.
+        /// </summary>
+        /// <param name="compact">Reuse each source vertex across corners with matching
+        /// face and face-vertex values when true; otherwise retain a vertex per corner.</param>
         public PolyMesh PerVertexAttributedCopy(bool compact = true)
         {
             var faceIndices = FaceCount.Range();
-            var faceAttributes = FaceAttributes.Keys;
-            var vertexAttributes = VertexAttributes.Keys;
-            var faceVertexAttributes = FaceVertexAttributes.Keys;
+            var faceAttributes = FaceAttributeNames;
+            var vertexAttributes = VertexAttributeNames;
+            var faceVertexAttributes = FaceVertexAttributeNames;
 
             return PerVertexAttributedCopy(
                     faceIndices, compact, faceAttributes, vertexAttributes, faceVertexAttributes);

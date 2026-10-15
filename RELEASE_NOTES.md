@@ -1,3 +1,5 @@
+- [PolyMesh] PerVertexAttributedCopy now handles indexed face, vertex and corner attributes without requiring explicit attribute selection.
+
 ### 5.6.4
 - stable release
 
