@@ -126,6 +126,13 @@ namespace Aardvark.Geometry
             info.Normal = Vec.Cross(e01, e02).Normalized;
         }
 
+        /// <summary>
+        /// Finds a strictly closer triangle surface point within the requested index slice.
+        /// A null object filter accepts all triangles; otherwise true includes the original
+        /// triangle index, evaluated before reading its positions. Accepted candidates update
+        /// the nearest result incrementally, preserving Coord and ObjectStack.
+        /// The separate point-result filter is unused.
+        /// </summary>
         public bool ClosestPoint(
                 int[] objectIndexArray, int firstIndex, int indexCount,
                 V3d query,
@@ -138,6 +145,7 @@ namespace Aardvark.Geometry
             for (int i = firstIndex, e = firstIndex + indexCount; i < e; i++)
             {
                 int index = objectIndexArray[i];
+                if (ios_index_objectFilter != null && !ios_index_objectFilter(this, index)) continue;
                 int pi = index * 3;
                 V3d p = query.GetClosestPointOnTriangle(
                                 plist[pi], plist[pi + 1], plist[pi + 2]);

@@ -66,7 +66,7 @@ if (tree.ClosestPoint(queryPoint, ref closest))
 
 `MaxRange` initializes an unbounded query. For a finite bound, set both `Distance` and `DistanceSquared` consistently. Only a strictly closer result replaces the supplied value; otherwise the call returns `false` and leaves it unchanged.
 
-The [triangle-set implementation](../src/Aardvark.Geometry.Intersection/IntersectableTriangleSet.cs) accepts a null object filter for all triangles, or a predicate to select candidates. Its separate point-result filter is ignored. Filter support for other object sets depends on their implementation.
+Both [IntersectableTriangleSet](../src/Aardvark.Geometry.Intersection/IntersectableTriangleSet.cs) and [TriangleSet](../src/Aardvark.Geometry.Intersection/TriangleSet.cs) closest-point queries accept a null object filter for all triangles, or an inclusion predicate (`true` includes) called with the set and original triangle index before reading positions. This applies to direct index-slice queries and through kd-trees. TriangleSet updates strictly nearer results incrementally while preserving caller `Coord` and `ObjectStack`. The separate point-result filter remains ignored in both implementations. Filter support for other object sets depends on their implementation.
 
 ## Normal Estimation
 
