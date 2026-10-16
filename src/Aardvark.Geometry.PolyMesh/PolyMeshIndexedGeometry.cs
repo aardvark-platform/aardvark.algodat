@@ -23,6 +23,10 @@ namespace Aardvark.Geometry
     {
         #region GetIndexedGeometry
 
+        /// <summary>
+        /// Exports all faces with corner-over-face-over-vertex precedence for shared
+        /// attribute names, independent of conversion and index format options.
+        /// </summary>
         public static IndexedGeometry GetIndexedGeometry(
                 this PolyMesh mesh,
                 PolyMesh.GetGeometryOptions options = PolyMesh.GetGeometryOptions.Default,
@@ -31,6 +35,9 @@ namespace Aardvark.Geometry
             return mesh.GetIndexedGeometry(mesh.FaceCount.Range(), options, absoluteEps);
         }
 
+        /// <summary>
+        /// Exports selected faces with corner-over-face-over-vertex attribute precedence.
+        /// </summary>
         public static IndexedGeometry GetIndexedGeometry(
                 this PolyMesh mesh,
                 IEnumerable<int> faceIndices,
@@ -108,14 +115,14 @@ namespace Aardvark.Geometry
             {
                 var fv = (options & PolyMesh.GetGeometryOptions.FloatVectors) != 0;
                 var bc = (options & PolyMesh.GetGeometryOptions.ByteColors) != 0;
-                foreach (var a in faceAttributes)
-                {
-                    var array = a.BackMappedConvertedCopy(vfBackMap, vc, fv, bc);
-                    if (array != null) indexedAttributes[a.Name] = array;
-                }
                 foreach (var a in vertexAttributes)
                 {
                     var array = a.BackMappedConvertedCopy(vBackMap, vc, fv, bc);
+                    if (array != null) indexedAttributes[a.Name] = array;
+                }
+                foreach (var a in faceAttributes)
+                {
+                    var array = a.BackMappedConvertedCopy(vfBackMap, vc, fv, bc);
                     if (array != null) indexedAttributes[a.Name] = array;
                 }
                 foreach (var a in faceVertexAttributes)

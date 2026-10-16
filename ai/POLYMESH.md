@@ -54,7 +54,7 @@ Without a negative-key entry, the positive-key array holds direct values instead
 | `WithoutDegeneratedEdges()` | Removes consecutive duplicate vertex indices; may leave degenerate faces |
 | `WithoutDegeneratedFaces()` | Filters degenerate faces; options control position and normal checks |
 | `FaceReversedCopy()` | Reverses face winding; topology must be rebuilt for the result |
-| `GetIndexedGeometry()` | Converts to rendering geometry; see [conversion overloads](../src/Aardvark.Geometry.PolyMesh/PolyMeshIndexedGeometry.cs) for attribute selection |
+| `GetIndexedGeometry()` | Converts to rendering geometry; shared names use corner-over-face-over-vertex precedence for every option combination, including converted colors/vectors and either index format. See [conversion overloads](../src/Aardvark.Geometry.PolyMesh/PolyMeshIndexedGeometry.cs) for attribute selection |
 
 `new PolyMesh(other)` shares arrays. Do not treat it as a deep copy before mutation.
 
