@@ -200,12 +200,20 @@ namespace Aardvark.Data.Points
         public Durable.Def? ColorsDef { get; }
         public bool HasColors => ColorsDef != null;
         public object? Colors => ColorsDef != null ? Data[ColorsDef] : null;
+        /// <summary>
+        /// Colors as RGBA bytes, or null when absent. Float RGB/RGBA arrays use the
+        /// C4b constructors' normalized-channel mapping and clamping; RGB gets alpha 255,
+        /// while RGBA alpha is converted like the other channels. C4b arrays retain identity;
+        /// other supported representations are converted in order without changing the source.
+        /// </summary>
         public C4b[]? ColorsAsC4b => Colors switch
         {
             null => null,
             
             C3b[] xs => xs.Map(x => new C4b(x.R, x.G, x.B)),
+            C3f[] xs => xs.Map(x => new C4b(x)),
             C4b[] xs => xs,
+            C4f[] xs => xs.Map(x => new C4b(x)),
 
             IReadOnlyList<C3b> xs => xs.MapToArray(x => new C4b(x.R, x.G, x.B)),
             IReadOnlyList<C4b> xs => [.. xs],
