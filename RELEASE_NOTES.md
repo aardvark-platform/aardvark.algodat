@@ -1,3 +1,5 @@
+- [PointSet] GenericChunk.ColorsAsC4b now converts float RGB/RGBA colors using normalized, clamped byte conversion, including colors supplied through WithColors.
+
 ### 5.6.4
 - stable release
 

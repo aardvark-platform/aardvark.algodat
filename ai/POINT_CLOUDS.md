@@ -42,6 +42,8 @@ Optional per-point lists must align with `Positions`. Check null or the correspo
 
 `ImmutableFilterByBox3d`, `ImmutableMapPositions`, `Chunk.ImmutableMerge`, and `Split(chunksize)` return new chunks. [GenericChunk](../src/Aardvark.Data.Points.Base/GenericChunk.cs) uses a `Durable.Def`-keyed dictionary for additional attributes; `chunk.ToGenericChunk()` converts the standard representation.
 
+`GenericChunk.ColorsAsC4b` accepts its supported byte colors and `C3f[]`/`C4f[]`. Float channels use the `C4b` constructors' normalized mapping and clamping (for example, `(0, 0.5, 1)` becomes `(0, 127, 255, 255)`). RGB gets opaque alpha; RGBA alpha is converted like RGB. Missing colors return null, `C4b[]` retains identity, and other conversions preserve order without modifying the source. Constructor attributes still require aligned arrays; `WithColors` also accepts lists and iterators, which it materializes before conversion.
+
 ## Spatial Queries
 
 Continuing the example above:
