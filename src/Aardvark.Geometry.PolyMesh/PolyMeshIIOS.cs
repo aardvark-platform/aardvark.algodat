@@ -75,6 +75,11 @@ namespace Aardvark.Geometry
             return result;
         }
 
+        /// <summary>
+        /// Returns face points in stored order and directed perimeter edges:
+        /// Edges[i] = Points[(i + 1) % count] - Points[i], including the closing edge.
+        /// Supplied face normals take precedence; fallback normals retain the first-corner fan calculation.
+        /// </summary>
         public void ObjectHitInfo(ObjectRayHit hit, ref ObjectHitInfo hitInfo)
         {
             int oi = hit.SetObject.Index;
@@ -88,7 +93,7 @@ namespace Aardvark.Geometry
             {
                 var p1 = pa[via[fvi++]];
                 va[fs] = p1; ea[fs - 1] = p1 - p0;
-                //p1 = p0;
+                p0 = p1;
             }
             ea[fvc - 1] = p - p0;
             hitInfo.Points = va;
@@ -97,7 +102,7 @@ namespace Aardvark.Geometry
             if (faceNormals != null)
                 hitInfo.Normal = faceNormals[oi];
             else if (fvc > 2)
-                hitInfo.Normal = ea[0].Cross(ea[1]).Normalized;                
+                hitInfo.Normal = (va[1] - p).Cross(va[2] - p).Normalized;
         }
 
         public bool ClosestPoint(

@@ -76,6 +76,8 @@ foreach (var edge in mesh.GetFace(0).Edges)
 
 `Vertices`, `Faces`, and `Edges` are enumerables; use `GetVertex(index)` and `GetFace(index)` for indexed access. Edge facades are structs: `Opposite` is not a nullable boundary marker. Use `OppositeIsBorder` or check `OppositeFace.IsValid` before crossing a boundary.
 
+For a `PolyMesh` ray hit, `GetIntersectionRayHitInfo()` returns the hit face's points in stored order. `Edges[i]` is the directed vector from `Points[i]` to `Points[(i + 1) % count]`, including the last-to-first closing edge; these are perimeter edges, not fan diagonals. Supplied face normals are retained unchanged. Without them, the existing normal calculation still uses the first two vectors from the first corner, not the corrected perimeter-edge array.
+
 ## Related
 
 - [Geometry](GEOMETRY.md): clustering and intersection queries
