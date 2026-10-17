@@ -1,3 +1,5 @@
+- [PolyMesh] WithoutAttribute now returns the original mesh when nothing is removed, preserving fluent chains and repeated removals instead of returning null.
+
 ### 5.6.4
 - stable release
 

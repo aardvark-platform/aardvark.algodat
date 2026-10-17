@@ -4523,7 +4523,7 @@ namespace Aardvark.Geometry
                 copy.FaceVertexAttributes.Remove(-attributeName);
             }
 
-            return copy;
+            return copy ?? mesh;
         }
 
         /// <summary>
