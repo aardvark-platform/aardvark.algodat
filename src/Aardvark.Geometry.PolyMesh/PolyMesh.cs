@@ -1030,15 +1030,19 @@ namespace Aardvark.Geometry
         public PolyMesh Copy(SymbolDict<object> overrides) => new PolyMesh(this, overrides);
 
         /// <summary>
-        /// Returns a shallow copy of the mesh, with the vertex positions
-        /// modified according to the supplied parameter array. The vertex
-        /// positions are computed using the <see cref="PositionFunArray"/>.
+        /// Returns a copy with new positions and a copied vertex-attribute dictionary.
+        /// Evaluates <see cref="PositionFunArray"/> once per active vertex in ascending
+        /// order, passing the supplied parameter array unchanged. Connectivity, topology,
+        /// functions and unrelated attribute arrays remain shared; derived attributes
+        /// are not recomputed.
         /// </summary>
         public PolyMesh ParametrizedCopy(double[] parameters)
         {
             var vfa = PositionFunArray;
             var pa = new V3d[m_vertexCount].SetByIndex(i => vfa[i](parameters));
-            return Copy(new SymbolDict<object> { { Property.Positions, pa } });
+            var va = VertexAttributes.Copy();
+            va[Property.Positions] = pa;
+            return Copy(new SymbolDict<object> { { Property.VertexAttributes, va } });
         }
 
         /// <summary>
