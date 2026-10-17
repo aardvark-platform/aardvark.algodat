@@ -1,3 +1,5 @@
+- [PolyMesh] ParametrizedCopy now uses the generated vertex positions for geometry, bounds and intersections without changing source or earlier-result coordinates.
+
 ### 5.6.4
 - stable release
 
