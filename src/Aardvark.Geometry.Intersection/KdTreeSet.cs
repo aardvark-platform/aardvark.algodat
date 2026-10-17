@@ -131,6 +131,13 @@ namespace Aardvark.Geometry
             hit.SetObject.Set.ObjectHitInfo(hit, ref hitInfo);
         }
 
+        /// <summary>
+        /// Finds a strictly closer point among the requested child-tree indices.
+        /// A null object filter accepts all children; otherwise true includes this set's
+        /// original child index, tested before accessing the child. Both predicates are
+        /// forwarded through child trees; point-result filtering depends on the leaf implementation.
+        /// Existing transforms, distance handling and hierarchy-stack updates are retained.
+        /// </summary>
         public bool ClosestPoint(
                 int[] objectIndexArray, int firstIndex, int indexCount,
                 V3d query,
@@ -142,10 +149,12 @@ namespace Aardvark.Geometry
             for (int i = firstIndex, e = firstIndex + indexCount; i < e; i++)
             {
                 int index = objectIndexArray[i];
+                if (ios_index_objectFilter != null && !ios_index_objectFilter(this, index)) continue;
                 var x = ConcreteKdTreeList[index];
                 var trafo = x.Trafo;
 
-                if (x.KdIntersectionTree.ClosestPoint(trafo.Backward.TransformPos(query), ref closest))
+                if (x.KdIntersectionTree.ClosestPoint(trafo.Backward.TransformPos(query),
+                        ios_index_objectFilter, ios_index_part_ocp_pointFilter, ref closest))
                 {
                     kdTreeIndex = index;
                     closest.Point = trafo.Forward.TransformPos(closest.Point);
