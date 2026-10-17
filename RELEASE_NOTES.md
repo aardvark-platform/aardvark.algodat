@@ -1,3 +1,5 @@
+- [Geometry] KdTreeSet closest-point queries now exclude rejected child objects at every hierarchy level and forward both predicates to leaf implementations; leaf filter support is unchanged.
+
 ### 5.6.4
 - stable release
 
