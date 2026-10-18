@@ -377,10 +377,7 @@ public static class PlyParser
                 var l = f.ReadLine();
                 if (l == string.Empty) { i--; continue; }
                 if (l == null)
-                {
-                    log?.Invoke($"[PlyParser] Failed to read next line. Premature end of element {element} after {i}/{element.Count} lines.");
-                    break;
-                }
+                    throw new EndOfStreamException($"Premature end of ASCII element '{element.Name}': read {i} of {element.Count} rows.");
 
                 var line = new Row(l);
                 for (var j = 0; j < element.Properties.Count; j++) parse[j](i, line);
