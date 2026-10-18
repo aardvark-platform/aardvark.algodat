@@ -1,3 +1,5 @@
+- [Geometry] LineSet cylinder side-hit normals now point radially away from the axis, rather than tilting along it for hits away from the cylinder midpoint.
+
 ### 5.6.4
 - stable release
 
