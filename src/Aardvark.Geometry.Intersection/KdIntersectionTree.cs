@@ -1616,7 +1616,7 @@ namespace Aardvark.Geometry
             if (axis > 0)
             {
                 var newIndex = counts.ObjectCount;
-                counts.ObjectCount = index + axis;
+                counts.ObjectCount = newIndex + axis;
                 m_indexArray.CopyTo(index, axis, flat.m_indexArray, newIndex);
                 return new AxisIndex(axis, newIndex);
             }
@@ -1639,9 +1639,9 @@ namespace Aardvark.Geometry
                                           : AxisIndex.Null;
 
                 flat.m_splitArray[newIndex] = value;
-                m_nodeArray[newIndex3] = Axes(leftAxisIndex.Axis, rightAxisIndex.Axis);
-                m_nodeArray[newIndex3 + 1] = leftAxisIndex.Index;
-                m_nodeArray[newIndex3 + 2] = rightAxisIndex.Index;
+                flat.m_nodeArray[newIndex3] = Axes(leftAxisIndex.Axis, rightAxisIndex.Axis);
+                flat.m_nodeArray[newIndex3 + 1] = leftAxisIndex.Index;
+                flat.m_nodeArray[newIndex3 + 2] = rightAxisIndex.Index;
                 return new AxisIndex(axis, newIndex);
             }
         }
@@ -3090,6 +3090,11 @@ namespace Aardvark.Geometry
 
     public static class KdNodeExtensions
     {
+        /// <summary>
+        /// Returns a flattened representation without modifying source nodes or arrays.
+        /// Preserves candidate order and leaf slices when copying already-flat or shared
+        /// subtrees. If a leaf is too large to encode, returns the original node.
+        /// </summary>
         public static KdNode Flatten(this KdNode node)
         {
             var counts = new Counts();
