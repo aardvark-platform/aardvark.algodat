@@ -1,3 +1,5 @@
+- [Geometry] Empty PolyLine instances now report zero segments and visible vertices, allowing kd-tree construction without an overflow; HideLastVertex remains display-only.
+
 ### 5.6.4
 - stable release
 
