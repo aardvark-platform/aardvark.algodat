@@ -19,6 +19,8 @@ var mesh = new PolyMesh
 
 `FirstIndexArray` has `FaceCount + 1` entries. Each adjacent pair bounds a face's slice of `VertexIndexArray`; the final entry is the total face-vertex count. Incremental construction is also available through `AddVertex` and `AddFace`.
 
+`AddVertex(V3d)` also supports initialized empty position arrays, including `VertexCount = 0`, attribute-dictionary construction and empty mesh copies. Zero-capacity storage grows through the existing vertex-capacity path: positive-key vertex arrays grow together, while negative-key value pools retain their identity. Appending positions alone does not populate other attribute values. Null-buffer initialization and positive-capacity doubling are unchanged; this does not make shallow copies independent.
+
 Primitives live in [PolyMeshPrimitives](../src/Aardvark.Geometry.PolyMesh/PolyMeshPrimitives.cs), for example `PolyMeshPrimitives.Box(Box3d.Unit, C4b.White)`. For epsilon-based vertex deduplication, see [Clustering](GEOMETRY.md#clustering).
 
 ## Attributes

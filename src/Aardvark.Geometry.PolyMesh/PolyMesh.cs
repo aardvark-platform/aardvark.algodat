@@ -649,7 +649,8 @@ namespace Aardvark.Geometry
         #region Building Meshes
 
         /// <summary>
-        /// Adds a vertex and returns its index.
+        /// Adds a vertex and returns its index. Existing empty position storage
+        /// is grown through the vertex-attribute capacity path before writing.
         /// </summary>
         public int AddVertex(V3d position)
         {
@@ -659,7 +660,7 @@ namespace Aardvark.Geometry
                 VertexAttributes[Property.Positions] = m_positionArray;
             }
             else if (m_vertexCount + 1 > VertexCapacity)
-                VertexCapacity *= 2;
+                VertexCapacity = VertexCapacity > 0 ? VertexCapacity * 2 : 16;
             m_positionArray[m_vertexCount] = position;
             this[Property.VertexCount] = ++m_vertexCount;
             return m_vertexCount - 1;

@@ -1,3 +1,5 @@
+- [PolyMesh] AddVertex(V3d) now appends to initialized empty position buffers, resizing aligned vertex attributes while preserving indexed value pools instead of throwing IndexOutOfRangeException.
+
 ### 5.6.4
 - stable release
 
