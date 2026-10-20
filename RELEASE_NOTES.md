@@ -1,3 +1,5 @@
+- [Intersection] Empty flattened kd-trees now return no query results instead of throwing; empty index enumeration, box pruning and flat-node copies also preserve emptiness.
+
 ### 5.6.4
 - stable release
 
