@@ -56,6 +56,8 @@ Without a negative-key entry, the positive-key array holds direct values instead
 | `FaceReversedCopy()` | Reverses face winding; topology must be rebuilt for the result |
 | `GetIndexedGeometry()` | Converts to rendering geometry; see [conversion overloads](../src/Aardvark.Geometry.PolyMesh/PolyMeshIndexedGeometry.cs) for attribute selection |
 
+`BoundingBoxOfFace`, `ObjectBoundingBox(faceIndex)` and the face/polygon bounds facades return `Box3d.Invalid` for an empty face interval; one- and two-corner bounds still describe their stored points. The `IIntersectableObjectSet` surface queries (`ObjectsIntersectRay`, `ClosestPoint`, `ObjectIntersectsBox`) ignore faces with fewer than three corners without reading their vertices. Object inclusion predicates still run before short faces are skipped, and misses preserve the supplied results. This does not change cleanup, topology, `ObjectIsInsideBox`, hit-info generation or other polygon operations.
+
 `new PolyMesh(other)` shares arrays. Do not treat it as a deep copy before mutation.
 
 For grouping, use the `meshes.Group()` extension, which returns `PolyMesh.Grouping`, not a mesh. Inspect its matching-attribute information before extracting `Mesh`; see [PolyMeshGrouping](../src/Aardvark.Geometry.PolyMesh/PolyMeshGrouping.cs).

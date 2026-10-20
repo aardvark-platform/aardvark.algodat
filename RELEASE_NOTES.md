@@ -1,3 +1,5 @@
+- [PolyMesh] Empty faces now have invalid bounds, and ray, closest-point and box-surface queries skip faces with fewer than three corners instead of reading outside their intervals.
+
 ### 5.6.4
 - stable release
 
