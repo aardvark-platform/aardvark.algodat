@@ -6,7 +6,7 @@ Before adding, try removing or simplifying. You are done when nothing more can b
 
 ## Build and Test
 
-Run commands from the repository root. The SDK is pinned in [global.json](global.json) to .NET **8.0.100**, with `rollForward: latestFeature` and prereleases disabled. Libraries target `netstandard2.0`; applications and tests target `net8.0`. Check the relevant project file before changing framework-dependent code.
+Run commands from the repository root. The SDK is pinned in [global.json](global.json) to .NET **10.0.100**, with `rollForward: latestFeature` and prereleases disabled. Libraries target `netstandard2.0`; applications and tests target `net10.0`. Check the relevant project file before changing framework-dependent code.
 
 | Task | Command |
 |------|---------|
@@ -26,7 +26,7 @@ Use Paket, not `dotnet add package` or hand-edited project package references.
 - Add a dependency with `dotnet paket add <package> --project <project>`.
 - Change constraints in `paket.dependencies`, then resolve with `dotnet paket install`; `restore` retrieves the existing lock, it does not re-resolve constraints.
 - Never edit `paket.lock` manually.
-- Test dependencies belong in `group Test` (`net8.0`).
+- Test dependencies belong in `group Test` (`net10.0`).
 
 ## Scope and Verification
 

@@ -445,7 +445,6 @@ module Rendering =
     
     let show (args : Args) (pcs : list<LodTreeInstance>) =
         Aardvark.Init()
-        Aardvark.Data.PixImageSharp.Init()
 
         let pcs = cset pcs
 

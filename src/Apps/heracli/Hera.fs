@@ -437,7 +437,7 @@ module Hera =
         use stream = new MemoryStream(buffer)
         importHeraDataFromStream stream
 
-    let writeBufferToFile path buffer = File.WriteAllBytes(path, buffer)
+    let writeBufferToFile path (buffer : byte[]) = File.WriteAllBytes(path, buffer)
 
     let convertFile inputfile outputfile =
         inputfile 
