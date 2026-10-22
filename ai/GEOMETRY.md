@@ -68,6 +68,8 @@ if (tree.ClosestPoint(queryPoint, ref closest))
 
 The [triangle-set implementation](../src/Aardvark.Geometry.Intersection/IntersectableTriangleSet.cs) accepts a null object filter for all triangles, or a predicate to select candidates. Its separate point-result filter is ignored. Filter support for other object sets depends on their implementation.
 
+For [LineSet](../src/Aardvark.Geometry.Intersection/LineSet.cs) closest-point queries, the object predicate receives the current set and the original cylinder index: `true` includes, `false` skips before accessing cylinder geometry, and `null` accepts all. Direct and `KdIntersectionTree` queries use these inclusion semantics. The supplied index slice, strict distance cutoff, incremental nearest updates, and caller `Coord`/`ObjectStack` are preserved. The separate point-result predicate remains unused; cylinder geometry, ray queries and bounds are unchanged. In particular, this does not correct the existing global per-object bounds or improve tree subdivision.
+
 ## Normal Estimation
 
 For a nonempty `V3f[]` or `V3d[] points`:

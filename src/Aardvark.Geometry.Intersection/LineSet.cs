@@ -98,6 +98,13 @@ namespace Aardvark.Geometry
             info.Normal = (hit.RayHit.Point - Lines[hit.SetObject.Index].Center).Normalized;
         }
 
+        /// <summary>
+        /// Finds a strictly closer cylinder point within the supplied index slice.
+        /// The object filter receives this set and the original cylinder index;
+        /// true includes the cylinder, false skips it before geometry access, and null includes all.
+        /// Accepted candidates update the nearest result incrementally, preserving Coord and ObjectStack.
+        /// </summary>
+        /// <remarks>The separate point-result filter is not used.</remarks>
         public bool ClosestPoint(
                 int[] objectIndexArray, int firstIndex, int indexCount,
                 V3d query,
@@ -109,6 +116,7 @@ namespace Aardvark.Geometry
             for (int i = firstIndex, e = firstIndex + indexCount; i < e; i++)
             {
                 int index = objectIndexArray[i];
+                if (ios_index_objectFilter != null && !ios_index_objectFilter(this, index)) continue;
                 V3d p = query.GetClosestPointOn(Lines[index]);
                 double d2 = Vec.DistanceSquared(query, p);
                 if (d2 < closest.DistanceSquared)
