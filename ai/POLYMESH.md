@@ -55,6 +55,9 @@ Without a negative-key entry, the positive-key array holds direct values instead
 | `WithoutDegeneratedFaces()` | Filters degenerate faces; options control position and normal checks |
 | `FaceReversedCopy()` | Reverses face winding; topology must be rebuilt for the result |
 | `GetIndexedGeometry()` | Converts to rendering geometry; see [conversion overloads](../src/Aardvark.Geometry.PolyMesh/PolyMeshIndexedGeometry.cs) for attribute selection |
+| `NormalizeUVs(property)` | Bounds direct `V2d[]` vertex coordinates using only `VertexIndexArray[0..VertexIndexCount)`, then remaps the full coordinate array in place |
+
+`NormalizeUVs()` defaults to `Property.DiffuseColorCoordinates`; a custom property selects another direct `V2d[]` vertex attribute. Unused index capacity does not affect the bounds, even if its entries are invalid indices. Repeated active references are allowed; invalid active indices still fail. Unreferenced coordinates are also remapped and may end up outside [0,1]. Array identity and mesh connectivity are retained. Float and indexed attributes are not supported by this method; empty bounds and zero extents retain the existing arithmetic rather than receiving special handling.
 
 `new PolyMesh(other)` shares arrays. Do not treat it as a deep copy before mutation.
 

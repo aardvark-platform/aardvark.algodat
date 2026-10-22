@@ -4447,6 +4447,14 @@ namespace Aardvark.Geometry
 
         #region Coordinates
 
+        /// <summary>
+        /// Normalizes direct V2d vertex coordinates in place using bounds from the active
+        /// VertexIndexArray prefix [0, VertexIndexCount), ignoring unused index capacity.
+        /// Remaps the entire coordinate array, including unreferenced coordinates.
+        /// </summary>
+        /// <remarks>Empty bounds and zero extents retain their existing arithmetic behavior.</remarks>
+        /// <param name="m">The mesh to update.</param>
+        /// <param name="property">The coordinate property; defaults to DiffuseColorCoordinates.</param>
         public static void NormalizeUVs(
                 this PolyMesh m, Symbol property = default
             )
@@ -4454,7 +4462,11 @@ namespace Aardvark.Geometry
             if (property == default)
                 property = PolyMesh.Property.DiffuseColorCoordinates;
             var coords = m.VertexAttributeArray<V2d>(property);
-            var box = new Box2d(m.VertexIndexArray.Select(vi => coords[vi]));
+            // Preserve the former enumerable's null-source failure.
+            var indices = m.VertexIndexArray ?? throw new ArgumentNullException("source");
+            var box = Box2d.Invalid;
+            for (int i = 0, count = m.VertexIndexCount; i < count; i++)
+                box.ExtendBy(coords[indices[i]]);
             var scale = 1.0 / (box.Max - box.Min);
             for (int i = 0; i < coords.Length; i++)
                 coords[i] = (coords[i] - box.Min) * scale;
