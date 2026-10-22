@@ -1,3 +1,5 @@
+- [Geometry] LineSet closest-point queries now honor cylinder inclusion filters, including through kd-trees, instead of returning excluded cylinders. The separate point-result filter remains unused.
+
 ### 5.6.4
 - stable release
 
