@@ -1,3 +1,5 @@
+- [Sky] Angular `GetColor(phi, theta)` now returns the same display color as the vector overload, rather than radiance. Use `GetRadiance` when radiance is required.
+
 ### 5.6.4
 - stable release
 
