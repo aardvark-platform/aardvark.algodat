@@ -1,3 +1,5 @@
+- [PLY] ASCII files ending before an element's declared row count now throw EndOfStreamException instead of returning fabricated default points or attributes, including when importing point chunks.
+
 ### 5.6.4
 - stable release
 

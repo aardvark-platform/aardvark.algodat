@@ -87,7 +87,9 @@ The token enum also provides normals, float colors, intensity, custom scalar fie
 
 ### PLY
 
-The parser supports ASCII and both binary byte orders. The point importer reads vertex properties, not polygon faces:
+The parser supports ASCII and both binary byte orders. ASCII files ending before an element's declared row count now throw `EndOfStreamException`, identifying the element and completed/declared counts, rather than returning default-filled rows. This applies to `PlyParser.Parse` and stream-based `Ply.Chunks`, including truncation in later non-vertex elements. Complete files, zero-count elements, empty lists, skipped empty lines and final rows without a newline remain supported. Binary parsing and other malformed-token handling are unchanged.
+
+The point importer reads vertex properties, not polygon faces:
 
 - Position channels: `x`, `y`, `z`; normal channels: `nx`, `ny`, `nz`.
 - Colors: `red`, `green`, `blue`, `alpha`; float colors are scaled from [0,1], and missing alpha defaults to 255 when colors exist.
