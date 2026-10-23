@@ -42,6 +42,8 @@ Optional per-point lists must align with `Positions`. Check null or the correspo
 
 `ImmutableFilterByBox3d`, `ImmutableMapPositions`, `Chunk.ImmutableMerge`, and `Split(chunksize)` return new chunks. [GenericChunk](../src/Aardvark.Data.Points.Base/GenericChunk.cs) uses a `Durable.Def`-keyed dictionary for additional attributes; `chunk.ToGenericChunk()` converts the standard representation.
 
+`GenericChunk.WithColors`, `WithNormals`, `WithIntensities` and `WithClassifications` reuse the existing `BoundingBox`, including explicitly supplied bounds, instead of rescanning shared positions. Array inputs remain shared; enumerable inputs are still materialized and validated. These attribute-only methods do not refresh bounds after external position-array mutation. `WithPositions` and `ImmutableMapPositions` still recompute bounds when coordinates change.
+
 ## Spatial Queries
 
 Continuing the example above:

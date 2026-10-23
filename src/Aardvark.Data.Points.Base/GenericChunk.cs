@@ -387,7 +387,7 @@ namespace Aardvark.Data.Points
         private ImmutableDictionary<Durable.Def, object> DataWithoutPositions => Data.Remove(PositionsDef);
 
         /// <summary>
-        /// Immutable update of colors.
+        /// Immutable update of colors, reusing the existing position bounds.
         /// </summary>
         public GenericChunk WithColors(object newColors) => new(newColors switch
         {
@@ -400,22 +400,22 @@ namespace Aardvark.Data.Points
             C4f[] xs => DataWithoutColors.Add(Defs.Colors4f, xs),
             IEnumerable<C4f> xs => DataWithoutColors.Add(Defs.Colors4f, xs.ToArray()),
             _ => throw new ArgumentException($"Incompatible colors type {newColors.GetType()}.", nameof(newColors))
-        });
+        }, BoundingBox);
         private ImmutableDictionary<Durable.Def, object> DataWithoutColors => ColorsDef != null ? Data.Remove(ColorsDef) : Data;
 
         /// <summary>
-        /// Immutable update of normals.
+        /// Immutable update of normals, reusing the existing position bounds.
         /// </summary>
         public GenericChunk WithNormals(object newNormals) => new(newNormals switch
         {
             V3f[] xs => DataWithoutNormals.Add(Defs.Normals3f, xs),
             IEnumerable<V3f> xs => DataWithoutNormals.Add(Defs.Normals3f, xs.ToArray()),
             _ => throw new ArgumentException($"Incompatible normals type {newNormals.GetType()}.", nameof(newNormals))
-        });
+        }, BoundingBox);
         private ImmutableDictionary<Durable.Def, object> DataWithoutNormals => NormalsDef != null ? Data.Remove(NormalsDef) : Data;
 
         /// <summary>
-        /// Immutable update of intensities.
+        /// Immutable update of intensities, reusing the existing position bounds.
         /// </summary>
         public GenericChunk WithIntensities(object newIntensities) => new(newIntensities switch
         {
@@ -434,11 +434,11 @@ namespace Aardvark.Data.Points
             double[] xs => DataWithoutIntensities.Add(Defs.Intensities1d, xs),
             IEnumerable<double> xs => DataWithoutIntensities.Add(Defs.Intensities1d, xs.ToArray()),
             _ => throw new ArgumentException($"Incompatible intensities type {newIntensities.GetType()}.", nameof(newIntensities))
-        });
+        }, BoundingBox);
         private ImmutableDictionary<Durable.Def, object> DataWithoutIntensities => IntensitiesDef != null ? Data.Remove(IntensitiesDef) : Data;
 
         /// <summary>
-        /// Immutable update of classifications.
+        /// Immutable update of classifications, reusing the existing position bounds.
         /// </summary>
         public GenericChunk WithClassifications(object newClassifications) => new(newClassifications switch
         {
@@ -455,7 +455,7 @@ namespace Aardvark.Data.Points
             string[] xs => DataWithoutClassifications.Add(Defs.ClassificationsString, xs),
             IEnumerable<string> xs => DataWithoutClassifications.Add(Defs.ClassificationsString, xs.ToArray()),
             _ => throw new ArgumentException($"Incompatible classifications type {newClassifications.GetType()}.", nameof(newClassifications))
-        });
+        }, BoundingBox);
         private ImmutableDictionary<Durable.Def, object> DataWithoutClassifications => ClassificationsDef != null ? Data.Remove(ClassificationsDef) : Data;
 
         #endregion

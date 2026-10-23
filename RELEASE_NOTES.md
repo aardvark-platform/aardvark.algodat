@@ -1,3 +1,5 @@
+- [Points] GenericChunk attribute-only updates now preserve the existing bounding box, including supplied bounds, and avoid rescanning unchanged positions. Position-changing updates still recompute bounds.
+
 ### 5.6.4
 - stable release
 
