@@ -204,8 +204,7 @@ public static class PlyParser
     {
         #region check for magic bytes
 
-        var magic = new byte[3];
-        if (f.Read(magic, 0, 3) != 3 || (char)magic[0] != 'p' || (char)magic[1] != 'l' || (char)magic[2] != 'y')
+        if (f.ReadByte() != 'p' || f.ReadByte() != 'l' || f.ReadByte() != 'y')
         {
             throw new Exception("Not a ply file.");
         }

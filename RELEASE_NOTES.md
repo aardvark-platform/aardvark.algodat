@@ -1,3 +1,5 @@
+- [PLY] Valid seekable streams are no longer rejected when the initial magic-byte read is short. Header parsing still validates the full first line; payload decoding and stream ownership are unchanged.
+
 ### 5.6.4
 - stable release
 
