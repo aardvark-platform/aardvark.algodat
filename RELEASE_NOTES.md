@@ -1,3 +1,5 @@
+- [PolyMesh] Ray-hit information now reports consecutive directed face-boundary edges, including the closing edge, while preserving point order and normal behavior.
+
 ### 5.6.4
 - stable release
 
