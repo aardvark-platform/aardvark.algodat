@@ -1,3 +1,5 @@
+- [PolyMesh] UV normalization now ignores unused index capacity, preventing distorted texture ranges or failures caused by inactive indices. The full coordinate array is still updated in place.
+
 ### 5.6.4
 - stable release
 
