@@ -55,6 +55,9 @@ Without a negative-key entry, the positive-key array holds direct values instead
 | `WithoutDegeneratedFaces()` | Filters degenerate faces; options control position and normal checks |
 | `FaceReversedCopy()` | Reverses face winding; topology must be rebuilt for the result |
 | `GetIndexedGeometry()` | Converts to rendering geometry; see [conversion overloads](../src/Aardvark.Geometry.PolyMesh/PolyMeshIndexedGeometry.cs) for attribute selection |
+| `WithPerVertexIndexedNormals(creaseAngle, maxNeighbourFaceCount)` | Generates crease-angle normals without replacing source normal attributes or those of earlier results |
+
+`WithPerVertexIndexedNormals` detaches the result's face-vertex attribute dictionary before writing indexed normals. It also detaches the face attribute dictionary when missing face normals must be added; an existing face-normal entry is retained. Normal arithmetic, crease-angle and neighbor-limit behavior are unchanged. Unrelated attribute arrays, geometry and pre-existing topology still share storage; this is not a deep copy. Topology is built on the result when needed. The mutating helper and general copy semantics are unchanged.
 
 `new PolyMesh(other)` shares arrays. Do not treat it as a deep copy before mutation.
 
