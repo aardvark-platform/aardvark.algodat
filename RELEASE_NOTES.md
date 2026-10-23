@@ -1,3 +1,5 @@
+- [Geometry] Flattening kd-trees containing already-flat or shared subtrees now preserves candidates and query results without corrupting source arrays or throwing from incorrect destination offsets.
+
 ### 5.6.4
 - stable release
 
