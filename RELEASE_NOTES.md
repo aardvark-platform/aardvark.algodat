@@ -1,3 +1,5 @@
+- [PolyMesh] GetIndexedGeometry consistently selects face attributes over same-named vertex attributes regardless of conversion or index-format options; corner attributes still take precedence.
+
 ### 5.6.4
 - stable release
 
