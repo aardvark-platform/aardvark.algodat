@@ -87,12 +87,14 @@ The token enum also provides normals, float colors, intensity, custom scalar fie
 
 ### PLY
 
-The parser supports ASCII and both binary byte orders. The point importer reads vertex properties, not polygon faces:
+The header parser recognizes ASCII and both binary byte-order declarations; binary payload decoding retains its native-byte-order restrictions. The point importer reads vertex properties, not polygon faces:
 
 - Position channels: `x`, `y`, `z`; normal channels: `nx`, `ny`, `nz`.
 - Colors: `red`, `green`, `blue`, `alpha`; float colors are scaled from [0,1], and missing alpha defaults to 255 when colors exist.
 - Intensity: `scalar_intensity` or `intensity`; classification: `scalar_classification` or `classification`.
 - Intensity conversion depends on source type. Up to signed 32-bit integer values are retained; unsigned 32-bit, 64-bit, and floating-point values use per-batch rescaling to [0,255] when outside that range. This may lose precision and comparability between batches. Use `PlyParser.Parse` directly when raw values matter.
+
+The magic-byte check accepts seekable streams even when their initial bulk read would return only one or two bytes. It still rewinds to position zero and validates the complete first line; callers retain stream ownership, and seeking is still required. Header framing and payload decoding are unchanged: this does not fix binary payload short reads or the unconsumed LF after a CRLF `end_header` line.
 
 ## Related
 
