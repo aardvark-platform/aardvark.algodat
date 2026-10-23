@@ -1392,6 +1392,9 @@ namespace Aardvark.Geometry
         public PolyMesh WithCompactedVertices => SubSetOfFaces(FaceCount.Range());
 
         /// <summary>
+        /// Returns the selected faces. Without vertex compaction, the source
+        /// active vertex count is retained and vertex arrays (including unused
+        /// capacity) remain shared. Face and corner attributes are projected.
         /// NOTE: compactVertices does not "compact" indexed attribute arrays
         /// </summary>
         public PolyMesh SubSetOfFaces(
@@ -1463,6 +1466,13 @@ namespace Aardvark.Geometry
                                
                 InstanceAttributes = InstanceAttributes.Copy(),
             };
+            // Attribute assignment derives a count from capacity; avoid setters
+            // that can replace null/empty storage when restoring the active count.
+            if (!compactVertices && m.m_vertexCount != ovc)
+            {
+                m.m_vertexCount = ovc;
+                m[Property.VertexCount] = ovc;
+            }
             return m;
         }
 

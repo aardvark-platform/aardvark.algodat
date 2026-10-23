@@ -1,3 +1,5 @@
+- [PolyMesh] Noncompacting face subsets now preserve the source active vertex count instead of activating unused buffer capacity, keeping vertex enumeration and subsequent append indices correct.
+
 ### 5.6.4
 - stable release
 

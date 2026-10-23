@@ -49,7 +49,7 @@ Without a negative-key entry, the positive-key array holds direct values instead
 | Operation | Contract |
 |-----------|----------|
 | `TriangulatedCopy()` | Returns a triangulated mesh; `FaceVertexCountRange.Max > 3` identifies faces needing subdivision |
-| `SubSetOfFaces(indices, compactVertices)` | `true` removes unused vertices and reindexes them; `false` preserves vertex indices. Neither compacts indexed attribute value arrays |
+| `SubSetOfFaces(indices, compactVertices)` | `true` removes unused vertices and reindexes them; `false` preserves the source active `VertexCount` and vertex indices while sharing vertex buffers, including unused capacity. Face/corner attributes are projected; neither mode compacts indexed value pools |
 | `Transformed(trafo)` | Transforms positions and normals; do not assume custom or cached derived attributes are recomputed |
 | `WithoutDegeneratedEdges()` | Removes consecutive duplicate vertex indices; may leave degenerate faces |
 | `WithoutDegeneratedFaces()` | Filters degenerate faces; options control position and normal checks |
