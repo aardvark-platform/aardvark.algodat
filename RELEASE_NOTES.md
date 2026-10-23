@@ -1,3 +1,5 @@
+- [PolyMesh] Generating per-vertex indexed normals no longer changes source normal attributes or replaces normals in earlier returned meshes. Unrelated arrays and geometry remain shared.
+
 ### 5.6.4
 - stable release
 

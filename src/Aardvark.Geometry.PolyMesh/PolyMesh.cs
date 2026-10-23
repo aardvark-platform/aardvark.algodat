@@ -3897,6 +3897,10 @@ namespace Aardvark.Geometry
         /// where the normals of the adjacent faces deviate by less than the
         /// supplied crease angle. Only interpolate for the supplied count
         /// of faces in both directions around a vertex.
+        /// The result owns its face-vertex attribute dictionary and, when face normals
+        /// must be added, its face attribute dictionary. Generating normals does not
+        /// replace source normal attributes or normals in previously returned meshes.
+        /// Unrelated arrays, geometry and existing topology retain shallow sharing.
         /// </summary>
         /// <param name="creaseAngle">crease angle in radians</param>
         /// <param name="maxNeighbourFaceCount">maximum number of faces to interpolate</param>
@@ -3906,6 +3910,9 @@ namespace Aardvark.Geometry
                 int maxNeighbourFaceCount = Int32.MaxValue)
         {
             var m = Copy();
+            m.FaceVertexAttributes = m.FaceVertexAttributes.Copy();
+            if (!m.FaceAttributes.ContainsKey(Property.Normals))
+                m.FaceAttributes = m.FaceAttributes.Copy();
             m.AddPerVertexIndexedNormals(creaseAngle, maxNeighbourFaceCount);
             return m;
         }
