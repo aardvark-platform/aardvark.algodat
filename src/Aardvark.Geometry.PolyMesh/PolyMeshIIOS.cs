@@ -36,6 +36,7 @@ namespace Aardvark.Geometry
         /// intersection with the constituting triangles of the polygon. This
         /// only works for convex polygons, and the part number in the hit is
         /// used to store the number of the triangle within the polygon.
+        /// Faces with fewer than three corners are skipped after object filtering.
         /// </summary>
         public bool ObjectsIntersectRay(int[] objectIndexArray, int firstIndex, int indexCount,
                     FastRay3d fastRay,
@@ -52,6 +53,7 @@ namespace Aardvark.Geometry
                 if (ios_index_objectFilter != null
                     && !ios_index_objectFilter(this, oi)) continue;
                 int fvi = fia[oi], fve = fia[oi + 1];
+                if (fve - fvi < 3) continue;
                 V3d p0 = pa[via[fvi++]], e0 = pa[via[fvi++]] - p0;
                 int fvi0 = fvi;
                 while (fvi < fve)
@@ -100,6 +102,11 @@ namespace Aardvark.Geometry
                 hitInfo.Normal = ea[0].Cross(ea[1]).Normalized;                
         }
 
+        /// <summary>
+        /// Finds a strictly closer point on polygon triangle fans. Faces with
+        /// fewer than three corners are skipped after object filtering.
+        /// Misses leave the supplied result unchanged.
+        /// </summary>
         public bool ClosestPoint(
                 int[] objectIndexArray, int firstIndex, int indexCount,
                 V3d queryPoint,
@@ -116,6 +123,7 @@ namespace Aardvark.Geometry
                 if (ios_index_objectFilter != null
                     && !ios_index_objectFilter(this, oi)) continue;
                 int fvi = fia[oi], fve = fia[oi + 1];
+                if (fve - fvi < 3) continue;
                 V3d p0 = pa[via[fvi++]], p1 = pa[via[fvi++]];
                 while (fvi < fve)
                 {
@@ -130,10 +138,15 @@ namespace Aardvark.Geometry
             return result;
         }
 
+        /// <summary>
+        /// Tests the polygon surface against a box. Faces with fewer than three
+        /// corners return false without reading vertices.
+        /// </summary>
         public bool ObjectIntersectsBox(int objectIndex, Box3d box)
         {
             int[] fia = FirstIndexArray, via = VertexIndexArray;
             int fvi = fia[objectIndex], fve = fia[objectIndex + 1];
+            if (fve - fvi < 3) return false;
             var pa = PositionArray;
             V3d p0 = pa[via[fvi++]], p1 = pa[via[fvi++]];
             while (fvi < fve)

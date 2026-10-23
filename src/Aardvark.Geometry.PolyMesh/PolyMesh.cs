@@ -1215,10 +1215,15 @@ namespace Aardvark.Geometry
             }
         }
 
+        /// <summary>
+        /// Returns the bounds of the face's corners, or Box3d.Invalid for an
+        /// empty face interval without reading any corners.
+        /// </summary>
         public Box3d BoundingBoxOfFace(int faceIndex)
         {
             int[] fia = FirstIndexArray, via = VertexIndexArray;
             int fvi = fia[faceIndex], fve = fia[faceIndex + 1];
+            if (fvi == fve) return Box3d.Invalid;
             var pa = PositionArray;
             var box = new Box3d(pa[via[fvi++]]);
             while (fvi < fve) box.ExtendBy(pa[via[fvi++]]);
