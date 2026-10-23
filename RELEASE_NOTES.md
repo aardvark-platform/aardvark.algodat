@@ -1,3 +1,5 @@
+- [Points] Chunk construction now trims initially aligned part-index lists when another attribute shortens the chunk, preserving point-label alignment and preventing discarded suffix labels from leaking into later merges.
+
 ### 5.6.4
 - stable release
 

@@ -219,13 +219,16 @@ namespace Aardvark.Data.Points
             => ImmutableMerge([.. chunks]);
 
         /// <summary>
+        /// Creates a chunk, warning on differing per-point lengths and retaining
+        /// the common minimum-length prefix, including list-backed part indices.
+        /// Source collections are not modified; supplied bounds/ranges are retained.
         /// </summary>
-        /// <param name="positions">Optional.</param>
+        /// <param name="positions">Required.</param>
         /// <param name="colors">Optional. Either null or same number of elements as positions.</param>
         /// <param name="normals">Optional. Either null or same number of elements as positions.</param>
         /// <param name="intensities">Optional. Either null or same number of elements as positions.</param>
         /// <param name="classifications">Optional. Either null or same number of elements as positions.</param>
-        /// <param name="partIndices">Optional. Either (A) null, or (B) single uint value for all points in cell, or (3) array with same number of elements (byte|short|int) as positions.</param>
+        /// <param name="partIndices">Optional. Null, a scalar int/uint, or an IList of byte, short or int. Per-point indices are trimmed with the other fields.</param>
         /// <param name="partIndexRange">Optional. If null and partIndices not null, then it will be automatically computed from partIndices.</param>
         /// <param name="bbox">Optional. If null, then bbox will be constructed from positions.</param>
         public Chunk(
@@ -287,33 +290,30 @@ namespace Aardvark.Data.Points
                 case IList<int>  : break;
                 default: throw new Exception($"Unexpected part indices type {partIndices.GetType().FullName}. Error fc9d196d-508e-4977-8f04-2167c71e38b0.");
             }
-            IList<byte>? qs1b = null;
-            if (partIndices is IList<byte> _qs1b && _qs1b.Count != positions.Count)
+            var qs1b = partIndices as IList<byte>;
+            if (qs1b != null && qs1b.Count != positions.Count)
             {
-                qs1b = _qs1b;
                 countMismatch = true;
                 Report.Warn(
-                    $"Expected {positions.Count} part indices, but found {_qs1b.Count}. " +
+                    $"Expected {positions.Count} part indices, but found {qs1b.Count}. " +
                     $"Warning a03f843f-d8cd-4a3d-a1c8-d48eb64c5b39."
                     );
             }
-            IList<short>? qs1s = null;
-            if (partIndices is IList<short> _qs1s && _qs1s.Count != positions.Count)
+            var qs1s = partIndices as IList<short>;
+            if (qs1s != null && qs1s.Count != positions.Count)
             {
-                qs1s = _qs1s;
                 countMismatch = true;
                 Report.Warn(
-                    $"Expected {positions.Count} part indices, but found {_qs1s.Count}. " +
+                    $"Expected {positions.Count} part indices, but found {qs1s.Count}. " +
                     $"Warning 93c9f432-3e59-45a3-b350-9d5ba7bf9ee3."
                     );
             }
-            IList<int>? qs1i = null;
-            if (partIndices is IList<int> _qs1i && _qs1i.Count != positions.Count)
+            var qs1i = partIndices as IList<int>;
+            if (qs1i != null && qs1i.Count != positions.Count)
             {
-                qs1i = _qs1i;
                 countMismatch = true;
                 Report.Warn(
-                    $"Expected {positions.Count} part indices, but found {_qs1i.Count}. " +
+                    $"Expected {positions.Count} part indices, but found {qs1i.Count}. " +
                     $"Warning b94ca9d5-1322-4f57-9ebc-85ea8d3fa8bf."
                     );
             }
