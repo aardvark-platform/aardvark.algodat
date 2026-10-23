@@ -68,6 +68,8 @@ if (tree.ClosestPoint(queryPoint, ref closest))
 
 The [triangle-set implementation](../src/Aardvark.Geometry.Intersection/IntersectableTriangleSet.cs) accepts a null object filter for all triangles, or a predicate to select candidates. Its separate point-result filter is ignored. Filter support for other object sets depends on their implementation.
 
+[LineSet](../src/Aardvark.Geometry.Intersection/LineSet.cs) hit information reports an outward radial unit normal for cylinder lateral-surface hits, perpendicular to the cylinder axis even away from its midpoint. The axis need not have unit length, and reversing endpoints does not change the outward direction. `ObjectHitInfo` changes only `Normal`; zero-length axes retain the previous center-offset normalization. This does not add a cap-normal policy or change intersections, bounds or closest-point queries.
+
 ## Normal Estimation
 
 For a nonempty `V3f[]` or `V3d[] points`:

@@ -90,12 +90,24 @@ namespace Aardvark.Geometry
             return result;
         }
 
+        /// <summary>
+        /// Sets the outward lateral-surface unit normal by removing the axial
+        /// component of the hit offset, without assuming a unit-length axis.
+        /// Zero-length axes retain center-offset normalization. Other hit-info
+        /// fields and the supplied hit are unchanged.
+        /// </summary>
         public void ObjectHitInfo(
             ObjectRayHit hit,
             ref ObjectHitInfo info
             )
         {
-            info.Normal = (hit.RayHit.Point - Lines[hit.SetObject.Index].Center).Normalized;
+            var cylinder = Lines[hit.SetObject.Index];
+            var normal = hit.RayHit.Point - cylinder.Center;
+            var axis = cylinder.P1 - cylinder.P0;
+            var axisLengthSquared = axis.LengthSquared;
+            if (axisLengthSquared > 0)
+                normal -= axis * (normal.Dot(axis) / axisLengthSquared);
+            info.Normal = normal.Normalized;
         }
 
         public bool ClosestPoint(
