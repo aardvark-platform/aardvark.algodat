@@ -68,6 +68,10 @@ namespace Aardvark.Geometry
             public static readonly Symbol InstanceAttributes = Symbol.Create("InstanceAttributes");
         }
 
+        /// <summary>
+        /// Hides the last vertex from display enumeration only; segment counts,
+        /// bounds and query geometry are unaffected.
+        /// </summary>
         public bool HideLastVertex
         {
             get { return m_hideLastVertex; }
@@ -76,9 +80,17 @@ namespace Aardvark.Geometry
 
         public int VertexCount => m_vertexCount;
 
-        public int VisibleVertexCount => m_hideLastVertex ? m_vertexCount - 1 : m_vertexCount;
+        /// <summary>
+        /// The nonnegative visible-vertex count, zero for empty polylines even
+        /// when the last vertex is hidden.
+        /// </summary>
+        public int VisibleVertexCount => m_hideLastVertex ? LineCount : m_vertexCount;
 
-        public int LineCount => m_vertexCount - 1;
+        /// <summary>
+        /// The nonnegative consecutive-segment count, zero with fewer than two
+        /// vertices and independent of HideLastVertex.
+        /// </summary>
+        public int LineCount => Math.Max(0, m_vertexCount - 1);
 
         public V3d[] PositionArray
         {

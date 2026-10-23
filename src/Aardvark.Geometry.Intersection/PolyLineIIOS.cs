@@ -20,7 +20,11 @@ namespace Aardvark.Geometry
     {
         #region IIntersectableObjectSet Members
 
-        public int ObjectCount => m_vertexCount - 1;
+        /// <summary>
+        /// The nonnegative intersectable-object count, equal to LineCount and
+        /// unaffected by the display-only HideLastVertex setting.
+        /// </summary>
+        public int ObjectCount => LineCount;
 
         public Box3d ObjectBoundingBox(int objectIndex = -1)
         {
