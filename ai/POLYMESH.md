@@ -51,12 +51,13 @@ Without a negative-key entry, the positive-key array holds direct values instead
 | `TriangulatedCopy()` | Returns a triangulated mesh; `FaceVertexCountRange.Max > 3` identifies faces needing subdivision |
 | `SubSetOfFaces(indices, compactVertices)` | `true` removes unused vertices and reindexes them; `false` preserves vertex indices. Neither compacts indexed attribute value arrays |
 | `Transformed(trafo)` | Transforms positions and normals; do not assume custom or cached derived attributes are recomputed |
+| `ParametrizedCopy(parameters)` | Evaluates `PositionFunArray` once per active vertex in ascending order with the same parameter array; returns generated positions in a copied vertex-attribute dictionary |
 | `WithoutDegeneratedEdges()` | Removes consecutive duplicate vertex indices; may leave degenerate faces |
 | `WithoutDegeneratedFaces()` | Filters degenerate faces; options control position and normal checks |
 | `FaceReversedCopy()` | Reverses face winding; topology must be rebuilt for the result |
 | `GetIndexedGeometry()` | Converts to rendering geometry; see [conversion overloads](../src/Aardvark.Geometry.PolyMesh/PolyMeshIndexedGeometry.cs) for attribute selection |
 
-`new PolyMesh(other)` shares arrays. Do not treat it as a deep copy before mutation.
+`new PolyMesh(other)` shares arrays. Do not treat it as a deep copy before mutation. `ParametrizedCopy` owns its new positions and vertex-attribute dictionary, preserving source and earlier-result coordinates. Connectivity, topology, functions and unrelated attribute arrays remain shared, including normals and other derived attributes; those are not recomputed.
 
 For grouping, use the `meshes.Group()` extension, which returns `PolyMesh.Grouping`, not a mesh. Inspect its matching-attribute information before extracting `Mesh`; see [PolyMeshGrouping](../src/Aardvark.Geometry.PolyMesh/PolyMeshGrouping.cs).
 
