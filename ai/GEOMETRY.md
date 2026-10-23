@@ -66,6 +66,8 @@ if (tree.ClosestPoint(queryPoint, ref closest))
 
 `MaxRange` initializes an unbounded query. For a finite bound, set both `Distance` and `DistanceSquared` consistently. Only a strictly closer result replaces the supplied value; otherwise the call returns `false` and leaves it unchanged.
 
+Empty trees retain their miss behavior after `Flatten()`. A `KdFlat` axis of zero denotes emptiness even without backing buffers: ray and closest-point traversal return `false` without changing caller state or invoking callbacks, box traversal returns `null` even for full containment, and index enumeration yields nothing without invoking selectors. Copying an empty flat node with `KdNode.Flatten()` preserves emptiness. Nonempty copying behavior is unchanged; `KdFlat.Leafs()` remains unsupported.
+
 The [triangle-set implementation](../src/Aardvark.Geometry.Intersection/IntersectableTriangleSet.cs) accepts a null object filter for all triangles, or a predicate to select candidates. Its separate point-result filter is ignored. Filter support for other object sets depends on their implementation.
 
 ## Normal Estimation

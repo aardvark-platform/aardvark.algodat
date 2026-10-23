@@ -863,6 +863,9 @@ namespace Aardvark.Geometry
             Tree ??= new KdLeaf([]);
         }
 
+        /// <summary>
+        /// Compacts the tree while preserving empty-tree query behavior.
+        /// </summary>
         public void Flatten()
         {
             if (Tree is not KdFlat) Tree = Tree.Flatten();
@@ -1348,6 +1351,12 @@ namespace Aardvark.Geometry
 
     #region KdFlat
 
+    /// <summary>
+    /// A compact kd-tree. Axis zero denotes an empty node, including default
+    /// instances, and requires no backing buffers. Empty ray and closest-point
+    /// queries return false without changing caller state or invoking callbacks;
+    /// box traversal returns null and index enumeration yields no items.
+    /// </summary>
     public class KdFlat : KdNode, IFieldCodeable
     {
         internal short m_rootAxis;   // -3 | -2 | -1 | 0 | count
@@ -1379,6 +1388,7 @@ namespace Aardvark.Geometry
         public bool Intersect(short axis, int index,
                 ref KdIntersectionRay kdRay, ref TP3d tpmin, ref TP3d tpmax)
         {
+            if (axis == 0) return false;
             if (axis > 0)
                 return kdRay.ObjectSet.ObjectsIntersectRay(
                         m_indexArray, index, axis, kdRay.FastRay,
@@ -1456,6 +1466,7 @@ namespace Aardvark.Geometry
         public bool ClosestPoint(short axis, int index,
                 ref KdQueryPoint query, ref V3d pmin, ref V3d pmax)
         {
+            if (axis == 0) return false;
             if (axis > 0)
                 return query.ObjectSet.ClosestPoint(
                         m_indexArray, index, axis, query.Point, // TODO: range
@@ -1513,6 +1524,7 @@ namespace Aardvark.Geometry
 
         public KdNode Intersect(short axis, int index, ref Box3d box, Box.Flags outsideFlags)
         {
+            if (axis == 0) return null;
             if (outsideFlags == Box.Flags.All) return new KdNodeRef(this);
 
             if (axis > 0)
@@ -1558,6 +1570,7 @@ namespace Aardvark.Geometry
                 Func<int[], int, int, IEnumerable<int>> interiorSelector,
                 Func<int[], int, int, IEnumerable<int>> borderSelector)
         {
+            if (axis == 0) yield break;
             if (axis > 0)
             {
                 if (borderSelector != null)
@@ -1591,6 +1604,7 @@ namespace Aardvark.Geometry
 
         internal void Count(short axis, int index, Counts counts)
         {
+            if (axis == 0) return;
             if (axis > 0)
             {
                 counts.ObjectCount += axis;
@@ -1613,6 +1627,7 @@ namespace Aardvark.Geometry
 
         internal AxisIndex Flatten(short axis, int index, Counts counts, KdFlat flat)
         {
+            if (axis == 0) return AxisIndex.Null;
             if (axis > 0)
             {
                 var newIndex = counts.ObjectCount;
@@ -3090,6 +3105,10 @@ namespace Aardvark.Geometry
 
     public static class KdNodeExtensions
     {
+        /// <summary>
+        /// Copies a node into compact storage. Empty flat nodes remain empty
+        /// without reading their backing buffers.
+        /// </summary>
         public static KdNode Flatten(this KdNode node)
         {
             var counts = new Counts();
