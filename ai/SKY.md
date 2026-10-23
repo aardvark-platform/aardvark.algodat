@@ -22,12 +22,15 @@ var preetham = new PreethamSky(0.0, Math.PI / 4, turbidity: 2.5);
 
 C3f radiance = cie.GetRadiance(V3d.OOI);
 C3f color = cie.GetColor(V3d.OOI);
+C3f angularColor = cie.GetColor(0.0, Math.PI / 4);
+C3f angularRadiance = cie.GetRadiance(0.0, Math.PI / 4);
 ```
 
 - Supply normalized view vectors. `Phi` is azimuth in radians (0 south, π/2 west); `Theta` is the zenith angle (0 zenith, π/2 horizon). These are not compass bearings.
 - CIE `diffIllu` and `globIllu` are diffuse horizontal and global illuminance in lux; omit them to use the model's estimates.
 - CIE, Preetham, and the **XYZ-configured** Hosek model return XYZ values from `GetRadiance()`, with luminance Y in cd/m². Do not generalize that color space to every Hosek configuration.
 - `GetColor(V3d)` maps brightness into [0,1] and applies the sRGB transfer function. It is not linear RGB or a physical radiance output; use `GetRadiance(V3d)` for your own exposure/color pipeline. Hosek's color conversion assumes XYZ input, so use `Col.Format.CieXYZ` with it.
+- The angular extensions convert `(phi, theta)` with `Sky.V3dFromPhiTheta` and call the corresponding vector method: `GetColor(phi, theta)` returns display color, while `GetRadiance(phi, theta)` returns radiance. They add no exposure, color conversion or angle validation; model-specific limits and exceptions still apply. The angular color overload no longer returns radiance.
 
 See [CIESky](../src/Aardvark.Physics.Sky/CIESky.cs), [HosekSky](../src/Aardvark.Physics.Sky/HosekSky.cs), and [PreethamSky](../src/Aardvark.Physics.Sky/PreethamSky.cs) for model-specific parameters and limits.
 

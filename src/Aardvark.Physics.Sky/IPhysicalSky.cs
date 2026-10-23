@@ -22,12 +22,14 @@ namespace Aardvark.Physics.Sky
     public interface IPhysicalSky
     {
         /// <summary>
-        /// Gets the sky color for the supplied direction in linear sRGB fitted to [0,1].
+        /// Gets the model's display sky color for the supplied normalized direction.
+        /// Built-in models fit sRGB to [0,1]; this is not linear RGB or physical radiance.
         /// </summary>
         C3f GetColor(V3d normalizedViewVec);
 
         /// <summary>
-        /// Gets the sky radiance in cd/m² for the supplied direction in XYZ color space.
+        /// Gets sky radiance for the supplied normalized direction in the model's color space.
+        /// CIE, Preetham and XYZ-configured Hosek return XYZ with luminance Y in cd/m².
         /// </summary>
         C3f GetRadiance(V3d normalizedViewVec);
     }
@@ -35,19 +37,21 @@ namespace Aardvark.Physics.Sky
     public static class IPhysicalSkyExtensions
     {
         /// <summary>
-        /// Gets the sky color for the supplied spherical coordinate in linear sRGB fitted to [0,1].
-        /// Phi: [0..2 PI] 0=2 PI=south; PI/2=west, PI=north, 3 PI/2=east
-        /// Theta: Height of sun from zenith down in radians [0..PI] 0=zenith
+        /// Gets the same display sky color as GetColor(V3d), using Sky.V3dFromPhiTheta.
+        /// No additional color conversion is applied; this does not return physical radiance.
+        /// Phi: azimuth in radians [0..2 PI] 0=2 PI=south; PI/2=west, PI=north, 3 PI/2=east
+        /// Theta: view zenith angle in radians [0..PI] 0=zenith
         /// </summary>
         public static C3f GetColor(this IPhysicalSky sky, double phi, double theta)
         {
-            return sky.GetRadiance(Sky.V3dFromPhiTheta(phi, theta));
+            return sky.GetColor(Sky.V3dFromPhiTheta(phi, theta));
         }
 
         /// <summary>
-        /// Gets the sky radiance in cd/m² for the spherical coordinate angle in XYZ color space.
-        /// Phi: [0..2 PI] 0=2 PI=south; PI/2=west, PI=north, 3 PI/2=east
-        /// Theta: Height of sun from zenith down in radians [0..PI] 0=zenith
+        /// Gets the same radiance as GetRadiance(V3d), using Sky.V3dFromPhiTheta.
+        /// Units and color space follow the model; no display-color conversion is applied.
+        /// Phi: azimuth in radians [0..2 PI] 0=2 PI=south; PI/2=west, PI=north, 3 PI/2=east
+        /// Theta: view zenith angle in radians [0..PI] 0=zenith
         /// </summary>
         public static C3f GetRadiance(this IPhysicalSky sky, double phi, double theta)
         {
