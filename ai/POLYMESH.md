@@ -56,6 +56,13 @@ Without a negative-key entry, the positive-key array holds direct values instead
 | `FaceReversedCopy()` | Reverses face winding; topology must be rebuilt for the result |
 | `GetIndexedGeometry()` | Converts to rendering geometry; see [conversion overloads](../src/Aardvark.Geometry.PolyMesh/PolyMeshIndexedGeometry.cs) for attribute selection |
 
+`GetOutlines()` consumes its polygon input once, eagerly, and returns repeatable
+results. It suppresses every edge repeated in either direction by exact endpoint
+comparison, including three or more occurrences; this is not parity toggling.
+Unique edges retain their direction. No tolerance, partial-overlap clipping or
+topology construction is involved. NaN endpoints do not cancel, but identical
+directed NaN lines still coalesce under `Line3d.Equals`.
+
 `new PolyMesh(other)` shares arrays. Do not treat it as a deep copy before mutation.
 
 For grouping, use the `meshes.Group()` extension, which returns `PolyMesh.Grouping`, not a mesh. Inspect its matching-attribute information before extracting `Mesh`; see [PolyMeshGrouping](../src/Aardvark.Geometry.PolyMesh/PolyMeshGrouping.cs).

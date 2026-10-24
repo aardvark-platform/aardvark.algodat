@@ -1,3 +1,5 @@
+- [PolyMesh] Fix GetOutlines on single-use polygon sequences and avoid quadratic work on large meshes.
+
 ### 5.6.4
 - stable release
 

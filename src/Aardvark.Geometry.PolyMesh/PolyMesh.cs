@@ -4251,9 +4251,22 @@ namespace Aardvark.Geometry
         public static IEnumerable<Line3d> GetLines(this PolyMesh polyMesh)
             => polyMesh.WithNewTopology().Edges.Select(e => new Line3d(e.FromVertex.Position, e.ToVertex.Position)).ToArray();
         
+        /// <summary>
+        /// Returns edges occurring exactly once, comparing endpoints without tolerance
+        /// in either direction. Does not merge partially overlapping segments or build topology.
+        /// </summary>
         public static IEnumerable<Line3d> GetOutlines(this PolyMesh polyMesh)
             => polyMesh.Polygons.GetOutlines();
 
+        /// <summary>
+        /// Consumes polygons once, eagerly, and returns repeatable outline edges.
+        /// Every edge occurring more than once in either direction is suppressed, not
+        /// parity-toggled. Unique edges retain their direction; comparisons use no tolerance.
+        /// </summary>
+        /// <remarks>
+        /// NaN endpoints do not cancel under endpoint equality; identical directed lines
+        /// still coalesce under Line3d.Equals, preserving existing floating-point behavior.
+        /// </remarks>
         public static IEnumerable<Line3d> GetOutlines(
                 this IEnumerable<PolyMesh.Polygon> polygons)
         {
@@ -4263,27 +4276,32 @@ namespace Aardvark.Geometry
 
         private static IEnumerable<Line3d> RemoveDuplicatedLines(IEnumerable<Line3d> lines)
         {
-            var linePairs = lines.Pairs(true, true);
-
+            var seen = new HashSet<Line3d>();
             var result = new HashSet<Line3d>();
-            lines.ForEach(x => result.Add(x));
 
-            var clippedLines = new List<Line3d>();
-
-            foreach (var x in linePairs)
+            foreach (var line in lines)
             {
-                var line1 = x.Item1;
-                var line2 = x.Item2;
-
-                if ((line1.P0 == line2.P0 && line1.P1 == line2.P1) ||
-                    (line1.P0 == line2.P1 && line1.P1 == line2.P0))
+                // Endpoint == cannot cancel NaNs, unlike Line3d.Equals in the result set.
+                if (line.P0.IsNaN || line.P1.IsNaN)
                 {
-                    result.Remove(line1);
-                    result.Remove(line2);
+                    result.Add(line);
+                    continue;
+                }
+
+                var reverse = new Line3d(line.P1, line.P0);
+                if (seen.Contains(line) || seen.Contains(reverse))
+                {
+                    result.Remove(line);
+                    result.Remove(reverse);
+                }
+                else
+                {
+                    seen.Add(line);
+                    result.Add(line);
                 }
             }
 
-            return result.AsEnumerable();
+            return result;
         }
 
         public static IEnumerable<Line3d> ComputeOutline(this PolyMesh pSet)
