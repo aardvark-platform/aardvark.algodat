@@ -88,6 +88,16 @@ KD-trees are not restricted to leaves. Non-temporary nodes with positions offer 
 
 `pointSet.Merge(other, pointsMergedCallback, config)` returns a merged cloud. Supply the import configuration and keep its storage available throughout the operation.
 
+## Inlined Export
+
+`EnumerateOctreeInlined` and `ExportInlinedPointCloud` store self-contained node
+attributes. Intensities already in `[0,255]` retain their values. Other nonconstant
+Int32 ranges, including the full signed range, are rescaled per output node using
+`255.999 / (max - min)` and truncated to bytes; constant values outside the byte
+range become `255`. Collapsing nodes scales the combined child intensities, not
+individual children separately. Empty and missing intensity arrays remain distinct.
+Raw and gzip encoding use the same serialized layout.
+
 ## Related
 
 - [Geometry](GEOMETRY.md): normal estimation and standalone spatial structures
