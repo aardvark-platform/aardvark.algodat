@@ -1,3 +1,5 @@
+- [PolyMesh] Restore Cylinder2 texture coordinates under the requested attribute name, including propagation to indexed geometry.
+
 ### 5.6.4
 - stable release
 

@@ -44,6 +44,12 @@ mesh.FaceVertexAttributes[-uv] = new[]
 
 Without a negative-key entry, the positive-key array holds direct values instead. The same convention applies to indexed normals and custom attributes.
 
+`PolyMeshPrimitives.Cylinder2(..., coordinateName)` returns indexed face-vertex
+texture coordinates: `int[]` under `coordinateName`, `V2d[]` under its negative
+symbol. The mantle retains separate U=0 and U=1 seam values at shared positions.
+`GetIndexedGeometry()` propagates the chosen attribute, expanding it to per-vertex
+values (`V2f[]` with default options). Pass `Symbol.Empty` to omit coordinates.
+
 ## Operations
 
 | Operation | Contract |
