@@ -258,12 +258,13 @@ namespace Aardvark.Geometry
         }
 
         /// <summary>
-        /// Returns true if the kd-tree is completeley contained inside the
-        /// supplied box.
+        /// Returns true if the supplied box inclusively contains the tree's
+        /// existing padded bounding box. This is a bounds-only test; it does
+        /// not inspect the individual objects.
         /// </summary>
         public bool IsInsideBox(Box3d box)
         {
-            return m_box.Contains(box);
+            return box.Contains(m_box);
         }
 
         /// <summary>
