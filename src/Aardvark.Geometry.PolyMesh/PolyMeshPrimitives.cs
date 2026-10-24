@@ -313,6 +313,8 @@ namespace Aardvark.Geometry
         /// The coordinates in X are wrapped around the mantle from [0, 1] in counter clockwise order starting at [+X,0].
         /// The coordinates in Y are 0 at the top and 1 at the bottom.
         /// The cap have degenerated coordinates.
+        /// Coordinates are indexed face-vertex attributes: int[] under the supplied name
+        /// and V2d[] under its negative symbol, including separate mantle seam values.
         /// </summary>
         /// <param name="tessellation">Number of segments the cylinder should have</param>
         /// <param name="height">Height</param>
@@ -474,11 +476,7 @@ namespace Aardvark.Geometry
                 PositionArray = positions,
                 VertexIndexArray = vertexIndices,
                 FirstIndexArray = faceIndices,
-                FaceVertexAttributes = new SymbolDict<Array>()
-                {
-                    { PolyMesh.Property.Normals, normalIndices },
-                    { -PolyMesh.Property.Normals, normals },
-                }
+                FaceVertexAttributes = faceVertexAttribues
             };
         }
             
