@@ -52,6 +52,8 @@ if (tree.Intersect(new FastRay3d(origin, direction), 0, double.MaxValue, ref hit
 
 Here `origin` and `direction` are `V3d`. The hit argument is an in/out bound: the query updates it only when a closer hit is found. Ray `t` is a distance only for a unit direction. `BuildFlags` controls construction tradeoffs; `NoMultithreading` disables parallel construction. `IntersectsBox` tests only the tree's bounds, not its individual objects.
 
+`IsInsideBox(queryBox)` tests whether the query inclusively contains the tree's existing padded `BoundingBox3d`, not whether the tree contains the query. It scans no objects. Use the actual `BoundingBox3d` for equality checks; the original geometry bounds may omit tree padding. `KdTreeSet.ObjectIsInsideBox` and hierarchical `ObjectsInsideBox` selections use this child-bounds containment after the existing inverse query-box transformation. This is not an exact per-object containment test, and transformation handling is unchanged.
+
 For a `V3d queryPoint`, use the same triangle tree to find the nearest surface point:
 
 ```csharp

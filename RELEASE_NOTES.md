@@ -1,3 +1,5 @@
+- [Geometry] Corrected kd-tree box containment and hierarchical child selections: enclosing queries include child bounds, while smaller boxes inside a child no longer select it. Existing tree padding and inclusive bounds are retained.
+
 ### 5.6.4
 - stable release
 
