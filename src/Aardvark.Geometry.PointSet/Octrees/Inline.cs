@@ -268,6 +268,10 @@ public static class InlineExtensions
     /// <summary>
     /// Enumerate inlined (self-contained, no external data is referenced) octree nodes.
     /// </summary>
+    /// <remarks>
+    /// Intensities outside the byte range are rescaled per output node, using
+    /// widened differences to support the full signed Int32 range.
+    /// </remarks>
     public static InlinedNodes EnumerateOctreeInlined(
         this IPointCloudNode root, InlineConfig config
         )
@@ -409,8 +413,8 @@ public static class InlineExtensions
             }
             else
             {
-                var f = 255.999 / (max - min);
-                return js32.Map(x => (byte)((x - min) * f));
+                var f = 255.999 / ((double)max - min);
+                return js32.Map(x => (byte)(((double)x - min) * f));
             }
         }
 

@@ -1,3 +1,5 @@
+- [PointSet] Fix corrupted inlined intensity values when a node's signed intensity range exceeds Int32.MaxValue, including collapsed child nodes.
+
 ### 5.6.4
 - stable release
 
