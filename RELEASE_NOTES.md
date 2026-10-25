@@ -1,3 +1,5 @@
+- [PolyMesh] Correct PlaneXZ normals to −Y to match its existing winding; geometry, UVs and tangents are unchanged.
+
 ### 5.6.4
 - stable release
 

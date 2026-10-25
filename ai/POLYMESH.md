@@ -21,6 +21,10 @@ var mesh = new PolyMesh
 
 Primitives live in [PolyMeshPrimitives](../src/Aardvark.Geometry.PolyMesh/PolyMeshPrimitives.cs), for example `PolyMeshPrimitives.Box(Box3d.Unit, C4b.White)`. For epsilon-based vertex deduplication, see [Clustering](GEOMETRY.md#clustering).
 
+`PlaneXZ(size)` stores a −Y face normal, matching its existing winding for positive
+sizes. Its positions, indices, UV layout and +X/+Z U/V tangents are unchanged.
+Sizes are not validated; the stored normal is fixed rather than derived from size.
+
 ## Attributes
 
 | Dictionary | Direct attribute length |
