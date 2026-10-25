@@ -1302,6 +1302,10 @@ namespace Aardvark.Geometry
             return g;
         }
 
+        /// <summary>
+        /// Returns an XZ plane whose winding for positive sizes and stored face normal
+        /// point along -Y. U and V tangents remain +X and +Z, respectively.
+        /// </summary>
         public static PolyMesh PlaneXZ(V2d size)
         {
             var halfSize = size * 0.5;
@@ -1314,7 +1318,7 @@ namespace Aardvark.Geometry
                     new V3d(halfSize.X, 0, halfSize.Y) }
             };
 
-            g.FaceAttributes[PolyMesh.Property.Normals] = new[] { V3d.OIO };
+            g.FaceAttributes[PolyMesh.Property.Normals] = new[] { -V3d.OIO };
             g.FaceAttributes[PolyMesh.Property.DiffuseColorUTangents] = new[] { V3d.IOO };
             g.FaceAttributes[PolyMesh.Property.DiffuseColorVTangents] = new[] { V3d.OOI };
 
