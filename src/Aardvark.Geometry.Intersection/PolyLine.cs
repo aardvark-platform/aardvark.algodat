@@ -92,6 +92,11 @@ namespace Aardvark.Geometry
             }
         }
 
+        /// <summary>
+        /// Gets or assigns the shared vertex-attribute dictionary. Assignment synchronizes
+        /// the cached and stored vertex counts with the retrieved V3d position array length,
+        /// or zero when positions are absent, without copying or scanning the arrays.
+        /// </summary>
         public SymbolDict<Array> VertexAttributes
         {
             get { return m_vertexAttributes; }
@@ -99,6 +104,7 @@ namespace Aardvark.Geometry
             {
                 this[Property.VertexAttributes] = m_vertexAttributes = value;
                 m_positionArray = m_vertexAttributes.GetArray<V3d>(Property.Positions, null);
+                this[Property.VertexCount] = m_vertexCount = m_positionArray?.Length ?? 0;
             }
         }
 
