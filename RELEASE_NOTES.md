@@ -1,3 +1,5 @@
+- [PolyMesh] Preserve position representations and active vertex counts during copying and restoration, preventing coordinate loss from replacement with zero-filled arrays.
+
 ### 5.6.4
 - stable release
 
