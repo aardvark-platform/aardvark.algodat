@@ -68,6 +68,15 @@ if (tree.ClosestPoint(queryPoint, ref closest))
 
 The [triangle-set implementation](../src/Aardvark.Geometry.Intersection/IntersectableTriangleSet.cs) accepts a null object filter for all triangles, or a predicate to select candidates. Its separate point-result filter is ignored. Filter support for other object sets depends on their implementation.
 
+### PolyLine Attribute Replacement
+
+Assigning `PolyLine.VertexAttributes` retains the supplied dictionary and arrays,
+refreshes `PositionArray`, and synchronizes the cached and stored `VertexCount`
+with the retrieved `V3d[]` length (zero for absent/null positions). This reads the
+array length, not its contents. Other attributes and `HideLastVertex` are retained;
+hiding remains a display concern, not a query-segment filter. Rebuild existing
+kd-trees after changing geometry; the setter does not update built tree bounds.
+
 ## Normal Estimation
 
 For a nonempty `V3f[]` or `V3d[] points`:

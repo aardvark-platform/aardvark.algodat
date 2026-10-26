@@ -1,3 +1,5 @@
+- [Intersection] Synchronize PolyLine vertex counts when replacing VertexAttributes, exposing added segments and preventing out-of-range bounds and queries after shrinking positions.
+
 ### 5.6.4
 - stable release
 
