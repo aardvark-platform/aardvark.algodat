@@ -2061,7 +2061,7 @@ namespace Aardvark.Geometry
 
         private void Awake(bool buildTopology)
         {
-            var vertexCount = Get<int>(Property.VertexCount); // 
+            m_vertexCount = Get<int>(Property.VertexCount);
 
             m_firstIndexArray = Get<int[]>(Property.FirstIndexArray);
             m_vertexIndexArray = Get<int[]>(Property.VertexIndexArray);
@@ -2075,14 +2075,10 @@ namespace Aardvark.Geometry
             m_edgeAttributes = Get<SymbolDict<Array>>(Property.EdgeAttributes);
             m_instanceAttributes = Get<SymbolDict<object>>(Property.InstanceAttributes);
 
-            // use property assignment to initialize dependent fields
-            PositionArray = m_vertexAttributes.GetOrDefault(Property.Positions) as V3d[];
+            // Restore caches without changing shared attributes or the stored active count.
+            m_positionArray = m_vertexAttributes.GetOrDefault(Property.Positions) as V3d[];
             m_normalArray = m_vertexAttributes.GetOrDefault(Property.Normals) as V3d[];
             m_colorArray = m_vertexAttributes.GetOrDefault(Property.Colors) as C4f[];
-
-            // set vertex count after position array, to correctly handle
-            // meshes with VertexCapacity != VertexCount
-            VertexCount = vertexCount;
 
             m_eulerCharacteristic = Get<int>(Property.EulerCharacteristic);
 

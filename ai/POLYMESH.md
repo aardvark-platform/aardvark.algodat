@@ -56,7 +56,9 @@ Without a negative-key entry, the positive-key array holds direct values instead
 | `FaceReversedCopy()` | Reverses face winding; topology must be rebuilt for the result |
 | `GetIndexedGeometry()` | Converts to rendering geometry; see [conversion overloads](../src/Aardvark.Geometry.PolyMesh/PolyMeshIndexedGeometry.cs) for attribute selection |
 
-`new PolyMesh(other)` shares arrays. Do not treat it as a deep copy before mutation.
+`new PolyMesh(other)` and `Copy` remain shallow copies. Cache restoration preserves the raw position array and its runtime representation (`V2f[]`, `V2d[]`, `V3f[]`, or `V3d[]`), shared attribute dictionaries, and the stored active `VertexCount`, including when it is smaller than array capacity. `Awake` and deserialization restore caches without replacing coordinates or invoking the position/count setters. Serialization preserves representation and values, not references to the original object.
+
+The `PositionArray` geometry cache is populated only by casting to `V3d[]`; it remains null for other representations. This does not add non-double support to geometry APIs that require that cache. Attribute-aware operations such as `GetIndexedGeometry` retain their existing representation handling, and `Transformed` continues to support `V3f[]` and `V3d[]` positions. Do not treat a shallow copy as a deep copy before mutation.
 
 For grouping, use the `meshes.Group()` extension, which returns `PolyMesh.Grouping`, not a mesh. Inspect its matching-attribute information before extracting `Mesh`; see [PolyMeshGrouping](../src/Aardvark.Geometry.PolyMesh/PolyMeshGrouping.cs).
 
