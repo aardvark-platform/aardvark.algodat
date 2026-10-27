@@ -52,6 +52,10 @@ if (tree.Intersect(new FastRay3d(origin, direction), 0, double.MaxValue, ref hit
 
 Here `origin` and `direction` are `V3d`. The hit argument is an in/out bound: the query updates it only when a closer hit is found. Ray `t` is a distance only for a unit direction. `BuildFlags` controls construction tradeoffs; `NoMultithreading` disables parallel construction. `IntersectsBox` tests only the tree's bounds, not its individual objects.
 
+`hit.GetIntersectionRayHitInfo()` returns normals, object vertices and edge vectors in the same coordinate frame as `hit.RayHit.Point`. Hierarchy entries in `ObjectStack` run from leaf to root; each `KdTreeSet` entry selects a `ConcreteKdIntersectionTree` instance transform. The helper converts a copy of the hit point to leaf coordinates before calling the primitive's `ObjectHitInfo`, then maps points as positions, edges as directions, and nonzero normals by the inverse transpose followed by normalization. Reflections retain this normal convention rather than recomputing normals from transformed winding or facing them toward the ray.
+
+The caller's hit fields and stack remain unchanged. Missing normals and null arrays stay missing; mapped nonempty arrays are separately owned, leaving source geometry untouched. Null/empty stacks and identity composites retain the primitive's original values and array references. Direct primitive `ObjectHitInfo` calls still expect leaf coordinates; this conversion does not change closest-point queries.
+
 For a `V3d queryPoint`, use the same triangle tree to find the nearest surface point:
 
 ```csharp
