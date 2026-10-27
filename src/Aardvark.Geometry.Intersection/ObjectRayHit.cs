@@ -78,13 +78,52 @@ namespace Aardvark.Geometry
         #region RayHitInfo
 
         /// <summary>
-        /// Create an addtional data structure that contains information
-        /// about the hit that is not already part of the IntersectionRayHit.
+        /// Returns additional leaf information in the coordinate frame of this hit.
+        /// Hierarchy entries in ObjectStack run from leaf to root. Their KdTreeSet
+        /// instance transforms map a copy of the hit point to the leaf before the
+        /// leaf callback, then map returned points as positions and edges as directions.
+        /// Nonzero normals use the inverse transpose and normalization when a frame
+        /// conversion is required. The caller's hit and stack are unchanged, and
+        /// transformed arrays do not modify or alias source-owned arrays.
+        /// A null/empty stack or an identity composite retains the leaf result.
         /// </summary>
         public readonly ObjectHitInfo GetIntersectionRayHitInfo()
         {
             ObjectHitInfo hitInfo = new();
-            SetObject.Set.ObjectHitInfo(this, ref hitInfo);
+            if (ObjectStack == null || ObjectStack.Count == 0)
+            {
+                SetObject.Set.ObjectHitInfo(this, ref hitInfo);
+                return hitInfo;
+            }
+
+            var trafo = Trafo3d.Identity;
+            foreach (var entry in ObjectStack)
+                if (entry.Set is KdTreeSet trees)
+                    trafo *= trees.ConcreteKdTreeList[entry.Index].Trafo;
+
+            var transform = trafo != Trafo3d.Identity;
+            var localHit = this;
+            if (transform)
+                localHit.RayHit.Point = trafo.Backward.TransformPos(RayHit.Point);
+            SetObject.Set.ObjectHitInfo(localHit, ref hitInfo);
+            if (!transform) return hitInfo;
+
+            if (hitInfo.HasValidNormal)
+                hitInfo.Normal = Mat.TransposedTransformDir(trafo.Backward, hitInfo.Normal).Normalized;
+            if (hitInfo.Points != null && hitInfo.Points.Length > 0)
+            {
+                var points = new V3d[hitInfo.Points.Length];
+                for (var i = 0; i < points.Length; i++)
+                    points[i] = trafo.Forward.TransformPos(hitInfo.Points[i]);
+                hitInfo.Points = points;
+            }
+            if (hitInfo.Edges != null && hitInfo.Edges.Length > 0)
+            {
+                var edges = new V3d[hitInfo.Edges.Length];
+                for (var i = 0; i < edges.Length; i++)
+                    edges[i] = trafo.Forward.TransformDir(hitInfo.Edges[i]);
+                hitInfo.Edges = edges;
+            }
             return hitInfo;
         }
 

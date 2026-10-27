@@ -1,3 +1,5 @@
+- [Geometry] Return hierarchical ray hit normals, vertices and edge vectors in the caller's coordinate frame without modifying source geometry.
+
 ### 5.6.4
 - stable release
 
