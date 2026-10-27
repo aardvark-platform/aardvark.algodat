@@ -60,6 +60,8 @@ Without a negative-key entry, the positive-key array holds direct values instead
 
 For grouping, use the `meshes.Group()` extension, which returns `PolyMesh.Grouping`, not a mesh. Inspect its matching-attribute information before extracting `Mesh`; see [PolyMeshGrouping](../src/Aardvark.Geometry.PolyMesh/PolyMeshGrouping.cs).
 
+[FaceEqualClustering](../src/Aardvark.Geometry.PolyMesh/PolyMeshFaceClustering.cs) groups equal-valence faces by exact cyclic, same-winding coordinate comparison, independent of starting corner and vertex IDs. `epsilon` controls candidate hashing only; it is not a coordinate-equality or welding tolerance. Reversed winding and different corner counts remain distinct. `IndexArray` maps faces to compact cluster IDs and `CountArray` gives their membership counts. Clustering leaves the source arrays, attributes and topology unchanged.
+
 ## Topology
 
 Call `BuildTopology()` before topology-dependent edge or vertex-neighborhood traversal:

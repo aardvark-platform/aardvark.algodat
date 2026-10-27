@@ -264,6 +264,12 @@ namespace Aardvark.Geometry
 
     public class FaceEqualClustering : Clustering.Clustering
     {
+        /// <summary>
+        /// Clusters equal-valence faces using exact cyclic, same-winding coordinate
+        /// comparison; vertex IDs may differ. Epsilon affects candidate hashing only,
+        /// not the coordinate comparison. Cluster indices are compacted without
+        /// changing the mesh's arrays, attributes or topology.
+        /// </summary>
         public FaceEqualClustering(PolyMesh m, double epsilon = 1e-6)
         {
             int faceCount = m.FaceCount;
@@ -279,7 +285,7 @@ namespace Aardvark.Geometry
             {
                 pl.Clear();
                 int fve = fia[fi + 1], fvc = fve - fvi;
-                for (int i = fvi; i < fve; i++) pl.Add(pa[via[i++]]);
+                for (int i = fvi; i < fve; i++) pl.Add(pa[via[i]]);
                 pl.QuickSort(Vec.LexicalCompare);
                 int hashCode = fvc;
                 foreach (var p in pl) hashCode = HashCode.Combine(hashCode, p.HashCode1(epsilon));

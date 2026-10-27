@@ -1,3 +1,5 @@
+- [PolyMesh] Recognize duplicate faces with cyclically shifted corners while retaining exact coordinate and winding comparisons.
+
 ### 5.6.4
 - stable release
 
