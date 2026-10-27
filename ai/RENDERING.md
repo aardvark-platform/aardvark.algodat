@@ -48,6 +48,8 @@ let withPicking (config : PointSetRenderConfig) =
 
 Render using the returned configuration. After rendering, call `pick.Value pixel radius maxPoints`, where the radius is in pixels. Results contain `World`, `View`, `Ndc`, and `Pixel` coordinates. This callback reads rendered depth; it is distinct from the LOD picking trees used by [SimplePick](../src/Aardvark.Rendering.PointSet/SimplePick.fs).
 
+`SimplePickTree.FindPoints(viewProj, ellipse)` takes an ellipse in NDC coordinates. After the existing conjugate-diameter normalization, its rectangular broad phase uses the analytic horizontal and vertical ellipse extents, not just the four axis endpoints. Rotated ellipses therefore retain valid picks near their screen-space extrema. The delegated rectangle traversal, exact ellipse filter, transforms, result ordering, and source attribute indices are unchanged; the broader rectangle does not turn the ellipse query into a box selection.
+
 ## Resource Ownership
 
 Keep the underlying store alive while the scene graph may request point data. A custom cache is supplied when opening the store; see [point-cloud storage](POINT_CLOUDS.md#create-store-and-load). `PointTreeNode.Release()` is part of the LOD lifecycle, not a promise to dispose the store or evict every cached point array. Tear down rendering users before disposing storage you own.

@@ -308,8 +308,12 @@ module SimplePickExtensions =
                 if Fun.IsTiny d then ellipse
                 else Ellipse2d.FromConjugateDiameters(ellipse.Center, ellipse.Axis0, ellipse.Axis1)
 
-            let bounds =
-                Box2d [| ellipse.Center - ellipse.Axis0; ellipse.Center + ellipse.Axis0;  ellipse.Center - ellipse.Axis1; ellipse.Center + ellipse.Axis1 |]
+            let extents =
+                V2d(
+                    sqrt (ellipse.Axis0.X * ellipse.Axis0.X + ellipse.Axis1.X * ellipse.Axis1.X),
+                    sqrt (ellipse.Axis0.Y * ellipse.Axis0.Y + ellipse.Axis1.Y * ellipse.Axis1.Y)
+                )
+            let bounds = Box2d(ellipse.Center - extents, ellipse.Center + extents)
 
             let m = M22d.FromCols(ellipse.Axis0, ellipse.Axis1).Inverse
 
