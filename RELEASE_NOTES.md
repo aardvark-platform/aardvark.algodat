@@ -1,3 +1,5 @@
+- [PointSet] Fix SimplePick ellipse selections omitting valid points near rotated screen-space extrema.
+
 ### 5.6.4
 - stable release
 
