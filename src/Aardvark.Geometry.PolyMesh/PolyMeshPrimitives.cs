@@ -1247,6 +1247,10 @@ namespace Aardvark.Geometry
 
         #region UnitQuad
 
+        /// <summary>
+        /// Creates the unit XY square as two +Z-wound triangles. Each of the four
+        /// vertices has a direct V2f texture coordinate matching its XY position.
+        /// </summary>
         public static PolyMesh UnitQuad()
         {
             // OLD:
@@ -1264,9 +1268,8 @@ namespace Aardvark.Geometry
             // 0,0 --- 1,0
 
             var g = new PolyMesh();
-            var faceVertexAttributes = new SymbolDict<Array>();
             g.PositionArray = new V3d[] { V3d.OOO, V3d.IOO, V3d.OIO, V3d.IIO };
-            faceVertexAttributes[PolyMesh.Property.DiffuseColorCoordinates]
+            g.VertexAttributes[PolyMesh.Property.DiffuseColorCoordinates]
                         = new V2f[] { V2f.OO, V2f.IO, V2f.OI, V2f.II };
             g.VertexIndexArray = new int[] { 0, 1, 2, 1, 3, 2 };
             g.FirstIndexArray = new int[] { 0, 3, 6 };
