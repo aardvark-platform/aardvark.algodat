@@ -1,3 +1,5 @@
+- [PolyMesh] Restore UnitQuad's per-vertex unit-square texture coordinates, including exported indexed geometry.
+
 ### 5.6.4
 - stable release
 

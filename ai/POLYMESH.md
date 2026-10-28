@@ -19,7 +19,7 @@ var mesh = new PolyMesh
 
 `FirstIndexArray` has `FaceCount + 1` entries. Each adjacent pair bounds a face's slice of `VertexIndexArray`; the final entry is the total face-vertex count. Incremental construction is also available through `AddVertex` and `AddFace`.
 
-Primitives live in [PolyMeshPrimitives](../src/Aardvark.Geometry.PolyMesh/PolyMeshPrimitives.cs), for example `PolyMeshPrimitives.Box(Box3d.Unit, C4b.White)`. For epsilon-based vertex deduplication, see [Clustering](GEOMETRY.md#clustering).
+Primitives live in [PolyMeshPrimitives](../src/Aardvark.Geometry.PolyMesh/PolyMeshPrimitives.cs), for example `PolyMeshPrimitives.Box(Box3d.Unit, C4b.White)`. `UnitQuad()` creates two +Z-wound triangles over `[0,1]²` at Z=0, with direct per-vertex `V2f` texture coordinates `(0,0)`, `(1,0)`, `(0,1)`, `(1,1)` matching vertex XY positions. These four values belong to `VertexAttributes[PolyMesh.Property.DiffuseColorCoordinates]`, not the six-corner domain, and are retained by `GetIndexedGeometry`. For epsilon-based vertex deduplication, see [Clustering](GEOMETRY.md#clustering).
 
 ## Attributes
 
