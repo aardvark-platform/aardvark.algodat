@@ -1,3 +1,5 @@
+- [PolyMesh] Exclude inactive index-buffer capacity from simple triangulation of triangle-only meshes, preserving backing-array sharing for exact-size buffers.
+
 ### 5.6.4
 - stable release
 

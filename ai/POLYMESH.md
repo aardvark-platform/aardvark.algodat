@@ -49,6 +49,7 @@ Without a negative-key entry, the positive-key array holds direct values instead
 | Operation | Contract |
 |-----------|----------|
 | `TriangulatedCopy()` | Returns a triangulated mesh; `FaceVertexCountRange.Max > 3` identifies faces needing subdivision |
+| `CreateSimpleTriangleVertexIndexArray()` | Creates first-corner triangle fans for convex faces. Triangle-only input returns the backing array only when its length equals `VertexIndexCount`; otherwise returns a copy of the active prefix, excluding spare capacity. The static overload follows the supplied active count; neither overload modifies source arrays |
 | `SubSetOfFaces(indices, compactVertices)` | `true` removes unused vertices and reindexes them; `false` preserves vertex indices. Neither compacts indexed attribute value arrays |
 | `Transformed(trafo)` | Transforms positions and normals; do not assume custom or cached derived attributes are recomputed |
 | `WithoutDegeneratedEdges()` | Removes consecutive duplicate vertex indices; may leave degenerate faces |
