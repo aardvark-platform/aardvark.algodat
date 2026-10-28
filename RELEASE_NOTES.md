@@ -1,3 +1,5 @@
+- [PolyMesh] Prevent out-of-range angle roundoff from producing NaN tangents and contaminating shared tangent contributions on thin triangles.
+
 ### 5.6.4
 - stable release
 

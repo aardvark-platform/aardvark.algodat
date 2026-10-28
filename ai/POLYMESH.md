@@ -44,6 +44,8 @@ mesh.FaceVertexAttributes[-uv] = new[]
 
 Without a negative-key entry, the positive-key array holds direct values instead. The same convention applies to indexed normals and custom attributes.
 
+`AddPerVertexTangents` and `AddPerFaceVertexTangents` clamp normalized edge-dot products to `[-1,1]` before computing angle weights, preventing roundoff-induced NaNs from contaminating valid shared tangent contributions. Existing UV-determinant/short-edge guards, accumulation, normalization, corner-sharing maps and optional output names remain unchanged. This protection does not replace the existing normalization behavior for degenerate or zero-contribution tangent slots.
+
 ## Operations
 
 | Operation | Contract |

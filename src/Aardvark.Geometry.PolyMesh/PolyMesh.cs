@@ -4044,6 +4044,8 @@ namespace Aardvark.Geometry
 
         /// <summary>
         /// Add tangents in u- and v direction <see href="http://www.3dkingdoms.com/weekly/weekly.php?a=37"/>.
+        /// Angle cosines are clamped to [-1,1] against roundoff. Degenerate-input
+        /// guards and zero-contribution normalization are unchanged.
         /// </summary>
         public void AddPerVertexTangents(
                 Symbol coordinateName,
@@ -4085,9 +4087,9 @@ namespace Aardvark.Geometry
                             && v20len > Constant<double>.PositiveTinyValue
                             && v21len > Constant<double>.PositiveTinyValue)
                         {
-                            alpha0 = Fun.Acos(Vec.Dot(v10, v20) / (v10len * v20len));
-                            alpha1 = Fun.Acos(-Vec.Dot(v10, v21) / (v10len * v21len));
-                            alpha2 = Fun.Acos(Vec.Dot(v20, v21) / (v20len * v21len));
+                            alpha0 = Fun.Acos((Vec.Dot(v10, v20) / (v10len * v20len)).Clamp(-1.0, 1.0));
+                            alpha1 = Fun.Acos((-Vec.Dot(v10, v21) / (v10len * v21len)).Clamp(-1.0, 1.0));
+                            alpha2 = Fun.Acos((Vec.Dot(v20, v21) / (v20len * v21len)).Clamp(-1.0, 1.0));
                         }
                     }
 
@@ -4115,6 +4117,8 @@ namespace Aardvark.Geometry
 
         /// <summary>
         /// Add tangents in u- and v direction <see href="http://www.3dkingdoms.com/weekly/weekly.php?a=37"/>.
+        /// Angle cosines are clamped to [-1,1] against roundoff. Degenerate-input
+        /// guards and zero-contribution normalization are unchanged.
         /// </summary>
         public void AddPerFaceVertexTangents(
                 Symbol coordinateName,
@@ -4170,9 +4174,9 @@ namespace Aardvark.Geometry
                             && v20len > Constant<double>.PositiveTinyValue
                             && v21len > Constant<double>.PositiveTinyValue)
                         {
-                            alpha0 = Fun.Acos(Vec.Dot(v10, v20) / (v10len * v20len));
-                            alpha1 = Fun.Acos(-Vec.Dot(v10, v21) / (v10len * v21len));
-                            alpha2 = Fun.Acos(Vec.Dot(v20, v21) / (v20len * v21len));
+                            alpha0 = Fun.Acos((Vec.Dot(v10, v20) / (v10len * v20len)).Clamp(-1.0, 1.0));
+                            alpha1 = Fun.Acos((-Vec.Dot(v10, v21) / (v10len * v21len)).Clamp(-1.0, 1.0));
+                            alpha2 = Fun.Acos((Vec.Dot(v20, v21) / (v20len * v21len)).Clamp(-1.0, 1.0));
                         }
                     }
 
