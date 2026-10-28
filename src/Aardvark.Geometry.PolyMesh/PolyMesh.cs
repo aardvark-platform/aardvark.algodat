@@ -1350,7 +1350,9 @@ namespace Aardvark.Geometry
         /// <summary>
         /// Create a vertex index array for a simple triangulation based
         /// on the first vertex of each polygon. This obviously only works
-        /// for convex polygons.
+        /// for convex polygons. For triangle-only meshes, returns the backing array
+        /// if its length equals VertexIndexCount; otherwise copies only the active
+        /// prefix. Spare capacity is not returned, and the source is not modified.
         /// </summary>
         public int[] CreateSimpleTriangleVertexIndexArray()
         {
@@ -1359,13 +1361,19 @@ namespace Aardvark.Geometry
                         m_faceCount, m_vertexIndexCount, m_faceVertexCountRange);
         }
 
+        /// <summary>
+        /// Creates triangle fans for convex faces. Triangle-only input returns the
+        /// backing array when its length equals <paramref name="vertexIndexCount"/>;
+        /// otherwise only that active prefix is copied. Source arrays are not modified.
+        /// </summary>
         public static int[] CreateSimpleTriangleVertexIndexArray(
                 int[] firstIndexArray, int[] vertexIndexArray,
                 int faceCount, int vertexIndexCount, Range1i faceVertexCountRange)
         {
             var via = vertexIndexArray;
             if (faceVertexCountRange.Min == 3
-                && faceVertexCountRange.Max == 3) return via;
+                && faceVertexCountRange.Max == 3)
+                return via.Length == vertexIndexCount ? via : via.Copy(vertexIndexCount);
             int tc = vertexIndexCount - 2 * faceCount;
             var tvia = new int[3 * tc];
             var fia = firstIndexArray;
