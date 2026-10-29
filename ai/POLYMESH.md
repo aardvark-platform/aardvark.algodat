@@ -49,6 +49,7 @@ Without a negative-key entry, the positive-key array holds direct values instead
 | Operation | Contract |
 |-----------|----------|
 | `TriangulatedCopy()` | Returns a triangulated mesh; `FaceVertexCountRange.Max > 3` identifies faces needing subdivision |
+| `AddPerFaceNormals()` / `WithPerFaceNormals()` | Generate normals from each face's own corner interval. Faces with fewer than three corners get zero normals and join existing zero-normal warnings without reading their corner indices. The copying overload preserves existing normals when present |
 | `SubSetOfFaces(indices, compactVertices)` | `true` removes unused vertices and reindexes them; `false` preserves vertex indices. Neither compacts indexed attribute value arrays |
 | `Transformed(trafo)` | Transforms positions and normals; do not assume custom or cached derived attributes are recomputed |
 | `WithoutDegeneratedEdges()` | Removes consecutive duplicate vertex indices; may leave degenerate faces |

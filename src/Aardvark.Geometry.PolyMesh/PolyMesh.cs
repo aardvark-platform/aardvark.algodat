@@ -3815,7 +3815,9 @@ namespace Aardvark.Geometry
         }
 
         /// <summary>
-        /// Adds double precision normals for all triangles of the mesh.
+        /// Computes double precision normals from each face's own corner interval.
+        /// Faces with fewer than three corners retain zero normals and are counted
+        /// under the zero-normal warning policy without reading their corner indices.
         /// </summary>
         internal V3d[] ComputeFaceNormalArray(bool warn = true)
         {
@@ -3833,11 +3835,17 @@ namespace Aardvark.Geometry
             { 
                 var zeroCount = 0;
                 var nanCount = 0;
-                for (int fvi = fia[0], fi = 0; fi < faceCount; fi++)
+                for (int fi = 0; fi < faceCount; fi++)
                 {
+                    int fvi = fia[fi], fve = fia[fi + 1];
+                    if (fve - fvi < 3)
+                    {
+                        ++zeroCount;
+                        continue;
+                    }
                     V3d p0 = pa[via[fvi++]], e0 = pa[via[fvi++]] - p0;
                     var normal = V3d.Zero;
-                    for (int fve = fia[fi + 1]; fvi < fve; fvi++)
+                    for (; fvi < fve; fvi++)
                     {
                         var e1 = pa[via[fvi]] - p0;
                         normal += Vec.Cross(e0, e1);
@@ -3873,7 +3881,9 @@ namespace Aardvark.Geometry
             => AddPerVertexIndexedNormals(creaseAngle, Int32.MaxValue);
 
         /// <summary>
-        /// Returns a new PolyMesh with normals per face.
+        /// Returns a new PolyMesh with normals per face, retaining existing normals.
+        /// When generated, faces with fewer than three corners have zero normals
+        /// and are reported with other zero-normal faces.
         /// </summary>
         /// <returns>Mesh with FaceNormals</returns>
         public PolyMesh WithPerFaceNormals()
@@ -3886,6 +3896,8 @@ namespace Aardvark.Geometry
 
         /// <summary>
         /// Computes face normals and adds the attribute array to the mesh.
+        /// Faces with fewer than three corners have zero normals and are reported
+        /// with other zero-normal faces, without affecting following faces.
         /// </summary>
         public void AddPerFaceNormals()
         {
