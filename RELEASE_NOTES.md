@@ -1,3 +1,5 @@
+- [PolyMesh] Generate zero normals for faces with fewer than three corners without throwing or corrupting following face normals, preserving valid neighboring faces during degenerate-face cleanup.
+
 ### 5.6.4
 - stable release
 
