@@ -21,10 +21,16 @@ namespace Aardvark.Geometry.Points;
 /// </summary>
 public static partial class Queries
 {
+    private static bool IsOutsideClosedBox(Box3d query, Box3d bounds)
+        => bounds.Max.X < query.Min.X || bounds.Min.X > query.Max.X
+        || bounds.Max.Y < query.Min.Y || bounds.Min.Y > query.Max.Y
+        || bounds.Max.Z < query.Min.Z || bounds.Min.Z > query.Max.Z;
+
     #region Query points
 
     /// <summary>
     /// All points inside axis-aligned box (including boundary).
+    /// Bounds are pruned only when strictly separated from the closed query box.
     /// </summary>
     public static IEnumerable<Chunk> QueryPointsInsideBox(
         this PointSet self, Box3d query, int minCellExponent = int.MinValue
@@ -33,13 +39,14 @@ public static partial class Queries
 
     /// <summary>
     /// All points inside axis-aligned box (including boundary).
+    /// Exact bounds touching a face, edge or corner are not pruned.
     /// </summary>
     public static IEnumerable<Chunk> QueryPointsInsideBox(
         this IPointCloudNode self, Box3d query, int minCellExponent = int.MinValue
         )
         => QueryPoints(self,
             n => query.Contains(n.BoundingBoxExactGlobal),
-            n => !query.Intersects(n.BoundingBoxExactGlobal),
+            n => IsOutsideClosedBox(query, n.BoundingBoxExactGlobal),
             p => query.Contains(p),
             minCellExponent);
 
@@ -68,7 +75,7 @@ public static partial class Queries
     #region Count exact
 
     /// <summary>
-    /// Counts points inside axis-aligned box.
+    /// Counts points inside the closed axis-aligned box, including boundary contacts.
     /// </summary>
     public static long CountPointsInsideBox(
         this PointSet self, Box3d query, int minCellExponent = int.MinValue
@@ -76,14 +83,15 @@ public static partial class Queries
         => CountPointsInsideBox(self.Root.Value, query, minCellExponent);
 
     /// <summary>
-    /// Counts points inside axis-aligned box.
+    /// Counts points inside the closed axis-aligned box.
+    /// Exact bounds are pruned only when strictly separated.
     /// </summary>
     public static long CountPointsInsideBox(
         this IPointCloudNode self, Box3d query, int minCellExponent = int.MinValue
         )
         => CountPoints(self,
             n => query.Contains(n.BoundingBoxExactGlobal),
-            n => !query.Intersects(n.BoundingBoxExactGlobal),
+            n => IsOutsideClosedBox(query, n.BoundingBoxExactGlobal),
             p => query.Contains(p),
             minCellExponent);
 
@@ -112,8 +120,8 @@ public static partial class Queries
     #region Count approximately
 
     /// <summary>
-    /// Counts points approximately inside axis-aligned box (cell granularity).
-    /// Result is always equal or greater than exact number.
+    /// Counts points approximately inside the closed axis-aligned box (cell granularity).
+    /// Touching bounds are retained; result is always equal or greater than exact number.
     /// Faster than CountPointsInsideBox.
     /// </summary>
     public static long CountPointsApproximatelyInsideBox(
@@ -122,7 +130,8 @@ public static partial class Queries
         => CountPointsApproximatelyInsideBox(self.Root.Value, query, minCellExponent);
 
     /// <summary>
-    /// Counts points approximately inside axis-aligned box (cell granularity).
+    /// Counts points approximately inside the closed axis-aligned box (cell granularity).
+    /// Exact bounds are pruned only when strictly separated.
     /// Result is always equal or greater than exact number.
     /// Faster than CountPointsInsideBox.
     /// </summary>
@@ -131,7 +140,7 @@ public static partial class Queries
         )
         => CountPointsApproximately(self,
             n => query.Contains(n.BoundingBoxExactGlobal),
-            n => !query.Intersects(n.BoundingBoxExactGlobal),
+            n => IsOutsideClosedBox(query, n.BoundingBoxExactGlobal),
             minCellExponent);
 
     /// <summary>

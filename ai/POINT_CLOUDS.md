@@ -55,7 +55,7 @@ foreach (var result in pointSet.QueryPointsInsideBox(box))
 long count = pointSet.CountPointsInsideBox(box);
 ```
 
-Box queries include the boundary. The default visits full-resolution data; `minCellExponent` can stop traversal at a coarser level. Count queries avoid returning point lists but still load node data. See [Queries](../src/Aardvark.Geometry.PointSet/Queries) for nearest-point, polygon, and frustum queries.
+Inside-box queries include the boundary: pruning rejects node bounds only when strictly separated from the closed query box, without tolerance inflation. Touching faces, edges and corners remain eligible for containment checks, including degenerate bounds. This applies to enumeration and exact/approximate counts, and to XY enumeration/existence; XY enumeration/existence retain their cell bounds, while counts retain exact bounds. The default visits full-resolution data; `minCellExponent` can stop traversal at a coarser level. Count queries avoid returning point lists but still load node data. See [Queries](../src/Aardvark.Geometry.PointSet/Queries) for nearest-point, polygon, and frustum queries.
 
 ## Node Contracts
 

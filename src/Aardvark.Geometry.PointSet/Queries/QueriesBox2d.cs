@@ -21,10 +21,15 @@ namespace Aardvark.Geometry.Points;
 /// </summary>
 public static partial class Queries
 {
+    private static bool IsOutsideClosedBox(Box2d query, Box2d bounds)
+        => bounds.Max.X < query.Min.X || bounds.Min.X > query.Max.X
+        || bounds.Max.Y < query.Min.Y || bounds.Min.Y > query.Max.Y;
+
     #region Query points
 
     /// <summary>
     /// All points p.XY inside axis-aligned box (including boundary).
+    /// Bounds are pruned only when strictly separated from the closed query box.
     /// </summary>
     public static IEnumerable<Chunk> QueryPointsInsideBoxXY(
         this PointSet self, Box2d query, int minCellExponent = int.MinValue
@@ -33,25 +38,27 @@ public static partial class Queries
 
     /// <summary>
     /// All points p.XY inside axis-aligned box (including boundary).
+    /// Cell bounds touching the closed query box are not pruned.
     /// </summary>
     public static IEnumerable<Chunk> QueryPointsInsideBoxXY(
         this IPointCloudNode self, Box2d query, int minCellExponent = int.MinValue
         )
         => QueryPoints(self,
             n => query.Contains(n.Cell.BoundingBox.XY),
-            n => !query.Intersects(n.Cell.BoundingBox.XY),
+            n => IsOutsideClosedBox(query, n.Cell.BoundingBox.XY),
             p => query.Contains(p.XY),
             minCellExponent);
 
     /// <summary>
-    /// All points p.XY inside axis-aligned box (including boundary).
+    /// Tests whether points p.XY lie inside the closed axis-aligned box.
+    /// Cell bounds are pruned only when strictly separated.
     /// </summary>
     public static bool QueryContainsPointsInsideBoxXY(
         this IPointCloudNode self, Box2d query, int minCellExponent = int.MinValue
         )
         => QueryContainsPoints(self,
             n => query.Contains(n.Cell.BoundingBox.XY),
-            n => !query.Intersects(n.Cell.BoundingBox.XY),
+            n => IsOutsideClosedBox(query, n.Cell.BoundingBox.XY),
             p => query.Contains(p.XY),
             minCellExponent);
 
@@ -80,7 +87,7 @@ public static partial class Queries
     #region Count exact
 
     /// <summary>
-    /// Counts points p.XY inside axis-aligned box.
+    /// Counts points p.XY inside the closed axis-aligned box, including boundary contacts.
     /// </summary>
     public static long CountPointsInsideBoxXY(
         this PointSet self, Box2d query, int minCellExponent = int.MinValue
@@ -88,14 +95,15 @@ public static partial class Queries
         => CountPointsInsideBoxXY(self.Root.Value, query, minCellExponent);
 
     /// <summary>
-    /// Counts points p.XY inside axis-aligned box.
+    /// Counts points p.XY inside the closed axis-aligned box.
+    /// Exact bounds are pruned only when strictly separated.
     /// </summary>
     public static long CountPointsInsideBoxXY(
         this IPointCloudNode self, Box2d query, int minCellExponent = int.MinValue
         )
         => CountPoints(self,
             n => query.Contains(n.BoundingBoxExactGlobal.XY),
-            n => !query.Intersects(n.BoundingBoxExactGlobal.XY),
+            n => IsOutsideClosedBox(query, n.BoundingBoxExactGlobal.XY),
             p => query.Contains(p.XY),
             minCellExponent);
 
@@ -124,8 +132,8 @@ public static partial class Queries
     #region Count approximately
 
     /// <summary>
-    /// Counts points p.XY approximately inside axis-aligned box (cell granularity).
-    /// Result is always equal or greater than exact number.
+    /// Counts points p.XY approximately inside the closed axis-aligned box (cell granularity).
+    /// Touching bounds are retained; result is always equal or greater than exact number.
     /// Faster than CountPointsInsideBoxXY.
     /// </summary>
     public static long CountPointsApproximatelyInsideBoxXY(
@@ -134,7 +142,8 @@ public static partial class Queries
         => CountPointsApproximatelyInsideBoxXY(self.Root.Value, query, minCellExponent);
 
     /// <summary>
-    /// Counts points p.XY approximately inside axis-aligned box (cell granularity).
+    /// Counts points p.XY approximately inside the closed axis-aligned box (cell granularity).
+    /// Exact bounds are pruned only when strictly separated.
     /// Result is always equal or greater than exact number.
     /// Faster than CountPointsInsideBoxXY.
     /// </summary>
@@ -143,7 +152,7 @@ public static partial class Queries
         )
         => CountPointsApproximately(self,
             n => query.Contains(n.BoundingBoxExactGlobal.XY),
-            n => !query.Intersects(n.BoundingBoxExactGlobal.XY),
+            n => IsOutsideClosedBox(query, n.BoundingBoxExactGlobal.XY),
             minCellExponent);
 
     /// <summary>
