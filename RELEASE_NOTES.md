@@ -1,3 +1,5 @@
+- [PointSet] Retain boundary points in inside-box queries and exact/approximate counts, including XY queries, when node bounds touch query faces, edges or corners.
+
 ### 5.6.4
 - stable release
 
