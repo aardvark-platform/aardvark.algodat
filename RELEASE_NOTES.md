@@ -1,3 +1,5 @@
+- [PolyMesh] Omit all normal and tangent attributes from boxes created with `createNormals: false`, instead of exposing an invalid integer U-tangent attribute in mesh exports.
+
 ### 5.6.4
 - stable release
 

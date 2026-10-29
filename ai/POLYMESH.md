@@ -19,7 +19,7 @@ var mesh = new PolyMesh
 
 `FirstIndexArray` has `FaceCount + 1` entries. Each adjacent pair bounds a face's slice of `VertexIndexArray`; the final entry is the total face-vertex count. Incremental construction is also available through `AddVertex` and `AddFace`.
 
-Primitives live in [PolyMeshPrimitives](../src/Aardvark.Geometry.PolyMesh/PolyMeshPrimitives.cs), for example `PolyMeshPrimitives.Box(Box3d.Unit, C4b.White)`. For epsilon-based vertex deduplication, see [Clustering](GEOMETRY.md#clustering).
+Primitives live in [PolyMeshPrimitives](../src/Aardvark.Geometry.PolyMesh/PolyMeshPrimitives.cs), for example `PolyMeshPrimitives.Box(Box3d.Unit, C4b.White)`. Box overloads with `createNormals: false` omit normals, tangents and binormals; positions, indexed UVs and colors remain available, including in indexed exports. Overloads without the flag include all three shading attributes. For epsilon-based vertex deduplication, see [Clustering](GEOMETRY.md#clustering).
 
 ## Attributes
 
