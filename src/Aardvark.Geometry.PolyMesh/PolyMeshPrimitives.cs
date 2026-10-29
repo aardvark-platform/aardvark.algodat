@@ -1128,17 +1128,17 @@ namespace Aardvark.Geometry
         public static PolyMesh Box(Box3f box, C4f color) => Box((Box3d)box, color, true);
 
         /// <summary>
-        /// Returns a right-handed box
-        /// with normals, tangents, binormals and texture coordinates
-        /// and given color.
+        /// Returns a right-handed box with texture coordinates and the given color.
+        /// Normals, tangents and binormals are included only when
+        /// <paramref name="createNormals"/> is true.
         /// </summary>
         public static PolyMesh Box(Box3f box, C4b color, bool createNormals)
             => Box((Box3d)box, color, createNormals);
 
         /// <summary>
-        /// Returns a right-handed box
-        /// with normals, tangents, binormals and texture coordinates
-        /// and given color.
+        /// Returns a right-handed box with texture coordinates and the given color.
+        /// Normals, tangents and binormals are included only when
+        /// <paramref name="createNormals"/> is true.
         /// </summary>
         public static PolyMesh Box(Box3d box, C4f color, bool createNormals)
         {
@@ -1149,17 +1149,17 @@ namespace Aardvark.Geometry
         }
 
         /// <summary>
-        /// Returns a right-handed  box 
-        /// with normals, tangents, binormals and texture coordinates
-        /// and given color.
+        /// Returns a right-handed box with texture coordinates and the given color.
+        /// Normals, tangents and binormals are included only when
+        /// <paramref name="createNormals"/> is true.
         /// </summary>
         public static PolyMesh Box(Box3f box, C4f color, bool createNormals)
             => Box((Box3d)box, color, createNormals);
 
         /// <summary>
-        /// Returns a right-handed  box 
-        /// with normals, tangents, binormals and texture coordinates
-        /// and given color.
+        /// Returns a right-handed box with texture coordinates and the given color.
+        /// Normals, tangents and binormals are included only when
+        /// <paramref name="createNormals"/> is true.
         /// </summary>
         public static PolyMesh Box(Box3d box, C4b color, bool createNormals)
         {
@@ -1206,9 +1206,6 @@ namespace Aardvark.Geometry
                 new int[24].SetByIndex(i => i % 4);
             faceVertexAttributes[-PolyMesh.Property.DiffuseColorCoordinates] =
                 new[] { V2d.OI, V2d.II, V2d.IO, V2d.OO };
-            faceVertexAttributes[PolyMesh.Property.DiffuseColorUTangents] =
-                new int[24].SetByIndex(i => i);
-
             // Normals
             if (createNormals)
             {
@@ -1238,7 +1235,7 @@ namespace Aardvark.Geometry
                     PolyMesh.Property.DiffuseColorCoordinates,
                     PolyMesh.Property.DiffuseColorUTangents,
                     PolyMesh.Property.DiffuseColorVTangents,
-                    faceVertexAttributes[PolyMesh.Property.DiffuseColorUTangents].ToArrayOfT<int>(), 24);
+                    new int[24].SetByIndex(i => i), 24);
 
             return pmesh;
         }
