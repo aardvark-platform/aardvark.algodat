@@ -57,6 +57,8 @@ long count = pointSet.CountPointsInsideBox(box);
 
 Box queries include the boundary. The default visits full-resolution data; `minCellExponent` can stop traversal at a coarser level. Count queries avoid returning point lists but still load node data. See [Queries](../src/Aardvark.Geometry.PointSet/Queries) for nearest-point, polygon, and frustum queries.
 
+`QueryPointsNearRay` and `QueryPointsNearRayCustom` expand the root's exact bounds by the query radius before clipping the unbounded ray to a segment. This retains nearby points for rays missing the exact bounds and avoids truncating endpoint candidates. Direction normalization, LoD cutoff and attribute forwarding are unchanged; segment traversal and bounded-ray overloads retain their existing behavior.
+
 ## Node Contracts
 
 - `Positions.Value` is a `V3f[]` relative to `node.Center`; `PositionsAbsolute` returns global `V3d[]` coordinates.

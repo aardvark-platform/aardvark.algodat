@@ -1,3 +1,5 @@
+- [PointSet] Retain nearby points in unbounded standard/custom ray queries when the ray misses the exact cloud bounds or clips too tightly at their endpoints.
+
 ### 5.6.4
 - stable release
 
