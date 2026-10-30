@@ -27,6 +27,8 @@ public static partial class Queries
 {
     /// <summary>
     /// Points within given distance of a ray.
+    /// Root bounds are expanded by the query radius before clipping, retaining
+    /// nearby points when the ray misses the exact bounds or their endpoints.
     /// </summary>
     public static IEnumerable<Chunk> QueryPointsNearRay(
         this PointSet self, Ray3d ray, double maxDistanceToRay, int minCellExponent = int.MinValue
@@ -34,7 +36,7 @@ public static partial class Queries
     {
         ray.Direction = ray.Direction.Normalized;
         var data = self.Root.Value;
-        var bbox = data.BoundingBoxExactGlobal;
+        var bbox = data.BoundingBoxExactGlobal.EnlargedBy(maxDistanceToRay);
 
         var line = Clip(bbox, ray);
         if (!line.HasValue) return [];
@@ -43,7 +45,8 @@ public static partial class Queries
     }
 
     /// <summary>
-    /// Points within given distance of a ray.
+    /// Points within given distance of a ray, including requested custom attributes.
+    /// Uses radius-expanded root bounds for clipping.
     /// </summary>
     public static IEnumerable<GenericChunk> QueryPointsNearRayCustom(
         this PointSet self, Ray3d ray, double maxDistanceToRay, params Durable.Def[] customAttributes
@@ -51,7 +54,9 @@ public static partial class Queries
         => QueryPointsNearRayCustom(self, ray, maxDistanceToRay, int.MinValue, customAttributes);
 
     /// <summary>
-    /// Points within given distance of a ray.
+    /// Points within given distance of a ray, including requested custom attributes.
+    /// Root bounds are expanded by the query radius before clipping, retaining
+    /// nearby points when the ray misses the exact bounds or their endpoints.
     /// </summary>
     public static IEnumerable<GenericChunk> QueryPointsNearRayCustom(
         this PointSet self, Ray3d ray, double maxDistanceToRay, int minCellExponent, params Durable.Def[] customAttributes
@@ -59,7 +64,7 @@ public static partial class Queries
     {
         ray.Direction = ray.Direction.Normalized;
         var data = self.Root.Value;
-        var bbox = data.BoundingBoxExactGlobal;
+        var bbox = data.BoundingBoxExactGlobal.EnlargedBy(maxDistanceToRay);
 
         var line = Clip(bbox, ray);
         if (!line.HasValue) return [];
