@@ -92,6 +92,7 @@ The parser supports ASCII and both binary byte orders. The point importer reads 
 - Position channels: `x`, `y`, `z`; normal channels: `nx`, `ny`, `nz`.
 - Colors: `red`, `green`, `blue`, `alpha`; float colors are scaled from [0,1], and missing alpha defaults to 255 when colors exist.
 - Intensity: `scalar_intensity` or `intensity`; classification: `scalar_classification` or `classification`.
+- Empty vertex batches yield an empty chunk, retaining empty arrays for present optional attributes, including floating-point and wide-integer intensities. Intensity conversion skips extrema and rescaling for these empty batches; nonempty batches retain their existing conversion rules.
 - Intensity conversion depends on source type. Up to signed 32-bit integer values are retained; unsigned 32-bit, 64-bit, and floating-point values use per-batch rescaling to [0,255] when outside that range. This may lose precision and comparability between batches. Use `PlyParser.Parse` directly when raw values matter.
 
 ## Related
