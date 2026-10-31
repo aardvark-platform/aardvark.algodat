@@ -73,7 +73,8 @@ namespace Aardvark.Data.Points.Import
             => Chunks(data, ParseConfig.Default);
 
         /// <summary>
-        /// Parses Ply.Net dataset.
+        /// Parses Ply.Net dataset. Empty vertex batches yield empty chunks,
+        /// retaining an empty intensity array when the property is present.
         /// </summary>
         public static IEnumerable<Chunk> Chunks(this PlyParser.Dataset data, ParseConfig config)
         {
@@ -214,6 +215,7 @@ namespace Aardvark.Data.Points.Import
 
                     void rescale<T>(Func<T, double> toDouble)
                     {
+                        if (count == 0) return;
                         var xs = ((T[])o).Map(toDouble);
                         var min = xs.Min();
                         var max = xs.Max();

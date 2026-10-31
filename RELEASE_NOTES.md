@@ -1,3 +1,5 @@
+- [PLY] Accept empty vertex batches with floating-point or wide-integer intensities, preserving the empty chunk and its intensity attribute instead of throwing.
+
 ### 5.6.4
 - stable release
 

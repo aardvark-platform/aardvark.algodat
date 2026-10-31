@@ -17,8 +17,15 @@ using Aardvark.Geometry.Points;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
+using Ply.Net;
+using PlyImport = Aardvark.Data.Points.Import.Ply;
+using PlyType = Ply.Net.PlyParser.DataType;
 
 namespace Aardvark.Geometry.Tests
 {
@@ -1103,6 +1110,196 @@ namespace Aardvark.Geometry.Tests
         #endregion
 
         #region PLY
+
+        private static readonly PlyType[] RescaledPlyIntensityTypes = { PlyType.UInt32, PlyType.Int64, PlyType.UInt64, PlyType.Float32, PlyType.Float64 };
+        private static readonly PlyType[] NarrowPlyIntensityTypes = { PlyType.Int8, PlyType.UInt8, PlyType.Int16, PlyType.UInt16, PlyType.Int32 };
+
+        [Test]
+        public void EmptyPlyAsciiStreamsKeepRescaledIntensityAndOptionalAttributeShape()
+        {
+            foreach (var type in RescaledPlyIntensityTypes)
+            foreach (var name in new[] { "intensity", "scalar_intensity" })
+            foreach (var newline in new[] { "\n", "\r\n" })
+            foreach (var attributes in new[] { false, true })
+            foreach (var parts in new[] { false, true })
+            {
+                var data = PlyIntensityDataset(type, name, PlyIntensityValues(type, Array.Empty<double>()), attributes);
+                CheckPlyIntensityConversion(data, Array.Empty<int>(), attributes, PlyIntensityConfig(parts), newline, $"empty ASCII type={type}, name={name}, CRLF={newline.Length == 2}, attrs={attributes}, parts={parts}");
+            }
+        }
+
+        [Test]
+        public void EmptyPlyDatasetsKeepRescaledIntensityBatchesAndPropertyPrecedence()
+        {
+            foreach (var type in RescaledPlyIntensityTypes)
+            foreach (var name in new[] { "intensity", "scalar_intensity" })
+            foreach (var attributes in new[] { false, true })
+            foreach (var parts in new[] { false, true })
+            {
+                var empty = PlyIntensityDataset(type, name, PlyIntensityValues(type, Array.Empty<double>()), attributes);
+                var config = PlyIntensityConfig(parts); var context = $"empty dataset type={type}, name={name}, attrs={attributes}, parts={parts}";
+                CheckPlyIntensityConversion(empty, Array.Empty<int>(), attributes, config, null, context);
+                CheckPlyIntensityChunk(PlyImport.Chunks(empty).Single(), Array.Empty<int>(), attributes, ParseConfig.Default, 0, context + " default forwarding");
+                var full = PlyIntensityDataset(type, name, PlyIntensityValues(type, new double[] { 1024, 2048, 3072 }), attributes);
+                var face = new PlyParser.ElementData(new PlyParser.Element(PlyParser.ElementType.Face, "face", 0, ImmutableList<PlyParser.Property>.Empty), ImmutableList<PlyParser.PropertyData>.Empty);
+                var mixed = new PlyParser.Dataset(full.Header, new[] { face, empty.Data.Single(), full.Data.Single(), empty.Data.Single(), face });
+                var chunks = PlyImport.Chunks(mixed, config).ToArray();
+                Assert.That(chunks.Length, Is.EqualTo(3), context + " retain both empty batches and skip faces");
+                CheckPlyIntensityChunk(chunks[0], Array.Empty<int>(), attributes, config, 0, context);
+                CheckPlyIntensityChunk(chunks[1], new[] { 0, 127, 255 }, attributes, config, 3, context);
+                CheckPlyIntensityChunk(chunks[2], Array.Empty<int>(), attributes, config, 0, context);
+            }
+            foreach (var type in RescaledPlyIntensityTypes)
+            foreach (var reverse in new[] { false, true })
+            {
+                var data = PlyIntensityDataset(type, "scalar_intensity", PlyIntensityValues(type, Array.Empty<double>()), true, bothNames: true);
+                if (reverse) data = data with { Data = data.Data.Select(d => d with { Data = d.Data.Reverse().ToImmutableList() }).ToArray() };
+                CheckPlyIntensityConversion(data, Array.Empty<int>(), true, PlyIntensityConfig(true), null, $"empty scalar precedence type={type}, reverse={reverse}");
+            }
+        }
+
+        [Test]
+        public void EmptyPlyNarrowIntegerAndMissingIntensityControlsKeepExistingOutput()
+        {
+            foreach (var type in NarrowPlyIntensityTypes.Append(PlyType.Undefined))
+            foreach (var name in type == PlyType.Undefined ? new string[] { null } : new[] { "intensity", "scalar_intensity" })
+            foreach (var attributes in new[] { false, true })
+            foreach (var parts in new[] { false, true })
+            foreach (var newline in new string[] { null, "\n", "\r\n" })
+            {
+                var data = PlyIntensityDataset(type, name, type == PlyType.Undefined ? Array.Empty<int>() : PlyIntensityValues(type, Array.Empty<double>()), attributes);
+                CheckPlyIntensityConversion(data, name == null ? null : Array.Empty<int>(), attributes, PlyIntensityConfig(parts), newline, $"empty control type={type}, name={name}, attrs={attributes}, parts={parts}, newline={newline?.Length}");
+            }
+        }
+
+        [Test]
+        public void NonemptyPlyIntensitiesKeepPassthroughConstantsRangeScalingAndScalarPrecedence()
+        {
+            foreach (var item in PlyIntensityControlCases())
+            foreach (var name in new[] { "intensity", "scalar_intensity" })
+            foreach (var parts in new[] { false, true })
+            foreach (var newline in new string[] { null, "\n", "\r\n" })
+            {
+                var data = PlyIntensityDataset(item.Type, name, item.Values, true);
+                CheckPlyIntensityConversion(data, item.Expected, true, PlyIntensityConfig(parts), newline, $"nonempty {item.Scenario}, type={item.Type}, name={name}, parts={parts}, newline={newline?.Length}");
+            }
+            foreach (var type in RescaledPlyIntensityTypes)
+            foreach (var reverse in new[] { false, true })
+            foreach (var newline in new string[] { null, "\n", "\r\n" })
+            {
+                var data = PlyIntensityDataset(type, "scalar_intensity", PlyIntensityValues(type, new double[] { 1024, 2048, 3072 }), true, bothNames: true);
+                if (reverse) data = data with { Data = data.Data.Select(d => d with { Data = d.Data.Reverse().ToImmutableList() }).ToArray() };
+                CheckPlyIntensityConversion(data, new[] { 0, 127, 255 }, true, PlyIntensityConfig(true), newline, $"nonempty scalar precedence type={type}, reverse={reverse}, newline={newline?.Length}");
+            }
+        }
+
+        private static ParseConfig PlyIntensityConfig(bool parts) => ParseConfig.Default.WithEnabledPartIndices(parts).WithPartIndexOffset(31).WithMaxChunkPointCount(1);
+
+        private static Array PlyIntensityValues(PlyType type, double[] values) => type switch {
+            PlyType.Int8 => values.Select(v => (sbyte)v).ToArray(), PlyType.UInt8 => values.Select(v => (byte)v).ToArray(),
+            PlyType.Int16 => values.Select(v => (short)v).ToArray(), PlyType.UInt16 => values.Select(v => (ushort)v).ToArray(),
+            PlyType.Int32 => values.Select(v => (int)v).ToArray(), PlyType.UInt32 => values.Select(v => (uint)v).ToArray(),
+            PlyType.Int64 => values.Select(v => (long)v).ToArray(), PlyType.UInt64 => values.Select(v => (ulong)v).ToArray(),
+            PlyType.Float32 => values.Select(v => (float)v).ToArray(), PlyType.Float64 => values.ToArray(),
+            _ => throw new ArgumentOutOfRangeException(nameof(type))
+        };
+
+        private static IEnumerable<(PlyType Type, Array Values, int[] Expected, string Scenario)> PlyIntensityControlCases()
+        {
+            foreach (var type in RescaledPlyIntensityTypes)
+            {
+                yield return (type, PlyIntensityValues(type, new double[] { 0, 127, 255 }), new[] { 0, 127, 255 }, "passthrough");
+                yield return (type, PlyIntensityValues(type, new double[] { 42, 42, 42 }), new[] { 42, 42, 42 }, "constant-in-range");
+                yield return (type, PlyIntensityValues(type, new double[] { 1024, 1024, 1024 }), new[] { 255, 255, 255 }, "constant-out-of-range");
+                yield return (type, PlyIntensityValues(type, new double[] { 1024, 2048, 3072 }), new[] { 0, 127, 255 }, "range");
+                if (type == PlyType.Float32 || type == PlyType.Float64)
+                    yield return (type, PlyIntensityValues(type, new double[] { 0.25, 127.75, 254.5 }), new[] { 0, 127, 254 }, "fractional truncation");
+                if (type == PlyType.Int64 || type == PlyType.Float32 || type == PlyType.Float64)
+                {
+                    yield return (type, PlyIntensityValues(type, new double[] { -1024, 0, 1024 }), new[] { 0, 127, 255 }, "signed range");
+                    yield return (type, PlyIntensityValues(type, new double[] { -4, -4, -4 }), new[] { 255, 255, 255 }, "negative constant");
+                }
+            }
+            yield return (PlyType.Int8, new sbyte[] { sbyte.MinValue, 0, sbyte.MaxValue }, new[] { -128, 0, 127 }, "narrow signed passthrough");
+            yield return (PlyType.UInt8, new byte[] { 0, 127, 255 }, new[] { 0, 127, 255 }, "narrow byte passthrough");
+            yield return (PlyType.Int16, new short[] { short.MinValue, 0, short.MaxValue }, new[] { -32768, 0, 32767 }, "narrow signed passthrough");
+            yield return (PlyType.UInt16, new ushort[] { 0, 255, ushort.MaxValue }, new[] { 0, 255, 65535 }, "narrow unsigned passthrough");
+            yield return (PlyType.Int32, new int[] { int.MinValue, -17, int.MaxValue }, new[] { int.MinValue, -17, int.MaxValue }, "narrow signed passthrough");
+        }
+
+        private static PlyParser.Dataset PlyIntensityDataset(PlyType type, string name, Array values, bool attributes, bool bothNames = false)
+        {
+            var count = values.Length; var indices = Enumerable.Range(0, count).ToArray(); var data = new List<PlyParser.PropertyData>();
+            void Add(PlyType t, string n, Array a) => data.Add(new PlyParser.PropertyData(new PlyParser.Property(t, n, PlyType.Undefined), a));
+            Add(PlyType.Float64, "x", indices.Select(i => i + 0.25).ToArray());
+            Add(PlyType.Float64, "y", indices.Select(i => -i - 0.5).ToArray());
+            Add(PlyType.Float64, "z", indices.Select(i => i * 0.125).ToArray());
+            if (name != null) Add(type, name, values);
+            if (bothNames) Add(PlyType.Int32, "intensity", indices.Select(i => 17 + i).ToArray());
+            if (attributes)
+            {
+                Add(PlyType.Float32, "red", indices.Select(_ => 0.25f).ToArray());
+                Add(PlyType.UInt8, "green", indices.Select(i => (byte)(17 + i)).ToArray());
+                Add(PlyType.UInt8, "blue", indices.Select(i => (byte)(255 - i)).ToArray());
+                Add(PlyType.Float32, "nx", indices.Select(_ => 1.0f).ToArray());
+                Add(PlyType.Float32, "ny", indices.Select(_ => -2.0f).ToArray());
+                Add(PlyType.Float32, "nz", indices.Select(_ => 0.5f).ToArray());
+                Add(PlyType.UInt8, "classification", indices.Select(i => (byte)(90 + i)).ToArray());
+                Add(PlyType.UInt8, "scalar_classification", indices.Select(i => (byte)(7 + i)).ToArray());
+            }
+            var element = new PlyParser.Element(PlyParser.ElementType.Vertex, "vertex", count, data.Select(d => d.Property).ToImmutableList());
+            var header = new PlyParser.Header(PlyParser.Format.Ascii, ImmutableList.Create(element), ImmutableList<string>.Empty, 0);
+            return new PlyParser.Dataset(header, new[] { new PlyParser.ElementData(element, data.ToImmutableList()) });
+        }
+
+        private static byte[] PlyIntensityAscii(PlyParser.Dataset data, string newline)
+        {
+            var element = data.Data.Single(); var text = new StringBuilder("ply" + newline + "format ascii 1.0" + newline + "element vertex " + element.Element.Count + newline);
+            foreach (var property in element.Data) text.Append("property ").Append(property.Property.DataType.ToString().ToLowerInvariant()).Append(' ').Append(property.Property.Name).Append(newline);
+            text.Append("end_header").Append(newline);
+            for (var i = 0; i < element.Element.Count; i++)
+                text.Append(string.Join(" ", element.Data.Select(d => Convert.ToString(d.Data.GetValue(i), CultureInfo.InvariantCulture)))).Append(newline);
+            return Encoding.ASCII.GetBytes(text.ToString());
+        }
+
+        private static void CheckPlyIntensityConversion(PlyParser.Dataset data, int[] expected, bool attributes, ParseConfig config, string newline, string context)
+        {
+            var source = data.Data.Single().Data; var snapshots = source.Select(p => (Array)p.Data.Clone()).ToArray(); Chunk[] chunks;
+            if (newline == null) chunks = PlyImport.Chunks(data, config).ToArray();
+            else
+            {
+                using var stream = new MemoryStream(PlyIntensityAscii(data, newline));
+                chunks = PlyImport.Chunks(stream, stream.Length, config).ToArray();
+                Assert.That(stream.CanRead, Is.True, context + " caller retains stream ownership");
+            }
+            Assert.That(chunks.Length, Is.EqualTo(1), context + " retain a chunk even for zero vertices");
+            CheckPlyIntensityChunk(chunks[0], expected, attributes, config, source[0].Data.Length, context);
+            Assert.That(data.Data.Single().Data, Is.SameAs(source), context + " source property list");
+            for (var i = 0; i < source.Count; i++) Assert.That(source[i].Data, Is.EqualTo(snapshots[i]), context + $" source property={source[i].Property.Name}");
+        }
+
+        private static void CheckPlyIntensityChunk(Chunk chunk, int[] expected, bool attributes, ParseConfig config, int count, string context)
+        {
+            Assert.That(chunk.Count, Is.EqualTo(count), context);
+            var positions = Enumerable.Range(0, count).Select(i => new V3d(i + 0.25, -i - 0.5, i * 0.125)).ToArray();
+            foreach (var p in positions) Assert.That(p.IsNaN || p.IsInfinity, Is.False, context + " finite expected position");
+            Assert.That(chunk.Positions, Is.EqualTo(positions), context + " positions");
+            Assert.That(chunk.BoundingBox, Is.EqualTo(count == 0 ? Box3d.Invalid : new Box3d(positions)), context + " bounds");
+            Assert.That(chunk.HasIntensities, Is.EqualTo(expected != null), context + " intensity presence");
+            if (expected == null) Assert.That(chunk.Intensities, Is.Null, context);
+            else { Assert.That(chunk.Intensities, Is.TypeOf<int[]>(), context); Assert.That(chunk.Intensities, Is.EqualTo(expected), context + " intensity values"); }
+            Assert.That(chunk.HasColors, Is.EqualTo(attributes), context); Assert.That(chunk.HasNormals, Is.EqualTo(attributes), context); Assert.That(chunk.HasClassifications, Is.EqualTo(attributes), context);
+            if (attributes)
+            {
+                Assert.That(chunk.Colors, Is.EqualTo(Enumerable.Range(0, count).Select(i => new C4b((byte)63, (byte)(17 + i), (byte)(255 - i), (byte)255))), context + " colors/default alpha");
+                Assert.That(chunk.Normals, Is.EqualTo(Enumerable.Range(0, count).Select(_ => new V3f(1, -2, 0.5f))), context + " normals");
+                Assert.That(chunk.Classifications, Is.EqualTo(Enumerable.Range(0, count).Select(i => (byte)(7 + i))), context + " classification precedence");
+            }
+            else { Assert.That(chunk.Colors, Is.Null, context); Assert.That(chunk.Normals, Is.Null, context); Assert.That(chunk.Classifications, Is.Null, context); }
+            Assert.That(chunk.HasPartIndices, Is.EqualTo(config.EnabledProperties.PartIndices), context);
+            Assert.That(chunk.PartIndices, Is.EqualTo(config.EnabledProperties.PartIndices ? (object)config.PartIndexOffset : null), context + " part label");
+            Assert.That(chunk.PartIndexRange, Is.EqualTo(config.EnabledProperties.PartIndices ? (Range1i?)new Range1i(config.PartIndexOffset, config.PartIndexOffset) : null), context + " part range");
+        }
 
         [Test]
         public void CanParsePlyFileInfo()
