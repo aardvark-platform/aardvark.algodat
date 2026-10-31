@@ -247,28 +247,30 @@ public static class IPointCloudNodeExtensions
         => self.BoundingBoxExactGlobal.Intersects(plane, distance);
 
     /// <summary>
-    /// Returns true if this node intersects the positive halfspace defined by given plane.
+    /// Returns true if any exact global bound corner has strictly positive plane height.
+    /// Tests corners in index order without allocating an array; contact alone is excluded.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IntersectsPositiveHalfSpace(this IPointCloudNode self, in Plane3d plane)
     {
-        var corners = self.BoundingBoxExactGlobal.ComputeCorners();
+        var bounds = self.BoundingBoxExactGlobal;
         for (var i = 0; i < 8; i++)
         {
-            if (plane.Height(corners[i]) > 0) return true;
+            if (plane.Height(bounds.Corner(i)) > 0) return true;
         }
         return false;
     }
 
     /// <summary>
-    /// Returns true if this node intersects the negative halfspace defined by given plane.
+    /// Returns true if any exact global bound corner has strictly negative plane height.
+    /// Tests corners in index order without allocating an array; contact alone is excluded.
     /// </summary>
     public static bool IntersectsNegativeHalfSpace(this IPointCloudNode self, in Plane3d plane)
     {
-        var corners = self.BoundingBoxExactGlobal.ComputeCorners();
+        var bounds = self.BoundingBoxExactGlobal;
         for (var i = 0; i < 8; i++)
         {
-            if (plane.Height(corners[i]) < 0) return true;
+            if (plane.Height(bounds.Corner(i)) < 0) return true;
         }
         return false;
     }

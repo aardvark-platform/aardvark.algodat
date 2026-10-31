@@ -760,6 +760,189 @@ namespace Aardvark.Geometry.Tests
 
         #endregion
 
+        #region Half-space corners and hull traversal
+
+        [Test]
+        public void HalfSpaceIntersectionsMatchCornerOracleForTranslatedDegenerateAndTangentBounds()
+        {
+            var boxes = new[] {
+                Box3d.Unit, new Box3d(new V3d(-1), new V3d(1)),
+                new Box3d(new V3d(-4, 2, 7), new V3d(-1, 6, 8)),
+                new Box3d(V3d.Zero, V3d.Zero), new Box3d(new V3d(-0.0, 0, -0.0), new V3d(0, -0.0, 0)),
+                new Box3d(new V3d(-2, 0, 0), new V3d(3, 0, 0)),
+                new Box3d(new V3d(-2, -3, 0), new V3d(4, 5, 0)),
+                new Box3d(new V3d(double.MaxValue * 0.5), new V3d(double.MaxValue))
+            };
+            CheckHalfSpaceCornerOracle(boxes, false);
+            var point = HalfSpaceBoundsNode(new Box3d(new V3d(2, 3, 4), new V3d(2, 3, 4)));
+            var tangent = new Plane3d(V3d.IOO, 2);
+            Assert.That(point.IntersectsPositiveHalfSpace(tangent), Is.False, "point on plane is not strictly positive");
+            Assert.That(point.IntersectsNegativeHalfSpace(tangent), Is.False, "point on plane is not strictly negative");
+            var face = HalfSpaceBoundsNode(Box3d.Unit);
+            Assert.That(face.IntersectsPositiveHalfSpace(new Plane3d(V3d.IOO, 1)), Is.False, "max-face tangency");
+            Assert.That(face.IntersectsNegativeHalfSpace(new Plane3d(V3d.IOO, 0)), Is.False, "min-face tangency");
+        }
+
+        [Test]
+        public void HalfSpaceIntersectionsKeepInvalidAndNonfiniteCornerArithmetic()
+        {
+            var nan = BitConverter.Int64BitsToDouble(unchecked((long)0x7ff8000000000123));
+            var boxes = new[] {
+                Box3d.Invalid, new Box3d(new V3d(3), new V3d(-2)), Box3d.Unit,
+                new Box3d(new V3d(double.NegativeInfinity), new V3d(double.PositiveInfinity)),
+                new Box3d(new V3d(0, -1, -1), new V3d(double.PositiveInfinity, 1, 1)),
+                new Box3d(new V3d(double.NegativeInfinity, 0, 0), new V3d(1, 2, 3)),
+                new Box3d(new V3d(nan, -1, -1), new V3d(1)),
+                new Box3d(new V3d(-1), new V3d(1, nan, 1)),
+                new Box3d(new V3d(nan), new V3d(nan))
+            };
+            CheckHalfSpaceCornerOracle(boxes, true);
+        }
+
+        [Test]
+        public void HullCallbacksAndEnumerationKeepCornerOracleOrderFlagsAndCutoffs()
+        {
+            foreach (var offset in new[] { V3d.Zero, new V3d(4, -2, 8) })
+            {
+                var cloud = CreateHalfSpaceTraversalCloud(offset);
+                using var storage = cloud.Storage;
+                var root = cloud.Root.Value;
+                Assert.That(root.EnumerateNodes().Count(), Is.EqualTo(585), "full eight-way tree with three levels");
+                var hulls = new[] {
+                    new Hull3d(new Box3d(new V3d(-1), new V3d(2)) + offset),
+                    new Hull3d(new Box3d(new V3d(0.4, 0, 0), new V3d(1.2, 1, 1)) + offset),
+                    new Hull3d(new Box3d(new V3d(2), new V3d(3)) + offset),
+                    new Hull3d(new Box3d(new V3d(0.9375), new V3d(2)) + offset),
+                    new Hull3d(Array.Empty<Plane3d>()),
+                    new Hull3d(new[] { new Plane3d(V3d.Zero, 0) }),
+                    new Hull3d(new[] { new Plane3d(new V3d(1, -2, 3), 0.7 + Vec.Dot(new V3d(1, -2, 3), offset)) }),
+                    new Hull3d(new[] { new Plane3d(new V3d(double.NaN, 0, 0), 0) }),
+                    new Hull3d(new[] { new Plane3d(new V3d(double.PositiveInfinity, 0, 0), 0) })
+                };
+                Assert.That(HalfSpaceHullOracle(root, hulls[0], false, int.MinValue).Count(), Is.EqualTo(585));
+                Assert.That(HalfSpaceHullOracle(root, hulls[0], true, int.MinValue).Count(), Is.EqualTo(1));
+                foreach (var hull in hulls)
+                foreach (var stopInside in new[] { false, true })
+                {
+                    var context = $"offset={offset}, planes={hull.PlaneCount}, stopInside={stopInside}";
+                    var expected = HalfSpaceHullOracle(root, hull, stopInside, int.MinValue).ToArray();
+                    foreach (var outOfCore in new[] { false, true })
+                    {
+                        var actual = new List<(Guid, bool)>();
+                        root.ForEachIntersectingNode(outOfCore, hull, stopInside, (n, inside) => actual.Add((n.Id, inside)));
+                        Assert.That(actual, Is.EqualTo(expected), context + $", callback outOfCore={outOfCore}");
+                    }
+                    foreach (var cutoff in new[] { int.MinValue, root.Cell.Exponent, root.Cell.Exponent - 1, root.Cell.Exponent - 2, root.Cell.Exponent - 3, root.Cell.Exponent + 1 })
+                    {
+                        var actual = root.ForEachNodeIntersecting(hull, stopInside, cutoff).Select(r => (r.Cell.Id, r.IsFullyInside)).ToArray();
+                        Assert.That(actual, Is.EqualTo(HalfSpaceHullOracle(root, hull, stopInside, cutoff).ToArray()), context + $", cutoff={cutoff}");
+                    }
+                }
+            }
+        }
+
+        [Test]
+        public void HalfSpaceHelpersAllocateNoCornerArraysOnHitMissAndTangentPaths()
+        {
+            var node = HalfSpaceBoundsNode(Box3d.Unit);
+            var cases = new[] {
+                (Plane: new Plane3d(V3d.IOO, -1), Positive: true, Hit: true),
+                (Plane: new Plane3d(new V3d(1), 2.5), Positive: true, Hit: true),
+                (Plane: new Plane3d(V3d.IOO, 2), Positive: true, Hit: false),
+                (Plane: new Plane3d(V3d.IOO, 1), Positive: true, Hit: false),
+                (Plane: new Plane3d(V3d.IOO, 2), Positive: false, Hit: true),
+                (Plane: new Plane3d(new V3d(-1), -2.5), Positive: false, Hit: true),
+                (Plane: new Plane3d(V3d.IOO, -1), Positive: false, Hit: false),
+                (Plane: new Plane3d(V3d.IOO, 0), Positive: false, Hit: false)
+            };
+            var results = cases.Select(c => {
+                MeasureHalfSpaceAllocations(node, c.Plane, c.Positive, 64);
+                return MeasureHalfSpaceAllocations(node, c.Plane, c.Positive, 4096);
+            }).ToArray();
+            Assert.Multiple(() => {
+                for (var i = 0; i < cases.Length; i++)
+                {
+                    var context = $"positive={cases[i].Positive}, normal={cases[i].Plane.Normal}, distance={cases[i].Plane.Distance}";
+                    Assert.That(results[i].Hits, Is.EqualTo(cases[i].Hit ? 4096 : 0), context);
+                    Assert.That(results[i].Bytes, Is.Zero, context);
+                }
+            });
+        }
+
+        // Bounds-only sentinel nodes also permit invalid/IEEE bounds without inventing point data.
+        private static PointSetNode HalfSpaceBoundsNode(Box3d bounds)
+            => new PointSetNode(Storage.None, false,
+                (Aardvark.Data.Durable.Octree.NodeId, Guid.Empty),
+                (Aardvark.Data.Durable.Octree.Cell, new Cell(0, 0, 0, 0)),
+                (Aardvark.Data.Durable.Octree.BoundingBoxExactGlobal, bounds));
+
+        private static void CheckHalfSpaceCornerOracle(Box3d[] boxes, bool nonfinite)
+        {
+            var normals = new[] { V3d.Zero, V3d.IOO, -V3d.IOO, V3d.OIO, -V3d.OIO, V3d.OOI, -V3d.OOI, new V3d(1), new V3d(-1), new V3d(2, -3, 5), new V3d(double.MaxValue, 1, -1) };
+            var distances = new[] { -3.0, -1, -0.0, 0.0, 1, 3, double.MaxValue };
+            if (nonfinite)
+            {
+                normals = normals.Concat(new[] { new V3d(double.NaN, 1, 0), new V3d(0, double.PositiveInfinity, 0), new V3d(double.NegativeInfinity, 1, double.PositiveInfinity) }).ToArray();
+                distances = distances.Concat(new[] { double.NaN, double.NegativeInfinity, double.PositiveInfinity }).ToArray();
+            }
+            for (var b = 0; b < boxes.Length; b++)
+            {
+                var node = HalfSpaceBoundsNode(boxes[b]); var corners = boxes[b].ComputeCorners();
+                for (var i = 0; i < 8; i++)
+                for (var axis = 0; axis < 3; axis++)
+                    Assert.That(BitConverter.DoubleToInt64Bits(boxes[b].Corner(i)[axis]), Is.EqualTo(BitConverter.DoubleToInt64Bits(corners[i][axis])), $"box={b}, corner={i}, axis={axis}");
+                foreach (var normal in normals)
+                foreach (var distance in distances)
+                {
+                    var plane = new Plane3d(normal, distance); var context = $"box={b}, normal={normal}, distance={distance}";
+                    Assert.That(node.IntersectsPositiveHalfSpace(plane), Is.EqualTo(HalfSpaceCornerOracle(boxes[b], plane, true)), context + ", positive");
+                    Assert.That(node.IntersectsNegativeHalfSpace(plane), Is.EqualTo(HalfSpaceCornerOracle(boxes[b], plane, false)), context + ", negative");
+                }
+            }
+        }
+
+        private static bool HalfSpaceCornerOracle(Box3d bounds, Plane3d plane, bool positive)
+        {
+            var corners = bounds.ComputeCorners();
+            for (var i = 0; i < 8; i++)
+                if (positive ? plane.Height(corners[i]) > 0 : plane.Height(corners[i]) < 0) return true;
+            return false;
+        }
+
+        private static PointSet CreateHalfSpaceTraversalCloud(V3d offset)
+        {
+            var storage = PointCloud.CreateInMemoryStore();
+            try
+            {
+                var points = (from x in Enumerable.Range(0, 8) from y in Enumerable.Range(0, 8) from z in Enumerable.Range(0, 8) select new V3d((x + 0.5) / 8, (y + 0.5) / 8, (z + 0.5) / 8) + offset).ToArray();
+                var cell = new Cell((long)offset.X, (long)offset.Y, (long)offset.Z, 0);
+                var root = InMemoryPointSet.Build(new Chunk(points), cell, 1).ToPointSetNode(storage, isTemporaryImportNode: true);
+                return new PointSet(storage, "half-space", root, 1);
+            }
+            catch { storage.Dispose(); throw; }
+        }
+
+        private static IEnumerable<(Guid, bool)> HalfSpaceHullOracle(IPointCloudNode node, Hull3d hull, bool stopInside, int cutoff)
+        {
+            if (node.Cell.Exponent < cutoff) yield break;
+            foreach (var plane in hull.PlaneArray) if (!HalfSpaceCornerOracle(node.BoundingBoxExactGlobal, plane, false)) yield break;
+            // Containment is unchanged by this optimization; retain its existing directional test.
+            var fullyInside = hull.PlaneArray.All(p => node.InsideNegativeHalfSpace(p));
+            yield return (node.Id, fullyInside);
+            if ((fullyInside && stopInside) || node.Subnodes == null) yield break;
+            foreach (var child in node.Subnodes) if (child != null) foreach (var item in HalfSpaceHullOracle(child.Value, hull, stopInside, cutoff)) yield return item;
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static (long Bytes, int Hits) MeasureHalfSpaceAllocations(IPointCloudNode node, Plane3d plane, bool positive, int count)
+        {
+            var hits = 0; var before = GC.GetAllocatedBytesForCurrentThread();
+            for (var i = 0; i < count; i++) if (positive ? node.IntersectsPositiveHalfSpace(plane) : node.IntersectsNegativeHalfSpace(plane)) hits++;
+            return (GC.GetAllocatedBytesForCurrentThread() - before, hits);
+        }
+
+        #endregion
+
         #region ForEachNodeIntersecting
 
         [Test]

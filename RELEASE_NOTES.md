@@ -1,3 +1,5 @@
+- [PointSet] Avoid temporary corner arrays in hull-traversal half-space checks, reducing allocations when not already eliminated by the JIT; strict plane-contact behavior is unchanged.
+
 ### 5.6.4
 - stable release
 
