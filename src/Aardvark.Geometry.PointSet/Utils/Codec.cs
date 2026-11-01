@@ -181,7 +181,16 @@ public static class Codec
         (s, o) =>
         {
             var xs = (IEnumerable<KeyValuePair<Durable.Def, object>>)o;
-            var count = xs.Count();
+            int count;
+            if (xs is ICollection<KeyValuePair<Durable.Def, object>> collection) count = collection.Count;
+            else if (xs is IReadOnlyCollection<KeyValuePair<Durable.Def, object>> readOnly) count = readOnly.Count;
+            else if (xs is System.Collections.ICollection untyped) count = untyped.Count;
+            else
+            {
+                var entries = xs.ToArray();
+                xs = entries;
+                count = entries.Length;
+            }
             s.Write(count);
             foreach (var x in xs) Encode(s, x.Key, x.Value);
         };
