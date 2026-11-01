@@ -1,3 +1,5 @@
+- [PointSet] Serialize one-shot durable-map entries correctly, including nested maps, without changing their binary format.
+
 ### 5.6.4
 - stable release
 
