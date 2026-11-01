@@ -1,3 +1,5 @@
+- [PointSet] Avoid redundant child-node loads in bounded near-ray queries, reducing uncached descriptor reads while preserving result ordering and attributes.
+
 ### 5.6.4
 - stable release
 
