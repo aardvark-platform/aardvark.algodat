@@ -1031,26 +1031,29 @@ public class PointSetNode : IPointCloudNode
     private V3f? m_centroid;
     private float? m_centroidStdDev;
 
+    // Sample spread of position vectors about their unrounded double-precision mean,
+    // not the variance of their radial distances. Avoid subtracting large moments.
     private static (V3f, float) ComputeStuffs(V3f[] ps)
     {
         if(ps.Length <= 0) return (V3f.NaN, 0);
         if(ps.Length <= 1) return (ps[0], 0);
 
         var sum = V3d.Zero;
-        var sumSq = 0.0;
         foreach(var p in ps)
         {
             var pd = (V3d)p;
             //Debug.Assert(!pd.IsNaN);
             sum += pd;
-            sumSq += pd.LengthSquared;
         }
 
         var avg = sum / ps.Length;
-        var avgSq = sumSq / (ps.Length - 1);
-        var factor = (double)ps.Length / (ps.Length - 1);
-
-        var variance = avgSq - factor * avg.LengthSquared;
+        var sumSq = 0.0;
+        foreach(var p in ps)
+        {
+            var delta = (V3d)p - avg;
+            sumSq += delta.LengthSquared;
+        }
+        var variance = sumSq / (ps.Length - 1);
 
         return ((V3f)avg, (float)Fun.Sqrt(variance));
     }
@@ -1076,7 +1079,10 @@ public class PointSetNode : IPointCloudNode
     /// <summary></summary>
     public bool HasCentroidLocalStdDev => PointCountCell > 0 || Data.ContainsKey(Durable.Octree.PositionsLocal3fDistToCentroidStdDev);
 
-    /// <summary></summary>
+    /// <summary>
+    /// Returns cached or stored spread metadata, otherwise the sample spread of local
+    /// positions: sqrt(sum(|p - mean|^2) / (n - 1)), using an unrounded V3d mean.
+    /// </summary>
     public float CentroidLocalStdDev
     {
         get

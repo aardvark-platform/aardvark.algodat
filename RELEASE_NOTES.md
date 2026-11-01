@@ -1,3 +1,5 @@
+- [PointSet] Stabilize computed centroid spread for repeated and highly translated coordinates, avoiding cancellation-induced NaNs or inflated spread; stored metadata remains unchanged.
+
 ### 5.6.4
 - stable release
 

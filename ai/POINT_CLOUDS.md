@@ -60,6 +60,7 @@ Box queries include the boundary. The default visits full-resolution data; `minC
 ## Node Contracts
 
 - `Positions.Value` is a `V3f[]` relative to `node.Center`; `PositionsAbsolute` returns global `V3d[]` coordinates.
+- When centroid metadata is computed on demand, `CentroidLocalStdDev` is `sqrt(sum(|p - mean|²) / (n - 1))` for local position vectors, using an unrounded double-precision mean, not the variance of radial distances. Computed singleton spread is zero; existing cached/stored metadata policies are unchanged.
 - `PointCountCell` counts this node's stored points, including LOD samples on inner nodes. `PointCountTree` counts full-resolution points in the subtree, not the sum of LOD samples at every level.
 - `Subnodes` contains up to eight child references with null entries for empty octants. Use `IsLeaf` to distinguish leaves.
 - Attributes are accessed through `PersistentRef<T>.Value`. This may load from storage or return cached/in-memory data; retain the returned array when processing it repeatedly.
