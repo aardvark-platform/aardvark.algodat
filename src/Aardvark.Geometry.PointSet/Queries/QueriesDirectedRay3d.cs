@@ -100,8 +100,8 @@ public static partial class Queries
             } 
             else 
             {
-                var sorted = node.Subnodes.OrderBy(
-                    c => c == null ? double.PositiveInfinity : Vec.Distance(new V3d(c.Value.BoundingBoxExactGlobal.Center), ray.Origin)
+                var sorted = node.Subnodes.Select(c => c?.Value).OrderBy(
+                    c => c == null ? double.PositiveInfinity : Vec.Distance(new V3d(c.BoundingBoxExactGlobal.Center), ray.Origin)
                     );
 
                 foreach (var c in sorted)
@@ -109,7 +109,7 @@ public static partial class Queries
                     if (c == null) continue;
                     if (t0 > tMin) tMin = t0;
                     if (t1 < tMax) tMax = t1;
-                    var ress = c.Value.QueryPointsNearRay(ray, maxDistanceToRay, tMin, tMax, minCellExponent);
+                    var ress = c.QueryPointsNearRay(ray, maxDistanceToRay, tMin, tMax, minCellExponent);
                     foreach (var res in ress) yield return res;
                 }
             }
