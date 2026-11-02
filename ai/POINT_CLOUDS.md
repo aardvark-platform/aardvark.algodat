@@ -65,6 +65,8 @@ Box queries include the boundary. The default visits full-resolution data; `minC
 - Attributes are accessed through `PersistentRef<T>.Value`. This may load from storage or return cached/in-memory data; retain the returned array when processing it repeatedly.
 - Filtered views and in-memory KD-trees use `Lazy<T>`, which caches initialization exceptions. After resolving a transient failure, recreate the view, or evict the failed stored node's ID from `storage.Cache` and reload it. Existing references to the failed instance remain failed; no automatic retry or eviction is performed.
 
+`node.Collect(fromRelativeDepth)` selects an ordered front of the tree: depth zero returns the node's own points, deeper requests descend in octant order, and leaves reached early are retained. Depths beyond the tree height, including `int.MaxValue`, collect full-resolution leaves even when cell exponents are negative. `QueryCell(...).GetPoints(...)` and fully containing `CollectColumnXY(...)` requests retain this deep-query behavior. Returned chunks own their attribute arrays.
+
 ### Node-Local KD Queries
 
 ```csharp

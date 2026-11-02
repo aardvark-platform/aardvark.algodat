@@ -756,10 +756,11 @@ public static class IPointCloudNodeExtensions
     /// <summary>
     /// Collects all points from nodes at given relative depth.
     /// E.g. 0 returns points from self, 1 gets points from children, aso.
+    /// Depths beyond the tree height collect leaves, including int.MaxValue for small cells.
     /// </summary>
     public static IEnumerable<Chunk> Collect(this IPointCloudNode self, int fromRelativeDepth)
     {
-        var d = self.Cell.Exponent - fromRelativeDepth;
+        var d = (long)self.Cell.Exponent - fromRelativeDepth;
         return self.Collect(x => x.IsLeaf || x.Cell.Exponent <= d);
     }
 

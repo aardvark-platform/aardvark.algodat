@@ -1,3 +1,5 @@
+- [PointSet] Fix very deep point collection, including cell and containing-column queries, returning coarse samples instead of full-resolution leaves for small cells with negative exponents.
+
 ### 5.6.4
 - stable release
 
