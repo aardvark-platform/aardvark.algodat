@@ -44,6 +44,8 @@ mesh.FaceVertexAttributes[-uv] = new[]
 
 Without a negative-key entry, the positive-key array holds direct values instead. The same convention applies to indexed normals and custom attributes.
 
+`PolyMeshPrimitives.Cone` with a nonempty tangent name generates indexed `V3d` U-tangent vectors using its existing corner-sharing map and UVs. Geometry exports therefore contain vector tangents, not bare integer sharing indices. The default overload and an empty tangent name do not generate tangents; geometry, normals, UVs and colors are unchanged.
+
 ## Operations
 
 | Operation | Contract |
