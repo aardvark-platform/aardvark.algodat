@@ -1,3 +1,5 @@
+- [PolyMesh] Generate requested cone tangent vectors and export them as vectors instead of integer sharing indices; default cones without tangents are unchanged.
+
 ### 5.6.4
 - stable release
 

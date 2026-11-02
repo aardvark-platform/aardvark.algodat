@@ -761,6 +761,10 @@ namespace Aardvark.Geometry
             return Cone(tessellation, height, radius, color, PolyMesh.Property.DiffuseColorCoordinates, Symbol.Empty);
         }
 
+        /// <summary>
+        /// Creates a cone with indexed UVs and per-corner normals. A nonempty
+        /// tangent name requests indexed V3d tangent vectors derived from the UVs.
+        /// </summary>
         public static PolyMesh Cone(
             int tessellation,
             double height,
@@ -892,23 +896,12 @@ namespace Aardvark.Geometry
                 firstIndexArray.Add(numInsertedVertexIndices);
             }
 
-            //insertedBefore = tangentSharingIndices.Count;
-
-            var faceVertexAttributes = tangentName == Symbol.Empty ?
-            new SymbolDict<Array>()
+            var faceVertexAttributes = new SymbolDict<Array>()
             {
                 { coordinateName, coordinateIndices.ToArray()},
                 { -coordinateName, coordinates.ToArray()},
-                { PolyMesh.Property.Normals, normals.ToArray() }        
-            } :
-            new SymbolDict<Array>()
-            {
-                { coordinateName, coordinateIndices.ToArray()},
-                { -coordinateName, coordinates.ToArray()},
-                { tangentName, tangentSharingIndices.ToArray()},
                 { PolyMesh.Property.Normals, normals.ToArray() }
-            }
-            ;
+            };
 
             var vertexAttributes = new SymbolDict<Array>()
             {
@@ -923,6 +916,9 @@ namespace Aardvark.Geometry
                 VertexIndexArray = indices.ToArray(),
                 FirstIndexArray = firstIndexArray.ToArray()
             };
+
+            if (tangentName.IsNotEmpty)
+                pmesh.AddPerFaceVertexTangents(coordinateName, tangentName, Symbol.Empty, tangentSharingIndices.ToArray());
 
             return pmesh;
         }
