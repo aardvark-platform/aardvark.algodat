@@ -1,3 +1,5 @@
+- [PointSet] Reject null values synchronously in `KeepAliveCache.Add` and `Remove`, preventing invalid commands from stopping processing in other live caches. Size-validation precedence and `Flush` are unchanged.
+
 ### 5.6.4
 - stable release
 

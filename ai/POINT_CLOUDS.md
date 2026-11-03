@@ -26,6 +26,8 @@ For persistent storage, use `PointCloud.OpenStore(path)` instead. Keep the store
 
 `PointCloud.Load(key, storage)` throws if the key is absent. [Storage](../src/Aardvark.Data.Points.Base/Storage.cs) also supports custom backends through read, write, slice, remove, flush, and dispose delegates.
 
+`Aardvark.Base.KeepAliveCache.Add` and `Remove` reject null values synchronously with `ArgumentNullException` (`value`), before commands reach the shared worker. Invalid sizes still take precedence over a null value in `Add`. `Flush()` continues to clear the cache; rejected commands cannot stop processing in other live caches.
+
 ## Chunks
 
 [Chunk](../src/Aardvark.Data.Points.Base/Chunk.cs) is the common streaming representation:

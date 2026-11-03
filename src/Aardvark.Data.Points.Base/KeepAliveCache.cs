@@ -67,8 +67,10 @@ namespace Aardvark.Base
         }
 
         /// <summary>
-        /// Adds or refreshes value.
+        /// Adds or refreshes a non-null value.
+        /// Size validation precedes null-value validation; invalid commands are not queued.
         /// </summary>
+        /// <exception cref="ArgumentNullException">Value is null.</exception>
         public void Add(object value, long sizeInBytes)
         {
             if (sizeInBytes > MaxSizeInBytes) throw new ArgumentOutOfRangeException(nameof(sizeInBytes));
@@ -78,8 +80,9 @@ namespace Aardvark.Base
         }
 
         /// <summary>
-        /// Removes value from cache.
+        /// Removes a non-null value from cache. A null value is rejected before queuing.
         /// </summary>
+        /// <exception cref="ArgumentNullException">Value is null.</exception>
         public void Remove(object value)
         {
             var x = new Command(CommandType.Remove, value, 0);
@@ -111,7 +114,7 @@ namespace Aardvark.Base
             {
                 if (sizeInBytes < 0) throw new ArgumentOutOfRangeException(nameof(sizeInBytes));
                 Type = type;
-                Value = value;
+                Value = value ?? throw new ArgumentNullException(nameof(value));
                 SizeInBytes = sizeInBytes;
             }
         }
