@@ -1,3 +1,5 @@
+- [Sky] Return finite, correctly signed true anomalies for negative and wrapped elliptic mean anomalies at eccentricities close to one, instead of NaN. Circular, hyperbolic and legacy parabolic behavior is unchanged.
+
 ### 5.6.4
 - stable release
 
