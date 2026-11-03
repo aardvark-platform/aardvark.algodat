@@ -84,7 +84,11 @@ returns true anomaly in radians. For hyperbolic orbits (`e > 1`), it solves
 hyperbolic anomaly `H` to true anomaly. For example, `M = 1` and `e = 1.5` give
 approximately `1.727196007387909` radians, with negative `M` giving the opposite sign.
 
-The elliptic derivative, initial estimate and stopping criterion are unchanged.
+For elliptic orbits (`0 < e < 1`), the mean anomaly is reduced by whole periods.
+Negative reduced anomalies are solved using their positive magnitude, then the sign
+is restored. This avoids initial-estimate cancellation and NaN results for negative
+anomalies at eccentricities close to one; wrapped equivalents use the reduced sign.
+The positive-magnitude calculation, Newton derivative and stopping criterion are unchanged.
 Circular orbits (`e = 0`) still return `M` exactly, and the legacy parabolic branch
 (`e = 1`) is retained without redesign. This correction adds no parameter validation
 or broader convergence guarantee for extreme or non-finite inputs. The `a` argument

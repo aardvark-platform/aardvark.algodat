@@ -825,6 +825,8 @@ namespace Aardvark.Physics.Sky
 
         /// <summary>
         /// Calculates true anomaly from mean anomaly for elliptic and hyperbolic orbits.
+        /// For 0 &lt; e &lt; 1, negative period-reduced mean anomalies are solved by
+        /// magnitude and their sign restored, avoiding cancellation in the initial estimate.
         /// For e &gt; 1, Newton refinement solves e*sinh(H) - H = M using derivative
         /// e*cosh(H) - 1 before converting hyperbolic anomaly H to true anomaly.
         /// The initial estimate and stopping criterion are retained, as are the circular
@@ -850,6 +852,9 @@ namespace Aardvark.Physics.Sky
 
                 if (e < 1)
                     M -= Constant.PiTimesTwo * (M / Constant.PiTimesTwo).Round();
+
+                var negate = e > 0 && e < 1 && M < 0;
+                if (negate) M = -M;
 
                 var Mq = //e != 1.0 ? 
                             M / Fun.Sqrt(d.Abs().Pow(3.0));
@@ -900,7 +905,8 @@ namespace Aardvark.Physics.Sky
                           Fun.Sqrt((e + 1) / d.Abs()) * Fun.Tan(0.5 * Ei)
                         : Fun.Sqrt((e + 1) / d.Abs()) * Fun.Tanh(0.5 * Ei);
                 
-                return 2 * Fun.Atan(t);
+                var result = 2 * Fun.Atan(t);
+                return negate ? -result : result;
             }
         }
 
