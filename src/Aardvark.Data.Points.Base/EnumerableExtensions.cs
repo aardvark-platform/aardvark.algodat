@@ -31,7 +31,16 @@ namespace Aardvark.Data.Points
     {
         public static T[] Subset<T>(this T[] xs, int[] subsetIndices) => subsetIndices.MapToArray(i => xs[i]);
         public static T[] Subset<T>(this T[] xs, List<int> subsetIndices) => subsetIndices.MapToArray(i => xs[i]);
-        public static T[] Subset<T>(this T[] xs, IList<int> subsetIndices) => ((IReadOnlyList<int>)subsetIndices).MapToArray(i => xs[i]);
+        /// <summary>
+        /// Copies selected elements in index order, including duplicates, using only
+        /// the indices' IList count and indexer. IReadOnlyList support is not required.
+        /// </summary>
+        public static T[] Subset<T>(this T[] xs, IList<int> subsetIndices)
+        {
+            var result = new T[subsetIndices.Count];
+            for (var i = 0; i < result.Length; i++) result[i] = xs[subsetIndices[i]];
+            return result;
+        }
         public static T[] Subset<T>(this T[] xs, IReadOnlyList<int> subsetIndices) => subsetIndices.MapToArray(i => xs[i]);
         public static T[] Subset<T>(this IList<T> xs, int[] subsetIndices) => subsetIndices.MapToArray(i => xs[i]);
         public static T[] Subset<T>(this IList<T> xs, List<int> subsetIndices) => subsetIndices.MapToArray(i => xs[i]);
