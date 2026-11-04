@@ -42,6 +42,8 @@ Optional per-point lists must align with `Positions`. Check null or the correspo
 
 `ImmutableFilterByBox3d`, `ImmutableMapPositions`, `Chunk.ImmutableMerge`, and `Split(chunksize)` return new chunks. [GenericChunk](../src/Aardvark.Data.Points.Base/GenericChunk.cs) uses a `Durable.Def`-keyed dictionary for additional attributes; `chunk.ToGenericChunk()` converts the standard representation.
 
+`Aardvark.Data.Points.ArrayExtensions.Subset<T>(T[], IList<int>)` accepts any readable `IList<int>` selection; it does not require `IReadOnlyList<int>` support or enumeration. The returned array preserves index order and duplicates without modifying the source or selection. An empty selection returns an empty array without reading source elements; reference elements remain shared rather than deep-copied.
+
 ## Spatial Queries
 
 Continuing the example above:

@@ -1,3 +1,5 @@
+- [PointSet] Allow array subsets selected by any `IList<int>`, including lists that do not also implement `IReadOnlyList<int>`, while preserving selection order and duplicates.
+
 ### 5.6.4
 - stable release
 
