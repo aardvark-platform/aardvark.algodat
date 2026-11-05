@@ -245,6 +245,7 @@ namespace Aardvark.Physics.Sky
 
         /// <summary>
         /// Gets the declination (delta) of the geocentric ecliptic coordinates using the specified earths angle of obliquity.
+        /// Inverse-sine roundoff is clamped at the celestial poles; NaN inputs still propagate.
         /// </summary>
         /// <param name="lambda">longitude in radians</param>
         /// <param name="beta">latitude in radians</param>
@@ -252,7 +253,7 @@ namespace Aardvark.Physics.Sky
         /// <returns>declination in radians</returns>
         public static double Declination(double lambda, double beta, double epsilon)
         {
-            return Fun.Asin(beta.Sin() * epsilon.Cos() + beta.Cos() * epsilon.Sin() * lambda.Sin());
+            return Fun.Asin(Fun.Clamp(beta.Sin() * epsilon.Cos() + beta.Cos() * epsilon.Sin() * lambda.Sin(), -1.0, 1.0));
         }
 
         /// <summary>
@@ -269,6 +270,9 @@ namespace Aardvark.Physics.Sky
 
         /// <summary>
         /// Transforms geocentric ecliptic coordinates (lambda, beta) to (height, azimuth) as seen by an observer.
+        /// Inverse-sine roundoff is clamped to retain finite heights at zenith and nadir.
+        /// Azimuth is not geometrically defined there; its existing calculation is retained.
+        /// NaN inputs still propagate.
         /// 
         /// The transformation is implemented according to:
         /// https://aa.quae.nl/en/reken/hemelpositie.html#1_12
@@ -305,7 +309,7 @@ namespace Aardvark.Physics.Sky
             double cosH = H.Cos();
 
             //altitude h: 0° at horizon, 90° at zenith => theta
-            double h = Fun.Asin(sinPhi * sinDelta + cosPhi * cosDelta * cosH);
+            double h = Fun.Asin(Fun.Clamp(sinPhi * sinDelta + cosPhi * cosDelta * cosH, -1.0, 1.0));
             double A = Fun.Atan2(sinH, cosH * sinPhi - delta.Tan() * cosPhi);
 
             return (h, A);
