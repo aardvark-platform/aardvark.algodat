@@ -47,6 +47,8 @@ var (phi, theta, distanceAU) = Astronomy.PlanetDirectionAndDistance(
 
 Sun and Moon return `SphericalCoordinate` and distance in meters; planets return azimuth, zenith angle, and distance in astronomical units. Below-horizon directions are valid astronomy results, not necessarily valid inputs to every daylight sky model. Accuracy limits for planet calculations are documented in [Astronomy](../src/Aardvark.Physics.Sky/Astronomy.cs).
 
+`Astronomy.Declination` and `GeocentricToObserver` clamp inverse-sine roundoff at the unit interval. Valid celestial-pole declinations and observer zenith/nadir heights therefore remain finite, including downstream `SunPosition.Compute` zenith angles. Azimuth at exact zenith or nadir is not geometrically defined; the existing azimuth calculation is retained. Ordinary angle/time conventions and NaN propagation are unchanged.
+
 `ComputeJulianDay()` converts the supplied clock fields. For local time, subtract `offsetHours / 24.0` once. `DateTimeExtensions.ComputeDateFromJulianDay(jd)` performs the reverse conversion; `Astronomy.J2000` is Julian day 2451545.0.
 
 ## Sunrise, Sunset, and Twilight

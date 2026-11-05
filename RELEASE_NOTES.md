@@ -1,3 +1,5 @@
+- [Sky] Keep valid celestial-pole declinations and zenith/nadir heights finite when inverse-sine roundoff exceeds the unit interval, including solar zenith angles. Azimuth remains undefined at exact zenith or nadir.
+
 ### 5.6.4
 - stable release
 
