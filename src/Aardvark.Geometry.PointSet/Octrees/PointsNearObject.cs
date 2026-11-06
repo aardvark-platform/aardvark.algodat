@@ -153,14 +153,20 @@ public class PointsNearObject<T>
         );
 
     /// <summary>
-    /// Takes first 'count' items. 
+    /// Returns the first <paramref name="count"/> items in their existing order.
+    /// Returns this instance when <paramref name="count"/> is at least <see cref="Count"/>.
+    /// When truncating a nonempty result to zero items, <see cref="MaxDistance"/>
+    /// is zero; <see cref="Object"/> and null optional point attributes are retained.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// <paramref name="count"/> is negative.
+    /// </exception>
     public PointsNearObject<T> Take(int count)
     {
         if (count >= Count) return this;
         var ds = Distances!.Take(count);
-        return new PointsNearObject<T>(Object, ds.Max(),
-            Positions.Take(count), Colors?.Take(count), Normals?.Take(count), Intensities?.Take(count), PartIndices?.Take(count), Classifications!.Take(count), ds
+        return new PointsNearObject<T>(Object, count == 0 ? 0.0 : ds.Max(),
+            Positions.Take(count), Colors?.Take(count), Normals?.Take(count), Intensities?.Take(count), PartIndices?.Take(count), Classifications?.Take(count), ds
             );
     }
 

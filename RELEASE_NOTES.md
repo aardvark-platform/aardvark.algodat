@@ -1,3 +1,5 @@
+- [PointSet] PointsNearObject.Take(0) now returns an empty prefix retaining the queried object; truncating results preserves missing classifications as null.
+
 ### 5.6.4
 - stable release
 
