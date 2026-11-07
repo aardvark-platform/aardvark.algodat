@@ -21,6 +21,8 @@ var mesh = new PolyMesh
 
 Primitives live in [PolyMeshPrimitives](../src/Aardvark.Geometry.PolyMesh/PolyMeshPrimitives.cs), for example `PolyMeshPrimitives.Box(Box3d.Unit, C4b.White)`. For epsilon-based vertex deduplication, see [Clustering](GEOMETRY.md#clustering).
 
+`Cylinder(n, ...)` has `4*n` triangular faces and `12*n` corners: `n` bottom-cap faces, two side triangles per segment, then `n` top-cap faces. Splitting the former six-corner side faces preserves positions, corner order and stored corner attributes, but changes face numbering: side segment `j` uses faces `n+2*j` and `n+2*j+1`; top-cap face `j` is now `3*n+j` rather than `2*n+j`. The seven-parameter overload generates requested tangent vectors from these triangles; tangent/binormal selection and `Cylinder2` are unchanged.
+
 ## Attributes
 
 | Dictionary | Direct attribute length |

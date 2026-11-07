@@ -482,6 +482,10 @@ namespace Aardvark.Geometry
             };
         }
             
+        /// <summary>
+        /// Creates a centered cylinder with triangular faces ordered as bottom cap,
+        /// paired side triangles, then top cap: four faces per segment.
+        /// </summary>
         public static PolyMesh Cylinder(
             int tessellation,
             double height,
@@ -646,6 +650,9 @@ namespace Aardvark.Geometry
                 coordinateIndices.Add(horizontalSegments * 3 + (j * 6) + 2);
                 tangentSharingIndices.Add(insertedBefore + horizontalSegments + j);
 
+                numInsertedVertexIndices += 3;
+                firstIndexArray.Add(numInsertedVertexIndices);
+
                 //next triangle
 
                 indices.Add(1 + nextJ);
@@ -660,7 +667,7 @@ namespace Aardvark.Geometry
                 coordinateIndices.Add(horizontalSegments * 3 + (j * 6) + 5);
                 tangentSharingIndices.Add(insertedBefore + horizontalSegments + j);
 
-                numInsertedVertexIndices += 6;
+                numInsertedVertexIndices += 3;
                 firstIndexArray.Add(numInsertedVertexIndices);
             }
             
