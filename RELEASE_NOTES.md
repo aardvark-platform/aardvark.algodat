@@ -1,3 +1,5 @@
+- [PolyMesh] Cylinder side triangles now have separate faces, eliminating overlapping and inward-facing triangles in triangulation and exports. Cylinders have four triangular faces per segment; side and top-cap face numbers change, while positions and corner order are retained. Cylinder2 is unchanged.
+
 ### 5.6.4
 - stable release
 
