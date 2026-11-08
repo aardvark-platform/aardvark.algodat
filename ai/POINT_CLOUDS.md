@@ -24,6 +24,8 @@ var loaded = PointCloud.Load("example", storage);
 
 For persistent storage, use `PointCloud.OpenStore(path)` instead. Keep the store alive while using its clouds and lazy references; flush pending writes with `storage.Flush()` and dispose it when finished. An in-memory store still retains all stored data: a smaller cache does not make it out-of-core.
 
+`OpenStore` reuses a live handle only for the same literal path and `readOnly` value; reused handles keep their existing cache and logger. Read-only and writable openings have separate handles, so disposing one mode does not dispose the other. Reopening a disposed handle creates a new one. Paths are not normalized. Native disk read-only handles are snapshots, not live views of later writes; this does not add read-only enforcement to folder stores.
+
 `PointCloud.Load(key, storage)` throws if the key is absent. [Storage](../src/Aardvark.Data.Points.Base/Storage.cs) also supports custom backends through read, write, slice, remove, flush, and dispose delegates.
 
 ## Chunks
