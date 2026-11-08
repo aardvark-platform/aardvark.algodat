@@ -61,6 +61,9 @@ public static partial class PointCloud
 
     /// <summary>
     /// Opens or creates a store at the specified location.
+    /// Reuses a live handle only for the same literal path and read-only mode;
+    /// reused handles retain their existing cache and logger.
+    /// Read-only native disk stores are snapshots; folder-store permissions are unchanged.
     /// </summary>
     public static Storage OpenStore(string storePath, LruDictionary<string, object>? cache = null, Action<string[]>? logLines = null, bool readOnly = false)
     {
@@ -68,8 +71,12 @@ public static partial class PointCloud
 
         lock (s_stores)
         {
-            // if we are lucky, then this storePath is already cached
-            if (s_stores.TryGetValue(storePath, out WeakReference<Storage> x) && x.TryGetTarget(out Storage cached))
+            // Preserve the former path dictionary's null-key error.
+            if (storePath == null) throw new ArgumentNullException("key");
+            var key = (storePath, readOnly);
+
+            // if we are lucky, then this path and mode are already cached
+            if (s_stores.TryGetValue(key, out WeakReference<Storage> x) && x.TryGetTarget(out Storage cached))
             {
                 if (!cached.IsDisposed)
                 {
@@ -158,11 +165,11 @@ public static partial class PointCloud
 
             // insert into cache and return
             var store = simpleStore.ToPointCloudStore(cache);
-            s_stores[storePath] = new WeakReference<Storage>(store);
+            s_stores[key] = new WeakReference<Storage>(store);
             return store;
         }
     }
-    private static readonly Dictionary<string, WeakReference<Storage>> s_stores = [];
+    private static readonly Dictionary<(string storePath, bool readOnly), WeakReference<Storage>> s_stores = [];
 
     /// <summary>
     /// Creates an in-memory store.

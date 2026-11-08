@@ -1,3 +1,5 @@
+- [PointSet] OpenStore now keeps separate cached handles for read-only and writable openings of the same literal path, preventing one mode from inheriting the other's access permissions. Same-mode reuse is unchanged; native read-only handles remain snapshots, and folder-store permissions are unchanged.
+
 ### 5.6.4
 - stable release
 
