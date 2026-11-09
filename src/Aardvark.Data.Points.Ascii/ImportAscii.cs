@@ -180,7 +180,9 @@ namespace Aardvark.Data.Points.Import
                 );
 
         /// <summary>
-        /// Parses ASCII file.
+        /// Parses an ASCII file lazily with a fresh owned stream per enumeration.
+        /// File-open errors occur during enumeration. Dispose enumerators when stopping
+        /// early; completion, disposal and exceptions close the file.
         /// </summary>
         public static IEnumerable<Chunk> Chunks(string filename, Token[] lineDefinition, ParseConfig config)
         {
@@ -190,7 +192,7 @@ namespace Aardvark.Data.Points.Import
         }
 
         /// <summary>
-        /// Parses ASCII stream.
+        /// Parses an ASCII stream without closing or rewinding the caller-owned stream.
         /// </summary>
         public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, Token[] lineDefinition, ParseConfig config)
         {

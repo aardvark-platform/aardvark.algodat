@@ -28,19 +28,22 @@ namespace Aardvark.Data.Points
         private const double PER_GiB = 1.0 / (1024 * 1024 * 1024);
 
         /// <summary>
-        /// Parses ASCII lines file.
+        /// Parses an ASCII file lazily, opening a fresh owned stream per enumeration.
+        /// File-open errors are deferred until enumeration. Completion, enumerator
+        /// disposal and exceptions close the file; dispose enumerators when stopping early.
         /// </summary>
         internal static IEnumerable<Chunk> AsciiLines(Func<byte[], int, double, int?, Chunk> lineParser,
             string filename, ParseConfig config
             )
         {
             var fileSizeInBytes = new FileInfo(filename).Length;
-            var stream = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
-            return AsciiLines(lineParser, stream, fileSizeInBytes, config);
+            using var stream = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
+            foreach (var chunk in AsciiLines(lineParser, stream, fileSizeInBytes, config))
+                yield return chunk;
         }
 
         /// <summary>
-        /// Parses ASCII lines stream.
+        /// Parses ASCII lines without closing or rewinding the caller-owned stream.
         /// </summary>
         internal static IEnumerable<Chunk> AsciiLines(Func<byte[], int, double, int?, Chunk> lineParser,
             Stream stream, long streamLengthInBytes, ParseConfig config

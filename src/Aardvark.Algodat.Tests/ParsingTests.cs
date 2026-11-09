@@ -13,13 +13,16 @@
 */
 using Aardvark.Base;
 using Aardvark.Data.Points;
+using Aardvark.Data.Points.Import;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using Ascii = Aardvark.Data.Points.Import.Ascii;
 using static Aardvark.Data.Points.Import.Ascii;
 
 namespace Aardvark.Geometry.Tests
@@ -27,6 +30,229 @@ namespace Aardvark.Geometry.Tests
     [TestFixture]
     public class ParsingTests
     {
+        #region Filename and stream ownership
+
+        private static readonly Token[] FileLayout =
+        {
+            Token.PositionX, Token.PositionY, Token.PositionZ, Token.Intensity,
+            Token.ColorR, Token.ColorG, Token.ColorB,
+            Token.NormalX, Token.NormalY, Token.NormalZ, Token.ColorA
+        };
+
+        private static ParseConfig FileConfig => ParseConfig.Default
+            .WithReadBufferSizeInBytes(64).WithMaxChunkPointCount(1).WithPartIndexOffset(23);
+
+        private static string FileText(int kind, int count, string newline = "\n")
+            => string.Concat(Enumerable.Range(0, count).Select(i =>
+                $"{i} {i + 1} {-i} {100 + i} {10 + i % 200} 20 30" + (kind == 2 ? " 0 0 1 201" : "") + newline));
+
+        private static IEnumerable<Chunk> FilenameChunks(int kind, string path, ParseConfig config) => kind switch
+        {
+            0 => Pts.Chunks(path, config),
+            1 => Yxh.Chunks(path, config),
+            _ => Ascii.Chunks(path, FileLayout, config)
+        };
+
+        private static IEnumerable<Chunk> StreamChunks(int kind, Stream stream, ParseConfig config) => kind switch
+        {
+            0 => Pts.Chunks(stream, stream.Length, config),
+            1 => Yxh.Chunks(stream, stream.Length, config),
+            _ => Ascii.Chunks(stream, stream.Length, FileLayout, config)
+        };
+
+        private static void WithTextFile(int kind, int count, string newline, Action<string> action)
+        {
+            var path = Path.Combine(Path.GetTempPath(), "algodat-ascii-lifetime-" + Guid.NewGuid() + ".txt");
+            try
+            {
+                File.WriteAllText(path, FileText(kind, count, newline), Encoding.ASCII);
+                action(path);
+            }
+            finally { File.Delete(path); }
+        }
+
+        private static bool CanOpenExclusive(string path)
+        {
+            try
+            {
+                using var probe = File.Open(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+                return true;
+            }
+            catch (IOException) { return false; }
+        }
+
+        private static void CheckFileChunks(Chunk[] chunks, int kind, int count, string context)
+        {
+            var rows = chunks.SelectMany(chunk => Enumerable.Range(0, chunk.Count).Select(i =>
+                (position: chunk.Positions[i], color: chunk.Colors[i],
+                 intensity: chunk.Intensities == null ? (int?)null : chunk.Intensities[i],
+                 normal: chunk.Normals == null ? (V3f?)null : chunk.Normals[i],
+                 part: chunk.TryGetPartIndices()[i]))).OrderBy(row => row.position.X).ToArray();
+            Assert.That(rows.Length, Is.EqualTo(count), context);
+            for (var i = 0; i < rows.Length; i++)
+            {
+                var message = context + $", point={i}";
+                Assert.That(double.IsFinite(rows[i].position.LengthSquared), Is.True, message);
+                Assert.That(rows[i].position, Is.EqualTo(new V3d(i, i + 1, -i)), message);
+                Assert.That(rows[i].color, Is.EqualTo(new C4b(10 + i % 200, 20, 30, kind == 2 ? 201 : 255)), message);
+                Assert.That(rows[i].intensity, Is.EqualTo(kind == 0 ? (int?)null : 100 + i), message);
+                Assert.That(rows[i].normal, Is.EqualTo(kind == 2 ? (V3f?)new V3f(0, 0, 1) : null), message);
+                Assert.That(rows[i].part, Is.EqualTo(23), message);
+            }
+            foreach (var chunk in chunks)
+            {
+                Assert.That(chunk.Classifications, Is.Null, context);
+                Assert.That(chunk.PartIndexRange, Is.EqualTo(new Range1i(23)), context);
+            }
+        }
+
+        [Test]
+        public void FilenameSequencesOpenLazilyRepeatCompletelyAndKeepPointAttributes()
+        {
+            Assert.Multiple(() =>
+            {
+                for (var kind = 0; kind < 3; kind++)
+                foreach (var count in new[] { 0, 2, 32 })
+                foreach (var newline in new[] { "\n", "\r\n" })
+                WithTextFile(kind, count, newline, path =>
+                {
+                    var context = $"format={kind}, count={count}, newline bytes={newline.Length}";
+                    var chunks = FilenameChunks(kind, path, FileConfig);
+                    Assert.That(CanOpenExclusive(path), Is.True, context + ", sequence created");
+                    using (var unused = chunks.GetEnumerator())
+                        Assert.That(CanOpenExclusive(path), Is.True, context + ", enumerator not advanced");
+                    CheckFileChunks(chunks.ToArray(), kind, count, context + ", first enumeration");
+                    Assert.That(CanOpenExclusive(path), Is.True, context + ", first completed");
+                    CheckFileChunks(chunks.ToArray(), kind, count, context + ", second enumeration");
+                    Assert.That(CanOpenExclusive(path), Is.True, context + ", second completed");
+                });
+            });
+        }
+
+        [Test]
+        public void OwnedFilesCloseOnEarlyDisposalCancellationAndConfigurationExceptions()
+        {
+            Assert.Multiple(() =>
+            {
+                for (var kind = 0; kind < 3; kind++)
+                for (var scenario = 0; scenario < 6; scenario++)
+                WithTextFile(kind, 32, "\n", path =>
+                {
+                    var context = $"format={kind}, exit={scenario}";
+                    using var cancel = new CancellationTokenSource();
+                    var config = FileConfig.WithCancellationToken(cancel.Token);
+                    if (scenario == 1) cancel.Cancel();
+                    if (scenario == 3 || scenario == 4) config = config.WithReadBufferSizeInBytes(scenario == 3 ? 0 : -1);
+                    using (var iterator = FilenameChunks(kind, path, config).GetEnumerator())
+                    {
+                        if (scenario == 0 || scenario == 2)
+                        {
+                            Assert.That(iterator.MoveNext(), Is.True, context);
+                            Assert.That(CanOpenExclusive(path), Is.False, context + ", active owned stream");
+                            if (scenario == 2)
+                            {
+                                cancel.Cancel();
+                                Assert.Throws<OperationCanceledException>(() => iterator.MoveNext(), context);
+                                Assert.That(CanOpenExclusive(path), Is.True, context + ", cancellation already unwound");
+                            }
+                        }
+                        else if (scenario == 1) Assert.Throws<OperationCanceledException>(() => iterator.MoveNext(), context);
+                        else if (scenario == 3 || scenario == 4) Assert.Throws<ArgumentException>(() => iterator.MoveNext(), context);
+                        else
+                        {
+                            Assert.Throws<InvalidOperationException>(() =>
+                            {
+                                foreach (var chunk in FilenameChunks(kind, path, config)) throw new InvalidOperationException("consumer failed");
+                            }, context);
+                        }
+                        if (scenario == 1 || scenario == 3 || scenario == 4)
+                            Assert.That(CanOpenExclusive(path), Is.True, context + ", exception already unwound");
+                    }
+                    Assert.That(CanOpenExclusive(path), Is.True, context + ", disposed");
+                });
+                WithTextFile(2, 2, "\n", path =>
+                {
+                    var chunks = Ascii.Chunks(path, new[] { (Token)int.MaxValue }, FileConfig);
+                    Assert.Throws<AggregateException>(() => chunks.ToArray(), "parser-task configuration failure");
+                    Assert.That(CanOpenExclusive(path), Is.True, "parser failure released file");
+                });
+            });
+        }
+
+        [Test]
+        public void FilenameOpenErrorsAreDeferredAndLaterEnumerationsOpenAfresh()
+        {
+            Assert.Multiple(() =>
+            {
+                for (var kind = 0; kind < 3; kind++)
+                {
+                    var path = Path.Combine(Path.GetTempPath(), "algodat-ascii-lifetime-" + Guid.NewGuid() + ".txt");
+                    try
+                    {
+                        IEnumerable<Chunk> chunks = null;
+                        Assert.DoesNotThrow(() => chunks = FilenameChunks(kind, path, FileConfig), $"format={kind}, missing file sequence");
+                        if (chunks == null) continue;
+                        using (var iterator = chunks.GetEnumerator())
+                            Assert.Throws<FileNotFoundException>(() => iterator.MoveNext(), $"format={kind}, deferred missing file");
+                        File.WriteAllText(path, FileText(kind, 2), Encoding.ASCII);
+                        CheckFileChunks(chunks.ToArray(), kind, 2, $"format={kind}, created after failed enumeration");
+                        File.WriteAllText(path, FileText(kind, 3), Encoding.ASCII);
+                        CheckFileChunks(chunks.ToArray(), kind, 3, $"format={kind}, rewritten between enumerations");
+                        Assert.That(CanOpenExclusive(path), Is.True, $"format={kind}, fresh file released");
+                    }
+                    finally { File.Delete(path); }
+                    WithTextFile(kind, 2, "\n", existing =>
+                    {
+                        using (var blocker = File.Open(existing, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+                        {
+                            IEnumerable<Chunk> chunks = null;
+                            Assert.DoesNotThrow(() => chunks = FilenameChunks(kind, existing, FileConfig), $"format={kind}, exclusively held file sequence");
+                            if (chunks != null) Assert.Throws<IOException>(() => chunks.ToArray(), $"format={kind}, deferred sharing error");
+                        }
+                        Assert.That(CanOpenExclusive(existing), Is.True, $"format={kind}, failed opening left no handle");
+                    });
+                }
+            });
+        }
+
+        [Test]
+        public void CallerStreamsStayOpenAndAreNotRewoundOnCompletionDisposalOrErrors()
+        {
+            for (var kind = 0; kind < 3; kind++)
+            for (var scenario = 0; scenario < 4; scenario++)
+            WithTextFile(kind, 32, "\n", path => Assert.Multiple(() =>
+            {
+                var context = $"format={kind}, caller-stream exit={scenario}";
+                using var cancel = new CancellationTokenSource();
+                var config = FileConfig.WithCancellationToken(cancel.Token);
+                if (scenario == 2) cancel.Cancel();
+                if (scenario == 3) config = config.WithReadBufferSizeInBytes(0);
+                using (var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    var chunks = StreamChunks(kind, stream, config);
+                    if (scenario == 0)
+                    {
+                        CheckFileChunks(chunks.ToArray(), kind, 32, context);
+                        Assert.That(chunks.ToArray(), Is.Empty, context + ", no implicit rewind");
+                        stream.Position = 0;
+                        CheckFileChunks(chunks.ToArray(), kind, 32, context + ", explicit rewind");
+                    }
+                    else if (scenario == 1)
+                    {
+                        using var iterator = chunks.GetEnumerator();
+                        Assert.That(iterator.MoveNext(), Is.True, context);
+                    }
+                    else if (scenario == 2) Assert.Throws<OperationCanceledException>(() => chunks.ToArray(), context);
+                    else Assert.Throws<ArgumentException>(() => chunks.ToArray(), context);
+                    Assert.That(stream.CanRead, Is.True, context);
+                    Assert.That(CanOpenExclusive(path), Is.False, context + ", still caller-owned");
+                }
+                Assert.That(CanOpenExclusive(path), Is.True, context + ", caller disposed");
+            }));
+        }
+
+        #endregion
+
         #region ChunkStreamAtNewlines
 
         [Test]
