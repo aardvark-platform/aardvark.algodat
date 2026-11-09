@@ -85,6 +85,8 @@ var chunks = Ascii.Chunks("scan.txt", layout, ParseConfig.Default);
 
 The token enum also provides normals, float colors, intensity, custom scalar fields, and `Skip`; check [Ascii.Token](../src/Aardvark.Data.Points.Ascii/ImportAscii.cs) when defining a layout. `Pts` and `Yxh` have built-in layouts.
 
+The filename overloads of `Pts.Chunks`, `Yxh.Chunks` and `Ascii.Chunks` are lazy: each enumeration opens its own file stream and closes it on completion, enumerator disposal or an exception. File-open errors are therefore deferred until enumeration starts. Use `foreach` or dispose the enumerator if stopping early; merely abandoning an enumerator does not guarantee prompt release. Re-enumeration reads the file afresh. Stream overloads leave caller-owned streams open and do not rewind them.
+
 ### PLY
 
 The parser supports ASCII and both binary byte orders. The point importer reads vertex properties, not polygon faces:

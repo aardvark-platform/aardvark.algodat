@@ -1,3 +1,5 @@
+- [ASCII] Filename-based Pts, Yxh and custom Ascii chunk sequences now reopen the file for each enumeration and release it on completion, early disposal or exceptions. File-open errors are deferred until enumeration starts; caller-supplied streams remain open and are not rewound.
+
 ### 5.6.4
 - stable release
 

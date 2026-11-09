@@ -35,13 +35,15 @@ namespace Aardvark.Data.Points.Import
         }
 
         /// <summary>
-        /// Parses .pts file.
+        /// Parses a .pts file lazily with a fresh owned stream per enumeration.
+        /// File-open errors occur during enumeration. Dispose enumerators when stopping
+        /// early; completion, disposal and exceptions close the file.
         /// </summary>
         public static IEnumerable<Chunk> Chunks(string filename, ParseConfig config)
             => Parsing.AsciiLines(LineParsers.XYZSRGB, filename, config);
 
         /// <summary>
-        /// Parses .pts stream.
+        /// Parses a .pts stream without closing or rewinding the caller-owned stream.
         /// </summary>
         public static IEnumerable<Chunk> Chunks(this Stream stream, long streamLengthInBytes, ParseConfig config)
             => Parsing.AsciiLines(LineParsers.XYZSRGB, stream, streamLengthInBytes, config);
