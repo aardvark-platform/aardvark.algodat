@@ -1,3 +1,6 @@
+### 5.6.5
+- [PolyMesh] Added PolyLineSet for indexed multi segments
+
 ### 5.6.4
 - stable release
 

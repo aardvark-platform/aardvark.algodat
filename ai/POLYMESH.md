@@ -79,3 +79,4 @@ foreach (var edge in mesh.GetFace(0).Edges)
 ## Related
 
 - [Geometry](GEOMETRY.md): clustering and intersection queries
+- [PolyLineSet](POLYLINESET.md): polylines over a shared vertex array with the same index layout
