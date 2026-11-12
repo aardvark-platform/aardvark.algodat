@@ -57,6 +57,8 @@ long count = pointSet.CountPointsInsideBox(box);
 
 Box queries include the boundary. The default visits full-resolution data; `minCellExponent` can stop traversal at a coarser level. Count queries avoid returning point lists but still load node data. See [Queries](../src/Aardvark.Geometry.PointSet/Queries) for nearest-point, polygon, and frustum queries.
 
+For 3D `QueryCell`/`EnumerateCells`, equality on a shared split plane belongs to the upper cell, including virtual subdivision of leaves and filtering a coarser fallback node. Internal upper faces are excluded, but the real query root cell's outer maximum remains included, so those stored points are not lost. `CellQueryResult.GetPoints(depth)` retains its relative LoD selection and returns owned chunks. This cell-specific ownership rule does not change the global closed `Chunk.ImmutableFilterByCell`, closed-box queries or XY columns.
+
 ## Node Contracts
 
 - `Positions.Value` is a `V3f[]` relative to `node.Center`; `PositionsAbsolute` returns global `V3d[]` coordinates.

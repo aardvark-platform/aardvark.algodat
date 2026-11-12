@@ -25,6 +25,24 @@ public static partial class Queries
 {
     #region query cells (3d)
 
+    private static Chunk FilterCellPoints(Chunk chunk, Cell cell, Cell rootCell)
+    {
+        var box = cell.BoundingBox;
+        // Internal upper faces are shared; the real root's outer faces are not.
+        var rootMax = rootCell.BoundingBox.Max;
+        var includeMaxX = box.Max.X == rootMax.X;
+        var includeMaxY = box.Max.Y == rootMax.Y;
+        var includeMaxZ = box.Max.Z == rootMax.Z;
+        return chunk.ImmutableFilter((c, i) =>
+        {
+            var p = c.Positions[i];
+            return box.Contains(p)
+                && (includeMaxX || p.X < box.Max.X)
+                && (includeMaxY || p.Y < box.Max.Y)
+                && (includeMaxZ || p.Z < box.Max.Z);
+        });
+    }
+
     /// <summary>
     /// </summary>
     public class CellQueryResult
@@ -42,6 +60,8 @@ public static partial class Queries
         /// <summary>
         /// Returns points inside cell from LoD at given relative depth,
         /// where 0 means points in cell itself, 1 means points from subcells, aso.
+        /// Shared split planes belong to the upper cell. The query root cell's outer
+        /// maximum remains included when filtering a coarser node's points.
         /// </summary>
         public IEnumerable<Chunk> GetPoints(int fromRelativeDepth)
         {
@@ -57,7 +77,7 @@ public static partial class Queries
 
             if (m_result.Cell != Cell)
             {
-                chunks = chunks.Select(c => c.ImmutableFilterByCell(Cell));
+                chunks = chunks.Select(c => FilterCellPoints(c, Cell, Root.Cell));
             }
 
             foreach (var chunk in chunks) yield return chunk;
@@ -140,17 +160,17 @@ public static partial class Queries
     }
 
     /// <summary>
-    /// Returns points in given cell,
-    /// or null if octree does not cover given cell.
-    /// Result chunk contains 0 points, if cell is covered by octree, but no points are inside given cell.
+    /// Queries points in a cell, using a coarser node when necessary.
+    /// Shared split-plane equality belongs to the upper cell; the real root cell's
+    /// outer maximum is retained. Cells without matching points yield empty chunks.
     /// </summary>
     public static CellQueryResult? QueryCell(this PointSet pointset, Cell cell)
         => pointset.Root.Value != null ? QueryCell(pointset.Root.Value, cell) : null;
 
     /// <summary>
-    /// Returns points in given cell,
-    /// or null if octree does not cover given cell.
-    /// Result chunk contains 0 points, if cell is covered by octree, but no points are inside given cell.
+    /// Queries points in a cell, using a coarser node when necessary.
+    /// Shared split-plane equality belongs to the upper cell; the real root cell's
+    /// outer maximum is retained. Cells without matching points yield empty chunks.
     /// </summary>
     public static CellQueryResult QueryCell(this IPointCloudNode root, Cell cell)
     {
@@ -221,6 +241,8 @@ public static partial class Queries
 
     /// <summary>
     /// Enumerates all points in chunks of a given cell size (given by cellExponent).
+    /// Shared split-plane points belong to the upper cell, including when splitting a leaf;
+    /// points on the real root cell's outer maximum are retained.
     /// Cell size is 2^cellExponent, e.g. -2 gives 0.25, -1 gives 0.50, 0 gives 1.00, 1 gives 2.00, and so on.
     /// Stride is step size (default is V3i.III), which must be greater 0 for each coordinate axis.
     /// </summary>
@@ -302,7 +324,7 @@ public static partial class Queries
                 for (var i = 0; i < 8; i++)
                 {
                     var octant = c.GetOctant(i);
-                    var part = chunk.ImmutableFilterByPosition(octant.BoundingBox.Contains);
+                    var part = FilterCellPoints(chunk, octant, root.Cell);
                     if (part.IsEmpty) continue;
 
                     var xs = Split(octant, part);

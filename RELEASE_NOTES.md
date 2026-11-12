@@ -1,3 +1,5 @@
+- [PointSet] 3D cell queries now assign shared face, edge and corner points only to the upper cell, including virtual leaf subdivision and coarser-node fallback. Points on the real root cell's outer maximum remain included; closed-box queries and XY columns are unchanged.
+
 ### 5.6.5
 - [PolyMesh] Added PolyLineSet for indexed multi segments
 
