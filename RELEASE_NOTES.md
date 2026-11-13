@@ -1,3 +1,5 @@
+- [PointSet] File MD5 hashing no longer schedules idle background tasks and releases hash providers promptly; full hashes, fast 1-MiB fingerprints and import keys are unchanged.
+
 ### 5.6.5
 - [PolyMesh] Added PolyLineSet for indexed multi segments
 
