@@ -14,8 +14,6 @@
 using System;
 using System.IO;
 using System.Security.Cryptography;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Aardvark.Geometry.Points;
 
@@ -24,8 +22,9 @@ namespace Aardvark.Geometry.Points;
 public static class FileHelpers
 {
     /// <summary>
-    /// Computes MD5 hash of file content.
+    /// Computes MD5 synchronously and disposes the hash provider before returning.
     /// If fast is set to true, then only the first 1 MiB of data is used for hash.
+    /// Returns the digest bytes formatted as a Guid string.
     /// </summary>
     public static string ComputeMd5Hash(string filename, bool fast)
     {
@@ -38,39 +37,23 @@ public static class FileHelpers
             if (filesize <= MiB)
             {
                 var buffer = File.ReadAllBytes(filename);
-                var hash = new Guid(MD5.Create().ComputeHash(buffer)).ToString();
-                return hash;
+                using var md5 = MD5.Create();
+                return new Guid(md5.ComputeHash(buffer)).ToString();
             }
             else
             {
                 using var fs = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.None);
                 var buffer = new byte[MiB];
                 if (fs.Read(buffer, 0, MiB) != MiB) throw new InvalidOperationException();
-                var hash = new Guid(MD5.Create().ComputeHash(buffer)).ToString();
-                return hash;
+                using var md5 = MD5.Create();
+                return new Guid(md5.ComputeHash(buffer)).ToString();
             }
         }
         else
         {
             using var fs = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.None);
-            var cts = new CancellationTokenSource();
-            try
-            {
-                Task.Run(async () =>
-                {
-                    while (!cts.IsCancellationRequested)
-                    {
-                        await Task.Delay(TimeSpan.FromSeconds(1));
-                    }
-                }, cts.Token);
-
-                var hash = new Guid(MD5.Create().ComputeHash(fs)).ToString();
-                return hash;
-            }
-            finally
-            {
-                cts.Cancel();
-            }
+            using var md5 = MD5.Create();
+            return new Guid(md5.ComputeHash(fs)).ToString();
         }
     }
 }
