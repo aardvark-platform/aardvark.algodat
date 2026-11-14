@@ -28,7 +28,7 @@ var pointSet = PointCloud.Import("scan.e57", config);
 storage.Flush();
 ```
 
-[ImportConfig](../src/Aardvark.Geometry.PointSet/Octrees/ImportConfig.cs) uses `With*` methods that return new configurations. `WithEnabledPartIndices` and `WithPartIndexOffset` control source-part tracking; `WithProgressCallback` reports import progress. `WithMinDist` filters point density and `WithReproject` maps positions during import. Reprojection of positions does not itself transform normals.
+[ImportConfig](../src/Aardvark.Geometry.PointSet/Octrees/ImportConfig.cs) uses `With*` methods that return new configurations. `WithEnabledPartIndices` and `WithPartIndexOffset` control source-part tracking; `WithProgressCallback` reports import progress. `WithReproject` maps positions before duplicate removal and `WithMinDist` density filtering, so distances and density cells use the reprojected coordinates. The callback receives unfiltered input chunks; keep per-point attributes aligned. Reprojection of positions does not itself transform normals.
 
 See [Point clouds](POINT_CLOUDS.md) for storage lifetime, chunk types, and queries. Chunked parsing bounds working batches, not the size of an in-memory store.
 

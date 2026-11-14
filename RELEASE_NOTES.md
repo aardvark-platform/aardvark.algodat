@@ -1,3 +1,5 @@
+- [PointSet] Generic-chunk imports now reproject positions before duplicate removal and minimum-distance filtering, using output-coordinate distances and density cells. Reprojection callbacks receive unfiltered input chunks; aligned attributes and imports without reprojection are unchanged.
+
 ### 5.6.5
 - [PolyMesh] Added PolyLineSet for indexed multi segments
 
