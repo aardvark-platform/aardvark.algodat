@@ -67,7 +67,7 @@ public static partial class PointCloud
         => Chunks(chunk, config);
 
     /// <summary>
-    /// Imports sequence of chunks.
+    /// Imports sequence of chunks, reprojecting positions before deduplication and density filtering.
     /// </summary>
     public static PointSet Chunks(IEnumerable<GenericChunk> chunks, ImportConfig config)
     {
@@ -77,6 +77,29 @@ public static partial class PointCloud
         {
             var chunkCount = 0;
             chunks = chunks.Do(chunk => { Report.Line($"[PointCloud.Chunks] processing chunk {Interlocked.Increment(ref chunkCount)}"); });
+        }
+
+        // reproject positions before deduplication and density filtering
+        if (config.Reproject != null)
+        {
+            GenericChunk map(GenericChunk x, CancellationToken ct)
+            {
+                if (config.Reproject != null)
+                {
+                    x = x.Positions switch
+                    {
+                        V2f[] ps => x.WithPositions(config.Reproject(ps.Map(p => (V3d)p.XYO)).Map(p => (V2f)p.XY)),
+                        V2d[] ps => x.WithPositions(config.Reproject(ps.Map(p => p.XYO)).Map(p => p.XY)),
+                        V3f[] ps => x.WithPositions(config.Reproject(ps.Map(p => (V3d)p)).Map(p => (V3f)p)),
+                        V3d[] ps => x.WithPositions(config.Reproject(ps)),
+                        _ => throw new Exception($"Unsupported positions type {x.Positions.GetType()}."),
+                    };
+                }
+
+                return x;
+            }
+
+            chunks = chunks.MapParallel(map, config.MaxDegreeOfParallelism, null, config.CancellationToken);
         }
 
         // deduplicate points
@@ -111,29 +134,6 @@ public static partial class PointCloud
         //Report.BeginTimed("unmix");
         //chunks = chunks.ImmutableUnmixOutOfCore(@"T:\tmp", 1, config);
         //Report.End();
-
-        // reproject positions and/or estimate normals
-        if (config.Reproject != null)
-        {
-            GenericChunk map(GenericChunk x, CancellationToken ct)
-            {
-                if (config.Reproject != null)
-                {
-                    x = x.Positions switch
-                    {
-                        V2f[] ps => x.WithPositions(config.Reproject(ps.Map(p => (V3d)p.XYO)).Map(p => (V2f)p.XY)),
-                        V2d[] ps => x.WithPositions(config.Reproject(ps.Map(p => p.XYO)).Map(p => p.XY)),
-                        V3f[] ps => x.WithPositions(config.Reproject(ps.Map(p => (V3d)p)).Map(p => (V3f)p)),
-                        V3d[] ps => x.WithPositions(config.Reproject(ps)),
-                        _ => throw new Exception($"Unsupported positions type {x.Positions.GetType()}."),
-                    };
-                }
-
-                return x;
-            }
-
-            chunks = chunks.MapParallel(map, config.MaxDegreeOfParallelism, null, config.CancellationToken);
-        }
 
         // reduce all chunks to single PointSet
         if (config.Verbose) Report.BeginTimed("map/reduce");
