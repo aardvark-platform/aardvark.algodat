@@ -22,7 +22,7 @@ Console.WriteLine($"{pointSet.PointCount} points in {pointSet.Bounds}");
 var loaded = PointCloud.Load("example", storage);
 ```
 
-For persistent storage, use `PointCloud.OpenStore(path)` instead. Keep the store alive while using its clouds and lazy references; flush pending writes with `storage.Flush()` and dispose it when finished. An in-memory store still retains all stored data: a smaller cache does not make it out-of-core.
+For persistent storage, use `PointCloud.OpenStore(path)` instead. Keep the store alive while using its clouds and lazy references; flush pending writes with `storage.Flush()` and dispose it when finished. After successful cleanup, later `Dispose()` calls are no-ops, including through aliases or enclosing `using` scopes. Cleanup exceptions propagate and later calls retry; `IsDisposed` becomes true before cleanup starts and remains true if cleanup fails, so it does not prove cleanup succeeded. Disposal does not add flushing or synchronize concurrent calls. An in-memory store still retains all stored data: a smaller cache does not make it out-of-core.
 
 `PointCloud.Load(key, storage)` throws if the key is absent. [Storage](../src/Aardvark.Data.Points.Base/Storage.cs) also supports custom backends through read, write, slice, remove, flush, and dispose delegates.
 

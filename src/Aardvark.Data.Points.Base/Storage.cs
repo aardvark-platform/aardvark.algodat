@@ -42,6 +42,7 @@ namespace Aardvark.Data.Points
             );
 
         private bool m_isDisposed = false;
+        private bool m_disposeCompleted = false;
 
         /// <summary>add(key, value, create)</summary>
         public readonly Action<string, object, Func<byte[]>> f_add;
@@ -97,12 +98,21 @@ namespace Aardvark.Data.Points
         /// </summary>
         public void Flush() => f_flush();
 
-        /// <summary></summary>
+        /// <summary>
+        /// Cleans up the storage. Calls after successful cleanup are no-ops.
+        /// </summary>
+        /// <remarks>
+        /// Cleanup exceptions propagate; a later call retries cleanup even though
+        /// <see cref="IsDisposed"/> is already true. Finalization is suppressed only
+        /// after successful cleanup. Concurrent disposal is not synchronized.
+        /// </remarks>
         public void Dispose()
         {
+            if (m_disposeCompleted) return;
             m_isDisposed = true;
             Dispose(true);
             GC.SuppressFinalize(this);
+            m_disposeCompleted = true;
         }
 
         /// <summary></summary>
@@ -121,7 +131,10 @@ namespace Aardvark.Data.Points
             Dispose(false);
         }
 
-        /// <summary></summary>
+        /// <summary>
+        /// True once public disposal has started, including when cleanup throws.
+        /// Set before the protected disposal hook; does not indicate cleanup success.
+        /// </summary>
         public bool IsDisposed => m_isDisposed;
         
         private static void Register(Storage storage)
