@@ -1,3 +1,5 @@
+- [PointSet] Successful storage disposal is now safely repeatable, including through aliases and enclosing using scopes. Cleanup failures still propagate and can be retried; IsDisposed continues to indicate that disposal started, not that cleanup succeeded.
+
 ### 5.6.5
 - [PolyMesh] Added PolyLineSet for indexed multi segments
 
