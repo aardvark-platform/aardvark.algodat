@@ -675,19 +675,19 @@ namespace Aardvark.Physics.Sky
         }
 
         /// <summary>
-        /// Local:
-        /// Z-axis sky
-        /// X-axis east
-        /// Y-axis north
+        /// Rotates Earth-fixed (ITRF) vectors into a right-handed local frame:
+        /// positive X east, positive Y north, positive Z up.
+        /// This is a rotation only, without translation to an observer's position.
+        /// At either pole, the supplied longitude selects the east/north directions.
         /// </summary>
-        /// <param name="longitudeInDegrees">positive to east</param>
-        /// <param name="latitudeInDegrees">positive to north</param>
-        /// <returns></returns>
+        /// <param name="longitudeInDegrees">Longitude in degrees, positive east of Greenwich.</param>
+        /// <param name="latitudeInDegrees">Latitude in degrees, positive north of the equator.</param>
+        /// <returns>ITRF-to-local east/north/up rotation matrix.</returns>
         public static M33d ITRFtoLocal(double longitudeInDegrees, double latitudeInDegrees)
         {
             var rotLong = RotationZ(longitudeInDegrees * Constant.RadiansPerDegree);
-            var rotLat = RotationY(latitudeInDegrees * Constant.RadiansPerDegree - Constant.PiHalf); // 90° -> 0, / -90° -> 180°
-            var yToNorth = RotationZ(-Constant.PiHalf);
+            var rotLat = RotationY(Constant.PiHalf - latitudeInDegrees * Constant.RadiansPerDegree); // 90° -> 0, / -90° -> 180°
+            var yToNorth = RotationZ(Constant.PiHalf);
 
             return yToNorth * rotLat * rotLong;
         }

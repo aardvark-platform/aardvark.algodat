@@ -1,3 +1,5 @@
+- [Sky] Correct ITRFtoLocal's orientation to positive X east, Y north and Z up. Local direction results change; longitude remains east-positive and latitude north-positive, both in degrees. Remove any compensation for the previous orientation.
+
 ### 5.6.5
 - [PolyMesh] Added PolyLineSet for indexed multi segments
 

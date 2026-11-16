@@ -74,6 +74,8 @@ M33d itrf2local = Astronomy.ITRFtoLocal(16.37, 48.21);
 V3d starLocal = (itrf2local * cep2itrf * icrf2cep) * starICRF;
 ```
 
+`ITRFtoLocal(longitude, latitude)` takes east-positive longitude and north-positive latitude in degrees. It rotates Earth-fixed vectors into a right-handed east/north/up frame: **+X east, +Y north, +Z up**. Its transpose reverses the rotation. It does not translate Earth-fixed positions to the observer; at either pole, the supplied longitude selects the east/north directions.
+
 `xp` and `yp` are polar-motion inputs; zero omits that correction. This is an astronomical frame transformation, not an EPSG projection.
 
 ## Orbital Anomalies
