@@ -1,3 +1,5 @@
+- [PointSet] Float-array averages and population standard deviations use double intermediates to avoid float overflow, underflow and false spread in long constant inputs. Empty-input and legacy nonfinite-input behavior are retained; existing stored metadata is not recomputed.
+
 ### 5.6.5
 - [PolyMesh] Added PolyLineSet for indexed multi segments
 
