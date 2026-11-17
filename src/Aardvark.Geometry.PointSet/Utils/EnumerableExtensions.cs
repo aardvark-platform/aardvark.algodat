@@ -25,17 +25,29 @@ namespace Aardvark.Geometry.Points;
 public static class EnumerableExtensions
 {
     /// <summary>
-    /// Returns average and standard deviation of given values.
+    /// Returns the average and population standard deviation (normalization by n).
+    /// Empty input returns NaN for both results. Null input throws NullReferenceException.
+    /// Finite inputs use double intermediates; nonfinite inputs retain their legacy
+    /// mean behavior and produce NaN standard deviation. The input is not modified.
     /// </summary>
     public static (float avg, float stddev) ComputeAvgAndStdDev(this float[] xs)
     {
         var n = xs.Length;
 
-        var sum = 0.0f;
+        var sum = 0.0;
         for (var i = 0; i < n; i++) sum += xs[i];
         var avg = sum / n;
 
-        sum = 0.0f;
+        if (double.IsNaN(avg) || double.IsInfinity(avg))
+        {
+            // Preserve nonfinite means even when a preceding finite prefix overflowed.
+            var legacySum = 0.0f;
+            for (var i = 0; i < n; i++) legacySum += xs[i];
+            var legacyAvg = legacySum / n;
+            return (legacyAvg, legacyAvg - legacyAvg);
+        }
+
+        sum = 0.0;
         for (var i = 0; i < n; i++)
         {
             var d = xs[i] - avg;
@@ -43,7 +55,7 @@ public static class EnumerableExtensions
         }
         var sd = (float)Math.Sqrt(sum / n);
 
-        return (avg, sd);
+        return ((float)avg, sd);
     }
 
     internal static bool Any<T>(this IEnumerable<T> xs, Func<T, int, bool> predicate)
