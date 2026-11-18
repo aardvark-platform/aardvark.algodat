@@ -1,3 +1,5 @@
+- [PointSet] Correct float-coordinate Euclidean distance filtering for large/tiny values and strict threshold equality. Generic float chunks now always retain the first actual point, including minimum-value coordinates and very large thresholds; position types, ordering and aligned attributes are preserved. L1 and double-coordinate behavior are unchanged.
+
 ### 5.6.5
 - [PolyMesh] Added PolyLineSet for indexed multi segments
 

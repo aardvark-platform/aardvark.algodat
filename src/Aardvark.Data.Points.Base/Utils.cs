@@ -69,8 +69,8 @@ namespace Aardvark.Data.Points
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool DistLessThanL2(ref V2f a, ref V2f b, double distSquared)
         {
-            var dx = a.X - b.X;
-            var dy = a.Y - b.Y;
+            var dx = (double)a.X - b.X;
+            var dy = (double)a.Y - b.Y;
             var dd = dx * dx + dy * dy;
             return dd < distSquared;
         }
@@ -87,9 +87,9 @@ namespace Aardvark.Data.Points
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool DistLessThanL2(ref V3f a, ref V3f b, double distSquared)
         {
-            var dx = a.X - b.X;
-            var dy = a.Y - b.Y;
-            var dz = a.Z - b.Z;
+            var dx = (double)a.X - b.X;
+            var dy = (double)a.Y - b.Y;
+            var dz = (double)a.Z - b.Z;
             var dd = dx * dx + dy * dy + dz * dz;
             return dd < distSquared;
         }
