@@ -42,6 +42,8 @@ Optional per-point lists must align with `Positions`. Check null or the correspo
 
 `ImmutableFilterByBox3d`, `ImmutableMapPositions`, `Chunk.ImmutableMerge`, and `Split(chunksize)` return new chunks. [GenericChunk](../src/Aardvark.Data.Points.Base/GenericChunk.cs) uses a `Durable.Def`-keyed dictionary for additional attributes; `chunk.ToGenericChunk()` converts the standard representation.
 
+`GenericChunk.ImmutableFilterSequentialMinDistL2` compares each point with the last retained point, removing only distances strictly below `minDist`. Float-coordinate chunks retain their first actual point and evaluate coordinate differences and squared distances in double precision, avoiding float overflow, underflow and premature rounding at the threshold. Retained positions keep their type, order and aligned attributes. Disabled filtering and chunks with at most one point return the original instance; L1 and double-coordinate behavior are unchanged.
+
 ## Spatial Queries
 
 Continuing the example above:

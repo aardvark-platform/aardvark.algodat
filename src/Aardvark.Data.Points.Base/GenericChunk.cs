@@ -688,7 +688,9 @@ namespace Aardvark.Data.Points
         }
 
         /// <summary>
-        /// Removes points which are less than minDist from previous point (L2, Euclidean).
+        /// Removes points strictly closer than minDist to the previous retained point (L2, Euclidean).
+        /// Float-coordinate branches keep the first point and compare distances in double precision.
+        /// Disabled filtering and chunks with at most one point return this instance.
         /// </summary>
         public GenericChunk ImmutableFilterSequentialMinDistL2(double minDist)
         {
@@ -699,9 +701,9 @@ namespace Aardvark.Data.Points
             {
                 case V2f[] ps:
                     {
-                        var last = V2f.MinValue;
-                        var ia = new List<int>();
-                        for (var i = 0; i < ps.Length; i++)
+                        var last = ps[0];
+                        var ia = new List<int> { 0 };
+                        for (var i = 1; i < ps.Length; i++)
                         {
                             var p = ps[i];
                             if (Utils.DistLessThanL2(ref p, ref last, minDistSquared)) continue;
@@ -723,9 +725,9 @@ namespace Aardvark.Data.Points
                     }
                 case V3f[] ps:
                     {
-                        var last = V3f.MinValue;
-                        var ia = new List<int>();
-                        for (var i = 0; i < ps.Length; i++)
+                        var last = ps[0];
+                        var ia = new List<int> { 0 };
+                        for (var i = 1; i < ps.Length; i++)
                         {
                             var p = ps[i];
                             if (Utils.DistLessThanL2(ref p, ref last, minDistSquared)) continue;
@@ -748,9 +750,9 @@ namespace Aardvark.Data.Points
 
                 case IReadOnlyList<V2f> ps:
                     {
-                        var last = V2f.MinValue;
-                        var ia = new List<int>();
-                        for (var i = 0; i < ps.Count; i++)
+                        var last = ps[0];
+                        var ia = new List<int> { 0 };
+                        for (var i = 1; i < ps.Count; i++)
                         {
                             var p = ps[i];
                             if (Utils.DistLessThanL2(ref p, ref last, minDistSquared)) continue;
@@ -772,9 +774,9 @@ namespace Aardvark.Data.Points
                     }
                 case IReadOnlyList<V3f> ps:
                     {
-                        var last = V3f.MinValue;
-                        var ia = new List<int>();
-                        for (var i = 0; i < ps.Count; i++)
+                        var last = ps[0];
+                        var ia = new List<int> { 0 };
+                        for (var i = 1; i < ps.Count; i++)
                         {
                             var p = ps[i];
                             if (Utils.DistLessThanL2(ref p, ref last, minDistSquared)) continue;
