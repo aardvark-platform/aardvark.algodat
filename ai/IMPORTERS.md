@@ -30,6 +30,8 @@ storage.Flush();
 
 [ImportConfig](../src/Aardvark.Geometry.PointSet/Octrees/ImportConfig.cs) uses `With*` methods that return new configurations. `WithEnabledPartIndices` and `WithPartIndexOffset` control source-part tracking; `WithProgressCallback` reports import progress. `WithMinDist` filters point density and `WithReproject` maps positions during import. Reprojection of positions does not itself transform normals.
 
+`WithCancellationToken` also governs pairwise reduction for both `Chunk` and `GenericChunk` inputs. Cancellation stops further merge scheduling; it does not preempt an active synchronous merge or roll back completed storage writes. Already-running work may finish, so cancellation is cooperative rather than transactional.
+
 See [Point clouds](POINT_CLOUDS.md) for storage lifetime, chunk types, and queries. Chunked parsing bounds working batches, not the size of an in-memory store.
 
 ## Direct Chunk Processing
