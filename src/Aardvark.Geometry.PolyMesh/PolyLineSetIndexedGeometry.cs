@@ -35,6 +35,13 @@ namespace Aardvark.Geometry
             };
         }
 
+        /// <summary>
+        /// As <see cref="GetIndexedGeometry(PolyLineSet)"/>; with resolveLineAttributes the line and line-vertex attributes are first moved to the vertices
+        /// by <see cref="PolyLineSet.WithResolvedLineAttributes"/>, which duplicates only the vertices referenced with more than one value, so per-polyline colours render.
+        /// </summary>
+        public static IndexedGeometry GetIndexedGeometry(this PolyLineSet lineSet, bool resolveLineAttributes)
+            => (resolveLineAttributes ? lineSet.WithResolvedLineAttributes() : lineSet).GetIndexedGeometry();
+
         private static Array ToFloatVectors(Array array) => array is V3d[] vectors ? vectors.Map(v => v.ToV3f()) : array;
     }
 }

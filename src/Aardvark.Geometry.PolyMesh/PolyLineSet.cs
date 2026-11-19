@@ -1,4 +1,5 @@
 ﻿using Aardvark.Base;
+using Aardvark.Base.Coder;
 using Aardvark.Rendering;
 using System;
 using System.Collections.Generic;
@@ -11,7 +12,8 @@ namespace Aardvark.Geometry
     /// <see cref="FirstIndexArray"/> holds the start of each polyline in <see cref="VertexIndexArray"/> plus a final entry with the total index count.
     /// Gaps are separate polylines, vertex re-use is a repeated index.
     /// </summary>
-    public class PolyLineSet : IBoundingBox3d
+    [RegisterTypeInfo]
+    public class PolyLineSet : IBoundingBox3d, IFieldCodeable
     {
         /// <summary>Positions of all vertices, referenced through <see cref="VertexIndexArray"/>.</summary>
         public V3d[] VertexArray;
@@ -244,6 +246,128 @@ namespace Aardvark.Geometry
                 result[kvp.Key] = kvp.Value;
             result[Property.Normals] = transformed;
             return result;
+        }
+
+        #endregion
+
+        #region Line attribute resolution
+
+        /// <summary>
+        /// Moves all line and line-vertex attributes into <see cref="VertexAttributes"/>, so that the indexed geometry can carry them.
+        /// A vertex referenced with more than one attribute value is duplicated once per further value and the polyline indices are redirected to the copies;
+        /// every other vertex stays shared, so a set whose polylines own their vertices gets no duplicates at all.
+        /// Existing vertex attributes are copied for the duplicates, resolved attributes of unreferenced vertices keep their default value.
+        /// Returns this set when there is nothing to resolve.
+        /// </summary>
+        public PolyLineSet WithResolvedLineAttributes()
+        {
+            if (PolyLineCount == 0 || (LineAttributes.Count == 0 && LineVertexAttributes.Count == 0))
+                return this;
+
+            var lineAttributes = LineAttributes.ToArray();
+            var lineVertexAttributes = LineVertexAttributes.ToArray();
+            var attributeCount = lineAttributes.Length + lineVertexAttributes.Length;
+
+            // resolved values per output vertex, null while unreferenced; a vertex with conflicting values chains to its duplicates
+            var values = new List<object[]>(VertexCount);
+            for (var vi = 0; vi < VertexCount; vi++)
+                values.Add(null);
+            var duplicateSources = new List<int>();                 // original vertex of each duplicate, duplicates are appended after the originals
+            var nextDuplicate = new Dictionary<int, int>();
+            var vertexIndices = (int[])VertexIndexArray.Clone();
+            var current = new object[attributeCount];
+
+            for (var pi = 0; pi < PolyLineCount; pi++)
+            {
+                for (var i = FirstIndexArray[pi]; i < FirstIndexArray[pi + 1]; i++)
+                {
+                    var ai = 0;
+                    foreach (var kvp in lineAttributes)
+                        current[ai++] = kvp.Value.GetValue(pi);
+                    foreach (var kvp in lineVertexAttributes)
+                        current[ai++] = kvp.Value.GetValue(i);
+
+                    var vertex = VertexIndexArray[i];
+                    while (true)
+                    {
+                        var existing = values[vertex];
+                        if (existing == null)
+                        {
+                            values[vertex] = (object[])current.Clone();
+                            break;
+                        }
+                        if (SameValues(existing, current))
+                            break;
+                        if (!nextDuplicate.TryGetValue(vertex, out int duplicate))
+                        {
+                            duplicate = values.Count;
+                            values.Add(null);
+                            duplicateSources.Add(vertex < VertexCount ? vertex : duplicateSources[vertex - VertexCount]);
+                            nextDuplicate[vertex] = duplicate;
+                        }
+                        vertex = duplicate;
+                    }
+                    vertexIndices[i] = vertex;
+                }
+            }
+
+            var result = new PolyLineSet
+            {
+                VertexArray = (V3d[])Extended(VertexArray, duplicateSources),
+                VertexIndexArray = vertexIndices,
+                FirstIndexArray = FirstIndexArray,
+                InstanceAttributes = InstanceAttributes,
+            };
+            foreach (var kvp in VertexAttributes)
+                result.VertexAttributes[kvp.Key] = Extended(kvp.Value, duplicateSources);
+
+            var vertexCount = values.Count;
+            for (var ai = 0; ai < attributeCount; ai++)
+            {
+                var kvp = ai < lineAttributes.Length ? lineAttributes[ai] : lineVertexAttributes[ai - lineAttributes.Length];
+                var resolved = Array.CreateInstance(kvp.Value.GetType().GetElementType(), vertexCount);
+                for (var vi = 0; vi < vertexCount; vi++)
+                    if (values[vi] != null)
+                        resolved.SetValue(values[vi][ai], vi);
+                result.VertexAttributes[kvp.Key] = resolved;
+            }
+            return result;
+        }
+
+        private static bool SameValues(object[] a, object[] b)
+        {
+            for (var i = 0; i < a.Length; i++)
+                if (!Equals(a[i], b[i]))
+                    return false;
+            return true;
+        }
+
+        /// <summary>The array with one copied entry per duplicate source appended, or the array itself without duplicates.</summary>
+        private static Array Extended(Array array, List<int> duplicateSources)
+        {
+            if (duplicateSources.Count == 0)
+                return array;
+
+            var result = Array.CreateInstance(array.GetType().GetElementType(), array.Length + duplicateSources.Count);
+            Array.Copy(array, result, array.Length);
+            for (var i = 0; i < duplicateSources.Count; i++)
+                result.SetValue(array.GetValue(duplicateSources[i]), array.Length + i);
+            return result;
+        }
+
+        #endregion
+
+        #region IFieldCodeable Members
+
+        public IEnumerable<FieldCoder> GetFieldCoders(int coderVersion)
+        {
+            yield return new FieldCoder(0, "VertexArray", (c, o) => c.CodeV3dArray(ref ((PolyLineSet)o).VertexArray));
+            yield return new FieldCoder(1, "VertexIndexArray", (c, o) => c.CodeIntArray(ref ((PolyLineSet)o).VertexIndexArray));
+            yield return new FieldCoder(2, "FirstIndexArray", (c, o) => c.CodeIntArray(ref ((PolyLineSet)o).FirstIndexArray));
+            yield return new FieldCoder(3, "VertexAttributes", (c, o) => c.CodeT(ref ((PolyLineSet)o).VertexAttributes));
+            yield return new FieldCoder(4, "LineAttributes", (c, o) => c.CodeT(ref ((PolyLineSet)o).LineAttributes));
+            yield return new FieldCoder(5, "LineVertexAttributes", (c, o) => c.CodeT(ref ((PolyLineSet)o).LineVertexAttributes));
+            yield return new FieldCoder(6, "InstanceAttributes", (c, o) => c.CodeT(ref ((PolyLineSet)o).InstanceAttributes));
         }
 
         #endregion

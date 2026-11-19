@@ -1,3 +1,6 @@
+### 5.6.6
+- [PolyMesh] PolyLineSet: WithResolvedLineAttributes and GetIndexedGeometry(resolveLineAttributes) render line attributes from the indexed line list; IFieldCodeable
+
 ### 5.6.5
 - [PolyMesh] Added PolyLineSet for indexed multi segments
 
