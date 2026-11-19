@@ -139,7 +139,7 @@ namespace Aardvark.Geometry.Points
                 if (merged.Root.Value.PointCountTree == 0) throw new InvalidOperationException();
                 return merged;
             },
-            config.MaxDegreeOfParallelism
+            config.MaxDegreeOfParallelism, ct: config.CancellationToken
             );
             if (config.Verbose)
             {

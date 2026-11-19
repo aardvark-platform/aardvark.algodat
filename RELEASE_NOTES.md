@@ -1,3 +1,5 @@
+- [PointSet] Cancellation during chunk-import reduction now stops further pairwise merges for both chunk representations. Already-running synchronous merges may finish; completed storage writes are not rolled back.
+
 ### 5.6.5
 - [PolyMesh] Added PolyLineSet for indexed multi segments
 
