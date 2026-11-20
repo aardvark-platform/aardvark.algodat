@@ -49,6 +49,11 @@ namespace Aardvark.Physics.Sky
         /// </summary>
         private readonly double m_turbidity;
 
+        // View-independent Perez normalization for the Y, x and y channels.
+        private readonly double m_normalizationY;
+        private readonly double m_normalizationx;
+        private readonly double m_normalizationy;
+
         #region Constructor
 
         /// <summary>
@@ -60,6 +65,10 @@ namespace Aardvark.Physics.Sky
             m_turbidity = turbidity;
 
             PreethamInit();
+
+            m_normalizationY = f(s_ABCDE_Y, s_ABCDET_Y, turbidity, 0, SunTheta);
+            m_normalizationx = f(s_ABCDE_x, s_ABCDET_x, turbidity, 0, SunTheta);
+            m_normalizationy = f(s_ABCDE_y, s_ABCDET_y, turbidity, 0, SunTheta);
         }
 
         #endregion    
@@ -100,12 +109,11 @@ namespace Aardvark.Physics.Sky
         }
 
         /// <summary>
-        /// Function F as described in the paper.
-        /// Paper: p91-preetham.pdf
+        /// Evaluates the distribution with turbidity-dependent coefficients.
         /// </summary>
-        private double F
+        private double f
             (double[] ABCDE, double[] ABCDET, double T,
-            double theta, double sunTheta, double gamma)
+            double theta, double gamma)
         {
             double A = ABCDE[0] + ABCDET[0] * T;
             double B = ABCDE[1] + ABCDET[1] * T;
@@ -113,7 +121,17 @@ namespace Aardvark.Physics.Sky
             double D = ABCDE[3] + ABCDET[3] * T;
             double E = ABCDE[4] + ABCDET[4] * T;
 
-            return f(A, B, C, D, E, theta, gamma) / f(A, B, C, D, E, 0, sunTheta);
+            return f(A, B, C, D, E, theta, gamma);
+        }
+
+        /// <summary>
+        /// Function F as described in the paper, using the instance normalization.
+        /// </summary>
+        private double F
+            (double[] ABCDE, double[] ABCDET, double T,
+            double theta, double normalization, double gamma)
+        {
+            return f(ABCDE, ABCDET, T, theta, gamma) / normalization;
         }
 
         /// <summary>
@@ -159,9 +177,9 @@ namespace Aardvark.Physics.Sky
             var gamma = Fun.Acos(Fun.Clamp(Vec.Dot(viewVec, SunVec), -1, 1)); // clamp range: even dot-product of normalized vectors can be >1 caused by numerical inaccuracies -> Acos not defined for >1
 
             // Yz: zenith luminance in kcd/m²
-            var Y = m_Yz * F(s_ABCDE_Y, s_ABCDET_Y, m_turbidity, theta, SunTheta, gamma);
-            var x = m_xz * F(s_ABCDE_x, s_ABCDET_x, m_turbidity, theta, SunTheta, gamma);
-            var y = m_yz * F(s_ABCDE_y, s_ABCDET_y, m_turbidity, theta, SunTheta, gamma);
+            var Y = m_Yz * F(s_ABCDE_Y, s_ABCDET_Y, m_turbidity, theta, m_normalizationY, gamma);
+            var x = m_xz * F(s_ABCDE_x, s_ABCDET_x, m_turbidity, theta, m_normalizationx, gamma);
+            var y = m_yz * F(s_ABCDE_y, s_ABCDET_y, m_turbidity, theta, m_normalizationy, gamma);
 
             var XYZ = new C3f(Y, x, y).FromYxyToXYZ();
 
