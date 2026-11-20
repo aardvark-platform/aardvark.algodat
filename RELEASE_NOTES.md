@@ -1,3 +1,5 @@
+- [Sky] Reuse fixed Preetham normalization during repeated sky sampling, shifting that work to construction and retaining three additional scalar values per instance. Numerical results and radiance/color conventions are unchanged.
+
 ### 5.6.6
 - [PolyMesh] PolyLineSet: WithResolvedLineAttributes and GetIndexedGeometry(resolveLineAttributes) render line attributes from the indexed line list; IFieldCodeable
 

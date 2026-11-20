@@ -29,6 +29,8 @@ C3f color = cie.GetColor(V3d.OOI);
 - CIE, Preetham, and the **XYZ-configured** Hosek model return XYZ values from `GetRadiance()`, with luminance Y in cd/m². Do not generalize that color space to every Hosek configuration.
 - `GetColor(V3d)` maps brightness into [0,1] and applies the sRGB transfer function. It is not linear RGB or a physical radiance output; use `GetRadiance(V3d)` for your own exposure/color pipeline. Hosek's color conversion assumes XYZ input, so use `Col.Format.CieXYZ` with it.
 
+Preetham computes its three view-independent Y/x/y normalization denominators at construction and retains them per instance. This shifts fixed work and three scalar values into construction; repeated sampling reuses them without per-sample allocations. The original division, horizon epsilon, float color conversion and nonfinite behavior are retained.
+
 See [CIESky](../src/Aardvark.Physics.Sky/CIESky.cs), [HosekSky](../src/Aardvark.Physics.Sky/HosekSky.cs), and [PreethamSky](../src/Aardvark.Physics.Sky/PreethamSky.cs) for model-specific parameters and limits.
 
 ## Time and Observer Coordinates
