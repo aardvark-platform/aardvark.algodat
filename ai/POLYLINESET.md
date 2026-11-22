@@ -29,6 +29,8 @@ var indexed = PolyLineSet.FromIndexed(vertices, new[] { new[] { 0, 1, 2 }, new[]
 
 `WithResolvedLineAttributes()` moves the line and line-vertex attributes into `VertexAttributes`. Only a vertex that is referenced with more than one attribute value is duplicated (once per further value, appended after the original vertices, existing vertex attributes copied); the polyline indices are redirected to the copies and everything else stays shared. A set whose polylines own their vertices gets no duplicates, a set with nothing to resolve returns itself. `GetIndexedGeometry(resolveLineAttributes: true)` does this first, so per-polyline or per-polyline-vertex colours reach the renderer without expanding every segment.
 
+Conflicting references use a lookup keyed by the original vertex and the complete tuple of line and line-vertex values, with value-equality checks for hash collisions. This avoids repeated duplicate-chain searches at large junctions while preserving first-encounter numbering and duplicate reuse. The lookup is created only after a conflict; no-conflict position and vertex-attribute arrays remain shared. Hash quality affects performance; this is not a worst-case linear-time guarantee. Equal attribute values must have consistent hash codes.
+
 ```csharp
 lines.LineAttributes[PolyLineSet.Property.Colors] = new[] { C4b.Red, C4b.Blue }; // one colour per polyline
 var geometry = lines.GetIndexedGeometry(resolveLineAttributes: true);           // Colors is a vertex attribute now
