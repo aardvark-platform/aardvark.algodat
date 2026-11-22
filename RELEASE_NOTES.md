@@ -1,3 +1,5 @@
+- [PolyMesh] Improve PolyLineSet line-attribute resolution at heavily shared junctions by reusing resolved value tuples through a lookup. Preserve vertex numbering, attribute precedence and sharing; performance depends on attribute hash quality.
+
 ### 5.6.6
 - [PolyMesh] PolyLineSet: WithResolvedLineAttributes and GetIndexedGeometry(resolveLineAttributes) render line attributes from the indexed line list; IFieldCodeable
 

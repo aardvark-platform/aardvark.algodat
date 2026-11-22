@@ -268,12 +268,12 @@ namespace Aardvark.Geometry
             var lineVertexAttributes = LineVertexAttributes.ToArray();
             var attributeCount = lineAttributes.Length + lineVertexAttributes.Length;
 
-            // resolved values per output vertex, null while unreferenced; a vertex with conflicting values chains to its duplicates
+            // Resolved values per output vertex, null while unreferenced.
             var values = new List<object[]>(VertexCount);
             for (var vi = 0; vi < VertexCount; vi++)
                 values.Add(null);
             var duplicateSources = new List<int>();                 // original vertex of each duplicate, duplicates are appended after the originals
-            var nextDuplicate = new Dictionary<int, int>();
+            Dictionary<(int Vertex, object[] Values), int> duplicates = null;
             var vertexIndices = (int[])VertexIndexArray.Clone();
             var current = new object[attributeCount];
 
@@ -288,22 +288,21 @@ namespace Aardvark.Geometry
                         current[ai++] = kvp.Value.GetValue(i);
 
                     var vertex = VertexIndexArray[i];
-                    while (true)
+                    var existing = values[vertex];
+                    if (existing == null)
+                        values[vertex] = (object[])current.Clone();
+                    else if (!SameValues(existing, current))
                     {
-                        var existing = values[vertex];
-                        if (existing == null)
-                        {
-                            values[vertex] = (object[])current.Clone();
-                            break;
-                        }
-                        if (SameValues(existing, current))
-                            break;
-                        if (!nextDuplicate.TryGetValue(vertex, out int duplicate))
+                        if (duplicates == null)
+                            duplicates = new Dictionary<(int Vertex, object[] Values), int>(ResolvedVertexComparer.Instance);
+                        if (!duplicates.TryGetValue((vertex, current), out int duplicate))
                         {
                             duplicate = values.Count;
-                            values.Add(null);
-                            duplicateSources.Add(vertex < VertexCount ? vertex : duplicateSources[vertex - VertexCount]);
-                            nextDuplicate[vertex] = duplicate;
+                            // Stored keys own their tuple; current is overwritten for the next corner.
+                            var stored = (object[])current.Clone();
+                            values.Add(stored);
+                            duplicateSources.Add(vertex);
+                            duplicates.Add((vertex, stored), duplicate);
                         }
                         vertex = duplicate;
                     }
@@ -332,6 +331,25 @@ namespace Aardvark.Geometry
                 result.VertexAttributes[kvp.Key] = resolved;
             }
             return result;
+        }
+
+        private sealed class ResolvedVertexComparer : IEqualityComparer<(int Vertex, object[] Values)>
+        {
+            internal static readonly ResolvedVertexComparer Instance = new ResolvedVertexComparer();
+
+            public bool Equals((int Vertex, object[] Values) a, (int Vertex, object[] Values) b)
+                => a.Vertex == b.Vertex && SameValues(a.Values, b.Values);
+
+            public int GetHashCode((int Vertex, object[] Values) key)
+            {
+                unchecked
+                {
+                    var hash = key.Vertex;
+                    foreach (var value in key.Values)
+                        hash = hash * 31 + (value?.GetHashCode() ?? 0);
+                    return hash;
+                }
+            }
         }
 
         private static bool SameValues(object[] a, object[] b)
