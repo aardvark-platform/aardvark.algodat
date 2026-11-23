@@ -73,6 +73,16 @@ namespace Aardvark.Physics.Sky
             var sunSkyRadius = (0.54 * Constant.RadiansPerDegree) / 2.0;
             var solidAngle = Constant.PiTimesTwo * (1 - Fun.Cos(sunSkyRadius));
 
+            // The height and densities depend on the ray, not on its wavelength.
+            var airDensity = new double[stepCount];
+            var dustDensity = new double[stepCount];
+            for (int j = 0; j < stepCount; j++)
+            {
+                var h = SunTheta.Cos() * (stepCount - j - 1) * stepDelta; // starting outside
+                airDensity[j] = Fun.Exp(-h / H_0air);
+                dustDensity[j] = Fun.Exp(-h / H_0dust);
+            }
+
             // approximate absorption of ozone layer, gazes and vapor with optical density of atmosphere
             // rayleight and mie scattering for air and dust is performed more accurately by numerical intergration along the view ray
 
@@ -120,9 +130,7 @@ namespace Aardvark.Physics.Sky
 
                 for (int j = 0; j < stepCount; j++) // 100km length
                 {
-                    var h = SunTheta.Cos() * (stepCount - j - 1) * stepDelta; // starting outside
-
-                    var p_air = Fun.Exp(-h / H_0air); // density of air for given height
+                    var p_air = airDensity[j]; // density of air for given height
 
                     //var rayleighIn = Constant.PiSquared * (n.Square() - 1).Square() / (2 * N_h * lambda.Pow(4)) * (6 + 3 * pn) / (6 - 7 * pn) * 2; // 2 == (1 + cos^2 theta)
 
@@ -134,7 +142,7 @@ namespace Aardvark.Physics.Sky
 
                     transmissionR *= transmissionAir;
 
-                    var p_dust = Fun.Exp(-h / H_0dust); // density of dust for given height
+                    var p_dust = dustDensity[j]; // density of dust for given height
 
                     var transmissionDust = Fun.Exp(-mieK * p_dust * stepDelta / 100); // conversion to cm? 100 scale the mie scattering quite well, maybe there is some missing unit conversion
 
