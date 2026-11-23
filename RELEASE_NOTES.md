@@ -1,3 +1,5 @@
+- [Sky] Speed up SunLightScattering radiance integration by reusing atmospheric density samples across wavelengths, preserving results and constructor behavior. Each call uses two temporary 500-double buffers (8,048 additional managed bytes in measurements).
+
 ### 5.6.6
 - [PolyMesh] PolyLineSet: WithResolvedLineAttributes and GetIndexedGeometry(resolveLineAttributes) render line attributes from the indexed line list; IFieldCodeable
 

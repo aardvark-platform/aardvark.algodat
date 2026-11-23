@@ -31,6 +31,8 @@ C3f color = cie.GetColor(V3d.OOI);
 
 See [CIESky](../src/Aardvark.Physics.Sky/CIESky.cs), [HosekSky](../src/Aardvark.Physics.Sky/HosekSky.cs), and [PreethamSky](../src/Aardvark.Physics.Sky/PreethamSky.cs) for model-specific parameters and limits.
 
+`SunLightScattering.GetRadiance()` integrates direct sunlight over 41 wavelengths and 500 height steps. It computes air and dust densities once per call and reuses them across wavelengths, using two temporary 500-double buffers rather than a persistent cache. Construction, spectral data, transmission order and XYZ conversion are unchanged; repeated and concurrent calls retain independent scratch storage.
+
 ## Time and Observer Coordinates
 
 Longitude is east-positive and latitude north-positive, both in degrees. Julian-day overloads take **UTC**. DateTime overloads subtract the supplied timezone offset; pass **zero with `DateTime.UtcNow`**. They do not infer a civil timezone or daylight-saving rules.
