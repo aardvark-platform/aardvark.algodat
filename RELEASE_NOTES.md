@@ -1,3 +1,5 @@
+- [Normals] Correct float-input normal and local-density estimation for translated point neighborhoods by using double-precision intermediate statistics. Output types, neighbor selection and arbitrary normal sign are unchanged; results may change where float accumulation previously distorted the fitted plane.
+
 ### 5.6.6
 - [PolyMesh] PolyLineSet: WithResolvedLineAttributes and GetIndexedGeometry(resolveLineAttributes) render line attributes from the indexed line list; IFieldCodeable
 

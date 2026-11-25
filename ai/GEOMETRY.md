@@ -80,6 +80,8 @@ var result = points.EstimateNormalsAndLocalDensity(k: 16, kdTree);
 
 [Normals](../src/Aardvark.Geometry.Normals/Normals.cs) requires `k >= 3` and always returns `V3f[]` normals. PCA does not resolve their sign; orient them separately if needed. Local density is the average **squared** distance of neighbors to their centroid. Overloads without a KD-tree construct one; reuse a tree for repeated calls. Async variants are also available.
 
+Float-input estimators promote coordinates before computing neighborhood centroids, deviations, covariance and squared-distance sums in double precision. This avoids float accumulation errors in translated planes; only final normals and densities are converted to their existing float output types. KD-tree neighbor selection and arbitrary normal sign are unchanged. This cannot recover detail already lost when coordinates were stored as floats.
+
 ## Geodetics
 
 [CoordinateSystem](../src/Aardvark.Geodetics/CoordinateSystem.fs) wraps DotSpatial projections. EPSG:4326 points use **longitude, latitude** in degrees; projected coordinates use the target system's units (meters for EPSG:32633).

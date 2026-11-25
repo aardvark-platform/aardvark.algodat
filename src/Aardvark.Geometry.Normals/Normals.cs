@@ -47,17 +47,17 @@ namespace Aardvark.Geometry
                 if (closest.Count == 0) return V3f.Zero;
 
                 // compute centroid of k closest points
-                var c = points[closest[0].Index];
-                for (var j = 1; j < k; j++) c += points[closest[j].Index];
+                var c = (V3d)points[closest[0].Index];
+                for (var j = 1; j < k; j++) c += (V3d)points[closest[j].Index];
                 c /= k;
 
                 // compute covariance matrix of k closest points relative to centroid
-                var cvm = M33f.Zero;
-                for (var j = 0; j < k; j++) cvm.AddOuterProduct(points[closest[j].Index] - c);
+                var cvm = M33d.Zero;
+                for (var j = 0; j < k; j++) cvm.AddOuterProduct((V3d)points[closest[j].Index] - c);
                 cvm /= k;
 
                 // solve eigensystem -> eigenvector for smallest eigenvalue gives normal 
-                Eigensystems.Dsyevh3((M33d)cvm, out M33d q, out V3d w);
+                Eigensystems.Dsyevh3(cvm, out M33d q, out V3d w);
                 return (V3f)((w.X < w.Y) ? ((w.X < w.Z) ? q.C0 : q.C2) : ((w.Y < w.Z) ? q.C1 : q.C2));
             });
         }
@@ -335,25 +335,25 @@ namespace Aardvark.Geometry
                 else
                 {
                     // compute centroid of k closest points
-                    var c = points[closest[0].Index];
-                    for (var j = 1; j < k; j++) c += points[closest[j].Index];
+                    var c = (V3d)points[closest[0].Index];
+                    for (var j = 1; j < k; j++) c += (V3d)points[closest[j].Index];
                     c /= k;
 
                     // compute covariance matrix of k closest points relative to centroid
-                    var squaredDistSum = 0.0f;
-                    var cvm = M33f.Zero;
+                    var squaredDistSum = 0.0;
+                    var cvm = M33d.Zero;
                     for (var j = 0; j < k; j++)
                     {
-                        var d = points[closest[j].Index] - c;
+                        var d = (V3d)points[closest[j].Index] - c;
                         squaredDistSum += d.LengthSquared;
                         cvm.AddOuterProduct(d);
                     }
                     cvm /= k;
 
                     // solve eigensystem -> eigenvector for smallest eigenvalue gives normal 
-                    Eigensystems.Dsyevh3((M33d)cvm, out M33d q, out V3d w);
+                    Eigensystems.Dsyevh3(cvm, out M33d q, out V3d w);
                     ns[i] = (V3f)((w.X < w.Y) ? ((w.X < w.Z) ? q.C0 : q.C2) : ((w.Y < w.Z) ? q.C1 : q.C2));
-                    ds[i] = squaredDistSum * (1.0f / k);
+                    ds[i] = (float)(squaredDistSum * (1.0 / k));
                 }
             }
 
