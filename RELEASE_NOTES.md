@@ -1,3 +1,5 @@
+- [PolyMesh] Reduce allocations when incrementally adding faces to meshes with topology.
+
 ### 5.6.6
 - [PolyMesh] PolyLineSet: WithResolvedLineAttributes and GetIndexedGeometry(resolveLineAttributes) render line attributes from the indexed line list; IFieldCodeable
 
