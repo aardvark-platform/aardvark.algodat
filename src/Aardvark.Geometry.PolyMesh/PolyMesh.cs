@@ -774,7 +774,7 @@ namespace Aardvark.Geometry
         public int AddFaceWithTopology( params int[] vertexIndices)
         {
             var fvc = vertexIndices.Length;
-            if (m_faceEdgeRefArray.Length + fvc > m_vertexIndexCount)
+            if (m_vertexIndexCount + fvc > m_faceEdgeRefArray.Length)
                 Array.Resize(ref m_faceEdgeRefArray, (int)(m_vertexIndexCount * 1.5 + fvc));
 
             var newEdgeIndex = m_edgeCount;

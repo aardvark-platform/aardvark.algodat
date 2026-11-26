@@ -74,6 +74,8 @@ foreach (var edge in mesh.GetFace(0).Edges)
 }
 ```
 
+`AddFaceWithTopology(...)` reuses the face-to-edge buffer when the active corner count plus the new face's valence fits, including an exact fit. Growth preserves existing references. This avoids repeated buffer copying; edge lookup and insertion behavior, including topology metadata updates, are unchanged. It does not make overall incremental construction linear.
+
 `Vertices`, `Faces`, and `Edges` are enumerables; use `GetVertex(index)` and `GetFace(index)` for indexed access. Edge facades are structs: `Opposite` is not a nullable boundary marker. Use `OppositeIsBorder` or check `OppositeFace.IsValid` before crossing a boundary.
 
 ## Related
