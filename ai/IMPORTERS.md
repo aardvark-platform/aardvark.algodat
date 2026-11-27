@@ -59,7 +59,7 @@ foreach (var chunk in Laszip.Chunks("scan.laz", parseConfig))
 - Positions have the scan pose applied; normals are rotated when a pose is present.
 - `Chunks` filters nonzero `CartesianInvalidState` entries. It supplies default colors and may fill attributes missing from individual scans to make their data compatible.
 - `ChunksFull` returns `E57.E57Chunk`, preserving `RawData` and `Data3D`. It does **not** perform the same invalid-state filtering. If filtering it yourself, apply the mask to every aligned attribute, not only positions.
-- Full chunks expose optional `uint[]` row/column and return indices, `C3b[]` colors, and `DateTimeOffset[]` timestamps. Timestamp conversion uses acquisition metadata or an epoch heuristic; consult `RawData` for the decoded timestamp values.
+- Full chunks expose optional `uint[]` row/column and return indices, `C3b[]` colors, and `DateTimeOffset[]` timestamps. Standard `acquisitionStart`/`acquisitionEnd` metadata populates the existing `AcquisitonStart`/`AcquisitonEnd` fields (public spellings retained). Each element falls back to the historical `acquisitonStart`/`acquisitonEnd` spelling only when its standard name is absent; a present but malformed standard element still fails parsing. Timestamp conversion adds raw relative offsets to the parsed start, or uses the existing epoch heuristic when no start is present. Fractional seconds and atomic-clock flags are retained; conversion arithmetic is unchanged. Consult `RawData` for the decoded timestamp values.
 - Checksum verification is opt-in through the stream overloads with `verifyChecksums`.
 
 ### LAS/LAZ
