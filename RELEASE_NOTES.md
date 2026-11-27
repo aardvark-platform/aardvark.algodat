@@ -1,3 +1,5 @@
+- [E57] Read standard acquisition start/end metadata so relative point timestamps use the scan start; retain legacy XML spellings as fallbacks.
+
 ### 5.6.6
 - [PolyMesh] PolyLineSet: WithResolvedLineAttributes and GetIndexedGeometry(resolveLineAttributes) render line attributes from the indexed line list; IFieldCodeable
 

@@ -11,6 +11,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+using Aardvark.Data.E57;
 using Aardvark.Data.Points;
 using Aardvark.Data.Points.Import;
 using NUnit.Framework;
@@ -25,6 +26,181 @@ namespace Aardvark.Geometry.Tests
     [TestFixture]
     public class E57Tests
     {
+        [Test]
+        public void StandardAcquisitionTimesAreParsedIndependently()
+        {
+            foreach (var mask in new[] { 1, 2, 3 })
+            foreach (var start in new[] { 0.0, 1261872000.125 })
+            foreach (var atomic in new[] { false, true })
+            {
+                var end = start + 7.75;
+                var metadata = ((mask & 1) != 0 ? AcquisitionTime("acquisitionStart", start, atomic) : "")
+                    + ((mask & 2) != 0 ? AcquisitionTime("acquisitionEnd", end, !atomic) : "");
+                using var stream = CreateAcquisitionStream(metadata);
+                var scan = E57FileHeader.Parse(stream, stream.Length, false).E57Root.Data3D.Single();
+                var context = $"mask={mask}, start={start:R}, atomic={atomic}";
+                CheckAcquisitionTime(scan.AcquisitonStart, (mask & 1) != 0 ? start : null, atomic, context + ", start");
+                CheckAcquisitionTime(scan.AcquisitonEnd, (mask & 2) != 0 ? end : null, !atomic, context + ", end");
+            }
+        }
+
+        [Test]
+        public void AbsentAndLegacyAcquisitionMetadataKeepExistingBehavior()
+        {
+            foreach (var mask in new[] { 0, 1, 2, 3 })
+            foreach (var atomic in new[] { false, true })
+            {
+                var metadata = ((mask & 1) != 0 ? AcquisitionTime("acquisitonStart", 0.5, atomic) : "")
+                    + ((mask & 2) != 0 ? AcquisitionTime("acquisitonEnd", 8.75, !atomic) : "");
+                using var stream = CreateAcquisitionStream(metadata);
+                var scan = E57FileHeader.Parse(stream, stream.Length, false).E57Root.Data3D.Single();
+                var context = $"legacy mask={mask}, atomic={atomic}";
+                CheckAcquisitionTime(scan.AcquisitonStart, (mask & 1) != 0 ? 0.5 : null, atomic, context + ", start");
+                CheckAcquisitionTime(scan.AcquisitonEnd, (mask & 2) != 0 ? 8.75 : null, !atomic, context + ", end");
+            }
+        }
+
+        [Test]
+        public void StandardAcquisitionElementsTakePrecedenceOverLegacyNames()
+        {
+            foreach (var mask in new[] { 1, 2, 3 })
+            foreach (var standardFirst in new[] { false, true })
+            {
+                // A zero standard value is still present, and must not select the legacy value.
+                var standard = ((mask & 1) != 0 ? AcquisitionTime("acquisitionStart", 0, true) : "")
+                    + ((mask & 2) != 0 ? AcquisitionTime("acquisitionEnd", 1261872008.875, false) : "");
+                var legacy = AcquisitionTime("acquisitonStart", 300.5, false) + AcquisitionTime("acquisitonEnd", 301.75, true);
+                using var stream = CreateAcquisitionStream(standardFirst ? standard + legacy : legacy + standard);
+                var scan = E57FileHeader.Parse(stream, stream.Length, false).E57Root.Data3D.Single();
+                var context = $"standard mask={mask}, standardFirst={standardFirst}";
+                CheckAcquisitionTime(scan.AcquisitonStart, (mask & 1) != 0 ? 0 : 300.5, (mask & 1) != 0, context + ", start");
+                CheckAcquisitionTime(scan.AcquisitonEnd, (mask & 2) != 0 ? 1261872008.875 : 301.75, (mask & 2) == 0, context + ", end");
+            }
+            foreach (var suffix in new[] { "Start", "End" })
+            {
+                var legacy = AcquisitionTime("acquisiton" + suffix, 300.5, false);
+                using var stream = CreateAcquisitionStream($"<acquisition{suffix} type=\"Structure\"/>" + legacy);
+                Assert.That(() => E57FileHeader.Parse(stream, stream.Length, false), Throws.Exception,
+                    $"A present but malformed acquisition{suffix} must not fall back to legacy metadata.");
+                using var ignoredLegacy = CreateAcquisitionStream(AcquisitionTime("acquisition" + suffix, 0.5, true)
+                    + $"<acquisiton{suffix} type=\"Structure\"/>");
+                var scan = E57FileHeader.Parse(ignoredLegacy, ignoredLegacy.Length, false).E57Root.Data3D.Single();
+                CheckAcquisitionTime(suffix == "Start" ? scan.AcquisitonStart : scan.AcquisitonEnd,
+                    0.5, true, $"malformed legacy {suffix} ignored");
+            }
+        }
+
+        [Test]
+        public void ChunkTimestampsUseAcquisitionStartWithoutChangingPointData()
+        {
+            var gpsEpoch = new DateTimeOffset(1980, 1, 6, 0, 0, 0, TimeSpan.Zero);
+            var start2020 = new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.Zero).AddTicks(1250000);
+            var standardStart = AcquisitionTime("acquisitionStart", 1261872000.125, true);
+            var standardEnd = AcquisitionTime("acquisitionEnd", 1261872008.875, false);
+            var legacyStart = AcquisitionTime("acquisitonStart", 0.5, false);
+            using var referenceStream = CreateAcquisitionStream("");
+            var reference = E57.ChunksFull(referenceStream, referenceStream.Length, ParseConfig.Default).Single();
+            Assert.That(reference.Positions, Is.EqualTo(new[] {
+                new Aardvark.Base.V3d(1, 2, 3), new Aardvark.Base.V3d(4, 5, 6), new Aardvark.Base.V3d(-1, -2, -3) }));
+            Assert.That(reference.RawData[PointPropertySemantics.TimeStamp], Is.EqualTo(new[] { 0.0, 0.25, 2.5 }));
+
+            var cases = new[]
+            {
+                ("standard start", standardStart, start2020),
+                ("standard both", standardStart + standardEnd, start2020),
+                ("standard precedence", legacyStart + standardStart + standardEnd, start2020),
+                ("legacy start", legacyStart, gpsEpoch.AddTicks(5000000)),
+                ("legacy start with standard end", legacyStart + standardEnd, gpsEpoch.AddTicks(5000000)),
+                ("end only", standardEnd, gpsEpoch),
+                ("absent", "", gpsEpoch)
+            };
+            foreach (var (context, metadata, start) in cases)
+            {
+                using var stream = CreateAcquisitionStream(metadata);
+                var source = stream.ToArray();
+                var chunk = E57.ChunksFull(stream, stream.Length, ParseConfig.Default).Single();
+                var positions = chunk.Positions.ToArray();
+                var raw = chunk.RawData.ToDictionary(kv => kv.Key, kv => (Array)kv.Value.Clone());
+                var timestamps = chunk.Timestamps;
+                Assert.That(timestamps, Is.EqualTo(new[] { start, start.AddTicks(2500000), start.AddTicks(25000000) }), context);
+                Assert.That(chunk.Count, Is.EqualTo(3), context);
+                Assert.That(chunk.Positions, Is.EqualTo(reference.Positions), context);
+                Assert.That(chunk.RawData.Keys, Is.EquivalentTo(reference.RawData.Keys), context);
+                foreach (var (semantic, values) in reference.RawData)
+                    Assert.That(chunk.RawData[semantic], Is.EqualTo(values), $"{context}, {semantic}");
+                // Reading or modifying the returned timestamps must not alter source data.
+                timestamps[0] = DateTimeOffset.MinValue;
+                Assert.That(chunk.Timestamps[0], Is.EqualTo(start), context);
+                Assert.That(chunk.Positions, Is.EqualTo(positions), context);
+                foreach (var (semantic, values) in raw)
+                    Assert.That(chunk.RawData[semantic], Is.EqualTo(values), $"{context}, unchanged {semantic}");
+                Assert.That(stream.ToArray(), Is.EqualTo(source), context);
+            }
+        }
+
+        private static string AcquisitionTime(string name, double seconds, bool atomic) => FormattableString.Invariant(
+            $"<{name} type=\"Structure\"><dateTimeValue type=\"Float\">{seconds:R}</dateTimeValue><isAtomicClockReferenced type=\"Integer\">{(atomic ? 1 : 0)}</isAtomicClockReferenced></{name}>");
+
+        private static void CheckAcquisitionTime(E57DateTime actual, double? seconds, bool atomic, string context)
+        {
+            if (!seconds.HasValue) { Assert.That(actual, Is.Null, context); return; }
+            Assert.That(actual, Is.Not.Null, context);
+            Assert.That(actual.DateTimeValue, Is.EqualTo(seconds.Value), context);
+            Assert.That(actual.IsAtomicClockReferenced, Is.EqualTo(atomic), context);
+            var epoch = new DateTimeOffset(1980, 1, 6, 0, 0, 0, TimeSpan.Zero);
+            Assert.That(actual.DateTime, Is.EqualTo(epoch.AddTicks((long)(seconds.Value * TimeSpan.TicksPerSecond))), context);
+        }
+
+        private static MemoryStream CreateAcquisitionStream(string metadata)
+        {
+            // Three records with double XYZ/time offsets, float intensity and byte RGB.
+            // All binary offsets are before the first checksum boundary.
+            const int packetLength = 140;
+            const int xmlOffset = 80 + packetLength;
+            var xml = System.Text.Encoding.UTF8.GetBytes($@"<e57Root type=""Structure"" xmlns=""http://www.astm.org/COMMIT/E57/2010-e57-v1.0"">
+                <formatName type=""String"">ASTM E57 3D Imaging Data File</formatName>
+                <guid type=""String"">00000000-0000-0000-0000-000000000001</guid>
+                <versionMajor type=""Integer"">1</versionMajor><versionMinor type=""Integer"">0</versionMinor>
+                <data3D type=""Vector"" allowHeterogeneousChildren=""1""><vectorChild type=""Structure"">
+                    <guid type=""String"">00000000-0000-0000-0000-000000000002</guid>{metadata}
+                    <cartesianBounds type=""Structure""><xMinimum type=""Float"">-1</xMinimum><xMaximum type=""Float"">4</xMaximum>
+                        <yMinimum type=""Float"">-2</yMinimum><yMaximum type=""Float"">5</yMaximum>
+                        <zMinimum type=""Float"">-3</zMinimum><zMaximum type=""Float"">6</zMaximum></cartesianBounds>
+                    <intensityLimits type=""Structure""><intensityMinimum type=""Float"">10</intensityMinimum><intensityMaximum type=""Float"">30</intensityMaximum></intensityLimits>
+                    <points type=""CompressedVector"" fileOffset=""48"" recordCount=""3""><prototype type=""Structure"">
+                        <cartesianX type=""Float"" precision=""double""/><cartesianY type=""Float"" precision=""double""/>
+                        <cartesianZ type=""Float"" precision=""double""/><timeStamp type=""Float"" precision=""double""/>
+                        <intensity type=""Float"" precision=""single""/>
+                        <colorRed type=""Integer"" minimum=""0"" maximum=""255""/><colorGreen type=""Integer"" minimum=""0"" maximum=""255""/>
+                        <colorBlue type=""Integer"" minimum=""0"" maximum=""255""/>
+                    </prototype><codecs type=""Vector"" allowHeterogeneousChildren=""1""/></points>
+                </vectorChild></data3D><images2D type=""Vector"" allowHeterogeneousChildren=""1""/></e57Root>");
+            using var logical = new MemoryStream();
+            using (var writer = new BinaryWriter(logical, System.Text.Encoding.UTF8, leaveOpen: true))
+            {
+                writer.Write(System.Text.Encoding.ASCII.GetBytes("ASTM-E57"));
+                writer.Write(1U); writer.Write(0U);
+                writer.Write((long)((xmlOffset + xml.Length + 1019) / 1020 * 1024));
+                writer.Write((long)xmlOffset); writer.Write((long)xml.Length); writer.Write(1024L);
+                writer.Write((byte)1); writer.Write(new byte[7]);
+                writer.Write(32L + packetLength); writer.Write(80L); writer.Write(0L);
+                writer.Write((byte)1); writer.Write((byte)0); writer.Write((ushort)(packetLength - 1)); writer.Write((ushort)8);
+                foreach (var length in new ushort[] { 24, 24, 24, 24, 12, 3, 3, 3 }) writer.Write(length);
+                foreach (var value in new[] { 1.0, 4, -1, 2, 5, -2, 3, 6, -3, 0, 0.25, 2.5 }) writer.Write(value);
+                foreach (var value in new[] { 10f, 20f, 30f }) writer.Write(value);
+                writer.Write(new byte[] { 10, 20, 30, 40, 50, 60, 70, 80, 90 });
+                writer.Write((byte)0); // packet alignment
+                Assert.That(logical.Position, Is.EqualTo(xmlOffset));
+                writer.Write(xml);
+            }
+            var bytes = logical.ToArray();
+            var physical = new byte[(bytes.Length + 1019) / 1020 * 1024];
+            // Match the other in-memory fixtures: checksum verification is off, CRC slots stay zero.
+            for (var offset = 0; offset < bytes.Length; offset += 1020)
+                Array.Copy(bytes, offset, physical, offset / 1020 * 1024, Math.Min(1020, bytes.Length - offset));
+            return new MemoryStream(physical);
+        }
+
         [TestCase(0)]
         [TestCase(16)]
         [TestCase(936)] // data packet header crosses a checksum boundary
